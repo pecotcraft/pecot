@@ -96,6 +96,12 @@ export const authoredEntrySchema = z.strictObject({
   idempotent: z.boolean(),
   examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
   default_notes: z.record(z.string(), authoredText),
+  // help は、CLI の --help に出す英語の文。prose が ja の定義書で、上の 3 つの欄の代わりに CLI が読む。
+  help: z.strictObject({
+    details: z.array(authoredText),
+    examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
+    default_notes: z.record(z.string(), authoredText),
+  }).optional(),
   behaviors: z.array(behaviorSchema).min(1),
 })
 

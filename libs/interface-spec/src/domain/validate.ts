@@ -264,6 +264,31 @@ function exitTexts(entry: AuthoredEntry): TextPair[] {
   })
 }
 
+function hasSameNames(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((name, index) => name === right[index])
+}
+
+// CLI の --help は英語で出す。prose が ja で CLI の面がある項目は、help に英語の文を持つ。
+function helpFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry, prose: NonNullable<Prose>): Finding[] {
+  const finding = (reason: string, field = 'help'): Finding => ({ file, scope, field, reason })
+  const { help } = entry
+  if (prose !== 'ja') return help === undefined ? [] : [finding('is only for prose "ja" (remove it; --help reads details, examples and default_notes)')]
+  if (help === undefined) return generated.surfaces.cli === undefined ? [] : [finding('is missing (--help reads it; write details, examples and default_notes in English)')]
+  const texts: TextPair[] = [
+    ...help.details.map((text, index) => [`help.details[${String(index)}]`, text] as const),
+    ...help.examples.map((example, index) => [`help.examples[${String(index)}].note`, example.note] as const),
+    ...Object.entries(help.default_notes).map(([name, text]) => [`help.default_notes.${name}`, text] as const),
+  ]
+  const findings = japaneseFindings(file, scope, texts)
+  if (!hasSameNames(help.examples.map(example => example.run), entry.examples.map(example => example.run))) {
+    findings.push(finding('must have the same run values, in the same order, as examples', 'help.examples'))
+  }
+  if (!hasSameNames(Object.keys(help.default_notes).toSorted(compareText), Object.keys(entry.default_notes).toSorted(compareText))) {
+    findings.push(finding('must have the same input names as default_notes', 'help.default_notes'))
+  }
+  return findings
+}
+
 function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry, prose: NonNullable<Prose>): Finding[] {
   const texts: TextPair[] = [
     ...(entry.summary === undefined ? [] : [['summary', entry.summary] as const]),
@@ -283,6 +308,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
   ]
   return [
     ...japaneseFindings(file, id, texts.filter(([field, text]) => FIXED_VALUES[field] !== text), prose),
+    ...helpFindings(file, id, entry, generated, prose),
     ...namesFindings(file, id, entry, generated),
     ...annotationFindings(file, id, entry, generated),
     ...behaviorFindings(file, entry.behaviors, id, id, 'behaviors'),

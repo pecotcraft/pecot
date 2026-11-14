@@ -41,11 +41,17 @@ const EXAMPLE_SCHEMA = z.object({ run: z.string(), note: z.string() })
 
 const FILE_SCHEMA = z.object({ entries: z.record(z.string(), z.unknown()) })
 
-const ENTRY_SCHEMA = z.object({
+const PROSE_SHAPE = {
   details: NAMES_SCHEMA,
-  constraints: z.array(CONSTRAINT_SCHEMA),
   examples: z.array(EXAMPLE_SCHEMA),
   default_notes: z.record(z.string(), z.string()),
+}
+
+// help は --help に出す英語の文。日本語で書いた定義書では、同じ名前の 3 つの欄の代わりに読む
+const ENTRY_SCHEMA = z.object({
+  ...PROSE_SHAPE,
+  constraints: z.array(CONSTRAINT_SCHEMA),
+  help: z.object(PROSE_SHAPE).optional(),
 })
 
 /**
@@ -90,6 +96,7 @@ export function readAuthoredNotes(id: string, root: string = pluginRoot()): Note
   if (entry === undefined) return unreadable(file, `it has no entry ${id}`)
   const parsed = ENTRY_SCHEMA.safeParse(entry)
   if (!parsed.success) return unreadable(file, `the fields of ${id} have the wrong shape`)
-  const { details, constraints, examples, default_notes: defaultNotes } = parsed.data
+  const { constraints } = parsed.data
+  const { details, examples, default_notes: defaultNotes } = parsed.data.help ?? parsed.data
   return { kind: 'read', notes: { details, constraints, examples, defaultNotes: new Map(Object.entries(defaultNotes)) } }
 }

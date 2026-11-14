@@ -36,6 +36,24 @@ environment:
     effect: '正の整数で `TERMINAL_WIDTH` が無いときに、ヘルプとエラーの出力の幅（桁数）になります。端末の幅より先に使います。どれも無いときの幅は 80 です。'
 entries:
   PW-ADD-TO-PROJECT:
+    help:
+      details:
+        - Adds one Issue to the project board of the active project and then sets its Status field.
+        - The Issue reference is owner/repo/N or the short form N.
+        - The short form N refers to the Issue of the repository given by the global pecot --repo.
+        - Without --repo, the short form N refers to the Issue of the repository of the git remote.
+        - The repository of the Issue must be registered in the active project.
+        - --status takes backlog, pending, blocked, ready, active, in_review or archived, and the Status is set to that value.
+        - An empty --status skips the Status update and only adds the Issue.
+        - An Issue that is already on the board is not added twice.
+        - A --status value that is not one of these values stops the command before anything is added.
+        - A --status value that the board does not define stops the command before anything is added.
+      examples:
+        - run: pecot add-to-project example-org/my-repo/123
+          note: Add the Issue to the board with the Status ready.
+        - run: pecot add-to-project example-org/my-repo/123 --status backlog
+          note: Add the Issue to the board with the Status backlog.
+      default_notes: {}
     summary: Issue をプロジェクトのボードに足し、Status を設定します。
     arguments:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
@@ -141,6 +159,24 @@ entries:
         pattern: unwanted
         statement: 'もし `--status` が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
   PW-BOARD-SYNC:
+    help:
+      details:
+        - Reads the whole board and moves the open Issues in Ready, Blocked, Active and In Review to the column and Status that their judgment calls for.
+        - The judgment, the column move and the Status write are the same as the rest of the workflow (blocked-by, branches and PRs).
+        - An Issue with a branch or a PR is never moved; when it is blocked, a warning line says so.
+        - An Issue in Backlog, Pending or Archived, a PR card, a Tracker and an Epic are not moved.
+        - An Issue whose judgment cannot be read (for example, develop_branch is not set) is not moved, and a warning line gives the reason.
+        - Reads each Issue of Blocked, Active and In Review one by one, because the branches and PRs are not in the board list. Skips only the Ready Issues that the list shows with no prerequisites.
+        - With --dry-run, prints the same sentences as dry-run lines and writes nothing to the board.
+        - The config is --project, else the active project, else the only config in .pecot/config/projects. With two or more configs and no active project, stops and asks for --project.
+        - Reads the GraphQL rate limit (REST, no points) before and after the run and prints the points used and the remaining points. When it cannot be read, the line is left out. When the rate limit window resets during the run, or the difference is negative, the points used line is left out.
+        - On a GitHub Enterprise Server without Issue dependencies, prints one warning and moves nothing.
+      examples:
+        - run: pecot board sync --dry-run
+          note: Show the planned moves without writing to the board.
+        - run: pecot board sync --project example-config
+          note: Synchronize the board of the named config, for a checkout without an active project.
+      default_notes: {}
     summary: Ready・Blocked・Active・In Review の Issue を、判定に合った列と Status へ動かします。
     arguments:
       dry_run: 'ボードへ書き込まず、動かす予定だけを出すかどうかです。'
@@ -273,6 +309,44 @@ entries:
         pattern: unwanted
         statement: 'もし設定のファイルが JSON として読めないなら、`error` の行を出して、終了コード 1 で終わります'
   PW-CREATE-BRANCH:
+    help:
+      details:
+        - Creates a branch linked to an Issue through the GitHub GraphQL API (createLinkedBranch), so the branch shows in the Development section of the Issue.
+        - The Issue reference must be the full form owner/repo/N.
+        - The branch is named <branch_name>/<N>, with the Issue number appended.
+        - Before the branch is created, the readiness of the Issue is read in the same way as pecot issue read.
+        - "When the readiness is stackable, the branch starts from the head of the branch of the PR it stacks on, and the created line ends with (stacked on #N)."
+        - When the readiness is startable, or the Issue has no readiness (an Epic or a Tracker), the branch starts from the head of --base, or from the develop_branch of the repository in the config file without --base.
+        - develop_branch and --base are required only after the readiness is decided, and only when the branch is not stacked.
+        - When the readiness is blocked, no branch is created; the command writes the reason, the unfinished prerequisites and how to fix it, and stops, even when develop_branch is not set.
+        - The fix is one unblock line for each unfinished prerequisite, and one line to stack on it for each prerequisite that waits for merge, each with the reference of that Issue.
+        - When the branch of the PR to stack on is gone after the readiness is decided, the command writes an error line with the name of the branch and the Issue, and stops.
+        - --base is compared with the base chosen by readiness only when the readiness is stackable, and a different --base stops the command.
+        - When the GitHub Enterprise Server does not support issue dependencies, the readiness is not read, a warning line says so, and the branch starts as for an Issue without prerequisites.
+        - After the branch is created, the Status of the Issue on the board is set to active.
+        - A failure to set the Status does not stop the command.
+        - After that, the Issue is recorded as the work target in .pecot/state/.pecot-active and .pecot/state/.pecot-session-title, and .pecot/work/<N>/ is created.
+        - A failure to record the work target does not stop the command.
+        - When the work target is recorded, the chosen base is written to .pecot/state/.pecot-base as <branch> <sha>, followed by owner/repo#N of the Issue it stacks on when the branch is stacked.
+        - .pecot/state/.pecot-base is removed before the work target is recorded, so that it never keeps the record of the previous Issue.
+        - The repository of the working directory git remote must be the repository of the Issue.
+        - --allow-cross-repo skips the check of the repository of the working directory.
+        - When .pecot-active holds another Issue that is OPEN, the command stops.
+        - --force-overwrite-active skips the check of .pecot-active.
+        - When .pecot-active holds a malformed value, a CLOSED Issue or an Issue in another state, a warning line is written and the file is overwritten.
+        - The repository must be registered in the active project.
+        - --checkout and --no-checkout are kept for compatibility and have no effect.
+        - The global pecot --repo must match the repository of the current git remote.
+        - This command does not take its target from --repo.
+      examples:
+        - run: pecot create-branch example-org/my-repo/123 feat/my-change
+          note: Create the branch feat/my-change/123 from the develop branch.
+        - run: pecot create-branch example-org/my-repo/123 fix/my-bug --base main
+          note: Create the branch fix/my-bug/123 from main.
+        - run: pecot create-branch example-org/my-repo/123 feat/my-change --allow-cross-repo
+          note: Create the branch from a directory that is not a checkout of the repository.
+      default_notes:
+        base: The branch of the PR the Issue stacks on when its readiness is stackable; otherwise the develop_branch of the repository in the config file, and without it the command stops with exit status 1.
     summary: Issue に紐づいたブランチを作ります。
     arguments:
       allow_cross_repo: '作業ディレクトリのリポジトリが Issue のリポジトリと違ってもよいかどうかです。スクリプトと、作業ディレクトリの外からの実行で使います。'
@@ -457,6 +531,23 @@ entries:
         pattern: unwanted
         statement: 'もし積む先のブランチが判定の後に無くなったなら、積む先が見つからない旨の `error` の行を出して終了コード 1 で終わります'
   PW-DELETE-BRANCH:
+    help:
+      details:
+        - Deletes a remote branch through the GitHub REST API, for use where a hook blocks git push and the gh CLI.
+        - The repository to delete from is the repo_ref argument (owner/repo).
+        - The global pecot --repo is only checked against the current git remote and is not used as the target.
+        - The default branch of the repository and the develop_branch and release_branch in the config file are protected and are never deleted.
+        - Also deletes the remote branch wip/<branch> when it exists.
+        - A wip/<branch> that does not exist is skipped without a message.
+        - A wip/<branch> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
+        - --dry-run reads the default branch and checks the protected branches, then writes the plan line for the branch and deletes nothing.
+        - --dry-run does not plan the deletion of wip/<branch>.
+      examples:
+        - run: pecot delete-branch example-org/my-repo feat/my-change/123
+          note: Delete the remote branch and its wip branch.
+        - run: pecot delete-branch example-org/my-repo feat/my-change/123 --dry-run
+          note: Show the plan without deleting.
+      default_notes: {}
     summary: リモートブランチを削除します。保護するブランチは削除しません。
     arguments:
       branch: '削除するブランチの名前です。'
@@ -562,6 +653,37 @@ entries:
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
   PW-DEPENDABOT-SYNC:
+    help:
+      details:
+        - Finds the open Tracker issue labeled dependabot-pr whose body has the Tracker marker.
+        - Rewrites the table between list-begin and list-end in the body of the Tracker.
+        - Lists the open Dependabot PRs that wait for a human decision.
+        - A PR with no waiting reason is not listed.
+        - A PR is eligible for auto-merge when its first commit is authored by dependabot[bot] with a valid signature and the largest known update type is minor or patch.
+        - A dependency whose update type is unknown is ignored while another dependency has a known type, and the PR counts as unknown only when no dependency has a known type.
+        - A PR whose update type is major or unknown is listed.
+        - An eligible PR is listed when its checks failed.
+        - An eligible PR with auto-merge on is listed when its checks have not finished 24 hours after the last push.
+        - An eligible PR is listed when it conflicts for more than 30 minutes, counted from the later of the last push and the latest commit of the base branch.
+        - An eligible PR is listed when it was dequeued after the last push and has neither auto-merge nor a merge queue entry.
+        - An eligible PR with neither auto-merge nor a merge queue entry is listed 30 minutes after the last push.
+        - The last push is the last force push, or the creation of the PR when there is none.
+        - Each table row has the PR title, a link to the PR and the state of the checks (passed, failed, pending or none).
+        - The waiting reasons appear only in the result lines.
+        - Text in the Tracker body outside the list markers stays as it is.
+        - When no Tracker is open and there are PRs to list, creates a Tracker, adds it to the project board, and sets Status to Backlog and Priority to medium.
+        - When no Tracker is open and no PR is listed, creates nothing.
+        - When the list is empty and a Tracker is open, sets the list to none and closes the Tracker as completed.
+        - On an open Tracker that is not closed, sets Status and Priority only while they are empty, so a change made by a person stays.
+        - A field that the active project does not define is not set.
+        - When several Trackers are open, uses the lowest number and leaves the others open.
+        - A closed Tracker is not reused.
+      examples:
+        - run: pecot dependabot sync --dry-run
+          note: Show the planned Tracker changes without writing to GitHub.
+        - run: pecot dependabot sync
+          note: Rewrite the Tracker list, creating or closing the Tracker when needed.
+      default_notes: {}
     summary: 人の判断を待つ Dependabot の PR の一覧を、open の Tracker に書き直します。
     arguments:
       dry_run: '何も変えずに、Tracker を変える予定だけを出すかどうかです。'
@@ -764,6 +886,27 @@ entries:
         pattern: unwanted
         statement: 'もし Tracker の作成かボードへの追加に失敗したなら、終了コード 1 で終わります'
   PW-ISSUE-COMMENT:
+    help:
+      details:
+        - "Has three modes: --prepare, a file argument and -m."
+        - When more than one mode is given, --prepare wins over the file and the file wins over -m.
+        - With --prepare, copies the template of the given kind to .pecot/tmp/output/ and prints its path.
+        - With --prepare and --issue, fills issue_ref in the front matter of the copy with the given reference.
+        - With a file, posts its body as a comment on the Issue named by issue_ref in its front matter.
+        - With -m, posts the given body as a comment on the Issue given by --issue.
+        - A file is validated against the template named in its front matter, and -m against the template given by -t.
+        - A file that has comment_url updates that comment instead of posting a new one.
+        - After posting from a file, writes the URL of the new comment back to comment_url in that file.
+        - comment_url must point to a comment on the Issue named by issue_ref.
+        - With a file, a repository that is not in the project gives a warning and the comment is still posted.
+      examples:
+        - run: pecot issue comment --prepare -t plan -i example-org/my-repo/12
+          note: Write a plan template for Issue 12 and print its path.
+        - run: pecot issue comment .pecot/tmp/output/comment-plan-20260101-120000.md
+          note: Post the comment in the file, or update it when the file has comment_url.
+      default_notes:
+        issue: No default. Required with -m; with --prepare, issue_ref in the copy stays empty when omitted; with a file, issue_ref comes from the front matter. The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        template: No default. Required with --prepare and -m; with a file, the template comes from the front matter.
     summary: Issue にコメントを投稿します。
     arguments:
       file: 'フロントマター付きの Markdown ファイルのパスです。'
@@ -910,6 +1053,50 @@ entries:
         pattern: unwanted
         statement: 'もし Issue の参照の形が誤っているなら、終了コード 2 で終わります'
   PW-ISSUE-CREATE:
+    help:
+      details:
+        - "Has three modes: --prepare, files and -m."
+        - When more than one mode is given, --prepare wins over the files and the files win over -m.
+        - With --prepare, copies the template given by --template to .pecot/tmp/output/ and prints its path.
+        - With --prepare and --repo, fills the repository line of the copy with the given repository.
+        - With --prepare and --suffix, appends the suffix to the file name of the copy.
+        - With files, creates one Issue per file in the order given.
+        - With files, the front matter decides the type, repository, status, priority, size, parent Epic, order, labels and blocked_by, and the options of the same names are ignored.
+        - Before the first Issue of a batch is created, checks that every file exists, that none is given twice, that every {{issue:key}} placeholder points to an earlier file, and that every front matter and body is valid.
+        - Before the first Issue of a batch is created, also checks blocked_by, the order numbers and the repository link, and reads the parent Epics and the existing Issues named in blocked_by.
+        - Each blocked_by entry names an earlier file of the batch by its key (the stem of the file name, or the suffix given to --prepare) or an existing Issue as owner/repo/N, with wait stack (the default) or wait merge and a reason.
+        - Adds each blocked_by entry to the created Issue as blocked-by, right after the Issue is created.
+        - For a wait merge entry, writes a line with the prerequisite and the reason into the Waits for merge section of the body, and nothing for a wait stack entry.
+        - A task or bug with blocked_by is placed in the Blocked column and one without it in the Ready column, unless the board has no Blocked column; then it is placed in Ready with one warning.
+        - After the blocked-by of a Blocked Issue that names an existing Issue are added, reads whether it can start, and moves it to the Ready column when it can. Leaves it in Blocked when the judgement cannot be read.
+        - An Issue with a parent Epic and no order gets the highest order in use under that Epic plus one, in the order of the files. A branch letter such as 18a counts as its number. The title carries only the serial number.
+        - With --plan and files, prints a table of the files with their numbers, blocked-by and approach (alone, stack on, wait for merge, join), and the stackable chains, without creating anything.
+        - After posting, prints the stackable chains of the created Issues when every blocked-by was added.
+        - The parallel field is not supported; a file that has it is rejected.
+        - A {{issue:key}} placeholder in a body expands to the number of the Issue created from the earlier file with that key.
+        - With -m, creates one Issue from --title, the body, --repo and --type.
+        - With -m, --repo is required unless --type is epic.
+        - The body must follow the template of the Issue type.
+        - The status at creation can only be the default of the type, or blocked for a task or bug with blocked_by.
+        - An Epic is created in aggregation_repo when no repository is given.
+        - Creating an Epic in a repository other than aggregation_repo gives a warning and continues.
+        - Adds each created Issue to the project board and sets its status, priority and size.
+        - With a parent Epic, links each created Issue as a sub-issue of it.
+        - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
+        - With files, stops when two files of the batch have the same order under the same parent Epic.
+      examples:
+        - run: pecot issue create --prepare --template task --repo example-org/my-repo
+          note: Write a task template and print its path.
+        - run: pecot issue create .pecot/work/12/issue-a.md .pecot/work/12/issue-b.md
+          note: Create two Issues in the order given.
+        - run: pecot issue create --plan .pecot/work/12/issue-a.md .pecot/work/12/issue-b.md
+          note: Show the progression table and the stackable chains without creating anything.
+        - run: pecot issue create -t "Add a report" -r example-org/my-repo -m "<body>"
+          note: Create one Issue from the command line.
+      default_notes:
+        status: "Decided by the type: ready for task and bug (blocked when the file has blocked_by), backlog for epic and tracker. Any other value stops the command with exit status 1."
+        repo: Required with -m and --prepare unless the type is epic. An Epic goes to aggregation_repo of the active project; when that is not set, --repo is required.
+        parent_epic: An integer is resolved against aggregation_repo, or against the repository of the new Issue when aggregation_repo is not set. The form owner/repo/N is used as it is.
     summary: フロントマター付きの Markdown ファイルから Issue を作ります。
     arguments:
       files: 'フロントマター付きの Markdown ファイルのパスです。複数渡すと、まとめて投稿します。'
@@ -1185,6 +1372,25 @@ entries:
         pattern: unwanted
         statement: 'もし作成が途中で失敗したなら、作った Issue どうしの前提だけを付けて、終了コード 1 で終わります'
   PW-ISSUE-QUICK:
+    help:
+      details:
+        - Creates an Issue from a free-format message in one step, without template validation.
+        - The title is the first 50 characters of the message with each run of whitespace turned into one space, prefixed by the type.
+        - Adds the Issue to the project board and sets status, priority and size by type.
+        - For task and bug the values are active, medium and s; for epic and tracker they are backlog and medium, with no size.
+        - With a parent Epic, links the Issue as a sub-issue of it.
+        - Giving a parent Epic to an Epic gives a warning.
+        - Unless --no-branch is given, creates a linked branch named feat/<YYYYMMDD-HHMMSS>/<N> from the develop_branch of the repository.
+        - After the branch is created, or with --no-branch, writes the work target to .pecot/state/.pecot-active and creates .pecot/work/<N>/.
+        - For a type other than epic and tracker, creates the flag .pecot/state/.pecot-quick-mode.
+        - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
+      examples:
+        - run: pecot issue quick -r example-org/my-repo -m "Add an API endpoint"
+          note: Create a task, its branch and the work target.
+        - run: pecot issue quick -r example-org/my-repo -m "Update the docs" --no-branch
+          note: Create a task without a branch.
+      default_notes:
+        type: task. The status, priority and size set on the board are decided by the type.
     summary: 自由な形式のメッセージから、Issue をすぐに作ります。
     arguments:
       message: 'Issue のメッセージです。形式は自由です。'
@@ -1353,6 +1559,22 @@ entries:
         pattern: event
         statement: '作業対象を記録すると、前の作業対象の `.pecot-base` を消します'
   PW-ISSUE-READ:
+    help:
+      details:
+        - Fetches one Issue with a single GraphQL query.
+        - Prints the title, state, parent Issue, linked branches, linked PRs, sub-issues, body and comments.
+        - For an Issue with blocked-by, also prints a Blocked by line with each prerequisite and a Readiness line with the judgment.
+        - When the blocked-by cannot be read, prints a warning and the rest of the Issue as before.
+        - Shows at most --comment-limit comments, from 0 to 20; 0 hides them.
+        - With --json, prints the same data as JSON.
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot issue read example-org/my-repo/12
+          note: Show the Issue as Markdown.
+        - run: pecot issue read example-org/my-repo/12 --json -c 0
+          note: Show the Issue as JSON without comments.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
     summary: Issue の詳細を、必要な項目だけ GraphQL で取得して出します。
     arguments:
       comment_limit: '出すコメントの数です。0 から 20 で渡します。0 にすると、コメントを出しません。'
@@ -1467,6 +1689,20 @@ entries:
         pattern: event
         statement: '前提が 0 件の Issue を読むと、前提を個別に読まず、判定を `startable` にします'
   PW-ISSUE-REOPEN:
+    help:
+      details:
+        - Reopens a closed Issue and sets its status on the project board.
+        - Sets the status given by --status, and ready when it is not given.
+        - Waits 3 seconds after setting the status and reopens the Issue a second time, because board automation can close it again.
+        - With --comment, posts the given reason as a comment after the Issue is reopened.
+        - Each run with --comment posts another comment.
+        - An Issue that is not on the board is reopened with a warning and its status is not changed.
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot issue reopen example-org/my-repo/12 --status active --comment "The fix did not hold."
+          note: Reopen an Issue as active and leave the reason.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
     summary: 閉じた Issue を開き直し、ボードの status も設定します。
     arguments:
       comment: '開き直す理由です。コメントとして投稿します。'
@@ -1575,6 +1811,28 @@ entries:
         pattern: unwanted
         statement: 'もし status が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
   PW-PR-CLEANUP:
+    help:
+      details:
+        - "Cleans up after a merged PR: closes the related Issues, optionally deletes the remote branches and returns the local checkout to the development branch."
+        - The related Issues are the closing issues of the PR, the Issues named after Closes, Fixes or Resolves in its body, and the Issue whose number ends the head branch name.
+        - Does not close an Epic or an Issue that has sub-issues, and writes a skipped line for it.
+        - With --delete-branch, deletes the remote head branch and then wip/<head>.
+        - A wip/<head> that does not exist is skipped without a message.
+        - A wip/<head> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
+        - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
+        - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
+        - After the local cleanup, removes the flags .pecot-active, .pecot-base, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked and the flag merge-slash-pending under .pecot/state/.
+        - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
+        - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
+        - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot pr cleanup example-org/my-repo/123 --delete-branch
+          note: Clean up after a merged PR and delete its remote branch.
+        - run: pecot pr cleanup example-org/my-repo/123 --dry-run
+          note: Show what would be done without changing anything.
+      default_notes:
+        pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
     summary: マージ済みの PR の後片付けをします。関連する Issue を閉じ、ブランチを削除し、ローカルを片付けます。
     arguments:
       delete_branch: 'ブランチを削除するかどうかです。'
@@ -1732,6 +1990,36 @@ entries:
         pattern: unwanted
         statement: 'もし `wip/<head>` があるのに削除できなかったなら、`warning` の行を標準エラーに出します'
   PW-PR-CREATE:
+    help:
+      details:
+        - "Has three modes: --prepare, a file argument and -m."
+        - When more than one mode is given, --prepare wins over the file and the file wins over -m.
+        - --template is default or release.
+        - With --prepare, copies the template to .pecot/tmp/output/ and prints its path.
+        - With --prepare and the default template, sets base in the copy to the develop_branch of the repository.
+        - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
+        - "With --prepare and the default template, fills the trailing Closes # with the number of the active task, or else the number that ends the branch name."
+        - "The Closes # of the copy is left empty when that Issue is an Epic."
+        - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
+        - With -m, the repository is --repo, or the only repository of the active project when --repo is omitted.
+        - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
+        - With a file, Closes is not appended when that Issue is an Epic.
+        - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
+        - In a repository whose release type is nx, also stops with exit status 3 when the title scope differs from the scope of the changed nx projects.
+        - Unless --dry-run is given, runs the same checks as pr preflight on the current directory and stops with exit status 2 when they find a warning.
+        - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
+        - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
+        - Removes the flag pr-create-slash-pending after the PR is created.
+      examples:
+        - run: pecot pr create --prepare
+          note: Write a PR template and print its path.
+        - run: pecot pr create .pecot/tmp/output/pr-create-20260101-120000.md --dry-run
+          note: Validate the file without creating the PR.
+        - run: 'pecot pr create -m "<body>" -t "feat: add a report" -b develop -r example-org/my-repo'
+          note: Create a PR from the command line.
+      default_notes:
+        head: The current branch. The related Issue is the number that ends the head branch name.
+        repo: With -m, the only repository of the active project when there is exactly one. With a file, the repository in the front matter.
     summary: PR（プルリクエスト）を作ります。
     arguments:
       base: 'base ブランチです。`-m` では必須です。'
@@ -1961,6 +2249,19 @@ entries:
         pattern: unwanted
         statement: 'もし head ブランチを決められないなら、終了コード 1 で終わります'
   PW-PR-PREFLIGHT:
+    help:
+      details:
+        - Prints the information to check before creating a PR for the repository given by --directory.
+        - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
+        - The base branch is <remote>/ followed by the develop_branch of the active project, where <remote> is the origin remote, or the first remote when there is no origin.
+        - Prints every section even when there are warnings.
+        - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
+        - Exits with status 2 when there is at least one warning.
+        - Reads the repository and the config and changes nothing.
+      examples:
+        - run: pecot pr preflight -D .
+          note: Check the current repository before creating a PR.
+      default_notes: {}
     summary: PR を作る前に確かめる情報を、まとめて出します。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
@@ -2055,6 +2356,20 @@ entries:
         pattern: unwanted
         statement: 'もし `--directory` を渡していないなら、使い方のエラーを出して終了コード 2 で終わります'
   PW-PR-READ:
+    help:
+      details:
+        - Fetches one PR with a single GraphQL query.
+        - Prints the title, state, draft flag, mergeability, comment count, head and base branches, closing issues, referenced issues, review states and body.
+        - With --reviews, adds the review bodies and the line comments, and a pecot issue read hint under each related Issue.
+        - With --json, prints the PR as JSON, and with --reviews the JSON also holds the reviews and the line comments.
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot pr read example-org/my-repo/123
+          note: Show the PR as Markdown.
+        - run: pecot pr read example-org/my-repo/123 --reviews
+          note: Show the PR with its reviews and line comments.
+      default_notes:
+        pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
     summary: PR の詳細を、必要な項目だけ GraphQL で取得して出します。
     arguments:
       json: 'JSON で出力するかどうかです。'
@@ -2140,6 +2455,28 @@ entries:
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
   PW-PROJECT-ACTIVATE:
+    help:
+      details:
+        - Without a project argument, lists the initialized projects of the owner; --host is required.
+        - A project is initialized when it has a pecot-workflow field.
+        - The listing marks the active project with [ACTIVE].
+        - When the owner has no initialized project, the listing is a none line.
+        - With a project number or name, regenerates the config file of that project from GitHub and makes it the active project.
+        - With a config file path or file name, syncs the project from the host, owner and number recorded in that file and makes it the active project.
+        - A config file path or file name needs neither --host nor --owner.
+        - The develop branch, release branch, changelog_file, packages and release type of each repository, and aggregation_repo, already in the config file are kept.
+        - A repository that is no longer linked to the project is removed from the config file.
+        - A newly linked repository is appended to the end of the repository list.
+        - The Blocked option of the pecot-workflow field and the Todo and Needs Attention options of the Status field are written to the config file only when the board has them.
+        - A board without the Blocked option is accepted; the other six options of the pecot-workflow field are required.
+      examples:
+        - run: pecot project activate --host github.com --owner example-org
+          note: List the initialized projects of the owner.
+        - run: pecot project activate 1 --host github.com --owner example-org
+          note: Activate the project by number.
+      default_notes:
+        owner: The authenticated user; with a config file, the owner recorded in the file and --owner is not used.
+        host: Required unless a config file is given; with a config file, the host recorded in the file.
     summary: 初期化済みのプロジェクトをアクティブにします。
     arguments:
       host: 'GitHub のホストです。'
@@ -2262,6 +2599,20 @@ entries:
         pattern: unwanted
         statement: 'もし進行の欄に必須の値（Blocked を除く 6 つ）が欠けているなら、終了コード 1 で終わります'
   PW-PROJECT-CREATE:
+    help:
+      details:
+        - Creates a GitHub Projects V2 project for the owner.
+        - Adds the pecot-workflow, pecot-priority and pecot-size fields to the project.
+        - The pecot-workflow field is created with seven options, including Blocked.
+        - Adds the Needs Attention option to the Status field of the project.
+        - When an option cannot be added, a warning line is written and the command continues.
+        - Writes the config file and makes the project active.
+        - Stops without creating anything when the owner is not found.
+        - Stops without creating anything when a project with the same title already exists.
+      examples:
+        - run: pecot project create example-org "Example Project" --suffix example
+          note: Create a project and activate it.
+      default_notes: {}
     summary: 新しいプロジェクトを作ります。既にあるプロジェクトにフィールドを足すときは、`project init` を使います。
     arguments:
       host: 'GitHub のホストです。'
@@ -2340,6 +2691,27 @@ entries:
         pattern: unwanted
         statement: 'もし Status に Needs Attention を足せなかったなら、`warning` の行を出して設定ファイルを作ります'
   PW-PROJECT-INFO:
+    help:
+      details:
+        - Shows the active project, its registered repositories and the board status.
+        - The board status covers the open items in Backlog, Pending, Blocked, Ready, Active and In Review.
+        - Each registered repository line carries the release type and the Dependabot alert status.
+        - A repository whose alerts cannot be read shows the reason and does not stop the command.
+        - Narrows the board items to one repository when --repo or the global pecot --repo is given.
+        - Deletes Archived items from the board except the 20 most recently updated.
+        - An Archived item that cannot be deleted is skipped and the command continues.
+        - Reads the blocked-by of the open Issues in Ready and Blocked, and judges each as startable, stackable or blocked. Issues in Active and In Review are not read.
+        - Only shows the judgment. It never changes the column or the Status of an Issue, even when they do not match the judgment.
+        - An Issue whose prerequisites cannot be read is shown as unknown.
+        - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
+        - When pecot board sync would move the column or the Status of a Ready or Blocked Issue, writes one warning line with the count and points to pecot board sync. The count uses the same rule as pecot board sync. A Blocked Issue without prerequisites is counted even though its branches and PRs are not read, so the line says the column or Status may not match.
+      examples:
+        - run: pecot project info
+          note: Show the dashboard as Markdown.
+        - run: pecot project info --json --repo example-org/my-repo
+          note: Show the dashboard as JSON, narrowed to one repository.
+      default_notes:
+        repo: The value of the global pecot --repo option; without it, no narrowing.
     summary: プロジェクトの情報のダッシュボードを出します。
     arguments:
       json: 'JSON で出力するかどうかです。'
@@ -2479,6 +2851,22 @@ entries:
         pattern: event
         statement: '`board sync` が列か札を動かしそうな Ready か Blocked の Issue があると、件数と `pecot board sync` の案内を `warning` の行で標準エラーに出します'
   PW-PROJECT-INIT:
+    help:
+      details:
+        - Adds the pecot-workflow-<suffix>, pecot-priority and pecot-size fields to an existing project.
+        - A field that already exists is skipped.
+        - The other fields are still created.
+        - Adds the Blocked option to a pecot-workflow-<suffix> field that already exists, placed right after Backlog (right before Ready when there is no Backlog, at the end when there is neither).
+        - Adds the Needs Attention option at the end of the Status field. When the project has no Status field, nothing is added.
+        - Names are compared without regard to case, and an option that already exists is left as it is.
+        - The whole option list is sent again with the existing options keeping their id, name, color and description, so the values on the cards stay.
+        - When an option cannot be added, a warning line is written and the command continues; the option is not sent again without its id.
+        - Before writing anything, checks that an existing pecot-workflow-<suffix> field has the six required options (Backlog, Pending, Ready, Active, In Review, Archived); if one is missing, writes nothing and stops.
+        - After that, regenerates the config file from GitHub for the --suffix field and makes the project active, unless a config file exists and its content already equals the one generated from the board.
+      examples:
+        - run: pecot project init example-org "Example Project" --suffix example
+          note: Add the pecot-workflow fields to an existing project, and the Blocked and Needs Attention options to the fields that already exist.
+      default_notes: {}
     summary: 既にあるプロジェクトに pecot-workflow のフィールドを足します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。
     arguments:
       host: 'GitHub のホストです。'
@@ -2574,6 +2962,14 @@ entries:
         pattern: unwanted
         statement: 'もし設定ファイルの同期で GitHub API がエラーを返したなら、`could not sync project config` の行を出して、終了コード 1 で終わります'
   PW-PROJECT-LIST:
+    help:
+      details:
+        - Lists the config files under .pecot/config/projects/ in file name order.
+        - Marks the active project with [ACTIVE].
+      examples:
+        - run: pecot project list
+          note: List the config files and the active project.
+      default_notes: {}
     summary: 使えるプロジェクトを一覧します。
     constraints: []
     details:
@@ -2614,6 +3010,14 @@ entries:
         pattern: event
         statement: '設定ファイルが 1 つも無いと、`none` の行を標準出力に出します'
   PW-PROJECT-SEARCH:
+    help:
+      details:
+        - Lists the GitHub Projects V2 projects of a user or an organization.
+        - A title longer than 38 characters is cut to 35 characters followed by "...".
+      examples:
+        - run: pecot project search example-org
+          note: List the projects of an organization.
+      default_notes: {}
     summary: GitHub API でプロジェクトを探します。
     arguments:
       host: 'GitHub のホストです。'
@@ -2661,6 +3065,17 @@ entries:
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
   PW-PROJECT-SET-AGGREGATION-REPO:
+    help:
+      details:
+        - Stores the Epic aggregation repository in the config file of the active project.
+        - pecot issue create --type epic uses the stored repository as the destination.
+        - Overwriting a different value always writes a warning line.
+        - --yes only omits the confirmation hint from the warning line.
+        - Giving the value already stored changes nothing.
+      examples:
+        - run: pecot project set-aggregation-repo example-org/roadmap
+          note: Set the aggregation repository.
+      default_notes: {}
     summary: Epic を集めるリポジトリ（`aggregation_repo`）を設定します。
     arguments:
       value: 'Epic を集めるリポジトリです。`owner/repo` の形で渡します。'
@@ -2722,6 +3137,21 @@ entries:
         pattern: unwanted
         statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
   PW-PROJECT-SET-REPO:
+    help:
+      details:
+        - Links the repository to the GitHub project and adds it to the config file of the active project.
+        - The config file is written only after the link succeeded.
+        - For a repository already registered, updates only the settings given on the command line.
+        - Giving --package replaces the packages of a registered repository and also clears its changelog_file, even when --changelog-file is not given.
+        - Giving --clear-packages removes the packages of a registered repository.
+        - The repository owner must match the project owner.
+      examples:
+        - run: pecot project set-repo example-org/my-repo
+          note: Register a repository.
+        - run: pecot project set-repo example-org/my-repo --package pecot:plugins/pecot-workflow/CHANGELOG.md
+          note: Register a monorepo package.
+      default_notes:
+        release_type: Inferred from the packages when omitted (multi with packages, single without).
     summary: プロジェクトの設定に、リポジトリを足すか更新します。
     arguments:
       changelog_file: 'CHANGELOG のファイル名です。'
@@ -2828,6 +3258,13 @@ entries:
         pattern: unwanted
         statement: 'もし `packages` を持つリポジトリに `--changelog-file` を渡したなら、終了コード 1 で終わります'
   PW-PROJECT-SHOW-AGGREGATION-REPO:
+    help:
+      details:
+        - Prints the Epic aggregation repository stored in the active config file, or "none" when it is not set.
+      examples:
+        - run: pecot project show-aggregation-repo
+          note: Print the aggregation repository.
+      default_notes: {}
     summary: Epic を集めるリポジトリ（`aggregation_repo`）を出します。
     constraints: []
     details:
@@ -2868,6 +3305,14 @@ entries:
         pattern: unwanted
         statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
   PW-PROJECT-UNSET-AGGREGATION-REPO:
+    help:
+      details:
+        - Clears the Epic aggregation repository in the config file of the active project.
+        - Clearing a value that is not set changes nothing.
+      examples:
+        - run: pecot project unset-aggregation-repo
+          note: Clear the aggregation repository.
+      default_notes: {}
     summary: Epic を集めるリポジトリ（`aggregation_repo`）の設定を消します。消した後で Epic を作るには、`--repo` が要ります。
     constraints: []
     details:
@@ -2914,6 +3359,31 @@ entries:
         pattern: unwanted
         statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
   PW-RELEASE-CREATE:
+    help:
+      details:
+        - Creates a GitHub release and its tag through the GitHub API, so no git tag or git push is needed.
+        - "The release notes are the section of the given version in the CHANGELOG, from the line after its ## [X.Y.Z] heading to the next ## heading."
+        - The CHANGELOG is the changelog_file of the repository in the config file.
+        - Without changelog_file, the CHANGELOG is CHANGELOG.md and then AIST-CHANGELOG.md at the git root, and with --package, the changelog of that package.
+        - When the tag does not exist yet, the tag is created at the head of the release_branch of the repository in the config file.
+        - The tag is v<version> and the release name is the same.
+        - With --package, the tag is <package>-v<version> and the release name is <package> v<version>.
+        - The version must be in X.Y.Z form without a leading v.
+        - A repository with packages configured needs --package.
+        - A repository without packages does not accept --package.
+        - The repository is taken from the global pecot --repo, and without it from the origin remote, or from the first remote when there is no origin.
+        - The command needs the working directory to be inside a git repository.
+        - A mismatch between --repo and the current git remote is a warning, and --repo is used.
+        - With --dry-run, the release is not created and no GitHub client is made.
+      examples:
+        - run: pecot release create 0.6.1
+          note: Create the release v0.6.1 from the CHANGELOG.
+        - run: pecot release create 0.6.1 --dry-run
+          note: Print the plan and the release notes without creating anything.
+        - run: pecot release create 0.6.1 --package pecot-workflow
+          note: Create the release pecot-workflow-v0.6.1 in a monorepo.
+      default_notes:
+        package: None; required when the repository has packages configured in the config file.
     summary: GitHub のリリースとタグを作ります。リリースノートは CHANGELOG から取ります。
     arguments:
       dry_run: '何も変えずに、行う予定だけを出すかどうかです。'
@@ -3055,6 +3525,29 @@ entries:
         pattern: unwanted
         statement: 'もし GitHub のトークンが見つからないなら、終了コード 1 で終わります'
   PW-RELEASE-MERGE:
+    help:
+      details:
+        - Merges the PR with a regular merge (a merge commit), never a squash or a rebase, so that the merge-base is kept.
+        - The PR is the pr_ref argument (owner/repo/N).
+        - The short form N is rejected even when --repo is given.
+        - The global pecot --repo is only compared with the current git remote and is not used as the target.
+        - A mismatch between --repo and the current git remote stops the command.
+        - Only a PR whose base branch equals the release_branch of the repository in the config file is merged.
+        - A PR that is already merged or closed is not merged.
+        - A PR with merge conflicts is not merged unless --admin is given.
+        - With --admin, only the conflict check is skipped, and the GitHub API still decides whether the merge is allowed.
+        - With --delete-branch, the head branch of the PR is deleted from the remote after the merge.
+        - A failure to delete the head branch is a warning and does not change the exit status.
+        - With --dry-run, nothing is merged or deleted, and --delete-branch has no effect.
+        - When the release_branch is the default branch of the repository, GitHub may close the Issues that the PR refers to with a closing keyword.
+      examples:
+        - run: pecot release merge example-org/my-repo/123
+          note: Merge the release PR with a merge commit.
+        - run: pecot release merge example-org/my-repo/123 --dry-run
+          note: Print the plan without merging.
+        - run: pecot release merge example-org/my-repo/123 --delete-branch
+          note: Merge the release PR and delete its head branch.
+      default_notes: {}
     summary: リリースの PR を、通常のマージでマージします。
     arguments:
       admin: '管理者の権限でマージするかどうかです。マージできるかどうかの確認を飛ばします。'
@@ -3192,6 +3685,38 @@ entries:
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
   PW-RELEASE-PREFLIGHT:
+    help:
+      details:
+        - Checks the open Dependabot, code scanning and secret scanning alerts of the repository.
+        - All three kinds are always checked, even when an earlier one fails.
+        - An open Dependabot alert is a warning and does not stop the command.
+        - "The Dependabot warning lists each alert as #<number> with its package and severity, and the URL of the alert page."
+        - An open code scanning or secret scanning alert fails the command.
+        - A repository with the feature disabled passes with a skipped line.
+        - A state of code scanning or secret scanning that cannot be determined, such as a missing permission, fails the command.
+        - For a repository whose release type is nx, only the alerts are checked, and the version argument and --package are rejected.
+        - Otherwise checks that the CHANGELOG exists, that the version is in X.Y.Z form, that the tag exists neither locally nor on the remote, and that <remote>/<develop_branch> has commits that <remote>/<release_branch> does not have, where <remote> is origin, or the first remote when there is no origin.
+        - "Without a version argument, the version is the first ## [X.Y.Z] heading of the CHANGELOG, and the Unreleased heading is skipped."
+        - The CHANGELOG is the changelog_file of the repository in the config file.
+        - Without changelog_file, the CHANGELOG is CHANGELOG.md and then AIST-CHANGELOG.md at the git root, and with --package, the changelog of that package.
+        - The tag is v<version>.
+        - With --package, the tag is <package>-v<version>.
+        - A repository with packages configured needs --package.
+        - A repository without packages does not accept --package.
+        - The repository is taken from the global pecot --repo, and without it from the origin remote, or from the first remote when there is no origin.
+        - With a --repo that differs from the git remote, the git commands still use origin, or the first remote when there is no origin.
+        - The command needs the working directory to be inside a git repository.
+        - A mismatch between --repo and the current git remote is a warning, and --repo is used.
+      examples:
+        - run: pecot release preflight
+          note: Check the release with the version detected from the CHANGELOG.
+        - run: pecot release preflight 0.6.1
+          note: Check the release of a given version.
+        - run: pecot release preflight 0.6.1 --package pecot-workflow
+          note: Check the release of one package in a monorepo.
+      default_notes:
+        version: "The first ## [X.Y.Z] heading of the CHANGELOG; the Unreleased heading is skipped."
+        package: None; required when the repository has packages configured in the config file.
     summary: リリースの前の確認（preflight）をします。nx のリポジトリでは、alert だけを確かめます。
     arguments:
       package: 'monorepo のパッケージの名前です。'
@@ -3374,6 +3899,37 @@ entries:
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
   PW-SECURITY-SYNC:
+    help:
+      details:
+        - Finds the open Tracker issue labeled security-alert whose body has the Tracker marker.
+        - Rewrites the list between list-begin and list-end in the body of the Tracker with the open alerts.
+        - Reads the open Dependabot alerts, the open code scanning alerts of the default branch and the open secret scanning alerts.
+        - Each kind has its own heading and table in the Tracker body.
+        - Priority comes from the alert severity.
+        - A secret scanning alert is always high.
+        - The Priority of a new Tracker is the highest Priority among its rows.
+        - The rows of code scanning and secret scanning alerts show masked as the title.
+        - A Dependabot row shows the advisory summary, and Dependabot alerts of one advisory share a row.
+        - Text in the Tracker body outside the list markers stays as it is.
+        - A kind whose feature is disabled shows disabled under its heading and adds no rows.
+        - A repository without a code scanning analysis counts as having no code scanning alerts.
+        - A kind whose list cannot be fetched keeps its previous rows and shows unavailable when it had none.
+        - When a kind cannot be fetched, the command ends with exit status 1 after the other kinds were applied.
+        - A 403 for Dependabot alerts or a 404 for secret scanning that cannot be confirmed as disabled counts as a failure to fetch.
+        - When no Tracker is open and there are rows to list, creates a Tracker, adds it to the project board, and sets Status to Backlog and Priority to the highest row.
+        - When no Tracker is open and there is no row to list, creates nothing.
+        - Never closes the Tracker.
+        - When every alert is gone, each kind shows none, and a person closes the Tracker and moves it to Archived.
+        - On an existing Tracker, sets Status and Priority only while they are empty, so a change made by a person stays.
+        - A field that the active project does not define is not set.
+        - When several Trackers are open, uses the lowest number and leaves the others open.
+        - A closed Tracker is not reused.
+      examples:
+        - run: pecot security sync --dry-run
+          note: Show the planned Tracker changes without writing to GitHub.
+        - run: pecot security sync
+          note: Rewrite the Tracker list, creating the Tracker when needed.
+      default_notes: {}
     summary: open のセキュリティ alert の一覧を、open の Tracker に書き直します。
     arguments:
       dry_run: '何も変えずに、Tracker を変える予定だけを出すかどうかです。'
@@ -3570,6 +4126,31 @@ entries:
         pattern: unwanted
         statement: 'もし Tracker の作成かボードへの追加に失敗したなら、終了コード 1 で終わります'
   PW-SESSION-RESTORE:
+    help:
+      details:
+        - Restores the work target that was lost from the session, which is the Issue the branch is working on.
+        - Writes .pecot-active, holding owner/repo/N, under .pecot/state/ of the project root.
+        - Writes .pecot-session-title, holding the session name, under .pecot/state/ of the project root.
+        - An existing work target is overwritten.
+        - Creates the work directory .pecot/work/N/ under the project root.
+        - When the work directory cannot be created, the command goes on without it.
+        - "The session name is #<number> followed by the Issue title, cut to 40 characters."
+        - A leading [Task], [Bug] or [Epic] is removed from the Issue title.
+        - "Without a title, the session name is #<number>."
+        - The Issue title is read from GitHub.
+        - When the active config file is missing or the Issue cannot be read, the command goes on with an empty title and no warning.
+        - With --issue, the branch and the git remote are not read.
+        - The reference of --issue must be the full form owner/repo/N.
+        - Without --issue, the Issue number is the number at the end of the current branch name after the last slash.
+        - Without --issue, the repository is the origin remote, or the first remote when there is no origin, and both are read in --directory.
+        - The project root, and so the files above, are resolved from the working directory of the command, not from --directory.
+      examples:
+        - run: pecot session restore -D .
+          note: Restore the work target from the branch name.
+        - run: pecot session restore --issue example-org/my-repo/123 -D .
+          note: Restore the work target of a given Issue.
+      default_notes:
+        issue: Inferred from the end of the current branch name and the origin remote, or the first remote when there is no origin, of --directory.
     summary: 失われたセッションのフラグ（`.pecot-active` など）を、ブランチの情報から復元します。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
@@ -3696,6 +4277,24 @@ entries:
         pattern: event
         statement: '作業対象を記録すると、前の作業対象の `.pecot-base` を消します'
   PW-SESSION-STATUS:
+    help:
+      details:
+        - Shows the current branch, the repository of the origin remote (or of the first remote when there is no origin), the Issue inferred from the branch name and the session flag state.
+        - The Issue is inferred from the number at the end of the branch name after the last slash.
+        - The branch and the repository of the origin remote, or of the first remote when there is no origin, are read in --directory.
+        - The flag file .pecot-active is read from .pecot/state/ of the project root, which is resolved from the working directory of the command, not from --directory.
+        - The flag table has one row per flag with the flag name, set or unset, and the content of the file.
+        - When .pecot-active holds an Issue reference, an Active Issue section follows with the number, the title and the state of the Issue.
+        - The body of the Issue follows in the section when it is not empty.
+        - When .pecot-active holds an Issue reference and .pecot/state/.pecot-base names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
+        - When the readiness of the active Issue is blocked, the Stack section also has a readiness line.
+        - The Stack section uses the config and the client of the Active Issue section and is left out when that section is.
+        - The command is a diagnostic, so a value that cannot be read is shown as unknown or none, or left out, and does not fail the command.
+        - Nothing is written.
+      examples:
+        - run: pecot session status -D .
+          note: Show the session state of the current repository.
+      default_notes: {}
     summary: セッションのフラグの状態、ブランチの情報、推定した Issue を出します。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
@@ -3826,6 +4425,20 @@ entries:
         pattern: unwanted
         statement: 'もし着手中の Issue の判定を読めないなら、`warning` の行を標準エラーに出し、Stack の節の base の行は出します'
   PW-UPDATE-ISSUE-STATUS:
+    help:
+      details:
+        - Sets the Status of an Issue that is already on the project board of the active project.
+        - The Issue reference is owner/repo/N or the short form N.
+        - The short form N refers to the Issue of the repository given by the global pecot --repo.
+        - Without --repo, the short form N refers to the Issue of the repository of the git remote.
+        - The status is backlog, pending, blocked, ready, active, in_review or archived.
+        - The status is checked before the config file is read.
+        - The repository of the Issue must be registered in the active project, and the Issue must be on the board.
+        - Unlike add-to-project, which only warns, a status that the board does not define stops the command with exit status 1.
+      examples:
+        - run: pecot update-issue-status example-org/my-repo/123 in_review
+          note: Move the Issue to In Review.
+      default_notes: {}
     summary: Issue の番号で、プロジェクトのボード上の Issue の Status を更新します。ふだんは、pecot のコマンドが自分で Status を設定します。
     arguments:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
@@ -3915,6 +4528,41 @@ entries:
         pattern: unwanted
         statement: 'もし Status が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
   PW-WORKTREE-ADD:
+    help:
+      details:
+        - Creates a worktree of the repository in -D under <project root>/<wtN>/<repository directory name>, on a new branch named wtN.
+        - The project root is the parent of base/ in the layout <project root>/base/<repository>.
+        - A repository outside that layout stops the command.
+        - Joins the lowest numbered wtN set that has no worktree of this repository yet, and starts the set max(N)+1 when every set already has one.
+        - wt1 to wt9 are the limit.
+        - Skips every wtN that a worktree of this repository already uses, including a worktree made with --path, which is found by its record or by a checked out branch wtN.
+        - Records wtN in the git administrative directory of the new worktree, which pecot pr cleanup reads to return to wtN.
+        - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the origin remote; when there is no origin, the first remote in git remote order that points to a repository registered in the active project, or the first remote when none does, and <base> is --base or the develop_branch of the repository in the active project.
+        - When the branch wtN already exists, stops unless its upstream is <remote>/<base> or --allow-existing-branch is given.
+        - A matching branch that no worktree uses is deleted and created again.
+        - Runs git worktree prune on the main worktree before it creates the worktree, also with --dry-run.
+        - Needs .pecot/config/worktree-config.json and .pecot/config/.worktreeignore in the main worktree, which pecot worktree init creates.
+        - The repository must be registered in the active project.
+        - Creates the symlinks of worktree-config.json, then copies the git-ignored files of the main worktree that .worktreeignore does not exclude and that are not under a created symlink, then runs the setup command in the new worktree.
+        - With --path, the worktree is created at that path, and the copied files go to that path.
+        - With --path, the symlinks and .pecot/.gitignore are created in the worktree at that path.
+        - When a link path starts with .pecot/, writes .pecot/.gitignore in the new worktree by running a script of the plugin before it links.
+        - The setup command is --setup, or setup_command of worktree-config.json, and runs through the shell with a closed stdin and the timeout setup_command_timeout.
+        - A failed or timed out setup command is a warning and does not change the exit status.
+        - A link whose target does not exist, whose path is tracked by git or that cannot be created is skipped with a warning, and does not change the exit status.
+        - Needs a devcontainer.
+        - The command stops before it runs when none of the checks passes.
+      examples:
+        - run: pecot worktree add -D .
+          note: Create the next worktree of the repository in the current directory.
+        - run: pecot worktree add -D . --dry-run
+          note: Show the worktree that would be created.
+        - run: pecot worktree add -D . --base develop --setup "pnpm install"
+          note: Branch from develop and run a setup command after creation.
+      default_notes:
+        base: The develop_branch of the repository in the active project.
+        path: <project root>/<wtN>/<repository directory name>.
+        setup: The setup_command of worktree-config.json; without it, no command runs.
     summary: 新しい worktree を作ります。
     arguments:
       allow_existing_branch: '既にあるブランチを、upstream が `develop_branch` と違っても使い回してよいかどうかです。'
@@ -4163,6 +4811,19 @@ entries:
         pattern: event
         statement: '`origin` が無く、登録済みのリポを指す remote があると、その中で最初の remote を使います'
   PW-WORKTREE-INIT:
+    help:
+      details:
+        - Writes the default templates into the main worktree of the repository in -D, as .pecot/config/worktree-config.json and .pecot/config/.worktreeignore.
+        - worktree-config.json has the links CLAUDE.local.md, .env and .claude/settings.local.json, which point to the aggregation_repo of the active project, or to this repository when there is no active project or it has no aggregation_repo.
+        - An active config file that cannot be read or is malformed stops the command before anything is written.
+        - worktree-config.json also has the links of hooks-config.json, projects/.active and .pecot/work, which point to this repository.
+        - .worktreeignore lists the patterns that worktree add does not copy, in the gitignore syntax.
+        - Stops without writing when either file already exists.
+        - Needs a devcontainer.
+      examples:
+        - run: pecot worktree init -D .
+          note: Write the worktree config files of the repository in the current directory.
+      default_notes: {}
     summary: メインの worktree に、worktree の設定ファイルを作ります。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
@@ -4267,6 +4928,30 @@ entries:
         pattern: unwanted
         statement: 'もしアクティブな設定ファイルを読めないか形式が不正なら、終了コード 1 で終わります'
   PW-WORKTREE-LINK:
+    help:
+      details:
+        - Applies the links of worktree-config.json to the worktree in -D, or to every sub-worktree with --all, and replaces a link that already exists.
+        - The links are read from the main worktree of the repository.
+        - Run pecot worktree init when the config file is missing.
+        - Without --all, the target is the root of the worktree that contains -D, so -D may be a subdirectory. The command stops when that root is the main worktree.
+        - With --all and no sub-worktree, the command only reports a count of 0.
+        - A link whose target does not exist is skipped.
+        - A path tracked by git, or a link that cannot be created, is an error that is shown as a warning and does not change the exit status.
+        - A real file or directory at a link path is replaced only after a confirmation on stderr that is answered on stdin, or without asking with --force.
+        - With --all and without --force, a real file is skipped without asking.
+        - When a link path starts with .pecot/, writes .pecot/.gitignore in the worktree by running a script of the plugin before it links.
+        - With --dry-run, shows for each link whether it would be created, updated or skipped, and changes nothing.
+        - With --dry-run, each link is decided the same way as in the real run, so a link the run skips is planned as a skipped line with the same reason. With --all and without --force, a real file is planned as skipped.
+        - A path tracked by git is planned as skipped, and the real run writes a warning line for it and counts it as an error.
+        - Needs a devcontainer.
+      examples:
+        - run: pecot worktree link -D ../wt1/my-repo
+          note: Apply the links to one sub-worktree.
+        - run: pecot worktree link -D . --all --dry-run
+          note: Show the links that would change in every sub-worktree.
+        - run: pecot worktree link -D . --all --force
+          note: Replace real files at link paths in every sub-worktree without asking.
+      default_notes: {}
     summary: 既にある worktree に、シンボリックリンクを張るか張り直します。
     arguments:
       all: 'すべてのサブの worktree を対象にするかどうかです。'
@@ -4440,6 +5125,27 @@ entries:
         pattern: event
         statement: '`-D` にサブディレクトリを渡して打つと、その worktree のルートにリンクを作ります'
   PW-WORKTREE-REMOVE:
+    help:
+      details:
+        - Finds the worktree by the given name among the worktrees of the repository in -D other than the main worktree, and removes it with git worktree remove.
+        - Looks for the worktree in 3 steps and takes the first match. First the worktree whose name that pecot worktree add recorded is the given name, then the worktree at <project root>/<name>/<repo>, then the worktree whose checked out branch is the given name.
+        - Does not read the record of a worktree whose directory is missing.
+        - The main worktree is never found by name.
+        - Deletes the local branch of the same name unless --keep-branch is given.
+        - A branch of another name that the removed worktree had checked out remains.
+        - When git branch -D fails, a warning with the reason is written instead of the deleted line, the branch remains and the command still finishes with exit status 0.
+        - Removes <project root>/<name> afterwards when that directory is empty.
+        - A set directory that cannot be removed is a warning.
+        - Without --force, git refuses to remove a worktree that has changes.
+        - A name that matches no worktree in any of the 3 steps stops the command.
+        - Needs a devcontainer.
+        - Does not read the worktree config files or the active project.
+      examples:
+        - run: pecot worktree remove wt1 -D .
+          note: Remove the worktree wt1 and its branch.
+        - run: pecot worktree remove wt1 -D . --keep-branch --force
+          note: Remove the worktree even with changes and keep the branch.
+      default_notes: {}
     summary: worktree を削除します。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'

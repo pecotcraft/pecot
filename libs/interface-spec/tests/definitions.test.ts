@@ -308,6 +308,39 @@ describe('prose（人が書く欄の言語）', () => {
     }
   })
 
+  it('prose: ja で CLI の面がある項目に help が無いと、止める', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      japanize(data)
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is missing (--help reads it; write details, examples and default_notes in English)`)
+  })
+
+  it('prose: ja で help が英語で、examples の run と default_notes の名前がそろっていれば、通る', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      japanize(data)['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot x', note: 'An example' }], default_notes: { title: 'Empty by default' } }
+    })
+    expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|help'))).toEqual([])
+  })
+
+  it('help に日本語があるか、examples の run か default_notes の名前が本体と違うと、止める', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      japanize(data)['help'] = { details: ['結果を返す'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: {} }
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.details[0]|contains Japanese text (write English)`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as examples`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.default_notes|must have the same input names as default_notes`)
+  })
+
+  it('prose を省いた定義書に help があると、止める', async () => {
+    const lines = await withAuthored((data) => {
+      entry(data, 'PW-ISSUE-CREATE')['help'] = { details: [], examples: [], default_notes: {} }
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is only for prose "ja" (remove it; --help reads details, examples and default_notes)`)
+  })
+
   it('prose が ja・en 以外だと、止める', async () => {
     const lines = await withAuthored((data) => {
       data['prose'] = 'fr'
