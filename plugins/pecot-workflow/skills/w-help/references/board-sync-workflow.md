@@ -34,6 +34,13 @@
 - カードの移動
 - PR の本文を後から直して、Issue と結び付けたとき（`edited`）
 
+### merge queue のリポ
+
+PR を merge queue がマージしたときも、`pull_request_target` の `closed` の実行が起き、secret が渡ります。
+
+- 実行の actor は、PR を queue へ入れた人だ
+- `Closes #N` で閉じた Issue の `issues` の実行も、別に起きる。同じ group の実行は順に動き、どちらも成功する
+
 ## ボードが複数のリポを持つとき
 
 契機は、雛形を置いたリポの PR と Issue だけを拾います。ほかのリポの変化は、そのリポに雛形が無ければ拾えません。
@@ -75,6 +82,13 @@ Actions の checkout には `.active` が入りません。`.pecot/config/projec
 - リポの variable `PECOT_BOARD_SYNC_USE_PAT` に `true` を置く
 - リポの secret `PECOT_BOARD_SYNC_TOKEN` に PAT を置く
 
+fine-grained PAT は、この 2 つの場面に使えません。
+
+- 個人のアカウントの Projects を扱えない
+- token の持ち主は 1 つで、持ち主の違うリポとボードをまたげない
+
+根拠は GitHub の [personal access token の文書](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)です。ボードとリポが同じ組織なら、PAT より GitHub App を使います。
+
 ## 実行の結果
 
 書き込みが 1 件でも失敗すると、実行が失敗（終了コード 1）で終わります。token の権限が足りないときは、ここで気づけます。
@@ -92,6 +106,24 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 - `schedule` で、画面での blocked by の付け外しと、カードの手での移動も拾える
 - private のリポでは、1 回の実行が切り上げで 1 分として数えられる。毎時の実行は、月に約 720 回だ
 - 料金は GitHub の Actions の料金のページで確かめる
+
+### GraphQL の点数
+
+1 回の実行で使う点数は、ボードの大きさで決まります。上限の目安は次の式です。
+
+`3 × ⌈N / 100⌉ + R + W + 2`
+
+| 記号 | 数えるもの |
+|---|---|
+| N | ボードの全アイテムの数。`Done` と閉じた Issue も含む |
+| R | 個別に読む Issue の数。`Ready`・`Blocked`・`Active`・`In Review` の開いた Issue で、前提の無い `Ready` を除く |
+| W | 書き込む列と札の数。ログの `moved:`・`set:` の行の数 |
+
+- 前提が 9 件以上ある Issue は、1 件で 2 点以上を使う
+- 31 件のボードで、R が 7・W が 4 の実行は 8 点だった
+- token の点数は 1 時間に 5000 点だ。App の token は installation ごとに数える
+- PAT は、持ち主が手元で使う点数と 5000 点を分け合う
+- 終わりの `count: GraphQL points used` の行は、前後の実行と点数が入れ替わって見えることがある。数回の平均で読む
 
 ## 版を固定する
 

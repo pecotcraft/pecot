@@ -43,6 +43,7 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli/**/*",
+        "{projectRoot}/skills/w-help/references/board-sync-workflow.md",
         "!{projectRoot}/cli/tests/hooks/**",
         "!{projectRoot}/cli/tests/bootstrap/**",
         "!{projectRoot}/cli/tests/skills/**",

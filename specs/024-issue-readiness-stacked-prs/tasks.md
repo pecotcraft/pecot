@@ -436,8 +436,10 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 契機は `pull_request_target`・`issues: closed/reopened`・`workflow_dispatch` とし、`schedule` はコメントにする
   - T104 のコマンドを `npx -y --prefix=/ @pecot/workflow-mcp@<major> board sync` で打つ
 - [x] T106 定義書（`p-w/interface/authored.yaml`）に `pecot board sync` を足す。雛形の使い方は、w-help の `references/board-sync-workflow.md` に書く
-- [x] T107 quickstart.md の 8・9 を、`board_sync` とワークフローの `workflow_dispatch` で通す
+- [x] T107 quickstart.md の 8・9 を、手元の `board_sync` で通す
 - [x] T108 version plan を `.nx/version-plans/` に足す
+- [x] T109 雛形のワークフローを sandbox の実物の Actions で動かし、マージ・閉じと開き直し・手での起動で列と札が直ることを確かめる
+  - 1 回の点数の式と、fine-grained PAT の制約・merge queue で分かったことを、w-help の `references/board-sync-workflow.md` に書く
 
 補足は次のとおり。
 
