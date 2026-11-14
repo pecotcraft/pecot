@@ -1,0 +1,10 @@
+pecot-visual
+============
+
+.. iface-index:: pecot-visual
+
+.. toctree::
+   :hidden:
+   :glob:
+
+   /_generated/pecot-visual/*

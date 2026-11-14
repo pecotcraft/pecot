@@ -1,0 +1,8 @@
+{#- ヘッダーの左上だけ差し替える。アイコンと文字の組の代わりに、ワードマークを置く。 -#}
+{% extends "!header.html" %}
+{%- block header_logo %}
+<a href="{{ pathto(master_doc) }}" class="flex items-center mr-6" aria-label="{{ docstitle }}">
+  <img height="24" class="h-6 w-auto dark:hidden" src="{{ pathto('_static/pecot-wordmark-light.svg', 1) }}" alt="{{ docstitle }}" />
+  <img height="24" class="h-6 w-auto hidden dark:block" src="{{ pathto('_static/pecot-wordmark-dark.svg', 1) }}" alt="{{ docstitle }}" />
+</a>
+{%- endblock header_logo %}
