@@ -104,7 +104,7 @@
         "install"
       ],
       "metadata": {
-        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli/tests/interface-export/）を形式の検証に読むので、inputs に足してある。 docs/tests の pytest（iface_defs 拡張）も動かす。"
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli/tests/interface-export/）を形式の検証に読むので、inputs に足してある。 tests/names.test.ts は pecot-visual・pecot-tools の定義書を材料に借りるだけなので、inputs に足さない。定義書が names に合うかは lint-defs が確かめる。 docs/tests の pytest（iface_defs 拡張）も動かす。"
       },
       "options": {
         "command": "pnpm exec vitest run --coverage && uv run --locked --project docs pytest docs/tests -q",

@@ -43,10 +43,29 @@ export const generatedEntrySchema = z.strictObject({
   }).optional(),
 })
 
+export const NAME_SEPARATORS = [' ', '_'] as const
+// 名前の語は英小文字と数字。区切りを含まない。
+export const NAME_WORD_PATTERN = /^[a-z0-9]+$/u
+
+// read_only は読むだけの動詞の印。印の語を名前に持つ項目は、read でない effects を持てない。
+const nameWordSchema = z.strictObject({
+  word: z.string().regex(NAME_WORD_PATTERN),
+  meaning: z.string().trim().min(1),
+  read_only: z.literal(true).optional(),
+})
+
+// 項目の名前の決まり。positions は語の位置ごとの一覧で、rest が true なら後ろに 1 語以上の自由な語を許す。
+export const namesSchema = z.strictObject({
+  separator: z.enum(NAME_SEPARATORS),
+  positions: z.array(z.array(nameWordSchema).min(1)).min(1),
+  rest: z.boolean(),
+})
+
 export const generatedFileSchema = z.strictObject({
   format: z.literal(1),
   plugin: z.string(),
   prefix: z.string(),
+  names: namesSchema,
   entries: z.array(generatedEntrySchema),
 })
 
@@ -128,6 +147,7 @@ export const targetsSchema = z.strictObject({
 
 export type GeneratedEntry = z.infer<typeof generatedEntrySchema>
 export type GeneratedFile = z.infer<typeof generatedFileSchema>
+export type Names = z.infer<typeof namesSchema>
 export type AuthoredEntry = z.infer<typeof authoredEntrySchema>
 export type AuthoredFile = z.infer<typeof authoredFileSchema>
 export type Targets = z.infer<typeof targetsSchema>

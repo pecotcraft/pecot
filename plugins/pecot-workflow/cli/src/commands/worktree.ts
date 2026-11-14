@@ -36,6 +36,7 @@ import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-
 import { createOutput, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
+import { commandHint, hinted, hintedTextOf, inputHint, placeholder } from './command-hint.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { directorySchema } from './directory-option.js'
 import { requireRepositoryMatch } from './repository-match.js'
@@ -58,7 +59,7 @@ const dryRunInput = z.boolean().default(false).describe('Show what would happen 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
 function reportRuntimeError(out: Readonly<Output>, error: unknown): number {
   if (!(error instanceof WorktreeRuntimeError)) throw error
-  out.error(error.message)
+  out.error(hintedTextOf(error) ?? error.message)
   return FAILURE
 }
 
@@ -134,6 +135,7 @@ const worktreeRemoveInput = z.object({
   directory: directorySchema,
   force: z.boolean().default(false).describe('Force removal even if there are changes'),
   keep_branch: z.boolean().default(false).describe('Keep the branch'),
+  dry_run: dryRunInput,
 })
 
 const worktreeRemoveCommand = defineCommand({
@@ -141,18 +143,24 @@ const worktreeRemoveCommand = defineCommand({
   description: 'Remove a worktree',
   input: worktreeRemoveInput,
   positional: ['name'],
-  shortFlags: { directory: '-D' },
+  shortFlags: { directory: '-D', dry_run: '-n' },
   interactive: false,
   run: (input, io) => Promise.resolve(runRemove(input, io)),
 })
 
 function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & GlobalInput>, io: CommandIo): number {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
-  const out = createOutput(false, io)
+  const out = createOutput(input.dry_run, io)
   try {
     ensureDevcontainerEnvironment()
-    const branchError = removeWorktree(input.directory, input.name, out, { isForced: input.force, shouldKeepBranch: input.keep_branch })
-    out.done({ verb: 'remove', target: `worktree ${input.name}` })
+    const branchError = removeWorktree(input.directory, input.name, out, { isForced: input.force, shouldKeepBranch: input.keep_branch, isDryRun: input.dry_run })
+    const removed: Operation = { verb: 'remove', target: `worktree ${input.name}` }
+    out.planned(removed)
+    out.done(removed)
+    if (input.dry_run) {
+      if (!input.keep_branch) out.planned({ verb: 'delete', target: `local branch ${input.name}` })
+      return 0
+    }
     if (!input.keep_branch) {
       if (branchError === undefined) out.done({ verb: 'delete', target: `local branch ${input.name}` })
       else out.warning(`could not delete local branch ${input.name}: ${branchError}`)
@@ -164,14 +172,14 @@ function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & Global
   }
 }
 
-const worktreeInitInput = z.object({ directory: directorySchema })
+const worktreeInitInput = z.object({ directory: directorySchema, dry_run: dryRunInput })
 
 const worktreeInitCommand = defineCommand({
   path: ['worktree', 'init'],
   description: 'Create the worktree config files in the main worktree',
   input: worktreeInitInput,
   positional: [],
-  shortFlags: { directory: '-D' },
+  shortFlags: { directory: '-D', dry_run: '-n' },
   interactive: false,
   run: (input, io) => Promise.resolve(runInit(input, io)),
 })
@@ -198,7 +206,7 @@ function writeInitFiles(configFile: string, ignoreFile: string, config: Readonly
 
 function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInput>, io: CommandIo): number {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
-  const out = createOutput(false, io)
+  const out = createOutput(input.dry_run, io)
   let mainWorktree: string
   try {
     ensureDevcontainerEnvironment()
@@ -226,6 +234,11 @@ function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInpu
     return FAILURE
   }
 
+  if (input.dry_run) {
+    out.planned({ verb: 'create', target: `worktree config ${configFile}` })
+    out.planned({ verb: 'create', target: `worktree ignore file ${ignoreFile}` })
+    return 0
+  }
   writeInitFiles(configFile, ignoreFile, getDefaultConfig(targetRepository, path.basename(mainWorktree)), out)
   return 0
 }
@@ -322,7 +335,7 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
     ensureDevcontainerEnvironment()
     const configFile = findWorktreeConfigFile(input.directory)
     if (configFile === undefined) {
-      out.error('worktree config not found\nrun: pecot worktree init -D <directory>')
+      out.error(hinted`worktree config not found\nrun: ${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`)
       return FAILURE
     }
     const config = loadConfig(configFile)
@@ -331,7 +344,7 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
 
     const resolved = linkTargets(input.directory, mainWorktree, input.all)
     if (resolved.kind === 'main-needs-all') {
-      out.error('use --all in the main worktree')
+      out.error(hinted`use ${inputHint(['worktree', 'link'], 'all')} in the main worktree`)
       return FAILURE
     }
     const targets = resolved.directories

@@ -69,10 +69,10 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 |------|------|----------|-----------|
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下7つのコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
-| `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_quick` / `issue_create` の使用を強制する | コアガード | `true` |
-| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（36 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
+| `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_create`（自由形式の起票は `freeform: true`）の使用を強制する | コアガード | `true` |
+| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（35 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
 | `pecot-pr-create-ask` | MCP ツールの `pr_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
-| `pecot-issue-create-ask` | MCP ツールの `issue_create` / `issue_quick`（実投稿）を検出しユーザー承認（ask）を要求。`issue_create` の `prepare: true`・`plan: true` は素通し（`issue_quick` に `prepare`・`plan` は無く、素通しにしない）。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
+| `pecot-issue-create-ask` | MCP ツールの `issue_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグの免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは MCP ツールの `session_finish`） | コアガード（external-post-check） | `true` |
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
@@ -84,7 +84,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 
 #### 外部反映ガード（external-post-check）
 
-MCP ツールの `pr_create`（実投稿）/ `issue_create` / `issue_quick`（実投稿）と、Bash の `gh pr merge` は、成果物を外部へ反映する操作。
+MCP ツールの `pr_create`（実投稿）/ `issue_create`（実投稿）と、Bash の `gh pr merge` は、成果物を外部へ反映する操作。
 そのため実行前にガードを挟み、いずれもユーザー承認（ask）を要求する。
 MCP ツールの ask は `lib/mcp-handlers/pecot-post-ask.sh` が担う。`gh pr merge` の ask は `lib/core/external-post-check.sh` が担う。
 案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 9 つ。
@@ -111,7 +111,7 @@ deny は、両クライアントとも `hookSpecificOutput.permissionDecision: "
 PostToolUse の `decision: "block"` は変えない。
 
 確認フラグによる素通しは、MCP ツールの 2 つに適用する。
-`pr_create` は `prepare: true`・`dry_run: true`、`issue_create` は `prepare: true`・`plan: true`。
+`pr_create`・`issue_create` とも `prepare: true`・`dry_run: true`。
 `gh pr merge` はこれらのフラグを免除しない。`pr_show` / `session_finish` / `pr_check` /
 `issue_show` / `issue_comment` はそもそも検出対象外。
 `gh pr create` / `gh issue create` の deny（`gh-pr-create-check` / `gh-issue-create-check`）は
@@ -261,7 +261,7 @@ Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification
 - `hooks-config.json` はプロセス内の最初の `pecot_hook_enabled` 呼び出しで 1 回の jq で読んでキャッシュする。
 - リポジトリの解決（`git rev-parse --show-toplevel`）は、Pre の Bash で 1 回だけ。PostToolUse(Bash) は
   `bash-post-match.sh` が成功した `git commit` だけを判定し、一致したときだけ解決する
-  （commit は Pre / Post 各 1 回。それ以外の Bash の Post は解決しない）。`issue_create` / `issue_quick` の
+  （commit は Pre / Post 各 1 回。それ以外の Bash の Post は解決しない）。`issue_create` の
   Post は解決しない（`issue-pending` は MCP ツールが起票成功時に消す）。
 
 ### 計画の Issue 投稿

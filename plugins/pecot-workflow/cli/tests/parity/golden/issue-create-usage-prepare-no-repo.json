@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: --repo owner/repo is required with --template task|bug|tracker|task-implement\n",
+  "stderr": "error: --repo <owner/repo> is required with --prepare unless --template epic\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

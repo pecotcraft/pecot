@@ -159,6 +159,18 @@ describe('w-quick の手順', () => {
     expect(guard).toContain('Issue 番号')
     expect(guard).toContain('EnterPlanMode')
   })
+
+  it('Step 1 は、起票の前に session_show で確かめ、issue_create（freeform）で起票する', () => {
+    const body = sectionBody(text, numberIndex(headings, 1))
+    expect(body).toContain('`session_show` を `directory: "."` で呼び')
+    expect(body.indexOf('`session_show`')).toBeLessThan(body.indexOf('`issue_create` を `freeform: true`'))
+  })
+
+  it('Step 2 は、session_start（issue_ref・branch）でブランチを作り、切り替える', () => {
+    const body = sectionBody(text, numberIndex(headings, 2))
+    expect(body).toContain('`session_start` を `issue_ref: "owner/repo/N"`・`branch: "feat/description"` で呼ぶ')
+    expect(body).toContain('git checkout')
+  })
 })
 
 describe('w-revise の手順', () => {
@@ -211,7 +223,7 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('表が無かった旨を伝える')
   })
 
-  it('Step 3 は、plan: true の出力を前提の表と並べて示す', () => {
+  it('Step 3 は、dry_run: true の出力を前提の表と並べて示す', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
     expect(body).toContain('前提の表と並べて')
   })
@@ -223,10 +235,10 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('URL の行が 1 つも出ずに `error:` で止まったときは')
   })
 
-  it('plan: true の呼び出しは、投稿の呼び出しより前にある', () => {
+  it('dry_run: true の呼び出しは、投稿の呼び出しより前にある', () => {
     const body = sectionBody(text, numberIndex(headings, 3))
-    const planned = body.indexOf('`plan: true`')
-    const posted = body.indexOf('`plan` なしで')
+    const planned = body.indexOf('`dry_run: true`')
+    const posted = body.indexOf('`dry_run` なしで')
     expect(planned).toBeGreaterThanOrEqual(0)
     expect(posted).toBeGreaterThan(planned)
     expect(body).toContain('合意を得てから投稿する')

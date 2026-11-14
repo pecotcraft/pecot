@@ -8,7 +8,7 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
-import type { RecordedRequest } from '../fake-github/server.js'
+import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -39,6 +39,20 @@ describe('issue reopen', () => {
     expect(result.stderr).toContain('reopened: Issue acme/demo/7\n')
     expect(github.requests().filter(request => labelOf(request) === PATCH)).toHaveLength(2)
     expect(github.requests().find(request => labelOf(request) === PATCH)).toMatchObject({ body: { state: 'open' } })
+  })
+
+  it('ボードの項目がアーカイブ済みなら、Status を設定する前にアーカイブを解き、updated の行を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-22')
+    prepareProject()
+    const archived: ResponseRule = { match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number: 7 } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_7', isArchived: true, project: { id: 'PVT_1' } }] } } } } } }, times: 1 }
+    const unarchived: ResponseRule = { match: { operation: 'UnarchiveProjectItem', variables: { projectId: 'PVT_1', itemId: 'PVTI_7' } }, respond: { status: 200, body: { data: { unarchiveProjectV2Item: { item: { id: 'PVTI_7' } } } } }, times: 1 }
+    const github = await startGithub([linkedRepositories(), reopened(), archived, unarchived, fieldUpdated('o3'), reopened()])
+
+    const result = await reopen(['acme/demo/7'])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('updated: Issue acme/demo/7 unarchived on the board\nset: Issue acme/demo/7 status ready\nreopened: Issue acme/demo/7\n')
+    expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', PATCH, 'GetIssueProjectItems', 'UnarchiveProjectItem', 'UpdateProjectItemField', PATCH])
   })
 
   it('--status を渡すと、reopen の後にボードの status をその値にして set の行を出す', async (context) => {

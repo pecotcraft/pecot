@@ -90,6 +90,16 @@ export class ReposApi extends GitHubClientBase {
   }
 
   /**
+  head が base より進んでいる commit の数（REST の compare の ahead_by）。手元の git を使わない
+  */
+  async countCommitsAhead(owner: string, repository: string, base: string, head: string): Promise<number> {
+    const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`)
+    const ahead = jsonField(comparison, 'ahead_by')
+    if (typeof ahead !== 'number' || !Number.isSafeInteger(ahead)) throw new GitHubAPIError('could not read ahead_by from the compare response')
+    return ahead
+  }
+
+  /**
   Issue に紐づいたブランチを作り、その名前を返す（gh issue develop と同等）。
   repositoryId を省くと、Issue と同じリポジトリになる
   */

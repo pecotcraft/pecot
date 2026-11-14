@@ -449,7 +449,7 @@ describe('pr create', () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'acme/demo', '--dry-run'])
     expect(result.code).toBe(3)
-    expect(result.stderr).toBe('error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `-m`)\n')
+    expect(result.stderr).toBe('error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `--message`)\n')
   })
 
   it('base が設定のブランチと違うと、終了コード 3 で終わる', async (context) => {
@@ -577,7 +577,7 @@ describe('pr create', () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create -m "<body>" -t "<title>" -b <base-branch>\n')
+    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create --message <body> --title <title> --base <base-branch>\n')
   })
 
   it.for([
@@ -587,7 +587,7 @@ describe('pr create', () => {
     await verifies(context, 'PW-PR-CREATE-44')
     const workspace = await pushedBranch()
     const result = await workspace.run(row.argv)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: -t (title) and -b (base branch) are required with -m\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: --title and --base (base branch) are required with --message\n' })
   })
 
   it('ファイルと一緒に --screenshot を渡すと、終了コード 1 で終わる', async (context) => {
@@ -595,7 +595,7 @@ describe('pr create', () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', writePrFile(workspace), '--screenshot', '理由'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: --screenshot is for -m; write the reason in the `screenshot` frontmatter field instead\n$/u)
+    expect(result.stderr).toMatch(/^error: --screenshot is for --message; write the reason in the `screenshot` frontmatter field instead\n$/u)
   })
 
   it.for([
@@ -612,7 +612,7 @@ describe('pr create', () => {
   })
 
   it.for([
-    { title: '設定のリポジトリが 2 つで --repo も無い', config: { hasSecondRepository: true }, repo: [], expected: 'error: specify the repository (-r owner/repo)\n' },
+    { title: '設定のリポジトリが 2 つで --repo も無い', config: { hasSecondRepository: true }, repo: [], expected: 'error: specify the repository (--repo <owner/repo>)\n' },
     { title: '--repo が owner/repo の形でない', config: {}, repo: ['-r', 'invalid'], expected: 'error: invalid repository format: invalid (expected: owner/repo)\n' },
   ])('-m で次の形だと（$title）、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-PR-CREATE-47')

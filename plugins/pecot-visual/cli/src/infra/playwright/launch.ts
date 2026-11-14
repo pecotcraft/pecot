@@ -20,7 +20,7 @@ export function chromiumLaunchError(message: string, cause: unknown): Error | un
     const libraryList = libraries.length > 0 ? ` (${libraries.join(', ')})` : ''
     return new Error(
       `Playwright Chromium cannot launch because OS libraries are missing${libraryList}: ${message}\n`
-      + '  run the pecotv setup (plugins/pecot-visual/setup.sh, or the setup tool in MCP); it installs them automatically where sudo is available;'
+      + '  run the pecotv setup (plugins/pecot-visual/setup.sh, or the runtime_setup tool in MCP); it installs them automatically where sudo is available;'
       + ' where sudo is not available, ask an administrator to run the command that setup shows',
       { cause },
     )

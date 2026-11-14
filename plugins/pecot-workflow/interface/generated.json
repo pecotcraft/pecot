@@ -2,6 +2,153 @@
   "format": 1,
   "plugin": "pecot-workflow",
   "prefix": "PW",
+  "names": {
+    "separator": " ",
+    "positions": [
+      [
+        {
+          "word": "project",
+          "meaning": "プロジェクトとの接続と設定ファイル。ボードの上の Issue には触らない"
+        },
+        {
+          "word": "board",
+          "meaning": "ボードの上の Issue の置き場所。設定ファイルは書かない"
+        },
+        {
+          "word": "issue",
+          "meaning": "Issue そのもの"
+        },
+        {
+          "word": "session",
+          "meaning": "1 つの Issue の作業の始まりから終わりまで"
+        },
+        {
+          "word": "pr",
+          "meaning": "PR そのもの"
+        },
+        {
+          "word": "release",
+          "meaning": "リリース"
+        },
+        {
+          "word": "tracker",
+          "meaning": "Tracker の Issue の書き直し"
+        },
+        {
+          "word": "worktree",
+          "meaning": "worktree"
+        },
+        {
+          "word": "branch",
+          "meaning": "リモートのブランチ"
+        }
+      ],
+      [
+        {
+          "word": "list",
+          "meaning": "複数を並べる",
+          "read_only": true
+        },
+        {
+          "word": "search",
+          "meaning": "GitHub を探す",
+          "read_only": true
+        },
+        {
+          "word": "show",
+          "meaning": "1 件を出す",
+          "read_only": true
+        },
+        {
+          "word": "get",
+          "meaning": "設定の値を出す",
+          "read_only": true
+        },
+        {
+          "word": "check",
+          "meaning": "次の操作の前に確かめる",
+          "read_only": true
+        },
+        {
+          "word": "create",
+          "meaning": "GitHub のものを作る"
+        },
+        {
+          "word": "delete",
+          "meaning": "GitHub のものを消す"
+        },
+        {
+          "word": "add",
+          "meaning": "集まりに入れる"
+        },
+        {
+          "word": "remove",
+          "meaning": "集まりから出す"
+        },
+        {
+          "word": "init",
+          "meaning": "既にあるものを pecot で使える状態にする"
+        },
+        {
+          "word": "set",
+          "meaning": "設定のキーに値を入れる"
+        },
+        {
+          "word": "unset",
+          "meaning": "設定のキーの値を消す"
+        },
+        {
+          "word": "link",
+          "meaning": "リポジトリをプロジェクトにつなぐ"
+        },
+        {
+          "word": "activate",
+          "meaning": "使うプロジェクトを切り替える"
+        },
+        {
+          "word": "start",
+          "meaning": "作業を始める"
+        },
+        {
+          "word": "restore",
+          "meaning": "作業の状態を戻す"
+        },
+        {
+          "word": "finish",
+          "meaning": "作業を終えて片付ける"
+        },
+        {
+          "word": "sync",
+          "meaning": "判定や一覧に合わせて書き直す"
+        },
+        {
+          "word": "move",
+          "meaning": "ボードの列を移す"
+        },
+        {
+          "word": "merge",
+          "meaning": "PR をマージする"
+        },
+        {
+          "word": "comment",
+          "meaning": "コメントを書く"
+        },
+        {
+          "word": "reopen",
+          "meaning": "閉じたものを開き直す"
+        },
+        {
+          "word": "block",
+          "meaning": "前提を付ける"
+        },
+        {
+          "word": "unblock",
+          "meaning": "前提を外す"
+        }
+      ]
+    ],
+    "rest": false
+  },
   "entries": [
     {
       "id": "PW-BOARD-ADD",
@@ -23,6 +170,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
@@ -43,6 +195,10 @@
           "issue_ref"
         ],
         "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
           "status": [
             "--status",
             "-s"
@@ -70,6 +226,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
@@ -90,7 +251,12 @@
           "issue_ref",
           "status"
         ],
-        "flags": {}
+        "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ]
+        }
       }
     },
     {
@@ -142,7 +308,7 @@
     {
       "id": "PW-BOARD-SYNC",
       "name": "board sync",
-      "description": "Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for",
+      "description": "Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board",
       "surfaces": {
         "cli": {
           "path": [
@@ -213,20 +379,20 @@
             "default": false,
             "description": "Show what would be deleted without deleting anything"
           },
-          "repo_ref": {
+          "repo": {
             "type": "string",
             "description": "Repository reference (owner/repo)"
           }
         },
         "required": [
           "branch",
-          "repo_ref"
+          "repo"
         ],
         "additionalProperties": false
       },
       "cli": {
         "positional": [
-          "repo_ref",
+          "repo",
           "branch"
         ],
         "flags": {
@@ -330,11 +496,16 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be posted or written without changing anything"
+          },
           "file": {
             "type": "string",
             "description": "Path of a Markdown file with frontmatter"
           },
-          "issue": {
+          "issue_ref": {
             "type": "string",
             "description": "Issue reference (owner/repo/123 form, required with -m)"
           },
@@ -367,8 +538,12 @@
           "file"
         ],
         "flags": {
-          "issue": [
-            "--issue",
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "issue_ref": [
+            "--issue-ref",
             "-i"
           ],
           "message": [
@@ -406,12 +581,22 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be created without writing anything (with files: the progression table and stackable chains)"
+          },
           "files": {
             "type": "array",
             "items": {
               "type": "string"
             },
             "description": "Path of a Markdown file with frontmatter (several for a batch post)"
+          },
+          "freeform": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters, priority medium, size s)"
           },
           "label": {
             "type": "array",
@@ -431,11 +616,6 @@
           "parent_epic": {
             "type": "string",
             "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
-          },
-          "plan": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show the progression table and stackable chains of the files without posting"
           },
           "prepare": {
             "type": "boolean",
@@ -498,6 +678,13 @@
           "files"
         ],
         "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "freeform": [
+            "--freeform"
+          ],
           "label": [
             "--label",
             "-l"
@@ -511,9 +698,6 @@
           ],
           "parent_epic": [
             "--parent-epic"
-          ],
-          "plan": [
-            "--plan"
           ],
           "prepare": [
             "--prepare",
@@ -550,91 +734,6 @@
       }
     },
     {
-      "id": "PW-ISSUE-QUICK",
-      "name": "issue quick",
-      "description": "Create an Issue at once from a free-format message",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "quick"
-          ]
-        },
-        "mcp": {
-          "tool": "issue_quick"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "Issue message (free format)"
-          },
-          "no_branch": {
-            "type": "boolean",
-            "default": false,
-            "description": "Skip creating a branch"
-          },
-          "order": {
-            "type": "integer",
-            "description": "Order number of the subtask (used with parent_epic)"
-          },
-          "parent_epic": {
-            "type": "string",
-            "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
-          },
-          "repo": {
-            "type": "string",
-            "description": "Repository (owner/repo form)"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "task",
-              "bug",
-              "epic",
-              "tracker"
-            ],
-            "default": "task",
-            "description": "Issue type (task/bug/epic/tracker)"
-          }
-        },
-        "required": [
-          "message",
-          "repo"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "message": [
-            "--message",
-            "-m"
-          ],
-          "no_branch": [
-            "--no-branch"
-          ],
-          "order": [
-            "--order"
-          ],
-          "parent_epic": [
-            "--parent-epic"
-          ],
-          "repo": [
-            "--repo",
-            "-r"
-          ],
-          "type": [
-            "--type"
-          ]
-        }
-      }
-    },
-    {
       "id": "PW-ISSUE-REOPEN",
       "name": "issue reopen",
       "description": "Reopen a closed Issue (also sets the status on the board)",
@@ -657,6 +756,11 @@
           "comment": {
             "type": "string",
             "description": "Reason for reopening (posted as a comment)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
           },
           "issue_ref": {
             "type": "string",
@@ -681,6 +785,10 @@
           "comment": [
             "--comment",
             "-c"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
           ],
           "status": [
             "--status",
@@ -1042,6 +1150,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "host": {
             "type": "string",
             "description": "GitHub host"
@@ -1063,6 +1176,10 @@
           "project"
         ],
         "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
           "host": [
             "--host",
             "-h"
@@ -1094,6 +1211,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "host": {
             "type": "string",
             "default": "github.com",
@@ -1125,6 +1247,10 @@
           "title"
         ],
         "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
           "host": [
             "--host",
             "-h"
@@ -1196,6 +1322,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "host": {
             "type": "string",
             "default": "github.com",
@@ -1227,6 +1358,10 @@
           "name"
         ],
         "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
           "host": [
             "--host",
             "-h"
@@ -1271,9 +1406,10 @@
             "type": "string",
             "description": "Development branch name"
           },
-          "owner_repo": {
-            "type": "string",
-            "description": "Repository name in owner/repo form"
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
           },
           "package": {
             "type": "array",
@@ -1289,16 +1425,20 @@
           "release_type": {
             "type": "string",
             "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository name in owner/repo form"
           }
         },
         "required": [
-          "owner_repo"
+          "repo"
         ],
         "additionalProperties": false
       },
       "cli": {
         "positional": [
-          "owner_repo"
+          "repo"
         ],
         "flags": {
           "changelog_file": [
@@ -1310,6 +1450,10 @@
           "develop_branch": [
             "--develop-branch",
             "-b"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
           ],
           "package": [
             "--package"
@@ -1418,6 +1562,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "key": {
             "type": "string",
             "enum": [
@@ -1447,6 +1596,10 @@
           "value"
         ],
         "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
           "yes": [
             "--yes",
             "-y"
@@ -1474,6 +1627,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
           "key": {
             "type": "string",
             "enum": [
@@ -1491,7 +1649,12 @@
         "positional": [
           "key"
         ],
-        "flags": {}
+        "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ]
+        }
       }
     },
     {
@@ -1742,7 +1905,12 @@
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
           },
-          "issue": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be recorded without writing anything"
+          },
+          "issue_ref": {
             "type": "string",
             "description": "Issue reference (owner/repo/number)"
           }
@@ -1759,8 +1927,12 @@
             "--directory",
             "-D"
           ],
-          "issue": [
-            "--issue",
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "issue_ref": [
+            "--issue-ref",
             "-i"
           ]
         }
@@ -1835,7 +2007,7 @@
             "type": "string",
             "description": "Base branch (default: chosen by readiness, else develop_branch from the config)"
           },
-          "branch_name": {
+          "branch": {
             "type": "string",
             "description": "Name of the branch to create"
           },
@@ -1843,6 +2015,11 @@
             "type": "boolean",
             "default": true,
             "description": "Kept for compatibility; has no effect"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be created and recorded without writing anything"
           },
           "force_overwrite_active": {
             "type": "boolean",
@@ -1855,7 +2032,7 @@
           }
         },
         "required": [
-          "branch_name",
+          "branch",
           "issue_ref"
         ],
         "additionalProperties": false
@@ -1863,7 +2040,7 @@
       "cli": {
         "positional": [
           "issue_ref",
-          "branch_name"
+          "branch"
         ],
         "flags": {
           "allow_cross_repo": [
@@ -1877,6 +2054,10 @@
           "checkout": [
             "--checkout",
             "--no-checkout"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
           ],
           "force_overwrite_active": [
             "--force-overwrite-active",
@@ -2052,6 +2233,11 @@
           "directory": {
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
           }
         },
         "required": [
@@ -2065,6 +2251,10 @@
           "directory": [
             "--directory",
             "-D"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
           ]
         }
       }
@@ -2157,6 +2347,11 @@
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
           },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          },
           "force": {
             "type": "boolean",
             "default": false,
@@ -2186,6 +2381,10 @@
           "directory": [
             "--directory",
             "-D"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
           ],
           "force": [
             "--force"

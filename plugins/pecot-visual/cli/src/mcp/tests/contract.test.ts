@@ -13,7 +13,7 @@
 //     slide_page / slide_theme。残りは既定のままで良く (false でなければ通る)、true を強制はしない。
 //     slide_create と slide_sync は git でテーマを取得しうるため、明示しない。
 //
-// `setup` (#981) だけは、既定値と同じでも annotations を明示する。
+// `runtime_setup` (#981) だけは、既定値と同じでも annotations を明示する。
 // Claude Code は annotations から自動承認の可否を組み立てる。
 // 120MB のダウンロードを始める本ツールが、読み取り専用や非破壊に見えてはならない。
 // 専用の it で個別に pin している。
@@ -231,7 +231,7 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
   },
   {
     // 引数を取らない唯一のツール。Chromium を取得するので openWorld。
-    name: 'setup',
+    name: 'runtime_setup',
     parameters: {},
     required: [],
     pathParameters: [],
@@ -273,12 +273,12 @@ const TAGGED_THEME = 'git+https://example.invalid/org/theme.git#v1.0.0'
 const ABSOLUTE_PATH = path.join(MISSING_DIRECTORY, 'probe')
 
 /**
-即失敗テーブルの対象外にするツール。`setup` は引数を取らないため、入力起因の即失敗を作れない。
+即失敗テーブルの対象外にするツール。`runtime_setup` は引数を取らないため、入力起因の即失敗を作れない。
 失敗させるには、実際に Chromium の取得を動かすしかない (取得先の細工が要る)。
-出力捕捉を含む setup の応答は src/mcp/tools/tests/setup.test.ts が見る。
+出力捕捉を含む runtime_setup の応答は src/mcp/tools/tests/setup.test.ts が見る。
 `slide_theme` は読み取りだけで何も出力しないため、出力捕捉（stdout / stderr のキー）の対象外にする。
 */
-const NO_FAST_FAILURE = new Set(['setup', 'slide_theme'])
+const NO_FAST_FAILURE = new Set(['runtime_setup', 'slide_theme'])
 
 /**
 実処理に入って即座に失敗する引数。「捕捉した出力は空でもキーを残す」を一律で見るために使う。
@@ -339,7 +339,7 @@ const WINDOWS_BASE_ARGUMENTS: Readonly<Record<string, Readonly<Record<string, un
   drawio_create: { input_path: path.join(MISSING_DIRECTORY, 'diagram.drawio') },
   drawio_export: { input_path: path.join(MISSING_DIRECTORY, 'diagram.drawio'), print_hash: true },
   evidence_create: { input_path: path.join(MISSING_DIRECTORY, 'spec.json') },
-  setup: {},
+  runtime_setup: {},
 }
 
 /**
@@ -665,17 +665,17 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(toolOf(name).description).toContain('against the text rules and generates nothing if there is a violation')
   })
 
-  it('即失敗テーブルが setup 以外の全ツールを覆う', () => {
+  it('即失敗テーブルが runtime_setup 以外の全ツールを覆う', () => {
     expect(sorted(FAST_FAILURES.map(entry => entry.name)))
       .toEqual(sorted(TOOL_CONTRACTS
         .map(contract => contract.name)
         .filter(name => !NO_FAST_FAILURE.has(name))))
   })
 
-  it('setup が引数を取らず、破壊的かつ外部到達として宣言されている', () => {
+  it('runtime_setup が引数を取らず、破壊的かつ外部到達として宣言されている', () => {
     // Claude Code は annotations から自動承認の可否を組み立てるため、Chromium を
     // ダウンロードする本ツールが読み取り専用や非破壊に見えてはいけない。
-    const tool = toolOf('setup')
+    const tool = toolOf('runtime_setup')
 
     expect(Object.keys(tool.inputSchema.properties ?? {})).toEqual([])
     expect(tool.annotations?.readOnlyHint).not.toBe(true)

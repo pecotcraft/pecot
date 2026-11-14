@@ -141,7 +141,7 @@ describe('board move', () => {
     expect(result).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with pecot board add\n',
+      stderr: 'error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with pecot board add acme/demo/7\n',
     })
     expect(github.requests()).toHaveLength(2)
   })

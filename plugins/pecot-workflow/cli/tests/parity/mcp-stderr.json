@@ -1,0 +1,22 @@
+{
+  "board-move-state-not-on-board": "error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\"\n",
+  "board-show-state": "error: no active project\n  run: project_activate with project: <PROJECT>\n",
+  "board-sync-state-ambiguous-project": "error: no active project, and 2 project configs exist\n  run: board_sync with project: <NAME>\n  available: ghes.example.com_acme_board_acme, ghes.example.com_acme_other_acme\n",
+  "issue-comment-usage-message-without-issue": "error: issue_ref (Issue reference) is required with message\n",
+  "issue-create-usage-no-args": "error: missing arguments\n  direct posting: issue_create with title: <TITLE>, repo: \"owner/repo\", message: <BODY>\n  free format: issue_create with freeform: true, repo: \"owner/repo\", message: <BODY>\n  prepare a template: issue_create with prepare: true, template: \"task\", repo: \"owner/repo\"\n  from a file: issue_create with files: <path>\n",
+  "issue-create-usage-prepare-no-repo": "error: repo: <owner/repo> is required with prepare: true unless template: \"epic\"\n",
+  "pr-create-state-screenshot": "error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`screenshot` with `message`)\n",
+  "pr-create-usage": "error: missing arguments\n  usage:\n  pr_create with prepare: true\n  pr_create with file: <path>\n  pr_create with message: <body>, title: <title>, base: <base-branch>\n",
+  "project-activate-4xx": "error: could not read the authenticated user: resource not found: {{GITHUB_API}}/user\n  pass owner to give the owner explicitly\n",
+  "project-activate-state": "error: host is required\n  example: project_activate with host: \"github.com\", owner: \"example-org\"\n  example: project_activate with host: \"ghes.example.com\", owner: \"example-org\"\n  example: project_activate with project: \"ghes.example.com_example-org_example-project_example-org\"\n",
+  "project-get-state": "error: no active project\n  run: project_activate with project: <PROJECT>\n",
+  "project-link-state": "error: give the repository as owner/repo\n  example: project_link with repo: \"example-org/my-repo\"\n",
+  "project-unset-state": "error: no active project\n  run: project_activate with project: <PROJECT>\n",
+  "release-create-state-no-release-branch": "error: release_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", release_branch: <branch>\n",
+  "session-restore-state-no-issue-number": "error: cannot infer the Issue number from the branch name: feat/no-number\n  run: session_restore with issue_ref: <owner/repo/N>\n",
+  "session-start-state-repo-mismatch": "error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n  to issue the command on purpose from outside the CWD (for example in a script), give allow_cross_repo: true\n",
+  "worktree-add-state-no-config": "error: worktree config not found: .pecot/config/worktree-config.json\n    run worktree_init to generate the template\n",
+  "worktree-add-state-not-registered": "error: repository acme/demo is not registered in the active pecot project\n  \n  registered repositories:\n    - acme/other\n  \n  to add this repository to the pecot project:\n    project_link with repo: \"acme/demo\"\n  \n  to switch to another project:\n    project_activate with project: <PROJECT>\n",
+  "worktree-link-state-main-worktree": "error: use all: true in the main worktree\n",
+  "worktree-link-state-no-config": "error: worktree config not found\n  run: worktree_init with directory: <directory>\n"
+}

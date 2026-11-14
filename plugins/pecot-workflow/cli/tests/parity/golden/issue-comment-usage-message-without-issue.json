@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: --issue (Issue reference) is required with -m\n",
+  "stderr": "error: --issue-ref (Issue reference) is required with --message\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

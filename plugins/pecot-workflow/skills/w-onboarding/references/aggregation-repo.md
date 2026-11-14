@@ -82,7 +82,7 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 ヒアリング結果を使って、次の 3 つを **この順序で** 実行する。
 
 1. `gh repo create <owner/repo> --<visibility> --add-readme`（Bash）
-2. `project_link` を `owner_repo: "<owner/repo>"`・`develop_branch: "main"` で呼ぶ
+2. `project_link` を `repo: "<owner/repo>"`・`develop_branch: "main"` で呼ぶ
 3. `project_set` を `key: "aggregation_repo"`・`value: "<owner/repo>"` で呼ぶ
 
 - `--add-readme` は空リポ回避（README が無い空リポは clone できず、以降の Epic 作成も失敗しやすい）。

@@ -89,7 +89,7 @@ CLI (`pecotv drawio url`) は PNG 生成の失敗を warning に格下げする�
 表示用 HTML は書いたうえで、`png: null` / `pngFailed: true` / warnings +1 / exit 3 を返す。
 MCP だけが実処理の前に hard-fail すると、CLI と結果が食い違う。
 degrade できる条件はこれだけ。drawio_export と slide_convert は、chromium が無いと成果物を 1 つも作れない。
-data は CLI の PNG 失敗時と同一にし、`setup` の誘導は message へ載せる。
+data は CLI の PNG 失敗時と同一にし、`runtime_setup` の誘導は message へ載せる。
 */
 function degradeToPngSkipped(
   execution: Readonly<DrawioUrlExecution>,

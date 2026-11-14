@@ -1,5 +1,6 @@
 // グローバルの `--repo` と、今の git remote のリポジトリの食い違いを扱う（Python の `require_repo_match`）。
 // 判定は domain/repository-policy.ts の applyRepositoryPolicy に任せ、ここは git の解決と行の出力、止めるときの終了コードだけを行う。
+import { formatHinted } from '../domain/command-hint.js'
 import { applyRepositoryPolicy } from '../domain/repository-policy.js'
 import type { PolicyMode } from '../domain/repository-policy.js'
 import { AmbiguousRepositoryError, resolveRepository } from '../domain/repository-resolver.js'
@@ -33,7 +34,7 @@ export function requireRepositoryMatch(
   cwd: string,
 ): RepositoryReference | undefined {
   const outcome = applyRepositoryPolicy({ explicit, resolved: resolveCurrentRepository(cwd), mode })
-  for (const line of outcome.stderr) io.stderr(`${line}\n`)
+  for (const line of outcome.stderr) io.stderr(`${formatHinted(line, io.surface ?? 'cli')}\n`)
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode)
   return outcome.adopted
 }

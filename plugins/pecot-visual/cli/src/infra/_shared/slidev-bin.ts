@@ -22,7 +22,7 @@ const requireFromHere = createRequire(import.meta.url)
 
 解決できないときは throw する。畳み方は呼び出し元で違う。
 pptx 変換 (slidev-to-pptx/runner.ts) は、commands/slidev-to-pptx が RuntimeError として扱う。
-MCP 側では `setup` 誘導つきの ToolResult になる。
+MCP 側では `runtime_setup` 誘導つきの ToolResult になる。
 dev サーバ (mcp/dev-server-registry.ts) は、起動試行の try/catch が `dev-server-spawn-failed` として畳む。
 */
 /* c8 ignore start -- production の `@slidev/cli` を resolve する箇所。test は port で差し替える */

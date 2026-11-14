@@ -39,6 +39,8 @@ interface ItemExtra {
   readonly repository?: string
   readonly title?: string
   readonly isPullRequest?: boolean
+  readonly updatedAt?: string
+  readonly state?: string
 }
 
 // 一覧の応答に載る、着手の判定の軽い入力
@@ -47,11 +49,18 @@ function item(id: string, number: number, workflow: string, extra: ItemExtra = {
   const progress = extra.blockedBy === undefined ? {} : { issueType: null, subIssues: { totalCount: 0 }, parent: null, blockedBy: { totalCount: extra.blockedBy } }
   return {
     id,
-    updatedAt: '2026-01-02T03:04:05Z',
+    updatedAt: extra.updatedAt ?? '2026-01-02T03:04:05Z',
     fieldValues: { nodes: [{ field: { name: 'pecot-workflow-acme' }, name: workflow }] },
-    content: { id: `I_${String(number)}`, number, title: extra.title ?? `課題${String(number)}`, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/${repository}/${extra.isPullRequest === true ? 'pull' : 'issues'}/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...progress },
+    content: { id: `I_${String(number)}`, number, title: extra.title ?? `課題${String(number)}`, state: extra.state ?? 'OPEN', url: `https://${DEFAULT_HOST}/acme/${repository}/${extra.isPullRequest === true ? 'pull' : 'issues'}/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...progress },
   }
 }
+
+const deletion = (itemId: string, status = 200): ResponseRule => status === 200
+  ? graphqlRule('DeleteProjectItem', { deleteProjectV2Item: { deletedItemId: itemId } }, { projectId: 'PVT_1', itemId })
+  : { match: { operation: 'DeleteProjectItem', variables: { projectId: 'PVT_1', itemId } }, respond: { status, body: { message: 'Server Error' } }, times: 1 }
+const archivedItems = (count: number): Json[] => Array.from({ length: count }, (_unused, index) => item(`PVTI_a${String(index + 1).padStart(2, '0')}`, 100 + index, 'Archived', { state: 'CLOSED', updatedAt: `2026-02-${String(index + 1).padStart(2, '0')}T00:00:00Z` }))
+// Archived より古い updatedAt の Backlog。絞り込みが無いと、これも削除の対象になる
+const olderBacklog = (): Json => item('PVTI_r1', 11, 'Backlog', { updatedAt: '2026-01-01T00:00:00Z' })
 
 const RESET = 1_800_000_000
 const board = (...nodes: Json[]): ResponseRule => graphqlRule('ListProjectItems', { node: { items: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } })
@@ -79,6 +88,8 @@ const writes = (result: Readonly<CommandResult>): string[] => requestLabels(resu
 // Blocked の #4 を Ready へ動かす 1 回分の応答
 const blockedToReadyRules = (): ResponseRule[] => [rateLimit(100), board(item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)]
 const contentOf = (config: Json): string => `${JSON.stringify(config, undefined, 2)}\n`
+
+const syncWithPoints = async (rules: ResponseRule[], argv: readonly string[] = []): Promise<CommandResult> => await sync([rateLimit(100), ...rules, rateLimit(130)], argv)
 
 describe('board sync', () => {
   it('Blocked の Issue の判定が startable なら、Ready へ動かす', async (context) => {
@@ -344,5 +355,39 @@ describe('board sync', () => {
       expect(result.stderr).toContain(CONFIG_FILE)
       expect(result.requests).toEqual([])
     })
+  })
+
+  it('更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除し、deleted の行を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-28')
+    const result = await syncWithPoints([board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02')])
+    expectClean(result)
+    expect(result.code).toBe(0)
+    const deleted = result.requests.filter(request => request.type === 'graphql' && request.operation === 'DeleteProjectItem').map(request => request.type === 'graphql' ? Reflect.get(asJson(request.variables), 'itemId') : undefined)
+    expect(deleted.toSorted((first, second) => String(first).localeCompare(String(second)))).toEqual(['PVTI_a01', 'PVTI_a02'])
+    expect(result.stderr).toBe(`deleted: 2 archived items\n${RATE_NOTE}`)
+  })
+
+  it('Archived の項目がちょうど 20 件なら、ボードから何も削除しない', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-28')
+    const result = await syncWithPoints([board(...archivedItems(20), olderBacklog())])
+    expectClean(result)
+    expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
+    expect(result.stderr).not.toContain('archived')
+  })
+
+  it('--dry-run を付けると、Archived の項目を削除せず、削除する件数を dry-run の行で標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-29')
+    const result = await syncWithPoints([board(...archivedItems(22), olderBacklog())], ['--dry-run'])
+    expectClean(result)
+    expect(result.code).toBe(0)
+    expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
+    expect(result.stderr).toBe(`dry-run: would delete 2 archived items\n${RATE_NOTE}`)
+  })
+
+  it('Archived の項目を削除できなかったなら、warning の行を標準エラーに出して続ける', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-30')
+    const result = await syncWithPoints([board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01', 500), deletion('PVTI_a02')])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe(`deleted: 1 archived items\nwarning: failed to delete 1 archived items\n${RATE_NOTE}`)
   })
 })

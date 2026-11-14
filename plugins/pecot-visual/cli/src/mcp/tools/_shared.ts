@@ -253,7 +253,7 @@ chromium を要するツールのハンドラ冒頭で使う実行時ガード (
 
 `pecotv mcp` は接続タイムアウト (Claude Code の MCP_TIMEOUT は 30000ms が初期値) に収めるため、
 起動時に chromium を取得しない。モデルから呼ばれるツールが 120MB のダウンロードを無断で始めないよう、
-初期状態では取得せず、`setup` ツールの呼び出しを案内する。
+初期状態では取得せず、`runtime_setup` ツールの呼び出しを案内する。
 PECOTV_AUTO_INSTALL_BROWSER=1 のときだけ、その場で取得してから処理を続行する。
 これは CI・コンテナ・繰り返し使う開発者が、往復を省くための抜け道になる。
 
@@ -277,11 +277,11 @@ export async function ensureChromium(
         event: 'chromium.unavailable',
         reason: 'chromium-not-installed',
         detail: `${label} needs Playwright Chromium, but it is not found in ${expectedLocation(dependencies)}`
-          + '; call the `setup` tool to download it (about 120MB)'
+          + '; call the `runtime_setup` tool to download it (about 120MB)'
           + `; to automate the download, set ${AUTO_INSTALL_ENV}=1`,
         expectedAt: expectedLocation(dependencies),
       },
-      message: `cannot run ${label}: Playwright Chromium is not installed; call the \`setup\` tool`,
+      message: `cannot run ${label}: Playwright Chromium is not installed; call the \`runtime_setup\` tool`,
     }
   }
 
@@ -352,9 +352,9 @@ slide_create / slide_convert / slide_sync / slide_dev の 4 ツールが引数�
 実行時解決、dev は @slidev/cli の bin を使う。そこで未取得のときの失敗の型を、1 か所に置いて揃える。
 
 プラグインとして導入した場合、実行時依存は同梱されているため、このガードは常に通る。
-単体配布では起動層に重量依存を載せられないため、`setup` を呼ぶまで解決できない。
+単体配布では起動層に重量依存を載せられないため、`runtime_setup` を呼ぶまで解決できない。
 ensureChromium と違い、自動取得の抜け道は持たない。npm install は 600MB 級で、
-モデルから呼ばれるツールが無断で始めてよい規模ではないため、必ず `setup` を経由させる。
+モデルから呼ばれるツールが無断で始めてよい規模ではないため、必ず `runtime_setup` を経由させる。
 */
 export function ensureRuntimeDependencies(
   label: string,
@@ -374,7 +374,7 @@ export function ensureRuntimeDependencies(
         + DEPENDENCY_RECOVERY_HINT,
       expectedAt,
     },
-    message: `cannot run ${label}: runtime dependencies are not installed; call the \`setup\` tool`,
+    message: `cannot run ${label}: runtime dependencies are not installed; call the \`runtime_setup\` tool`,
   }
 }
 

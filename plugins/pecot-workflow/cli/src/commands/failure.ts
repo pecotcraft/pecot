@@ -2,6 +2,7 @@
 // 値の誤り（InvalidValueError）と OS のエラーも同じ行にする。上のどれでもない例外はプログラムの誤りなので、伝える。
 import { PecotError, InvalidValueError } from '../domain/errors.js'
 import { OsError } from '../infra/os-error.js'
+import { hintedTextOf } from './command-hint.js'
 import { AbortedError, createOutput, reportAborted } from './output.js'
 import type { CommandIo } from './registry.js'
 import { formatUsageError, USAGE_EXIT_CODE, UsageError } from './usage-error.js'
@@ -16,7 +17,7 @@ export function isReportableFailure(error: unknown): error is Error {
 }
 
 export function reportFailure(error: Readonly<Error>, io: CommandIo): void {
-  createOutput(false, io).error(error.message)
+  createOutput(false, io).error(hintedTextOf(error) ?? error.message)
 }
 
 /**

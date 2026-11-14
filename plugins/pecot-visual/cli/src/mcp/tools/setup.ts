@@ -1,4 +1,4 @@
-// setup ツール。実行時依存 (永続層) と Playwright Chromium を明示的に取得する。
+// runtime_setup ツール。実行時依存 (永続層) と Playwright Chromium を明示的に取得する。
 //
 // `pecotv mcp` は MCP クライアントの接続タイムアウト (Claude Code の MCP_TIMEOUT は既定
 // 30000ms) に収めるため、起動時に何も取得しない。また、モデルが呼ぶツールの側から 120MB 級の
@@ -238,7 +238,7 @@ function successMessage(
 }
 
 /**
-`setup` を公開する。
+`runtime_setup` を公開する。
 
 引数は取らない。chromium 側は取得済みかを見て早期 return はしない。
 判定が「取得済み」になる状態でも、実体が欠けていることがある。
@@ -330,7 +330,7 @@ export function setupTool(
   }
 
   return {
-    name: 'setup',
+    name: 'runtime_setup',
     config: {
       title: 'Prepare the runtime (runtime dependencies / Chromium download and OS libraries)',
       description: 'Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. '

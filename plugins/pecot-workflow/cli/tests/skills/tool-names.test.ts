@@ -37,6 +37,9 @@ const CLI_FORM = new RegExp(
   + String.raw`(?:\s+--repo(?:=|\s+)\S+)?\s+(?:${TOP_WORDS}|--help|--version)(?![\w-])`,
   'u',
 )
+// #428 で改名した入力名（repo_ref・owner_repo・branch_name・plan・issue）と、消したツール issue_quick。
+// issue は `issue:` の形だけ拾う（issue_ref・issue 番号の語は拾わない）。plan は `plan: true` の形だけ拾う。
+const OLD_INPUT_NAMES = /\b(?:repo_ref|owner_repo|branch_name|issue_quick)\b|`plan: (?:true|false)`|`issue: "/u
 const PREFIXED = /mcp__plugin_pecot-w_pecot-workflow__([a-z_]+)/gu
 
 function lineNumberAt(text: string, index: number): number {
@@ -76,6 +79,21 @@ describe('本文のツール名', () => {
       }
     }
     expect(offenders).toEqual([])
+  })
+
+  it('古い入力名と古いツール名を、本文に書かない', () => {
+    const offenders: string[] = []
+    for (const { file, text } of documents) {
+      for (const [index, line] of text.split('\n').entries()) {
+        if (OLD_INPUT_NAMES.test(line)) offenders.push(`${file}:${String(index + 1)}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('古い入力名の検出式は、古い入力を拾い、今の入力を拾わない', () => {
+    expect(['`repo_ref: "o/r"`', '`owner_repo` | x', '`branch_name: "feat/x"`', '`issue_quick` を呼ぶ', '`plan: true`', '`issue: "o/r/1"`'].filter(sample => !OLD_INPUT_NAMES.test(sample))).toEqual([])
+    expect(['`repo: "o/r"`', '`branch: "feat/x"`', '`dry_run: true`', '`issue_ref: "o/r/1"`'].filter(sample => OLD_INPUT_NAMES.test(sample))).toEqual([])
   })
 
   it('ツールでない語の一覧は、どれも本文のどこかに出る', () => {

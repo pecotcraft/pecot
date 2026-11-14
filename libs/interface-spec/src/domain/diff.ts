@@ -31,7 +31,7 @@ function compare(before: unknown, after: unknown, path: string, emit: Emit): voi
 // 2 つの generated.json の差を「項目の ID: 欄のパス: 変わり方」の行にする。項目が丸ごと増減したときの欄は entry。
 export function diffGenerated(before: Readonly<GeneratedFile>, after: Readonly<GeneratedFile>): string[] {
   const lines: string[] = []
-  for (const key of ['format', 'plugin', 'prefix'] as const) {
+  for (const key of ['format', 'plugin', 'prefix', 'names'] as const) {
     compare(before[key], after[key], key, (path, change) => {
       lines.push(`file: ${path}: ${change}`)
     })

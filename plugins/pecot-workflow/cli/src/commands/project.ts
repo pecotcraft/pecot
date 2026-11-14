@@ -21,6 +21,7 @@ import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
@@ -46,6 +47,7 @@ import {
 } from './project-sync.js'
 
 const DEFAULT_HOST = 'github.com'
+const dryRunInput = z.boolean().default(false).describe('Show what would change without writing anything')
 const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u
 const MISSING_PATH_CODES: ReadonlySet<string> = new Set(['ENOENT', 'ENOTDIR', 'ELOOP'])
 const SEARCH_TITLE_LIMIT = 38
@@ -182,13 +184,20 @@ function optionInputsOf(field: Readonly<JsonObject>): readonly FieldOptionInput[
 }
 
 // 既にあるフィールドに選択肢を 1 つ足す
-async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec): Promise<void> {
+async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec, isDryRun: boolean): Promise<void> {
   const { option } = spec
   const fieldName = textOf(field['name'])
   const existing = optionInputsOf(field)
   const merged = insertOption(existing, option, choosePlacement(existing, spec.placement ?? [{ end: true }]))
   if (merged === undefined) {
-    out.done({ verb: 'unchanged', target: `option ${option.name} in field ${fieldName}` })
+    const unchanged: Operation = { verb: 'unchanged', target: `option ${option.name} in field ${fieldName}` }
+    out.planned(unchanged)
+    out.done(unchanged)
+    return
+  }
+  const added: Operation = { verb: 'add', target: `option ${option.name} to field ${fieldName}` }
+  if (isDryRun) {
+    out.planned(added)
     return
   }
   try {
@@ -200,20 +209,26 @@ async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClie
     out.warning(`could not add option ${option.name} to field ${fieldName}: ${error.message}`)
     return
   }
-  out.done({ verb: 'add', target: `option ${option.name} to field ${fieldName}` })
+  out.done(added)
 }
 
 // 既にあるフィールドに足す選択肢。fields は作る前の状態なので、作ったばかりの進行の欄は「無い」扱いで何も出さない（created の行が出ている）
-async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string): Promise<void> {
+async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string, isDryRun: boolean): Promise<void> {
   const workflowField = lastFieldNamed(fields, workflowFieldName)
-  if (workflowField !== undefined) await addFieldOption(out, client, workflowField, BLOCKED_SPEC)
+  if (workflowField !== undefined) await addFieldOption(out, client, workflowField, BLOCKED_SPEC, isDryRun)
   const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
-  if (statusField === undefined) out.done({ verb: 'skip', target: `field ${STATUS_FIELD_NAME} (not found)` })
-  else await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC)
+  if (statusField === undefined) skipped(out, `field ${STATUS_FIELD_NAME} (not found)`)
+  else await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC, isDryRun)
 }
 
-// フィールドを作り、既にあるフィールドには足りない選択肢を足す。既にある進行の欄の必須の値が欠けていれば、何も書かずに止める
-async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>): Promise<void> {
+function skipped(out: Readonly<Output>, target: string): void {
+  out.planned({ verb: 'skip', target })
+  out.done({ verb: 'skip', target })
+}
+
+// フィールドを作り、既にあるフィールドには足りない選択肢を足す。既にある進行の欄の必須の値が欠けていれば、何も書かずに止める。
+// 作る（予行では、作る予定の）フィールドの数を返す
+async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>, isDryRun: boolean): Promise<number> {
   const { owner, name, suffix } = target
   const project = await findProjectByTitle(out, client, owner, name)
   const projectId = requireString(project['id'], 'project.id')
@@ -231,15 +246,22 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
     ['pecot-priority', PRIORITY_FIELD_OPTIONS],
     ['pecot-size', SIZE_FIELD_OPTIONS],
   ]
+  let newFieldCount = 0
   for (const [fieldName, options] of wanted) {
     if (fields.some(field => jsonField(field, 'name') === fieldName)) {
-      out.done({ verb: 'skip', target: `field ${fieldName} (already exists)` })
+      skipped(out, `field ${fieldName} (already exists)`)
+      continue
+    }
+    newFieldCount += 1
+    if (isDryRun) {
+      out.planned({ verb: 'create', target: `field ${fieldName}` })
       continue
     }
     const created = await client.createProjectField(projectId, fieldName, options)
     out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
   }
-  await addMissingOptions(out, client, fields, workflowFieldName)
+  await addMissingOptions(out, client, fields, workflowFieldName, isDryRun)
+  return newFieldCount
 }
 
 const initCommand = defineCommand({
@@ -250,19 +272,20 @@ const initCommand = defineCommand({
     name: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
     suffix: z.string().describe('Suffix of the workflow field'),
+    dry_run: dryRunInput,
   }),
   positional: ['owner', 'name'],
-  shortFlags: { host: '-h', suffix: '-s' },
+  shortFlags: { host: '-h', suffix: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(false, io)
+    const out = createOutput(input.dry_run, io)
     const { owner, name, host, suffix } = input
     const client = createGitHubClient(out, host)
-    await guarded(out, 'initialize project fields', async () => {
-      await initializeFields(out, client, input)
-    })
+    const newFieldCount = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, input.dry_run))
+    // 設定ファイルは作るフィールドの ID を書くので、予行では作る前の設定を出さない
+    if (newFieldCount > 0 && input.dry_run) return 0
     await guarded(out, 'sync project config', async () => {
-      await syncProjectConfig(out, client, { owner, name, host, suffix, skipIfUnchanged: true })
+      await syncProjectConfig(out, client, { owner, name, host, suffix, skipIfUnchanged: true, isDryRun: input.dry_run })
     })
     return 0
   },
@@ -278,12 +301,13 @@ const projectCreationCommand = defineCommand({
     title: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
     suffix: z.string().describe('Suffix of the workflow field'),
+    dry_run: dryRunInput,
   }),
   positional: ['owner', 'title'],
-  shortFlags: { host: '-h', suffix: '-s' },
+  shortFlags: { host: '-h', suffix: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(false, io)
+    const out = createOutput(input.dry_run, io)
     const { owner, title, host, suffix } = input
     await guarded(out, 'create project', async () => {
       const client = createGitHubClient(out, host)
@@ -298,11 +322,16 @@ const projectCreationCommand = defineCommand({
       const owned = await client.listProjects(owner)
       const existing = owned.find(project => jsonField(project, 'title') === title)
       if (existing !== undefined) stopWith(out, `project already exists: ${title}\nurl: ${textOf(existing['url'])}`)
+      // フィールドと設定ファイルは作ったプロジェクトの ID を使うので、予行ではプロジェクトの行だけ出す
+      if (input.dry_run) {
+        out.planned({ verb: 'create', target: `project ${title} for ${owner}` })
+        return
+      }
 
       const created = await client.createProject(ownerId, title)
       out.done({ verb: 'create', target: `project #${textOf(created['number'])} ${textOf(created['url'])}` })
       await guarded(out, 'initialize project fields', async () => {
-        await initializeFields(out, client, { owner, name: title, suffix })
+        await initializeFields(out, client, { owner, name: title, suffix }, false)
       })
       await guarded(out, 'sync project config', async () => {
         await syncProjectConfig(out, client, { owner, name: title, host, suffix })
@@ -321,7 +350,7 @@ function findConfigFileArgument(project: string): string | undefined {
   return isFile(named) ? named : undefined
 }
 
-async function activateFromConfigFile(out: Readonly<Output>, configPath: string, host: string | undefined): Promise<void> {
+async function activateFromConfigFile(out: Readonly<Output>, configPath: string, host: string | undefined, isDryRun: boolean): Promise<void> {
   let config: ProjectConfig
   try {
     config = loadConfig(configPath)
@@ -333,14 +362,14 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
   }
   await guarded(out, 'sync project', async () => {
     if (host !== undefined && config.host !== host) {
-      out.warning(`--host (${host}) differs from the config file host (${config.host})\nusing the config file host`)
+      out.warning(hinted`${inputHint(ACTIVATE_PATH, 'host', host)} differs from the config file host (${config.host})\nusing the config file host`)
     }
     const client = createGitHubClient(out, config.host)
     const projectInfo = await client.getProjectFields(config.owner, config.project.number)
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`)
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`)
-    await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host })
+    await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun })
   })
 }
 
@@ -351,7 +380,7 @@ async function resolveActivationOwner(out: Readonly<Output>, client: Readonly<Gi
     login = jsonField(await client.getAuthenticatedUser(), 'login')
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, `could not read the authenticated user: ${error.message}\npass --owner to give the owner explicitly`)
+    if (error instanceof GitHubAPIError) return stopWith(out, hinted`could not read the authenticated user: ${error.message}\npass ${inputNameHint(ACTIVATE_PATH, 'owner')} to give the owner explicitly`)
     throw error
   }
   return typeof login === 'string' && login !== '' ? login : stopWith(out, 'could not read the authenticated user')
@@ -408,15 +437,18 @@ async function fetchProjectInfoByReference(out: Readonly<Output>, client: Readon
   return info !== undefined && isTruthy(info) ? info : stopWith(out, `could not read project fields: ${project}`)
 }
 
-async function activateByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string }>): Promise<void> {
-  const { host, owner, project } = target
+async function activateByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string, isDryRun: boolean }>): Promise<void> {
+  const { host, owner, project, isDryRun } = target
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    stopWith(out, `project "${title}" is not initialized\nrun: pecot project init --host ${host} --suffix <suffix> ${owner} "${title}"`)
+    stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`)
   }
-  await syncProjectConfig(out, client, { owner, name: title, host })
+  await syncProjectConfig(out, client, { owner, name: title, host, isDryRun })
 }
+
+const ACTIVATE_PATH = ['project', 'activate']
+const LINK_PATH = ['project', 'link']
 
 const activateCommand = defineCommand({
   path: ['project', 'activate'],
@@ -425,33 +457,34 @@ const activateCommand = defineCommand({
     project: z.string().optional().describe('Project number or name, or config file path/file name'),
     owner: z.string().optional().describe('Project owner (defaults to the authenticated user)'),
     host: z.string().optional().describe('GitHub host'),
+    dry_run: dryRunInput,
   }),
   positional: ['project'],
-  shortFlags: { owner: '-o', host: '-h' },
+  shortFlags: { owner: '-o', host: '-h', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(false, io)
+    const out = createOutput(input.dry_run, io)
     const { project, host } = input
     // --host の要らない形（設定ファイルのパスか名前）を先に見る
     const configPath = project === undefined ? undefined : findConfigFileArgument(project)
     if (configPath !== undefined) {
-      await activateFromConfigFile(out, configPath, host)
+      await activateFromConfigFile(out, configPath, host, input.dry_run)
       return 0
     }
     await guarded(out, 'activate project', async () => {
       if (host === undefined) {
         stopWith(
           out,
-          '--host is required\n'
-          + 'example: pecot project activate --host github.com --owner example-org\n'
-          + 'example: pecot project activate --host ghes.example.com --owner example-org\n'
-          + 'example: pecot project activate ghes.example.com_example-org_example-project_example-org',
+          hinted`${inputNameHint(ACTIVATE_PATH, 'host')} is required
+example: ${commandHint(ACTIVATE_PATH, { host: 'github.com', owner: 'example-org' })}
+example: ${commandHint(ACTIVATE_PATH, { host: 'ghes.example.com', owner: 'example-org' })}
+example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_example-project_example-org' })}`,
         )
       }
       const client = createGitHubClient(out, host)
       const owner = await resolveActivationOwner(out, client, input.owner)
       if (project === undefined) await echoInitializedProjects(out, client, host, owner)
-      else await activateByReference(out, client, { host, owner, project })
+      else await activateByReference(out, client, { host, owner, project, isDryRun: input.dry_run })
     })
     return 0
   },
@@ -464,17 +497,18 @@ const packageList = z.array(z.string())
 function parsePackages(out: Readonly<Output>, input: Readonly<{ package?: readonly string[] | undefined, changelog_file?: string | undefined, clear_packages: boolean }>): readonly Package[] | undefined {
   const specs = input.package
   if (specs === undefined || specs.length === 0) return undefined
-  if (input.changelog_file !== undefined) stopWith(out, '--package and --changelog-file cannot be used together')
-  if (input.clear_packages) stopWith(out, '--package and --clear-packages cannot be used together')
+  const packageFlag = inputNameHint(LINK_PATH, 'package')
+  if (input.changelog_file !== undefined) stopWith(out, hinted`${packageFlag} and ${inputNameHint(LINK_PATH, 'changelog_file')} cannot be used together`)
+  if (input.clear_packages) stopWith(out, hinted`${packageFlag} and ${inputHint(LINK_PATH, 'clear_packages')} cannot be used together`)
   const parsed: Package[] = []
   const seen = new Set<string>()
   for (const spec of specs) {
     const separator = spec.indexOf(':')
-    if (separator === -1) stopWith(out, `give --package as NAME:PATH: ${pythonStringRepr(spec)}`)
+    if (separator === -1) stopWith(out, hinted`give ${inputHint(LINK_PATH, 'package', placeholder('NAME:PATH'))}: ${pythonStringRepr(spec)}`)
     const name = pythonStrip(spec.slice(0, separator))
     const changelog = pythonStrip(spec.slice(separator + 1))
-    if (name === '' || changelog === '') stopWith(out, `--package NAME and PATH must not be empty: ${pythonStringRepr(spec)}`)
-    if (seen.has(name)) stopWith(out, `--package NAME is duplicated: ${pythonStringRepr(name)}`)
+    if (name === '' || changelog === '') stopWith(out, hinted`${packageFlag} NAME and PATH must not be empty: ${pythonStringRepr(spec)}`)
+    if (seen.has(name)) stopWith(out, hinted`${packageFlag} NAME is duplicated: ${pythonStringRepr(name)}`)
     seen.add(name)
     // Python も Package(...) の作成で NAME の形を確かめるので、設定を読む前に止まる
     parsed.push(parsePackage({ name, changelog }))
@@ -503,7 +537,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
   }
   if (edit.changelog_file !== undefined) {
     if (packages !== undefined && packages.length > 0) {
-      stopWith(out, 'this repository has packages set\nrun with --clear-packages before switching to --changelog-file')
+      stopWith(out, hinted`this repository has packages set\nrun with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`)
     }
     changelogFile = edit.changelog_file
   }
@@ -532,32 +566,48 @@ async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repo
   }
 }
 
+// 予行。リンクの有無を読むだけで、リンクしない
+async function plannedLink(out: Readonly<Output>, config: ProjectConfig, repositoryOwner: string, repositoryName: string): Promise<LinkResult> {
+  try {
+    const linked = await createGitHubClient(out, config.host).getLinkedRepositories(config.owner, config.project.number)
+    const isLinked = linked.some(entry => entry.owner === repositoryOwner && entry.name === repositoryName)
+    return { status: isLinked ? 'already_linked' : 'linked', detail: '' }
+  }
+  catch (error: unknown) {
+    if (error instanceof GitHubAPIError) return { status: 'failed', detail: error.message }
+    throw error
+  }
+}
+
 const projectLinkCommand = defineCommand({
   path: ['project', 'link'],
+  hasOwnRepo: true,
+  ignoresGlobalRepo: true,
   description: 'Add or update a repository in the project config',
   input: z.strictObject({
-    owner_repo: z.string().describe('Repository name in owner/repo form'),
+    repo: z.string().describe('Repository name in owner/repo form'),
     develop_branch: z.string().optional().describe('Development branch name'),
     release_branch: z.string().optional().describe('Release branch name'),
     changelog_file: z.string().optional().describe('CHANGELOG file name'),
     package: packageList.optional().describe('Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md'),
     clear_packages: z.boolean().default(false).describe('Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md'),
     release_type: z.string().optional().describe('Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)'),
+    dry_run: dryRunInput,
   }),
-  positional: ['owner_repo'],
-  shortFlags: { develop_branch: '-b' },
+  positional: ['repo'],
+  shortFlags: { develop_branch: '-b', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(false, io)
+    const out = createOutput(input.dry_run, io)
     if (input.release_type !== undefined && toReleaseType(input.release_type) === undefined) {
       // Python は sorted() の順（multi, nx, single）で見せる
-      stopWith(out, `--release-type must be one of [${RELEASE_TYPES.toSorted(compareStrings).map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`)
+      stopWith(out, hinted`${inputNameHint(LINK_PATH, 'release_type')} must be one of [${RELEASE_TYPES.toSorted(compareStrings).map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`)
     }
     const packages = parsePackages(out, input)
     const { config, configPath } = requireActiveWithPath(out)
 
-    const parts = splitOwnerRepository(input.owner_repo)
-    if (parts === undefined) stopWith(out, 'give the repository as owner/repo\nexample: pecot project link example-org/my-repo')
+    const parts = splitOwnerRepository(input.repo)
+    if (parts === undefined) stopWith(out, hinted`give the repository as owner/repo\nexample: ${commandHint(['project', 'link'], { repo: 'example-org/my-repo' })}`)
     const { owner, repository: name } = parts
     if (owner !== config.owner) {
       stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
@@ -567,12 +617,14 @@ const projectLinkCommand = defineCommand({
     let next: ProjectConfig
     let saved: Operation
     if (existing === undefined) {
-      const outcome = await linkRepository(out, config, owner, name)
       const projectNumber = String(config.project.number)
-      if (outcome.status === 'failed') stopWith(out, `could not link ${input.owner_repo} to project #${projectNumber}: ${outcome.detail}`)
-      out.done(outcome.status === 'already_linked'
-        ? { verb: 'unchanged', target: `${input.owner_repo} in project #${projectNumber}` }
-        : { verb: 'add', target: `${input.owner_repo} to project #${projectNumber}` })
+      const outcome = input.dry_run ? await plannedLink(out, config, owner, name) : await linkRepository(out, config, owner, name)
+      if (outcome.status === 'failed') stopWith(out, `could not link ${input.repo} to project #${projectNumber}: ${outcome.detail}`)
+      const linked: Operation = outcome.status === 'already_linked'
+        ? { verb: 'unchanged', target: `${input.repo} in project #${projectNumber}` }
+        : { verb: 'add', target: `${input.repo} to project #${projectNumber}` }
+      out.planned(linked)
+      out.done(linked)
       next = withRepositoryAppended(config, buildRepository({
         owner,
         name,
@@ -588,7 +640,10 @@ const projectLinkCommand = defineCommand({
       next = withRepositoryReplaced(config, updatedRepository(out, existing, { ...input, packages }))
       saved = { verb: 'update', target: `${owner}/${name} in ${configPath}` }
     }
-    saveConfig(validated(next), configPath)
+    const checked = validated(next)
+    out.planned(saved)
+    if (input.dry_run) return 0
+    saveConfig(checked, configPath)
     out.done(saved)
     return 0
   },
@@ -605,34 +660,46 @@ type ConfigKey = z.infer<typeof CONFIG_KEY>
 */
 interface ConfigKeyOperations {
   readonly get: (out: Readonly<Output>) => void
-  readonly set: (out: Readonly<Output>, value: string, isConfirmed: boolean) => void
-  readonly unset: (out: Readonly<Output>) => void
+  readonly set: (out: Readonly<Output>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>) => void
+  readonly unset: (out: Readonly<Output>, isDryRun: boolean) => void
 }
 
-function setAggregationRepository(out: Readonly<Output>, value: string, isConfirmed: boolean): void {
+function setAggregationRepository(out: Readonly<Output>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>): void {
   if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`)
   const { config, configPath } = requireActiveWithPath(out)
   const current = config.aggregation_repo
   if (current === value) {
-    out.done({ verb: 'unchanged', target: `aggregation_repo ${value}` })
+    const unchanged: Operation = { verb: 'unchanged', target: `aggregation_repo ${value}` }
+    out.planned(unchanged)
+    out.done(unchanged)
+    return
+  }
+  const operation: Operation = { verb: 'set', target: `aggregation_repo to ${value}` }
+  if (options.isDryRun) {
+    out.planned(current === undefined || current === '' ? operation : { ...operation, target: `${operation.target} (was ${current})` })
     return
   }
   if (current !== undefined && current !== '') {
-    out.warning(`overwriting aggregation_repo: ${current} -> ${value}${isConfirmed ? '' : '\npass --yes to omit this hint'}`)
+    out.warning(options.isConfirmed ? `overwriting aggregation_repo: ${current} -> ${value}` : hinted`overwriting aggregation_repo: ${current} -> ${value}\npass ${inputHint(['project', 'set'], 'yes')} to omit this hint`)
   }
   saveConfig(withAggregationRepository(config, value), configPath)
-  out.done({ verb: 'set', target: `aggregation_repo to ${value}` })
+  out.done(operation)
 }
 
-function unsetAggregationRepository(out: Readonly<Output>): void {
+function unsetAggregationRepository(out: Readonly<Output>, isDryRun: boolean): void {
   const { config, configPath } = requireActiveWithPath(out)
   const previous = config.aggregation_repo
   if (previous === undefined) {
-    out.done({ verb: 'unchanged', target: 'aggregation_repo (not set)' })
+    const unchanged: Operation = { verb: 'unchanged', target: 'aggregation_repo (not set)' }
+    out.planned(unchanged)
+    out.done(unchanged)
     return
   }
+  const operation: Operation = { verb: 'remove', target: `aggregation_repo (was ${previous})` }
+  out.planned(operation)
+  if (isDryRun) return
   saveConfig(withAggregationRepository(config, undefined), configPath)
-  out.done({ verb: 'remove', target: `aggregation_repo (was ${previous})` })
+  out.done(operation)
 }
 
 // キーを足したら、ここに操作を足さないと型の確認で止まる
@@ -653,12 +720,13 @@ const projectSetCommand = defineCommand({
     key: CONFIG_KEY,
     value: z.string().describe('Aggregation repository (owner/repo form)'),
     yes: z.boolean().default(false).describe('Overwrite an existing value without confirmation (a warning goes to stderr)'),
+    dry_run: dryRunInput,
   }),
   positional: ['key', 'value'],
-  shortFlags: { yes: '-y' },
+  shortFlags: { yes: '-y', dry_run: '-n' },
   interactive: false,
   run: (input, io) => {
-    CONFIG_KEY_OPERATIONS[input.key].set(createOutput(false, io), input.value, input.yes)
+    CONFIG_KEY_OPERATIONS[input.key].set(createOutput(input.dry_run, io), input.value, { isConfirmed: input.yes, isDryRun: input.dry_run })
     return Promise.resolve(0)
   },
 })
@@ -666,11 +734,12 @@ const projectSetCommand = defineCommand({
 const projectUnsetCommand = defineCommand({
   path: ['project', 'unset'],
   description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo',
-  input: z.strictObject({ key: CONFIG_KEY }),
+  input: z.strictObject({ key: CONFIG_KEY, dry_run: dryRunInput }),
   positional: ['key'],
+  shortFlags: { dry_run: '-n' },
   interactive: false,
   run: (input, io) => {
-    CONFIG_KEY_OPERATIONS[input.key].unset(createOutput(false, io))
+    CONFIG_KEY_OPERATIONS[input.key].unset(createOutput(input.dry_run, io), input.dry_run)
     return Promise.resolve(0)
   },
 })

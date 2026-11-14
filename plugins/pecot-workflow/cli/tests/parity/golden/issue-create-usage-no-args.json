@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: missing arguments\n  direct posting: pecot issue create -t \"TITLE\" -r owner/repo -m \"BODY\"\n  prepare a template: pecot issue create --prepare --template task --repo owner/repo\n  from a file: pecot issue create <path>\n",
+  "stderr": "error: missing arguments\n  direct posting: pecot issue create --title <TITLE> --repo owner/repo --message <BODY>\n  free format: pecot issue create --freeform --repo owner/repo --message <BODY>\n  prepare a template: pecot issue create --prepare --template task --repo owner/repo\n  from a file: pecot issue create <path>\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

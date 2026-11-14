@@ -42,7 +42,7 @@ describe('launchChromium', () => {
     expect(rejected.cause).toBe(original)
   })
 
-  it('OS のライブラリ不足は取得ではなく setup を案内するエラーに包み直す', async () => {
+  it('OS のライブラリ不足は取得ではなく runtime_setup を案内するエラーに包み直す', async () => {
     // 実機 (ubuntu26.04 で libatk 等が無い環境) で Playwright が返した形
     const original = new Error(
       'browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n'
@@ -61,7 +61,7 @@ describe('launchChromium', () => {
     expect(rejected.cause).toBe(original)
   })
 
-  it('起動前の依存確認が枠付きで返すライブラリ不足も、setup を案内するエラーに包み直す', async () => {
+  it('起動前の依存確認が枠付きで返すライブラリ不足も、runtime_setup を案内するエラーに包み直す', async () => {
     // playwright-core 1.64 の validateDependenciesLinux が投げる形
     const original = new Error([
       '',
@@ -83,7 +83,7 @@ describe('launchChromium', () => {
     expect(rejected.cause).toBe(original)
   })
 
-  it('ライブラリ名を含まない枠付きの失敗も、名前なしで setup を案内する', async () => {
+  it('ライブラリ名を含まない枠付きの失敗も、名前なしで runtime_setup を案内する', async () => {
     const original = new Error('\n║ Host system is missing dependencies to run browsers. ║\n║ Please install them with the following command: ║')
     mockLaunch(() => Promise.reject(original))
     const { launchChromium } = await import('../launch.js')

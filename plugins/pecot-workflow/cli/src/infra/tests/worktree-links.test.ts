@@ -29,6 +29,8 @@ import {
 import type { LinkPlan, WorktreeConfig } from '../worktree-links.js'
 import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
 import { worktreeConfigOutputs } from '../../tests/_helpers/python-output.js'
+// 案内の文を描くには、コマンドの形の登録が要る
+import '../../commands/registry.js'
 
 // 期待値は、Python の CLI の実出力（tests/python-output/worktree-config.json。作り直さない記録）
 const OUTPUTS = worktreeConfigOutputs()

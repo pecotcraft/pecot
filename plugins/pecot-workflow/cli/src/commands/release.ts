@@ -23,6 +23,7 @@ import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
 import { NO_ACTIVE_PROJECT } from './command-stop.js'
 import { createGitHubClient, makeClient } from './github-client.js'
 import { createOutput } from './output.js'
@@ -33,6 +34,7 @@ import { requireRepositoryMatch } from './repository-match.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const FAILURE = 1
+const CHECK_PATH = ['release', 'check']
 
 /**
 順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して undefined を返す。
@@ -43,7 +45,7 @@ export function resolveReleaseTargetRepository(adopted: RepositoryReference | un
   if (explicit !== undefined) {
     const parts = splitOwnerRepository(explicit)
     if (parts === undefined) {
-      out.error(`invalid --repo format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`)
+      out.error(hinted`invalid ${inputNameHint(CHECK_PATH, 'repo')} format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`)
       return undefined
     }
     return parts
@@ -79,7 +81,7 @@ function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Reposito
   if (repositoryConfig !== undefined && packages.length > 0) {
     const names = packages.map(item => item.name).join(', ')
     if (packageName === undefined) {
-      out.error(`${owner}/${repository} is a monorepo\nspecify --package (available: ${names})`)
+      out.error(hinted`${owner}/${repository} is a monorepo\nspecify ${inputNameHint(['release', 'check'], 'package')} (available: ${names})`)
       return undefined
     }
     const found = findPackage(repositoryConfig, packageName)
@@ -98,7 +100,7 @@ function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Reposito
 
 function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string | undefined {
   if (branch === undefined || branch === '') {
-    out.error(`${kind}_branch is not set for ${owner}/${repository}\nset it with: pecot project link ${owner}/${repository} --${kind}-branch <branch>`)
+    out.error(hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`)
     return undefined
   }
   return branch
@@ -124,7 +126,7 @@ function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference 
   const repositoryConfig = findRepository(config, owner, repository)
   if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
     if (packageName !== undefined || options.version !== undefined) {
-      out.error('the version argument and --package cannot be used when release_type is nx\nrun it without arguments (Nx Release decides the version)')
+      out.error(hinted`the version argument and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\nrun it without arguments (Nx Release decides the version)`)
       return undefined
     }
     return { config, owner, repository, repositoryConfig, changelogPath: resolveChangelogPath(gitRoot, repositoryConfig.changelog_file), tagPrefix: undefined }
@@ -230,7 +232,7 @@ async function areAlertsPassed(out: Readonly<Output>, config: ProjectConfig, own
 }
 
 const releaseCheckCommand = defineCommand({
-  path: ['release', 'check'],
+  path: CHECK_PATH,
   description: 'Run the pre-release checks; for an nx repository only the alerts are checked',
   input: z.object({
     version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
@@ -257,7 +259,8 @@ const releaseCheckCommand = defineCommand({
 
     const remote = primaryRemoteName(cwd) ?? 'origin'
     try {
-      const result = runPreflight({
+      const client = createGitHubClient(out, config.host)
+      const result = await runPreflight({
         changelogPath: context.changelogPath,
         changelogContent: readChangelogIfExists(context.changelogPath),
         developBranch,
@@ -265,12 +268,16 @@ const releaseCheckCommand = defineCommand({
         version: input.version,
         tagPrefix: context.tagPrefix,
         remote,
-      }, gitRunnerFor(cwd))
+      }, gitRunnerFor(cwd), async (base, head) => await client.countCommitsAhead(owner, repository, base, head))
       out.count(`commits to release (${remote}/${result.developBranch} -> ${remote}/${result.releaseBranch})`, result.diffCount)
       out.data(`version: ${result.version}\ntag: ${result.tagName}\n\n${result.releaseNotes}`)
       return 0
     }
     catch (error: unknown) {
+      if (error instanceof GitHubAPIError) {
+        out.error(`could not count the commits from ${releaseBranch} to ${developBranch}: ${error.message}`)
+        return FAILURE
+      }
       if (!(error instanceof ReleaseError)) throw error
       out.error(error.message)
       return FAILURE
@@ -404,7 +411,7 @@ const releaseMergeCommand = defineCommand({
       return FAILURE
     }
     if (pullRequest.mergeable === 'CONFLICTING' && !input.admin) {
-      out.error(`PR #${String(number)} has conflicts that must be resolved\nto try a forced merge, add --admin`)
+      out.error(hinted`PR #${String(number)} has conflicts that must be resolved\nto try a forced merge, add ${inputHint(['release', 'merge'], 'admin')}`)
       return FAILURE
     }
     const releaseBranch = requireBranchSetting(out, getReleaseBranch(config, owner, repository), 'release', owner, repository)

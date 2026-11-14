@@ -8,10 +8,11 @@ import process from 'node:process'
 import { z } from 'zod'
 
 import { diffGenerated, formatStale } from '../../../../libs/interface-spec/src/domain/diff.js'
-import { generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
+import { generatedFileSchema, type GeneratedFile, type Names } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { interfaceIdOf } from '../src/commands/command-definition.js'
 import { normalizeInput } from '../src/commands/input-schema.js'
-import { byName, flagOf } from '../src/commands/names.js'
+import { byName, COMMAND_GROUPS, COMMAND_VERBS, flagOf } from '../src/commands/names.js'
+import type { CommandWord } from '../src/commands/names.js'
 import type { InputSchema } from '../src/commands/input-schema.js'
 import { createOutput } from '../src/commands/output.js'
 import { COMMANDS } from '../src/commands/registry.js'
@@ -70,6 +71,19 @@ export function exportEntries(commands: readonly CommandDefinition[]): Interface
   return commands.map(command => entryOf(command)).toSorted((left, right) => byName(left.id, right.id))
 }
 
+function wordsOf(words: readonly CommandWord[]): Names['positions'][number] {
+  return words.map(word => word.readOnly === true
+    ? { word: word.name, meaning: word.meaning, read_only: true }
+    : { word: word.name, meaning: word.meaning })
+}
+
+/**
+コマンド名の語彙（グループと動詞の 2 語、区切りは空白）を、generated.json の names の形にする
+*/
+export function exportNames(groups: readonly CommandWord[] = COMMAND_GROUPS, verbs: readonly CommandWord[] = COMMAND_VERBS): Names {
+  return { separator: ' ', positions: [wordsOf(groups), wordsOf(verbs)], rest: false }
+}
+
 export interface MainOptions {
   // 比べる・書く定義書。既定は plugins/pecot-workflow/interface/generated.json
   readonly target?: string
@@ -117,7 +131,7 @@ function serialize(file: Readonly<GeneratedFile>): string {
 }
 
 function build(entries: readonly InterfaceEntry[]): GeneratedFile {
-  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries })
+  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries })
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない

@@ -3,8 +3,8 @@
 //
 // 単体配布ルートでは @slidev/cli / dom-to-pptx / @slidev/parser を起動層に載せられない。
 // `@slidev/types` 経由で monaco-editor / mermaid が乗り、起動が MCP の接続タイムアウトを超えるため。
-// そのため `setup` を呼ぶまで解決できない。
-// そのとき slide_convert が例外で止まらず、ToolResult 契約 (reason 付きで `setup` を案内する) で返ることを固定する。
+// そのため `runtime_setup` を呼ぶまで解決できない。
+// そのとき slide_convert が例外で止まらず、ToolResult 契約 (reason 付きで `runtime_setup` を案内する) で返ることを固定する。
 //
 // プラグインルートでは実行時依存が同梱されているため、このガードは常に通過する。
 
@@ -53,7 +53,7 @@ function fakeRuntimeDependencies(
     isInstalled: () => isInstalled,
     root,
     install: () => {
-      throw new Error('ガードは取得を試みない (取得は setup ツールの責務)')
+      throw new Error('ガードは取得を試みない (取得は runtime_setup ツールの責務)')
     },
   }
 }
@@ -63,7 +63,7 @@ describe('ensureRuntimeDependencies', () => {
     expect(ensureRuntimeDependencies('slide_convert', fakeRuntimeDependencies(true))).toBeUndefined()
   })
 
-  it('未取得なら取得を試みず、reason 付きで setup を案内する', () => {
+  it('未取得なら取得を試みず、reason 付きで runtime_setup を案内する', () => {
     // 600MB 級の npm install は、モデルが呼ぶツールの側から通知なしに始めてよい規模ではない。
     const result = ensureRuntimeDependencies('slide_convert', fakeRuntimeDependencies(false))
 
@@ -103,7 +103,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
   it('slide_create は生成を始めず ToolResult 契約で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-09')
     // ガードが実処理の後ろにあると、テーマの取得 (git) を終えた後で symlink-failed になり、
-    // setup を案内する reason が返らない。
+    // runtime_setup を案内する reason が返らない。
     const projectDirectory = path.join(CLI_ROOT, 'tests', 'fixtures', 'not-created-yet')
     const tool = slideCreateTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
@@ -113,7 +113,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
     expect(dataOf(result)['event']).toBe('runtime-dependencies.unavailable')
     expect(existsSync(projectDirectory), '半作成の talk-dir を残さない').toBe(false)
-    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
   })
 
   it('slide_sync も同じ reason / event で返す', async (context) => {
@@ -128,7 +128,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
     expect(dataOf(result)['event']).toBe('runtime-dependencies.unavailable')
-    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
     expect(snapshotTree(talk)).toEqual(before)
   })
 
@@ -142,7 +142,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
     expect(dataOf(result)['event']).toBe('runtime-dependencies.unavailable')
-    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
   })
 
   it('4 ツールの応答はツール名だけが違う同じ形になる', async () => {
@@ -193,7 +193,7 @@ describe('slide_convert への接続', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
-    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
   })
 
   it('相対パスの拒否はガードより先に働く', async () => {

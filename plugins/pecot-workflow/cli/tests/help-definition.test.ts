@@ -166,7 +166,7 @@ function defaultMarks(flags: readonly string[], property: Property): readonly st
 }
 
 function isRequired(entry: Entry, name: string, property: Property): boolean {
-  return property['type'] !== 'boolean' && name !== 'repo' && entry.input.required.includes(name)
+  return property['type'] !== 'boolean' && entry.input.required.includes(name)
 }
 
 /**

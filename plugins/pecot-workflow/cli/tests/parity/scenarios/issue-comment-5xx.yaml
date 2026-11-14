@@ -7,7 +7,7 @@ command:
     - merge-diff
     - -m
     - "## Merge — 実装は半分まで進んだ\n\n### Variance — 一覧の取得を検証した\n\n- 一覧を取得できる — テストで確認した\n\n### Impact — 画面の表示に着手する\n\n- 画面を作る — 判断は不要\n"
-    - --issue
+    - --issue-ref
     - acme/demo/7
 setup:
   repo:

@@ -222,6 +222,13 @@ export function pullRequestResponse(fields: { readonly state?: string, readonly 
   return { match: { operation: 'GetPullRequestSlim' }, respond: { status: 200, body: { data: { repository: { pullRequest } } } }, times: 1 }
 }
 
+/**
+release check が数える commit 数の応答（GitHub の compare API の ahead_by）
+*/
+export function compareRule(ahead: number, repository = `${OWNER}/${NAME}`, base = 'release', head = 'develop'): ResponseRule {
+  return rest('GET', `/repos/${repository}/compare/${base}...${head}`, 200, { ahead_by: ahead })
+}
+
 export type AlertKind = 'code' | 'dependabot' | 'secret'
 
 export function alertPath(kind: AlertKind, repository = `${OWNER}/${NAME}`): string {

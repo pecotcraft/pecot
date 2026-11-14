@@ -7,6 +7,7 @@ import { createOutput } from '../output.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import '../registry.js'
 import { capture } from './support.js'
 
 useIsolatedEnvironment()

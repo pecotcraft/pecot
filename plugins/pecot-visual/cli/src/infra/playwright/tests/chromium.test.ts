@@ -249,7 +249,7 @@ describe('installChromium', () => {
   it('playwright を解決できないときは throw せず起動失敗の SpawnResult を返す', async () => {
     // ここで throw すると、MCP ハンドラの外へ例外が出る。
     // SDK は、structuredContent 無しのエラーに変えてしまう。
-    // すると、reason と `setup` 誘導という ToolResult の契約が失われる。
+    // すると、reason と `runtime_setup` 誘導という ToolResult の契約が失われる。
     const result = await installChromium({
       resolveCli: () => {
         throw new Error('Cannot find module playwright/package.json')

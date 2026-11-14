@@ -16,7 +16,7 @@ describe('toolInputOf', () => {
   it('値を取らないフラグは true、否定形は false、入力 no_x の --no-x は true', () => {
     expect(toolInputOf(readToolShape(['session', 'start']), ['acme/demo/7', '--no-checkout'])).toMatchObject({ checkout: false })
     expect(toolInputOf(readToolShape(['session', 'start']), ['acme/demo/7', '--checkout'])).toMatchObject({ checkout: true })
-    expect(toolInputOf(readToolShape(['issue', 'quick']), ['-m', 'x', '--no-branch'])).toMatchObject({ no_branch: true })
+    expect(toolInputOf(readToolShape(['worktree', 'add']), ['--no-copy'])).toMatchObject({ no_copy: true })
   })
 
   it('整数の入力は数にし、配列の入力は繰り返しを集める', () => {

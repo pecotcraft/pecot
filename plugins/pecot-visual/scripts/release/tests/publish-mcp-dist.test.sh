@@ -594,7 +594,7 @@ DIST_DEPS="$(read_manifest deps)"
 # 期待値を列挙で持つと、dist-manifest.mjs の RUNTIME_DEPS を人手で写しただけになる。
 # 両方が同時に古くなり、drift を検出できない。
 # そこで cli/package.json の dependencies から、永続層を除いた集合を作る。
-# 永続層とは、setup ツールが置き場の mcp-dist/ へ入れる重量物を指す。
+# 永続層とは、runtime_setup ツールが置き場の mcp-dist/ へ入れる重量物を指す。
 # この集合と、配布 package.json の cli 由来分を等値比較する。
 # 重量物が起動層へ戻れば余剰として、cli に依存が増えれば欠落として、どちらも同じ比較で落ちる。
 # 永続層の 3 件だけは意味境界そのものなので、ここで宣言する。
@@ -697,8 +697,8 @@ assert_eq "smoke で使う icon カタログが配布ツリーに同梱される
     "$(ls "$DIST/assets/drawio-icons/science/brain-circuit.svg" "$DIST/assets/drawio-icons/weather/cloud.svg" \
         2> /dev/null | wc -l | tr -d ' ')"
 
-# runtime の manifest は、setup が実行時依存を入れる元になる。
-# 落ちると setup は依存の宣言を読めず、起動のたびに失敗する。
+# runtime の manifest は、runtime_setup が実行時依存を入れる元になる。
+# 落ちると runtime_setup は依存の宣言を読めず、起動のたびに失敗する。
 # 期待値はソースツリーの manifest から読む。
 # 配布ツリー側から読むと、期待値と被検証物が同じ git archive の出力になり、比較として成り立たない。
 DIST_RUNTIME="$DIST/assets/slidev/runtime"
@@ -1190,7 +1190,7 @@ if [ "$SMOKE_OK" = "0" ]; then
     echo "==> smoke が起動しなかったため応答内容の判定はスキップする"
 else
     # ツール登録まで到達していることの確認（応答が返るだけなら server 側の分岐で成立し得る）。
-    # setup の有無だけでは、一部の系統が import 失敗で欠けたまま tools/list が成立する退行を
+    # runtime_setup の有無だけでは、一部の系統が import 失敗で欠けたまま tools/list が成立する退行を
     # 見逃す。件数まで固定して「全系統が載っている」ところを判定にする。
     #
     # 期待値 11 は cli/src/mcp/tools/index.ts の allTools() が公開する数のハードコード。
@@ -1200,7 +1200,7 @@ else
     SMOKE_TOOLS="$(smoke_value "$SMOKE_JSON" 2.tools)"
     SMOKE_TOOL_COUNT="$(smoke_value "$SMOKE_JSON" 2.toolCount)"
     # tools/list が JSON-RPC error を返すと、tools と toolCount の両方が空になる。
-    # すると件数不一致と setup 不在の 2 件が、真因を伏せたまま並んでしまう。
+    # すると件数不一致と runtime_setup 不在の 2 件が、真因を伏せたまま並んでしまう。
     # そこで error.message を原文のまま出し、1 件にまとめる。
     SMOKE_TOOLS_ERROR="$(smoke_value "$SMOKE_JSON" 2.error.message)"
     if [ -n "$SMOKE_TOOLS_ERROR" ]; then
@@ -1209,8 +1209,8 @@ else
         assert_eq "tools/list が $EXPECTED_TOOL_COUNT ツールを返す" \
             "$EXPECTED_TOOL_COUNT" "$SMOKE_TOOL_COUNT"
         case "$SMOKE_TOOLS" in
-            *'"setup"'*) pass "tools/list が setup を含む" ;;
-            *) fail "tools/list に setup が無い (取得: $SMOKE_TOOLS)" ;;
+            *'"runtime_setup"'*) pass "tools/list が runtime_setup を含む" ;;
+            *) fail "tools/list に runtime_setup が無い (取得: $SMOKE_TOOLS)" ;;
         esac
         case "$SMOKE_TOOLS" in
             *'"slide_theme"'*) pass "tools/list が slide_theme を含む" ;;
@@ -1289,7 +1289,7 @@ case "$(head -c 5 "$DIRECT_JSON")" in
         ;;
 esac
 
-# --- 8-3. setup が利用者の NODE_EXTRA_CA_CERTS をそのまま取得プロセスへ渡す ---
+# --- 8-3. runtime_setup が利用者の NODE_EXTRA_CA_CERTS をそのまま取得プロセスへ渡す ---
 #
 # 実行時依存の取得（npm）は、単体配布のときだけ動く。
 # そのため、実プロセスで観測できる場所は、この配布ツリー smoke しかない。
@@ -1299,7 +1299,7 @@ esac
 # 実網での取得の成否は含まない。
 #
 # 要求 id は、初期化の 2 本に続けて 2 から採番される（write_requests のコメントを参照）。
-# 本節は setup 1 本だけを流すので、id 2 を見る。
+# 本節は runtime_setup 1 本だけを流すので、id 2 を見る。
 
 # npm の代役を置く。--prefix 配下に、RUNTIME_DEPENDENCY_PROBES を満たす最小の node_modules を作る。
 # RUNTIME_DEPENDENCY_PROBES は cli/src/infra/_shared/dependency-root.ts にある。
@@ -1326,7 +1326,7 @@ for (const name of ['@slidev/cli', '@slidev/client', '@slidev/parser', 'dom-to-p
   fs.writeFileSync(path.join(directory, 'index.js'), '')
 }
 
-// setup は patch-package を起動しない（テーマの patch は slide sync が当てる）。
+// runtime_setup は patch-package を起動しない（テーマの patch は slide sync が当てる）。
 // 起動されたら記録が残るよう、index.js は呼び出しを追記する。
 fs.writeFileSync(
   path.join(prefix, 'node_modules', 'patch-package', 'index.js'),
@@ -1368,9 +1368,9 @@ else
     log_tail dry-run.err 2
 fi
 
-write_requests "$TMP/setup-requests.json" tools/call "$(call_params setup '{}')" || exit 1
+write_requests "$TMP/setup-requests.json" tools/call "$(call_params runtime_setup '{}')" || exit 1
 
-# `setup` を 1 回起動し、記録された NODE_EXTRA_CA_CERTS を標準出力へ返す。
+# `runtime_setup` を 1 回起動し、記録された NODE_EXTRA_CA_CERTS を標準出力へ返す。
 # HOME は毎回別にする（永続層の stamp が残ると 2 回目の runtime stage が skip される）。
 # plugin_data を渡すと、登録の `env` に書く想定の PLUGIN_DATA としてその値で起動する。
 run_setup_smoke() {
@@ -1391,7 +1391,7 @@ run_setup_smoke() {
         fi
         export PATH="$TMP/bin:$PATH"
         export PECOTV_TEST_NPM_ENV_OUT="$env_out"
-        # patch-package の代役（npm stub が置く）が起動のたびに 1 行追記する記録。setup では起動されない。
+        # patch-package の代役（npm stub が置く）が起動のたびに 1 行追記する記録。runtime_setup では起動されない。
         export PECOTV_TEST_PATCH_RECORD="$TMP/patch-record-$label.jsonl"
         export PLAYWRIGHT_BROWSERS_PATH="$FAKE_BROWSERS"
         export PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1
@@ -1416,31 +1416,31 @@ realpath_of() {
 SETUP_JSON="$TMP/setup-unset.json"
 run_setup_smoke unset "" "$SETUP_JSON" "$TMP/npm-env-unset"
 case "$(head -c 5 "$SETUP_JSON")" in
-    FAIL:) fail "setup の smoke が起動しない ($(log_cat setup-unset.json) :: $(log_tail setup-unset.err 3))" ;;
-    '') fail "setup の smoke が何も出力しなかった ($(log_tail setup-unset.err 3))" ;;
+    FAIL:) fail "runtime_setup の smoke が起動しない ($(log_cat setup-unset.json) :: $(log_tail setup-unset.err 3))" ;;
+    '') fail "runtime_setup の smoke が何も出力しなかった ($(log_tail setup-unset.err 3))" ;;
     *)
-        assert_eq "配布ツリーの setup が実行時依存と chromium を揃えて成功する" "ok=true event=setup.done" \
+        assert_eq "配布ツリーの runtime_setup が実行時依存と chromium を揃えて成功する" "ok=true event=setup.done" \
             "ok=$(smoke_value "$SETUP_JSON" 2.call.ok) event=$(smoke_value "$SETUP_JSON" 2.call.data.event)"
         assert_eq "NODE_EXTRA_CA_CERTS 未設定なら取得プロセスも受け取らない" \
             "<unset>" "$(cat "$TMP/npm-env-unset" 2> /dev/null)"
 
-        # setup に patch 段は無い。npm の後に patch-package が起動されないことを固定する。
-        assert_eq "setup が patch-package を起動しない" "0" \
+        # runtime_setup に patch 段は無い。npm の後に patch-package が起動されないことを固定する。
+        assert_eq "runtime_setup が patch-package を起動しない" "0" \
             "$(patch_launch_count "$TMP/patch-record-unset.jsonl")"
         # 依存は永続層ルートの node_modules に入る。
-        assert_eq "setup が永続層ルートへ実行時依存を入れる" "1" \
+        assert_eq "runtime_setup が永続層ルートへ実行時依存を入れる" "1" \
             "$([ -f "$TMP/home-unset/.local/share/pecot/pecot-visual/mcp-dist/node_modules/@slidev/cli/package.json" ] && echo 1 || echo 0)"
         ;;
 esac
 
 # 利用者が設定済みの値を、pecot は書き換えない。
-# setup が子へ渡す NODE_EXTRA_CA_CERTS は、利用者の値のままであることを確かめる。
+# runtime_setup が子へ渡す NODE_EXTRA_CA_CERTS は、利用者の値のままであることを確かめる。
 PRESET_CA="$TMP/preset-ca.pem"
 printf '%s\n' 'test-ca-bundle' > "$PRESET_CA" || exit 1
 PRESET_JSON="$TMP/setup-preset.json"
 run_setup_smoke preset "$PRESET_CA" "$PRESET_JSON" "$TMP/npm-env-preset"
 case "$(head -c 5 "$PRESET_JSON")" in
-    FAIL:|'') fail "設定済み NODE_EXTRA_CA_CERTS での setup smoke が起動しない ($(log_tail setup-preset.err 3))" ;;
+    FAIL:|'') fail "設定済み NODE_EXTRA_CA_CERTS での runtime_setup smoke が起動しない ($(log_tail setup-preset.err 3))" ;;
     *)
         assert_eq "NODE_EXTRA_CA_CERTS 設定済みならその値のまま取得プロセスへ渡る" \
             "$PRESET_CA" "$(cat "$TMP/npm-env-preset" 2> /dev/null)"
@@ -1452,9 +1452,9 @@ PDATA_DIR="$TMP/sa-data"
 PDATA_JSON="$TMP/setup-pdata.json"
 run_setup_smoke pdata "" "$PDATA_JSON" "$TMP/npm-env-pdata" "$PDATA_DIR"
 case "$(head -c 5 "$PDATA_JSON")" in
-    FAIL:|'') fail "PLUGIN_DATA 指定での setup smoke が起動しない ($(log_tail setup-pdata.err 3))" ;;
+    FAIL:|'') fail "PLUGIN_DATA 指定での runtime_setup smoke が起動しない ($(log_tail setup-pdata.err 3))" ;;
     *)
-        assert_eq "PLUGIN_DATA 指定でも setup が成功する" "ok=true event=setup.done" \
+        assert_eq "PLUGIN_DATA 指定でも runtime_setup が成功する" "ok=true event=setup.done" \
             "ok=$(smoke_value "$PDATA_JSON" 2.call.ok) event=$(smoke_value "$PDATA_JSON" 2.call.data.event)"
         assert_eq "PLUGIN_DATA 指定なら実行時依存が <PLUGIN_DATA>/mcp-dist に入る" "1" \
             "$([ -f "$PDATA_DIR/mcp-dist/node_modules/@slidev/cli/package.json" ] && echo 1 || echo 0)"

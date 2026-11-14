@@ -21,6 +21,8 @@ export function byName(left: string, right: string): number {
 export interface CommandWord {
   readonly name: string
   readonly meaning: string
+  // 読むだけの動詞の印。定義書の検証が、この語のコマンドに read でない effects を許さない
+  readonly readOnly?: true
 }
 
 /**
@@ -49,11 +51,11 @@ export const COMMAND_GROUPS: readonly CommandGroup[] = [
 コマンド名の 2 語目に使う動詞の語彙。1 語に 1 つの意味を決める
 */
 export const COMMAND_VERBS: readonly CommandWord[] = [
-  { name: 'list', meaning: '複数を並べる' },
-  { name: 'search', meaning: 'GitHub を探す' },
-  { name: 'show', meaning: '1 件を出す' },
-  { name: 'get', meaning: '設定の値を出す' },
-  { name: 'check', meaning: '次の操作の前に確かめる' },
+  { name: 'list', meaning: '複数を並べる', readOnly: true },
+  { name: 'search', meaning: 'GitHub を探す', readOnly: true },
+  { name: 'show', meaning: '1 件を出す', readOnly: true },
+  { name: 'get', meaning: '設定の値を出す', readOnly: true },
+  { name: 'check', meaning: '次の操作の前に確かめる', readOnly: true },
   { name: 'create', meaning: 'GitHub のものを作る' },
   { name: 'delete', meaning: 'GitHub のものを消す' },
   { name: 'add', meaning: '集まりに入れる' },
@@ -73,8 +75,6 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'reopen', meaning: '閉じたものを開き直す' },
   { name: 'block', meaning: '前提を付ける' },
   { name: 'unblock', meaning: '前提を外す' },
-  // 動詞ではないが残す。issue create と session start の合成で、整理は別の Issue にする
-  { name: 'quick', meaning: 'Issue を作り、そのまま作業を始める' },
 ]
 
 const COMMAND_WORD_COUNT = 2

@@ -45,7 +45,7 @@ npm には devEngines の判定だけを外す公式の手段が無く、要望�
 - 利用者のリポジトリの `.npmrc` を読まず、globalconfig も `/etc/npmrc` になる。registry・proxy・cafile は `~/.npmrc` に置く
 - `npm_config_prefix=/` などの環境変数がサーバに引き継がれる。サーバの子で `npm i -g` を打つと `/lib/node_modules` を向く
 
-`setup` は `npm install --prefix` で置き場を明示します。
+`runtime_setup` は `npm install --prefix` で置き場を明示します。
 テーマの依存の取得（pnpm）は、talk-dir を cwd か `--dir` で指します。どちらも、この副作用の影響を受けません。
 
 この副作用を避けたいときは、先に `npm i -g @pecot/visual-mcp` で入れて、コマンドを直接登録します。
@@ -115,33 +115,33 @@ WSL 内の絶対パス（例: `/home/alice/deck`）で返ります。
 
 ## 初回の操作
 
-`setup` ツールを 1 回呼んでください。スライド変換・スクリーンショット系が使う重量依存
+`runtime_setup` ツールを 1 回呼んでください。スライド変換・スクリーンショット系が使う重量依存
 （Slidev / dom-to-pptx / Chromium、所要は約 80 秒）を取得します。取得結果は永続し、
 サーバを再起動しても再実行は不要です。
 
 依存は `$XDG_DATA_HOME/pecot/pecot-visual/mcp-dist/` に置きます。
 `XDG_DATA_HOME` が無ければ、`~/.local/share/pecot/pecot-visual/mcp-dist/` に置きます。
 登録の `env` に `PLUGIN_DATA` を書いたときは、そのディレクトリの `mcp-dist/` に置きます。
-置き場を変えたあとは `setup` を呼び直してください。
+置き場を変えたあとは `runtime_setup` を呼び直してください。
 既存デッキの `node_modules` のリンクは、`slide_sync` で張り直してください。
 
 通信を復号するプロキシの配下で使うときは、プロキシの CA 証明書を、Node の環境変数 `NODE_EXTRA_CA_CERTS` に PEM ファイルのパスで渡してください。
-pecot は証明書を同梱しません。登録の `env` に書けば、`setup` の取得と、テーマの依存の取得（pnpm）にも使われます。
+pecot は証明書を同梱しません。登録の `env` に書けば、`runtime_setup` の取得と、テーマの依存の取得（pnpm）にも使われます。
 WSL 経由で登録するときは、`PLUGIN_DATA` と同じく、`args` の `env` に WSL 側のパスで含めてください。
 
-`setup` 未実行でも使えるツール: `drawio_create` / `evidence_create` / `slide_lint` / `slide_page` / `slide_theme`
+`runtime_setup` 未実行でも使えるツール: `drawio_create` / `evidence_create` / `slide_lint` / `slide_page` / `slide_theme`
 
-`setup` 実行後に使えるツール: `slide_create` / `slide_sync` / `slide_convert` /
+`runtime_setup` 実行後に使えるツール: `slide_create` / `slide_sync` / `slide_convert` /
 `slide_dev` / `drawio_export`
 
-`drawio_create` は URL の生成だけなら `setup` は不要ですが、PNG 出力を指定する場合は
-Chromium を使うため `setup` が必要です。
+`drawio_create` は URL の生成だけなら `runtime_setup` は不要ですが、PNG 出力を指定する場合は
+Chromium を使うため `runtime_setup` が必要です。
 
 ## ツール
 
 | ツール | 用途 |
 |---|---|
-| `setup` | 永続依存（Slidev ランタイム・Chromium）の取得 |
+| `runtime_setup` | 永続依存（Slidev ランタイム・Chromium）の取得 |
 | `slide_create` | Slidev プロジェクトの新規作成 |
 | `slide_sync` | テーマを参照する talk-dir は、依存の版でテーマを取得して node_modules を張り直し、生成ファイル（vite.config.ts・start.mjs）を本体の今の内容にそろえる。旧形式の talk-dir は `theme` で指定したテーマを参照する形へ移す |
 | `slide_lint` | Slidev ページの ESLint チェック |
@@ -155,7 +155,7 @@ Chromium を使うため `setup` が必要です。
 
 ## 失敗したとき
 
-`setup` が必要なツールを `setup` 前に呼ぶと、`setup` を案内する応答が返ります。`setup` を呼んでから再実行してください。
+`runtime_setup` が必要なツールを `runtime_setup` 前に呼ぶと、`runtime_setup` を案内する応答が返ります。`runtime_setup` を呼んでから再実行してください。
 
 `EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認してください。
 

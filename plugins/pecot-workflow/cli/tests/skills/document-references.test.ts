@@ -13,7 +13,7 @@ import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 
 const RULES_DOC = 'skills/w-help/references/issue-flow-rules.md'
-const QUICK_SOURCE = 'cli/src/commands/issue-quick.ts'
+const FREEFORM_SOURCE = 'cli/src/commands/issue-create.ts'
 
 const MD_LINK = /\[[^\]]*\]\(([^)]+)\)/gu
 const INLINE_CODE = /`[^`]*`/gu
@@ -157,11 +157,11 @@ describe('skills の相対リンク', () => {
 })
 
 describe('起票ルールの参照', () => {
-  it('issue_quick の本文のフッターが指すパスと anchor が実在する', () => {
-    const source = readPluginFile(QUICK_SOURCE)
-    const footer = /const BODY_FOOTER = '([^']*)'/u.exec(source)?.[1]
+  it('freeform の本文のフッターが指すパスと anchor が実在する', () => {
+    const source = readPluginFile(FREEFORM_SOURCE)
+    const footer = /const FREEFORM_FOOTER = '([^']*)'/u.exec(source)?.[1]
     expect(footer).toContain('skills/')
-    expect(missingRulesTargets('BODY_FOOTER', footer ?? '')).toEqual([])
+    expect(missingRulesTargets('FREEFORM_FOOTER', footer ?? '')).toEqual([])
   })
 
   it('issue テンプレート内の skills/...md のパスと anchor が実在する', () => {
@@ -193,7 +193,7 @@ describe('起票ルールの参照', () => {
     // hooks のテンプレートと agent 定義も §N で本体を参照する。
     // パスは backtick の外に置く規約。inline code は § の探索の前に除くので、backtick の中に入れると検知から外れる
     const sources = [
-      QUICK_SOURCE,
+      FREEFORM_SOURCE,
       ...glob('skills/**/*.md'),
       ...glob('cli/templates/issue/*.md'),
       ...glob('hooks/templates/*.md'),

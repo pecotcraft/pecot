@@ -1,5 +1,7 @@
 // 着手の判定から、base の選び方・止める文・積んだ先の表示を決める。I/O を持たない。
 
+import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { describePrerequisiteState, describeReadiness, displayReference, isDone } from './readiness.js'
 import type { Prerequisite, Readiness } from './readiness.js'
@@ -9,19 +11,19 @@ import type { IssueReference } from './reference-parser.js'
 export type StartDecision
   = | { readonly kind: 'start' }
     | { readonly kind: 'stack', readonly branch: string, readonly issue: IssueReference }
-    | { readonly kind: 'blocked', readonly message: string }
+    | { readonly kind: 'blocked', readonly message: HintedText }
 
-function blockedMessage(target: IssueReference, readiness: Readiness, prerequisites: readonly Prerequisite[]): string {
+function blockedMessage(target: IssueReference, readiness: Readiness, prerequisites: readonly Prerequisite[]): HintedText {
   const home = target.repository
   const unfinished = prerequisites.filter(({ issue }) => !isDone(issue))
   const subject = issueReferenceToCliReference(target)
   const waitsMerge = readiness.reason?.code === 'waits-merge' ? readiness.reason.issues : []
-  return [
+  return joinHinted([
     `${displayReference(target, home)} is ${describeReadiness(readiness, prerequisites, home)}`,
     ...unfinished.map(prerequisite => `- ${displayReference(prerequisite.issue.ref, home)}: ${describePrerequisiteState(prerequisite)}`),
-    ...unfinished.map(({ issue }) => `to remove the prerequisite: pecot issue unblock ${subject} --by ${issueReferenceToCliReference(issue.ref)}`),
-    ...waitsMerge.map(({ issue }) => `to stack on it instead of waiting for merge: pecot issue block ${subject} --by ${issueReferenceToCliReference(issue)} --wait stack`),
-  ].join('\n')
+    ...unfinished.map(({ issue }) => hinted`to remove the prerequisite: ${commandHint(['issue', 'unblock'], { issue_ref: subject, by: issueReferenceToCliReference(issue.ref) })}`),
+    ...waitsMerge.map(({ issue }) => hinted`to stack on it instead of waiting for merge: ${commandHint(['issue', 'block'], { issue_ref: subject, by: issueReferenceToCliReference(issue), wait: 'stack' })}`),
+  ])
 }
 
 /**
@@ -37,9 +39,9 @@ export function decideStart(readiness: Readiness | undefined, prerequisites: rea
 /**
 --base が、判定で選んだ積む先と違うときの文。stackable のときだけ比べる
 */
-export function describeBaseMismatch(base: string | undefined, decision: Exclude<StartDecision, { kind: 'blocked' }>, target: IssueReference): string | undefined {
+export function describeBaseMismatch(base: string | undefined, decision: Exclude<StartDecision, { kind: 'blocked' }>, target: IssueReference): HintedText | undefined {
   const isDifferent = base !== undefined && base !== '' && decision.kind === 'stack' && base !== decision.branch
-  return isDifferent ? `--base ${base} differs from the base chosen by readiness: ${decision.branch} (stacked on ${displayReference(decision.issue, target.repository)})` : undefined
+  return isDifferent ? hinted`${inputHint(['session', 'start'], 'base', base)} differs from the base chosen by readiness: ${decision.branch} (stacked on ${displayReference(decision.issue, target.repository)})` : undefined
 }
 
 /**

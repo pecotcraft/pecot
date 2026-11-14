@@ -2,6 +2,24 @@
   "format": 1,
   "plugin": "pecot-tools",
   "prefix": "PT",
+  "names": {
+    "separator": "_",
+    "positions": [
+      [
+        {
+          "word": "aws",
+          "meaning": "AWS CLI"
+        }
+      ],
+      [
+        {
+          "word": "s3",
+          "meaning": "Amazon S3"
+        }
+      ]
+    ],
+    "rest": true
+  },
   "entries": [
     {
       "id": "PT-AWS-S3-CP",

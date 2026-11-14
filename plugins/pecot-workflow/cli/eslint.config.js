@@ -30,6 +30,26 @@ const outputWriteSyntax = [
   { selector: 'CallExpression[callee.property.name=\'write\'][callee.object.property.name=/^(stdout|stderr)$/]', message: outputWriteMessage },
 ]
 
+// 次に打つコマンドの案内を `pecot <グループ> ...` の文字列で書かせない。グループは src/commands/names.ts の COMMAND_GROUPS
+const directHintMessage = 'コマンドの案内を文字列で書かない: src/commands/command-hint.ts の commandHint・inputHint を使う（MCP ではツールの呼び方になる）'
+const directHintPattern = '/pecot (project|board|issue|session|pr|release|tracker|worktree|branch) [a-z]/'
+// 呼び出しの引数に書いた文の中のロングオプションも止める。.describe() の help の文と、空白の無い値（git の引数など）は止めない
+const flagHintMessage = 'フラグ名を文字列で書かない: src/commands/command-hint.ts の inputHint・inputNameHint を使う（MCP では入力名になる）'
+const flagHintPattern = String.raw`/(^|[\s(\x60'])--[a-z][a-z-]*[a-z]([\s,.:;)\x60']|$)/`
+const flagHintCall = ':matches(CallExpression, NewExpression, TaggedTemplateExpression):not([callee.property.name=\'describe\'])'
+const flagHintLiteral = String.raw`Literal[value=${flagHintPattern}][value=/\s/]`
+const flagHintTemplate = String.raw`TemplateElement[value.raw=${flagHintPattern}][value.raw=/\s/]`
+const directHintSyntax = [
+  { selector: `Literal[value=${directHintPattern}]`, message: directHintMessage },
+  { selector: `TemplateElement[value.raw=${directHintPattern}]`, message: directHintMessage },
+  { selector: `${flagHintCall} > ${flagHintLiteral}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > TemplateLiteral > ${flagHintTemplate}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > BinaryExpression ${flagHintLiteral}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > BinaryExpression ${flagHintTemplate}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > ConditionalExpression > ${flagHintLiteral}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > ConditionalExpression > TemplateLiteral > ${flagHintTemplate}`, message: flagHintMessage },
+]
+
 export default defineConfig(
   { ignores: ['dist/**', 'coverage/**', 'node_modules/**'] },
   js.configs.recommended,
@@ -116,7 +136,14 @@ export default defineConfig(
     ignores: ['src/commands/output.ts', 'src/**/tests/**'],
     rules: {
       'no-console': 'error',
-      'no-restricted-syntax': ['error', ...baseRestrictedSyntax, ...outputWriteSyntax],
+      'no-restricted-syntax': ['error', ...baseRestrictedSyntax, ...outputWriteSyntax, ...directHintSyntax],
+    },
+  },
+  {
+    // output.ts は直接の出力を許すが、案内の文字列は同じく止める
+    files: ['src/commands/output.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...baseRestrictedSyntax, ...directHintSyntax],
     },
   },
   {

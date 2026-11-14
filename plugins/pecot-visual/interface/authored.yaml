@@ -23,7 +23,7 @@ environment:
   - name: PECOTV_RUNTIME_DIR
     effect: '`bin/pecotv` が渡す、動いているプラグインの写し（`runtime/<hash>`）です。その親に、Chromium のダウンロードのロックと、OS のライブラリを確かめた記録を置きます。'
   - name: PECOTV_AUTO_INSTALL_BROWSER
-    effect: '`1` にすると、Chromium を使うツールが、その場で Chromium をダウンロードします。それ以外では、Chromium が無いときに `setup` の呼び出しを案内します。'
+    effect: '`1` にすると、Chromium を使うツールが、その場で Chromium をダウンロードします。それ以外では、Chromium が無いときに `runtime_setup` の呼び出しを案内します。'
   - name: WSL_DISTRO_NAME
     effect: '今の WSL のディストリビューションの名前です。このディストリビューションの `\\wsl.localhost\<distro>\` のパスを、WSL の中のパスに変換します。'
   - name: PECOTV_WSL_MOUNT_ROOT
@@ -170,7 +170,7 @@ entries:
         kind: write
         what: '`theme` が、まだ取得していない git URL のときは、git と pnpm を動かしてテーマを取得します。'
     prerequisites:
-      - '`out_path` を渡して PNG も書くときは、Playwright の Chromium が要ります。入っていなければ、先に `setup` を呼びます。入っていないときは、HTML だけを書いて `exitCode` 3 を返します。'
+      - '`out_path` を渡して PNG も書くときは、Playwright の Chromium が要ります。入っていなければ、先に `runtime_setup` を呼びます。入っていないときは、HTML だけを書いて `exitCode` 3 を返します。'
     idempotent: true
     examples:
       - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"out_path\": \"/work/diagram.html\"}"
@@ -201,7 +201,7 @@ entries:
         statement: 'もし PNG を書けなかったなら、HTML は残し、`exitCode` 3・`data.pngFailed` が `true` の成功の応答を返します'
       - id: PV-DRAWIO-CREATE-07
         pattern: unwanted
-        statement: 'もし Chromium が入っていないなら、HTML だけを書き、`exitCode` 3 の成功の応答を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし Chromium が入っていないなら、HTML だけを書き、`exitCode` 3 の成功の応答を返し、`message` で `runtime_setup` の呼び出しを案内します'
       - id: PV-DRAWIO-CREATE-08
         pattern: unwanted
         statement: 'もし `out_path` の拡張子が `.html` でないなら、何も書かずに `invalid-output-extension`・`exitCode` 2 の失敗を返します'
@@ -292,7 +292,7 @@ entries:
         when: 'draw.io での SVG の書き出しに失敗しました。'
       - kind: chromium-not-installed
         code: 1
-        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `setup` の呼び出しを案内します。'
+        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
         code: 1
         when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
@@ -311,7 +311,7 @@ entries:
         kind: write
         what: 'Chromium を起動し、SVG を書き出して PDF を印刷します。Chromium は、ネットワークから embed.diagrams.net と Web フォントを読みます。`print_hash` を `true` にしたときは、起動しません。'
     prerequisites:
-      - 'Playwright の Chromium が要ります。入っていなければ、先に `setup` を呼びます。`print_hash` を `true` にするときは、要りません。'
+      - 'Playwright の Chromium が要ります。入っていなければ、先に `runtime_setup` を呼びます。`print_hash` を `true` にするときは、要りません。'
       - '図は、先に `drawio_create` を通しておきます。このツールは、図の文面を確かめません。'
     idempotent: true
     examples:
@@ -343,7 +343,7 @@ entries:
         statement: 'もし `out_path` の拡張子が `.svg` でないなら、何も書かずに `invalid-output-extension`・`exitCode` 2 の失敗を返します'
       - id: PV-DRAWIO-EXPORT-07
         pattern: unwanted
-        statement: 'もし Chromium が入っていないなら、何も書かずに `chromium-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし Chromium が入っていないなら、何も書かずに `chromium-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
   PV-EVIDENCE-CREATE:
     summary: スクリーンショットを貼った作業エビデンスの xlsx を作ります。
     arguments:
@@ -461,7 +461,7 @@ entries:
       - id: PV-EVIDENCE-CREATE-05
         pattern: unwanted
         statement: 'もし `input_path` のファイルが無いなら、`input-not-found`・`exitCode` 1 の失敗を返します'
-  PV-SETUP:
+  PV-RUNTIME-SETUP:
     summary: スライドと図のツールが使う実行時依存と Chromium を入れます。
     constraints: []
     details:
@@ -545,29 +545,29 @@ entries:
       - 'npm のレジストリと、Playwright のダウンロード元にネットワークで届くことが要ります。SSL を中継するプロキシの内側では、`NODE_EXTRA_CA_CERTS` にプロキシの CA を渡します。'
     idempotent: true
     examples:
-      - run: setup {}
+      - run: runtime_setup {}
         note: '最初の `slide_create` や `drawio_export` の前に、実行時依存と Chromium を入れます。'
     default_notes: {}
     behaviors:
-      - id: PV-SETUP-01
+      - id: PV-RUNTIME-SETUP-01
         pattern: event
         statement: '実行時依存が未導入の状態で呼ぶと、実行時依存を取得し、`data.runtime.downloaded` を `true` にします'
-      - id: PV-SETUP-02
+      - id: PV-RUNTIME-SETUP-02
         pattern: event
         statement: '実行時依存が導入済みの状態で呼ぶと、取得を飛ばし、`data.runtime.downloaded` を `false` にします'
-      - id: PV-SETUP-03
+      - id: PV-RUNTIME-SETUP-03
         pattern: event
         statement: 'Chromium が未導入の状態で呼ぶと、Chromium を取得し、`data.chromium.downloaded` を `true` にします'
-      - id: PV-SETUP-04
+      - id: PV-RUNTIME-SETUP-04
         pattern: event
         statement: 'すべて導入済みの状態で呼ぶと、`data.event` を `setup.skipped` にした成功の応答を返します'
-      - id: PV-SETUP-05
+      - id: PV-RUNTIME-SETUP-05
         pattern: unwanted
         statement: 'もし実行時依存の取得に失敗したなら、Chromium の取得は続けて行います'
-      - id: PV-SETUP-06
+      - id: PV-RUNTIME-SETUP-06
         pattern: unwanted
         statement: 'もし Chromium の起動に要る OS のライブラリが無くて入れられないなら、`chromium-host-deps-missing` の失敗を返し、入れるためのコマンドを `message` に載せます'
-      - id: PV-SETUP-07
+      - id: PV-RUNTIME-SETUP-07
         pattern: unwanted
         statement: 'もし取得の失敗が TLS の証明書の検証によるなら、`NODE_EXTRA_CA_CERTS` で証明書を渡す案内を `detail` に加えます'
   PV-SLIDE-CONVERT:
@@ -648,10 +648,10 @@ entries:
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-not-installed
         code: 1
-        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `setup` の呼び出しを案内します。'
+        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
         code: 1
         when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
@@ -727,7 +727,7 @@ entries:
         kind: write
         what: 'テーマをまだ取得していないときは、git と pnpm を動かして取得します。'
     prerequisites:
-      - '実行時依存と Playwright の Chromium が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '実行時依存と Playwright の Chromium が要ります。入っていなければ、先に `runtime_setup` を呼びます。'
       - '`project_dir` は、テーマを参照する talk-dir です。'
     idempotent: true
     examples:
@@ -757,10 +757,10 @@ entries:
         statement: '`transition_type` を `morph` にして呼ぶと、`morph_option` の粒度で切り替え効果を付けます'
       - id: PV-SLIDE-CONVERT-06
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、`runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、`runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
       - id: PV-SLIDE-CONVERT-07
         pattern: unwanted
-        statement: 'もし Chromium が入っていないなら、`chromium-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし Chromium が入っていないなら、`chromium-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
       - id: PV-SLIDE-CONVERT-08
         pattern: unwanted
         statement: 'もし `project_dir` が Slidev のプロジェクトでないなら、`project-not-found`・`exitCode` 1 の失敗を返します'
@@ -840,7 +840,7 @@ entries:
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
       - kind: invalid-option
         code: 2
         when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
@@ -904,7 +904,7 @@ entries:
         kind: read
         what: '`data.lint` のために、作ったデッキに eslint を動かします。'
     prerequisites:
-      - '実行時依存が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '実行時依存が要ります。入っていなければ、先に `runtime_setup` を呼びます。'
       - '`project_dir` とその親に、書き込めることが要ります。'
     idempotent: false
     examples:
@@ -940,7 +940,7 @@ entries:
         statement: 'もし `file:` の `theme` が相対パスなら、何も作らずに `invalid-option`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-CREATE-09
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、何も作らずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、何も作らずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
       - id: PV-SLIDE-CREATE-10
         pattern: unwanted
         statement: 'もし組み立ての途中で失敗したなら、既にある `project_dir` を残し、一時ディレクトリを消します'
@@ -1012,7 +1012,7 @@ entries:
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
       - kind: talk-dir-not-found
         code: 1
         when: '`dir` が無いか、ディレクトリではありません。'
@@ -1073,7 +1073,7 @@ entries:
         kind: write
         what: 'テーマをまだ取得していないときは、git と pnpm を動かして取得します。'
     prerequisites:
-      - '実行時依存が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '実行時依存が要ります。入っていなければ、先に `runtime_setup` を呼びます。'
       - '`dir` は、テーマを参照する talk-dir です。'
     idempotent: false
     examples:
@@ -1110,7 +1110,7 @@ entries:
         statement: 'もし talk-dir がテーマを参照していないなら、サーバを起動せずに `theme-none` の失敗を返します'
       - id: PV-SLIDE-DEV-09
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、サーバを起動せずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、サーバを起動せず `runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` を案内します'
       - id: PV-SLIDE-DEV-10
         pattern: unwanted
         statement: 'もしサーバが 15 秒以内に応答しないなら、そのサーバを止め、`dev-server-timeout` の失敗を返します'
@@ -1469,7 +1469,7 @@ entries:
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
       - kind: invalid-option
         code: 2
         when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
@@ -1548,7 +1548,7 @@ entries:
         kind: read
         what: '`data.lint` のために、デッキに eslint を動かします。'
     prerequisites:
-      - '実行時依存が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '実行時依存が要ります。入っていなければ、先に `runtime_setup` を呼びます。'
       - '`dir` の `slide_dev` が起動中なら、先に止めます。'
     idempotent: true
     examples:
@@ -1584,7 +1584,7 @@ entries:
         statement: 'もし `theme` と `node_modules_only` を同時に渡したなら、何も変えずに `theme-with-node-modules-only`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-SYNC-09
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、何も変えずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、何も変えずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
   PV-SLIDE-THEME:
     summary: talk-dir が参照するテーマの宣言と、レイアウトの一覧を返します。
     arguments:

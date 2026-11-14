@@ -1043,7 +1043,7 @@ describe('worktree link', () => {
     rmSync(path.join(project.repository, '.pecot', 'config', 'worktree-config.json'))
     const result = await pecot(['worktree', 'link', '-D', worktree])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init -D <directory>\n')
+    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init --directory <directory>\n')
   })
 
   it('設定ファイルの形式が不正だと、error の行を標準エラーに出し、終了コード 1 で終わる', async (context) => {
@@ -1081,7 +1081,7 @@ describe('worktree link', () => {
     const result = await pecot(['worktree', 'link', '-D', outsideGit(), '--all'])
     expect(result.code).toBe(1)
     // メインの worktree が無いと設定ファイルも見つからないので、文は設定ファイルが無いときと同じ
-    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init -D <directory>\n')
+    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init --directory <directory>\n')
   })
 
   it('--repo が今の git の remote と食い違うと、何も変えず、終了コード 1 で終わる', async (context) => {

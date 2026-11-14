@@ -2,7 +2,7 @@
 //
 // 実際の npm install は 600MB 級なので実行しない。ここで固定するのは
 // 「何を install 対象にするか」と「install 先の package.json を必ず用意すること」。
-// 実取得を伴う確認は #982 の CUJ 2 が持つ。CUJ 2 は単体配布の setup から slide_convert までを通す。
+// 実取得を伴う確認は #982 の CUJ 2 が持つ。CUJ 2 は単体配布の runtime_setup から slide_convert までを通す。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp の一時ディレクトリ配下と、リポジトリ内の追跡ファイルだけ */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -862,7 +862,7 @@ describe('installRuntimeDependencies', () => {
   // flock(1) が無い環境 (macOS 等) はロックなしで動く契約なので、このセルは成立しない。
   it.skipIf(!hasFlockCommand())('同じ永続層への同時 install は flock で直列化される', async () => {
     // 単体配布は MCP クライアントごとに別プロセスが立つため、複数セッションからの
-    // `setup` が同じ node_modules へ 2 本並走し得る。
+    // `runtime_setup` が同じ node_modules へ 2 本並走し得る。
     const data = temporaryRoot('data-concurrent')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)

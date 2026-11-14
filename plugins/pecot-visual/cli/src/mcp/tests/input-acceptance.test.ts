@@ -190,7 +190,7 @@ const TABLES: readonly ToolTable[] = [
     ],
   },
   {
-    tool: 'setup',
+    tool: 'runtime_setup',
     minimal: {},
     delivered: {},
     full: {},

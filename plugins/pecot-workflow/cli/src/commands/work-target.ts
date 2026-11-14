@@ -94,3 +94,10 @@ function recordBase(record: Readonly<BaseRecord>, out: Readonly<Output>): void {
     warnBase(out, error)
   }
 }
+
+/**
+予行の行。recordWorkTarget が書く作業対象（.pecot-active・.pecot-session-title・.pecot-base）を書かずに出す
+*/
+export function planWorkTarget(out: Readonly<Output>, owner: string, repository: string, issueNumber: number): void {
+  out.planned({ verb: 'set', target: `work target ${owner}/${repository}/${String(issueNumber)}` })
+}

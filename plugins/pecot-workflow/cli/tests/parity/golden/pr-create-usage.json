@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create -m \"<body>\" -t \"<title>\" -b <base-branch>\n",
+  "stderr": "error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create --message <body> --title <title> --base <base-branch>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

@@ -13,7 +13,7 @@ import { isSelfExecuted } from './self-exec.mjs'
 
 // 配布 package.json の dependencies。npx は毎起動で node_modules を作り直す。
 // ここに載せてよいのは起動層だけとする。
-// slidev / dom-to-pptx 等の重量物は、setup ツールが置き場の mcp-dist/ へ入れる永続層の担当になる。
+// slidev / dom-to-pptx 等の重量物は、runtime_setup ツールが置き場の mcp-dist/ へ入れる永続層の担当になる。
 // 版指定は必ず既存 manifest から読む。配布物だけが古い版に取り残されるのを防ぐ。
 const RUNTIME_DEPS = [
   '@modelcontextprotocol/server',

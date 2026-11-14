@@ -6,6 +6,7 @@ import type { ProjectConfig } from '../../domain/config.js'
 import { createIssueReference } from '../../domain/reference-parser.js'
 import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlData, graphqlError, rejection, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
+import '../registry.js'
 import {
   buildIssueTitle,
   checkDuplicateOrder,

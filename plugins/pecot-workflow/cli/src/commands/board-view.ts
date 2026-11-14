@@ -39,10 +39,14 @@ function updatedAtOf(item: Readonly<BoardItem>): string {
 Archived のアイテムを updatedAt の新しい順に並べ、最新の 20 件を残して、残りをボードから消す。
 消せなかった分は warning にとどめる
 */
-export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[]): Promise<void> {
+export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[], isDryRun: boolean): Promise<void> {
   const archived = allItems.filter(item => item.workflow === 'Archived').toSorted((first, second) => compareStrings(updatedAtOf(second), updatedAtOf(first)))
   if (archived.length <= ARCHIVED_KEEP) return
   const targets = archived.slice(ARCHIVED_KEEP)
+  if (isDryRun) {
+    out.planned({ verb: 'delete', target: `${String(targets.length)} archived items` })
+    return
+  }
   let deleted = 0
   for (const item of targets) {
     // ID が文字列でないアイテムは、API を呼ばず、失敗として数える

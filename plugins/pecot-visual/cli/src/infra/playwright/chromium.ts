@@ -2,7 +2,7 @@
 //
 // `pecotv mcp` は、MCP クライアントの接続タイムアウトに収めるため、起動時に Chromium を取得しない。
 // 接続タイムアウトは、Claude Code の MCP_TIMEOUT が既定 30000ms。
-// 取得は `setup` ツールを明示的に呼んだとき、または PECOTV_AUTO_INSTALL_BROWSER=1 のときにだけ動く。
+// 取得は `runtime_setup` ツールを明示的に呼んだとき、または PECOTV_AUTO_INSTALL_BROWSER=1 のときにだけ動く。
 //
 // 通常の CLI 実行 (`pecotv drawio url` 等) の取得手段は bin/pecotv 側にあり、本モジュールは通らない。
 // 両者の「取得済みか」の判定基準は、Playwright が完了時に置く INSTALLATION_COMPLETE マーカーで揃える。
@@ -174,7 +174,7 @@ export async function installChromium(options: InstallChromiumOptions = {}): Pro
   }
   catch (error: unknown) {
     // ここで throw すると MCP ハンドラの外へ例外が出て、SDK が structuredContent 無しのエラーへまとめる。
-    // ToolResult 契約 (reason と `setup` 誘導) を保つため、起動失敗として返す。
+    // ToolResult 契約 (reason と `runtime_setup` 誘導) を保つため、起動失敗として返す。
     const detail = error instanceof Error ? error.message : String(error)
     return {
       // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す

@@ -139,5 +139,6 @@ export function resolveRepository(explicit: string | undefined, git: GitRunner):
   if (detected !== undefined) {
     return createResolvedRepository({ repository: detected.repository, source: 'current-git', remoteName: detected.remoteName })
   }
+  // eslint-disable-next-line no-restricted-syntax -- 文を出すのは CLI の最上位（src/cli.ts）だけ。ほかの呼び手は捕まえて undefined にする
   throw new AmbiguousRepositoryError('repository is ambiguous: pass --repo <owner/repo>')
 }

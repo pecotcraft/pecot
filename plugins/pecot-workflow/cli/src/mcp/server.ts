@@ -12,6 +12,7 @@ import { createOutput } from '../commands/output.js'
 import { exitCodeOfFailure } from '../commands/failure.js'
 import { isRecord } from '../commands/input-schema.js'
 import { COMMANDS } from '../commands/registry.js'
+import { findRenamedInput, renamedInputNote } from '../commands/renamed-commands.js'
 import type { CommandDefinition, PreparedCommand } from '../commands/registry.js'
 import { outputWidth } from '../commands/rich-panel.js'
 import { readVersion } from '../version.js'
@@ -65,7 +66,13 @@ function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Prepara
   // arguments が配列や null なら SDK が先に -32602 で断るので、ここに来る非 object は省略（undefined）だけ
   const input = isRecord(raw) ? raw : {}
   const unknown = Object.keys(input).filter(key => !Object.hasOwn(definition.input.shape, key))
-  if (unknown.length > 0) return rejected(`unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map(key => `'${key}'`).join(', ')}`)
+  if (unknown.length > 0) {
+    const notes = unknown.map((key) => {
+      const renamed = findRenamedInput(definition.path, key)
+      return renamed === undefined ? '' : renamedInputNote(key, renamed)
+    })
+    return rejected(`unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map(key => `'${key}'`).join(', ')}${notes.join('')}`)
+  }
   const repository = input['repo']
   if (typeof repository === 'string' && !definition.hasOwnRepo) {
     try {

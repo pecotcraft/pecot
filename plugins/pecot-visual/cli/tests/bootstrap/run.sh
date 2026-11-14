@@ -30,8 +30,8 @@
 # 使う。CUJ 12a / 12b / 13b は DL を PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で必ず失敗させる。
 # CUJ 9c と同じ前提のため、playwright 側の DL 実装変更で flaky 化するリスクも同じ。
 # 実 DL は標準では CUJ 1 の 1 本のみ。
-# setup ツール経由の実 DL（~120MB / 計測 33s）は、PECOTV_BOOTSTRAP_TEST_HEAVY=1 を立てたときだけ CUJ 13c で動く。
-# 標準では ISO_HOME のキャッシュを複製して、setup の冪等（skip）ルートを観測する。
+# runtime_setup ツール経由の実 DL（~120MB / 計測 33s）は、PECOTV_BOOTSTRAP_TEST_HEAVY=1 を立てたときだけ CUJ 13c で動く。
+# 標準では ISO_HOME のキャッシュを複製して、runtime_setup の冪等（skip）ルートを観測する。
 # 現状はローカル単発実行用途であり vitest e2e には混ぜない。
 set -euo pipefail
 
@@ -834,7 +834,7 @@ fi
 # 子シェルは `exec >"$LOG"` を先に実行する。
 # そのためログファイル自体は 1 バイトも書けなくても必ず作られ、存在確認だけでは見逃す不具合がある。
 # 見逃す例は、`--filter` の typo、cwd 誤り、pnpm 解決失敗。
-# ここで待てば、後続 CUJ（13c の setup が同じロックをブロッキングで取りに来る）との順序依存も消える。
+# ここで待てば、後続 CUJ（13c の runtime_setup が同じロックをブロッキングで取りに来る）との順序依存も消える。
 if command -v flock >/dev/null 2>&1; then
   flock "$CHROMIUM_INSTALL_LOCK" true
 fi
@@ -849,14 +849,14 @@ if has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
 fi
 echo "[bootstrap-test] CUJ 12b pass"
 
-# CUJ 13: chromium が要るツールの案内と、`setup` ツールによる復旧。
-# 未取得のまま drawio_export を呼ぶと setup ツールを案内され、setup を呼ぶと実際に取得できて
-# 同じ引数が通るようになる、という一連の導線を実プロセスで通す。
+# CUJ 13: chromium が要るツールの案内と、`runtime_setup` ツールによる復旧。
+# 未取得のまま drawio_export を呼ぶと、runtime_setup ツールを案内される。runtime_setup を呼ぶと実際に取得でき、
+# 同じ引数が通るようになる。この一連の導線を実プロセスで通す。
 # 13c は実 DL (~120MB / 計測 33s) を伴うため harness 全体が延びる。CI 組み込み時は再評価。
 export BIN_PECOTV
 MCP_CALL="$SCRIPT_DIR/mcp-call.mjs"
 
-echo "[bootstrap-test] CUJ 13a: chromium-dependent tool guides to the setup tool"
+echo "[bootstrap-test] CUJ 13a: chromium-dependent tool guides to the runtime_setup tool"
 RESULT13A="$WORK_DIR/cuj13a.json"
 set +e
 HOME="$ISO_HOME_C" node "$MCP_CALL" drawio_export \
@@ -874,21 +874,21 @@ if ! node - "$RESULT13A" <<'NODE'
   if (!data || data.reason !== "chromium-not-installed") {
     console.error("unexpected data: " + JSON.stringify(data)); process.exit(1);
   }
-  if (!String(data.detail).includes("`setup` ツール")) {
-    console.error("detail does not guide to the setup tool: " + data.detail); process.exit(1);
+  if (!String(data.detail).includes("`runtime_setup` ツール")) {
+    console.error("detail does not guide to the runtime_setup tool: " + data.detail); process.exit(1);
   }
 NODE
 then
-  echo "[bootstrap-test] FAIL: CUJ 13a did not return the setup guidance" >&2
+  echo "[bootstrap-test] FAIL: CUJ 13a did not return the runtime_setup guidance" >&2
   sed -n '1,20p' "$RESULT13A" >&2
   exit 1
 fi
 echo "[bootstrap-test] CUJ 13a pass"
 
-echo "[bootstrap-test] CUJ 13b: setup surfaces the reason when the download is unreachable"
+echo "[bootstrap-test] CUJ 13b: runtime_setup surfaces the reason when the download is unreachable"
 RESULT13B="$WORK_DIR/cuj13b.json"
 set +e
-PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" node "$MCP_CALL" setup \
+PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" node "$MCP_CALL" runtime_setup \
   >"$RESULT13B" 2>"$WORK_DIR/cuj13b.stderr"
 code=$?
 set -e
@@ -913,25 +913,25 @@ if ! node -e '
 fi
 echo "[bootstrap-test] CUJ 13b pass"
 
-# CUJ 13c: setup がツールのブロックを解除する。
-# 標準では ISO_HOME（CUJ 1 の実 DL で populated 済）から chromium キャッシュを複製し、
-# setup の冪等ルート（取得済みなら DL せず成功）を観測する。実 DL を伴うルートは 2 本目の
+# CUJ 13c: runtime_setup がツールのブロックを解除する。
+# 標準では ISO_HOME（CUJ 1 で取得済み）の chromium キャッシュを複製し、
+# runtime_setup の冪等ルート（取得済みなら DL しない）を見る。実 DL を伴うルートは 2 本目の
 # ~120MB になるため PECOTV_BOOTSTRAP_TEST_HEAVY=1 の opt-in にする。どちらのルートでも
-# 「setup 後に 13a と同じ呼び出しが通る」ところまでは動く。
+# 「runtime_setup 後に 13a と同じ呼び出しが通る」ところまでは動く。
 RESULT13C="$WORK_DIR/cuj13c.json"
 if [ "${PECOTV_BOOTSTRAP_TEST_HEAVY:-}" = "1" ]; then
-  echo "[bootstrap-test] CUJ 13c: setup actually downloads chromium and unblocks the tool (heavy)"
+  echo "[bootstrap-test] CUJ 13c: runtime_setup actually downloads chromium and unblocks the tool (heavy)"
   EXPECT13C_EVENT="setup.done"
   EXPECT13C_DOWNLOADED="true"
 else
-  echo "[bootstrap-test] CUJ 13c: setup skips the download when chromium is already present"
+  echo "[bootstrap-test] CUJ 13c: runtime_setup skips the download when chromium is already present"
   rm -rf "$ISO_HOME_C/.cache/ms-playwright"
   cp -a "$ISO_HOME/.cache/ms-playwright" "$ISO_HOME_C/.cache/ms-playwright"
   EXPECT13C_EVENT="setup.skipped"
   EXPECT13C_DOWNLOADED="false"
 fi
 set +e
-HOME="$ISO_HOME_C" node "$MCP_CALL" setup >"$RESULT13C" 2>"$WORK_DIR/cuj13c.stderr"
+HOME="$ISO_HOME_C" node "$MCP_CALL" runtime_setup >"$RESULT13C" 2>"$WORK_DIR/cuj13c.stderr"
 code=$?
 set -e
 assert_exit_zero "$code" "CUJ 13c exit"
@@ -949,19 +949,19 @@ if ! node -e '
     console.error("unexpected data: " + JSON.stringify(data)); process.exit(1);
   }
 ' "$RESULT13C" "$EXPECT13C_EVENT" "$EXPECT13C_DOWNLOADED"; then
-  echo "[bootstrap-test] FAIL: CUJ 13c setup did not report $EXPECT13C_EVENT" >&2
+  echo "[bootstrap-test] FAIL: CUJ 13c runtime_setup did not report $EXPECT13C_EVENT" >&2
   sed -n '1,20p' "$RESULT13C" >&2
   exit 1
 fi
 if ! has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 13c setup reported success but chromium cache is empty" >&2
+  echo "[bootstrap-test] FAIL: CUJ 13c runtime_setup reported success but chromium cache is empty" >&2
   exit 1
 fi
 echo "[bootstrap-test] CUJ 13c pass"
 
 # CUJ 13d: 取得後は 13a と同じ呼び出しが通る（案内どおりに復旧できる）。ガードを抜けた先で
 # 実際に Chromium が起動することまで見るため print_hash は使わず SVG を書き出す。
-echo "[bootstrap-test] CUJ 13d: drawio_export works again once setup has fetched chromium"
+echo "[bootstrap-test] CUJ 13d: drawio_export works again once runtime_setup has fetched chromium"
 RESULT13D="$WORK_DIR/cuj13d.json"
 CUJ13D_SVG="$WORK_DIR/cuj13d.svg"
 rm -f "$CUJ13D_SVG"
@@ -976,7 +976,7 @@ if ! node -e '
   const fs = require("fs");
   const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
   if (!result || result.isError !== undefined) {
-    console.error("expected success after setup: "
+    console.error("expected success after runtime_setup: "
       + JSON.stringify(result && result.structuredContent)); process.exit(1);
   }
 ' "$RESULT13D"; then

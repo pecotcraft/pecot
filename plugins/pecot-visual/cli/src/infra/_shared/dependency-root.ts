@@ -16,7 +16,7 @@
 // これは MCP クライアントの接続タイムアウトを超える。
 // Claude Code の MCP_TIMEOUT は既定 30000ms。
 //
-// そこで重量依存だけをデータ置き場の `mcp-dist/node_modules` へ置き、`setup` ツールが取得する。
+// そこで重量依存だけをデータ置き場の `mcp-dist/node_modules` へ置き、`runtime_setup` ツールが取得する。
 // この領域は npx の作り直しの影響を受けず残る。
 // chromium が `~/.cache/ms-playwright` を使うのと同じ構造になる。
 // データ置き場の解決は bin/_lib.sh の plugin_data_dir_resolve と同じ。
@@ -257,8 +257,8 @@ create / sync は deps 経由で依存ルートを受け取っており、その
 判定は `node_modules` の実在ではなく、代表パッケージ（RUNTIME_DEPENDENCY_PROBES）が
 その `node_modules` 配下から引けるかで行う。
 areRuntimeDependenciesInstalled と基準を揃え、次の食い違いを避ける。
-npm が版衝突で `<配布パッケージ>/node_modules` を掘った場合に、
-symlink は依存を含まないツリーを指すのに、setup は永続層へ install する状態になる。
+npm が版衝突で `<配布パッケージ>/node_modules` を掘ると、symlink は依存を含まないツリーを指す。
+一方で runtime_setup は永続層へ install する。
 */
 export function resolveTalkDirectoryNodeModules(dependencyRoot: string): string | undefined {
   const runtimeRoot = runtimeDependencyRoot()
@@ -310,7 +310,7 @@ function resolveFrom(bases: readonly string[], specifier: string): string | unde
 */
 export const DEPENDENCY_RECOVERY_HINT
   = 'for the plugin distribution, delete runtime/ in the data directory and restart pecotv (the dependencies are prepared again); '
-    + 'for the standalone distribution, call the `setup` tool (it fetches the runtime dependencies)'
+    + 'for the standalone distribution, call the `runtime_setup` tool (it fetches the runtime dependencies)'
 
 /**
 実行時依存が揃っているかの判定に使う specifier。
@@ -390,7 +390,7 @@ function readRuntimeInstallStamp(): string | undefined {
 
 同梱依存（プラグイン配布）を先に見る。
 本モジュール自身の位置も基準に含めるのは、CLAUDE_PLUGIN_ROOT が立っていなくても、同梱の node_modules から引けるため。
-env の有無で「未取得」と誤判定して、`setup` が 600MB の npm install を始めるのを防ぐ。
+env の有無で「未取得」と誤判定して、`runtime_setup` が 600MB の npm install を始めるのを防ぐ。
 単体配布では、本モジュールは `_npx/<hash>/node_modules/<pkg>/cli/dist/infra/_shared/` にある。
 隣の node_modules には起動層しか無いので、この基準では解決できず永続層へ降りる。
 

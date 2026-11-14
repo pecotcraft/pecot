@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 
 /**
-実ダウンロードを伴う setup を呼ぶため、待ち時間は bootstrap + 取得の合計を見込む。
+実ダウンロードを伴う runtime_setup を呼ぶため、待ち時間は bootstrap + 取得の合計を見込む。
 */
 const TIMEOUT_MS = 600_000
 

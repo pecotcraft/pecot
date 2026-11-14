@@ -3,7 +3,7 @@
 // Chromium の実行ファイルは `playwright install chromium` で取得できるが、それが読み込む
 // libatk / libpango 等の OS ライブラリは入らない。利用環境に無ければ drawio export / url の
 // PNG 出力と slide convert が起動時に失敗する。利用者に手作業をさせないため、bootstrap と
-// MCP の `setup` ツールがここを通り、足りなければ自分で入れる。
+// MCP の `runtime_setup` ツールがここを通り、足りなければ自分で入れる。
 //
 // 入れるのは共有ライブラリだけにする。
 // `playwright install-deps` は、フォント (fonts-wqy-zenhei 等) と headed 用の X サーバ (xvfb 等) も入れる。

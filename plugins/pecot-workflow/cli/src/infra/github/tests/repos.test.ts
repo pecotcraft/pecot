@@ -49,6 +49,39 @@ describe('getBranchSha', () => {
   })
 })
 
+describe('countCommitsAhead', () => {
+  it('compare の base...head を引き、ahead_by を返す', async () => {
+    const { client, server } = await startClient([
+      restResponse('GET', '/repos/owner/repo/compare/main...develop', { status: 200, body: { ahead_by: 4, behind_by: 1 } }),
+    ])
+    expect(await client.countCommitsAhead('owner', 'repo', 'main', 'develop')).toBe(4)
+    expect(restRequests(server).map(({ method, path }) => [method, path])).toEqual([['GET', '/repos/owner/repo/compare/main...develop']])
+  })
+
+  it('ahead_by が 0 なら 0 を返す', async () => {
+    const { client } = await startClient([
+      restResponse('GET', '/repos/owner/repo/compare/main...develop', { status: 200, body: { ahead_by: 0 } }),
+    ])
+    expect(await client.countCommitsAhead('owner', 'repo', 'main', 'develop')).toBe(0)
+  })
+
+  it.each([
+    ['ahead_by が無い', {}],
+    ['ahead_by が文字列', { ahead_by: '4' }],
+    ['ahead_by が整数でない', { ahead_by: 1.5 }],
+  ])('%s と GitHubAPIError', async (_label, body) => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/compare/main...develop', { status: 200, body })])
+    expect(await rejection(client.countCommitsAhead('owner', 'repo', 'main', 'develop'))).toMatchObject(failure(GitHubAPIError, 'could not read ahead_by from the compare response'))
+  })
+
+  it('ブランチが無い（404）と GitHubNotFoundError', async () => {
+    const { client } = await startClient([
+      restResponse('GET', '/repos/owner/repo/compare/main...nonexistent', { status: 404, body: { message: 'Not Found' } }),
+    ])
+    expect(await rejection(client.countCommitsAhead('owner', 'repo', 'main', 'nonexistent'))).toBeInstanceOf(GitHubNotFoundError)
+  })
+})
+
 describe('createLinkedBranch', () => {
   const created = { createLinkedBranch: { linkedBranch: { ref: { name: 'feat/test-branch', prefix: 'refs/heads/' } } } }
 

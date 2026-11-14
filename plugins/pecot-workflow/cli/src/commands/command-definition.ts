@@ -16,6 +16,10 @@ export interface CommandIo {
   標準入力から 1 行読む（末尾の改行は含めない）。終端は undefined。渡されない io（MCP）は、入力の終端と同じ扱い
   */
   readonly readLine?: () => string | undefined
+  /**
+  案内の出し先。MCP の io（collectIo）だけが mcp を入れる。無ければ CLI の形
+  */
+  readonly surface?: 'cli' | 'mcp'
 }
 
 /**
@@ -186,6 +190,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
   const hasOwnRepository = spec.hasOwnRepo === true
   const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
+  // eslint-disable-next-line no-restricted-syntax -- コマンドの定義の誤りで、利用者には出ない
   if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
   assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))

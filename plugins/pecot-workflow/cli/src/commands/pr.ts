@@ -36,6 +36,8 @@ import { outputDirectory, OutputPathReservationError, resolveRealPath, withReser
 import { consumeFlag, readFlag } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
@@ -197,13 +199,16 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
   out.done(inReviewOperation(issueNumber))
 }
 
+const LINK_PATH = ['project', 'link']
+const PR_CREATE_PATH = ['pr', 'create']
+
 function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
   const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
   if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    stopWith(out, 'release_branch is not set\nset it with: pecot project link owner/repo --release-branch main')
+    stopWith(out, hinted`release_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', release_branch: 'main' })}`)
   }
   if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    stopWith(out, 'develop_branch is not set\nset it with: pecot project link owner/repo --develop-branch develop')
+    stopWith(out, hinted`develop_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', develop_branch: 'develop' })}`)
   }
 }
 
@@ -226,7 +231,7 @@ async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: 
   }
 }
 
-function exitOnValidationErrors(errors: readonly string[], out: Readonly<Output>): void {
+function exitOnValidationErrors(errors: readonly (string | HintedText)[], out: Readonly<Output>): void {
   if (errors.length === 0) return
   for (const error of errors) out.error(error)
   throw new CommandExit(VALIDATION_EXIT_CODE)
@@ -442,7 +447,7 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
   let location: RepositoryReference
   if (input.repository === undefined || input.repository === '') {
     const [only] = config.repositories
-    if (only === undefined || config.repositories.length !== 1) return stopWith(out, 'specify the repository (-r owner/repo)')
+    if (only === undefined || config.repositories.length !== 1) return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`)
     location = { owner: only.owner, repository: only.name }
   }
   else {
@@ -573,20 +578,20 @@ const CreateInputSchema = z.strictObject({
 async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
   const directory = process.cwd()
   const out = createOutput(input.dry_run, io)
-  if (input.template !== 'default' && input.template !== 'release') stopWith(out, `--template must be 'default' or 'release' (given: ${input.template})`)
+  if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`)
 
   if (input.prepare) {
     await prepareTemplate(directory, createOutput(false, io), input.template)
   }
   else if (input.file !== undefined) {
-    if (input.screenshot !== undefined) stopWith(out, '--screenshot is for -m; write the reason in the `screenshot` frontmatter field instead')
+    if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`)
     await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run }, directory, out)
   }
   else if (input.message === undefined) {
-    stopWith(out, 'missing arguments\nusage:\npecot pr create --prepare\npecot pr create <path>\npecot pr create -m "<body>" -t "<title>" -b <base-branch>')
+    stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { prepare: true })}\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`)
   }
   else {
-    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, '-t (title) and -b (base branch) are required with -m')
+    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'title')} and ${inputNameHint(PR_CREATE_PATH, 'base')} (base branch) are required with ${inputNameHint(PR_CREATE_PATH, 'message')}`)
     await createDirect({
       message: input.message,
       title: input.title,
@@ -621,7 +626,7 @@ export function parseReference(reference: string, globalRepository: string | und
     return { owner: parsed.repository.owner, repository: parsed.repository.repository, number: parsed.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) return stopWith(out, error.message, USAGE_EXIT_CODE)
+    if (error instanceof ReferenceParseError) return stopWith(out, error.hintedText ?? error.message, USAGE_EXIT_CODE)
     throw error
   }
 }
@@ -661,10 +666,10 @@ function hasBranch(branch: string, cwd: string): boolean {
 
 function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
   const config = loadActiveConfig()
-  if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
+  if (config === undefined) return stopWith(out, hinted`project config not found\nactivate a project with: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`)
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
-    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project link ${location.owner}/${location.repository} --develop-branch develop`)
+    return stopWith(out, hinted`develop_branch is not set for ${location.owner}/${location.repository}\nset it with: ${commandHint(LINK_PATH, { repo: `${location.owner}/${location.repository}`, develop_branch: 'develop' })}`)
   }
   const branchName = `${remote}/${developBranch}`
   return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
@@ -752,7 +757,7 @@ function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readon
 }
 
 const prCreate = defineCommand({
-  path: ['pr', 'create'],
+  path: PR_CREATE_PATH,
   description: 'Create a PR (pull request)',
   input: CreateInputSchema,
   positional: ['file'],

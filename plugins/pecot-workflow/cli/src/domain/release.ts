@@ -1,9 +1,9 @@
 // リリース前チェック（preflight）。git は GitRunner を受けて呼ぶ。CHANGELOG は内容（文字列）を受ける。
 
 import { changelogFileName, changelogNotFoundMessage, extractVersionReleaseNotes, getLatestVersion, validateSemver, VersionNotFoundError } from './changelog.js'
-import { PecotError, InvalidValueError } from './errors.js'
+import { PecotError } from './errors.js'
 import type { GitRunner } from './git-runner.js'
-import { parsePythonInteger, pythonStringRepr, pythonStrip } from './python-format.js'
+import { pythonStrip } from './python-format.js'
 
 export class ReleaseError extends PecotError {}
 
@@ -42,10 +42,15 @@ export interface PreflightOptions {
   */
   readonly tagPrefix: string | undefined
   /**
-  ls-remote・fetch・差分確認に使う remote 名。省略すると origin
+  ls-remote と文に使う remote 名。省略すると origin
   */
   readonly remote?: string | undefined
 }
+
+/**
+base より head が進んでいる commit の数。GitHub の compare で数え、手元の ref は動かさない
+*/
+export type CountCommitsAhead = (base: string, head: string) => Promise<number>
 
 /**
 git を実行して標準出力を返す。非 0 終了は ReleaseError
@@ -72,18 +77,12 @@ function determineVersion(options: PreflightOptions, changelogContent: string): 
   return options.version
 }
 
-function countDifference(output: string): number {
-  const count = parsePythonInteger(output)
-  if (count === undefined) throw new InvalidValueError(`invalid literal for int() with base 10: ${pythonStringRepr(output)}`)
-  return count
-}
-
 /**
 リリース前チェックを実行する。
 1. CHANGELOG.md の存在、2. バージョンの検出または検証、3. タグが無いこと（ローカル・リモート）、
-4. release→develop の差分、5. リリースノートの抽出、の順に確かめる。失敗は ReleaseError
+4. release→develop の差分（countAhead）、5. リリースノートの抽出、の順に確かめる。失敗は ReleaseError
 */
-export function runPreflight(options: PreflightOptions, git: GitRunner): PreflightResult {
+export async function runPreflight(options: PreflightOptions, git: GitRunner, countAhead: CountCommitsAhead): Promise<PreflightResult> {
   const { changelogContent, developBranch, releaseBranch } = options
   if (changelogContent === undefined) throw new ReleaseError(changelogNotFoundMessage(options.changelogPath))
   const remote = options.remote ?? 'origin'
@@ -97,8 +96,7 @@ export function runPreflight(options: PreflightOptions, git: GitRunner): Preflig
   const remoteTags = runGit(git, ['ls-remote', '--tags', remote, `refs/tags/${tagName}`])
   if (remoteTags !== '') throw new ReleaseError(`tag already exists on the remote: ${tagName}`)
 
-  runGit(git, ['fetch', remote, releaseBranch, developBranch])
-  const diffCount = countDifference(runGit(git, ['rev-list', '--count', `${remote}/${releaseBranch}..${remote}/${developBranch}`]))
+  const diffCount = await countAhead(releaseBranch, developBranch)
   if (diffCount === 0) {
     throw new ReleaseError(
       `no difference between ${remote}/${releaseBranch} and ${remote}/${developBranch}: `

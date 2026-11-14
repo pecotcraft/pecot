@@ -1,4 +1,7 @@
 // Node の CLI でシナリオを流し、golden と一致することを確かめる。golden は Node の回帰の控えで、挙動を変えたら再生成して差分を確かめ、手で直す。コマンドの足し忘れは registry.test.ts が止める。
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { cliEntry, builtCliProblem } from './built-cli.js'
@@ -6,6 +9,7 @@ import { readToolShape, toolInputOf } from './mcp-input.js'
 import { runScenario } from './run.js'
 import type { Launcher, Outcome } from './run.js'
 import type { Golden } from './scenario.js'
+import { isRecord } from './baseline.js'
 import { readGolden, readScenario, scenarioIds } from './scenario.js'
 
 // issue reopen は 3 秒待つ。子プロセスの時間切れ（25 秒）より長くする
@@ -79,7 +83,16 @@ interface Comparison {
 async function compareWithGolden(id: string, launcher: Launcher, isStdoutSkipped: boolean): Promise<Comparison> {
   const outcome = await runScenario(readScenario(id), launcher)
   const compared = (result: Golden): Golden => isStdoutSkipped ? { ...result, stdout: '' } : result
-  return { outcome, actual: compared(outcome.golden), expected: compared(readGolden(id)) }
+  const golden = readGolden(id)
+  // 案内の文は、CLI では打つコマンド、MCP ではツールの呼び出しの形で出る。MCP だけ違う stderr は mcp-stderr.json に置く
+  const expected = launcher.via === 'mcp' ? { ...golden, stderr: new Map(Object.entries(mcpStderr())).get(id) ?? golden.stderr } : golden
+  return { outcome, actual: compared(outcome.golden), expected: compared(expected) }
+}
+
+function mcpStderr(): Readonly<Record<string, string>> {
+  const parsed: unknown = JSON.parse(readFileSync(path.join(import.meta.dirname, 'mcp-stderr.json'), 'utf8'))
+  if (!isRecord(parsed) || Object.values(parsed).some(value => typeof value !== 'string')) throw new TypeError('mcp-stderr.json: 文字列の値を持つオブジェクトではありません')
+  return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)]))
 }
 
 // 起動できて、時間内にシグナルなしで終わること。偽サーバの誤りと、使われなかった応答が無いこと
@@ -97,6 +110,14 @@ describe('前後比較', () => {
     expect(actual).toEqual(expected)
     // help の 4 件の stdout は golden（Python の枠）と違い、ほかは同じ
     expect(outcome.golden.stdout === readGolden(id).stdout).toBe(!isNodeHelp)
+  })
+
+  it('mcp-stderr.json の id は、MCP へ写せるシナリオで、CLI の golden と違う stderr だけを持つ', () => {
+    const entries = Object.entries(mcpStderr())
+    expect(entries.length).toBeGreaterThan(0)
+    expect(entries.filter(([id]) => scenarioIds().includes(id) && !isMcpMappable(id))).toEqual([])
+    expect(entries.map(([id]) => id).filter(id => !scenarioIds().includes(id))).toEqual([])
+    expect(entries.filter(([id, stderr]) => stderr === readGolden(id).stderr)).toEqual([])
   })
 
   it('標準入力が空でないシナリオは、MCP へ写せない 3 件の中にある', () => {

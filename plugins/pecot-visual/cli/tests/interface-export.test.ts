@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.js'
 import { generatedFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import { buildGenerated, GENERATED_PATH, listTools, repositoryRoot, run, serialize } from '../scripts/export-interface.js'
+import { buildGenerated, exportNames, GENERATED_PATH, listTools, repositoryRoot, run, serialize } from '../scripts/export-interface.js'
 
 async function capture(argv: readonly string[], options: Parameters<typeof run>[2] = {}): Promise<{ code: number, stdout: string, stderr: string }> {
   const out = { stdout: '', stderr: '' }
@@ -57,6 +57,21 @@ describe('generated.json の書き出し', () => {
     const modernTools = await listTools('modern')
 
     expect(serialize(buildGenerated(modernTools))).toBe(serialize(buildGenerated(tools)))
+  })
+
+  it('names は区切りが _ の 2 語で、どのツール名も 1 語目と 2 語目が語彙にある', () => {
+    const names = exportNames()
+    expect({ separator: names.separator, rest: names.rest, count: names.positions.length }).toEqual({ separator: '_', rest: false, count: 2 })
+    expect(names.positions[0]?.map(item => item.word)).toEqual(['drawio', 'evidence', 'slide', 'runtime'])
+    const words = names.positions.map(position => new Set(position.map(item => item.word)))
+    const outside = tools.map(tool => tool.name).filter(name => name.split('_').some((word, index) => words.at(index)?.has(word) !== true))
+    expect(outside).toEqual([])
+  })
+
+  it('語彙に語を足すと差の行に names の欄のパスが出る', () => {
+    const before = buildGenerated(tools)
+    const after = { ...before, names: { ...before.names, positions: [...before.names.positions, [{ word: 'extra', meaning: 'Extra' }]] } }
+    expect(diffGenerated(before, after)).toEqual(['file: names.positions[2]: added'])
   })
 
   it('書き出しが generatedFileSchema を通る', () => {

@@ -317,7 +317,7 @@ describe('resolveTalkDirectoryNodeModules', () => {
 
   it('node_modules は在っても代表パッケージが引けなければ次のルートへ降りる', () => {
     // npm が版衝突で `<配布パッケージ>/node_modules` を掘った場合。存在だけで選ぶと
-    // symlink が依存を含まないツリーを指し、setup が永続層へ install した実体と食い違う。
+    // symlink が依存を含まないツリーを指し、runtime_setup が永続層へ install した実体と食い違う。
     const pluginRoot = createEmptyRoot('plugin-shallow')
     const runtime = createRuntimeRoot()
 
@@ -416,7 +416,7 @@ describe('resolveDependency', () => {
 describe('areRuntimeDependenciesInstalled', () => {
   it('本モジュール自身の位置から引けるプラグイン側では true', () => {
     // env を落としても、同梱の node_modules から引けるので「未取得」に倒れてはいけない
-    // (倒れると `setup` が 600MB の npm install を始める)。
+    // (倒れると `runtime_setup` が 600MB の npm install を始める)。
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
@@ -436,7 +436,7 @@ describe('isRuntimeLayerInstalled: 永続層の版判定', () => {
   })
 
   it('stamp が違えば未取得に倒す (前の版で取得したツリーの残骸)', () => {
-    // ここを通すと、依存が増えた新版でも setup が skip し、slidev build が実行時に失敗する。
+    // ここを通すと、依存が増えた新版でも runtime_setup が skip し、slidev build が実行時に失敗する。
     expect(hasRuntimeLayer('old-stamp')).toBe(false)
   })
 

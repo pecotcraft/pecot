@@ -1,0 +1,128 @@
+{
+  "format": 1,
+  "plugin": "pecot-workflow",
+  "prefix": "PW",
+  "names": {
+    "separator": " ",
+    "positions": [
+      [
+        {
+          "word": "issue",
+          "meaning": "Issue"
+        }
+      ],
+      [
+        {
+          "word": "create",
+          "meaning": "create an Issue",
+          "read_only": true
+        },
+        {
+          "word": "quick",
+          "meaning": "create an Issue and start the work"
+        }
+      ]
+    ],
+    "rest": false
+  },
+  "entries": [
+    {
+      "id": "PW-ISSUE-CREATE",
+      "name": "issue create",
+      "description": "Create an issue from a Markdown file with front matter.",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Markdown files to post."
+          },
+          "message": {
+            "type": "string",
+            "description": "Issue body."
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title."
+          },
+          "issue_type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "bug",
+              "epic",
+              "tracker"
+            ],
+            "default": "task",
+            "description": "Issue type."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "files"
+        ],
+        "flags": {
+          "issue_type": [
+            "--type"
+          ],
+          "message": [
+            "--message"
+          ],
+          "title": [
+            "--title"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-QUICK",
+      "name": "issue_quick",
+      "description": "Create an issue and its branch in one step.",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "quick"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Issue title."
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "title"
+        ],
+        "flags": {}
+      }
+    }
+  ]
+}

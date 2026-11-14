@@ -11,7 +11,7 @@
 | `board add` | Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot) |
 | `board move` | Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves) |
 | `board show` | Show the dashboard of the project board |
-| `board sync` | Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for |
+| `board sync` | Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board |
 
 ## branch
 
@@ -26,7 +26,6 @@
 | `issue block` | Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one |
 | `issue comment` | Post a comment on an Issue |
 | `issue create` | Create Issues from Markdown files with frontmatter |
-| `issue quick` | Create an Issue at once from a free-format message |
 | `issue reopen` | Reopen a closed Issue (also sets the status on the board) |
 | `issue show` | Fetch Issue details efficiently (GraphQL, only the needed fields) |
 | `issue unblock` | Remove a blocked-by (prerequisite) from an Issue |

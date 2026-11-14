@@ -1,6 +1,8 @@
 // PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr show` の Markdown の整形、preflight の警告の判定。
 // 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
 
+import { hinted, inputHint, inputNameHint } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
 import { hasSummaryImage, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
@@ -19,11 +21,9 @@ const CLOSING_KEYWORDS_PATTERN = new RegExp(String.raw`(?:close[sd]?|fix(?:e[sd]
 // eslint-disable-next-line no-control-regex, security/detect-unsafe-regex -- 区切りの制御文字と誤検知
 const LINE_BREAK = /\r\n|[\n\r\v\f\u{1C}-\u{1E}\u{85}\u{2028}\u{2029}]/u
 
-export const SCREENSHOT_MISSING_ERROR
-  = 'Summary has no image and `screenshot` gives no reason to omit one. '
-    + 'If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, '
-    + 'take a screenshot and add it to Summary as `![alt](./<file>.png)`. '
-    + 'Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `-m`)'
+const PR_CREATE_PATH = ['pr', 'create']
+
+export const SCREENSHOT_MISSING_ERROR: HintedText = hinted`Summary has no image and \`screenshot\` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as \`![alt](./<file>.png)\`. Otherwise, write the reason in the \`screenshot\` frontmatter field (\`${inputNameHint(PR_CREATE_PATH, 'screenshot')}\` with \`${inputNameHint(PR_CREATE_PATH, 'message')}\`)`
 
 /**
 本文の Closes / Fixes / Resolves に続く Issue 番号を、出てきた順に重複なしで返す
@@ -82,13 +82,13 @@ export interface PullRequestContentOptions {
 /**
 PR の内容を検証し、エラーの文を返す（無ければ空）。ブランチ設定の欠けは、呼び出し側が先に止める
 */
-export function validatePullRequestContent(options: Readonly<PullRequestContentOptions>): readonly string[] {
+export function validatePullRequestContent(options: Readonly<PullRequestContentOptions>): readonly (string | HintedText)[] {
   const { body, base, developBranch, releaseBranch, requiredSections } = options
-  const errors: string[] = []
+  const errors: (string | HintedText)[] = []
   const isRelease = isReleasePullRequest(options.template, base, options.head, developBranch, releaseBranch)
 
   if (!isRelease && !options.skipIssueReferenceCheck && !hasIssueReference(body)) {
-    errors.push('PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)')
+    errors.push(hinted`PR body has no Issue reference \`#N\` (use \`${inputHint(PR_CREATE_PATH, 'no_issue_ref')}\` for a PR not tied to an Issue)`)
   }
 
   if (requiredSections.length > 0) {

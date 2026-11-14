@@ -96,7 +96,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 `project_link` を次の入力で呼ぶ。
 
-- `owner_repo: "<owner/repo>"`
+- `repo: "<owner/repo>"`
 - `develop_branch: "<branch>"`
 - `release_branch: "<branch>"`
 - `changelog_file: "<ファイル名>"`
@@ -105,17 +105,17 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 `project_link` を次の入力で呼ぶ。
 
-- `owner_repo: "<owner/repo>"`
+- `repo: "<owner/repo>"`
 - `develop_branch: "<branch>"`
 - `release_branch: "<branch>"`
 - `package: ["<name1>:<changelog path1>", "<name2>:<changelog path2>"]`
 
 **リリースブランチ未設定**（CHANGELOG 質問なし）の場合は次のとおり。
-`project_link` を `owner_repo: "<owner/repo>"`・`develop_branch: "<branch>"` で呼ぶ。
+`project_link` を `repo: "<owner/repo>"`・`develop_branch: "<branch>"` で呼ぶ。
 
 | 入力 | 説明 |
 |------|------|
-| `owner_repo` | Step 2.2 で確認した owner/repo（必須） |
+| `repo` | Step 2.2 で確認した owner/repo（必須） |
 | `develop_branch` | 質問1で選択した開発ブランチ名 |
 | `release_branch` | 質問2で選択したリリースブランチ名（設定時のみ） |
 | `changelog_file` | 単一モード時のみ。デフォルト以外の場合のみ指定 |

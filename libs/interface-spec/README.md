@@ -36,3 +36,48 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 CI は affected のレーンだけを matrix の job に分けて動かすので、1 つの job に全レーンの JUnit がそろいません。
 そろわない JUnit で作った HTML は、動かなかったレーンの項目を「未実行」と出し、読む人を誤らせます。
 全量を集める job を足す案は、全レーンを毎回動かすことになるので採りません。
+
+## 名前の語彙（`names`）
+
+`generated.json` の最上位の `names` に、項目の名前の決まりを書きます。各プラグインの書き出し（`cli/scripts/export-interface.ts`）が、ソースの語彙から作ります。`names` は必須です。
+
+```json
+{
+  "separator": " ",
+  "positions": [
+    [{ "word": "issue", "meaning": "Issue そのもの" }],
+    [{ "word": "show", "meaning": "1 件を出す", "read_only": true }, { "word": "create", "meaning": "GitHub のものを作る" }]
+  ],
+  "rest": false
+}
+```
+
+| 欄 | 中身 |
+|---|---|
+| `separator` | 名前の語の区切り。`" "` か `"_"` |
+| `positions` | 語の位置ごとの一覧。語（英小文字と数字）と意味を持つ |
+| `read_only` | 読むだけの語の印。`true` だけを書く |
+| `rest` | `true` なら、`positions` の後ろに 1 語以上の自由な語（英小文字と数字）を求める |
+
+`validate`（`lint-defs`）は次を止めます。
+
+- 項目の `name` を `separator` で分けた語の数が合わない。`rest` が `false` なら `positions` の数と同じ、`true` ならそれより多い数が要る
+- 語が、その位置の一覧に無い
+- 同じ位置に同じ語が 2 回ある
+- 名前に `read_only` の語を持つ項目の `effects` に、`read` でない種類がある（`authored.yaml` の行で出す）
+
+書き出しの `--check` は `names` も比べるので、語彙を変えて書き出しを忘れると止まります。
+
+| プラグイン | 区切り | 語彙の置き場 |
+|---|---|---|
+| pecot-workflow | 空白 | `cli/src/commands/names.ts` の `COMMAND_GROUPS`・`COMMAND_VERBS`（`readOnly` が印） |
+| pecot-visual | `_` | `cli/src/mcp/tool-names.ts` の `TOOL_SUBJECTS`・`TOOL_VERBS` |
+| pecot-tools | `_`（3 語目からは自由な語） | `cli/src/mcp/tool-names.ts` の `TOOL_PREFIXES`・`TOOL_SERVICES` |
+
+### 語を足すとき
+
+1. 上の表の語彙の置き場に、語と意味を足す。読むだけの動詞なら印を付ける
+2. 書き出しを作り直す: `pnpm --dir plugins/<plugin>/cli exec tsx scripts/export-interface.ts --write`
+3. `pnpm exec nx run interface-spec:lint-defs` で、名前と `effects` が語彙に合うかを確かめる
+
+既にある語の意味を変えるときは、その語を使う全部の項目が新しい意味に合うかを確かめます。

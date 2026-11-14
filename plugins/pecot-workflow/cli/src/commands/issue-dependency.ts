@@ -20,6 +20,8 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { applyBoardMove } from './issue-board.js'
@@ -34,6 +36,7 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 const CONTENT_EXIT_CODE = 3
 // たどる Issue の数の上限。大きな連鎖で止まらないことより、確かめずに付けないことを優先する
 const MAX_CYCLE_ISSUES = 200
+const BLOCK_PATH = ['issue', 'block']
 
 interface Context {
   readonly out: Output
@@ -71,8 +74,8 @@ function isOptionAvailable(config: ProjectConfig, field: string, key: string): b
   return option !== undefined && option !== ''
 }
 
-function hintFor(value: MissingValue): string {
-  return `hint: run pecot project init to add the ${value} option to the board`
+function hintFor(value: MissingValue): HintedText {
+  return hinted`hint: run ${commandHint(['project', 'init'])} to add the ${value} option to the board`
 }
 
 function boardMoveInput(judged: JudgedIssue, config: ProjectConfig, hasPrerequisites: boolean): BoardMoveInput {
@@ -130,7 +133,7 @@ async function moveBoard(context: Context, expected: ExpectedPrerequisites, hasP
   if (hasWrite && itemId === '') return
   const { missing } = await applyBoardMove(out, client, config, itemId, { ref: target, home }, move, describeReadiness(judged.readiness, judged.prerequisites, home))
   for (const value of missing) {
-    out.warning(`the ${value} option is not on the board, so ${name} was not moved\n${hintFor(value)}`)
+    out.warning(joinHinted([`the ${value} option is not on the board, so ${name} was not moved`, hintFor(value)]))
   }
 }
 
@@ -149,9 +152,11 @@ interface BlockInput {
 
 function checkBlockUsage(out: Output, input: BlockInput, target: IssueReference, by: IssueReference): string | undefined {
   const reason = input.reason?.trim()
-  if (input.wait === 'merge' && (reason === undefined || reason === '')) stopWith(out, '--reason is required with --wait merge', USAGE_EXIT_CODE)
-  if (input.wait === 'stack' && input.reason !== undefined) stopWith(out, '--reason is only valid with --wait merge', USAGE_EXIT_CODE)
-  if (reason !== undefined && /[\r\n]/u.test(reason)) stopWith(out, '--reason must be a single line', USAGE_EXIT_CODE)
+  const reasonFlag = inputNameHint(BLOCK_PATH, 'reason')
+  const waitMerge = inputHint(BLOCK_PATH, 'wait', 'merge')
+  if (input.wait === 'merge' && (reason === undefined || reason === '')) stopWith(out, hinted`${reasonFlag} is required with ${waitMerge}`, USAGE_EXIT_CODE)
+  if (input.wait === 'stack' && input.reason !== undefined) stopWith(out, hinted`${reasonFlag} is only valid with ${waitMerge}`, USAGE_EXIT_CODE)
+  if (reason !== undefined && /[\r\n]/u.test(reason)) stopWith(out, hinted`${reasonFlag} must be a single line`, USAGE_EXIT_CODE)
   if (issueReferenceKey(target) === issueReferenceKey(by)) {
     const name = displayReference(target, target.repository)
     stopWith(out, `blocked-by would form a cycle: ${name} -> ${name}`, USAGE_EXIT_CODE)
@@ -290,7 +295,7 @@ async function runUnblock(out: Output, input: UnblockInput): Promise<void> {
 }
 
 const ISSUE_BLOCK = defineCommand({
-  path: ['issue', 'block'],
+  path: BLOCK_PATH,
   description: 'Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),

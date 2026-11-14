@@ -17,22 +17,25 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const branchDeleteCommand = defineCommand({
   path: ['branch', 'delete'],
+  hasOwnRepo: true,
+  ignoresGlobalRepo: true,
   description: 'Delete a remote branch (a protected branch is never deleted)',
   input: z.strictObject({
-    repo_ref: z.string().describe('Repository reference (owner/repo)'),
+    repo: z.string().describe('Repository reference (owner/repo)'),
     branch: z.string().describe('Name of the branch to delete'),
     dry_run: z.boolean().default(false).describe('Show what would be deleted without deleting anything'),
   }),
-  positional: ['repo_ref', 'branch'],
+  positional: ['repo', 'branch'],
   shortFlags: { dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    requireRepositoryMatch('reject', input.repo, io, process.cwd())
+    // 位置引数の repo は対象のリポで、cwd と比べる明示値ではない
+    requireRepositoryMatch('reject', undefined, io, process.cwd())
     const out = createOutput(input.dry_run, io)
-    // 1. repo_ref をパース
+    // 1. repo をパース
     let target
     try {
-      target = parseRepositoryReference(input.repo_ref)
+      target = parseRepositoryReference(input.repo)
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error

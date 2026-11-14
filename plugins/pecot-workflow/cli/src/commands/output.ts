@@ -7,6 +7,8 @@ import { readSync } from 'node:fs'
 
 import { z } from 'zod'
 
+import { formatHinted } from '../domain/command-hint.js'
+import type { HintedText } from '../domain/command-hint.js'
 import { hasErrorCode } from '../infra/os-error.js'
 
 import type { CommandIo } from './registry.js'
@@ -55,8 +57,11 @@ export interface Output {
   dry-run でないときだけ、実行した操作を stderr に出す
   */
   readonly done: (operation: Operation) => void
-  readonly warning: (message: string) => void
-  readonly error: (message: string) => void
+  /**
+  案内（HintedText）は io の出し先の形にする
+  */
+  readonly warning: (message: string | HintedText) => void
+  readonly error: (message: string | HintedText) => void
   /**
   value が未設定なら `unknown` と出す
   */
@@ -76,6 +81,7 @@ function formatMessage(prefix: string, message: string): string {
 }
 
 export function createOutput(isDryRun: boolean, io: CommandIo): Output {
+  const render = (message: string | HintedText): string => formatHinted(message, io.surface ?? 'cli')
   return {
     planned: ({ verb, target }) => {
       if (!isDryRun) return
@@ -87,10 +93,10 @@ export function createOutput(isDryRun: boolean, io: CommandIo): Output {
       io.stderr(`${pastOf(verb)}: ${target}\n`)
     },
     warning: (message) => {
-      io.stderr(formatMessage('warning', message))
+      io.stderr(formatMessage('warning', render(message)))
     },
     error: (message) => {
-      io.stderr(formatMessage('error', message))
+      io.stderr(formatMessage('error', render(message)))
     },
     count: (label, value) => {
       io.stderr(`count: ${label}: ${value === undefined ? 'unknown' : String(value)}\n`)

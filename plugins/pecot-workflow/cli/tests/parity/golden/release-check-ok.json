@@ -33,6 +33,13 @@
         "state": "open"
       },
       "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/compare/main...develop",
+      "query": {},
+      "auth": "token"
     }
   ],
   "files": {

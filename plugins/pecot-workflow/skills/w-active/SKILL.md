@@ -62,7 +62,7 @@ git pull
 
 ### Step 4: ブランチ作成
 
-`session_start` を `issue_ref: "owner/repo/XXX"`・`branch_name: "feat/description"` で呼ぶ。`base` は渡さない。base は CLI が選ぶ。
+`session_start` を `issue_ref: "owner/repo/XXX"`・`branch: "feat/description"` で呼ぶ。`base` は渡さない。base は CLI が選ぶ。
 
 **ブランチ名の決め方:**
 
@@ -97,7 +97,7 @@ CWDが別リポジトリであっても、そのリポジトリのワークツ�
 ### Step 7: 計画ドラフト作成
 
 plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
-`issue_comment` を `prepare: true`・`template: "plan"`・`issue: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
+`issue_comment` を `prepare: true`・`template: "plan"`・`issue_ref: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
 
 w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。
 tasks.md のチェックはタスクの単位の進捗で、並行で進められるタスクを探すときに読む。この PR のマージでフェーズの Issue が閉じるのと同時に、tasks.md のチェックもそろう。

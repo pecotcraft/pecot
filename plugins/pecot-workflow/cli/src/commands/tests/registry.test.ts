@@ -9,13 +9,13 @@ import { commandNameViolations } from '../names.js'
 import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
-const COMMAND_COUNT = 36
+const COMMAND_COUNT = 35
 const GENERATED = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
 const EntrySchema = z.object({ id: z.string() })
 const GeneratedSchema = z.object({ prefix: z.string(), entries: z.array(EntrySchema) })
 
 describe('コマンドの一覧', () => {
-  it('36 個が登録され、path は重複しない', () => {
+  it('35 個が登録され、path は重複しない', () => {
     expect(COMMANDS).toHaveLength(COMMAND_COUNT)
     expect(new Set(COMMANDS.map(command => command.path.join(' '))).size).toBe(COMMAND_COUNT)
   })
@@ -34,7 +34,7 @@ describe('コマンドの一覧', () => {
     expect(COMMANDS.map(command => command.path.join(' '))).toEqual([
       'project list', 'project search', 'project init', 'project create', 'project activate', 'project link', 'project get', 'project set', 'project unset',
       'board show', 'board add', 'board move', 'board sync',
-      'issue create', 'issue quick', 'issue show', 'issue comment', 'issue block', 'issue unblock', 'issue reopen',
+      'issue create', 'issue show', 'issue comment', 'issue block', 'issue unblock', 'issue reopen',
       'session start', 'session show', 'session restore', 'session finish',
       'pr create', 'pr show', 'pr check',
       'release check', 'release create', 'release merge',

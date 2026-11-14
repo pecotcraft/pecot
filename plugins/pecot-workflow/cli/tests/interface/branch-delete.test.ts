@@ -136,15 +136,7 @@ describe('branch delete', () => {
     expect(requestLabels(result.requests)).not.toContain('DELETE /repos/acme/demo/git/refs/heads/wip/feat/7')
   })
 
-  it('--repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BRANCH-DELETE-16')
-    const result = await remove({ github: [] }, ['--repo', 'other/tree', 'branch', 'delete', 'acme/demo', 'feat/7'])
-    expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: --repo other/tree differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote\n')
-    expect(result.requests).toEqual([])
-  })
-
-  it('--repo を省いて git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async (context) => {
+  it('git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-BRANCH-DELETE-17')
     await verifies(context, 'PW-BRANCH-DELETE-18')
     const result = await remove({ remote: false, github: [] })
