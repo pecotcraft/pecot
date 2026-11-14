@@ -272,6 +272,26 @@ describe('changedFiles（実 git）', () => {
     expect(changedFiles(repository, 'main', 'feat/x/1')).toEqual(['README.md', 'a/b.py', 'new-name.txt', 'old/name.txt', '日本語/c.md'])
   })
 
+  it('起点にコミットの SHA を渡すと、下の段が squash でマージされた後も、その位置から head までの変更だけを返す', () => {
+    const repository = createGitRepository({ 'README.md': 'x' })
+    gitForTest(repository, ['checkout', '-q', '-b', 'feat/a/11'])
+    writeFileSync(path.join(repository, 'lower.txt'), 'lower')
+    gitForTest(repository, ['add', '-A'])
+    gitForTest(repository, ['commit', '-q', '-m', 'lower'])
+    const recorded = gitForTest(repository, ['rev-parse', 'HEAD']).trim()
+    gitForTest(repository, ['checkout', '-q', '-b', 'feat/b/12'])
+    writeFileSync(path.join(repository, 'upper.txt'), 'upper')
+    gitForTest(repository, ['add', '-A'])
+    gitForTest(repository, ['commit', '-q', '-m', 'upper'])
+    gitForTest(repository, ['checkout', '-q', 'main'])
+    gitForTest(repository, ['merge', '-q', '--squash', 'feat/a/11'])
+    gitForTest(repository, ['commit', '-q', '-m', 'squash lower'])
+    gitForTest(repository, ['branch', '-q', '-D', 'feat/a/11'])
+
+    expect(changedFiles(repository, 'main', 'feat/b/12')).toEqual(['lower.txt', 'upper.txt'])
+    expect(changedFiles(repository, recorded, 'feat/b/12')).toEqual(['upper.txt'])
+  })
+
   it('差分が無ければ空の一覧', () => {
     const repository = createGitRepository()
     expect(changedFiles(repository, 'main', 'HEAD')).toEqual([])

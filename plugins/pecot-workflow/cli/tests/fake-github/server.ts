@@ -26,6 +26,10 @@ export interface ResponseMatch {
   REST の本文の部分一致
   */
   readonly body?: unknown
+  /**
+  X-GitHub-Api-Version ヘッダの値
+  */
+  readonly apiVersion?: string | undefined
 }
 
 export interface ResponseSpec {
@@ -39,6 +43,10 @@ export interface ResponseSpec {
   */
   readonly text?: string | undefined
   readonly headers?: Readonly<Record<string, string>> | undefined
+  /**
+  true なら応答を返さずに接続を切る（TransportFailure を起こす）
+  */
+  readonly disconnect?: boolean | undefined
 }
 
 export interface ResponseRule {
@@ -196,6 +204,10 @@ export async function startFakeGithub(rules: readonly ResponseRule[], options: S
   let baseUrl = ''
 
   function respond(response: ServerResponse, spec: ResponseSpec): void {
+    if (spec.disconnect === true) {
+      response.socket?.destroy()
+      return
+    }
     const headers = { 'content-type': 'application/json', ...spec.headers }
     const restored = Object.fromEntries(Object.entries(headers).map(([key, value]) => [key, substitute(value, baseUrl)]))
     const payload = spec.text ?? JSON.stringify(spec.body ?? {})
@@ -210,6 +222,7 @@ export async function startFakeGithub(rules: readonly ResponseRule[], options: S
     readonly query: Readonly<Record<string, string>>
     readonly variables: unknown
     readonly body: unknown
+    readonly apiVersion: string | undefined
   }): ResponseSpec | undefined {
     const state = states.find(({ rule, used }) => {
       const { match } = rule
@@ -220,6 +233,7 @@ export async function startFakeGithub(rules: readonly ResponseRule[], options: S
         && (match.query === undefined || isSubset(match.query, candidate.query))
         && (match.variables === undefined || isSubset(match.variables, candidate.variables))
         && (match.body === undefined || isSubset(match.body, candidate.body))
+        && (match.apiVersion === undefined || match.apiVersion === candidate.apiVersion)
     })
     if (state === undefined) return undefined
     state.used += 1
@@ -255,7 +269,8 @@ export async function startFakeGithub(rules: readonly ResponseRule[], options: S
         recorded.push({ type: 'rest', method, path: url.pathname, query, ...(body !== undefined && { body }), auth })
       }
 
-      const spec = select({ method, path: url.pathname, operation, query, variables, body })
+      const apiVersion = request.headers['x-github-api-version']
+      const spec = select({ method, path: url.pathname, operation, query, variables, body, apiVersion: typeof apiVersion === 'string' ? apiVersion : undefined })
       if (spec === undefined) {
         const label = isGraphql ? `GraphQL ${String(operation)}` : `${method} ${url.pathname}`
         problems.push(`どの応答にも当たらない要求を受けました: ${label}`)

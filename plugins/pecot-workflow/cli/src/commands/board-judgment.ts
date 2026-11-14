@@ -1,25 +1,42 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// ボードの Issue の読み取り・判定と、列と札の動かし方。board show（数えるだけ）と board sync（書く）が共有する。
+// ボードの Issue の読み取り・判定と、列と札の動かし方。board show（数えるだけ）と、board sync・pr create（書く）が共有する。
 import { decideBoardMove } from '../domain/board-move.js'
-import type { BoardMove } from '../domain/board-move.js'
+import type { BoardMove, MissingValue } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
-import { cycleThrough, hasStarted, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
+import { compareStrings } from '../domain/python-format.js'
+import { cycleThrough, describeReadiness, displayReference, hasStarted, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, splitOwnerRepository } from '../domain/repository-resolver.js'
+import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot, JudgedIssue, UnreadableIssue } from './issue-readiness.js'
 import { mapWithLimit } from './board-view.js'
+import { applyBoardMove, planBoardMove } from './issue-board.js'
+import type { Output } from './output.js'
 
 /**
 前提の読み取りを並列に行う数の上限
 */
 const READ_MAX_WORKERS = 8
+
+/**
+board sync と pr create が判定し直す列
+*/
+export const SYNCED_COLUMNS: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
+
+/**
+動かす先の値がボードに無いときの warning の文
+*/
+export function missingWarning(missing: ReadonlySet<MissingValue>): string {
+  const names = [...missing].toSorted(compareStrings)
+  return `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with pecot project init`
+}
 
 export interface BoardTarget {
   readonly item: BoardItem
@@ -97,6 +114,46 @@ export async function judgeBoard(client: GitHubClient, config: ProjectConfig, it
       throw error
     }
   })
+}
+
+/**
+列と札を動かす処理が共有する、出力先・クライアント・設定・表示の基準のリポ
+*/
+export interface BoardContext {
+  readonly out: Readonly<Output>
+  readonly client: GitHubClient
+  readonly config: ProjectConfig
+  readonly home: RepositoryReference | undefined
+}
+
+/**
+判定の結果に合わせて、列と札を動かす。読めない Issue は warning にし、ボードに無い値は最後に 1 行の warning にまとめる。
+isDryRun は同じ文を予定の行で出し、書かない。書き込みに失敗した Issue の数を返す
+*/
+export async function applyJudgedMoves(context: Readonly<BoardContext>, judged: readonly JudgedTarget[], isDryRun = false): Promise<number> {
+  const { out, client, config, home } = context
+  const missing = new Set<MissingValue>()
+  let failures = 0
+  for (const { target, result } of judged) {
+    if (result.kind === 'unreadable') {
+      out.warning(`could not judge ${displayReference(target.ref, home)}: ${result.reason.replaceAll(/\s+/gu, ' ')}`)
+      continue
+    }
+    const { readiness } = result
+    const move = boardMoveOf(config, target, result)
+    if (readiness === undefined || move === undefined) continue
+    for (const value of move.missing) missing.add(value)
+    const text = describeReadiness(readiness, result.prerequisites, target.ref.repository)
+    const destination = { ref: target.ref, home }
+    const itemId = target.item.id
+    if (isDryRun) planBoardMove(out, destination, move, text)
+    else if (typeof itemId === 'string') {
+      const applied = await applyBoardMove(out, client, config, itemId, destination, move, text)
+      if (applied.hasFailed) failures += 1
+    }
+  }
+  if (missing.size > 0) out.warning(missingWarning(missing))
+  return failures
 }
 
 /**

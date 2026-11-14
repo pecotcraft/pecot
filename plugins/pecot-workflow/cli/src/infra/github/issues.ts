@@ -15,6 +15,7 @@ import {
   MUTATION_REMOVE_BLOCKED_BY,
   QUERY_GET_BLOCKED_BY_OF_NODES,
   QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES,
+  QUERY_GET_ISSUE_BLOCKING_REFERENCES,
   QUERY_GET_ISSUE_KIND,
   QUERY_HAS_ADD_BLOCKED_BY_INPUT,
   QUERY_GET_ISSUE_KIND_PHASE1,
@@ -112,9 +113,10 @@ function isIssueTypeSchemaError(error: unknown): boolean {
 
 export const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
 
-// blockedBy・addBlockedBy・removeBlockedBy・issueType に対応しない GHES（3.19 より前）が返すスキーマの失敗なら、分かる失敗に替える
+// 依存関係のフィールド（blockedBy・blocking・addBlockedBy・removeBlockedBy）と issueType に対応しない GHES（3.19 より前）。
+// そのスキーマの失敗なら、分かる失敗に替える
 function asDependenciesError(error: unknown): unknown {
-  return isSchemaError(error) && /blockedBy|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
+  return isSchemaError(error) && /blockedBy|blocking|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
 }
 
 /**
@@ -132,13 +134,23 @@ function isNodesPath(path: readonly JsonValue[]): boolean {
   return path[0] === 'nodes'
 }
 
-// blockedBy の connection を前提の参照にする。件数が足りないのは呼ぶ側が見るので、ここでは失敗にしない
-function readBlockedByReferences(connection: JsonValue | undefined): BlockedByReferences {
-  if (!isTruthy(connection)) return { kind: 'read-failed', reason: 'blockedBy is null' }
+// 部分エラーのうち、対象の Issue の blocking の下のもの
+function isBlockingPath(path: readonly JsonValue[]): boolean {
+  return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blocking'
+}
+
+// GitHub は無い Issue・リポを、data の null と、その道筋の NOT_FOUND の errors で返す。null を見て GitHubNotFoundError にする
+function isIssueOrRepositoryPath(path: readonly JsonValue[]): boolean {
+  return path[0] === 'repository' && (path.length === 1 || (path[1] === 'issue' && path.length === 2))
+}
+
+// blockedBy（または blocking）の connection を参照にする。件数が足りないのは呼ぶ側が見るので、ここでは失敗にしない
+function readBlockedByReferences(connection: JsonValue | undefined, field: 'blockedBy' | 'blocking' = 'blockedBy'): BlockedByReferences {
+  if (!isTruthy(connection)) return { kind: 'read-failed', reason: `${field} is null` }
   const nodes = asArray(jsonField(connection, 'nodes'))
-  if (nodes.some(node => !isTruthy(node))) return { kind: 'read-failed', reason: 'blockedBy has a null node' }
+  if (nodes.some(node => !isTruthy(node))) return { kind: 'read-failed', reason: `${field} has a null node` }
   const issues: readonly BlockedByReference[] = nodes.map(node => readIssueReference(node))
-  return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), 'blockedBy.totalCount'), issues }
+  return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), `${field}.totalCount`), issues }
 }
 
 // nodes(ids:) の 1 件を前提にする。message は、その node の部分エラー
@@ -383,6 +395,25 @@ export class IssuesApi extends ProjectsApi {
       body: requireString(jsonField(issue, 'body'), 'issue.body'),
       blockedBy: messages.length > 0 ? { kind: 'read-failed', reason: `blockedBy could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blockedBy')),
     }
+  }
+
+  /**
+  その Issue を前提にしている Issue（blocking 先頭 blockingFirst 件）の参照と、全体の件数を読む。
+  total が issues の数より多ければ、読めなかった分がある。blocking の部分エラーと null の node は read-failed。
+  Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
+  */
+  async getIssueBlockingReferences(owner: string, repository: string, number: number, blockingFirst = MAX_BLOCKED_BY): Promise<BlockedByReferences> {
+    let outcome: GraphqlOutcome
+    try {
+      const variables = { owner, repo: repository, number, blockingFirst }
+      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKING_REFERENCES, variables, path => isBlockingPath(path) || isIssueOrRepositoryPath(path))
+    }
+    catch (error: unknown) {
+      throw asDependenciesError(error)
+    }
+    const issue = issueNode(outcome.data, owner, repository, number)
+    const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')))
+    return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking')
   }
 
   /**

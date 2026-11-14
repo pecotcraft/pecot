@@ -5,6 +5,7 @@ import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
 import type { FieldOptionInput } from '../../domain/field-options.js'
+import type { BoardItem } from '../../domain/format.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
@@ -17,6 +18,7 @@ import {
   MUTATION_LINK_PROJECT_REPOSITORY,
   MUTATION_UPDATE_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
+  QUERY_GET_ISSUE_BOARD_ITEM,
   QUERY_GET_ISSUE_PROJECT_ITEMS,
   QUERY_GET_LINKED_REPOSITORIES_ORG,
   QUERY_GET_LINKED_REPOSITORIES_USER,
@@ -267,6 +269,31 @@ export class ProjectsApi extends ReposApi {
       if (jsonField(jsonField(item, 'project'), 'id') === projectId) return requireString(jsonField(item, 'id'), 'projectItems.nodes.id')
     }
     return undefined
+  }
+
+  /**
+  Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
+  workflow は進行の列の値で、空なら null。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
+  */
+  async getIssueBoardItem(projectId: string, owner: string, repository: string, issueNumber: number, workflowFieldName: string): Promise<BoardItem | undefined> {
+    const result = await this.executeGraphql(QUERY_GET_ISSUE_BOARD_ITEM, { owner, repo: repository, number: issueNumber, workflowFieldName })
+    const issue = jsonField(jsonField(result, 'repository'), 'issue')
+    if (!isTruthy(issue)) return undefined
+    const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId)
+    if (item === undefined) return undefined
+    const workflow = jsonField(jsonField(item, 'workflow'), 'name')
+    const owning = jsonField(issue, 'repository')
+    return {
+      id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'),
+      workflow: typeof workflow === 'string' ? workflow : JSON_NULL,
+      title: jsonField(issue, 'title') ?? '',
+      content: {
+        number: jsonField(issue, 'number') ?? JSON_NULL,
+        state: jsonField(issue, 'state') ?? JSON_NULL,
+        url: jsonField(issue, 'url') ?? JSON_NULL,
+        repository: `${requireString(jsonField(jsonField(owning, 'owner'), 'login'), 'issue.repository.owner.login')}/${requireString(jsonField(owning, 'name'), 'issue.repository.name')}`,
+      },
+    }
   }
 
   /**

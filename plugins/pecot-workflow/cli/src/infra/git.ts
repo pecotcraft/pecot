@@ -25,6 +25,23 @@ export interface GitOptions {
   true なら非 0 終了で GitCommandError を投げる
   */
   readonly check?: boolean | undefined
+  /**
+  足す環境変数。今の環境変数（stripGitEnvironment なら GIT_* を除いたもの）に重ねる
+  */
+  readonly env?: Readonly<Record<string, string>> | undefined
+  /**
+  時間切れ。過ぎたら止めて、exitCode が GIT_TIMED_OUT の結果を返す
+  */
+  readonly timeoutMilliseconds?: number | undefined
+}
+
+/**
+時間切れで止めたときの exitCode
+*/
+export const GIT_TIMED_OUT = -2
+
+function isTimedOut(error: Readonly<Error> | undefined): boolean {
+  return error !== undefined && 'code' in error && error.code === 'ETIMEDOUT'
 }
 
 /**
@@ -56,13 +73,17 @@ git を実行する。標準出力・標準エラーは改行を \n に揃えた
 git や作業ディレクトリが見つからなければ OsError（code ENOENT）を投げる
 */
 export function runGit(arguments_: readonly string[], options: Readonly<GitOptions> = {}): GitResult {
+  // interface-env: none
+  const base = options.stripGitEnvironment === true ? withoutGitVariables() : (options.env === undefined ? undefined : process.env)
   const result = spawnSync('git', [...arguments_], {
     cwd: options.cwd,
-    env: options.stripGitEnvironment === true ? withoutGitVariables() : undefined,
+    env: base === undefined ? undefined : { ...base, ...options.env },
     encoding: 'utf8',
     maxBuffer: MAX_OUTPUT_BYTES,
     stdio: [childStdin(), 'pipe', 'pipe'],
+    ...(options.timeoutMilliseconds !== undefined && { timeout: options.timeoutMilliseconds, killSignal: 'SIGKILL' }),
   })
+  if (isTimedOut(result.error)) return { exitCode: GIT_TIMED_OUT, stdout: normalizeNewlines(result.stdout), stderr: normalizeNewlines(result.stderr) }
   if (result.error !== undefined) {
     // spawnSync の ENOENT は path が `git` で入る。cwd が無いときも同じ ENOENT になる
     throw toOsError(result.error)

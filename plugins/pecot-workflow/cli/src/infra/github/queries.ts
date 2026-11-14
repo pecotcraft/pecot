@@ -1021,3 +1021,50 @@ export const QUERY_GET_BLOCKED_BY_OF_NODES = `query ($ids: [ID!]!, $blockedByFir
 }
 
 ${BLOCKED_BY_REFERENCE_FIELDS}`
+
+// その Issue を前提にしている Issue（blocking）の参照。PR を作った後に、待つ側の Issue を絞るために読む
+export const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockingFirst: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      blocking(first: $blockingFirst) {
+        totalCount
+        nodes {
+          ...BlockedByReferenceFields
+        }
+      }
+    }
+  }
+}
+
+${BLOCKED_BY_REFERENCE_FIELDS}`
+
+// Issue 1 件の、指定のプロジェクトの項目と進行の列。ボード全体を読まずに、列を動かす対象を読む
+export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $number: Int!, $workflowFieldName: String!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number
+      title
+      state
+      url
+      repository {
+        owner {
+          login
+        }
+        name
+      }
+      projectItems(first: 20, includeArchived: false) {
+        nodes {
+          id
+          project {
+            id
+          }
+          workflow: fieldValueByName(name: $workflowFieldName) {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}`

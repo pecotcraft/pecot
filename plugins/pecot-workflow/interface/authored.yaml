@@ -1892,6 +1892,10 @@ entries:
         - Prints the information to check before creating a PR for the repository given by --directory.
         - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
         - The base branch is <remote>/ followed by the develop_branch of the active project, where <remote> is the origin remote, or the first remote when there is no origin.
+        - "When the base record of a stacked start exists, the base branch is <remote>/ followed by the branch of the layer below instead. When the remote reports that branch no longer exists, it is <remote>/ followed by the develop_branch, even if a stale remote-tracking ref remains. When the remote cannot be reached, the remote-tracking ref decides."
+        - "The query to the remote about the branch of the layer below times out after 10 seconds and never asks for credentials (GIT_TERMINAL_PROMPT=0 and the askpass programs are disabled). A timeout is handled the same as a remote that cannot be reached."
+        - "When the branch of the layer below is on the remote but has no remote-tracking ref, compares with the develop_branch and prints a warning that tells to run git fetch. This warning is not counted in the preflight warnings."
+        - "When the base record is malformed, stops with exit status 1 because the base cannot be decided."
         - Prints every section even when there are warnings.
         - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
         - Exits with status 2 when there is at least one warning.
@@ -1908,6 +1912,10 @@ entries:
       - '`--directory` のリポジトリについて、PR を作る前に確かめる情報を出します。'
       - '11 の節を決まった順で出します。節は、Git Remote・Current Branch・Push Status・Base Branch・Git Status・.gitignore と続きます。その後は、Git Exclude・Commits・Diff Summary・Worktree Info・Stash List です。'
       - 'base ブランチは、`<remote>/` の後にアクティブなプロジェクトの `develop_branch` を続けたものです。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
+      - '積んで着手した記録があるときは、base ブランチは、`<remote>/` の後に下の段のブランチを続けたものです。remote がそのブランチは無いと答えれば（マージで消えた後）、手元に追跡参照が残っていても `develop_branch` の方にします。remote に届かなければ、手元の追跡参照の有無で決めます。'
+      - '下の段のブランチについての remote への問い合わせには、10 秒の時間切れがあり、認証の入力は求めません（`GIT_TERMINAL_PROMPT=0` と askpass の無効化）。時間切れは、remote に届かないときと同じに扱います。'
+      - '下の段のブランチが remote にあり、手元に追跡参照が無いときは、`develop_branch` と比べ、`git fetch` を案内する `warning` の行を出します。この行は `count: preflight warnings` の数に入りません。'
+      - '積んだ base の記録の形が誤っているときは、base を決められないので、終了コード 1 で止まります。'
       - '`warning` があっても、すべての節を出します。'
       - '`warning` として数えるのは、push していないか remote とずれたブランチ、変更したファイルか追跡していないファイル、stash の項目です。'
       - '`warning` が 1 件以上あると、終了コード 2 で終わります。'
@@ -1916,13 +1924,13 @@ entries:
     output:
       format: text
       description: '11 の節です。それぞれ `=== <title> ===` の行に内容が続き、節の間は空行で区切ります。'
-    diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。'
+    diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。下の段のブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。'
     environment: []
     exit_status:
       - code: 0
         when: '節を出し、`warning` はありませんでした。'
       - code: 1
-        when: '次のどれかです。ディレクトリが git のリポジトリではありません。git remote がありません。今のブランチかリポジトリを決められません。アクティブなプロジェクトがありません。`develop_branch` が未設定です。`<remote>/<develop_branch>` がありません。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
+        when: '次のどれかです。ディレクトリが git のリポジトリではありません。git remote がありません。今のブランチかリポジトリを決められません。アクティブなプロジェクトがありません。`develop_branch` が未設定です。`<remote>/<develop_branch>` がありません。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。積んだ base の記録の形が誤っています。'
       - code: 2
         when: '次のどれかです。`warning` が 1 件以上あります。`--directory` がありません。ほかのコマンドラインの誤りがあります。'
     on_error: default
@@ -1993,6 +2001,15 @@ entries:
       - id: PW-PR-CHECK-17
         pattern: unwanted
         statement: 'もし `--directory` を渡していないなら、使い方のエラーを出して終了コード 2 で終わります'
+      - id: PW-PR-CHECK-18
+        pattern: event
+        statement: '積んだ base の記録があるときに打つと、Base Branch の節に `<remote>/<下の段のブランチ>` を出します。そのブランチが remote から消えていれば、手元に追跡参照が残っていても `<remote>/<develop_branch>` を出します'
+      - id: PW-PR-CHECK-19
+        pattern: unwanted
+        statement: 'もし積んだ base の記録の形が誤っているなら、終了コード 1 で終わります'
+      - id: PW-PR-CHECK-20
+        pattern: event
+        statement: '下の段のブランチが remote にあり、手元に追跡参照が無いときに打つと、開発ブランチと比べ、`git fetch` を案内する `warning` の行を出します'
   PW-PR-CREATE:
     help:
       details:
@@ -2001,6 +2018,15 @@ entries:
         - --template is default or release.
         - With --prepare, copies the template to .pecot/tmp/output/ and prints its path.
         - With --prepare and the default template, sets base in the copy to the develop_branch of the repository.
+        - "When the base record .pecot/state/.pecot-base of a stacked start exists, the default template of the current branch uses the base branch it names (the branch of the layer below) instead of develop_branch. The record is not read with --head, a head in the front matter, or the release template."
+        - With --prepare and such a record, sets base in the copy to the base of the record without any network call.
+        - "When the PR of the layer below is open, creates the PR on that base, and stops with exit status 3 if the base given is develop_branch."
+        - "When the PR of the layer below is merged, creates the PR on develop_branch."
+        - "The PR of the layer below is chosen in the order open, merged, closed. When the layer below has no open PR and is not merged, creates nothing and stops with exit status 2 with an error line that says the base branch has no open PR."
+        - "When the record is malformed, stops with exit status 1 because the base cannot be decided."
+        - "When the commit of the base record is not in the history of the head, a file or -m creates nothing and stops with exit status 1. The second error line tells to run the command on the branch that wrote the record, or to pass --head to create the PR without the record. --prepare does not check this."
+        - After the PR on a stacked base is created, registers it in the stack of the layer below, or starts a stack of the two PRs when none exists. When the PR of the layer below is not the top of its stack, does not call the add API and prints a warning that says so. When the repository has no stack API or the connection fails, prints a warning with the URL and keeps the PR.
+        - "After the PR is created, reads the Issues that wait for the Issue named by the head branch, and moves their board column by the readiness judgement. Only the board items of the active project are read, and an Issue that is not on the board is skipped. When the judgement does not show the created PR, reads once more after about 1.5 seconds. Issues with a trace of work are not moved. A failure of this step, including a connection failure, only prints a warning and does not change the exit status. When the state cannot be confirmed, the warning reads: warning: could not confirm that GitHub reflects PR #<N> in the readiness of <Issue>; its column was not moved; run pecot board sync later to move it. When the Issue of the head number is not in the repository of the PR, the step prints nothing and is skipped. Dry runs and release PRs skip it."
         - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
         - "With --prepare and the default template, fills the trailing Closes # with the number of the active task, or else the number that ends the branch name."
         - "The Closes # of the copy is left empty when that Issue is an Epic."
@@ -2010,8 +2036,10 @@ entries:
         - With a file, Closes is not appended when that Issue is an Epic.
         - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
         - In a repository whose release type is nx, also stops with exit status 3 when the title scope differs from the scope of the changed nx projects.
+        - "For a stacked base, the changed files of the scope come from the diff between the commit of the base record and the head when the PR of the layer below is merged, and from the diff against the branch of the layer below while that PR is open. The scope hint of --prepare comes from the commit of the record."
         - Unless --dry-run is given, runs the same checks as pr check on the current directory and stops with exit status 2 when they find a warning.
         - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
+        - "With --dry-run and an open PR of the layer below, also writes the line dry-run: would add the new PR to the stack of PR #<below>."
         - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
         - Removes the flag pr-create-slash-pending after the PR is created.
       examples:
@@ -2047,6 +2075,16 @@ entries:
       - '`--template` は、`default` か `release` です。'
       - '`--prepare` では、テンプレートを `.pecot/tmp/output/` にコピーし、そのパスを出します。'
       - '`--prepare` と `default` のテンプレートでは、コピーの base をリポジトリの `develop_branch` にします。'
+      - '積んで着手した記録 `.pecot/state/.pecot-base` があると、base は `develop_branch` ではなく、記録の base（下の段のブランチ）です。今のブランチの `default` のテンプレートだけが対象です。`--head`・フロントマターの `head`・`release` のテンプレートでは、記録を読みません。'
+      - '記録があるときの `--prepare` は、通信せずに、コピーの base を記録の base にします。'
+      - '下の段の PR が開いているときは、その base で PR を作ります。渡した base が `develop_branch` なら、終了コード 3 で止まります。'
+      - '下の段の PR がマージ済みのときは、`develop_branch` を base にして PR を作ります。'
+      - '下の段の PR は、開いている・マージ済み・閉じた、の順に選びます。'
+      - '下の段の PR が無く、マージもされていないときは、PR を作りません。base ブランチに開いた PR が無いと書いた `error` の行を出し、終了コード 2 で止まります。'
+      - '記録の形が誤っているときは、base を決められないので、終了コード 1 で止まります。'
+      - '記録のコミットが head の履歴に無いときは、ファイルと `-m` の投稿では PR を作らず、終了コード 1 で止まります。`error` の 2 行目で、記録を書いたブランチで打つか、`--head` を渡して記録なしで作るかを案内します。`--prepare` では確かめません。'
+      - '積んだ base の PR を作った後、下の段のスタックに登録します。スタックが無ければ、2 つの PR で新しく作ります。下の段の PR がスタックの一番上に無いときは、追加を呼ばず、そのことを書いた `warning` の行を出します。スタックの API が無いリポジトリと接続の失敗では、URL を添えた `warning` の行を出し、PR は残します。'
+      - 'PR を作った後、head ブランチが指す Issue を待っている Issue を読み、判定に従って列を動かします。読むのは、アクティブなプロジェクトのボードの項目だけで、ボードに載っていない Issue は飛ばします。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します。着手の跡がある Issue は動かしません。接続の失敗を含め、この処理の失敗は `warning` の行にとどめ、終了コードを変えません。状態を確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。後から `pecot board sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も出さずに飛ばします。`--dry-run` とリリースの PR では行いません。'
       - 'nx のリポジトリの `--prepare` では、期待する題の scope を、題の行にコメントとして足します。'
       - '`--prepare` と `default` のテンプレートでは、末尾の `Closes #` に、着手中のタスクの番号を入れます。着手中のタスクが無ければ、ブランチ名の末尾の番号を入れます。'
       - 'その Issue が Epic のときは、コピーの `Closes #` を空のままにします。'
@@ -2056,33 +2094,35 @@ entries:
       - 'ファイルでは、その Issue が Epic のときは `Closes` を足しません。'
       - '題・本文・base を確かめ、次のどれかが誤っていると終了コード 3 で止まります。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
       - 'リリースの種類が nx のリポジトリでは、題の scope が、変更した nx のプロジェクトの scope と違うときも、終了コード 3 で止まります。'
+      - '積んだ base の scope は、下の段の PR がマージ済みなら、記録のコミットから head までの差分で求めます。開いている間は、下の段のブランチとの差分で求めます。`--prepare` の目安は、記録のコミットから求めます。'
       - '`--dry-run` を付けなければ、今のディレクトリを `pr check` と同じように確かめ、`warning` が見つかると終了コード 2 で止まります。'
       - '`--dry-run` を付けると、検証して `dry-run: would` の行を書き、PR は作りません。'
+      - '`--dry-run` で下の段の PR が開いているときは、スタックへの登録の予定も書きます。行は `dry-run: would add the new PR to the stack of PR #<下>` です。'
       - 'PR を作った後、head ブランチが指す Issue を In Review にします。テンプレートが `release` のときは行いません。'
       - 'PR を作った後、フラグ `pr-create-slash-pending` を消します。'
     stdin: none
     output:
       format: text
       description: '`--prepare` のときは、テンプレートのコピーのパスです。それ以外では、作った PR の URL です。`--dry-run` のときは、何も出しません。'
-    diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。`--prepare` のときは、base・題の scope の目安・`Closes` の `set` の行を出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出します。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。'
+    diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--prepare` のときは、base・題の scope の目安・`Closes` の `set` の行を出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。'
     environment: []
     exit_status:
       - code: 0
         when: 'テンプレートをコピーしたか、PR を作ったか、`--dry-run` の検証を通りました。ボードの status を設定できなかったときも 0 です。'
       - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。`--template` が `default` でも `release` でもありません。モードの引数がありません。`-m` に `-t` か `-b` がありません。ファイルと一緒に `--screenshot` を渡しました。フロントマターを読めないか、正しいリポジトリがありません。リポジトリを決められないか、`owner/repo` の形ではありません。head ブランチを決められません。`develop_branch` か `release_branch` が未設定です。事前の確認が致命的な場合に当たりました（git のリポジトリでない、git remote が無い、今のブランチが無い）。GitHub API がエラーを返しました。'
+        when: '次のどれかです。アクティブなプロジェクトがありません。`--template` が `default` でも `release` でもありません。モードの引数がありません。`-m` に `-t` か `-b` がありません。ファイルと一緒に `--screenshot` を渡しました。フロントマターを読めないか、正しいリポジトリがありません。リポジトリを決められないか、`owner/repo` の形ではありません。head ブランチを決められません。積んだ base の記録の形が誤っていて、base を決められません。`develop_branch` か `release_branch` が未設定です。事前の確認が致命的な場合に当たりました（git のリポジトリでない、git remote が無い、今のブランチが無い）。GitHub API がエラーを返しました。積んだ base の記録のコミットが head の履歴にありません（ファイルと `-m` の投稿）。'
       - code: 2
-        when: '事前の確認が `warning` を見つけたか（push していない、コミットしていない変更がある、stash がある）、ほかのコマンドラインの誤りがあります。'
+        when: '事前の確認が `warning` を見つけたか（push していない、コミットしていない変更がある、stash がある）。または、下の段の PR が開いておらず、マージもされていないので、積んだ base の PR を作れません。ほかのコマンドラインの誤りがあります。'
       - code: 3
         when: '次のどれかです。Issue の参照 `#N` がありません。必須の節がありません。見出しの要約の規則に反しています。使えない記法があります。Summary に画像もスクリーンショットの理由もありません。base ブランチが誤っています。nx のリポジトリでは、題の scope が誤っているときも 3 です。'
     on_error: '検証に失敗したときと、事前の確認が `warning` を見つけたときは、PR を作りません。PR を作った後でボードの status を設定できないときは、PR は残り、`warning` を書きます。`--prepare` が書いたテンプレートのコピーは、`.pecot/tmp/output/` に残ります。'
     effects:
       - target: github
         kind: write
-        what: 'PR を作り、関連する Issue のボードの status を In Review にします。'
+        what: 'PR を作り、関連する Issue のボードの status を In Review にします。積んだ base の PR は、スタックに登録します。この PR を待っていた Issue の列を動かします。'
       - target: github
         kind: read
-        what: '関連する Issue の種類と、そのボードの項目を読みます。'
+        what: '関連する Issue の種類と、そのボードの項目を読みます。積んだ base では、下の段の PR とスタックも読みます。待っている Issue とボードも読みます。'
       - target: git
         kind: read
         what: 'ブランチ・remote・status・stash・push の状態を読みます。nx のリポジトリでは、base との差分も読みます。'
@@ -2252,6 +2292,57 @@ entries:
       - id: PW-PR-CREATE-48
         pattern: unwanted
         statement: 'もし head ブランチを決められないなら、終了コード 1 で終わります'
+      - id: PW-PR-CREATE-49
+        pattern: event
+        statement: '積んだ base の記録があるときに `--prepare` を付けて打つと、コピーの `base` に記録の base（下の段のブランチ）を入れます'
+      - id: PW-PR-CREATE-50
+        pattern: event
+        statement: '積んだ base の記録があり、下の段の PR が開いているときに打つと、base を下の段のブランチにして PR を作ります'
+      - id: PW-PR-CREATE-51
+        pattern: event
+        statement: '積んだ base の PR を作ると、下の段のスタックに登録し、`added: PR #N to stack #S` の行を標準エラーに出します'
+      - id: PW-PR-CREATE-52
+        pattern: event
+        statement: '積んだ base の記録があり、下の段の PR がマージ済みのときに打つと、base を開発ブランチにして PR を作ります'
+      - id: PW-PR-CREATE-53
+        pattern: event
+        statement: '記録が無いか、開発ブランチからの着手のときに打つと、今までどおり開発ブランチを base にします'
+      - id: PW-PR-CREATE-54
+        pattern: event
+        statement: '`--head` かフロントマターの `head` で別のブランチを指したときと、リリースの PR では、記録を読みません'
+      - id: PW-PR-CREATE-55
+        pattern: event
+        statement: 'PR を作ると、head ブランチの Issue を待っている Issue のうち、アクティブなプロジェクトのボードに載っているものを読み、列を動かして `moved:` の行を標準エラーに出します。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します'
+      - id: PW-PR-CREATE-56
+        pattern: state
+        statement: '待っている Issue に着手の跡がある間、その Issue の列を動かしません'
+      - id: PW-PR-CREATE-57
+        pattern: unwanted
+        statement: 'もし下の段の PR が開いておらず、マージもされていないなら、PR を作らず、`error: base branch <base> has no open PR` の行を出して終了コード 2 で終わります'
+      - id: PW-PR-CREATE-58
+        pattern: unwanted
+        statement: 'もし下の段の PR が開いているのに base が開発ブランチなら、終了コード 3 で終わります'
+      - id: PW-PR-CREATE-59
+        pattern: unwanted
+        statement: 'もし積んだ base の記録の形が誤っているなら、`--prepare` でも投稿でも、終了コード 1 で終わります'
+      - id: PW-PR-CREATE-60
+        pattern: unwanted
+        statement: 'もしスタックに登録できないなら、`warning: could not register stack: <理由>` の行を出し、PR は残します'
+      - id: PW-PR-CREATE-61
+        pattern: unwanted
+        statement: 'もし待っている Issue を読めないか動かせないなら、接続の失敗でも `warning` の行を出し、終了コードは変えません'
+      - id: PW-PR-CREATE-62
+        pattern: event
+        statement: '積んだ base の記録があるときに題の scope を確かめると、下の段の PR がマージ済みなら記録のコミットから head までの差分で、開いている間は下の段のブランチとの差分で求めます。`--prepare` の目安は記録のコミットから求めます'
+      - id: PW-PR-CREATE-63
+        pattern: event
+        statement: '`--dry-run` を付け、下の段の PR が開いているときに打つと、`dry-run: would add the new PR to the stack of PR #<下の段>` を出します'
+      - id: PW-PR-CREATE-65
+        pattern: unwanted
+        statement: 'もし積んだ base の記録のコミットが head の履歴に無いなら、PR を作らずに終了コード 1 で終わります'
+      - id: PW-PR-CREATE-64
+        pattern: unwanted
+        statement: 'もし head の番号の Issue が PR のリポジトリに無いなら、待っている Issue の確認を、何も出さずに飛ばします'
   PW-PR-SHOW:
     help:
       details:
