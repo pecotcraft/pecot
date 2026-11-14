@@ -33,12 +33,9 @@ const RequiresSchema = z.record(z.string(), NamesSchema)
 const ConstraintSchema = z.union([z.object({ conflicts: NamesSchema }), z.object({ requires: RequiresSchema })])
 const ExampleSchema = z.object({ run: z.string(), note: z.string() })
 const StringMapSchema = z.record(z.string(), z.string())
-const AuthoredEntrySchema = z.object({
-  details: NamesSchema,
-  constraints: z.array(ConstraintSchema),
-  examples: z.array(ExampleSchema),
-  default_notes: StringMapSchema,
-})
+const ProseShape = { details: NamesSchema, examples: z.array(ExampleSchema), default_notes: StringMapSchema }
+// help は --help に出す英語の文。日本語で書いた定義書では、同じ名前の 3 つの欄の代わりに出る
+const AuthoredEntrySchema = z.object({ ...ProseShape, constraints: z.array(ConstraintSchema), help: z.object(ProseShape).optional() })
 const AuthoredSchema = z.object({ entries: z.record(z.string(), AuthoredEntrySchema) })
 
 type Entry = z.output<typeof EntrySchema>
@@ -68,8 +65,9 @@ function entryOf(definition: CommandDefinition): Entry {
 
 function notesOf(definition: CommandDefinition): AuthoredNotes | undefined {
   const entry = authoredById.get(interfaceIdOf(definition.path))
-  const defaultNotes = new Map(Object.entries(entry?.default_notes ?? {}))
-  return entry === undefined ? undefined : { details: entry.details, constraints: entry.constraints, examples: entry.examples, defaultNotes }
+  if (entry === undefined) return undefined
+  const prose = entry.help ?? entry
+  return { details: prose.details, constraints: entry.constraints, examples: prose.examples, defaultNotes: new Map(Object.entries(prose.default_notes)) }
 }
 
 async function helpOf(argv: readonly string[], width: number): Promise<string> {
@@ -283,6 +281,7 @@ describe('全コマンドの --help は定義書の中身を全部出す', () =>
     const runs = new Set(notesOf(definition)?.examples.map(example => `  ${example.run}`))
     expect(text.split('\n').filter(line => cellLength(line) > width && !runs.has(line))).toEqual([])
     expect(text).not.toMatch(/[╭│╰…]/u)
+    expect(text).not.toMatch(/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u)
     expect(text).not.toMatch(/ $/mu)
   })
 

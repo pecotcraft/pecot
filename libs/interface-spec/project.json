@@ -122,8 +122,8 @@
       },
       "options": {
         "commands": [
+          "rm -rf docs/_build",
           "mkdir -p docs/_generated",
-          "pnpm exec tsx src/cli.ts field-map > docs/_generated/field-map.json",
           "uv run --locked --project docs sphinx-build -W -b html docs docs/_build"
         ],
         "parallel": false,

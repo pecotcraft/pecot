@@ -5,6 +5,7 @@ export const EFFECT_KINDS = ['read', 'write', 'destructive'] as const
 export const PATTERNS = ['ubiquitous', 'event', 'state', 'unwanted', 'optional'] as const
 export const OUTPUT_FORMATS = ['text', 'json', 'none'] as const
 export const ENTRIES_MODES = ['complete', 'partial'] as const
+export const PROSE_LANGUAGES = ['ja', 'en'] as const
 export const COVERAGE_MODES = ['off', 'on'] as const
 
 const jsonSchemaObject = z.looseObject({
@@ -62,7 +63,8 @@ export const behaviorSchema = z.strictObject({
 
 const output = z.discriminatedUnion('format', [
   z.strictObject({ format: z.literal('text'), description: authoredText }),
-  z.strictObject({ format: z.literal('json'), description: authoredText, schema: jsonSchemaObject }),
+  // fields は、schema の項目ごとの日本語の説明。schema の description は実装の文字列なので、英語のまま残る。
+  z.strictObject({ format: z.literal('json'), description: authoredText, fields: z.record(z.string(), authoredText).optional(), schema: jsonSchemaObject }),
   z.strictObject({ format: z.literal('none') }),
 ])
 
@@ -70,9 +72,13 @@ const output = z.discriminatedUnion('format', [
 export const conflictConstraintSchema = z.strictObject({ conflicts: z.array(z.string()).min(2) })
 export const dependencyConstraintSchema = z.strictObject({ requires: z.record(z.string(), z.array(z.string())) })
 export const exitCodeSchema = z.strictObject({ code: z.int().min(0).max(255), when: authoredText })
-export const exitKindSchema = z.strictObject({ kind: authoredText, when: authoredText })
+// kind の要素は、終了コードが決まっていれば code に書く。
+export const exitKindSchema = z.strictObject({ kind: authoredText, code: z.int().min(0).max(255).optional(), when: authoredText })
 
 export const authoredEntrySchema = z.strictObject({
+  // summary と arguments は、実装の description と引数の説明（英語）に当たる日本語の文。
+  summary: authoredText.optional(),
+  arguments: z.record(z.string(), authoredText).optional(),
   constraints: z.array(z.unknown()),
   details: z.array(authoredText),
   stdin: authoredText,
@@ -90,12 +96,20 @@ export const authoredEntrySchema = z.strictObject({
   idempotent: z.boolean(),
   examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
   default_notes: z.record(z.string(), authoredText),
+  // help は、CLI の --help に出す英語の文。prose が ja の定義書で、上の 3 つの欄の代わりに CLI が読む。
+  help: z.strictObject({
+    details: z.array(authoredText),
+    examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
+    default_notes: z.record(z.string(), authoredText),
+  }).optional(),
   behaviors: z.array(behaviorSchema).min(1),
 })
 
 export const authoredFileSchema = z.strictObject({
   format: z.literal(1),
   plugin: z.string(),
+  // 人が書く欄の言語。省いたら en。statement は、いつも日本語。
+  prose: z.enum(PROSE_LANGUAGES).optional(),
   environment: z.array(environmentVariable),
   entries: z.record(z.string(), authoredEntrySchema),
   common_behaviors: z.array(behaviorSchema),

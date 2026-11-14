@@ -77,6 +77,28 @@ describe('readAuthoredNotes', () => {
     })
   })
 
+  it('項目に help があると、details・examples・default_notes を help から返す', () => {
+    const content = `entries:
+  PW-DEMO:
+    constraints:
+      - conflicts: [file, screenshot]
+    details: [Site detail.]
+    examples: [{run: pecot demo a, note: Site note.}]
+    default_notes: {base: Site base.}
+    help:
+      details: [English detail.]
+      examples: [{run: pecot demo a, note: Run a.}]
+      default_notes: {base: The base of the demo.}
+`
+    const result = readAuthoredNotes('PW-DEMO', rootWith(content))
+    expect(notesFrom(result)).toEqual({
+      details: ['English detail.'],
+      constraints: [{ conflicts: ['file', 'screenshot'] }],
+      examples: [{ run: 'pecot demo a', note: 'Run a.' }],
+      defaultNotes: new Map([['base', 'The base of the demo.']]),
+    })
+  })
+
   it('YAML 1.2 として読む（yes を真偽値にしない）ので、文字列の yes を保つ', () => {
     expect(notesFor('PW-DEMO').details[1]).toBe('yes')
   })

@@ -110,14 +110,26 @@ function elementFindings(data: unknown, file: string, entries: Readonly<Record<s
   return findings
 }
 
-function japaneseFindings(file: string, scope: string | undefined, texts: readonly TextPair[]): Finding[] {
-  return texts.filter(([, text]) => hasJapanese(text)).map(([field]) => ({
+type Prose = AuthoredFile['prose']
+
+// prose は人が書く欄の言語。generated.json の欄は、いつも英語。
+function japaneseFindings(file: string, scope: string | undefined, texts: readonly TextPair[], prose: NonNullable<Prose> = 'en'): Finding[] {
+  const isJapanese = prose === 'ja'
+  return texts.filter(([, text]) => hasJapanese(text) !== isJapanese).map(([field]) => ({
     file,
     ...(scope !== undefined && { scope }),
     field,
-    reason: 'contains Japanese text (write English)',
+    reason: isJapanese ? 'has no Japanese text (write Japanese)' : 'contains Japanese text (write English)',
   }))
 }
+
+// 形が崩れていても、prose が 'ja' のときだけ日本語とみなす。
+function proseOf(data: unknown): NonNullable<Prose> {
+  return isRecord(data) && data['prose'] === 'ja' ? 'ja' : 'en'
+}
+
+// 決まった値は、書かなくてよい欄の既定値。言語の確認から除く。
+const FIXED_VALUES: Readonly<Record<string, string>> = { stdin: 'none', diagnostics: 'default', on_error: 'default' }
 
 function inputDescriptions(value: unknown, path: string): TextPair[] {
   if (Array.isArray(value)) return value.flatMap((item, index) => inputDescriptions(item, `${path}[${String(index)}]`))
@@ -252,8 +264,36 @@ function exitTexts(entry: AuthoredEntry): TextPair[] {
   })
 }
 
-function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+function hasSameNames(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((name, index) => name === right[index])
+}
+
+// CLI の --help は英語で出す。prose が ja で CLI の面がある項目は、help に英語の文を持つ。
+function helpFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry, prose: NonNullable<Prose>): Finding[] {
+  const finding = (reason: string, field = 'help'): Finding => ({ file, scope, field, reason })
+  const { help } = entry
+  if (prose !== 'ja') return help === undefined ? [] : [finding('is only for prose "ja" (remove it; --help reads details, examples and default_notes)')]
+  if (help === undefined) return generated.surfaces.cli === undefined ? [] : [finding('is missing (--help reads it; write details, examples and default_notes in English)')]
   const texts: TextPair[] = [
+    ...help.details.map((text, index) => [`help.details[${String(index)}]`, text] as const),
+    ...help.examples.map((example, index) => [`help.examples[${String(index)}].note`, example.note] as const),
+    ...Object.entries(help.default_notes).map(([name, text]) => [`help.default_notes.${name}`, text] as const),
+  ]
+  const findings = japaneseFindings(file, scope, texts)
+  if (!hasSameNames(help.examples.map(example => example.run), entry.examples.map(example => example.run))) {
+    findings.push(finding('must have the same run values, in the same order, as examples', 'help.examples'))
+  }
+  if (!hasSameNames(Object.keys(help.default_notes).toSorted(compareText), Object.keys(entry.default_notes).toSorted(compareText))) {
+    findings.push(finding('must have the same input names as default_notes', 'help.default_notes'))
+  }
+  return findings
+}
+
+function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry, prose: NonNullable<Prose>): Finding[] {
+  const texts: TextPair[] = [
+    ...(entry.summary === undefined ? [] : [['summary', entry.summary] as const]),
+    ...Object.entries(entry.arguments ?? {}).map(([name, text]) => [`arguments.${name}`, text] as const),
+    ...(entry.output.format === 'json' ? Object.entries(entry.output.fields ?? {}).map(([name, text]) => [`output.fields.${name}`, text] as const) : []),
     ...entry.details.map((text, index) => [`details[${String(index)}]`, text] as const),
     ['stdin', entry.stdin],
     ...(entry.output.format === 'none' ? [] : [['output.description', entry.output.description] as const]),
@@ -267,7 +307,8 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...Object.entries(entry.default_notes).map(([name, text]) => [`default_notes.${name}`, text] as const),
   ]
   return [
-    ...japaneseFindings(file, id, texts),
+    ...japaneseFindings(file, id, texts.filter(([field, text]) => FIXED_VALUES[field] !== text), prose),
+    ...helpFindings(file, id, entry, generated, prose),
     ...namesFindings(file, id, entry, generated),
     ...annotationFindings(file, id, entry, generated),
     ...behaviorFindings(file, entry.behaviors, id, id, 'behaviors'),
@@ -275,10 +316,10 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
   ]
 }
 
-function environmentFindings(file: string, scope: string | undefined, items: readonly { readonly name: string, readonly effect: string }[]): Finding[] {
+function environmentFindings(file: string, scope: string | undefined, items: readonly { readonly name: string, readonly effect: string }[], prose: NonNullable<Prose>): Finding[] {
   return [
     ...environmentNameFindings(file, scope, items),
-    ...japaneseFindings(file, scope, items.map((item, index) => [`environment[${String(index)}].effect`, item.effect] as const)),
+    ...japaneseFindings(file, scope, items.map((item, index) => [`environment[${String(index)}].effect`, item.effect] as const), prose),
   ]
 }
 
@@ -296,7 +337,7 @@ function checkAuthored(file: string, name: string, mode: PluginInput['mode'], au
   if (authored.plugin !== name) {
     findings.push({ file, field: 'plugin', reason: `${quote(authored.plugin)} does not match the directory name ${quote(name)}` })
   }
-  findings.push(...environmentFindings(file, undefined, authored.environment))
+  findings.push(...environmentFindings(file, undefined, authored.environment, authored.prose ?? 'en'))
   if (generated === undefined) return findings
   findings.push(...behaviorFindings(file, authored.common_behaviors, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
   const byId = new Map(generated.entries.map(entry => [entry.id, entry]))
@@ -308,7 +349,7 @@ function checkAuthored(file: string, name: string, mode: PluginInput['mode'], au
   for (const [id, entry] of Object.entries(authored.entries)) {
     const counterpart = byId.get(id)
     if (counterpart === undefined) findings.push({ file, scope: id, reason: 'entry is not in generated.json (remove it)' })
-    else findings.push(...entryFindings(file, id, entry, counterpart))
+    else findings.push(...entryFindings(file, id, entry, counterpart, authored.prose ?? 'en'))
   }
   return findings
 }
@@ -367,14 +408,14 @@ function lenientFindings(file: string, data: unknown, generated: GeneratedFile |
     const behaviors = validBehaviors(entry['behaviors'])
     findings.push(
       ...behaviorFindings(file, behaviors, id, id, 'behaviors'),
-      ...environmentFindings(file, id, validEnvironment(entry['environment'])),
+      ...environmentFindings(file, id, validEnvironment(entry['environment']), proseOf(data)),
     )
   }
   const common = validBehaviors(data['common_behaviors'])
   if (generated !== undefined) {
     findings.push(...behaviorFindings(file, common, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
   }
-  findings.push(...environmentFindings(file, undefined, validEnvironment(data['environment'])))
+  findings.push(...environmentFindings(file, undefined, validEnvironment(data['environment']), proseOf(data)))
   return { findings, ids: collectBehaviorIds(data) }
 }
 

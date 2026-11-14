@@ -1,10 +1,22 @@
-インタフェース定義書
-====================
+pecot
+=====
+
+Claude Code 向けのプラグインのマーケットプレイスです。
+
+- :doc:`introduction`
+- :doc:`installation`
+- :doc:`guides/index`
+- :doc:`reference/index`
+- :doc:`troubleshooting`
+- :doc:`development/index`
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
+   :maxdepth: 4
 
-   pecot-workflow
-   pecot-tools
-   pecot-visual
-   field-map
+   introduction
+   installation
+   guides/index
+   reference/index
+   troubleshooting
+   development/index
