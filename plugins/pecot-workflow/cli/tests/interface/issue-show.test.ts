@@ -2,7 +2,7 @@
 /* eslint-disable unicorn/consistent-function-scoping -- 補助は、使う describe の近くに置く */
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_READ_COMMANDS } from '../../src/commands/issue-read.js'
+import { ISSUE_SHOW_COMMANDS } from '../../src/commands/issue-show.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
@@ -14,7 +14,7 @@ import { verifies } from '../_helpers/verifies.js'
 useIsolatedEnvironment()
 
 async function read(...argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
-  return await runInProcess(['issue', 'show', ...argv], ISSUE_READ_COMMANDS)
+  return await runInProcess(['issue', 'show', ...argv], ISSUE_SHOW_COMMANDS)
 }
 
 function slimRequests(github: Readonly<RunningGithub>): readonly RecordedRequest[] {
@@ -191,7 +191,7 @@ describe('issue show', () => {
     setUpProject()
     const github = await startGithub([issueRule({ number: 5 }), prerequisitesRule({ number: 5 })])
 
-    const result = await runInProcess(['--repo', 'acme/demo', 'issue', 'show', '5'], ISSUE_READ_COMMANDS)
+    const result = await runInProcess(['--repo', 'acme/demo', 'issue', 'show', '5'], ISSUE_SHOW_COMMANDS)
 
     expect(result.code).toBe(0)
     expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])

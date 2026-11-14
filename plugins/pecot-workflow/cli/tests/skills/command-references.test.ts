@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
-import { infoMarkdown } from '../../src/commands/project-info.js'
+import { boardShowMarkdown } from '../../src/commands/board-view.js'
 import { parseProjectConfig } from '../../src/domain/config.js'
 import { readDocuments, readPluginFile, toolInputs } from './_helpers/documents.js'
 
@@ -148,7 +148,7 @@ describe('release-multi.md', () => {
       repositories: [{ owner: 'demo', name: 'repo', packages: [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }] }],
     })
     const statuses = [{ enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: 'https://example.invalid/alerts', openAlerts: [] }]
-    const output = infoMarkdown({ config, projectName: 'demo', statuses }, undefined, '')
+    const output = boardShowMarkdown({ config, projectName: 'demo', statuses }, undefined, '')
     const line = output.split('\n').find(candidate => candidate.includes('package:'))
     expect(line?.trim()).toBe('package: demo-pkg → packages/demo-pkg/CHANGELOG.md')
     expect(readPluginFile('skills/w-release/references/release-multi.md')).toContain('`package: NAME → CHANGELOG パス`')

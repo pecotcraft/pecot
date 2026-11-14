@@ -2257,7 +2257,7 @@ entries:
       details:
         - Fetches one PR with a single GraphQL query.
         - Prints the title, state, draft flag, mergeability, comment count, head and base branches, closing issues, referenced issues, review states and body.
-        - With --reviews, adds the review bodies and the line comments, and a pecot issue show hint under each related Issue.
+        - With --reviews, adds the review bodies and the line comments, and an issue show hint (the command name only, readable from the CLI and MCP) under each related Issue.
         - With --json, prints the PR as JSON, and with --reviews the JSON also holds the reviews and the line comments.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
       examples:
@@ -2276,7 +2276,7 @@ entries:
     details:
       - 'GraphQL のクエリ 1 回で、PR を 1 件取得します。'
       - '題・状態・ドラフトの印・マージの可否・コメントの数・head と base のブランチを出します。closing issues・参照している Issue・レビューの状態・本文も出します。'
-      - '`--reviews` を付けると、レビューの本文と行のコメントを足します。関連する Issue ごとに、`pecot issue show` の案内も足します。'
+      - '`--reviews` を付けると、レビューの本文と行のコメントを足します。関連する Issue ごとに、`issue show` の案内も足します。案内は、CLI でも MCP でも読めるように、コマンドの名前だけで書きます。'
       - '`--json` を付けると、PR を JSON で出します。`--reviews` も付けると、JSON にレビューと行のコメントも入ります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
     stdin: none
@@ -2332,7 +2332,7 @@ entries:
         statement: '`--reviews` を付けて行のコメントがあると、`## Line Comments` の節を出します'
       - id: PW-PR-SHOW-07
         pattern: event
-        statement: '`--reviews` を付けて打つと、関連 Issue ごとに `pecot issue show` の案内を足します'
+        statement: '`--reviews` を付けて打つと、関連 Issue ごとに `issue show` の案内を足します'
       - id: PW-PR-SHOW-08
         pattern: event
         statement: '`--json` を付けて打つと、同じ内容を JSON で標準出力に出します'

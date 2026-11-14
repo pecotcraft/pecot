@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { runCommand } from '../../../tests/_helpers/command-harness.js'
 import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { mapWithLimit, pruneArchivedItems } from '../project-info.js'
+import { mapWithLimit, pruneArchivedItems } from '../board-view.js'
 import { createOutput } from '../output.js'
 import { capture } from './support.js'
 import { parseProjectConfig } from '../../domain/config.js'

@@ -14,7 +14,7 @@ import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/er
 import type { GitHubClient } from '../infra/github/index.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot, JudgedIssue, UnreadableIssue } from './issue-readiness.js'
-import { mapWithLimit } from './project-info.js'
+import { mapWithLimit } from './board-view.js'
 
 /**
 前提の読み取りを並列に行う数の上限

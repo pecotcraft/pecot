@@ -1,4 +1,4 @@
-// project の 9 個のコマンドと board show。Python の cli/commands/project.py の移植。
+// project のグループのコマンド。Python の cli/commands/project.py の移植。
 import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
@@ -7,14 +7,11 @@ import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository,
 import type { Package, ProjectConfig, Repository } from '../domain/config.js'
 import { choosePlacement, insertOption } from '../domain/field-options.js'
 import type { FieldOptionInput } from '../domain/field-options.js'
-import { formatBoardOutput, formatStackableChains } from '../domain/format.js'
-import type { BoardItem } from '../domain/format.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
 import type { JsonValue } from '../domain/python-format.js'
-import { parseOwnerRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
-import { InvalidValueError } from '../domain/errors.js'
+import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { getActiveConfigPath, loadConfig, projectsDirectory, saveConfig } from '../infra/config-store.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
@@ -23,12 +20,11 @@ import type { LinkResult, ProjectFieldOption } from '../infra/github/projects.js
 import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
+import type { CommandDefinition } from './command-definition.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { readBoardReadiness, readinessOf, skipBoardReadiness } from './project-readiness.js'
-import { collectAlertStatuses, infoJson, infoMarkdown, pruneArchivedItems, readBoard } from './project-info.js'
 import type { OptionSpec } from './project-sync.js'
 import {
   BLOCKED_SPEC,
@@ -461,60 +457,6 @@ const activateCommand = defineCommand({
   },
 })
 
-// board show
-
-function mismatchNote(count: number): string {
-  const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
-  return `${subject} in a column or Status that does not match its judgment; run pecot board sync (--dry-run to preview) to fix`
-}
-
-const infoCommand = defineCommand({
-  path: ['board', 'show'],
-  description: 'Show the dashboard of the project board',
-  input: z.strictObject({
-    json: z.boolean().default(false).describe('Output as JSON'),
-    repo: z.string().superRefine((value, context) => {
-      try {
-        parseOwnerRepository(value)
-      }
-      catch (error: unknown) {
-        if (!(error instanceof InvalidValueError)) throw error
-        context.addIssue({ code: 'custom', message: `must be in 'owner/repo' form: ${error.message}` })
-      }
-    }).optional().describe('Target repository, given explicitly as \'owner/repo\''),
-  }),
-  hasOwnRepo: true,
-  positional: [],
-  shortFlags: { json: '-j' },
-  interactive: false,
-  run: async (input, io) => {
-    const out = createOutput(false, io)
-    const config = requireActiveConfig(out)
-    const configPath = getActiveConfigPath()
-    const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
-    try {
-      const client = createGitHubClient(out, config.host)
-      const { allItems, items, progress, isLegacy } = await readBoard(client, config, input.repo)
-      const statuses = await collectAlertStatuses(client, config)
-      await pruneArchivedItems(out, client, config, allItems)
-      const view = { config, projectName, statuses }
-      const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)
-      if (readiness.mismatches > 0) out.warning(mismatchNote(readiness.mismatches))
-      const json = readiness.json === undefined ? undefined : (item: BoardItem) => readinessOf(readiness, item)
-      out.data(input.json
-        ? infoJson(view, items, json)
-        : infoMarkdown(view, input.repo, formatBoardOutput(items, readiness.texts), formatStackableChains(readiness.chains)))
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)
-      // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
-      if (error instanceof Error && !(error instanceof CommandExit)) return stopWith(out, `unexpected error: ${error.message}`)
-      throw error
-    }
-    return 0
-  },
-})
-
 // project link
 
 const packageList = z.array(z.string())
@@ -590,7 +532,7 @@ async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repo
   }
 }
 
-const repositorySettingCommand = defineCommand({
+const projectLinkCommand = defineCommand({
   path: ['project', 'link'],
   description: 'Add or update a repository in the project config',
   input: z.strictObject({
@@ -656,7 +598,55 @@ const repositorySettingCommand = defineCommand({
 
 const CONFIG_KEY = z.enum(['aggregation_repo']).describe('Key of the project config (aggregation_repo: the Epic aggregation repository)')
 
-const aggregationSettingCommand = defineCommand({
+type ConfigKey = z.infer<typeof CONFIG_KEY>
+
+/**
+設定の 1 つのキーへの get・set・unset。どれも stdout・stderr に結果を出し、失敗なら止まる
+*/
+interface ConfigKeyOperations {
+  readonly get: (out: Readonly<Output>) => void
+  readonly set: (out: Readonly<Output>, value: string, isConfirmed: boolean) => void
+  readonly unset: (out: Readonly<Output>) => void
+}
+
+function setAggregationRepository(out: Readonly<Output>, value: string, isConfirmed: boolean): void {
+  if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`)
+  const { config, configPath } = requireActiveWithPath(out)
+  const current = config.aggregation_repo
+  if (current === value) {
+    out.done({ verb: 'unchanged', target: `aggregation_repo ${value}` })
+    return
+  }
+  if (current !== undefined && current !== '') {
+    out.warning(`overwriting aggregation_repo: ${current} -> ${value}${isConfirmed ? '' : '\npass --yes to omit this hint'}`)
+  }
+  saveConfig(withAggregationRepository(config, value), configPath)
+  out.done({ verb: 'set', target: `aggregation_repo to ${value}` })
+}
+
+function unsetAggregationRepository(out: Readonly<Output>): void {
+  const { config, configPath } = requireActiveWithPath(out)
+  const previous = config.aggregation_repo
+  if (previous === undefined) {
+    out.done({ verb: 'unchanged', target: 'aggregation_repo (not set)' })
+    return
+  }
+  saveConfig(withAggregationRepository(config, undefined), configPath)
+  out.done({ verb: 'remove', target: `aggregation_repo (was ${previous})` })
+}
+
+// キーを足したら、ここに操作を足さないと型の確認で止まる
+const CONFIG_KEY_OPERATIONS: Readonly<Record<ConfigKey, ConfigKeyOperations>> = {
+  aggregation_repo: {
+    get: (out) => {
+      out.data(requireActiveConfig(out).aggregation_repo ?? 'none')
+    },
+    set: setAggregationRepository,
+    unset: unsetAggregationRepository,
+  },
+}
+
+const projectSetCommand = defineCommand({
   path: ['project', 'set'],
   description: 'Set a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({
@@ -668,69 +658,46 @@ const aggregationSettingCommand = defineCommand({
   shortFlags: { yes: '-y' },
   interactive: false,
   run: (input, io) => {
-    const out = createOutput(false, io)
-    const { value, yes } = input
-    if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`)
-    const { config, configPath } = requireActiveWithPath(out)
-    const current = config.aggregation_repo
-    if (current !== undefined && current !== '' && current !== value) {
-      out.warning(`overwriting aggregation_repo: ${current} -> ${value}${yes ? '' : '\npass --yes to omit this hint'}`)
-    }
-    else if (current === value) {
-      out.done({ verb: 'unchanged', target: `aggregation_repo ${value}` })
-      return Promise.resolve(0)
-    }
-    saveConfig(withAggregationRepository(config, value), configPath)
-    out.done({ verb: 'set', target: `aggregation_repo to ${value}` })
+    CONFIG_KEY_OPERATIONS[input.key].set(createOutput(false, io), input.value, input.yes)
     return Promise.resolve(0)
   },
 })
 
-const aggregationClearCommand = defineCommand({
+const projectUnsetCommand = defineCommand({
   path: ['project', 'unset'],
   description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo',
   input: z.strictObject({ key: CONFIG_KEY }),
   positional: ['key'],
   interactive: false,
-  run: (_input, io) => {
-    const out = createOutput(false, io)
-    const { config, configPath } = requireActiveWithPath(out)
-    const previous = config.aggregation_repo
-    if (previous === undefined) {
-      out.done({ verb: 'unchanged', target: 'aggregation_repo (not set)' })
-      return Promise.resolve(0)
-    }
-    saveConfig(withAggregationRepository(config, undefined), configPath)
-    out.done({ verb: 'remove', target: `aggregation_repo (was ${previous})` })
+  run: (input, io) => {
+    CONFIG_KEY_OPERATIONS[input.key].unset(createOutput(false, io))
     return Promise.resolve(0)
   },
 })
 
-const showAggregationCommand = defineCommand({
+const projectGetCommand = defineCommand({
   path: ['project', 'get'],
   description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({ key: CONFIG_KEY }),
   positional: ['key'],
   interactive: false,
-  run: (_input, io) => {
-    const out = createOutput(false, io)
-    out.data(requireActiveConfig(out).aggregation_repo ?? 'none')
+  run: (input, io) => {
+    CONFIG_KEY_OPERATIONS[input.key].get(createOutput(false, io))
     return Promise.resolve(0)
   },
 })
 
 /**
-project のコマンドと board show。並びは help の一覧の順
+project のグループのコマンド。並びは help の一覧の順
 */
-export const PROJECT_COMMANDS = [
+export const PROJECT_COMMANDS: readonly CommandDefinition[] = [
   listCommand,
   searchCommand,
   initCommand,
   projectCreationCommand,
-  infoCommand,
   activateCommand,
-  repositorySettingCommand,
-  showAggregationCommand,
-  aggregationSettingCommand,
-  aggregationClearCommand,
+  projectLinkCommand,
+  projectGetCommand,
+  projectSetCommand,
+  projectUnsetCommand,
 ]

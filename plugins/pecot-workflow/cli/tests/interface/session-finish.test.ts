@@ -1,47 +1,21 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // session finish の振る舞い（PW-SESSION-FINISH-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
-import { lstatSync, readdirSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { verifies } from '../_helpers/verifies.js'
+import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { graphql, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
 import type { PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 
 useIsolatedEnvironment()
 
 const BRANCH = 'feat/demo/12'
-const KIND_FAILURE = rule({ operation: 'GetIssueKind' }, { status: 500, body: { message: 'Server Error' } })
 const KIND_WARNING_UNPROTECTED = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; not protected\n/mu
-
-function lines(text: string): string[] {
-  return text.split('\n').filter(line => line !== '')
-}
-
-function restRequests(workspace: Readonly<Workspace>, method: string): unknown[] {
-  return workspace.requests().filter(request => request.type === 'rest' && request.method === method)
-}
-
-function operationsOf(workspace: Readonly<Workspace>): string[] {
-  return workspace.requests().map(request => request.type === 'graphql' ? request.operation : `${request.method} ${request.path}`)
-}
-
-function stateFile(name: string): string {
-  return `.pecot/state/${name}`
-}
-
-function filesOf(directory: string): string[] {
-  const entries = readdirSync(directory, { recursive: true, encoding: 'utf8' })
-  return entries
-    .filter(relative => relative !== '.git' && !relative.startsWith('.git/'))
-    .map((relative) => {
-      const stat = lstatSync(path.join(directory, relative))
-      return `${relative}:${String(stat.size)}:${String(stat.mtimeMs)}`
-    })
-}
 
 const MERGED = 'GetPullRequestSlim'
 

@@ -37,4 +37,8 @@ describe('COMMAND_GROUPS と COMMAND_VERBS', () => {
   it('グループは 9 個で、help の一覧の順に並ぶ', () => {
     expect(COMMAND_GROUPS.map(group => group.name)).toEqual(['project', 'board', 'issue', 'session', 'pr', 'release', 'tracker', 'worktree', 'branch'])
   })
+
+  it('どのグループも、help に出す説明を持つ', () => {
+    expect(COMMAND_GROUPS.filter(group => group.help === '').map(group => group.name)).toEqual([])
+  })
 })

@@ -6,7 +6,7 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { graphqlRule, runCommand } from '../_helpers/command-harness.js'
 import { verifies } from '../_helpers/verifies.js'
 
-vi.mock(import('../../src/commands/project-info.js'), async (importOriginal) => {
+vi.mock(import('../../src/commands/board-view.js'), async (importOriginal) => {
   const original = await importOriginal()
   return {
     ...original,

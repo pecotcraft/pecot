@@ -112,7 +112,7 @@ function alertsLine(status: AlertStatus): string {
   return `    dependabot_alerts: open ${String(status.openCount)}`
 }
 
-export interface InfoView {
+export interface BoardShowView {
   readonly config: ProjectConfig
   readonly projectName: string
   readonly statuses: readonly AlertStatus[]
@@ -126,7 +126,7 @@ export type ReadinessSource = (item: BoardItem) => JsonObject | typeof JSON_NULL
 /**
 info --json の出力
 */
-export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[], readiness?: ReadinessSource): string {
+export function boardShowJson(view: Readonly<BoardShowView>, items: readonly BoardItem[], readiness?: ReadinessSource): string {
   const { config, projectName, statuses } = view
   const output = {
     project: {
@@ -149,7 +149,7 @@ export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[], 
   return JSON.stringify(output, undefined, 2)
 }
 
-function repositoryLines(view: Readonly<InfoView>): readonly string[] {
+function repositoryLines(view: Readonly<BoardShowView>): readonly string[] {
   const { config, statuses } = view
   if (config.repositories.length === 0) return ['## Registered repositories', '- none']
   const lines = ['## Registered repositories']
@@ -176,7 +176,7 @@ function repositoryLines(view: Readonly<InfoView>): readonly string[] {
 /**
 info の Markdown の出力
 */
-export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string): string {
+export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string): string {
   const { config, projectName } = view
   const aggregation = config.aggregation_repo === undefined || config.aggregation_repo === '' ? 'none' : `\`${config.aggregation_repo}\``
   return [

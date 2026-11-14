@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // pr の 3 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -10,6 +10,7 @@ import { installFakeExecutable, prependToPath } from '../../src/tests/_helpers/f
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { verifies } from '../_helpers/verifies.js'
+import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 
@@ -74,7 +75,6 @@ const IN_REVIEW_RULES: ResponseRuleList = [
   graphql('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_1', project: { id: 'PVT_1' } }] } } } }),
   graphql('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_1' } } }),
 ]
-const KIND_FAILURE = rule({ operation: 'GetIssueKind' }, { status: 500, body: { message: 'Server Error' } })
 // 種別の問い合わせが 500 を返したときの warning。httpx の文言が 2 行に分かれ、suffix は 2 行目の末尾に付く
 const KIND_WARNING_FILL = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; fill Closes by hand\n/mu
 const CREATED_RULE = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21, html_url: PULL_URL })
@@ -83,37 +83,11 @@ const SUBMIT_RULES: ResponseRuleList = [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIE
 
 // 共通の補助
 
-function lines(text: string): string[] {
-  return text.split('\n').filter(line => line !== '')
-}
-
-function restRequests(workspace: Readonly<Workspace>, method: string, requestPath?: string): unknown[] {
-  return workspace.requests().filter(request => request.type === 'rest' && request.method === method && (requestPath === undefined || request.path === requestPath))
-}
-
-function operationsOf(workspace: Readonly<Workspace>): string[] {
-  return workspace.requests().map(request => request.type === 'graphql' ? request.operation : `${request.method} ${request.path}`)
-}
-
 function postedBody(workspace: Readonly<Workspace>): Record<string, unknown> {
   const posted = workspace.requests().find(request => request.type === 'rest' && request.method === 'POST' && request.path === '/repos/acme/demo/pulls')
   const body = posted?.type === 'rest' ? posted.body : undefined
   if (typeof body !== 'object' || body === null) throw new TypeError('POST /pulls を受けていない')
   return Object.fromEntries(Object.entries(body))
-}
-
-function stateFile(name: string): string {
-  return `.pecot/state/${name}`
-}
-
-function filesOf(directory: string): string[] {
-  const entries = readdirSync(directory, { recursive: true, encoding: 'utf8' })
-  return entries
-    .filter(relative => relative !== '.git' && !relative.startsWith('.git/'))
-    .map((relative) => {
-      const stat = lstatSync(path.join(directory, relative))
-      return `${relative}:${String(stat.size)}:${String(stat.mtimeMs)}`
-    })
 }
 
 function installNx(projects: Readonly<Record<string, { readonly root: string, readonly tags: readonly string[] }>>): void {
@@ -780,8 +754,8 @@ describe('pr show', () => {
     await verifies(context, 'PW-PR-SHOW-07')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData({ ...REVIEW_SAMPLE, closing: [[12, '見本の Issue'], [13, '別の Issue']] }))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
-    expect(result.stdout).toContain('  - #12 見本の Issue\n    → details: pecot issue show acme/demo/12\n')
-    expect(result.stdout).toContain('  - #13 別の Issue\n    → details: pecot issue show acme/demo/13\n')
+    expect(result.stdout).toContain('  - #12 見本の Issue\n    → details: issue show acme/demo/12\n')
+    expect(result.stdout).toContain('  - #13 別の Issue\n    → details: issue show acme/demo/13\n')
   })
 
   it('--json を付けて打つと、同じ内容を JSON で標準出力に出す', async (context) => {

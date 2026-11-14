@@ -229,7 +229,7 @@ async function areAlertsPassed(out: Readonly<Output>, config: ProjectConfig, own
   return isPassed
 }
 
-const preflight = defineCommand({
+const releaseCheckCommand = defineCommand({
   path: ['release', 'check'],
   description: 'Run the pre-release checks; for an nx repository only the alerts are checked',
   input: z.object({
@@ -278,7 +278,7 @@ const preflight = defineCommand({
   },
 })
 
-const create = defineCommand({
+const releaseCreateCommand = defineCommand({
   path: ['release', 'create'],
   description: 'Create a GitHub release and its tag (the release notes come from the CHANGELOG)',
   input: z.object({
@@ -345,7 +345,7 @@ const create = defineCommand({
   },
 })
 
-const merge = defineCommand({
+const releaseMergeCommand = defineCommand({
   path: ['release', 'merge'],
   description: 'Merge a release PR with a regular merge',
   input: z.object({
@@ -445,4 +445,4 @@ const merge = defineCommand({
   },
 })
 
-export const RELEASE_COMMANDS: readonly CommandDefinition[] = [preflight, create, merge]
+export const RELEASE_COMMANDS: readonly CommandDefinition[] = [releaseCheckCommand, releaseCreateCommand, releaseMergeCommand]

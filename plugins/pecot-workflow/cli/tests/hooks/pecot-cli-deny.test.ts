@@ -101,6 +101,18 @@ describe('pecot-cli-deny', () => {
   })
 
   it.for([
+    { command: 'pecot create-branch --help', oldTool: 'create_branch' },
+    { command: 'pecot dependabot sync', oldTool: 'dependabot_sync' },
+    { command: 'pecot pr cleanup o/r/1', oldTool: 'pr_cleanup' },
+  ])('古い名前の $command は、古いツール名 $oldTool を理由に出さず、一覧を出して deny する', ({ command, oldTool }) => {
+    const run = runDeny(command)
+    expect(run.status).toBe(1)
+    expect(run.stdout).toContain(toolListMarker)
+    expect(run.stdout).not.toContain(oldTool)
+    expect(run.stdout).toContain('session_start')
+  })
+
+  it.for([
     { command: 'FOO=1 BAR=x pecot issue show 1', note: '環境変数の前置き' },
     { command: 'git status && pecot issue show 1', note: '&& の後ろ' },
     { command: 'git status; pecot issue show 1', note: '; の後ろ' },

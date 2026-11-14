@@ -157,7 +157,7 @@ async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, c
   }
 }
 
-const ISSUE_READ = defineCommand({
+const ISSUE_SHOW = defineCommand({
   path: ['issue', 'show'],
   description: 'Fetch Issue details efficiently (GraphQL, only the needed fields)',
   input: z.object({
@@ -193,4 +193,4 @@ const ISSUE_READ = defineCommand({
   },
 })
 
-export const ISSUE_READ_COMMANDS: readonly CommandDefinition[] = [ISSUE_READ]
+export const ISSUE_SHOW_COMMANDS: readonly CommandDefinition[] = [ISSUE_SHOW]

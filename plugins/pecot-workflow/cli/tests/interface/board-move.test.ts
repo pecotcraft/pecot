@@ -3,16 +3,16 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_PROJECT_COMMANDS } from '../../src/commands/issue-project.js'
+import { BOARD_MOVE_COMMANDS } from '../../src/commands/board-move.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
-import { boardItems, failing, fieldUpdated, linkedRepositories, prepareProject } from '../_helpers/issue-project-case.js'
+import { boardItems, failing, fieldUpdated, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
 async function update(argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
-  return await runInProcess(argv, ISSUE_PROJECT_COMMANDS)
+  return await runInProcess(argv, BOARD_MOVE_COMMANDS)
 }
 
 describe('board move', () => {

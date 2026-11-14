@@ -11,7 +11,7 @@ import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-c
 import type { ResponseRule } from '../fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { addBlockedByRule, bodyWritten, bothLinked, levelRule, nodeId, nodeIdRule, prepareDependencyProject, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
-import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/issue-project-case.js'
+import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 

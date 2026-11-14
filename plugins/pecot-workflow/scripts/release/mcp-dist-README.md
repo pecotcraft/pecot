@@ -122,7 +122,7 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 
 ## 古いツール名からの移行
 
-次の 19 個は、名前が変わりました。古い名前は登録していないので、呼ぶと `Tool <名前> not found` で失敗します。
+次の 17 個は、名前が変わりました。古い名前は登録していないので、呼ぶと `Tool <名前> not found` で失敗します。
 
 - `add_to_project` → `board_add`
 - `update_issue_status` → `board_move`

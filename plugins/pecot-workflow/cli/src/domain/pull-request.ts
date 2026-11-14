@@ -239,7 +239,7 @@ export function formatReviewThreadsMarkdown(threads: readonly ReviewThreadView[]
 */
 export function formatPullRequestWithReviewsMarkdown(pr: PullRequestWithReviewsView, owner: string, repository: string): string {
   const lines = [`## PR #${String(pr.number)} ${pr.title}`, '', metaLine(pr), '', `**Branch:** \`${pr.head_ref}\` → \`${pr.base_ref}\``, '']
-  const detailsLine = (issue: IssueSummary): string => `    → details: pecot issue show ${owner}/${repository}/${String(issue.number)}`
+  const detailsLine = (issue: IssueSummary): string => `    → details: issue show ${owner}/${repository}/${String(issue.number)}`
 
   if (pr.closing_issues.length > 0) {
     lines.push('**Closing Issues:**')

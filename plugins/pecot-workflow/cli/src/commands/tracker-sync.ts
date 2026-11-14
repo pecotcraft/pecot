@@ -1,4 +1,4 @@
-// Tracker に反映するコマンドと、PR の後片付けが共有する出力の補助。
+// tracker sync と session finish が共有する出力の補助。
 
 import type { ProjectConfig } from '../domain/config.js'
 import type { TrackerIssue } from '../domain/tracker-body.js'

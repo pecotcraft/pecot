@@ -3,16 +3,16 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_PROJECT_COMMANDS } from '../../src/commands/issue-project.js'
+import { BOARD_ADD_COMMANDS } from '../../src/commands/board-add.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
-import { addedToBoard, failing, fieldUpdated, issueNodeId, linkedRepositories, prepareProject } from '../_helpers/issue-project-case.js'
+import { addedToBoard, failing, fieldUpdated, issueNodeId, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
 async function add(argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
-  return await runInProcess(argv, ISSUE_PROJECT_COMMANDS)
+  return await runInProcess(argv, BOARD_ADD_COMMANDS)
 }
 
 describe('board add', () => {

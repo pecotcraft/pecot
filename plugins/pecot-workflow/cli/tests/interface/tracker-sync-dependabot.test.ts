@@ -17,8 +17,8 @@ import {
   TODAY_TITLE,
   trackerBody,
   trackerIssue,
-} from '../_helpers/dependabot-case.js'
-import type { PrOptions } from '../_helpers/dependabot-case.js'
+} from '../_helpers/tracker-sync-dependabot-case.js'
+import type { PrOptions } from '../_helpers/tracker-sync-dependabot-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'

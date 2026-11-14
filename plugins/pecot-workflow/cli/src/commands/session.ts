@@ -24,6 +24,8 @@ import { createGitHubClient } from './github-client.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
+import { SESSION_FINISH_COMMANDS } from './session-finish.js'
+import { SESSION_START_COMMANDS } from './session-start.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { recordWorkTarget } from './work-target.js'
 
@@ -121,7 +123,7 @@ async function readinessLines(active: Readonly<ActiveIssue>, output: Output): Pr
   return readiness?.kind === 'blocked' ? [`- readiness: ${describeReadiness(readiness, result.prerequisites, active.reference.repository)}`] : []
 }
 
-const STATUS = defineCommand({
+const SESSION_SHOW = defineCommand({
   path: ['session', 'show'],
   description: 'Show the session flag state, branch information, and inferred Issue',
   input: z.object({ directory: directorySchema }),
@@ -202,7 +204,7 @@ function parseTarget(issue: string, output: Output): RestoreTarget {
   }
 }
 
-const RESTORE = defineCommand({
+const SESSION_RESTORE = defineCommand({
   path: ['session', 'restore'],
   description: 'Restore lost session flags (such as .pecot-active) from the branch information',
   input: z.object({
@@ -228,4 +230,7 @@ const RESTORE = defineCommand({
   },
 })
 
-export const SESSION_COMMANDS: readonly CommandDefinition[] = [STATUS, RESTORE]
+/**
+session のグループのコマンド。start は session-start.ts、finish は session-finish.ts にある。並びは help の一覧に出る順
+*/
+export const SESSION_COMMANDS: readonly CommandDefinition[] = [...SESSION_START_COMMANDS, SESSION_SHOW, SESSION_RESTORE, ...SESSION_FINISH_COMMANDS]

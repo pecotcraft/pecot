@@ -25,8 +25,8 @@ import {
   trackerIssue,
   updatedBody,
   vulnerabilityAlertsEnabled,
-} from '../_helpers/security-case.js'
-import type { AlertResponses } from '../_helpers/security-case.js'
+} from '../_helpers/tracker-sync-security-case.js'
+import type { AlertResponses } from '../_helpers/tracker-sync-security-case.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
 

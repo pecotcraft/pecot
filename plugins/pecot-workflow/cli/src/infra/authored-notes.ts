@@ -70,7 +70,7 @@ function isMissingFile(error: unknown): boolean {
 }
 
 /**
-ID（`PW-CREATE-BRANCH`）の項目の details・constraints・examples・default_notes を読む。
+ID（`PW-SESSION-START`）の項目の details・constraints・examples・default_notes を読む。
 ファイルが無い・YAML として読めない・項目が無い・欄の形が違うときは、場所と理由を持つ unreadable を返す
 */
 export function readAuthoredNotes(id: string, root: string = pluginRoot()): NotesResult {
