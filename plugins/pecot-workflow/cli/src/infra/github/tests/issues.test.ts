@@ -828,3 +828,90 @@ describe('getIssuePrerequisites', () => {
     expect(error).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: issue.id'))
   })
 })
+
+function blockerNode(number: number, state = 'OPEN'): Readonly<Record<string, unknown>> {
+  return { id: `I_${String(number)}`, number, state, repository: { owner: { login: 'acme' }, name: 'demo' } }
+}
+
+async function readReferences(rule: ResponseRule): ReturnType<GitHubClient['getIssueBlockedByReferences']> {
+  const { client } = await startClient([rule])
+  return client.getIssueBlockedByReferences('acme', 'demo', 7)
+}
+
+describe('getIssueBlockedByReferences', () => {
+  it('node ID・本文・前提の参照（番号・リポジトリ・状態）と件数を読む', async () => {
+    const issue = { id: 'I_7', body: '本文', blockedBy: { totalCount: 1, nodes: [blockerNode(5, 'CLOSED')] } }
+    const result = await readReferences(graphqlData('GetIssueBlockedByReferences', { repository: { issue } }))
+    expect(result).toEqual({
+      id: 'I_7',
+      body: '本文',
+      blockedBy: { kind: 'ok', total: 1, issues: [{ id: 'I_5', number: 5, repository: { owner: 'acme', repository: 'demo' }, state: 'CLOSED' }] },
+    })
+  })
+
+  it('blockedBy が null なら read-failed', async () => {
+    const issue = { id: 'I_7', body: '', blockedBy: JSON_NULL }
+    const result = await readReferences(graphqlData('GetIssueBlockedByReferences', { repository: { issue } }))
+    expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy is null' })
+  })
+
+  it('nodes に null があれば read-failed', async () => {
+    const issue = { id: 'I_7', body: '', blockedBy: { totalCount: 1, nodes: [JSON_NULL] } }
+    const result = await readReferences(graphqlData('GetIssueBlockedByReferences', { repository: { issue } }))
+    expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy has a null node' })
+  })
+
+  it('blockedBy の下の部分エラーは、例外ではなく read-failed で返す', async () => {
+    const errors = [{ message: 'forbidden', path: ['repository', 'issue', 'blockedBy', 'nodes', 0] }]
+    const issue = { id: 'I_7', body: '', blockedBy: JSON_NULL }
+    const result = await readReferences({ match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 200, body: { data: { repository: { issue } }, errors } }, times: 1 })
+    expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy could not be read: forbidden' })
+  })
+
+  it('依存関係に対応しない GHES は DependenciesUnsupportedError', async () => {
+    const { client } = await startClient([graphqlError('GetIssueBlockedByReferences', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'')])
+    expect(await rejection(client.getIssueBlockedByReferences('acme', 'demo', 7))).toBeInstanceOf(DependenciesUnsupportedError)
+  })
+})
+
+function blockedByOf(...numbers: readonly number[]): Readonly<Record<string, unknown>> {
+  return { totalCount: numbers.length, nodes: numbers.map(number => blockerNode(number)) }
+}
+
+function nodesRule(chunk: readonly string[]): ResponseRule {
+  return {
+    match: { operation: 'GetBlockedByOfNodes', variables: { ids: chunk, blockedByFirst: 50 } },
+    respond: { status: 200, body: { data: { nodes: chunk.map(id => ({ id, blockedBy: blockedByOf() })) } } },
+    times: 1,
+  }
+}
+
+describe('getBlockedByOfNodes', () => {
+  it('node ID ごとの前提を読む。Issue でない node と部分エラーの node は、その node だけ read-failed', async () => {
+    const nodes = [{ id: 'A', blockedBy: blockedByOf(1) }, JSON_NULL, { id: 'C', blockedBy: JSON_NULL }, { id: 'X', blockedBy: blockedByOf() }]
+    const errors = [{ message: 'denied', path: ['nodes', 2, 'blockedBy'] }]
+    const { client } = await startClient([{ match: { operation: 'GetBlockedByOfNodes' }, respond: { status: 200, body: { data: { nodes }, errors } }, times: 1 }])
+
+    const result = await client.getBlockedByOfNodes(['A', 'B', 'C', 'D'])
+
+    expect(result.get('A')).toMatchObject({ kind: 'ok', total: 1 })
+    expect(result.get('B')).toEqual({ kind: 'read-failed', reason: 'the node is not an Issue or was not found' })
+    expect(result.get('C')).toEqual({ kind: 'read-failed', reason: 'blockedBy could not be read: denied' })
+    expect(result.get('D')).toEqual({ kind: 'read-failed', reason: 'the node is not an Issue or was not found' })
+  })
+
+  it('100 件を超える node ID は、100 件ずつに分けて読む', async () => {
+    const ids = Array.from({ length: 101 }, (_, index) => `N${String(index)}`)
+    const { client, server } = await startClient([nodesRule(ids.slice(0, 100)), nodesRule(ids.slice(100))])
+
+    const result = await client.getBlockedByOfNodes(ids)
+
+    expect(result.size).toBe(101)
+    expect(graphqlRequests(server)).toHaveLength(2)
+  })
+
+  it('依存関係に対応しない GHES は DependenciesUnsupportedError', async () => {
+    const { client } = await startClient([graphqlError('GetBlockedByOfNodes', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'')])
+    expect(await rejection(client.getBlockedByOfNodes(['A']))).toBeInstanceOf(DependenciesUnsupportedError)
+  })
+})

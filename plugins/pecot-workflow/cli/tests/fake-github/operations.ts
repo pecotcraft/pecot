@@ -44,6 +44,8 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
   ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,parent,blockedBy}|blockedByFirst,columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
   ['repository.pullRequests{pageInfo,nodes}|headRefName,owner,repo', 'ListPullRequestsByHead'],
+  ['repository.issue{id,body,blockedBy}|blockedByFirst,number,owner,repo', 'GetIssueBlockedByReferences'],
+  ['nodes{id,blockedBy}|blockedByFirst,ids', 'GetBlockedByOfNodes'],
 ]
 
 export const OPERATION_NAMES: ReadonlySet<string> = new Set(OPERATION_TABLE.map(([, name]) => name))

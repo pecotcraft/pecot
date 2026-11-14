@@ -152,7 +152,7 @@ function warnConflict(out: Readonly<Output>, name: string, target: MoveTarget, c
 
 /**
 decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
-text は列を動かす理由の判定の文。board sync が使う
+text は列を動かす理由の判定の文。board sync と issue block / unblock が使う
 */
 export async function applyBoardMove(
   out: Readonly<Output>,

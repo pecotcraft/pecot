@@ -20,11 +20,13 @@
 
 | コマンド | 説明 |
 | --- | --- |
+| `issue block` | Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one |
 | `issue comment` | Post a comment on an Issue |
 | `issue create` | Create Issues from Markdown files with frontmatter |
 | `issue quick` | Create an Issue at once from a free-format message |
 | `issue read` | Fetch Issue details efficiently (GraphQL, only the needed fields) |
 | `issue reopen` | Reopen a closed Issue (also sets the status on the board) |
+| `issue unblock` | Remove a blocked-by (prerequisite) from an Issue |
 
 ## pr
 

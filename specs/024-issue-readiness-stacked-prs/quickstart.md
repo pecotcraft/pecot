@@ -199,16 +199,16 @@ merge queue のあるブランチでも 1 回通す。`pecot pr merge` が `adde
 pecot issue block <Phase 3> --by <Phase 2> --wait merge --reason "確認に main の版が要る"
 pecot issue read <Phase 3>
 pecot issue block <Phase 3> --by <Phase 2>
-pecot issue unblock <Phase 3> --by <Phase 2>
 pecot issue block <Phase 1> --by <Phase 3>      # 輪
+pecot issue unblock <Phase 3> --by <Phase 2>
 ```
 
 | 見るもの | 期待 |
 |---|---|
 | 1 行目の後 | 本文に `## Waits for merge` と理由が付く。判定が `blocked` になる |
 | 3 行目の後 | 本文の節が消える。判定が計算し直される |
-| 4 行目の後 | GitHub の画面から blocked by が消える。Phase 3 が `Ready` に移る |
-| 5 行目 | 終了コード 2。輪になる Issue の並びが出る |
+| 4 行目 | 終了コード 2。輪になる Issue の並びが出る |
+| 5 行目の後 | GitHub の画面から blocked by が消える。Phase 3 が `Ready` に移る（`moved: #<Phase 3> Blocked -> Ready (<判定の文>)`） |
 | `issue block <Phase 2> --by <Phase 2>` | 終了コード 2。GitHub の文ではなく、pecot の文が出る |
 | 同じコマンドの 2 回目 | `unchanged:` が出る |
 

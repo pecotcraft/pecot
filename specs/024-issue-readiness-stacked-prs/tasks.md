@@ -248,19 +248,19 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 7 を通す。種類を `merge` に変えると本文に節が付き、判定が `blocked` になる。外すと blocked by が消え、列が動く。輪になる組は付かない
 
-- [ ] T051 [P] [US7] `p-w/cli/tests/interface/issue.test.ts` に、`issue block` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot issue block` の表の 7 行のとおりだ
+- [x] T051 [P] [US7] `p-w/cli/tests/interface/issue-block.test.ts` に、`issue block` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot issue block` の表のとおりだ
   - 付けた後に、待つ側の Issue の列が動く
   - 種類を `merge` にすると、本文の節に行が付く。`stack` に戻すと、行が外れる
   - 本文のほかの節は変わらない
   - 輪になる組は、要求を送る前に止まる
   - `--dry-run` は、要求を送らずに、付ける内容を出す
-- [ ] T052 [P] [US7] `p-w/cli/tests/interface/issue.test.ts` に、`issue unblock` の失敗するテストを書く
+- [x] T052 [P] [US7] `p-w/cli/tests/interface/issue-unblock.test.ts` に、`issue unblock` の失敗するテストを書く
   - 場面と出力は、contracts/cli-commands.md の `pecot issue unblock` の表の 4 行のとおりだ
   - 札が `Needs Attention` で、見直しの要る前提が無くなると `Todo` に戻る
-- [ ] T053 [US7] `p-w/cli/src/commands/issue-dependency.ts` を足し、T051 と T052 を通す。`p-w/cli/src/commands/issue.ts` の `ISSUE_COMMANDS` に登録する
-- [ ] T054 [US9] 着手済みの Issue の前提を変えたときの失敗するテストを、`p-w/cli/tests/interface/issue.test.ts` に書く。変更は通る。待つ側の Issue の列と札は動かない。`warning:` で、着手済みの Issue と判定の食い違いを知らせる
-- [ ] T055 [US7] 定義書に 2 つの項目を足す。`p-w/interface/authored.yaml` に `PW-ISSUE-BLOCK` と `PW-ISSUE-UNBLOCK` を書き、共通の完了条件の 4 つを済ませる。コマンドの数は 2 つ増える
-- [ ] T056 [US7] version plan を `.nx/version-plans/` に足す
+- [x] T053 [US7] `p-w/cli/src/commands/issue-dependency.ts` を足し、T051 と T052 を通す。`p-w/cli/src/commands/issue.ts` の `ISSUE_COMMANDS` に登録する
+- [x] T054 [US9] 着手済みの Issue の前提を変えたときの失敗するテストを、`p-w/cli/tests/interface/issue-block.test.ts` に書く。変更は通る。待つ側の Issue の列と札は動かない。`warning:` で、着手済みの Issue と判定の食い違いを知らせる
+- [x] T055 [US7] 定義書に 2 つの項目を足す。`p-w/interface/authored.yaml` に `PW-ISSUE-BLOCK` と `PW-ISSUE-UNBLOCK` を書き、共通の完了条件の 4 つを済ませる。コマンドの数は 2 つ増える
+- [x] T056 [US7] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 判定が実態と違うときに、前提を直して進められる
 

@@ -885,6 +885,153 @@ entries:
       - id: PW-DEPENDABOT-SYNC-46
         pattern: unwanted
         statement: 'もし Tracker の作成かボードへの追加に失敗したなら、終了コード 1 で終わります'
+  PW-ISSUE-BLOCK:
+    help:
+      details:
+        - Adds a blocked-by (prerequisite) to an Issue, or changes the wait kind and reason of an existing one.
+        - issue_ref is the waiting Issue and --by is the Issue to wait for. --by may be in another repository.
+        - "--wait is stack (default) or merge. With --wait merge, --reason is required, and the Waits for merge section of the body of the waiting Issue gets a line for the prerequisite and the reason. With stack, the line is removed from the section."
+        - --reason with --wait stack is a usage error.
+        - Only the line of the prerequisite in the Waits for merge section is written. The rest of the section and the other sections of the body are not changed.
+        - The command reads the blocked-by of the waiting Issue first. A prerequisite that is already there with the same kind and reason is left as it is. One with another kind or reason only has the section rewritten. A request to add or remove is never sent for a pair that is already in that state.
+        - A cycle is searched only when a new blocked-by is added. The search follows the blocked-by of --by step by step, up to 200 Issues. When it cannot be sure, the command stops, because GitHub accepts cycles of three or more Issues.
+        - The writes are made in the order blocked-by, body, then board. When the body write fails, the blocked-by stays and running the same command again fixes the body.
+        - After the writes, the readiness of the waiting Issue is read again. When the blocked-by and the section read back differ from what was written, it is read once more. When they still differ, the column and the Status label are not moved.
+        - The column and the Status label are moved by the readiness that was read back, in the same way as the board repair of the readiness feature. An Issue that has a branch or a PR is not moved and gets a warning about the difference.
+        - With --dry-run, writes dry-run lines instead of the result lines. The reads, the cycle search and the checks are still made, and nothing is written.
+        - Needs a GitHub Enterprise Server of version 3.19 or later, which has issue dependencies.
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot issue block example-org/my-repo/12 --by example-org/my-repo/11 --wait merge --reason "The check script is on main."
+          note: Make Issue 12 wait for the merge of Issue 11.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    summary: 'Issue に blocked-by（前提）を付けるか、付いている前提の待ち方と理由を変えます。'
+    arguments:
+      by: '待つ相手の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
+      dry_run: '何も書き込まずに、書く予定だけを出すかどうかです。'
+      issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      reason: '前提のマージを待つ理由です。`--wait merge` のときは必須で、`--wait stack` のときは渡せません。'
+      wait: '待ち方です。`stack`（相手のブランチの上に積みます。省くとこちら）か `merge`（相手がマージされるまで待ちます）を渡します。'
+    constraints: []
+    details:
+      - 'Issue に blocked-by（前提）を付けるか、付いている前提の待ち方と理由を変えます。'
+      - '`issue_ref` は待つ側の Issue で、`--by` は待つ相手の Issue です。`--by` は別のリポジトリの Issue でもかまいません。'
+      - '`--wait` は `stack`（省くとこちら）か `merge` です。`--wait merge` のときは `--reason` が必須で、待つ側の Issue の本文の `Waits for merge` の節に、前提と理由の行を足します。`stack` のときは、その行を節から外します。'
+      - '`--wait stack` で `--reason` を渡すと、使い方の誤りです。'
+      - '書き込むのは、`Waits for merge` の節にある前提の行だけです。節のほかの部分と、本文のほかの節は変えません。'
+      - 'まず、待つ側の Issue の blocked-by を読みます。既に付いていて種類と理由が同じ前提は、そのままにします。種類か理由が違う前提は、節だけを書き換えます。既にその状態の組には、追加と削除は求めません。'
+      - '輪の探索は、新しく blocked-by を足すときだけ行います。`--by` の blocked-by を 1 段ずつたどり、200 件の Issue まで調べます。確かめきれないときは、止まります。GitHub は 3 件以上の Issue でできる輪を受け付けてしまうためです。'
+      - '書き込みは、blocked-by、本文、ボードの順に行います。本文の書き込みに失敗しても、blocked-by は残ります。同じコマンドをもう一度打てば、本文が直ります。'
+      - '書き込みの後で、待つ側の Issue の判定を読み直します。読み直した blocked-by と節が書いた内容と違うときは、もう一度読みます。それでも違うときは、列と Status の札を動かしません。'
+      - '列と Status の札は、読み直した判定で動かします。やり方は、判定の機能のボードの修復と同じです。ブランチか PR のある Issue は動かさず、判定との食い違いを `warning` の行で知らせます。'
+      - '`--dry-run` を付けると、結果の行の代わりに `dry-run` の行を出します。読み取り、輪の探索、確認は行い、何も書き込みません。'
+      - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
+      - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    stdin: none
+    output:
+      format: none
+    diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
+    environment: []
+    exit_status:
+      - code: 0
+        when: 'blocked-by を付けたか変えました。または、何も変える必要がありませんでした。ボードに関する `warning` が出ても、終了コードは 0 です。'
+      - code: 1
+        when: '次のどれかです。アクティブなプロジェクトがありません。待つ側の Issue のリポジトリがプロジェクトにありません。Issue が既に 50 件の blocked-by を持っています。輪を除けると確かめられませんでした。GitHub Enterprise Server が Issue の依存関係に対応していません。GitHub API がエラーを返しました。'
+      - code: 2
+        when: '次のどれかです。Issue の参照の形が誤っています。`--by` が輪（Issue 自身を含みます）になります。`--wait merge` で `--reason` がありません。`--wait stack` で `--reason` を渡しました。ほかのコマンドラインの誤りがあります。'
+      - code: 3
+        when: '本文の `Waits for merge` の節を読めません。'
+    on_error: '前提を付けた後で本文の書き込みに失敗したときは、blocked-by は残り、終了コード 1 で終わります。ボードに書けないときは、blocked-by と本文は残り、`warning` を出すだけです。'
+    effects:
+      - target: github
+        kind: write
+        what: 'blocked-by を付け、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
+      - target: github
+        kind: read
+        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、輪の探索、読み直した判定、ボードの項目を読みます。'
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - 'ホストの GitHub トークンが要ります。'
+    idempotent: true
+    examples:
+      - run: "pecot issue block example-org/my-repo/12 --by example-org/my-repo/11 --wait merge --reason \"The check script is on main.\""
+        note: 'Issue 12 が、Issue 11 のマージを待つようにします。'
+    default_notes:
+      issue_ref: '短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    behaviors:
+      - id: PW-ISSUE-BLOCK-01
+        pattern: event
+        statement: 'Issue の参照と `--by` を渡すと、blocked-by に前提を付けて `added` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-02
+        pattern: event
+        statement: '`--wait merge` と `--reason` を付けて打つと、本文の `Waits for merge` の節に前提と理由の行を足します'
+      - id: PW-ISSUE-BLOCK-03
+        pattern: event
+        statement: '付いている前提を `--wait stack` で打つと、節の行を外して `updated` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-04
+        pattern: event
+        statement: '既に付いていて種類と理由が同じ前提を打つと、何も書き込まずに `unchanged` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-05
+        pattern: event
+        statement: '付いている前提の理由を変えて打つと、節の行の理由だけを置き換えて `updated` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-06
+        pattern: event
+        statement: '前提を書いた後に判定が変わると、待つ側の Issue の列と札を動かして `moved` と `set` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-07
+        pattern: unwanted
+        statement: 'もし待つ側の Issue に着手の跡があるなら、前提は付けて列と札を動かさず、判定との食い違いを `warning` の行で標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-08
+        pattern: event
+        statement: '`--dry-run` を付けて打つと、書き込みを送らずに `dry-run` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-09
+        pattern: ubiquitous
+        statement: '常に、本文の節の中の前提の行以外を書き換えません'
+      - id: PW-ISSUE-BLOCK-10
+        pattern: unwanted
+        statement: 'もし前提を付けると輪になる、または `--by` が待つ側と同じ Issue なら、書き込みを送らずに終了コード 2 で終わります'
+      - id: PW-ISSUE-BLOCK-11
+        pattern: unwanted
+        statement: 'もし輪になるかを確かめられないなら、前提を付けずに終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-12
+        pattern: unwanted
+        statement: 'もし `--wait merge` で `--reason` が無いなら、要求を送らずに終了コード 2 で終わります'
+      - id: PW-ISSUE-BLOCK-13
+        pattern: unwanted
+        statement: 'もし `--wait stack` で `--reason` を渡したなら、要求を送らずに終了コード 2 で終わります'
+      - id: PW-ISSUE-BLOCK-14
+        pattern: unwanted
+        statement: 'もし待つ側の Issue が既に 50 件の前提を持つなら、前提を付けずに終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-15
+        pattern: unwanted
+        statement: 'もし本文の `Waits for merge` の節が読めないなら、書き込みを送らずに終了コード 3 で終わります'
+      - id: PW-ISSUE-BLOCK-16
+        pattern: unwanted
+        statement: 'もし読み直した前提と節が書いた内容と 2 回続けて合わないなら、列と札を動かさずに `warning` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-17
+        pattern: unwanted
+        statement: 'もし動かす先の値がボードに無いなら、`warning` の行と、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
+      - id: PW-ISSUE-BLOCK-18
+        pattern: unwanted
+        statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-19
+        pattern: unwanted
+        statement: 'もし Issue の参照の形が誤っているなら、終了コード 2 で終わります'
+      - id: PW-ISSUE-BLOCK-20
+        pattern: unwanted
+        statement: 'もしリポジトリがプロジェクトに無いなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-21
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-22
+        pattern: unwanted
+        statement: 'もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-23
+        pattern: event
+        statement: '`--by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を付けます'
   PW-ISSUE-COMMENT:
     help:
       details:
@@ -1810,6 +1957,127 @@ entries:
       - id: PW-ISSUE-REOPEN-20
         pattern: unwanted
         statement: 'もし status が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
+  PW-ISSUE-UNBLOCK:
+    help:
+      details:
+        - Removes a blocked-by (prerequisite) from an Issue.
+        - issue_ref is the waiting Issue and --by is the prerequisite to remove. --by may be in another repository.
+        - The command reads the blocked-by of the waiting Issue first. A prerequisite that is not there is not removed, and a stale line in the Waits for merge section is left as it is; pecot issue read warns about the difference.
+        - When the section has a line for the prerequisite, the line is removed. A section that becomes empty is removed with its heading.
+        - When the section cannot be read, only the blocked-by is removed and a warning says that the section was not changed, because removing is what the user wants.
+        - After the writes, the readiness of the waiting Issue is read again, confirmed and used to move the column and the Status label in the same way as pecot issue block.
+        - The Status label Needs Attention is set back to Todo only when a prerequisite is left or the removed prerequisite was closed. The label that a person put on for another reason is not removed by removing the last open prerequisite.
+        - An Issue that has a branch or a PR is not moved.
+        - With --dry-run, writes a dry-run line instead of the result lines. The reads and the checks are still made, and nothing is written.
+        - Needs a GitHub Enterprise Server of version 3.19 or later, which has issue dependencies.
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot issue unblock example-org/my-repo/12 --by example-org/my-repo/11
+          note: Remove the wait of Issue 12 for Issue 11.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    summary: 'Issue から blocked-by（前提）を外します。'
+    arguments:
+      by: '外す前提の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
+      dry_run: '何も書き込まずに、書く予定だけを出すかどうかです。'
+      issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    constraints: []
+    details:
+      - 'Issue から blocked-by（前提）を外します。'
+      - '`issue_ref` は待つ側の Issue で、`--by` は外す前提です。`--by` は別のリポジトリの Issue でもかまいません。'
+      - 'まず、待つ側の Issue の blocked-by を読みます。付いていない前提は外しません。`Waits for merge` の節に残った古い行も、そのままにします。食い違いは `pecot issue read` が `warning` で知らせます。'
+      - '節に前提の行があるときは、その行を外します。節が空になったときは、見出しごと消します。'
+      - '節を読めないときは、blocked-by だけを外し、節を直していない旨を `warning` で知らせます。外すことが利用者の求めることだからです。'
+      - '書き込みの後で、待つ側の Issue の判定を読み直して確かめ、`pecot issue block` と同じやり方で、列と Status の札を動かします。'
+      - 'Status の札の `Needs Attention` を `Todo` に戻すのは、前提が残っているときか、外した前提が閉じていたときだけです。人がほかの理由で付けた札は、開いた最後の前提を外しても外しません。'
+      - 'ブランチか PR のある Issue は動かしません。'
+      - '`--dry-run` を付けると、結果の行の代わりに `dry-run` の行を出します。読み取りと確認は行い、何も書き込みません。'
+      - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
+      - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    stdin: none
+    output:
+      format: none
+    diagnostics: '標準エラーに、結果の行を出します。blocked-by には `removed` か `unchanged` を出し、列か札を変えたときは続けて `moved` と `set` を出します。`warning` の行は、次のときに出します。`Waits for merge` の節を読めないとき。判定を出せないか、確かめられないとき。ボードに Todo の選択肢が無いとき。ボードに書けなかったとき。Todo が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。'
+    environment: []
+    exit_status:
+      - code: 0
+        when: 'blocked-by を外しました。または、もともと付いていませんでした。節かボードに関する `warning` が出ても、終了コードは 0 です。'
+      - code: 1
+        when: '次のどれかです。アクティブなプロジェクトがありません。待つ側の Issue のリポジトリがプロジェクトにありません。blocked-by を全部は読めませんでした。GitHub Enterprise Server が Issue の依存関係に対応していません。GitHub API がエラーを返しました。'
+      - code: 2
+        when: 'Issue の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
+    on_error: '前提を外した後で本文の書き込みに失敗したときは、blocked-by は外れたままで、終了コード 1 で終わります。ボードに書けないときは、blocked-by と本文は残り、`warning` を出すだけです。'
+    effects:
+      - target: github
+        kind: write
+        what: 'blocked-by を外し、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
+      - target: github
+        kind: read
+        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、読み直した判定、ボードの項目を読みます。'
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - 'ホストの GitHub トークンが要ります。'
+    idempotent: true
+    examples:
+      - run: "pecot issue unblock example-org/my-repo/12 --by example-org/my-repo/11"
+        note: 'Issue 12 が Issue 11 を待つのをやめます。'
+    default_notes:
+      issue_ref: '短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    behaviors:
+      - id: PW-ISSUE-UNBLOCK-01
+        pattern: event
+        statement: 'Issue の参照と `--by` を渡すと、blocked-by から前提を外して `removed` の行を標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-02
+        pattern: event
+        statement: '付いていない前提を打つと、何も書き込まずに `unchanged` の行を標準エラーに出し、節に残った古い行も書き換えません'
+      - id: PW-ISSUE-UNBLOCK-03
+        pattern: event
+        statement: '節に前提の行があるものを外すと、その行を節から消し、節が空になれば節ごと消します'
+      - id: PW-ISSUE-UNBLOCK-04
+        pattern: event
+        statement: '前提を外した後に判定が変わると、待つ側の Issue の列を動かして `moved` の行を標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-05
+        pattern: event
+        statement: '札が `Needs Attention` で、残りの前提がある、または外した前提が閉じていると、札を `Todo` にして `set` の行を標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-06
+        pattern: unwanted
+        statement: 'もし外したのが開いた最後の前提なら、札が `Needs Attention` でも `Todo` に戻しません'
+      - id: PW-ISSUE-UNBLOCK-07
+        pattern: unwanted
+        statement: 'もし待つ側の Issue に着手の跡があるなら、前提は外して列と札を動かしません'
+      - id: PW-ISSUE-UNBLOCK-08
+        pattern: event
+        statement: '`--dry-run` を付けて打つと、書き込みを送らずに `dry-run` の行を標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-09
+        pattern: unwanted
+        statement: 'もし本文の `Waits for merge` の節が読めないなら、前提だけを外し、節を直していない旨を `warning` の行で標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-10
+        pattern: unwanted
+        statement: 'もし読み直した前提が書いた内容と 2 回続けて合わないなら、列と札を動かさずに `warning` の行を標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-11
+        pattern: unwanted
+        statement: 'もし動かす先の値がボードに無いなら、`warning` の行と、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
+      - id: PW-ISSUE-UNBLOCK-12
+        pattern: unwanted
+        statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-UNBLOCK-13
+        pattern: unwanted
+        statement: 'もし Issue の参照の形が誤っているなら、終了コード 2 で終わります'
+      - id: PW-ISSUE-UNBLOCK-14
+        pattern: unwanted
+        statement: 'もしリポジトリがプロジェクトに無いなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-UNBLOCK-15
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-UNBLOCK-16
+        pattern: unwanted
+        statement: 'もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、終了コード 1 で終わります'
+      - id: PW-ISSUE-UNBLOCK-17
+        pattern: event
+        statement: '`--by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を外します'
   PW-PR-CLEANUP:
     help:
       details:

@@ -263,6 +263,79 @@
       }
     },
     {
+      "id": "PW-ISSUE-BLOCK",
+      "name": "issue block",
+      "description": "Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "block"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_block"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "type": "string",
+            "description": "The Issue to wait for (`owner/repo/N`; another repository is allowed)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why it waits for the merge (required with --wait merge)"
+          },
+          "wait": {
+            "type": "string",
+            "enum": [
+              "stack",
+              "merge"
+            ],
+            "default": "stack",
+            "description": "stack (build on its branch) or merge (wait until it is merged)"
+          }
+        },
+        "required": [
+          "by",
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "by": [
+            "--by"
+          ],
+          "dry_run": [
+            "--dry-run"
+          ],
+          "reason": [
+            "--reason"
+          ],
+          "wait": [
+            "--wait"
+          ]
+        }
+      }
+    },
+    {
       "id": "PW-ISSUE-COMMENT",
       "name": "issue comment",
       "description": "Post a comment on an Issue",
@@ -695,6 +768,60 @@
           "status": [
             "--status",
             "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-UNBLOCK",
+      "name": "issue unblock",
+      "description": "Remove a blocked-by (prerequisite) from an Issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "unblock"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_unblock"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "type": "string",
+            "description": "The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          }
+        },
+        "required": [
+          "by",
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "by": [
+            "--by"
+          ],
+          "dry_run": [
+            "--dry-run"
           ]
         }
       }

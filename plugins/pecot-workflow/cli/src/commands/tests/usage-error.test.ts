@@ -23,8 +23,8 @@ describe('golden の usage エラー', () => {
   // グローバルオプションの誤り（global-）は文が複数行になるので、下の個別のケースで確かめる
   const ids = scenarioIds().filter(id => !id.startsWith('global-') && readGolden(id).stderr.startsWith('Usage: '))
 
-  it('golden から 16 件を読む', () => {
-    expect(ids).toHaveLength(16)
+  it('golden から 18 件を読む', () => {
+    expect(ids).toHaveLength(18)
   })
 
   it.for(ids)('%s の stderr を文字単位で再現する', (id) => {

@@ -47,15 +47,29 @@ Issue に前提を付ける。付いている前提の種類と理由を変え�
 | 付けた | `added: blocked-by #B to #A` | 0 |
 | 既に付いていて、種類も同じ | `unchanged: blocked-by #B on #A` | 0 |
 | 種類か理由を変えた | `updated: blocked-by #B on #A (wait: merge)` | 0 |
-| 付けた後に判定が変わった | 続けて `moved: #A Ready -> Blocked (blocked by #B)` | 0 |
+| `stack` に戻した | `updated: blocked-by #B on #A (wait: stack)` | 0 |
+| 付けた後に判定が変わった | 続けて `moved: #A Ready -> Blocked (<判定の文>)` | 0 |
+| `--dry-run` | `dry-run: would add blocked-by #B to #A`（変えるときは `would update ... (wait: <種類>)`）。書き込みと列の移動は行わない | 0 |
 | 付けると輪になる | `error: blocked-by would form a cycle: #A -> #B -> #A` | 2 |
+| `--by` が自分自身 | `error: blocked-by would form a cycle: #A -> #A`（要求を送らない） | 2 |
+| 輪を確かめられない（上限・読めない Issue・部分エラー） | `error: could not check blocked-by cycle of #A: <理由>` | 1 |
 | `--wait merge` で `--reason` が無い | `error: --reason is required with --wait merge` | 2 |
+| `--wait stack` に `--reason` を付けた | 使い方の誤りの `error:` | 2 |
 | 前提が 50 件を超える | `error: #A already has 50 blocked-by issues` | 1 |
+| 本文の節が読めない | 本文の節を直す案内を添えた `error:`（要求を送らない） | 3 |
+| 依存関係に対応しない GHES（3.19 より前） | 最初の読み取りで `error:` | 1 |
 
 - 種類が `merge` のとき、待つ側の Issue の本文の節に、前提と理由を足す。`stack` に変えると、節から外す
 - 節のほかの部分と、本文のほかの節は書き換えない
 - 付けた後、待つ側の Issue の判定を計算し直し、列と札を動かす。待つ側の Issue に着手の跡があるときは動かさず、`warning:` で食い違いを出す
 - hook の確認にはかけない
+- 別のリポの参照は `owner/repo#N` と出す。同じリポは `#N`
+- 書く前に、待つ側の前提と本文を読む。既にある前提を付ける要求と、無い前提を外す要求は送らない（応答が未確認のため）
+- 輪の確認は、新しく付けるときだけ行う。`--by` の側から `blockedBy` を 1 段ずつ `nodes(ids:)` でたどり、訪れた Issue は 200 件までとする
+- 書く順は、前提、本文、列と札。本文の書き込みが失敗したら、前提は付いたまま `error:`（終了コード 1）で止まる。同じコマンドの打ち直しで直る
+- 書いた後に判定を読み直し、前提の集合と本文の節が書いた内容と一致するかを確かめる。合わなければ、列と札を動かさずに `warning:` を出す
+- 判定が読めないときも、列と札を動かさずに `warning:` を出す。終了コードは 0（前提の変更は済んでいる）
+- 動かす先の値がボードに無いときは、`warning:` の後に `hint: run pecot project init to add the <値> option to the board` を出す
 
 ### `pecot issue unblock <issue_ref> --by <issue_ref>`
 
@@ -65,11 +79,14 @@ Issue から前提を外す。
 |---|---|---|
 | 外した | `removed: blocked-by #B from #A` | 0 |
 | 付いていなかった | `unchanged: #A is not blocked by #B` | 0 |
-| 外した後に判定が変わった | 続けて `moved: #A Blocked -> Ready` | 0 |
+| 外した後に判定が変わった | 続けて `moved: #A Blocked -> Ready (<判定の文>)` | 0 |
 | 札が `Needs Attention` で、見直しの要る前提が無くなった | 続けて `set: Status of #A to Todo` | 0 |
 
 - 本文の節にその前提があれば、一緒に外す。節が空になれば、節ごと消す
-- 最後の前提を外したときも、札を `Todo` に戻す。列を直す共通の処理は、前提の無い Issue の札を人が付けたものとして残すので、このコマンドが外した結果として書く
+- 残りの前提がある、または外した前提が closed のときは、札を `Todo` に戻す。列を直す共通の処理は、前提の無い Issue の札を人が付けたものとして残すので、このコマンドが外した結果として書く。人が別の理由で付けた札は、開いた最後の前提を外しただけでは消さない
+- 本文の節が読めないときは、前提だけを外し、節を直していない旨の `warning:` を出す
+- 節に古い行だけが残っていても書き換えない（`issue read` が食い違いを `warning:` で出す）
+- 輪の確認・書く前の読み取り・読み直しの確認・`hint:` は `issue block` と同じ
 
 ### `pecot pr merge <pr_ref>`
 
