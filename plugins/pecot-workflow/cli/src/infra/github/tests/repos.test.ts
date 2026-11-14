@@ -50,12 +50,12 @@ describe('getBranchSha', () => {
 })
 
 describe('countCommitsAhead', () => {
-  it('compare の base...head を引き、ahead_by を返す', async () => {
+  it('compare の base...head を per_page=1 で引き、ahead_by を返す', async () => {
     const { client, server } = await startClient([
       restResponse('GET', '/repos/owner/repo/compare/main...develop', { status: 200, body: { ahead_by: 4, behind_by: 1 } }),
     ])
     expect(await client.countCommitsAhead('owner', 'repo', 'main', 'develop')).toBe(4)
-    expect(restRequests(server).map(({ method, path }) => [method, path])).toEqual([['GET', '/repos/owner/repo/compare/main...develop']])
+    expect(restRequests(server).map(({ method, path, query }) => [method, path, query])).toEqual([['GET', '/repos/owner/repo/compare/main...develop', { per_page: '1' }]])
   })
 
   it('ahead_by が 0 なら 0 を返す', async () => {

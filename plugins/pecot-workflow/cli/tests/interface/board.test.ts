@@ -384,10 +384,11 @@ describe('board sync', () => {
     expect(result.stderr).toBe(`dry-run: would delete 2 archived items\n${RATE_NOTE}`)
   })
 
-  it('Archived の項目を削除できなかったなら、warning の行を標準エラーに出して続ける', async (context) => {
+  it('Archived の項目を削除できなかったなら、warning の行を出して続け、error の行を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-BOARD-SYNC-30')
+    await verifies(context, 'PW-BOARD-SYNC-31')
     const result = await syncWithPoints([board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01', 500), deletion('PVTI_a02')])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`deleted: 1 archived items\nwarning: failed to delete 1 archived items\n${RATE_NOTE}`)
+    expect(result.code).toBe(1)
+    expect(result.stderr).toBe(`deleted: 1 archived items\nwarning: failed to delete 1 archived items\n${RATE_NOTE}error: could not delete 1 archived item from the board\n`)
   })
 })

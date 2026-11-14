@@ -33,7 +33,7 @@ function labelOf(request: RecordedRequest): string {
 describe('issue reopen のアーカイブ済みのアイテム', () => {
   it('アーカイブ済みなら、アーカイブを解いてから Status を設定し、updated の行を出す', async () => {
     prepareProject()
-    const github = await startGithub([linkedRepositories(), reopened(), boardItem(true), UNARCHIVED, fieldUpdated('o3'), reopened()])
+    const github = await startGithub([linkedRepositories(), boardItem(true), reopened(), UNARCHIVED, fieldUpdated('o3'), reopened()])
 
     const result = await reopen(['acme/demo/7'])
 
@@ -46,7 +46,7 @@ describe('issue reopen のアーカイブ済みのアイテム', () => {
 
   it('アーカイブされていなければ、アーカイブの解除を呼ばない', async () => {
     prepareProject()
-    const github = await startGithub([linkedRepositories(), reopened(), boardItem(false), fieldUpdated('o3'), reopened()])
+    const github = await startGithub([linkedRepositories(), boardItem(false), reopened(), fieldUpdated('o3'), reopened()])
 
     const result = await reopen(['acme/demo/7'])
 

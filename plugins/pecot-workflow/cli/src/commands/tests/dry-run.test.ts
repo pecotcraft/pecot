@@ -1,13 +1,14 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 見るのは一時ディレクトリ配下だけ */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの応答は readonly にしない */
 // 書き込むコマンドの dry_run。読むだけの要求を送り、書く操作は `dry-run: would` の行にして、何も書かずに 0 で終わる
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
+import { compareStrings } from '../../../tests/parity/baseline.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand } from '../../../tests/_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../../../tests/_helpers/command-harness.js'
@@ -25,6 +26,26 @@ type Json = Record<string, unknown>
 const ACTIVE = '.pecot/state/.pecot-active'
 const OUTPUT_DIRECTORY = '.pecot/tmp/output'
 const BOARD_URL = `https://${DEFAULT_HOST}/users/acme/projects/1`
+
+const STATE = '.pecot/state'
+const SEEDED_STATE: Readonly<Record<string, string>> = {
+  [`${STATE}/.pecot-active`]: 'acme/demo/1\n',
+  [`${STATE}/.pecot-base`]: 'develop\n',
+  [`${STATE}/.pecot-session-title`]: '前の作業\n',
+}
+
+/*
+ディレクトリ配下のファイルの、相対パスと中身（相対パスの順）。無ければ空
+*/
+function snapshot(directory: string, relative: string): Record<string, string> {
+  const root = path.join(directory, relative)
+  if (!existsSync(root)) return {}
+  const entries = readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => path.join(path.relative(root, entry.parentPath), entry.name))
+    .toSorted(compareStrings)
+  return Object.fromEntries(entries.map(name => [name, readFileSync(path.join(root, name), 'utf8')]))
+}
 
 const linked = (...names: readonly string[]): ResponseRule => graphqlRule('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes: names.map(name => ({ owner: { login: 'acme' }, name })) } } } })
 const issueNode = (): ResponseRule => graphqlRule('GetIssueNodeId', { repository: { issue: { id: 'I_7', title: '見本の Issue' } } })
@@ -121,6 +142,15 @@ describe('issue', () => {
     expect(result.stderr).toBe('dry-run: would create Issue in acme/demo: [Task] 一覧に 状態を 出す\n')
   })
 
+  it('issue create の freeform に dry_run を渡すと、.pecot-quick-mode を立てず、pending のフラグを残す', async (context) => {
+    await verifies(context, 'PW-ISSUE-CREATE-71')
+    const pending = { [`${STATE}/issue-create-slash-pending`]: 'w-quick\n', [`${STATE}/issue-pending`]: '' }
+    const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')], { files: pending })
+    expect(result.code).toBe(0)
+    expect(Object.keys(snapshot(result.directory, STATE))).toEqual(['issue-create-slash-pending', 'issue-pending'])
+    expect(result.read(`${STATE}/.pecot-quick-mode`)).toBeUndefined()
+  })
+
   it('issue create の -m に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-70')
     const result = await dryRun(['issue', 'create', '-t', '一覧に状態を出す', '-r', 'acme/demo', '-m', TASK_BODY, '-n'], [linked('demo')])
@@ -135,6 +165,7 @@ describe('issue', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(`dry-run: would create Issue template task in ${path.join(result.directory, OUTPUT_DIRECTORY)}\n`)
+    expect(existsSync(path.join(result.directory, OUTPUT_DIRECTORY)) ? readdirSync(path.join(result.directory, OUTPUT_DIRECTORY)) : []).toEqual([])
   })
 })
 
@@ -164,9 +195,9 @@ describe('project', () => {
     expect(result.read(CONFIG_FILE)).toBeUndefined()
   })
 
-  it('project init に dry_run を渡し、フィールドが揃っていれば、選択肢の追加と設定ファイルの更新を予行の行に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-16')
-    const github = [listProjects(projectNode()), projectFields(standardFields()), listProjects(projectNode()), projectFields(standardFields()), linked('demo')]
+  it('project init に dry_run を渡し、フィールドが揃っていれば、選択肢の追加だけを予行の行に出す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-17')
+    const github = [listProjects(projectNode()), projectFields(standardFields())]
     const before = `${JSON.stringify(projectConfig(), undefined, 2)}\n`
     const result = await dryRun(['project', 'init', 'acme', 'board', '-h', DEFAULT_HOST, '-s', 'acme', '-n'], github)
     expect(result.code).toBe(0)
@@ -177,8 +208,6 @@ describe('project', () => {
       'dry-run: would skip field pecot-size (already exists)',
       'dry-run: would add option Blocked to field pecot-workflow-acme',
       'dry-run: would add option Needs Attention to field Status',
-      `dry-run: would update config file ${path.join(result.directory, CONFIG_FILE)}`,
-      'dry-run: would set active project to ghes.example.com_acme_board_acme',
       '',
     ].join('\n'))
     expect(result.read(CONFIG_FILE)).toBe(before)
@@ -192,6 +221,19 @@ describe('project', () => {
     expectClean(result)
     expect(result.stderr).toContain('dry-run: would set active project to ghes.example.com_acme_board_acme\n')
     expect(result.read(CONFIG_FILE)).toBe(`${JSON.stringify(projectConfig(), undefined, 2)}\n`)
+  })
+
+  it('project activate に dry_run を渡すと、別の設定ファイルを指しても、アクティブの印と設定ファイルが変わらない', async (context) => {
+    await verifies(context, 'PW-PROJECT-ACTIVATE-23')
+    const other = 'ghes.example.com_acme_other_acme.json'
+    const otherContent = `${JSON.stringify(projectConfig(), undefined, 2)}\n`
+    const github = [projectFields(standardFields()), listProjects(projectNode()), projectFields(standardFields()), linked('demo')]
+    const result = await dryRun(['project', 'activate', other, '-n'], github, { files: { [`.pecot/config/projects/${other}`]: otherContent } })
+    expect(result.code).toBe(0)
+    expect(result.read('.pecot/config/projects/.active')).toBe(`${path.basename(CONFIG_FILE)}\n`)
+    expect(result.read(CONFIG_FILE)).toBe(otherContent)
+    expect(result.read(`.pecot/config/projects/${other}`)).toBe(otherContent)
+    expect(Object.keys(snapshot(result.directory, '.pecot/config/projects'))).toEqual(['.active', path.basename(CONFIG_FILE), other].toSorted(compareStrings))
   })
 
   it('project link に dry_run を渡すと、リンクの有無を読むだけで、リンクと設定ファイルへの追加を予行の行に出す', async (context) => {
@@ -230,6 +272,23 @@ describe('session', () => {
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('dry-run: would set work target acme/demo/7\n')
     expect(result.read(ACTIVE)).toBeUndefined()
+  })
+
+  it('session restore に dry_run を渡すと、前の作業対象のファイルと作業ディレクトリが変わらない', async (context) => {
+    await verifies(context, 'PW-SESSION-RESTORE-23')
+    const result = await dryRun(['session', 'restore', '-i', 'acme/demo/7', '-D', '.', '-n'], [issueResponse({ number: 7, title: '見本' })], { files: SEEDED_STATE })
+    expect(result.code).toBe(0)
+    expect(snapshot(result.directory, STATE)).toEqual({ '.pecot-active': 'acme/demo/1\n', '.pecot-base': 'develop\n', '.pecot-session-title': '前の作業\n' })
+    expect(existsSync(path.join(result.directory, '.pecot/work/7'))).toBe(false)
+  })
+
+  it('session start に dry_run を渡すと、作業対象のファイルと作業ディレクトリができない', async (context) => {
+    await verifies(context, 'PW-SESSION-START-36')
+    const github = [linked('demo'), prerequisitesRule({ number: 7 }), issueNode(), restRule('GET', '/repos/acme/demo/git/ref/heads/main', 200, { object: { sha: '0123456789abcdef0123456789abcdef01234567' } })]
+    const result = await dryRun(['session', 'start', 'acme/demo/7', 'feat', '-n'], github)
+    expect(result.code).toBe(0)
+    expect(snapshot(result.directory, STATE)).toEqual({})
+    expect(existsSync(path.join(result.directory, '.pecot/work/7'))).toBe(false)
   })
 
   it('session start に dry_run を渡すと、ベースの SHA まで読み、ブランチ・Status・作業対象を予行の行に出す', async (context) => {

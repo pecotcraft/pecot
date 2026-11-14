@@ -274,7 +274,7 @@ const releaseCheckCommand = defineCommand({
       return 0
     }
     catch (error: unknown) {
-      if (error instanceof GitHubAPIError) {
+      if (error instanceof GitHubAPIError || error instanceof TransportFailure) {
         out.error(`could not count the commits from ${releaseBranch} to ${developBranch}: ${error.message}`)
         return FAILURE
       }

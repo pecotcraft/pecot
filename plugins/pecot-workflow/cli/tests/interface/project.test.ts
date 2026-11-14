@@ -420,6 +420,16 @@ describe('project init', () => {
     expect(result.stderr).toMatch(/error: could not sync project config: /u)
     expect(result.stderr).not.toContain('could not initialize project fields')
   })
+
+  it('--dry-run で、フィールドが揃っていて足す選択肢だけがあると、設定ファイルの予行の行を出さない', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-17')
+    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const result = await run(arguments_('init', 'acme', 'board', '--suffix', 'acme', '--host', DEFAULT_HOST, '--dry-run'), base(existing), { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toBe(`${skippedFields.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would add option Blocked to field pecot-workflow-acme\ndry-run: would add option Needs Attention to field Status\n`)
+    expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+  })
 })
 
 describe('project create', () => {

@@ -361,6 +361,15 @@ describe('release check', () => {
     expect(result.stdout).toBe('')
   })
 
+  it('もし compare の通信が切れたなら、error の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-CHECK-39')
+    const dropped: ResponseRule = { match: { method: 'GET', path: '/repos/acme/demo/compare/release...develop' }, respond: { status: 200, drop: true }, times: 1 }
+    const result = await runPreflight(project(WITH_BRANCHES), [], [...alertRules(), dropped])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/error: could not count the commits from release to develop: .+\n/u)
+    expect(result.stderr).not.toContain('    at ')
+  })
+
   it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-32')
     const result = await runCounted(project(WITH_BRANCHES), ['9.9.9'])

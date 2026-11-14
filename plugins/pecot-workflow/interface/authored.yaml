@@ -437,7 +437,7 @@ entries:
         - An Issue in Backlog, Pending or Archived, a PR card, a Tracker and an Epic are not moved.
         - An Issue whose judgment cannot be read (for example, develop_branch is not set) is not moved, and a warning line gives the reason.
         - Reads each Issue of Blocked, Active and In Review one by one, because the branches and PRs are not in the board list. Skips only the Ready Issues that the list shows with no prerequisites.
-        - Then deletes the Archived items from the board except the 20 most recently updated. An Archived item that cannot be deleted is skipped and the command continues.
+        - Then deletes the Archived items from the board except the 20 most recently updated. An Archived item that cannot be deleted is skipped, the command continues, and it ends with exit code 1.
         - "With --dry-run, prints the same sentences as dry-run lines and writes nothing to the board. For the Archived items it prints only the line dry-run: would delete N archived items."
         - The config is --project, else the active project, else the only config in .pecot/config/projects. With two or more configs and no active project, stops and asks for --project.
         - Reads the GraphQL rate limit (REST, no points) before and after the run and prints the points used and the remaining points. When it cannot be read, the line is left out. When the rate limit window resets during the run, or the difference is negative, the points used line is left out.
@@ -460,7 +460,7 @@ entries:
       - 'Backlog・Pending・Archived にある Issue と、PR のカード・Tracker・Epic は動かしません。'
       - '判定を読めない Issue（`develop_branch` が未設定のときなど）は動かさず、`warning` の行に理由を出します。'
       - 'ブランチと PR はボードの一覧に載らないので、Blocked・Active・In Review の Issue は 1 件ずつ読みます。読むのを省くのは、一覧で前提が無いと分かる Ready の Issue だけです。'
-      - '動かした後で、Archived の項目を、更新の新しい 20 件を残して、ボードから削除します。削除できない Archived の項目は飛ばして続けます。'
+      - '動かした後で、Archived の項目を、更新の新しい 20 件を残して、ボードから削除します。削除できない Archived の項目は飛ばして続け、終了コード 1 で終わります。'
       - '`--dry-run` を付けると、同じ文を `dry-run` の行として出し、ボードには何も書きません。Archived の項目については、`dry-run: would delete N archived items` の行だけを出します。'
       - '設定は、`--project` の設定、アクティブなプロジェクト、`.pecot/config/projects` にある唯一の設定の順で選びます。設定が 2 つ以上あってアクティブなプロジェクトが無いときは、止まって `--project` を求めます。'
       - '実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
@@ -468,16 +468,16 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。'
+    diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
     environment: []
     exit_status:
       - code: 0
         when: '次のどれかです。書き込みの失敗なしでボードを同期しました。`--dry-run` で予定を出しました。GitHub Enterprise Server が Issue の依存関係に対応していません。判定を読めない Issue があっても、終了コードは変わりません。'
       - code: 1
-        when: '次のどれかです。ボードへの書き込みが 1 件以上の Issue で失敗しました（ほかの Issue をすべて同期した後で終わります）。アクティブなプロジェクトが無く、設定も 1 つに決まりません。`--project` の名前の設定がありません。設定ファイルの内容が不正です。ボードを読めません。GitHub トークンが見つかりません。'
+        when: '次のどれかです。ボードへの書き込みが 1 件以上の Issue で失敗しました（ほかの Issue をすべて同期した後で終わります）。Archived の項目を 1 件以上削除できませんでした。アクティブなプロジェクトが無く、設定も 1 つに決まりません。`--project` の名前の設定がありません。設定ファイルの内容が不正です。ボードを読めません。GitHub トークンが見つかりません。'
       - code: 2
         when: 'コマンドラインの誤りがあります。'
-    on_error: '既に書いた移動と、既に削除した Archived の項目は、そのまま残ります。書き込みの失敗は `warning` として扱い、ほかの Issue の同期を続けてから、終了コード 1 で終わります。Archived の項目を削除できないときも `warning` にとどめ、終了コードは変えません。'
+    on_error: '既に書いた移動と、既に削除した Archived の項目は、そのまま残ります。書き込みの失敗は `warning` として扱い、ほかの Issue の同期を続けてから、終了コード 1 で終わります。Archived の項目を削除できないときも `warning` にして続け、終了コード 1 で終わります。'
     effects:
       - target: github
         kind: read
@@ -592,6 +592,9 @@ entries:
       - id: PW-BOARD-SYNC-30
         pattern: unwanted
         statement: 'もし Archived の項目を削除できなかったなら、`warning` の行を標準エラーに出して続けます'
+      - id: PW-BOARD-SYNC-31
+        pattern: unwanted
+        statement: 'もし Archived の項目を削除できなかったなら、終了コード 1 で終わります。最後に `error: could not delete N archived items from the board` の行を出します'
   PW-BRANCH-DELETE:
     help:
       details:
@@ -1069,9 +1072,9 @@ entries:
         - With -m, --repo is required unless --type is epic.
         - With --freeform, creates one Issue from --message and --repo without checking the body against the template.
         - With --freeform, the title is the first 50 characters of the message with each run of whitespace turned into one space, prefixed by the type.
-        - With --freeform, the status is --status, or the default of the type when it is not given. The priority is medium, and the size is s except for epic and tracker, which get none.
+        - With --freeform, the status is --status, or the default of the type when it is not given. The priority is --priority or medium, and the size is --size or s, except that epic and tracker get no default size.
         - With --freeform, appends a comment that points to the issue-creation rules to the end of the body.
-        - With --freeform and a type other than epic and tracker, creates the flag .pecot/state/.pecot-quick-mode.
+        - With --freeform and a type other than epic and tracker, creates the flag .pecot/state/.pecot-quick-mode once the Issue is on the board.
         - With --freeform, a parent Epic given to an Epic gives a warning and continues.
         - With --freeform, creates no branch and records no work target. Use pecot session start for them.
         - The body must follow the template of the Issue type.
@@ -1146,9 +1149,9 @@ entries:
       - '`-m` では、`--type` が `epic` でなければ `--repo` が必須です。'
       - '`--freeform` では、`--message` と `--repo` から、本文をテンプレートで確かめずに Issue を 1 件作ります。'
       - '`--freeform` の題は、`--message` の先頭の 50 文字です。連続した空白は 1 つの空白にまとめ、前に type を付けます。'
-      - '`--freeform` の status は `--status` の値で、無ければ type の既定の値です。priority は `medium`、size は `s` で、`epic` と `tracker` には size を付けません。'
+      - '`--freeform` の status は `--status` の値で、無ければ type の既定の値です。priority は `--priority` の値か `medium` です。size は `--size` の値か `s` で、`epic` と `tracker` には既定の size を付けません。'
       - '`--freeform` では、本文の末尾に、起票の決まりを指すコメントを付けます。'
-      - '`--freeform` で `epic` と `tracker` 以外の type を作ると、フラグ `.pecot/state/.pecot-quick-mode` を作ります。'
+      - '`--freeform` で `epic` と `tracker` 以外の type をボードに入れると、フラグ `.pecot/state/.pecot-quick-mode` を作ります。'
       - '`--freeform` で Epic に親 Epic を渡すと、`warning` を出して続けます。'
       - '`--freeform` は、ブランチを作らず、作業対象も記録しません。それは `pecot session start` が行います。'
       - '本文は、Issue の種類のテンプレートに合っていなければなりません。'
@@ -1182,7 +1185,7 @@ entries:
         what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。`--dry-run` のときは、読むだけです。'
       - target: file
         kind: write
-        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`.pecot/state/` の下のフラグ `issue-pending` と `issue-create-slash-pending` を消します。`--freeform` で `epic` と `tracker` 以外を作ると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
+        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`.pecot/state/` の下のフラグ `issue-pending` と `issue-create-slash-pending` を消します。`--freeform` で `epic` と `tracker` 以外をボードに入れると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -1388,13 +1391,13 @@ entries:
         statement: '`--freeform` で打つと、`--message` の先頭 50 文字の連続する空白を 1 つにしたものを、type の接頭辞つきの題にします'
       - id: PW-ISSUE-CREATE-62
         pattern: event
-        statement: '`--freeform` で打つと、status を `--status` の値か type の既定の値、priority を `medium`、size を `s` にします。`epic` と `tracker` には size を付けません'
+        statement: '`--freeform` で打つと、status を `--status` の値か type の既定の値にします。`--priority`・`--size` が無ければ、priority を `medium`、size を `s` にします。`epic` と `tracker` には既定の size を付けません'
       - id: PW-ISSUE-CREATE-63
         pattern: event
         statement: '`--freeform` に `--parent-epic` を付けて打つと、その Epic の sub-issue につなぎます。Epic に付けたときは、`warning` の行を標準エラーに出します'
       - id: PW-ISSUE-CREATE-64
         pattern: event
-        statement: '`--freeform` で `epic` と `tracker` 以外を作ると、`.pecot/state/.pecot-quick-mode` を作ります。フラグ `issue-pending` と `issue-create-slash-pending` は消します'
+        statement: '`--freeform` で `epic` と `tracker` 以外をボードに入れると、`.pecot/state/.pecot-quick-mode` を作ります。フラグ `issue-pending` と `issue-create-slash-pending` は消します'
       - id: PW-ISSUE-CREATE-65
         pattern: unwanted
         statement: 'もし `--freeform` でボードへの追加に失敗したなら、`warning` の行と作った Issue の URL を出し、欄の設定をせず、終了コード 0 で終わります'
@@ -1419,6 +1422,15 @@ entries:
       - id: PW-ISSUE-CREATE-72
         pattern: event
         statement: '`--prepare` に `--dry-run` を付けて打つと、コピーを書きません。`dry-run: would create Issue template <template> in <directory>` の行を標準エラーに出します'
+      - id: PW-ISSUE-CREATE-73
+        pattern: event
+        statement: '`--freeform` に `--priority` か `--size` を付けて打つと、既定の値の代わりにその値を設定します'
+      - id: PW-ISSUE-CREATE-74
+        pattern: unwanted
+        statement: 'もし `--freeform` でボードへの追加に失敗したなら、`.pecot/state/.pecot-quick-mode` を作りません'
+      - id: PW-ISSUE-CREATE-75
+        pattern: event
+        statement: '`--freeform` で Issue を作ると、その直後にフラグ `issue-pending` と `issue-create-slash-pending` を消します。後の手順が失敗しても、フラグは残りません'
   PW-ISSUE-REOPEN:
     help:
       details:
@@ -1556,6 +1568,9 @@ entries:
       - id: PW-ISSUE-REOPEN-22
         pattern: event
         statement: 'ボードの項目がアーカイブ済みの Issue を開き直すと、Status を設定する前にアーカイブを解きます。`updated: Issue <ref> unarchived on the board` の行を標準エラーに出します'
+      - id: PW-ISSUE-REOPEN-23
+        pattern: unwanted
+        statement: 'もしアーカイブを解けないなら、Issue を開かずに終了コード 1 で終わります。`error: could not unarchive Issue <ref> on the board: ...` の行を標準エラーに出します'
   PW-ISSUE-SHOW:
     help:
       details:
@@ -2703,6 +2718,9 @@ entries:
       - id: PW-PROJECT-INIT-16
         pattern: event
         statement: '`--dry-run` を付けて打つと、フィールドを作らず設定ファイルも書かず、する操作を `dry-run` の行で標準エラーに出し、終了コード 0 で終わります'
+      - id: PW-PROJECT-INIT-17
+        pattern: event
+        statement: '`--dry-run` で、作るフィールドか足す選択肢があると、設定ファイルの予行の行を出しません'
   PW-PROJECT-LINK:
     help:
       details:
@@ -5561,6 +5579,9 @@ entries:
       - id: PW-WORKTREE-REMOVE-26
         pattern: event
         statement: '`--dry-run` を付けて打つと、worktree とブランチを消さず、消す操作を `dry-run` の行で標準エラーに出し、終了コード 0 で終わります'
+      - id: PW-WORKTREE-REMOVE-27
+        pattern: unwanted
+        statement: 'もし `--force` を付けずに変更のある worktree を削除しようとしたなら、git の文に続けて、`--force` を案内する `hint` の行を標準エラーに出します。MCP では `force: true` を案内します'
 common_behaviors:
   - id: PW-COMMON-01
     pattern: event

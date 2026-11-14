@@ -667,7 +667,14 @@ export function removeWorktree(cwd: string, name: string, diagnostics: Diagnosti
   const gitArguments = ['worktree', 'remove', worktreePath]
   if (options.isForced === true) gitArguments.push('--force')
   const removed = runGit(gitArguments, { cwd })
-  if (removed.exitCode !== 0) throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
+  if (removed.exitCode !== 0) {
+    const reason = pythonStrip(removed.stderr)
+    // git の文は CLI の `--force` を案内するので、MCP でも打てる形の案内を添える
+    if (options.isForced !== true && reason.includes('contains modified or untracked files')) {
+      throw new WorktreeRuntimeError(hinted`failed to remove the worktree: ${reason}\nhint: to remove it with its changes, pass ${inputHint(['worktree', 'remove'], 'force')}`)
+    }
+    throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
+  }
 
   // 3. ブランチ削除（ローカルブランチ）
   let branchError: string | undefined

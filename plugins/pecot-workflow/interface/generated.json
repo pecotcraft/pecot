@@ -596,7 +596,7 @@
           "freeform": {
             "type": "boolean",
             "default": false,
-            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters, priority medium, size s)"
+            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters; priority medium and size s unless given)"
           },
           "label": {
             "type": "array",

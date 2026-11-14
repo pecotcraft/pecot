@@ -109,6 +109,10 @@ function failureMessage(failures: number): string {
   return failures === 1 ? 'could not write 1 Issue to the board' : `could not write ${String(failures)} Issues to the board`
 }
 
+function deleteFailureMessage(failures: number): string {
+  return failures === 1 ? 'could not delete 1 archived item from the board' : `could not delete ${String(failures)} archived items from the board`
+}
+
 const boardSyncCommand = defineCommand({
   path: ['board', 'sync'],
   description: 'Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board',
@@ -135,10 +139,11 @@ const boardSyncCommand = defineCommand({
     }
     if (read.isLegacy) unsupportedWarning(out)
     const failures = read.isLegacy ? 0 : await syncBoard(out, client, config, read.items, read.progress, input.dry_run)
-    await pruneArchivedItems(out, client, config, read.allItems, input.dry_run)
+    const pruneFailures = await pruneArchivedItems(out, client, config, read.allItems, input.dry_run)
     reportPoints(out, before, await client.getGraphqlRateLimit())
-    if (failures === 0) return 0
-    out.error(failureMessage(failures))
+    if (failures === 0 && pruneFailures === 0) return 0
+    if (failures > 0) out.error(failureMessage(failures))
+    if (pruneFailures > 0) out.error(deleteFailureMessage(pruneFailures))
     return 1
   },
 })

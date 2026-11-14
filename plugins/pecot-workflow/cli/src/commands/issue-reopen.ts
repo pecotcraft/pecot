@@ -33,17 +33,23 @@ interface ReopenTarget {
   readonly number: number
 }
 
-// 1 回目の reopen（status を更新する前提として open にする）と、ボードの status の更新。設定できたら自動化を待つ
+// アーカイブの解除、1 回目の reopen、ボードの status の更新。設定できたら自動化を待つ
 async function reopenAndSetStatus(output: Output, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string): Promise<void> {
   const { owner, repository, number } = issue
   const target = `Issue ${issuePath(owner, repository, number)}`
-  await client.reopenIssue(owner, repository, number)
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
-  // アーカイブ済みのアイテムは Status を書く前に戻す。ボードの列に出ないため
+  // アーカイブ済みの項目はボードの列に出ないので戻す。失敗したら Issue を開かずに止める
   if (item?.isArchived === true) {
-    await client.unarchiveProjectItem(config.project.id, item.id)
+    try {
+      await client.unarchiveProjectItem(config.project.id, item.id)
+    }
+    catch (error: unknown) {
+      if (!(error instanceof GitHubAPIError)) throw error
+      stopWith(output, `could not unarchive ${target} on the board: ${error.message}`)
+    }
     output.done({ verb: 'update', target: `${target} unarchived on the board` })
   }
+  await client.reopenIssue(owner, repository, number)
   const itemId = item?.id
   if (itemId === undefined) {
     output.warning(`${target} is not on the project board`)

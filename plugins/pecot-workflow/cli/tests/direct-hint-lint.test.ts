@@ -75,6 +75,10 @@ describe('フラグ名の文字列を止める lint', () => {
       ['引数のテンプレートの固定部分', 'declare function stop(text: string): void\ndeclare const name: string\nstop(`invalid --repo format: ${name}`)\n'],
       ['引数の三項演算子の文字列', 'declare function stop(text: string): void\ndeclare const flag: boolean\nstop(flag ? \'pass --repo to fix\' : \'use the full form\')\n'],
       ['引数の連結の文字列', 'declare function stop(text: string): void\ndeclare const name: string\nstop(`branch ${name} exists: ` + \'pass --allow-existing-branch to reuse it\')\n'],
+      ['引数の null 合体演算子の右側の文字列', 'declare function stop(text: string): void\ndeclare const text: string | undefined\nstop(text ?? \'pass --repo to fix\')\n'],
+      ['引数の null 合体演算子の右側のテンプレート', 'declare function stop(text: string): void\ndeclare const text: string | undefined\ndeclare const name: string\nstop(text ?? `pass --repo ${name}`)\n'],
+      ['テンプレートの中の三項演算子の文字列', 'declare function stop(text: string): void\ndeclare const flag: boolean\nstop(`run it again${flag ? \' with --force\' : \'\'}`)\n'],
+      ['テンプレートの中の三項演算子のテンプレート', 'declare function stop(text: string): void\ndeclare const flag: boolean\ndeclare const name: string\nstop(`run it again${flag ? ` with --force ${name}` : \'\'}`)\n'],
     ])('%s のフラグ名は止まる', async (_kind, code) => {
       expect(await flagMessages(code, filePath)).toHaveLength(1)
     })
@@ -84,6 +88,8 @@ describe('フラグ名の文字列を止める lint', () => {
     ['.describe() の help の文', 'declare const schema: { describe: (text: string) => unknown }\nschema.describe(\'Reason (required with --wait merge)\')\n'],
     ['空白の無い git の引数', 'declare function git(...args: readonly string[]): void\ngit(\'--porcelain\')\n'],
     ['呼び出しの外の定数', 'export const text = \'pass --repo to fix\'\n'],
+    ['null 合体演算子の左側の文字列', 'declare function stop(text: string | undefined): void\ndeclare const text: string\nstop(\'pass --repo to fix\' ?? text)\n'],
+    ['return の文', 'export function text(): string {\n  return \'pass --repo to fix\'\n}\n'],
     ['短いオプション', 'declare function stop(text: string): void\nstop(\'check it with: git remote -v\')\n'],
     ['コメントの中', '// --repo を案内する\nexport const text = 1\n'],
   ])('%s は止まらない', async (_kind, code) => {

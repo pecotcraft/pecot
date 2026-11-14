@@ -1240,6 +1240,16 @@ describe('worktree remove', () => {
     expect(branches(repository)).toContain('wt1')
   })
 
+  it('--force を付けずに変更のある worktree を削除しようとすると、git の文に続けて --force の案内の hint の行を出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-REMOVE-27')
+    const { repository } = createProject()
+    const worktree = await addWorktree()
+    writeFileSync(path.join(worktree, 'untracked.txt'), 'x')
+    const result = await pecot(['worktree', 'remove', 'wt1', '-D', repository])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: failed to remove the worktree: fatal: '.+' contains modified or untracked files, use --force to delete it\n {2}hint: to remove it with its changes, pass --force\n$/u)
+  })
+
   it('--repo が今の git の remote と食い違うと、何も削除せず、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-WORKTREE-REMOVE-17')
     await verifies(context, 'PW-WORKTREE-REMOVE-18')

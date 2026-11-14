@@ -95,7 +95,7 @@ Do not call it until the user has explicitly approved.
 The canonical routes for filing are these skills:
 /pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.
 To only generate a template, call issue_create with prepare: true.
-To only see the plan (nothing is posted), call issue_create with dry_run: true and files.
+To only see the plan (nothing is posted), call issue_create with dry_run: true (any form posts nothing; with files it shows the plan table).
 EOT
 }
 

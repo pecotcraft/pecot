@@ -183,8 +183,8 @@ function optionInputsOf(field: Readonly<JsonObject>): readonly FieldOptionInput[
   })
 }
 
-// 既にあるフィールドに選択肢を 1 つ足す
-async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec, isDryRun: boolean): Promise<void> {
+// 既にあるフィールドに選択肢を 1 つ足す。足した（予行では、足す予定の）数（0 か 1）を返す
+async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec, isDryRun: boolean): Promise<number> {
   const { option } = spec
   const fieldName = textOf(field['name'])
   const existing = optionInputsOf(field)
@@ -193,12 +193,12 @@ async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClie
     const unchanged: Operation = { verb: 'unchanged', target: `option ${option.name} in field ${fieldName}` }
     out.planned(unchanged)
     out.done(unchanged)
-    return
+    return 0
   }
   const added: Operation = { verb: 'add', target: `option ${option.name} to field ${fieldName}` }
   if (isDryRun) {
     out.planned(added)
-    return
+    return 1
   }
   try {
     await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), merged)
@@ -207,18 +207,23 @@ async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClie
     if (!(error instanceof GitHubAPIError)) throw error
     // 選択肢の id を拒む GHES などで足せなくても、作ったフィールドと設定ファイルの同期は進める
     out.warning(`could not add option ${option.name} to field ${fieldName}: ${error.message}`)
-    return
+    return 0
   }
   out.done(added)
+  return 1
 }
 
 // 既にあるフィールドに足す選択肢。fields は作る前の状態なので、作ったばかりの進行の欄は「無い」扱いで何も出さない（created の行が出ている）
-async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string, isDryRun: boolean): Promise<void> {
+// 足した（予行では、足す予定の）選択肢の数を返す
+async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string, isDryRun: boolean): Promise<number> {
   const workflowField = lastFieldNamed(fields, workflowFieldName)
-  if (workflowField !== undefined) await addFieldOption(out, client, workflowField, BLOCKED_SPEC, isDryRun)
+  const blocked = workflowField === undefined ? 0 : await addFieldOption(out, client, workflowField, BLOCKED_SPEC, isDryRun)
   const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
-  if (statusField === undefined) skipped(out, `field ${STATUS_FIELD_NAME} (not found)`)
-  else await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC, isDryRun)
+  if (statusField === undefined) {
+    skipped(out, `field ${STATUS_FIELD_NAME} (not found)`)
+    return blocked
+  }
+  return blocked + await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC, isDryRun)
 }
 
 function skipped(out: Readonly<Output>, target: string): void {
@@ -227,7 +232,7 @@ function skipped(out: Readonly<Output>, target: string): void {
 }
 
 // フィールドを作り、既にあるフィールドには足りない選択肢を足す。既にある進行の欄の必須の値が欠けていれば、何も書かずに止める。
-// 作る（予行では、作る予定の）フィールドの数を返す
+// 作る・足す（予行では、その予定の）フィールドと選択肢の数を返す
 async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>, isDryRun: boolean): Promise<number> {
   const { owner, name, suffix } = target
   const project = await findProjectByTitle(out, client, owner, name)
@@ -260,8 +265,7 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
     const created = await client.createProjectField(projectId, fieldName, options)
     out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
   }
-  await addMissingOptions(out, client, fields, workflowFieldName, isDryRun)
-  return newFieldCount
+  return newFieldCount + await addMissingOptions(out, client, fields, workflowFieldName, isDryRun)
 }
 
 const initCommand = defineCommand({
@@ -281,9 +285,9 @@ const initCommand = defineCommand({
     const out = createOutput(input.dry_run, io)
     const { owner, name, host, suffix } = input
     const client = createGitHubClient(out, host)
-    const newFieldCount = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, input.dry_run))
-    // 設定ファイルは作るフィールドの ID を書くので、予行では作る前の設定を出さない
-    if (newFieldCount > 0 && input.dry_run) return 0
+    const changeCount = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, input.dry_run))
+    // 設定ファイルは作るフィールドと選択肢の ID を書くので、予行では作る前の設定を出さない
+    if (changeCount > 0 && input.dry_run) return 0
     await guarded(out, 'sync project config', async () => {
       await syncProjectConfig(out, client, { owner, name, host, suffix, skipIfUnchanged: true, isDryRun: input.dry_run })
     })

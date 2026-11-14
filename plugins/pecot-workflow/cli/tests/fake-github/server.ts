@@ -39,6 +39,10 @@ export interface ResponseSpec {
   */
   readonly text?: string | undefined
   readonly headers?: Readonly<Record<string, string>> | undefined
+  /**
+  true なら応答を返さずに接続を切る（通信の失敗を作る）
+  */
+  readonly drop?: boolean | undefined
 }
 
 export interface ResponseRule {
@@ -196,6 +200,10 @@ export async function startFakeGithub(rules: readonly ResponseRule[], options: S
   let baseUrl = ''
 
   function respond(response: ServerResponse, spec: ResponseSpec): void {
+    if (spec.drop === true) {
+      response.socket?.destroy()
+      return
+    }
     const headers = { 'content-type': 'application/json', ...spec.headers }
     const restored = Object.fromEntries(Object.entries(headers).map(([key, value]) => [key, substitute(value, baseUrl)]))
     const payload = spec.text ?? JSON.stringify(spec.body ?? {})

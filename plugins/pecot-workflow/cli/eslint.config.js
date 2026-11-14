@@ -48,6 +48,11 @@ const directHintSyntax = [
   { selector: `${flagHintCall} > BinaryExpression ${flagHintTemplate}`, message: flagHintMessage },
   { selector: `${flagHintCall} > ConditionalExpression > ${flagHintLiteral}`, message: flagHintMessage },
   { selector: `${flagHintCall} > ConditionalExpression > TemplateLiteral > ${flagHintTemplate}`, message: flagHintMessage },
+  // 見る範囲は引数の直下と、その連結・三項・null 合体の右側・テンプレートの中の三項まで。変数を経た文と return の文は見ない
+  { selector: `${flagHintCall} > LogicalExpression[operator='??'] > ${flagHintLiteral}.right`, message: flagHintMessage },
+  { selector: `${flagHintCall} > LogicalExpression[operator='??'] > TemplateLiteral.right > ${flagHintTemplate}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > TemplateLiteral > ConditionalExpression > ${flagHintLiteral}`, message: flagHintMessage },
+  { selector: `${flagHintCall} > TemplateLiteral > ConditionalExpression > TemplateLiteral > ${flagHintTemplate}`, message: flagHintMessage },
 ]
 
 export default defineConfig(

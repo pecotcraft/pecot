@@ -129,6 +129,10 @@ interface Posting {
   真なら、前提をすべて付けた後に判定を読み、Blocked の列を直す。既存の Issue を前提に持ち、Blocked で作った Issue だけが真
   */
   readonly settleColumn: boolean
+  /**
+  真なら、Issue を作った直後に issue-create-slash-pending を消す（後の例外でフラグを残さない）
+  */
+  readonly consumeSlashPending?: boolean | undefined
 }
 
 /**
@@ -149,6 +153,7 @@ interface PostedIssue {
   列を Blocked から Ready へ動かしたか
   */
   readonly isMovedToReady: boolean
+  readonly isOnBoard: boolean
 }
 
 function reAddCommand(issue: IssueReference, prerequisite: Readonly<PostPrerequisite>): CommandHint {
@@ -234,6 +239,7 @@ async function postIssue(output: Output, client: GitHubClient, config: ProjectCo
   const target = `Issue ${issuePath(owner, repository, number)}`
   const reference = createIssueReference(createRepositoryReference(owner, repository), number)
   consumeFlag(FLAG_ISSUE_PENDING)
+  if (posting.consumeSlashPending === true) consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
 
   // 応答に node_id が無いときだけ、ボードへの追加の結果から取るので、先にボードへ足す
   let added: BoardItem | undefined
@@ -260,7 +266,7 @@ async function postIssue(output: Output, client: GitHubClient, config: ProjectCo
     await linkToParentEpic(output, client, target, posting.parentReference, knownNodeId ?? (() => client.getIssueNodeId(owner, repository, number)), added === undefined ? undefined : url)
   }
   if (added !== undefined) output.data(url)
-  return { number, nodeId: knownNodeId, isMovedToReady }
+  return { number, nodeId: knownNodeId, isMovedToReady, isOnBoard: added !== undefined }
 }
 
 /**
@@ -828,13 +834,15 @@ const FREEFORM_FOOTER = '<!-- issue create の freeform で起票（テンプレ
 const FREEFORM_TITLE_LENGTH = 50
 
 /**
-freeform の Issue の欄。priority は medium、size は s（Backlog に置く型は付けない）
+freeform の Issue の欄。priority の既定は medium、size の既定は s（Backlog に置く型には既定を付けない）
 */
-function freeformFields(issueType: IssueType, status: string): readonly IssueField[] {
+function freeformFields(issueType: IssueType, status: string, priority: string | undefined, size: string | undefined): readonly IssueField[] {
+  const chosenPriority = priority === undefined || priority === '' ? 'medium' : priority
+  const chosenSize = size === undefined || size === '' ? (BACKLOG_TYPES.has(issueType) ? undefined : 's') : size
   return [
     { fieldName: 'workflow', optionName: status, label: `status ${status}` },
-    { fieldName: 'priority', optionName: 'medium', label: 'priority medium' },
-    ...BACKLOG_TYPES.has(issueType) ? [] : [{ fieldName: 'size', optionName: 's', label: 'size s' }],
+    { fieldName: 'priority', optionName: chosenPriority, label: `priority ${chosenPriority}` },
+    ...chosenSize === undefined ? [] : [{ fieldName: 'size', optionName: chosenSize, label: `size ${chosenSize}` }],
   ]
 }
 
@@ -843,6 +851,8 @@ interface FreeformInput {
   readonly repo?: string | undefined
   readonly type: IssueType
   readonly status?: string | undefined
+  readonly priority?: string | undefined
+  readonly size?: string | undefined
   readonly parent_epic?: string | undefined
   readonly order?: number | undefined
   readonly label?: readonly string[] | undefined
@@ -874,7 +884,7 @@ async function createFreeform(output: Output, input: Readonly<FreeformInput>, is
     return
   }
 
-  await postIssue(output, client, config, { failures: [], cache: createReadinessCache() }, {
+  const posted = await postIssue(output, client, config, { failures: [], cache: createReadinessCache() }, {
     owner,
     repository,
     title,
@@ -882,13 +892,13 @@ async function createFreeform(output: Output, input: Readonly<FreeformInput>, is
     labels: input.label !== undefined && input.label.length > 0 ? input.label : undefined,
     source: undefined,
     useResponseNodeId: true,
-    fields: freeformFields(issueType, status),
+    fields: freeformFields(issueType, status, input.priority, input.size),
     parentReference,
     prerequisites: [],
     settleColumn: false,
+    consumeSlashPending: true,
   })
-  consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
-  if (!BACKLOG_TYPES.has(issueType)) touchFlag(FLAG_PECOT_QUICK_MODE)
+  if (posted.isOnBoard && !BACKLOG_TYPES.has(issueType)) touchFlag(FLAG_PECOT_QUICK_MODE)
 }
 
 interface MessageInput {
@@ -942,7 +952,7 @@ const ISSUE_CREATE = defineCommand({
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
     dry_run: z.boolean().default(false).describe('Show what would be created without writing anything (with files: the progression table and stackable chains)'),
-    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters, priority medium, size s)'),
+    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters; priority medium and size s unless given)'),
     prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
     template: TEMPLATE_SCHEMA,
     suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),

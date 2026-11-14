@@ -9,6 +9,7 @@
 // 検証エラーの文は、Python の CLI の書式に揃える。
 // 表題は元のクラス名（RepoRef・ResolvedRepo）を使う。
 
+import { formatHinted, globalRepositoryHint, hinted, placeholder } from './command-hint.js'
 import { PecotError, InvalidValueError } from './errors.js'
 import type { GitRunner } from './git-runner.js'
 import { parseRemoteUrl } from './git-url.js'
@@ -139,6 +140,7 @@ export function resolveRepository(explicit: string | undefined, git: GitRunner):
   if (detected !== undefined) {
     return createResolvedRepository({ repository: detected.repository, source: 'current-git', remoteName: detected.remoteName })
   }
-  // eslint-disable-next-line no-restricted-syntax -- 文を出すのは CLI の最上位（src/cli.ts）だけ。ほかの呼び手は捕まえて undefined にする
-  throw new AmbiguousRepositoryError('repository is ambiguous: pass --repo <owner/repo>')
+  // 文を出すのは CLI の最上位（src/cli.ts）だけ。ほかの呼び手は捕まえて undefined にする
+  const repositoryHint = globalRepositoryHint(placeholder('owner/repo'))
+  throw new AmbiguousRepositoryError(formatHinted(hinted`repository is ambiguous: pass ${repositoryHint}`, 'cli'))
 }

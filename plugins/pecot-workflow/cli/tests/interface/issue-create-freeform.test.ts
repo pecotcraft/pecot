@@ -91,9 +91,21 @@ describe('issue create', () => {
     expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
   })
 
-  it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定をせず、終了コード 0 で終わる', async (context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-65')
+  it('--priority と --size を渡すと、既定の medium・s の代わりにその値を設定する', async (context) => {
+    await verifies(context, 'PW-ISSUE-CREATE-73')
     setUpIssueProject()
+    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+
+    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--priority', 'high', '--size', 'm')
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size m\n')
+  })
+
+  it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定をせず、quick のフラグを作らずに終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-CREATE-65')
+    await verifies(context, 'PW-ISSUE-CREATE-74')
+    const project = setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), failedAddToProject()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo')
@@ -101,11 +113,13 @@ describe('issue create', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12\nwarning: could not add Issue acme\/demo\/12 to project: .+\n$/u)
+    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
   })
 
-  it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async (context) => {
+  it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わり、作成の直後に pending のフラグを消している', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-66')
-    setUpIssueProject()
+    await verifies(context, 'PW-ISSUE-CREATE-75')
+    const project = setUpIssueProject({ files: PENDING_FLAGS })
     await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--parent-epic', '3')
@@ -113,6 +127,8 @@ describe('issue create', () => {
     expect(result.code).toBe(1)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
+    expect(hasFile(project.root, '.pecot/state/issue-pending')).toBe(false)
+    expect(hasFile(project.root, '.pecot/state/issue-create-slash-pending')).toBe(false)
   })
 
   it.for([

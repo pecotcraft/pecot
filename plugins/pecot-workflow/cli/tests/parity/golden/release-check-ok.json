@@ -38,7 +38,9 @@
       "type": "rest",
       "method": "GET",
       "path": "/repos/acme/demo/compare/main...develop",
-      "query": {},
+      "query": {
+        "per_page": "1"
+      },
       "auth": "token"
     }
   ],

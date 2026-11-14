@@ -14,9 +14,11 @@
   "project-unset-state": "error: no active project\n  run: project_activate with project: <PROJECT>\n",
   "release-create-state-no-release-branch": "error: release_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", release_branch: <branch>\n",
   "session-restore-state-no-issue-number": "error: cannot infer the Issue number from the branch name: feat/no-number\n  run: session_restore with issue_ref: <owner/repo/N>\n",
-  "session-start-state-repo-mismatch": "error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n  to issue the command on purpose from outside the CWD (for example in a script), give allow_cross_repo: true\n",
+  "session-start-state-no-develop-branch": "error: develop_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", develop_branch: \"develop\"\n  or give the base: session_start with issue_ref: \"acme/demo/7\", branch: \"feat\", base: \"main\"\n",
+  "session-start-state-repo-mismatch":"error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n  to issue the command on purpose from outside the CWD (for example in a script), give allow_cross_repo: true\n",
   "worktree-add-state-no-config": "error: worktree config not found: .pecot/config/worktree-config.json\n    run worktree_init to generate the template\n",
   "worktree-add-state-not-registered": "error: repository acme/demo is not registered in the active pecot project\n  \n  registered repositories:\n    - acme/other\n  \n  to add this repository to the pecot project:\n    project_link with repo: \"acme/demo\"\n  \n  to switch to another project:\n    project_activate with project: <PROJECT>\n",
   "worktree-link-state-main-worktree": "error: use all: true in the main worktree\n",
-  "worktree-link-state-no-config": "error: worktree config not found\n  run: worktree_init with directory: <directory>\n"
+  "worktree-link-state-no-config": "error: worktree config not found\n  run: worktree_init with directory: <directory>\n",
+  "worktree-remove-state-dirty": "error: failed to remove the worktree: fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n  hint: to remove it with its changes, pass force: true\n"
 }

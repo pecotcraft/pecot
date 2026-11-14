@@ -66,6 +66,10 @@ CI は affected のレーンだけを matrix の job に分けて動かすので
 - 同じ位置に同じ語が 2 回ある
 - 名前に `read_only` の語を持つ項目の `effects` に、`read` でない種類がある（`authored.yaml` の行で出す）
 
+`read_only` の確かめが見るのは、`positions` に載った語だけです。
+`rest` の側の語（pecot-tools の操作名など）には印を付けられないので、確かめの対象になりません。
+今この確かめが働くのは、`read_only` の印を持つ pecot-workflow だけです。
+
 書き出しの `--check` は `names` も比べるので、語彙を変えて書き出しを忘れると止まります。
 
 | プラグイン | 区切り | 語彙の置き場 |

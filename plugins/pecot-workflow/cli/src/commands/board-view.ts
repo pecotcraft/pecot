@@ -37,15 +37,15 @@ function updatedAtOf(item: Readonly<BoardItem>): string {
 
 /**
 Archived のアイテムを updatedAt の新しい順に並べ、最新の 20 件を残して、残りをボードから消す。
-消せなかった分は warning にとどめる
+消せなかった件数を warning の行に出し、その数を返す
 */
-export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[], isDryRun: boolean): Promise<void> {
+export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[], isDryRun: boolean): Promise<number> {
   const archived = allItems.filter(item => item.workflow === 'Archived').toSorted((first, second) => compareStrings(updatedAtOf(second), updatedAtOf(first)))
-  if (archived.length <= ARCHIVED_KEEP) return
+  if (archived.length <= ARCHIVED_KEEP) return 0
   const targets = archived.slice(ARCHIVED_KEEP)
   if (isDryRun) {
     out.planned({ verb: 'delete', target: `${String(targets.length)} archived items` })
-    return
+    return 0
   }
   let deleted = 0
   for (const item of targets) {
@@ -63,6 +63,7 @@ export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly
   if (deleted > 0) out.done({ verb: 'delete', target: `${String(deleted)} archived items` })
   const failed = targets.length - deleted
   if (failed > 0) out.warning(`failed to delete ${String(failed)} archived items`)
+  return failed
 }
 
 /**

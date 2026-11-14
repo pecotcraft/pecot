@@ -100,6 +100,7 @@ github:
   - match:
       method: "GET"
       path: "/repos/acme/demo/compare/main...develop"
+      query: {"per_page": "1"}
     respond:
       status: 200
       body: {ahead_by: 2}

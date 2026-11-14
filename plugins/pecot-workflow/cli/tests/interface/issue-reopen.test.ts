@@ -52,7 +52,20 @@ describe('issue reopen', () => {
 
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('updated: Issue acme/demo/7 unarchived on the board\nset: Issue acme/demo/7 status ready\nreopened: Issue acme/demo/7\n')
-    expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', PATCH, 'GetIssueProjectItems', 'UnarchiveProjectItem', 'UpdateProjectItemField', PATCH])
+    expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems', 'UnarchiveProjectItem', PATCH, 'UpdateProjectItemField', PATCH])
+  })
+
+  it('もしアーカイブを解けないなら、Issue を開かずに error の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-23')
+    prepareProject()
+    const archived: ResponseRule = { match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number: 7 } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_7', isArchived: true, project: { id: 'PVT_1' } }] } } } } } }, times: 1 }
+    const github = await startGithub([linkedRepositories(), archived, failing({ operation: 'UnarchiveProjectItem' }, 500)])
+
+    const result = await reopen(['acme/demo/7'])
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: could not unarchive Issue acme\/demo\/7 on the board: .+500/u)
+    expect(github.requests().map(request => labelOf(request))).not.toContain(PATCH)
   })
 
   it('--status を渡すと、reopen の後にボードの status をその値にして set の行を出す', async (context) => {
@@ -67,8 +80,8 @@ describe('issue reopen', () => {
     expect(result.stderr).toBe('set: Issue acme/demo/7 status active\nreopened: Issue acme/demo/7\n')
     expect(github.requests().map(request => labelOf(request))).toEqual([
       'GetLinkedRepositoriesUser',
-      PATCH,
       'GetIssueProjectItems',
+      PATCH,
       'UpdateProjectItemField',
       PATCH,
     ])
@@ -115,7 +128,7 @@ describe('issue reopen', () => {
     await vi.advanceTimersByTimeAsync(1)
     const result = await settleWithFakeDelays(pending)
 
-    expect(beforeEnd).toEqual(['GetLinkedRepositoriesUser', PATCH, 'GetIssueProjectItems', 'UpdateProjectItemField'])
+    expect(beforeEnd).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems', PATCH, 'UpdateProjectItemField'])
     expect(github.requests().map(request => labelOf(request)).slice(4)).toEqual([PATCH])
     expect(result.code).toBe(0)
   })
@@ -172,7 +185,7 @@ describe('issue reopen', () => {
       stdout: '',
       stderr: 'warning: Issue acme/demo/7 is not on the project board\nreopened: Issue acme/demo/7\n',
     })
-    expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', PATCH, 'GetIssueProjectItems', PATCH])
+    expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems', PATCH, PATCH])
   })
 
   it('status がプロジェクトに設定されていないとき、warning を出して reopen する', async (context) => {
@@ -271,7 +284,7 @@ describe('issue reopen', () => {
   it('GitHub API がエラーを返したとき、error を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-REOPEN-18')
     prepareProject()
-    await startGithub([linkedRepositories(), failing({ method: 'PATCH', path: '/repos/acme/demo/issues/7' }, 500)])
+    await startGithub([linkedRepositories(), boardItems(), failing({ method: 'PATCH', path: '/repos/acme/demo/issues/7' }, 500)])
 
     const result = await reopen(['acme/demo/7'])
 
