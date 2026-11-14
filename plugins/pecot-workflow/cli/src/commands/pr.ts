@@ -214,10 +214,10 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
 function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
   const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
   if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    stopWith(out, 'release_branch is not set\nset it with: pecot project set-repo owner/repo --release-branch main')
+    stopWith(out, 'release_branch is not set\nset it with: pecot repo set owner/repo --release-branch main')
   }
   if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    stopWith(out, 'develop_branch is not set\nset it with: pecot project set-repo owner/repo --develop-branch develop')
+    stopWith(out, 'develop_branch is not set\nset it with: pecot repo set owner/repo --develop-branch develop')
   }
 }
 
@@ -678,7 +678,7 @@ function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, re
   if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
-    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project set-repo ${location.owner}/${location.repository} --develop-branch develop`)
+    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot repo set ${location.owner}/${location.repository} --develop-branch develop`)
   }
   const branchName = `${remote}/${developBranch}`
   return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)

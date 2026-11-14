@@ -72,7 +72,7 @@ git branch -D <マージしたブランチ>
 ```
 
 > **Note**: リモートブランチは `pr_cleanup`（`delete_branch: true`）で自動削除される。
-> 手動でリモートブランチを削除する場合は、`delete_branch` を `repo_ref: "<owner/repo>"`・`branch: "<branch>"` で呼ぶ。
+> 手動でリモートブランチを削除する場合は、`branch_delete` を `repo_ref: "<owner/repo>"`・`branch: "<branch>"` で呼ぶ。
 
 **禁止事項**:
 

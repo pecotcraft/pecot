@@ -11,9 +11,9 @@ import type { BoardItem } from '../../domain/format.js'
 
 useIsolatedEnvironment()
 
-describe('project set-repo の --package', () => {
+describe('repo set の --package', () => {
   it('NAME の形が不正だと、GitHub を呼ぶ前に終了コード 1 で止まる', async () => {
-    const result = await runCommand({ argv: ['project', 'set-repo', 'acme/other', '--package', 'b!d:x/CHANGELOG.md'] })
+    const result = await runCommand({ argv: ['repo', 'set', 'acme/other', '--package', 'b!d:x/CHANGELOG.md'] })
     expect(result.code).toBe(1)
     expect(result.requests).toEqual([])
     expect(result.stdout).toBe('')

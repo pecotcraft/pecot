@@ -281,7 +281,7 @@ describe('release preflight', () => {
     await verifies(context, 'PW-RELEASE-PREFLIGHT-24')
     const result = await runPreflight(project({ repositories: [repository] }))
     expect(result.stderr).toContain(`error: ${kind}_branch is not set for acme/demo\n`)
-    expect(result.stderr).toContain(`pecot project set-repo acme/demo --${kind}-branch <branch>`)
+    expect(result.stderr).toContain(`pecot repo set acme/demo --${kind}-branch <branch>`)
   })
 
   it.for([
@@ -503,7 +503,7 @@ describe('release create', () => {
     await verifies(context, 'PW-RELEASE-CREATE-18')
     const result = await runCreate(project(WITHOUT_RELEASE_BRANCH), ['0.2.0'])
     expect(result.stderr).toContain('error: release_branch is not set for acme/demo\n')
-    expect(result.stderr).toContain('pecot project set-repo acme/demo --release-branch <branch>')
+    expect(result.stderr).toContain('pecot repo set acme/demo --release-branch <branch>')
   })
 
   it('もし release_branch を設定していないなら、終了コード 1 で終わる', async (context) => {
@@ -705,7 +705,7 @@ describe('release merge', () => {
     await verifies(context, 'PW-RELEASE-MERGE-20')
     const result = await runMerge(project(WITHOUT_RELEASE_BRANCH), ['acme/demo/31'], [pullRequestResponse()])
     expect(result.stderr).toContain('error: release_branch is not set for acme/demo\n')
-    expect(result.stderr).toContain('pecot project set-repo acme/demo --release-branch <branch>')
+    expect(result.stderr).toContain('pecot repo set acme/demo --release-branch <branch>')
   })
 
   it('もし release_branch を設定していないなら、終了コード 1 で終わる', async (context) => {

@@ -15,20 +15,30 @@ import { WORKTREE_COMMANDS } from './worktree.js'
 export { defineCommand, toolNameOf } from './command-definition.js'
 export type { CommandDefinition, CommandIo, PreparedCommand } from './command-definition.js'
 
-// 並びは Python の登録順。help の一覧と「近いコマンド」の案内が、この順で出る
-export const COMMANDS: readonly CommandDefinition[] = [
-  ...ISSUE_BOARD_COMMANDS,
-  ...REPOSITORY_COMMANDS,
+// help の一覧と「近いコマンド」の案内に出るグループの順。ここに無い 1 語目は末尾に登録順で並ぶ
+const GROUP_ORDER: readonly string[] = ['project', 'repo', 'aggregation', 'issue', 'board', 'branch', 'pr', 'session', 'release', 'security', 'dependabot', 'worktree']
+
+const DEFINITIONS: readonly CommandDefinition[] = [
   ...PROJECT_COMMANDS,
   ...ISSUE_COMMANDS,
+  ...ISSUE_BOARD_COMMANDS,
+  ...BOARD_COMMANDS,
+  ...REPOSITORY_COMMANDS,
   ...PR_COMMANDS,
   ...SESSION_COMMANDS,
   ...RELEASE_COMMANDS,
   ...SECURITY_COMMANDS,
   ...DEPENDABOT_COMMANDS,
-  ...BOARD_COMMANDS,
   ...WORKTREE_COMMANDS,
 ]
+
+function groupRank(path: readonly string[]): number {
+  const rank = GROUP_ORDER.indexOf(path.at(0) ?? '')
+  return rank === -1 ? GROUP_ORDER.length : rank
+}
+
+// 1 語目のグループごとにまとめる。グループの中は登録順（toSorted は安定）
+export const COMMANDS: readonly CommandDefinition[] = DEFINITIONS.toSorted((left, right) => groupRank(left.path) - groupRank(right.path))
 
 export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {
   return commands.find(command => command.path.join(' ') === path.join(' '))

@@ -30,7 +30,7 @@ export function getStateDirectory(options: Readonly<StateDirectoryOptions> = {})
 
 /**
 作業ディレクトリ `.pecot/work/<Issue番号>/` を作って返す。
-.pecot-active へ作業対象を記録するタイミング（create-branch / issue quick / session restore）で呼ぶ。
+.pecot-active へ作業対象を記録するタイミング（branch create / issue quick / session restore）で呼ぶ。
 作れないとき（プロジェクトルート不明・OS のエラー）は undefined。作業フロー自体は止めない
 */
 export function ensureWorkDirectory(issueReference: string): string | undefined {

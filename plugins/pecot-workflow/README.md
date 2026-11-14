@@ -45,8 +45,8 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、`pecot` CLI の 35 個のコマンドを MCP ツールとして公開します。
-ツール名は、コマンドの空白と `-` を `_` に置き換えた形です（`issue create` は `issue_create`、`add-to-project` は `add_to_project`）。
+MCP サーバ `pecot-workflow` が、`pecot` CLI の 37 個のコマンドを MCP ツールとして公開します。
+ツール名は、`<対象> <動詞>` の空白を `_` に置き換えた形です（`issue create` は `issue_create`、`branch create` は `branch_create`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
 GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。
 
@@ -72,6 +72,32 @@ Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 
 - 15 分たってから新しいセッションを始める
 
 ---
+
+## コマンド名の移行
+
+コマンド名を `<対象> <動詞>` の 2 語にそろえました。次の 8 個は名前が変わり、古い名前は使えません。
+
+| 古い名前 | 新しい名前 | 新しいツール名 |
+|:---|:---|:---|
+| `add-to-project` | `board add` | `board_add` |
+| `update-issue-status` | `board move` | `board_move` |
+| `create-branch` | `branch create` | `branch_create` |
+| `delete-branch` | `branch delete` | `branch_delete` |
+| `project set-repo` | `repo set` | `repo_set` |
+| `project set-aggregation-repo` | `aggregation set` | `aggregation_set` |
+| `project unset-aggregation-repo` | `aggregation unset` | `aggregation_unset` |
+| `project show-aggregation-repo` | `aggregation show` | `aggregation_show` |
+
+残りのコマンドの名前は変わりません。設定のキー `aggregation_repo` と、入力名・フラグの `delete_branch`・`--delete-branch` も変わりません。
+
+- 許可の設定
+  - 古いツール名を書いた許可は、使われなくなる。確認のダイアログが出るだけで、失敗はしない
+  - Claude Code では、`mcp__plugin_pecot-w_pecot-workflow__<ツール名>` の `<ツール名>` を新しい名前にする
+  - GitHub Copilot CLI では、`pecot-workflow-<ツール名>` の `<ツール名>` を新しい名前にする
+- スクリプト
+  - `pecot` を呼ぶ自分のスクリプトは、表のとおり古い名前を新しい名前に書き換える
+  - 古い名前を打つと、実行せずに新しい名前を案内して終了コード 2 で止まる（例: `'create-branch' was renamed to 'branch create'.`）
+- スキル・hook・雛形は、同じ版で新しい名前に変わる。直すものは無い
 
 ## 動作要件
 

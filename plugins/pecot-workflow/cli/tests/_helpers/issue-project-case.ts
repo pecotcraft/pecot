@@ -1,4 +1,4 @@
-// add-to-project・update-issue-status・issue reopen のテストが共有する準備。
+// board add・board move・issue reopen のテストが共有する準備。
 import type { ResponseRule } from '../fake-github/server.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'

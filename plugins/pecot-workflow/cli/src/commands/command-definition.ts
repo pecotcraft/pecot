@@ -41,7 +41,7 @@ export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
 export interface CommandSpec<Input extends z.ZodObject> {
   /**
-  `['issue', 'create']`、`['add-to-project']`
+  `['issue', 'create']`、`['board', 'add']`。決まりは `<対象> <動詞>` の 2 語で、どちらも英小文字だけ（names.ts の commandNameViolations）
   */
   readonly path: readonly string[]
   /**
@@ -141,14 +141,14 @@ export interface CommandDefinition {
 }
 
 /**
-path から MCP のツール名を作る。`['issue', 'create']` は issue_create、`['add-to-project']` は add_to_project
+path から MCP のツール名を作る。`['issue', 'create']` は issue_create、`['board', 'add']` は board_add
 */
 export function toolNameOf(path: readonly string[]): string {
-  return path.join('_').replaceAll('-', '_')
+  return path.join('_')
 }
 
 /**
-path から定義書（interface/）の項目の ID を作る。`['create-branch']` は PW-CREATE-BRANCH、`['issue', 'create']` は PW-ISSUE-CREATE
+path から定義書（interface/）の項目の ID を作る。`['branch', 'create']` は PW-BRANCH-CREATE、`['issue', 'create']` は PW-ISSUE-CREATE
 */
 export function interfaceIdOf(path: readonly string[]): string {
   return `PW-${path.join(' ').toUpperCase().replaceAll(/[ _]/g, '-')}`

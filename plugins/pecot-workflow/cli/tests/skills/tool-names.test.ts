@@ -11,9 +11,9 @@ import { readDocuments, toolInputs } from './_helpers/documents.js'
 const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:54', 'skills/w-help/SKILL.md:56']
 
 // ツール名に似るが、入力の値や概念を指す語
-const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'issue_number', 'session_id'])
+const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'issue_number', 'session_id', 'aggregation_repo', 'board_url'])
 
-const TOOL_LIKE = /\b(?:(?:issue|pr|project|session|worktree|release|security|dependabot)_[a-z_]+|add_to_project|update_issue_status|create_branch|delete_branch)\b/gu
+const TOOL_LIKE = /\b(?:(?:issue|pr|project|session|worktree|release|security|dependabot|board|branch|repo|aggregation)_[a-z_]+|add_to_project|update_issue_status|create_branch|delete_branch)\b/gu
 const TOP_WORDS = [...new Set(COMMANDS.map(command => command.path[0] ?? ''))].toSorted(compareStrings).join('|')
 // deny の hook の起動形を拾う。起動形は pecot・$PECOT・${PECOT}・.../bin/pecot で、クオート付きを含む。
 // 後ろに `--repo <値>` があってもよい。その後ろに、サブコマンドか `--help`・`--version` が来る形を拾う。

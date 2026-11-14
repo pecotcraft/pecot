@@ -38,6 +38,7 @@ import {
   MISSING_COMMAND_MESSAGE,
   noSuchCommandMessage,
   noSuchOptionMessage,
+  renamedCommandMessage,
   USAGE_EXIT_CODE,
   UsageError,
 } from './commands/usage-error.js'
@@ -61,6 +62,18 @@ type Resolution
   = | { readonly kind: 'command', readonly definition: CommandDefinition, readonly argv: readonly string[] }
     | { readonly kind: 'help', readonly path: readonly string[] }
 
+// #412 で変えた古い名前。キーは解決が止まる位置までの path。次の major で消す
+const RENAMED_COMMANDS: ReadonlyMap<string, string> = new Map([
+  ['add-to-project', 'board add'],
+  ['update-issue-status', 'board move'],
+  ['create-branch', 'branch create'],
+  ['delete-branch', 'branch delete'],
+  ['project set-repo', 'repo set'],
+  ['project set-aggregation-repo', 'aggregation set'],
+  ['project unset-aggregation-repo', 'aggregation unset'],
+  ['project show-aggregation-repo', 'aggregation show'],
+])
+
 function isUnderGroup(path: readonly string[], group: readonly string[]): boolean {
   return group.every((segment, index) => path.at(index) === segment)
 }
@@ -81,6 +94,8 @@ function resolveCommand(group: readonly string[], rest: readonly string[], comma
     .filter(command => command.path.length > group.length && isUnderGroup(command.path, group))
     .map(command => command.path.slice(group.length, group.length + 1).join(''))
   if (!names.includes(name)) {
+    const renamed = RENAMED_COMMANDS.get(path.join(' '))
+    if (renamed !== undefined) throw new UsageError(renamedCommandMessage(path.join(' '), renamed), context)
     const possibilities = closeMatches(name, [...new Set(names)])
     throw new UsageError(noSuchCommandMessage(name, possibilities), context)
   }

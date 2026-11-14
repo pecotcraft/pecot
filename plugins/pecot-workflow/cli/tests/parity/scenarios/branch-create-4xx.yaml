@@ -1,0 +1,95 @@
+# ベースブランチの ref が 404。API エラーとして exit 1 になる。
+id: branch-create-4xx
+command:
+  path: [branch, create]
+  args: [acme/demo/7, feat]
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: GetLinkedRepositoriesUser
+      variables: {owner: acme, projectNumber: 1}
+    respond:
+      status: 200
+      body:
+        data:
+          user:
+            projectV2:
+              repositories:
+                nodes:
+                  - {name: demo, owner: {login: acme}}
+  - match:
+      operation: GetIssuePrerequisites
+      variables: {owner: acme, repo: demo, number: 7}
+    respond:
+      status: 200
+      body:
+        data: {"repository":{"issue":{"id":"I_demo_7", "number":7, "state":"OPEN", "title":"課題7", "repository":{"owner":{"login":"acme"}, "name":"demo"}, "issueType":{"name":"Task"}, "subIssues":{"totalCount":0}, "projectItems":{"totalCount":0, "nodes":[]}, "linkedBranches":{"totalCount":0, "nodes":[]}, "closedByPullRequestsReferences":{"totalCount":0, "nodes":[]}, "timelineItems":{"totalCount":0, "nodes":[]}, "body":"本文", "parent":null, "blockedBy":{"totalCount":0, "nodes":[]}}}}
+  - match:
+      operation: GetIssueNodeId
+      variables: {owner: acme, repo: demo, number: 7}
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue: {id: I_7, title: 見本の Issue}
+  - match:
+      method: GET
+      path: /repos/acme/demo/git/ref/heads/main
+    respond:
+      status: 404
+      body: {message: Not Found}

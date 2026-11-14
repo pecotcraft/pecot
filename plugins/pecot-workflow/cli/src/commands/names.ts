@@ -14,3 +14,29 @@ export function byName(left: string, right: string): number {
   if (left < right) return -1
   return left > right ? 1 : 0
 }
+
+const COMMAND_WORD_PATTERN = /^[a-z]+$/u
+const COMMAND_WORD_COUNT = 2
+
+/**
+コマンド名の決まりに合わない path と、その理由
+*/
+export interface CommandNameViolation {
+  readonly path: string
+  readonly reason: string
+}
+
+/**
+コマンド名の決まり（`<対象> <動詞>` の 2 語で、どちらの語も英小文字だけ）に合わない path を、渡された順で返す。全部が合えば空
+*/
+export function commandNameViolations(paths: readonly (readonly string[])[]): readonly CommandNameViolation[] {
+  return paths
+    .map(path => ({
+      path: path.join(' '),
+      reason: [
+        ...path.length === COMMAND_WORD_COUNT ? [] : [`has ${String(path.length)} word(s); a command name is '<object> <verb>' (2 words)`],
+        ...path.filter(word => !COMMAND_WORD_PATTERN.test(word)).map(word => `'${word}' is not lowercase letters only (^[a-z]+$)`),
+      ].join('; '),
+    }))
+    .filter(violation => violation.reason !== '')
+}

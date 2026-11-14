@@ -5,7 +5,7 @@ import { readScenario, scenarioIds } from './scenario.js'
 
 describe('toolInputOf', () => {
   it('位置引数を、定義書の positional の順に入力へ入れる', () => {
-    expect(toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', 'active'])).toEqual({ issue_ref: 'acme/demo/7', status: 'active' })
+    expect(toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', 'active'])).toEqual({ issue_ref: 'acme/demo/7', status: 'active' })
   })
 
   it('値を取るフラグは、短い形と長い形のどちらも、入力の名前に引く', () => {
@@ -14,8 +14,8 @@ describe('toolInputOf', () => {
   })
 
   it('値を取らないフラグは true、否定形は false、入力 no_x の --no-x は true', () => {
-    expect(toolInputOf(readToolShape(['create-branch']), ['acme/demo/7', '--no-checkout'])).toMatchObject({ checkout: false })
-    expect(toolInputOf(readToolShape(['create-branch']), ['acme/demo/7', '--checkout'])).toMatchObject({ checkout: true })
+    expect(toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--no-checkout'])).toMatchObject({ checkout: false })
+    expect(toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--checkout'])).toMatchObject({ checkout: true })
     expect(toolInputOf(readToolShape(['issue', 'quick']), ['-m', 'x', '--no-branch'])).toMatchObject({ no_branch: true })
   })
 
@@ -33,7 +33,7 @@ describe('toolInputOf', () => {
   })
 
   it('-- より後ろは位置引数にする', () => {
-    expect(toolInputOf(readToolShape(['update-issue-status']), ['--', '-1', 'active'])).toEqual({ issue_ref: '-1', status: 'active' })
+    expect(toolInputOf(readToolShape(['board', 'move']), ['--', '-1', 'active'])).toEqual({ issue_ref: '-1', status: 'active' })
   })
 
   it('定義書に無いフラグと、値の無いフラグは例外にする', () => {
@@ -51,27 +51,27 @@ describe('toolInputOf', () => {
   })
 
   it('値を取らない真偽値のフラグに --flag=value で値を付けると、例外にする', () => {
-    expect(() => toolInputOf(readToolShape(['create-branch']), ['acme/demo/7', '--no-checkout=false'])).toThrow('値を取らない')
-    expect(() => toolInputOf(readToolShape(['create-branch']), ['acme/demo/7', '--checkout='])).toThrow('値を取らない')
+    expect(() => toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--no-checkout=false'])).toThrow('値を取らない')
+    expect(() => toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--checkout='])).toThrow('値を取らない')
   })
 
   it('位置引数が定義書より余ると、例外にする。最後が配列なら余らない', () => {
-    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', 'active', 'extra'])).toThrow('多すぎ')
-    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', 'active', '--', 'extra'])).toThrow('多すぎ')
+    expect(() => toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', 'active', 'extra'])).toThrow('多すぎ')
+    expect(() => toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', 'active', '--', 'extra'])).toThrow('多すぎ')
     expect(toolInputOf(readToolShape(['issue', 'create']), ['one.md', 'two.md', 'three.md'])).toMatchObject({ files: ['one.md', 'two.md', 'three.md'] })
   })
 
   it('値を取るフラグの値が -- のときは、区切りでなく値にする', () => {
     expect(toolInputOf(readToolShape(['session', 'status']), ['-D', '--'])).toEqual({ directory: '--' })
-    expect(toolInputOf(readToolShape(['update-issue-status']), ['--', 'acme/demo/7', 'active'])).toEqual({ issue_ref: 'acme/demo/7', status: 'active' })
+    expect(toolInputOf(readToolShape(['board', 'move']), ['--', 'acme/demo/7', 'active'])).toEqual({ issue_ref: 'acme/demo/7', status: 'active' })
   })
 
   it('負数に見える語は、-- より前なら写せない入力として例外にし、理由を示す', () => {
-    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['-1', 'active'])).toThrow('負数')
-    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', '-12'])).toThrow('負数')
+    expect(() => toolInputOf(readToolShape(['board', 'move']), ['-1', 'active'])).toThrow('負数')
+    expect(() => toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', '-12'])).toThrow('負数')
     // 値を取るフラグの値と、-- より後ろは、負数に見えても値・位置引数にする
     expect(toolInputOf(readToolShape(['issue', 'read']), ['acme/demo/7', '--comment-limit', '-3'])).toMatchObject({ comment_limit: -3 })
-    expect(toolInputOf(readToolShape(['update-issue-status']), ['--', '-1', 'active'])).toEqual({ issue_ref: '-1', status: 'active' })
+    expect(toolInputOf(readToolShape(['board', 'move']), ['--', '-1', 'active'])).toEqual({ issue_ref: '-1', status: 'active' })
   })
 
   it('定義書に無いコマンドは例外にする', () => {

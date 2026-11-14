@@ -46,3 +46,21 @@ artifact template が見つかったら本ルールに従って `plugins/pecot-w
 - #516 w-ready: SKILL.md からテンプレ本文記入ガイドを CLI テンプレ (`templates/issue/{task,bug}.md`) へ集約
 - #548 w-revise: `review-summary` を廃止し `review-findings` / `review-resolution` を新設、書式ガイドを CLI テンプレに集約
 - #549 w-merge: Epic 進捗報告フォーマットを CLI テンプレ実体 (`templates/comment/{merge-diff,precede-notify}.md`) に集約
+
+## 2. コマンド名の決まり
+
+### ルール
+
+コマンドの名前（`path`）は `<対象> <動詞>` の 2 語にします。
+
+- path は 2 語で、どちらの語も `^[a-z]+$` に合わせる。ハイフンと数字は使わない
+- 1 語目は、コマンドが書き換える（または読む）対象。2 語目は動詞
+- 同じ対象を扱うコマンドは、同じ 1 語目に置く
+- MCP のツール名は、2 語をつないだ `<対象>_<動詞>`。`_` が 1 個だけなので、前が対象、後ろが動詞と読める
+- `pecot mcp` は COMMANDS に無い起動の語なので、決まりの対象外
+
+### 確かめる場所
+
+- `cli/src/commands/names.ts` の関数が、path の一覧から決まりに合わないものを理由つきで返す
+- `cli/src/commands/tests/registry.test.ts` が、COMMANDS の全部を関数に当てて、違反が空であることを確かめる
+- 名前を変えるときは、古い名前の案内の表（`cli/src/cli.ts`）と README の「コマンド名の移行」も直す

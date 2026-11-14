@@ -22,9 +22,9 @@ function define(path: readonly string[], description: string): CommandDefinition
 const commands = [
   define(['issue', 'read'], 'Read an Issue'),
   define(['project', 'list'], 'List projects'),
-  define(['create-branch'], 'Create a branch linked to an Issue (shown in the Development section of the Issue)'),
+  define(['branch-create'], 'Create a branch linked to an Issue (shown in the Development section of the Issue)'),
   define(['issue', 'comment'], 'Post a comment on an Issue'),
-  define(['update-issue-status'], 'Update the status of an Issue'),
+  define(['issue-status-update'], 'Update the status of an Issue'),
 ]
 
 const ROOT_80 = `Usage: pecot [OPTIONS] COMMAND [ARGS]...
@@ -39,9 +39,9 @@ Options:
   --help               Show this message and exit.
 
 Commands:
-  create-branch        Create a branch linked to an Issue (shown in the
+  branch-create        Create a branch linked to an Issue (shown in the
                        Development section of the Issue)
-  update-issue-status  Update the status of an Issue
+  issue-status-update  Update the status of an Issue
   issue                Work with Issues
   project              Manage projects through the GitHub API
 
@@ -78,11 +78,11 @@ Options:
       Show this message and exit.
 
 Commands:
-  create-branch
+  branch-create
       Create a branch linked to an Issue
       (shown in the Development section
       of the Issue)
-  update-issue-status
+  issue-status-update
       Update the status of an Issue
   issue
       Work with Issues
@@ -110,7 +110,7 @@ describe('helpText', () => {
 
   it('単独のコマンドが先、グループが後に並ぶ。補完のオプションは出さない', () => {
     const text = helpText([], commands, 80)
-    expect(text.indexOf('update-issue-status')).toBeLessThan(text.indexOf('  project '))
+    expect(text.indexOf('issue-status-update')).toBeLessThan(text.indexOf('  project '))
     expect(text.indexOf('  issue ')).toBeLessThan(text.indexOf('  project '))
     expect(text).not.toContain('completion')
   })
@@ -138,7 +138,7 @@ describe('helpText', () => {
 
   it('広い端末では説明が折り返さず 1 行に収まる', () => {
     const lines = helpText([], commands, 120).split('\n')
-    expect(lines).toContain('  create-branch        Create a branch linked to an Issue (shown in the Development section of the Issue)')
+    expect(lines).toContain('  branch-create        Create a branch linked to an Issue (shown in the Development section of the Issue)')
   })
 
   it('狭い端末（40）では、節の全行で説明を次の行（字下げ 6）に下げる', () => {

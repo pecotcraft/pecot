@@ -1,7 +1,7 @@
 # packages monorepo のリリース
 
 1 リポ内に複数 package があり、package ごとに CHANGELOG とバージョンを持つ構成を扱う。
-設定は `project_set_repo` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
+設定は `repo_set` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
 
 ## バージョン決定基準
 

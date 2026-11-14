@@ -34,9 +34,9 @@ EOF
 }
 
 # git-worktree-branch-check.sh: 保護ブランチの push の阻止に足す、リモートブランチ削除の案内。
-mcp_guidance_delete_branch() {
+mcp_guidance_branch_delete() {
     cat <<'EOF'
-To delete a remote branch, use the MCP tool delete_branch of the workflow server with repo_ref (owner/repo) and branch.
+To delete a remote branch, use the MCP tool branch_delete of the workflow server with repo_ref (owner/repo) and branch.
 EOF
 }
 

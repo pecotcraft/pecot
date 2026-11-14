@@ -2,7 +2,7 @@
 /* eslint-disable unicorn/consistent-function-scoping -- 補助は、使う describe の近くに置く */
 /* eslint-disable unicorn/no-unnecessary-parameters -- 補助の引数を、行ごとにそろえる */
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
-// project の 10 個のコマンド（PW-PROJECT-*）の振る舞いを、runCli をプロセス内で呼んで確かめる。
+// project の 6 個（PW-PROJECT-*）と、repo set・aggregation の 4 個（PW-REPO-*・PW-AGGREGATION-*）の振る舞いを確かめる。runCli をプロセス内で呼ぶ。
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -130,6 +130,8 @@ const deletion = (itemId: string, status = 200): ResponseRule => status === 200
 const GHES: Partial<CommandRun> = { remote: { host: DEFAULT_HOST } }
 const READINESS_HEADER = '| Ref | Title | Readiness |\n|-----|----------|-----------|'
 const arguments_ = (...rest: string[]): string[] => ['project', ...rest]
+const repositoryArguments = (...rest: string[]): string[] => ['repo', ...rest]
+const aggregationArguments = (...rest: string[]): string[] => ['aggregation', ...rest]
 
 async function run(argv: readonly string[], github: readonly ResponseRule[] = [], extra: Partial<CommandRun> = {}): Promise<CommandResult> {
   return await runCommand({ argv, github, ...GHES, ...extra })
@@ -1098,13 +1100,13 @@ describe('project activate', () => {
   })
 })
 
-describe('project set-repo', () => {
+describe('repo set', () => {
   const demo = { owner: 'acme', name: 'demo', develop_branch: 'main' }
   const withRepository = (...repositories: Json[]): Partial<CommandRun> => ({ config: projectConfig({ repositories }) })
-  const setRepository = async (argv: string[], extra: Partial<CommandRun> = {}, github: ResponseRule[] = []): Promise<CommandResult> => await run(arguments_('set-repo', ...argv), github, extra)
+  const setRepository = async (argv: string[], extra: Partial<CommandRun> = {}, github: ResponseRule[] = []): Promise<CommandResult> => await run(repositoryArguments('set', ...argv), github, extra)
 
   it('未登録のリポジトリを渡すと、プロジェクトにリンクする', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-01')
+    await verifies(context, 'PW-REPO-SET-01')
     const result = await setRepository(['acme/other'], {}, linkRules())
     expect(result.code).toBe(0)
     expectClean(result)
@@ -1113,14 +1115,14 @@ describe('project set-repo', () => {
   })
 
   it('リンクに成功すると、設定ファイルにリポジトリを足す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-02')
+    await verifies(context, 'PW-REPO-SET-02')
     const result = await setRepository(['acme/other', '-b', 'dev', '--release-type', 'nx'], {}, linkRules())
     expect(repositoriesOf(result)).toEqual([demo, { owner: 'acme', name: 'other', develop_branch: 'dev', release_type: 'nx' }])
     expect(result.stderr).toBe(`added: acme/other to project #1\nadded: acme/other to ${configPathOf(result)}\n`)
   })
 
   it('登録済みのリポジトリを渡すと、渡したオプションの値だけを更新する', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-03')
+    await verifies(context, 'PW-REPO-SET-03')
     const result = await setRepository(['acme/demo', '-b', 'dev'], withRepository({ ...demo, release_branch: 'release' }))
     expect(result.code).toBe(0)
     expect(result.requests).toEqual([])
@@ -1129,13 +1131,13 @@ describe('project set-repo', () => {
   })
 
   it('登録済みのリポジトリに --package を渡すと、packages を置き換える', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-04')
+    await verifies(context, 'PW-REPO-SET-04')
     const result = await setRepository(['acme/demo', '--package', 'a:a/CHANGELOG.md', '--package', 'b:b/CHANGELOG.md'], withRepository({ ...demo, packages: [{ name: 'old', changelog: 'old.md' }] }))
     expect(repositoriesOf(result)).toEqual([{ ...demo, packages: [{ name: 'a', changelog: 'a/CHANGELOG.md' }, { name: 'b', changelog: 'b/CHANGELOG.md' }] }])
   })
 
   it('登録済みのリポジトリに --package を渡すと、changelog_file を消す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-05')
+    await verifies(context, 'PW-REPO-SET-05')
     const result = await setRepository(['acme/demo', '--package', 'a:a/CHANGELOG.md'], withRepository({ ...demo, changelog_file: 'CHANGELOG.md' }))
     const [entry] = repositoryEntries(result)
     expect(entry).not.toHaveProperty('changelog_file')
@@ -1143,21 +1145,21 @@ describe('project set-repo', () => {
   })
 
   it('登録済みのリポジトリに --clear-packages を付けると、packages を消す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-06')
+    await verifies(context, 'PW-REPO-SET-06')
     const result = await setRepository(['acme/demo', '--clear-packages'], withRepository({ ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }))
     expect(result.code).toBe(0)
     expect(repositoriesOf(result)).toEqual([demo])
   })
 
   it('リンクに失敗すると、設定ファイルを書き換えない', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-07')
+    await verifies(context, 'PW-REPO-SET-07')
     const before = JSON.stringify(projectConfig(), undefined, 2)
     const result = await setRepository(['acme/other'], {}, [projectIdRule(), unresolvedRepository()])
     expect(JSON.parse(result.read(CONFIG_FILE) ?? '')).toEqual(JSON.parse(before))
   })
 
   it('リンクに失敗すると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-08')
+    await verifies(context, 'PW-REPO-SET-08')
     const result = await setRepository(['acme/other'], {}, [projectIdRule(), unresolvedRepository()])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -1165,35 +1167,35 @@ describe('project set-repo', () => {
   })
 
   it('--package と --changelog-file を一緒に渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-09')
+    await verifies(context, 'PW-REPO-SET-09')
     const result = await setRepository(['acme/demo', '--package', 'a:a.md', '--changelog-file', 'C.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package and --changelog-file cannot be used together\n')
   })
 
   it('--package と --clear-packages を一緒に渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-10')
+    await verifies(context, 'PW-REPO-SET-10')
     const result = await setRepository(['acme/demo', '--package', 'a:a.md', '--clear-packages'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package and --clear-packages cannot be used together\n')
   })
 
   it('--package が NAME:PATH の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-11')
+    await verifies(context, 'PW-REPO-SET-11')
     const result = await setRepository(['acme/demo', '--package', 'nocolon'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give --package as NAME:PATH: \'nocolon\'\n')
   })
 
   it('--package の NAME が重なると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-12')
+    await verifies(context, 'PW-REPO-SET-12')
     const result = await setRepository(['acme/demo', '--package', 'foo:a.md', '--package', 'foo:b.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package NAME is duplicated: \'foo\'\n')
   })
 
   it('未登録のリポジトリに不正な --package の名前を渡すと、リンクせず終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-11')
+    await verifies(context, 'PW-REPO-SET-11')
     const result = await setRepository(['acme/new', '--package', 'bad name:p'])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -1203,35 +1205,35 @@ describe('project set-repo', () => {
   })
 
   it('リポジトリの所有者がプロジェクトの所有者と違うと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-13')
+    await verifies(context, 'PW-REPO-SET-13')
     const result = await setRepository(['different-owner/repo'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: repository owner different-owner differs from project owner acme\n  GitHub Projects V2 links only repositories of the project owner\n')
   })
 
   it('リポジトリが owner/repo の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-14')
+    await verifies(context, 'PW-REPO-SET-14')
     const result = await setRepository(['justname'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: give the repository as owner/repo\n  example: pecot project set-repo example-org/my-repo\n')
+    expect(result.stderr).toBe('error: give the repository as owner/repo\n  example: pecot repo set example-org/my-repo\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-15')
+    await verifies(context, 'PW-REPO-SET-15')
     const result = await setRepository(['acme/demo'], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
   it('--release-type が single・multi・nx のどれでもないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-16')
+    await verifies(context, 'PW-REPO-SET-16')
     const result = await setRepository(['acme/demo', '--release-type', 'bogus'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --release-type must be one of [\'multi\', \'nx\', \'single\'] (got: \'bogus\')\n')
   })
 
   it('packages を持つリポジトリに --changelog-file を渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-17')
+    await verifies(context, 'PW-REPO-SET-17')
     const result = await setRepository(['acme/demo', '--changelog-file', 'C.md'], withRepository({ ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: this repository has packages set\n  run with --clear-packages before switching to --changelog-file\n')
@@ -1239,33 +1241,33 @@ describe('project set-repo', () => {
   })
 })
 
-describe('project set-aggregation-repo', () => {
+describe('aggregation set', () => {
   const withAggregation = (value?: string): Partial<CommandRun> => ({ config: projectConfig(value === undefined ? {} : { extra: { aggregation_repo: value } }) })
-  const set = async (argv: string[], extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run(arguments_('set-aggregation-repo', ...argv), [], extra)
+  const set = async (argv: string[], extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run(aggregationArguments('set', ...argv), [], extra)
 
   it('未設定の状態で値を渡すと、設定ファイルに書く', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-01')
+    await verifies(context, 'PW-AGGREGATION-SET-01')
     const result = await set(['acme/roadmap'])
     expect(result.code).toBe(0)
     expect(savedConfig(result)['aggregation_repo']).toBe('acme/roadmap')
   })
 
   it('未設定の状態で値を渡すと、set の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-02')
+    await verifies(context, 'PW-AGGREGATION-SET-02')
     const result = await set(['acme/roadmap'])
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('set: aggregation_repo to acme/roadmap\n')
   })
 
   it('既にある値と同じ値を渡すと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-03')
+    await verifies(context, 'PW-AGGREGATION-SET-03')
     const result = await set(['acme/roadmap'], withAggregation('acme/roadmap'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('unchanged: aggregation_repo acme/roadmap\n')
   })
 
   it('既にある値と違う値を渡すと、上書きの warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-04')
+    await verifies(context, 'PW-AGGREGATION-SET-04')
     const result = await set(['acme/new'], withAggregation('acme/roadmap'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\n  pass --yes to omit this hint\nset: aggregation_repo to acme/new\n')
@@ -1273,13 +1275,13 @@ describe('project set-aggregation-repo', () => {
   })
 
   it('--yes を付けて上書きすると、warning の行から確認の案内を省く', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-05')
+    await verifies(context, 'PW-AGGREGATION-SET-05')
     const result = await set(['acme/new', '--yes'], withAggregation('acme/roadmap'))
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\nset: aggregation_repo to acme/new\n')
   })
 
   it('値が owner/repo の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-06')
+    await verifies(context, 'PW-AGGREGATION-SET-06')
     const result = await set(['roadmap'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give aggregation_repo as owner/repo: \'roadmap\'\n')
@@ -1287,63 +1289,63 @@ describe('project set-aggregation-repo', () => {
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-07')
+    await verifies(context, 'PW-AGGREGATION-SET-07')
     const result = await set(['acme/roadmap'], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 })
 
-describe('project unset-aggregation-repo', () => {
+describe('aggregation unset', () => {
   const configured = { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) }
 
   it('値を設定していると、設定ファイルから消す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-01')
-    const result = await run(arguments_('unset-aggregation-repo'), [], configured)
+    await verifies(context, 'PW-AGGREGATION-UNSET-01')
+    const result = await run(aggregationArguments('unset'), [], configured)
     expect(result.code).toBe(0)
     expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
   })
 
   it('値を設定していると、removed の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-02')
-    const result = await run(arguments_('unset-aggregation-repo'), [], configured)
+    await verifies(context, 'PW-AGGREGATION-UNSET-02')
+    const result = await run(aggregationArguments('unset'), [], configured)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('removed: aggregation_repo (was acme/roadmap)\n')
   })
 
   it('未設定だと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-03')
-    const result = await run(arguments_('unset-aggregation-repo'))
+    await verifies(context, 'PW-AGGREGATION-UNSET-03')
+    const result = await run(aggregationArguments('unset'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('unchanged: aggregation_repo (not set)\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-04')
-    const result = await run(arguments_('unset-aggregation-repo'), [], { config: false })
+    await verifies(context, 'PW-AGGREGATION-UNSET-04')
+    const result = await run(aggregationArguments('unset'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 })
 
-describe('project show-aggregation-repo', () => {
+describe('aggregation show', () => {
   it('値を設定していると、その値を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SHOW-AGGREGATION-REPO-01')
-    const result = await run(arguments_('show-aggregation-repo'), [], { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
+    await verifies(context, 'PW-AGGREGATION-SHOW-01')
+    const result = await run(aggregationArguments('show'), [], { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('acme/roadmap\n')
   })
 
   it('未設定だと、none を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SHOW-AGGREGATION-REPO-02')
-    const result = await run(arguments_('show-aggregation-repo'))
+    await verifies(context, 'PW-AGGREGATION-SHOW-02')
+    const result = await run(aggregationArguments('show'))
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('none\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SHOW-AGGREGATION-REPO-03')
-    const result = await run(arguments_('show-aggregation-repo'), [], { config: false })
+    await verifies(context, 'PW-AGGREGATION-SHOW-03')
+    const result = await run(aggregationArguments('show'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(NO_ACTIVE)

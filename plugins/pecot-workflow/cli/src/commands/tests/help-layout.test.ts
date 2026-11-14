@@ -66,7 +66,7 @@ describe('usageLines', () => {
   })
 
   it('続きの行を 7 桁下げる', () => {
-    expect(usageLines('pecot create-branch [OPTIONS] <issue_ref> <branch_name>', 40)).toBe('Usage: pecot create-branch [OPTIONS]\n       <issue_ref> <branch_name>')
+    expect(usageLines('pecot branch create [OPTIONS] <issue_ref> <branch_name>', 40)).toBe('Usage: pecot branch create [OPTIONS]\n       <issue_ref> <branch_name>')
   })
 })
 
@@ -84,7 +84,7 @@ describe('bulletSection', () => {
 
 describe('examplesSection', () => {
   it('打つ形は折り返さず、説明を字下げ 6 で折り返す', () => {
-    const run = 'pecot create-branch example-org/my-repo/123 feat/my-change --allow-cross-repo'
+    const run = 'pecot branch create example-org/my-repo/123 feat/my-change --allow-cross-repo'
     expect(examplesSection([{ run, note: 'Create the branch from a directory that is not a checkout.' }], 40)).toBe([
       'Examples:',
       `  ${run}`,

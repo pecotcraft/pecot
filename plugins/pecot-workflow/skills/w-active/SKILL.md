@@ -17,7 +17,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-`create_branch` は、次のときに、結果の `exit code: 2` の行を出して止まる。
+`branch_create` は、次のときに、結果の `exit code: 2` の行を出して止まる。
 
 - 作業ディレクトリのリポが Issue のリポと違うとき
 - `.pecot-active` に別の Issue が残っているとき
@@ -28,12 +28,12 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
 
-1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`create_branch` は `exit code: 2` で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
-2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create_branch` は `exit code: 2` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
+1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`branch_create` は `exit code: 2` で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
+2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`branch_create` は `exit code: 2` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
    MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
    始め直せないときだけ `allow_cross_repo: true` を付ける。
-3. 判定が blocked のとき、`create_branch` は `exit code: 2` で止まり、出力に `is blocked by` が出る。出力の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
-4. 前提を読めないか判定できないとき、`create_branch` は `exit code: 1` で止まる。出力に `could not read blocked-by` か `could not judge readiness` が出る。
+3. 判定が blocked のとき、`branch_create` は `exit code: 2` で止まり、出力に `is blocked by` が出る。出力の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
+4. 前提を読めないか判定できないとき、`branch_create` は `exit code: 1` で止まる。出力に `could not read blocked-by` か `could not judge readiness` が出る。
    積む先のブランチが無くなったときも `exit code: 1` で、出力に `not found` が出る。
    出力（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
 5. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
@@ -62,7 +62,7 @@ git pull
 
 ### Step 4: ブランチ作成
 
-`create_branch` を `issue_ref: "owner/repo/XXX"`・`branch_name: "feat/description"` で呼ぶ。`base` は渡さない。base は CLI が選ぶ。
+`branch_create` を `issue_ref: "owner/repo/XXX"`・`branch_name: "feat/description"` で呼ぶ。`base` は渡さない。base は CLI が選ぶ。
 
 **ブランチ名の決め方:**
 
@@ -71,7 +71,7 @@ git pull
 
 ### Step 5: ブランチ切り替え
 
-`create_branch` の結果の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
+`branch_create` の結果の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
 ブランチ名とリポを取り出し、ブランチを切り替える。
 行に `(stacked on #N)` があれば、#N の上に積んで着手した旨を利用者に伝える。
 **そのリポジトリの** ワークツリーで実行すること。

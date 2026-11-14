@@ -31,7 +31,7 @@ const MCP_UNMAPPABLE_STDIN: ReadonlySet<string> = new Set([
 //   rejected: 入力には写せるが、入力の検証で断られる（必須の欠けなど）。本体を呼ばないので `_meta` が無い
 // ここに無い usage のシナリオは MCP 経由でも流し、golden と比べる
 const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new Map([
-  ['add-to-project-usage', 'rejected'],
+  ['board-add-usage', 'rejected'],
   ['dependabot-sync-usage-unknown-option', 'unmappable'],
   ['issue-block-usage-without-by', 'rejected'],
   ['issue-read-usage', 'rejected'],
@@ -39,8 +39,8 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
   ['pr-preflight-usage', 'rejected'],
   ['project-init-usage', 'rejected'],
   ['project-search-usage', 'rejected'],
-  ['project-set-aggregation-repo-usage', 'rejected'],
-  ['project-set-repo-usage', 'rejected'],
+  ['aggregation-set-usage', 'rejected'],
+  ['repo-set-usage', 'rejected'],
   ['release-create-usage-no-version', 'rejected'],
   ['release-preflight-usage-unknown-option', 'unmappable'],
   ['security-sync-usage-unknown-option', 'unmappable'],

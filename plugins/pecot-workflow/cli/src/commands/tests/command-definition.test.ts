@@ -123,7 +123,7 @@ describe('hasOwnRepo', () => {
 
 describe('interfaceIdOf', () => {
   it('path を大文字にして、空白と _ を - にし、PW- を付ける', () => {
-    expect(interfaceIdOf(['create-branch'])).toBe('PW-CREATE-BRANCH')
+    expect(interfaceIdOf(['branch', 'create'])).toBe('PW-BRANCH-CREATE')
     expect(interfaceIdOf(['issue', 'create'])).toBe('PW-ISSUE-CREATE')
     expect(interfaceIdOf(['session', 'set_title'])).toBe('PW-SESSION-SET-TITLE')
   })

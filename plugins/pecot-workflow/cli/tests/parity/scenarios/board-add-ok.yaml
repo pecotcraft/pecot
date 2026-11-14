@@ -1,0 +1,100 @@
+# リポジトリがボードに属し、Issue を追加して status を ready にする。
+id: board-add-ok
+command:
+  path: [board, add]
+  args: [acme/demo/7]
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: GetLinkedRepositoriesUser
+      variables: {owner: acme, projectNumber: 1}
+    respond:
+      status: 200
+      body:
+        data:
+          user:
+            projectV2:
+              repositories:
+                nodes:
+                  - {name: demo, owner: {login: acme}}
+  - match:
+      operation: GetIssueNodeId
+      variables: {owner: acme, repo: demo, number: 7}
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue: {id: I_7, title: 見本の Issue}
+  - match:
+      operation: AddToProject
+      variables: {projectId: PVT_1, contentId: I_7}
+    respond:
+      status: 200
+      body:
+        data:
+          addProjectV2ItemById:
+            item: {id: PVTI_7}
+  - match:
+      operation: UpdateProjectItemField
+      variables: {projectId: PVT_1, itemId: PVTI_7, fieldId: PVTSSF_workflow, optionId: o3}
+    respond:
+      status: 200
+      body:
+        data:
+          updateProjectV2ItemFieldValue:
+            projectV2Item: {id: PVTI_7}

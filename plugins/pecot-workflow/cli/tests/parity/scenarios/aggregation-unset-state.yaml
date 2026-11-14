@@ -1,0 +1,7 @@
+# アクティブなプロジェクトが無い。exit 1。
+id: aggregation-unset-state
+command:
+  path: [aggregation, unset]
+  args: []
+setup: {}
+github: []

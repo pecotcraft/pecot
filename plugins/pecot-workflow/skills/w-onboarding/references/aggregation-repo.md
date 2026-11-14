@@ -4,10 +4,10 @@
 
 ## 4.0 現状確認
 
-`project_show_aggregation_repo` を引数なしで呼ぶ。
+`aggregation_show` を引数なしで呼ぶ。
 
 - 未設定なら Step 4.1 Q1 は通常 3 択。
-- 既設定（`<owner/repo>` 表示）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。例: `project_set_aggregation_repo` を `value: "<owner/repo>"`・`yes: true` で呼ぶ。
+- 既設定（`<owner/repo>` 表示）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。例: `aggregation_set` を `value: "<owner/repo>"`・`yes: true` で呼ぶ。
 
 ## 4.1 AskUserQuestion Q1: 方針選択
 
@@ -37,7 +37,7 @@ AskUserQuestion Q2a で選択:
   - 登録済みリポジトリを 1 件ずつ列挙（例: `<owner>/<repoA>`, `<owner>/<repoB>` …）
   - label: "別のリポジトリ（自由入力）", description: "登録済み以外の `owner/repo` を入力"
 
-選択結果で設定する。`project_set_aggregation_repo` を `value: "<owner/repo>"` で呼ぶ。
+選択結果で設定する。`aggregation_set` を `value: "<owner/repo>"` で呼ぶ。
 
 4.0 で既設定を検出済なら `yes: true` を付与する。
 
@@ -81,8 +81,8 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 ヒアリング結果を使って、次の 3 つを **この順序で** 実行する。
 
 1. `gh repo create <owner/repo> --<visibility> --add-readme`（Bash）
-2. `project_set_repo` を `owner_repo: "<owner/repo>"`・`develop_branch: "main"` で呼ぶ
-3. `project_set_aggregation_repo` を `value: "<owner/repo>"` で呼ぶ
+2. `repo_set` を `owner_repo: "<owner/repo>"`・`develop_branch: "main"` で呼ぶ
+3. `aggregation_set` を `value: "<owner/repo>"` で呼ぶ
 
 - `--add-readme` は空リポ回避（README が無い空リポは clone できず、以降の Epic 作成も失敗しやすい）。
 - 4.0 で既に集約リポが設定済みの場合、3 つ目の呼び出しに `yes: true` を足す。
@@ -90,6 +90,6 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 
 ## 4.3 確認
 
-`project_show_aggregation_repo` を引数なしで呼ぶ。
+`aggregation_show` を引数なしで呼ぶ。
 
 意図した `owner/repo` が返っていれば Step 5 へ進む。

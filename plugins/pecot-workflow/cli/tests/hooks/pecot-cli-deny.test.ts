@@ -9,12 +9,16 @@ import { runShell } from './_helpers/run.js'
 import type { HookRun } from './_helpers/run-hook.js'
 import { createProject, runHook, writeHooksConfig } from './_helpers/run-hook.js'
 
-// 定義書の 37 コマンド（cli.path）。MCP ツール名は、語を `_` でつなぎ `-` を `_` にした名前。
+// 定義書の 37 コマンド（cli.path）。MCP ツール名は、2 語を `_` でつないだ名前。
 const commands: readonly (readonly string[])[] = [
-  ['add-to-project'],
+  ['aggregation', 'set'],
+  ['aggregation', 'show'],
+  ['aggregation', 'unset'],
+  ['board', 'add'],
+  ['board', 'move'],
   ['board', 'sync'],
-  ['create-branch'],
-  ['delete-branch'],
+  ['branch', 'create'],
+  ['branch', 'delete'],
   ['dependabot', 'sync'],
   ['issue', 'block'],
   ['issue', 'comment'],
@@ -33,17 +37,13 @@ const commands: readonly (readonly string[])[] = [
   ['project', 'init'],
   ['project', 'list'],
   ['project', 'search'],
-  ['project', 'set-aggregation-repo'],
-  ['project', 'set-repo'],
-  ['project', 'show-aggregation-repo'],
-  ['project', 'unset-aggregation-repo'],
   ['release', 'create'],
   ['release', 'merge'],
   ['release', 'preflight'],
+  ['repo', 'set'],
   ['security', 'sync'],
   ['session', 'restore'],
   ['session', 'status'],
-  ['update-issue-status'],
   ['worktree', 'add'],
   ['worktree', 'init'],
   ['worktree', 'link'],
@@ -65,7 +65,7 @@ function compareText(a: string, b: string): number {
 }
 
 function toolOf(words: readonly string[]): string {
-  return words.join('_').replaceAll('-', '_')
+  return words.join('_')
 }
 
 function runDeny(command: string, projectDirectory = createProject()): HookRun {

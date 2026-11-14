@@ -79,22 +79,20 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 
 ## ツール
 
+ツール名は `<対象>_<動詞>` の形です。
+
 | ツール | 内容 |
 |---|---|
-| `add_to_project` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
-| `update_issue_status` | Issue 番号でボードのステータスを更新する |
-| `create_branch` | Issue に紐づくブランチを作る |
-| `delete_branch` | リモートブランチを削除する（保護ブランチは消さない） |
 | `project_list` | 使えるプロジェクトを一覧する |
 | `project_search` | GitHub API でプロジェクトを検索する |
 | `project_init` | 既存のプロジェクトに pecot-workflow のフィールドを足す |
 | `project_create` | プロジェクトを新規に作る |
 | `project_info` | プロジェクトの情報をまとめて表示する |
 | `project_activate` | 初期化済みのプロジェクトを有効にする |
-| `project_set_repo` | プロジェクトの設定にリポジトリを足す・更新する |
-| `project_set_aggregation_repo` | Epic の集約先リポジトリを設定する |
-| `project_unset_aggregation_repo` | Epic の集約先リポジトリを解除する |
-| `project_show_aggregation_repo` | Epic の集約先リポジトリを表示する |
+| `repo_set` | プロジェクトの設定にリポジトリを足す・更新する |
+| `aggregation_set` | Epic の集約先リポジトリを設定する |
+| `aggregation_unset` | Epic の集約先リポジトリを解除する |
+| `aggregation_show` | Epic の集約先リポジトリを表示する |
 | `issue_create` | frontmatter 付きの Markdown から Issue を作る |
 | `issue_quick` | 自由形式のメッセージから Issue をすぐ作る |
 | `issue_read` | Issue の詳細を必要な項目だけ取得する |
@@ -102,6 +100,11 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `issue_block` | Issue に前提（blocked by）を付ける。付いている前提の種類と理由を変えるのにも使う |
 | `issue_unblock` | Issue から前提（blocked by）を外す |
 | `issue_reopen` | 閉じた Issue を開き直す（ボードのステータスも戻す） |
+| `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
+| `board_move` | Issue 番号でボードのステータスを更新する |
+| `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`dry_run`・`project` を取る） |
+| `branch_create` | Issue に紐づくブランチを作る |
+| `branch_delete` | リモートブランチを削除する（保護ブランチは消さない） |
 | `pr_cleanup` | マージ後の後処理をする（Issue のクローズ、ブランチ削除、ローカルの整理） |
 | `pr_create` | PR を作る |
 | `pr_preflight` | PR を作る前に確かめる情報をまとめて表示する |
@@ -113,11 +116,27 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `release_merge` | リリースの PR を通常のマージで取り込む |
 | `security_sync` | 開いている Tracker のセキュリティアラートの一覧を書き直す |
 | `dependabot_sync` | 開いている Tracker の Dependabot PR の一覧を書き直す |
-| `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`dry_run`・`project` を取る） |
 | `worktree_add` | worktree を作る |
 | `worktree_remove` | worktree を削除する |
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |
 | `worktree_link` | 既存の worktree にシンボリックリンクを適用・更新する |
+
+## 古いツール名からの移行
+
+次の 8 個は、名前が変わりました。古い名前は登録していないので、呼ぶと `Tool <名前> not found` で失敗します。
+
+- `add_to_project` → `board_add`
+- `update_issue_status` → `board_move`
+- `create_branch` → `branch_create`
+- `delete_branch` → `branch_delete`
+- `project_set_repo` → `repo_set`
+- `project_set_aggregation_repo` → `aggregation_set`
+- `project_unset_aggregation_repo` → `aggregation_unset`
+- `project_show_aggregation_repo` → `aggregation_show`
+
+許可の設定に古い名前を書いているときは、`mcp__pecot-workflow__<ツール名>` の `<ツール名>` を新しい名前に書き換えてください。
+書き換えるまでは、確認のダイアログが出るだけで、失敗はしません。
+入力の `delete_branch`（`pr_cleanup`・`release_merge`）は変わりません。
 
 ## 失敗したとき
 

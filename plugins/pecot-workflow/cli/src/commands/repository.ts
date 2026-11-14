@@ -1,4 +1,4 @@
-// リポジトリのブランチを扱うコマンド（create-branch・delete-branch）。Python の cli/commands/repo.py の移植。
+// リポジトリのブランチを扱うコマンド（branch create・branch delete）。Python の cli/commands/repo.py の移植。
 import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
@@ -59,7 +59,7 @@ interface BaseBranchQuery {
 develop_branch を設定する直し方の行
 */
 function developBranchGuide(owner: string, repository: string): string {
-  return `set it with: pecot project set-repo ${owner}/${repository} --develop-branch develop`
+  return `set it with: pecot repo set ${owner}/${repository} --develop-branch develop`
 }
 
 /**
@@ -74,7 +74,7 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
       out,
       `develop_branch is not set for ${owner}/${repository}\n`
       + `${developBranchGuide(owner, repository)}\n`
-      + `or give the base: pecot create-branch ${owner}/${repository}/${String(issueNumber)} ${branchName} --base main`,
+      + `or give the base: pecot branch create ${owner}/${repository}/${String(issueNumber)} ${branchName} --base main`,
     )
   }
   return developBranch
@@ -162,7 +162,7 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
 }
 
 const branchCreationCommand = defineCommand({
-  path: ['create-branch'],
+  path: ['branch', 'create'],
   description: 'Create a branch linked to an Issue (shown in the Development section of the Issue)',
   input: z.strictObject({
     issue_ref: z.string().describe('Issue reference (owner/repo/123)'),
@@ -255,7 +255,7 @@ const branchCreationCommand = defineCommand({
 })
 
 const branchDeletionCommand = defineCommand({
-  path: ['delete-branch'],
+  path: ['branch', 'delete'],
   description: 'Delete a remote branch (a protected branch is never deleted)',
   input: z.strictObject({
     repo_ref: z.string().describe('Repository reference (owner/repo)'),

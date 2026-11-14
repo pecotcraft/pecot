@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// add-to-project・update-issue-status・issue reopen。cli/commands/issue.py の移植。
+// board add・board move・issue reopen。cli/commands/issue.py の移植。
 import { setTimeout as delay } from 'node:timers/promises'
 
 import { z } from 'zod'
@@ -48,7 +48,7 @@ function notConfiguredMessage(status: string): string {
 }
 
 const ADD_TO_PROJECT = defineCommand({
-  path: ['add-to-project'],
+  path: ['board', 'add'],
   description: 'Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
@@ -88,7 +88,7 @@ const ADD_TO_PROJECT = defineCommand({
 })
 
 const UPDATE_ISSUE_STATUS = defineCommand({
-  path: ['update-issue-status'],
+  path: ['board', 'move'],
   description: 'Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
@@ -109,7 +109,7 @@ const UPDATE_ISSUE_STATUS = defineCommand({
         const client = await connectToProject(output, config, owner, repository)
         const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
         if (itemId === undefined) {
-          stopWith(output, `${target} is not on the project board\nhint: add it to the board first with add-to-project`)
+          stopWith(output, `${target} is not on the project board\nhint: add it to the board first with pecot board add`)
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {
           stopWith(output, notConfiguredMessage(status))

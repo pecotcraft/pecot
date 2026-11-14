@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: release_branch is not set for acme/demo\n  set it with: pecot project set-repo acme/demo --release-branch <branch>\n",
+  "stderr": "error: release_branch is not set for acme/demo\n  set it with: pecot repo set acme/demo --release-branch <branch>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

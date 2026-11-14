@@ -9,13 +9,16 @@ export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - work tracking on GitHub
 
 const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
   ['project', 'Manage projects through the GitHub API'],
+  ['repo', 'Register repositories in the project config'],
+  ['aggregation', 'Manage the Epic aggregation repository'],
   ['issue', 'Work with Issues'],
+  ['branch', 'Work with branches linked to Issues'],
   ['pr', 'Work with PRs'],
   ['session', 'Manage the session'],
   ['release', 'Work with releases'],
   ['security', 'Put security alerts into a Tracker'],
   ['dependabot', 'Put Dependabot PRs waiting for a human decision into a Tracker'],
-  ['board', 'Keep the board columns in line with the judgment'],
+  ['board', 'Add, move and sync Issues on the project board'],
   ['worktree', 'Work with worktrees'],
 ])
 

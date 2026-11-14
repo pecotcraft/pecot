@@ -35,7 +35,7 @@ Backlog内に類似のEpicがないか確認する。
 
 ### Step 3: 集約リポの事前確認
 
-Epic の作成先を決定するため、`aggregation_repo` の設定状況をまず確認する。`project_show_aggregation_repo` を引数なしで呼ぶ。
+Epic の作成先を決定するため、`aggregation_repo` の設定状況をまず確認する。`aggregation_show` を引数なしで呼ぶ。
 
 - **設定済み**（`owner/repo` が返る）→ Step 4 へ進む
 - **未設定**（`none` が返る）→ AskUserQuestion で分岐:

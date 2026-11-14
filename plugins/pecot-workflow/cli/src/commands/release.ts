@@ -98,7 +98,7 @@ function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Reposito
 
 function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string | undefined {
   if (branch === undefined || branch === '') {
-    out.error(`${kind}_branch is not set for ${owner}/${repository}\nset it with: pecot project set-repo ${owner}/${repository} --${kind}-branch <branch>`)
+    out.error(`${kind}_branch is not set for ${owner}/${repository}\nset it with: pecot repo set ${owner}/${repository} --${kind}-branch <branch>`)
     return undefined
   }
   return branch

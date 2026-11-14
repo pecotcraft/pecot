@@ -35,7 +35,180 @@ environment:
   - name: COLUMNS
     effect: '正の整数で `TERMINAL_WIDTH` が無いときに、ヘルプとエラーの出力の幅（桁数）になります。端末の幅より先に使います。どれも無いときの幅は 80 です。'
 entries:
-  PW-ADD-TO-PROJECT:
+  PW-AGGREGATION-SET:
+    help:
+      details:
+        - Stores the Epic aggregation repository in the config file of the active project.
+        - pecot issue create --type epic uses the stored repository as the destination.
+        - Overwriting a different value always writes a warning line.
+        - --yes only omits the confirmation hint from the warning line.
+        - Giving the value already stored changes nothing.
+      examples:
+        - run: pecot aggregation set example-org/roadmap
+          note: Set the aggregation repository.
+      default_notes: {}
+    summary: Epic を集めるリポジトリ（`aggregation_repo`）を設定します。
+    arguments:
+      value: 'Epic を集めるリポジトリです。`owner/repo` の形で渡します。'
+      yes: '既にある値を、確認なしで上書きするかどうかです。`warning` は標準エラーに出ます。'
+    constraints: []
+    details:
+      - 'Epic を集めるリポジトリを、アクティブなプロジェクトの設定ファイルに保存します。'
+      - '`pecot issue create --type epic` は、保存したリポジトリを作り先に使います。'
+      - '違う値を上書きするときは、必ず `warning` の行を書きます。'
+      - '`--yes` は、`warning` の行から確認の案内を省くだけです。'
+      - '既に保存してある値と同じ値を渡すと、何も変えません。'
+    stdin: none
+    output:
+      format: none
+    diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
+    environment: []
+    exit_status:
+      - code: 0
+        when: '値を設定したか、既に設定してありました。'
+      - code: 1
+        when: '次のどれかです。値が `owner/repo` の形ではありません。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
+      - code: 2
+        when: '値の引数が無いか、ほかのコマンドラインの誤りがあります。'
+    on_error: default
+    effects:
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+      - target: file
+        kind: write
+        what: 'アクティブな設定ファイルに `aggregation_repo` を書きます。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+    idempotent: true
+    examples:
+      - run: pecot aggregation set example-org/roadmap
+        note: 'Epic を集めるリポジトリを設定します。'
+    default_notes: {}
+    behaviors:
+      - id: PW-AGGREGATION-SET-01
+        pattern: event
+        statement: '未設定の状態で値を渡すと、設定ファイルに書きます'
+      - id: PW-AGGREGATION-SET-02
+        pattern: event
+        statement: '未設定の状態で値を渡すと、`set` の行を標準エラーに出します'
+      - id: PW-AGGREGATION-SET-03
+        pattern: event
+        statement: '既にある値と同じ値を渡すと、`unchanged` の行を標準エラーに出します'
+      - id: PW-AGGREGATION-SET-04
+        pattern: unwanted
+        statement: 'もし既にある値と違う値を渡したなら、上書きの `warning` の行を標準エラーに出します'
+      - id: PW-AGGREGATION-SET-05
+        pattern: event
+        statement: '`--yes` を付けて上書きすると、`warning` の行から確認の案内を省きます'
+      - id: PW-AGGREGATION-SET-06
+        pattern: unwanted
+        statement: 'もし値が `owner/repo` の形でないなら、終了コード 1 で終わります'
+      - id: PW-AGGREGATION-SET-07
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+  PW-AGGREGATION-SHOW:
+    help:
+      details:
+        - Prints the Epic aggregation repository stored in the active config file, or "none" when it is not set.
+      examples:
+        - run: pecot aggregation show
+          note: Print the aggregation repository.
+      default_notes: {}
+    summary: Epic を集めるリポジトリ（`aggregation_repo`）を出します。
+    constraints: []
+    details:
+      - 'アクティブな設定ファイルに保存してある、Epic を集めるリポジトリを出します。未設定のときは、`none` を出します。'
+    stdin: none
+    output:
+      format: text
+      description: 'Epic を集めるリポジトリを `owner/repo` の形で書いた 1 行か、`none` です。'
+    diagnostics: default
+    environment: []
+    exit_status:
+      - code: 0
+        when: '値を出しました。'
+      - code: 1
+        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
+      - code: 2
+        when: '知らないオプションなど、コマンドラインの誤りがあります。'
+    on_error: default
+    effects:
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+    idempotent: true
+    examples:
+      - run: pecot aggregation show
+        note: 'Epic を集めるリポジトリを出します。'
+    default_notes: {}
+    behaviors:
+      - id: PW-AGGREGATION-SHOW-01
+        pattern: event
+        statement: '値を設定していると、その値を標準出力に出します'
+      - id: PW-AGGREGATION-SHOW-02
+        pattern: event
+        statement: '未設定だと、`none` を標準出力に出します'
+      - id: PW-AGGREGATION-SHOW-03
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+  PW-AGGREGATION-UNSET:
+    help:
+      details:
+        - Clears the Epic aggregation repository in the config file of the active project.
+        - Clearing a value that is not set changes nothing.
+      examples:
+        - run: pecot aggregation unset
+          note: Clear the aggregation repository.
+      default_notes: {}
+    summary: Epic を集めるリポジトリ（`aggregation_repo`）の設定を消します。消した後で Epic を作るには、`--repo` が要ります。
+    constraints: []
+    details:
+      - 'アクティブなプロジェクトの設定ファイルから、Epic を集めるリポジトリを消します。'
+      - '未設定の値を消しても、何も変わりません。'
+    stdin: none
+    output:
+      format: none
+    diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
+    environment: []
+    exit_status:
+      - code: 0
+        when: '値を消したか、未設定でした。'
+      - code: 1
+        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
+      - code: 2
+        when: '知らないオプションなど、コマンドラインの誤りがあります。'
+    on_error: default
+    effects:
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+      - target: file
+        kind: write
+        what: 'アクティブな設定ファイルから `aggregation_repo` を消します。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+    idempotent: true
+    examples:
+      - run: pecot aggregation unset
+        note: 'Epic を集めるリポジトリの設定を消します。'
+    default_notes: {}
+    behaviors:
+      - id: PW-AGGREGATION-UNSET-01
+        pattern: event
+        statement: '値を設定していると、設定ファイルから消します'
+      - id: PW-AGGREGATION-UNSET-02
+        pattern: event
+        statement: '値を設定していると、`removed` の行を標準エラーに出します'
+      - id: PW-AGGREGATION-UNSET-03
+        pattern: event
+        statement: '未設定だと、`unchanged` の行を標準エラーに出します'
+      - id: PW-AGGREGATION-UNSET-04
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+  PW-BOARD-ADD:
     help:
       details:
         - Adds one Issue to the project board of the active project and then sets its Status field.
@@ -49,9 +222,9 @@ entries:
         - A --status value that is not one of these values stops the command before anything is added.
         - A --status value that the board does not define stops the command before anything is added.
       examples:
-        - run: pecot add-to-project example-org/my-repo/123
+        - run: pecot board add example-org/my-repo/123
           note: Add the Issue to the board with the Status ready.
-        - run: pecot add-to-project example-org/my-repo/123 --status backlog
+        - run: pecot board add example-org/my-repo/123 --status backlog
           note: Add the Issue to the board with the Status backlog.
       default_notes: {}
     summary: Issue をプロジェクトのボードに足し、Status を設定します。
@@ -98,66 +271,169 @@ entries:
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
     idempotent: true
     examples:
-      - run: pecot add-to-project example-org/my-repo/123
+      - run: pecot board add example-org/my-repo/123
         note: 'Issue をボードに足し、Status を `ready` にします。'
-      - run: pecot add-to-project example-org/my-repo/123 --status backlog
+      - run: pecot board add example-org/my-repo/123 --status backlog
         note: 'Issue をボードに足し、Status を `backlog` にします。'
     default_notes: {}
     behaviors:
-      - id: PW-ADD-TO-PROJECT-01
+      - id: PW-BOARD-ADD-01
         pattern: event
         statement: 'Issue の参照を渡して打つと、その Issue をアクティブなプロジェクトのボードに足します'
-      - id: PW-ADD-TO-PROJECT-02
+      - id: PW-BOARD-ADD-02
         pattern: event
         statement: '`--status` を省いて打つと、足した項目の Status を `ready` にします'
-      - id: PW-ADD-TO-PROJECT-03
+      - id: PW-BOARD-ADD-03
         pattern: event
         statement: '`--status` に値を渡して打つと、足した項目の Status をその値にします'
-      - id: PW-ADD-TO-PROJECT-04
+      - id: PW-BOARD-ADD-04
         pattern: event
         statement: '`--status` に空文字を渡して打つと、Status を設定せずに Issue だけをボードに足します'
-      - id: PW-ADD-TO-PROJECT-05
+      - id: PW-BOARD-ADD-05
         pattern: event
         statement: 'Issue の参照に番号だけを渡して `--repo` を付けると、そのリポジトリの Issue を足します'
-      - id: PW-ADD-TO-PROJECT-06
+      - id: PW-BOARD-ADD-06
         pattern: event
         statement: 'Issue の参照に番号だけを渡して `--repo` を省くと、git の remote のリポジトリの Issue を対象にします'
-      - id: PW-ADD-TO-PROJECT-07
+      - id: PW-BOARD-ADD-07
         pattern: event
         statement: 'Issue をボードに足すと、`added` の行を標準エラーに出します'
-      - id: PW-ADD-TO-PROJECT-08
+      - id: PW-BOARD-ADD-08
         pattern: event
         statement: 'Status を設定すると、`set` の行を標準エラーに出します'
-      - id: PW-ADD-TO-PROJECT-09
+      - id: PW-BOARD-ADD-09
         pattern: unwanted
         statement: 'もし `--status` が 7 つの有効な値のどれでもないなら、有効な値を並べた `error` の行を標準エラーに出します'
-      - id: PW-ADD-TO-PROJECT-10
+      - id: PW-BOARD-ADD-10
         pattern: unwanted
         statement: 'もし `--status` が `backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれでもないなら、Issue をボードに足しません'
-      - id: PW-ADD-TO-PROJECT-11
+      - id: PW-BOARD-ADD-11
         pattern: unwanted
         statement: 'もし `--status` が `backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれでもないなら、終了コード 1 で終わります'
-      - id: PW-ADD-TO-PROJECT-12
+      - id: PW-BOARD-ADD-12
         pattern: unwanted
         statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-      - id: PW-ADD-TO-PROJECT-13
+      - id: PW-BOARD-ADD-13
         pattern: unwanted
         statement: 'もし Issue の参照が不正なら、終了コード 2 で終わります'
-      - id: PW-ADD-TO-PROJECT-14
+      - id: PW-BOARD-ADD-14
         pattern: unwanted
         statement: 'もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わります'
-      - id: PW-ADD-TO-PROJECT-15
+      - id: PW-BOARD-ADD-15
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
-      - id: PW-ADD-TO-PROJECT-16
+      - id: PW-BOARD-ADD-16
         pattern: unwanted
         statement: 'もし `--status` の値をボードが定義していないなら、Issue をボードに足しません'
-      - id: PW-ADD-TO-PROJECT-17
+      - id: PW-BOARD-ADD-17
         pattern: unwanted
         statement: 'もし `--status` の値をボードが定義していないなら、終了コード 1 で終わります'
-      - id: PW-ADD-TO-PROJECT-18
+      - id: PW-BOARD-ADD-18
         pattern: unwanted
         statement: 'もし `--status` が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
+  PW-BOARD-MOVE:
+    help:
+      details:
+        - Sets the Status of an Issue that is already on the project board of the active project.
+        - The Issue reference is owner/repo/N or the short form N.
+        - The short form N refers to the Issue of the repository given by the global pecot --repo.
+        - Without --repo, the short form N refers to the Issue of the repository of the git remote.
+        - The status is backlog, pending, blocked, ready, active, in_review or archived.
+        - The status is checked before the config file is read.
+        - The repository of the Issue must be registered in the active project, and the Issue must be on the board.
+        - Unlike pecot board add, which only warns, a status that the board does not define stops the command with exit status 1.
+      examples:
+        - run: pecot board move example-org/my-repo/123 in_review
+          note: Move the Issue to In Review.
+      default_notes: {}
+    summary: Issue の番号で、プロジェクトのボード上の Issue の Status を更新します。ふだんは、pecot のコマンドが自分で Status を設定します。
+    arguments:
+      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      status: '設定する Status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
+    constraints: []
+    details:
+      - 'アクティブなプロジェクトのボードに既にある Issue の、Status を設定します。'
+      - 'Issue の参照は、`owner/repo/N` か、短い形の `N` です。'
+      - '短い形の `N` は、pecot 全体のオプション `--repo` で渡したリポジトリの Issue を指します。'
+      - '`--repo` が無いときの短い形の `N` は、git remote のリポジトリの Issue を指します。'
+      - 'status は、`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかです。'
+      - 'status は、設定ファイルを読む前に確かめます。'
+      - 'Issue のリポジトリはアクティブなプロジェクトに登録されていて、Issue はボードに載っていなければなりません。'
+      - 'ボードが定義していない status を渡すと、終了コード 1 で止まります。`warning` を出すだけの `pecot board add` とは違います。'
+    stdin: none
+    output:
+      format: none
+    diagnostics: '標準エラーに、Status の結果の行（`set`）を出します。status が有効な値でないときは、有効な値を並べた `error` の行を出します。ボードが Blocked を定義していないときは、`hint` の行が `pecot project init` の実行を案内します。'
+    environment: []
+    exit_status:
+      - code: 0
+        when: 'Status を設定しました。'
+      - code: 1
+        when: '次のどれかです。status が有効な値ではありません。アクティブなプロジェクトがありません。リポジトリがプロジェクトにありません。Issue がボードにありません。ボードがその status を定義していません。GitHub API がエラーを返しました。プロジェクトのルートを決められません。'
+      - code: 2
+        when: '次のどれかです。Issue の参照の形が誤っています。リポジトリが決まらないのに短い形を渡しました。ほかのコマンドラインの誤りがあります。'
+    on_error: default
+    effects:
+      - target: github
+        kind: read
+        what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
+      - target: github
+        kind: write
+        what: 'ボードの項目の Status の欄を設定します。'
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
+    idempotent: true
+    examples:
+      - run: pecot board move example-org/my-repo/123 in_review
+        note: 'Issue を In Review へ動かします。'
+    default_notes: {}
+    behaviors:
+      - id: PW-BOARD-MOVE-01
+        pattern: event
+        statement: 'Issue の参照と Status を渡して打つと、ボード上のその Issue の Status を渡した値にします'
+      - id: PW-BOARD-MOVE-02
+        pattern: event
+        statement: 'Issue の参照に番号だけを渡して `--repo` を付けると、そのリポジトリの Issue の Status を設定します'
+      - id: PW-BOARD-MOVE-03
+        pattern: event
+        statement: 'Issue の参照に番号だけを渡して `--repo` を省くと、git の remote のリポジトリの Issue を対象にします'
+      - id: PW-BOARD-MOVE-04
+        pattern: event
+        statement: 'Status を設定すると、`set` の行を標準エラーに出します'
+      - id: PW-BOARD-MOVE-05
+        pattern: unwanted
+        statement: 'もし Status が 7 つの有効な値のどれでもないなら、有効な値を並べた `error` の行を標準エラーに出します'
+      - id: PW-BOARD-MOVE-06
+        pattern: unwanted
+        statement: 'もし Status が `backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれでもないなら、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-07
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-08
+        pattern: unwanted
+        statement: 'もし Issue の参照が不正なら、終了コード 2 で終わります'
+      - id: PW-BOARD-MOVE-09
+        pattern: unwanted
+        statement: 'もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-10
+        pattern: unwanted
+        statement: 'もし Issue がボードに無いなら、`pecot board add` を案内する `error` の行を標準エラーに出します'
+      - id: PW-BOARD-MOVE-11
+        pattern: unwanted
+        statement: 'もし Issue がボードに無いなら、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-12
+        pattern: unwanted
+        statement: 'もしボードが Status を定義していないなら、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-13
+        pattern: unwanted
+        statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-14
+        pattern: unwanted
+        statement: 'もし Status が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
   PW-BOARD-SYNC:
     help:
       details:
@@ -308,7 +584,7 @@ entries:
       - id: PW-BOARD-SYNC-27
         pattern: unwanted
         statement: 'もし設定のファイルが JSON として読めないなら、`error` の行を出して、終了コード 1 で終わります'
-  PW-CREATE-BRANCH:
+  PW-BRANCH-CREATE:
     help:
       details:
         - Creates a branch linked to an Issue through the GitHub GraphQL API (createLinkedBranch), so the branch shows in the Development section of the Issue.
@@ -339,11 +615,11 @@ entries:
         - The global pecot --repo must match the repository of the current git remote.
         - This command does not take its target from --repo.
       examples:
-        - run: pecot create-branch example-org/my-repo/123 feat/my-change
+        - run: pecot branch create example-org/my-repo/123 feat/my-change
           note: Create the branch feat/my-change/123 from the develop branch.
-        - run: pecot create-branch example-org/my-repo/123 fix/my-bug --base main
+        - run: pecot branch create example-org/my-repo/123 fix/my-bug --base main
           note: Create the branch fix/my-bug/123 from main.
-        - run: pecot create-branch example-org/my-repo/123 feat/my-change --allow-cross-repo
+        - run: pecot branch create example-org/my-repo/123 feat/my-change --allow-cross-repo
           note: Create the branch from a directory that is not a checkout of the repository.
       default_notes:
         base: The branch of the PR the Issue stacks on when its readiness is stackable; otherwise the develop_branch of the repository in the config file, and without it the command stops with exit status 1.
@@ -416,121 +692,121 @@ entries:
       - '作業ディレクトリは、Issue のリポジトリのチェックアウトでなければなりません。`--allow-cross-repo` を付けたときは別です。'
     idempotent: false
     examples:
-      - run: pecot create-branch example-org/my-repo/123 feat/my-change
+      - run: pecot branch create example-org/my-repo/123 feat/my-change
         note: '開発ブランチから、ブランチ `feat/my-change/123` を作ります。'
-      - run: pecot create-branch example-org/my-repo/123 fix/my-bug --base main
+      - run: pecot branch create example-org/my-repo/123 fix/my-bug --base main
         note: '`main` から、ブランチ `fix/my-bug/123` を作ります。'
-      - run: pecot create-branch example-org/my-repo/123 feat/my-change --allow-cross-repo
+      - run: pecot branch create example-org/my-repo/123 feat/my-change --allow-cross-repo
         note: 'リポジトリのチェックアウトではないディレクトリから、ブランチを作ります。'
     default_notes:
       base: '省くと、着手の判定が `stackable` のときは、積む先の PR のブランチです。それ以外では設定ファイルにあるリポジトリの `develop_branch` で、それも無ければ終了コード 1 で止まります。'
     behaviors:
-      - id: PW-CREATE-BRANCH-01
+      - id: PW-BRANCH-CREATE-01
         pattern: event
         statement: 'Issue の参照とブランチ名を渡して打つと、Issue に紐づいたブランチを `ブランチ名/Issue 番号` の名前で作ります'
-      - id: PW-CREATE-BRANCH-02
+      - id: PW-BRANCH-CREATE-02
         pattern: event
         statement: '`--base` を付けて打つと、そのブランチの先頭からブランチを作ります'
-      - id: PW-CREATE-BRANCH-03
+      - id: PW-BRANCH-CREATE-03
         pattern: event
         statement: '`--base` を省いて打つと、設定ファイルの `develop_branch` の先頭からブランチを作ります'
-      - id: PW-CREATE-BRANCH-04
+      - id: PW-BRANCH-CREATE-04
         pattern: event
         statement: '`--allow-cross-repo` を付けて打つと、作業ディレクトリのリポジトリと Issue のリポジトリを比べずにブランチを作ります'
-      - id: PW-CREATE-BRANCH-05
+      - id: PW-BRANCH-CREATE-05
         pattern: event
         statement: '`--force-overwrite-active` を付けて打つと、`.pecot-active` の内容を確かめずに上書きします'
-      - id: PW-CREATE-BRANCH-06
+      - id: PW-BRANCH-CREATE-06
         pattern: event
         statement: '`--checkout` か `--no-checkout` を付けて打つと、付けないときと同じ結果になります'
-      - id: PW-CREATE-BRANCH-07
+      - id: PW-BRANCH-CREATE-07
         pattern: event
         statement: 'ブランチを作ると、ボード上の Issue の Status を `active` にします'
-      - id: PW-CREATE-BRANCH-08
+      - id: PW-BRANCH-CREATE-08
         pattern: event
         statement: 'ブランチを作ると、その Issue を作業対象として `.pecot-active` と `.pecot-session-title` に記録します'
-      - id: PW-CREATE-BRANCH-09
+      - id: PW-BRANCH-CREATE-09
         pattern: event
         statement: 'ブランチを作ると、`created` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-10
+      - id: PW-BRANCH-CREATE-10
         pattern: event
         statement: 'Status を `active` にすると、`set` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-11
+      - id: PW-BRANCH-CREATE-11
         pattern: event
         statement: '作業対象を記録すると、`set` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-12
+      - id: PW-BRANCH-CREATE-12
         pattern: unwanted
         statement: 'もし `.pecot-active` の内容が不正な形なら、`warning` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-13
+      - id: PW-BRANCH-CREATE-13
         pattern: unwanted
         statement: 'もし `.pecot-active` の内容が不正な形なら、`.pecot-active` を上書きします'
-      - id: PW-CREATE-BRANCH-14
+      - id: PW-BRANCH-CREATE-14
         pattern: unwanted
         statement: 'もし `.pecot-active` の Issue が CLOSED なら、`warning` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-15
+      - id: PW-BRANCH-CREATE-15
         pattern: unwanted
         statement: 'もし `.pecot-active` の Issue が CLOSED なら、`.pecot-active` を上書きします'
-      - id: PW-CREATE-BRANCH-16
+      - id: PW-BRANCH-CREATE-16
         pattern: unwanted
         statement: 'もしボード上の Issue の Status を `active` にできなかったなら、`warning` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-17
+      - id: PW-BRANCH-CREATE-17
         pattern: unwanted
         statement: 'もし作業対象を記録できなかったなら、`warning` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-18
+      - id: PW-BRANCH-CREATE-18
         pattern: unwanted
         statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-19
+      - id: PW-BRANCH-CREATE-19
         pattern: unwanted
         statement: 'もし Issue の参照がフル形式でないなら、終了コード 2 で終わります'
-      - id: PW-CREATE-BRANCH-20
+      - id: PW-BRANCH-CREATE-20
         pattern: unwanted
         statement: 'もし作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違うなら、終了コード 2 で終わります'
-      - id: PW-CREATE-BRANCH-21
+      - id: PW-BRANCH-CREATE-21
         pattern: unwanted
         statement: 'もし `.pecot-active` に別の OPEN な Issue が残っているなら、終了コード 2 で終わります'
-      - id: PW-CREATE-BRANCH-22
+      - id: PW-BRANCH-CREATE-22
         pattern: unwanted
         statement: 'もし `--base` を省いて `develop_branch` も設定していないなら、終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-23
+      - id: PW-BRANCH-CREATE-23
         pattern: unwanted
         statement: 'もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-24
+      - id: PW-BRANCH-CREATE-24
         pattern: unwanted
         statement: 'もしブランチの作成までの GitHub API がエラーを返したなら、終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-25
+      - id: PW-BRANCH-CREATE-25
         pattern: unwanted
         statement: 'もし `--repo` が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-26
+      - id: PW-BRANCH-CREATE-26
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、`the repository is ambiguous` の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-27
+      - id: PW-BRANCH-CREATE-27
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-28
+      - id: PW-BRANCH-CREATE-28
         pattern: state
         statement: '着手の判定が `stackable` の間、積む先の PR のブランチの先頭からブランチを作ります'
-      - id: PW-CREATE-BRANCH-29
+      - id: PW-BRANCH-CREATE-29
         pattern: state
         statement: '着手の判定が `stackable` の間、`created` の行に積んだ先の Issue を付けます'
-      - id: PW-CREATE-BRANCH-30
+      - id: PW-BRANCH-CREATE-30
         pattern: event
         statement: 'ブランチを作ると、選んだ base を `.pecot-base` に記録します'
-      - id: PW-CREATE-BRANCH-31
+      - id: PW-BRANCH-CREATE-31
         pattern: unwanted
         statement: 'もし着手の判定が `blocked` なら、ブランチを作らず、理由と直し方の行を標準エラーに出します'
-      - id: PW-CREATE-BRANCH-32
+      - id: PW-BRANCH-CREATE-32
         pattern: unwanted
         statement: 'もし着手の判定が `blocked` なら、終了コード 2 で終わります'
-      - id: PW-CREATE-BRANCH-33
+      - id: PW-BRANCH-CREATE-33
         pattern: unwanted
         statement: 'もし `stackable` の判定で、`--base` の値と積む先が違うなら、ブランチを作らず終了コード 2 で終わります'
-      - id: PW-CREATE-BRANCH-34
+      - id: PW-BRANCH-CREATE-34
         pattern: unwanted
         statement: 'もし前提を読めないか判定できないなら、ブランチを作らず終了コード 1 で終わります'
-      - id: PW-CREATE-BRANCH-35
+      - id: PW-BRANCH-CREATE-35
         pattern: unwanted
         statement: 'もし積む先のブランチが判定の後に無くなったなら、積む先が見つからない旨の `error` の行を出して終了コード 1 で終わります'
-  PW-DELETE-BRANCH:
+  PW-BRANCH-DELETE:
     help:
       details:
         - Deletes a remote branch through the GitHub REST API, for use where a hook blocks git push and the gh CLI.
@@ -543,9 +819,9 @@ entries:
         - --dry-run reads the default branch and checks the protected branches, then writes the plan line for the branch and deletes nothing.
         - --dry-run does not plan the deletion of wip/<branch>.
       examples:
-        - run: pecot delete-branch example-org/my-repo feat/my-change/123
+        - run: pecot branch delete example-org/my-repo feat/my-change/123
           note: Delete the remote branch and its wip branch.
-        - run: pecot delete-branch example-org/my-repo feat/my-change/123 --dry-run
+        - run: pecot branch delete example-org/my-repo feat/my-change/123 --dry-run
           note: Show the plan without deleting.
       default_notes: {}
     summary: リモートブランチを削除します。保護するブランチは削除しません。
@@ -592,64 +868,64 @@ entries:
       - 'ホストの GitHub トークンと、ブランチを削除する権限が要ります。'
     idempotent: false
     examples:
-      - run: pecot delete-branch example-org/my-repo feat/my-change/123
+      - run: pecot branch delete example-org/my-repo feat/my-change/123
         note: 'リモートブランチと、その wip ブランチを削除します。'
-      - run: pecot delete-branch example-org/my-repo feat/my-change/123 --dry-run
+      - run: pecot branch delete example-org/my-repo feat/my-change/123 --dry-run
         note: '削除せずに、予定を出します。'
     default_notes: {}
     behaviors:
-      - id: PW-DELETE-BRANCH-01
+      - id: PW-BRANCH-DELETE-01
         pattern: event
         statement: 'リポジトリとブランチ名を渡して打つと、そのリポジトリのリモートブランチを削除します'
-      - id: PW-DELETE-BRANCH-02
+      - id: PW-BRANCH-DELETE-02
         pattern: event
         statement: '`wip/ブランチ名` のリモートブランチがあると、それも削除します'
-      - id: PW-DELETE-BRANCH-03
+      - id: PW-BRANCH-DELETE-03
         pattern: event
         statement: '`--dry-run` を付けて打つと、何も削除しません'
-      - id: PW-DELETE-BRANCH-04
+      - id: PW-BRANCH-DELETE-04
         pattern: event
         statement: 'ブランチを削除すると、`deleted` の行を標準エラーに出します'
-      - id: PW-DELETE-BRANCH-05
+      - id: PW-BRANCH-DELETE-05
         pattern: event
         statement: '`wip/ブランチ名` を削除すると、`deleted` の行を標準エラーに出します'
-      - id: PW-DELETE-BRANCH-06
+      - id: PW-BRANCH-DELETE-06
         pattern: event
         statement: '`--dry-run` を付けて打つと、`dry-run` の行を標準エラーに出します'
-      - id: PW-DELETE-BRANCH-07
+      - id: PW-BRANCH-DELETE-07
         pattern: unwanted
         statement: 'もし `wip/ブランチ名` のリモートブランチが無いなら、何も出しません'
-      - id: PW-DELETE-BRANCH-08
+      - id: PW-BRANCH-DELETE-08
         pattern: unwanted
         statement: 'もし `wip/ブランチ名` があるのに削除できなかったなら、`warning` の行を標準エラーに出します'
-      - id: PW-DELETE-BRANCH-09
+      - id: PW-BRANCH-DELETE-09
         pattern: unwanted
         statement: 'もし `wip/ブランチ名` を削除できなかったなら、終了コード 0 で終わります'
-      - id: PW-DELETE-BRANCH-10
+      - id: PW-BRANCH-DELETE-10
         pattern: unwanted
         statement: 'もし削除するブランチが既定ブランチ・`develop_branch`・`release_branch` のどれかなら、保護するブランチを並べた `error` の行を標準エラーに出します'
-      - id: PW-DELETE-BRANCH-11
+      - id: PW-BRANCH-DELETE-11
         pattern: unwanted
         statement: 'もし削除するブランチが既定ブランチ・`develop_branch`・`release_branch` のどれかなら、終了コード 1 で終わります'
-      - id: PW-DELETE-BRANCH-12
+      - id: PW-BRANCH-DELETE-12
         pattern: unwanted
         statement: 'もし `repo_ref` が `owner/repo` の形でないなら、終了コード 2 で終わります'
-      - id: PW-DELETE-BRANCH-13
+      - id: PW-BRANCH-DELETE-13
         pattern: unwanted
         statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-      - id: PW-DELETE-BRANCH-14
+      - id: PW-BRANCH-DELETE-14
         pattern: unwanted
         statement: 'もしリポジトリの既定ブランチを読めないなら、終了コード 1 で終わります'
-      - id: PW-DELETE-BRANCH-15
+      - id: PW-BRANCH-DELETE-15
         pattern: unwanted
         statement: 'もしブランチの削除で GitHub API がエラーを返したなら、終了コード 1 で終わります'
-      - id: PW-DELETE-BRANCH-16
+      - id: PW-BRANCH-DELETE-16
         pattern: unwanted
         statement: 'もし `--repo` が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わります'
-      - id: PW-DELETE-BRANCH-17
+      - id: PW-BRANCH-DELETE-17
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、`the repository is ambiguous` の行を標準エラーに出します'
-      - id: PW-DELETE-BRANCH-18
+      - id: PW-BRANCH-DELETE-18
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
   PW-DEPENDABOT-SYNC:
@@ -3332,300 +3608,6 @@ entries:
       - id: PW-PROJECT-SEARCH-04
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
-  PW-PROJECT-SET-AGGREGATION-REPO:
-    help:
-      details:
-        - Stores the Epic aggregation repository in the config file of the active project.
-        - pecot issue create --type epic uses the stored repository as the destination.
-        - Overwriting a different value always writes a warning line.
-        - --yes only omits the confirmation hint from the warning line.
-        - Giving the value already stored changes nothing.
-      examples:
-        - run: pecot project set-aggregation-repo example-org/roadmap
-          note: Set the aggregation repository.
-      default_notes: {}
-    summary: Epic を集めるリポジトリ（`aggregation_repo`）を設定します。
-    arguments:
-      value: 'Epic を集めるリポジトリです。`owner/repo` の形で渡します。'
-      yes: '既にある値を、確認なしで上書きするかどうかです。`warning` は標準エラーに出ます。'
-    constraints: []
-    details:
-      - 'Epic を集めるリポジトリを、アクティブなプロジェクトの設定ファイルに保存します。'
-      - '`pecot issue create --type epic` は、保存したリポジトリを作り先に使います。'
-      - '違う値を上書きするときは、必ず `warning` の行を書きます。'
-      - '`--yes` は、`warning` の行から確認の案内を省くだけです。'
-      - '既に保存してある値と同じ値を渡すと、何も変えません。'
-    stdin: none
-    output:
-      format: none
-    diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
-    environment: []
-    exit_status:
-      - code: 0
-        when: '値を設定したか、既に設定してありました。'
-      - code: 1
-        when: '次のどれかです。値が `owner/repo` の形ではありません。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '値の引数が無いか、ほかのコマンドラインの誤りがあります。'
-    on_error: default
-    effects:
-      - target: file
-        kind: read
-        what: 'アクティブな設定ファイルを読みます。'
-      - target: file
-        kind: write
-        what: 'アクティブな設定ファイルに `aggregation_repo` を書きます。'
-    prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
-    idempotent: true
-    examples:
-      - run: pecot project set-aggregation-repo example-org/roadmap
-        note: 'Epic を集めるリポジトリを設定します。'
-    default_notes: {}
-    behaviors:
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-01
-        pattern: event
-        statement: '未設定の状態で値を渡すと、設定ファイルに書きます'
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-02
-        pattern: event
-        statement: '未設定の状態で値を渡すと、`set` の行を標準エラーに出します'
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-03
-        pattern: event
-        statement: '既にある値と同じ値を渡すと、`unchanged` の行を標準エラーに出します'
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-04
-        pattern: unwanted
-        statement: 'もし既にある値と違う値を渡したなら、上書きの `warning` の行を標準エラーに出します'
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-05
-        pattern: event
-        statement: '`--yes` を付けて上書きすると、`warning` の行から確認の案内を省きます'
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-06
-        pattern: unwanted
-        statement: 'もし値が `owner/repo` の形でないなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-07
-        pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-  PW-PROJECT-SET-REPO:
-    help:
-      details:
-        - Links the repository to the GitHub project and adds it to the config file of the active project.
-        - The config file is written only after the link succeeded.
-        - For a repository already registered, updates only the settings given on the command line.
-        - Giving --package replaces the packages of a registered repository and also clears its changelog_file, even when --changelog-file is not given.
-        - Giving --clear-packages removes the packages of a registered repository.
-        - The repository owner must match the project owner.
-      examples:
-        - run: pecot project set-repo example-org/my-repo
-          note: Register a repository.
-        - run: pecot project set-repo example-org/my-repo --package pecot:plugins/pecot-workflow/CHANGELOG.md
-          note: Register a monorepo package.
-      default_notes:
-        release_type: Inferred from the packages when omitted (multi with packages, single without).
-    summary: プロジェクトの設定に、リポジトリを足すか更新します。
-    arguments:
-      changelog_file: 'CHANGELOG のファイル名です。'
-      clear_packages: '既にある packages の設定を消すかどうかです。消した後の CHANGELOG は、`--changelog-file` の値か、既定の `CHANGELOG.md` に戻ります。'
-      develop_branch: '開発ブランチの名前です。'
-      owner_repo: 'リポジトリの名前です。`owner/repo` の形で渡します。'
-      package: 'monorepo のパッケージです。`NAME:PATH` の形で登録します。繰り返して複数渡せます。例は `--package pecot:plugins/pecot-workflow/CHANGELOG.md` です。'
-      release_branch: 'リリースブランチの名前です。'
-      release_type: 'リリースの方法の宣言です。w-release スキルが、この値で手順を選びます。`single`（CHANGELOG が 1 つ）・`multi`（packages）・`nx`（Nx Release）のどれかを渡します。'
-    constraints:
-      - conflicts: [package, changelog_file]
-      - conflicts: [package, clear_packages]
-    details:
-      - 'リポジトリを GitHub のプロジェクトにつなぎ、アクティブなプロジェクトの設定ファイルに足します。'
-      - '設定ファイルを書くのは、つなぐのに成功した後だけです。'
-      - '登録済みのリポジトリでは、コマンドラインで渡した設定だけを更新します。'
-      - '`--package` を渡すと、登録済みのリポジトリの packages を置き換えます。`--changelog-file` を渡していなくても、`changelog_file` を消します。'
-      - '`--clear-packages` を渡すと、登録済みのリポジトリの packages を消します。'
-      - 'リポジトリの所有者は、プロジェクトの所有者と一致していなければなりません。'
-    stdin: none
-    output:
-      format: none
-    diagnostics: '標準エラーに、プロジェクトへのつなぎの結果の行（`added`、既につながっていれば `unchanged`）を出します。設定ファイルの結果の行（`added` か `updated`）も出します。'
-    environment: []
-    exit_status:
-      - code: 0
-        when: 'リポジトリを登録したか、更新しました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。リポジトリが `owner/repo` の形でないか、所有者がプロジェクトの所有者と違います。つなぐのに失敗しました。`--package` を `--changelog-file` か `--clear-packages` と一緒に渡したか、`--package` の形が誤っています。packages を持つリポジトリに `--changelog-file` を渡しました。`--release-type` が `single`・`multi`・`nx` のどれでもありません。プロジェクトのルートを決められません。'
-      - code: 2
-        when: 'リポジトリの引数が無いか、ほかのコマンドラインの誤りがあります。'
-    on_error: 'リポジトリをつなぐのに失敗したときは、設定ファイルを書きません。'
-    effects:
-      - target: github
-        kind: write
-        what: '新しいリポジトリをプロジェクトにつなぎます。'
-      - target: file
-        kind: read
-        what: 'アクティブな設定ファイルを読みます。'
-      - target: file
-        kind: write
-        what: 'アクティブな設定ファイルに、リポジトリを足すか更新します。'
-    prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: true
-    examples:
-      - run: pecot project set-repo example-org/my-repo
-        note: 'リポジトリを登録します。'
-      - run: pecot project set-repo example-org/my-repo --package pecot:plugins/pecot-workflow/CHANGELOG.md
-        note: 'monorepo のパッケージを登録します。'
-    default_notes:
-      release_type: '省くと、packages から推定します。packages があれば `multi`、無ければ `single` です。'
-    behaviors:
-      - id: PW-PROJECT-SET-REPO-01
-        pattern: event
-        statement: '未登録のリポジトリを渡すと、プロジェクトにリンクします'
-      - id: PW-PROJECT-SET-REPO-02
-        pattern: event
-        statement: 'リンクに成功すると、設定ファイルにリポジトリを足します'
-      - id: PW-PROJECT-SET-REPO-03
-        pattern: event
-        statement: '登録済みのリポジトリを渡すと、渡したオプションの値だけを更新します'
-      - id: PW-PROJECT-SET-REPO-04
-        pattern: event
-        statement: '登録済みのリポジトリに `--package` を渡すと、`packages` を置き換えます'
-      - id: PW-PROJECT-SET-REPO-05
-        pattern: event
-        statement: '登録済みのリポジトリに `--package` を渡すと、`changelog_file` を消します'
-      - id: PW-PROJECT-SET-REPO-06
-        pattern: event
-        statement: '登録済みのリポジトリに `--clear-packages` を付けると、`packages` を消します'
-      - id: PW-PROJECT-SET-REPO-07
-        pattern: unwanted
-        statement: 'もしリンクに失敗したなら、設定ファイルを書き換えません'
-      - id: PW-PROJECT-SET-REPO-08
-        pattern: unwanted
-        statement: 'もしリンクに失敗したなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-09
-        pattern: unwanted
-        statement: 'もし `--package` と `--changelog-file` を一緒に渡したなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-10
-        pattern: unwanted
-        statement: 'もし `--package` と `--clear-packages` を一緒に渡したなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-11
-        pattern: unwanted
-        statement: 'もし `--package` が `NAME:PATH` の形でないなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-12
-        pattern: unwanted
-        statement: 'もし `--package` の `NAME` が重なるなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-13
-        pattern: unwanted
-        statement: 'もしリポジトリの所有者がプロジェクトの所有者と違うなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-14
-        pattern: unwanted
-        statement: 'もしリポジトリが `owner/repo` の形でないなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-15
-        pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-16
-        pattern: unwanted
-        statement: 'もし `--release-type` が `single`・`multi`・`nx` のどれでもないなら、終了コード 1 で終わります'
-      - id: PW-PROJECT-SET-REPO-17
-        pattern: unwanted
-        statement: 'もし `packages` を持つリポジトリに `--changelog-file` を渡したなら、終了コード 1 で終わります'
-  PW-PROJECT-SHOW-AGGREGATION-REPO:
-    help:
-      details:
-        - Prints the Epic aggregation repository stored in the active config file, or "none" when it is not set.
-      examples:
-        - run: pecot project show-aggregation-repo
-          note: Print the aggregation repository.
-      default_notes: {}
-    summary: Epic を集めるリポジトリ（`aggregation_repo`）を出します。
-    constraints: []
-    details:
-      - 'アクティブな設定ファイルに保存してある、Epic を集めるリポジトリを出します。未設定のときは、`none` を出します。'
-    stdin: none
-    output:
-      format: text
-      description: 'Epic を集めるリポジトリを `owner/repo` の形で書いた 1 行か、`none` です。'
-    diagnostics: default
-    environment: []
-    exit_status:
-      - code: 0
-        when: '値を出しました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '知らないオプションなど、コマンドラインの誤りがあります。'
-    on_error: default
-    effects:
-      - target: file
-        kind: read
-        what: 'アクティブな設定ファイルを読みます。'
-    prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
-    idempotent: true
-    examples:
-      - run: pecot project show-aggregation-repo
-        note: 'Epic を集めるリポジトリを出します。'
-    default_notes: {}
-    behaviors:
-      - id: PW-PROJECT-SHOW-AGGREGATION-REPO-01
-        pattern: event
-        statement: '値を設定していると、その値を標準出力に出します'
-      - id: PW-PROJECT-SHOW-AGGREGATION-REPO-02
-        pattern: event
-        statement: '未設定だと、`none` を標準出力に出します'
-      - id: PW-PROJECT-SHOW-AGGREGATION-REPO-03
-        pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-  PW-PROJECT-UNSET-AGGREGATION-REPO:
-    help:
-      details:
-        - Clears the Epic aggregation repository in the config file of the active project.
-        - Clearing a value that is not set changes nothing.
-      examples:
-        - run: pecot project unset-aggregation-repo
-          note: Clear the aggregation repository.
-      default_notes: {}
-    summary: Epic を集めるリポジトリ（`aggregation_repo`）の設定を消します。消した後で Epic を作るには、`--repo` が要ります。
-    constraints: []
-    details:
-      - 'アクティブなプロジェクトの設定ファイルから、Epic を集めるリポジトリを消します。'
-      - '未設定の値を消しても、何も変わりません。'
-    stdin: none
-    output:
-      format: none
-    diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
-    environment: []
-    exit_status:
-      - code: 0
-        when: '値を消したか、未設定でした。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '知らないオプションなど、コマンドラインの誤りがあります。'
-    on_error: default
-    effects:
-      - target: file
-        kind: read
-        what: 'アクティブな設定ファイルを読みます。'
-      - target: file
-        kind: write
-        what: 'アクティブな設定ファイルから `aggregation_repo` を消します。'
-    prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
-    idempotent: true
-    examples:
-      - run: pecot project unset-aggregation-repo
-        note: 'Epic を集めるリポジトリの設定を消します。'
-    default_notes: {}
-    behaviors:
-      - id: PW-PROJECT-UNSET-AGGREGATION-REPO-01
-        pattern: event
-        statement: '値を設定していると、設定ファイルから消します'
-      - id: PW-PROJECT-UNSET-AGGREGATION-REPO-02
-        pattern: event
-        statement: '値を設定していると、`removed` の行を標準エラーに出します'
-      - id: PW-PROJECT-UNSET-AGGREGATION-REPO-03
-        pattern: event
-        statement: '未設定だと、`unchanged` の行を標準エラーに出します'
-      - id: PW-PROJECT-UNSET-AGGREGATION-REPO-04
-        pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
   PW-RELEASE-CREATE:
     help:
       details:
@@ -3700,7 +3682,7 @@ entries:
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
       - '作業ディレクトリは、git のリポジトリの中でなければなりません。'
-      - '設定ファイルに、リポジトリの `release_branch` が要ります（`pecot project set-repo` で設定します）。'
+      - '設定ファイルに、リポジトリの `release_branch` が要ります（`pecot repo set` で設定します）。'
       - 'CHANGELOG に、その版の節が要ります。'
       - 'ホストの GitHub トークンと、リリースを作る権限が要ります。'
     idempotent: false
@@ -3865,7 +3847,7 @@ entries:
         what: 'アクティブな設定ファイルを読みます。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
-      - '設定ファイルに、リポジトリの `release_branch` が要ります（`pecot project set-repo` で設定します）。'
+      - '設定ファイルに、リポジトリの `release_branch` が要ります（`pecot repo set` で設定します）。'
       - 'ホストの GitHub トークンと、PR をマージする権限が要ります。'
     idempotent: false
     examples:
@@ -4041,7 +4023,7 @@ entries:
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
       - '作業ディレクトリは、git のリポジトリの中でなければなりません。remote の `origin`（無ければ最初の remote）に、開発ブランチとリリースブランチが要ります。'
-      - '設定ファイルに、リポジトリの `develop_branch` と `release_branch` が要ります（`pecot project set-repo` で設定します）。リリースの種類が nx のときは要りません。'
+      - '設定ファイルに、リポジトリの `develop_branch` と `release_branch` が要ります（`pecot repo set` で設定します）。リリースの種類が nx のときは要りません。'
       - 'ホストの GitHub トークンと、alert を読む権限が要ります。'
     idempotent: true
     examples:
@@ -4166,6 +4148,127 @@ entries:
       - id: PW-RELEASE-PREFLIGHT-37
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
+  PW-REPO-SET:
+    help:
+      details:
+        - Links the repository to the GitHub project and adds it to the config file of the active project.
+        - The config file is written only after the link succeeded.
+        - For a repository already registered, updates only the settings given on the command line.
+        - Giving --package replaces the packages of a registered repository and also clears its changelog_file, even when --changelog-file is not given.
+        - Giving --clear-packages removes the packages of a registered repository.
+        - The repository owner must match the project owner.
+      examples:
+        - run: pecot repo set example-org/my-repo
+          note: Register a repository.
+        - run: pecot repo set example-org/my-repo --package pecot:plugins/pecot-workflow/CHANGELOG.md
+          note: Register a monorepo package.
+      default_notes:
+        release_type: Inferred from the packages when omitted (multi with packages, single without).
+    summary: プロジェクトの設定に、リポジトリを足すか更新します。
+    arguments:
+      changelog_file: 'CHANGELOG のファイル名です。'
+      clear_packages: '既にある packages の設定を消すかどうかです。消した後の CHANGELOG は、`--changelog-file` の値か、既定の `CHANGELOG.md` に戻ります。'
+      develop_branch: '開発ブランチの名前です。'
+      owner_repo: 'リポジトリの名前です。`owner/repo` の形で渡します。'
+      package: 'monorepo のパッケージです。`NAME:PATH` の形で登録します。繰り返して複数渡せます。例は `--package pecot:plugins/pecot-workflow/CHANGELOG.md` です。'
+      release_branch: 'リリースブランチの名前です。'
+      release_type: 'リリースの方法の宣言です。w-release スキルが、この値で手順を選びます。`single`（CHANGELOG が 1 つ）・`multi`（packages）・`nx`（Nx Release）のどれかを渡します。'
+    constraints:
+      - conflicts: [package, changelog_file]
+      - conflicts: [package, clear_packages]
+    details:
+      - 'リポジトリを GitHub のプロジェクトにつなぎ、アクティブなプロジェクトの設定ファイルに足します。'
+      - '設定ファイルを書くのは、つなぐのに成功した後だけです。'
+      - '登録済みのリポジトリでは、コマンドラインで渡した設定だけを更新します。'
+      - '`--package` を渡すと、登録済みのリポジトリの packages を置き換えます。`--changelog-file` を渡していなくても、`changelog_file` を消します。'
+      - '`--clear-packages` を渡すと、登録済みのリポジトリの packages を消します。'
+      - 'リポジトリの所有者は、プロジェクトの所有者と一致していなければなりません。'
+    stdin: none
+    output:
+      format: none
+    diagnostics: '標準エラーに、プロジェクトへのつなぎの結果の行（`added`、既につながっていれば `unchanged`）を出します。設定ファイルの結果の行（`added` か `updated`）も出します。'
+    environment: []
+    exit_status:
+      - code: 0
+        when: 'リポジトリを登録したか、更新しました。'
+      - code: 1
+        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。リポジトリが `owner/repo` の形でないか、所有者がプロジェクトの所有者と違います。つなぐのに失敗しました。`--package` を `--changelog-file` か `--clear-packages` と一緒に渡したか、`--package` の形が誤っています。packages を持つリポジトリに `--changelog-file` を渡しました。`--release-type` が `single`・`multi`・`nx` のどれでもありません。プロジェクトのルートを決められません。'
+      - code: 2
+        when: 'リポジトリの引数が無いか、ほかのコマンドラインの誤りがあります。'
+    on_error: 'リポジトリをつなぐのに失敗したときは、設定ファイルを書きません。'
+    effects:
+      - target: github
+        kind: write
+        what: '新しいリポジトリをプロジェクトにつなぎます。'
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+      - target: file
+        kind: write
+        what: 'アクティブな設定ファイルに、リポジトリを足すか更新します。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - 'ホストの GitHub トークンが要ります。'
+    idempotent: true
+    examples:
+      - run: pecot repo set example-org/my-repo
+        note: 'リポジトリを登録します。'
+      - run: pecot repo set example-org/my-repo --package pecot:plugins/pecot-workflow/CHANGELOG.md
+        note: 'monorepo のパッケージを登録します。'
+    default_notes:
+      release_type: '省くと、packages から推定します。packages があれば `multi`、無ければ `single` です。'
+    behaviors:
+      - id: PW-REPO-SET-01
+        pattern: event
+        statement: '未登録のリポジトリを渡すと、プロジェクトにリンクします'
+      - id: PW-REPO-SET-02
+        pattern: event
+        statement: 'リンクに成功すると、設定ファイルにリポジトリを足します'
+      - id: PW-REPO-SET-03
+        pattern: event
+        statement: '登録済みのリポジトリを渡すと、渡したオプションの値だけを更新します'
+      - id: PW-REPO-SET-04
+        pattern: event
+        statement: '登録済みのリポジトリに `--package` を渡すと、`packages` を置き換えます'
+      - id: PW-REPO-SET-05
+        pattern: event
+        statement: '登録済みのリポジトリに `--package` を渡すと、`changelog_file` を消します'
+      - id: PW-REPO-SET-06
+        pattern: event
+        statement: '登録済みのリポジトリに `--clear-packages` を付けると、`packages` を消します'
+      - id: PW-REPO-SET-07
+        pattern: unwanted
+        statement: 'もしリンクに失敗したなら、設定ファイルを書き換えません'
+      - id: PW-REPO-SET-08
+        pattern: unwanted
+        statement: 'もしリンクに失敗したなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-09
+        pattern: unwanted
+        statement: 'もし `--package` と `--changelog-file` を一緒に渡したなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-10
+        pattern: unwanted
+        statement: 'もし `--package` と `--clear-packages` を一緒に渡したなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-11
+        pattern: unwanted
+        statement: 'もし `--package` が `NAME:PATH` の形でないなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-12
+        pattern: unwanted
+        statement: 'もし `--package` の `NAME` が重なるなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-13
+        pattern: unwanted
+        statement: 'もしリポジトリの所有者がプロジェクトの所有者と違うなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-14
+        pattern: unwanted
+        statement: 'もしリポジトリが `owner/repo` の形でないなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-15
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-16
+        pattern: unwanted
+        statement: 'もし `--release-type` が `single`・`multi`・`nx` のどれでもないなら、終了コード 1 で終わります'
+      - id: PW-REPO-SET-17
+        pattern: unwanted
+        statement: 'もし `packages` を持つリポジトリに `--changelog-file` を渡したなら、終了コード 1 で終わります'
   PW-SECURITY-SYNC:
     help:
       details:
@@ -4692,109 +4795,6 @@ entries:
       - id: PW-SESSION-STATUS-27
         pattern: unwanted
         statement: 'もし着手中の Issue の判定を読めないなら、`warning` の行を標準エラーに出し、Stack の節の base の行は出します'
-  PW-UPDATE-ISSUE-STATUS:
-    help:
-      details:
-        - Sets the Status of an Issue that is already on the project board of the active project.
-        - The Issue reference is owner/repo/N or the short form N.
-        - The short form N refers to the Issue of the repository given by the global pecot --repo.
-        - Without --repo, the short form N refers to the Issue of the repository of the git remote.
-        - The status is backlog, pending, blocked, ready, active, in_review or archived.
-        - The status is checked before the config file is read.
-        - The repository of the Issue must be registered in the active project, and the Issue must be on the board.
-        - Unlike add-to-project, which only warns, a status that the board does not define stops the command with exit status 1.
-      examples:
-        - run: pecot update-issue-status example-org/my-repo/123 in_review
-          note: Move the Issue to In Review.
-      default_notes: {}
-    summary: Issue の番号で、プロジェクトのボード上の Issue の Status を更新します。ふだんは、pecot のコマンドが自分で Status を設定します。
-    arguments:
-      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
-      status: '設定する Status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
-    constraints: []
-    details:
-      - 'アクティブなプロジェクトのボードに既にある Issue の、Status を設定します。'
-      - 'Issue の参照は、`owner/repo/N` か、短い形の `N` です。'
-      - '短い形の `N` は、pecot 全体のオプション `--repo` で渡したリポジトリの Issue を指します。'
-      - '`--repo` が無いときの短い形の `N` は、git remote のリポジトリの Issue を指します。'
-      - 'status は、`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかです。'
-      - 'status は、設定ファイルを読む前に確かめます。'
-      - 'Issue のリポジトリはアクティブなプロジェクトに登録されていて、Issue はボードに載っていなければなりません。'
-      - 'ボードが定義していない status を渡すと、終了コード 1 で止まります。`warning` を出すだけの `add-to-project` とは違います。'
-    stdin: none
-    output:
-      format: none
-    diagnostics: '標準エラーに、Status の結果の行（`set`）を出します。status が有効な値でないときは、有効な値を並べた `error` の行を出します。ボードが Blocked を定義していないときは、`hint` の行が `pecot project init` の実行を案内します。'
-    environment: []
-    exit_status:
-      - code: 0
-        when: 'Status を設定しました。'
-      - code: 1
-        when: '次のどれかです。status が有効な値ではありません。アクティブなプロジェクトがありません。リポジトリがプロジェクトにありません。Issue がボードにありません。ボードがその status を定義していません。GitHub API がエラーを返しました。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。Issue の参照の形が誤っています。リポジトリが決まらないのに短い形を渡しました。ほかのコマンドラインの誤りがあります。'
-    on_error: default
-    effects:
-      - target: github
-        kind: read
-        what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
-      - target: github
-        kind: write
-        what: 'ボードの項目の Status の欄を設定します。'
-      - target: file
-        kind: read
-        what: 'アクティブな設定ファイルを読みます。'
-    prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
-      - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
-    idempotent: true
-    examples:
-      - run: pecot update-issue-status example-org/my-repo/123 in_review
-        note: 'Issue を In Review へ動かします。'
-    default_notes: {}
-    behaviors:
-      - id: PW-UPDATE-ISSUE-STATUS-01
-        pattern: event
-        statement: 'Issue の参照と Status を渡して打つと、ボード上のその Issue の Status を渡した値にします'
-      - id: PW-UPDATE-ISSUE-STATUS-02
-        pattern: event
-        statement: 'Issue の参照に番号だけを渡して `--repo` を付けると、そのリポジトリの Issue の Status を設定します'
-      - id: PW-UPDATE-ISSUE-STATUS-03
-        pattern: event
-        statement: 'Issue の参照に番号だけを渡して `--repo` を省くと、git の remote のリポジトリの Issue を対象にします'
-      - id: PW-UPDATE-ISSUE-STATUS-04
-        pattern: event
-        statement: 'Status を設定すると、`set` の行を標準エラーに出します'
-      - id: PW-UPDATE-ISSUE-STATUS-05
-        pattern: unwanted
-        statement: 'もし Status が 7 つの有効な値のどれでもないなら、有効な値を並べた `error` の行を標準エラーに出します'
-      - id: PW-UPDATE-ISSUE-STATUS-06
-        pattern: unwanted
-        statement: 'もし Status が `backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれでもないなら、終了コード 1 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-07
-        pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-08
-        pattern: unwanted
-        statement: 'もし Issue の参照が不正なら、終了コード 2 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-09
-        pattern: unwanted
-        statement: 'もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-10
-        pattern: unwanted
-        statement: 'もし Issue がボードに無いなら、`add-to-project` を案内する `error` の行を標準エラーに出します'
-      - id: PW-UPDATE-ISSUE-STATUS-11
-        pattern: unwanted
-        statement: 'もし Issue がボードに無いなら、終了コード 1 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-12
-        pattern: unwanted
-        statement: 'もしボードが Status を定義していないなら、終了コード 1 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-13
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
-      - id: PW-UPDATE-ISSUE-STATUS-14
-        pattern: unwanted
-        statement: 'もし Status が `blocked` でボードが Blocked を定義していないなら、`project init` で足し方を案内する `hint` の行を標準エラーに出します'
   PW-WORKTREE-ADD:
     help:
       details:

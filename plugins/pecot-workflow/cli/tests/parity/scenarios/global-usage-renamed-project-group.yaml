@@ -1,0 +1,7 @@
+# project の下にあった古い名前のコマンドも、実行せずに、新しい名前を案内して止まる。
+id: global-usage-renamed-project-group
+command:
+  path: []
+  args: ["project", "show-aggregation-repo"]
+setup: {}
+github: []

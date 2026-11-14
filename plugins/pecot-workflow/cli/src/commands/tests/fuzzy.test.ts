@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { closeMatches } from '../fuzzy.js'
 
 const ROOT_OPTIONS = ['--version', '--repo', '--show-repo', '--install-completion', '--show-completion', '--help']
-const ROOT_COMMANDS = ['add-to-project', 'update-issue-status', 'create-branch', 'delete-branch', 'project', 'issue', 'pr', 'session', 'release', 'worktree']
+const ROOT_COMMANDS = ['project', 'repo', 'aggregation', 'issue', 'board', 'branch', 'pr', 'session', 'release', 'security', 'dependabot', 'worktree']
 const ISSUE_COMMANDS = ['read', 'reopen', 'create', 'comment', 'quick']
 
 // 期待値は Python の difflib.get_close_matches(word, possibilities) の実出力

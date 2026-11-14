@@ -70,7 +70,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下7つのコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_quick` / `issue_create` の使用を強制する | コアガード | `true` |
-| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（35 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
+| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（37 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
 | `pecot-pr-create-ask` | MCP ツールの `pr_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `pecot-issue-create-ask` | MCP ツールの `issue_create` / `issue_quick`（実投稿）を検出しユーザー承認（ask）を要求。`issue_create` の `prepare: true`・`plan: true` は素通し（`issue_quick` に `prepare`・`plan` は無く、素通しにしない）。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグの免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは MCP ツールの `pr_cleanup`） | コアガード（external-post-check） | `true` |
@@ -89,7 +89,7 @@ MCP ツールの `pr_create`（実投稿）/ `issue_create` / `issue_quick`（�
 MCP ツールの ask は `lib/mcp-handlers/pecot-post-ask.sh` が担う。`gh pr merge` の ask は `lib/core/external-post-check.sh` が担う。
 案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 9 つ。
 
-- `mcp_guidance_gh_pr_create`・`mcp_guidance_gh_issue_create`・`mcp_guidance_delete_branch`
+- `mcp_guidance_gh_pr_create`・`mcp_guidance_gh_issue_create`・`mcp_guidance_branch_delete`
 - `mcp_guidance_reminder_quick`・`mcp_guidance_reminder_ready`・`mcp_guidance_reminder_other`
 - `mcp_guidance_pr_merge`・`mcp_guidance_post_ask_issue`・`mcp_guidance_post_ask_pr`
 

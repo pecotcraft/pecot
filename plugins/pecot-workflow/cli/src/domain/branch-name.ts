@@ -1,4 +1,4 @@
-// ブランチ名の読み取り。pecot create-branch が作る名前は、末尾が `/Issue番号` になる。
+// ブランチ名の読み取り。pecot branch create が作る名前は、末尾が `/Issue番号` になる。
 import { parsePythonInteger } from './python-format.js'
 
 /**

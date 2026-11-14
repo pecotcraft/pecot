@@ -1,4 +1,4 @@
-// project の 10 個のコマンド。Python の cli/commands/project.py の移植。
+// project・repo・aggregation の 10 個のコマンド。Python の cli/commands/project.py の移植。
 import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
@@ -515,7 +515,7 @@ const infoCommand = defineCommand({
   },
 })
 
-// project set-repo
+// repo set
 
 const packageList = z.array(z.string())
 
@@ -591,7 +591,7 @@ async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repo
 }
 
 const repositorySettingCommand = defineCommand({
-  path: ['project', 'set-repo'],
+  path: ['repo', 'set'],
   description: 'Add or update a repository in the project config',
   input: z.strictObject({
     owner_repo: z.string().describe('Repository name in owner/repo form'),
@@ -615,7 +615,7 @@ const repositorySettingCommand = defineCommand({
     const { config, configPath } = requireActiveWithPath(out)
 
     const parts = splitOwnerRepository(input.owner_repo)
-    if (parts === undefined) stopWith(out, 'give the repository as owner/repo\nexample: pecot project set-repo example-org/my-repo')
+    if (parts === undefined) stopWith(out, 'give the repository as owner/repo\nexample: pecot repo set example-org/my-repo')
     const { owner, repository: name } = parts
     if (owner !== config.owner) {
       stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
@@ -655,7 +655,7 @@ const repositorySettingCommand = defineCommand({
 // aggregation_repo の管理
 
 const aggregationSettingCommand = defineCommand({
-  path: ['project', 'set-aggregation-repo'],
+  path: ['aggregation', 'set'],
   description: 'Set the Epic aggregation repository (``aggregation_repo``)',
   input: z.strictObject({
     value: z.string().describe('Aggregation repository (owner/repo form)'),
@@ -684,7 +684,7 @@ const aggregationSettingCommand = defineCommand({
 })
 
 const aggregationClearCommand = defineCommand({
-  path: ['project', 'unset-aggregation-repo'],
+  path: ['aggregation', 'unset'],
   description: 'Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo',
   input: z.strictObject({}),
   positional: [],
@@ -704,7 +704,7 @@ const aggregationClearCommand = defineCommand({
 })
 
 const showAggregationCommand = defineCommand({
-  path: ['project', 'show-aggregation-repo'],
+  path: ['aggregation', 'show'],
   description: 'Show the Epic aggregation repository (``aggregation_repo``)',
   input: z.strictObject({}),
   positional: [],
@@ -717,7 +717,7 @@ const showAggregationCommand = defineCommand({
 })
 
 /**
-project のコマンド。並びは tests/parity/commands.ts と同じ
+project・repo・aggregation のコマンド。並びは tests/parity/commands.ts と同じ
 */
 export const PROJECT_COMMANDS = [
   listCommand,

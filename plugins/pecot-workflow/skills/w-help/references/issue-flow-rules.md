@@ -22,7 +22,7 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 
 ユーザー指示が無い時の確認手順:
 
-1. `project_show_aggregation_repo` で集約リポを取得
+1. `aggregation_show` で集約リポを取得
 2. 集約リポと実装リポが異なる場合、サブタスクは実装リポ側を `repo` で指定する
 3. どちらに作るべきか判断材料が無い場合は AskUserQuestion で確認する（推測で埋めない）
 
@@ -128,12 +128,12 @@ CLI が生成した prepared file を見れば、AI は判定基準に辿り着�
 
 計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
 既定は task/bug=ready、epic=backlog、tracker=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
-これらは未着手の置き場であり、着手時に `create-branch` がボード Status を active に設定する。
+これらは未着手の置き場であり、着手時に `branch create` がボード Status を active に設定する。
 
 `issue quick` は task/bug を active で起票する。
 quick は即着手フローで、起票時点が作業開始時点になる。
 board-status.md の `作業開始時に必ず設定` を起票と同時に適用したものであり、`issue create` との矛盾ではない。
-違いは、active を設定する担い手が `create-branch` か起票時かだけ。
+違いは、active を設定する担い手が `branch create` か起票時かだけ。
 
 ## 5. セッションスコープ（着手前の前提）
 
@@ -142,19 +142,19 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 `.pecot-active` の役割:
 
 - 配置: `.pecot/state/.pecot-active`（`CLAUDE_PROJECT_DIR` 単位 = WT ごとに独立）
-- 書き手: `create_branch` / `issue_quick` / `session_restore`（実行時に上書き）
+- 書き手: `branch_create` / `issue_quick` / `session_restore`（実行時に上書き）
 - `pr_cleanup` が消す。`pr_cleanup` を通さずに片付けた場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
 
 ツールのガード（この表が最終の基準）は次のとおり。
 
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
-| CWD と Issue ref の owner/repo 不一致 | `create_branch` の冒頭 | `exit code: 2` + 対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
-| `.pecot-active` に OPEN な別 Issue ref | `create_branch` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
+| CWD と Issue ref の owner/repo 不一致 | `branch_create` の冒頭 | `exit code: 2` + 対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
+| `.pecot-active` に OPEN な別 Issue ref | `branch_create` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
 | `.pecot-active` の Issue が CLOSED | 同上 | stale の warning + 続行 | （バイパス不要） |
 | Issue の判定が blocked | 同上 | `exit code: 2` + 前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
 | 前提を読めない・判定できない | 同上 | `exit code: 1` + `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（出力を利用者に示す） |
-| 積む先のブランチが判定の後に無くなった | `create_branch` のブランチ作成前 | `exit code: 1` + `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
+| 積む先のブランチが判定の後に無くなった | `branch_create` のブランチ作成前 | `exit code: 1` + `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
 | `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `exit code: 2` + `--base <x> differs from the base chosen by readiness` | `--base` を外す |
 
 状況を着手前に把握したいときは、ユーザー / AI が `session_status` を `directory: "."` で呼ぶ。

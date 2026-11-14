@@ -1070,7 +1070,7 @@ describe('pr preflight', () => {
     const result = await preflight(workspace)
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: pecot project set-repo acme\/demo --develop-branch develop\n$/u)
+    expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: pecot repo set acme\/demo --develop-branch develop\n$/u)
   })
 
   it('<remote>/<develop_branch> が無いと、終了コード 1 で終わる', async (context) => {

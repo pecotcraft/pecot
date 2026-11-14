@@ -75,8 +75,8 @@ describe('グローバルオプションだけのシナリオ', () => {
 
 describe('kindOf', () => {
   it('path の次の語を kind にする。path に - を含むコマンドもある', () => {
-    expect(kindOf({ id: 'add-to-project-4xx-notfound', command: { path: ['add-to-project'], args: [] } })).toBe('4xx')
-    expect(kindOf({ id: 'project-set-repo-ok', command: { path: ['project', 'set-repo'], args: [] } })).toBe('ok')
+    expect(kindOf({ id: 'board-add-4xx-notfound', command: { path: ['board', 'add'], args: [] } })).toBe('4xx')
+    expect(kindOf({ id: 'repo-set-ok', command: { path: ['repo', 'set'], args: [] } })).toBe('ok')
     expect(kindOf({ id: 'issue-read-bad', command: { path: ['issue', 'read'], args: [] } })).toBeUndefined()
   })
 })

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
+import { commandNameViolations } from '../names.js'
 import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
@@ -25,10 +26,13 @@ describe('コマンドの一覧', () => {
     expect(ids.toSorted(compareStrings)).toEqual(generated.entries.map(entry => entry.id).toSorted(compareStrings))
   })
 
-  it('グループの無いコマンドは 4 個で、残りはグループの下にある', () => {
-    const single = COMMANDS.filter(command => command.path.length === 1).map(command => command.path.join(' '))
-    expect(single.toSorted(compareStrings)).toEqual(['add-to-project', 'create-branch', 'delete-branch', 'update-issue-status'])
-    expect(COMMANDS.filter(command => command.path.length !== 1).every(command => command.path.length === 2)).toBe(true)
+  it('全部の path が、コマンド名の決まりに合う', () => {
+    expect(commandNameViolations(COMMANDS.map(command => command.path))).toEqual([])
+  })
+
+  it('1 語目のグループごとにまとまり、グループは決めた順に並ぶ', () => {
+    const groups = COMMANDS.map(command => command.path.at(0)).filter((group, index, all) => group !== all.at(index - 1) || index === 0)
+    expect(groups).toEqual(['project', 'repo', 'aggregation', 'issue', 'board', 'branch', 'pr', 'session', 'release', 'security', 'dependabot', 'worktree'])
   })
 
   it('toolName は重複せず、path から作られている', () => {
@@ -39,10 +43,10 @@ describe('コマンドの一覧', () => {
 })
 
 describe('toolNameOf', () => {
-  it('path を _ でつなぎ、- を _ にする', () => {
+  it('path を _ でつなぐ', () => {
     expect(toolNameOf(['issue', 'create'])).toBe('issue_create')
-    expect(toolNameOf(['add-to-project'])).toBe('add_to_project')
-    expect(toolNameOf(['project', 'set-aggregation-repo'])).toBe('project_set_aggregation_repo')
+    expect(toolNameOf(['board', 'add'])).toBe('board_add')
+    expect(toolNameOf(['aggregation', 'show'])).toBe('aggregation_show')
   })
 })
 

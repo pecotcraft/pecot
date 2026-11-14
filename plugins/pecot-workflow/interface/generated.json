@@ -4,17 +4,121 @@
   "prefix": "PW",
   "entries": [
     {
-      "id": "PW-ADD-TO-PROJECT",
-      "name": "add-to-project",
+      "id": "PW-AGGREGATION-SET",
+      "name": "aggregation set",
+      "description": "Set the Epic aggregation repository (``aggregation_repo``)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "aggregation",
+            "set"
+          ]
+        },
+        "mcp": {
+          "tool": "aggregation_set"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Aggregation repository (owner/repo form)"
+          },
+          "yes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Overwrite an existing value without confirmation (a warning goes to stderr)"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "value"
+        ],
+        "flags": {
+          "yes": [
+            "--yes",
+            "-y"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-AGGREGATION-SHOW",
+      "name": "aggregation show",
+      "description": "Show the Epic aggregation repository (``aggregation_repo``)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "aggregation",
+            "show"
+          ]
+        },
+        "mcp": {
+          "tool": "aggregation_show"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-AGGREGATION-UNSET",
+      "name": "aggregation unset",
+      "description": "Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "aggregation",
+            "unset"
+          ]
+        },
+        "mcp": {
+          "tool": "aggregation_unset"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-BOARD-ADD",
+      "name": "board add",
       "description": "Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)",
       "surfaces": {
         "cli": {
           "path": [
-            "add-to-project"
+            "board",
+            "add"
           ]
         },
         "mcp": {
-          "tool": "add_to_project"
+          "tool": "board_add"
         }
       },
       "hidden": false,
@@ -47,6 +151,49 @@
             "-s"
           ]
         }
+      }
+    },
+    {
+      "id": "PW-BOARD-MOVE",
+      "name": "board move",
+      "description": "Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "board",
+            "move"
+          ]
+        },
+        "mcp": {
+          "tool": "board_move"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status (backlog/pending/blocked/ready/active/in_review/archived)"
+          }
+        },
+        "required": [
+          "issue_ref",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref",
+          "status"
+        ],
+        "flags": {}
       }
     },
     {
@@ -95,17 +242,18 @@
       }
     },
     {
-      "id": "PW-CREATE-BRANCH",
-      "name": "create-branch",
+      "id": "PW-BRANCH-CREATE",
+      "name": "branch create",
       "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
       "surfaces": {
         "cli": {
           "path": [
-            "create-branch"
+            "branch",
+            "create"
           ]
         },
         "mcp": {
-          "tool": "create_branch"
+          "tool": "branch_create"
         }
       },
       "hidden": false,
@@ -173,17 +321,18 @@
       }
     },
     {
-      "id": "PW-DELETE-BRANCH",
-      "name": "delete-branch",
+      "id": "PW-BRANCH-DELETE",
+      "name": "branch delete",
       "description": "Delete a remote branch (a protected branch is never deleted)",
       "surfaces": {
         "cli": {
           "path": [
-            "delete-branch"
+            "branch",
+            "delete"
           ]
         },
         "mcp": {
-          "tool": "delete_branch"
+          "tool": "branch_delete"
         }
       },
       "hidden": false,
@@ -1409,194 +1558,6 @@
       }
     },
     {
-      "id": "PW-PROJECT-SET-AGGREGATION-REPO",
-      "name": "project set-aggregation-repo",
-      "description": "Set the Epic aggregation repository (``aggregation_repo``)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "set-aggregation-repo"
-          ]
-        },
-        "mcp": {
-          "tool": "project_set_aggregation_repo"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "string",
-            "description": "Aggregation repository (owner/repo form)"
-          },
-          "yes": {
-            "type": "boolean",
-            "default": false,
-            "description": "Overwrite an existing value without confirmation (a warning goes to stderr)"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "value"
-        ],
-        "flags": {
-          "yes": [
-            "--yes",
-            "-y"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-PROJECT-SET-REPO",
-      "name": "project set-repo",
-      "description": "Add or update a repository in the project config",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "set-repo"
-          ]
-        },
-        "mcp": {
-          "tool": "project_set_repo"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "changelog_file": {
-            "type": "string",
-            "description": "CHANGELOG file name"
-          },
-          "clear_packages": {
-            "type": "boolean",
-            "default": false,
-            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
-          },
-          "develop_branch": {
-            "type": "string",
-            "description": "Development branch name"
-          },
-          "owner_repo": {
-            "type": "string",
-            "description": "Repository name in owner/repo form"
-          },
-          "package": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
-          },
-          "release_branch": {
-            "type": "string",
-            "description": "Release branch name"
-          },
-          "release_type": {
-            "type": "string",
-            "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)"
-          }
-        },
-        "required": [
-          "owner_repo"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "owner_repo"
-        ],
-        "flags": {
-          "changelog_file": [
-            "--changelog-file"
-          ],
-          "clear_packages": [
-            "--clear-packages"
-          ],
-          "develop_branch": [
-            "--develop-branch",
-            "-b"
-          ],
-          "package": [
-            "--package"
-          ],
-          "release_branch": [
-            "--release-branch"
-          ],
-          "release_type": [
-            "--release-type"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-PROJECT-SHOW-AGGREGATION-REPO",
-      "name": "project show-aggregation-repo",
-      "description": "Show the Epic aggregation repository (``aggregation_repo``)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "show-aggregation-repo"
-          ]
-        },
-        "mcp": {
-          "tool": "project_show_aggregation_repo"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {}
-      }
-    },
-    {
-      "id": "PW-PROJECT-UNSET-AGGREGATION-REPO",
-      "name": "project unset-aggregation-repo",
-      "description": "Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "unset-aggregation-repo"
-          ]
-        },
-        "mcp": {
-          "tool": "project_unset_aggregation_repo"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {}
-      }
-    },
-    {
       "id": "PW-RELEASE-CREATE",
       "name": "release create",
       "description": "Create a GitHub release and its tag (the release notes come from the CHANGELOG)",
@@ -1757,6 +1718,91 @@
       }
     },
     {
+      "id": "PW-REPO-SET",
+      "name": "repo set",
+      "description": "Add or update a repository in the project config",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "repo",
+            "set"
+          ]
+        },
+        "mcp": {
+          "tool": "repo_set"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "changelog_file": {
+            "type": "string",
+            "description": "CHANGELOG file name"
+          },
+          "clear_packages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
+          },
+          "develop_branch": {
+            "type": "string",
+            "description": "Development branch name"
+          },
+          "owner_repo": {
+            "type": "string",
+            "description": "Repository name in owner/repo form"
+          },
+          "package": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
+          },
+          "release_branch": {
+            "type": "string",
+            "description": "Release branch name"
+          },
+          "release_type": {
+            "type": "string",
+            "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)"
+          }
+        },
+        "required": [
+          "owner_repo"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "owner_repo"
+        ],
+        "flags": {
+          "changelog_file": [
+            "--changelog-file"
+          ],
+          "clear_packages": [
+            "--clear-packages"
+          ],
+          "develop_branch": [
+            "--develop-branch",
+            "-b"
+          ],
+          "package": [
+            "--package"
+          ],
+          "release_branch": [
+            "--release-branch"
+          ],
+          "release_type": [
+            "--release-type"
+          ]
+        }
+      }
+    },
+    {
       "id": "PW-SECURITY-SYNC",
       "name": "security sync",
       "description": "Rewrite the open Tracker's list of open security alerts",
@@ -1880,48 +1926,6 @@
             "-D"
           ]
         }
-      }
-    },
-    {
-      "id": "PW-UPDATE-ISSUE-STATUS",
-      "name": "update-issue-status",
-      "description": "Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "update-issue-status"
-          ]
-        },
-        "mcp": {
-          "tool": "update_issue_status"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
-          },
-          "status": {
-            "type": "string",
-            "description": "Status (backlog/pending/blocked/ready/active/in_review/archived)"
-          }
-        },
-        "required": [
-          "issue_ref",
-          "status"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref",
-          "status"
-        ],
-        "flags": {}
       }
     },
     {
