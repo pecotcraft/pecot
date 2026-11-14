@@ -422,6 +422,7 @@ Step 4 の dry-run 出力をもとに、ユーザーへ以下を提示して明�
 - バグ修正のみのはずが `minor` 以上になっていないか
 - `major` の plan があるときは、board sync の雛形の版の指定が新しい major かを見る
   - 見るのは `cli/templates/workflow/pecot-board-sync.yml` と、このリポの `.github/workflows/pecot-board-sync.yml` だ
+  - w-help の `references/board-sync-workflow.md` の版の数字（`@<major>` と、版を固定する例）も直す
   - リリースはこの行を書き換えない。古いままなら本番を起動せず、先に直す PR を出す
   - `cli/tests/board-sync-workflow-template.test.ts` は、未消費の major の plan があれば次の major と比べる
 
