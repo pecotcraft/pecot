@@ -120,7 +120,13 @@ export interface RestRequestOptions {
   JSON の本文
   */
   readonly json?: JsonValue | undefined
+  /**
+  X-GitHub-Api-Version の値。省略すると DEFAULT_API_VERSION
+  */
+  readonly apiVersion?: string | undefined
 }
+
+export const DEFAULT_API_VERSION = '2022-11-28'
 
 /**
 送信の失敗（接続できない・時間切れ）。Python の httpx の例外に当たり、PecotError ではない
@@ -474,11 +480,11 @@ or authenticate with the GitHub CLI:
   }
 
   // github.com は Bearer、GHE Server は token（gh CLI 互換）
-  private requestHeaders(): Record<string, string> {
+  private requestHeaders(apiVersion = DEFAULT_API_VERSION): Record<string, string> {
     return {
       'Authorization': `${this.host === 'github.com' ? 'Bearer' : 'token'} ${this.token}`,
       'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
+      'X-GitHub-Api-Version': apiVersion,
     }
   }
 
@@ -525,8 +531,10 @@ or authenticate with the GitHub CLI:
     }
   }
 
-  private async sendRest(method: HttpMethod, url: string, json: JsonValue | undefined): Promise<RestResponse> {
-    const headers = json === undefined ? this.requestHeaders() : { ...this.requestHeaders(), 'Content-Type': 'application/json' }
+  private async sendRest(method: HttpMethod, url: string, options: Readonly<RestRequestOptions>): Promise<RestResponse> {
+    const { json } = options
+    const base = this.requestHeaders(options.apiVersion)
+    const headers = json === undefined ? base : { ...base, 'Content-Type': 'application/json' }
     return this.send(method, url, headers, json === undefined ? undefined : JSON.stringify(json))
   }
 
@@ -624,8 +632,8 @@ or authenticate with the GitHub CLI:
   async restRequest(method: HttpMethod, target: string, options: Readonly<RestRequestOptions> = {}): Promise<RestResponse> {
     this.assertSameOrigin(target)
     const url = buildUrl(this.apiUrl, target, options.params)
-    const response = await this.sendRest(method, url, options.json)
-    return response.statusCode === 401 && this.retryWithFallbackToken() ? this.sendRest(method, url, options.json) : response
+    const response = await this.sendRest(method, url, options)
+    return response.statusCode === 401 && this.retryWithFallbackToken() ? this.sendRest(method, url, options) : response
   }
 
   /**

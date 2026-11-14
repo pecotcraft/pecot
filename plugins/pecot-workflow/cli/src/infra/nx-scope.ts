@@ -157,7 +157,7 @@ export function nxProjects(toplevel: string, options: Readonly<NxGraphOptions> =
 }
 
 /**
-`baseReference...head` の変更ファイル（リポジトリ root からの相対パス）を返す。
+`baseReference...head` の変更ファイル（リポジトリ root からの相対パス）を返す。baseReference は、ブランチのほか、コミットの SHA（base の記録の位置）も受ける。
 rename 検出だと移動元のプロジェクトが漏れ、`core.quotePath` だと非 ASCII パスが一致しなくなるため、`--no-renames` と NUL 区切りで取る。
 baseReference / head が解決できない・git 失敗・git が無いなら undefined
 */

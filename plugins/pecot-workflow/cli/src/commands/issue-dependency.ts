@@ -15,7 +15,6 @@ import { createIssueReference, issueReferenceKey } from '../domain/reference-par
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
@@ -23,7 +22,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
-import { createGitHubClient } from './github-client.js'
+import { apiFailureMessage, createGitHubClient } from './github-client.js'
 import { applyBoardMove } from './issue-board.js'
 import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import type { JudgedIssue } from './issue-readiness.js'
@@ -51,11 +50,6 @@ function toReference(target: IssueTarget): IssueReference {
   return createIssueReference(createRepositoryReference(target.owner, target.repository), target.number)
 }
 
-function messageOf(error: unknown): string {
-  if (error instanceof GitHubAPIError) return error.message
-  throw error
-}
-
 async function ensureLinked(out: Output, config: ProjectConfig, client: GitHubClient, { owner, repository }: IssueTarget): Promise<void> {
   await ensureRepositoryInProject(out, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
 }
@@ -65,7 +59,7 @@ async function wrapped<T>(out: Output, context: string, run: () => Promise<T>): 
     return await run()
   }
   catch (error: unknown) {
-    return stopWith(out, `${context}: ${messageOf(error)}`)
+    return stopWith(out, `${context}: ${apiFailureMessage(error)}`)
   }
 }
 
@@ -127,7 +121,7 @@ async function moveBoard(context: Context, expected: ExpectedPrerequisites, hasP
     if (hasWrite) itemId = await client.getItemIdByIssue(config.project.id, target.repository.owner, target.repository.repository, target.number) ?? ''
   }
   catch (error: unknown) {
-    out.warning(`could not move ${name}: ${messageOf(error)}`)
+    out.warning(`could not move ${name}: ${apiFailureMessage(error)}`)
     return
   }
   if (hasWrite && itemId === '') return

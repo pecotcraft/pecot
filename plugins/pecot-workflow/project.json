@@ -43,6 +43,7 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli/**/*",
+        "{projectRoot}/skills/w-help/references/board-sync-workflow.md",
         "!{projectRoot}/cli/tests/hooks/**",
         "!{projectRoot}/cli/tests/bootstrap/**",
         "!{projectRoot}/cli/tests/skills/**",
@@ -68,7 +69,7 @@
       "dependsOn": ["install", "build-cli"],
       "outputs": ["{projectRoot}/cli/test-results/junit.xml"],
       "metadata": {
-        "description": "cli の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行するので、入力から tests/hooks/ を除く。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/templates/・plugin.json・hooks/lib/core の 2 つのスクリプト・interface/ の定義書は、それぞれを読むテストのために宣言する。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。install と build は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行するので、入力から tests/hooks/ を除く。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/templates/・plugin.json・hooks/lib/core の 2 つのスクリプト・interface/ の定義書は、それぞれを読むテストのために宣言する。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。install と build は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。board-sync-workflow-template.test.ts は .nx/version-plans を読むが、ほぼすべての PR が plan を足すので入力にしない。major の plan を足した PR で雛形の版を直したかは、w-release の確認観点で人が見る。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",

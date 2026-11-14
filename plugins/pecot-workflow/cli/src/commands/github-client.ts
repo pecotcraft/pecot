@@ -1,5 +1,6 @@
 // 各コマンドが、診断の出力先 out を渡す形をそろえて GitHub クライアントを作る。
 import type { ProjectConfig } from '../domain/config.js'
+import { TransportFailure } from '../infra/github/client.js'
 import { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { Output } from './output.js'
@@ -9,6 +10,14 @@ host 向けのクライアントを作る。host が undefined なら既定の�
 */
 export function createGitHubClient(out: Readonly<Output>, host: string | undefined): GitHubClient {
   return new GitHubClient({ host, diagnostics: out })
+}
+
+/**
+GitHub の失敗（GitHubAPIError と、接続の失敗の TransportFailure）なら、その文を返す。それ以外は投げ直す
+*/
+export function apiFailureMessage(error: unknown): string {
+  if (error instanceof GitHubAPIError || error instanceof TransportFailure) return error.message
+  throw error
 }
 
 /**

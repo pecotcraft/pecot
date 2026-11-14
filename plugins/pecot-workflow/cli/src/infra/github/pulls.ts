@@ -61,6 +61,38 @@ export interface ReviewThread {
   readonly comments: readonly ReviewThreadComment[]
 }
 
+/**
+GitHub のスタック。pullRequests は下の段からの PR 番号
+*/
+export interface PullRequestStack {
+  readonly number: number
+  readonly pullRequests: readonly number[]
+}
+
+/**
+Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
+*/
+export const STACKS_API_VERSION = '2026-03-10'
+
+function readStack(value: JsonValue | undefined): PullRequestStack {
+  if (!isJsonObject(value)) throwMalformed('stack')
+  const pullRequests = jsonField(value, 'pull_requests')
+  if (!isJsonArray(pullRequests)) throwMalformed('stack.pull_requests')
+  return {
+    number: requireNumber(jsonField(value, 'number'), 'stack.number'),
+    pullRequests: pullRequests.map(pullRequest => requireNumber(jsonField(pullRequest, 'number'), 'stack.pull_requests.number')),
+  }
+}
+
+// 番号の型を問わずに、その PR を含むか。数でない番号でも含めば、readStack が形の誤りとして止める
+function hasPullRequestNumber(stack: JsonValue, pullRequestNumber: number): boolean {
+  const pullRequests = jsonField(stack, 'pull_requests')
+  return isJsonArray(pullRequests) && pullRequests.some((pullRequest) => {
+    const number = jsonField(pullRequest, 'number')
+    return number === pullRequestNumber || number === String(pullRequestNumber)
+  })
+}
+
 export interface PullRequestWithReviews extends PullRequestBase {
   readonly reviews: readonly PullRequestReview[]
   readonly review_threads: readonly ReviewThread[]
@@ -192,6 +224,41 @@ export class PullsApi extends IssuesApi {
     return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
       json: { merge_method: mergeMethod },
     })
+  }
+
+  /**
+  その PR が入っているスタックを読む。入っていなければ undefined。
+  スタックの機能が無いリポは GitHubNotFoundError
+  */
+  async getStackOfPullRequest(owner: string, repository: string, pullRequestNumber: number): Promise<PullRequestStack | undefined> {
+    const stacks = await this.restJson('GET', `${repositoryPath(owner, repository)}/stacks`, {
+      params: { pull_request: pullRequestNumber },
+      apiVersion: STACKS_API_VERSION,
+    })
+    if (!isJsonArray(stacks)) throwMalformed('stacks')
+    // 関係の無いスタックの形の誤りで登録を止めないよう、探している PR を含むものだけ厳しく読む
+    const found = stacks.find(stack => hasPullRequestNumber(stack, pullRequestNumber))
+    return found === undefined ? undefined : readStack(found)
+  }
+
+  /**
+  スタックを作る。pullRequestNumbers は下の段からの順
+  */
+  async createStack(owner: string, repository: string, pullRequestNumbers: readonly number[]): Promise<PullRequestStack> {
+    return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks`, {
+      json: { pull_requests: [...pullRequestNumbers] },
+      apiVersion: STACKS_API_VERSION,
+    }))
+  }
+
+  /**
+  既にあるスタックの一番上に PR を足す。pullRequestNumbers は下からの順
+  */
+  async addToStack(owner: string, repository: string, stackNumber: number, pullRequestNumbers: readonly number[]): Promise<PullRequestStack> {
+    return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks/${String(stackNumber)}/add`, {
+      json: { pull_requests: [...pullRequestNumbers] },
+      apiVersion: STACKS_API_VERSION,
+    }))
   }
 
   /**

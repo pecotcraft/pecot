@@ -915,3 +915,64 @@ describe('getBlockedByOfNodes', () => {
     expect(await rejection(client.getBlockedByOfNodes(['A']))).toBeInstanceOf(DependenciesUnsupportedError)
   })
 })
+
+describe('getIssueBlockingReferences', () => {
+  it('その Issue を前提にしている Issue の参照（別のリポのものも含む）と件数を読む', async () => {
+    const other = { id: 'I_9', number: 9, state: 'OPEN', repository: { owner: { login: 'acme' }, name: 'other' } }
+    const issue = { blocking: { totalCount: 2, nodes: [blockerNode(8), other] } }
+    const { client, server } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue } })])
+
+    const result = await client.getIssueBlockingReferences('acme', 'demo', 7)
+
+    expect(result).toEqual({
+      kind: 'ok',
+      total: 2,
+      issues: [
+        { id: 'I_8', number: 8, repository: { owner: 'acme', repository: 'demo' }, state: 'OPEN' },
+        { id: 'I_9', number: 9, repository: { owner: 'acme', repository: 'other' }, state: 'OPEN' },
+      ],
+    })
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueBlockingReferences', variables: { owner: 'acme', repo: 'demo', number: 7, blockingFirst: 50 } }])
+  })
+
+  it('件数が読めた数より多いとき、total に全体の件数を返す', async () => {
+    const issue = { blocking: { totalCount: 3, nodes: [blockerNode(8)] } }
+    const { client } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue } })])
+    expect(await client.getIssueBlockingReferences('acme', 'demo', 7, 1)).toMatchObject({ kind: 'ok', total: 3, issues: [{ number: 8 }] })
+  })
+
+  it('blocking が null なら read-failed', async () => {
+    const { client } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue: { blocking: JSON_NULL } } })])
+    expect(await client.getIssueBlockingReferences('acme', 'demo', 7)).toEqual({ kind: 'read-failed', reason: 'blocking is null' })
+  })
+
+  it('nodes に null があれば read-failed', async () => {
+    const { client } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue: { blocking: { totalCount: 1, nodes: [JSON_NULL] } } } })])
+    expect(await client.getIssueBlockingReferences('acme', 'demo', 7)).toEqual({ kind: 'read-failed', reason: 'blocking has a null node' })
+  })
+
+  it('blocking の下の部分エラーは、例外ではなく read-failed で返す', async () => {
+    const errors = [{ message: 'forbidden', path: ['repository', 'issue', 'blocking', 'nodes', 0] }]
+    const { client } = await startClient([{ match: { operation: 'GetIssueBlockingReferences' }, respond: { status: 200, body: { data: { repository: { issue: { blocking: JSON_NULL } } }, errors } }, times: 1 }])
+    expect(await client.getIssueBlockingReferences('acme', 'demo', 7)).toEqual({ kind: 'read-failed', reason: 'blocking could not be read: forbidden' })
+  })
+
+  it('Issue が無ければ GitHubNotFoundError', async () => {
+    const { client } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue: JSON_NULL } })])
+    expect(await rejection(client.getIssueBlockingReferences('acme', 'demo', 7))).toBeInstanceOf(GitHubNotFoundError)
+  })
+
+  it.for([
+    { name: 'Issue', data: { repository: { issue: JSON_NULL } }, path: ['repository', 'issue'], message: 'Issue not found: acme/demo/7' },
+    { name: 'リポジトリ', data: { repository: JSON_NULL }, path: ['repository'], message: 'repository not found: acme/demo' },
+  ])('GitHub が $name を NOT_FOUND の errors で返すと、GitHubNotFoundError', async (row) => {
+    const errors = [{ type: 'NOT_FOUND', path: row.path, message: 'Could not resolve' }]
+    const { client } = await startClient([{ match: { operation: 'GetIssueBlockingReferences' }, respond: { status: 200, body: { data: row.data, errors } }, times: 1 }])
+    expect(await rejection(client.getIssueBlockingReferences('acme', 'demo', 7))).toMatchObject(failure(GitHubNotFoundError, row.message))
+  })
+
+  it('依存関係に対応しない GHES は DependenciesUnsupportedError', async () => {
+    const { client } = await startClient([graphqlError('GetIssueBlockingReferences', 'Field \'blocking\' doesn\'t exist on type \'Issue\'')])
+    expect(await rejection(client.getIssueBlockingReferences('acme', 'demo', 7))).toBeInstanceOf(DependenciesUnsupportedError)
+  })
+})

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   appendIssueCloseIfNeeded,
   collectPreflightWarnings,
+  decidePullRequestBase,
+  describeBaseStop,
   describePushStatus,
   extractClosingIssueNumbers,
   formatPreflightWarning,
@@ -12,15 +14,20 @@ import {
   formatReviewThreadsMarkdown,
   hasIssueReference,
   isReleasePullRequest,
+  pickLowerPullRequest,
   SCREENSHOT_MISSING_ERROR,
   hasStashEntries,
   hasStatusChanges,
   validatePullRequestContent,
 } from '../pull-request.js'
-import type { PullRequestContentOptions, PullRequestSlimView, PullRequestWithReviewsView } from '../pull-request.js'
+import type { PullRequestBaseDecision, PullRequestContentOptions, PullRequestSlimView, PullRequestWithReviewsView } from '../pull-request.js'
+import type { PullRequestReadout } from '../issue-readout.js'
 import '../../commands/registry.js'
 import { formatHinted } from '../command-hint.js'
 import { JSON_NULL } from '../json-null.js'
+import { createIssueReference } from '../reference-parser.js'
+import { createRepositoryReference } from '../repository-resolver.js'
+import type { BaseReading } from '../state.js'
 import type { SectionHeading } from '../sections.js'
 
 describe('extractClosingIssueNumbers', () => {
@@ -182,6 +189,16 @@ describe('validatePullRequestContent', () => {
     expect(validatePullRequestContent(options({ base: 'main', developBranch: '' }))).toEqual([])
   })
 
+  it('積んだ記録の base を渡すと、その base と開発ブランチを通し、どちらでもない base を止める', () => {
+    expect(validatePullRequestContent(options({ base: 'feat/a/11', stackedBase: 'feat/a/11' }))).toEqual([])
+    expect(validatePullRequestContent(options({ base: 'develop', stackedBase: 'feat/a/11' }))).toEqual([])
+    expect(validatePullRequestContent(options({ base: 'main', stackedBase: 'feat/a/11' }))).toEqual(['base branch must be develop or feat/a/11 (given: main)'])
+  })
+
+  it('積んだ記録の base が開発ブランチと同じなら、今までと同じ文で止める', () => {
+    expect(validatePullRequestContent(options({ base: 'main', stackedBase: 'develop' }))).toEqual(['base branch must be develop (given: main)'])
+  })
+
   it('リリース PR は Issue 参照と画像を求めず、base が release でないと止める', () => {
     const release = options({ body: '## Summary\n\n文のみ。\n\n## Changes\n\n- 変更\n', template: 'release' })
     expect(validatePullRequestContent({ ...release, base: 'main' })).toEqual([])
@@ -335,5 +352,98 @@ describe('collectPreflightWarnings', () => {
 
   it('警告 1 行の文を作る', () => {
     expect(formatPreflightWarning({ label: 'Push Status', message: 'm', fixHint: 'git push' })).toBe('Push Status: m (fix: git push)')
+  })
+})
+
+const STACKED_ON = createIssueReference(createRepositoryReference('acme', 'app'), 11)
+const SHA = 'a'.repeat(40)
+const STACKED: BaseReading = { kind: 'stacked', record: { branch: 'feat/a/11', sha: SHA, stackedOn: STACKED_ON }, stackedOn: STACKED_ON }
+
+function lower(state: PullRequestReadout['state']): PullRequestReadout {
+  return { repository: createRepositoryReference('acme', 'app'), number: 21, state, headRefName: 'feat/a/11', baseRefName: 'develop', isDraft: false, isCrossRepository: false }
+}
+
+const NO_RECORD: BaseReading = { kind: 'development', record: undefined }
+const DEVELOPMENT_RECORD: BaseReading = { kind: 'development', record: { branch: 'develop', sha: SHA, stackedOn: undefined } }
+
+function decide(reading: BaseReading, base: string, lowerPullRequest?: PullRequestReadout): PullRequestBaseDecision {
+  return decidePullRequestBase({ reading, base, developBranch: 'develop', lowerPullRequest })
+}
+
+describe('decidePullRequestBase', () => {
+  it.for([
+    { name: '記録が無い', reading: NO_RECORD },
+    { name: '開発ブランチからの着手の記録', reading: DEVELOPMENT_RECORD },
+  ])('$name とき、渡された base をそのまま使い、スタックに登録しない', ({ reading }) => {
+    expect(decide(reading, 'develop')).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: undefined, isLowerMerged: false })
+  })
+
+  it('積んだ記録があり下の段の PR が開いているとき、下の段のブランチを base にしてその PR のスタックに登録する', () => {
+    expect(decide(STACKED, 'feat/a/11', lower('OPEN'))).toEqual({ kind: 'use', base: 'feat/a/11', stackOn: 21, stackedBase: 'feat/a/11', isLowerMerged: false })
+  })
+
+  it.for([
+    { name: '記録の base', base: 'feat/a/11' },
+    { name: '開発ブランチ', base: 'develop' },
+  ])('下の段の PR がマージ済みで $name を渡したとき、開発ブランチを base にしてスタックに登録しない', ({ base }) => {
+    expect(decide(STACKED, base, lower('MERGED'))).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: 'feat/a/11', isLowerMerged: true })
+  })
+
+  it.for([
+    { name: '下の段の PR が無い', pullRequest: undefined },
+    { name: '下の段の PR がマージされずに閉じた', pullRequest: lower('CLOSED') },
+  ])('$name とき、作らずに止める', ({ pullRequest }) => {
+    expect(decide(STACKED, 'feat/a/11', pullRequest)).toEqual({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' })
+  })
+
+  it('記録が malformed のとき、止める', () => {
+    expect(decide({ kind: 'malformed', content: 'broken' }, 'develop')).toEqual({ kind: 'stop', reason: 'malformed', content: 'broken' })
+  })
+
+  it('下の段の PR が開いているのに開発ブランチを渡したとき、止める', () => {
+    expect(decide(STACKED, 'develop', lower('OPEN'))).toEqual({ kind: 'stop', reason: 'lower-open', branch: 'feat/a/11', pullRequest: 21, base: 'develop' })
+  })
+
+  it('記録の base でも開発ブランチでもない base は、そのまま返して内容の検証に任せる', () => {
+    expect(decide(STACKED, 'main', lower('OPEN'))).toEqual({ kind: 'use', base: 'main', stackOn: undefined, stackedBase: 'feat/a/11', isLowerMerged: false })
+  })
+})
+
+// 下の段のブランチの PR。番号と状態と fork かを変える
+function pullRequestIn(number: number, state: PullRequestReadout['state'], isCrossRepository = false): PullRequestReadout {
+  return { ...lower(state), number, isCrossRepository }
+}
+
+describe('pickLowerPullRequest', () => {
+  it.for([
+    { name: '閉じた PR が新しく、マージ済みの PR が古い', pullRequests: [pullRequestIn(30, 'CLOSED'), pullRequestIn(21, 'MERGED')], expected: 21 },
+    { name: '開いた PR が閉じた PR とマージ済みの PR より古い', pullRequests: [pullRequestIn(31, 'CLOSED'), pullRequestIn(30, 'MERGED'), pullRequestIn(21, 'OPEN')], expected: 21 },
+    { name: '閉じた PR しか無い', pullRequests: [pullRequestIn(31, 'CLOSED'), pullRequestIn(30, 'CLOSED')], expected: 31 },
+    { name: 'fork の開いた PR と、自分のリポのマージ済みの PR がある', pullRequests: [pullRequestIn(40, 'OPEN', true), pullRequestIn(21, 'MERGED')], expected: 21 },
+  ])('$name とき、開いている・マージ済み・閉じた の順に選ぶ', ({ pullRequests, expected }) => {
+    expect(pickLowerPullRequest(pullRequests)?.number).toBe(expected)
+  })
+
+  it('fork の PR しか無いとき、undefined を返す', () => {
+    expect(pickLowerPullRequest([pullRequestIn(40, 'OPEN', true)])).toBeUndefined()
+  })
+})
+
+describe('describeBaseStop', () => {
+  it('下の段の PR が無いとき、止めた理由と直し方の 2 行を返す', () => {
+    expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' })).toEqual([
+      'base branch feat/a/11 has no open PR',
+      'reopen the PR of feat/a/11, or create a new one, then run pr create again',
+    ])
+  })
+
+  it('記録が malformed のとき、記録の中身を示す', () => {
+    expect(describeBaseStop({ kind: 'stop', reason: 'malformed', content: 'broken' })).toEqual(['.pecot-base is malformed: broken'])
+  })
+
+  it('下の段の PR が開いているのに開発ブランチを渡したとき、使うべき base を示す', () => {
+    expect(describeBaseStop({ kind: 'stop', reason: 'lower-open', branch: 'feat/a/11', pullRequest: 21, base: 'develop' })).toEqual([
+      'base branch must be feat/a/11 while its PR #21 is open (given: develop)',
+    ])
   })
 })

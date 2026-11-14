@@ -339,6 +339,54 @@ describe('getItemIdByIssue', () => {
   })
 })
 
+function boardItemIssue(projectItems: readonly unknown[]): unknown {
+  return { repository: { issue: {
+    number: 13,
+    title: '課題13',
+    state: 'OPEN',
+    url: 'https://github.com/acme/other/issues/13',
+    repository: { owner: { login: 'acme' }, name: 'other' },
+    projectItems: { nodes: projectItems },
+  } } }
+}
+
+describe('getIssueBoardItem', () => {
+  it('指定のプロジェクトの項目 ID と進行の列を、ボードの一覧と同じ形で返す', async () => {
+    const { client, server } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([
+      { id: 'PVTI_other', project: { id: 'PVT_other' }, workflow: { name: 'Ready' } },
+      JSON_NULL,
+      { id: 'PVTI_13', project: { id: 'PVT_proj' }, workflow: { name: 'Blocked' } },
+    ]))])
+    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x')).toEqual({
+      id: 'PVTI_13',
+      workflow: 'Blocked',
+      title: '課題13',
+      content: { number: 13, state: 'OPEN', url: 'https://github.com/acme/other/issues/13', repository: 'acme/other' },
+    })
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueBoardItem', variables: { owner: 'acme', repo: 'other', number: 13, workflowFieldName: 'pecot-workflow-x' } }])
+  })
+
+  it('進行の列に値が無ければ、workflow を null にする', async () => {
+    const { client } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([{ id: 'PVTI_13', project: { id: 'PVT_proj' }, workflow: JSON_NULL }]))])
+    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x')).toMatchObject({ id: 'PVTI_13', workflow: JSON_NULL })
+  })
+
+  it.each([
+    ['Issue が無い', { repository: { issue: JSON_NULL } }],
+    ['リポジトリが無い', { repository: JSON_NULL }],
+    ['別のプロジェクトにだけ載っている', boardItemIssue([{ id: 'PVTI_x', project: { id: 'PVT_other' }, workflow: JSON_NULL }])],
+    ['どのプロジェクトにも載っていない', boardItemIssue([])],
+  ])('%sときは undefined', async (_label, response) => {
+    const { client } = await startClient([graphqlData('GetIssueBoardItem', response)])
+    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x')).toBeUndefined()
+  })
+
+  it('項目 ID が文字列でなければ GitHubAPIError', async () => {
+    const { client } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([{ id: 5, project: { id: 'PVT_proj' }, workflow: JSON_NULL }]))])
+    expect(await rejection(client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: projectItems.nodes.id'))
+  })
+})
+
 describe('linkRepositoryToProject', () => {
   const projectFound = graphqlData('GetProjectIdUser', { user: { projectV2: { id: 'PVT_proj' } } })
   const repositoryFound = graphqlData('GetRepositoryId', { repository: { id: 'R_repo' } })
