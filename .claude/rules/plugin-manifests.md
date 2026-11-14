@@ -32,7 +32,7 @@ paths:
 - Copilot CLI の hooks は `com.github.copilot/hooks/hooks.json` に置く。エージェントは `com.github.copilot/agents` に置く
   - pecot-workflow は実ファイルを置く。中身は `agents/` の同名のファイルから frontmatter の `model:` の行だけを除く
   - 理由は、auto で定義に `model` があると `400 model_not_supported` になるため（#416）
-  - pecot-visual は `../agents` への相対 symlink にする
+  - pecot-visual は `../agents` への相対 symlink にする。同じ定義を読むので、`agents/` の定義に `model` を書かない
 - リモートの MCP サーバの `type` は、`.mcp.json` が `"http"`、`mcp.json` が `"streamable-http"` にする。1.0 のスキーマは `http` を認めない。`url` は同値
 - 一致は `plugins/{pecot-visual,pecot-tools}/cli/tests/bootstrap/manifest.sh` が確認する。pecot-workflow は `plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh` が確認する
 

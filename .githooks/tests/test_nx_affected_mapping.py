@@ -240,7 +240,11 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         # もう 1 つは、スキルとエージェント定義の型を確認するテストで、pecot-workflow の test_agent_definitions (#1231) を指す。
         (
             "plugins/pecot-visual/agents/v-diagram-creator.md",
-            {"pecot-visual:test-skills", "pecot-workflow:test-hooks"},
+            {
+                "pecot-visual:test-skills",
+                "pecot-workflow:test-hooks",
+                "pecot-visual:test-bootstrap",
+            },
         ),
         # w-e2e-planner.md を読むテストは 2 つある。
         # 1 つは CUJ 定義の単一化を確かめるテストで、test-hooks が持つ (#1091)。

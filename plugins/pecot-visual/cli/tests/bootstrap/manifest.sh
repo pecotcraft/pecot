@@ -129,6 +129,9 @@ let visible = []
 try { visible = fs.readdirSync(linkPath) } catch { /* 下で報告 */ }
 check('agents/*.md が 1 つ以上ある', agentFiles.length > 0)
 check('com.github.copilot/agents の中に agents/*.md が全部見える', agentFiles.every((f) => visible.includes(f)), visible.join(','))
+// GitHub Copilot CLI の auto は、定義に model があると 400 model_not_supported で失敗する（#416）。symlink で同じ定義を読むので、model を書かない。
+const withModel = agentFiles.filter((f) => /^---\n[\s\S]*?\nmodel:[\s\S]*?\n---\n/.test(fs.readFileSync(path.join(root, 'agents', f), 'utf8')))
+check('agents/*.md の frontmatter に model: の行が無い（省くと Claude Code は main のモデルを引き継ぐ）', withModel.length === 0, withModel.join(','))
 
 console.log(`pass=${pass} fail=${fail}`)
 process.exit(fail === 0 ? 0 : 1)

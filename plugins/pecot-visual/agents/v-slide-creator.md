@@ -4,7 +4,6 @@ description: >-
   スライドを1枚新規作成する専門エージェント。
   担当レイアウトのYAMLリファレンスに厳密に従い、
   YAMLフロントマターのみでスライドファイルを1枚作成する。
-model: inherit
 autoCompactWindow: 200000
 disallowedTools:
   - Agent

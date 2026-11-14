@@ -152,6 +152,7 @@
         "{projectRoot}/plugin.json",
         "{projectRoot}/mcp.json",
         "{projectRoot}/com.github.copilot/**/*",
+        "{projectRoot}/agents/*.md",
         "{projectRoot}/cli/tsconfig.json",
         "{projectRoot}/cli/tsconfig.build.json",
         "{projectRoot}/assets/slidev/tsconfig.base.json",

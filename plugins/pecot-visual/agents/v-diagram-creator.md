@@ -3,7 +3,6 @@ name: v-diagram-creator
 description: >-
   v-drawio スキルと連携して draw.io ダイアグラムを1つ作成する専門エージェント。
   指定されたスタイルリファレンスに従い、全力で高品質な図を生成して pecot-visual サーバの drawio_create でURL化する。
-model: inherit
 autoCompactWindow: 200000
 disallowedTools:
   - Agent
