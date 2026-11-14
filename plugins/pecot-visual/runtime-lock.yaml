@@ -393,8 +393,8 @@ importers:
         specifier: 2.1.2
         version: 2.1.2(yauzl@3.4.0)
       mime-types:
-        specifier: ^2.1.35
-        version: 2.1.35
+        specifier: ^3.0.2
+        version: 3.0.2
       playwright:
         specifier: ^1.65.0
         version: 1.65.0
@@ -427,8 +427,8 @@ importers:
         specifier: ^28.0.3
         version: 28.0.3
       '@types/mime-types':
-        specifier: ^2.1.4
-        version: 2.1.4
+        specifier: ^3.0.1
+        version: 3.0.1
       '@types/node':
         specifier: ^25.9.9
         version: 25.9.9
@@ -2706,9 +2706,9 @@ packages:
   '@types/mdurl@2.0.0':
     resolution:
       integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==
-  '@types/mime-types@2.1.4':
+  '@types/mime-types@3.0.1':
     resolution:
-      integrity: sha512-lfU4b34HOri+kAY5UheuFMWPDOI+OPceBSHZKp69gEyTL/mmJ4cnU6Y/rlme3UL3GyOn6Y42hyIEw0/q8sWx5w==
+      integrity: sha512-xRMsfuQbnRq1Ef+C+RKaENOxXX87Ygl38W1vDfPHRku02TgQr+Qd8iivLtAMcR0KF5/29xlnFihkTlbqFrGOVQ==
   '@types/mocha@10.0.10':
     resolution:
       integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==
@@ -6169,16 +6169,16 @@ packages:
       integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==
     engines:
       node: '>=8.6'
-  mime-db@1.52.0:
+  mime-db@1.54.0:
     resolution:
-      integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==
+      integrity: sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ==
     engines:
       node: '>= 0.6'
-  mime-types@2.1.35:
+  mime-types@3.0.2:
     resolution:
-      integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==
+      integrity: sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A==
     engines:
-      node: '>= 0.6'
+      node: '>=18'
   minimatch@10.2.6:
     resolution:
       integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==
@@ -9547,7 +9547,7 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
   '@types/mdurl@2.0.0': {}
-  '@types/mime-types@2.1.4': {}
+  '@types/mime-types@3.0.1': {}
   '@types/mocha@10.0.10': {}
   '@types/ms@2.1.0': {}
   '@types/node@22.20.5':
@@ -12408,10 +12408,10 @@ snapshots:
     dependencies:
       braces: 3.0.3
       picomatch: 2.3.2
-  mime-db@1.52.0: {}
-  mime-types@2.1.35:
+  mime-db@1.54.0: {}
+  mime-types@3.0.2:
     dependencies:
-      mime-db: 1.52.0
+      mime-db: 1.54.0
   minimatch@10.2.6:
     dependencies:
       brace-expansion: 5.0.12
