@@ -135,17 +135,155 @@ entries:
       - id: PW-ADD-TO-PROJECT-18
         pattern: unwanted
         statement: もし --status が blocked でボードが Blocked を定義していないなら、project init で足し方を案内する hint の行を標準エラーに出す
+  PW-BOARD-SYNC:
+    constraints: []
+    details:
+      - Reads the whole board and moves the open Issues in Ready, Blocked, Active and In Review to the column and Status that their judgment calls for.
+      - The judgment, the column move and the Status write are the same as the rest of the workflow (blocked-by, branches and PRs).
+      - An Issue with a branch or a PR is never moved; when it is blocked, a warning line says so.
+      - An Issue in Backlog, Pending or Archived, a PR card, a Tracker and an Epic are not moved.
+      - An Issue whose judgment cannot be read (for example, develop_branch is not set) is not moved, and a warning line gives the reason.
+      - Reads each Issue of Blocked, Active and In Review one by one, because the branches and PRs are not in the board list. Skips only the Ready Issues that the list shows with no prerequisites.
+      - With --dry-run, prints the same sentences as dry-run lines and writes nothing to the board.
+      - The config is --project, else the active project, else the only config in .pecot/config/projects. With two or more configs and no active project, stops and asks for --project.
+      - Reads the GraphQL rate limit (REST, no points) before and after the run and prints the points used and the remaining points. When it cannot be read, the line is left out. When the rate limit window resets during the run, or the difference is negative, the points used line is left out.
+      - On a GitHub Enterprise Server without Issue dependencies, prints one warning and moves nothing.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line for each move (moved) and each Status write (set), or a dry-run line with --dry-run. A warning line for an Issue with a branch or a PR that is blocked, for an Issue whose judgment cannot be read, for a failed write, for a value the board does not define, and for a GitHub Enterprise Server without Issue dependencies. Count lines with the GraphQL points used and remaining, also when the command stops with an error after reading the rate limit. An error line with the number of Issues whose write failed, at the end. An error line for each failure.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The board was synchronized without a failed write, --dry-run printed the plan, or the GitHub Enterprise Server does not support Issue dependencies. An Issue whose judgment cannot be read does not change the status.
+      - code: 1
+        when: A write to the board failed for at least one Issue (after all the other Issues are synchronized), there is no active project and no single config, --project names no config, the config file is broken, the board cannot be read, or the GitHub token cannot be found.
+      - code: 2
+        when: A command line error occurs.
+    on_error: Moves already written stay. A failed write is a warning, the other Issues are still synchronized, and the command ends with exit status 1.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the board items, the blocked-by, branches and PRs of the Issues in Blocked, Active, In Review and Ready with prerequisites, and the GraphQL rate limit.
+      - target: github
+        kind: write
+        what: Sets the column (pecot-workflow field) and Status of the Issues that do not match their judgment.
+      - target: file
+        kind: read
+        what: Reads the config file.
+    prerequisites:
+      - A config exists under .pecot/config/projects, active or named by --project or the only one.
+      - A GitHub token is available for the host, with permission to edit the project.
+    idempotent: true
+    examples:
+      - run: pecot board sync --dry-run
+        note: Show the planned moves without writing to the board.
+      - run: pecot board sync --project example-config
+        note: Synchronize the board of the named config, for a checkout without an active project.
+    default_notes: {}
+    behaviors:
+      - id: PW-BOARD-SYNC-01
+        pattern: event
+        statement: 打つと、Blocked の Issue の判定が startable か stackable なら、Ready へ動かす
+      - id: PW-BOARD-SYNC-02
+        pattern: event
+        statement: Ready の Issue に済んでいない前提があると、Blocked へ動かす
+      - id: PW-BOARD-SYNC-03
+        pattern: event
+        statement: 着手の跡の無い Issue が Active か In Review にあると、判定に合った列（Ready か Blocked）へ戻す
+      - id: PW-BOARD-SYNC-04
+        pattern: unwanted
+        statement: もし着手の跡（ブランチか PR）のある Issue が blocked なら、列と札を変えず、warning の行を標準エラーに出す
+      - id: PW-BOARD-SYNC-05
+        pattern: unwanted
+        statement: もし前提の無い Blocked の Issue に着手の跡があるなら、Ready へ動かさない
+      - id: PW-BOARD-SYNC-06
+        pattern: state
+        statement: Backlog・Pending・Archived の間、その Issue の前提を読まず、列と札を動かさない
+      - id: PW-BOARD-SYNC-07
+        pattern: event
+        statement: 前提がマージされずに閉じると、待っていた Issue の札を Needs Attention にする
+      - id: PW-BOARD-SYNC-08
+        pattern: event
+        statement: 札が Needs Attention の Issue の前提がすべて済むと、札を Todo に戻す
+      - id: PW-BOARD-SYNC-09
+        pattern: event
+        statement: --dry-run を付けて打つと、動かす予定を dry-run の行で標準エラーに出し、ボードに書かない
+      - id: PW-BOARD-SYNC-10
+        pattern: unwanted
+        statement: もし書き込みに失敗した Issue があるなら、warning の行を出してほかの Issue を続け、最後に error の行を出して終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-11
+        pattern: event
+        statement: 一覧で前提が 0 件の Ready の Issue があると、前提を個別に読まない。Blocked・Active・In Review の Issue は、前提の件数によらず個別に読む
+      - id: PW-BOARD-SYNC-12
+        pattern: unwanted
+        statement: もし動かす先の値がボードに無いなら、その Issue を動かさず、warning の行を 1 回出す
+      - id: PW-BOARD-SYNC-13
+        pattern: unwanted
+        statement: もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、warning の行を 1 回出し、何も動かさず、終了コード 0 で終わる
+      - id: PW-BOARD-SYNC-14
+        pattern: event
+        statement: 打つと、実行の前後の GraphQL の点数から、使用量と残りを count の行で標準エラーに出す。差が負か、点数の窓が途中で切り替わったときは、使用量の行を省く
+      - id: PW-BOARD-SYNC-15
+        pattern: unwanted
+        statement: もし点数を読めないなら、その行を出さずに続ける
+      - id: PW-BOARD-SYNC-16
+        pattern: unwanted
+        statement: もしボードの取得で GitHub API がエラーを返したなら、点数の行を出して、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-17
+        pattern: state
+        statement: アクティブなプロジェクトが無く、設定がちょうど 1 つの間、その設定を使う
+      - id: PW-BOARD-SYNC-18
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無く、設定が 2 つ以上あるなら、--project を求める error の行を出して、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-19
+        pattern: event
+        statement: --project に設定の名前を渡して打つと、アクティブな設定ではなく、その設定を使う
+      - id: PW-BOARD-SYNC-20
+        pattern: unwanted
+        statement: もし --project の設定が無いなら、使える設定の名前を添えた error の行を出して、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-21
+        pattern: unwanted
+        statement: もし設定が 1 つも無いなら、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-22
+        pattern: event
+        statement: 一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、前提を読まずに終了コード 0 で終わる
+      - id: PW-BOARD-SYNC-23
+        pattern: unwanted
+        statement: もし判定を読めない Issue があるなら、理由を添えた warning の行を出し、その Issue を動かさない
+      - id: PW-BOARD-SYNC-24
+        pattern: event
+        statement: Ready の Issue の前提が輪になると、Blocked へ動かす
+      - id: PW-BOARD-SYNC-25
+        pattern: unwanted
+        statement: もしカードが PR・Tracker・Epic なら、列と札を動かさない
+      - id: PW-BOARD-SYNC-26
+        pattern: event
+        statement: 設定で先頭にないリポジトリの Issue を動かすと、行に owner/repo#N の形で表す
+      - id: PW-BOARD-SYNC-27
+        pattern: unwanted
+        statement: もし設定のファイルが JSON として読めないなら、error の行を出して、終了コード 1 で終わる
   PW-CREATE-BRANCH:
     constraints: []
     details:
       - Creates a branch linked to an Issue through the GitHub GraphQL API (createLinkedBranch), so the branch shows in the Development section of the Issue.
       - The Issue reference must be the full form owner/repo/N.
       - The branch is named <branch_name>/<N>, with the Issue number appended.
-      - The branch starts from the head of --base, or from the develop_branch of the repository in the config file without --base.
+      - Before the branch is created, the readiness of the Issue is read in the same way as pecot issue read.
+      - 'When the readiness is stackable, the branch starts from the head of the branch of the PR it stacks on, and the created line ends with (stacked on #N).'
+      - When the readiness is startable, or the Issue has no readiness (an Epic or a Tracker), the branch starts from the head of --base, or from the develop_branch of the repository in the config file without --base.
+      - develop_branch and --base are required only after the readiness is decided, and only when the branch is not stacked.
+      - When the readiness is blocked, no branch is created; the command writes the reason, the unfinished prerequisites and how to fix it, and stops, even when develop_branch is not set.
+      - The fix is one unblock line for each unfinished prerequisite, and one line to stack on it for each prerequisite that waits for merge, each with the reference of that Issue.
+      - When the branch of the PR to stack on is gone after the readiness is decided, the command writes an error line with the name of the branch and the Issue, and stops.
+      - --base is compared with the base chosen by readiness only when the readiness is stackable, and a different --base stops the command.
+      - When the GitHub Enterprise Server does not support issue dependencies, the readiness is not read, a warning line says so, and the branch starts as for an Issue without prerequisites.
       - After the branch is created, the Status of the Issue on the board is set to active.
       - A failure to set the Status does not stop the command.
       - After that, the Issue is recorded as the work target in .pecot/state/.pecot-active and .pecot/state/.pecot-session-title, and .pecot/work/<N>/ is created.
       - A failure to record the work target does not stop the command.
+      - When the work target is recorded, the chosen base is written to .pecot/state/.pecot-base as <branch> <sha>, followed by owner/repo#N of the Issue it stacks on when the branch is stacked.
+      - .pecot/state/.pecot-base is removed before the work target is recorded, so that it never keeps the record of the previous Issue.
       - The repository of the working directory git remote must be the repository of the Issue.
       - --allow-cross-repo skips the check of the repository of the working directory.
       - When .pecot-active holds another Issue that is OPEN, the command stops.
@@ -158,20 +296,20 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: Result lines on stderr for the created branch (created), the Status (set) and the work target (set), and warning lines when the Status or the work target could not be set or .pecot-active is overwritten.
+    diagnostics: Result lines on stderr for the created branch (created), the Status (set) and the work target (set), and warning lines when the Status, the work target or .pecot-base could not be set or .pecot-active is overwritten. A warning line when the readiness is not checked on a GitHub Enterprise Server without issue dependencies. An error line when the Issue is blocked, followed by one line per unfinished prerequisite and the commands that fix it, and the lines after the first are indented by two spaces; an error line when --base differs from the base chosen by readiness; an error line with the branch and the Issue when the branch to stack on is gone; and an error line when the prerequisites cannot be read or the readiness cannot be judged, followed by how to set develop_branch when it is the cause.
     environment: []
     exit_status:
       - code: 0
         when: The branch was created, including when setting the Status or recording the work target failed.
       - code: 1
-        when: There is no active project, develop_branch is not set and --base is not given, the repository is not in the project, the GitHub API returned an error, --repo differs from the current git remote, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+        when: There is no active project, develop_branch is not set and --base is not given, the repository is not in the project, the GitHub API returned an error, the branch to stack on is gone, --repo differs from the current git remote, the repository is ambiguous outside git without --repo, the project root cannot be determined, or the prerequisites of the Issue cannot be read or its readiness cannot be judged.
       - code: 2
-        when: The Issue reference is not the full form, the repository of the working directory differs from the repository of the Issue, .pecot-active holds another OPEN Issue, or another command line error occurs.
-    on_error: When the branch was created and setting the Status or recording the work target fails, the branch stays linked to the Issue and the command still finishes with exit status 0. When .pecot-active was written and .pecot-session-title could not be, the first file stays written.
+        when: The Issue reference is not the full form, the repository of the working directory differs from the repository of the Issue, .pecot-active holds another OPEN Issue, the Issue is blocked by prerequisites, --base differs from the base chosen for a stackable Issue, or another command line error occurs.
+    on_error: When the branch was created and setting the Status or recording the work target fails, the branch stays linked to the Issue and the command still finishes with exit status 0. When .pecot-active was written and .pecot-session-title could not be, the first file stays written. When the work target could not be recorded, .pecot-base is not written, and it holds no record of the previous Issue. A failure to remove or write .pecot-base is reported as a warning line. When the Issue is blocked or the readiness cannot be read, or the branch to stack on is gone, nothing is created or written.
     effects:
       - target: github
         kind: read
-        what: Reads the repositories linked to the project, the node ID and title of the Issue, the head commit of the base branch, and the state of the Issue held in .pecot-active.
+        what: Reads the repositories linked to the project, the prerequisites of the Issue and the PRs of their branches, the node ID and title of the Issue, the head commit of the base branch, and the state of the Issue held in .pecot-active.
       - target: github
         kind: write
         what: Creates the linked branch and sets the Status of the Issue on the board to active.
@@ -180,7 +318,7 @@ entries:
         what: Reads the active config file and .pecot/state/.pecot-active.
       - target: file
         kind: write
-        what: Writes .pecot/state/.pecot-active and .pecot/state/.pecot-session-title, and creates .pecot/work/<N>/.
+        what: Writes .pecot/state/.pecot-active, .pecot/state/.pecot-session-title and .pecot/state/.pecot-base, and creates .pecot/work/<N>/.
     prerequisites:
       - An active project exists (pecot project activate).
       - A GitHub token is available for the host, with permission to edit the project.
@@ -194,7 +332,7 @@ entries:
       - run: pecot create-branch example-org/my-repo/123 feat/my-change --allow-cross-repo
         note: Create the branch from a directory that is not a checkout of the repository.
     default_notes:
-      base: The develop_branch of the repository in the config file; without it, the command stops with exit status 1.
+      base: The branch of the PR the Issue stacks on when its readiness is stackable; otherwise the develop_branch of the repository in the config file, and without it the command stops with exit status 1.
     behaviors:
       - id: PW-CREATE-BRANCH-01
         pattern: event
@@ -277,6 +415,30 @@ entries:
       - id: PW-CREATE-BRANCH-27
         pattern: unwanted
         statement: もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-28
+        pattern: state
+        statement: 着手の判定が stackable の間、積む先の PR のブランチの先頭からブランチを作る
+      - id: PW-CREATE-BRANCH-29
+        pattern: state
+        statement: 着手の判定が stackable の間、created の行に積んだ先の Issue を付ける
+      - id: PW-CREATE-BRANCH-30
+        pattern: event
+        statement: ブランチを作ると、選んだ base を .pecot-base に記録する
+      - id: PW-CREATE-BRANCH-31
+        pattern: unwanted
+        statement: もし着手の判定が blocked なら、ブランチを作らず、理由と直し方の行を標準エラーに出す
+      - id: PW-CREATE-BRANCH-32
+        pattern: unwanted
+        statement: もし着手の判定が blocked なら、終了コード 2 で終わる
+      - id: PW-CREATE-BRANCH-33
+        pattern: unwanted
+        statement: もし stackable の判定で、--base の値と積む先が違うなら、ブランチを作らず終了コード 2 で終わる
+      - id: PW-CREATE-BRANCH-34
+        pattern: unwanted
+        statement: もし前提を読めないか判定できないなら、ブランチを作らず終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-35
+        pattern: unwanted
+        statement: もし積む先のブランチが判定の後に無くなったなら、積む先が見つからない旨の error の行を出して終了コード 1 で終わる
   PW-DELETE-BRANCH:
     constraints: []
     details:
@@ -838,6 +1000,9 @@ entries:
   PW-ISSUE-CREATE:
     constraints:
       - requires: {message: [title]}
+      - requires: {plan: [files]}
+      - conflicts: [plan, message]
+      - conflicts: [plan, prepare]
     details:
       - "Has three modes: --prepare, files and -m."
       - When more than one mode is given, --prepare wins over the files and the files win over -m.
@@ -845,39 +1010,50 @@ entries:
       - With --prepare and --repo, fills the repository line of the copy with the given repository.
       - With --prepare and --suffix, appends the suffix to the file name of the copy.
       - With files, creates one Issue per file in the order given.
-      - With files, the front matter decides the type, repository, status, priority, size, parent Epic, order and labels, and the options of the same names are ignored.
-      - Before the first Issue of a batch is created, checks that every file exists, that none is given twice and that every {{issue:key}} placeholder points to an earlier file.
+      - With files, the front matter decides the type, repository, status, priority, size, parent Epic, order, labels and blocked_by, and the options of the same names are ignored.
+      - Before the first Issue of a batch is created, checks that every file exists, that none is given twice, that every {{issue:key}} placeholder points to an earlier file, and that every front matter and body is valid.
+      - Before the first Issue of a batch is created, also checks blocked_by, the order numbers and the repository link, and reads the parent Epics and the existing Issues named in blocked_by.
+      - Each blocked_by entry names an earlier file of the batch by its key (the stem of the file name, or the suffix given to --prepare) or an existing Issue as owner/repo/N, with wait stack (the default) or wait merge and a reason.
+      - Adds each blocked_by entry to the created Issue as blocked-by, right after the Issue is created.
+      - For a wait merge entry, writes a line with the prerequisite and the reason into the Waits for merge section of the body, and nothing for a wait stack entry.
+      - A task or bug with blocked_by is placed in the Blocked column and one without it in the Ready column, unless the board has no Blocked column; then it is placed in Ready with one warning.
+      - After the blocked-by of a Blocked Issue that names an existing Issue are added, reads whether it can start, and moves it to the Ready column when it can. Leaves it in Blocked when the judgement cannot be read.
+      - An Issue with a parent Epic and no order gets the highest order in use under that Epic plus one, in the order of the files. A branch letter such as 18a counts as its number. The title carries only the serial number.
+      - With --plan and files, prints a table of the files with their numbers, blocked-by and approach (alone, stack on, wait for merge, join), and the stackable chains, without creating anything.
+      - After posting, prints the stackable chains of the created Issues when every blocked-by was added.
+      - The parallel field is not supported; a file that has it is rejected.
       - A {{issue:key}} placeholder in a body expands to the number of the Issue created from the earlier file with that key.
       - With -m, creates one Issue from --title, the body, --repo and --type.
       - With -m, --repo is required unless --type is epic.
       - The body must follow the template of the Issue type.
-      - The status at creation can only be the default of the type.
+      - The status at creation can only be the default of the type, or blocked for a task or bug with blocked_by.
       - An Epic is created in aggregation_repo when no repository is given.
       - Creating an Epic in a repository other than aggregation_repo gives a warning and continues.
       - Adds each created Issue to the project board and sets its status, priority and size.
       - With a parent Epic, links each created Issue as a sub-issue of it.
       - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
+      - With files, stops when two files of the batch have the same order under the same parent Epic.
     stdin: none
     output:
       format: text
-      description: With --prepare, the path of the template copy. Otherwise one line per created Issue with its URL, in the order of the files.
-    diagnostics: "Result lines on stderr for each Issue: created, added (to the project and to the parent Epic as a sub-issue) and set (status, priority and size). Warning lines when an Epic is created outside aggregation_repo, and when adding an Issue to the project fails. An error line with the valid values when --status given with -m is not a valid value. An error line for each failure; a body that does not follow the template is reported with the template path on the first line and indented lines for each kind of violation. A malformed --parent-epic is reported by the command line parser as a usage error, not as an error line."
+      description: With --prepare, the path of the template copy. With --plan, the table of the files and the stackable chains. Otherwise one line per created Issue with its URL, in the order of the files, then the stackable chains of the created Issues when there are any.
+    diagnostics: "Result lines on stderr for each Issue: created, added (blocked-by, to the project and to the parent Epic as a sub-issue), set (status, priority and size) and moved (from Blocked to Ready). Warning lines when an Epic is created outside aggregation_repo, when the board has no Blocked column, when adding an Issue to the project fails, when adding blocked-by fails (followed by an error line with the pecot issue block commands that add it again), and when the blocked-by of an Issue could not be read in full. In a batch of several files, the warning lines about an Epic created outside aggregation_repo and about a parent Epic that cannot be read all come before the first created line, and the parent Epic warning is written once for each parent, not once for each file. An error line with the valid values when --status given with -m is not a valid value. An error line for each failure; a body that does not follow the template is reported with the template path on the first line and indented lines for each kind of violation. A malformed --parent-epic is reported by the command line parser as a usage error, not as an error line."
     environment: []
     exit_status:
       - code: 0
-        when: The template was copied, or every Issue was created. Failing to add an Issue to the project board still gives 0.
+        when: The template was copied, the plan was printed, or every Issue was created. Failing to add an Issue to the project board still gives 0.
       - code: 1
-        when: There is no active project, no mode argument is given, -t or -r is missing with -m, a file is missing or given twice, a placeholder does not point to an earlier file, the front matter cannot be read or has a malformed repository, the body does not follow the template, --status given with -m is not one of the valid values, the status is not the default of the type, the repository is not linked to the project, another Issue of the parent Epic has the same order, linking to the parent Epic failed, or the GitHub API returned an error. A body that does not follow the template gives 1, not 3.
+        when: There is no active project, no mode argument is given, -t or -r is missing with -m, a file is missing or given twice, a placeholder does not point to an earlier file, the front matter cannot be read or has a malformed repository, the body does not follow the template, --status given with -m is not one of the valid values, the status is not the default of the type, the repository is not linked to the project, another Issue of the parent Epic has the same order, two files of the batch have the same order, blocked_by names an unknown key, forms a cycle, names a later file or the same prerequisite twice, an Issue named in blocked_by cannot be read, wait merge has no reason, a file has parallel, adding blocked-by failed, linking to the parent Epic failed, or the GitHub API returned an error. A body that does not follow the template gives 1, not 3.
       - code: 2
-        when: A repository is not in owner/repo form, --repo is missing with --prepare for a type other than epic, the destination of an Epic cannot be decided, --parent-epic is malformed, or another command line error occurs.
-    on_error: When a file in a batch fails, the Issues created from earlier files stay on GitHub and later files are not processed. Only the existence of the files, duplicates and placeholders are checked before the first Issue is created; every other check runs just before the Issue of that file is created. The flag issue-create-slash-pending stays after a failure, and issue-pending is removed each time an Issue is created. When adding to the project board fails, a warning is written, the Issue stays, and the next file is processed. When linking to the parent Epic fails, the Issue stays on the board with its fields set.
+        when: --plan is given with -m or --prepare or without a file, a repository is not in owner/repo form, --repo is missing with --prepare for a type other than epic, the destination of an Epic cannot be decided, --parent-epic is malformed, or another command line error occurs.
+    on_error: When creating an Issue of a batch fails, the Issues created from earlier files stay on GitHub and later files are not processed. Every check that does not need an Issue to exist runs before the first Issue is created, so a bad file stops the whole batch. The flag issue-create-slash-pending is removed only after every file of the batch has been processed (also when adding blocked-by failed), and stays when the batch stops early; issue-pending is removed each time an Issue is created. When adding blocked-by fails, a warning is written and the other blocked-by and the next files are processed; after the last file the command writes the commands that add the failed blocked-by again and exits with 1. When adding to the project board fails, a warning is written, the Issue stays, its fields and column are skipped, it is still linked to its parent Epic, and the next file is processed. When linking to the parent Epic fails, the Issue stays on the board with its fields set, and the error adds a sentence that the order in its title is not counted for the next numbering until it is linked to the parent by hand. When a file has blocked_by and the server does not support issue dependencies, an error is written and nothing is created. When creating an Issue fails midway, only the blocked-by between the Issues already created are added.
     effects:
       - target: github
         kind: write
-        what: Creates Issues, adds them to the project board, sets their fields and links them to the parent Epic as sub-issues.
+        what: Creates Issues, adds blocked-by to them, adds them to the project board, sets their fields and links them to the parent Epic as sub-issues. Moves an Issue from Blocked to Ready when its prerequisites are done.
       - target: github
         kind: read
-        what: Reads the repositories linked to the project and the sub-issues of the parent Epic.
+        what: Reads the repositories linked to the project, the sub-issues of the parent Epics, the Issues named in blocked_by, and the prerequisites of an Issue that names an existing Issue. With --plan, only reads.
       - target: file
         kind: write
         what: Writes the template copy under .pecot/tmp/output/ and removes the flags issue-pending and issue-create-slash-pending under .pecot/state/.
@@ -893,10 +1069,12 @@ entries:
         note: Write a task template and print its path.
       - run: pecot issue create .pecot/work/12/issue-a.md .pecot/work/12/issue-b.md
         note: Create two Issues in the order given.
+      - run: pecot issue create --plan .pecot/work/12/issue-a.md .pecot/work/12/issue-b.md
+        note: Show the progression table and the stackable chains without creating anything.
       - run: "pecot issue create -t \"Add a report\" -r example-org/my-repo -m \"<body>\""
         note: Create one Issue from the command line.
     default_notes:
-      status: "Decided by the type: ready for task and bug, backlog for epic and tracker. Any other value stops the command with exit status 1."
+      status: "Decided by the type: ready for task and bug (blocked when the file has blocked_by), backlog for epic and tracker. Any other value stops the command with exit status 1."
       repo: Required with -m and --prepare unless the type is epic. An Epic goes to aggregation_repo of the active project; when that is not set, --repo is required.
       parent_epic: An integer is resolved against aggregation_repo, or against the repository of the new Issue when aggregation_repo is not set. The form owner/repo/N is used as it is.
     behaviors:
@@ -1032,6 +1210,51 @@ entries:
       - id: PW-ISSUE-CREATE-44
         pattern: unwanted
         statement: もし -m で打ち、--status が有効な値でないなら、有効な値を並べた error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-45
+        pattern: event
+        statement: ファイルに --plan を付けて打つと、何も作らずに、ファイルごとの番号・前提・進め方の表と、積める並びを標準出力に出す
+      - id: PW-ISSUE-CREATE-46
+        pattern: event
+        statement: ファイルに blocked_by を書いて打つと、作った Issue に前提を付け、added の行を標準エラーに出す
+      - id: PW-ISSUE-CREATE-47
+        pattern: event
+        statement: 前提のあるタスクを作ると、Blocked の列に置く。ボードに Blocked の列が無ければ、Ready に置いて warning を 1 回だけ出す
+      - id: PW-ISSUE-CREATE-48
+        pattern: event
+        statement: 既存の Issue を前提にした Issue を作ると、前提が済んでいれば Ready の列へ動かす。判定を読めなければ Blocked のまま残す
+      - id: PW-ISSUE-CREATE-49
+        pattern: event
+        statement: 親 Epic を持ち order を省いたファイルを作ると、親 Epic の使われた番号の最大の次から、ファイルの順に通し番号を振る
+      - id: PW-ISSUE-CREATE-50
+        pattern: event
+        statement: wait が merge の前提を付けると、その前提と reason を本文の Waits for merge の節に書く
+      - id: PW-ISSUE-CREATE-51
+        pattern: unwanted
+        statement: もし前提を付けるのに失敗したなら、warning と付け直す pecot issue block のコマンドを標準エラーに出して終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-52
+        pattern: unwanted
+        statement: もし blocked_by が一括の中の誤った前提か読めない既存の Issue を指すなら、何も作らずに終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-53
+        pattern: unwanted
+        statement: もしフロントマターに parallel を書いたなら、何も作らずに削除を促す error を出して終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-54
+        pattern: unwanted
+        statement: もし wait が merge の前提に reason が無いなら、何も作らずに終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-55
+        pattern: unwanted
+        statement: もし --plan を -m か --prepare と一緒に打つか、ファイルを渡さずに打ったなら、終了コード 2 で終わる
+      - id: PW-ISSUE-CREATE-56
+        pattern: event
+        statement: 前提を付けたファイルを作り終えると、積める並びを標準出力に出す
+      - id: PW-ISSUE-CREATE-57
+        pattern: unwanted
+        statement: もし一括の中で同じ親 Epic に同じ order を書いたファイルが 2 つ以上あるなら、何も作らずに終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-58
+        pattern: unwanted
+        statement: もし blocked_by を書いたファイルがあるのにサーバが Issue の依存関係に対応しないなら、何も作らずに error を出して終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-59
+        pattern: unwanted
+        statement: もし作成が途中で失敗したなら、作った Issue どうしの前提だけを付けて、終了コード 1 で終わる
   PW-ISSUE-QUICK:
     constraints: []
     details:
@@ -1068,7 +1291,7 @@ entries:
         what: Reads the repositories linked to the project, the sub-issues of the parent Epic and the head of the develop branch.
       - target: file
         kind: write
-        what: Writes .pecot/state/.pecot-active and .pecot/state/.pecot-quick-mode, creates .pecot/work/<N>/, and removes the flags issue-pending and issue-create-slash-pending.
+        what: Writes .pecot/state/.pecot-active and .pecot/state/.pecot-quick-mode, creates .pecot/work/<N>/, and removes .pecot/state/.pecot-base and the flags issue-pending and issue-create-slash-pending.
       - target: file
         kind: read
         what: Reads the active config file.
@@ -1189,6 +1412,9 @@ entries:
       - id: PW-ISSUE-QUICK-35
         pattern: unwanted
         statement: もし -m か -r を省いたなら、使い方のエラーを出して終了コード 2 で終わる
+      - id: PW-ISSUE-QUICK-36
+        pattern: event
+        statement: 作業対象を記録すると、前の作業対象の .pecot-base を消す
   PW-ISSUE-READ:
     constraints: []
     details:
@@ -1510,7 +1736,7 @@ entries:
       - A wip/<head> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
       - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
       - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
-      - After the local cleanup, removes the flags .pecot-active, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked and the flag merge-slash-pending under .pecot/state/.
+      - After the local cleanup, removes the flags .pecot-active, .pecot-base, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked and the flag merge-slash-pending under .pecot/state/.
       - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
       - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
       - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
@@ -2239,11 +2465,12 @@ entries:
       - Only shows the judgment. It never changes the column or the Status of an Issue, even when they do not match the judgment.
       - An Issue whose prerequisites cannot be read is shown as unknown.
       - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
+      - When pecot board sync would move the column or the Status of a Ready or Blocked Issue, writes one warning line with the count and points to pecot board sync. The count uses the same rule as pecot board sync. A Blocked Issue without prerequisites is counted even though its branches and PRs are not read, so the line says the column or Status may not match.
     stdin: none
     output:
       format: text
       description: Markdown with Overview, Registered repositories and Board status sections. The Ready and Blocked tables have a Readiness column, and a Stackable chains section follows when Issues can be stacked. With --json, a JSON object with project, repositories (each with dependabot_alerts) and board, where each item has readiness.
-    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted. One warning line when the GitHub Enterprise Server does not support Issue dependencies.
+    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted. One warning line when the GitHub Enterprise Server does not support Issue dependencies. One warning line when Ready or Blocked Issues may be in a column or Status that does not match their judgment.
     environment: []
     exit_status:
       - code: 0
@@ -2356,6 +2583,9 @@ entries:
       - id: PW-PROJECT-INFO-32
         pattern: event
         statement: --json を付けて打つと、判定を読めない Issue の readiness の stackOn と reason を null にする
+      - id: PW-PROJECT-INFO-33
+        pattern: event
+        statement: board sync が列か札を動かしそうな Ready か Blocked の Issue があると、件数と pecot board sync の案内を warning の行で標準エラーに出す
   PW-PROJECT-INIT:
     constraints: []
     details:
@@ -3438,7 +3668,7 @@ entries:
     effects:
       - target: file
         kind: write
-        what: Writes .pecot-active and .pecot-session-title under .pecot/state/, and creates .pecot/work/N/.
+        what: Writes .pecot-active and .pecot-session-title under .pecot/state/, removes .pecot-base there, and creates .pecot/work/N/.
       - target: file
         kind: read
         what: Reads the active config file.
@@ -3522,6 +3752,9 @@ entries:
       - id: PW-SESSION-RESTORE-21
         pattern: unwanted
         statement: もしアクティブな設定ファイルの JSON が不正かスキーマに違反しているなら、終了コード 1 で終わる
+      - id: PW-SESSION-RESTORE-22
+        pattern: event
+        statement: 作業対象を記録すると、前の作業対象の .pecot-base を消す
   PW-SESSION-STATUS:
     constraints: []
     details:
@@ -3532,13 +3765,16 @@ entries:
       - The flag table has one row per flag with the flag name, set or unset, and the content of the file.
       - When .pecot-active holds an Issue reference, an Active Issue section follows with the number, the title and the state of the Issue.
       - The body of the Issue follows in the section when it is not empty.
+      - When .pecot-active holds an Issue reference and .pecot/state/.pecot-base names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
+      - When the readiness of the active Issue is blocked, the Stack section also has a readiness line.
+      - The Stack section uses the config and the client of the Active Issue section and is left out when that section is.
       - The command is a diagnostic, so a value that cannot be read is shown as unknown or none, or left out, and does not fail the command.
       - Nothing is written.
     stdin: none
     output:
       format: text
-      description: Markdown with a Session status heading, the Branch, Repository and Inferred Issue lines, the flag table, and an Active Issue section when the active Issue could be read.
-    diagnostics: A warning line on stderr when .pecot-active holds an Issue reference and the active Issue cannot be read, including when there is no active project or when the active config file is broken. An error line when the project root cannot be determined.
+      description: Markdown with a Session status heading, the Branch, Repository and Inferred Issue lines, the flag table, an Active Issue section when the active Issue could be read, and a Stack section when the work is stacked.
+    diagnostics: A warning line on stderr when .pecot-active holds an Issue reference and the active Issue cannot be read, when the PR of the base branch cannot be read, when .pecot-base is malformed or when the readiness of the active Issue cannot be judged, including when there is no active project or when the active config file is broken. An error line when the project root cannot be determined.
     environment: []
     exit_status:
       - code: 0
@@ -3554,10 +3790,10 @@ entries:
         what: Reads the current branch and the URL of the origin remote, or of the first remote when there is no origin, of the directory.
       - target: file
         kind: read
-        what: Reads .pecot-active under .pecot/state/ and the active config file.
+        what: Reads .pecot-active and .pecot-base under .pecot/state/ and the active config file.
       - target: github
         kind: read
-        what: Reads the title, the state and the body of the Issue held in .pecot-active.
+        what: Reads the title, the state and the body of the Issue held in .pecot-active, and, for a stacked work, the PRs of the base branch and the prerequisites of the Issue.
     prerequisites: []
     idempotent: true
     examples:
@@ -3631,6 +3867,21 @@ entries:
       - id: PW-SESSION-STATUS-22
         pattern: unwanted
         statement: もし .pecot-active に Issue の参照があり、アクティブな設定ファイルの形式が不正なら、終了コード 0 で終わる
+      - id: PW-SESSION-STATUS-23
+        pattern: state
+        statement: 積んで着手した作業ディレクトリの間、積んだ先の Issue とその PR を Stack の節に出す
+      - id: PW-SESSION-STATUS-24
+        pattern: state
+        statement: 着手中の Issue の判定が blocked の間、Stack の節に readiness の行を足す
+      - id: PW-SESSION-STATUS-25
+        pattern: unwanted
+        statement: もし base のブランチの PR を読めないなら、warning の行を標準エラーに出し、PR unknown と出す
+      - id: PW-SESSION-STATUS-26
+        pattern: unwanted
+        statement: もし .pecot-base の形が誤っているなら、warning の行を標準エラーに出し、Stack の節を出さない
+      - id: PW-SESSION-STATUS-27
+        pattern: unwanted
+        statement: もし着手中の Issue の判定を読めないなら、warning の行を標準エラーに出し、Stack の節の base の行は出す
   PW-UPDATE-ISSUE-STATUS:
     constraints: []
     details:

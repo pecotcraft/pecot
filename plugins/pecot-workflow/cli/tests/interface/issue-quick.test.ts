@@ -131,6 +131,17 @@ describe('issue quick', () => {
     expect(github.requests().some(request => request.type === 'rest' && request.method === 'GET')).toBe(false)
   })
 
+  it('前の作業対象の .pecot-base が残っていても、--no-branch で作業対象を替えると消す', async (context) => {
+    await verifies(context, 'PW-ISSUE-QUICK-36')
+    const project = setUpIssueProject({ files: { '.pecot/state/.pecot-base': `feat/3 ${'0'.repeat(40)} acme/demo#3` } })
+    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+
+    const result = await quick('-m', MESSAGE, '-r', 'acme/demo', '--no-branch')
+
+    expect(result.code).toBe(0)
+    expect(hasFile(project.root, '.pecot/state/.pecot-base')).toBe(false)
+  })
+
   it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定とブランチの作成をしない', async (context) => {
     await verifies(context, 'PW-ISSUE-QUICK-18')
     await verifies(context, 'PW-ISSUE-QUICK-19')
@@ -156,7 +167,7 @@ describe('issue quick', () => {
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
-    expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n$/u)
+    expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
   })
 
   it('develop_branch が設定に無いとき、error の行を出して終了コード 1 で終わり、URL とフラグを出さない', async (context) => {
@@ -235,7 +246,7 @@ describe('issue quick', () => {
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: Epic #3 already has an Issue with order=2 (OPEN)\n  #9 #3-02: 先の子\n  next available order: 1\n')
+    expect(result.stderr).toBe('error: Epic #3 already has an Issue with order=2 (OPEN)\n  #9 #3-02: 先の子\n  next available order: 3\n')
   })
 
   it('GitHub API がエラーを返したとき、error の行を出して終了コード 1 で終わる', async (context) => {

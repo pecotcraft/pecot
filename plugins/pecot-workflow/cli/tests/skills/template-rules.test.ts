@@ -133,6 +133,16 @@ describe('plan テンプレート', () => {
     expect(rules).toContain('ファイルごとのどう触るかを詳しく書く')
   })
 
+  it('Files の先頭に作業単位の表（実装者・モデル・担当）を書き、モデルの基準の参照先を示す', () => {
+    const rules = writingRules(PLAN_TEMPLATE)
+    expect(rules).toContain('作業単位の表（実装者・モデル・担当）')
+    expect(rules).toContain('skills/w-help/references/agent-models.md')
+    expect(readPluginFile('skills/w-help/references/agent-models.md')).toContain('## 実装者のモデルの基準')
+    const files = planSection('### Files')
+    expect(files).toContain('作業単位')
+    expect(files).toContain('| 実装者 | モデル | 担当 |')
+  })
+
   it('Claude Code の plan mode の標準 5 項目の置き場を書く', () => {
     expect(writingRules(PLAN_TEMPLATE)).toContain('標準 5 項目')
   })

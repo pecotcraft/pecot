@@ -155,7 +155,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ## Phase 4: User Story 2 — 一覧と Issue の表示に判定が出る (Priority: P1)
 
-**Goal**: `pecot project info` が、`Ready` と `Blocked` の Issue に判定と理由を出す。列と札は直さない。直す役は Phase 13 の Actions のワークフローへ移した。`pecot issue read` が、前提の一覧と判定を出す
+**Goal**: `pecot project info` が、`Ready` と `Blocked` の Issue に判定と理由を出す。列と札は直さない。直す役は Phase 13 の `pecot board sync` へ移した。`pecot issue read` が、前提の一覧と判定を出す
 
 **Independent Test**: quickstart.md の 2・8・9・10 を通す。前提の状態が「済んだ」「PR 中」「未着手」の Issue が、順に `startable`・`stackable on`・`blocked by` と出る。手で動かしたカードを戻す確かめは、Phase 13 に移した
 
@@ -165,7 +165,8 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 着手の跡がある Issue は、どの列にあっても、列と札を動かさない（FR-084）。判定が `blocked` のときは、食い違いを返す
   - `Blocked` の値が無いボードでは、動かす先を返さず、足りない値を返す
 - [x] T030 [US2] `p-w/cli/src/domain/board-move.ts` を足し、T029 を通す
-- [x] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す（一覧が呼ぶ部分は Phase 13 へ移した）。処理は残し、ほかのコマンドとワークフローが使う。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
+- [x] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す（一覧が呼ぶ部分は Phase 13 へ移した）
+  - 処理は残し、ほかのコマンドと `pecot board sync` が使う。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
 - [x] T032 [P] [US2] `p-w/cli/tests/interface/project.test.ts` に、`project info` の失敗するテストを書く
   - `Ready` と `Blocked` の表に `Readiness` の列が出る。形は contracts/cli-commands.md の `pecot project info` のとおりだ
   - 判定と違う列にある Issue も動かさず、`moved:`・`set:` は出ない（列と札を直すテストは Phase 13 へ移した）
@@ -192,13 +193,13 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 1 を通す。5 つのフェーズの Issue に、表の行と合う blocked by が付く。マージを待つ前提のある Issue の本文にだけ、節が付く
 
-- [ ] T039 [P] [US1] `p-w/cli/src/domain/tests/` に、frontmatter の失敗するテストを書く
+- [x] T039 [P] [US1] `p-w/cli/src/domain/tests/` に、frontmatter の失敗するテストを書く
   - `blocked_by` は一覧で、各要素は `issue`・`wait`・`reason` を持つ。`wait` は `stack` か `merge` で、省くと `stack` だ
   - `wait: merge` に `reason` が無いと、検証で落ちる
   - `order` と `status` は省ける。`parallel` を書くと、使えなくなった旨の検証の誤りになる
   - `blocked_by` と `status: ready` を両方書くと、検証で落ちる
-- [ ] T040 [US1] `p-w/cli/src/domain/frontmatter.ts` を直し、T039 を通す
-- [ ] T041 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、`issue create --plan` の失敗するテストを書く
+- [x] T040 [US1] `p-w/cli/src/domain/frontmatter.ts` を直し、T039 を通す
+- [x] T041 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、`issue create --plan` の失敗するテストを書く
   - 出力の表と積める並びは、contracts/cli-commands.md の `--plan` の形のとおりだ
   - 投稿の要求を 1 件も送らない
   - 次の 5 つの入力で、決めた `error:` を出して終了コード 1 で止まる
@@ -207,7 +208,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
     - 前提が輪になる
     - `wait: merge` に `reason` が無い
     - `parallel` が書かれている
-- [ ] T042 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、一括投稿の失敗するテストを書く
+- [x] T042 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、一括投稿の失敗するテストを書く
   - 作った Issue に、前提ごとに `addBlockedBy` を送る。ファイルのキーは、作った Issue の番号に置き換わる
   - 前提に `owner/repo/N` を書くと、既存の Issue を指す
   - マージを待つ前提のある Issue だけ、本文の末尾に節が付く
@@ -215,27 +216,27 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 前提の追加が 1 件失敗しても、Issue の作成は取り消されない。失敗した組と、付け直すコマンドが出て、終了コードは 1 になる
   - 最後に、Issue の番号での積める並びが出る
   - Issue の作成が途中で失敗したときは、作られた Issue どうしの前提だけを付ける
-- [ ] T043 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、通し番号の失敗するテストを書く
+- [x] T043 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、通し番号の失敗するテストを書く
   - `order` を省くと、既存のサブタスクの番号の最大の次から、ファイルの順に振る
   - 既存の番号に枝の文字（`18a`）があるときは、数字の部分で数える
   - 親のサブタスクが 20 件を超えていても、全件を読んで最大を決める
   - `order` を書いたときは、その番号を使う
   - タイトルに枝の文字が付かない
-- [ ] T044 [US1] 一括投稿を直し、T041〜T043 を通す
+- [x] T044 [US1] 一括投稿を直し、T041〜T043 を通す
   - 直すのは `p-w/cli/src/commands/issue-create.ts` と `p-w/cli/src/commands/issue-shared.ts`
   - 投稿の前の確認は、どのファイルの投稿よりも先に全部済ませる
   - 列は Phase 4 の共通の処理で置く
   - `validateStatusForType` を緩め、タスクとバグを `blocked` でも作れるようにする
-- [ ] T045 [US1] `p-w/cli/templates/issue/task-implement.md` を直す。frontmatter に `blocked_by` を足し、`parallel` を外す。冒頭のコメントから、段と枝の文字の説明を外し、`blocked_by` の書き方を足す。`order` と `status` は省く旨を書く
-- [ ] T046 [US1] `p-w/skills/w-issueize/SKILL.md` を、contracts/skill-flow.md の w-issueize の表のとおりに直す
+- [x] T045 [US1] `p-w/cli/templates/issue/task-implement.md` を直す。frontmatter に `blocked_by` を足し、`parallel` を外す。冒頭のコメントから、段と枝の文字の説明を外し、`blocked_by` の書き方を足す。`order` と `status` は省く旨を書く
+- [x] T046 [US1] `p-w/skills/w-issueize/SKILL.md` を、contracts/skill-flow.md の w-issueize の表のとおりに直す
   - Step 2 は、前提の表を読む。段と枝の文字の計算と、「番号が示すのは着手の条件」の記述を外す
   - Step 3 は、`blocked_by` を書く。投稿の前に `pecot issue create --plan` を打ち、出力を前提の表と並べて示す
   - 4 列の表が無い tasks.md の扱いを、contracts/prerequisite-table.md の 4 のとおりに書く
   - Step 4 は、進め方・積める並び・最初に着手できる Issue を報告する
-- [ ] T047 [P] [US1] `p-w/skills/w-help/references/issue-flow-rules.md` の `order` の説明を通し番号に直し、前提と種類の決まりを足す
-- [ ] T048 [US1] スキルの文書のテストを直す。w-issueize の Step の順と、打つコマンドが、直した文と合う
-- [ ] T049 [US1] `issue create` の定義書を直す。`p-w/interface/authored.yaml` に、`--plan`・前提の登録・通し番号の振る舞いの項目を足す
-- [ ] T050 [US1] version plan を `.nx/version-plans/` に足す
+- [x] T047 [P] [US1] `p-w/skills/w-help/references/issue-flow-rules.md` の `order` の説明を通し番号に直し、前提と種類の決まりを足す
+- [x] T048 [US1] スキルの文書のテストを直す。w-issueize の Step の順と、打つコマンドが、直した文と合う
+- [x] T049 [US1] `issue create` の定義書を直す。`p-w/interface/authored.yaml` に、`--plan`・前提の登録・通し番号の振る舞いの項目を足す
+- [x] T050 [US1] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: tasks.md の前提の表から、blocked by の付いた Issue がボードの正しい列にできる
 
@@ -271,20 +272,20 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 3 の前半と 4 を通す。`startable` は開発ブランチから、`stackable` は前提のブランチからブランチができる。`blocked` は終了コード 2 で止まり、リモートにブランチができない
 
-- [ ] T057 [P] [US3] `p-w/cli/tests/interface/create-branch.test.ts` に、失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot create-branch` の表の 4 行のとおりだ
+- [x] T057 [P] [US3] `p-w/cli/tests/interface/create-branch.test.ts` に、失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot create-branch` の表の 4 行のとおりだ
   - `stackable` のとき、`createLinkedBranch` に渡す位置が、積む先のブランチの先頭になる
   - `blocked` のとき、ブランチを作る要求を送らない。直し方の 2 行が出る
   - `--base` が判定で選んだ base と違うと、終了コード 2 で止まる
   - 前提の付いていない Issue では、出力が今までと 1 文字も変わらない
-- [ ] T058 [P] [US3] `p-w/cli/src/infra/tests/` に、base の記録の失敗するテストを書く。`.pecot/state/.pecot-base` に、base のブランチ・位置・積んだ先の Issue を 1 行で書く。ファイルが無いときは、開発ブランチから着手したものとして読む（data-model.md の 8）
-- [ ] T059 [US3] `p-w/cli/src/domain/state.ts` と `p-w/cli/src/infra/state-store.ts` に、base の記録を足し、T058 を通す
-- [ ] T060 [US3] `p-w/cli/src/commands/repository.ts` を直し、T057 を通す。`resolveBaseBranch` の前に判定を計算する。ブロックを無視する指定は足さない（FR-021）
-- [ ] T061 [US3] `p-w/cli/src/commands/session.ts` を直す。テストは `p-w/cli/tests/interface/session.test.ts` に書く
+- [x] T058 [P] [US3] `p-w/cli/src/infra/tests/` に、base の記録の失敗するテストを書く。`.pecot/state/.pecot-base` に、base のブランチ・位置・積んだ先の Issue を 1 行で書く。ファイルが無いときは、開発ブランチから着手したものとして読む（data-model.md の 8）
+- [x] T059 [US3] `p-w/cli/src/domain/state.ts` と `p-w/cli/src/infra/state-store.ts` に、base の記録を足し、T058 を通す
+- [x] T060 [US3] `p-w/cli/src/commands/repository.ts` を直し、T057 を通す。`resolveBaseBranch` の前に判定を計算する。ブロックを無視する指定は足さない（FR-021）
+- [x] T061 [US3] `p-w/cli/src/commands/session.ts` を直す。テストは `p-w/cli/tests/interface/session.test.ts` に書く
   - 積んで着手した作業ディレクトリで、`## Stack` の節に base と、その Issue の PR を出す
   - 着手中の Issue の判定が `blocked` のときは、同じ節に食い違いを出す
-- [ ] T062 [US3] `p-w/skills/w-active/SKILL.md` を、contracts/skill-flow.md の w-active の表のとおりに直す。base の選び方をスキルの文に書かない。ブロック中で止まったときに、案内の 2 行を利用者に示す手順を足す
-- [ ] T063 [US3] `create-branch` と `session status` の定義書を直す。スキルの文書のテストを直す
-- [ ] T064 [US3] version plan を `.nx/version-plans/` に足す
+- [x] T062 [US3] `p-w/skills/w-active/SKILL.md` を、contracts/skill-flow.md の w-active の表のとおりに直す。base の選び方をスキルの文に書かない。ブロック中で止まったときに、案内の 2 行を利用者に示す手順を足す
+- [x] T063 [US3] `create-branch` と `session status` の定義書を直す。スキルの文書のテストを直す
+- [x] T064 [US3] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 前提が PR 中の Issue に、base を選ばずに着手できる
 
@@ -420,29 +421,31 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ---
 
-## Phase 13: 拾えなかったずれを GitHub Actions のワークフローで直す
+## Phase 13: 拾えなかったずれを `pecot board sync` で直す
 
-**Goal**: 画面でのマージ・blocked by の付け外し・手で動かしたカードによる列と札のずれを、ワークフローが直す。一覧を出す操作は、列を直さない
+**Goal**: 画面でのマージ・blocked by の付け外し・手で動かしたカードによる列と札のずれを、`pecot board sync` が直す。手元でも、任意のワークフローからでも打てる。一覧を出す操作は、列を直さない
 
-**Independent Test**: quickstart.md の 8・9 を通す。手で動かしたカードと、画面で閉じた前提の Issue が、実行の後は判定に合った列と札になる
+**Independent Test**: quickstart.md の 8・9 を通す。手で動かしたカードと、画面で閉じた前提の Issue が、`board_sync` の後は判定に合った列と札になる
 
-- [ ] T103 [P] 列と札を直すコマンドの失敗するテストを書く
+- [x] T103 [P] 列と札を直すコマンドの失敗するテストを書く
   - `Ready`・`Blocked`・`Active`・`In Review` の Issue の判定を読み、`decideBoardMove` の結果を `applyBoardMove` で書く
   - 動かした Issue ごとに `moved:`・`set:` の行を出す。書き込みの失敗は `warning:` にして続ける
   - 着手の跡がある Issue と、人が動かす列の Issue は動かさない（FR-080、FR-084）
-- [ ] T104 列を直すコマンドを足し、T103 を通す。判断は `p-w/cli/src/domain/board-move.ts`、書き込みは `p-w/cli/src/commands/issue-board.ts` の処理を使う（FR-083）
-- [ ] T105 ワークフローの雛形を、配布物の `p-w/cli/templates/` へ足す。契機は `pull_request: closed`・`issues: closed/reopened`・`schedule` とし、T104 のコマンドを打つ
-- [ ] T106 定義書（`p-w/interface/authored.yaml`）に T104 のコマンドを足し、w-help に雛形の使い方を書く
-- [ ] T107 quickstart.md の 8・9 を、ワークフローを動かして通す
-- [ ] T108 version plan を `.nx/version-plans/` に足す
+- [x] T104 列を直すコマンドを足し、T103 を通す。判断は `p-w/cli/src/domain/board-move.ts`、書き込みは `p-w/cli/src/commands/issue-board.ts` の処理を使う（FR-083）
+- [x] T105 ワークフローの雛形を、配布物の `p-w/cli/templates/workflow/pecot-board-sync.yml` へ足す。置くかは利用者が選ぶ
+  - 契機は `pull_request_target`・`issues: closed/reopened`・`workflow_dispatch` とし、`schedule` はコメントにする
+  - T104 のコマンドを `npx -y --prefix=/ @pecot/workflow-mcp@<major> board sync` で打つ
+- [x] T106 定義書（`p-w/interface/authored.yaml`）に `pecot board sync` を足す。雛形の使い方は、w-help の `references/board-sync-workflow.md` に書く
+- [x] T107 quickstart.md の 8・9 を、`board_sync` とワークフローの `workflow_dispatch` で通す
+- [x] T108 version plan を `.nx/version-plans/` に足す
 
 補足は次のとおり。
 
-- ワークフローのトークンは、PAT か GitHub App の secret が要る。標準のトークンは、組織のボードに書けない
-- blocked by の付け外し（`issue_dependencies`）が、Actions の契機になるかは未確認だ。ならなければ、`schedule` で拾う
-- カードの移動（`projects_v2_item`）は Actions の契機に無いので、`schedule` で拾う
+- ワークフローの token は、GitHub App か classic PAT が要る。標準のトークンは、組織のボードに書けない
+- blocked by の付け外し（`issue_dependencies`）は、Actions の契機に無いと確認した。`schedule` を有効にするか、手元で `board_sync` を打って直す
+- カードの移動（`projects_v2_item`）も Actions の契機に無い。直し方は blocked by と同じだ
 
-**Checkpoint**: 拾えなかったずれの列と札が、ワークフローの実行の後に判定へ合う
+**Checkpoint**: 拾えなかったずれの列と札が、`board_sync` の実行の後に判定へ合う
 
 ---
 
@@ -536,7 +539,7 @@ Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue
 | 6 | Phase 6 | 計画が変わったときに、前提を直せる |
 | 7 | Phase 11 | 前提の読み違いが、表の形で防がれる |
 | 8 | Phase 12 | このリポの運用に使い始められる |
-| 9 | Phase 13 | 拾えなかったずれの列と札が、Actions のワークフローで直る |
+| 9 | Phase 13 | 拾えなかったずれの列と札が、`pecot board sync` で直る |
 
 ### 人の作業が要るところ
 

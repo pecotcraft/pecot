@@ -106,26 +106,6 @@
       "auth": "token"
     },
     {
-      "type": "graphql",
-      "operation": "GetLinkedRepositoriesUser",
-      "variables": {
-        "owner": "acme",
-        "projectNumber": 1
-      },
-      "auth": "token"
-    },
-    {
-      "type": "graphql",
-      "operation": "GetIssueSlim",
-      "variables": {
-        "owner": "acme",
-        "repo": "demo",
-        "number": 3,
-        "commentLimit": 0
-      },
-      "auth": "token"
-    },
-    {
       "type": "rest",
       "method": "POST",
       "path": "/repos/acme/demo/issues",

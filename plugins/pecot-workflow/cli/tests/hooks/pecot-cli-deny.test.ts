@@ -9,9 +9,10 @@ import { runShell } from './_helpers/run.js'
 import type { HookRun } from './_helpers/run-hook.js'
 import { createProject, runHook, writeHooksConfig } from './_helpers/run-hook.js'
 
-// 定義書の 36 コマンド（cli.path）。MCP ツール名は、語を `_` でつなぎ `-` を `_` にした名前。
+// 定義書の 37 コマンド（cli.path）。MCP ツール名は、語を `_` でつなぎ `-` を `_` にした名前。
 const commands: readonly (readonly string[])[] = [
   ['add-to-project'],
+  ['board', 'sync'],
   ['create-branch'],
   ['delete-branch'],
   ['dependabot', 'sync'],
@@ -72,7 +73,7 @@ function runDeny(command: string, projectDirectory = createProject()): HookRun {
 }
 
 describe('pecot-cli-deny', () => {
-  it('36 コマンドの MCP ツール名が、hooks の一覧と一致する', () => {
+  it('37 コマンドの MCP ツール名が、hooks の一覧と一致する', () => {
     const script = path.resolve(import.meta.dirname, '../../../hooks/lib/core/pecot-tool-names.sh')
     const result = runShell(createHookCase(), String.raw`source "$1"; printf "%s\n" $PECOT_TOOL_NAMES`, [script])
     expect(commands.map(words => toolOf(words)).toSorted(compareText)).toEqual(result.stdout.split('\n').filter(Boolean).toSorted(compareText))

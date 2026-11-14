@@ -2,7 +2,7 @@
 // Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
 // 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
 import { COLUMN_CONFIG_KEYS, LABEL_CONFIG_KEYS } from '../domain/board-move.js'
-import type { BoardMove, MissingValue, MovableColumn } from '../domain/board-move.js'
+import type { BoardMove, LabelValue, MissingValue, MovableColumn } from '../domain/board-move.js'
 import { getFieldId, getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { displayReference } from '../domain/readiness.js'
@@ -11,7 +11,7 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { JsonObject } from '../domain/json.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import type { Output } from './output.js'
+import type { Operation, Output } from './output.js'
 
 // 作ったボード項目の Status（Tracker はここから始める）
 const BOARD_STATUS = 'backlog'
@@ -126,40 +126,70 @@ export interface AppliedMove {
   */
   readonly column: MovableColumn | undefined
   readonly missing: readonly MissingValue[]
+  /**
+  書き込みに失敗した。列だけ書けて札で失敗したときも真
+  */
+  readonly hasFailed: boolean
+}
+
+interface MoveTarget {
+  readonly ref: IssueReference
+  readonly home: RepositoryReference | undefined
+}
+
+function moveOperation(name: string, column: NonNullable<BoardMove['column']>, text: string): Operation {
+  return { verb: 'move', target: `${name} ${column.from} -> ${column.to} (${text})` }
+}
+
+function labelOperation(name: string, label: LabelValue): Operation {
+  return { verb: 'set', target: `Status of ${name} to ${label}` }
+}
+
+function warnConflict(out: Readonly<Output>, name: string, target: MoveTarget, conflict: NonNullable<BoardMove['conflict']>): void {
+  const blockers = conflict.issues.map(issue => displayReference(issue, target.home))
+  out.warning(`${name} is in ${conflict.column} but blocked${blockers.length > 0 ? ` by ${blockers.join(', ')}` : ''}`)
 }
 
 /**
 decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
-text は列を動かす理由の判定の文。
-issue block / unblock が使う。#404 の Actions のワークフローも使う予定
+text は列を動かす理由の判定の文。board sync と issue block / unblock が使う
 */
 export async function applyBoardMove(
   out: Readonly<Output>,
   client: GitHubClient,
   config: ProjectConfig,
   itemId: string,
-  target: { readonly ref: IssueReference, readonly home: RepositoryReference | undefined },
+  target: MoveTarget,
   move: Readonly<BoardMove>,
   text: string,
 ): Promise<AppliedMove> {
   const name = displayReference(target.ref, target.home)
-  if (move.conflict !== undefined) {
-    const blockers = move.conflict.issues.map(issue => displayReference(issue, target.home))
-    out.warning(`${name} is in ${move.conflict.column} but blocked${blockers.length > 0 ? ` by ${blockers.join(', ')}` : ''}`)
-  }
+  if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
   let moved: MovableColumn | undefined
+  let hasFailed = false
   try {
     if (move.column !== undefined && await setIssueField(client, config, itemId, 'workflow', COLUMN_CONFIG_KEYS[move.column.to])) {
       moved = move.column.to
-      out.done({ verb: 'move', target: `${name} ${move.column.from} -> ${move.column.to} (${text})` })
+      out.done(moveOperation(name, move.column, text))
     }
     if (move.label !== undefined && await setIssueField(client, config, itemId, 'status', LABEL_CONFIG_KEYS[move.label])) {
-      out.done({ verb: 'set', target: `Status of ${name} to ${move.label}` })
+      out.done(labelOperation(name, move.label))
     }
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     out.warning(`could not move ${name}: ${error.message}`)
+    hasFailed = true
   }
-  return { column: moved, missing: move.missing }
+  return { column: moved, missing: move.missing, hasFailed }
+}
+
+/**
+applyBoardMove と同じ文を、書かずに予定の行として出す（--dry-run）
+*/
+export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: Readonly<BoardMove>, text: string): void {
+  const name = displayReference(target.ref, target.home)
+  if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
+  if (move.column !== undefined) out.planned(moveOperation(name, move.column, text))
+  if (move.label !== undefined) out.planned(labelOperation(name, move.label))
 }

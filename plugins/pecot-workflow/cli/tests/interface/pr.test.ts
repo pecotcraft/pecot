@@ -1111,7 +1111,7 @@ function mergedRules(sample: Readonly<PullRequestSample> = {}, extra: ResponseRu
   return [graphql(MERGED, pullRequestData(sample)), ...extra]
 }
 
-const ALL_FLAGS = ['.pecot-active', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked', 'merge-slash-pending']
+const ALL_FLAGS = ['.pecot-active', '.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked', 'merge-slash-pending']
 
 function flagFiles(): Record<string, string> {
   return Object.fromEntries(ALL_FLAGS.map(name => [stateFile(name), 'x\n']))
@@ -1255,9 +1255,9 @@ describe('pr cleanup', () => {
   it('ローカルの片付けを終えると、フラグのファイルと merge-slash-pending を消す', async (context) => {
     await verifies(context, 'PW-PR-CLEANUP-09')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
     await workspace.run(CLEANUP)
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false, false])
   })
 
   it('--skip-local-cleanup を付けて打つと、ローカルの片付けをしない', async (context) => {
@@ -1274,7 +1274,7 @@ describe('pr cleanup', () => {
     await verifies(context, 'PW-PR-CLEANUP-11')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
   })
 
   it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async (context) => {

@@ -15,6 +15,17 @@ import {
   validatePullRequestFrontmatter,
 } from '../frontmatter.js'
 
+function catchFrontmatterError(run: () => unknown): FrontmatterError {
+  try {
+    run()
+  }
+  catch (error: unknown) {
+    if (error instanceof FrontmatterError) return error
+    throw error
+  }
+  throw new Error('FrontmatterError was not thrown')
+}
+
 const ISSUE_BASE = { title: 'テスト', type: 'task', repository: 'owner/repo', status: 'ready' }
 
 describe('FrontmatterError', () => {
@@ -77,25 +88,101 @@ describe('validateIssueFrontmatter', () => {
     expect(fm.order).toBe(1)
   })
 
-  it('parent_epic 指定時に order がないとエラー', () => {
-    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353 })).toThrow('order is required when parent_epic is set')
+  it('parent_epic だけを渡すと、order を undefined にして返す', () => {
+    const fm = validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353 })
+    expect(fm.parent_epic).toBe(353)
+    expect(fm.order).toBeUndefined()
   })
 
-  it('parallel に a〜z の 1 文字を渡すと、その値を返す', () => {
-    expect(validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: 'b' }).parallel).toBe('b')
+  it('status を省くと、undefined にして返す', () => {
+    expect(validateIssueFrontmatter({ title: 'T', type: 'task', repository: 'owner/repo' }).status).toBeUndefined()
   })
 
-  it('parallel が空文字だと、undefined にして返す', () => {
-    expect(validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: '' }).parallel).toBeUndefined()
+  it('blocked_by を省くと、空の一覧にして返す', () => {
+    expect(validateIssueFrontmatter({ ...ISSUE_BASE }).blocked_by).toEqual([])
+    expect(validateIssueFrontmatter({ ...ISSUE_BASE, blocked_by: [] }).blocked_by).toEqual([])
+    expect(validateIssueFrontmatter({ ...ISSUE_BASE, blocked_by: JSON_NULL }).blocked_by).toEqual([])
+  })
+})
+
+describe('validateIssueFrontmatter の blocked_by', () => {
+  const NO_STATUS = { title: 'テスト', type: 'task', repository: 'owner/repo' }
+
+  it('wait を省くと stack にし、issue と reason を渡した値で返す', () => {
+    const fm = validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [{ issue: 'phase1' }, { issue: 'acme/demo/3', wait: 'merge', reason: '  既定のブランチから配られる  ' }] })
+    expect(fm.blocked_by).toEqual([
+      { issue: 'phase1', wait: 'stack', reason: undefined },
+      { issue: 'acme/demo/3', wait: 'merge', reason: '既定のブランチから配られる' },
+    ])
   })
 
-  it.for(['A', 'ab', '1', '-', ' '])('parallel が %j だと、pattern の誤りにする', (value) => {
-    const input = { ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: value }
-    expect(() => validateIssueFrontmatter(input)).toThrow('  - parallel: String should match pattern \'^[a-z]$\'')
+  it('blocked_by があって status が blocked のとき、通す', () => {
+    expect(validateIssueFrontmatter({ ...NO_STATUS, status: 'blocked', blocked_by: [{ issue: 'phase1' }] }).status).toBe('blocked')
   })
 
-  it('parallel 指定時に order がないとエラー', () => {
-    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parallel: 'a' })).toThrow('order is required when parallel is set')
+  it('stack の前提に reason があっても、通す', () => {
+    expect(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [{ issue: 'phase1', wait: 'stack', reason: '理由' }] })).not.toThrow()
+  })
+
+  it('reason の無い wait: merge は、種類 merge-without-reason の誤りにする', () => {
+    const error = catchFrontmatterError(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [{ issue: 'phase1', wait: 'merge' }] }))
+    expect(error.kind).toBe('merge-without-reason')
+  })
+
+  it('空白だけの reason の wait: merge も、reason の無い誤りにする', () => {
+    const error = catchFrontmatterError(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [{ issue: 'phase1', wait: 'merge', reason: ' '.repeat(3) }] }))
+    expect(error.kind).toBe('merge-without-reason')
+  })
+
+  it('複数行の reason は、検証の誤りにする', () => {
+    expect(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [{ issue: 'phase1', wait: 'merge', reason: '一行目\n二行目' }] }))
+      .toThrow('validation error:\n  - blocked_by.0.reason: Value error, reason must be a single line')
+  })
+
+  it('wait が stack か merge でないとき、選択肢を出す', () => {
+    expect(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [{ issue: 'phase1', wait: 'later' }] }))
+      .toThrow('  - blocked_by.0.wait: Input should be \'stack\' or \'merge\'')
+  })
+
+  it.for([
+    { name: 'issue が文字列でない', entry: { issue: 12 }, expected: '  - blocked_by.0.issue: Input should be a valid string' },
+    { name: 'issue が無い', entry: { wait: 'stack' }, expected: '  - blocked_by.0.issue: Field required' },
+    { name: 'issue が空', entry: { issue: ' ' }, expected: '  - blocked_by.0.issue: String should have at least 1 character' },
+  ])('$name とき、検証の誤りにする', ({ entry, expected }) => {
+    expect(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: [entry] })).toThrow(expected)
+  })
+
+  it('blocked_by が一覧でないとき、検証の誤りにする', () => {
+    expect(() => validateIssueFrontmatter({ ...NO_STATUS, blocked_by: 'phase1' })).toThrow('  - blocked_by: Input should be a valid list')
+  })
+
+  it.for([
+    { name: 'blocked_by と status: ready を併記した', input: { ...NO_STATUS, status: 'ready', blocked_by: [{ issue: 'phase1' }] }, expected: 'status: ready cannot be set together with blocked_by' },
+    { name: 'blocked_by の無い status: blocked の', input: { ...NO_STATUS, status: 'blocked' }, expected: 'status: blocked requires blocked_by' },
+    { name: 'blocked_by が空の status: blocked の', input: { ...NO_STATUS, status: 'blocked', blocked_by: [] }, expected: 'status: blocked requires blocked_by' },
+    { name: 'Epic の blocked_by の', input: { ...NO_STATUS, type: 'epic', blocked_by: [{ issue: 'phase1' }] }, expected: 'blocked_by cannot be set for type epic' },
+    { name: 'Tracker の blocked_by の', input: { ...NO_STATUS, type: 'tracker', blocked_by: [{ issue: 'phase1' }] }, expected: 'blocked_by cannot be set for type tracker' },
+  ])('$name とき、検証の誤りにする', ({ input, expected }) => {
+    expect(() => validateIssueFrontmatter(input)).toThrow(`validation error:\n  - : Value error, ${expected}`)
+  })
+})
+
+describe('validateIssueFrontmatter の parallel と order', () => {
+  it('parallel に値があると、種類 parallel の誤りにする', () => {
+    const error = catchFrontmatterError(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: 'b' }))
+    expect(error.kind).toBe('parallel')
+  })
+
+  it('type の誤りなどほかの誤りと重なっても、種類 parallel の誤りを先にする', () => {
+    expect(catchFrontmatterError(() => validateIssueFrontmatter({ ...ISSUE_BASE, type: 'nope', parallel: 'a' })).kind).toBe('parallel')
+  })
+
+  it('order が無くても、parallel に値があれば種類 parallel の誤りにする', () => {
+    expect(catchFrontmatterError(() => validateIssueFrontmatter({ ...ISSUE_BASE, parallel: 'a' })).kind).toBe('parallel')
+  })
+
+  it.for(['', JSON_NULL])('parallel が %j のとき、通す', (value) => {
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: value })).not.toThrow()
   })
 
   it('order 指定時に parent_epic がないとエラー', () => {
@@ -163,7 +250,7 @@ describe('validateIssueFrontmatter', () => {
 
   it('エラー文は「validation error:」の後に項目ごとの行が続く', () => {
     expect(() => validateIssueFrontmatter({ title: 'T' })).toThrow(
-      'validation error:\n  - type: Field required\n  - repository: Field required\n  - status: Field required',
+      'validation error:\n  - type: Field required\n  - repository: Field required',
     )
   })
 

@@ -15,6 +15,7 @@ const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
   ['release', 'Work with releases'],
   ['security', 'Put security alerts into a Tracker'],
   ['dependabot', 'Put Dependabot PRs waiting for a human decision into a Tracker'],
+  ['board', 'Keep the board columns in line with the judgment'],
   ['worktree', 'Work with worktrees'],
 ])
 

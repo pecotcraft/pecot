@@ -213,6 +213,48 @@ describe('getIssueKind', () => {
   })
 })
 
+function subIssueNode(number: number): Record<string, unknown> {
+  return { number, state: 'OPEN', title: `#3-${String(number).padStart(2, '0')}: s` }
+}
+
+function slimData(subIssues: Readonly<Record<string, unknown>>): unknown {
+  return { repository: { issue: { number: 3, state: 'OPEN', title: 'E', body: '', comments: { totalCount: 0, nodes: [] }, parent: JSON_NULL, subIssues, linkedBranches: { nodes: [] }, timelineItems: { nodes: [] } } } }
+}
+
+function pageData(nodes: readonly unknown[], hasNextPage: boolean, endCursor: string | undefined): unknown {
+  return { repository: { issue: { subIssues: { nodes, pageInfo: { hasNextPage, endCursor: endCursor ?? JSON_NULL } } } } }
+}
+
+describe('getAllSubIssues', () => {
+  it('続きが無いとき、1 ページ目だけを読み、GetSubIssuesPage を送らない', async () => {
+    const first = graphqlData('GetIssueSlim', slimData({ nodes: [subIssueNode(1), subIssueNode(2)], pageInfo: { hasNextPage: false, endCursor: JSON_NULL } }))
+    const { client, server } = await startClient([first])
+    const result = await client.getAllSubIssues('owner', 'repo', 3)
+    expect(result.map(({ number }) => number)).toEqual([1, 2])
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueSlim', variables: { owner: 'owner', repo: 'repo', number: 3, commentLimit: 0 } }])
+  })
+
+  it('続きがあるとき、endCursor を after に渡して最後のページまで回す', async () => {
+    const first = graphqlData('GetIssueSlim', slimData({ nodes: [subIssueNode(1)], pageInfo: { hasNextPage: true, endCursor: 'c1' } }))
+    const second = graphqlData('GetSubIssuesPage', pageData([subIssueNode(2), subIssueNode(3)], true, 'c2'))
+    const third = graphqlData('GetSubIssuesPage', pageData([subIssueNode(4)], false, undefined))
+    const { client, server } = await startClient([first, second, third])
+    const result = await client.getAllSubIssues('owner', 'repo', 3)
+    expect(result.map(({ number }) => number)).toEqual([1, 2, 3, 4])
+    expect(graphqlRequests(server).slice(1)).toEqual([
+      { operation: 'GetSubIssuesPage', variables: { owner: 'owner', repo: 'repo', number: 3, after: 'c1' } },
+      { operation: 'GetSubIssuesPage', variables: { owner: 'owner', repo: 'repo', number: 3, after: 'c2' } },
+    ])
+  })
+
+  it('pageInfo が無い応答は、続きが無いものとして読む', async () => {
+    const first = graphqlData('GetIssueSlim', slimData({ nodes: [subIssueNode(1)] }))
+    const { client } = await startClient([first])
+    const result = await client.getAllSubIssues('owner', 'repo', 3)
+    expect(result.map(({ number }) => number)).toEqual([1])
+  })
+})
+
 describe('getIssueSlim', () => {
   // 期待値は Python の get_issue_slim の出力
   const response = {
@@ -509,6 +551,17 @@ describe('addBlockedBy・removeBlockedBy', () => {
     const { client } = await startClient([graphqlError(operation, `Field '${field}' doesn't exist on type 'Mutation'`)])
     const error = await rejection(method === 'addBlockedBy' ? client.addBlockedBy('I_10', 'I_9') : client.removeBlockedBy('I_10', 'I_9'))
     expect(error).toMatchObject(failure(DependenciesUnsupportedError, 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'))
+  })
+})
+
+describe('supportsBlockedBy', () => {
+  it.for([
+    { name: '型がある', type: { name: 'AddBlockedByInput' }, expected: true },
+    { name: '型が無い（3.19 より前の GHES）', type: JSON_NULL, expected: false },
+  ])('AddBlockedByInput の $name とき $expected を返す', async ({ type, expected }) => {
+    const { client, server } = await startClient([graphqlData('HasAddBlockedByInput', { __type: type })])
+    expect(await client.supportsBlockedBy()).toBe(expected)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'HasAddBlockedByInput', variables: {} }])
   })
 })
 

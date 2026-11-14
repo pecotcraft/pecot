@@ -147,6 +147,33 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 - 載せ直しの後、base の位置の記録を書き直す
   - 合わせた場合は、`git merge-base origin/<branch> <開発ブランチ>` の結果を記録する
 
+### `pecot board sync [--dry-run] [--project <設定名>]`
+
+ボード全体を判定に合わせて、列と札を直す。手元でも GitHub Actions のワークフローからも同じ形で打つ。MCP ツールは `board_sync`。
+
+| 入力 | 意味 |
+|---|---|
+| `--dry-run` | 動かす予定の行を出し、ボードに書かない |
+| `--project <設定名>` | 使う設定の JSON を選ぶ。`.active` が無く、`.pecot/config/projects/*.json` がちょうど 1 つなら省ける。2 つ以上あるときに省くと、`error:` で指定を求めて止まる |
+
+| 場面 | 出力 | 終了コード |
+|---|---|---|
+| 列を動かした | `moved: #N <元> -> <先> (<理由>)` | 0 |
+| 札を変えた | `set: Status of #N to <値>` | 0 |
+| `--dry-run` | 上の 2 行を、書かずに予定として出す | 0 |
+| 着手の跡がある Issue が判定とずれている | `warning: #N is in Active but blocked by #M`。列と札は変えない | 0 |
+| 書き込みに失敗した | `warning:` を出し、残りの Issue へ続ける。全件の後に、失敗した件数を `error:` で出す | 1 |
+| 判定が読めない（`develop_branch` が無い、API の失敗など） | `warning: could not judge #N: <理由>`。その Issue は動かさない | 0 |
+| 動かす先の値がボードに無い | `warning:` を 1 回出す | 0 |
+| Issue の依存関係に対応しない GHES | `warning:` を出して何もしない | 0 |
+| 実行の前後の点数 | stderr に使用量と残りの行。`GET /rate_limit` を読めない環境では省く。窓が途中で切り替わると、使用量の行だけ省く | 0 |
+
+- 対象の列は `Ready`・`Blocked`・`Active`・`In Review`。`Backlog`・`Pending`・`Archived` は動かさない（FR-080）
+- 判断は `decideBoardMove`、書き込みは `applyBoardMove` が行い、pecot の各操作と同じ処理を使う（FR-083）
+- 着手の跡がある Issue の列と札は変えない（FR-084）
+- 契機ごとの絞り込みは無く、毎回ボード全体を見る
+- ワークフローの雛形は `cli/templates/workflow/pecot-board-sync.yml`。コマンドは雛形を読まない
+
 ## 振る舞いを変えるコマンド
 
 ### `pecot issue create`
@@ -211,13 +238,22 @@ Markdown の出力に 2 行を足す。前提が無い Issue では出さない�
 |---|---|---|---|
 | `startable` | 開発ブランチから作る | `created: branch <b> in <repo> from <develop>` | 0 |
 | `stackable` | 積む先のブランチから作る | `created: branch <b> in <repo> from <base> (stacked on #N)` | 0 |
-| `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて直し方の案内 | 2 |
-| 判定の読み取りに失敗 | 作らない | `error: could not read blocked-by of #A` | 1 |
+| `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて済んでいない前提ごとの `- #B: <状態>` の行、直し方の案内（2 行目以降は 2 字下がる） | 2 |
+| `stackable` で `--base` が積む先と違う | 作らない | `error: --base <x> differs from the base chosen by readiness: <branch> (stacked on #N)` | 2 |
+| 前提の読み取りに失敗 | 作らない | `error: could not read blocked-by of #A: <理由>` | 1 |
+| 判定に失敗（PR の引き足しの失敗など） | 作らない | `error: could not judge readiness of #A: <理由>`。開発ブランチが未設定なのが原因なら、続けて `set it with: pecot project set-repo <owner/repo> --develop-branch develop` の行 | 1 |
+| `stackable` で、判定の後に積む先のブランチが無くなった | 作らない | `error: base branch <branch> of #N not found: <理由>` | 1 |
+| 依存関係を持たない GHES | 判定を省いて開発ブランチから作る | `warning: readiness is not checked: <理由>` の後、`startable` と同じ | 0 |
 
-- `--base` を指定したときは、判定で選んだ base と比べる。違えば止まる（終了コード 2）
+- `--base` を比べるのは、判定が `stackable` のときだけだ。違えば止まる（終了コード 2）。`startable` では比べない。`blocked` は比べる前に止まる
+- 開発ブランチ（と `--base`）を求めるのは、判定の後で、積まないときだけだ。`blocked` は開発ブランチが無くても、`blocked` の説明で止まる
 - ブロックを無視する指定は置かない
-- base のブランチと位置を、状態のファイルに記録する
-- 直し方の案内は、`pecot issue unblock` と `pecot issue block --wait` の 2 行だ
+- base のブランチと位置（積んだときは積んだ先の Issue も）を、状態のファイルに 1 行で記録する
+- 前提ごとの行の状態は、マージを待つ理由（`wait: merge — <理由>`）まで読める
+- 直し方の案内は、`pecot issue unblock <A> --by <B>` の行だ
+  - `unblock` の行は、済んでいない前提ごとに 1 行ずつ、その前提の参照を `<B>` に入れて出す
+  - 理由が `waits-merge` のときだけ、マージを待つ前提ごとに `pecot issue block <A> --by <B> --wait stack` の行も足す
+  - `<owner/repo/N>` のままの行は出さない
 
 ### `pecot pr create`
 
@@ -260,7 +296,7 @@ Readiness changed:
 
 ### `pecot project info`
 
-`Ready` と `Blocked` の表に、判定の列を足す。
+`Ready` と `Blocked` の表に、判定の列を足す。`board_sync` が列か札を動かしそうな Issue を見つけたときは、stderr に件数と直す案内を 1 行出す。数え方は `board_sync` と同じ規則を使う。
 
 ```text
 ### Blocked (2)
@@ -294,5 +330,8 @@ Readiness changed:
 ## Stack
 - base: feat/registry/348 (#348, PR #361 OPEN)
 - needs restack: no
-- readiness: blocked by #348 (base PR was closed without merge)
+- readiness: blocked by #348 (closed without merge: #348)
 ```
+
+- `readiness` の行は、着手中の Issue の判定が `blocked` のときだけ出す。文は `describeReadiness` の文だ
+- `needs restack` の行は、T087（US6）で足す

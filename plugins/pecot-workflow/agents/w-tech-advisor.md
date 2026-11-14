@@ -1,7 +1,7 @@
 ---
 name: w-tech-advisor
 description: 技術スタックを公式文書とソースで調べて答えるアドバイザー。計画の技術レビューと、実装中の API・設定・型の質問に使う。
-model: inherit
+model: opus
 autoCompactWindow: 400000
 disallowedTools:
   - Edit

@@ -2,7 +2,7 @@
 name: w-issueize
 description: |
   実装計画の各フェーズをIssueに一括登録します。
-  Use when the user has a plan file (e.g. speckit's tasks.md) and wants each phase converted into GitHub Issues in bulk under a parent Epic, in Ready status.
+  Use when the user has a plan file (e.g. speckit's tasks.md) and wants each phase converted into GitHub Issues in bulk under a parent Epic, placed in Ready or Blocked by their prerequisites.
   Do NOT use for a single subtask (use w-ready), plan creation (use speckit.tasks), or starting implementation (use w-active).
 when_to_use: "tasks.md の各フェーズを Issue にまとめて登録したい、実装計画を一括で Issue 化したい"
 ---
@@ -24,36 +24,35 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 
 `issue_read` を `issue_ref: "owner/repo/EPIC_NUMBER"` で呼ぶ。
 
-### Step 2: フェーズ構造を把握し、番号を決める
+### Step 2: フェーズ構造と前提を把握する
 
 tasks.md を読み取り、Phase 1, Phase 2 ... の区切り・各フェーズのタイトル／目的／Tasks／Checkpoint／Independent Test を抽出する。同じディレクトリに plan.md や data-model.md などの補足ドキュメントがあれば文脈として合わせて読む。
 
-フェーズの前提は、tasks.md の Phase Dependencies・User Story Dependencies・Parallel Opportunities の 3 つから決める。`[P]` はタスク単位の印なので使わない。並列の記述が無いときは、Phase Dependencies の表と各フェーズの本文から前提を決める。
-前提にするのは、フェーズ全体の着手を止める依存だけ。一部のタスクだけが待つ依存は番号の計算に入れない。tasks.md のタスクに付いた依存の注記は、タスクの行ごと Tasks に写る。
+フェーズの前提は、tasks.md の `### Phase Dependencies` の 4 列の表（Phase・前提・種類・理由）から読む。1 行が、フェーズと前提の 1 組。`[P]` はタスク単位の印なので使わない。
+前提にするのは、フェーズ全体の着手を止める依存だけ。一部のタスクだけが待つ依存は前提に入れない。tasks.md のタスクに付いた依存の注記は、タスクの行ごと Tasks に写る。
 
-親Epicの既存サブタスクから order 番号の続番を確認する（**番号決定のためだけに参照。Epic進捗の評価はしない**）。
-続番の起点は、既存サブタスクの最大の `order` + 1（無ければ 1）。枝つきの既存番号（`18a` など）は段の数値で数える。今回 Issue 化しない前提（Issue 化済み・範囲外）は段の計算に入れない。
+4 列の表が無い tasks.md は、次のように扱う。
 
-Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本文の Tasks（T 番号）を tasks.md の各フェーズと比べて見分ける。フェーズの Tasks が既存サブタスクの Tasks に写っていれば、そのフェーズは済とする。済のフェーズは、ユーザーが求めない限り対象から外す。全フェーズが済のときは、Issue 化せずにその旨を報告して終える。
+1. `Phase Dependencies`・`User Story Dependencies`・`Parallel Opportunities` の文から、フェーズの前提を読む
+2. 種類はすべて「積める」とする
+3. 読んだ結果を 4 列の表にしてユーザーに示し、表が無かった旨を伝える
+4. ユーザーが種類を変えるよう指示したら、その行を直す
 
-番号は次の手順で決める。
+Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本文の Tasks（T 番号）を tasks.md の各フェーズと比べて見分ける（**見分けるためだけに参照。Epic進捗の評価はしない**）。フェーズの Tasks が既存サブタスクの Tasks に写っていれば、そのフェーズは済とする。済のフェーズは、ユーザーが求めない限り対象から外す。全フェーズが済のときは、Issue 化せずにその旨を報告して終える。
+済のフェーズを前提にするときは、その既存サブタスクを `owner/repo/N` で指す。
+範囲の外で、まだ Issue の無いフェーズを前提にする行は、`blocked_by` に書かない。書かなかった行は、次の表と一緒にユーザーへ伝える。そのフェーズを範囲へ入れるかも確かめる。
 
-1. 段を決める。前提が無いフェーズは最初の段、それ以外は 1 + 前提の段の最大値
-2. `order` = 続番の起点 + 段 − 1
-3. 同じ段に 2 件以上あるときだけ、Phase 番号の順に `a`・`b`・`c`… を `parallel` に振る。1 件だけの段は `parallel` を空にする。同じ段が 27 件以上で `z` を超えるときは、ユーザーに相談する
-
-抽出したフェーズ一覧と番号を、次の列の表にしてユーザーに示す。Issue化する範囲（全フェーズ／一部のみ）と番号の合意を得てから Step 3 に進む。AskUserQuestion ではなく、地の文の表で示す。
+抽出したフェーズ一覧を、次の列の表にしてユーザーに示す。Issue化する範囲（全フェーズ／一部のみ）と前提の合意を得てから Step 3 に進む。AskUserQuestion ではなく、地の文の表で示す。
 
 | 列 | 内容 |
 |---|---|
 | Phase | tasks.md のフェーズ番号 |
-| 番号 | 例 `17a`（`order` と `parallel`） |
 | タイトル案 | Issue のタイトル |
 | 済 | 既存サブタスクの Tasks に写っているフェーズに「済」と書く。未なら空 |
-| 前提 | 着手を止める前提のフェーズ |
+| 前提 | 着手を止める前提のフェーズと、種類（積める・マージを待つ） |
 | 一部だけの依存 | 一部のタスクだけが待つ依存 |
 
-番号が示すのは着手の条件で、前提にした Issue がすべて閉じたフェーズは着手できる。同じ段のフェーズは互いに依存しない。
+番号は書かない。通し番号は CLI が振る。
 
 ### Step 3: 各フェーズをIssueとして作成する
 
@@ -62,7 +61,25 @@ Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本�
 `repo: "<owner/repo>"` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
-`title` / `parent_epic` を設定し、`order` に段、`parallel` に枝を Step 2 の表どおりに書く。`repository` には、`repo` で指定した値が入っている。
+`title` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。`repository` には、`repo` で指定した値が入っている。
+
+`blocked_by` の写し方は次のとおり。
+
+| 前提の表 | `blocked_by` |
+|---|---|
+| `前提` のフェーズ | `issue`。そのフェーズのファイルのキー（`suffix`）。Issue 化済みのフェーズは `owner/repo/N` |
+| `種類` が「積める」 | `wait` を書かない |
+| `種類` が「マージを待つ」 | `wait: merge` と、`理由` を 1 行で写した `reason` |
+
+```yaml
+blocked_by:
+  - issue: phase3
+  - issue: phase4
+    wait: merge
+    reason: "action は、既定のブランチのプラグインを入れる"
+```
+
+- 本文に前後関係を書かない。マージを待つ前提の節は、CLI が足す
 
 tasks.md にある絵文字（`🎯 MVP` 等）は Issue ファイルに写さない。本文に絵文字があると投稿時の検証で落ち、一括投稿が途中で止まる。
 
@@ -77,9 +94,20 @@ before / after の例を示す。
 +`acme-labs/aist-roadmap:specs/263-plan-mode-reminder/`
 ```
 
-全フェーズ分のファイルを Step 2 の番号の順に並べ、1 回の呼び出しで一括投稿する。
-複数回に分けて呼ばない。`issue_create` を `files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。
+全フェーズ分のファイルを Phase の順に並べる。前提が後ろのフェーズを指すときは、前提にされるフェーズのファイルを先にする。
+
+投稿の前に、`issue_create` を `plan: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、番号・前提・進め方の表と、積める並びが出る。出力を Step 2 の前提の表と並べてユーザーに示し、前提の食い違いが無いかを見てもらう。
+食い違いがあればファイルを直して、もう一度 `plan: true` で呼ぶ。`error:` で止まったときも、文に従ってファイルか並びを直し、もう一度 `plan: true` で呼ぶ。合意を得てから投稿する。
+
+投稿は、同じ `files` で `issue_create` を `plan` なしで 1 回だけ呼ぶ。複数回に分けて呼ばない。
+
+投稿の結果は、次のとおり読み分ける。
+
+- `exit code: 1` でも、URL の行が出ていれば Issue は作られている。同じ `files` で呼び直さない。呼び直すと Issue が重複する
+- `error: could not add some blocked-by; add them again with:` の後ろに並ぶ付け直すコマンドの行は、打たずにそのままユーザーへ示す
+- URL の行が 1 つも出ずに `error:` で止まったときは、投稿の前の確認で止まっている。文に従ってファイルを直し、呼び直してよい
 
 ### Step 4: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。実装開始は `/pecot-w:w-active` を使う旨を案内する。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`plan: true` の出力の `Approach` 列）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+投稿の出力のうち、`set:` の行の `status ready` と、`moved:` の行の `-> Ready` から読む。CLI が `warning:` を出したときは、そのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。

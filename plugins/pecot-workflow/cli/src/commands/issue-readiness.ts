@@ -15,12 +15,25 @@ import { repositoryFullName } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
 import { STATUS_FIELD_NAME } from './project-sync.js'
 
 /**
 順 8 で base をたどる段数の上限
 */
 const MAX_STACK_TRACE_STEPS = 10
+
+/**
+前提を読む件数の下限。一覧を読んでから足された前提も取りこぼさない
+*/
+const MIN_BLOCKED_BY_READ = 8
+
+/**
+一覧の前提の件数から、個別に読む前提の件数を決める。件数が一覧に無ければ undefined（上限で読む）
+*/
+export function blockedByReadCount(listed: number | undefined): number | undefined {
+  return listed === undefined ? undefined : Math.min(Math.max(listed, MIN_BLOCKED_BY_READ), MAX_BLOCKED_BY)
+}
 
 /**
 head のブランチ名で引いた PR の取得結果を、1 回の実行の中で使い回す入れ物。キーは `owner/repo:head`
@@ -267,5 +280,25 @@ export function readinessJson(readiness: Readonly<Readiness>, text: string): Jso
     stackOn: stackOn === undefined ? JSON_NULL : { number: stackOn.issue.number, repository: repositoryFullName(stackOn.issue.repository), branch: stackOn.branch },
     reason: readiness.reason?.code ?? JSON_NULL,
     text,
+  }
+}
+
+/**
+readIssueReadiness の、依存関係を持たない GHES を判定なしで通す形。GHES なら undefined を返し、onUnsupported に理由を渡す
+*/
+export async function readIssueReadinessIfSupported(
+  client: Readonly<GitHubClient>,
+  config: ProjectConfig,
+  reference: IssueReference,
+  cache: ReadinessCache,
+  onUnsupported?: (reason: string) => void,
+): Promise<IssueReadiness | undefined> {
+  try {
+    return await readIssueReadiness(client, config, reference, cache)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof DependenciesUnsupportedError)) throw error
+    onUnsupported?.(error.message)
+    return undefined
   }
 }

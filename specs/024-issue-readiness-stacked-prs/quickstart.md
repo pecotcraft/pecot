@@ -212,19 +212,19 @@ pecot issue unblock <Phase 3> --by <Phase 2>
 | `issue block <Phase 2> --by <Phase 2>` | 終了コード 2。GitHub の文ではなく、pecot の文が出る |
 | 同じコマンドの 2 回目 | `unchanged:` が出る |
 
-## 8. 誤操作を直す（US2、Actions のフェーズで確かめる）
+## 8. 誤操作を直す（US2、`board_sync` で確かめる）
 
-列を直すのは GitHub Actions のワークフローで、`pecot project info` は直さない。ここは tasks.md の Phase 13 が入ってから通す。
+列を直すのは `board_sync`（`pecot board sync`）で、ワークフローと手元のどちらからも直る。`pecot project info` は直さず、食い違いの案内だけを出す。ここは tasks.md の Phase 13 が入ってから通す。
 
 ボードの画面で、`Blocked` のカードを `Ready` と `Active` へ、`Ready` のカードを `Blocked` へ、手で動かす。別の `Blocked` のカードを `Pending` へ動かす。
 
-ワークフローを動かす（`schedule` の実行を待つか、手で起動する）。
+`board_sync` を呼ぶか、ワークフローを `workflow_dispatch` で起動する。`schedule` は雛形ではコメントなので、待たずに手で動かす。
 
 | 見るもの | 期待 |
 |---|---|
-| ワークフローのログ | 動かしたカードごとに `moved:` の行が出る。元の列・新しい列・理由が読める |
+| `board_sync` かワークフローのログ | 動かしたカードごとに `moved:` の行が出る。元の列・新しい列・理由が読める |
 | ボード | 3 枚が判定に合った列に戻る |
-| `pecot project info` | 列は動かない。判定だけが出る |
+| `pecot project info` | 列は動かない。判定と、食い違いの件数と直し方の案内が出る |
 | `Pending` へ動かしたカード | 動かない。それを前提にしている Issue の理由に、前提が `Pending` にある旨が出る |
 
 着手済みの Issue（worktree B の Phase 2）に、別の作業ディレクトリから前提を足す。
@@ -239,9 +239,9 @@ pecot issue block <Phase 2> --by <Phase 4>
 | `issue block` の stderr | `warning:` に、着手済みの Issue がブロック中である旨が出る |
 | worktree B の `pecot session status` | `## Stack` の節に、判定の食い違いが出る |
 
-## 9. マージされずに閉じた前提（US2。判定は一覧のフェーズ、札は Actions のフェーズで確かめる）
+## 9. マージされずに閉じた前提（US2。判定は一覧のフェーズ、札は `board_sync` で確かめる）
 
-Phase 4 の Issue を、PR をマージせずに画面で閉じる。札を `Needs Attention` にするのは、ワークフローだ。
+Phase 4 の Issue を、PR をマージせずに画面で閉じる。札を `Needs Attention` にするのは `board_sync` だ。ワークフローを置いていれば、`issues: closed` を契機に自動で動く。
 
 ```bash
 pecot project info
@@ -251,7 +251,7 @@ pecot issue unblock <Phase 5> --by <Phase 4>
 | 見るもの | 期待 |
 |---|---|
 | Phase 5 の判定 | `blocked by #<Phase 4> (closed without merge: #<Phase 4>)`。`issue read` の `**Readiness:**` にも同じ文が出る |
-| Phase 5 の札 | ワークフローが動いた後に `Needs Attention` |
+| Phase 5 の札 | `board_sync` を打った後に `Needs Attention` |
 | `unblock` の後 | 札が `Todo` に戻り、列が判定に合わせて動く |
 
 ## 10. 値の無いボードと、前提の無いリポ

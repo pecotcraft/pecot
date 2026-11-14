@@ -16,8 +16,12 @@ PECOT_FLAG="$STATE_DIR/.pecot-active"
 INPUT=$(cat)
 
 # tool 名ガード: matcher は守られるが、単体で呼ばれたときの防御として残す。
+# Claude は ExitPlanMode、GitHub Copilot CLI は exit_plan_mode で届く（camelCase の toolName は読まない）。
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
-[ "$TOOL_NAME" = "ExitPlanMode" ] || exit 0
+case "$TOOL_NAME" in
+    ExitPlanMode|exit_plan_mode) ;;
+    *) exit 0 ;;
+esac
 
 IS_QUICK=0
 [ -f "$STATE_DIR/.pecot-quick-mode" ] && IS_QUICK=1

@@ -89,6 +89,7 @@
 | 文書 | 変更 |
 |---|---|
 | `references/board-status.md` | `Blocked` を足す。`Pending`・`Blocked`・`Ready` の違いを、置く理由・動かす者・出る条件の表で示す。`Ready` の用途を「着手できる」に直す。`Needs Attention` を足す |
+| `references/board-sync-workflow.md`（新規） | `board_sync` を GitHub Actions で打つ雛形の置き方を示す。雛形の場所・設定の JSON を既定ブランチに置く手順・App と PAT の権限と variable・secret の名前・`schedule` の入れ方と Actions の分の目安・GHES の token の環境変数の名前・版の固定を書く |
 | `references/issue-flow-rules.md` | `order` の説明を通し番号に直す。前提と種類の決まりを足す |
 | `references/spec-driven-workflow.md` | 列の表を直す。前提の表から Issue 化、積んで着手、マージまでの流れを足す |
 | `references/commands.md` | 定義書から書き出し直す。手で直さない |

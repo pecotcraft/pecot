@@ -65,7 +65,7 @@
         ]
       },
       {
-        "matcher": "ExitPlanMode",
+        "matcher": "ExitPlanMode|exit_plan_mode",
         "hooks": [
           {
             "type": "command",

@@ -1,5 +1,5 @@
-# 枝なしの既存サブ Issue（#3-02）と同じ段に parallel 付きで投稿する。重複で exit 1 になり、Issue は作られない。
-id: issue-create-state-parallel-conflict
+# 廃止した parallel を書いたファイルを投稿する。何も投稿せずに、削除を促す error で exit 1 になる。
+id: issue-create-state-parallel-removed
 command:
   path: [issue, create]
   args: [draft.md]
@@ -80,35 +80,4 @@ setup:
         1
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
-github:
-  - match:
-      operation: GetLinkedRepositoriesUser
-    respond:
-      status: 200
-      body:
-        data:
-          user:
-            projectV2:
-              repositories:
-                nodes:
-                  - {name: demo, owner: {login: acme}}
-  - match:
-      operation: GetIssueSlim
-      variables: {owner: acme, repo: demo, number: 3}
-    respond:
-      status: 200
-      body:
-        data:
-          repository:
-            issue:
-              number: 3
-              state: OPEN
-              title: 親の Epic
-              body: ""
-              comments: {totalCount: 0, nodes: []}
-              parent:
-              subIssues:
-                nodes:
-                  - {number: 9, state: OPEN, title: "#3-02: 枝なしの子"}
-              linkedBranches: {nodes: []}
-              timelineItems: {nodes: []}
+github: []

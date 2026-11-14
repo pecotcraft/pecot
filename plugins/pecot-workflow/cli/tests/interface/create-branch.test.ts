@@ -9,14 +9,18 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
+import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { graphqlRule, projectConfig, requestLabels, restRule, runCommand } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
 
 const SHA = '0123456789abcdef0123456789abcdef01234567'
+const STACK_SHA = 'fedcba9876543210fedcba9876543210fedcba98'
 const ACTIVE = '.pecot/state/.pecot-active'
 const TITLE = '.pecot/state/.pecot-session-title'
+const BASE = '.pecot/state/.pecot-base'
 
 const linkedRepositories = (): ResponseRule => graphqlRule(
   'GetLinkedRepositoriesUser',
@@ -24,7 +28,8 @@ const linkedRepositories = (): ResponseRule => graphqlRule(
   { owner: 'acme', projectNumber: 1 },
 )
 const issueNode = (): ResponseRule => graphqlRule('GetIssueNodeId', { repository: { issue: { id: 'I_7', title: '[Task] 見本の Issue' } } }, { owner: 'acme', repo: 'demo', number: 7 })
-const baseSha = (branch: string): ResponseRule => restRule('GET', `/repos/acme/demo/git/ref/heads/${branch}`, 200, { object: { sha: SHA } })
+// 積む先のブランチ（main 以外で、feat/ で始まるもの）には、別の SHA を返す
+const baseSha = (branch: string): ResponseRule => restRule('GET', `/repos/acme/demo/git/ref/heads/${branch}`, 200, { object: { sha: branch.startsWith('feat/') ? STACK_SHA : SHA } })
 const linkedBranch = (): ResponseRule => graphqlRule('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: { ref: { name: 'feat/7', prefix: 'refs/heads/' } } } })
 const projectItems = (): ResponseRule => graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_7', project: { id: 'PVT_1' } }] } } } }, { owner: 'acme', repo: 'demo', number: 7 })
 const statusUpdate = (): ResponseRule => graphqlRule(
@@ -32,6 +37,7 @@ const statusUpdate = (): ResponseRule => graphqlRule(
   { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_7' } } },
   { projectId: 'PVT_1', itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o4' },
 )
+const noPrerequisites = (): ResponseRule => prerequisitesRule({ number: 7 })
 const slimIssue = (state: string): ResponseRule => graphqlRule(
   'GetIssueSlim',
   { repository: { issue: { number: 999, state, title: 't', body: 'b', comments: { totalCount: 0 } } } },
@@ -39,10 +45,17 @@ const slimIssue = (state: string): ResponseRule => graphqlRule(
 )
 
 /**
+前提が spec の Issue の、最後まで成功する応答の列
+*/
+function judged(spec: Partial<TargetSpec>, base = 'main'): ResponseRule[] {
+  return [linkedRepositories(), prerequisitesRule({ number: 7, ...spec }), issueNode(), baseSha(base), linkedBranch(), projectItems(), statusUpdate()]
+}
+
+/**
 最後まで成功する応答の列。base はベースブランチ
 */
 function succeeding(base = 'main'): ResponseRule[] {
-  return [linkedRepositories(), issueNode(), baseSha(base), linkedBranch(), projectItems(), statusUpdate()]
+  return [linkedRepositories(), noPrerequisites(), issueNode(), baseSha(base), linkedBranch(), projectItems(), statusUpdate()]
 }
 
 const CREATED = 'created: branch feat/7 in acme/demo from main\n'
@@ -66,13 +79,14 @@ describe('create-branch', () => {
     expectClean(result)
     expect(requestLabels(result.requests)).toEqual([
       'GetLinkedRepositoriesUser',
+      'GetIssuePrerequisites',
       'GetIssueNodeId',
       'GET /repos/acme/demo/git/ref/heads/main',
       'CreateLinkedBranch',
       'GetIssueProjectItems',
       'UpdateProjectItemField',
     ])
-    expect(result.requests.at(3)).toMatchObject({ variables: { input: { issueId: 'I_7', oid: SHA, name: 'feat/7' } } })
+    expect(result.requests.at(4)).toMatchObject({ variables: { input: { issueId: 'I_7', oid: SHA, name: 'feat/7' } } })
   })
 
   it('--base を付けて打つと、そのブランチの先頭からブランチを作る', async (context) => {
@@ -125,7 +139,7 @@ describe('create-branch', () => {
     await verifies(context, 'PW-CREATE-BRANCH-07')
     const result = await create()
     expectClean(result)
-    expect(result.requests.at(5)).toMatchObject({
+    expect(result.requests.at(6)).toMatchObject({
       type: 'graphql',
       operation: 'UpdateProjectItemField',
       variables: { projectId: 'PVT_1', itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o4' },
@@ -192,7 +206,7 @@ describe('create-branch', () => {
   it('ボード上の Issue の Status を active にできないと、warning の行を標準エラーに出してブランチは作ったままにする', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-16')
     const failing: ResponseRule = { match: { operation: 'GetIssueProjectItems' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
-    const result = await create({ github: [linkedRepositories(), issueNode(), baseSha('main'), linkedBranch(), failing] })
+    const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), failing] })
     expect(result.code).toBe(0)
     expect(result.problems).toEqual([])
     expect(result.stderr).toContain(CREATED)
@@ -203,7 +217,7 @@ describe('create-branch', () => {
   it('Issue がボードに載っていないと、Status を変えずに warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-16')
     const empty = graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
-    const result = await create({ github: [linkedRepositories(), issueNode(), baseSha('main'), linkedBranch(), empty] })
+    const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), empty] })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain('warning: could not set Issue acme/demo/7 status active: the Issue is not on the project board\n')
@@ -211,7 +225,7 @@ describe('create-branch', () => {
 
   it('設定に workflow の active が無いと、Status を変えずに warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-16')
-    const result = await create({ config: projectConfig({ workflowOptions: { backlog: 'o1' } }), github: [linkedRepositories(), issueNode(), baseSha('main'), linkedBranch(), projectItems()] })
+    const result = await create({ config: projectConfig({ workflowOptions: { backlog: 'o1' } }), github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), projectItems()] })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain('warning: could not set Issue acme/demo/7 status active: the workflow status field has no \'active\' option\n')
@@ -280,15 +294,16 @@ describe('create-branch', () => {
 
   it('--base を省いて develop_branch も設定していないと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-22')
-    const result = await create({ config: projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] }), github: [] })
+    const result = await create({ config: projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] }), github: [linkedRepositories(), noPrerequisites()] })
     expect(result.code).toBe(1)
+    expectClean(result)
     expect(result.stderr).toBe([
       'error: develop_branch is not set for acme/demo',
       '  set it with: pecot project set-repo acme/demo --develop-branch develop',
       '  or give the base: pecot create-branch acme/demo/7 feat --base main',
       '',
     ].join('\n'))
-    expect(result.requests).toEqual([])
+    expect(requestLabels(result.requests)).toEqual(['GetLinkedRepositoriesUser', 'GetIssuePrerequisites'])
   })
 
   it('Issue のリポジトリがプロジェクトに登録されていないと、終了コード 1 で終わる', async (context) => {
@@ -304,7 +319,7 @@ describe('create-branch', () => {
   it('ブランチの作成までの GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-24')
     const notFound = restRule('GET', '/repos/acme/demo/git/ref/heads/main', 404, { message: 'Not Found' })
-    const result = await create({ github: [linkedRepositories(), issueNode(), notFound] })
+    const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), notFound] })
     expect(result.code).toBe(1)
     expectClean(result)
     expect(result.stderr).toMatch(/^error: could not create branch feat\/7 in acme\/demo: resource not found: http:\/\/127\.0\.0\.1:\d+\/repos\/acme\/demo\/git\/ref\/heads\/main\n$/u)
@@ -315,7 +330,7 @@ describe('create-branch', () => {
   it('ブランチの作成の mutation が GraphQL の errors を返すと、ステータスの更新へ進まず終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-24')
     const rejected: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { errors: [{ type: 'UNPROCESSABLE', message: 'Ref already exists' }] } }, times: 1 }
-    const result = await create({ github: [linkedRepositories(), issueNode(), baseSha('main'), rejected] })
+    const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), rejected] })
     expect(result.code).toBe(1)
     expectClean(result)
     expect(result.stdout).toBe('')
@@ -340,5 +355,166 @@ describe('create-branch', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
     expect(result.requests).toEqual([])
+  })
+  describe('着手の判定', () => {
+    const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
+    const waiting = { number: 4, title: '待つ前提' }
+    const WAITS = '## Waits for merge\n- #4: 公開後に確かめる\n'
+    const STACKED = 'created: branch feat/7 in acme/demo from feat/3 (stacked on #3)\n'
+
+    it('前提の PR が 1 本に積めると、その PR のブランチの先頭からブランチを作り、created の行に積んだ先を付ける', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-28')
+      await verifies(context, 'PW-CREATE-BRANCH-29')
+      const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') })
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(requestLabels(result.requests)).toContain('GET /repos/acme/demo/git/ref/heads/feat/3')
+      expect(result.stderr).toBe(`${STACKED}${STATUS_SET}${TARGET_SET}`)
+      expect(requestLabels(result.requests)).toContain('CreateLinkedBranch')
+      expect(result.requests.find(request => request.type === 'graphql' && request.operation === 'CreateLinkedBranch')).toMatchObject({ variables: { input: { issueId: 'I_7', oid: STACK_SHA, name: 'feat/7' } } })
+    })
+
+    it('ブランチを作ると、選んだ base を .pecot-base に書く（積んだときは積んだ先の Issue も）', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-30')
+      const stacked = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') })
+      expect(stacked.read(BASE)).toBe(`feat/3 ${STACK_SHA} acme/demo#3`)
+      const plain = await create({ files: { [BASE]: `release ${SHA} acme/demo#1` } })
+      expect(plain.read(BASE)).toBe(`main ${SHA}`)
+    })
+
+    it('積む先と同じ --base を付けると、そのまま積んで作る', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-28')
+      const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') }, ['create-branch', 'acme/demo/7', 'feat', '--base', 'feat/3'])
+      expect(result.code).toBe(0)
+      expect(result.stderr).toContain(STACKED)
+    })
+
+    it('積む先と違う --base を付けると、ブランチを作らず終了コード 2 で終わる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-33')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['create-branch', 'acme/demo/7', 'feat', '--base', 'release'])
+      expect(result.code).toBe(2)
+      expectClean(result)
+      expect(result.stderr).toBe('error: --base release differs from the base chosen by readiness: feat/3 (stacked on #3)\n')
+      expect(result.read(ACTIVE)).toBeUndefined()
+      expect(result.read(BASE)).toBeUndefined()
+    })
+
+    it('前提が 2 件で、1 件が merge 待ちなら、ブランチを作らず理由と直し方を出して終了コード 2 で終わる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-31')
+      await verifies(context, 'PW-CREATE-BRANCH-32')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview, waiting], body: WAITS })] })
+      expect(result.code).toBe(2)
+      expectClean(result)
+      expect(requestLabels(result.requests)).toEqual(['GetLinkedRepositoriesUser', 'GetIssuePrerequisites'])
+      expect(result.stderr).toBe([
+        'error: #7 is blocked by #3, #4 (waits for merge)',
+        '  - #3: in review',
+        '  - #4: wait: merge — 公開後に確かめる',
+        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/3',
+        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/4',
+        '  to stack on it instead of waiting for merge: pecot issue block acme/demo/7 --by acme/demo/4 --wait stack',
+        '',
+      ].join('\n'))
+      expect(result.read(ACTIVE)).toBeUndefined()
+    })
+
+    it('済んでいない前提が 1 件で merge 待ちなら、直し方にその Issue の参照を入れる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-31')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [waiting], body: WAITS })] })
+      expect(result.code).toBe(2)
+      expect(result.stderr).toBe([
+        'error: #7 is blocked by #4 (waits for merge)',
+        '  - #4: wait: merge — 公開後に確かめる',
+        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/4',
+        '  to stack on it instead of waiting for merge: pecot issue block acme/demo/7 --by acme/demo/4 --wait stack',
+        '',
+      ].join('\n'))
+    })
+
+    it('merge 待ち以外の理由で blocked なら、直し方は unblock の 1 行だけにする', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-31')
+      await verifies(context, 'PW-CREATE-BRANCH-32')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [{ number: 3, title: '未着手' }] })] })
+      expect(result.code).toBe(2)
+      expect(result.stderr).toBe([
+        'error: #7 is blocked by #3 (not in review: #3 (not started))',
+        '  - #3: not started',
+        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/3',
+        '',
+      ].join('\n'))
+    })
+
+    it('blocked のときは、--base を付けても比べずに blocked で止まる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-32')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [waiting], body: WAITS })] }, ['create-branch', 'acme/demo/7', 'feat', '--base', 'release'])
+      expect(result.code).toBe(2)
+      expect(result.stderr).toContain('error: #7 is blocked by #4')
+    })
+
+    it('前提を読めないと、ブランチを作らず終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-34')
+      const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+      const result = await create({ github: [linkedRepositories(), failing] })
+      expect(result.code).toBe(1)
+      expect(result.problems).toEqual([])
+      expect(result.stderr).toMatch(/^error: could not read blocked-by of #7: .+500/u)
+      expect(result.read(ACTIVE)).toBeUndefined()
+    })
+
+    it('前提は読めても判定できないと、判定できない旨の error の行を出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-34')
+      const config = projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] })
+      const result = await create({ config, github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['create-branch', 'acme/demo/7', 'feat', '--base', 'main'])
+      expect(result.code).toBe(1)
+      expectClean(result)
+      expect(result.stderr).toBe([
+        'error: could not judge readiness of #7: develop_branch is not set for acme/demo',
+        '  set it with: pecot project set-repo acme/demo --develop-branch develop',
+        '',
+      ].join('\n'))
+    })
+
+    it('Epic は判定を持たないので、今までどおり開発ブランチから作る', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-03')
+      const result = await create({ github: judged({ issueType: 'Epic' }) })
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(result.stderr).toBe(`${CREATED}${STATUS_SET}${TARGET_SET}`)
+    })
+
+    it('依存関係に対応しない GHES では、判定を省いた旨の warning を出して、今までどおり開発ブランチから作る', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-03')
+      const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      const result = await create({ github: [linkedRepositories(), unsupported, issueNode(), baseSha('main'), linkedBranch(), projectItems(), statusUpdate()] })
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(result.stderr).toBe(`warning: readiness is not checked: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required\n${CREATED}${STATUS_SET}${TARGET_SET}`)
+    })
+
+    it('積む先のブランチが判定の後に無くなると、積む先が見つからない旨の error の行を出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-35')
+      const gone = restRule('GET', '/repos/acme/demo/git/ref/heads/feat/3', 404, { message: 'Not Found' })
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] }), issueNode(), gone] })
+      expect(result.code).toBe(1)
+      expectClean(result)
+      expect(result.stderr).toMatch(/^error: base branch feat\/3 of #3 not found: resource not found: .+\n$/u)
+      expect(requestLabels(result.requests)).not.toContain('CreateLinkedBranch')
+      expect(result.read(ACTIVE)).toBeUndefined()
+    })
+
+    it('blocked の理由が diverged なら、直し方は unblock の行だけにする', async (context) => {
+      await verifies(context, 'PW-CREATE-BRANCH-32')
+      const diverged = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3', base: 'feat/2' }] }
+      const noPullRequests = graphqlRule('ListPullRequestsByHead', { repository: { pullRequests: { nodes: [], pageInfo: { hasNextPage: false } } } })
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [diverged] }), noPullRequests] })
+      expect(result.code).toBe(2)
+      expectClean(result)
+      expect(result.stderr).toBe([
+        'error: #7 is blocked by #3 (not in one chain)',
+        '  - #3: in review',
+        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/3',
+        '',
+      ].join('\n'))
+    })
   })
 })

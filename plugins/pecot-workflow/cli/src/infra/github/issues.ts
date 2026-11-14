@@ -16,11 +16,13 @@ import {
   QUERY_GET_BLOCKED_BY_OF_NODES,
   QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES,
   QUERY_GET_ISSUE_KIND,
+  QUERY_HAS_ADD_BLOCKED_BY_INPUT,
   QUERY_GET_ISSUE_KIND_PHASE1,
   QUERY_GET_ISSUE_NODE_ID,
   QUERY_GET_ISSUE_PREREQUISITES,
   QUERY_GET_ISSUE_SLIM,
   QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY,
+  QUERY_GET_SUB_ISSUES_PAGE,
 } from './queries.js'
 import { readBlockedBy, readIssue, readIssueReference } from './readout.js'
 import { ProjectsApi } from './projects.js'
@@ -108,7 +110,7 @@ function isIssueTypeSchemaError(error: unknown): boolean {
   return isSchemaError(error) && error.message.includes('issueType')
 }
 
-const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
+export const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
 
 // blockedBy・addBlockedBy・removeBlockedBy・issueType に対応しない GHES（3.19 より前）が返すスキーマの失敗なら、分かる失敗に替える
 function asDependenciesError(error: unknown): unknown {
@@ -209,6 +211,14 @@ function extractLinkedPullRequests(timelineItems: JsonValue | undefined): readon
   return pullRequests
 }
 
+function readSubIssueNodes(connection: JsonValue | undefined): readonly IssueSubIssue[] {
+  return truthyNodes(connection).map(sub => ({
+    number: requireNumber(jsonField(sub, 'number'), 'subIssue.number'),
+    state: requireString(jsonField(sub, 'state'), 'subIssue.state'),
+    title: requireString(jsonField(sub, 'title'), 'subIssue.title'),
+  }))
+}
+
 export class IssuesApi extends ProjectsApi {
   private async executeDependencyMutation(mutation: string, variables: Readonly<{ issueId: string, blockingIssueId: string }>): Promise<void> {
     try {
@@ -229,6 +239,20 @@ export class IssuesApi extends ProjectsApi {
       issue_type: JSON_NULL,
       sub_issues_total: subIssuesTotal(issue),
     }
+  }
+
+  // GetIssueSlim の応答の issue。前提の件数に対応しない GHES は、件数なしのクエリで読み直す
+  private async fetchSlimIssue(owner: string, repository: string, number: number, commentLimit: number): Promise<JsonValue> {
+    const variables = { owner, repo: repository, number, commentLimit }
+    let result: JsonObject
+    try {
+      result = await this.executeGraphql(QUERY_GET_ISSUE_SLIM, variables)
+    }
+    catch (error: unknown) {
+      if (!isSchemaError(error) || !/blockedBy/iu.test(error.message)) throw error
+      result = await this.executeGraphql(QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY, variables)
+    }
+    return issueNode(result, owner, repository, number)
   }
 
   /**
@@ -299,6 +323,14 @@ export class IssuesApi extends ProjectsApi {
   */
   async addBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
     await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId })
+  }
+
+  /**
+  Issue の依存関係（blocked by）に対応するか。対応しない GHES（3.19 より前）は false
+  */
+  async supportsBlockedBy(): Promise<boolean> {
+    const result = await this.executeGraphql(QUERY_HAS_ADD_BLOCKED_BY_INPUT, {})
+    return jsonField(result, '__type') !== JSON_NULL
   }
 
   /**
@@ -403,20 +435,27 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
+  親のサブ Issue を全件読む。1 ページ目は getIssueSlim と同じクエリで読み、続きがあるときだけ GetSubIssuesPage を回す
+  */
+  async getAllSubIssues(owner: string, repository: string, number: number): Promise<readonly IssueSubIssue[]> {
+    const issue = await this.fetchSlimIssue(owner, repository, number, 0)
+    const subIssues: IssueSubIssue[] = []
+    let connection = jsonField(issue, 'subIssues')
+    for (;;) {
+      subIssues.push(...readSubIssueNodes(connection))
+      const pageInfo = jsonField(connection, 'pageInfo')
+      const cursor = jsonField(pageInfo, 'endCursor')
+      if (typeof cursor !== 'string' || jsonField(pageInfo, 'hasNextPage') !== true) return subIssues
+      const result = await this.executeGraphql(QUERY_GET_SUB_ISSUES_PAGE, { owner, repo: repository, number, after: cursor })
+      connection = jsonField(issueNode(result, owner, repository, number), 'subIssues')
+    }
+  }
+
+  /**
   Issue の詳細を取る（GraphQL）。親・サブ Issue・リンクブランチ・リンク PR を 1 回のクエリで取る
   */
   async getIssueSlim(owner: string, repository: string, number: number, commentLimit = DEFAULT_COMMENT_LIMIT): Promise<IssueSlim> {
-    const variables = { owner, repo: repository, number, commentLimit }
-    let result: JsonObject
-    try {
-      result = await this.executeGraphql(QUERY_GET_ISSUE_SLIM, variables)
-    }
-    catch (error: unknown) {
-      // 前提の件数に対応しない GHES は、件数なしのクエリで読み直す
-      if (!isSchemaError(error) || !/blockedBy/iu.test(error.message)) throw error
-      result = await this.executeGraphql(QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY, variables)
-    }
-    const issue = issueNode(result, owner, repository, number)
+    const issue = await this.fetchSlimIssue(owner, repository, number, commentLimit)
     return {
       number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
       state: requireString(jsonField(issue, 'state'), 'issue.state'),
@@ -431,11 +470,7 @@ export class IssuesApi extends ProjectsApi {
         })),
       },
       parent: formatParent(jsonField(issue, 'parent')),
-      sub_issues: truthyNodes(jsonField(issue, 'subIssues')).map(sub => ({
-        number: requireNumber(jsonField(sub, 'number'), 'subIssue.number'),
-        state: requireString(jsonField(sub, 'state'), 'subIssue.state'),
-        title: requireString(jsonField(sub, 'title'), 'subIssue.title'),
-      })),
+      sub_issues: readSubIssueNodes(jsonField(issue, 'subIssues')),
       linked_branches: truthyNodes(jsonField(issue, 'linkedBranches'))
         .filter(branch => isTruthy(jsonField(branch, 'ref')))
         .map(branch => requireString(jsonField(jsonField(branch, 'ref'), 'name'), 'linkedBranch.ref.name')),

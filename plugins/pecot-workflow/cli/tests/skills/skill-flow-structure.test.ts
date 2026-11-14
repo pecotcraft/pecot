@@ -1,7 +1,11 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 確かめるのはプラグイン内のリンク先のみ */
 // w-active・w-quick・w-revise の手順（Step の順序と見出し）が崩れていないことを確かめる。
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
-import { readPluginFile } from './_helpers/documents.js'
+import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 
 const PARALLEL_SPAWN_NOTE = '1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。'
 const SERIAL_REASON_MARKER = '(直列の理由: ...)'
@@ -111,6 +115,33 @@ describe('w-active の手順', () => {
     expect(body).toContain(PARALLEL_SPAWN_NOTE)
     expect(body).not.toContain('spawn してよい')
   })
+
+  it('ブロック中で止まったときは、出力の案内の行を利用者に示す', () => {
+    const body = sectionBody(text, titleIndex(headings, '事前確認'))
+    for (const word of ['is blocked by', 'issue unblock', '--wait stack', '前提を見直すかどうかは利用者が決める']) expect(body).toContain(word)
+  })
+
+  it('終了コード 1 で止まったときは、出力を利用者に示して止まる', () => {
+    const body = sectionBody(text, titleIndex(headings, '事前確認'))
+    for (const word of ['exit code: 1', 'could not read blocked-by', 'could not judge readiness', '利用者に示して止まる']) expect(body).toContain(word)
+  })
+
+  it('Step 2 では、判定が blocked の Issue を選んだら、列が Ready でも止める', () => {
+    expect(text).toContain('判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。')
+  })
+
+  it('ブランチ作成では base を渡さず、積んで着手した旨を伝える', () => {
+    const create = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
+    const switching = sectionBody(text, titleIndex(headings, 'ブランチ切り替え'))
+    expect(create).toContain('`base` は渡さない')
+    expect(switching).toContain('(stacked on #N)')
+    expect(switching).toContain('積んで着手した旨を利用者に伝える')
+  })
+
+  it('base の選び方を、スキルの文に書かない', () => {
+    expect(text).not.toContain('--base')
+    expect(text).not.toContain('develop_branch')
+  })
 })
 
 describe('w-quick の手順', () => {
@@ -141,6 +172,14 @@ describe('w-revise の手順', () => {
     expect(body).toContain(PARALLEL_SPAWN_NOTE)
   })
 
+  it('Step 5 は、割り当て表の書式とモデルの基準へのリンクを持ち、リンク先が実在する', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('実装者名 / モデル / 担当 F-NN / 担当ファイル群')
+    const link = '../w-help/references/agent-models.md'
+    expect(body).toContain(link)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
+  })
+
   it('Step 2 は、3 体のレビューアを並列 spawn する', () => {
     const body = sectionBody(text, numberIndex(headings, 2))
     expect(body).toContain('3 体の並列 spawn を既定とする')
@@ -153,5 +192,61 @@ describe('w-revise の手順', () => {
     const body = sectionBody(text, numberIndex(headings, 6))
     expect(body.match(/\bt\d+:\s*resolveReviewThread/gu)?.length ?? 0).toBeGreaterThanOrEqual(2)
     expect(body).not.toContain('$threadId')
+  })
+})
+
+describe('w-issueize の手順', () => {
+  const text = readSkill('w-issueize')
+  const headings = stepHeadings(text)
+
+  it('前提の読み取り、ファイルの編集、完了報告の順に並ぶ', () => {
+    expect(titleIndex(headings, '前提')).toBeLessThan(titleIndex(headings, 'Issueとして作成'))
+    expect(titleIndex(headings, 'Issueとして作成')).toBeLessThan(titleIndex(headings, '完了報告'))
+  })
+
+  it('Step 2 は、4 列の表が無い tasks.md の扱いを持つ', () => {
+    const body = sectionBody(text, titleIndex(headings, '前提'))
+    expect(body).toContain('4 列の表が無い tasks.md')
+    expect(body).toContain('種類はすべて「積める」とする')
+    expect(body).toContain('表が無かった旨を伝える')
+  })
+
+  it('Step 3 は、plan: true の出力を前提の表と並べて示す', () => {
+    const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('前提の表と並べて')
+  })
+
+  it('Step 3 は、exit code 1 でも URL の行があれば呼び直さないと書く', () => {
+    const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('`exit code: 1` でも、URL の行が出ていれば Issue は作られている')
+    expect(body).toContain('同じ `files` で呼び直さない')
+    expect(body).toContain('URL の行が 1 つも出ずに `error:` で止まったときは')
+  })
+
+  it('plan: true の呼び出しは、投稿の呼び出しより前にある', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    const planned = body.indexOf('`plan: true`')
+    const posted = body.indexOf('`plan` なしで')
+    expect(planned).toBeGreaterThanOrEqual(0)
+    expect(posted).toBeGreaterThan(planned)
+    expect(body).toContain('合意を得てから投稿する')
+  })
+
+  it('blocked_by を書き、order・parallel・status は書かせない', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('`blocked_by`')
+    expect(body).toContain('`order`・`parallel`・`status` は書かない')
+  })
+
+  it('段と枝の文字の計算を書かない', () => {
+    expect(text).not.toMatch(/`a`・`b`・`c`/u)
+    expect(text).not.toContain('番号が示すのは着手の条件')
+    expect(text).not.toContain('続番')
+    expect(text).not.toMatch(/段を決める/u)
+  })
+
+  it('完了報告に、進め方・積める並び・最初に着手できる Issue を入れる', () => {
+    const body = sectionBody(text, numberIndex(headings, 4))
+    for (const word of ['進め方', '積める並び', '最初に着手できる Issue']) expect(body).toContain(word)
   })
 })
