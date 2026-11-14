@@ -37,6 +37,17 @@
         "optionId": "o5"
       },
       "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueBlockingReferences",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 12,
+        "blockingFirst": 50
+      },
+      "auth": "token"
     }
   ],
   "files": {

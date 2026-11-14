@@ -22,6 +22,8 @@ import type { JsonObject } from '../domain/json.js'
 import {
   appendIssueCloseIfNeeded,
   collectPreflightWarnings,
+  decidePullRequestBase,
+  describeBaseStop,
   describePushStatus,
   extractClosingIssueNumbers,
   formatPreflightWarning,
@@ -30,12 +32,14 @@ import {
   isReleasePullRequest,
   validatePullRequestContent,
 } from '../domain/pull-request.js'
-import type { PreflightWarning, PushStatus } from '../domain/pull-request.js'
+import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { ReferenceParseError, parsePullRequestReference } from '../domain/reference-parser.js'
 import { AmbiguousRepositoryError, resolveRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_MERGE_SLASH_PENDING, FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_PR_CREATE_SLASH_PENDING, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
+import type { BaseReading } from '../domain/state.js'
+import { pickBasePullRequest } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
 import { gitCurrentBranch, GitCommandError, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
@@ -45,7 +49,7 @@ import type { PullRequestSlim } from '../infra/github/pulls.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { consumeFlag, readFlag, removeFlag } from '../infra/state-store.js'
+import { consumeFlag, readBaseRecord, readFlag, removeFlag } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
@@ -57,6 +61,7 @@ import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
+import { moveWaitingIssues } from './pr-waiting.js'
 import { settle } from './tracker-sync.js'
 
 const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
@@ -64,6 +69,8 @@ const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short for
 // 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
 const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
+// 下の段の PR が開いておらず、マージもされていない
+const NO_OPEN_BASE_EXIT_CODE = 2
 
 // Python の `{e}` に当たる、例外の文
 function reasonOf(error: unknown): string {
@@ -107,19 +114,23 @@ function primaryRemote(directory: string): PrimaryRemote | undefined {
 
 interface ScopeTarget {
   readonly toplevel: string
-  readonly remote: string
+  /**
+  変更したファイルを求める差分の起点
+  */
+  readonly from: string
 }
 
-// scope を nx のプロジェクトと比べる対象か。release_type が nx、base が develop、remote と作業ツリーが対象に合うときだけ
-function nxScopeTarget(config: Readonly<ProjectConfig>, owner: string, repository: string, base: string, directory: string): ScopeTarget | undefined {
+// scope を nx のプロジェクトと比べる対象か。release_type が nx で、base が develop か積んだ記録があり、remote と作業ツリーが対象に合うときだけ。
+// 積んだ記録があれば記録の位置から比べる。下の段を squash でマージした後、開発ブランチとの差分はその段のファイルも含むため
+function nxScopeTarget(config: Readonly<ProjectConfig>, owner: string, repository: string, base: string, directory: string, recordSha: string | undefined): ScopeTarget | undefined {
   const configured = findRepository(config, owner, repository)
-  if (configured === undefined || effectiveReleaseType(configured) !== 'nx' || (base !== getDevelopBranch(config, owner, repository))) return undefined
+  if (configured === undefined || effectiveReleaseType(configured) !== 'nx' || (recordSha === undefined && base !== getDevelopBranch(config, owner, repository))) return undefined
   const found = primaryRemote(directory)
   const location = found?.location
   const isSameRepository = location?.owner.toLowerCase() === owner.toLowerCase() && location.repository.toLowerCase() === repository.toLowerCase()
   if (found === undefined || !isSameRepository) return undefined
   const toplevel = gitToplevel({ cwd: directory })
-  return toplevel === undefined || !isRegularFile(path.join(toplevel, 'nx.json')) ? undefined : { toplevel, remote: found.name }
+  return toplevel === undefined || !isRegularFile(path.join(toplevel, 'nx.json')) ? undefined : { toplevel, from: recordSha ?? `${found.name}/${base}` }
 }
 
 // Python の Path.is_file() と同じく、stat の失敗は「無い」と扱う
@@ -132,9 +143,9 @@ function isRegularFile(file: string): boolean {
   }
 }
 
-function expectedTitleScope(target: Readonly<ScopeTarget>, base: string, head: string, out: Readonly<Output>): readonly string[] | undefined {
+function expectedTitleScope(target: Readonly<ScopeTarget>, head: string, out: Readonly<Output>): readonly string[] | undefined {
   const projects = nxProjects(target.toplevel)
-  const files = projects === undefined ? undefined : changedFiles(target.toplevel, `${target.remote}/${base}`, head)
+  const files = projects === undefined ? undefined : changedFiles(target.toplevel, target.from, head)
   if (projects === undefined || files === undefined) {
     out.warning('cannot read nx projects or the diff; skipped the PR title scope check')
     return undefined
@@ -153,14 +164,15 @@ interface TitleScopeQuery {
   readonly template: string
   readonly developBranch: string | undefined
   readonly releaseBranch: string | undefined
+  readonly recordSha: string | undefined
 }
 
 function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<Output>): readonly string[] {
   const { config, owner, repository, title, base, head, directory, template, developBranch, releaseBranch } = query
   if (isReleasePullRequest(template, base, head, developBranch, releaseBranch)) return []
-  const target = nxScopeTarget(config, owner, repository, base, directory)
+  const target = nxScopeTarget(config, owner, repository, base, directory, query.recordSha)
   if (target === undefined) return []
-  const expected = expectedTitleScope(target, base, head, out)
+  const expected = expectedTitleScope(target, head, out)
   if (expected === undefined || expected.length === 0) return []
   const given = parseTitleScope(title)
   if (given !== undefined && new Set(given).size === new Set(expected).size && given.every(scope => expected.includes(scope))) return []
@@ -323,7 +335,26 @@ function runPreflightChecksOrExit(directory: string, out: Readonly<Output>): voi
   throw new CommandExit(PREFLIGHT_EXIT_CODE)
 }
 
-async function submitPullRequest(config: Readonly<ProjectConfig>, directory: string, draft: Readonly<PullRequestDraft>, out: Readonly<Output>): Promise<void> {
+// 下の段の PR が入っているスタックに足す。無ければ下の段と新しい PR で作る。失敗は warning にとどめる
+async function registerStack(client: GitHubClient, location: RepositoryReference, lower: number, created: number | undefined, out: Readonly<Output>): Promise<void> {
+  if (created === undefined) {
+    out.warning('could not register stack: the PR creation response has no PR number')
+    return
+  }
+  try {
+    const stack = await client.getStackOfPullRequest(location.owner, location.repository, lower)
+    const registered = stack === undefined
+      ? await client.createStack(location.owner, location.repository, [lower, created])
+      : await client.addToStack(location.owner, location.repository, stack.number, [created])
+    out.done({ verb: 'add', target: `PR #${String(created)} to stack #${String(registered.number)}` })
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    out.warning(`could not register stack: ${describeApiError(error)}`)
+  }
+}
+
+async function submitPullRequest(config: Readonly<ProjectConfig>, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, out: Readonly<Output>): Promise<void> {
   runPreflightChecksOrExit(directory, out)
   const client = createGitHubClient(out, config.host)
   let created: JsonObject
@@ -335,7 +366,12 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, directory: str
     throw error
   }
   out.done(createOperation(draft))
+  const createdNumber = jsonField(created, 'number')
+  const pullRequest = typeof createdNumber === 'number' ? createdNumber : undefined
   if (!draft.isRelease) await updateIssueStatusToInReview(config, client, draft.location, draft.head, out)
+  if (stackOn !== undefined) await registerStack(client, draft.location, stackOn, pullRequest, out)
+  const issueNumber = extractIssueNumberFromBranch(draft.head)
+  if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssues(out, client, config, { repository: draft.location, issueNumber, pullRequest })
   consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   const url = jsonField(created, 'html_url')
   if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub')
@@ -355,14 +391,59 @@ interface ValidatedInput {
   readonly isDraft: boolean
   readonly body: string
   readonly screenshot: string | undefined
+  /**
+  base の記録。head が今のブランチでないときとリリース PR では読まず undefined
+  */
+  readonly reading: BaseReading | undefined
+}
+
+function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output>): void {
+  if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'))
+}
+
+// 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める
+function readBaseRecordFor(head: string, template: string, directory: string, out: Readonly<Output>): BaseReading | undefined {
+  if (template === 'release' || head !== gitCurrentBranch(directory)) return undefined
+  const reading = readBaseRecord()
+  stopOnMalformedRecord(reading, out)
+  return reading
+}
+
+// 積んだ記録なら、PR を作るリポで下の段の PR を読み、base を決める
+async function decideBase(input: Readonly<ValidatedInput>, developBranch: string, out: Readonly<Output>): Promise<PullRequestBaseDecision> {
+  const { reading, base, location } = input
+  if (reading === undefined) return { kind: 'use', base, stackOn: undefined, stackedBase: undefined }
+  if (reading.kind !== 'stacked') return decidePullRequestBase({ reading, base, developBranch })
+  const { branch } = reading.record
+  try {
+    const found = await createGitHubClient(out, input.config.host).listPullRequestsByHead(location.owner, location.repository, branch)
+    return decidePullRequestBase({ reading, base, developBranch, lowerPullRequest: pickBasePullRequest(found.pullRequests) })
+  }
+  catch (error: unknown) {
+    if (error instanceof GitHubAPIError) return stopWith(out, `cannot read the PR of the base branch ${branch}: ${error.message}`)
+    throw error
+  }
+}
+
+// 下の段の PR が開いているのに開発ブランチを渡したときは、内容の検証の失敗と一緒に出す（終了コード 3）
+function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { readonly use: PullRequestBaseUse | undefined, readonly errors: readonly string[] } {
+  if (decision.kind === 'use') return { use: decision, errors: [] }
+  const lines = describeBaseStop(decision)
+  if (decision.reason === 'lower-open') return { use: undefined, errors: lines }
+  if (decision.reason === 'malformed') return stopWith(out, lines.join('\n'))
+  out.error(lines.join('\n'))
+  throw new CommandExit(NO_OPEN_BASE_EXIT_CODE)
 }
 
 // 検証して、dry-run なら計画を出し、そうでなければ投稿する。file と -m の両方がここを通る
 async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<Output>): Promise<void> {
-  const { config, directory, template, location, title, base, head } = input
+  const { config, directory, template, location, title, head } = input
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   const releaseBranch = getReleaseBranch(config, location.owner, location.repository)
-  exitOnUnsetBranch(template, base, head, developBranch, releaseBranch, out)
+  exitOnUnsetBranch(template, input.base, head, developBranch, releaseBranch, out)
+  const { use, errors: baseErrors } = useOrStop(await decideBase(input, developBranch ?? '', out), out)
+  const base = use?.base ?? input.base
+  const recordSha = input.reading?.kind === 'stacked' ? input.reading.record.sha : undefined
   const requiredSections = readTemplateSections(templateFile('pr', templateKindOf(template)))
   const errors = [
     ...validatePullRequestContent({
@@ -375,15 +456,17 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
       skipIssueReferenceCheck: input.noIssueRef,
       screenshot: input.screenshot,
       requiredSections,
+      stackedBase: use?.stackedBase,
     }),
-    ...titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template, developBranch, releaseBranch }, out),
+    ...baseErrors,
+    ...titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template, developBranch, releaseBranch, recordSha }, out),
   ]
   exitOnValidationErrors(errors, out)
 
   const isRelease = template === 'release'
   const draft: PullRequestDraft = { location, title, body: input.body, head, base, isDraft: input.isDraft, isRelease }
   if (!input.dryRun) {
-    await submitPullRequest(config, directory, draft, out)
+    await submitPullRequest(config, directory, draft, use?.stackOn, out)
     return
   }
   out.planned(createOperation(draft))
@@ -416,6 +499,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)')
   const location = requireRepository(frontmatter.repository, out)
   const head = resolveHeadBranch(frontmatter.head, directory, out)
+  const reading = readBaseRecordFor(head, input.template, directory, out)
 
   let body = parsed.body
   const issueNumber = extractIssueNumberFromBranch(head)
@@ -435,6 +519,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
     isDraft: frontmatter.draft,
     body,
     screenshot: frontmatter.screenshot,
+    reading,
   }, out)
 }
 
@@ -463,6 +548,7 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
     location = requireRepository(input.repository, out)
   }
   const head = resolveHeadBranch(input.head, directory, out)
+  const reading = readBaseRecordFor(head, input.template, directory, out)
 
   let body = input.message
   const issueNumber = extractIssueNumberFromBranch(head)
@@ -482,16 +568,17 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
     isDraft: input.isDraft,
     body,
     screenshot: input.screenshot,
+    reading,
   }, out)
 }
 
 // --prepare
 
-function addScopeHint(content: string, config: Readonly<ProjectConfig>, location: RepositoryReference, base: string, directory: string, out: Readonly<Output>): string {
-  const target = nxScopeTarget(config, location.owner, location.repository, base, directory)
+function addScopeHint(content: string, config: Readonly<ProjectConfig>, location: RepositoryReference, base: string, directory: string, recordSha: string | undefined, out: Readonly<Output>): string {
+  const target = nxScopeTarget(config, location.owner, location.repository, base, directory, recordSha)
   if (target === undefined) return content
   const head = gitCurrentBranch(directory)
-  const expected = head === undefined || head === '' ? undefined : expectedTitleScope(target, base, head, out)
+  const expected = head === undefined || head === '' ? undefined : expectedTitleScope(target, head, out)
   if (expected === undefined || expected.length === 0) return content
   const scope = expected.join(',')
   // コメントは閉じの引用符の後ろに置き、YAML の title を "" のままにする
@@ -543,14 +630,19 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
 
   // release テンプレートは、base をテンプレートの既定（main）のままにする
   if (template !== 'release') {
+    // 下の段の PR がマージ済みかは、準備と投稿の間に変わりうるので、ここでは読まずに投稿のときに見る
+    const reading = readBaseRecord()
+    stopOnMalformedRecord(reading, out)
+    const record = reading.kind === 'stacked' ? reading.record : undefined
     const location = primaryRemote(directory)?.location
     const config = loadActiveConfig()
     if (location !== undefined) {
       const developBranch = config === undefined ? undefined : getDevelopBranch(config, location.owner, location.repository)
       if (config !== undefined && developBranch !== undefined && developBranch !== '') {
-        content = content.replace(/^base:\s*"[^"]*"/mu, () => `base: "${developBranch}"`)
-        out.done({ verb: 'set', target: `base to ${developBranch}` })
-        content = addScopeHint(content, config, { owner: location.owner, repository: location.repository }, developBranch, directory, out)
+        const base = record?.branch ?? developBranch
+        content = content.replace(/^base:\s*"[^"]*"/mu, () => `base: "${base}"`)
+        out.done({ verb: 'set', target: `base to ${base}` })
+        content = addScopeHint(content, config, { owner: location.owner, repository: location.repository }, base, directory, record?.sha, out)
       }
     }
     content = await fillClosesInTemplate(content, config, directory, location, out)
@@ -676,6 +768,10 @@ function hasBranch(branch: string, cwd: string): boolean {
 function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
   const config = loadActiveConfig()
   if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
+  const reading = readBaseRecord()
+  stopOnMalformedRecord(reading, out)
+  // 下の段のブランチがマージで消えた後は、開発ブランチと比べる
+  if (reading.kind === 'stacked' && hasBranch(`${remote}/${reading.record.branch}`, cwd)) return `${remote}/${reading.record.branch}`
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
     return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project set-repo ${location.owner}/${location.repository} --develop-branch develop`)

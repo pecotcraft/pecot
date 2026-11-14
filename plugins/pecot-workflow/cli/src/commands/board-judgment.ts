@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // ボードの Issue の読み取り・判定と、列と札の動かし方。project info（数えるだけ）と board sync（書く）が共有する。
 import { decideBoardMove } from '../domain/board-move.js'
-import type { BoardMove } from '../domain/board-move.js'
+import type { BoardMove, MissingValue } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
+import { compareStrings } from '../domain/python-format.js'
 import { cycleThrough, hasStarted, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
@@ -20,6 +21,19 @@ import { mapWithLimit } from './project-info.js'
 前提の読み取りを並列に行う数の上限
 */
 const READ_MAX_WORKERS = 8
+
+/**
+board sync と pr create が判定し直す列
+*/
+export const SYNCED_COLUMNS: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
+
+/**
+動かす先の値がボードに無いときの warning の文
+*/
+export function missingWarning(missing: ReadonlySet<MissingValue>): string {
+  const names = [...missing].toSorted(compareStrings)
+  return `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with pecot project init`
+}
 
 export interface BoardTarget {
   readonly item: BoardItem

@@ -7,13 +7,12 @@ import type { MissingValue } from '../domain/board-move.js'
 import { homeRepositoryOf } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
-import { compareStrings } from '../domain/python-format.js'
 import { describeReadiness, displayReference } from '../domain/readiness.js'
 import { loadActiveConfig, listProjectConfigNames, loadConfig, projectsDirectory } from '../infra/config-store.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { GraphqlRateLimit } from '../infra/github/repos.js'
-import { boardMoveOf, judgeBoard } from './board-judgment.js'
+import { boardMoveOf, judgeBoard, missingWarning, SYNCED_COLUMNS } from './board-judgment.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
@@ -25,15 +24,8 @@ import { readBoard } from './project-info.js'
 import type { BoardRead } from './project-info.js'
 import { failApi } from './project-sync.js'
 
-const SYNCED_COLUMNS: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
-
 function unsupportedWarning(out: Readonly<Output>): void {
   out.warning('this GitHub Enterprise Server does not support issue dependencies (blockedBy); no column is moved')
-}
-
-function missingWarning(missing: ReadonlySet<MissingValue>): string {
-  const names = [...missing].toSorted(compareStrings)
-  return `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with pecot project init`
 }
 
 /**

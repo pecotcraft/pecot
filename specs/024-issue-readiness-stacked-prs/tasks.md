@@ -297,21 +297,21 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 3 の後半を通す。PR の base が前提のブランチで、差分にその段の変更だけが出る。2 つの PR がスタックとして並ぶ。待っていた Issue が `Ready` に移る
 
-- [ ] T065 [P] [US4] `p-w/cli/src/domain/tests/` に、PR の内容の検証の失敗するテストを書く。base が開発ブランチか、記録の base と同じなら通る。どちらでもなければ、今までどおり検証で落ちる
-- [ ] T066 [P] [US4] `p-w/cli/src/infra/github/tests/` に、スタックの API の失敗するテストを書く
+- [x] T065 [P] [US4] `p-w/cli/src/domain/tests/` に、PR の内容の検証の失敗するテストを書く。base が開発ブランチか、記録の base と同じなら通る。どちらでもなければ、今までどおり検証で落ちる
+- [x] T066 [P] [US4] `p-w/cli/src/infra/github/tests/` に、スタックの API の失敗するテストを書く
   - `POST /repos/{owner}/{repo}/stacks` に PR 番号を下から順に渡す
   - 既にスタックがあれば `POST .../stacks/{n}/add` を使う
   - `GET .../stacks?pull_request=N` で、PR の入っているスタックを読む
-- [ ] T067 [P] [US4] `p-w/cli/tests/interface/pr.test.ts` に、`pr create` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr create` の表の 5 行のとおりだ
+- [x] T067 [P] [US4] `p-w/cli/tests/interface/pr.test.ts` に、`pr create` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr create` の表の 5 行のとおりだ
   - `--prepare` が、記録の base をテンプレートの `base` に入れる
   - PR を作った後、その Issue を前提にしている Issue の列が動き、`moved:` が出る
   - スタックの API が 404 を返すリポでは、PR は作り、`warning:` を出す
   - 記録の base が開発ブランチのとき、出力が今までと変わらない
-- [ ] T068 [US4] `p-w/cli/src/infra/github/pulls.ts` に、スタックの登録と読み取りを足し、T066 を通す
-- [ ] T069 [US4] `p-w/cli/src/domain/pull-request.ts` と `p-w/cli/src/commands/pr.ts` を直し、T065 と T067 を通す。下の段の PR がマージ済みなら、base を開発ブランチにする
-- [ ] T070 [US4] `p-w/skills/w-pr/SKILL.md` を、contracts/skill-flow.md の w-pr の表のとおりに直す。本文に、上下の PR やスタックの位置を書かせない
-- [ ] T071 [US4] `pr create` の定義書を直す。スキルの文書のテストを直す
-- [ ] T072 [US4] version plan を `.nx/version-plans/` に足す
+- [x] T068 [US4] `p-w/cli/src/infra/github/pulls.ts` に、スタックの登録と読み取りを足し、T066 を通す
+- [x] T069 [US4] `p-w/cli/src/domain/pull-request.ts` と `p-w/cli/src/commands/pr.ts` を直し、T065 と T067 を通す。下の段の PR がマージ済みなら、base を開発ブランチにする
+- [x] T070 [US4] `p-w/skills/w-pr/SKILL.md` を、contracts/skill-flow.md の w-pr の表のとおりに直す。本文に、上下の PR やスタックの位置を書かせない
+- [x] T071 [US4] `pr create` の定義書を直す。スキルの文書のテストを直す
+- [x] T072 [US4] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 積んで着手した Issue を、レビューに出せる
 

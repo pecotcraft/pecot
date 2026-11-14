@@ -1,4 +1,4 @@
-# PR を作る。push 済みで作業ツリーが綺麗。POST /pulls のあと、Issue を In Review に更新する。
+# PR を作る。push 済みで作業ツリーが綺麗。POST /pulls のあと、Issue を In Review に更新し、待つ Issue（0 件）を読む。
 id: pr-create-ok
 command:
   path: [pr, create]
@@ -90,3 +90,8 @@ github:
     respond:
       status: 200
       body: {"data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_1"}}}}
+  - match:
+      operation: "GetIssueBlockingReferences"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"blocking": {"totalCount": 0, "nodes": []}}}}}
