@@ -88,6 +88,7 @@
         "{projectRoot}/.claude-plugin/plugin.json",
         "{projectRoot}/plugin.json",
         "{projectRoot}/mcp.json",
+        "{projectRoot}/agents/*.md",
         "{projectRoot}/.mcp.json",
         "{projectRoot}/com.github.copilot/**/*",
         "{projectRoot}/bin/pecot",
