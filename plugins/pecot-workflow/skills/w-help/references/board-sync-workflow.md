@@ -4,7 +4,7 @@
 
 ## 前提
 
-- `board_sync` を含む版の `@pecot/workflow-mcp` が npm に出ている必要がある。雛形は major の最新に追従するので、その版が出るまでは、コマンドを見つけられずに実行が失敗する
+- `board_sync` は `@pecot/workflow-mcp` の 6.0.0 から入っている。雛形は 6 の major の最新に追従する
 - 利用者のリポが GHES にあるときは、次の 2 つも前提になる
   - SHA で固定した版の action（`actions/checkout`・`actions/setup-node`・`actions/create-github-app-token`）を使える
   - Actions の実行環境から npm の registry に届く
@@ -127,7 +127,7 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 
 ## 版を固定する
 
-雛形は `npx -y --prefix=/ @pecot/workflow-mcp@5 board sync` を打ち、major の最新に追従します。`@5.1.0` のように書くと、版を固定できます。
+雛形は `npx -y --prefix=/ @pecot/workflow-mcp@6 board sync` を打ち、major の最新に追従します。`@6.0.0` のように書くと、版を固定できます。
 
 ## 試す
 

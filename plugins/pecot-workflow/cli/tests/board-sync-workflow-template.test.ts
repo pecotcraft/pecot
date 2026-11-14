@@ -1,6 +1,6 @@
 // 配布する board sync のワークフローの雛形が、安全な形・版の追従・文書との一致を保つことを確かめる。
 // actionlint は pre-commit が掛ける（.pre-commit-config.yaml の actionlint-system が雛形も対象にする）。
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -33,12 +33,23 @@ interface Workflow {
 const workflow = parse(template) as Workflow
 const steps = workflow.jobs['sync']?.steps ?? []
 
+// major の plan が未消費なら、次のリリースの major と比べる。雛形はリリースより前の PR で直すため
 function pluginMajor(): string {
   if (typeof manifest !== 'object' || manifest === null || !('version' in manifest) || typeof manifest.version !== 'string') {
     throw new TypeError('plugin.json に version が無い')
   }
   const [major = ''] = manifest.version.split('.', 1)
-  return major
+  return hasPendingMajorPlan() ? String(Number(major) + 1) : major
+}
+
+function hasPendingMajorPlan(): boolean {
+  const plansDirectory = path.resolve(pluginRoot, '..', '..', '.nx', 'version-plans')
+  const names = existsSync(plansDirectory) ? readdirSync(plansDirectory).filter(name => name.endsWith('.md')) : []
+  return names.some((name) => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- version-plans の plan だけを読む
+    const plan = readFileSync(path.join(plansDirectory, name), 'utf8')
+    return /^pecot-workflow:\s*major\s*$/m.test(plan)
+  })
 }
 
 function documentSection(heading: string): string {
@@ -50,7 +61,7 @@ function documentSection(heading: string): string {
 }
 
 describe('board sync のワークフローの雛形', () => {
-  it('npx の版指定が plugin.json の major と一致する', () => {
+  it('npx の版指定が、次のリリースの major と一致する', () => {
     expect(active).toContain(`@pecot/workflow-mcp@${pluginMajor()} board sync`)
   })
 
