@@ -1,0 +1,7 @@
+# dependabot でも security でもない source。typer の使い方エラーを記録する。
+id: tracker-sync-usage-bad-source
+command:
+  path: [tracker, sync]
+  args: [foo]
+setup: {}
+github: []

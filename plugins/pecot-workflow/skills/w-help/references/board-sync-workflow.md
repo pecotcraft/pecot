@@ -47,7 +47,7 @@
 
 Actions の checkout には `.active` が入りません。`.pecot/config/projects/<設定名>.json` が既定ブランチに入っている必要があります。
 
-1. どれが設定かを調べる。`project_info` の Overview にある Project の名前が、ファイル名になる
+1. どれが設定かを調べる。`board_show` の Overview にある Project の名前が、ファイル名になる
 2. ルートの `.gitignore` が `.pecot/` を丸ごと除外しているときは、その行を外す
 3. `.pecot/.gitignore` が設定の JSON を許可しているか確かめる。許可の一覧は `pecot-gitignore-ensure.sh` が作り、`!/config/projects/*.json` の行が JSON を戻す
 4. 設定の JSON を既定ブランチへ入れる

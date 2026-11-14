@@ -82,7 +82,7 @@ cp <兄弟リポのJSONパス> .pecot/config/projects/
 
 コピーしたら、`project_activate` を `project: "<コピーしたファイル名（拡張子なし）>"` で呼ぶ。
 
-→ Step 3 へ（`project_set_repo` でカレントリポを登録してから Step 4 へ）。
+→ Step 3 へ（`project_link` でカレントリポを登録してから Step 4 へ）。
 
 ## 3. GitHub 上に init 済みプロジェクトあり
 

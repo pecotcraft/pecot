@@ -18,7 +18,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 
 ### Step 1: ボードを確認する
 
-対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。`project_info` を引数なしで呼ぶ。
+対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。`board_show` を引数なしで呼ぶ。
 
 ### Step 2: 対象Epic・Trackerを特定
 
@@ -30,7 +30,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 2. ユーザーがEpicタイトルを指定している場合はボードから検索
 3. 不明な場合は **AskUserQuestion** ツールでBacklog内のEpicとTrackerをリストアップして選択させる
 
-Epic・Tracker詳細を取得する。`issue_read` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
+Epic・Tracker詳細を取得する。`issue_show` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
 ### Step 3: 次のサブタスクをAIが計画する
 

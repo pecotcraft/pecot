@@ -108,7 +108,7 @@ const COMMANDS = [
     },
   }),
   defineCommand({
-    path: ['noisy-bug'],
+    path: ['noisy', 'bug'],
     description: '出力の後にプログラムの誤り',
     input: z.object({}),
     positional: [],

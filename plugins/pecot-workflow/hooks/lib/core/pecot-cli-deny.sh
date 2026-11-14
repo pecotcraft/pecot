@@ -85,13 +85,11 @@ HOOK_COMMAND="$(_strip_non_commands "$HOOK_COMMAND")"
 _DENY_LAUNCHER='(\$PECOT|[^[:space:]=]*/pecot|pecot)'
 _DENY_PATTERN="${_SEG_ANCHOR}${_DENY_LAUNCHER}([[:space:]]+(.*))?\$"
 
-# 起動形のあとの語から、MCP ツール名を決める。2 語をつないだ名前を先に、無ければ 1 語目を見る。
+# 起動形のあとの 2 語をつないだ名前が、MCP ツール名の一覧にあれば出す。
 _tool_for_words() {
   local first="${1//-/_}" second="${2//-/_}"
   if [ -n "$second" ] && pecot_tool_known "${first}_${second}"; then
     printf '%s' "${first}_${second}"
-  elif pecot_tool_known "$first"; then
-    printf '%s' "$first"
   fi
 }
 

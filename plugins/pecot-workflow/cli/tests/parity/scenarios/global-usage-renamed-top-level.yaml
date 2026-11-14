@@ -1,0 +1,7 @@
+# 古い名前の最上位のコマンドは、実行せずに、新しい名前を案内して止まる。
+id: global-usage-renamed-top-level
+command:
+  path: []
+  args: ["create-branch", "acme/demo/7", "feat"]
+setup: {}
+github: []

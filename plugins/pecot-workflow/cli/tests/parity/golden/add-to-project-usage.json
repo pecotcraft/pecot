@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "Usage: pecot add-to-project [OPTIONS] {issue_ref}\nTry 'pecot add-to-project --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'issue_ref'.                                                │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

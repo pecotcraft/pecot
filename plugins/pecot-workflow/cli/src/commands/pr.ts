@@ -1,13 +1,12 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者が指定する */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-// `pecot pr` の 4 コマンド（create・read・preflight・cleanup）。cli/commands/pr.py の移植。
+// pr create・pr show・pr check。cli/commands/pr.py の移植。
 // 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
 import { existsSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
 
-import { describeApiError } from '../domain/api-error-detail.js'
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
@@ -19,36 +18,24 @@ import type { RemoteLocation } from '../domain/git-url.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
 import { jsonField } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
-import {
-  appendIssueCloseIfNeeded,
-  collectPreflightWarnings,
-  describePushStatus,
-  extractClosingIssueNumbers,
-  formatPreflightWarning,
-  formatPullRequestMarkdown,
-  formatPullRequestWithReviewsMarkdown,
-  isReleasePullRequest,
-  validatePullRequestContent,
-} from '../domain/pull-request.js'
+import { appendIssueCloseIfNeeded, collectPreflightWarnings, describePushStatus, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, validatePullRequestContent } from '../domain/pull-request.js'
 import type { PreflightWarning, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { ReferenceParseError, parsePullRequestReference } from '../domain/reference-parser.js'
 import { AmbiguousRepositoryError, resolveRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { FLAG_MERGE_SLASH_PENDING, FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_PR_CREATE_SLASH_PENDING, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
+import { FLAG_PECOT_ACTIVE, FLAG_PR_CREATE_SLASH_PENDING } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, GitCommandError, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
+import { gitCurrentBranch, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
-import type { PullRequestSlim } from '../infra/github/pulls.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { consumeFlag, readFlag, removeFlag } from '../infra/state-store.js'
+import { consumeFlag, readFlag } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
-import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
@@ -57,16 +44,15 @@ import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
-import { settle } from './tracker-sync.js'
 
-const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
+export const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
 
 // 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
 const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
 
 // Python の `{e}` に当たる、例外の文
-function reasonOf(error: unknown): string {
+export function reasonOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
@@ -74,13 +60,13 @@ function templateKindOf(template: string): 'create' | 'release' {
   return template === 'release' ? 'release' : 'create'
 }
 
-function isPositive(value: number | undefined): value is number {
+export function isPositive(value: number | undefined): value is number {
   return value !== undefined && value !== 0
 }
 
 // 主の remote
 
-interface PrimaryRemote {
+export interface PrimaryRemote {
   readonly name: string
   readonly url: string
   /**
@@ -89,7 +75,7 @@ interface PrimaryRemote {
   readonly location: RemoteLocation | undefined
 }
 
-function primaryRemote(directory: string): PrimaryRemote | undefined {
+export function primaryRemote(directory: string): PrimaryRemote | undefined {
   const name = primaryRemoteName(directory)
   if (name === undefined) return undefined
   const url = gitRemoteUrl(directory, name)
@@ -214,10 +200,10 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
 function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
   const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
   if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    stopWith(out, 'release_branch is not set\nset it with: pecot project set-repo owner/repo --release-branch main')
+    stopWith(out, 'release_branch is not set\nset it with: pecot project link owner/repo --release-branch main')
   }
   if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    stopWith(out, 'develop_branch is not set\nset it with: pecot project set-repo owner/repo --develop-branch develop')
+    stopWith(out, 'develop_branch is not set\nset it with: pecot project link owner/repo --develop-branch develop')
   }
 }
 
@@ -302,7 +288,7 @@ interface PullRequestContext {
   readonly remoteName: string
 }
 
-// pr create の早い確認と pr preflight が共有する前提。満たさなければ終了コード 1
+// pr create の早い確認と pr check が共有する前提。満たさなければ終了コード 1
 function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
   if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository')
   const found = primaryRemote(directory)
@@ -616,7 +602,7 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
   }
 }
 
-// pr read
+// pr show
 
 // グローバルの --repo か、いまの git の repository。決められなければ undefined
 function resolveBaseRepository(globalRepository: string | undefined): RepositoryReference | undefined {
@@ -629,7 +615,7 @@ function resolveBaseRepository(globalRepository: string | undefined): Repository
   }
 }
 
-function parseReference(reference: string, globalRepository: string | undefined, out: Readonly<Output>): { readonly owner: string, readonly repository: string, readonly number: number } {
+export function parseReference(reference: string, globalRepository: string | undefined, out: Readonly<Output>): { readonly owner: string, readonly repository: string, readonly number: number } {
   try {
     const parsed = parsePullRequestReference(reference, resolveBaseRepository(globalRepository), { repositoryFlag: true })
     return { owner: parsed.repository.owner, repository: parsed.repository.repository, number: parsed.number }
@@ -640,13 +626,13 @@ function parseReference(reference: string, globalRepository: string | undefined,
   }
 }
 
-const ReadInputSchema = z.strictObject({
+const ShowInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
   json: z.boolean().default(false).describe('Output as JSON'),
   reviews: z.boolean().default(false).describe('Include review details (bodies and line comments)'),
 })
 
-async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
+async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput(false, io)
   const config = requireActiveConfigPlain(out)
   const { owner, repository, number } = parseReference(input.pr_ref, input.repo, out)
@@ -667,7 +653,7 @@ async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & Global
   }
 }
 
-// pr preflight
+// pr check
 
 function hasBranch(branch: string, cwd: string): boolean {
   return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
@@ -678,7 +664,7 @@ function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, re
   if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
-    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project set-repo ${location.owner}/${location.repository} --develop-branch develop`)
+    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project link ${location.owner}/${location.repository} --develop-branch develop`)
   }
   const branchName = `${remote}/${developBranch}`
   return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
@@ -724,11 +710,11 @@ function getWorktreeInfo(cwd: string): string {
   return lines.join('\n')
 }
 
-const PreflightInputSchema = z.strictObject({
+const CheckInputSchema = z.strictObject({
   directory: directorySchema,
 })
 
-function runPreflight(input: Readonly<z.output<typeof PreflightInputSchema>>, io: Readonly<CommandIo>): void {
+function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readonly<CommandIo>): void {
   const out = createOutput(false, io)
   const directory = input.directory
   const context = validatePullRequestContext(directory, out)
@@ -765,236 +751,6 @@ function runPreflight(input: Readonly<z.output<typeof PreflightInputSchema>>, io
   if (warnings.length > 0) throw new CommandExit(PREFLIGHT_EXIT_CODE)
 }
 
-// pr cleanup
-
-interface Cleanup {
-  readonly out: Output
-  readonly isDryRun: boolean
-}
-
-async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, location: Readonly<RepositoryReference & { readonly number: number }>, out: Readonly<Output>): Promise<{ readonly client: GitHubClient, readonly pr: PullRequestSlim }> {
-  try {
-    const client = createGitHubClient(out, config.host)
-    return { client, pr: await client.getPullRequestSlim(location.owner, location.repository, location.number) }
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubNotFoundError) return stopWith(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`)
-    if (error instanceof GitHubAPIError) return stopWith(out, error.message)
-    throw error
-  }
-}
-
-function collectClosingIssueNumbers(pr: Readonly<{ readonly closing_issues: readonly { readonly number: number }[], readonly body: string, readonly head_ref: string }>): Set<number> {
-  const numbers = new Set<number>(pr.closing_issues.map(issue => issue.number))
-  for (const number of extractClosingIssueNumbers(pr.body)) numbers.add(number)
-  const branchNumber = extractIssueNumberFromBranch(pr.head_ref)
-  if (isPositive(branchNumber)) numbers.add(branchNumber)
-  return numbers
-}
-
-// Epic 保護。Issue Type が Epic か、sub-issue を持つ Issue
-async function findEpicProtectedNumbers(client: GitHubClient, location: RepositoryReference, issueNumbers: ReadonlySet<number>, out: Readonly<Output>): Promise<Set<number>> {
-  const protectedNumbers = new Set<number>()
-  const ordered = [...issueNumbers].toSorted((a, b) => a - b)
-  for (const number of ordered) {
-    try {
-      if (isEpicIssue(await client.getIssueKind(location.owner, location.repository, number))) protectedNumbers.add(number)
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) continue
-      if (!(error instanceof GitHubAPIError)) throw error
-      out.warning(`kind check of Issue #${String(number)} failed: ${error.message}; not protected`)
-    }
-  }
-  return protectedNumbers
-}
-
-async function closeRelatedIssues(context: Readonly<Cleanup>, client: GitHubClient, location: RepositoryReference, closing: ReadonlySet<number>, epicProtected: ReadonlySet<number>): Promise<void> {
-  const { out, isDryRun } = context
-  const protectedOrdered = [...epicProtected].toSorted((a, b) => a - b)
-  const closingOrdered = [...closing].toSorted((a, b) => a - b)
-  for (const number of protectedOrdered) settle(out, { verb: 'skip', target: `closing Issue #${String(number)} (Epic)` })
-  for (const number of closingOrdered) {
-    const operation: Operation = { verb: 'close', target: `Issue #${String(number)}` }
-    out.planned(operation)
-    if (isDryRun) continue
-    try {
-      await client.closeIssue(location.owner, location.repository, number)
-      out.done(operation)
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) {
-        out.warning(`Issue #${String(number)} not found; skipped`)
-      }
-      else if (error instanceof GitHubAPIError) {
-        if (isClosedByAnotherRequest(error)) out.done({ verb: 'unchanged', target: `Issue #${String(number)} (already closed)` })
-        else out.warning(`closing Issue #${String(number)} failed: ${describeApiError(error)}`)
-      }
-      else {
-        throw error
-      }
-    }
-  }
-}
-
-// head ブランチを消し、続けて wip ブランチを消す。head が無くても wip は試す
-async function deleteMergedBranch(context: Readonly<Cleanup>, client: GitHubClient, location: RepositoryReference, headBranch: string): Promise<void> {
-  const { out, isDryRun } = context
-  const operation: Operation = { verb: 'delete', target: `remote branch ${headBranch}` }
-  out.planned(operation)
-  if (isDryRun) return
-  try {
-    await client.deleteBranch(location.owner, location.repository, headBranch)
-    out.done(operation)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    if (!isMissingReferenceError(error)) {
-      out.warning(`deleting remote branch ${headBranch} failed: ${describeApiError(error)}`)
-      return
-    }
-    out.done({ verb: 'unchanged', target: `remote branch ${headBranch} (already deleted)` })
-  }
-  const wipBranch = `wip/${headBranch}`
-  try {
-    await client.deleteBranch(location.owner, location.repository, wipBranch)
-    out.done({ verb: 'delete', target: `remote branch ${wipBranch}` })
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    if (!isMissingReferenceError(error)) out.warning(`deleting remote branch ${wipBranch} failed: ${describeApiError(error)}`)
-  }
-}
-
-// 手元と PR の repository が同じなら主の remote 名。違えば警告を出して undefined
-function sameRepositoryRemote(cwd: string, location: RepositoryReference, out: Readonly<Output>): string | undefined {
-  const skipped = 'skipped local cleanup'
-  try {
-    const found = primaryRemote(cwd)
-    if (found === undefined) {
-      out.warning(`cannot read the remote URL; ${skipped}`)
-      return undefined
-    }
-    if (found.location === undefined) {
-      out.warning(`cannot read the repository from the remote URL; ${skipped}`)
-      return undefined
-    }
-    if (found.location.owner !== location.owner || found.location.repository !== location.repository) {
-      out.warning(`current repository (${found.location.owner}/${found.location.repository}) differs from the PR's (${location.owner}/${location.repository}); ${skipped}`)
-      return undefined
-    }
-    return found.name
-  }
-  catch {
-    out.warning(`cannot determine the repository; ${skipped}`)
-    return undefined
-  }
-}
-
-// worktree では worktree 名、そうでなければ develop ブランチ
-function resolveCheckoutTarget(cwd: string, config: Readonly<ProjectConfig>, location: RepositoryReference, out: Readonly<Output>): string | undefined {
-  try {
-    if (isWorktreeEnvironment(cwd)) return getCurrentWorktreeName(cwd) ?? 'main'
-    const developBranch = getDevelopBranch(config, location.owner, location.repository)
-    if (developBranch !== undefined && developBranch !== '') return developBranch
-    out.warning('develop_branch is not set; skipped local cleanup')
-    return undefined
-  }
-  catch {
-    out.warning('cannot determine the worktree; skipped local cleanup')
-    return undefined
-  }
-}
-
-function didRunLocalStep(context: Readonly<Cleanup>, operation: Operation, cwd: string, arguments_: readonly string[], failure: string): boolean {
-  const { out, isDryRun } = context
-  out.planned(operation)
-  if (isDryRun) return true
-  try {
-    runGit(arguments_, { cwd, check: true })
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitCommandError) && !isFileNotFound(error)) throw error
-    out.warning(`${failure} failed: ${reasonOf(error)}`)
-    return false
-  }
-  out.done(operation)
-  return true
-}
-
-function localCleanupAfterMerge(context: Readonly<Cleanup>, headBranch: string, config: Readonly<ProjectConfig>, location: RepositoryReference): void {
-  const { out } = context
-  const cwd = process.cwd()
-  const remote = sameRepositoryRemote(cwd, location, out)
-  if (remote === undefined) return
-  const currentBranch = gitCurrentBranch(cwd)
-  const checkoutTarget = resolveCheckoutTarget(cwd, config, location, out)
-  if (checkoutTarget === undefined) return
-  const developBranch = getDevelopBranch(config, location.owner, location.repository)
-  if (developBranch === undefined || developBranch === '') {
-    out.warning('develop_branch is not set; skipped local cleanup')
-    return
-  }
-
-  if (currentBranch === checkoutTarget) {
-    settle(out, { verb: 'unchanged', target: `current branch ${checkoutTarget}` })
-  }
-  else if (!didRunLocalStep(context, { verb: 'set', target: `current branch to ${checkoutTarget}` }, cwd, ['checkout', checkoutTarget], `checking out ${checkoutTarget}`)) {
-    // checkout が失敗したら、pull と branch -D は別のブランチに当たるので止める
-    return
-  }
-  didRunLocalStep(context, { verb: 'update', target: `${checkoutTarget} from ${remote}/${developBranch}` }, cwd, ['pull', remote, developBranch], `pulling ${developBranch}`)
-  if (headBranch === checkoutTarget) {
-    settle(out, { verb: 'skip', target: `deleting local branch ${headBranch} (it is the checkout target)` })
-  }
-  else {
-    didRunLocalStep(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)
-  }
-}
-
-function removeActiveFlags(out: Readonly<Output>): void {
-  try {
-    for (const flag of [FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE, FLAG_WIP_BRANCH_LINKED]) removeFlag(flag)
-  }
-  catch (error: unknown) {
-    out.warning(`removing flag files failed: ${reasonOf(error)}`)
-  }
-}
-
-const CleanupInputSchema = z.strictObject({
-  pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
-  dry_run: z.boolean().default(false).describe('Dry-run (do not actually clean up)'),
-  delete_branch: z.boolean().default(false).describe('Delete the branch'),
-  skip_local_cleanup: z.boolean().default(false).describe('Skip the local branch switch and deletion'),
-})
-
-async function runCleanup(input: Readonly<z.output<typeof CleanupInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput(input.dry_run, io)
-  const context: Cleanup = { out, isDryRun: input.dry_run }
-  const config = requireActiveConfigPlain(out)
-  const reference = parseReference(input.pr_ref, input.repo, out)
-  const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
-
-  const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
-  if (pr.state !== 'MERGED') stopWith(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`)
-
-  const closing = collectClosingIssueNumbers(pr)
-  const epicProtected = await findEpicProtectedNumbers(client, location, closing, out)
-  for (const number of epicProtected) closing.delete(number)
-
-  out.count('Issues to close', closing.size)
-  await closeRelatedIssues(context, client, location, closing, epicProtected)
-  if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
-  if (input.skip_local_cleanup) return
-  localCleanupAfterMerge(context, pr.head_ref, config, location)
-  if (input.dry_run) {
-    return
-  }
-
-  removeActiveFlags(out)
-  consumeFlag(FLAG_MERGE_SLASH_PENDING)
-}
-
 const prCreate = defineCommand({
   path: ['pr', 'create'],
   description: 'Create a PR (pull request)',
@@ -1009,43 +765,30 @@ const prCreate = defineCommand({
   },
 })
 
-const prRead = defineCommand({
-  path: ['pr', 'read'],
+const prShow = defineCommand({
+  path: ['pr', 'show'],
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
-  input: ReadInputSchema,
+  input: ShowInputSchema,
   positional: ['pr_ref'],
   shortFlags: { json: '-j', reviews: '-r' },
   interactive: false,
   run: async (input, io) => {
-    await runRead(input, io)
+    await runShow(input, io)
     return 0
   },
 })
 
-const prPreflight = defineCommand({
-  path: ['pr', 'preflight'],
+const prCheck = defineCommand({
+  path: ['pr', 'check'],
   description: 'Show all the information to check before creating a PR',
-  input: PreflightInputSchema,
+  input: CheckInputSchema,
   positional: [],
   shortFlags: { directory: '-D' },
   interactive: false,
   run: (input, io) => {
-    runPreflight(input, io)
+    runCheck(input, io)
     return Promise.resolve(0)
   },
 })
 
-const prCleanup = defineCommand({
-  path: ['pr', 'cleanup'],
-  description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
-  input: CleanupInputSchema,
-  positional: ['pr_ref'],
-  shortFlags: { dry_run: '-n', delete_branch: '-d' },
-  interactive: false,
-  run: async (input, io) => {
-    await runCleanup(input, io)
-    return 0
-  },
-})
-
-export const PR_COMMANDS: readonly CommandDefinition[] = [prCleanup, prCreate, prPreflight, prRead]
+export const PR_COMMANDS: readonly CommandDefinition[] = [prCreate, prShow, prCheck]

@@ -115,7 +115,7 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     { label: 'pecot issue create .pecot/work/1229/issue.md' },
     { label: 'pecot issue quick -r owner/repo -m "summary"' },
     { label: 'pecot pr create' },
-    { label: 'pecot issue read 1' },
+    { label: 'pecot issue show 1' },
   ]))('$clientName の入力でコマンドが $label のとき、deny を返す', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)

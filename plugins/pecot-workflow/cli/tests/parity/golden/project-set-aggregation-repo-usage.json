@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "Usage: pecot project set-aggregation-repo [OPTIONS] {value}\nTry 'pecot project set-aggregation-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'value'.                                                    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

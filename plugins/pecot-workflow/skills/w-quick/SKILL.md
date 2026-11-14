@@ -35,7 +35,7 @@ argument-hint: "[タスクの内容]"
 **リポジトリの特定方法:**
 
 - ユーザーが明示的に指定している場合はその値を使用
-- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `project_show_aggregation_repo` を呼んで根拠を得てから決める（推測で `repo` を埋めない）
+- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `project_get` を `key: "aggregation_repo"` で呼んで根拠を得てから決める（推測で `repo` を埋めない）
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 2: ブランチ切り替え

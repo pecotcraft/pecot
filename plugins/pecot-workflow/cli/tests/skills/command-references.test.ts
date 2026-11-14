@@ -1,11 +1,11 @@
 // 本文に書かれたツールの呼び出しを、COMMANDS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
 // - w-help の commands.md に、COMMANDS の全コマンドが載っている
-// - w-release の release-multi.md が、project_info の `package:` 行の形式を使う
+// - w-release の release-multi.md が、board_show の `package:` 行の形式を使う
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
-import { infoMarkdown } from '../../src/commands/project-info.js'
+import { boardShowMarkdown } from '../../src/commands/board-view.js'
 import { parseProjectConfig } from '../../src/domain/config.js'
 import { readDocuments, readPluginFile, toolInputs } from './_helpers/documents.js'
 
@@ -139,7 +139,7 @@ describe('commands.md', () => {
 })
 
 describe('release-multi.md', () => {
-  it('project_info が出す package 行の形式を使う', () => {
+  it('board_show が出す package 行の形式を使う', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'demo',
@@ -148,7 +148,7 @@ describe('release-multi.md', () => {
       repositories: [{ owner: 'demo', name: 'repo', packages: [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }] }],
     })
     const statuses = [{ enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: 'https://example.invalid/alerts', openAlerts: [] }]
-    const output = infoMarkdown({ config, projectName: 'demo', statuses }, undefined, '')
+    const output = boardShowMarkdown({ config, projectName: 'demo', statuses }, undefined, '')
     const line = output.split('\n').find(candidate => candidate.includes('package:'))
     expect(line?.trim()).toBe('package: demo-pkg → packages/demo-pkg/CHANGELOG.md')
     expect(readPluginFile('skills/w-release/references/release-multi.md')).toContain('`package: NAME → CHANGELOG パス`')

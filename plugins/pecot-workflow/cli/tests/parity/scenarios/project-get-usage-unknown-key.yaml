@@ -1,0 +1,7 @@
+# aggregation_repo でないキー。typer の使い方エラーを記録する。
+id: project-get-usage-unknown-key
+command:
+  path: [project, get]
+  args: [foo]
+setup: {}
+github: []

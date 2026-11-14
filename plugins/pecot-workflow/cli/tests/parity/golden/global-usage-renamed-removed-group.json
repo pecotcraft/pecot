@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot [OPTIONS] COMMAND [ARGS]...\nTry 'pecot --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ 'dependabot sync' was renamed to 'tracker sync dependabot'.                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

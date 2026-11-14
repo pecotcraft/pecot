@@ -606,7 +606,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
       '  - foo/baz',
       '',
       'to add this repository to the pecot project:',
-      '  pecot project set-repo myowner/myrepo',
+      '  pecot project link myowner/myrepo',
       '',
       'to switch to another project:',
       '  pecot project activate <PROJECT>',

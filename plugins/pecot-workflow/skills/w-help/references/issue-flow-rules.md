@@ -14,7 +14,7 @@ Epic と、task / bug / tracker で挙動が異なる。
 |------|-----------------|
 | Epic | `aggregation_repo` が設定済みなら **そこに集約する**。`repo` 未指定 + `repository: ""` でも `issue_create` が自動補完。例外時のみ `repo: "<owner/repo>"` で明示（警告を出して作成は続行） |
 | 通常 Issue（task / bug） | **実装が行われるリポ** を指定する。Epic が aggregation_repo に置かれていても、その配下のサブタスクは aggregation_repo に作らない |
-| Tracker | task と同じく `repo` が必須で、aggregation_repo に寄せない。security alert の Tracker は `security_sync` が実装リポに立てる |
+| Tracker | task と同じく `repo` が必須で、aggregation_repo に寄せない。security alert の Tracker は `tracker_sync`（`source: "security"`）が実装リポに立てる |
 
 Epic は「プロジェクト全体の進捗把握 / 親子追跡」のため集約リポに寄せる。一方サブタスクは
 実装コードが置かれるリポに作ることで、PR や branch と同じ場所で追跡できる。両者を混同すると
@@ -22,7 +22,7 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 
 ユーザー指示が無い時の確認手順:
 
-1. `project_show_aggregation_repo` で集約リポを取得
+1. `project_get` を `key: "aggregation_repo"` で呼び、集約リポを取得
 2. 集約リポと実装リポが異なる場合、サブタスクは実装リポ側を `repo` で指定する
 3. どちらに作るべきか判断材料が無い場合は AskUserQuestion で確認する（推測で埋めない）
 
@@ -114,7 +114,7 @@ aggregation_repo が同じ場合のみ意図通り動く。
 - `bug.md`: 既存挙動が期待値と乖離している事象の修正。**Problem（Expected / Actual を対置する表 + Repro）** が主軸
 
 `tracker.md` は、複数の作業を束ねる Tracker を `issue_create` で起こすときのテンプレで、Backlog に置く。
-security alert の Tracker は `security_sync` が本文を作るので、このテンプレを通らない。
+security alert の Tracker は `tracker_sync`（`source: "security"`）が本文を作るので、このテンプレを通らない。
 
 `task-implement.md` は w-issueize 固有の「実装フェーズを順に展開する」フォーマットで、
 通常の単発起票では使わない。
@@ -129,12 +129,12 @@ CLI が生成した prepared file を見れば、AI は判定基準に辿り着�
 
 計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
 既定は task/bug=ready、epic=backlog、tracker=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
-これらは未着手の置き場であり、着手時に `create-branch` がボード Status を active に設定する。
+これらは未着手の置き場であり、着手時に `branch create` がボード Status を active に設定する。
 
 `issue quick` は task/bug を active で起票する。
 quick は即着手フローで、起票時点が作業開始時点になる。
 board-status.md の `作業開始時に必ず設定` を起票と同時に適用したものであり、`issue create` との矛盾ではない。
-違いは、active を設定する担い手が `create-branch` か起票時かだけ。
+違いは、active を設定する担い手が `branch create` か起票時かだけ。
 
 ## 5. セッションスコープ（着手前の前提）
 
@@ -143,22 +143,22 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 `.pecot-active` の役割:
 
 - 配置: `.pecot/state/.pecot-active`（`CLAUDE_PROJECT_DIR` 単位 = WT ごとに独立）
-- 書き手: `create_branch` / `issue_quick` / `session_restore`（実行時に上書き）
-- `pr_cleanup` が消す。`pr_cleanup` を通さずに片付けた場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
+- 書き手: `session_start` / `issue_quick` / `session_restore`（実行時に上書き）
+- `session_finish` が消す。`session_finish` を通さずに片付けた場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
 
 ツールのガード（この表が最終の基準）は次のとおり。
 
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
-| CWD と Issue ref の owner/repo 不一致 | `create_branch` の冒頭 | `exit code: 2` + 対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
-| `.pecot-active` に OPEN な別 Issue ref | `create_branch` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
+| CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | `exit code: 2` + 対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
+| `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
 | `.pecot-active` の Issue が CLOSED | 同上 | stale の warning + 続行 | （バイパス不要） |
 | Issue の判定が blocked | 同上 | `exit code: 2` + 前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
 | 前提を読めない・判定できない | 同上 | `exit code: 1` + `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（出力を利用者に示す） |
-| 積む先のブランチが判定の後に無くなった | `create_branch` のブランチ作成前 | `exit code: 1` + `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
+| 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `exit code: 1` + `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
 | `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `exit code: 2` + `--base <x> differs from the base chosen by readiness` | `--base` を外す |
 
-状況を着手前に把握したいときは、ユーザー / AI が `session_status` を `directory: "."` で呼ぶ。
+状況を着手前に把握したいときは、ユーザー / AI が `session_show` を `directory: "."` で呼ぶ。
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が表示される。
 
 未コミット差分の扱いはツールのガード対象外（git status の判断は AI / 人間に委ねられる）。`git status` で前 Issue 由来の差分が残っていれば commit / stash / 破棄で clean にしてから着手する。
@@ -173,7 +173,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 判定手段:
 
 - `.pecot/state/.pecot-active` に記録された owner/repo を見る
-- `session_status` を `directory: "."` で呼び、`.pecot-active` の内容と OPEN/CLOSED を確認する
+- `session_show` を `directory: "."` で呼び、`.pecot-active` の内容と OPEN/CLOSED を確認する
 
 他リポの変更が必要になった場合の手順:
 

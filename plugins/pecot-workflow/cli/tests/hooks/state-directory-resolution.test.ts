@@ -15,7 +15,7 @@ import { jsonDumps } from './_helpers/text.js'
 
 const EXIT_PLAN_MODE_ENTRY = path.join(hooksDirectory, 'post-tool-use-exit-plan-mode.sh')
 
-describe('post-tool-use-exit-plan-mode.sh と pecot session status', () => {
+describe('post-tool-use-exit-plan-mode.sh と pecot session show', () => {
   it('hook と CLI が、ツールの cwd の git toplevel を指す', () => {
     // build 済みの Node の CLI（dist/cli.js）を使う
     expect(builtCliProblem()).toBeUndefined()
@@ -47,7 +47,7 @@ describe('post-tool-use-exit-plan-mode.sh と pecot session status', () => {
     // Bash ツールから呼ぶ CLI と同じ条件。CLAUDE_PROJECT_DIR なし、cwd はサブディレクトリ。
     const home = path.join(hookCase.temporaryPath, 'home')
     mkdirSync(home)
-    const status = run(hookCase, process.execPath, [cliEntry, 'session', 'status', '-D', subdirectory], {
+    const status = run(hookCase, process.execPath, [cliEntry, 'session', 'show', '-D', subdirectory], {
       cwd: subdirectory,
       env: { CLAUDE_PROJECT_DIR: undefined, HOME: home },
     })

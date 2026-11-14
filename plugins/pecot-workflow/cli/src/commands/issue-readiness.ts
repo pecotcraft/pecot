@@ -1,4 +1,4 @@
-// Issue の着手の可否の読み取り。前提を読み、判定する。project info と issue read が使う。
+// Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
 import { findRepository, workflowFieldName } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
@@ -263,7 +263,7 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
 }
 
 /**
-Issue 1 件の読み取りから判定までを通す。輪は呼ぶ側が渡す（issue read は輪を見ない）
+Issue 1 件の読み取りから判定までを通す。輪は呼ぶ側が渡す（issue show は輪を見ない）
 */
 export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[], blockedByFirst?: number): Promise<IssueReadiness> {
   const snapshot = await readIssueSnapshot(client, config, reference, blockedByFirst)

@@ -2,7 +2,7 @@
 /* eslint-disable unicorn/consistent-function-scoping -- 補助は、使う describe の近くに置く */
 /* eslint-disable unicorn/no-unnecessary-parameters -- 補助の引数を、行ごとにそろえる */
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
-// project の 10 個のコマンド（PW-PROJECT-*）の振る舞いを、runCli をプロセス内で呼んで確かめる。
+// project の 9 個のコマンドのうち 6 個（PW-PROJECT-*）と、board show（PW-BOARD-SHOW-*）の振る舞いを、runCli をプロセス内で呼んで確かめる。
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -130,6 +130,7 @@ const deletion = (itemId: string, status = 200): ResponseRule => status === 200
 const GHES: Partial<CommandRun> = { remote: { host: DEFAULT_HOST } }
 const READINESS_HEADER = '| Ref | Title | Readiness |\n|-----|----------|-----------|'
 const arguments_ = (...rest: string[]): string[] => ['project', ...rest]
+const boardArguments = (...rest: string[]): string[] => ['board', ...rest]
 
 async function run(argv: readonly string[], github: readonly ResponseRule[] = [], extra: Partial<CommandRun> = {}): Promise<CommandResult> {
   return await runCommand({ argv, github, ...GHES, ...extra })
@@ -511,7 +512,7 @@ describe('project create', () => {
   })
 })
 
-describe('project info', () => {
+describe('board show', () => {
   // 前提の無い Issue の読み取り。Active・In Review の Issue は読まれない
   const quietReady = (...numbers: number[]): ResponseRule[] => numbers.map(number => prerequisitesRule({ number }))
   const standardBoard = (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'Archived', { state: 'CLOSED' })), twoAlerts(), ...quietReady(1)]
@@ -538,8 +539,8 @@ describe('project info', () => {
   const olderRules = (): ResponseRule[] => quietReady(11, 13)
 
   it('引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-01')
-    const result = await run(arguments_('info'), standardBoard())
+    await verifies(context, 'PW-BOARD-SHOW-01')
+    const result = await run(boardArguments('show'), standardBoard())
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stdout).toBe(MARKDOWN)
@@ -547,8 +548,8 @@ describe('project info', () => {
   })
 
   it('Blocked の項目があると、Blocked の節を Ready の節の上に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-13')
-    const result = await run(arguments_('info'), [board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), twoAlerts(), ...quietReady(1), prerequisitesRule({ number: 4, blockedBy: [{ number: 9 }] })])
+    await verifies(context, 'PW-BOARD-SHOW-13')
+    const result = await run(boardArguments('show'), [board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), twoAlerts(), ...quietReady(1), prerequisitesRule({ number: 4, blockedBy: [{ number: 9 }] })])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stdout).toContain([
@@ -561,8 +562,8 @@ describe('project info', () => {
   })
 
   it('--json を付けて打つと、同じ内容を JSON で出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-02')
-    const result = await run(arguments_('info', '--json'), standardBoard())
+    await verifies(context, 'PW-BOARD-SHOW-02')
+    const result = await run(boardArguments('show', '--json'), standardBoard())
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual({
       project: { name: `${DEFAULT_HOST}_acme_board_acme`, host: DEFAULT_HOST, owner: 'acme', number: 1, aggregation_repo: null },
@@ -582,11 +583,11 @@ describe('project info', () => {
   })
 
   it.for<[string, string[]]>([
-    ['サブコマンドの側', ['project', 'info', '--repo', 'acme/other']],
-    ['グローバルの側', ['--repo', 'acme/other', 'project', 'info']],
-    ['両方（サブコマンドの側が勝つ）', ['--repo', 'acme/demo', 'project', 'info', '--repo', 'acme/other']],
+    ['サブコマンドの側', ['board', 'show', '--repo', 'acme/other']],
+    ['グローバルの側', ['--repo', 'acme/other', 'board', 'show']],
+    ['両方（サブコマンドの側が勝つ）', ['--repo', 'acme/demo', 'board', 'show', '--repo', 'acme/other']],
   ])('--repo を付けて打つと、ボードの項目をそのリポジトリに絞る（%s）', async ([, argv], context) => {
-    await verifies(context, 'PW-PROJECT-INFO-03')
+    await verifies(context, 'PW-BOARD-SHOW-03')
     const rules = [board(item('PVTI_1', 1, 'Ready'), item('PVTI_9', 9, 'Ready', { repo: 'other' })), twoAlerts(), prerequisitesRule({ number: 9, repo: 'other' })]
     const result = await run(argv, rules)
     expect(result.code).toBe(0)
@@ -596,8 +597,8 @@ describe('project info', () => {
   })
 
   it('更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除する', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-04')
-    const result = await run(arguments_('info'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02'), ...olderRules()])
+    await verifies(context, 'PW-BOARD-SHOW-04')
+    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02'), ...olderRules()])
     expect(result.code).toBe(0)
     expectClean(result)
     const deleted = variableValues(result, 'DeleteProjectItem', 'itemId')
@@ -609,8 +610,8 @@ describe('project info', () => {
   })
 
   it('Archived の項目がちょうど 20 件なら、ボードから何も削除しない', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-04')
-    const result = await run(arguments_('info'), [board(...archivedItems(20), ...olderActive()), twoAlerts(), ...olderRules()])
+    await verifies(context, 'PW-BOARD-SHOW-04')
+    const result = await run(boardArguments('show'), [board(...archivedItems(20), ...olderActive()), twoAlerts(), ...olderRules()])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
@@ -618,15 +619,15 @@ describe('project info', () => {
   })
 
   it('aggregation_repo を設定していると、概要に Roadmap repo として出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-05')
-    const result = await run(arguments_('info'), standardBoard(), { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
+    await verifies(context, 'PW-BOARD-SHOW-05')
+    const result = await run(boardArguments('show'), standardBoard(), { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.stdout).toContain('- Roadmap repo: `acme/roadmap`\n')
   })
 
   it('Dependabot alert を取れたリポジトリの行に、open の件数か disabled を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-06')
+    await verifies(context, 'PW-BOARD-SHOW-06')
     const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Forbidden' }, 403), restRule('GET', '/repos/acme/other/vulnerability-alerts', 404, { message: 'Not Found' })]
-    const result = await run(arguments_('info'), rules, { config: twoRepositories })
+    const result = await run(boardArguments('show'), rules, { config: twoRepositories })
     expect(result.code).toBe(0)
     expect(result.problems).toEqual([])
     expect(result.stdout).toContain('- acme/demo (develop: main)\n    release_type: single\n    dependabot_alerts: open 2\n')
@@ -634,15 +635,15 @@ describe('project info', () => {
   })
 
   it('Archived の項目を削除すると、deleted の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-07')
-    const result = await run(arguments_('info'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02'), ...olderRules()])
+    await verifies(context, 'PW-BOARD-SHOW-07')
+    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02'), ...olderRules()])
     expect(result.stderr).toBe('deleted: 2 archived items\n')
   })
 
   it('登録したリポジトリの Dependabot alert を取れないと、その行に失敗の理由を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-08')
+    await verifies(context, 'PW-BOARD-SHOW-08')
     const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Boom' }, 500)]
-    const result = await run(arguments_('info'), rules, { config: twoRepositories })
+    const result = await run(boardArguments('show'), rules, { config: twoRepositories })
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('    dependabot_alerts: open 2\n')
     expect(result.stdout).toMatch(/- acme\/other\n {4}release_type: single\n {4}dependabot_alerts: fetch failed \(acme\/other: .*Boom\)\n/u)
@@ -651,23 +652,23 @@ describe('project info', () => {
   })
 
   it('Archived の項目を削除できなかったなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-09')
-    const result = await run(arguments_('info'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01', 500), deletion('PVTI_a02'), ...olderRules()])
+    await verifies(context, 'PW-BOARD-SHOW-09')
+    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01', 500), deletion('PVTI_a02'), ...olderRules()])
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('deleted: 1 archived items\nwarning: failed to delete 1 archived items\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-10')
-    const result = await run(arguments_('info'), [], { config: false })
+    await verifies(context, 'PW-BOARD-SHOW-10')
+    const result = await run(boardArguments('show'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
   it('ボードの取得で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-11')
-    const result = await run(arguments_('info'), [failing('ListProjectItems')])
+    await verifies(context, 'PW-BOARD-SHOW-11')
+    const result = await run(boardArguments('show'), [failing('ListProjectItems')])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: could not read project board: GraphQL query error: Server error '500 Internal Server Error'/u)
@@ -684,7 +685,7 @@ describe('project info', () => {
       return { ...base, project: { ...project, fields: { ...asJson(project['fields']), status: STATUS } } }
     }
 
-    const info = async (rules: ResponseRule[], config: Json = boardConfig(), ...rest: string[]): Promise<CommandResult> => await run(arguments_('info', ...rest), [twoAlerts(), ...rules], { config })
+    const info = async (rules: ResponseRule[], config: Json = boardConfig(), ...rest: string[]): Promise<CommandResult> => await run(boardArguments('show', ...rest), [twoAlerts(), ...rules], { config })
     const boardItems = (result: Readonly<CommandResult>): unknown => asJson(asJson(JSON.parse(result.stdout))['board'])['items']
     const notStarted = { number: 9 }
     const NOTE_ONE = 'warning: 1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run pecot board sync (--dry-run to preview) to fix'
@@ -692,7 +693,7 @@ describe('project info', () => {
     const failedRead = (): ResponseRule => ({ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
 
     it('Ready と Blocked の表に Readiness の列を出し、判定とずれた列にあっても動かさない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-14')
+      await verifies(context, 'PW-BOARD-SHOW-14')
       const result = await info([
         board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
@@ -714,14 +715,14 @@ describe('project info', () => {
     })
 
     it('列と判定の食い違いそうな Issue を見つけると、件数と pecot board sync の案内を 1 行、標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-33')
+      await verifies(context, 'PW-BOARD-SHOW-33')
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_TWO}\n`)
     })
 
     it('board sync と同じ規則で数え、札の食い違いを数え、動かす先の値がボードに無い Issue は数えない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-33')
+      await verifies(context, 'PW-BOARD-SHOW-33')
       const withoutBlocked = boardConfig()
       const project = asJson(withoutBlocked['project'])
       const fields = asJson(project['fields'])
@@ -734,7 +735,7 @@ describe('project info', () => {
     })
 
     it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-15')
+      await verifies(context, 'PW-BOARD-SHOW-15')
       const result = await info([board(item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review'), item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1 })], boardConfig(), '--json')
       expectClean(result)
       expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1])
@@ -742,7 +743,7 @@ describe('project info', () => {
     })
 
     it('一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-30')
+      await verifies(context, 'PW-BOARD-SHOW-30')
       const result = await info([board(item('PVTI_4', 4, 'Blocked', { progress: { blockedBy: 0 } }), item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0 } }))])
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_ONE}\n`)
@@ -753,7 +754,7 @@ describe('project info', () => {
     })
 
     it('一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-30')
+      await verifies(context, 'PW-BOARD-SHOW-30')
       const result = await info([board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0, issueType: 'Epic' } }))], boardConfig(), '--json')
       expectClean(result)
       expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
@@ -761,7 +762,7 @@ describe('project info', () => {
     })
 
     it('一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-31')
+      await verifies(context, 'PW-BOARD-SHOW-31')
       const result = await info([
         board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } }), item('PVTI_7', 7, 'Ready', { progress: { blockedBy: 9 } })),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
@@ -774,7 +775,7 @@ describe('project info', () => {
     })
 
     it('読み取りに失敗した Issue は unknown と出し、列を動かさない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-18')
+      await verifies(context, 'PW-BOARD-SHOW-18')
       const result = await info([board(item('PVTI_1', 1, 'Ready')), failedRead()])
       expectClean(result)
       expect(result.code).toBe(0)
@@ -783,14 +784,14 @@ describe('project info', () => {
     })
 
     it('読み取りに失敗した Issue の JSON の readiness は、stackOn と reason を null で持つ', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-32')
+      await verifies(context, 'PW-BOARD-SHOW-32')
       const result = await info([board(item('PVTI_1', 1, 'Ready')), failedRead()], boardConfig(), '--json')
       expectClean(result)
       expect(boardItems(result)).toMatchObject([{ readiness: { kind: 'unknown', stackOn: null, reason: null } }])
     })
 
     it('前提の無い Issue だけのボードでは、すべて startable で、列を動かさない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-20')
+      await verifies(context, 'PW-BOARD-SHOW-20')
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 1 })])
       expectClean(result)
       expect(result.stderr).toBe('')
@@ -800,7 +801,7 @@ describe('project info', () => {
     })
 
     it('PR のカードと Tracker は、前提を読まない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-22')
+      await verifies(context, 'PW-BOARD-SHOW-22')
       const pullRequest = item('PVTI_5', 5, 'Ready')
       const tracker = item('PVTI_6', 6, 'Ready')
       const result = await info([
@@ -817,7 +818,7 @@ describe('project info', () => {
     })
 
     it('Epic は判定を出さず、JSON の readiness は null', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-23')
+      await verifies(context, 'PW-BOARD-SHOW-23')
       const result = await info([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, issueType: 'Epic', subIssues: 2 })], boardConfig(), '--json')
       expectClean(result)
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
@@ -825,7 +826,7 @@ describe('project info', () => {
     })
 
     it('develop_branch の無いリポジトリで済んでいない前提があると、unknown と出し、列を動かさない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-24')
+      await verifies(context, 'PW-BOARD-SHOW-24')
       const result = await info([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] })], boardConfig([{ owner: 'acme', name: 'demo' }]))
       expectClean(result)
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | unknown (develop_branch is not set for acme/demo) |')
@@ -833,7 +834,7 @@ describe('project info', () => {
     })
 
     it('Issue の依存関係に対応しない GHES では、warning を 1 回出し、Readiness の列の無い表を出す', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-25')
+      await verifies(context, 'PW-BOARD-SHOW-25')
       const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       const result = await info([board(item('PVTI_1', 1, 'Ready')), unsupported])
       expectClean(result)
@@ -843,7 +844,7 @@ describe('project info', () => {
     })
 
     it('一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、判定を出さない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-25')
+      await verifies(context, 'PW-BOARD-SHOW-25')
       const rejected: ResponseRule = { match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       const legacy = graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })
       const result = await info([rejected, legacy])
@@ -862,7 +863,7 @@ describe('project info', () => {
       ]
 
       it('積める並びを、Epic ごとに ## Stackable chains の節へ出す', async (context) => {
-        await verifies(context, 'PW-PROJECT-INFO-26')
+        await verifies(context, 'PW-BOARD-SHOW-26')
         const result = await info(chain())
         expectClean(result)
         expect(result.stderr).toBe('')
@@ -871,7 +872,7 @@ describe('project info', () => {
       })
 
       it('--json は、各 Issue に readiness を足す', async (context) => {
-        await verifies(context, 'PW-PROJECT-INFO-27')
+        await verifies(context, 'PW-BOARD-SHOW-27')
         const result = await info(chain(), boardConfig(), '--json')
         expectClean(result)
         expect(boardItems(result)).toMatchObject([
@@ -882,7 +883,7 @@ describe('project info', () => {
     })
 
     it('前提が輪になっている Issue は、cycle の blocked にする', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-28')
+      await verifies(context, 'PW-BOARD-SHOW-28')
       const result = await info([
         board(item('PVTI_1', 1, 'Blocked'), item('PVTI_2', 2, 'Blocked')),
         prerequisitesRule({ number: 1, blockedBy: [{ number: 2 }] }),
@@ -1098,13 +1099,13 @@ describe('project activate', () => {
   })
 })
 
-describe('project set-repo', () => {
+describe('project link', () => {
   const demo = { owner: 'acme', name: 'demo', develop_branch: 'main' }
   const withRepository = (...repositories: Json[]): Partial<CommandRun> => ({ config: projectConfig({ repositories }) })
-  const setRepository = async (argv: string[], extra: Partial<CommandRun> = {}, github: ResponseRule[] = []): Promise<CommandResult> => await run(arguments_('set-repo', ...argv), github, extra)
+  const setRepository = async (argv: string[], extra: Partial<CommandRun> = {}, github: ResponseRule[] = []): Promise<CommandResult> => await run(arguments_('link', ...argv), github, extra)
 
   it('未登録のリポジトリを渡すと、プロジェクトにリンクする', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-01')
+    await verifies(context, 'PW-PROJECT-LINK-01')
     const result = await setRepository(['acme/other'], {}, linkRules())
     expect(result.code).toBe(0)
     expectClean(result)
@@ -1113,14 +1114,14 @@ describe('project set-repo', () => {
   })
 
   it('リンクに成功すると、設定ファイルにリポジトリを足す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-02')
+    await verifies(context, 'PW-PROJECT-LINK-02')
     const result = await setRepository(['acme/other', '-b', 'dev', '--release-type', 'nx'], {}, linkRules())
     expect(repositoriesOf(result)).toEqual([demo, { owner: 'acme', name: 'other', develop_branch: 'dev', release_type: 'nx' }])
     expect(result.stderr).toBe(`added: acme/other to project #1\nadded: acme/other to ${configPathOf(result)}\n`)
   })
 
   it('登録済みのリポジトリを渡すと、渡したオプションの値だけを更新する', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-03')
+    await verifies(context, 'PW-PROJECT-LINK-03')
     const result = await setRepository(['acme/demo', '-b', 'dev'], withRepository({ ...demo, release_branch: 'release' }))
     expect(result.code).toBe(0)
     expect(result.requests).toEqual([])
@@ -1129,13 +1130,13 @@ describe('project set-repo', () => {
   })
 
   it('登録済みのリポジトリに --package を渡すと、packages を置き換える', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-04')
+    await verifies(context, 'PW-PROJECT-LINK-04')
     const result = await setRepository(['acme/demo', '--package', 'a:a/CHANGELOG.md', '--package', 'b:b/CHANGELOG.md'], withRepository({ ...demo, packages: [{ name: 'old', changelog: 'old.md' }] }))
     expect(repositoriesOf(result)).toEqual([{ ...demo, packages: [{ name: 'a', changelog: 'a/CHANGELOG.md' }, { name: 'b', changelog: 'b/CHANGELOG.md' }] }])
   })
 
   it('登録済みのリポジトリに --package を渡すと、changelog_file を消す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-05')
+    await verifies(context, 'PW-PROJECT-LINK-05')
     const result = await setRepository(['acme/demo', '--package', 'a:a/CHANGELOG.md'], withRepository({ ...demo, changelog_file: 'CHANGELOG.md' }))
     const [entry] = repositoryEntries(result)
     expect(entry).not.toHaveProperty('changelog_file')
@@ -1143,21 +1144,21 @@ describe('project set-repo', () => {
   })
 
   it('登録済みのリポジトリに --clear-packages を付けると、packages を消す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-06')
+    await verifies(context, 'PW-PROJECT-LINK-06')
     const result = await setRepository(['acme/demo', '--clear-packages'], withRepository({ ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }))
     expect(result.code).toBe(0)
     expect(repositoriesOf(result)).toEqual([demo])
   })
 
   it('リンクに失敗すると、設定ファイルを書き換えない', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-07')
+    await verifies(context, 'PW-PROJECT-LINK-07')
     const before = JSON.stringify(projectConfig(), undefined, 2)
     const result = await setRepository(['acme/other'], {}, [projectIdRule(), unresolvedRepository()])
     expect(JSON.parse(result.read(CONFIG_FILE) ?? '')).toEqual(JSON.parse(before))
   })
 
   it('リンクに失敗すると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-08')
+    await verifies(context, 'PW-PROJECT-LINK-08')
     const result = await setRepository(['acme/other'], {}, [projectIdRule(), unresolvedRepository()])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -1165,35 +1166,35 @@ describe('project set-repo', () => {
   })
 
   it('--package と --changelog-file を一緒に渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-09')
+    await verifies(context, 'PW-PROJECT-LINK-09')
     const result = await setRepository(['acme/demo', '--package', 'a:a.md', '--changelog-file', 'C.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package and --changelog-file cannot be used together\n')
   })
 
   it('--package と --clear-packages を一緒に渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-10')
+    await verifies(context, 'PW-PROJECT-LINK-10')
     const result = await setRepository(['acme/demo', '--package', 'a:a.md', '--clear-packages'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package and --clear-packages cannot be used together\n')
   })
 
   it('--package が NAME:PATH の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-11')
+    await verifies(context, 'PW-PROJECT-LINK-11')
     const result = await setRepository(['acme/demo', '--package', 'nocolon'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give --package as NAME:PATH: \'nocolon\'\n')
   })
 
   it('--package の NAME が重なると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-12')
+    await verifies(context, 'PW-PROJECT-LINK-12')
     const result = await setRepository(['acme/demo', '--package', 'foo:a.md', '--package', 'foo:b.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package NAME is duplicated: \'foo\'\n')
   })
 
   it('未登録のリポジトリに不正な --package の名前を渡すと、リンクせず終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-11')
+    await verifies(context, 'PW-PROJECT-LINK-11')
     const result = await setRepository(['acme/new', '--package', 'bad name:p'])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -1203,35 +1204,35 @@ describe('project set-repo', () => {
   })
 
   it('リポジトリの所有者がプロジェクトの所有者と違うと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-13')
+    await verifies(context, 'PW-PROJECT-LINK-13')
     const result = await setRepository(['different-owner/repo'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: repository owner different-owner differs from project owner acme\n  GitHub Projects V2 links only repositories of the project owner\n')
   })
 
   it('リポジトリが owner/repo の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-14')
+    await verifies(context, 'PW-PROJECT-LINK-14')
     const result = await setRepository(['justname'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: give the repository as owner/repo\n  example: pecot project set-repo example-org/my-repo\n')
+    expect(result.stderr).toBe('error: give the repository as owner/repo\n  example: pecot project link example-org/my-repo\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-15')
+    await verifies(context, 'PW-PROJECT-LINK-15')
     const result = await setRepository(['acme/demo'], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
   it('--release-type が single・multi・nx のどれでもないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-16')
+    await verifies(context, 'PW-PROJECT-LINK-16')
     const result = await setRepository(['acme/demo', '--release-type', 'bogus'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --release-type must be one of [\'multi\', \'nx\', \'single\'] (got: \'bogus\')\n')
   })
 
   it('packages を持つリポジトリに --changelog-file を渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-REPO-17')
+    await verifies(context, 'PW-PROJECT-LINK-17')
     const result = await setRepository(['acme/demo', '--changelog-file', 'C.md'], withRepository({ ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: this repository has packages set\n  run with --clear-packages before switching to --changelog-file\n')
@@ -1239,33 +1240,33 @@ describe('project set-repo', () => {
   })
 })
 
-describe('project set-aggregation-repo', () => {
+describe('project set', () => {
   const withAggregation = (value?: string): Partial<CommandRun> => ({ config: projectConfig(value === undefined ? {} : { extra: { aggregation_repo: value } }) })
-  const set = async (argv: string[], extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run(arguments_('set-aggregation-repo', ...argv), [], extra)
+  const set = async (argv: string[], extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run(arguments_('set', 'aggregation_repo', ...argv), [], extra)
 
   it('未設定の状態で値を渡すと、設定ファイルに書く', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-01')
+    await verifies(context, 'PW-PROJECT-SET-01')
     const result = await set(['acme/roadmap'])
     expect(result.code).toBe(0)
     expect(savedConfig(result)['aggregation_repo']).toBe('acme/roadmap')
   })
 
   it('未設定の状態で値を渡すと、set の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-02')
+    await verifies(context, 'PW-PROJECT-SET-02')
     const result = await set(['acme/roadmap'])
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('set: aggregation_repo to acme/roadmap\n')
   })
 
   it('既にある値と同じ値を渡すと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-03')
+    await verifies(context, 'PW-PROJECT-SET-03')
     const result = await set(['acme/roadmap'], withAggregation('acme/roadmap'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('unchanged: aggregation_repo acme/roadmap\n')
   })
 
   it('既にある値と違う値を渡すと、上書きの warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-04')
+    await verifies(context, 'PW-PROJECT-SET-04')
     const result = await set(['acme/new'], withAggregation('acme/roadmap'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\n  pass --yes to omit this hint\nset: aggregation_repo to acme/new\n')
@@ -1273,13 +1274,13 @@ describe('project set-aggregation-repo', () => {
   })
 
   it('--yes を付けて上書きすると、warning の行から確認の案内を省く', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-05')
+    await verifies(context, 'PW-PROJECT-SET-05')
     const result = await set(['acme/new', '--yes'], withAggregation('acme/roadmap'))
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\nset: aggregation_repo to acme/new\n')
   })
 
   it('値が owner/repo の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-06')
+    await verifies(context, 'PW-PROJECT-SET-06')
     const result = await set(['roadmap'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give aggregation_repo as owner/repo: \'roadmap\'\n')
@@ -1287,65 +1288,89 @@ describe('project set-aggregation-repo', () => {
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-AGGREGATION-REPO-07')
+    await verifies(context, 'PW-PROJECT-SET-07')
     const result = await set(['acme/roadmap'], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
+
+  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async (context) => {
+    await verifies(context, 'PW-PROJECT-SET-08')
+    const result = await run(arguments_('set', 'foo', 'acme/roadmap'), [], { config: projectConfig({}) })
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('Invalid value for \'key\': \'foo\' is not one of \'aggregation_repo\'.')
+  })
 })
 
-describe('project unset-aggregation-repo', () => {
+describe('project unset', () => {
   const configured = { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) }
 
   it('値を設定していると、設定ファイルから消す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-01')
-    const result = await run(arguments_('unset-aggregation-repo'), [], configured)
+    await verifies(context, 'PW-PROJECT-UNSET-01')
+    const result = await run(arguments_('unset', 'aggregation_repo'), [], configured)
     expect(result.code).toBe(0)
     expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
   })
 
   it('値を設定していると、removed の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-02')
-    const result = await run(arguments_('unset-aggregation-repo'), [], configured)
+    await verifies(context, 'PW-PROJECT-UNSET-02')
+    const result = await run(arguments_('unset', 'aggregation_repo'), [], configured)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('removed: aggregation_repo (was acme/roadmap)\n')
   })
 
   it('未設定だと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-03')
-    const result = await run(arguments_('unset-aggregation-repo'))
+    await verifies(context, 'PW-PROJECT-UNSET-03')
+    const result = await run(arguments_('unset', 'aggregation_repo'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('unchanged: aggregation_repo (not set)\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-AGGREGATION-REPO-04')
-    const result = await run(arguments_('unset-aggregation-repo'), [], { config: false })
+    await verifies(context, 'PW-PROJECT-UNSET-04')
+    const result = await run(arguments_('unset', 'aggregation_repo'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
+
+  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async (context) => {
+    await verifies(context, 'PW-PROJECT-UNSET-05')
+    const result = await run(arguments_('unset', 'foo'), [], { config: projectConfig({}) })
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('Invalid value for \'key\': \'foo\' is not one of \'aggregation_repo\'.')
+  })
 })
 
-describe('project show-aggregation-repo', () => {
+describe('project get', () => {
   it('値を設定していると、その値を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SHOW-AGGREGATION-REPO-01')
-    const result = await run(arguments_('show-aggregation-repo'), [], { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
+    await verifies(context, 'PW-PROJECT-GET-01')
+    const result = await run(arguments_('get', 'aggregation_repo'), [], { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('acme/roadmap\n')
   })
 
   it('未設定だと、none を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SHOW-AGGREGATION-REPO-02')
-    const result = await run(arguments_('show-aggregation-repo'))
+    await verifies(context, 'PW-PROJECT-GET-02')
+    const result = await run(arguments_('get', 'aggregation_repo'))
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('none\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SHOW-AGGREGATION-REPO-03')
-    const result = await run(arguments_('show-aggregation-repo'), [], { config: false })
+    await verifies(context, 'PW-PROJECT-GET-03')
+    const result = await run(arguments_('get', 'aggregation_repo'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(NO_ACTIVE)
+  })
+
+  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async (context) => {
+    await verifies(context, 'PW-PROJECT-GET-04')
+    const result = await run(arguments_('get', 'foo'), [], { config: projectConfig({}) })
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('Invalid value for \'key\': \'foo\' is not one of \'aggregation_repo\'.')
   })
 })

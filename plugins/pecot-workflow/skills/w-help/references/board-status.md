@@ -24,7 +24,7 @@
   - pecot の操作: 着手・PR の作成・片付けなどが、その場で列を動かす
   - `board_sync`: ボード全体を判定に合わせて、列と札を直す。画面でのマージ・blocked by の付け外し・カードの手での移動で、ずれたものが対象になる。手元でも GitHub Actions でも同じコマンドを打つ
   - ワークフロー: `board_sync` を GitHub Actions で打つ。入れるかは任意で、置き方は[ボードを自動で直すワークフロー](board-sync-workflow.md)にある
-- `project_info` は列を動かさない。判定と食い違いそうな Issue があると、件数と直し方の案内を出す
+- `board_show` は列を動かさない。判定と食い違いそうな Issue があると、件数と直し方の案内を出す
 - `Ready` には、着手できるタスクだけを置く。前提を待つタスクは `Blocked` に置く
 
 ## 既定の Status

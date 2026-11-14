@@ -101,7 +101,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest、install-record。約 1 分）。実 pnpm でミラーを build する run.sh は、実の cli/src をミラーに build し、tools/list の 35 件を確かめる。そのため cli/src を入力に置く（テストは除く）。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest、install-record。約 1 分）。実 pnpm でミラーを build する run.sh は、実の cli/src をミラーに build し、tools/list の 36 件を確かめる。そのため cli/src を入力に置く（テストは除く）。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",

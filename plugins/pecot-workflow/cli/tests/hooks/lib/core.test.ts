@@ -324,8 +324,8 @@ describe('external-post-check.sh', () => {
     'pecot issue create x.md',
     '$PECOT pr create ./x.md',
     '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue create x.md',
-    'pecot pr cleanup 810',
-    'pecot pr read acme-labs/aist-plugin/810',
+    'pecot session finish 810',
+    'pecot pr show acme-labs/aist-plugin/810',
     // 文字列内・ファイル名内
     'echo "gh pr merge"',
     'cat gh-pr-merge-notes.txt',
@@ -339,13 +339,13 @@ describe('external-post-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('gh pr merge のとき、w-merge と MCP ツールの pr_cleanup を案内する', () => {
+  it('gh pr merge のとき、w-merge と MCP ツールの session_finish を案内する', () => {
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: 'gh pr merge 810' } })
     expect(result.exitCode).toBe(11)
     expect(result.stdout).toContain('/pecot-w:w-merge')
-    expect(result.stdout).toContain('the MCP tool pr_cleanup')
-    expect(result.stdout).not.toContain('pecot pr cleanup')
+    expect(result.stdout).toContain('the MCP tool session_finish')
+    expect(result.stdout).not.toContain('pecot session finish')
   })
 
   it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {

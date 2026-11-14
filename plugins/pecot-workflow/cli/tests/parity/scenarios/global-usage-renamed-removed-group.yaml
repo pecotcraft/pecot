@@ -1,0 +1,7 @@
+# 無くなったグループ（dependabot）のコマンドも、実行せずに、新しい名前を案内して止まる。
+id: global-usage-renamed-removed-group
+command:
+  path: []
+  args: ["dependabot", "sync", "--dry-run"]
+setup: {}
+github: []

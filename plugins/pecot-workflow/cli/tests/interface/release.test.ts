@@ -1,4 +1,4 @@
-// release preflight・create・merge の振る舞い（PW-RELEASE-*）を、runCli をプロセス内で呼んで確かめる。
+// release check・create・merge の振る舞い（PW-RELEASE-*）を、runCli をプロセス内で呼んで確かめる。
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
@@ -18,7 +18,7 @@ const USAGE_ERROR = 2
 const WITHOUT_RELEASE_BRANCH: ProjectOptions = { repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'develop' }] }
 
 function runPreflight(project: Readonly<Project>, arguments_: readonly string[] = [], rules: readonly ResponseRule[] = alertRules(), global: readonly string[] = []): ReturnType<typeof runRelease> {
-  return runRelease(project, [...global, 'release', 'preflight', ...arguments_], rules)
+  return runRelease(project, [...global, 'release', 'check', ...arguments_], rules)
 }
 
 function runCreate(project: Readonly<Project>, arguments_: readonly string[], rules: readonly ResponseRule[] = [], global: readonly string[] = []): ReturnType<typeof runRelease> {
@@ -58,30 +58,30 @@ const DEPENDABOT_ALERTS = [
 const FORBIDDEN = { message: 'Resource not accessible by integration' }
 const NOT_FOUND = { message: 'Not Found' }
 
-describe('release preflight', () => {
+describe('release check', () => {
   it('版を省いて打つと、CHANGELOG の最初の版を対象にチェックする', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-01')
+    await verifies(context, 'PW-RELEASE-CHECK-01')
     const result = await runPreflight(project(WITH_BRANCHES))
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('version: 0.2.0\ntag: v0.2.0\n')
   })
 
   it('版を渡して打つと、その版を対象にチェックする', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-02')
+    await verifies(context, 'PW-RELEASE-CHECK-02')
     const result = await runPreflight(project(WITH_BRANCHES), ['0.1.0'])
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('version: 0.1.0\ntag: v0.1.0\n\n### 追加\n\n- 初回リリース\n')
   })
 
   it('--package を付けて打つと、パッケージ名を接頭辞にしたタグ名でチェックする', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-03')
+    await verifies(context, 'PW-RELEASE-CHECK-03')
     const result = await runPreflight(project({ ...WITH_BRANCHES, repositories: [PACKAGES], files: PACKAGE_FILES }), ['--package', 'pkg-a'])
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('tag: pkg-a-v0.2.0\n')
   })
 
   it('打つと、Dependabot・code scanning・secret scanning の open の alert を調べる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-04')
+    await verifies(context, 'PW-RELEASE-CHECK-04')
     const result = await runPreflight(project(WITH_BRANCHES))
     expect(pathsOf(result)).toEqual([
       `GET ${alertPath('dependabot')}`,
@@ -92,13 +92,13 @@ describe('release preflight', () => {
   })
 
   it('打つと、alert の結果の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-05')
+    await verifies(context, 'PW-RELEASE-CHECK-05')
     const result = await runPreflight(project(WITH_BRANCHES))
     expect(result.stderr).toContain('count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n')
   })
 
   it('3 種の機能が無効だと、skipped の行を標準エラーに出し、終了コード 0 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-05')
+    await verifies(context, 'PW-RELEASE-CHECK-05')
     const rules = alertRules({
       dependabot: [rest('GET', alertPath('dependabot'), 403, FORBIDDEN), rest('GET', '/repos/acme/demo/vulnerability-alerts', 404)],
       code: [rest('GET', alertPath('code'), 403, { message: 'Advanced Security must be enabled for this repository to use code scanning.' })],
@@ -110,7 +110,7 @@ describe('release preflight', () => {
   })
 
   it('open の Dependabot alert があると、件数と最も重い severity を添えた warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-06')
+    await verifies(context, 'PW-RELEASE-CHECK-06')
     const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] })
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(0)
@@ -121,7 +121,7 @@ describe('release preflight', () => {
   })
 
   it('release_type が nx のリポジトリに打つと、alert だけを調べる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-07')
+    await verifies(context, 'PW-RELEASE-CHECK-07')
     const result = await runPreflight(project({ repositories: [{ ...DEFAULT_REPOSITORY, release_type: 'nx' }] }))
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
@@ -131,20 +131,20 @@ describe('release preflight', () => {
   })
 
   it('--repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-08')
+    await verifies(context, 'PW-RELEASE-CHECK-08')
     const result = await runPreflight(project({ ...WITH_BRANCHES, repositories: [DEFAULT_REPOSITORY, OTHER] }), [], alertRules({}, 'acme/other'), ['--repo', 'acme/other'])
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: using --repo acme/other (current Git remote: acme/demo)\n')
   })
 
   it('チェックが通ると、version・tag の行とリリースノートを標準出力に出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-09')
+    await verifies(context, 'PW-RELEASE-CHECK-09')
     const result = await runPreflight(project(WITH_BRANCHES))
     expect(result.stdout).toBe(`version: 0.2.0\ntag: v0.2.0\n\n${NOTES_0_2_0}\n`)
   })
 
   it('チェックが通ると、release へ入るコミット数の count の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-10')
+    await verifies(context, 'PW-RELEASE-CHECK-10')
     const result = await runPreflight(project({ ...WITH_BRANCHES, developAhead: 2 }))
     expect(result.stderr).toContain('count: commits to release (origin/develop -> origin/release): 2\n')
   })
@@ -153,14 +153,14 @@ describe('release preflight', () => {
     const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 403, FORBIDDEN), rest('GET', '/repos/acme/demo/vulnerability-alerts', 204)] })
 
     it('もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-11')
+      await verifies(context, 'PW-RELEASE-CHECK-11')
       const result = await runPreflight(project(WITH_BRANCHES), [], rules)
       expect(result.stderr).toContain('warning: could not check Dependabot alerts. The release is not blocked.\n')
       expect(result.stderr).toContain('reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)')
     })
 
     it('もし Dependabot alert の状態を読めないなら、残りの確認を続ける', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-12')
+      await verifies(context, 'PW-RELEASE-CHECK-12')
       const result = await runPreflight(project(WITH_BRANCHES), [], rules)
       expect(result.code).toBe(0)
       expect(result.stderr).toContain('count: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n')
@@ -169,7 +169,7 @@ describe('release preflight', () => {
   })
 
   it('もし open の code scanning alert があるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-13')
+    await verifies(context, 'PW-RELEASE-CHECK-13')
     const rules = alertRules({ code: [rest('GET', alertPath('code'), 200, [{ number: 10, rule: { severity: 'error' } }])] })
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(1)
@@ -178,7 +178,7 @@ describe('release preflight', () => {
   })
 
   it('もし open の secret scanning alert があるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-14')
+    await verifies(context, 'PW-RELEASE-CHECK-14')
     const rules = alertRules({ secret: [rest('GET', alertPath('secret'), 200, [{ number: 5 }])] })
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(1)
@@ -191,7 +191,7 @@ describe('release preflight', () => {
   ]
 
   it.for(undeterminable)('もし $kind の状態を判定できないなら、終了コード 1 で終わる', async ({ kind, rules }, context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-15')
+    await verifies(context, 'PW-RELEASE-CHECK-15')
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(1)
     expect(result.stderr).toContain(`error: could not check ${kind}: acme/demo: `)
@@ -204,7 +204,7 @@ describe('release preflight', () => {
     })
 
     it('もし alert の確認が 1 つ失敗したなら、残りの確認も行う', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-16')
+      await verifies(context, 'PW-RELEASE-CHECK-16')
       const result = await runPreflight(project(WITH_BRANCHES), [], rules)
       expect(pathsOf(result)).toContain(`GET ${alertPath('secret')}`)
       expect(result.stderr).toContain('error: could not check code scanning:')
@@ -212,7 +212,7 @@ describe('release preflight', () => {
     })
 
     it('もし alert の確認が 1 つ失敗したなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-17')
+      await verifies(context, 'PW-RELEASE-CHECK-17')
       const result = await runPreflight(project(WITH_BRANCHES), [], rules)
       expect(result.code).toBe(1)
       expect(result.stdout).toBe('')
@@ -221,8 +221,8 @@ describe('release preflight', () => {
 
   describe('alert の確認が例外で失敗した', () => {
     it('もしトークンが無いなら、code・secret scanning の確認ごとに could not check alerts の行を出し、残りも続けて、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-16')
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-17')
+      await verifies(context, 'PW-RELEASE-CHECK-16')
+      await verifies(context, 'PW-RELEASE-CHECK-17')
       const result = await runPreflight(project({ ...WITH_BRANCHES, hasToken: false }), [], [])
       expect(result.code).toBe(1)
       expect(result.stderr).toContain('warning: could not check Dependabot alerts. The release is not blocked.\n')
@@ -232,28 +232,28 @@ describe('release preflight', () => {
   })
 
   it('もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-18')
+    await verifies(context, 'PW-RELEASE-CHECK-18')
     const result = await runPreflight(project({ isGit: false }), [], [], ['--repo', 'acme/demo'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: could not find the root directory of the git repository\n')
   })
 
   it('もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-19')
+    await verifies(context, 'PW-RELEASE-CHECK-19')
     const result = await runPreflight(project({ isActive: false }), [], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: no active project\n')
   })
 
   it.for([{ arguments_: ['0.2.0'] }, { arguments_: ['--package', 'pkg-a'] }])('もし nx のリポジトリに $arguments_ を渡したなら、終了コード 1 で終わる', async ({ arguments_ }, context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-20')
+    await verifies(context, 'PW-RELEASE-CHECK-20')
     const result = await runPreflight(project({ repositories: [{ ...DEFAULT_REPOSITORY, release_type: 'nx' }] }), arguments_, [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('the version argument and --package cannot be used when release_type is nx')
   })
 
   it('もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-21')
+    await verifies(context, 'PW-RELEASE-CHECK-21')
     const result = await runPreflight(project({ repositories: [PACKAGES], files: PACKAGE_FILES }), [], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('acme/demo is a monorepo')
@@ -261,14 +261,14 @@ describe('release preflight', () => {
   })
 
   it('もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-22')
+    await verifies(context, 'PW-RELEASE-CHECK-22')
     const result = await runPreflight(project({ repositories: [PACKAGES], files: PACKAGE_FILES }), ['--package', 'unknown'], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('package \'unknown\' is not registered in acme/demo')
   })
 
   it('もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-23')
+    await verifies(context, 'PW-RELEASE-CHECK-23')
     const result = await runPreflight(project(), ['--package', 'pkg-a'], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('acme/demo has no packages configured')
@@ -278,31 +278,31 @@ describe('release preflight', () => {
     { kind: 'develop', repository: { owner: 'acme', name: 'demo', release_branch: 'release' } },
     { kind: 'release', repository: { owner: 'acme', name: 'demo', develop_branch: 'develop' } },
   ])('もし $kind の branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async ({ kind, repository }, context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-24')
+    await verifies(context, 'PW-RELEASE-CHECK-24')
     const result = await runPreflight(project({ repositories: [repository] }))
     expect(result.stderr).toContain(`error: ${kind}_branch is not set for acme/demo\n`)
-    expect(result.stderr).toContain(`pecot project set-repo acme/demo --${kind}-branch <branch>`)
+    expect(result.stderr).toContain(`pecot project link acme/demo --${kind}-branch <branch>`)
   })
 
   it.for([
     { repository: { owner: 'acme', name: 'demo', release_branch: 'release' } },
     { repository: { owner: 'acme', name: 'demo', develop_branch: 'develop' } },
   ])('もし develop_branch か release_branch を設定していないなら、終了コード 1 で終わる', async ({ repository }, context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-25')
+    await verifies(context, 'PW-RELEASE-CHECK-25')
     const result = await runPreflight(project({ repositories: [repository] }))
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
   })
 
   it('もし CHANGELOG が無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-26')
+    await verifies(context, 'PW-RELEASE-CHECK-26')
     const result = await runPreflight(project({ ...WITH_BRANCHES, files: { 'CHANGELOG.md': undefined } }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('CHANGELOG.md')
   })
 
   it('もし版を省いて CHANGELOG に版が 1 つも無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-27')
+    await verifies(context, 'PW-RELEASE-CHECK-27')
     const result = await runPreflight(project({ ...WITH_BRANCHES, files: NO_PACKAGE_FILES }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: ')
@@ -310,42 +310,42 @@ describe('release preflight', () => {
   })
 
   it('もし渡した版が X.Y.Z の形でないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-28')
+    await verifies(context, 'PW-RELEASE-CHECK-28')
     const result = await runPreflight(project(WITH_BRANCHES), ['1.2'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('1.2')
   })
 
   it('もしタグがローカルに既にあるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-29')
+    await verifies(context, 'PW-RELEASE-CHECK-29')
     const result = await runPreflight(project({ ...WITH_BRANCHES, localTags: ['v0.2.0'] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: tag already exists locally: v0.2.0\n')
   })
 
   it('もしタグが remote に既にあるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-30')
+    await verifies(context, 'PW-RELEASE-CHECK-30')
     const result = await runPreflight(project({ ...WITH_BRANCHES, remoteTags: ['v0.2.0'] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: tag already exists on the remote: v0.2.0\n')
   })
 
   it('もし <remote>/<release_branch> に無いコミットが <remote>/<develop_branch> から 1 つも見つからないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-31')
+    await verifies(context, 'PW-RELEASE-CHECK-31')
     const result = await runPreflight(project({ ...WITH_BRANCHES, developAhead: 0 }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: no difference between origin/release and origin/develop: there is nothing to release\n')
   })
 
   it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-32')
+    await verifies(context, 'PW-RELEASE-CHECK-32')
     const result = await runPreflight(project(WITH_BRANCHES), ['9.9.9'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('9.9.9')
   })
 
   it('もし git コマンドが失敗したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-PREFLIGHT-33')
+    await verifies(context, 'PW-RELEASE-CHECK-33')
     const result = await runPreflight(project({ remote: 'none' }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: git command failed: git ls-remote --tags origin refs/tags/v0.2.0')
@@ -353,13 +353,13 @@ describe('release preflight', () => {
 
   describe('--repo を省いて git の remote のリポジトリを読めない', () => {
     it('もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-34')
+      await verifies(context, 'PW-RELEASE-CHECK-34')
       const result = await runPreflight(projectWithBrokenRemote(WITH_BRANCHES), [], [])
       expect(result.stderr).toBe('error: could not read the repository from the git remote\n')
     })
 
     it('もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-35')
+      await verifies(context, 'PW-RELEASE-CHECK-35')
       const result = await runPreflight(projectWithBrokenRemote(WITH_BRANCHES), [], [])
       expect(result.code).toBe(1)
     })
@@ -367,13 +367,13 @@ describe('release preflight', () => {
 
   describe('--repo を省いて git の外で打った', () => {
     it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-36')
+      await verifies(context, 'PW-RELEASE-CHECK-36')
       const result = await runPreflight(project({ isGit: false }), [], [])
       expect(result.stderr).toContain('error: the repository is ambiguous\n')
     })
 
     it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-PREFLIGHT-37')
+      await verifies(context, 'PW-RELEASE-CHECK-37')
       const result = await runPreflight(project({ isGit: false }), [], [])
       expect(result.code).toBe(1)
     })
@@ -503,7 +503,7 @@ describe('release create', () => {
     await verifies(context, 'PW-RELEASE-CREATE-18')
     const result = await runCreate(project(WITHOUT_RELEASE_BRANCH), ['0.2.0'])
     expect(result.stderr).toContain('error: release_branch is not set for acme/demo\n')
-    expect(result.stderr).toContain('pecot project set-repo acme/demo --release-branch <branch>')
+    expect(result.stderr).toContain('pecot project link acme/demo --release-branch <branch>')
   })
 
   it('もし release_branch を設定していないなら、終了コード 1 で終わる', async (context) => {
@@ -705,7 +705,7 @@ describe('release merge', () => {
     await verifies(context, 'PW-RELEASE-MERGE-20')
     const result = await runMerge(project(WITHOUT_RELEASE_BRANCH), ['acme/demo/31'], [pullRequestResponse()])
     expect(result.stderr).toContain('error: release_branch is not set for acme/demo\n')
-    expect(result.stderr).toContain('pecot project set-repo acme/demo --release-branch <branch>')
+    expect(result.stderr).toContain('pecot project link acme/demo --release-branch <branch>')
   })
 
   it('もし release_branch を設定していないなら、終了コード 1 で終わる', async (context) => {

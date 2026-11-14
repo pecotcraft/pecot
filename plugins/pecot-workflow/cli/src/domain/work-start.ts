@@ -51,7 +51,7 @@ export function pickBasePullRequest(pullRequests: readonly PullRequestReadout[])
 }
 
 /**
-session status の `- base:` の行。PR が無ければ `no PR`、読めなければ `PR unknown`
+session show の `- base:` の行。PR が無ければ `no PR`、読めなければ `PR unknown`
 */
 export function describeStackBase(branch: string, issue: IssueReference, pullRequest: Readonly<PullRequestReadout> | undefined | 'unknown'): string {
   const pr = pullRequest === 'unknown' ? 'PR unknown' : (pullRequest === undefined ? 'no PR' : `PR #${String(pullRequest.number)} ${pullRequest.state}`)

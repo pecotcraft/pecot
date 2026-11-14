@@ -457,6 +457,23 @@ export async function ensureRepositoryInProject(output: Output, config: ProjectC
 }
 
 /**
+クライアントを作り、リポジトリがプロジェクトにあることを確かめる。無ければ error と終了コード 1。board add・board move・issue reopen が使う
+*/
+export async function connectToProject(output: Output, config: ProjectConfig, owner: string, repository: string): Promise<GitHubClient> {
+  const client = createGitHubClient(output, config.host)
+  await ensureRepositoryInProject(output, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
+  return client
+}
+
+/**
+ボードに無い status の error の文。blocked は後から足せる option なので、足し方の hint を添える
+*/
+export function notConfiguredMessage(status: string): string {
+  const base = `status '${status}' is not configured in the project`
+  return status === 'blocked' ? `${base}\nhint: run pecot project init to add the Blocked option to the board` : base
+}
+
+/**
 起票用のクライアントを作り、リポジトリのリンクと、親 Epic のリポジトリでの order の重複を確かめる
 */
 export async function clientForIssueCreate(

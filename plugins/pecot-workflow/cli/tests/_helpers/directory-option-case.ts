@@ -1,4 +1,4 @@
-// session status・session restore の --directory の検証のテストが共有する表と準備。
+// session show・session restore の --directory の検証のテストが共有する表と準備。
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'

@@ -2,7 +2,8 @@
 # create-slash-flag: ユーザープロンプトの先頭行がスラッシュコマンドのとき、
 # 対応する外部反映免除フラグを .pecot/state/ に設置する。
 #   /pecot-w:w-pr /w-pr → pr-create-slash-pending。
-#   /pecot-w:w-merge /w-merge → merge-slash-pending（gh pr merge の ask を免除。消費は MCP ツール pr_cleanup の成功時）。
+#   /pecot-w:w-merge /w-merge → merge-slash-pending（gh pr merge の ask を免除）。
+#     消費は MCP ツール session_finish の成功時。
 #   /pecot-w:w-quick|w-ready|w-backlog|w-issueize → issue-create-slash-pending。
 #   /w-quick|w-ready|w-backlog|w-issueize → issue-create-slash-pending。
 #     フラグの内容は起点コマンド名（名前空間なしの w-quick 等）で、デバッグ用。

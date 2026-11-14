@@ -1,0 +1,7 @@
+# aggregation_repo でないキー。typer の使い方エラーを記録する。
+id: project-set-usage-unknown-key
+command:
+  path: [project, set]
+  args: [foo, acme/roadmap]
+setup: {}
+github: []

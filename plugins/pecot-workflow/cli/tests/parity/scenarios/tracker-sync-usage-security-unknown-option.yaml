@@ -1,0 +1,9 @@
+# 存在しないオプション。typer の使い方エラーを記録する。
+id: tracker-sync-usage-security-unknown-option
+command:
+  path: [tracker, sync]
+  args:
+    - security
+    - "--bogus"
+setup: {}
+github: []
