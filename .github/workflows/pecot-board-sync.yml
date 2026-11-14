@@ -1,0 +1,84 @@
+# Place this file at .github/workflows/pecot-board-sync.yml in your repository.
+#
+# This workflow runs `pecot board sync` after PRs and issues change.
+# The command fixes the Status column and label of the pecot project board.
+# It reads the whole board on every run, so the trigger only decides when it runs.
+#
+# Set one of the two token setups in Settings > Secrets and variables > Actions.
+# The job is skipped until one of them exists.
+#   GitHub App.
+#     Use it when the board and this repository have the same organization as owner.
+#     The token covers only the installation on that owner (owner: github.repository_owner).
+#     Set variable PECOT_BOARD_SYNC_APP_CLIENT_ID.
+#     Set secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY.
+#   Personal access token.
+#     Use it for a personal account board, or when the board owner differs from the repository.
+#     Set variable PECOT_BOARD_SYNC_USE_PAT to true.
+#     Set secret PECOT_BOARD_SYNC_TOKEN.
+#
+# GitHub Enterprise Server names the token variable after the host.
+# The name is PECOT_GITHUB_<HOST>_TOKEN, with the host upper-cased and dots replaced by underscores.
+# For example, ghe.example.com gives PECOT_GITHUB_GHE_EXAMPLE_COM_TOKEN.
+# Change the name under `env:` in the last step.
+#
+# pull_request_target runs the workflow from the default branch.
+# Secrets are passed to PRs from forks, so this workflow never checks out code from a PR.
+name: pecot board sync
+
+on:
+  pull_request_target:
+    types: [opened, reopened, closed, ready_for_review, converted_to_draft]
+  issues:
+    types: [closed, reopened]
+  workflow_dispatch:
+  # Optional periodic run. Choose the interval and uncomment.
+  # Actions minutes are billed for private repositories.
+  # schedule:
+  #   - cron: "0 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pecot-board-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # A job-level if cannot read secrets, so variables tell whether a token is set up.
+    # Runs started by Dependabot are skipped because secrets are not always passed to them.
+    # The actor is whoever started the run, so a human merging a Dependabot PR still runs.
+    if: ${{ (vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' || vars.PECOT_BOARD_SYNC_USE_PAT == 'true') && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # No ref: the default branch is checked out, which holds the project settings.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+
+      - name: Generate GitHub App token
+        id: app-token
+        if: ${{ vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_BOARD_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOARD_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-organization-projects: write
+          permission-issues: read
+          permission-pull-requests: read
+          permission-contents: read
+
+      # Pin the major version here. Raise it when the plugin's major version is raised.
+      # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
+      - name: Sync the board
+        env:
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}
+        run: npx -y --prefix=/ @pecot/workflow-mcp@5 board sync
