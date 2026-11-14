@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 REPO_ROOT="$(cd "$PLUGIN_ROOT/../.." && pwd)"
 MCP_JSON="$PLUGIN_ROOT/.mcp.json"
-TOOL_COUNT=35
+TOOL_COUNT=37
 
 WORK_DIR="$REPO_ROOT/.pecot/tmp/pecot-workflow-bootstrap-test"
 rm -rf "$WORK_DIR"

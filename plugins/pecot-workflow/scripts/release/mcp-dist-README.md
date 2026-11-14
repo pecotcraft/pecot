@@ -99,9 +99,9 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `issue_quick` | 自由形式のメッセージから Issue をすぐ作る |
 | `issue_read` | Issue の詳細を必要な項目だけ取得する |
 | `issue_comment` | Issue にコメントを投稿する |
-| `issue_reopen` | 閉じた Issue を開き直す（ボードのステータスも戻す） |
 | `issue_block` | Issue に前提（blocked by）を付ける。付いている前提の種類と理由を変えるのにも使う |
 | `issue_unblock` | Issue から前提（blocked by）を外す |
+| `issue_reopen` | 閉じた Issue を開き直す（ボードのステータスも戻す） |
 | `pr_cleanup` | マージ後の後処理をする（Issue のクローズ、ブランチ削除、ローカルの整理） |
 | `pr_create` | PR を作る |
 | `pr_preflight` | PR を作る前に確かめる情報をまとめて表示する |
