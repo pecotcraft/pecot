@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 確かめるのはプラグイン内のリンク先のみ */
-// w-active・w-quick・w-revise の手順（Step の順序と見出し）が崩れていないことを確かめる。
+// w-active・w-quick・w-revise・w-issueize・w-breakdown の手順（Step の順序と見出し）が崩れていないことを確かめる。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
@@ -248,5 +248,97 @@ describe('w-issueize の手順', () => {
   it('完了報告に、進め方・積める並び・最初に着手できる Issue を入れる', () => {
     const body = sectionBody(text, numberIndex(headings, 4))
     for (const word of ['進め方', '積める並び', '最初に着手できる Issue']) expect(body).toContain(word)
+  })
+})
+
+/**
+本文の最初のコードブロックの中身。フェンスの行は含めない
+*/
+function firstCodeBlock(body: string): string {
+  const lines = body.split('\n')
+  const open = lines.findIndex(line => line.trimStart().startsWith('```'))
+  const close = lines.findIndex((line, index) => index > open && line.trimStart().startsWith('```'))
+  expect(open, 'コードブロックが無い').toBeGreaterThanOrEqual(0)
+  expect(close, 'コードブロックが閉じていない').toBeGreaterThan(open)
+  return lines.slice(open + 1, close).join('\n')
+}
+
+const TABLE_HEADER = '| Phase | 前提 | 種類 | 理由 |'
+
+describe('w-breakdown の手順', () => {
+  const text = readSkill('w-breakdown')
+  const headings = stepHeadings(text)
+  const tasksStep = (): number => titleIndex(headings, 'tasks')
+  const checkStep = (): number => titleIndex(headings, '前提の表を確かめる')
+
+  it('specify、clarify、tasks、前提の表の確かめの順に並ぶ', () => {
+    expect(titleIndex(headings, 'specify')).toBeLessThan(titleIndex(headings, 'clarify'))
+    expect(titleIndex(headings, 'clarify')).toBeLessThan(tasksStep())
+    expect(tasksStep()).toBeLessThan(checkStep())
+  })
+
+  it('clarify の Step の工程の順序に、/speckit.tasks が無い', () => {
+    const body = sectionBody(text, titleIndex(headings, 'clarify'))
+    const order = body.split('\n').find(line => line.startsWith('工程の順序'))
+    expect(order).toContain('`/speckit.clarify`')
+    expect(order).toContain('`/speckit.plan`')
+    expect(order).not.toContain('/speckit.tasks')
+    expect(body).toContain('やり直す')
+  })
+
+  it('tasks の Step は、/speckit.tasks の引数に渡すコードブロックを 1 つだけ持つ', () => {
+    const body = sectionBody(text, tasksStep())
+    expect(body).toContain('`/speckit.tasks`')
+    expect(body).toContain('引数')
+    expect(body.split('\n').filter(line => line.trimStart().startsWith('```'))).toHaveLength(2)
+  })
+
+  it('渡す指示は、表の形・置き場・種類の問い・マージを待つ例を持つ', () => {
+    const block = firstCodeBlock(sectionBody(text, tasksStep()))
+    for (const word of [TABLE_HEADER, '`## Dependencies & Execution Order`', '`### Phase Dependencies`', '積める', 'マージを待つ', '既定のブランチから配られる', 'リリースの後', 'main の CI']) expect(block).toContain(word)
+  })
+
+  it('渡す指示は、読み違いにつながる決まりを持つ', () => {
+    const block = firstCodeBlock(sectionBody(text, tasksStep()))
+    for (const word of ['前提の無いフェーズは、表に書かない', '直接の前提だけ', 'すべての行', '見出しの行と区切りの行だけ']) expect(block).toContain(word)
+  })
+
+  it('渡す指示に、行頭が ## の行を置かない', () => {
+    const block = firstCodeBlock(sectionBody(text, tasksStep()))
+    expect(block.split('\n').filter(line => line.trimStart().startsWith('##'))).toEqual([])
+  })
+
+  it('確かめの Step は、やり直しとその上限、理由が空のときの確かめを持つ', () => {
+    const body = sectionBody(text, checkStep())
+    for (const word of ['表が無い', '`種類`', 'やり直す', 'やり直しは 1 回まで', '理由が空', 'ユーザーに確かめる', 'エージェントが理由を作らない', '次に進む']) expect(body).toContain(word)
+  })
+
+  it('analyze と w-issueize の案内は、確かめの Step の後ろにある', () => {
+    const lines = text.split('\n')
+    const checkLine = headings[checkStep()]?.line ?? lines.length
+    expect(lines.findIndex(line => line.includes('/speckit.analyze'))).toBeGreaterThan(checkLine)
+    expect(lines.findIndex(line => line.includes('/pecot-w:w-issueize'))).toBeGreaterThan(checkLine)
+  })
+
+  it('表の列の名前は、w-issueize の Step 2 が読む列と同じ', () => {
+    const block = firstCodeBlock(sectionBody(text, tasksStep()))
+    const header = block.split('\n').find(line => line.trim() === TABLE_HEADER) ?? ''
+    const written = header.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
+    const issueize = readSkill('w-issueize')
+    const body = sectionBody(issueize, titleIndex(stepHeadings(issueize), '前提'))
+    const read = /4 列の表（([^）]+)）/u.exec(body)?.[1]?.split('・') ?? []
+    expect(written).toEqual(['Phase', '前提', '種類', '理由'])
+    expect(read).toEqual(written)
+  })
+})
+
+describe('w-issueize の前提の表の読み方', () => {
+  const text = readSkill('w-issueize')
+  const body = sectionBody(text, titleIndex(stepHeadings(text), '前提'))
+
+  it('見出しの行だけの表は、前提が無いと読み、文から前提を読まない', () => {
+    expect(body).toContain('見出しの行だけの表')
+    expect(body).toContain('「前提が無い」と読む')
+    expect(body).toContain('文から前提を読まない')
   })
 })
