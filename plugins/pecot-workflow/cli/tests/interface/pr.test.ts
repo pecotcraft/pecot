@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // pr の 4 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -1255,9 +1255,16 @@ describe('pr preflight', () => {
   it.for([
     { name: '下の段のブランチが remote にある', branches: [BRANCH, LOWER], expected: `origin/${LOWER}` },
     { name: '下の段のブランチが remote に無い', branches: [BRANCH], expected: 'origin/main' },
+    { name: '下の段のブランチが remote から消え、手元に追跡参照が残っている', branches: [BRANCH, LOWER], remoteChange: 'delete', expected: 'origin/main' },
+    { name: '下の段の追跡参照があり、remote に届かない', branches: [BRANCH, LOWER], remoteChange: 'unreachable', expected: `origin/${LOWER}` },
   ])('積んだ base の記録があり、$name ときに打つと、Base Branch の節に $expected を出す', async (row, context) => {
     await verifies(context, 'PW-PR-PREFLIGHT-18')
     const workspace = await pushedBranch({ branches: row.branches.map(name => ({ name })), files: STACKED_RECORD })
+    if (row.remoteChange === 'delete') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+    else if (row.remoteChange === 'unreachable') {
+      const bare = workspace.remoteGit(['rev-parse', '--absolute-git-dir']).trim()
+      renameSync(bare, `${bare}.moved`)
+    }
     const result = await preflight(workspace)
     expect(result.code).toBe(0)
     expect(result.stdout).toContain(`=== Base Branch ===\n${row.expected}\n`)

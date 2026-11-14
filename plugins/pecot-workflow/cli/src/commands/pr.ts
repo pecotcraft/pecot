@@ -71,6 +71,8 @@ const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
 // 下の段の PR が開いておらず、マージもされていない
 const NO_OPEN_BASE_EXIT_CODE = 2
+// git ls-remote --exit-code が、一致する参照が無いときに返す
+const LS_REMOTE_NOT_FOUND = 2
 
 // Python の `{e}` に当たる、例外の文
 function reasonOf(error: unknown): string {
@@ -765,13 +767,19 @@ function hasBranch(branch: string, cwd: string): boolean {
   return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
 }
 
+// 下の段のブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので、
+// remote に尋ね、無い（終了コード 2）ときだけ消えたとみなす。届かなければ追跡参照で決める
+function isOnRemote(branch: string, cwd: string, remote: string): boolean {
+  const listed = runGit(['ls-remote', '--exit-code', '--heads', remote, `refs/heads/${branch}`], { cwd })
+  return listed.exitCode !== LS_REMOTE_NOT_FOUND && hasBranch(`${remote}/${branch}`, cwd)
+}
+
 function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
   const config = loadActiveConfig()
   if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
   const reading = readBaseRecord()
   stopOnMalformedRecord(reading, out)
-  // 下の段のブランチがマージで消えた後は、開発ブランチと比べる
-  if (reading.kind === 'stacked' && hasBranch(`${remote}/${reading.record.branch}`, cwd)) return `${remote}/${reading.record.branch}`
+  if (reading.kind === 'stacked' && isOnRemote(reading.record.branch, cwd, remote)) return `${remote}/${reading.record.branch}`
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
     return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project set-repo ${location.owner}/${location.repository} --develop-branch develop`)

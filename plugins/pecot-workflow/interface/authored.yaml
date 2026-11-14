@@ -2577,7 +2577,7 @@ entries:
         - Prints the information to check before creating a PR for the repository given by --directory.
         - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
         - The base branch is <remote>/ followed by the develop_branch of the active project, where <remote> is the origin remote, or the first remote when there is no origin.
-        - "When the base record of a stacked start exists, the base branch is <remote>/ followed by the branch of the layer below instead. When that branch no longer exists, it is <remote>/ followed by the develop_branch."
+        - "When the base record of a stacked start exists, the base branch is <remote>/ followed by the branch of the layer below instead. When the remote reports that branch no longer exists, it is <remote>/ followed by the develop_branch, even if a stale remote-tracking ref remains. When the remote cannot be reached, the remote-tracking ref decides."
         - Prints every section even when there are warnings.
         - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
         - Exits with status 2 when there is at least one warning.
@@ -2594,7 +2594,7 @@ entries:
       - '`--directory` のリポジトリについて、PR を作る前に確かめる情報を出します。'
       - '11 の節を決まった順で出します。節は、Git Remote・Current Branch・Push Status・Base Branch・Git Status・.gitignore と続きます。その後は、Git Exclude・Commits・Diff Summary・Worktree Info・Stash List です。'
       - 'base ブランチは、`<remote>/` の後にアクティブなプロジェクトの `develop_branch` を続けたものです。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
-      - '積んで着手した記録があるときは、base ブランチは、`<remote>/` の後に下の段のブランチを続けたものです。そのブランチが無ければ（マージで消えた後）、`develop_branch` の方にします。'
+      - '積んで着手した記録があるときは、base ブランチは、`<remote>/` の後に下の段のブランチを続けたものです。remote がそのブランチは無いと答えれば（マージで消えた後）、手元に追跡参照が残っていても `develop_branch` の方にします。remote に届かなければ、手元の追跡参照の有無で決めます。'
       - '`warning` があっても、すべての節を出します。'
       - '`warning` として数えるのは、push していないか remote とずれたブランチ、変更したファイルか追跡していないファイル、stash の項目です。'
       - '`warning` が 1 件以上あると、終了コード 2 で終わります。'
@@ -2682,7 +2682,7 @@ entries:
         statement: 'もし `--directory` を渡していないなら、使い方のエラーを出して終了コード 2 で終わります'
       - id: PW-PR-PREFLIGHT-18
         pattern: event
-        statement: '積んだ base の記録があるときに打つと、Base Branch の節に `<remote>/<下の段のブランチ>` を出します。そのブランチが無ければ `<remote>/<develop_branch>` を出します'
+        statement: '積んだ base の記録があるときに打つと、Base Branch の節に `<remote>/<下の段のブランチ>` を出します。そのブランチが remote から消えていれば、手元に追跡参照が残っていても `<remote>/<develop_branch>` を出します'
   PW-PR-READ:
     help:
       details:
