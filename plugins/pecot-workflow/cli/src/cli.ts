@@ -62,16 +62,25 @@ type Resolution
   = | { readonly kind: 'command', readonly definition: CommandDefinition, readonly argv: readonly string[] }
     | { readonly kind: 'help', readonly path: readonly string[] }
 
-// #412 で変えた古い名前。キーは解決が止まる位置までの path。次の major で消す
-const RENAMED_COMMANDS: ReadonlyMap<string, string> = new Map([
-  ['add-to-project', 'board add'],
-  ['update-issue-status', 'board move'],
-  ['create-branch', 'branch create'],
-  ['delete-branch', 'branch delete'],
-  ['project set-repo', 'repo set'],
-  ['project set-aggregation-repo', 'aggregation set'],
-  ['project unset-aggregation-repo', 'aggregation unset'],
-  ['project show-aggregation-repo', 'aggregation show'],
+// #412 で変えた main の古い名前。キーは解決が止まる位置までの path で、値は案内に出す古い名前と新しい名前。次の major で消す
+const RENAMED_COMMANDS: ReadonlyMap<string, readonly [string, string]> = new Map([
+  ['add-to-project', ['add-to-project', 'board add']],
+  ['update-issue-status', ['update-issue-status', 'board move']],
+  ['create-branch', ['create-branch', 'session start']],
+  ['delete-branch', ['delete-branch', 'branch delete']],
+  ['dependabot', ['dependabot sync', 'tracker sync dependabot']],
+  ['security', ['security sync', 'tracker sync security']],
+  ['project info', ['project info', 'board show']],
+  ['project set-repo', ['project set-repo', 'project link']],
+  ['project set-aggregation-repo', ['project set-aggregation-repo', 'project set aggregation_repo']],
+  ['project unset-aggregation-repo', ['project unset-aggregation-repo', 'project unset aggregation_repo']],
+  ['project show-aggregation-repo', ['project show-aggregation-repo', 'project get aggregation_repo']],
+  ['issue read', ['issue read', 'issue show']],
+  ['pr read', ['pr read', 'pr show']],
+  ['pr preflight', ['pr preflight', 'pr check']],
+  ['pr cleanup', ['pr cleanup', 'session finish']],
+  ['release preflight', ['release preflight', 'release check']],
+  ['session status', ['session status', 'session show']],
 ])
 
 function isUnderGroup(path: readonly string[], group: readonly string[]): boolean {
@@ -95,7 +104,7 @@ function resolveCommand(group: readonly string[], rest: readonly string[], comma
     .map(command => command.path.slice(group.length, group.length + 1).join(''))
   if (!names.includes(name)) {
     const renamed = RENAMED_COMMANDS.get(path.join(' '))
-    if (renamed !== undefined) throw new UsageError(renamedCommandMessage(path.join(' '), renamed), context)
+    if (renamed !== undefined) throw new UsageError(renamedCommandMessage(...renamed), context)
     const possibilities = closeMatches(name, [...new Set(names)])
     throw new UsageError(noSuchCommandMessage(name, possibilities), context)
   }

@@ -48,16 +48,16 @@ AskUserQuestion でプロジェクト名とワークフローサフィックス�
 
 概略フロー:
 
-1. 現状確認: `aggregation_show`
+1. 現状確認: `project_get`（`key: "aggregation_repo"`）
 2. AskUserQuestion Q1 で方針を選択: 使わない / 既存リポを指定（推奨） / 新規リポを作成 / 現状維持（既設定時のみ）
 3. 選択に応じて集約リポを設定（既存リポ指定 / 新規リポ作成 / スキップ）
-4. `aggregation_show` で設定値を再確認
+4. `project_get`（`key: "aggregation_repo"`）で設定値を再確認
 
 AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ作成の 3 コマンドシーケンス・`yes: true` 上書きの使い方は [集約リポ設定の詳細](references/aggregation-repo.md) を参照。
 
 ### Step 4: 動作確認
 
-`project_info` を引数なしで呼ぶ。プロジェクト設定が表示されることを確認する。
+`board_show` を引数なしで呼ぶ。プロジェクト設定が表示されることを確認する。
 
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
 
@@ -86,7 +86,7 @@ printf '%s\n' "$board_url"
 
 ### Step 5: 次ステップ案内
 
-集約リポの設定状況に応じて案内を分岐する。`aggregation_show` の結果で確認できる。
+集約リポの設定状況に応じて案内を分岐する。`project_get`（`key: "aggregation_repo"`）の結果で確認できる。
 
 - 集約リポが設定済みのとき
 
@@ -110,5 +110,5 @@ printf '%s\n' "$board_url"
     - 任意: 列を自動で直すワークフローを置く（w-help の「ボードを自動で直すワークフロー」）
 
   Epic 作成時は repo: "<owner/repo>" で作成先を明示する。
-  後から /pecot-w:w-onboarding を再実行するか、aggregation_set で設定できる。
+  後から /pecot-w:w-onboarding を再実行するか、project_set（`key: "aggregation_repo"`）で設定できる。
   ```

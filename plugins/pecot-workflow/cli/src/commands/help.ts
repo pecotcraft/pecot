@@ -7,19 +7,17 @@ import type { CommandDefinition } from './registry.js'
 
 export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - work tracking on GitHub Projects'
 
+// help の一覧の順は、この Map ではなく registry.ts の COMMANDS が決める
 const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
-  ['project', 'Manage projects through the GitHub API'],
-  ['repo', 'Register repositories in the project config'],
-  ['aggregation', 'Manage the Epic aggregation repository'],
+  ['project', 'Connect to projects and manage the project config'],
+  ['board', 'Show the project board and place Issues on it'],
   ['issue', 'Work with Issues'],
-  ['branch', 'Work with branches linked to Issues'],
+  ['session', 'Start, show, restore and finish the work on an Issue'],
   ['pr', 'Work with PRs'],
-  ['session', 'Manage the session'],
   ['release', 'Work with releases'],
-  ['security', 'Put security alerts into a Tracker'],
-  ['dependabot', 'Put Dependabot PRs waiting for a human decision into a Tracker'],
-  ['board', 'Add, move and sync Issues on the project board'],
+  ['tracker', 'Rewrite the list in a Tracker Issue'],
   ['worktree', 'Work with worktrees'],
+  ['branch', 'Work with remote branches'],
 ])
 
 const ROOT_OPTIONS: readonly DefinitionRow[] = [

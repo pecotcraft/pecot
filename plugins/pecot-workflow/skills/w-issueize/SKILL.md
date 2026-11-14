@@ -22,7 +22,7 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 - `SPECKIT_DIR`: speckit 一式が置かれているディレクトリ（例: `specs/263-plan-mode-reminder/`）。aist-roadmap など外部リポにある場合は `owner/repo:specs/NNN-*/` 形式で表す。
 - `TASKS_PATH`: 受け取った tasks.md の実パス
 
-`issue_read` を `issue_ref: "owner/repo/EPIC_NUMBER"` で呼ぶ。
+`issue_show` を `issue_ref: "owner/repo/EPIC_NUMBER"` で呼ぶ。
 
 ### Step 2: フェーズ構造と前提を把握する
 

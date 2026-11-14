@@ -30,7 +30,7 @@ CHANGELOG の形式・commit メッセージ・タグ形式・GitHub Release の
 
 w-release SKILL.md の Step 1 で判定したブランチモードに従う。
 
-- `project_info` の結果の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
+- `board_show` の結果の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
   （pecot は両方 `main`）。[単一ブランチモード（develop == release）](#単一ブランチモードdevelop--release) に従う。
   `main` 上で `$NX release` を実行し、リリース PR と `release_merge` は行わない。
 - 対象リポ行で `develop:` と `release:` が異なるなら、**2ブランチモード**になる。
@@ -145,7 +145,7 @@ current branch に commit する。そのため `main` 上で `$NX release` を�
 push・GitHub Release の発行までが一括で完結する。**`develop` と `release` が同じブランチで
 中間 PR が存在しないため、リリース PR 作成と `release_merge` は行わない。**
 
-以降、GitHub ホスト名を `<gh-host>` と表記。値は `project_info` の結果の Host で決まる（例: `github.com`）。
+以降、GitHub ホスト名を `<gh-host>` と表記。値は `board_show` の結果の Host で決まる（例: `github.com`）。
 
 ### 手順の選び方（ランナーか手元か）
 
@@ -280,11 +280,11 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-`release_preflight` を `repo: "<owner>/<repo>"` で呼ぶ。
+`release_check` を `repo: "<owner>/<repo>"` で呼ぶ。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-後で対応する open の Dependabot alert は、`security_sync` が立てる security alert の Tracker で追う。
+後で対応する open の Dependabot alert は、`tracker_sync`（`source: "security"`）が立てる security alert の Tracker で追う。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
@@ -334,7 +334,7 @@ GitHub Release の発行までを完了する。
 `release_merge`）は **丸ごとスキップする**。Step 6 で remote `main` への push と
 GitHub Release 発行まで完結しているため追加操作は不要。
 
-`release_create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`release_preflight` は Step 3 で実行済み。
+`release_create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`release_check` は Step 3 で実行済み。
 
 ### 8. 完了報告
 
@@ -345,8 +345,8 @@ GitHub Release 発行まで完結しているため追加操作は不要。
 ## 2ブランチモードの手順
 
 開発ブランチと release ブランチが分かれているリポ向け。対象リポの `develop` branch は
-`project_info` で事前に確認。以降、開発ブランチを `<develop>`、GitHub ホスト名を
-`<gh-host>` と表記。値は `project_info` の結果の Host で決まる（例: `github.com`）。
+`board_show` で事前に確認。以降、開発ブランチを `<develop>`、GitHub ホスト名を
+`<gh-host>` と表記。値は `board_show` の結果の Host で決まる（例: `github.com`）。
 
 ### 1. develop ブランチの worktree を最新化
 
@@ -375,11 +375,11 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-`release_preflight` を `repo: "<owner>/<repo>"` で呼ぶ。
+`release_check` を `repo: "<owner>/<repo>"` で呼ぶ。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-後で対応する open の Dependabot alert は、`security_sync` が立てる security alert の Tracker で追う。
+後で対応する open の Dependabot alert は、`tracker_sync`（`source: "security"`）が立てる security alert の Tracker で追う。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
@@ -487,7 +487,7 @@ squash merge だと tag が指す commit が `<release>` の履歴から到達�
 GitHub Release が孤児 commit を参照する状態になる。
 
 `release_create` は Nx Release のリリースでは不要。Nx Release が version 整合確認・tag 作成・
-GitHub Release 発行を Step 6 で完結させている。`release_preflight` は Step 3 で実行済み。
+GitHub Release 発行を Step 6 で完結させている。`release_check` は Step 3 で実行済み。
 
 ### 9. 完了報告
 

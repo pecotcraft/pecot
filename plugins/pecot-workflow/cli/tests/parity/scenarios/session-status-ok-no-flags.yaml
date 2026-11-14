@@ -1,9 +1,0 @@
-# フラグが無く、main ブランチ。Issue の推定は (none) で、GitHub を呼ばない。
-id: session-status-ok-no-flags
-command:
-  path: [session, status]
-  args:
-    - "-D"
-    - "."
-setup: {}
-github: []

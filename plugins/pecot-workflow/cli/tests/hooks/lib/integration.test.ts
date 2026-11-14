@@ -146,7 +146,7 @@ describe('統合: アダプターとエントリ', () => {
     },
   )
 
-  it.for(rowsOf(['pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot issue create x.md', 'pecot pr create x.md --dry-run', '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue read 1']))(
+  it.for(rowsOf(['pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot issue create x.md', 'pecot pr create x.md --dry-run', '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue show 1']))(
     'Claude Code のエントリでコマンドが $label のとき、pecot-cli-deny の deny を返す',
     (row) => {
       const hookCase = createHookCase()
@@ -176,7 +176,7 @@ describe('統合: アダプターとエントリ', () => {
   it('pecot の起動と gh pr merge が同じコマンドにあるとき、deny が勝つ', () => {
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
-    const result = runEntry(hookCase, { tool_input: { command: 'pecot issue read 1 && gh pr merge 1' } })
+    const result = runEntry(hookCase, { tool_input: { command: 'pecot issue show 1 && gh pr merge 1' } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')
     expect(result.stdout).not.toContain('"ask"')

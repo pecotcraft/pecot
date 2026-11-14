@@ -9,18 +9,18 @@ describe('toolInputOf', () => {
   })
 
   it('値を取るフラグは、短い形と長い形のどちらも、入力の名前に引く', () => {
-    expect(toolInputOf(readToolShape(['session', 'status']), ['-D', '.'])).toEqual({ directory: '.' })
-    expect(toolInputOf(readToolShape(['session', 'status']), ['--directory=/x'])).toEqual({ directory: '/x' })
+    expect(toolInputOf(readToolShape(['session', 'show']), ['-D', '.'])).toEqual({ directory: '.' })
+    expect(toolInputOf(readToolShape(['session', 'show']), ['--directory=/x'])).toEqual({ directory: '/x' })
   })
 
   it('値を取らないフラグは true、否定形は false、入力 no_x の --no-x は true', () => {
-    expect(toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--no-checkout'])).toMatchObject({ checkout: false })
-    expect(toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--checkout'])).toMatchObject({ checkout: true })
+    expect(toolInputOf(readToolShape(['session', 'start']), ['acme/demo/7', '--no-checkout'])).toMatchObject({ checkout: false })
+    expect(toolInputOf(readToolShape(['session', 'start']), ['acme/demo/7', '--checkout'])).toMatchObject({ checkout: true })
     expect(toolInputOf(readToolShape(['issue', 'quick']), ['-m', 'x', '--no-branch'])).toMatchObject({ no_branch: true })
   })
 
   it('整数の入力は数にし、配列の入力は繰り返しを集める', () => {
-    expect(toolInputOf(readToolShape(['issue', 'read']), ['acme/demo/7', '--comment-limit', '3'])).toMatchObject({ comment_limit: 3 })
+    expect(toolInputOf(readToolShape(['issue', 'show']), ['acme/demo/7', '--comment-limit', '3'])).toMatchObject({ comment_limit: 3 })
     expect(toolInputOf(readToolShape(['issue', 'create']), ['-t', 'task', '--label', 'a', '--label', 'b'])).toMatchObject({ label: ['a', 'b'] })
   })
 
@@ -29,7 +29,7 @@ describe('toolInputOf', () => {
   })
 
   it('グローバルの --repo は repo に入れ、後の値を使う', () => {
-    expect(toolInputOf(readToolShape(['session', 'status']), ['--repo', 'a/b', '--repo=c/d'])).toEqual({ repo: 'c/d' })
+    expect(toolInputOf(readToolShape(['session', 'show']), ['--repo', 'a/b', '--repo=c/d'])).toEqual({ repo: 'c/d' })
   })
 
   it('-- より後ろは位置引数にする', () => {
@@ -37,12 +37,12 @@ describe('toolInputOf', () => {
   })
 
   it('定義書に無いフラグと、値の無いフラグは例外にする', () => {
-    expect(() => toolInputOf(readToolShape(['session', 'status']), ['--bogus'])).toThrow('--bogus')
-    expect(() => toolInputOf(readToolShape(['session', 'status']), ['-D'])).toThrow('値がありません')
+    expect(() => toolInputOf(readToolShape(['session', 'show']), ['--bogus'])).toThrow('--bogus')
+    expect(() => toolInputOf(readToolShape(['session', 'show']), ['-D'])).toThrow('値がありません')
   })
 
   it('整数でない値は、数に読める文字でも例外にする', () => {
-    const shape = readToolShape(['issue', 'read'])
+    const shape = readToolShape(['issue', 'show'])
     for (const text of ['x', '', ' ', '1e3', '0x10', '1.5', '+1', ' 7', '7 ', '1_0']) {
       expect(() => toolInputOf(shape, ['acme/demo/7', '--comment-limit', text])).toThrow('整数')
     }
@@ -51,8 +51,8 @@ describe('toolInputOf', () => {
   })
 
   it('値を取らない真偽値のフラグに --flag=value で値を付けると、例外にする', () => {
-    expect(() => toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--no-checkout=false'])).toThrow('値を取らない')
-    expect(() => toolInputOf(readToolShape(['branch', 'create']), ['acme/demo/7', '--checkout='])).toThrow('値を取らない')
+    expect(() => toolInputOf(readToolShape(['session', 'start']), ['acme/demo/7', '--no-checkout=false'])).toThrow('値を取らない')
+    expect(() => toolInputOf(readToolShape(['session', 'start']), ['acme/demo/7', '--checkout='])).toThrow('値を取らない')
   })
 
   it('位置引数が定義書より余ると、例外にする。最後が配列なら余らない', () => {
@@ -62,7 +62,7 @@ describe('toolInputOf', () => {
   })
 
   it('値を取るフラグの値が -- のときは、区切りでなく値にする', () => {
-    expect(toolInputOf(readToolShape(['session', 'status']), ['-D', '--'])).toEqual({ directory: '--' })
+    expect(toolInputOf(readToolShape(['session', 'show']), ['-D', '--'])).toEqual({ directory: '--' })
     expect(toolInputOf(readToolShape(['board', 'move']), ['--', 'acme/demo/7', 'active'])).toEqual({ issue_ref: 'acme/demo/7', status: 'active' })
   })
 
@@ -70,7 +70,7 @@ describe('toolInputOf', () => {
     expect(() => toolInputOf(readToolShape(['board', 'move']), ['-1', 'active'])).toThrow('負数')
     expect(() => toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', '-12'])).toThrow('負数')
     // 値を取るフラグの値と、-- より後ろは、負数に見えても値・位置引数にする
-    expect(toolInputOf(readToolShape(['issue', 'read']), ['acme/demo/7', '--comment-limit', '-3'])).toMatchObject({ comment_limit: -3 })
+    expect(toolInputOf(readToolShape(['issue', 'show']), ['acme/demo/7', '--comment-limit', '-3'])).toMatchObject({ comment_limit: -3 })
     expect(toolInputOf(readToolShape(['board', 'move']), ['--', '-1', 'active'])).toEqual({ issue_ref: '-1', status: 'active' })
   })
 

@@ -52,7 +52,7 @@ const COMMANDS: readonly CommandDefinition[] = [
     run: async (_input, io) => await exitWith(isConfirmed(io, 'Overwrite?') ? 0 : 1),
   }),
   defineCommand({
-    path: ['bad-parameter'],
+    path: ['bad', 'parameter'],
     description: 'context の無い使い方の誤り',
     input: z.object({}),
     positional: [],
@@ -60,7 +60,7 @@ const COMMANDS: readonly CommandDefinition[] = [
     run: async () => await throwFailure(new UsageError('Invalid value for x')),
   }),
   defineCommand({
-    path: ['pecot-failure'],
+    path: ['pecot', 'failure'],
     description: '報告できる失敗',
     input: z.object({}),
     positional: [],
@@ -76,7 +76,7 @@ const COMMANDS: readonly CommandDefinition[] = [
     run: async () => await failWith('boom'),
   }),
   defineCommand({
-    path: ['own-repo'],
+    path: ['own', 'repo'],
     description: '自分の repo を持つ',
     input: z.object({ repo: z.string() }),
     hasOwnRepo: true,
@@ -162,7 +162,7 @@ describe('ツールの呼び出し', () => {
     const structured = outcomeOf(result)
     expect(structured.exitCode).toBe(2)
     expect(structured.stderr).toContain('Usage: ')
-    expect(structured.stderr).toContain('bad-parameter')
+    expect(structured.stderr).toContain('bad parameter')
     expect(structured.stderr).toContain('Invalid value for x')
   })
 

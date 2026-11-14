@@ -522,7 +522,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 }
 
 # tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している（cli/tests/bootstrap/run.sh と同値）。
-EXPECTED_TOOL_COUNT=37
+EXPECTED_TOOL_COUNT=36
 EXPECTED_FIRST_TOOL="project_list"
 
 # smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
@@ -576,7 +576,7 @@ assert_eq "README の登録名が initialize の serverInfo.name と一致する
     "$(smoke_value "$TMP/smoke-default.json" serverName)"
 
 # tools/list が緑でも、dist の外のファイルを読めないと tools/call は失敗する。
-# 一時 git リポ（ブランチ名に Issue 番号なし）を cwd に、gh を呼ばない session_status と issue_comment (prepare) を投げる。
+# 一時 git リポ（ブランチ名に Issue 番号なし）を cwd に、gh を呼ばない session_show と issue_comment (prepare) を投げる。
 call_value() {
     # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'exitCode' か 'text'
     node -e "
@@ -596,7 +596,7 @@ git init --quiet --initial-branch=smoke-branch "$CALL_REPO" || exit 1
 git -C "$CALL_REPO" commit --quiet --allow-empty -m "smoke" > /dev/null 2>&1 || exit 1
 SMOKE_CALLS_OUT="$TMP/smoke-calls.json"
 SMOKE_CWD="$CALL_REPO" \
-    SMOKE_TOOL_CALLS='[{"name":"session_status","arguments":{"directory":"."}},{"name":"issue_comment","arguments":{"prepare":true,"template":"plan"}}]' \
+    SMOKE_TOOL_CALLS='[{"name":"session_show","arguments":{"directory":"."}},{"name":"issue_comment","arguments":{"prepare":true,"template":"plan"}}]' \
     smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
     > "$SMOKE_CALLS_OUT" 2> "$SMOKE_CALLS_OUT.err"
 case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
@@ -609,12 +609,12 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
         fail "tools/call smoke が何も出力しなかった ($smoke_err_tail)"
         ;;
     *)
-        assert_eq "session_status の tools/call が終了コード 0 を返す" "0" \
+        assert_eq "session_show の tools/call が終了コード 0 を返す" "0" \
             "$(call_value "$SMOKE_CALLS_OUT" 0 exitCode)"
         SESSION_TEXT="$(call_value "$SMOKE_CALLS_OUT" 0 text)"
         case "$SESSION_TEXT" in
-            *"- Branch: smoke-branch"*) pass "session_status が一時リポのブランチ名を返す" ;;
-            *) fail "session_status の結果にブランチ名が無い: $SESSION_TEXT" ;;
+            *"- Branch: smoke-branch"*) pass "session_show が一時リポのブランチ名を返す" ;;
+            *) fail "session_show の結果にブランチ名が無い: $SESSION_TEXT" ;;
         esac
         assert_eq "issue_comment (prepare) の tools/call が終了コード 0 を返す" "0" \
             "$(call_value "$SMOKE_CALLS_OUT" 1 exitCode)"

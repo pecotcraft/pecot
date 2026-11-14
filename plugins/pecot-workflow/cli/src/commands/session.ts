@@ -1,4 +1,4 @@
-// session status・session restore。cli/commands/session.py の移植。
+// session show・session restore。cli/commands/session.py の移植。
 import { z } from 'zod'
 
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
@@ -122,7 +122,7 @@ async function readinessLines(active: Readonly<ActiveIssue>, output: Output): Pr
 }
 
 const STATUS = defineCommand({
-  path: ['session', 'status'],
+  path: ['session', 'show'],
   description: 'Show the session flag state, branch information, and inferred Issue',
   input: z.object({ directory: directorySchema }),
   positional: [],

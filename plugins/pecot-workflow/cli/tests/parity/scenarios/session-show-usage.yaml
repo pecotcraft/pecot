@@ -1,0 +1,7 @@
+# 必須の -D が無い。typer の使い方エラーを記録する。
+id: session-show-usage
+command:
+  path: [session, show]
+  args: []
+setup: {}
+github: []

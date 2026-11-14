@@ -1,12 +1,12 @@
 # ワークツリー環境でのPRマージ後処理
 
-> WT後処理は `pr_cleanup` が自動実行します。
+> WT後処理は `session_finish` が自動実行します。
 > 通常はこのドキュメントを参照する必要はありません。
 > `skip_local_cleanup: true` を使用した場合や、自動処理でエラーが発生した場合のリファレンスです。
 
 ## PRマージ後の片付け（ブランチ削除込み）
 
-マージは `gh pr merge <番号> --repo <owner>/<repo> --squash` で行い、マージされたあとの片付けに `pr_cleanup` を使用します。`pr_ref: "<owner>/<repo>/<番号>"` と `delete_branch: true` で呼びます。
+マージは `gh pr merge <番号> --repo <owner>/<repo> --squash` で行い、マージされたあとの片付けに `session_finish` を使用します。`pr_ref: "<owner>/<repo>/<番号>"` と `delete_branch: true` で呼びます。
 
 **入力**:
 
@@ -37,12 +37,12 @@ git branch
 
 > **ブランチモードについて**: 以下で「開発ブランチ」と表記する箇所は config 由来で
 > 決まる。2ブランチモードでは `develop-aist`、単一ブランチモード（`develop` == `release` /
-> trunk-based）では `main`。`pr_preflight` の結果で
+> trunk-based）では `main`。`pr_check` の結果で
 > 決定されたブランチを使えば、どちらのモードでも正しい開発ブランチに揃う。
 
 ### 通常環境（ワークツリー未使用）
 
-デフォルトブランチ（`pr_preflight` で決定されたブランチ）に切り替え:
+デフォルトブランチ（`pr_check` で決定されたブランチ）に切り替え:
 
 ```bash
 # デフォルトブランチに切り替え（開発ブランチ または main）
@@ -60,7 +60,7 @@ mainワークツリーへの移動や更新は**不要**。
 
 ```bash
 # 1. ワークツリー専用ブランチに切り替え
-#    pr_preflight の結果「Current directory name:」の値を使用
+#    pr_check の結果「Current directory name:」の値を使用
 #    例: wt1, wt2, wt3
 git checkout <Current directory nameの値>
 
@@ -71,7 +71,7 @@ git pull <remote> <開発ブランチ>  # remote は origin、無ければ最初
 git branch -D <マージしたブランチ>
 ```
 
-> **Note**: リモートブランチは `pr_cleanup`（`delete_branch: true`）で自動削除される。
+> **Note**: リモートブランチは `session_finish`（`delete_branch: true`）で自動削除される。
 > 手動でリモートブランチを削除する場合は、`branch_delete` を `repo_ref: "<owner/repo>"`・`branch: "<branch>"` で呼ぶ。
 
 **禁止事項**:

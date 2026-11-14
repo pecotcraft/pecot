@@ -18,7 +18,7 @@ CHANGELOG を更新してリリースする。
 
 1. **対象リポの release_type を確認する**
 
-   `project_info` を引数なしで呼ぶ。
+   `board_show` を引数なしで呼ぶ。
 
    結果の対象リポ行の直下にある `release_type: <...>` を読む:
 
@@ -47,6 +47,6 @@ CHANGELOG を更新してリリースする。
 
 ## release_type 未設定のリポへの対応
 
-`release_type` は `repo_set` を `owner_repo: "<owner>/<repo>"`・`release_type: "<type>"` で呼んで明示設定する。
+`release_type` は `project_link` を `owner_repo: "<owner>/<repo>"`・`release_type: "<type>"` で呼んで明示設定する。
 未設定の場合は `packages` の有無から自動推測される（有り → `multi`、無し → `single`）。
 Nx Release 方式 (`nx`) は必ず明示設定が必要。

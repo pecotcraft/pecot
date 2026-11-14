@@ -1,4 +1,4 @@
-// issue read。cli/commands/issue.py の issue_read の移植。
+// issue show。cli/commands/issue.py の issue_read の移植。
 import { z } from 'zod'
 
 import type { ProjectConfig } from '../domain/config.js'
@@ -158,7 +158,7 @@ async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, c
 }
 
 const ISSUE_READ = defineCommand({
-  path: ['issue', 'read'],
+  path: ['issue', 'show'],
   description: 'Fetch Issue details efficiently (GraphQL, only the needed fields)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),

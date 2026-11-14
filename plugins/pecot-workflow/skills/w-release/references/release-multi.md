@@ -1,7 +1,7 @@
 # packages monorepo のリリース
 
 1 リポ内に複数 package があり、package ごとに CHANGELOG とバージョンを持つ構成を扱う。
-設定は `repo_set` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
+設定は `project_link` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
 
 ## バージョン決定基準
 
@@ -13,7 +13,7 @@
 
 ### 1. 対象確認
 
-`project_info` を引数なしで呼ぶ。
+`board_show` を引数なしで呼ぶ。
 
 `package: NAME → CHANGELOG パス` の行から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
 リリース package を `<package>`、バージョンを `<ver>` と表記。
@@ -21,7 +21,7 @@
 ### 2. bump 種別のユーザー確認
 
 `<ver>` を確定する前に、ユーザーへ以下を提示して明示的承認を得る。
-承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_preflight`・
+承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_check`・
 `release_create` 等）には進まない。
 
 提示項目:
@@ -58,7 +58,7 @@ git checkout -b docs/changelog-<package>-v<ver> origin/<develop>
 
 #### 3-2. 対象 CHANGELOG 編集
 
-`project_info` の結果の `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
+`board_show` の結果の `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
 前回タグ `<package>@v<前バージョン>` からの差分をまとめる。
 
 ```bash
@@ -128,11 +128,11 @@ pr_create
 gh pr merge <PR番号> --repo <owner>/<repo> --squash
 ```
 
-マージしたら、`pr_cleanup` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
+マージしたら、`session_finish` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
 
 #### 3-5. develop 最新化
 
-`release_preflight`・`release_create` は、セッションを始めたディレクトリを読む。`<develop>` が checkout されている worktree で始めたセッションで実行する。違うときは、そこで止めて、その worktree でセッションを始め直すよう利用者に伝える。
+`release_check`・`release_create` は、セッションを始めたディレクトリを読む。`<develop>` が checkout されている worktree で始めたセッションで実行する。違うときは、そこで止めて、その worktree でセッションを始め直すよう利用者に伝える。
 
 次の `git pull` は、その worktree で打つ。
 
@@ -142,7 +142,7 @@ git pull --ff-only origin <develop>
 
 ### 4. プリフライト
 
-`release_preflight` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
+`release_check` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。

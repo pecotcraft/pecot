@@ -1,4 +1,4 @@
-// release preflight・create・merge。移す元は cli/commands/release.py。
+// release check・create・merge。移す元は cli/commands/release.py。
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -98,7 +98,7 @@ function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Reposito
 
 function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string | undefined {
   if (branch === undefined || branch === '') {
-    out.error(`${kind}_branch is not set for ${owner}/${repository}\nset it with: pecot repo set ${owner}/${repository} --${kind}-branch <branch>`)
+    out.error(`${kind}_branch is not set for ${owner}/${repository}\nset it with: pecot project link ${owner}/${repository} --${kind}-branch <branch>`)
     return undefined
   }
   return branch
@@ -230,8 +230,8 @@ async function areAlertsPassed(out: Readonly<Output>, config: ProjectConfig, own
 }
 
 const preflight = defineCommand({
-  path: ['release', 'preflight'],
-  description: 'Run the pre-release checks (preflight); for an nx repository only the alerts are checked',
+  path: ['release', 'check'],
+  description: 'Run the pre-release checks; for an nx repository only the alerts are checked',
   input: z.object({
     version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),

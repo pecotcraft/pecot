@@ -43,7 +43,7 @@ Commands:
                        Development section of the Issue)
   issue-status-update  Update the status of an Issue
   issue                Work with Issues
-  project              Manage projects through the GitHub API
+  project              Connect to projects and manage the project config
 
 Run 'pecot COMMAND --help' for the arguments and options of a command.
 `
@@ -87,8 +87,8 @@ Commands:
   issue
       Work with Issues
   project
-      Manage projects through the GitHub
-      API
+      Connect to projects and manage the
+      project config
 
 Run 'pecot COMMAND --help' for the
 arguments and options of a command.

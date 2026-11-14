@@ -181,7 +181,7 @@ describe('issue quick', () => {
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/\nerror: develop_branch is not set for repository acme\/demo\n {2}set it with: pecot repo set acme\/demo --develop-branch develop\n {2}\(or --develop-branch develop-aist \/ --develop-branch main\)\n$/u)
+    expect(result.stderr).toMatch(/\nerror: develop_branch is not set for repository acme\/demo\n {2}set it with: pecot project link acme\/demo --develop-branch develop\n {2}\(or --develop-branch develop-aist \/ --develop-branch main\)\n$/u)
     expect(hasFile(project.root, '.pecot/state/.pecot-active')).toBe(false)
     expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
   })

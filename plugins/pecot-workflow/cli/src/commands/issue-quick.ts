@@ -73,7 +73,7 @@ function quickFields(issueType: IssueType): readonly IssueField[] {
 async function createBranch(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, issueNumber: number, issueNodeId: string, title: string): Promise<void> {
   const base = findRepository(config, owner, repository)?.develop_branch
   if (base === undefined || base === '') {
-    stopWith(output, `develop_branch is not set for repository ${owner}/${repository}\nset it with: pecot repo set ${owner}/${repository} --develop-branch develop\n(or --develop-branch develop-aist / --develop-branch main)`)
+    stopWith(output, `develop_branch is not set for repository ${owner}/${repository}\nset it with: pecot project link ${owner}/${repository} --develop-branch develop\n(or --develop-branch develop-aist / --develop-branch main)`)
   }
   const name = `feat/${formatTimestamp(Date.now())}/${String(issueNumber)}`
   const sha = await client.getBranchSha(owner, repository, base)

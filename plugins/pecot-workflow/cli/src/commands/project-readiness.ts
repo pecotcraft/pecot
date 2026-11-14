@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// project info の着手の判定。盤上の Ready・Blocked の Issue の前提を読んで表示する。列と札は動かさない。
+// board show の着手の判定。盤上の Ready・Blocked の Issue の前提を読んで表示する。列と札は動かさない。
 import { homeRepositoryOf } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'

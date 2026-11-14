@@ -1,6 +1,5 @@
-// `pecot security sync`。cli/commands/security.py の移植。open の Tracker の一覧を、open の security alert に書き直す。
-// 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
-import { z } from 'zod'
+// `pecot tracker sync security` の本体。cli/commands/security.py の移植。open の Tracker の一覧を、open の security alert に書き直す。
+// 途中で抜ける箇所は CommandExit を投げ、tracker sync の定義が終了コードにする。
 
 import { ALERT_KINDS, kindLabel, listOpenAlerts, SecurityAlertError } from '../domain/security-alerts.js'
 import type { AlertKind, AlertSources } from '../domain/security-alerts.js'
@@ -10,14 +9,14 @@ import { findTracker } from '../domain/tracker-body.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { requireNumber } from '../infra/github/payload.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
-import { CommandExit, defineCommand } from './command-definition.js'
-import type { CommandDefinition } from './command-definition.js'
+import { CommandExit } from './command-definition.js'
+import type { CommandIo } from './command-definition.js'
 import { makeClient } from './github-client.js'
 import { createIssue, putOnBoard } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { apiErrorDetail, isBodyUnchanged, loadTarget, settle, todayUtc, warnExtraTrackers } from './tracker-sync.js'
-import type { SyncApplyContext, SyncStages } from './tracker-sync.js'
+import type { SyncApplyContext, SyncStages, TrackerSyncInput } from './tracker-sync.js'
 
 const FAILURE = 1
 
@@ -118,59 +117,51 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
   }
 }
 
-const sync = defineCommand({
-  path: ['security', 'sync'],
-  description: 'Rewrite the open Tracker\'s list of open security alerts',
-  input: z.object({
-    dry_run: z.boolean().default(false).describe('Show the planned Tracker changes without changing anything'),
-  }),
-  positional: [],
-  interactive: false,
-  run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
-    const { config, owner, repository } = loadTarget(out, input.repo)
-    const client = makeClient(out, config)
-    if (client === undefined) return FAILURE
+/**
+tracker sync の source security の本体。Tracker の open security alerts の一覧を書き直す
+*/
+export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<number> {
+  const out = createOutput(input.dry_run, io)
+  const { config, owner, repository } = loadTarget(out, input.repo)
+  const client = makeClient(out, config)
+  if (client === undefined) return FAILURE
 
-    const sources: AlertSources = { scan: createScanAlertSource(client), dependabot: createDependabotSource(client) }
-    const { alerts, failed, disabled } = await fetchOpenAlerts(out, sources, config.host, owner, repository)
+  const sources: AlertSources = { scan: createScanAlertSource(client), dependabot: createDependabotSource(client) }
+  const { alerts, failed, disabled } = await fetchOpenAlerts(out, sources, config.host, owner, repository)
 
-    let issues
-    try {
-      issues = await client.listIssuesByLabel(owner, repository, ALERT_LABEL)
-    }
-    catch (error: unknown) {
-      const text = apiErrorDetail(error)
-      if (text === undefined) throw error
-      out.error(`could not list issues: ${text}`)
-      return FAILURE
-    }
+  let issues
+  try {
+    issues = await client.listIssuesByLabel(owner, repository, ALERT_LABEL)
+  }
+  catch (error: unknown) {
+    const text = apiErrorDetail(error)
+    if (text === undefined) throw error
+    out.error(`could not list issues: ${text}`)
+    return FAILURE
+  }
 
-    const { tracker, others } = findTracker(issues, TRACKER_PATTERN)
-    warnExtraTrackers(out, tracker, others)
-    const existingBody = tracker?.body
-    let entries
-    try {
-      entries = tracker === undefined ? undefined : parseTrackerEntries(existingBody)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof SecurityAlertError)) throw error
-      out.error(`${tracker === undefined ? 'Tracker' : `Tracker #${String(tracker.number)}`}: ${error.message}`)
-      return FAILURE
-    }
+  const { tracker, others } = findTracker(issues, TRACKER_PATTERN)
+  warnExtraTrackers(out, tracker, others)
+  const existingBody = tracker?.body
+  let entries
+  try {
+    entries = tracker === undefined ? undefined : parseTrackerEntries(existingBody)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof SecurityAlertError)) throw error
+    out.error(`${tracker === undefined ? 'Tracker' : `Tracker #${String(tracker.number)}`}: ${error.message}`)
+    return FAILURE
+  }
 
-    const plan = planTracker(alerts, entries, failed, disabled)
-    const title = buildTrackerTitle(todayUtc(new Date()))
-    const body = renderTrackerBody(plan.entries, config.host, owner, repository, { existingBody, disabledKinds: disabled, failedKinds: failed })
-    const number = tracker?.number
-    const isUnchanged = isBodyUnchanged(body, existingBody)
-    const stages = operationsOf(plan, number, title, isUnchanged)
-    for (const operation of [...stages.create, ...stages.rewrite]) out.planned(operation)
+  const plan = planTracker(alerts, entries, failed, disabled)
+  const title = buildTrackerTitle(todayUtc(new Date()))
+  const body = renderTrackerBody(plan.entries, config.host, owner, repository, { existingBody, disabledKinds: disabled, failedKinds: failed })
+  const number = tracker?.number
+  const isUnchanged = isBodyUnchanged(body, existingBody)
+  const stages = operationsOf(plan, number, title, isUnchanged)
+  for (const operation of [...stages.create, ...stages.rewrite]) out.planned(operation)
 
-    const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged })
-    if (failed.size > 0 || failures > 0) throw new CommandExit(FAILURE)
-    return 0
-  },
-})
-
-export const SECURITY_COMMANDS: readonly CommandDefinition[] = [sync]
+  const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged })
+  if (failed.size > 0 || failures > 0) throw new CommandExit(FAILURE)
+  return 0
+}

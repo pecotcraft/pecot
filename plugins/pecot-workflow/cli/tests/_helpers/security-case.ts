@@ -1,4 +1,4 @@
-// security sync のテストが共有する準備。alert の応答・Tracker の Issue・ボードの応答を組み立てる。
+// tracker sync security のテストが共有する準備。alert の応答・Tracker の Issue・ボードの応答を組み立てる。
 import type { JsonObject } from '../../src/domain/json.js'
 import { renderTrackerBody } from '../../src/domain/security-tracker.js'
 import type { TrackerEntry } from '../../src/domain/security-tracker.js'

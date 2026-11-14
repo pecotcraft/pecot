@@ -82,7 +82,7 @@ external-post-check: gh pr merge publishes a PR merge externally.
 
 Do not run it until the user has explicitly approved.
 The canonical route for merging is /pecot-w:w-merge.
-Merge with gh pr merge, then clean up with the MCP tool pr_cleanup.
+Merge with gh pr merge, then clean up with the MCP tool session_finish.
 EOF
 }
 

@@ -18,6 +18,14 @@ export function settle(out: Output, operation: Operation): void {
   out.done(operation)
 }
 
+/**
+tracker sync の各 source の本体が受ける入力
+*/
+export interface TrackerSyncInput {
+  readonly dry_run: boolean
+  readonly repo?: string | undefined
+}
+
 export interface SyncTarget {
   readonly config: ProjectConfig
   readonly owner: string

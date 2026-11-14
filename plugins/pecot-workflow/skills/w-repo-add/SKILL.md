@@ -16,7 +16,7 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 ### Step 1: アクティブプロジェクトの確認
 
-`project_info` を引数なしで呼ぶ。
+`board_show` を引数なしで呼ぶ。
 
 プロジェクト情報が表示された場合は Step 2 へ。
 結果に `error: no active project` が出た場合は以下を案内して終了:
@@ -90,11 +90,11 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 ### Step 3: リポジトリ追加
 
-ヒアリング結果に応じて `repo_set` を呼ぶ。
+ヒアリング結果に応じて `project_link` を呼ぶ。
 
 **単一 CHANGELOG モード** (質問4 で「単一」を選択):
 
-`repo_set` を次の入力で呼ぶ。
+`project_link` を次の入力で呼ぶ。
 
 - `owner_repo: "<owner/repo>"`
 - `develop_branch: "<branch>"`
@@ -103,7 +103,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 **monorepo モード** (質問4 で「monorepo」を選択):
 
-`repo_set` を次の入力で呼ぶ。
+`project_link` を次の入力で呼ぶ。
 
 - `owner_repo: "<owner/repo>"`
 - `develop_branch: "<branch>"`
@@ -111,7 +111,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 - `package: ["<name1>:<changelog path1>", "<name2>:<changelog path2>"]`
 
 **リリースブランチ未設定**（CHANGELOG 質問なし）の場合は次のとおり。
-`repo_set` を `owner_repo: "<owner/repo>"`・`develop_branch: "<branch>"` で呼ぶ。
+`project_link` を `owner_repo: "<owner/repo>"`・`develop_branch: "<branch>"` で呼ぶ。
 
 | 入力 | 説明 |
 |------|------|
@@ -121,11 +121,11 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 | `changelog_file` | 単一モード時のみ。デフォルト以外の場合のみ指定 |
 | `package` | monorepo モード時のみ。`NAME:PATH` の配列で、package 数だけ渡す |
 
-`changelog_file` と `package` は排他。`repo_set` を経由しないと設定ファイルが更新されず、ボード表示が正しく動作しない。
+`changelog_file` と `package` は排他。`project_link` を経由しないと設定ファイルが更新されず、ボード表示が正しく動作しない。
 
 ### Step 4: 動作確認
 
-`project_info` を引数なしで呼ぶ。
+`board_show` を引数なしで呼ぶ。
 
 `Registered repositories` セクションに追加したリポジトリが表示されれば成功。
 

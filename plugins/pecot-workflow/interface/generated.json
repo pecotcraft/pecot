@@ -4,109 +4,6 @@
   "prefix": "PW",
   "entries": [
     {
-      "id": "PW-AGGREGATION-SET",
-      "name": "aggregation set",
-      "description": "Set the Epic aggregation repository (``aggregation_repo``)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "aggregation",
-            "set"
-          ]
-        },
-        "mcp": {
-          "tool": "aggregation_set"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "string",
-            "description": "Aggregation repository (owner/repo form)"
-          },
-          "yes": {
-            "type": "boolean",
-            "default": false,
-            "description": "Overwrite an existing value without confirmation (a warning goes to stderr)"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "value"
-        ],
-        "flags": {
-          "yes": [
-            "--yes",
-            "-y"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-AGGREGATION-SHOW",
-      "name": "aggregation show",
-      "description": "Show the Epic aggregation repository (``aggregation_repo``)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "aggregation",
-            "show"
-          ]
-        },
-        "mcp": {
-          "tool": "aggregation_show"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {}
-      }
-    },
-    {
-      "id": "PW-AGGREGATION-UNSET",
-      "name": "aggregation unset",
-      "description": "Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "aggregation",
-            "unset"
-          ]
-        },
-        "mcp": {
-          "tool": "aggregation_unset"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {}
-      }
-    },
-    {
       "id": "PW-BOARD-ADD",
       "name": "board add",
       "description": "Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)",
@@ -197,6 +94,52 @@
       }
     },
     {
+      "id": "PW-BOARD-SHOW",
+      "name": "board show",
+      "description": "Show the dashboard of the project board",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "board",
+            "show"
+          ]
+        },
+        "mcp": {
+          "tool": "board_show"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Output as JSON"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Target repository, given explicitly as 'owner/repo'"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "json": [
+            "--json",
+            "-j"
+          ],
+          "repo": [
+            "--repo"
+          ]
+        }
+      }
+    },
+    {
       "id": "PW-BOARD-SYNC",
       "name": "board sync",
       "description": "Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for",
@@ -237,85 +180,6 @@
           ],
           "project": [
             "--project"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-BRANCH-CREATE",
-      "name": "branch create",
-      "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "branch",
-            "create"
-          ]
-        },
-        "mcp": {
-          "tool": "branch_create"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "allow_cross_repo": {
-            "type": "boolean",
-            "default": false,
-            "description": "Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)"
-          },
-          "base": {
-            "type": "string",
-            "description": "Base branch (default: chosen by readiness, else develop_branch from the config)"
-          },
-          "branch_name": {
-            "type": "string",
-            "description": "Name of the branch to create"
-          },
-          "checkout": {
-            "type": "boolean",
-            "default": true,
-            "description": "Kept for compatibility; has no effect"
-          },
-          "force_overwrite_active": {
-            "type": "boolean",
-            "default": false,
-            "description": "Disable the .pecot-active overwrite guard (when sure it is stale)"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (owner/repo/123)"
-          }
-        },
-        "required": [
-          "branch_name",
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref",
-          "branch_name"
-        ],
-        "flags": {
-          "allow_cross_repo": [
-            "--allow-cross-repo",
-            "-X"
-          ],
-          "base": [
-            "--base",
-            "-b"
-          ],
-          "checkout": [
-            "--checkout",
-            "--no-checkout"
-          ],
-          "force_overwrite_active": [
-            "--force-overwrite-active",
-            "-F"
           ]
         }
       }
@@ -369,44 +233,6 @@
           "dry_run": [
             "--dry-run",
             "-n"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-DEPENDABOT-SYNC",
-      "name": "dependabot sync",
-      "description": "Rewrite the open Tracker's list of Dependabot PRs waiting for a human decision",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "dependabot",
-            "sync"
-          ]
-        },
-        "mcp": {
-          "tool": "dependabot_sync"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show the planned Tracker changes without changing anything"
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "dry_run": [
-            "--dry-run"
           ]
         }
       }
@@ -809,64 +635,6 @@
       }
     },
     {
-      "id": "PW-ISSUE-READ",
-      "name": "issue read",
-      "description": "Fetch Issue details efficiently (GraphQL, only the needed fields)",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "read"
-          ]
-        },
-        "mcp": {
-          "tool": "issue_read"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "comment_limit": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 20,
-            "default": 5,
-            "description": "Number of comments to show (0-20; 0 hides them)"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
-          },
-          "json": {
-            "type": "boolean",
-            "default": false,
-            "description": "Output as JSON"
-          }
-        },
-        "required": [
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "comment_limit": [
-            "--comment-limit",
-            "-c"
-          ],
-          "json": [
-            "--json",
-            "-j"
-          ]
-        }
-      }
-    },
-    {
       "id": "PW-ISSUE-REOPEN",
       "name": "issue reopen",
       "description": "Reopen a closed Issue (also sets the status on the board)",
@@ -917,6 +685,64 @@
           "status": [
             "--status",
             "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-SHOW",
+      "name": "issue show",
+      "description": "Fetch Issue details efficiently (GraphQL, only the needed fields)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "show"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_show"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "comment_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "default": 5,
+            "description": "Number of comments to show (0-20; 0 hides them)"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Output as JSON"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "comment_limit": [
+            "--comment-limit",
+            "-c"
+          ],
+          "json": [
+            "--json",
+            "-j"
           ]
         }
       }
@@ -976,18 +802,18 @@
       }
     },
     {
-      "id": "PW-PR-CLEANUP",
-      "name": "pr cleanup",
-      "description": "Clean up after a merged PR (close related Issues, delete branches, local cleanup)",
+      "id": "PW-PR-CHECK",
+      "name": "pr check",
+      "description": "Show all the information to check before creating a PR",
       "surfaces": {
         "cli": {
           "path": [
             "pr",
-            "cleanup"
+            "check"
           ]
         },
         "mcp": {
-          "tool": "pr_cleanup"
+          "tool": "pr_check"
         }
       },
       "hidden": false,
@@ -995,46 +821,22 @@
       "input": {
         "type": "object",
         "properties": {
-          "delete_branch": {
-            "type": "boolean",
-            "default": false,
-            "description": "Delete the branch"
-          },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Dry-run (do not actually clean up)"
-          },
-          "pr_ref": {
+          "directory": {
             "type": "string",
-            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
-          },
-          "skip_local_cleanup": {
-            "type": "boolean",
-            "default": false,
-            "description": "Skip the local branch switch and deletion"
+            "description": "Target Git repository (absolute or relative path)"
           }
         },
         "required": [
-          "pr_ref"
+          "directory"
         ],
         "additionalProperties": false
       },
       "cli": {
-        "positional": [
-          "pr_ref"
-        ],
+        "positional": [],
         "flags": {
-          "delete_branch": [
-            "--delete-branch",
-            "-d"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "skip_local_cleanup": [
-            "--skip-local-cleanup"
+          "directory": [
+            "--directory",
+            "-D"
           ]
         }
       }
@@ -1165,58 +967,18 @@
       }
     },
     {
-      "id": "PW-PR-PREFLIGHT",
-      "name": "pr preflight",
-      "description": "Show all the information to check before creating a PR",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "preflight"
-          ]
-        },
-        "mcp": {
-          "tool": "pr_preflight"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "directory": {
-            "type": "string",
-            "description": "Target Git repository (absolute or relative path)"
-          }
-        },
-        "required": [
-          "directory"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-PR-READ",
-      "name": "pr read",
+      "id": "PW-PR-SHOW",
+      "name": "pr show",
       "description": "Get PR details efficiently (GraphQL, only the needed fields)",
       "surfaces": {
         "cli": {
           "path": [
             "pr",
-            "read"
+            "show"
           ]
         },
         "mcp": {
-          "tool": "pr_read"
+          "tool": "pr_show"
         }
       },
       "hidden": false,
@@ -1375,18 +1137,18 @@
       }
     },
     {
-      "id": "PW-PROJECT-INFO",
-      "name": "project info",
-      "description": "Show the project info dashboard",
+      "id": "PW-PROJECT-GET",
+      "name": "project get",
+      "description": "Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)",
       "surfaces": {
         "cli": {
           "path": [
             "project",
-            "info"
+            "get"
           ]
         },
         "mcp": {
-          "tool": "project_info"
+          "tool": "project_get"
         }
       },
       "hidden": false,
@@ -1394,30 +1156,24 @@
       "input": {
         "type": "object",
         "properties": {
-          "json": {
-            "type": "boolean",
-            "default": false,
-            "description": "Output as JSON"
-          },
-          "repo": {
+          "key": {
             "type": "string",
-            "description": "Target repository, given explicitly as 'owner/repo'"
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
           }
         },
-        "required": [],
+        "required": [
+          "key"
+        ],
         "additionalProperties": false
       },
       "cli": {
-        "positional": [],
-        "flags": {
-          "json": [
-            "--json",
-            "-j"
-          ],
-          "repo": [
-            "--repo"
-          ]
-        }
+        "positional": [
+          "key"
+        ],
+        "flags": {}
       }
     },
     {
@@ -1478,6 +1234,91 @@
           "suffix": [
             "--suffix",
             "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-LINK",
+      "name": "project link",
+      "description": "Add or update a repository in the project config",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "link"
+          ]
+        },
+        "mcp": {
+          "tool": "project_link"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "changelog_file": {
+            "type": "string",
+            "description": "CHANGELOG file name"
+          },
+          "clear_packages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
+          },
+          "develop_branch": {
+            "type": "string",
+            "description": "Development branch name"
+          },
+          "owner_repo": {
+            "type": "string",
+            "description": "Repository name in owner/repo form"
+          },
+          "package": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
+          },
+          "release_branch": {
+            "type": "string",
+            "description": "Release branch name"
+          },
+          "release_type": {
+            "type": "string",
+            "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)"
+          }
+        },
+        "required": [
+          "owner_repo"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "owner_repo"
+        ],
+        "flags": {
+          "changelog_file": [
+            "--changelog-file"
+          ],
+          "clear_packages": [
+            "--clear-packages"
+          ],
+          "develop_branch": [
+            "--develop-branch",
+            "-b"
+          ],
+          "package": [
+            "--package"
+          ],
+          "release_branch": [
+            "--release-branch"
+          ],
+          "release_type": [
+            "--release-type"
           ]
         }
       }
@@ -1553,6 +1394,145 @@
           "host": [
             "--host",
             "-h"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-SET",
+      "name": "project set",
+      "description": "Set a key of the project config (aggregation_repo: the Epic aggregation repository)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "set"
+          ]
+        },
+        "mcp": {
+          "tool": "project_set"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+          },
+          "value": {
+            "type": "string",
+            "description": "Aggregation repository (owner/repo form)"
+          },
+          "yes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Overwrite an existing value without confirmation (a warning goes to stderr)"
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "key",
+          "value"
+        ],
+        "flags": {
+          "yes": [
+            "--yes",
+            "-y"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-UNSET",
+      "name": "project unset",
+      "description": "Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "unset"
+          ]
+        },
+        "mcp": {
+          "tool": "project_unset"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "key"
+        ],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-RELEASE-CHECK",
+      "name": "release check",
+      "description": "Run the pre-release checks; for an nx repository only the alerts are checked",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "release",
+            "check"
+          ]
+        },
+        "mcp": {
+          "tool": "release_check"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "string",
+            "description": "Package name in a monorepo (required for repositories with packages configured)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Release version (detected from the CHANGELOG when omitted)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "version"
+        ],
+        "flags": {
+          "package": [
+            "--package"
           ]
         }
       }
@@ -1675,18 +1655,18 @@
       }
     },
     {
-      "id": "PW-RELEASE-PREFLIGHT",
-      "name": "release preflight",
-      "description": "Run the pre-release checks (preflight); for an nx repository only the alerts are checked",
+      "id": "PW-SESSION-FINISH",
+      "name": "session finish",
+      "description": "Clean up after a merged PR (close related Issues, delete branches, local cleanup)",
       "surfaces": {
         "cli": {
           "path": [
-            "release",
-            "preflight"
+            "session",
+            "finish"
           ]
         },
         "mcp": {
-          "tool": "release_preflight"
+          "tool": "session_finish"
         }
       },
       "hidden": false,
@@ -1694,148 +1674,46 @@
       "input": {
         "type": "object",
         "properties": {
-          "package": {
-            "type": "string",
-            "description": "Package name in a monorepo (required for repositories with packages configured)"
-          },
-          "version": {
-            "type": "string",
-            "description": "Release version (detected from the CHANGELOG when omitted)"
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "version"
-        ],
-        "flags": {
-          "package": [
-            "--package"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-REPO-SET",
-      "name": "repo set",
-      "description": "Add or update a repository in the project config",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "repo",
-            "set"
-          ]
-        },
-        "mcp": {
-          "tool": "repo_set"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "changelog_file": {
-            "type": "string",
-            "description": "CHANGELOG file name"
-          },
-          "clear_packages": {
+          "delete_branch": {
             "type": "boolean",
             "default": false,
-            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
+            "description": "Delete the branch"
           },
-          "develop_branch": {
-            "type": "string",
-            "description": "Development branch name"
-          },
-          "owner_repo": {
-            "type": "string",
-            "description": "Repository name in owner/repo form"
-          },
-          "package": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
-          },
-          "release_branch": {
-            "type": "string",
-            "description": "Release branch name"
-          },
-          "release_type": {
-            "type": "string",
-            "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)"
-          }
-        },
-        "required": [
-          "owner_repo"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "owner_repo"
-        ],
-        "flags": {
-          "changelog_file": [
-            "--changelog-file"
-          ],
-          "clear_packages": [
-            "--clear-packages"
-          ],
-          "develop_branch": [
-            "--develop-branch",
-            "-b"
-          ],
-          "package": [
-            "--package"
-          ],
-          "release_branch": [
-            "--release-branch"
-          ],
-          "release_type": [
-            "--release-type"
-          ]
-        }
-      }
-    },
-    {
-      "id": "PW-SECURITY-SYNC",
-      "name": "security sync",
-      "description": "Rewrite the open Tracker's list of open security alerts",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "security",
-            "sync"
-          ]
-        },
-        "mcp": {
-          "tool": "security_sync"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
           "dry_run": {
             "type": "boolean",
             "default": false,
-            "description": "Show the planned Tracker changes without changing anything"
+            "description": "Dry-run (do not actually clean up)"
+          },
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "skip_local_cleanup": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip the local branch switch and deletion"
           }
         },
-        "required": [],
+        "required": [
+          "pr_ref"
+        ],
         "additionalProperties": false
       },
       "cli": {
-        "positional": [],
+        "positional": [
+          "pr_ref"
+        ],
         "flags": {
+          "delete_branch": [
+            "--delete-branch",
+            "-d"
+          ],
           "dry_run": [
-            "--dry-run"
+            "--dry-run",
+            "-n"
+          ],
+          "skip_local_cleanup": [
+            "--skip-local-cleanup"
           ]
         }
       }
@@ -1889,18 +1767,18 @@
       }
     },
     {
-      "id": "PW-SESSION-STATUS",
-      "name": "session status",
+      "id": "PW-SESSION-SHOW",
+      "name": "session show",
       "description": "Show the session flag state, branch information, and inferred Issue",
       "surfaces": {
         "cli": {
           "path": [
             "session",
-            "status"
+            "show"
           ]
         },
         "mcp": {
-          "tool": "session_status"
+          "tool": "session_show"
         }
       },
       "hidden": false,
@@ -1924,6 +1802,135 @@
           "directory": [
             "--directory",
             "-D"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-SESSION-START",
+      "name": "session start",
+      "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "session",
+            "start"
+          ]
+        },
+        "mcp": {
+          "tool": "session_start"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "allow_cross_repo": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch (default: chosen by readiness, else develop_branch from the config)"
+          },
+          "branch_name": {
+            "type": "string",
+            "description": "Name of the branch to create"
+          },
+          "checkout": {
+            "type": "boolean",
+            "default": true,
+            "description": "Kept for compatibility; has no effect"
+          },
+          "force_overwrite_active": {
+            "type": "boolean",
+            "default": false,
+            "description": "Disable the .pecot-active overwrite guard (when sure it is stale)"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (owner/repo/123)"
+          }
+        },
+        "required": [
+          "branch_name",
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref",
+          "branch_name"
+        ],
+        "flags": {
+          "allow_cross_repo": [
+            "--allow-cross-repo",
+            "-X"
+          ],
+          "base": [
+            "--base",
+            "-b"
+          ],
+          "checkout": [
+            "--checkout",
+            "--no-checkout"
+          ],
+          "force_overwrite_active": [
+            "--force-overwrite-active",
+            "-F"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-TRACKER-SYNC",
+      "name": "tracker sync",
+      "description": "Rewrite the open Tracker's list for a source: Dependabot PRs waiting for a human decision, or open security alerts",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "tracker",
+            "sync"
+          ]
+        },
+        "mcp": {
+          "tool": "tracker_sync"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the planned Tracker changes without changing anything"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "dependabot",
+              "security"
+            ],
+            "description": "What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "source"
+        ],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
           ]
         }
       }

@@ -17,9 +17,9 @@ when_to_use: "PR のレビュー指摘に対応したい、マージ前に PR �
 
 対象 PR の本文・diff・既存レビューを読む。引数が無ければ、会話から一意に決まる PR を使う。決まらなければユーザーに聞く。
 
-`pr_read` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`reviews: true` で呼ぶ。
+`pr_show` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`reviews: true` で呼ぶ。
 
-紐づいた Issue があれば、それも読む。`issue_read` を `issue_ref: "<owner>/<repo>/<Issue番号>"` で呼ぶ。
+紐づいた Issue があれば、それも読む。`issue_show` を `issue_ref: "<owner>/<repo>/<Issue番号>"` で呼ぶ。
 
 ### Step 2: 各レビュアーに専門視点でレビューを依頼
 

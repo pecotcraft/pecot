@@ -1,7 +1,0 @@
-# アクティブなプロジェクトが無い。exit 1。
-id: aggregation-show-state
-command:
-  path: [aggregation, show]
-  args: []
-setup: {}
-github: []

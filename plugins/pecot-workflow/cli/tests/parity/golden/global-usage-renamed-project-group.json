@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot project [OPTIONS] COMMAND [ARGS]...\nTry 'pecot project --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ 'project show-aggregation-repo' was renamed to 'aggregation show'.           │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot project [OPTIONS] COMMAND [ARGS]...\nTry 'pecot project --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ 'project show-aggregation-repo' was renamed to 'project get                  │\n│ aggregation_repo'.                                                           │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

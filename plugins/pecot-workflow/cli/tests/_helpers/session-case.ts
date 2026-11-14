@@ -1,4 +1,4 @@
-// session status・session restore のテストが共有する準備。
+// session show・session restore のテストが共有する準備。
 import type { ResponseRule } from '../fake-github/server.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'

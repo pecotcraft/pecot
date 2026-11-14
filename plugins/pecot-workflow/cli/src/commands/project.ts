@@ -1,4 +1,4 @@
-// project・repo・aggregation の 10 個のコマンド。Python の cli/commands/project.py の移植。
+// project の 9 個のコマンドと board show。Python の cli/commands/project.py の移植。
 import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
@@ -461,7 +461,7 @@ const activateCommand = defineCommand({
   },
 })
 
-// project info
+// board show
 
 function mismatchNote(count: number): string {
   const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
@@ -469,8 +469,8 @@ function mismatchNote(count: number): string {
 }
 
 const infoCommand = defineCommand({
-  path: ['project', 'info'],
-  description: 'Show the project info dashboard',
+  path: ['board', 'show'],
+  description: 'Show the dashboard of the project board',
   input: z.strictObject({
     json: z.boolean().default(false).describe('Output as JSON'),
     repo: z.string().superRefine((value, context) => {
@@ -515,7 +515,7 @@ const infoCommand = defineCommand({
   },
 })
 
-// repo set
+// project link
 
 const packageList = z.array(z.string())
 
@@ -591,7 +591,7 @@ async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repo
 }
 
 const repositorySettingCommand = defineCommand({
-  path: ['repo', 'set'],
+  path: ['project', 'link'],
   description: 'Add or update a repository in the project config',
   input: z.strictObject({
     owner_repo: z.string().describe('Repository name in owner/repo form'),
@@ -615,7 +615,7 @@ const repositorySettingCommand = defineCommand({
     const { config, configPath } = requireActiveWithPath(out)
 
     const parts = splitOwnerRepository(input.owner_repo)
-    if (parts === undefined) stopWith(out, 'give the repository as owner/repo\nexample: pecot repo set example-org/my-repo')
+    if (parts === undefined) stopWith(out, 'give the repository as owner/repo\nexample: pecot project link example-org/my-repo')
     const { owner, repository: name } = parts
     if (owner !== config.owner) {
       stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
@@ -652,16 +652,19 @@ const repositorySettingCommand = defineCommand({
   },
 })
 
-// aggregation_repo の管理
+// 設定のキーの管理。今のキーは aggregation_repo だけ
+
+const CONFIG_KEY = z.enum(['aggregation_repo']).describe('Key of the project config (aggregation_repo: the Epic aggregation repository)')
 
 const aggregationSettingCommand = defineCommand({
-  path: ['aggregation', 'set'],
-  description: 'Set the Epic aggregation repository (``aggregation_repo``)',
+  path: ['project', 'set'],
+  description: 'Set a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({
+    key: CONFIG_KEY,
     value: z.string().describe('Aggregation repository (owner/repo form)'),
     yes: z.boolean().default(false).describe('Overwrite an existing value without confirmation (a warning goes to stderr)'),
   }),
-  positional: ['value'],
+  positional: ['key', 'value'],
   shortFlags: { yes: '-y' },
   interactive: false,
   run: (input, io) => {
@@ -684,10 +687,10 @@ const aggregationSettingCommand = defineCommand({
 })
 
 const aggregationClearCommand = defineCommand({
-  path: ['aggregation', 'unset'],
-  description: 'Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo',
-  input: z.strictObject({}),
-  positional: [],
+  path: ['project', 'unset'],
+  description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo',
+  input: z.strictObject({ key: CONFIG_KEY }),
+  positional: ['key'],
   interactive: false,
   run: (_input, io) => {
     const out = createOutput(false, io)
@@ -704,10 +707,10 @@ const aggregationClearCommand = defineCommand({
 })
 
 const showAggregationCommand = defineCommand({
-  path: ['aggregation', 'show'],
-  description: 'Show the Epic aggregation repository (``aggregation_repo``)',
-  input: z.strictObject({}),
-  positional: [],
+  path: ['project', 'get'],
+  description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)',
+  input: z.strictObject({ key: CONFIG_KEY }),
+  positional: ['key'],
   interactive: false,
   run: (_input, io) => {
     const out = createOutput(false, io)
@@ -717,7 +720,7 @@ const showAggregationCommand = defineCommand({
 })
 
 /**
-project・repo・aggregation のコマンド。並びは tests/parity/commands.ts と同じ
+project のコマンドと board show。並びは help の一覧の順
 */
 export const PROJECT_COMMANDS = [
   listCommand,
@@ -727,7 +730,7 @@ export const PROJECT_COMMANDS = [
   infoCommand,
   activateCommand,
   repositorySettingCommand,
+  showAggregationCommand,
   aggregationSettingCommand,
   aggregationClearCommand,
-  showAggregationCommand,
 ]

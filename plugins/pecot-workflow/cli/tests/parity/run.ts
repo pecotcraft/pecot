@@ -213,7 +213,7 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
       { from: server.url, to: '{{GITHUB_API}}' },
       // リリースで版が上がっても golden を作り直さずに済むよう、--version の出力だけ固定の文字にする
       { from: `pecot version ${pluginVersion}`, to: 'pecot version {{VERSION}}' },
-      // security sync が立てる Tracker の題には、立てた日（UTC）が入る。日が変わっても golden を作り直さずに済むよう、題の中の日付だけ固定の文字にする
+      // tracker sync security が立てる Tracker の題には、立てた日（UTC）が入る。日が変わっても golden を作り直さずに済むよう、題の中の日付だけ固定の文字にする
       { from: `[Tracker] security alert — ${new Date().toISOString().slice(0, 10)}`, to: '[Tracker] security alert — {{TODAY}}' },
     ]
     return {

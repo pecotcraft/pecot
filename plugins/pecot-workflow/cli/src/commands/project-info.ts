@@ -1,4 +1,4 @@
-// project info の表示と、Archived の整理、Dependabot alert の収集。
+// board show の表示と、Archived の整理、Dependabot alert の収集。
 import { effectiveReleaseType, workflowFieldName } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'

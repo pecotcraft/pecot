@@ -10,7 +10,7 @@ import { createRepositoryReference } from './repository-resolver.js'
 export const FLAG_PECOT_ACTIVE = '.pecot-active'
 // セッション名（hooks の session-title.sh が Claude Code の sessionTitle に流す）。.pecot-active と同じタイミングで書く
 export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
-// 着手のときに選んだ base（ブランチ・位置・積んだ先の Issue）。branch create が書き、pr cleanup が消す
+// 着手のときに選んだ base（ブランチ・位置・積んだ先の Issue）。session start が書き、session finish が消す
 export const FLAG_PECOT_BASE = '.pecot-base'
 export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
 export const FLAG_WIP_BRANCH_LINKED = '.wip-branch-linked'

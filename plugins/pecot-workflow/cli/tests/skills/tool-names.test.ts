@@ -13,7 +13,7 @@ const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:54', 'skil
 // ツール名に似るが、入力の値や概念を指す語
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'issue_number', 'session_id', 'aggregation_repo', 'board_url'])
 
-const TOOL_LIKE = /\b(?:(?:issue|pr|project|session|worktree|release|security|dependabot|board|branch|repo|aggregation)_[a-z_]+|add_to_project|update_issue_status|create_branch|delete_branch)\b/gu
+const TOOL_LIKE = /\b(?:(?:project|board|issue|session|pr|release|tracker|worktree|branch|security|dependabot|aggregation|repo)_[a-z_]+|add_to_project|update_issue_status|create_branch|delete_branch)\b/gu
 const TOP_WORDS = [...new Set(COMMANDS.map(command => command.path[0] ?? ''))].toSorted(compareStrings).join('|')
 // deny の hook の起動形を拾う。起動形は pecot・$PECOT・${PECOT}・.../bin/pecot で、クオート付きを含む。
 // 後ろに `--repo <値>` があってもよい。その後ろに、サブコマンドか `--help`・`--version` が来る形を拾う。
@@ -74,9 +74,9 @@ describe('本文のツール名', () => {
     expect(outside).toEqual([])
   })
 
-  it('w-pr の allowed-tools は、pr_preflight と pr_create を許す', () => {
+  it('w-pr の allowed-tools は、pr_check と pr_create を許す', () => {
     const skill = documents.find(({ file }) => file === 'skills/w-pr/SKILL.md')
-    expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_preflight')
+    expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_check')
     expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_create')
   })
 
@@ -100,21 +100,21 @@ describe('`pecot <サブコマンド>` の残り（R-19）', () => {
 
 describe('`pecot <サブコマンド>` の検出式', () => {
   const denied = [
-    'pecot issue read 1',
-    '$PECOT issue read o/r#1',
+    'pecot issue show 1',
+    '$PECOT issue show o/r#1',
     '${PECOT} pr create',
-    '"$PECOT" project info',
+    '"$PECOT" board show',
     '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" --repo o/r issue comment',
-    '/home/u/.claude/plugins/x/bin/pecot session status',
-    'pecot --repo o/r security sync',
+    '/home/u/.claude/plugins/x/bin/pecot session show',
+    'pecot --repo o/r tracker sync security',
     'cd x && pecot --help',
     'pecot --version',
   ]
   const allowed = [
     'pecot-tools aws s3 ls',
-    'pecotv issue read',
+    'pecotv issue show',
     'cd .pecot/work/350 && ls',
-    'pecot-workflow issue read',
+    'pecot-workflow issue show',
     '.pecot/state/pecot issue',
     'pecot について説明する',
     'pecot issue-tracker',

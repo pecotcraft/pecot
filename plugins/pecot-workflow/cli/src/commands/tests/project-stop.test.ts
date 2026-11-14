@@ -11,9 +11,9 @@ import type { BoardItem } from '../../domain/format.js'
 
 useIsolatedEnvironment()
 
-describe('repo set の --package', () => {
+describe('project link の --package', () => {
   it('NAME の形が不正だと、GitHub を呼ぶ前に終了コード 1 で止まる', async () => {
-    const result = await runCommand({ argv: ['repo', 'set', 'acme/other', '--package', 'b!d:x/CHANGELOG.md'] })
+    const result = await runCommand({ argv: ['project', 'link', 'acme/other', '--package', 'b!d:x/CHANGELOG.md'] })
     expect(result.code).toBe(1)
     expect(result.requests).toEqual([])
     expect(result.stdout).toBe('')
@@ -85,5 +85,34 @@ describe('pruneArchivedItems', () => {
     await pruneArchivedItems(createOutput(false, io), { deleteProjectItem }, config, items)
     expect(deleteProjectItem.mock.calls).toEqual([['PVT_1', 'item-20'], ['PVT_1', 'item-22']])
     expect(io.err.join('')).toBe('deleted: 2 archived items\nwarning: failed to delete 1 archived items\n')
+  })
+})
+
+describe('位置引数の選択肢', () => {
+  it.for([
+    { name: 'project get の key', argv: ['project', 'get'] },
+    { name: 'project set の key', argv: ['project', 'set'] },
+    { name: 'project unset の key', argv: ['project', 'unset'] },
+    { name: 'tracker sync の source', argv: ['tracker', 'sync'] },
+  ])('$name を省くと、GitHub と設定を読まずに終了コード 2 で止まる', async ({ argv }) => {
+    const result = await runCommand({ argv })
+    expect(result.code).toBe(2)
+    expect(result.requests).toEqual([])
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain(`Usage: pecot ${argv.join(' ')} [OPTIONS]`)
+    expect(result.stderr).toMatch(/Missing argument '(key|source)'\./u)
+  })
+
+  it.for([
+    { name: 'project get の知らない key', argv: ['project', 'get', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
+    { name: 'project set の知らない key', argv: ['project', 'set', 'develop_branch', 'a/b'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
+    { name: 'project unset の知らない key', argv: ['project', 'unset', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
+    { name: 'tracker sync の知らない source', argv: ['tracker', 'sync', 'codeql'], message: 'Invalid value for \'source\': \'codeql\' is not one of \'dependabot\', \'security\'.' },
+  ])('$name を渡すと、何も読まずに終了コード 2 で止まる', async ({ argv, message }) => {
+    const result = await runCommand({ argv })
+    expect(result.code).toBe(2)
+    expect(result.requests).toEqual([])
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain(message)
   })
 })

@@ -1,4 +1,4 @@
-// security alert の種類と、種類ごとの open の alert の取得、code scanning・secret scanning の状態判定。`release preflight` と `security sync` が使う。
+// security alert の種類と、種類ごとの open の alert の取得、code scanning・secret scanning の状態判定。`release check` と `tracker sync security` が使う。
 // 取得は ScanAlertSource と DependabotSource に任せる。
 
 import { describeApiError } from './api-error-detail.js'

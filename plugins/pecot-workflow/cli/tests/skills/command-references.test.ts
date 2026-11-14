@@ -1,7 +1,7 @@
 // 本文に書かれたツールの呼び出しを、COMMANDS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
 // - w-help の commands.md に、COMMANDS の全コマンドが載っている
-// - w-release の release-multi.md が、project_info の `package:` 行の形式を使う
+// - w-release の release-multi.md が、board_show の `package:` 行の形式を使う
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
@@ -139,7 +139,7 @@ describe('commands.md', () => {
 })
 
 describe('release-multi.md', () => {
-  it('project_info が出す package 行の形式を使う', () => {
+  it('board_show が出す package 行の形式を使う', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'demo',

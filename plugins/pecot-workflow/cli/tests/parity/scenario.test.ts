@@ -1,9 +1,9 @@
 // 器の前提の確認。Node の build は要らない。
 // 「シナリオの網羅」は、次の 4 つを確かめる。
 //   - シナリオが全件読め、golden の id の集合とシナリオの id の集合が一致する。
-//   - 37 サブコマンドの path がすべてシナリオにある。
+//   - 36 サブコマンドの path がすべてシナリオにある。
 //   - 各 path に ok と ok 以外があり、全体で auth・4xx・5xx・usage の種類がそろう。
-//   - commands.ts の 37 個が src/commands/registry.ts の COMMANDS と一致する。
+//   - commands.ts の 36 個が src/commands/registry.ts の COMMANDS と一致する。
 import { readdirSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
@@ -76,8 +76,8 @@ describe('グローバルオプションだけのシナリオ', () => {
 describe('kindOf', () => {
   it('path の次の語を kind にする。path に - を含むコマンドもある', () => {
     expect(kindOf({ id: 'board-add-4xx-notfound', command: { path: ['board', 'add'], args: [] } })).toBe('4xx')
-    expect(kindOf({ id: 'repo-set-ok', command: { path: ['repo', 'set'], args: [] } })).toBe('ok')
-    expect(kindOf({ id: 'issue-read-bad', command: { path: ['issue', 'read'], args: [] } })).toBeUndefined()
+    expect(kindOf({ id: 'project-link-ok', command: { path: ['project', 'link'], args: [] } })).toBe('ok')
+    expect(kindOf({ id: 'issue-show-bad', command: { path: ['issue', 'show'], args: [] } })).toBeUndefined()
   })
 })
 
@@ -116,15 +116,15 @@ describe('シナリオの網羅', () => {
     expect(goldenIds).toEqual(ids)
   })
 
-  it('commands.ts の 37 個が本番の登録（COMMANDS）と一致する', () => {
+  it('commands.ts の 36 個が本番の登録（COMMANDS）と一致する', () => {
     const registered = COMMANDS.map(definition => definition.path.join(' '))
     expect(registered.toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings))
   })
 
-  it('37 個の path と、シナリオの path の集合が一致する。グローバルオプションだけの path（空）は別に数える', () => {
+  it('36 個の path と、シナリオの path の集合が一致する。グローバルオプションだけの path（空）は別に数える', () => {
     const expected = COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings)
     const actual = [...new Set(ids.map(id => readScenario(id).command.path.join(' ')))].filter(key => key !== '').toSorted(compareStrings)
-    expect(COMMAND_PATHS).toHaveLength(37)
+    expect(COMMAND_PATHS).toHaveLength(36)
     expect(actual).toEqual(expected)
   })
 

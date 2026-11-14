@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// ボードの Issue の読み取り・判定と、列と札の動かし方。project info（数えるだけ）と board sync（書く）が共有する。
+// ボードの Issue の読み取り・判定と、列と札の動かし方。board show（数えるだけ）と board sync（書く）が共有する。
 import { decideBoardMove } from '../domain/board-move.js'
 import type { BoardMove } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'

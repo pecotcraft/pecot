@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者が指定する */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-// `pecot pr` の 4 コマンド（create・read・preflight・cleanup）。cli/commands/pr.py の移植。
+// pr create・pr show・pr check と session finish。cli/commands/pr.py の移植。
 // 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
 import { existsSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -214,10 +214,10 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
 function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
   const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
   if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    stopWith(out, 'release_branch is not set\nset it with: pecot repo set owner/repo --release-branch main')
+    stopWith(out, 'release_branch is not set\nset it with: pecot project link owner/repo --release-branch main')
   }
   if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    stopWith(out, 'develop_branch is not set\nset it with: pecot repo set owner/repo --develop-branch develop')
+    stopWith(out, 'develop_branch is not set\nset it with: pecot project link owner/repo --develop-branch develop')
   }
 }
 
@@ -302,7 +302,7 @@ interface PullRequestContext {
   readonly remoteName: string
 }
 
-// pr create の早い確認と pr preflight が共有する前提。満たさなければ終了コード 1
+// pr create の早い確認と pr check が共有する前提。満たさなければ終了コード 1
 function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
   if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository')
   const found = primaryRemote(directory)
@@ -616,7 +616,7 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
   }
 }
 
-// pr read
+// pr show
 
 // グローバルの --repo か、いまの git の repository。決められなければ undefined
 function resolveBaseRepository(globalRepository: string | undefined): RepositoryReference | undefined {
@@ -667,7 +667,7 @@ async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & Global
   }
 }
 
-// pr preflight
+// pr check
 
 function hasBranch(branch: string, cwd: string): boolean {
   return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
@@ -678,7 +678,7 @@ function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, re
   if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
-    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot repo set ${location.owner}/${location.repository} --develop-branch develop`)
+    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project link ${location.owner}/${location.repository} --develop-branch develop`)
   }
   const branchName = `${remote}/${developBranch}`
   return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
@@ -765,7 +765,7 @@ function runPreflight(input: Readonly<z.output<typeof PreflightInputSchema>>, io
   if (warnings.length > 0) throw new CommandExit(PREFLIGHT_EXIT_CODE)
 }
 
-// pr cleanup
+// session finish
 
 interface Cleanup {
   readonly out: Output
@@ -1010,7 +1010,7 @@ const prCreate = defineCommand({
 })
 
 const prRead = defineCommand({
-  path: ['pr', 'read'],
+  path: ['pr', 'show'],
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
   input: ReadInputSchema,
   positional: ['pr_ref'],
@@ -1023,7 +1023,7 @@ const prRead = defineCommand({
 })
 
 const prPreflight = defineCommand({
-  path: ['pr', 'preflight'],
+  path: ['pr', 'check'],
   description: 'Show all the information to check before creating a PR',
   input: PreflightInputSchema,
   positional: [],
@@ -1036,7 +1036,7 @@ const prPreflight = defineCommand({
 })
 
 const prCleanup = defineCommand({
-  path: ['pr', 'cleanup'],
+  path: ['session', 'finish'],
   description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
   input: CleanupInputSchema,
   positional: ['pr_ref'],
@@ -1048,4 +1048,4 @@ const prCleanup = defineCommand({
   },
 })
 
-export const PR_COMMANDS: readonly CommandDefinition[] = [prCleanup, prCreate, prPreflight, prRead]
+export const PR_COMMANDS: readonly CommandDefinition[] = [prCreate, prRead, prPreflight, prCleanup]

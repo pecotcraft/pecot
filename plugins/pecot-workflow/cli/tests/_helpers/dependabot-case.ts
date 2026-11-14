@@ -1,4 +1,4 @@
-// dependabot sync のテストが共有する準備。PR のノード・Tracker の Issue・偽の GitHub の応答を組み立てる。
+// tracker sync dependabot のテストが共有する準備。PR のノード・Tracker の Issue・偽の GitHub の応答を組み立てる。
 // 時刻に頼る理由（30 分・24 時間）は、NOW を基準にした経過時間で PR を作って確かめる。
 import type { JsonObject } from '../../src/domain/json.js'
 import { JSON_NULL } from '../../src/domain/json-null.js'

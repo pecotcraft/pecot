@@ -148,7 +148,7 @@ export function toolNameOf(path: readonly string[]): string {
 }
 
 /**
-path から定義書（interface/）の項目の ID を作る。`['branch', 'create']` は PW-BRANCH-CREATE、`['issue', 'create']` は PW-ISSUE-CREATE
+path から定義書（interface/）の項目の ID を作る。`['session', 'start']` は PW-SESSION-START、`['issue', 'create']` は PW-ISSUE-CREATE
 */
 export function interfaceIdOf(path: readonly string[]): string {
   return `PW-${path.join(' ').toUpperCase().replaceAll(/[ _]/g, '-')}`

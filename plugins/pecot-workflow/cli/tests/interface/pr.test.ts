@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
-// pr の 4 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
+// pr の 3 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -77,7 +77,6 @@ const IN_REVIEW_RULES: ResponseRuleList = [
 const KIND_FAILURE = rule({ operation: 'GetIssueKind' }, { status: 500, body: { message: 'Server Error' } })
 // 種別の問い合わせが 500 を返したときの warning。httpx の文言が 2 行に分かれ、suffix は 2 行目の末尾に付く
 const KIND_WARNING_FILL = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; fill Closes by hand\n/mu
-const KIND_WARNING_UNPROTECTED = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; not protected\n/mu
 const CREATED_RULE = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21, html_url: PULL_URL })
 const NOT_EPIC_RULE = graphql('GetIssueKind', issueKindData({ number: 12 }), { variables: { number: 12 } })
 const SUBMIT_RULES: ResponseRuleList = [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES]
@@ -383,10 +382,10 @@ describe('pr create', () => {
     expect(valid).toMatchObject({ code: 0, stderr: 'dry-run: would create PR acme/demo develop -> main: release: v0.5.0 (release template)\n' })
   })
 
-  it('--dry-run を付けずに打つと、PR を作る前に pr preflight と同じ確認をする', async (context) => {
+  it('--dry-run を付けずに打つと、PR を作る前に pr check と同じ確認をする', async (context) => {
     await verifies(context, 'PW-PR-CREATE-20')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
-    const preflight = await workspace.run(['pr', 'preflight', '-D', workspace.directory])
+    const preflight = await workspace.run(['pr', 'check', '-D', workspace.directory])
     const warning = 'warning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n'
     expect(preflight.stderr).toContain(warning)
     const result = await workspace.run(messageArguments())
@@ -690,7 +689,7 @@ describe('pr create', () => {
   })
 })
 
-// pr read
+// pr show
 
 const FULL_SAMPLE: PullRequestSample = {
   state: 'OPEN',
@@ -706,11 +705,11 @@ const REVIEW_SAMPLE: PullRequestSample = {
   threads: [{ isResolved: false, path: 'src/a.ts', line: 10, comments: { nodes: [{ author: { login: 'reviewer' }, body: '名前を直す', createdAt: '2026-01-02T03:04:05Z' }] } }],
 }
 
-describe('pr read', () => {
+describe('pr show', () => {
   it('PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-READ-01')
+    await verifies(context, 'PW-PR-SHOW-01')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: '本文の 1 行目\n' }))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('')
     expect(result.stdout).toBe([
@@ -735,24 +734,24 @@ describe('pr read', () => {
     { title: 'closing issues', body: '本文\n', expected: '**Closing Issues:**\n  - #12 見本の Issue\n' },
     { title: '本文の参照 Issue', body: '本文\n\nRefs #3\n', expected: '**Referenced Issues:**\n  - #3\n' },
   ])('関連 Issue がある PR を読むと、$title を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-READ-02')
+    await verifies(context, 'PW-PR-SHOW-02')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: row.body }))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.stdout).toContain(row.expected)
   })
 
   it('レビューがある PR を読むと、レビューごとの author と状態を出す', async (context) => {
-    await verifies(context, 'PW-PR-READ-03')
+    await verifies(context, 'PW-PR-SHOW-03')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.stdout).toContain('**Reviews:**\n  - reviewer: APPROVED\n')
     expect(result.stdout).toContain('**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2')
   })
 
   it('--reviews を付けて打つと、レビューの本文と行のコメントを足して出す', async (context) => {
-    await verifies(context, 'PW-PR-READ-04')
+    await verifies(context, 'PW-PR-SHOW-04')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21', '--reviews'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout).toContain('### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n')
     expect(result.stdout).toContain('### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02):\n> 名前を直す\n')
   })
@@ -761,9 +760,9 @@ describe('pr read', () => {
     { title: 'レビューがあれば ## Reviews の節を出す', sample: REVIEW_SAMPLE, isShown: true },
     { title: 'レビューが無ければ ## Reviews の節を出さない', sample: { state: 'OPEN' }, isShown: false },
   ])('--reviews を付けて打つと、$title', async (row, context) => {
-    await verifies(context, 'PW-PR-READ-05')
+    await verifies(context, 'PW-PR-SHOW-05')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(row.sample))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21', '--reviews'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout.includes('## Reviews\n')).toBe(row.isShown)
   })
 
@@ -771,24 +770,24 @@ describe('pr read', () => {
     { title: '行のコメントがあれば ## Line Comments の節を出す', sample: REVIEW_SAMPLE, isShown: true },
     { title: '行のコメントが無ければ ## Line Comments の節を出さない', sample: { state: 'OPEN', reviews: REVIEW_SAMPLE.reviews ?? [], threads: [] }, isShown: false },
   ])('--reviews を付けて打つと、$title', async (row, context) => {
-    await verifies(context, 'PW-PR-READ-06')
+    await verifies(context, 'PW-PR-SHOW-06')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(row.sample))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21', '--reviews'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout.includes('## Line Comments\n')).toBe(row.isShown)
   })
 
-  it('--reviews を付けて打つと、関連 Issue ごとに pecot issue read の案内を足す', async (context) => {
-    await verifies(context, 'PW-PR-READ-07')
+  it('--reviews を付けて打つと、関連 Issue ごとに pecot issue show の案内を足す', async (context) => {
+    await verifies(context, 'PW-PR-SHOW-07')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData({ ...REVIEW_SAMPLE, closing: [[12, '見本の Issue'], [13, '別の Issue']] }))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21', '--reviews'])
-    expect(result.stdout).toContain('  - #12 見本の Issue\n    → details: pecot issue read acme/demo/12\n')
-    expect(result.stdout).toContain('  - #13 別の Issue\n    → details: pecot issue read acme/demo/13\n')
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
+    expect(result.stdout).toContain('  - #12 見本の Issue\n    → details: pecot issue show acme/demo/12\n')
+    expect(result.stdout).toContain('  - #13 別の Issue\n    → details: pecot issue show acme/demo/13\n')
   })
 
   it('--json を付けて打つと、同じ内容を JSON で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-READ-08')
+    await verifies(context, 'PW-PR-SHOW-08')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21', '--json'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json'])
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toStrictEqual({
       number: 21,
@@ -807,9 +806,9 @@ describe('pr read', () => {
   })
 
   it('--json と --reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める', async (context) => {
-    await verifies(context, 'PW-PR-READ-09')
+    await verifies(context, 'PW-PR-SHOW-09')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21', '--json', '--reviews'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
     expect(JSON.parse(result.stdout)).toMatchObject({
       reviews: [{ state: 'CHANGES_REQUESTED', author: 'reviewer', body: '直してください。', submitted_at: '2026-01-02T03:04:05Z' }],
       review_threads: [{ is_resolved: false, path: 'src/a.ts', line: 10, comments: [{ author: 'reviewer', body: '名前を直す', created_at: '2026-01-02T03:04:05Z' }] }],
@@ -817,11 +816,11 @@ describe('pr read', () => {
   })
 
   it.for([
-    { title: '--repo（git の remote と違う値）', argv: ['--repo', 'acme/other', 'pr', 'read', '21'], remote: 'origin', expected: 'other' },
-    { title: 'origin の remote', argv: ['pr', 'read', '21'], remote: 'origin', expected: 'demo' },
-    { title: 'origin が無いときの upstream の remote', argv: ['pr', 'read', '21'], remote: 'upstream', expected: 'upstream-repo' },
+    { title: '--repo（git の remote と違う値）', argv: ['--repo', 'acme/other', 'pr', 'show', '21'], remote: 'origin', expected: 'other' },
+    { title: 'origin の remote', argv: ['pr', 'show', '21'], remote: 'origin', expected: 'demo' },
+    { title: 'origin が無いときの upstream の remote', argv: ['pr', 'show', '21'], remote: 'upstream', expected: 'upstream-repo' },
   ])('短い形 N の参照を渡すと、$title で補って読む', async (row, context) => {
-    await verifies(context, 'PW-PR-READ-10')
+    await verifies(context, 'PW-PR-SHOW-10')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))] })
     if (row.remote === 'upstream') {
       workspace.git(['remote', 'rename', 'origin', 'upstream'])
@@ -833,33 +832,33 @@ describe('pr read', () => {
   })
 
   it('PR の参照の形が誤っていると、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-READ-11')
+    await verifies(context, 'PW-PR-SHOW-11')
     const workspace = await openWorkspace()
-    const result = await workspace.run(['pr', 'read', 'not-a-ref'])
+    const result = await workspace.run(['pr', 'show', 'not-a-ref'])
     expect(result.code).toBe(2)
     expect(result.stderr).toMatch(/^error: invalid reference: not-a-ref\n/u)
     expect(workspace.requests()).toStrictEqual([])
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-READ-12')
+    await verifies(context, 'PW-PR-SHOW-12')
     const workspace = await openWorkspace({ config: false })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
     expect(workspace.requests()).toStrictEqual([])
   })
 
   it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-READ-13')
+    await verifies(context, 'PW-PR-SHOW-13')
     const workspace = await openWorkspace({ github: [rule({ operation: 'GetPullRequestSlim' }, { status: 502, body: { message: 'Bad Gateway' } })] })
-    const result = await workspace.run(['pr', 'read', 'acme/demo/21'])
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: GraphQL query error: /u)
   })
 })
 
-// pr preflight
+// pr check
 
 const SECTION_HEADINGS = [
   '=== Git Remote ===',
@@ -880,16 +879,16 @@ function headingsOf(stdout: string): string[] {
 }
 
 function preflight(workspace: Readonly<Workspace>): ReturnType<Workspace['run']> {
-  return workspace.run(['pr', 'preflight', '-D', workspace.directory])
+  return workspace.run(['pr', 'check', '-D', workspace.directory])
 }
 
-describe('pr preflight', () => {
+describe('pr check', () => {
   it('--directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-01')
+    await verifies(context, 'PW-PR-CHECK-01')
     const workspace = await pushedBranch()
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
-    const result = await workspace.run(['pr', 'preflight', '-D', workspace.directory], elsewhere)
+    const result = await workspace.run(['pr', 'check', '-D', workspace.directory], elsewhere)
     expect(result.code).toBe(0)
     expect(headingsOf(result.stdout)).toStrictEqual(SECTION_HEADINGS)
     expect(result.stdout).toContain('=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n')
@@ -902,7 +901,7 @@ describe('pr preflight', () => {
     writeFileSync(path.join(workspace.directory, '.git', 'info', 'exclude'), '# 目印の行\n.marker-exclude\n')
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
-    const result = await workspace.run(['pr', 'preflight', '-D', workspace.directory], elsewhere)
+    const result = await workspace.run(['pr', 'check', '-D', workspace.directory], elsewhere)
     expect(result.stdout).toContain('=== Git Exclude ===\n# 目印の行\n.marker-exclude\n')
     expect(result.stdout).not.toContain('(no exclude)')
   })
@@ -913,7 +912,7 @@ describe('pr preflight', () => {
     workspace.git(['worktree', 'add', '-q', '-b', 'linked-work', worktree])
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
-    const result = await workspace.run(['pr', 'preflight', '-D', worktree], elsewhere)
+    const result = await workspace.run(['pr', 'check', '-D', worktree], elsewhere)
     expect(result.stdout).toContain('Is worktree environment: true\n')
     const main = await preflight(workspace)
     expect(main.stdout).toContain('Is worktree environment: false\n')
@@ -927,7 +926,7 @@ describe('pr preflight', () => {
   })
 
   it('warning があるときに打つと、11 の節を全部出す', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-02')
+    await verifies(context, 'PW-PR-CHECK-02')
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
@@ -935,7 +934,7 @@ describe('pr preflight', () => {
   })
 
   it.for([{ remote: 'origin' }, { remote: 'upstream' }])('remote が $remote だけだと、Base Branch の節に <remote>/<develop_branch> を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-03')
+    await verifies(context, 'PW-PR-CHECK-03')
     const workspace = await pushedBranch()
     if (row.remote !== 'origin') workspace.git(['remote', 'rename', 'origin', row.remote])
     const result = await preflight(workspace)
@@ -944,14 +943,14 @@ describe('pr preflight', () => {
   })
 
   it('打つと、count: preflight warnings の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-04')
+    await verifies(context, 'PW-PR-CHECK-04')
     const workspace = await pushedBranch()
     const result = await preflight(workspace)
     expect(result.stderr).toBe('count: preflight warnings: 0\n')
   })
 
   it('warning があるときに打つと、warning ごとに warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-05')
+    await verifies(context, 'PW-PR-CHECK-05')
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual([
@@ -962,7 +961,7 @@ describe('pr preflight', () => {
   })
 
   it('常に、リポジトリとファイルを書き換えない', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-06')
+    await verifies(context, 'PW-PR-CHECK-06')
     const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n', [stateFile('pr-create-slash-pending')]: '1\n' } })
     const snapshot = (): unknown => ({
       files: filesOf(workspace.directory),
@@ -983,7 +982,7 @@ describe('pr preflight', () => {
     { title: 'push 後に手元だけ進んだ', kind: 'ahead', expected: '1 unpushed commits' },
     { title: 'remote とずれた', kind: 'diverged', expected: `diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead` },
   ])('ブランチが次の状態だと（$title）、Push Status の warning を数える', async (row, context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-07')
+    await verifies(context, 'PW-PR-CHECK-07')
     const workspace = row.kind === 'unpushed' ? await openWorkspace({ branch: BRANCH }) : await pushedBranch()
     if (row.kind !== 'unpushed') workspace.git(['commit', '--allow-empty', '-q', '-m', 'local'])
     if (row.kind === 'diverged') {
@@ -995,14 +994,14 @@ describe('pr preflight', () => {
   })
 
   it('未コミットの変更があると、Git Status の warning を数える', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-08')
+    await verifies(context, 'PW-PR-CHECK-08')
     const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', 'warning: Git Status: modified or untracked files (fix: commit)'])
   })
 
   it('stash に項目があると、Stash List の warning を数える', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-09')
+    await verifies(context, 'PW-PR-CHECK-09')
     const workspace = await pushedBranch()
     writeFileSync(path.join(workspace.directory, 'README.md'), '変更\n')
     workspace.git(['stash', 'push', '-q'])
@@ -1012,7 +1011,7 @@ describe('pr preflight', () => {
   })
 
   it('warning が 1 件以上あると、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-10')
+    await verifies(context, 'PW-PR-CHECK-10')
     const dirty = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const dirtyResult = await preflight(dirty)
     expect(dirtyResult.code).toBe(2)
@@ -1022,16 +1021,16 @@ describe('pr preflight', () => {
   })
 
   it('git のリポジトリでないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-11')
+    await verifies(context, 'PW-PR-CHECK-11')
     const workspace = await pushedBranch()
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
-    const result = await workspace.run(['pr', 'preflight', '-D', plain])
+    const result = await workspace.run(['pr', 'check', '-D', plain])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: not a git repository\n' })
   })
 
   it('git の remote が無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-12')
+    await verifies(context, 'PW-PR-CHECK-12')
     const workspace = await pushedBranch()
     workspace.git(['remote', 'remove', 'origin'])
     const result = await preflight(workspace)
@@ -1039,18 +1038,18 @@ describe('pr preflight', () => {
   })
 
   it('現在のブランチを決められないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-13')
+    await verifies(context, 'PW-PR-CHECK-13')
     const workspace = await pushedBranch()
     const unborn = path.join(workspace.root, 'unborn')
     mkdirSync(unborn)
     workspace.git(['init', '-q', '-b', 'main'], unborn)
     workspace.git(['remote', 'add', 'origin', 'git@ghes.example.com:acme/demo.git'], unborn)
-    const result = await workspace.run(['pr', 'preflight', '-D', unborn])
+    const result = await workspace.run(['pr', 'check', '-D', unborn])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot determine the current branch\n' })
   })
 
   it('remote のリポジトリを決められないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-13')
+    await verifies(context, 'PW-PR-CHECK-13')
     const workspace = await pushedBranch()
     workspace.git(['remote', 'set-url', 'origin', '/local/path/demo'])
     const result = await preflight(workspace)
@@ -1058,435 +1057,35 @@ describe('pr preflight', () => {
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-14')
+    await verifies(context, 'PW-PR-CHECK-14')
     const workspace = await pushedBranch({ config: false })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: project config not found\n  activate a project with: pecot project activate <PROJECT>\n' })
   })
 
   it('develop_branch が設定に無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-15')
+    await verifies(context, 'PW-PR-CHECK-15')
     const workspace = await pushedBranch({ config: NO_DEVELOP_BRANCH })
     const result = await preflight(workspace)
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: pecot repo set acme\/demo --develop-branch develop\n$/u)
+    expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: pecot project link acme\/demo --develop-branch develop\n$/u)
   })
 
   it('<remote>/<develop_branch> が無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-16')
+    await verifies(context, 'PW-PR-CHECK-16')
     const workspace = await pushedBranch({ config: { developBranch: 'develop' } })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: branch origin/develop does not exist\n  check the remote branches with: git branch -r\n' })
   })
 
   it('--directory を渡していないと、使い方のエラーを出して終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-PREFLIGHT-17')
+    await verifies(context, 'PW-PR-CHECK-17')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'preflight'])
+    const result = await workspace.run(['pr', 'check'])
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toContain('Usage: pecot pr preflight [OPTIONS]')
+    expect(result.stderr).toContain('Usage: pecot pr check [OPTIONS]')
     expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
-  })
-})
-
-// pr cleanup
-
-const MERGED = 'GetPullRequestSlim'
-
-function kindRule(number: number, options: Readonly<{ subIssues?: number, issueType?: string }> = {}): ReturnType<typeof graphql> {
-  return graphql('GetIssueKind', issueKindData({ number, ...options }), { variables: { number } })
-}
-
-function closeRule(number: number, status = 200): ReturnType<typeof rest> {
-  return rest('PATCH', `/repos/acme/demo/issues/${String(number)}`, status, status === 200 ? { number, state: 'closed' } : { message: 'Server Error' })
-}
-
-function deleteRule(branch: string, status = 204, message?: string): ReturnType<typeof rest> {
-  return rest('DELETE', `/repos/acme/demo/git/refs/heads/${branch}`, status, message === undefined ? undefined : { message })
-}
-
-function mergedRules(sample: Readonly<PullRequestSample> = {}, extra: ResponseRuleList = [kindRule(12), closeRule(12)]): ResponseRuleList {
-  return [graphql(MERGED, pullRequestData(sample)), ...extra]
-}
-
-const ALL_FLAGS = ['.pecot-active', '.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked', 'merge-slash-pending']
-
-function flagFiles(): Record<string, string> {
-  return Object.fromEntries(ALL_FLAGS.map(name => [stateFile(name), 'x\n']))
-}
-
-function currentBranch(workspace: Readonly<Workspace>, cwd?: string): string {
-  return workspace.git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd).trim()
-}
-
-function hasBranch(workspace: Readonly<Workspace>): boolean {
-  return workspace.git(['branch', '--list', BRANCH]).trim() !== ''
-}
-
-function cleanupBranch(extra: Readonly<WorkspaceOptions> = {}): Promise<Workspace> {
-  return openWorkspace({
-    branch: BRANCH,
-    branches: [{ name: BRANCH, commits: [{ message: '未マージの変更', files: { 'feature.txt': 'x\n' } }] }],
-    ...extra,
-  })
-}
-
-const CLEANUP = ['pr', 'cleanup', 'acme/demo/21']
-// eslint-disable-next-line unicorn/no-null -- 応答の形（PR が無いと null）
-const NO_PULL_REQUEST = { repository: { pullRequest: null } }
-
-describe('pr cleanup', () => {
-  it('マージ済みの PR の参照を渡すと、closing issues・本文の Closes / Fixes / Resolves・head ブランチ名の末尾の番号の Issue を close する', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-01')
-    const github = mergedRules({ closing: [[10, 'closing']], body: 'Fixes #11\n\nResolves #13\n\nCloses #14\n' }, [10, 11, 12, 13, 14].flatMap(number => [kindRule(number), closeRule(number)]))
-    const workspace = await openWorkspace({ github })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    const closed = restRequests(workspace, 'PATCH')
-    expect(closed).toMatchObject([10, 11, 12, 13, 14].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
-  })
-
-  it.for([
-    { title: 'Issue Type が Epic', options: { issueType: 'Epic' } },
-    { title: 'sub-issue を持つ Issue', options: { subIssues: 3 } },
-  ])('次の Issue があると（$title）、その Issue を close しない', async (row, context) => {
-    await verifies(context, 'PW-PR-CLEANUP-02')
-    const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'epic']] }, [kindRule(10, row.options), kindRule(12), closeRule(12)]) })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
-    expect(result.stderr).toContain('count: Issues to close: 1\n')
-    expect(result.stderr).toContain('closed: Issue #12\n')
-  })
-
-  it('Issue の種別を読めないと、warning の行を出して、その Issue を Epic として守らずに close する', async () => {
-    const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE, closeRule(12)]) })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(KIND_WARNING_UNPROTECTED)
-    expect(result.stderr).toMatch(/\ncount: Issues to close: 1\nclosed: Issue #12\n$/u)
-    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
-  })
-
-  it('Epic か sub-issue を持つ Issue があると、skipped の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-03')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { subIssues: 1 })]) })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.stderr).toBe('count: Issues to close: 0\nskipped: closing Issue #12 (Epic)\n')
-  })
-
-  it('--delete-branch を付けて打つと、リモートの head ブランチを削除する', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-04')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '--delete-branch', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }, { path: `/repos/acme/demo/git/refs/heads/wip/${BRANCH}` }])
-  })
-
-  it('リモートの head ブランチを削除すると、続けて wip/<head> を削除する', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-05')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(lines(result.stderr).slice(-2)).toStrictEqual([`deleted: remote branch ${BRANCH}`, `deleted: remote branch wip/${BRANCH}`])
-  })
-
-  it('カレントのリポジトリが PR のリポジトリと同じで worktree の外だと、develop_branch のブランチに切り替える', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-06')
-    const workspace = await cleanupBranch({ github: mergedRules() })
-    const result = await workspace.run(CLEANUP)
-    expect(result.stderr).toContain('set: current branch to main\n')
-    expect(currentBranch(workspace)).toBe('main')
-  })
-
-  it('カレントが worktree だと、置き場所の親ディレクトリの名前の wtN のブランチに切り替える', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-06')
-    const workspace = await cleanupBranch({
-      branch: 'main',
-      branches: [{ name: 'wt1' }, { name: BRANCH }],
-      worktrees: [{ name: 'wt1', branch: 'wt1-work', files: {} }],
-      github: mergedRules(),
-    })
-    const worktree = path.join(workspace.root, 'wt1', 'demo')
-    workspace.git(['checkout', '-q', BRANCH], worktree)
-    const result = await workspace.run(CLEANUP, worktree)
-    expect(result.stderr).toContain('set: current branch to wt1\n')
-    expect(currentBranch(workspace, worktree)).toBe('wt1')
-  })
-
-  it('カレントが worktree で add の記録があると、記録の wtN のブランチに切り替える', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-06')
-    const workspace = await cleanupBranch({
-      branch: 'main',
-      branches: [{ name: 'wt1' }, { name: BRANCH }],
-      worktrees: [{ name: 'wt2', branch: 'wt2-work', files: {} }],
-      github: mergedRules(),
-    })
-    const worktree = path.join(workspace.root, 'wt2', 'demo')
-    workspace.git(['checkout', '-q', BRANCH], worktree)
-    const record = workspace.git(['rev-parse', '--path-format=absolute', '--git-path', 'pecot-worktree-name'], worktree).trim()
-    writeFileSync(record, 'wt1\n')
-    const result = await workspace.run(CLEANUP, worktree)
-    expect(result.stderr).toContain('set: current branch to wt1\n')
-    expect(currentBranch(workspace, worktree)).toBe('wt1')
-  })
-
-  it('ブランチを切り替えると、origin の remote（無ければ最初の remote）から develop_branch を pull する', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-07')
-    const workspace = await cleanupBranch({ github: mergedRules() })
-    workspace.git(['remote', 'rename', 'origin', 'upstream'])
-    workspace.advanceRemote('main')
-    expect(workspace.git(['rev-parse', 'main'])).not.toBe(workspace.remoteGit(['rev-parse', 'main']))
-    const result = await workspace.run(CLEANUP)
-    expect(result.stderr).toContain('updated: main from upstream/main\n')
-    expect(workspace.git(['rev-parse', 'main'])).toBe(workspace.remoteGit(['rev-parse', 'main']))
-  })
-
-  it('pull すると、ローカルの head ブランチを git branch -D で削除する', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-08')
-    const workspace = await cleanupBranch({ github: mergedRules() })
-    expect(hasBranch(workspace)).toBe(true)
-    const result = await workspace.run(CLEANUP)
-    expect(result.stderr).toContain(`deleted: local branch ${BRANCH}\n`)
-    expect(hasBranch(workspace)).toBe(false)
-  })
-
-  it('ローカルの片付けを終えると、フラグのファイルと merge-slash-pending を消す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-09')
-    const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
-    await workspace.run(CLEANUP)
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false, false])
-  })
-
-  it('--skip-local-cleanup を付けて打つと、ローカルの片付けをしない', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-10')
-    const workspace = await cleanupBranch({ github: mergedRules() })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(currentBranch(workspace)).toBe(BRANCH)
-    expect(hasBranch(workspace)).toBe(true)
-    expect(result.stderr).not.toContain('current branch')
-  })
-
-  it('--skip-local-cleanup を付けて打つと、フラグのファイルと merge-slash-pending を消さない', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-11')
-    const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
-  })
-
-  it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-12')
-    const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    const files = filesOf(workspace.directory)
-    const result = await workspace.run([...CLEANUP, '--dry-run', '--delete-branch'])
-    expect(lines(result.stderr)).toStrictEqual([
-      'count: Issues to close: 1',
-      'dry-run: would close Issue #12',
-      `dry-run: would delete remote branch ${BRANCH}`,
-      'dry-run: would set current branch to main',
-      'dry-run: would update main from origin/main',
-      `dry-run: would delete local branch ${BRANCH}`,
-    ])
-    expect(restRequests(workspace, 'PATCH')).toStrictEqual([])
-    expect(restRequests(workspace, 'DELETE')).toStrictEqual([])
-    expect(currentBranch(workspace)).toBe(BRANCH)
-    expect(filesOf(workspace.directory)).toStrictEqual(files)
-  })
-
-  it('実行すると、close する Issue の件数を count の行で標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-13')
-    const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'a']] }, [kindRule(10), closeRule(10), kindRule(12), closeRule(12)]) })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.stderr.startsWith('count: Issues to close: 2\n')).toBe(true)
-  })
-
-  it('Issue を close すると、closed の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-14')
-    const workspace = await openWorkspace({ github: mergedRules() })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.stderr).toBe('count: Issues to close: 1\nclosed: Issue #12\n')
-  })
-
-  it('ブランチを削除すると、deleted の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-15')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.stderr).toContain(`deleted: remote branch ${BRANCH}\n`)
-  })
-
-  it('リモートの head ブランチが既に無いと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-16')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH, 422, 'Reference does not exist'), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain(`unchanged: remote branch ${BRANCH} (already deleted)\n`)
-  })
-
-  it('ローカルの head ブランチが既に無いなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-17')
-    const workspace = await openWorkspace({ github: mergedRules() })
-    const result = await workspace.run(CLEANUP)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(new RegExp(`\\nwarning: deleting local branch ${BRANCH} failed: .*\\n$`, 'u'))
-  })
-
-  it('--delete-branch を付けてローカルの片付けも通すと、結果の行を実行した順で標準エラーへ出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-04')
-    await verifies(context, 'PW-PR-CLEANUP-13')
-    await verifies(context, 'PW-PR-CLEANUP-14')
-    await verifies(context, 'PW-PR-CLEANUP-15')
-    const workspace = await cleanupBranch({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '-d'])
-    expect(result.code).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(result.stderr.split('\n')).toStrictEqual([
-      'count: Issues to close: 1',
-      'closed: Issue #12',
-      `deleted: remote branch ${BRANCH}`,
-      `deleted: remote branch wip/${BRANCH}`,
-      'set: current branch to main',
-      'updated: main from origin/main',
-      `deleted: local branch ${BRANCH}`,
-      '',
-    ])
-  })
-
-  it('origin の develop_branch が無く pull に失敗すると、warning の行を出したうえで、ローカルの head ブランチを削除する', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-17')
-    const workspace = await cleanupBranch({ github: mergedRules() })
-    workspace.remoteGit(['update-ref', '-d', 'refs/heads/main'])
-    const result = await workspace.run(CLEANUP)
-    expect(result.code).toBe(0)
-    const output = lines(result.stderr)
-    expect(output.slice(0, 3)).toStrictEqual(['count: Issues to close: 1', 'closed: Issue #12', 'set: current branch to main'])
-    const pulling = output.findIndex(line => line.startsWith('warning: pulling main failed: '))
-    expect(pulling).toBe(3)
-    expect(output.at(-1)).toBe(`deleted: local branch ${BRANCH}`)
-    expect(hasBranch(workspace)).toBe(false)
-    expect(result.stderr).not.toContain('updated:')
-  })
-
-  it('カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-18')
-    const github = [graphql(MERGED, pullRequestData({ closing: [], body: '', head: 'feat/other' }))]
-    const workspace = await cleanupBranch({ github })
-    const result = await workspace.run(['pr', 'cleanup', 'acme/other/21'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain('warning: current repository (acme/demo) differs from the PR\'s (acme/other); skipped local cleanup\n')
-  })
-
-  it('カレントのリポジトリが PR のリポジトリと違うなら、ローカルの片付けを飛ばす', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-19')
-    const github = [graphql(MERGED, pullRequestData({ closing: [], body: '', head: BRANCH }))]
-    const workspace = await cleanupBranch({ github })
-    const result = await workspace.run(['pr', 'cleanup', 'acme/other/21'])
-    expect(result.stderr).not.toContain('current branch')
-    expect(currentBranch(workspace)).toBe(BRANCH)
-    expect(hasBranch(workspace)).toBe(true)
-  })
-
-  it('Issue の close に失敗したなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-20')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12, 500)]) })
-    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(/\nwarning: closing Issue #12 failed: /u)
-  })
-
-  it('Issue の close に失敗したなら、ほかの Issue と後の処理を続ける', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-21')
-    const github = mergedRules({ closing: [[10, 'a']] }, [kindRule(10), closeRule(10, 500), kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)])
-    const workspace = await openWorkspace({ github })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain('closed: Issue #12\n')
-    expect(result.stderr).toContain(`deleted: remote branch ${BRANCH}\n`)
-  })
-
-  it('リモートの head ブランチの削除に失敗したなら、wip/<head> の削除を飛ばす', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-22')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH, 403, 'Forbidden'), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain(`warning: deleting remote branch ${BRANCH} failed: `)
-    expect(restRequests(workspace, 'DELETE')).toHaveLength(1)
-  })
-
-  it('checkout に失敗したなら、pull と git branch -D を飛ばす', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-23')
-    const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules() })
-    const result = await workspace.run(CLEANUP)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain('warning: checking out ghost failed: ')
-    expect(result.stderr).not.toContain('updated:')
-    expect(result.stderr).not.toContain('deleted: local branch')
-    expect(currentBranch(workspace)).toBe(BRANCH)
-  })
-
-  it('PR がマージされていないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-24')
-    const workspace = await openWorkspace({ github: mergedRules({ state: 'OPEN' }) })
-    const result = await workspace.run(CLEANUP)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR #21 is not merged yet (state: OPEN); merge it with gh pr merge first\n' })
-  })
-
-  it('PR がマージされていないなら、何も変えない', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-25')
-    const workspace = await cleanupBranch({ github: mergedRules({ state: 'OPEN' }), files: flagFiles() })
-    const files = filesOf(workspace.directory)
-    await workspace.run([...CLEANUP, '-d'])
-    expect(operationsOf(workspace)).toStrictEqual([MERGED])
-    expect(currentBranch(workspace)).toBe(BRANCH)
-    expect(hasBranch(workspace)).toBe(true)
-    expect(filesOf(workspace.directory)).toStrictEqual(files)
-  })
-
-  it('アクティブなプロジェクトが無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-26')
-    const workspace = await openWorkspace({ config: false })
-    const result = await workspace.run(CLEANUP)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
-    expect(workspace.requests()).toStrictEqual([])
-  })
-
-  it.for([
-    { title: 'PR が無い', rules: [graphql(MERGED, NO_PULL_REQUEST)], expected: 'error: PR not found: acme/demo/21\n' },
-    { title: 'PR を取得できない', rules: [rule({ operation: MERGED }, { status: 502, body: { message: 'Bad Gateway' } })], expected: 'error: GraphQL query error: ' },
-  ])('次の場合は（$title）、終了コード 1 で終わる', async (row, context) => {
-    await verifies(context, 'PW-PR-CLEANUP-27')
-    const workspace = await openWorkspace({ github: row.rules })
-    const result = await workspace.run(CLEANUP)
-    expect(result.code).toBe(1)
-    expect(result.stdout).toBe('')
-    expect(result.stderr.startsWith(row.expected)).toBe(true)
-  })
-
-  it('PR の参照の形が誤っているなら、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-28')
-    const workspace = await openWorkspace()
-    const result = await workspace.run(['pr', 'cleanup', 'not-a-ref'])
-    expect(result.code).toBe(2)
-    expect(result.stderr).toMatch(/^error: invalid reference: not-a-ref\n/u)
-    expect(workspace.requests()).toStrictEqual([])
-  })
-
-  it('wip/<head> のリモートブランチが無いなら、何も出さない', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-29')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`, 422, 'Reference does not exist')]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(restRequests(workspace, 'DELETE')).toHaveLength(2)
-    expect(result.stderr).not.toContain('wip/')
-  })
-
-  it('wip/<head> があるのに削除できなかったなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CLEANUP-30')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`, 403, 'Forbidden')]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain(`warning: deleting remote branch wip/${BRANCH} failed: `)
   })
 })

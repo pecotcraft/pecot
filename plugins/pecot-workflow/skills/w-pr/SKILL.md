@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff. Triggers: "create PR", "submit for review".
   Does not merge PRs (use w-merge).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_preflight, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい"
 ---
 
@@ -16,7 +16,7 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 ### Step 1: 事前確認スクリプトを実行
 
-`pr_preflight` を `directory: "."` で呼ぶ。
+`pr_check` を `directory: "."` で呼ぶ。
 
 結果に `exit code: 1` か `exit code: 2` の行が出たら、結果を見て解決し、呼び直してから次へ進む。
 
@@ -119,7 +119,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 - `pr_create`（`prepare: true`）の実行時、テンプレの `Closes #` には active タスク番号が自動で埋め込まれる
 - 自動埋め込みの番号を書き換えない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
 - ブランチ名末尾の `<num>` も sub-issue 番号にする
-- `pr_cleanup` は Issue Type=Epic / `sub-issues > 0` の Issue を自動でクローズ対象から除外する（保険）
+- `session_finish` は Issue Type=Epic / `sub-issues > 0` の Issue を自動でクローズ対象から除外する（保険）
 - 既知制約: Issue Type 未設定かつ sub-issue 0 件の Epic は判定不能
 
 PR作成後、レビュー対応は `/pecot-w:w-revise`、マージは `/pecot-w:w-merge` を使用する。
