@@ -18,7 +18,7 @@ Issue乱立を防ぎ、Phase単位で作業を管理する。
 
 - 仕様と実装を分離し、仕様検討はボード外で行う
 - Phase 単位で管理し、Epic を実装フェーズとして扱う
-- 順序を明示し、並列可能/直列必須を明確にする
+- 順序は前提の表に書き、並列可能/直列必須を明確にする
 
 ## フロー全体像
 
@@ -34,17 +34,20 @@ Issue乱立を防ぎ、Phase単位で作業を管理する。
 ┌──────────────────────────────────────────────────────────┐
 │  実装フェーズ（ボード管理）                              │
 │  ──────────────────────────────────────────────────────  │
-│  [Epic] Phase 1  ← Backlog                               │
-│  [Epic] Phase 2  ← Backlog                               │
-│  [Epic] Phase 3  ← Backlog                               │
+│  [Epic] Feature X  ← Backlog                             │
+│    ├─ サブIssue: Phase 1                                 │
+│    ├─ サブIssue: Phase 2（前提: Phase 1）                │
+│    └─ サブIssue: Phase 3（前提: Phase 2）                │
 │                                                          │
 │  Issue 化の時:                                           │
 │    → 全 Phase のサブIssue を一括で投稿                   │
-│    → 前提のある Issue は Blocked、無い Issue は Ready    │
+│    → 前提が済んでいない Issue は Blocked、他は Ready     │
 │    → Ready から1個ずつ Active にして作業                 │
 │                                                          │
 │  前提がそろう:                                           │
-│    → pecot が Blocked の Issue を Ready に移す           │
+│    → 積める前提は PR が出たら、マージを待つ前提は        │
+│      マージされたら、board_sync が Ready に移す          │
+│    → board_sync は手で呼ぶか、雛形のワークフローで動かす │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -88,13 +91,13 @@ Feature Xの基盤部分を実装する。
 - [ ] 基本テスト作成
 
 ### 前提Phase
-（Phase 1の場合は「なし」）
+（他の Epic への前提。無ければ「なし」。サブ Issue の前提は前提の表に書く）
 ```
 
 ### 3. サブIssue投入（一括）
 
 全 Phase のサブIssueを一括で投稿する。
-前提のある Issue は `Blocked`、前提の無い Issue は `Ready` に入る。
+前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ、`Ready` で作る（`project_init` で足せる）。
 `Ready` には着手できる Issue だけが並ぶので、先の Phase を投稿しても肥大化しない。
 
 前提の書き方は、次の「前提の表から Issue 化まで」で説明する。
@@ -106,13 +109,14 @@ Feature Xの基盤部分を実装する。
 3. PR作成・マージ
 4. 次のサブIssue
 
-### 5. Phase完了 → 次Phase
+### 5. 前提がそろう → 次Phase
 
-Phase内の全サブIssue完了後：
+前の Phase の PR が出る（積める前提）か、マージされる（マージを待つ前提）と、`board_sync` が次の Phase の Issue を `Blocked` から `Ready` に移す。
+`board_sync` は、手で呼ぶか、[board-sync-workflow.md](./board-sync-workflow.md) の雛形のワークフローを置いて自動にする。どちらも無ければ、列は動かない。
 
-1. Epic本文の完了条件をチェック
-2. 次Phaseの Issue は、前提がそろうと pecot が `Blocked` から `Ready` に移す
-3. 繰り返し
+1. 前提がそろった Issue が `Ready` に移る
+2. `Ready` から着手する
+3. 全サブIssue の完了後に、Epic本文の完了条件をチェックする
 
 ## 前提の表から Issue 化まで
 
@@ -121,7 +125,7 @@ Phase の前後関係は、tasks.md の前提の表に書く。表が `blocked_b
 1. w-breakdown が、tasks の工程に、`### Phase Dependencies` の下の 4 列の表（Phase・前提・種類・理由）を書かせる
 2. w-issueize が、表の行を Issue ファイルの `blocked_by` に写す
 3. `issue_create` を `plan: true` で呼び、出力の表と tasks.md の表を並べて確かめる。食い違いは、投稿の前に直す
-4. 投稿する。前提のある Issue は `Blocked`、前提の無い Issue は `Ready` に入る
+4. 投稿する。前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ `Ready` で作る
 
 表の例を挙げる。
 
@@ -142,11 +146,12 @@ Phase の前後関係は、tasks.md の前提の表に書く。表が `blocked_b
 | 種類 | 意味 |
 |---|---|
 | 積める | 前提の変更が手元のブランチの下にあれば、実装と確認ができる。前提の PR の上に積んで着手できる |
-| マージを待つ | 前提の変更が main に入っていないと、実装か確認ができない。前提のマージを待つ |
+| マージを待つ | 前提の変更が開発ブランチに入っていないと、実装か確認ができない。前提のマージを待つ |
 
 Issue の本文に、前後関係は書かない。マージを待つ前提の節は、CLI が本文の末尾に足す。
 前提と種類の決まりは、[issue-flow-rules.md](./issue-flow-rules.md) の「前提（`blocked_by`）と種類」が定める。
 前提を持つフェーズが 1 つも無いときは、見出しの行と区切りの行だけの表を書く。この表は「前提は無い」と読む。
+この表の Phase は tasks.md のフェーズ（サブ Issue）を指し、Epic の前提は表せない。
 
 ## ステータス運用
 
@@ -197,7 +202,7 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 | 3 | 2 | 積める | Phase 3 が、Phase 2 の feature.ts を変える |
 ```
 
-表は `blocked_by` になる。後ろの Phase の Issue は `Blocked` に入り、前提がそろうと `Ready` に移る。
+表は `blocked_by` になる。後ろの Phase の Issue は `Blocked` に入り、前提がそろうと `board_sync` が `Ready` に移す。
 
 ### 対策3: 並列可能タスクの明示
 
@@ -212,7 +217,7 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 |------|------|
 | 関連仕様リンク | 仕様書へのリンク必須 |
 | 完了条件 | チェックリスト形式 |
-| 前提Phase | 依存するPhaseがあれば明示 |
+| 前提Phase | 依存するEpicがあれば明示。Epic どうしの前提で、サブ Issue の前提は前提の表に書く |
 
 サブタスクの順序と並列は、Epic 本文に書かない。前提の表と `blocked_by` に書く。
 
@@ -224,10 +229,10 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 | 中規模変更 | 仕様書更新 + 追加タスクIssue作成 |
 | 大規模変更 | 新規Phaseとして別Epic作成 |
 
-### Phase投入タイミング
+### Issue 化のタイミング
 
 - 全 Phase のサブIssueを、Issue 化のときに一括で投稿する
-- 前提のある Issue は `Blocked` に入り、前提がそろうと pecot が `Ready` に移す
+- 前提が済んでいない Issue は `Blocked` に入り、前提がそろうと `board_sync` が `Ready` に移す（積める前提は PR が出たとき、マージを待つ前提はマージされたとき）
 
 ## 関連ドキュメント
 

@@ -264,64 +264,151 @@ function firstCodeBlock(body: string): string {
 }
 
 const TABLE_HEADER = '| Phase | 前提 | 種類 | 理由 |'
+const MERGE_EXAMPLES_HEADING = '「マージを待つ」になる例:'
+
+/**
+見出しの行の直後から空行までの行
+*/
+function linesAfter(block: string, heading: string): readonly string[] {
+  const lines = block.split('\n')
+  const start = lines.findIndex(line => line.trim() === heading)
+  expect(start, `${heading} の行が無い`).toBeGreaterThanOrEqual(0)
+  const rest = lines.slice(start + 1)
+  const end = rest.findIndex(line => line.trim() === '')
+  return end === -1 ? rest : rest.slice(0, end)
+}
+
+/**
+text の中の pattern の 1 番目のグループを、すべて数にする
+*/
+function referencedSteps(text: string, pattern: Readonly<RegExp>): readonly number[] {
+  return Array.from(text.matchAll(pattern), match => Number(match[1]))
+}
+
+/**
+本文の最初の YAML の例にある reason の値
+*/
+function exampleReason(source: string): string | undefined {
+  return /reason: "(.+)"/u.exec(source)?.[1]
+}
 
 describe('w-breakdown の手順', () => {
   const text = readSkill('w-breakdown')
   const headings = stepHeadings(text)
-  const tasksStep = (): number => titleIndex(headings, 'tasks')
+  const tasksStep = (): number => titleIndex(headings, 'tasks 実行')
   const checkStep = (): number => titleIndex(headings, '前提の表を確かめる')
+  const clarifyStep = (): number => titleIndex(headings, 'clarify')
+  const tasksBlock = (): string => firstCodeBlock(sectionBody(text, tasksStep()))
+  const stepNumber = (position: number): number | undefined => headings.find((_, index) => index === position)?.number
 
   it('specify、clarify、tasks、前提の表の確かめの順に並ぶ', () => {
-    expect(titleIndex(headings, 'specify')).toBeLessThan(titleIndex(headings, 'clarify'))
-    expect(titleIndex(headings, 'clarify')).toBeLessThan(tasksStep())
+    expect(titleIndex(headings, 'specify')).toBeLessThan(clarifyStep())
+    expect(clarifyStep()).toBeLessThan(tasksStep())
     expect(tasksStep()).toBeLessThan(checkStep())
   })
 
   it('clarify の Step の工程の順序に、/speckit.tasks が無い', () => {
-    const body = sectionBody(text, titleIndex(headings, 'clarify'))
+    const body = sectionBody(text, clarifyStep())
     const order = body.split('\n').find(line => line.startsWith('工程の順序'))
     expect(order).toContain('`/speckit.clarify`')
     expect(order).toContain('`/speckit.plan`')
     expect(order).not.toContain('/speckit.tasks')
-    expect(body).toContain('やり直す')
   })
 
-  it('tasks の Step は、/speckit.tasks の引数に渡すコードブロックを 1 つだけ持つ', () => {
+  it('clarify の Step は、次に進む・修正を指示する・やり直すの承認 3 択を持つ', () => {
+    const body = sectionBody(text, clarifyStep())
+    for (const choice of ['次に進む', '修正を指示する', 'やり直す']) expect(body).toContain(`| ${choice} |`)
+  })
+
+  it('本文の Step の番号の参照は、参照先の Step の番号と合う', () => {
+    const tasks = stepNumber(tasksStep())
+    const goTo = referencedSteps(sectionBody(text, clarifyStep()), /Step (\d+) へ進む/gu)
+    const tasksReferences = referencedSteps(text, /tasks の工程（Step (\d+)）/gu)
+    const blockReferences = referencedSteps(text, /Step (\d+) のコードブロック/gu)
+    const approvalReferences = referencedSteps(text, /Step (\d+) と同じ承認 3 択/gu)
+    expect(goTo).toEqual([tasks])
+    expect(tasksReferences.length).toBeGreaterThan(0)
+    expect(blockReferences.length).toBeGreaterThan(0)
+    for (const step of [...tasksReferences, ...blockReferences]) expect(step).toBe(tasks)
+    expect(approvalReferences).toEqual([stepNumber(clarifyStep())])
+  })
+
+  it('tasks の Step は、/speckit.tasks の引数に、コードブロック 1 つをそのまま貼らせる', () => {
     const body = sectionBody(text, tasksStep())
     expect(body).toContain('`/speckit.tasks`')
-    expect(body).toContain('引数')
+    expect(body).toContain('中身をそのまま貼る。言い換えない。要約もしない。')
     expect(body.split('\n').filter(line => line.trimStart().startsWith('```'))).toHaveLength(2)
   })
 
-  it('渡す指示は、表の形・置き場・種類の問い・マージを待つ例を持つ', () => {
-    const block = firstCodeBlock(sectionBody(text, tasksStep()))
-    for (const word of [TABLE_HEADER, '`## Dependencies & Execution Order`', '`### Phase Dependencies`', '積める', 'マージを待つ', '既定のブランチから配られる', 'リリースの後', 'main の CI']) expect(block).toContain(word)
+  it('渡す指示は、表の形と置き場を持つ', () => {
+    const block = tasksBlock()
+    for (const word of [TABLE_HEADER, '`## Dependencies & Execution Order`', '`### Phase Dependencies`']) expect(block).toContain(word)
+  })
+
+  it('渡す指示は、種類を決める 2 つの問いを、開発ブランチを基準に持つ', () => {
+    const block = tasksBlock()
+    expect(block).toContain('前提の変更が手元のブランチの下にあれば、このフェーズの実装と確認ができる。このときは「積める」')
+    expect(block).toContain('前提の変更が開発ブランチに入っていないと、このフェーズの実装か確認ができない。このときは「マージを待つ」')
+    expect(block).not.toContain('main に入っていない')
+  })
+
+  it('マージを待つになる例は 3 つで、配られるもの・リリースの後・開発ブランチのワークフローを挙げる', () => {
+    const examples = linesAfter(tasksBlock(), MERGE_EXAMPLES_HEADING)
+    expect(examples).toHaveLength(3)
+    expect(examples[0]).toContain('既定のブランチから配られるものを使う')
+    expect(examples[1]).toContain('リリースの後の実物で確かめる')
+    expect(examples[2]).toContain('開発ブランチの CI やリリースのワークフロー')
   })
 
   it('渡す指示は、読み違いにつながる決まりを持つ', () => {
-    const block = firstCodeBlock(sectionBody(text, tasksStep()))
-    for (const word of ['前提の無いフェーズは、表に書かない', '直接の前提だけ', 'すべての行', '見出しの行と区切りの行だけ']) expect(block).toContain(word)
+    const block = tasksBlock()
+    for (const word of ['前提の無いフェーズは、表に書かない', '直接の前提だけ', 'すべての行', '見出しの行と区切りの行だけの表']) expect(block).toContain(word)
   })
 
   it('渡す指示に、行頭が ## の行を置かない', () => {
-    const block = firstCodeBlock(sectionBody(text, tasksStep()))
-    expect(block.split('\n').filter(line => line.trimStart().startsWith('##'))).toEqual([])
+    expect(tasksBlock().split('\n').filter(line => line.trimStart().startsWith('##'))).toEqual([])
   })
 
-  it('確かめの Step は、やり直しとその上限、理由が空のときの確かめを持つ', () => {
+  it('確かめの Step は、表の形・フェーズの番号・種類・理由の 4 つを確かめる', () => {
     const body = sectionBody(text, checkStep())
-    for (const word of ['表が無い', '`種類`', 'やり直す', 'やり直しは 1 回まで', '理由が空', 'ユーザーに確かめる', 'エージェントが理由を作らない', '次に進む']) expect(body).toContain(word)
+    expect(body).toContain(`1. \`${TABLE_HEADER}\` の 4 列の表がある`)
+    expect(body).toContain('2. `Phase` と `前提` が数字だけで、どれも tasks.md のフェーズの見出し（`## Phase <番号>:`）にある')
+    expect(body).toContain('3. `種類` の値が、どの行も「積める」か「マージを待つ」')
+    expect(body).toContain('4. すべての行に `理由` がある')
   })
 
-  it('analyze と w-issueize の案内は、確かめの Step の後ろにある', () => {
-    const lines = text.split('\n')
-    const checkLine = headings[checkStep()]?.line ?? lines.length
-    expect(lines.findIndex(line => line.includes('/speckit.analyze'))).toBeGreaterThan(checkLine)
-    expect(lines.findIndex(line => line.includes('/pecot-w:w-issueize'))).toBeGreaterThan(checkLine)
+  it('確かめが通らずやり直すときは、tasks の Step のコードブロックを貼り直し、外れた箇所を 1 行足す', () => {
+    const body = sectionBody(text, checkStep())
+    expect(body).toContain('のコードブロックをもう一度そのまま貼り、その後ろに、通らなかった確かめと箇所を 1 行足して `/speckit.tasks` を実行する')
+    expect(body).toContain('やり直しは 1 回まで')
+  })
+
+  it('承認の修正を指示する・やり直すで tasks の工程を実行するときも、コードブロックを貼り直す', () => {
+    const body = sectionBody(text, checkStep())
+    expect(body).toContain('「修正を指示する」「やり直す」で tasks の工程をもう一度実行するときも、')
+    expect(body.match(/のコードブロックをもう一度そのまま貼/gu)).toHaveLength(2)
+  })
+
+  it('マージを待つ行の理由が空のときは、ユーザーに確かめ、答えを main が理由のセルに書く', () => {
+    const body = sectionBody(text, checkStep())
+    for (const word of ['開発ブランチに入っていないと進められない訳をユーザーに確かめる', 'エージェントが理由を作らない', 'ユーザーが答えた文を、main がその行の `理由` のセルにそのまま書く', 'tasks の工程はやり直さない', 'やり直しの回数に数えない']) expect(body).toContain(word)
+    expect(body).not.toContain('main に入っていない')
+  })
+
+  it('積める行の理由が空のときは、tasks の工程をやり直す', () => {
+    expect(sectionBody(text, checkStep())).toContain('積める行の理由が空のとき')
+  })
+
+  it('analyze と w-issueize の案内は、確かめの Step の承認の文より後ろにある', () => {
+    const body = sectionBody(text, checkStep())
+    const approval = body.indexOf('AskUserQuestion')
+    expect(approval).toBeGreaterThanOrEqual(0)
+    expect(body.indexOf('/speckit.analyze')).toBeGreaterThan(approval)
+    expect(body.indexOf('/pecot-w:w-issueize')).toBeGreaterThan(approval)
   })
 
   it('表の列の名前は、w-issueize の Step 2 が読む列と同じ', () => {
-    const block = firstCodeBlock(sectionBody(text, tasksStep()))
+    const block = tasksBlock()
     const header = block.split('\n').find(line => line.trim() === TABLE_HEADER) ?? ''
     const written = header.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
     const issueize = readSkill('w-issueize')
@@ -336,20 +423,38 @@ describe('w-issueize の前提の表の読み方', () => {
   const text = readSkill('w-issueize')
   const body = sectionBody(text, titleIndex(stepHeadings(text), '前提'))
 
-  it('見出しの行だけの表は、前提が無いと読み、文から前提を読まない', () => {
-    expect(body).toContain('見出しの行だけの表')
+  const step = sectionBody(text, titleIndex(stepHeadings(text), 'Issueとして作成'))
+
+  it('見出しの行と区切りの行だけの表は、前提が無いと読み、文から前提を読まない', () => {
+    expect(body).toContain('見出しの行と区切りの行だけの表')
+    expect(body).not.toContain('見出しの行だけの表')
     expect(body).toContain('「前提が無い」と読む')
     expect(body).toContain('文から前提を読まない')
   })
 
   it('reason は、表の理由の文をそのまま写し、言い換えさせない', () => {
-    const step = sectionBody(text, titleIndex(stepHeadings(text), 'Issueとして作成'))
     expect(step).toContain('そのまま写した `reason`')
     expect(step).toContain('言い換えない')
     expect(step).not.toContain('1 行で写した')
     // 例の表の理由と、例の reason が同じ文
-    const reason = /reason: "(.+)"/u.exec(step)?.[1]
+    const reason = exampleReason(step)
     expect(reason).toBeDefined()
     expect(step).toContain(`| マージを待つ | ${reason ?? ''} |`)
+  })
+
+  it('reason を YAML に書くときは、表の \\| を戻してから、バックスラッシュと二重引用符を逃がし、改行しない', () => {
+    expect(step).toContain('表の `\\|` を `|` に戻してから、`\\` を `\\\\`、`"` を `\\"` にする')
+    expect(step).toContain('`reason` は 1 行で書き、改行を入れない')
+  })
+
+  it('テンプレートの例の reason は、w-issueize の例の reason と同じ文', () => {
+    const template = readPluginFile('cli/templates/issue/task-implement.md')
+    expect(exampleReason(template)).toBe(exampleReason(step))
+  })
+
+  it('テンプレートは、表の理由をそのまま写した 1 行の reason を求める', () => {
+    const template = readPluginFile('cli/templates/issue/task-implement.md')
+    expect(template).toContain('表の `理由` の文をそのまま写した `reason`（改行しない）')
+    expect(template).not.toContain('1 行の `reason` を足す')
   })
 })
