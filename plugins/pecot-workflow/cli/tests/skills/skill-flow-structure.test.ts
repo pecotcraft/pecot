@@ -126,8 +126,18 @@ describe('w-active の手順', () => {
     for (const word of ['dependency-unreadable', '`data.detail` に `could not read blocked-by` か `could not judge readiness` が入る', '利用者に示して止まる']) expect(body).toContain(word)
   })
 
+  it('一覧には、着手できる Issue の番号とタイトルだけを載せる', () => {
+    const body = sectionBody(text, titleIndex(headings, 'プロジェクト情報表示'))
+    for (const word of [
+      '載せるのは、`data.board.items[].readiness.kind` が `startable` か `stackable` の Issue だけ',
+      '欄は、Issue 番号とタイトルの 2 つだけ',
+      'ボードの列と、判定の語（`startable`・`stackable`・`blocked`・`unknown`）は、欄と文のどちらでも出さない',
+      '`data.mismatches` と `data.warnings` の食い違いの警告は、伝えない',
+    ]) expect(body).toContain(word)
+  })
+
   it('Step 2 では、判定が blocked の Issue を選んだら、列が Ready でも止める', () => {
-    expect(text).toContain('結果の `data.readiness.kind` の判定')
+    expect(text).toContain('結果の `data.readiness.kind` の判定は、着手できる間は利用者に示さない。')
     expect(text).toContain('判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、`data.readiness.text` で理由を伝えて止める。')
   })
 

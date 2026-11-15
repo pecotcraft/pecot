@@ -47,14 +47,21 @@ Issue を GitHub から読めないと、`data.activeIssue` は無い。その�
 
 ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`board_show` を引数なしで呼ぶ。
 
-結果の `data.board.items[].readiness.kind` の判定を、利用者に伝える。`readiness` が null の項目（`Ready` と `Blocked` 以外の列）は、判定を持たない。
-`data.mismatches` が 1 以上なら、`data.warnings` の食い違いの警告も伝える。
+利用者に見せる一覧は、着手するタスクを選ぶためのものにする。選ぶのに使わないものを載せない。
+
+- 載せるのは、`data.board.items[].readiness.kind` が `startable` か `stackable` の Issue だけ
+- 欄は、Issue 番号とタイトルの 2 つだけ
+- `stackable` の Issue は、タイトルの後ろに「#N の上に積む」と添える（`readiness.stackOn.number`）
+- ボードの列と、判定の語（`startable`・`stackable`・`blocked`・`unknown`）は、欄と文のどちらでも出さない
+- `kind` が `blocked` か `unknown` の Issue と、`readiness` が null の項目は、載せない
+- `data.mismatches` と `data.warnings` の食い違いの警告は、伝えない
+- 項目に `readiness` が無いとき（Issue の依存関係に対応しないサーバ）は、列が `Ready` の Issue を載せる
 
 ### Step 2: 対象タスクを確認
 
 ユーザーが選択したタスクのIssue内容を確認する。`issue_show` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
-利用者がタスクを選ぶ材料に、結果の `data.readiness.kind` の判定（`startable`・`stackable`・`blocked`）を示す。
+結果の `data.readiness.kind` の判定は、着手できる間は利用者に示さない。
 判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、`data.readiness.text` で理由を伝えて止める。
 
 ### Step 3: ベースブランチを最新化
