@@ -118,10 +118,9 @@ describe('w-active の手順', () => {
     for (const word of ['エラーの案内を利用者に示して止まる', 'エージェントの判断で先へ進めない', '前提を見直すかどうかは利用者が決める', '`base` を渡さない']) expect(body).toContain(word)
   })
 
-  it('Step 1 は着手できる Issue だけを表で示し、Step 2 は着手できない Issue を選んだら止める', () => {
+  it('Step 1 は、着手できる Issue だけを表で示す', () => {
     expect(text).toContain('着手できる Issue だけを、次の表で利用者に示す')
     expect(text).toContain('AskUserQuestion は使わない')
-    expect(text).toContain('着手できない Issue（前提を待っているもの）が選ばれたら、理由を伝えて止める。')
   })
 
   it('ブランチ作成では base を渡さず、積んで着手した旨を伝える', () => {

@@ -37,8 +37,6 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 
 pecot-workflow の MCP ツール `issue_show` を使って、利用者が選んだ Issue の内容を確かめる。
 
-着手できない Issue（前提を待っているもの）が選ばれたら、理由を伝えて止める。
-
 ### Step 3: ベースブランチを最新化
 
 ブランチ作成前に、現在のブランチを最新化する。
