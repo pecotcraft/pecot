@@ -23,8 +23,14 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### プロジェクト情報表示
 
-pecot-workflow の MCP ツール `board_show` を使って、ボードの状態と Issue の一覧を確かめる。
-Ready と Blocked の項目ごとの判定を、利用者に伝える。食い違いの警告が出ていれば、それも伝える。
+pecot-workflow の MCP ツール `board_show` を使って、ボードの状態を確かめる。
+Ready と Blocked の Issue を、次の列の表で利用者に示す。ほかの列の Issue は載せない。
+
+| 番号 | タイトル | 列 | 判定 |
+|---|---|---|---|
+| #123 | Issue のタイトル | Ready | startable |
+
+表の後に、どれに着手するかを地の文で尋ねる。AskUserQuestion は使わない。食い違いの警告が出ていれば、表の下に添える。
 
 ### Step 2: 対象タスクを確認
 
