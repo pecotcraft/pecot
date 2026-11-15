@@ -153,10 +153,10 @@ describe('w-quick の手順', () => {
     expect(guard).toContain('EnterPlanMode')
   })
 
-  it('Step 1 は、起票の前に session_show で確かめ、issue_create（freeform）で起票する', () => {
+  it('Step 1 は、issue_create（freeform）で起票する', () => {
     const body = sectionBody(text, numberIndex(headings, 1))
-    expect(body).toContain('`session_show` を使って')
-    expect(body.indexOf('`session_show`')).toBeLessThan(body.indexOf('`issue_create` を使って、Issue を作る'))
+    expect(body).toContain('`issue_create` を使って、Issue を作る')
+    expect(body).not.toContain('`session_show`')
     expect(body).toContain('`freeform: true`')
   })
 

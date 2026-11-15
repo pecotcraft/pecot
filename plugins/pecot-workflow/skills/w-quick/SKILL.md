@@ -14,19 +14,9 @@ argument-hint: "[タスクの内容]"
 
 ## 手順
 
-### Step 1: 起票の前の確認とIssue作成（issue_create）
-
-#### 起票の前の確認
-
-Issue を作った後でブランチを作れずに止まらないよう、Issue を作る前に確かめる。
-pecot-workflow の MCP ツール `session_show` を使って、このディレクトリに残っている作業を確かめる。起票先のリポ（下の「リポジトリの特定方法」）と、作業ディレクトリのリポも比べる。
-
-- 別の OPEN の Issue が残っていたら、前の Issue を片付けてから始める
-- 起票先のリポが作業ディレクトリのリポと違うときは、起票先のリポの worktree でセッションを始め直す
+### Step 1: Issue作成（issue_create）
 
 > **ガード**: Issue 番号を確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
-
-#### Issue作成
 
 pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る。基本形（親Epicなし）は、テンプレを通さずに `freeform: true` と `message` で作る。
 
