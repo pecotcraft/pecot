@@ -125,9 +125,10 @@ describe('ssoTools', () => {
     const result = await toolOf(tools, 'aws_sso_login').handler({}, ABORTED_CONTEXT)
 
     expect(result.structuredContent).toMatchObject({ ok: false, exitCode: 253 })
-    const stderr = isRecord(result.structuredContent) ? result.structuredContent['stderr'] : undefined
-    expect(typeof stderr).toBe('string')
-    expect(Buffer.byteLength(String(stderr), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
+    const data = isRecord(result.structuredContent) ? result.structuredContent['data'] : undefined
+    const log = isRecord(data) ? data['log'] : undefined
+    expect(typeof log).toBe('string')
+    expect(Buffer.byteLength(String(log), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
     expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
       .toContain('exceeded the limit')
   })

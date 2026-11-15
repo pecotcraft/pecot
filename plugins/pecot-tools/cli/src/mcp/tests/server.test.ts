@@ -223,9 +223,8 @@ describe('createMcpServer', () => {
         exitCode: 254,
         kind: 'permission-denied',
         artifacts: [],
-        data: {},
+        data: { log: 'An error occurred (AccessDenied)' },
         message: '権限が不足しています',
-        stderr: 'An error occurred (AccessDenied)',
       })),
     }
 

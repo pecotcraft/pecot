@@ -223,9 +223,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     const detail = String(rejected?.data['detail'])
     expect(detail).toContain('HTTPS_PROXY')
     expect(detail).toContain('PLAYWRIGHT_DOWNLOAD_HOST')
-    // 失敗原因が stdout 側に出ることもある (playwright install は進捗・取得先を stdout へ書く)。
-    expect(rejected?.stdout).toBe('Downloading Chromium 140.0 (playwright build v1217)')
-    expect(rejected?.stderr).toBe('download failed')
+    // playwright install は失敗原因を stdout に書くこともあるため、両方が data.log に入る。
+    expect(rejected?.data['log']).toBe('Downloading Chromium 140.0 (playwright build v1217)\ndownload failed')
   })
 
   it('TLS の証明書検証で落ちた場合は NODE_EXTRA_CA_CERTS の確認を促す', async () => {
@@ -396,7 +395,8 @@ describe('chromium 未取得時のツール応答', () => {
     expect(structured['exitCode']).toBe(3)
     expect(structured['artifacts']).toEqual([outPath])
     // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
-    expect(dataOf(degraded)).toMatchObject({ png: null, pngFailed: true, warnings: 1 })
+    expect(dataOf(degraded)).toMatchObject({ png: null, pngFailed: true })
+    expect(dataOf(degraded)['warnings']).toEqual([expect.stringContaining('PNG export failed')])
     // 復旧手段は message に載せる (data は CLI の PNG 失敗時と同形に保つ)。
     expect(String(structured['message'])).toContain('call the `runtime_setup` tool')
   })

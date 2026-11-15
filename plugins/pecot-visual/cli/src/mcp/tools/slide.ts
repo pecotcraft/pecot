@@ -1,13 +1,7 @@
 // MCP ツール定義のうち slide 系 4 件 (slide_create / slide_convert / slide_sync / slide_lint)。
 //
-// 各ハンドラは対応する CLI コマンドの execute<Cmd>() を呼ぶだけで、実処理と `--json` の
-// data 組み立ては commands/ 側の単一実装を共有する。CLI と MCP で結果が食い違わないようにする
-// ための構造で、ハンドラ側には「引数の写像」と「ToolResult への正規化」しか置かない。
-//
-// deps は必ずハンドラ内で組み立てる。
-// 既定 deps ファクトリは CLAUDE_PLUGIN_ROOT 未設定で throw する。
-// モジュール top-level や allTools() 評価時に組み立てると tools/list ごと落ちる。
-// stdout / stderr は MCP のプロセス stdout が JSON-RPC 専有なので、必ず捕捉先へ差し替える。
+// 各ハンドラは CLI コマンドの execute<Cmd>() を呼び、結果を ToolResult に写すだけにする。
+// deps はハンドラ内で組み立てる (既定 deps は CLAUDE_PLUGIN_ROOT 未設定で throw し、top-level だと tools/list ごと落ちる)。
 
 import path from 'node:path'
 
@@ -73,7 +67,7 @@ function failureResult(
   exitCode: number,
   error: unknown,
   extra: Readonly<Record<string, unknown>> = {},
-): Omit<FailedToolResult, 'stdout' | 'stderr'> {
+): FailedToolResult {
   const detail = formatError(error)
   return {
     ok: false,
@@ -125,11 +119,7 @@ export function slideCreateTool(
 
       const normalized = normalizeThemeArgument(input.theme)
       if (!normalized.ok) {
-        return toCallToolResult({
-          ...failureResult('slide.create.error', 'invalid-option', 2, new Error(normalized.detail)),
-          stdout: '',
-          stderr: '',
-        })
+        return toCallToolResult(failureResult('slide.create.error', 'invalid-option', 2, new Error(normalized.detail)))
       }
 
       // 生成の最後に行う node_modules の張り直しは依存ルートの実体を要る。実処理より前に見る。
@@ -152,25 +142,21 @@ export function slideCreateTool(
           { theme: normalized.theme, force: input.force, emitCatalog: false },
           dependencies,
         )
-        return toCallToolResult({
+        return output.finish({
           ok: true,
           exitCode: 0,
           artifacts: [execution.summary.projectDirectory],
           data: execution.data,
           message: `slide create: succeeded (${execution.summary.projectDirectory})`,
-          ...output.part(),
         })
       }
       catch (error: unknown) {
-        return toCallToolResult({
-          ...failureResult(
-            'slide.create.error',
-            slideCreateErrorToReason(error),
-            slideCreateExitCode(error),
-            error,
-          ),
-          ...output.part(),
-        })
+        return output.finish(failureResult(
+          'slide.create.error',
+          slideCreateErrorToReason(error),
+          slideCreateExitCode(error),
+          error,
+        ))
       }
     },
   }
@@ -243,10 +229,7 @@ export function slideConvertTool(
 
       const output = captureCommandOutput()
       try {
-        // json: false 相当で呼び、output の stdout / stderr へ集める。
-        // 進捗の人間可読ログは stderr の診断行 (note / warning / error) で出るので、ToolResult の stderr に入る。
-        // stdout には変換結果の要約だけが入る。
-        // MCP サーバの process.stdout は JSON-RPC 専有なので、実 stdout へは何も書かせない。
+        // json: false 相当で呼び、出力を捕捉する。warning の行は data.warnings、失敗のときの出力は data.log に入る。
         const dependencies: SlideConvertDependencies = {
           ...buildDependencies(),
           stdout: output.stdout,
@@ -270,27 +253,23 @@ export function slideConvertTool(
           ...(input.morph_option !== undefined && { morphOption: input.morph_option }),
         }
         const execution = await executeSlideConvert(input.project_dir, options, dependencies)
-        return toCallToolResult({
+        return output.finish({
           ok: true,
           exitCode: 0,
           artifacts: [execution.summary.outputAbs],
           data: execution.data,
           message: `slide convert: ${execution.summary.inputAbs} -> ${execution.summary.outputAbs}`
             + ` (${String(Math.round(execution.summary.durationMs))}ms)`,
-          ...output.part(),
         })
       }
       catch (error: unknown) {
-        return toCallToolResult({
-          ...failureResult(
-            'slide.convert.error',
-            slideConvertErrorToReason(error),
-            slideConvertExitCode(error),
-            error,
-            convertErrorDiagnostics(error),
-          ),
-          ...output.part(),
-        })
+        return output.finish(failureResult(
+          'slide.convert.error',
+          slideConvertErrorToReason(error),
+          slideConvertExitCode(error),
+          error,
+          convertErrorDiagnostics(error),
+        ))
       }
     },
   }
@@ -346,11 +325,7 @@ export function slideSyncTool(
       if (input.theme !== undefined) {
         const normalized = normalizeThemeArgument(input.theme)
         if (!normalized.ok) {
-          return toCallToolResult({
-            ...failureResult('slide.sync.error', 'invalid-option', 2, new Error(normalized.detail)),
-            stdout: '',
-            stderr: '',
-          })
+          return toCallToolResult(failureResult('slide.sync.error', 'invalid-option', 2, new Error(normalized.detail)))
         }
         theme = normalized.theme
       }
@@ -371,25 +346,21 @@ export function slideSyncTool(
           { dir: input.dir, nodeModulesOnly: input.node_modules_only, theme },
           dependencies,
         )
-        return toCallToolResult({
+        return output.finish({
           ok: true,
           exitCode: 0,
           artifacts: [execution.summary.directory],
           data: execution.data,
           message: syncSuccessMessage(execution.summary),
-          ...output.part(),
         })
       }
       catch (error: unknown) {
-        return toCallToolResult({
-          ...failureResult(
-            'slide.sync.error',
-            slideSyncErrorToReason(error),
-            slideSyncExitCode(error),
-            error,
-          ),
-          ...output.part(),
-        })
+        return output.finish(failureResult(
+          'slide.sync.error',
+          slideSyncErrorToReason(error),
+          slideSyncExitCode(error),
+          error,
+        ))
       }
     },
   }
@@ -441,7 +412,7 @@ export function slideLintTool(
         }
         const { summary, data } = await executeSlideLint({ dir: input.dir }, dependencies)
         const hasViolations = summary.outcome === 'violations'
-        return toCallToolResult({
+        return output.finish({
           ok: true,
           exitCode: hasViolations ? 1 : 0,
           artifacts: [],
@@ -450,19 +421,15 @@ export function slideLintTool(
             ? `slide lint: violations found (${summary.directory}); ${String(summary.errorCount)} errors`
             + `; ${String(summary.warningCount)} warnings`
             : `slide lint: succeeded (${summary.directory}); ${String(summary.lintedFileCount)} files linted`,
-          ...output.part(),
         })
       }
       catch (error: unknown) {
-        return toCallToolResult({
-          ...failureResult(
-            'slide.lint.error',
-            slideLintErrorToReason(error),
-            slideLintExitCode(error),
-            error,
-          ),
-          ...output.part(),
-        })
+        return output.finish(failureResult(
+          'slide.lint.error',
+          slideLintErrorToReason(error),
+          slideLintExitCode(error),
+          error,
+        ))
       }
     },
   }

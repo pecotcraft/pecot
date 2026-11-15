@@ -66,6 +66,16 @@ function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unkno
 }
 
 /**
+MCP の data を CLI の `--json` の形に戻す。log を外し、CLI の warnings が件数なら、MCP の warnings (文の配列) を長さに置き換える。
+*/
+function asCliData(data: Readonly<Record<string, unknown>>, cli: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const rest = Object.fromEntries(Object.entries(data).filter(([key]) => !['warnings', 'log'].includes(key)))
+  if (typeof cli['warnings'] !== 'number') return rest
+  const warnings = data['warnings']
+  return { ...rest, warnings: Array.isArray(warnings) ? warnings.length : 0 }
+}
+
+/**
 CLI 側を `--json` で実行し、stdout へ出た JSON を返す。
 
 deps は MCP ツールと同じ既定ファクトリから作る。片方だけ差し替えると比較の意味が
@@ -138,7 +148,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
         arguments: { input_path: MINIMAL_DRAWIO },
       })
 
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
       expect(cli['event']).toBe('drawio.url.done')
       expect(cli['url']).toEqual(expect.stringContaining('https://'))
     })
@@ -154,7 +164,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
         arguments: { input_path: MINIMAL_DRAWIO, out_path: outPath, png: false },
       })
 
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
       expect(cli).toEqual({ event: 'drawio.url.done', file: outPath, warnings: 0, theme: DEFAULT_THEME_DATA })
     })
 
@@ -170,7 +180,8 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
         arguments: { input_path: MINIMAL_DRAWIO, out_path: outPath, png: true },
       })
 
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
+      expect(dataOf(called)['warnings']).toEqual([expect.stringContaining('PNG export failed')])
       expect(cli).toEqual({
         event: 'drawio.url.done',
         file: outPath,
@@ -199,7 +210,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
       })
 
       expect(called.isError, 'URL の生成そのものは成立しているので失敗にしない').toBeUndefined()
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
       expect(cli).toEqual({
         event: 'drawio.url.done',
         file: outPath,
@@ -221,7 +232,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
         arguments: { input_path: MINIMAL_DRAWIO, theme: themeDirectory },
       })
 
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
       expect(cli['theme']).toMatchObject({ source: 'option', name: 'slidev-theme-pecotv-test-declared' })
     })
 
@@ -236,7 +247,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
       })
 
       expect(called.isError).toBe(true)
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
       expect(cli).toMatchObject({ event: 'drawio.url.error', reason: 'invalid-theme' })
     })
   })
@@ -273,7 +284,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
         arguments: { input_path: specPath, out_path: outPath },
       })
 
-      expect(dataOf(called)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(cli)
       expect(cli).toEqual({
         event: 'result',
         outPath,

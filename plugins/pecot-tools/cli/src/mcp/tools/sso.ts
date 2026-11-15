@@ -34,7 +34,7 @@ const SSO_FAILURE_HINTS: Record<FailureKind, string> = {
   'permission-denied': 'Check that the SSO permission set includes the target account',
   'resource-not-found': 'Check sso_start_url / sso_region of the profile',
   'timeout': 'Authentication did not complete within the time limit. Call aws_sso_login again',
-  'other': 'awscli failed. Check stderr',
+  'other': 'awscli failed. Check data.log',
 }
 
 /**
@@ -100,11 +100,10 @@ function failureResult(
     /* c8 ignore next */
     exitCode: resolved > 0 ? resolved : UNKNOWN_FAILURE_EXIT_CODE,
     kind,
-    data: { ...data },
+    data: limited.text === '' ? { ...data } : { ...data, log: limited.text },
     artifacts: [],
     message: `SSO authentication failed (${kind}). ${hintOf(kind)}`
       + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
-    stderr: limited.text,
   }
 }
 

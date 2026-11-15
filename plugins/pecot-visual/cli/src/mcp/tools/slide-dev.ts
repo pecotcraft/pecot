@@ -37,20 +37,13 @@ import {
   TOOL_OUTPUT_SCHEMA,
   WINDOWS_PATH_NOTE,
   type RuntimeDependencies,
+  withCapturedOutput,
 } from './_shared.js'
 
 /**
 dev サーバを起動できなかったときの exit code (各コマンドの RuntimeError と同じ 1)。
 */
 const DEV_SERVER_EXIT_CODE = 1
-
-/**
-子プロセスを起こす前に諦めたルートの出力。
-
-ToolResult の stdout / stderr が省略されるのは「捕捉していない」ときで、捕捉した結果が
-空であることとは意味が違う (tools/_shared.ts)。実行前ガードでも捕捉相当のキーは残す。
-*/
-const NO_OUTPUT: Pick<ToolResult, 'stdout' | 'stderr'> = { stdout: '', stderr: '' }
 
 /**
 テーマを今の値で張る port。dev は、テーマを参照しない talk-dir を `theme-none` で止める。
@@ -159,7 +152,6 @@ function guardFailure(defect: Readonly<TalkDirectoryDefect>, directory: string, 
       ...(warnings.length > 0 && { warnings }),
     },
     message: defect.detail,
-    ...NO_OUTPUT,
   }
 }
 
@@ -203,7 +195,6 @@ export function slideDevTool(
         message: stopped.stopped
           ? `slide dev: stopped (${input.dir})`
           : `slide dev: no running server (${input.dir})`,
-        ...NO_OUTPUT,
       })
     }
 
@@ -243,16 +234,20 @@ export function slideDevTool(
 
     const started = await buildRegistry().start(input.dir, { port: input.port, signal: call.signal })
     if (!started.ok) {
-      return toCallToolResult({
+      return toCallToolResult(withCapturedOutput({
         ok: false,
         exitCode: DEV_SERVER_EXIT_CODE,
         kind: started.reason,
         artifacts: [],
-        data: { event: 'slide.dev.error', reason: started.reason, detail: started.detail, dir: input.dir },
+        data: {
+          event: 'slide.dev.error',
+          reason: started.reason,
+          detail: started.detail,
+          dir: input.dir,
+          ...(warnings.length > 0 && { warnings }),
+        },
         message: started.detail,
-        stdout: started.stdout,
-        stderr: started.stderr,
-      })
+      }, started))
     }
 
     return toCallToolResult({
@@ -272,7 +267,6 @@ export function slideDevTool(
       message: started.reused
         ? `slide dev: reusing the running server ${started.url}`
         : `slide dev: started ${started.url}`,
-      ...NO_OUTPUT,
     })
   }
 

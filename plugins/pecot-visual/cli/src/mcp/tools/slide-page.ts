@@ -29,7 +29,7 @@ import { createDiagnostics } from '../../diagnostics.js'
 import { failureKindOf, type FailureKind, type FailureReason } from '../../domain/_shared/failure-kind.js'
 import { extractSkeleton, isFrontmatterBlock } from '../../domain/slidev-theme/skeleton.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
-import type { FailedToolResult, ToolResultBody } from '../result.js'
+import type { FailedToolResult, ToolResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import {
   captureCommandOutput,
@@ -94,13 +94,13 @@ const slidePageInput = z.object({
 })
 
 /**
-失敗時の ToolResult (stdout / stderr は呼び出し側が付ける)。
+失敗時の ToolResult (捕捉した出力は呼び出し側が output.finish で移す)。
 */
 function failure(
   reason: FailureReason,
   detail: string,
   extra: Readonly<Record<string, unknown>> = {},
-): Omit<FailedToolResult, 'stdout' | 'stderr'> {
+): FailedToolResult {
   return {
     ok: false,
     exitCode: SLIDE_PAGE_EXIT_CODE,
@@ -218,12 +218,12 @@ type ReferenceReader = (file: string) => Promise<string>
 テーマの解決・宣言の失敗を、slide_page の失敗応答にする。reason は `slide theme` と同じ。
 復旧の案内（CLI と MCP の両方の手順）は、例外の文言が持つ。
 */
-function themeFailure(error: unknown): Omit<FailedToolResult, 'stdout' | 'stderr'> {
+function themeFailure(error: unknown): FailedToolResult {
   return failure(slideThemeErrorToReason(error), formatError(error))
 }
 
 /**
-引数検証後の実処理。stdout / stderr は呼び出し側が一括で載せる。
+引数検証後の実処理。捕捉した出力は呼び出し側が output.finish で移す。
 
 実行時依存 (永続層) と Chromium は要らない。参照 yaml の読み取りと 1 ファイルの書き込み
 だけなので、`runtime_setup` 前の環境でも通る。
@@ -234,7 +234,7 @@ async function generatePage(
   // CommandOutput の stderr は WritableStream で write が mutate のため readonly 化できない。
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   output: Readonly<CommandOutput>,
-): Promise<ToolResultBody> {
+): Promise<ToolResult> {
   const file = normalizePageFileName(input.file)
   if (!file.ok) return failure(file.reason, file.detail)
 
@@ -354,14 +354,13 @@ async function handleSlidePage(
   const validated = parsePathArguments(slidePageInput, arguments_, ['dir'])
   if (validated.rejected !== undefined) return toCallToolResult(validated.rejected)
 
-  // テーマの警告を stderr へ出す。捕捉先を用意して
-  // 「捕捉したなら空でもキーを残す」契約 (tools/_shared.ts) を全 return ルートで満たす。
+  // テーマの警告は捕捉先の stderr に書き、output.finish で data.warnings へ移す。
   const output = captureCommandOutput()
   try {
-    return toCallToolResult({ ...await generatePage(validated.input, readReferenceText, output), ...output.part() })
+    return output.finish(await generatePage(validated.input, readReferenceText, output))
   }
   catch (error: unknown) {
-    return toCallToolResult({ ...failure('write-failed', formatError(error)), ...output.part() })
+    return output.finish(failure('write-failed', formatError(error)))
   }
 }
 

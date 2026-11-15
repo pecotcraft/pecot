@@ -413,7 +413,7 @@ describe('slide_create', () => {
     expect(dataOf(result)['lint']).toMatchObject({ skipped: true })
   })
 
-  it('layout catalog は stdout と捕捉出力のどちらにも出さない (emitCatalog: false 固定)', async () => {
+  it('layout catalog は stdout と結果のどちらにも出さない (emitCatalog: false 固定)', async () => {
     const stdout = makeStream()
     const result = await call(createCreateTool(makePluginRoot(), stdout, makeStream()), {
       project_dir: temporaryRoot('deck-no-catalog'),
@@ -421,7 +421,8 @@ describe('slide_create', () => {
     })
 
     expect(stdout.chunks.join('')).not.toContain('Layout Catalog')
-    expect(textOf(structuredOf(result)['stdout'])).not.toContain('Layout Catalog')
+    expect(structuredOf(result)).not.toHaveProperty('stdout')
+    expect(JSON.stringify(dataOf(result))).not.toContain('Layout Catalog')
   })
 
   it('タグの無い git URL は取得に入らず usage error として exitCode 2 で返す', async (context) => {
@@ -803,7 +804,12 @@ describe('slide_convert', () => {
     // 進捗イベントの slide.convert.start は結果ではないので data に畳まない。
     expect(data['event']).toBe('slide.convert.done')
     expect(data['output']).toBe(out)
-    expect(data['warnings']).toEqual(['キャッシュ再利用のため要素診断をスキップしました'])
+    // pipeline の警告の後に、テーマの宣言の警告 (捕捉した warning の行) が続く。
+    expect(data['warnings']).toEqual([
+      'キャッシュ再利用のため要素診断をスキップしました',
+      expect.stringContaining('pptx.linkColor is omitted'),
+      expect.stringContaining('pptx.eastAsianFont is omitted'),
+    ])
     expect(data['errors']).toEqual([])
     // timings / cache は summary に載っているときだけ足される。
     expect(data['timings']).toMatchObject({ scan: 1, phase1: 5, phase2: 6 })

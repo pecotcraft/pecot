@@ -46,8 +46,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -66,10 +84,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -145,8 +159,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -165,10 +197,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -250,8 +278,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -270,10 +316,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -434,8 +476,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -454,10 +514,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -560,8 +616,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -580,10 +654,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -691,8 +761,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -711,10 +799,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -784,8 +868,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -804,10 +906,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -884,8 +982,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -904,10 +1020,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -976,8 +1088,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -996,10 +1126,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1072,8 +1198,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1092,10 +1236,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1188,8 +1328,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1208,10 +1366,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1314,8 +1468,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1334,10 +1506,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1435,8 +1603,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1455,10 +1641,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1531,8 +1713,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1551,10 +1751,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1627,8 +1823,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1647,10 +1861,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1762,8 +1972,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1782,10 +2010,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1861,8 +2085,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1881,10 +2123,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -1947,8 +2185,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -1967,10 +2223,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2059,8 +2311,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2079,10 +2349,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2152,8 +2418,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2172,10 +2456,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2260,8 +2540,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2280,10 +2578,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2359,8 +2653,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2379,10 +2691,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2455,8 +2763,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2475,10 +2801,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2532,8 +2854,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2552,10 +2892,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2609,8 +2945,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2629,10 +2983,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [
@@ -2691,8 +3041,26 @@
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure kind, the same value as kind (failure only)",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -2711,10 +3079,6 @@
             "ok": {
               "description": "Whether the awscli run succeeded",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Redacted awscli stderr (only on failure)",
-              "type": "string"
             }
           },
           "required": [

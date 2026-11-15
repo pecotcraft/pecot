@@ -79,6 +79,18 @@ export const LIMIT_NEXT_TOKEN_PAGINATION_SHAPE = {
   start_from_head: z.boolean().default(false).describe('If true, returns the oldest events first'),
 }
 
+const WARNINGS_SCHEMA = z.array(z.string()).optional().describe('Warnings raised during the run (omitted when there are none)')
+
+/**
+awscli の JSON 出力か行の配列。ツールごとに形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
+*/
+const DATA_SCHEMA = z.looseObject({
+  warnings: WARNINGS_SCHEMA,
+  reason: z.string().optional().describe('Failure kind, the same value as kind (failure only)'),
+  detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
+  log: z.string().optional().describe('Redacted awscli output, only the beginning when it exceeds the limit (failure only)'),
+}).describe('awscli JSON output, or an array of lines')
+
 /**
 ExecutionResult と同形の outputSchema。全ツールで共有する。
 */
@@ -86,10 +98,9 @@ export const TOOL_OUTPUT_SCHEMA = z.object({
   ok: z.boolean().describe('Whether the awscli run succeeded'),
   exitCode: z.number().describe('Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)'),
   kind: z.string().optional().describe('Failure kind (omitted on success)'),
-  data: z.record(z.string(), z.unknown()).describe('awscli JSON output, or an array of lines'),
+  data: DATA_SCHEMA,
   artifacts: z.array(z.string()).describe('Absolute paths of the local files written'),
   message: z.string().describe('One-line summary for the calling agent'),
-  stderr: z.string().optional().describe('Redacted awscli stderr (only on failure)'),
 })
 
 /**
@@ -104,7 +115,7 @@ const FAILURE_HINTS: Record<FailureKind, string> = {
   'permission-denied': 'Permission denied. Check the profile / role',
   'resource-not-found': 'Resource not found. Check the name and region',
   'timeout': 'Timed out. Narrow the range and run again',
-  'other': 'awscli failed. Check stderr',
+  'other': 'awscli failed. Check data.log',
 }
 
 /**
@@ -115,9 +126,9 @@ const TRUNCATION_MESSAGE
     + 'Reduce max_items or split the request with starting_token.'
 
 /**
-stderr が上限で切り詰められたときに message へ足す注記。
+data.log が上限で切り詰められたときに message へ足す注記。
 */
-const STDERR_TRUNCATION_NOTE = '(stderr exceeded the limit, so only the beginning is included)'
+const STDERR_TRUNCATION_NOTE = '(data.log exceeded the limit, so only the beginning is included)'
 
 /**
 実行前に拒否したときの理由。awscli は起動しない。
@@ -276,18 +287,17 @@ export async function executeAllowlisted(
       timedOut: result.timedOut,
       ...(result.spawnErrorCode !== undefined && { spawnErrorCode: result.spawnErrorCode }),
     })
-    // 巨大な stderr は先頭だけを載せる。通知せず欠けると読み手が全文だと誤認するため、
+    // 巨大な出力は先頭だけを data.log に載せる。通知せず欠けると読み手が全文だと誤認するため、
     // 切り詰めたことを message に残す。
     const limitedStderr = limitOutput(redactSecrets(result.stderr))
     return {
       ok: false,
       exitCode: resolveExitCode(kind, result.exitCode),
       kind,
-      data: {},
+      data: limitedStderr.text === '' ? {} : { log: limitedStderr.text },
       artifacts: [],
       message: failureMessage(entry.toolName, kind)
         + (limitedStderr.truncated ? STDERR_TRUNCATION_NOTE : ''),
-      stderr: limitedStderr.text,
     }
   }
 

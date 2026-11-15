@@ -87,8 +87,9 @@ async function expectIsError(
   expect(result.isError, `${name} が isError にならなかった`).toBe(true)
   if (!isRecord(structured)) throw new Error(`${name} の structuredContent がありません`)
   expect(structured['exitCode'], `${name} の exitCode`).toBe(2)
-  // awscli は起動しないので stderr は載らない。
-  expect(structured['stderr']).toBeUndefined()
+  // awscli は起動しないので data.log は載らない。
+  expect(structured).not.toHaveProperty('stderr')
+  expect(structured).not.toHaveProperty('data.log')
   expect(callLog(), `${name} で awscli が起動した`).toEqual([])
   return structured
 }

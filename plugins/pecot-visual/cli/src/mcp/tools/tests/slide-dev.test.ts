@@ -738,7 +738,7 @@ describe('slideDevTool', () => {
     expect(dataOf(result)).toHaveProperty('invalidPaths')
   })
 
-  it('talk-dir が無ければ spawn せず即失敗し、捕捉相当の空キーを残す', async (context) => {
+  it('talk-dir が無ければ spawn せず即失敗し、data.log を載せない', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-07')
     const result = await toolWith(unusedRegistry()).handler(
       { dir: path.join(workDirectory, 'no-such-deck'), stop: false },
@@ -747,8 +747,8 @@ describe('slideDevTool', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('talk-dir-not-found')
-    expect(structuredOf(result)['stdout']).toBe('')
-    expect(structuredOf(result)['stderr']).toBe('')
+    expect(dataOf(result)).not.toHaveProperty('log')
+    expect(structuredOf(result)).not.toHaveProperty('stderr')
   })
 
   it('slides.md が無ければ Slidev プロジェクトとして扱わない', async (context) => {
@@ -1010,7 +1010,7 @@ describe('slideDevTool', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.dev.reused', reused: true, port: 3030 })
   })
 
-  it('起動に失敗したら捕捉した出力を添えて返す', async () => {
+  it('起動に失敗したら、捕捉した出力を data.log に添えて返す', async () => {
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -1028,7 +1028,8 @@ describe('slideDevTool', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('dev-server-exited')
-    expect(String(structuredOf(result)['stderr'])).toContain('起動に失敗')
+    expect(String(dataOf(result)['log'])).toContain('起動に失敗')
+    expect(String(dataOf(result)['detail'])).toContain('see data.log')
   })
 
   it('実行時依存を失っていても stop は通る', async () => {

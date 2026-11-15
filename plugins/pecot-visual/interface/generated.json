@@ -53,8 +53,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -73,14 +91,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -149,8 +159,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -169,14 +197,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -234,8 +254,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -254,14 +292,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -309,8 +339,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -329,14 +377,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -431,8 +471,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -451,14 +509,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -519,8 +569,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -539,14 +607,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -608,8 +668,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -628,14 +706,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -690,8 +760,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -710,14 +798,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -786,8 +866,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -806,14 +904,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -873,8 +963,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -893,14 +1001,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [
@@ -955,8 +1055,26 @@
             "data": {
               "additionalProperties": {},
               "description": "Object with the details of the run",
-              "propertyNames": {
-                "type": "string"
+              "properties": {
+                "detail": {
+                  "description": "Full text of the failure and how to recover (failure only)",
+                  "type": "string"
+                },
+                "log": {
+                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
+                  "type": "string"
+                },
+                "warnings": {
+                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
               },
               "type": "object"
             },
@@ -975,14 +1093,6 @@
             "ok": {
               "description": "Whether the tool completed its intended run",
               "type": "boolean"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when nothing was captured)",
-              "type": "string"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when nothing was captured)",
-              "type": "string"
             }
           },
           "required": [

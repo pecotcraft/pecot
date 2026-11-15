@@ -48,11 +48,11 @@ import {
   chromiumInstallFailureDetail,
   runtimeDefaultDependencies,
   RUNTIME_UNAVAILABLE_EXIT_CODE,
-  spawnOutputPart,
   tlsCertificateHint,
   TOOL_OUTPUT_SCHEMA,
   type ChromiumDependencies,
   type RuntimeDependencies,
+  withSpawnOutput,
 } from './_shared.js'
 
 /**
@@ -127,10 +127,10 @@ function runtimeFailureReason(result: Readonly<RuntimeInstallResult>): string {
   }
   if (result.exitCode === null) {
     return result.signal === null
-      ? 'could not start npm (see stderr for the reason)'
+      ? 'could not start npm (see data.log for the reason)'
       : `download command was interrupted by ${result.signal}; the download was cut off externally`
   }
-  return `npm install exited with ${String(result.exitCode)} (see stderr for the reason)`
+  return `npm install exited with ${String(result.exitCode)} (see data.log for the reason)`
 }
 
 /**
@@ -283,7 +283,7 @@ export function setupTool(
     }
 
     if (runtime.installed && chromium.installed && hostDependencies?.installed === true) {
-      const result: ToolResult = {
+      return toCallToolResult(withSpawnOutput({
         ok: true,
         exitCode: 0,
         // ダウンロードした実体の置き場所を成果物として返す。取得済みなら何も置いていない。
@@ -293,9 +293,7 @@ export function setupTool(
           ...data,
         },
         message: successMessage(runtime, chromium, hostDependencies),
-        ...spawnOutputPart(chromium.spawned ?? emptySpawn()),
-      }
-      return toCallToolResult(result)
+      }, chromium.spawned ?? emptySpawn()))
     }
 
     // 両系統が失敗することもある (ネットワーク断・プロキシ誤設定では両方が落ちる)。
@@ -320,7 +318,7 @@ export function setupTool(
           + acquisitionFailures.map(failure => `${failure.label}: ${failure.stage.detail ?? ''}`).join(' / ')]),
       ...(hostDependenciesDetail === undefined ? [] : [hostDependenciesDetail]),
     ].join(' / ')
-    const result: ToolResult = {
+    const result: ToolResult = withSpawnOutput({
       ok: false,
       exitCode: runtime.installed ? CHROMIUM_UNAVAILABLE_EXIT_CODE : RUNTIME_UNAVAILABLE_EXIT_CODE,
       // data.reason は失敗した段をカンマでつなぐ。kind には最初に失敗した段の名前を入れる。
@@ -333,8 +331,7 @@ export function setupTool(
         ...data,
       },
       message,
-      ...spawnOutputPart(mergeSpawned(failures.map(failure => failure.stage.spawned))),
-    }
+    }, mergeSpawned(failures.map(failure => failure.stage.spawned)))
     return toCallToolResult(result)
   }
 
@@ -363,7 +360,7 @@ export function setupTool(
 }
 
 /**
-取得を飛ばした系統には子プロセスが無い。stdout / stderr のキーは契約どおり残す。
+取得を飛ばした系統には子プロセスが無い。
 */
 function emptySpawn(): SpawnResult {
   // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動なしを exitCode: null で表す
@@ -371,10 +368,7 @@ function emptySpawn(): SpawnResult {
 }
 
 /**
-失敗した系統の出力を 1 つに畳む。
-
-ToolResult の stdout / stderr は 1 組しか持てないため、両系統が失敗したときは
-どちらの出力も落とさずに連結する (原因が stdout 側にあることもある)。
+失敗した系統の出力を 1 つに畳む。両系統が失敗しても、どちらの出力も data.log に残す。
 */
 function mergeSpawned(spawned: readonly (SpawnResult | undefined)[]): SpawnResult {
   const present = spawned.filter((result): result is SpawnResult => result !== undefined)

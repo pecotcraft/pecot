@@ -369,9 +369,8 @@ describe('slide_page のテーマの失敗', () => {
     const detail = textOf(dataOf(result)['detail'])
     expect(detail).toContain('slide_sync')
     expect(detail).toContain('node_modules_only: true')
-    // 捕捉した出力は空でもキーを残す。
-    expect(structuredOf(result)['stdout']).toBe('')
-    expect(structuredOf(result)['stderr']).toBe('')
+    expect(Object.keys(structuredOf(result))).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
+    expect(dataOf(result)).not.toHaveProperty('log')
     expect(pageFilesOf(directory)).toEqual([])
   })
 
@@ -411,12 +410,13 @@ describe('slide_page のテーマの失敗', () => {
     expect(pageFilesOf(directory)).toEqual([])
   })
 
-  it('テーマの警告は stderr に出す', async () => {
+  it('テーマの警告は data.warnings に載せる', async () => {
     const directory = makeTalkDirectory({ themeFixture: BARE_FIXTURE, themeName: BARE_NAME })
 
     const result = await tool.handler({ layout: 'one', dir: directory, file: 'page' }, CALL)
 
-    expect(textOf(structuredOf(result)['stderr'])).toContain('warning: ')
+    expect(dataOf(result)['warnings']).toEqual(expect.arrayContaining([expect.any(String)]))
+    expect(String(dataOf(result)['warnings'])).not.toContain('warning: ')
   })
 })
 

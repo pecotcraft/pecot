@@ -57,13 +57,8 @@ describe('toCallToolResult', () => {
     expect(toCallToolResult(BASE_RESULT).structuredContent).not.toHaveProperty('kind')
   })
 
-  it('stdout / stderr は与えられたときだけ structuredContent に現れる', () => {
-    const without = toCallToolResult(BASE_RESULT)
-    expect(without.structuredContent).not.toHaveProperty('stdout')
-    expect(without.structuredContent).not.toHaveProperty('stderr')
-
-    const with_ = toCallToolResult({ ...BASE_RESULT, stdout: 'out', stderr: 'err' })
-    expect(with_.structuredContent).toMatchObject({ stdout: 'out', stderr: 'err' })
+  it('最上位は ok・exitCode・kind・artifacts・data・message の 6 つだけで、stdout / stderr を持たない', () => {
+    expect(Object.keys(toCallToolResult(BASE_RESULT).structuredContent ?? {})).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
   })
 })
 

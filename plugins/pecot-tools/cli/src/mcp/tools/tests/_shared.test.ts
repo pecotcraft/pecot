@@ -118,7 +118,7 @@ describe('共通スキーマ', () => {
 
   it('outputSchema は ExecutionResult と同形', () => {
     expect(Object.keys(TOOL_OUTPUT_SCHEMA.shape))
-      .toEqual(['ok', 'exitCode', 'kind', 'data', 'artifacts', 'message', 'stderr'])
+      .toEqual(['ok', 'exitCode', 'kind', 'data', 'artifacts', 'message'])
   })
 
   it('既定の制限時間は 120 秒', async (context) => {
@@ -150,7 +150,7 @@ describe('executeAllowlisted', () => {
     expect(commandCalls(fake)).toEqual([])
   })
 
-  it('AccessDenied を permission-denied にし、stderr の秘密を伏せる', async (context) => {
+  it('AccessDenied を permission-denied にし、data.log に秘密を伏せた出力を入れる', async (context) => {
     await verifies(context, 'PT-COMMON-12')
     fakeAws.install({ fixture: 'access-denied' })
 
@@ -158,9 +158,10 @@ describe('executeAllowlisted', () => {
 
     expect(result).toMatchObject({ ok: false, exitCode: 254, kind: 'permission-denied' })
     expect(result.message).toContain('permission-denied')
-    expect(result.stderr).toContain('AccessDeniedException')
-    expect(result.stderr).toContain('[redacted]')
-    expect(result.stderr).not.toContain('IQoJb3JpZ2luX2VjEXAMPLETOKEN')
+    const log = String(result.data['log'])
+    expect(log).toContain('AccessDeniedException')
+    expect(log).toContain('[redacted]')
+    expect(log).not.toContain('IQoJb3JpZ2luX2VjEXAMPLETOKEN')
   })
 
   it('終了コード 252 を invalid-input にする', async () => {
@@ -275,7 +276,7 @@ describe('executeAllowlisted', () => {
 
   it('成功時の stdout も秘匿化する', async (context) => {
     await verifies(context, 'PT-COMMON-15')
-    // SC-006 は応答全体が対象。stderr 側だけ固定すると、成功時の退行を見逃す。
+    // SC-006 は応答全体が対象。data.log 側だけ固定すると、成功時の退行を見逃す。
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'leaky.stdout'), '{"AccessKeyId":"AKIAIOSFODNN7EXAMPLE"}\n')
       fakeAws.install({ fixture: 'leaky', fixtureDir: directory })
@@ -287,7 +288,7 @@ describe('executeAllowlisted', () => {
     })
   })
 
-  it('stderr が上限を超えたら切り詰めたことを message に残す', async () => {
+  it('data.log が上限を超えたら切り詰めたことを message に残す', async () => {
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'noisy.stderr'), 'y'.repeat(OUTPUT_LIMIT_BYTES + 1024))
       writeFileSync(path.join(directory, 'noisy.exit'), '254\n')
@@ -296,8 +297,8 @@ describe('executeAllowlisted', () => {
       const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
       expect(result.ok).toBe(false)
-      expect(Buffer.byteLength(result.stderr ?? '', 'utf8')).toBe(OUTPUT_LIMIT_BYTES)
-      expect(result.message).toContain('stderr exceeded the limit')
+      expect(Buffer.byteLength(String(result.data['log']), 'utf8')).toBe(OUTPUT_LIMIT_BYTES)
+      expect(result.message).toContain('data.log exceeded the limit')
     })
   })
 
@@ -311,6 +312,33 @@ describe('executeAllowlisted', () => {
 
     expect(parsed.error?.issues ?? []).toEqual([])
     expect(parsed.success).toBe(true)
+  })
+
+  it('失敗のときは、data の reason に kind を、detail に message を入れ、最上位に stderr を載せない', async () => {
+    fakeAws.install({ fixture: 'access-denied' })
+
+    const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
+    const content = toCallToolResult(result).structuredContent
+
+    expect(content).not.toHaveProperty('stderr')
+    expect(content).toMatchObject({ data: { reason: 'permission-denied', detail: result.message } })
+  })
+
+  it('成功のときは、最上位に stderr を、data に log を載せない', async () => {
+    fakeAws.install()
+
+    const content = toCallToolResult(await executeAllowlisted(IDENTITY_ENTRY, {}, CONTEXT)).structuredContent
+
+    expect(content).not.toHaveProperty('stderr')
+    expect(content).not.toHaveProperty('data.log')
+  })
+
+  it('data の schema は共通の 4 項目を任意で持ち、ほかの項目も通す', () => {
+    const data = TOOL_OUTPUT_SCHEMA.shape.data
+
+    expect(Object.keys(data.shape)).toEqual(['warnings', 'reason', 'detail', 'log'])
+    expect(data.safeParse({ Account: '1' }).success).toBe(true)
+    expect(data.safeParse({ log: 1 }).success).toBe(false)
   })
 
   it('上限を超える出力は先頭を残して truncated を立てる', async (context) => {

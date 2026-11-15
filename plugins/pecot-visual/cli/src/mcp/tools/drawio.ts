@@ -74,7 +74,15 @@ const PNG_SKIPPED_EXIT_CODE = 3
 message 末尾の警告件数サフィックス。drawio_create / drawio_export で表記を揃える。
 */
 function warningSuffix(warningCount: number): string {
-  return warningCount > 0 ? ` (${String(warningCount)} warnings; details in stderr)` : ''
+  return warningCount > 0 ? ` (${String(warningCount)} warnings; see data.warnings)` : ''
+}
+
+/**
+CLI の `--json` の `warnings` は件数。MCP では data.warnings を捕捉した文の配列にするため、件数を外す (件数は配列の長さで分かる)。
+*/
+function withoutWarningCount(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const { warnings: _count, ...rest } = data
+  return rest
 }
 
 function drawioCreateMessage(outputFile: string | undefined, warningCount: number): string {
@@ -88,7 +96,7 @@ function drawioCreateMessage(outputFile: string | undefined, warningCount: numbe
 chromium 不在で PNG を諦めたときの結果を、CLI の degrade と同形に寄せる (SC-002)。
 
 CLI (`pecotv drawio url`) は PNG 生成の失敗を warning に格下げする。
-表示用 HTML は書いたうえで、`png: null` / `pngFailed: true` / warnings +1 / exit 3 を返す。
+表示用 HTML は書いたうえで、`png: null` / `pngFailed: true` / warning 1 件 / exit 3 を返す。
 MCP だけが実処理の前に hard-fail すると、CLI と結果が食い違う。
 degrade できる条件はこれだけ。drawio_export と slide_convert は、chromium が無いと成果物を 1 つも作れない。
 data は CLI の PNG 失敗時と同一にし、`runtime_setup` の誘導は message へ載せる。
@@ -96,17 +104,17 @@ data は CLI の PNG 失敗時と同一にし、`runtime_setup` の誘導は mes
 function degradeToPngSkipped(
   execution: Readonly<DrawioUrlExecution>,
   unavailable: Readonly<ToolResult>,
+  warningCount: number,
 ): Pick<ToolResult, 'exitCode' | 'data' | 'message'> {
   return {
     exitCode: PNG_SKIPPED_EXIT_CODE,
     data: {
-      ...execution.data,
+      ...withoutWarningCount(execution.data),
       // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
       png: null,
       pngFailed: true,
-      warnings: execution.warningCount + 1,
     },
-    message: `${drawioCreateMessage(execution.outputFile, execution.warningCount + 1)}: ${unavailable.message}`,
+    message: `${drawioCreateMessage(execution.outputFile, warningCount)}: ${unavailable.message}`,
   }
 }
 
@@ -139,8 +147,7 @@ const handleDrawioCreate = async (
     : undefined
 
   const output = captureCommandOutput()
-  // CLI は capturePng の失敗を stderr へ書いてから warning に数える。
-  // 同じ行を残して、「警告 N 件、詳細は stderr」という message を CLI と MCP で同じ意味にする。
+  // CLI と同じく PNG の失敗を warning の行に書き、data.warnings に入れる。
   if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG export failed: ${unavailable.message}`)
   try {
     const execution = await executeDrawioUrl(
@@ -150,30 +157,26 @@ const handleDrawioCreate = async (
       { ...drawioUrlDefaultDependencies(), stdout: output.stdout, stderr: output.stderr, signal: call.signal },
     )
     // 警告あり (exitCode 3) でも URL の生成そのものは完了しているので ok: true。
-    const result: ToolResult = {
+    return output.finish({
       ok: true,
       exitCode: execution.exitCode,
       artifacts: execution.artifacts,
-      data: execution.data,
-      message: drawioCreateMessage(execution.outputFile, execution.warningCount),
-      ...(unavailable !== undefined && degradeToPngSkipped(execution, unavailable)),
-      ...output.part(),
-    }
-    return toCallToolResult(result)
+      data: withoutWarningCount(execution.data),
+      message: drawioCreateMessage(execution.outputFile, output.warnings().length),
+      ...(unavailable !== undefined && degradeToPngSkipped(execution, unavailable, output.warnings().length)),
+    })
   }
   catch (error: unknown) {
     const data = drawioUrlErrorData(error)
     const violationCount = violationCountOf(data)
-    const result: ToolResult = {
+    return output.finish({
       ok: false,
       exitCode: drawioUrlToExitCode(error),
       kind: failureKindOf(drawioUrlErrorToReason(error)),
       artifacts: [],
       data,
       message: violationCount === undefined ? `pecotv drawio url: ${formatError(error)}` : textViolationMessage(violationCount),
-      ...output.part(),
-    }
-    return toCallToolResult(result)
+    })
   }
 }
 
@@ -217,18 +220,16 @@ const handleDrawioExport = async (
       { ...drawioExportDefaultDependencies(), stdout: output.stdout, stderr: output.stderr },
     )
     // 警告あり (exitCode 3。PDF 生成失敗) でも SVG の書き出しは完了しているので ok: true。
-    const result: ToolResult = {
+    return output.finish({
       ok: true,
       exitCode: execution.exitCode,
       artifacts: execution.artifacts,
-      data: execution.data,
-      message: drawioExportMessage(execution),
-      ...output.part(),
-    }
-    return toCallToolResult(result)
+      data: withoutWarningCount(execution.data),
+      message: drawioExportMessage(execution, output.warnings().length),
+    })
   }
   catch (error: unknown) {
-    return toCallToolResult({ ...drawioExportFailure(error), ...output.part() })
+    return output.finish(drawioExportFailure(error))
   }
 }
 
@@ -248,10 +249,10 @@ function drawioExportFailure(error: unknown): ToolResult {
   }
 }
 
-function drawioExportMessage(execution: Readonly<DrawioExportExecution>): string {
+function drawioExportMessage(execution: Readonly<DrawioExportExecution>, warningCount: number): string {
   if (execution.outputFile === undefined) return `computed composite hash: ${execution.sourceSha256}`
   const pdf = execution.pdfFile === undefined ? '' : ` (PDF: ${execution.pdfFile})`
-  return `wrote SVG to ${execution.outputFile}${pdf}${warningSuffix(execution.warningCount)}`
+  return `wrote SVG to ${execution.outputFile}${pdf}${warningSuffix(warningCount)}`
 }
 
 // annotations は SDK 既定 (readOnlyHint: false / openWorldHint: true) と一致するため付けない。

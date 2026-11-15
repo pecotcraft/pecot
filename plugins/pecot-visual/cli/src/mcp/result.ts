@@ -19,11 +19,7 @@ import { toPosixPath } from './windows-path.js'
 const USAGE_ERROR_EXIT_CODE = 2
 
 /**
-1 本の捕捉で保持する出力の上限 (バイト)。
-
-捕捉した出力は ToolResult に載って MCP クライアントのコンテキストへ入る。
-長時間ツール (slide_convert 等) の進捗ログが際限なく積み上がると、メモリとクライアント側コンテキストを圧迫する。超過分は「新しい方を残す」= 先頭を捨てる:
-失敗の直接原因は末尾に出るため、切り詰めるなら古い側から捨てるのが妥当。
+捕捉と data.log で保持する出力の上限 (バイト)。失敗の直接原因は末尾に出るため、超えたら先頭を捨てる。
 */
 const OUTPUT_CAPTURE_LIMIT_BYTES = 64 * 1024
 
@@ -42,21 +38,13 @@ interface ToolResultFields {
   */
   readonly artifacts: readonly string[]
   /**
-  ツール固有の構造化データ (URL・件数など)。
+  ツール固有の構造化データ。共通の項目は warnings・reason・detail・log (tools/_shared.ts の TOOL_OUTPUT_SCHEMA)。
   */
   readonly data: Readonly<Record<string, unknown>>
   /**
   呼び出し元エージェント向けの 1 行サマリ。
   */
   readonly message: string
-  /**
-  捕捉した stdout。未捕捉のときは省略する。
-  */
-  readonly stdout?: string
-  /**
-  捕捉した stderr。未捕捉のときは省略する。
-  */
-  readonly stderr?: string
 }
 
 /**
@@ -67,11 +55,6 @@ export type ToolResult = SucceededToolResult | FailedToolResult
 export type SucceededToolResult = ToolResultFields & { readonly ok: true, readonly kind?: never }
 
 export type FailedToolResult = ToolResultFields & { readonly ok: false, readonly kind: FailureKind }
-
-/**
-stdout / stderr を呼び出し側が付ける前の ToolResult。Omit<ToolResult> では ok と kind の対応が崩れる。
-*/
-export type ToolResultBody = Omit<SucceededToolResult, 'stdout' | 'stderr'> | Omit<FailedToolResult, 'stdout' | 'stderr'>
 
 /**
 ToolResult を MCP の CallToolResult へ変換する。
@@ -101,8 +84,6 @@ function toStructuredContent(result: Readonly<ToolResult>): Record<string, unkno
     artifacts: [...result.artifacts],
     data: { ...result.data },
     message: result.message,
-    ...(result.stdout !== undefined && { stdout: result.stdout }),
-    ...(result.stderr !== undefined && { stderr: result.stderr }),
   }
 }
 

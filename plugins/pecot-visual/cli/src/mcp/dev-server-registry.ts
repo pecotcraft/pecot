@@ -517,7 +517,7 @@ function failureReasonOf(outcome: Exclude<ReadyOutcome, 'ready'>): DevServerFail
 function failureDetailOf(outcome: Exclude<ReadyOutcome, 'ready'>, port: number, timeoutMs: number): string {
   switch (outcome) {
     case 'exited': {
-      return `Slidev dev server on port ${String(port)} exited right after starting (see stderr for the reason)`
+      return `Slidev dev server on port ${String(port)} exited right after starting (see data.log for the reason)`
     }
     case 'timeout': {
       return `Slidev dev server on port ${String(port)} did not become reachable within `

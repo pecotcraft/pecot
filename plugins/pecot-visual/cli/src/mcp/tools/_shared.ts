@@ -1,16 +1,5 @@
-// 11 ツール共通の outputSchema と、ハンドラが系統別ファイルに複製していた定型処理。
-//
-// outputSchema は ToolResult (src/mcp/result.ts) と同形の zod object で、全ツールが共有する。
-// contract.test.ts は、required が artifacts・data・exitCode・message・ok の sorted であることを pin している。
-// stdout / stderr は任意として pin しているため、フィールドの必須性はここでのみ管理する。
-//
-// 出力捕捉・エラー整形・パス引数の説明文は、11 ツールで同一の振る舞いが要る。
-// とくに stdout / stderr は「捕捉したなら空でもキーを残す」が契約なので、実装はここに 1 本だけ置く。
-//
-// 引数の narrowing も、4 ファイル共通の方式に揃える。
-// SDK は inputSchema で検証済みの引数を渡してくる。ただしハンドラの引数型は Record<string, unknown> のまま。
-// そこで inputSchema と同じ z.object で parse し直して型を得る。
-// これは `as` キャスト禁止の下で型を得る手段で、検証済みの引数に対しては既定値の適用も冪等になる。
+// 11 ツール共通の outputSchema・出力捕捉・エラー整形・実行時ガード。
+// ハンドラは inputSchema と同じ z.object で引数を parse し直して型を得る (`as` を使わないため)。
 
 import path from 'node:path'
 import type { Writable } from 'node:stream'
@@ -32,7 +21,9 @@ import {
   isAutoInstallEnabled,
   isChromiumInstalled,
 } from '../../infra/playwright/chromium.js'
-import { createOutputCapture, truncateCapturedText, type ToolResult } from '../result.js'
+import type { CallToolResult } from '@modelcontextprotocol/server'
+
+import { createOutputCapture, toCallToolResult, truncateCapturedText, type ToolResult } from '../result.js'
 import { toPosixPath } from '../windows-path.js'
 
 /**
@@ -47,22 +38,84 @@ export const WINDOWS_PATH_NOTE
   = String.raw`Windows-style paths (C:\... / \\wsl.localhost\<distro>\...) are accepted and `
     + 'converted to an absolute path under /mnt/<drive>/ or inside WSL.'
 
+const WARNINGS_SCHEMA = z.array(z.string()).optional().describe('Warnings raised during the run (omitted when there are none)')
+
+/**
+data はツールごとに形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
+*/
+const DATA_SCHEMA = z.looseObject({
+  warnings: WARNINGS_SCHEMA,
+  reason: z.string().optional().describe('Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas'),
+  detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
+  log: z.string().optional().describe('Raw output of the command or child process, with the beginning truncated over 64KB (failure only)'),
+}).describe('Object with the details of the run')
+
 /**
 ToolResult 同形の outputSchema。
-
-data はツールごとに形が異なる (対応 CLI の --json 出力と同形) ため、共通スキーマでは
-record として受け、同形性の検証は contract / parity テスト側で行う。
 */
 export const TOOL_OUTPUT_SCHEMA = z.object({
   ok: z.boolean().describe('Whether the tool completed its intended run'),
   exitCode: z.number().describe('Exit code (0 = success)'),
   kind: z.string().optional().describe('Failure kind (omitted on success)'),
   artifacts: z.array(z.string()).describe('Absolute paths of files and directories created or updated'),
-  data: z.record(z.string(), z.unknown()).describe('Object with the details of the run'),
+  data: DATA_SCHEMA,
   message: z.string().describe('One-line summary for the calling agent'),
-  stdout: z.string().optional().describe('Captured stdout (omitted when nothing was captured)'),
-  stderr: z.string().optional().describe('Captured stderr (omitted when nothing was captured)'),
 })
+
+/**
+捕捉した stdout / stderr の文字列。
+*/
+export interface CapturedText {
+  readonly stdout: string
+  readonly stderr: string
+}
+
+const WARNING_PREFIX = 'warning: '
+
+/**
+diagnostics の `warning: ` の行を文の配列にする。続きの行 (先頭に空白 2 つ) は同じ文に含める。
+*/
+export function warningsOf(stderr: string): string[] {
+  const warnings: string[] = []
+  let current: string[] | undefined
+  for (const line of stderr.split('\n')) {
+    if (line.startsWith(WARNING_PREFIX)) {
+      if (current !== undefined) warnings.push(current.join('\n'))
+      current = [line.slice(WARNING_PREFIX.length)]
+    }
+    else if (current !== undefined && line.startsWith('  ')) {
+      current.push(line.slice(2))
+    }
+    else if (current !== undefined) {
+      warnings.push(current.join('\n'))
+      current = undefined
+    }
+  }
+  if (current !== undefined) warnings.push(current.join('\n'))
+  return warnings
+}
+
+function stringArrayOf(value: unknown): readonly string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+/**
+捕捉した出力を ToolResult の data へ移す。warning の行は data.warnings へ (既にある文と重ねて重複を除く)、
+失敗のときは出力の全体を data.log へ入れる。
+*/
+export function withCapturedOutput(result: Readonly<ToolResult>, captured: Readonly<CapturedText>): ToolResult {
+  const existing = stringArrayOf(result.data['warnings'])
+  const warnings = [...new Set([...existing, ...warningsOf(captured.stderr)])]
+  const log = result.ok ? '' : truncateCapturedText([captured.stdout, captured.stderr].filter(text => text !== '').join('\n'))
+  return {
+    ...result,
+    data: {
+      ...result.data,
+      ...((warnings.length > 0 || 'warnings' in result.data) && { warnings }),
+      ...(log !== '' && { log }),
+    },
+  }
+}
 
 export interface CommandOutput {
   /**
@@ -71,12 +124,13 @@ export interface CommandOutput {
   readonly stdout: Writable
   readonly stderr: Writable
   /**
-  捕捉した内容を ToolResult へ転写する。
-
-  内容が空でもキーは残す。ToolResult の stdout / stderr が省略されるのは「捕捉していない」
-  ときで、捕捉した結果が空であることとは意味が違う。
+  捕捉した出力を withCapturedOutput で result の data へ移し、CallToolResult にする。
   */
-  part(): Pick<ToolResult, 'stdout' | 'stderr'>
+  finish(result: Readonly<ToolResult>): CallToolResult
+  /**
+  捕捉した stderr の warning の文。finish が data.warnings へ入れる配列と同じ。message の件数を作るときに使う。
+  */
+  warnings(): string[]
 }
 
 /**
@@ -88,21 +142,16 @@ export function captureCommandOutput(): CommandOutput {
   return {
     stdout: stdout.stream,
     stderr: stderr.stream,
-    part: () => ({ stdout: stdout.text(), stderr: stderr.text() }),
+    finish: result => toCallToolResult(withCapturedOutput(result, { stdout: stdout.text(), stderr: stderr.text() })),
+    warnings: () => [...new Set(warningsOf(stderr.text()))],
   }
 }
 
 /**
-子プロセスの結果を ToolResult の stdout / stderr へ載せる形に整える。
-
-Writable を通さない出力にも、captureCommandOutput と同じ上限をかけるための関数。
-空でもキーを残すのは CommandOutput.part() と同じ契約。
+子プロセスの出力を result の data へ移す。Writable を通さない出力にも同じ上限をかける。
 */
-export function spawnOutputPart(result: Readonly<SpawnResult>): Pick<ToolResult, 'stdout' | 'stderr'> {
-  return {
-    stdout: truncateCapturedText(result.stdout),
-    stderr: truncateCapturedText(result.stderr),
-  }
+export function withSpawnOutput(result: Readonly<ToolResult>, spawned: Readonly<SpawnResult>): ToolResult {
+  return withCapturedOutput(result, { stdout: truncateCapturedText(spawned.stdout), stderr: truncateCapturedText(spawned.stderr) })
 }
 
 /**
@@ -242,7 +291,7 @@ function chromiumFailureReason(result: Readonly<SpawnResult>): string {
   if (result.timedOut) return `download timed out${NETWORK_HINT}`
   if (result.exitCode === null) {
     return result.signal === null
-      ? 'could not start the download command (see stderr for the reason); rebuild node_modules (pnpm install), then run again'
+      ? 'could not start the download command (see data.log for the reason); rebuild node_modules (pnpm install), then run again'
       : `download command was interrupted by ${result.signal}; the download was cut off externally`
   }
   return `download command exited with ${String(result.exitCode)}${NETWORK_HINT}`
@@ -295,7 +344,8 @@ export async function ensureChromium(
   const detail = result.exitCode === 0
     ? `download command succeeded, but chromium is not in ${expectedLocation(dependencies)}`
     : chromiumInstallFailureDetail(result)
-  return {
+  // playwright install は失敗原因を stdout に書くこともあるため、両方を data.log に入れる。
+  return withSpawnOutput({
     ok: false,
     exitCode: CHROMIUM_UNAVAILABLE_EXIT_CODE,
     artifacts: [],
@@ -307,9 +357,7 @@ export async function ensureChromium(
       expectedAt: expectedLocation(dependencies),
     },
     message: `cannot run ${label}: Playwright Chromium download failed`,
-    // 失敗原因が stdout 側にあることもある (playwright install は進捗・取得先を stdout へ書く)。
-    ...spawnOutputPart(result),
-  }
+  }, result)
 }
 
 /**

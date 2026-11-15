@@ -22,6 +22,9 @@ export interface ExecutionResult {
   失敗時のみ。ok が true のときはキーごと無い。
   */
   readonly kind?: FailureKind
+  /**
+  失敗のときは awscli の秘匿化した出力を log に持つ。reason と detail は toCallToolResult が足す。
+  */
   readonly data: Readonly<Record<string, unknown>>
   /**
   書き出したローカルファイルの絶対パス。
@@ -31,10 +34,6 @@ export interface ExecutionResult {
   エージェント向けの 1 行サマリ（失敗時は再試行方法を含む）。
   */
   readonly message: string
-  /**
-  失敗時の awscli stderr（秘匿化済み）。
-  */
-  readonly stderr?: string
 }
 
 /**
@@ -69,10 +68,10 @@ function toStructuredContent(result: Readonly<ExecutionResult>): Record<string, 
     ok: result.ok,
     exitCode: result.exitCode,
     ...(result.kind !== undefined && { kind: result.kind }),
-    data: { ...result.data },
+    // 失敗の原因の名前と全文は、3 つのプラグインで同じ data.reason・data.detail から読めるようにする。
+    data: result.kind === undefined ? { ...result.data } : { ...result.data, reason: result.kind, detail: result.message },
     artifacts: [...result.artifacts],
     message: result.message,
-    ...(result.stderr !== undefined && { stderr: result.stderr }),
   }
 }
 

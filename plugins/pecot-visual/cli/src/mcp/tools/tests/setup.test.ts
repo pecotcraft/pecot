@@ -224,7 +224,7 @@ describe('runtime_setup: chromium', () => {
     expect(runtime.installSignal(), '実行時依存の取得も同じ signal で打ち切れる').toBe(CALL.signal)
   })
 
-  it('取得コマンドの stdout / stderr を両方載せる', async () => {
+  it('成功のときは、取得コマンドの出力を結果に載せない', async () => {
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ stdout: 'Downloading Chromium', stderr: 'note' })),
@@ -232,8 +232,9 @@ describe('runtime_setup: chromium', () => {
 
     const structured = structuredOf(await callSetup(deps))
 
-    expect(structured['stdout']).toBe('Downloading Chromium')
-    expect(structured['stderr']).toBe('note')
+    expect(structured['ok']).toBe(true)
+    expect(Object.keys(structured)).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
+    expect(structured['data']).not.toHaveProperty('log')
   })
 
   it('取得が失敗したら isError で原因と復旧手順を返す', async () => {
@@ -258,7 +259,8 @@ describe('runtime_setup: chromium', () => {
     const detail = String(dataOf(result)['detail'])
     expect(detail).toContain('HTTPS_PROXY')
     expect(detail).toContain('PLAYWRIGHT_DOWNLOAD_HOST')
-    expect(structured['stderr']).toBe('ECONNREFUSED')
+    expect(dataOf(result)['log']).toBe('ECONNREFUSED')
+    expect(structured).not.toHaveProperty('stderr')
   })
 
   it('タイムアウトはタイムアウトとして理由に出す', async () => {
@@ -357,7 +359,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
     expect(structuredOf(result)['exitCode']).toBe(1)
     expect(dataOf(result)).toMatchObject({ event: 'setup.error', reason: 'runtime-install-failed' })
     expect(String(dataOf(result)['detail'])).toContain('exited with 1')
-    expect(structuredOf(result)['stderr']).toBe('ERR_PNPM')
+    expect(dataOf(result)['log']).toBe('ERR_PNPM')
     // npm が破損している環境で chromium 取得まで巻き添えにしない。
     expect(chromium.installCalls()).toBe(1)
     expect(stageOf(result, 'chromium')['installed']).toBe(true)
@@ -551,15 +553,13 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
       .toBe('runtime-install-failed,chromium-install-failed')
   })
 
-  it('両系統の stdout / stderr を落とさない', async () => {
-    // ToolResult は stdout / stderr を 1 組しか持てないため連結する
-    // (取得失敗の原因が stdout 側にあることもある)。
-    const structured = structuredOf(await callSetupWithBothFailing())
+  it('両系統が失敗したら、両系統の stdout と stderr を data.log に残す', async () => {
+    const log = String(dataOf(await callSetupWithBothFailing())['log'])
 
-    expect(String(structured['stderr'])).toContain('ERR_NPM')
-    expect(String(structured['stderr'])).toContain('ECONNREFUSED')
-    expect(String(structured['stdout'])).toContain('npm-out')
-    expect(String(structured['stdout'])).toContain('pw-out')
+    expect(log).toContain('ERR_NPM')
+    expect(log).toContain('ECONNREFUSED')
+    expect(log).toContain('npm-out')
+    expect(log).toContain('pw-out')
   })
 
   it('取得できた実体が無いので artifacts は空', async () => {

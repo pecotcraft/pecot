@@ -541,10 +541,9 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
         ok: false,
         exitCode: 254,
         kind: 'permission-denied',
-        data: {},
+        data: { log: 'AccessDenied' },
         artifacts: [],
         message: '権限が不足しています',
-        stderr: 'AccessDenied',
       })
       const sts = allTools().find(tool => tool.name === 'aws_sts_get_caller_identity')
       if (sts === undefined) throw new Error('aws_sts_get_caller_identity が公開されていません')
