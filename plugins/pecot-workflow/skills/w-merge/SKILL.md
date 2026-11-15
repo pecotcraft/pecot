@@ -46,7 +46,9 @@ bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>
 | `required-failed` | 落ちたチェックを読んでユーザーに伝える。直して push する |
 | `not-queued` | 落ちたチェックがあれば直して push し、2.1 からやり直す。無ければ理由をユーザーに伝えて止まる |
 | `stalled` | 状態をユーザーに伝える。queue の中か、チェックが進んでいるなら、待ち直しを勧める |
-| `closed`・`blocked`・`query-failed` | 出力をユーザーに伝えて止まる |
+| `closed` | ユーザーに伝えて止まる |
+| `blocked` | 出力をユーザーに伝えて止まる |
+| `query-failed` | 出力の `gh` のエラーをユーザーに伝えて止まる |
 
 - push した後は、2 行目の `auto-merge=` が `true` なら 2.2 から、`false` なら 2.1 からやり直す
 - CI や queue が 15 分を超えるリポでは、`--stall-minutes <分>` を付けて起動する
