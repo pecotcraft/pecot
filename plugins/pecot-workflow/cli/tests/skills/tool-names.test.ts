@@ -16,7 +16,7 @@ import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:54', 'skills/w-help/SKILL.md:56']
 
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
-const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'issue_number', 'session_id', 'board_url'])
+const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'board_url'])
 
 // main のツール名。古いコマンド名の空白とハイフンを _ にした形（create_branch・project_info）。
 const OLD_TOOL_NAMES = Array.from(RENAMED_COMMANDS.keys(), name => name.replaceAll(/[ -]/gu, '_'))

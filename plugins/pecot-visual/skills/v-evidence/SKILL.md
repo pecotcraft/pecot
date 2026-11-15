@@ -79,7 +79,7 @@ argument-hint: "[画像のパス]"
    ```
 
 2. 仕様 JSON を `<出力先ディレクトリ>/<name>-spec.json` として書き出す
-3. `pecot-visual` サーバの `evidence_create` を呼ぶ
+3. `evidence_create` を呼ぶ
    - `input_path`: 仕様 JSON の絶対パス
    - `out_path`: 出力 xlsx の絶対パス
 
@@ -92,24 +92,19 @@ argument-hint: "[画像のパス]"
 
 ## 5. エラー処理
 
-失敗は 2 系統ある。
+失敗したら、エラーの文に従って直し、呼び直す。エラーごとの回復手順は `references/evidence-spec.md` の表にある。
 
-- **絶対パス違反**（`input_path` / `out_path` に相対パスを渡した）: 結果が失敗で、`kind` が `invalid-path`、項目は
-  `kind`・`detail`・`invalidPaths`（`["out_path=..."]`）のみ。
-  `invalidPaths` に挙がった引数を絶対パスに直して呼び直す
-- 実行失敗の原因は `kind` で読む。項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
-  `kind` は 8 値で、それぞれ回復手順が決まっている（対応表は `references/evidence-spec.md`）。
-  うち `invalid-option` は引数の検証が先に済むこの場面では返らない
+`input_path` / `out_path` に相対パスを渡すと、実行前に拒否される。`invalidPaths` に挙がった引数を絶対パスに直して呼び直す。
 
-検証エラー（`kind: "invalid-spec"`）は `detail` に全件が `items[0].annotations[0].box.w` 形式のパス付きで列挙される。
+仕様の検証エラーは、全件が `items[0].annotations[0].box.w` 形式のパス付きで列挙される。
 1 件ずつ試さず、列挙されたパスをすべて直してから再実行する。
 
-文言に文章規則の違反があると、xlsx は書き出されず `kind: "text-violation"` が返る。
+文言に文章規則の違反があると、xlsx は書き出されない。
 `violations[].item` が直す先を名指しする。形は `title` / `items[i].caption` / `items[i].annotations[j].text` で、`i` は 0 始まりの添字を指す。
 `j` は `annotations` の添字で、highlight と arrow も数える。callout の `text` だけが判定の対象になる。
 `caption` を省いてファイル名で補った項目は、確かめない。
 `item` の全件を言い換えてから再実行する。規則・除外は変えない。
-判定器が動かなかったときは `kind: "text-lint-failed"` が返る。`detail` を読み、原因を直して再実行する。
+判定器が動かなかったときは、エラーの文を読み、原因を直して再実行する。
 
 ## 6. 結果報告
 

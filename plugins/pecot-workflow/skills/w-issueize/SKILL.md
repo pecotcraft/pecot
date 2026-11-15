@@ -22,7 +22,7 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 - `SPECKIT_DIR`: speckit 一式が置かれているディレクトリ（例: `specs/263-plan-mode-reminder/`）。aist-roadmap など外部リポにある場合は `owner/repo:specs/NNN-*/` 形式で表す。
 - `TASKS_PATH`: 受け取った tasks.md の実パス
 
-`issue_show` を `issue_ref: "owner/repo/EPIC_NUMBER"` で呼ぶ。
+pecot-workflow の MCP ツール `issue_show` を使って、親 Epic を読む。
 
 ### Step 2: フェーズ構造と前提を把握する
 
@@ -57,11 +57,13 @@ Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本�
 
 ### Step 3: 各フェーズをIssueとして作成する
 
-フェーズ数だけテンプレートを生成する。`issue_create` を `prepare: true`・`template: "task-implement"`・`suffix: "phase1"`・`repo: "<owner/repo>"` で呼ぶ。`suffix` を `phase2`、`phase3` … と変えて、フェーズの数だけ繰り返す。
+pecot-workflow の MCP ツール `issue_create` を使って、テンプレートのファイルをフェーズの数だけ作る。
+入力は `prepare: true`・`template: "task-implement"`。
+ファイルを見分けられるよう、`suffix` を `phase1`、`phase2` … と変える。
 
 `repo: "<owner/repo>"` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
-できたファイルの絶対パスは、それぞれの結果の `file` にある。各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
+できた各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
 `title` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。`repository` には、`repo` で指定した値が入っている。
 
 `blocked_by` の写し方は次のとおり。
@@ -107,21 +109,20 @@ before / after の例を示す。
 
 全フェーズ分のファイルを Phase の順に並べる。前提が後ろのフェーズを指すときは、前提にされるフェーズのファイルを先にする。
 
-投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、結果の `plan` に番号・前提・進め方が、`stackableChains` に積める並びが入る。
-`plan` の `order`・`blockedBy`・`approach` を表にし、Step 2 の前提の表と並べてユーザーに示す。前提の食い違いが無いかを見てもらう。
-食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果が失敗で止まったときも、`detail` の文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
+投稿の前に、`issue_create` を使って、投稿せずに番号・前提・進め方を確かめる（`dry_run: true`。全フェーズのファイルを `files` に並べる）。
+結果の番号・前提・進め方を表にし、Step 2 の前提の表と並べてユーザーに示す。積める並びも示す。前提の食い違いが無いかを見てもらう。
+食い違いがあればファイルを直して、もう一度 `dry_run: true` で確かめる。失敗で止まったときも、エラーの文に従ってファイルか並びを直し、もう一度確かめる。合意を得てから投稿する。
 
-投稿は、同じ `files` で `issue_create` を `dry_run` なしで 1 回だけ呼ぶ。複数回に分けて呼ばない。
+投稿は、同じ `files` で `issue_create` を 1 回だけ使う（`dry_run` なし）。複数回に分けない。
 
-投稿の結果は、次のとおり読み分ける。
+投稿が失敗したときは、次のとおりにする。
 
-- 結果が失敗でも、`issues` に要素があれば、その Issue は作られている。`kind` ではなく `issues` で決める。同じ `files` で呼び直さない。呼び直すと Issue が重複する
-  - 前提の付け直しだけに失敗したときは、`kind` が `partial-failure` になる
-- 結果の `detail` の `could not add some blocked-by; add them again with:` の後ろに、付け直すコマンドの行が並ぶ。打たずにそのままユーザーへ示す
-- 失敗の結果に `issues` が無いときは、`kind` を見る。`other` でなければ、投稿の前の確認で止まっている。`detail` の文に従ってファイルを直し、呼び直してよい
-- `kind` が `other` のときは、操作が済んでいる可能性がある。`issues` に作り終えた Issue が残っていれば、それを示す。残っていなくても呼び直さず、結果の `detail` を利用者に示して止まる
+- 失敗しても、結果に作った Issue があれば、その Issue は作られている。同じ `files` で呼び直さない。呼び直すと Issue が重複する
+- エラーに、前提を付け直すコマンドの行があれば、打たずにそのままユーザーへ示す
+- 作った Issue が無く、投稿の前の確認（ファイルの中身や並び）で止まったときは、エラーの文に従ってファイルを直し、呼び直してよい
+- それ以外の失敗は、操作が済んでいる可能性がある。呼び直さず、エラーの文を利用者に示して止まる
 
 ### Step 4: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の結果の `plan[].approach`）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
-投稿の結果の `issues[].status` が `ready` の Issue が、それに当たる。結果に `warnings` があるときは、その文をそのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` で確かめたもの）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+警告があるときは、その文をそのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。

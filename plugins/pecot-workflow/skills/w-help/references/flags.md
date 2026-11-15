@@ -12,11 +12,13 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 
 ## CLI と hooks が共有するフラグ
 
+表の `session_start`・`pr_create` などは、pecot-workflow の MCP ツールの名前。
+
 | フラグ | 内容 | 書き手 | 読み手 | 消し手 |
 |--------|------|--------|--------|--------|
 | `.pecot-active` | 作業中の Issue ref（`owner/repo/N`） | `session_start`、`session_restore` | `session_start`（別 Issue 上書きガード）、`session_show`、`pr_create`（`prepare: true`。Closes 補完）、`exit-plan-remind.sh`、`auto-push.sh`（post-tool-use） | `session_finish`（`skip_local_cleanup` なし） |
 | `.pecot-session-title` | Claude Code のセッション名（`#<番号> <Issue タイトル>`。種別接頭辞なし・全体 40 文字） | `.pecot-active` と同じ 2 ツール（`write_work_target`） | `session-title.sh`（SessionStart / UserPromptSubmit。`.pecot-active` の番号と一致するときだけ採用） | `session_finish`（`.pecot-active` と同時） |
-| `.pecot-base` | 着手時に選んだ base（`<branch> <sha> [<owner/repo#N>]`。積んだときだけ末尾に積んだ先の Issue） | `session_start` | `session_show`（結果の `stack`） | `session_finish`（`.pecot-active` と同時） |
+| `.pecot-base` | 着手時に選んだ base（`<branch> <sha> [<owner/repo#N>]`。積んだときだけ末尾に積んだ先の Issue） | `session_start` | `session_show` | `session_finish`（`.pecot-active` と同時） |
 | `.wip-branch-linked` | Issue に紐づけ済みの WIP ブランチ名（`wip/<ブランチ名>`） | `auto-push.sh`（post-tool-use） | `auto-push.sh`（同じ名前なら紐づけを飛ばす） | `session_finish`（`skip_local_cleanup` なし） |
 | `.pecot-quick-mode` | 空（存在のみ） | `issue_create`（`freeform: true`・Epic 以外） | `exit-plan-remind.sh` | `session_finish`、`exit-plan-remind.sh` |
 | `pr-create-slash-pending` | 空（存在のみ） | `create-slash-flag.sh`（`/pecot-w:w-pr` 起動時） | `pecot-post-ask.sh` | `pr_create`（実投稿成功時）、`create-slash-cleanup.sh` |
@@ -24,12 +26,12 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 | `merge-slash-pending` | 空（存在のみ） | `create-slash-flag.sh`（`/pecot-w:w-merge` 起動時） | `external-post-check.sh` | `session_finish`（片付けの成功時）、`create-slash-cleanup.sh` |
 | `issue-pending` | 起点のスキル名（`w-quick` / `w-ready`） | `pecot-issue-pending-state.sh`、`pecot-skill-reminder.sh` | `pecot-issue-pending-reminder.sh` | `issue_create`（実投稿成功時）、`issue-pending-cleanup.sh` |
 
-- `.pecot-active` は `session_finish` を通さずに片付けた場合などに残り、CLOSED の Issue を指すことがある。
-  - `session_show`（`directory: "."`）の結果の `activeIssue` で、Issue（`reference`）と OPEN/CLOSED（`state`）を確認できる。
-  - 消えた場合は `session_restore` でブランチ名から復元する（`issue_ref` で直接指定もできる）。
+- `.pecot-active` は pecot-workflow の MCP ツール `session_finish` を通さずに片付けた場合などに残り、CLOSED の Issue を指すことがある。
+  - pecot-workflow の MCP ツール `session_show` で、残っている Issue と OPEN/CLOSED を確認できる。
+  - 消えた場合は pecot-workflow の MCP ツール `session_restore` でブランチ名から復元する（`issue_ref` で直接指定もできる）。
 - スラッシュコマンド起点のフラグが存在する間、`pecot-post-ask.sh`（MCP ツール）と `external-post-check.sh`（`gh`）は対応する呼び出しの確認を省く。
-  - `pr-create-slash-pending`: `pr_create`（`pecot-post-ask.sh` が読む）
-  - `issue-create-slash-pending`: `issue_create`（`pecot-post-ask.sh` が読む）
+  - `pr-create-slash-pending`: pecot-workflow の MCP ツール `pr_create`（`pecot-post-ask.sh` が読む）
+  - `issue-create-slash-pending`: pecot-workflow の MCP ツール `issue_create`（`pecot-post-ask.sh` が読む）
   - `merge-slash-pending`: `gh pr merge`（`external-post-check.sh` が読む）
 
 ## hooks だけが使う状態ファイル

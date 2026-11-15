@@ -16,13 +16,13 @@ argument-hint: "[Epic の内容]"
 
 ### Step 1: ボードを確認する
 
-`board_show` を引数なしで呼ぶ。
+pecot-workflow の MCP ツール `board_show` を使って、ボードの状態を確かめる。
 
 | ステータス | 意味 |
 |-----------|------|
 | Active | 別ワークツリーで作業中 |
 | Ready | 今、着手できるタスク |
-| Blocked | 前提を待っているタスク（pecot が置く。ボードに無ければ `project_init` で足す） |
+| Blocked | 前提を待っているタスク（pecot が置く。ボードに無ければ、pecot-workflow の MCP ツール `project_init` で足す） |
 | Pending | 人が後回しにした（Epic／タスク） |
 | Backlog | Epic置き場 |
 
@@ -35,10 +35,10 @@ Backlog内に類似のEpicがないか確認する。
 
 ### Step 3: 集約リポの事前確認
 
-Epic の作成先を決定するため、`aggregation_repo` の設定状況をまず確認する。`project_get` を `key: "aggregation_repo"` で呼ぶ。
+Epic の作成先を決めるため、pecot-workflow の MCP ツール `project_get` を使って、集約リポ（`aggregation_repo`）の設定を確かめる。
 
-- **設定済み**（結果の `value` に `owner/repo` が入る）→ Step 4 へ進む
-- **未設定**（結果に `value` が無い）→ AskUserQuestion で分岐:
+- **設定済み** → Step 4 へ進む
+- **未設定** → AskUserQuestion で分岐:
   - 「先に集約リポを設定する（推奨）」→ `/pecot-w:w-onboarding` を案内してこのスキルを中断
   - 「このまま個別リポに Epic を作る（分散運用）」→ Step 4 へ進む（作成時 `repository` 必須）
 
@@ -46,11 +46,11 @@ Epic の作成先を決定するため、`aggregation_repo` の設定状況を�
 
 ### Step 4: Epic Issueを作成
 
-1. テンプレートを準備する。`issue_create` を `prepare: true`・`template: "epic"` で呼ぶ
-2. 結果の `file` にあるファイルを編集する
+1. pecot-workflow の MCP ツール `issue_create` を使って、Epic のテンプレートのファイルを作る（`prepare: true`・`template: "epic"`）
+2. できたファイルを編集する
    - YAMLフロントマターを設定する
    - Issue本文を記述する（テンプレ冒頭コメントの 読者:/書き方: に従う）
-3. 投稿する。`issue_create` を `files: ["<ファイルパス>"]` で呼ぶ
+3. `issue_create` を使って、書いたファイルを投稿する
 
 ツールが出力したファイルのセクション構造を維持して本文を埋める。テンプレ冒頭コメントの `読者:`（Epic を分解する人）の判断に使われない情報は書かない。
 
@@ -60,8 +60,8 @@ Epic の作成先を決定するため、`aggregation_repo` の設定状況を�
 
 **リポジトリの特定方法:**
 
-- 集約リポ設定済（Step 3 の結果の `value` に `owner/repo` が入った）→ `repository: ""` のまま。ツールが自動で集約リポに作成する
-- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が `kind` が `repo-setting-missing` で失敗する
+- 集約リポ設定済 → `repository: ""` のまま。ツールが自動で集約リポに作成する
+- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が失敗する
 - ユーザーが実装リポ名を言及しても安易に `repo` で上書きせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ `repo: "<impl-repo>"` で明示する（ツールは警告を出しつつ作成を許可する）
 - 詳細マトリクス: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 

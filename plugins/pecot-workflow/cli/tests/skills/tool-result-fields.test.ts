@@ -101,15 +101,10 @@ describe('ツールの結果の入れ物', () => {
     expect(before.filter(line => CONTAINER_PATTERNS.every(pattern => !pattern.test(line)))).toEqual([])
   })
 
-  it('失敗の原因は kind で読ませる', () => {
-    const text = readDocuments().find(({ file }) => file === 'skills/w-active/SKILL.md')?.text ?? ''
-    expect(text).toContain('`kind` が `guard-blocked`')
-  })
-
-  it('スキルは、MCP の仕様が決める結果の項目（isError・structuredContent）を説明しない', () => {
+  it('スキルは、失敗の読み方（isError・structuredContent・kind・detail）を説明しない', () => {
     const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
       .map((line, index) => ({ file, number: index + 1, line }))
-      .filter(({ line }) => /isError|structuredContent/u.test(line))
+      .filter(({ line }) => /isError|structuredContent|`kind`|`detail`/u.test(line))
       .map(({ file: name, number, line }) => `${name}:${String(number)}: ${line.trim()}`))
     expect(found).toEqual([])
   })

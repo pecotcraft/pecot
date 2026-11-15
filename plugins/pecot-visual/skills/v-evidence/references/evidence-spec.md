@@ -1,6 +1,6 @@
 # EvidenceSpec 書式リファレンス
 
-`evidence_create` の `input_path` に渡す仕様 JSON の書式・検証規則・エラー対応。
+`pecot-visual` サーバの `evidence_create` の `input_path` に渡す仕様 JSON の書式・検証規則・エラー対応。
 
 ## 全体の規則
 
@@ -171,21 +171,17 @@ h ≥ 1 × 14.7 × 1.2 / 600 = 0.0294   → 余裕を見て h = 0.05
 
 ## エラー（`evidence.create.error`）
 
-実行失敗の応答の項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
-絶対パス違反だけは別系統で、`kind` は `invalid-path` になる。
-項目は `kind`・`detail`・`invalidPaths`（`[...]`）のみで、`event` を持たない。
-下の表の名前は `kind` で読む。
 出力ファイルの保証は次節の表にまとめている（`output-write-failed` かどうかで異なる）。
 
-| `kind` | 条件 | CLI の終了コード | 回復手順 |
+| エラー | 条件 | CLI の終了コード | 回復手順 |
 |---|---|---|---|
 | `input-not-found` | `input_path` の仕様 JSON が読めない | 1 | 仕様 JSON を書き出したか確認し、`input_path` を絶対パスで組み直す |
 | `invalid-json` | 仕様 JSON の parse に失敗 | 1 | 書き出した JSON を読み直し、構文（末尾カンマ・引用符など）を直す |
-| `invalid-spec` | 検証エラー | 1 | `detail` に全件がパス付きで列挙される。座標・文言を再計算し、列挙されたものをすべて直してから再実行する |
+| `invalid-spec` | 検証エラー | 1 | エラーの文に全件がパス付きで列挙される。座標・文言を再計算し、列挙されたものをすべて直してから再実行する |
 | `invalid-option` | オプション指定が不正 | – | 引数は呼び出し前に検証されるため、この場面では返らない |
 | `no-valid-images` | `items` の全件が除外され有効画像が 0 件 | 1 | 画像パスと形式をユーザーに再確認する |
 | `text-violation` | 文言が文章規則に当たる | 1 | `violations[].item`（`title` / `items[i].caption` / `items[i].annotations[j].text`。`i` は 0 始まり、`j` は highlight・arrow も数える）の全件を言い換えて再実行する。規則・除外は変えない |
-| `text-lint-failed` | 文章規則の判定器が動かない | 1 | `detail` を読み、原因を直して再実行する |
+| `text-lint-failed` | 文章規則の判定器が動かない | 1 | エラーの文を読み、原因を直して再実行する |
 | `output-write-failed` | `out_path` へ書き出せない | 1 | `out_path` の親ディレクトリを `mkdir -p` する。書き込み権限とパスの綴りを確認する |
 
 ## 終了コードと成功時の応答
@@ -194,7 +190,7 @@ h ≥ 1 × 14.7 × 1.2 / 600 = 0.0294   → 余裕を見て h = 0.05
 |---|---|---|
 | 0 | 生成成功。除外警告があっても有効画像が 1 件以上あれば成功 | xlsx を書き出し済み |
 | 1 | 仕様 JSON の読込・parse・検証エラー、有効画像 0 件、または書き出し失敗 | 入力不正・文言の違反・有効画像 0 件では出力に触れない（既存の `out_path` を壊さない）。書き出し失敗（`output-write-failed`）では部分生成物が残り得るため、残った `out_path` は成果物として扱わず削除してから再実行する |
-| 2 | `input_path` / `out_path` に相対パスを渡した。実行前に拒否され（`kind` が `invalid-path`）、`invalidPaths` に該当引数が載る | xlsx を書き出さない |
+| 2 | `input_path` / `out_path` に相対パスを渡した。実行前に拒否され、`invalidPaths` に該当引数が載る | xlsx を書き出さない |
 
 成功時の項目:
 

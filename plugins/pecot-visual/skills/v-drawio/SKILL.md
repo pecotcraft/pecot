@@ -29,7 +29,7 @@ draw.ioのXMLダイアグラムを生成し、ブラウザで直接開けるリ�
   2. 図の祖先の talk-dir（図がその `public/` の下にあるとき）
   3. 既定値（書体 `sans-serif`）
   書体は常に確かめ、5 段のサイズはテーマが決まったときだけ確かめる。総称 `monospace` を含む書体の並びは、書体の確認の対象外である。
-  talk-dir の中の図は、`slide_theme` の `declaration.fonts`（`body`・`eastAsian`）と `fontSizes` の値で描く。
+  talk-dir の中の図は、`pecot-visual` サーバの `slide_theme` の `declaration.fonts`（`body`・`eastAsian`）と `fontSizes` の値で描く。
   図を talk-dir の `public/` の下に置くときは、`theme` を渡さない。図の位置からテーマが決まる。
   既定の出力先（`.pecotv/work/drawio/`）は talk-dir の外にある。外に置くスライド用の図だけ、`theme` に talk-dir を渡す
 - 図のセルの `fontFamily` は、次の順に書く。
@@ -56,11 +56,11 @@ draw.ioのXMLダイアグラムを生成し、ブラウザで直接開けるリ�
   - PNG は図の XML ソースを内包するため、ラスター画像のみを配布したい場合は `--no-png`（MCP は `png: false`）を指定する
 - XML内のvalue属性にHTML実体参照（`&lt;font&gt;`等）を含めるのは問題ない
 - エッジ（edge）には必ず `<mxGeometry relative="1" as="geometry"/>` を含める（省略するとVSCodeでキャンバスが崩れる）
-- 図のラベルに文章規則の違反があると、`drawio_create` は何も書き出さず `kind: text-violation` と `violations[].item` を返す。
+- 図のラベルに文章規則の違反があると、`drawio_create` は何も書き出さず、直す先を `violations[].item` で返す。
   `item` は `mxCell id="..."` の形で、直す先のセルを名指しする。`<object>` や `<UserObject>` で包んだセルは、包んだ側の `label` が直す先になる。
   `html=1` のセルは、タグを除いた文言で判定される。全件を直してから `drawio_create` を再実行する。規則・除外は変えない
-- 判定器が動かなかったときは `kind: text-lint-failed` が返り、同じく何も書き出さない。
-  `detail` を読み、圧縮形式の XML が原因なら、非圧縮の XML で保存し直して再実行する
+- 判定器が動かなかったときも、何も書き出さない。
+  エラーの文を読み、圧縮形式の XML が原因なら、非圧縮の XML で保存し直して再実行する
 - `icon://` 参照は `drawio_create` が自動的にdata URIに変換して埋め込む
   - アイコンカタログのルートは `${CLAUDE_PLUGIN_ROOT}/assets/drawio-icons/`（`ls` で選定する際はこの絶対パスを使う）
   - 中身は Lucide（ISC）の線画アイコンで、`icon://<分類>/<名前>#<色>` の形で指す。例は `icon://development/server#1f2937`、`icon://weather/cloud`

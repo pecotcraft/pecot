@@ -17,12 +17,8 @@ PRをマージし、マージ後にブランチ削除とワークツリー環境
 
 引数 `owner/repo/PR番号` 形式（例: `acme-labs/ai-engineer-starter-kit/759`）を受け取る。省略された場合は、直前の会話から対象 PR が一意に特定できる（同じセッションで作成・レビューした PR が 1 件しかない等）ならそれを採用して進んでよい。曖昧な場合にのみユーザーに確認する。
 
-`pr_show` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
-
-PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_check` を `directory: "."` で呼ぶ。
-
-結果が失敗なら、`kind`・`detail` を見て解決し、呼び直してからマージに進む。
-`kind` が `preflight-failed` のときは、事前確認を通らなかった理由が結果の `warnings` に入る。
+pecot-workflow の MCP ツール `pr_show` を使って、PR がマージ可能な状態かを確かめる。
+続いて、pecot-workflow の MCP ツール `pr_check` を使って、ローカルに取り込んでいない変更が無いかを確かめる。指摘があれば、解決してからマージに進む。
 
 ### Step 2: マージと片付け
 
@@ -67,7 +63,7 @@ code-scanning open alerts: #28 #29
 | `conflicting` | ユーザーに伝える。`git fetch origin main` の後に `git merge origin/main` で取り込み直し、コンフリクトを直して push する |
 | `required-failed` | `gh pr checks <PR番号> --repo <owner>/<repo> --required` で落ちたチェックを読んでユーザーに伝える。直して push する |
 | `not-queued` | queue から外れている。落ちたチェックがあれば直して push し、2.1 からやり直す。無ければ理由をユーザーに伝えて止まる |
-| `blocked` | 列挙に無い状態はすべてここに来る。2 行目の `mergeStateStatus` を先に読み、止まった理由をユーザーに伝えて止まる。`session_finish` は呼ばない |
+| `blocked` | 列挙に無い状態はすべてここに来る。2 行目の `mergeStateStatus` を先に読み、止まった理由をユーザーに伝えて止まる。2.3 の片付けには進まない |
 | `stalled` | 状態が変わらないまま 15 分を超えた。2 行目と 3 行目以降をユーザーに伝え、進んでいる見込みなら待ち直しを勧める |
 | `query-failed` | `gh` が 3 回続けて失敗した。出力の `gh` のエラーをユーザーに伝えて止まる |
 
@@ -77,31 +73,17 @@ code-scanning open alerts: #28 #29
   - アラート: `gh api repos/<owner>/<repo>/code-scanning/alerts/<番号>`
   - 承認: `gh pr view <PR番号> --repo <owner>/<repo> --json reviewDecision`
 - `stalled` では、2 行目の `queue=` と `checks-pending=`、3 行目以降のルールとアラートを伝える。`queue=true` か `checks-pending` が 1 以上なら、進んでいる見込みなので待ち直しを勧める
-- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を呼び直す。未マージなら `kind` が `pr-state` で何もしない
+- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 をやり直す。未マージの間、2.3 は何もしない
 
 #### 2.3 片付け
 
-`session_finish` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
+pecot-workflow の MCP ツール `session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。
 
 > 注意: マージ後の片付けは必ず `session_finish` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
 
-`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず、結果が失敗で、`kind` が `pr-state` になる。
-
-**入力**:
-
-- `delete_branch`: リモートブランチを削除する（ここでは `true` を渡す）
-- `dry_run`: ドライラン（実際には片付けない）
-- `skip_local_cleanup`: ローカルの後処理をスキップする
-
 ### Step 3: ローカルクリーンアップの確認
 
-`session_finish` が自動的に以下を実行する。
-
-- WT環境では、wtXブランチへ切替 → `git pull <remote> <開発ブランチ>`（remote は origin、無ければ最初の remote）→ ローカルフィーチャーブランチ削除
-- 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
-- クロスリポでは、現在のリポとPRのリポが異なる場合、ローカルクリーンアップはスキップされる
-
-`session_finish` の結果に `warnings` があれば、その文を読んで以下で手動対応:
+ローカルの片付け（ブランチの切り替え・pull・フィーチャーブランチの削除）は、`session_finish` が行う。警告が出たら、その文を読んで次のように手で対応する。
 
 - ワーキングツリーが汚れている場合: 変更を一時的な WIP commit で退避してから再実行する。stash は全ワークツリーで共有されるので、使うときは `git stash push -u -m "<名前>"` で名前を付け、戻すときもその entry を指定する
 - `skip_local_cleanup: true` でローカル後処理をスキップし、手動で対応
@@ -117,18 +99,13 @@ code-scanning open alerts: #28 #29
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
 - 対象のIssue（4.1）が 1 件も無い（Issue未紐付けPR）
-- 対象のIssue（4.1）を `issue_show` で読んだ結果の `parent` が null（独立タスク、フォローアップ修正等）
+- 対象のIssue（4.1）に親 Epic が無い（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-対象のIssueは、`session_finish` の結果の次の 2 つとする。
+対象のIssueは、2.3 の片付けで閉じた Issue と、既に閉じていた Issue とする。
 
-- `closedIssues`（閉じた Issue の番号の配列）の番号
-- `skippedIssues` のうち、`reason` が `already-closed` の要素の `number`（既に閉じていた Issue）
-
-その番号からIssueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
-
-- 結果の `parent.number` から親EpicのIssue番号を取得 → `parent` が null なら **Step 4-5 をスキップ**
+pecot-workflow の MCP ツール `issue_show` を使って、その Issue を読み、親 Epic の番号を取得する。親 Epic が無ければ **Step 4-5 をスキップ** する。
 
 #### 4.2 実装内容の把握
 
@@ -141,14 +118,16 @@ code-scanning open alerts: #28 #29
 
 #### 4.3 差分サマリーの生成
 
-Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。`issue_comment` を `prepare: true`・`template: "merge-diff"`・`issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
+Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。
+pecot-workflow の MCP ツール `issue_comment` を使って、Epic 宛てのテンプレのファイルを作る。
+入力は `prepare: true`・`template: "merge-diff"`。
 
-- 結果の `file` にあるファイルを開き、冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
+- できたファイルを開き、冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
 - 見出しレベル・記号・節構成はテンプレを基準とする。SKILL.md にはフォーマット例示を持たない
 
 #### 4.4 Epicにコメント投稿
 
-4.3 で編集したファイルを投稿する。`issue_comment` を `file: "<編集後ファイル>"` で呼ぶ。
+`issue_comment` を使って、4.3 で編集したファイルを Epic に投稿する。
 
 > 注意: `issue_comment` 以外の方法（`gh` や GitHub の MCP など）でIssueコメントを投稿しない
 
@@ -167,9 +146,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 
 #### 5.1 後続フェーズの特定
 
-`issue_show` を `issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
-
-結果の `sub_issues`（各要素に `number`・`state`・`title`）から次を行う。
+`issue_show` を使って親 Epic を読み、サブタスクの一覧から次を行う。
 
 1. 現在のタスクを特定（タイトルの `#XXX-NN` で識別。枝の文字がある場合は `#XXX-NNa` まで含める）
 2. 現在のタスク以外の OPEN なサブタスクを抽出（orderの大小は問わない）
@@ -178,9 +155,9 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 
 後続フェーズに影響する変更がある場合、テンプレ実体に従って影響コメントを生成・投稿する。
 
-1. `issue_comment` を `prepare: true`・`template: "precede-notify"`・`issue_ref: "<owner>/<repo>/<後続issue番号>"` で呼ぶ
-2. 結果の `file` にある md を編集する
-3. `issue_comment` を `file: "<編集後ファイル>"` で呼ぶ
+1. `issue_comment` を使って、後続の Issue 宛てのテンプレのファイルを作る（`prepare: true`・`template: "precede-notify"`）
+2. できたファイルを編集する
+3. `issue_comment` を使って、編集したファイルを投稿する
 
 - フォーマットはテンプレ実体に従う。SKILL.md にはフォーマット例示を持たない
 

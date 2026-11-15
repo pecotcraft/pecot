@@ -18,7 +18,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 
 ### Step 1: ボードを確認する
 
-対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。`board_show` を引数なしで呼ぶ。
+対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。確認には pecot-workflow の MCP ツール `board_show` を使う。
 
 ### Step 2: 対象Epic・Trackerを特定
 
@@ -30,7 +30,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 2. ユーザーがEpicタイトルを指定している場合はボードから検索
 3. 不明な場合は **AskUserQuestion** ツールでBacklog内のEpicとTrackerをリストアップして選択させる
 
-Epic・Tracker詳細を取得する。`issue_show` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
+pecot-workflow の MCP ツール `issue_show` を使って、Epic・Tracker の詳細を読む。
 
 ### Step 3: 次のサブタスクをAIが計画する
 
@@ -58,17 +58,17 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 
 タイプに応じて選び、テンプレートを準備する。
 
-`issue_create` を `prepare: true`・`repo: "<owner/repo>"` と次の `template` で呼ぶ。
+pecot-workflow の MCP ツール `issue_create` を使って、テンプレートのファイルを作る（`prepare: true`・`repo`）。`template` は次から選ぶ。
 
 - 機能追加・改善: `template: "task"`
 - バグ修正: `template: "bug"`
 
-結果の `file` にあるファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
+できたファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
 `title`（必須）と `parent_epic`（必須）を設定する。`repository` は `repo` で設定済み。
 
 `parent_epic` は full path `owner/repo/N` を推奨。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。
 
-ファイル編集後に投稿する。`issue_create` を `files: ["<ファイルパス>"]` で呼ぶ。
+ファイルを編集したら、`issue_create` を使って投稿する。
 
 ### Step 5: 完了報告
 

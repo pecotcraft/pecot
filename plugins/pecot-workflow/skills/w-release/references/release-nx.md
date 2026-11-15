@@ -30,9 +30,9 @@ CHANGELOG の形式・commit メッセージ・タグ形式・GitHub Release の
 
 w-release SKILL.md の Step 1 で判定したブランチモードに従う。
 
-- `board_show` の結果の `repositories` のうち、対象リポの要素を見る。
+- pecot-workflow の MCP ツール `board_show` で、対象リポの設定を見る。
   `develop_branch` と `release_branch` が同じなら、**単一ブランチモード**になる（pecot は両方 `main`）。[単一ブランチモード（develop == release）](#単一ブランチモードdevelop--release) に従う。
-  `main` 上で `$NX release` を実行し、リリース PR と `release_merge` は行わない。
+  `main` 上で `$NX release` を実行し、リリース PR と pecot-workflow の MCP ツール `release_merge` は行わない。
 - 同じ要素の `develop_branch` と `release_branch` が異なるなら、**2ブランチモード**になる。
   下記の [2ブランチモードの手順](#2ブランチモードの手順) に従う。
 
@@ -145,7 +145,7 @@ current branch に commit する。そのため `main` 上で `$NX release` を�
 push・GitHub Release の発行までが一括で完結する。**`develop` と `release` が同じブランチで
 中間 PR が存在しないため、リリース PR 作成と `release_merge` は行わない。**
 
-以降、GitHub ホスト名を `<gh-host>` と表記。値は `board_show` の結果の `project.host` で決まる（例: `github.com`）。
+以降、GitHub ホスト名を `<gh-host>` と表記。値は、プロジェクトの設定の `host`（例: `github.com`）。
 
 ### 手順の選び方（ランナーか手元か）
 
@@ -280,16 +280,15 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-`release_check` を `repo: "<owner>/<repo>"` で呼ぶ。
+pecot-workflow の MCP ツール `release_check` を使う（`repo: "<owner>/<repo>"`）。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-alert の件数は結果の `dependabotAlerts.openCount` に、警告の文は `warnings` に入る。
-後で対応する open の Dependabot alert は、`tracker_sync`（`source: "security"`）が立てる security alert の Tracker で追う。
+後で対応する open の Dependabot alert は、security alert の Tracker で追う。Tracker は pecot-workflow の MCP ツール `tracker_sync` が立てる。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
-alerts 無効のリポは、結果の `skipped` に `Dependabot alerts (feature disabled)` が入って通る。nx のリポでは `version` と `package` は指定できず、
+alerts 無効のリポは、確認を飛ばして通る。nx のリポでは `version` と `package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
@@ -331,11 +330,10 @@ GitHub Release の発行までを完了する。
 ### 7. リリース PR・release merge はスキップ
 
 単一ブランチモードでは `<develop> → <release>` の PR が存在しない。2ブランチ手順の
-「リリース PR 作成」「リリース PR マージ」（`pr_create`（`template: "release"`）/
-`release_merge`）は **丸ごとスキップする**。Step 6 で remote `main` への push と
+「リリース PR 作成」「リリース PR マージ」は **丸ごとスキップする**。Step 6 で remote `main` への push と
 GitHub Release 発行まで完結しているため追加操作は不要。
 
-`release_create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`release_check` は Step 3 で実行済み。
+pecot-workflow の MCP ツール `release_create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`release_check` は Step 3 で実行済み。
 
 ### 8. 完了報告
 
@@ -346,8 +344,8 @@ GitHub Release 発行まで完結しているため追加操作は不要。
 ## 2ブランチモードの手順
 
 開発ブランチと release ブランチが分かれているリポ向け。対象リポの `develop` branch は
-`board_show` の結果の `repositories[].develop_branch` で事前に確認。以降、開発ブランチを `<develop>`、GitHub ホスト名を
-`<gh-host>` と表記。値は `board_show` の結果の `project.host` で決まる（例: `github.com`）。
+開発ブランチを、`board_show` で事前に確認する。以降、開発ブランチを `<develop>`、GitHub ホスト名を
+`<gh-host>` と表記。値は、プロジェクトの設定の `host`（例: `github.com`）。
 
 ### 1. develop ブランチの worktree を最新化
 
@@ -376,16 +374,15 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-`release_check` を `repo: "<owner>/<repo>"` で呼ぶ。
+`release_check` を使う（`repo: "<owner>/<repo>"`）。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-alert の件数は結果の `dependabotAlerts.openCount` に、警告の文は `warnings` に入る。
 後で対応する open の Dependabot alert は、`tracker_sync`（`source: "security"`）が立てる security alert の Tracker で追う。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
-alerts 無効のリポは、結果の `skipped` に `Dependabot alerts (feature disabled)` が入って通る。nx のリポでは `version` と `package` は指定できず、
+alerts 無効のリポは、確認を飛ばして通る。nx のリポでは `version` と `package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
@@ -459,9 +456,9 @@ branch にしか commit しないため、別途 PR で `<develop> → <release>
 
 release-single / release-multi と同じ `prepare: true`・`template: "release"` のフローを使う。
 
-`pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
+`pr_create` を使う（`prepare: true`・`template: "release"`）。
 
-結果の `file` にある下書きファイルを編集:
+できた下書きファイルを編集:
 
 - `repository: <owner>/<repo>`
 - `head: <develop>` （Step 6 の release commit が載っている branch）
@@ -472,14 +469,14 @@ release-single / release-multi と同じ `prepare: true`・`template: "release"`
   生成する節見出しには絵文字が付くので、外して `### Features` の形で転記する
   （本文に絵文字があると投稿時検証で弾かれる）。
 
-編集したら、`pr_create` を `template: "release"`・`file: "<ファイルパス>"` で呼ぶ。
+編集したら、`pr_create` を使う（`template: "release"`・`file: "<ファイルパス>"`）。
 
 **PR 作成用に feat ブランチを切る必要はない** — `<develop>` 自体を head にする（release commit が
 `<develop>` 上にあるため）。
 
 ### 8. リリース PR マージ
 
-`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。`<PR番号>` は、Step 7 の投稿の結果の `number` を使う。
+`release_merge` を使う（`pr_ref: "<owner>/<repo>/<PR番号>"`）。`<PR番号>` は、Step 7 で作った PR の番号。
 
 `delete_branch` は**付けない**。Nx Release のリリースでは、PR の head が `<develop>` 自体になる。
 このフラグを付けると `<develop>` ブランチが削除される。release-single / release-multi で
@@ -495,7 +492,7 @@ GitHub Release 発行を Step 6 で完結させている。`release_check` は S
 
 ### 9. 完了報告
 
-発行タグ名・GitHub Release URL・リリース PR URL（Step 7 の投稿の結果の `url`）を報告して終了。
+発行タグ名・GitHub Release URL・リリース PR URL（Step 7 で作った PR）を報告して終了。
 
 ---
 

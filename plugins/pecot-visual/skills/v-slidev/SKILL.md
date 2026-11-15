@@ -17,14 +17,14 @@ PR で対応します）。既存 talk-dir のテーマの版上げと移行に�
 ## 前提条件
 
 - パス引数（`project_dir` / `dir` / `input_path`）はすべて絶対パスで渡す。相対パスは実行前に拒否される。
-- `slide_create` / `slide_convert` / `slide_sync` / `slide_dev` は実行時依存を必要とする。未取得の環境では
-  `runtime_setup` ツールを実行するよう案内する応答が返るので、`pecot-visual` サーバの `runtime_setup` を呼んでから再実行する。
+- `pecot-visual` サーバの `slide_create` / `slide_convert` / `slide_sync` / `slide_dev` は実行時依存を必要とする。未取得の環境では
+  `runtime_setup` を実行するよう案内する応答が返るので、`pecot-visual` サーバの `runtime_setup` を呼んでから再実行する。
 - `slide_convert` は Playwright Chromium も必要とする。未取得なら同じく `runtime_setup` の案内が返る（約 120MB のダウンロード）。
 - `<talk-dir>/node_modules` は `slide_create` 時に項目ごとの symlink を持つ実ディレクトリとして作られる。
 
 ## 既存 talk-dir を同期する
 
-`pecot-visual` サーバの `slide_sync` を呼びます。talk-dir の形で動きが分かれます。
+`slide_sync` を呼びます。talk-dir の形で動きが分かれます。
 
 - `dir`: talk-dir の絶対パス
 - `node_modules_only: true`: node_modules の張り直しのみ行い、ほかは変えない（移行済みの talk-dir では、本体の生成ファイルも今の内容にそろえる）
@@ -62,7 +62,7 @@ PR で対応します）。既存 talk-dir のテーマの版上げと移行に�
 
 ### Step 1: プロジェクト生成
 
-`pecot-visual` サーバの `slide_create` を呼びます。
+`slide_create` を呼びます。
 
 - `project_dir`: 生成先 talk-dir の絶対パス
 - `theme`: 参照するテーマの指定（必須）。`git+https://<host>/<owner>/<repo>.git#<tag>` か `file:<絶対パス>`。ユーザーが指定していなければ、使うテーマを聞いてから呼ぶ（本体はテーマを同梱しない）
@@ -74,7 +74,7 @@ Step 2 へ進む前に、応答の `categories` と `layouts` を読み切りま
 `layouts` は選択できるレイアウトの全件です（非公開レイアウトは含まれません）。
 `layouts` の各要素は `layout` / `description` / `category` / `deprecated` / `filename` を持ちます。
 レイアウトの名前と用途は、このスキルには書きません。使えるレイアウトはテーマごとに違うため、必ずこの応答から選びます。
-既存の talk-dir を編集するときは、`slide_theme`（`dir`: talk-dir の絶対パス）を呼びます。
+既存の talk-dir を編集するときは、`pecot-visual` サーバの `slide_theme`（`dir`: talk-dir の絶対パス）を呼びます。
 `categories` と `layouts` は `slide_create` の応答と同じ形です。
 `slide_theme` の結果は、ほかに次の項目を持ちます。
 

@@ -22,7 +22,7 @@ disallowedTools:
 ## 重要な原則
 
 - スライドは**YAMLフロントマターのみ**で記述する。Markdown本文は一切書かない
-- `slide_page` が返すレイアウト仕様（`reference`）の**`examples`セクションをベースに作成**する。ゼロから書かない
+- `pecot-visual` サーバの `slide_page` が返すレイアウト仕様（`reference`）の**`examples`セクションをベースに作成**する。ゼロから書かない
 - **`text_constraints`を厳守**する（`max_chars`。HTMLタグはカウントされない。タグを除いた全角換算の文字数で判定される）
 - **文面は textlint のチェックを通す** -- 誇張表現・回りくどい助動詞表現・同じ助詞の連続・文体の混在を避ける。具体的な事実を簡潔な言い切りで書く（見出し・ラベルなど断片文に句点は不要）
 - **`required: true`のPropsは必ず設定**する
@@ -33,7 +33,7 @@ disallowedTools:
 
 ### ステップ0: スケルトンを生成してレイアウト仕様を読む
 
-`pecot-visual` サーバの `slide_page` を呼ぶ。
+`slide_page` を呼ぶ。
 
 - `layout`: 指定されたレイアウト名
 - `dir`: プレゼンディレクトリの絶対パス

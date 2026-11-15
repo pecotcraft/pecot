@@ -68,7 +68,7 @@ src: ./pages/overview.md
 
 ## スライド固有アセット
 
-`slide_create`（SKILL.md Step 1 と同じ）が以下を自動生成する。**`slides/` 直下にファイルを置かない。必ずサブディレクトリに入れる。**
+`pecot-visual` サーバの `slide_create`（SKILL.md Step 1 と同じ）が以下を自動生成する。**`slides/` 直下にファイルを置かない。必ずサブディレクトリに入れる。**
 
 ```text
 public/

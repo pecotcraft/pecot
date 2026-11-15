@@ -4,9 +4,9 @@
 
 ## 1. カレントリポに設定あり
 
-`project_list` を引数なしで呼ぶ。
+pecot-workflow の MCP ツール `project_list` を使う。
 
-結果の `projects` が空でなければ設定あり。各要素の `name` が設定ファイル名になる。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。`project_activate` を `project: "<設定ファイル名>"` で呼ぶ。
+設定があれば、AskUserQuestion でどの設定を使うか確認する。pecot-workflow の MCP ツール `project_activate` を使ってその設定を有効にし、Step 4 へ進む。
 
 ## 2. 兄弟リポに同一プロジェクトの設定あり
 
@@ -80,15 +80,15 @@ mkdir -p .pecot/config/projects
 cp <兄弟リポのJSONパス> .pecot/config/projects/
 ```
 
-コピーしたら、`project_activate` を `project: "<コピーしたファイル名（拡張子なし）>"` で呼ぶ。
+コピーしたら、`project_activate` を使う（`project: "<コピーしたファイル名（拡張子なし）>"`）。
 
-→ Step 3 へ（`project_link` でカレントリポを登録してから Step 4 へ）。
+→ Step 3 へ（pecot-workflow の MCP ツール `project_link` でカレントリポを登録してから Step 4 へ）。
 
 ## 3. GitHub 上に init 済みプロジェクトあり
 
-AskUserQuestion でホスト・オーナーを確認してから検索する。`project_activate` を `host: "<host>"`・`owner: "<owner>"` で呼ぶ。
+AskUserQuestion でホスト・オーナーを確認してから検索する。`project_activate` を使う（`host: "<host>"`・`owner: "<owner>"`）。
 
-結果の `candidates` に init 済みプロジェクトがあれば、AskUserQuestion で選択させ、番号（`number`）指定で activate する。`project_activate` を `project: "<番号>"`・`host: "<host>"`・`owner: "<owner>"` で呼ぶ。
+init 済みプロジェクトが見つかれば、AskUserQuestion で選択させる。`project_activate` を使って、番号の指定で有効にする（`project: "<番号>"`・`host`・`owner`）。
 
 → Step 3 へ。
 

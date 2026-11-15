@@ -18,9 +18,7 @@ CHANGELOG を更新してリリースする。
 
 1. **対象リポの release_type を確認する**
 
-   `board_show` を引数なしで呼ぶ。
-
-   結果の `repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `release_type` を読む:
+   pecot-workflow の MCP ツール `board_show` を使って、対象リポの `release_type` を読む:
 
    - `single` → **[references/release-single.md](references/release-single.md)** に従う
    - `multi`  → **[references/release-multi.md](references/release-multi.md)** に従う
@@ -47,6 +45,6 @@ CHANGELOG を更新してリリースする。
 
 ## release_type 未設定のリポへの対応
 
-`release_type` は `project_link` を `repo: "<owner>/<repo>"`・`release_type: "<type>"` で呼んで明示設定する。
+`release_type` は、pecot-workflow の MCP ツール `project_link` を使って明示設定する。
 未設定の場合は `packages` の有無から自動推測される（有り → `multi`、無し → `single`）。
 Nx Release 方式 (`nx`) は必ず明示設定が必要。

@@ -1,6 +1,6 @@
 # ボードを自動で直すワークフロー
 
-`board_sync` を GitHub Actions で打つ雛形です。置くかどうかは任意で、置かなくても手元で `board_sync` を呼べば同じ列と札に直ります。
+pecot-workflow の MCP ツール `board_sync` を GitHub Actions で打つ雛形です。置くかどうかは任意で、置かなくても手元で `board_sync` を呼べば同じ列と札に直ります。
 
 ## 前提
 
@@ -54,7 +54,7 @@ PR を merge queue がマージしたときも、`pull_request_target` の `clos
 
 Actions の checkout には `.active` が入りません。`.pecot/config/projects/<設定名>.json` が既定ブランチに入っている必要があります。
 
-1. どれが設定かを調べる。`board_show` の Overview にある Project の名前が、ファイル名になる
+1. どれが設定かを調べる。pecot-workflow の MCP ツール `board_show` の Overview にある Project の名前が、ファイル名になる
 2. ルートの `.gitignore` が `.pecot/` を丸ごと除外しているときは、その行を外す
 3. `.pecot/.gitignore` が設定の JSON を許可しているか確かめる。許可の一覧は `pecot-gitignore-ensure.sh` が作り、`!/config/projects/*.json` の行が JSON を戻す
 4. 設定の JSON を既定ブランチへ入れる

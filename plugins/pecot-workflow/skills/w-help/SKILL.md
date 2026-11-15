@@ -56,4 +56,4 @@ pecot <command> --help   # サブコマンドの詳細
 pecot --version          # バージョン表示
 ```
 
-ボードの現在状態を確認したいとき: `board_show` を引数なしで呼ぶ。
+ボードの現在状態を確認したいときは、pecot-workflow の MCP ツール `board_show` を使う。

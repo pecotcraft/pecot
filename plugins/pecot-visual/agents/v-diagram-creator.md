@@ -70,11 +70,11 @@ ls "${CLAUDE_PLUGIN_ROOT}/assets/drawio-icons/{Category}/"
 PNG は diagrams.net の viewer で、テーマの宣言の書体を読み込んで描いた図の画像。スライドに置いたときと同じ字幅で折り返すので、はみ出し・重なり・揃いはこの PNG で判断する。
 draw.io 公式の「XML 埋め込み PNG (`.drawio.png`)」形式になっている。draw.io で開けば、ダイアグラムとして再編集できる。ただし埋め込まれるのは `icon://` を data URI に展開した解決後の XML になる。編集は `.drawio` 側で行う（PNG を直接編集しても `.drawio` からの再生成に反映されず枝分かれする）。
 
-`drawio_create` が `kind: text-violation` を返したときは、HTML と PNG のどちらも書き出されていない。
+`drawio_create` が文章規則の違反で止まったときは、HTML と PNG のどちらも書き出されていない。
 `violations[].item` の `mxCell id="..."` が、直すセルを名指しする。そのセルの `value` を言い換える。
 `<object>` や `<UserObject>` で包んだセルは、包んだ側の `label` を言い換える。`html=1` のセルは、タグを除いた文言で判定される。
 `item` の全件を直してから、ステップ 2-3 を再実行する。規則・除外は変えない。
-`kind: text-lint-failed` のときは何も書き出されない。`detail` を読み、圧縮形式の XML なら非圧縮で保存し直して再実行する。
+判定器が動かなかったときも、何も書き出されない。エラーの文を読み、圧縮形式の XML なら非圧縮で保存し直して再実行する。
 
 警告ありの成功は原因が分かれるので、`pngFailed` と `warnings`（警告の文の配列）で判別する。
 

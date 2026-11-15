@@ -14,12 +14,9 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 ## 手順
 
-### Step 1: 事前確認スクリプトを実行
+### Step 1: 事前確認
 
-`pr_check` を `directory: "."` で呼ぶ。
-
-結果が失敗なら、`kind`・`detail` を見て解決し、呼び直してから次へ進む。
-`kind` が `preflight-failed` のときは、事前確認を通らなかった理由が結果の `warnings` に入る。
+pecot-workflow の MCP ツール `pr_check` を使って、PR を作れる状態かを確かめる。指摘があれば解決してから次へ進む。
 
 ### Step 2: 変更内容の確認とコミット
 
@@ -34,29 +31,21 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 ### Step 3: PR作成
 
-1. テンプレートを準備する。`pr_create` を `prepare: true` で呼ぶ
-2. 結果の `file` にあるファイルを編集する
+1. pecot-workflow の MCP ツール `pr_create` を使って、テンプレートのファイルを作る（`prepare: true`）
+2. できたファイルを編集する
    - 冒頭の <!-- 読者: / 書き方: / フィールド: --> ガイドコメントに従って YAML フロントマターと本文を記述する
-3. 投稿する。`pr_create` を `file: "<ファイルパス>"` で呼ぶ
+3. `pr_create` を使って、書いたファイルで PR を作る
 
-feature PR の `base` は `prepare: true` の呼び出しが config 由来で自動設定する。2ブランチモードのリポは
-開発ブランチ（`develop-aist` 等）、単一ブランチモード（`develop` == `release` / trunk-based）の
-リポは `main`。自動設定された `base` は、`prepare: true` の結果の `base` にある。これを書き換えない。
-積んで着手したブランチでは、開発ブランチではなく、下の段のブランチが入る。これも書き換えない。
+`base` はツールが入れる。書き換えない。積んで着手したブランチでは下の段のブランチが入るが、これも書き換えない。
 
-`pr_create` の結果が失敗で、`kind` が `content-invalid` なら、`detail` にある指摘を直して呼び直す。
-`detail` に `base branch must be ... while its PR #N is open` があるときは、`base` を、示されたブランチに戻して呼び直す。
+本文の検証で止まったら、指摘を直して作り直す。
+下の段の PR が開いていないと止まったら、エラーの文を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
 
-`kind` が `pr-state` で、`detail` に `has no open PR` があるときは、下の段の PR が開いていない。
-`detail` を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
+PR を作った後は、結果を見て利用者に伝える。
 
-PR を作った後は、`pr_create` の結果の項目を見て利用者に伝える。
-
-- `stack.registered` が `true` なら、PR が `stack.number` のスタックに入ったと伝える
-- `moves` に要素があれば、この PR を待っていた Issue が動いたと伝える。動いた Issue（`issue`）と列（`to`）も添える
-
-結果に `warnings` があっても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。
-スタックを手で作らず、`pr_create` を呼び直さない。PR は作られている。
+- PR がスタックに入ったら、その旨を伝える
+- この PR を待っていた Issue が動いたら、動いた Issue と列を伝える
+- 警告は、利用者に示すだけにする。スタックを手で作らず、PR を作り直さない。PR は作られている
 
 本文に、上下の PR やスタックの中の位置を書かない。GitHub の画面が示す情報だからだ。
 
@@ -132,10 +121,8 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Closing Issue キーワードと Epic
 
-- `pr_create`（`prepare: true`）の実行時、テンプレの `Closes #` には active タスク番号が自動で埋め込まれる
-- 自動埋め込みの番号を書き換えない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
+- テンプレの `Closes #` には、作業中のタスクの番号が入っている
+- この番号を書き換えない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
 - ブランチ名末尾の `<num>` も sub-issue 番号にする
-- `session_finish` は Issue Type=Epic / `sub-issues > 0` の Issue を自動でクローズ対象から除外する（保険）
-- 既知制約: Issue Type 未設定かつ sub-issue 0 件の Epic は判定不能
 
 PR作成後、レビュー対応は `/pecot-w:w-revise`、マージは `/pecot-w:w-merge` を使用する。

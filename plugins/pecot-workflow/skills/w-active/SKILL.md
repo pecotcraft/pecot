@@ -17,45 +17,24 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-`session_start` は、次のときに、結果を失敗にして止まる。`kind` は、前から順に `repo-mismatch`・`guard-blocked`・`not-ready`・`invalid-input` になる。
+pecot-workflow の MCP ツール `session_show` を使って、このディレクトリに残っている作業を確かめる。
 
-- 作業ディレクトリのリポが Issue のリポと違うとき
-- `.pecot-active` に別の Issue が残っているとき
-- Issue の判定が blocked のとき
-- `base` を渡していて、判定の積む先と違うとき
-
-先に `session_show` を `directory: "."` で呼んで確かめる。
-
-残っている Issue は、結果の `activeIssue.reference` にある。その OPEN/CLOSED は `activeIssue.state` にある。
-Issue を GitHub から読めないと、`activeIssue` は無い。そのときは `flags` の、`name` が `.pecot-active` の要素の `content` を見る。違反時の対応:
-
-1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`session_start` は `kind` が `guard-blocked` で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
-2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`session_start` は `kind` が `repo-mismatch` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
-   MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
-   始め直せないときだけ `allow_cross_repo: true` を付ける。
-3. 判定が blocked のとき、`session_start` は `kind` が `not-ready` で止まる。結果の `detail` に `is blocked by` が入る。
-   `detail` の案内の行（`issue unblock ...`。待つ理由がマージなら `issue block ... --wait stack` も）を、そのまま利用者に示す。
-   前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
-4. 前提を読めないか判定できないとき、`session_start` は `kind` が `dependency-unreadable` で止まる。結果の `detail` に `could not read blocked-by` か `could not judge readiness` が入る。
-   積む先のブランチが無くなったときは `kind` が `git-unresolved` で、結果の `detail` に `not found` が入る。
-   `detail`（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
-5. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
+- 別の OPEN の Issue が残っていたら、前の Issue を片付けてから着手する
+- 作業ディレクトリのリポが対象の Issue のリポと違うときは、対象リポの worktree でセッションを始め直す。`cd` では変わらない
+- 未コミットの差分が残っていたら、commit / stash / 破棄で clean にしてから着手する。前の Issue の差分なら、先にその Issue を終える
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
 
 #### プロジェクト情報表示
 
-ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`board_show` を引数なしで呼ぶ。
-
-結果の `board.items[].readiness.kind` の判定を、利用者に伝える。`readiness` が null の項目（`Ready` と `Blocked` 以外の列）は、判定を持たない。
-`mismatches` が 1 以上なら、`warnings` の食い違いの警告も伝える。
+pecot-workflow の MCP ツール `board_show` を使って、ボードの状態と Issue の一覧を確かめる。
+Ready と Blocked の項目ごとの判定を、利用者に伝える。食い違いの警告が出ていれば、それも伝える。
 
 ### Step 2: 対象タスクを確認
 
-ユーザーが選択したタスクのIssue内容を確認する。`issue_show` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
+pecot-workflow の MCP ツール `issue_show` を使って、利用者が選んだ Issue の内容を確かめる。
 
-利用者がタスクを選ぶ材料に、結果の `readiness.kind` の判定（`startable`・`stackable`・`blocked`）を示す。
-判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、`readiness.text` で理由を伝えて止める。
+着手できるかの判定を、利用者に示す。判定が blocked の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。
 
 ### Step 3: ベースブランチを最新化
 
@@ -67,19 +46,24 @@ git pull
 
 ### Step 4: ブランチ作成
 
-`session_start` を `issue_ref: "owner/repo/XXX"`・`branch: "feat/description"` で呼ぶ。`base` は渡さない。base は CLI が選ぶ。
+pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づくブランチを作る。`base` は渡さない。積む先はツールが選ぶ。
 
 **ブランチ名の決め方:**
 
 - `feat/` + タスクの簡潔な説明（英語、ケバブケース）
 - 例: `feat/add-user-authentication`, `feat/fix-login-bug`
 
+ツールが止まったら、エラーの案内を利用者に示して止まる。エージェントの判断で先へ進めない。
+
+- 前提を外さない。前提を見直すかどうかは利用者が決める
+- `base` を渡さない
+- `force_overwrite_active` は、残っている Issue が stale だと確信できるときだけ付ける
+- `allow_cross_repo` は、セッションを始め直せないときだけ付ける
+
 ### Step 5: ブランチ切り替え
 
-`session_start` の結果の `branch`（ブランチ名）と `repository`（`owner/repo`）を読み、ブランチを切り替える。
-`base` は、ブランチを作った元のブランチだ。
-結果に `stackedOn` があれば、その番号の Issue の上に積んで着手した旨を利用者に伝える。
-**そのリポジトリの** ワークツリーで実行すること。
+作ったブランチに切り替える。**ブランチを作ったリポジトリの** ワークツリーで実行すること。
+別の Issue の上に積んで着手したときは、その旨を利用者に伝える。
 
 ```bash
 git fetch origin
@@ -88,8 +72,7 @@ git checkout feat/description/XXX
 
 **CWDと対象リポジトリが異なる場合:**
 
-結果の `repository` は、ブランチを作成したリポジトリを指す。
-CWDが別リポジトリであっても、そのリポジトリのワークツリーで `git checkout` を実行する。
+CWDが別リポジトリであっても、ブランチを作ったリポジトリのワークツリーで `git checkout` を実行する。
 ワークスペース内に該当リポジトリのワークツリーがあれば、そのディレクトリで実行すればよい。
 
 今のワークツリーと同じ WT 名のワークツリーが作業対象リポジトリに存在しない場合は、
@@ -97,22 +80,21 @@ CWDが別リポジトリであっても、そのリポジトリのワークツ�
 
 ### Step 6: 調査
 
-通常モードのまま、Issue の Tasks / Acceptance を起点に、変更対象のファイル・既存の実装と命名・テストの構成を読む。EnterPlanMode を呼ばない。コードは編集しない。
+Issue の Tasks / Acceptance を起点に、変更対象のファイル・既存の実装と命名・テストの構成を読む。コードは編集しない。
 
 ### Step 7: 計画ドラフト作成
 
-plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
-`issue_comment` を `prepare: true`・`template: "plan"`・`issue_ref: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
-できたファイルの絶対パスは、結果の `file` にある。
+pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
+できたファイルに、テンプレの見出しと規則のとおりに計画を書く。
 
 w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。
 tasks.md のチェックはタスクの単位の進捗で、並行で進められるタスクを探すときに読む。この PR のマージでフェーズの Issue が閉じるのと同時に、tasks.md のチェックもそろう。
 
 変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 
-### Step 8: レビュー（通常モード・一巡 1 回）
+### Step 8: レビュー（一巡 1 回）
 
-通常モードのまま、書いた計画をレビューしてもらう。EnterPlanMode を呼ばない。
+書いた計画をレビューしてもらう。
 
 - w-tech-advisor を `Agent` ツールの単発 spawn でレビュー依頼する
 - w-e2e-planner を `Agent` ツールの単発 spawn でレビュー依頼する
@@ -124,17 +106,12 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 ### Step 9: 計画の投稿
 
-通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
+`issue_comment` を使って、書いたファイルを Issue に投稿する。
 
-結果が失敗で、`kind` が `content-invalid` で止まったら、結果の `detail` にある指摘を直して呼び直す。
+本文の検証で止まったら、指摘を直して投稿し直す。
 
 ### Step 10: プランモードで承認を得る
 
 EnterPlanMode を呼び、投稿した計画で承認を得る。
 
-```
-EnterPlanMode tool:
-  (パラメータなし)
-```
-
-承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 9 の呼び出しをやり直す。投稿したコメントが書き換わる。
+承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 9 をやり直す。投稿したコメントが書き換わる。

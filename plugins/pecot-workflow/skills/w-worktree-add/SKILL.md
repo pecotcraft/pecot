@@ -9,7 +9,7 @@ when_to_use: "ワークツリーを作りたい、並行作業用の作業ディ
 
 # ワークツリー作成
 
-`worktree_add` でワークツリーを作る。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
+pecot-workflow の MCP ツール `worktree_add` でワークツリーを作る。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
 
 main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<リポ名>/` に作られる。セット名 `wtN` は常に自動採番（手動指定は不可、対象リポが未参加の最小 `wtN` に入る）。
 
@@ -23,8 +23,7 @@ main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<�
 
 ### Step 1: （初回のみ）ワークツリー設定を用意
 
-対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると、`worktree_add` の結果は失敗で、`kind` が `not-initialized` になる。
-init は両ファイルを同時に生成する。`worktree_init` を `directory: "<project-root>/base/<repo>"` で呼ぶ。
+対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。無ければ、pecot-workflow の MCP ツール `worktree_init` を使って作る（`directory: "<project-root>/base/<repo>"`）。
 
 生成される `worktree-config.json` の `links[]` を編集する（symlink 不要なら空でよい）。
 
@@ -47,22 +46,22 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 ```
 
 `worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（結果は成功のまま）になる。
-失敗のときは、結果の `setupFailed` が `true` になる。`warnings` には `setup command ...` で始まる文が入り、コマンドの出力が続く。
+`setup_command` が失敗したら、警告の文を利用者に示す。
 成功のときや setup を動かさないときは、`setupFailed` が `false` になる。`dry_run: true` のときは、`setupFailed` が無い。
 
 ### Step 2: add を呼ぶ
 
-対象リポの main WT を指して、`worktree_add` を `directory: "<project-root>/base/<repo>"` で呼ぶ。ツールは作業ディレクトリを `directory` で受けるので、`cd` しない。
+`worktree_add` に、対象リポの main WT を渡す（`directory: "<project-root>/base/<repo>"`）。`cd` しない。
 
 入力は `worktree_add` の入力の定義で確かめる。既存ブランチ衝突時は `allow_existing_branch: true` で再利用可能。
 
 採番されたセット名 `<wtN>` で、`<project-root>/<wtN>/<リポ名>/` に WT が作られる。
-セット名は結果の `name` に、WT の絶対パスは `path` にある。
+作ったセット名と WT のパスを、利用者に伝える。
 symlink は add 時に自動で張られる（`.pecot/config/worktree-config.json` がある場合）。
 
 ### Step 3: 既存サブ WT に symlink 設定を反映する
 
 `.pecot/config/worktree-config.json` を後から編集した場合、既存のサブ WT へ反映するには、main WT を指す。
-`worktree_link` を `directory: "<project-root>/base/<repo>"`・`all: true` で呼ぶ。
+pecot-workflow の MCP ツール `worktree_link` を使って、全 WT のリンクを張り直す（`all: true`）。`directory` には main WT を渡す。
 
 リアルファイルが置かれていて衝突する場合は `force: true`。
