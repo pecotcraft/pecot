@@ -23,6 +23,14 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 - Issue / PR 本文・コメントの品質問題は製品欠陥として配布成果物で直す。エージェントメモリ・心がけ・ローカル設定で直さない
 - Issue / PR / コメント本文には、GitHub が UI で出す情報（Files changed・sub-issue・Development 欄）を書かず、読者の判断に使う情報だけ残す
 
+## 標準に従う
+
+- 仕組みに標準や公式の仕様（MCP・Agent Plugins・GitHub Actions など）があるなら、その形に従う。設計の前に、仕様の文と公式の参照実装を読む
+- 標準とのズレは不適合として扱う。見つけたら、その場でユーザーに伝え、Issue にして直す。直す手間は、残す理由にならない
+- 不適合を残せるのは、ユーザーが明示して承認したときだけ。計画に、残す項目と理由を書く
+- テストの通過を、標準に合っていることの根拠にしない
+- 決まりの正は `.specify/memory/constitution.md` の原則 VI
+
 ## テスト・lint
 
 - 検証は PR ごとの CI（`ci.yml`）が担う。必須チェックは `ci-result` と `version-plan`
