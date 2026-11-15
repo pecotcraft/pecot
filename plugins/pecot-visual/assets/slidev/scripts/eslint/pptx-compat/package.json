@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@types/estree": "^1.0.10",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "vue-eslint-parser": "^10.4.2"
   },
   "engines": {
