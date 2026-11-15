@@ -78,6 +78,12 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        issue: 'ボードに足した Issue です。`owner/repo/N` の形です。'
+        added: 'Issue をボードに足したかどうかです。成功のときは、いつも `true` です。`dry_run` のときも `true` で、足す予定を示します。'
+        status: '設定した Status です。`status` を空で渡したときは入りません。`dry_run` のときは、設定する予定の値です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。ボードには何も書いていません。'
     diagnostics: '標準エラーに、足した Issue の結果の行（`added`）と、Status の結果の行（`set`）を出します。`--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。`--status` の値をボードが定義していないときも、`error` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。'
     environment: []
     exit_status:
@@ -235,6 +241,11 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        issue: 'Status を動かした Issue です。`owner/repo/N` の形です。'
+        status: '設定した Status です。`dry_run` のときは、設定する予定の値です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。ボードには何も書いていません。'
     diagnostics: '標準エラーに、Status の結果の行（`set`）を出します。status が有効な値でないときは、有効な値を並べた `error` の行を出します。ボードが Blocked を定義していないときは、`hint` の行が `pecot project init` の実行を案内します。'
     environment: []
     exit_status:
@@ -384,6 +395,12 @@ entries:
     output:
       format: text
       description: 'Overview・Registered repositories・Board status の節がある Markdown です。Ready と Blocked の表には、Readiness の列があります。積める Issue があるときは、Stackable chains の節が続きます。`--json` を付けると、`project`・`repositories`・`board` を持つ JSON のオブジェクトです。`repositories` の各要素は `dependabot_alerts` を、`board` の各項目は `readiness` を持ちます。'
+    mcp_output:
+      data:
+        project: 'アクティブなプロジェクトの概要です。`name`・`host`・`owner`・`number`・`aggregation_repo` を持ちます。ロードマップのリポジトリが未設定なら、`aggregation_repo` は `null` です。キーは `--json` と同じ snake_case で、中身も `--json` の `project` と同じです。'
+        repositories: '登録したリポジトリの配列です。登録順に並びます。キーは `--json` と同じ snake_case です。要素は `full_name`・`owner`・`name`・`develop_branch`・`release_branch`・`dependabot_alerts` を持ちます。ブランチが未設定なら `null` です。`dependabot_alerts` は、読めなかったときは理由の `error` だけを持ちます。読めたときは `enabled`・`open_count`・`max_severity`・`alerts_url` を持ちます。要素は、`release_type`（`single`・`multi`・`nx`）と `packages`（`name` と `changelog` の配列。無ければ空）も持ちます。package の無いリポジトリに CHANGELOG の設定があるときだけ、`changelog_file` も持ちます。この 3 つは `data` にだけ入り、`--json` には出ません。'
+        board: 'ボードの状態です。`items` の配列を持ち、Backlog・Pending・Blocked・Ready・Active・In Review にある開いた項目が入ります。キーは `--json` と同じ snake_case で、中身も `--json` の `board` と同じです。要素は `id`・`workflow`（列。無ければ `null`）・`title`・`updatedAt`・`content`・`readiness` を持ちます。`content` は `number`・`state`・`url`・`labels`・`repository` を持ちます。`readiness` は、Ready と Blocked の Issue だけが `kind`・`stackOn`・`reason`・`text` を持ち、ほかの項目は `null` です。サーバが Issue の依存を扱えないときは、`readiness` ごと入りません。'
+        mismatches: 'Ready か Blocked の Issue のうち、列と Status のどちらかが判定と食い違う疑いのあるものの件数です。`data` にだけ入り、`--json` には出ません。'
     diagnostics: 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、標準エラーに `warning` の行を 1 つ出します。Ready か Blocked の Issue の列か Status が判定に合っていないおそれがあるときも、`warning` の行を 1 つ出します。'
     environment: []
     exit_status:
@@ -558,6 +575,11 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        moves: '列か Status を書いた Issue の配列です。`dry_run` のときは、書く予定の Issue です。要素は `issue`・`reason` を必ず持ちます。`issue` は `#N` の形で、ホームリポジトリの外は `owner/repo#N` です。`reason` は、動かすと決めた Readiness です。`from` と `to` は列が変わったときだけ、`label` は Status を設定したときだけ入ります。'
+        deletedArchived: 'ボードから削除した Archived の項目の件数です。`dry_run` のときは、削除する予定の件数です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。ボードには何も書いていません。'
     diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
     environment: []
     exit_status:
@@ -752,6 +774,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        branch: '削除対象のリモートブランチの名前です。'
+        repository: 'ブランチがあるリポジトリです。`owner/repo` の形です。'
+        deleted: 'リモートブランチを削除したかどうかです。`dry_run` のときは、いつも `false` です。'
+        wipBranch: '一緒に削除した wip ブランチの名前です。wip ブランチが無いときと、削除できなかったときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も削除していません。'
     diagnostics: '標準エラーに、削除したブランチごとの結果の行（`deleted`）を出します。`--dry-run` のときは、予定の行（`dry-run`）を出します。`wip/<branch>` を、無い以外の理由で削除できないときは、`warning` の行を出します。ブランチが保護されているときは、保護するブランチを並べた `error` の行を出します。ほかの失敗でも `error` の行を出します。'
     environment: []
     exit_status:
@@ -907,6 +936,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        issue: '待たせる側の Issue です。`owner/repo/N` の形です。'
+        by: '前提の Issue です。`owner/repo/N` の形です。'
+        wait: '実行後の blocked-by の待ち方です。`stack`（前提のブランチに積む）か `merge`（前提のマージを待つ）です。'
+        change: 'blocked-by がどうなったかです。`added`（新しく足した）・`updated`（待ち方か理由を変えた）・`unchanged`（変更なし）のどれかです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
     environment: []
     exit_status:
@@ -1095,6 +1131,14 @@ entries:
     output:
       format: text
       description: '`--prepare` のときは、テンプレートのコピーのパスです。それ以外では、投稿したか書き換えたコメントの URL です。'
+    mcp_output:
+      data:
+        issue: 'コメントした Issue です。`owner/repo/N` の形です。`prepare` のときは入りません。'
+        commentUrl: '作ったか更新したコメントの URL です。`dry_run` のとき、`prepare` のとき、GitHub が URL を返さなかったときは入りません。'
+        change: 'コメントをどう書いたかです。`created`（新しく作った）と `updated`（更新した）の 2 値です。`prepare` のときは入りません。`dry_run` のときは、書く予定の側です。'
+        file: 'コピーしたテンプレートのファイルの絶対パスです。`prepare` のときだけ入ります。`dry_run` のときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。投稿もファイルの書き込みもしていません。'
+      artifacts: '`prepare` のときは、コピーしたテンプレートのファイルの絶対パスです。`file` を渡してコメントを新しく作ったときは、`comment_url` を書き戻したそのファイルの絶対パスです。`dry_run` のときと、書き戻しに失敗したときは入りません。'
     diagnostics: '標準エラーに、コメントの結果の行（`created` か `updated`）を出します。ファイルのリポジトリがプロジェクトに無いときと、`comment_url` を書き戻せないときは、`warning` の行を出します。本文がテンプレートに合わないときは、`error` の行を 1 つ出します。その 1 行目はテンプレートのパスです。続けて、字下げした行で次の違反を出します。足りない節、見出しの要約の規則の違反、使えない記法、折りたたみの規則の違反、テンプレートに無い見出しです。'
     environment: []
     exit_status:
@@ -1381,6 +1425,15 @@ entries:
     output:
       format: text
       description: '`--prepare` のときは、テンプレートのコピーのパスです。ファイルに `--dry-run` を付けたときは、ファイルの表と積める並びです。それ以外では、作った Issue ごとに URL を 1 行ずつ、ファイルの順に出します。作った Issue に積める並びがあれば、その後に出します。'
+    mcp_output:
+      data:
+        issues: '作った Issue の配列です。作った順に並びます。途中で失敗したときも、それまでに作った分が入ります。要素は `owner`・`repository`・`number`・`url` を必ず持ちます。`status` は、ボードに書いた Status（Blocked から出したときは `ready`）です。書かなかったときは入りません。`parent` は、sub-issue として足した親 Epic（`owner/repo/N`）です。親が無いときは入りません。`dry_run` と `prepare` のときは入りません。'
+        stackableChains: '積める並びの配列です。1 つの並びは、下の段から順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。積める並びが無いときは入りません。'
+        plan: 'ファイルごとの進め方の表です。`dry_run` でファイルを渡したときだけ入ります。要素は `file`・`blockedBy`・`approach` を必ず持ちます。`file` はファイルのキー（`--prepare` の接尾辞、無ければファイル名の本体）です。`blockedBy` は、`issue`（ファイルのキーか既存の Issue）と `wait`（`stack` か `merge`）の配列で、書いた順です。`approach` は `alone`・`wait-merge`・`stack`・`join` のどれかです。`order` は、親 Epic があるときだけ入ります。`stackOn` は、`approach` が `stack` のときだけ入ります。'
+        plannedIssue: '作る予定の Issue です。`owner`・`repository`・`title` を持ちます。`dry_run` で `message` か自由記述を渡したときだけ入ります。'
+        file: 'コピーしたテンプレートのファイルの絶対パスです。`prepare` のときだけ入ります。`dry_run` のときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
+      artifacts: '`prepare` のときだけ入ります。コピーしたテンプレートのファイルの絶対パスです。`dry_run` のときは入りません。'
     diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status・priority・size）と `moved`（Blocked から Ready）もあります。`--dry-run` のときは、`created` などの代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
     environment: []
     exit_status:
@@ -1739,6 +1792,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        issue: '再び開いた Issue です。`owner/repo/N` の形です。'
+        status: 'ボードに設定した Status です。Issue がボードに無いときと、Status が設定されていないときは入りません。'
+        unarchived: 'ボードの項目の Archived を解いたかどうかです。'
+        commented: '理由をコメントに投稿したかどうかです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行を出します。`updated`（アーカイブの解除）、`set`（status）、`reopened`（Issue）、`created`（コメント）です。Issue がボードに無いときと、status がプロジェクトに設定されていないときは、`warning` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
@@ -1905,6 +1965,21 @@ entries:
     output:
       format: text
       description: '`## #<N> <title>` の見出しで始まる Markdown です。続けて、状態、親、Blocked by と Readiness の行、紐づいたブランチ、紐づいた PR、sub-issue、本文、コメントを出します。`--json` を付けると、同じデータに `blockedBy` と `readiness` を足した JSON のオブジェクトです。'
+    mcp_output:
+      data:
+        number: 'Issue の番号です。キーは `--json` と同じ snake_case で、中身も `--json` の出力と同じです。'
+        state: 'Issue の状態です。`OPEN` か `CLOSED` です。'
+        title: 'Issue のタイトルです。'
+        body: 'Issue の本文です。'
+        comments: 'コメントです。`total_count`（全コメントの数）と `nodes`（新しいほうから `comment_limit` 件）を持ちます。`nodes` の要素は `author`・`created_at`・`body` を持ちます。削除されたユーザーの `author` は `ghost` です。'
+        parent: '親の Issue です。`number`・`title`・`state`・`owner`・`repo` を持ちます。親が無いときは `null` です。'
+        sub_issues: 'sub-issue の配列です。要素は `number`・`state`・`title` を持ちます。'
+        linked_branches: 'Issue に紐づいたブランチ名の配列です。'
+        linked_prs: 'Issue に紐づいた PR の配列です。要素は `number`・`title`・`state` を持ちます。'
+        owner: 'Issue があるリポジトリのオーナーです。'
+        repo: 'Issue があるリポジトリの名前です。'
+        blockedBy: '前提（blocked-by）の配列です。読めなかったときは `null` です。要素は `number`・`repository`・`state`・`wait`・`reason` を持ちます。`wait` は `stack` か `merge`、`reason` は Waits for merge の節に書いた理由（無ければ `null`）です。'
+        readiness: 'Readiness の判定です。判定できなかったときは `null` です。`kind`（`startable`・`stackable`・`blocked`）・`stackOn`・`reason`・`text` を持ちます。`stackOn` は積む前提で、`stackable` 以外は `null` です。`reason` は `blocked` の理由の符号で、`blocked` 以外は `null` です。'
     diagnostics: '本文の Waits for merge の節が blocked-by と食い違うか、形が誤っているときは、`warning` の行を出します。blocked-by を読めないときも、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -2061,6 +2136,12 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        issue: '待たせていた側の Issue です。`owner/repo/N` の形です。'
+        by: '前提の Issue です。`owner/repo/N` の形です。'
+        change: 'blocked-by がどうなったかです。`removed`（外した）か `unchanged`（もともと blocked-by ではなかった）です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `removed` か `unchanged` を出し、列か札を変えたときは続けて `moved` と `set` を出します。`warning` の行は、次のときに出します。`Waits for merge` の節を読めないとき。判定を出せないか、確かめられないとき。ボードに Todo の選択肢が無いとき。ボードに書けなかったとき。Todo が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
@@ -2210,6 +2291,18 @@ entries:
     output:
       format: text
       description: '11 の節です。それぞれ `=== <title> ===` の行に内容が続き、節の間は空行で区切ります。'
+    mcp_output:
+      data:
+        remoteUrl: '主な git remote の URL です。'
+        currentBranch: '今のブランチです。'
+        pushed: '今のブランチを push 済みで、リモートのブランチと同じかどうかです。'
+        pushStatus: 'Push Status の節に出す文です。'
+        baseBranch: '比べる相手のリモートブランチです。`remote/branch` の形です。積んでいるときは下の段、そうでなければ develop ブランチです。'
+        gitStatus: '`git status` の出力です。'
+        commits: 'ベースブランチからのコミットです。Commits の節に出す文です。'
+        diffSummary: 'ベースブランチとの差分の統計です。Diff Summary の節に出す文です。'
+        worktree: 'worktree の情報です。`list`（`git worktree list` の出力）と `directoryName`（今のディレクトリの名前）を持ちます。リンクされた worktree かどうかを示す `isWorktree` は、判定できたときだけ入ります。'
+        stashList: 'stash の一覧です。Stash List の節に出す文です。'
     diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。下の段のブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。'
     environment: []
     exit_status:
@@ -2414,6 +2507,19 @@ entries:
     output:
       format: text
       description: '`--prepare` のときは、テンプレートのコピーのパスです。それ以外では、作った PR の URL です。`--dry-run` のときは、何も出しません。'
+    mcp_output:
+      data:
+        url: '作った PR の URL です。`dry_run` のときと `prepare` のときは入りません。'
+        number: '作った PR の番号です。`dry_run` のとき、`prepare` のとき、応答に番号が無いときは入りません。'
+        head: 'PR の head ブランチです。`prepare` のときは入りません。'
+        base: 'PR の base ブランチです。`prepare` のときは、下書きに入れた base です。入れなかったときは入りません。'
+        title: 'PR のタイトルです。`prepare` のときは入りません。'
+        inReview: 'Status を In Review にした Issue の番号です。設定しなかったときは入りません。'
+        stack: 'PR の積み方です。積まない PR では入りません。`lower`（下の段の PR の番号）を必ず持ちます。`registered`（スタックに登録したか）と `number`（スタックの番号。登録したときだけ）は、`dry_run` のときは入りません。'
+        moves: 'この PR を待っていた Issue のうち、列か Status を書いたものの配列です。`dry_run` のときと `prepare` のときは入りません。要素は `issue`・`reason` を必ず持ち、`from`・`to`・`label` は `board_sync` の `moves` と同じです。'
+        file: '書き出した下書きのファイルの絶対パスです。`prepare` のときだけ入ります。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。PR は作っていません。'
+      artifacts: '`prepare` のときだけ入ります。書き出した下書きのファイルの絶対パスです。`dry_run` のときは入りません。'
     diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--prepare` のときは、base・題の scope の目安・`Closes` の `set` の行を出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。'
     environment: []
     exit_status:
@@ -2739,6 +2845,21 @@ entries:
     output:
       format: text
       description: '`## PR #<N> <title>` の見出しで始まる Markdown です。`--reviews` を付けると、レビューか行のコメントがあるときに、`## Reviews` の節と `## Line Comments` の節が続きます。`--json` を付けると、JSON のオブジェクトです。'
+    mcp_output:
+      data:
+        number: 'PR の番号です。キーは `--json` と同じ snake_case で、中身も `--json` の出力と同じです。'
+        state: 'PR の状態です。`OPEN`・`CLOSED`・`MERGED` のどれかです。'
+        title: 'PR のタイトルです。'
+        body: 'PR の本文です。'
+        head_ref: 'head ブランチです。'
+        base_ref: 'base ブランチです。'
+        is_draft: 'PR が draft かどうかです。'
+        mergeable: 'マージできるかどうかです。`MERGEABLE`・`CONFLICTING`・`UNKNOWN` のどれかです。'
+        comments: 'コメントの数です。'
+        closing_issues: 'PR が閉じる Issue の配列です。要素は `number` と `title` を持ちます。'
+        referenced_issues: '本文の Refs が指す Issue のうち、`closing_issues` に無いものの配列です。要素は `number` と `title` を持ち、`title` はいつも空です。'
+        reviews: 'レビューの配列です。要素は `state` と `author` を持ちます。`author` は、削除されたユーザーなら `null` です。`body` と `submitted_at` は、`reviews` を付けたときだけ入ります。'
+        review_threads: '行コメントのスレッドの配列です。`reviews` を付けたときだけ入ります。要素は `is_resolved`・`path`・`line`・`comments` を持ちます。`comments` の要素は `author`・`body`・`created_at` を持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -2879,6 +3000,14 @@ entries:
     output:
       format: text
       description: 'プロジェクトを渡さないときだけ出します。見出しの行に続けて、初期化済みのプロジェクトを 1 行ずつ出し、アクティブなものに `[ACTIVE]` を付けます。初期化済みのプロジェクトが無ければ、`none` の行を出します。プロジェクトを渡したときは、標準出力に何も書きません。'
+    mcp_output:
+      data:
+        project: 'アクティブにした設定の名前です。`dry_run` のときは、アクティブにする予定の名前です。プロジェクトを指定せず、候補を返したときは入りません。'
+        configPath: 'プロジェクトの設定ファイルのパスです。プロジェクトを指定せず、候補を返したときは入りません。'
+        change: '設定ファイルがどうなったかです。`create`・`update`・`unchanged` のどれかです。候補を返したときは入りません。'
+        candidates: '初期化済みのプロジェクトの配列です。プロジェクトを指定しなかったときだけ入り、何もアクティブにしません。要素は `active`（今のアクティブなプロジェクトか）を必ず持ち、`number` と `title` も持ちます。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+      artifacts: 'アクティブにして書いた設定ファイルの絶対パスです。`dry_run` のとき、`change` が `unchanged` のとき、候補を返したときは入りません。'
     diagnostics: 'プロジェクトを渡したときは、標準エラーに、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。`--host` が渡した設定ファイルのホストと違うときは、`warning` の行を出します。このときは、設定ファイルのホストを使います。'
     environment: []
     exit_status:
@@ -3051,6 +3180,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        number: '作ったプロジェクトの番号です。`dry_run` のときは入りません。'
+        url: '作ったプロジェクトの URL です。`dry_run` のときは入りません。'
+        title: 'プロジェクトのタイトルです。'
+        owner: 'プロジェクトのオーナーです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
     diagnostics: '標準エラーに、次のものの結果の行を出します。作ったプロジェクト、作ったフィールドそれぞれ、足した Needs Attention の選択肢、設定ファイル、アクティブなプロジェクトです。選択肢を足せないときは、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -3164,6 +3300,10 @@ entries:
     output:
       format: text
       description: 'Epic を集めるリポジトリを `owner/repo` の形で書いた 1 行か、`none` です。'
+    mcp_output:
+      data:
+        key: '読んだ設定のキーです。今は `aggregation_repo` だけです。'
+        value: 'キーの値です。未設定のときは入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -3253,6 +3393,10 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        fields: 'プロジェクトのフィールドの配列です。workflow・priority・size のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（フィールドが見つからない）のどれかです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も作らず、何も変えていません。'
     diagnostics: '標準エラーに、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。選択肢を足せないときは、`warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
     environment: []
     exit_status:
@@ -3401,6 +3545,14 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        repository: '設定に足した（変えた）リポジトリです。`owner/repo` の形です。'
+        projectNumber: 'アクティブなプロジェクトの番号です。'
+        change: '設定がどうなったかです。`create`（リポジトリを足した）か `update`（項目を変えた）です。'
+        configPath: 'プロジェクトの設定ファイルのパスです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+      artifacts: '書いた設定ファイルの絶対パスです。`dry_run` のときは入りません。'
     diagnostics: '標準エラーに、プロジェクトへのつなぎの結果の行（`added`、既につながっていれば `unchanged`）を出します。設定ファイルの結果の行（`added` か `updated`）も出します。'
     environment: []
     exit_status:
@@ -3540,6 +3692,9 @@ entries:
     output:
       format: text
       description: '見出しの行に続けて、設定ファイルの名前を 1 行ずつ出します。設定ファイルが無ければ、`none` を出します。'
+    mcp_output:
+      data:
+        projects: 'projects ディレクトリにあるプロジェクトの設定の配列です。1 つも無ければ空です。要素は `name`（`.json` を除いたファイル名）と `active`（アクティブな設定か）を持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -3597,6 +3752,11 @@ entries:
     output:
       format: text
       description: '見出しの行、空行、列の見出しの行、ハイフン 80 個の区切りの行を出します。続けて、プロジェクトごとに番号・題・URL の行を 1 つ出します。'
+    mcp_output:
+      data:
+        owner: '検索したプロジェクトのオーナーです。'
+        host: '検索した GitHub のホストです。'
+        projects: 'オーナーのプロジェクトの配列です。要素は `number`・`title`・`url` を持ちます。GitHub が返さなかった項目は入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -3686,6 +3846,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        key: '設定したキーです。今は `aggregation_repo` だけです。'
+        value: '実行後のキーの値です。`dry_run` のときは、実行したあとになる値です。'
+        previous: '実行前のキーの値です。未設定だったときは入りません。'
+        change: '設定がどうなったかです。`create`（未設定だった）・`update`（値を置き換えた）・`unchanged`（既に同じ値だった）のどれかです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -3781,6 +3948,12 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        key: '消したキーです。今は `aggregation_repo` だけです。'
+        previous: '実行前のキーの値です。未設定だったときは入りません。'
+        change: '設定がどうなったかです。`delete`（キーを消した）か `unchanged`（もともと未設定だった）です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
     environment: []
     exit_status:
@@ -3903,6 +4076,14 @@ entries:
     output:
       format: text
       description: '版の行、タグの行、空行、その版のリリースノートです。リリースの種類が nx のリポジトリでは、標準出力に何も書きません。'
+    mcp_output:
+      data:
+        version: 'リリースする版です。リリースの種類が `nx` のときは入りません。`nx` ではアラートだけを確かめます。'
+        tag: '作るタグです。リリースの種類が `nx` のときは入りません。'
+        releaseNotes: 'CHANGELOG から取ったリリースノートです。リリースの種類が `nx` のときは入りません。'
+        commitCount: 'リリースブランチから develop ブランチまでのコミットの数です。リリースの種類が `nx` のときは入りません。'
+        skipped: '機能が無効なので飛ばした確認の文の配列です。例は `Dependabot alerts (feature disabled)` です。飛ばした確認が無ければ空です。'
+        dependabotAlerts: 'Dependabot アラートの状態です。読めなかったときは入りません。リリースは止めません。`enabled`・`openCount`・`alertsUrl` を必ず持ち、`maxSeverity` は、開いたアラートがあるときだけ入ります。'
     diagnostics: 'alert の種類ごとに、`count` の行、`skipped` の行、`warning` の行のどれかを出します。code scanning と secret scanning には、`error` の行も出します。リリースするコミットの `count` の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。コミットの数を数えられなかったときは、`error: could not count the commits from <release> to <develop>: ...` の行を出します。'
     environment: []
     exit_status:
@@ -4141,6 +4322,12 @@ entries:
     output:
       format: text
       description: '作ったリリースの URL です。`--dry-run` のときは、代わりにリリースノートです。'
+    mcp_output:
+      data:
+        tag: 'リリースのタグです。'
+        url: '作ったリリースの URL です。`dry_run` のときは入りません。'
+        releaseNotes: 'CHANGELOG から取ったリリースノートです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
     diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。'
     environment: []
     exit_status:
@@ -4337,6 +4524,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        pullRequest: 'マージしたリリースの PR です。`owner/repo/N` の形です。'
+        head: 'PR の head ブランチです。'
+        base: 'PR の base ブランチです。リリースブランチです。'
+        deletedBranch: 'リモートの head ブランチを削除したかどうかです。`delete_branch` を付けなかったとき、`dry_run` のとき、削除に失敗したときは `false` です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何もマージしていません。'
     diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。'
     environment: []
     exit_status:
@@ -4535,6 +4729,13 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        closedIssues: '閉じた Issue の番号の配列です。`dry_run` のときは、閉じる予定の番号です。'
+        skippedIssues: 'PR が閉じる対象のうち、閉じなかった Issue の配列です。要素は `number` と `reason` を持ちます。`reason` は `epic`（保護している）・`already-closed`・`not-found`・`failed`（`data.warnings` を見る）のどれかです。'
+        deletedBranches: '削除したブランチの配列です。`dry_run` のときは、削除する予定のブランチです。要素は `branch` と `location`（`remote` か `local`）を持ちます。'
+        currentBranch: 'ローカルの後片付けのあとのブランチです。後片付けを飛ばしたときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
     diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。`wip/<head>` があるのに削除できないときも含みます。ローカルの片付けを飛ばしたときも、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -4750,6 +4951,11 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        issue: '記録した作業中の Issue です。`owner/repo/N` の形です。'
+        workDirectory: '作業ディレクトリの絶対パスです。`dry_run` のときと、作れなかったときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も記録していません。'
     diagnostics: '標準エラーに、記録した作業対象の `set` の行を出します。作業ディレクトリを作ったときは、行にそのディレクトリも載せます。失敗したときは、`error` の行を出します。アクティブな設定ファイルの内容が不正なときも含みます。ブランチ名から Issue の番号を推定できないときは、`error` の行に続けて、`--issue-ref` を渡す案内を出します。'
     environment: []
     exit_status:
@@ -4910,6 +5116,14 @@ entries:
     output:
       format: text
       description: 'Session status の見出しがある Markdown です。Branch・Repository・Inferred Issue の行と、フラグの表を出します。アクティブな Issue を読めたときは Active Issue の節を、作業を積んでいるときは Stack の節を出します。'
+    mcp_output:
+      data:
+        branch: '今のブランチです。読めないときは入りません。'
+        repository: 'git remote のリポジトリです。`owner/repo` の形です。読めないときは入りません。'
+        inferredIssue: 'ブランチ名から推した Issue の番号です。推せないときは入りません。'
+        flags: 'セッションのフラグの配列です。要素は `name`・`isSet`・`content` を持ちます。`content` は、フラグが未設定なら空です。'
+        activeIssue: '`.pecot-active` の Issue を GitHub から読んだ結果です。未設定のときと、読めなかったときは入りません。`reference`（`owner/repo/N`）・`title`・`state`（`OPEN` か `CLOSED`）を持ちます。'
+        stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
     diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。`.pecot-active` に Issue の参照があり、アクティブな Issue を読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
     environment: []
     exit_status:
@@ -5108,6 +5322,15 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        branch: '作ったブランチの名前です。Issue の番号が付きます。`dry_run` のときは、作る予定の名前です。'
+        repository: 'ブランチを作ったリポジトリです。`owner/repo` の形です。'
+        base: 'ブランチの起点にした base ブランチです。'
+        stackedOn: 'このブランチを積んだ先の Issue の番号です。積まないときは入りません。'
+        issue: '作業中の Issue です。`owner/repo/N` の形です。'
+        workDirectory: '作業ディレクトリの絶対パスです。`dry_run` のときと、作れなかったときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も作らず、何も記録していません。'
     diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業対象（`set`）の結果の行を出します。Status・作業対象・`.pecot-base` を設定できなかったときと、`.pecot-active` を上書きしたときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。'
     environment: []
     exit_status:
@@ -5409,6 +5632,15 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        source: '同期した種類です。`dependabot` か `security` です。'
+        tracker: '使ったか作った Tracker の番号です。Tracker が無いときと、作る前の `dry_run` のときは入りません。'
+        created: 'Tracker を新しく作ったかどうかです。`dry_run` のときは、作る予定かどうかです。'
+        added: 'Tracker の一覧に足した行の配列です。`dry_run` のときは、足す予定の行です。要素は `kind` と `number` を持ちます。`kind` は `pull-request`・`dependabot`・`code-scanning`・`secret-scanning` のどれかです。'
+        removed: 'Tracker の一覧から外した行の配列です。`dry_run` のときは、外す予定の行です。要素の形は `added` と同じです。'
+        closed: '一覧が空になって Tracker を閉じたかどうかです。`dry_run` のときは、閉じる予定かどうかです。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
     diagnostics: '`dependabot` では、`count` の行で、open の Dependabot の PR の数、判断を待つ PR の数、判断を待つ PR のうち検証の結果が無いものの数を出します。変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`closed`・`skipped`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。`security` では、変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`skipped`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。一覧を取れなかった種類ごとの行も含みます。'
     environment: []
     exit_status:
@@ -5831,6 +6063,15 @@ entries:
     output:
       format: text
       description: '作った worktree のパスの 1 行です。`--dry-run` のときは、予定のパスです。'
+    mcp_output:
+      data:
+        name: 'worktree の名前です。`wtN` の形で番号を振ります。'
+        path: 'worktree の絶対パスです。`dry_run` のときは、置く予定の場所です。'
+        branch: 'worktree で checkout したブランチです。'
+        base: 'ブランチの起点にした base ブランチです。'
+        setupFailed: 'setup のコマンドが失敗したか、時間切れになったかです。成功したときと、実行しなかったときは `false` です。`dry_run` のときは入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
+      artifacts: '作った worktree のディレクトリの絶対パスです。`dry_run` のときは入りません。'
     diagnostics: '標準エラーに、`created` の行（`--dry-run` のときは `dry-run` の行）を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -6104,6 +6345,12 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        configFile: 'worktree の設定ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
+        ignoreFile: 'worktree の ignore ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
+      artifacts: '作った設定ファイルと ignore ファイルの絶対パスです。`dry_run` のときは入りません。'
     diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -6268,6 +6515,11 @@ entries:
     stdin: '上書きの確認への `y` か `n` の答えです。確認を尋ねるのは、worktree が 1 つで、`--force` が無いときだけです。そのうえで、リンクのパスに、git が追跡していない実体のファイルかディレクトリがあると尋ねます。入力が終わりに達すると、コマンドを中断します。'
     output:
       format: none
+    mcp_output:
+      data:
+        links: '各対象 worktree にある、設定の link ごとの結果の配列です。サブ worktree が無ければ空です。要素は `path`（symlink の絶対パス）・`destination`（向き先の絶対パス）・`change` を持ちます。`change` は `create`（新しい symlink）・`update`（既存を置き換えた）・`skip`（そのまま）・`error`（作れなかった）のどれかです。`reason` は、`skip` と `error` のときだけ入ります。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。symlink は何も変えていません。'
+      artifacts: '作ったか置き換えた symlink の絶対パスです。`dry_run` のときは入りません。'
     diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`--all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。`--dry-run` のときは、`dry-run` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -6493,6 +6745,11 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      data:
+        name: '削除した worktree の名前です。渡したままの名前です。`dry_run` のときは、削除する予定の名前です。'
+        deletedBranch: 'ローカルブランチを削除したかどうかです。残したとき、削除に失敗したとき、`dry_run` のときは `false` です。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
     diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。'
     environment:
       - name: REMOTE_CONTAINERS

@@ -33,11 +33,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -46,27 +45,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -132,11 +141,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -145,27 +153,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -241,11 +259,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -254,27 +271,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -366,11 +393,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -379,27 +405,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -473,11 +509,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -486,27 +521,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -585,11 +630,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -598,27 +642,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -693,11 +747,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -706,27 +759,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -798,11 +861,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -811,27 +873,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -900,11 +972,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -913,27 +984,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1002,11 +1083,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1015,27 +1095,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1108,11 +1198,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1121,27 +1210,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1221,11 +1320,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1234,27 +1332,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1331,11 +1439,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1344,27 +1451,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1433,11 +1550,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1446,27 +1562,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1535,11 +1661,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1548,27 +1673,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1649,11 +1784,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1662,27 +1796,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1759,11 +1903,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1772,27 +1915,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1875,11 +2028,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli が出した行の配列（`lines`）です。'
+        data: 'awscli が出した行の配列（`lines`）です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1888,27 +2040,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -1985,11 +2147,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1998,27 +2159,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2098,11 +2269,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2111,27 +2281,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2200,11 +2380,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2213,27 +2392,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2303,11 +2492,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2316,27 +2504,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2405,11 +2603,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2418,27 +2615,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2505,11 +2712,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2518,27 +2724,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2615,11 +2831,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2628,27 +2843,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2719,11 +2944,10 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: awscli の JSON 出力か、出力の行の配列です。
+        data: 'awscli の JSON 出力か、出力の行の配列です。警告があるときは、文の配列が `warnings` に入ります。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
-        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2732,27 +2956,37 @@ entries:
             items:
               type: string
             type: array
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
           data:
             additionalProperties: {}
             description: awscli JSON output, or an array of lines
-            propertyNames:
-              type: string
+            properties:
+              detail:
+                description: Full text of the failure and how to recover (failure only)
+                type: string
+              log:
+                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+                type: string
+              reason:
+                description: Failure kind, the same value as kind (failure only)
+                type: string
+              warnings:
+                description: Warnings raised during the run (omitted when there are none)
+                items:
+                  type: string
+                type: array
             type: object
           exitCode:
             description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
           ok:
             description: Whether the awscli run succeeded
             type: boolean
-          stderr:
-            description: Redacted awscli stderr (only on failure)
-            type: string
         required:
           - ok
           - exitCode
@@ -2827,7 +3061,7 @@ common_behaviors:
     statement: 'もし awscli が 120 秒以内に終わらないなら、`kind` `timeout`・`exitCode` 124 の失敗を返します'
   - id: PT-COMMON-09
     pattern: unwanted
-    statement: 'もし awscli が 0 以外の終了コードで終わったなら、`ok` が `false` で、失敗の種別 `kind` と秘匿化済みの `stderr` を含む応答を `isError` を真にして返します'
+    statement: 'もし awscli が 0 以外の終了コードで終わったなら、`ok` が `false` で、失敗の種別 `kind` と、秘匿化済みの出力 `data.log` を含む応答を `isError` を真にして返します'
   - id: PT-COMMON-10
     pattern: ubiquitous
     statement: '常に、応答の `structuredContent` と同じ内容の JSON を `content` のテキストにも載せます'
