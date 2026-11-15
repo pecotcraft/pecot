@@ -129,12 +129,12 @@ gh api --hostname <対象ホスト> graphql \
 
 テンプレを取り、ガイドに従って書いて、修正の前に投稿する。General にはインラインにできなかった指摘だけを書く。Disposition には全 F-NN を 1 行ずつ並べ、コメントの URL を添える。
 
-1. `issue_comment` を `prepare: true`・`template: "review-findings"`・`issue_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ
+1. `issue_comment` を `prepare: true`・`template: "review-findings"`・`issue_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。できたファイルは、結果の `artifacts` にある
 2. 書いたら、`issue_comment` を `file: "<書いたファイル>"` で呼ぶ
 
 ### Step 4: 対応可否をユーザーに一括確認
 
-Step 3 のコメントの URL を示し、AskUserQuestion で次の 3 択（と Other）を出す。指摘ごとには聞かない。
+Step 3 のコメントの URL（投稿の結果の `data.commentUrl`）を示し、AskUserQuestion で次の 3 択（と Other）を出す。指摘ごとには聞かない。
 
 | label | description |
 |---|---|

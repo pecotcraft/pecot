@@ -20,22 +20,22 @@ CHANGELOG を更新してリリースする。
 
    `board_show` を引数なしで呼ぶ。
 
-   結果の `stdout` の対象リポ行の直下にある `release_type: <...>` を読む:
+   結果の `data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `release_type` を読む:
 
-   - `release_type: single` → **[references/release-single.md](references/release-single.md)** に従う
-   - `release_type: multi`  → **[references/release-multi.md](references/release-multi.md)** に従う
-   - `release_type: nx`     → **[references/release-nx.md](references/release-nx.md)** に従う
+   - `single` → **[references/release-single.md](references/release-single.md)** に従う
+   - `multi`  → **[references/release-multi.md](references/release-multi.md)** に従う
+   - `nx`     → **[references/release-nx.md](references/release-nx.md)** に従う
 
-   併せて **ブランチモード** も同じ `stdout` から読む:
+   併せて **ブランチモード** も、同じ要素の `develop_branch` と `release_branch` から読む:
 
-   - 対象リポ行の `develop:` と `release:` が異なる → **2ブランチモード**（開発ブランチ → release ブランチへ PR で反映）。
-     例は `develop: develop-aist` と `release: main`。
-   - 対象リポ行の `develop:` と `release:` が同じ（pecot は両方 `main`）→
+   - 2 つが異なる → **2ブランチモード**（開発ブランチ → release ブランチへ PR で反映）。
+     例は `develop_branch` が `develop-aist` で、`release_branch` が `main`。
+   - 2 つが同じ（pecot は両方 `main`）→
      **単一ブランチモード**（`main` 上で直接リリース、中間 PR なし）
 
-   この分岐は、`develop:` と `release:` の両方が出る前提で成り立つ。
-   `release_type: nx` のリポは `release_branch` が必ず設定され、`release:` 行が出る。
-   `release:` が出ないリポは nx 方式の対象外なので、`release_type` のリファレンス手順にそのまま従う。
+   この分岐は、`develop_branch` と `release_branch` の両方が null でない前提で成り立つ。
+   `release_type` が `nx` のリポは `release_branch` が必ず設定され、null にならない。
+   `release_branch` が null のリポは nx 方式の対象外なので、`release_type` のリファレンス手順にそのまま従う。
 
    判定したブランチモードを、選んだリファレンス側の手順に渡す。
    `release_type: nx` の単一ブランチモードには、`release.yml` があるリポ向けのランナーの手順がある。

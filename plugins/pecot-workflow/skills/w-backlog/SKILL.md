@@ -37,8 +37,8 @@ Backlog内に類似のEpicがないか確認する。
 
 Epic の作成先を決定するため、`aggregation_repo` の設定状況をまず確認する。`project_get` を `key: "aggregation_repo"` で呼ぶ。
 
-- **設定済み**（`owner/repo` が返る）→ Step 4 へ進む
-- **未設定**（`none` が返る）→ AskUserQuestion で分岐:
+- **設定済み**（結果の `data.value` に `owner/repo` が入る）→ Step 4 へ進む
+- **未設定**（結果に `data.value` が無い）→ AskUserQuestion で分岐:
   - 「先に集約リポを設定する（推奨）」→ `/pecot-w:w-onboarding` を案内してこのスキルを中断
   - 「このまま個別リポに Epic を作る（分散運用）」→ Step 4 へ進む（作成時 `repository` 必須）
 
@@ -47,7 +47,7 @@ Epic の作成先を決定するため、`aggregation_repo` の設定状況を�
 ### Step 4: Epic Issueを作成
 
 1. テンプレートを準備する。`issue_create` を `prepare: true`・`template: "epic"` で呼ぶ
-2. 出力されたファイルを編集する
+2. 結果の `artifacts` にあるファイルを編集する
    - YAMLフロントマターを設定する
    - Issue本文を記述する（テンプレ冒頭コメントの 読者:/書き方: に従う）
 3. 投稿する。`issue_create` を `files: ["<ファイルパス>"]` で呼ぶ
@@ -60,7 +60,7 @@ Epic の作成先を決定するため、`aggregation_repo` の設定状況を�
 
 **リポジトリの特定方法:**
 
-- 集約リポ設定済（Step 3 で `owner/repo` が返った）→ `repository: ""` のまま。ツールが自動で集約リポに作成する
+- 集約リポ設定済（Step 3 の結果の `data.value` に `owner/repo` が入った）→ `repository: ""` のまま。ツールが自動で集約リポに作成する
 - 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が `kind` が `repo-setting-missing`（`exitCode` は 2）で失敗する
 - ユーザーが実装リポ名を言及しても安易に `repo` で上書きせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ `repo: "<impl-repo>"` で明示する（ツールは警告を出しつつ作成を許可する）
 - 詳細マトリクス: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)

@@ -21,7 +21,8 @@ PRをマージし、マージ後にブランチ削除とワークツリー環境
 
 PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_check` を `directory: "."` で呼ぶ。
 
-結果の `ok` が `false` なら、`kind`・`message`・`stderr` を見て解決し、呼び直してからマージに進む。`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が `stderr` に出る。
+結果の `ok` が `false` なら、`kind`・`message`・`data.detail` を見て解決し、呼び直してからマージに進む。
+`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が結果の `data.warnings` に入る。
 
 ### Step 2: マージと片付け
 
@@ -100,7 +101,7 @@ code-scanning open alerts: #28 #29
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
 - クロスリポでは、現在のリポとPRのリポが異なる場合、ローカルクリーンアップはスキップされる
 
-結果の `stderr` に `warning:` の行があれば以下で手動対応:
+`session_finish` の結果に `data.warnings` があれば、その文を読んで以下で手動対応:
 
 - ワーキングツリーが汚れている場合: 変更を一時的な WIP commit で退避してから再実行する。stash は全ワークツリーで共有されるので、使うときは `git stash push -u -m "<名前>"` で名前を付け、戻すときもその entry を指定する
 - `skip_local_cleanup: true` でローカル後処理をスキップし、手動で対応
@@ -115,14 +116,14 @@ code-scanning open alerts: #28 #29
 
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
-- `session_finish` の結果の `stderr` に `closed: Issue #<n>` の行がない（Issue未紐付けPR）
-- `stderr` の `closed:` の行のIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
+- `session_finish` の結果の `data.closedIssues` が空（Issue未紐付けPR）
+- `data.closedIssues` のIssueを `issue_show` で読んだ結果の `data.parent` が null（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-`session_finish` の結果の `stderr` にある `closed: Issue #<n>` の行からIssue番号を取得し、Issueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
+`session_finish` の結果の `data.closedIssues`（閉じた Issue の番号の配列）からIssue番号を取得し、Issueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
 
-- `Parent:` フィールドから親EpicのIssue番号を取得 → なければ **Step 4-5 をスキップ**
+- 結果の `data.parent.number` から親EpicのIssue番号を取得 → `data.parent` が null なら **Step 4-5 をスキップ**
 
 #### 4.2 実装内容の把握
 
@@ -137,7 +138,7 @@ code-scanning open alerts: #28 #29
 
 Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。`issue_comment` を `prepare: true`・`template: "merge-diff"`・`issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
 
-- 出力されたファイル冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
+- 結果の `artifacts` にあるファイルを開き、冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
 - 見出しレベル・記号・節構成はテンプレを基準とする。SKILL.md にはフォーマット例示を持たない
 
 #### 4.4 Epicにコメント投稿
@@ -163,7 +164,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 
 `issue_show` を `issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
 
-`Sub-issues:` セクションから次を行う。
+結果の `data.sub_issues`（各要素に `number`・`state`・`title`）から次を行う。
 
 1. 現在のタスクを特定（タイトルの `#XXX-NN` で識別。枝の文字がある場合は `#XXX-NNa` まで含める）
 2. 現在のタスク以外の OPEN なサブタスクを抽出（orderの大小は問わない）
@@ -173,7 +174,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 後続フェーズに影響する変更がある場合、テンプレ実体に従って影響コメントを生成・投稿する。
 
 1. `issue_comment` を `prepare: true`・`template: "precede-notify"`・`issue_ref: "<owner>/<repo>/<後続issue番号>"` で呼ぶ
-2. 出力された `.pecot/tmp/output/` 配下の md を編集する
+2. 結果の `artifacts` にある md を編集する
 3. `issue_comment` を `file: "<編集後ファイル>"` で呼ぶ
 
 - フォーマットはテンプレ実体に従う。SKILL.md にはフォーマット例示を持たない

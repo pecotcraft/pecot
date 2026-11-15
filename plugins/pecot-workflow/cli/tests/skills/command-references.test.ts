@@ -1,11 +1,11 @@
 // 本文に書かれたツールの呼び出しを、COMMANDS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
 // - w-help の commands.md に、COMMANDS の全コマンドが載っている
-// - w-release の release-multi.md が、board_show の `package:` 行の形式を使う
+// - w-release の release-multi.md が、board_show の data の packages の項目名で読む
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
-import { boardShowMarkdown } from '../../src/commands/board-view.js'
+import { boardShowData, boardShowResult } from '../../src/commands/board-view.js'
 import { parseProjectConfig } from '../../src/domain/config.js'
 import { readDocuments, readPluginFile, toolInputs } from './_helpers/documents.js'
 
@@ -139,7 +139,7 @@ describe('commands.md', () => {
 })
 
 describe('release-multi.md', () => {
-  it('board_show が出す package 行の形式を使う', () => {
+  it('package を読むときは、board_show の結果の data.repositories[].packages の name と changelog で読む', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'demo',
@@ -148,9 +148,14 @@ describe('release-multi.md', () => {
       repositories: [{ owner: 'demo', name: 'repo', packages: [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }] }],
     })
     const statuses = [{ enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: 'https://example.invalid/alerts', openAlerts: [] }]
-    const output = boardShowMarkdown({ config, projectName: 'demo', statuses }, undefined, '')
-    const line = output.split('\n').find(candidate => candidate.includes('package:'))
-    expect(line?.trim()).toBe('package: demo-pkg → packages/demo-pkg/CHANGELOG.md')
-    expect(readPluginFile('skills/w-release/references/release-multi.md')).toContain('`package: NAME → CHANGELOG パス`')
+    const view = { config, projectName: 'demo', statuses }
+    const data = boardShowResult(view, boardShowData(view, []), 0)
+    expect(data.repositories.map(repository => [repository.full_name, repository.packages])).toEqual([
+      ['demo/repo', [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }]],
+    ])
+    const document = readPluginFile('skills/w-release/references/release-multi.md')
+    expect(document).toContain('`data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ')
+    expect(document).toContain('選んだ要素の `packages` のうち、`name` が `<package>` の要素の `changelog` のファイルを編集する')
+    expect(document).not.toContain('package: NAME')
   })
 })

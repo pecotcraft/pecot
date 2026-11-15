@@ -149,16 +149,17 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
-| CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | `kind` が `repo-mismatch`（`exitCode` は 2）+ `stderr` の、対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
-| `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | `kind` が `guard-blocked`（`exitCode` は 2）+ `stderr` の WT 分離誘導 | `force_overwrite_active` |
-| `.pecot-active` の Issue が CLOSED | 同上 | `stderr` の stale の `warning:` + 続行 | （バイパス不要） |
-| Issue の判定が blocked | 同上 | `kind` が `not-ready`（`exitCode` は 2）+ `stderr` の、前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
-| 前提を読めない・判定できない | 同上 | `kind` が `dependency-unreadable`（`exitCode` は 1）+ `stderr` の `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（`stderr` を利用者に示す） |
-| 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `kind` が `git-unresolved`（`exitCode` は 1）+ `stderr` の `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
-| `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `kind` が `invalid-input`（`exitCode` は 2）+ `stderr` の `--base <x> differs from the base chosen by readiness` | `--base` を外す |
+| CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | `kind` が `repo-mismatch`（`exitCode` は 2）+ `data.detail` の、対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
+| `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | `kind` が `guard-blocked`（`exitCode` は 2）+ `data.detail` の WT 分離誘導 | `force_overwrite_active` |
+| `.pecot-active` の Issue が CLOSED | 同上 | `data.warnings` の stale の警告 + 続行 | （バイパス不要） |
+| Issue の判定が blocked | 同上 | `kind` が `not-ready`（`exitCode` は 2）+ `data.detail` の、前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
+| 前提を読めない・判定できない | 同上 | `kind` が `dependency-unreadable`（`exitCode` は 1）+ `data.detail` の `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（`data.detail` を利用者に示す） |
+| 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `kind` が `git-unresolved`（`exitCode` は 1）+ `data.detail` の `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
+| `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `kind` が `invalid-input`（`exitCode` は 2）+ `data.detail` の `--base <x> differs from the base chosen by readiness` | `--base` を外す |
 
 状況を着手前に把握したいときは、ユーザー / AI が `session_show` を `directory: "."` で呼ぶ。
-`.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が表示される。
+残っている Issue は、結果の `data.activeIssue.reference` にある。その OPEN/CLOSED は `data.activeIssue.state` にある。
+Issue を GitHub から読めないと、`data.activeIssue` は無い。そのときは `data.flags` の、`name` が `.pecot-active` の要素の `content` を見る。
 
 未コミット差分の扱いはツールのガード対象外（git status の判断は AI / 人間に委ねられる）。`git status` で前 Issue 由来の差分が残っていれば commit / stash / 破棄で clean にしてから着手する。
 
@@ -172,7 +173,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 判定手段:
 
 - `.pecot/state/.pecot-active` に記録された owner/repo を見る
-- `session_show` を `directory: "."` で呼び、`.pecot-active` の内容と OPEN/CLOSED を確認する
+- `session_show` を `directory: "."` で呼び、結果の `data.activeIssue` の `reference` と `state` を確認する
 
 他リポの変更が必要になった場合の手順:
 

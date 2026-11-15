@@ -47,7 +47,8 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 ```
 
 `worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（結果の `ok` は `true` のまま）になる。
-失敗のときだけ、結果の `stderr` に `warning: setup command ...` の行が出て、コマンドの stdout/stderr が続く。成功のときは何も表示されない。
+失敗のときは、結果の `data.setupFailed` が `true` になる。`data.warnings` には `setup command ...` で始まる文が入り、コマンドの出力が続く。
+成功のときや setup を動かさないときは、`data.setupFailed` が `false` になる。
 
 ### Step 2: add を呼ぶ
 
@@ -56,6 +57,7 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 入力は `worktree_add` の入力の定義で確かめる。既存ブランチ衝突時は `allow_existing_branch: true` で再利用可能。
 
 採番されたセット名 `<wtN>` で、`<project-root>/<wtN>/<リポ名>/` に WT が作られる。
+セット名は結果の `data.name` に、WT の絶対パスは `data.path` にある。
 symlink は add 時に自動で張られる（`.pecot/config/worktree-config.json` がある場合）。
 
 ### Step 3: 既存サブ WT に symlink 設定を反映する

@@ -158,7 +158,7 @@ HTML ブロックの中の文は確かめられません。タグの行の直後
 - `cache: false`: 差分キャッシュを読まずに全スライドを変換する
 
 結果は応答の `data`（`output` / `timings` / `cache` / `warnings` / `errors`）で確認します。
-`stdout` には slidev / vite のビルドログがスライド枚数に比例して流れるため読みません。
+`data.warnings` は警告の文の配列です。失敗したときは、slidev / vite の出力が `data.log` に入ります。
 
 出力先は `<talk-dir>/pptx/<slides.md の title>.pptx` です。title のファイル名不可文字は `_` に正規化されます。title が無ければ `<talk-dir の basename>.pptx` になります。
 convert 内でフォント補正・hyperlink 化・transition 挿入が自動適用されます。

@@ -57,7 +57,7 @@ AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ�
 
 ### Step 4: 動作確認
 
-`board_show` を引数なしで呼ぶ。プロジェクト設定が表示されることを確認する。
+`board_show` を引数なしで呼ぶ。結果の `ok` が `true` で、`data.project` に作ったプロジェクトが入ることを確認する。
 
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
 
@@ -86,7 +86,7 @@ printf '%s\n' "$board_url"
 
 ### Step 5: 次ステップ案内
 
-集約リポの設定状況に応じて案内を分岐する。`project_get`（`key: "aggregation_repo"`）の結果で確認できる。
+集約リポの設定状況に応じて案内を分岐する。`project_get`（`key: "aggregation_repo"`）の結果の `data.value` で確認できる。未設定なら `data.value` は無い。
 
 - 集約リポが設定済みのとき
 
