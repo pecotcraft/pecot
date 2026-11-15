@@ -21,6 +21,12 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを�
 
 紐づいた Issue があれば、pecot-workflow の MCP ツール `issue_show` を使って、それも読む。
 
+レビューの前に、積んだブランチの載せ直しが要るかを確かめる。
+
+- pecot-workflow の MCP ツール `session_show` を使って、今のブランチが積んだブランチかを確かめる（結果の `stack` があれば積んでいる）
+- 積んでいれば、pecot-workflow の MCP ツール `pr_restack` を使って、載せ直しが要るかを確かめる（`check: true`）
+- 載せ直しが要るときは、`pr_restack` で載せ直してからレビューに進む。衝突で止まったら、利用者に伝えて止まる
+
 ### Step 2: w-reviewer にレビューを依頼
 
 Step 1 の情報を渡し、w-reviewer に diff をレビューさせる。視点は w-reviewer の定義が持つ。追質問は `SendMessage` で送る。
@@ -203,6 +209,8 @@ gh api --hostname <対象ホスト> graphql -f query='
 Step 5 で書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。投稿には `issue_comment` を使う。
 
 チャットには `review-resolution` の本文をそのまま示す。マージが必要なら `/pecot-w:w-merge` を案内する。
+
+修正を push したあと、pecot-workflow の MCP ツール `session_show` を使って、上の段の PR があるかを確かめる（結果の `stackedAbove`）。あれば、その PR の作業ディレクトリで `pr_restack` が要る旨を、チャットの報告に入れる。上の段の作業ディレクトリには入らない。
 
 ## 注意
 

@@ -362,22 +362,22 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 5 と、6 の後半を通す。下の段に push があると `needs restack` と出る。載せ直すと、PR の差分がその段の変更だけに戻る。衝突では終了コード 3 で止まり、`--abort` で元に戻る
 
-- [ ] T083 [P] [US6] `p-w/cli/src/infra/tests/` に、載せ直しの失敗するテストを書く。一時の git リポと worktree を 2 つ使い、実際の git で確かめる
+- [x] T083 [P] [US6] `p-w/cli/src/infra/tests/` に、載せ直しの失敗するテストを書く。一時の git リポと worktree を 2 つ使い、実際の git で確かめる
   - 下の段にコミットを足すと、上の段が `git rebase --onto <新しい位置> <記録の位置>` で載る
   - 下の段を squash で開発ブランチへ入れた後、上の段が開発ブランチへ載り、下の段のコミットが落ちる
   - もう一方の worktree の、未コミットの変更とブランチの位置が変わらない
   - 載せ直した結果の木が `origin/<branch>` と同じなら、手元が origin と同じ SHA になり、push しない
   - 木が違えば、`rebase --onto` した結果を `--force-with-lease` で push する
   - 衝突のとき、衝突したファイルの一覧を返す。取りやめると、載せ直しの前の位置に戻る
-- [ ] T084 [US6] `p-w/cli/src/infra/git.ts` に、載せ直し・続行・取りやめ・`--force-with-lease` の push を足し、T083 を通す
+- [x] T084 [US6] `p-w/cli/src/infra/git.ts` に、載せ直し・続行・取りやめ・`--force-with-lease` の push を足し、T083 を通す
   - `rebase --onto` の後に `git diff --quiet HEAD origin/<branch>` で木を比べ、同じなら `origin/<branch>` に合わせて push しない
   - 合わせた後の base の位置は `git merge-base origin/<branch> <開発ブランチ>` で求める
-- [ ] T085 [P] [US6] `p-w/cli/tests/interface/pr.test.ts` に、`pr restack` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr restack` の表の 9 行のとおりだ。載せ直しの後に、base の位置の記録が書き直される
-- [ ] T086 [US6] `p-w/cli/src/commands/pr.ts` に `pr restack` を足し、T085 を通す。`PR_COMMANDS` に登録する
-- [ ] T087 [US6] `p-w/cli/src/commands/session.ts` の `## Stack` の節に、載せ直しが要るかを足す
-- [ ] T088 [US6] `p-w/skills/w-revise/SKILL.md` を、contracts/skill-flow.md の w-revise の表のとおりに直す。上の段の作業ディレクトリには入らず、載せ直しが要る旨を報告に入れる
-- [ ] T089 [US6] 定義書に `PW-PR-RESTACK` を足し、共通の完了条件の 4 つを済ませる。コマンドの数は 1 つ増える。スキルの文書のテストを直す
-- [ ] T090 [US6] version plan を `.nx/version-plans/` に足す
+- [x] T085 [P] [US6] `p-w/cli/tests/interface/pr.test.ts` に、`pr restack` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr restack` の表の 9 行のとおりだ。載せ直しの後に、base の位置の記録が書き直される
+- [x] T086 [US6] `p-w/cli/src/commands/pr.ts` に `pr restack` を足し、T085 を通す。`PR_COMMANDS` に登録する
+- [x] T087 [US6] `p-w/cli/src/commands/session.ts` の `## Stack` の節に、載せ直しが要るかを足す
+- [x] T088 [US6] `p-w/skills/w-revise/SKILL.md` を、contracts/skill-flow.md の w-revise の表のとおりに直す。上の段の作業ディレクトリには入らず、載せ直しが要る旨を報告に入れる
+- [x] T089 [US6] 定義書に `PW-PR-RESTACK` を足し、共通の完了条件の 4 つを済ませる。コマンドの数は 1 つ増える。スキルの文書のテストを直す
+- [x] T090 [US6] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: レビューの指摘で下の段が変わっても、上の段を保てる
 

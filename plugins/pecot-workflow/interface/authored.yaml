@@ -2811,6 +2811,209 @@ entries:
       - id: PW-PR-CREATE-64
         pattern: unwanted
         statement: 'もし head の番号の Issue が PR のリポジトリに無いなら、待っている Issue の確認を、何も出さずに飛ばします'
+  PW-PR-RESTACK:
+    help:
+      details:
+        - Restacks the current branch onto the new position of the branch it was stacked on, using the base record written when the work started.
+        - "With --check, only reports whether a restack is needed and changes nothing except the remote-tracking refs updated by git fetch."
+        - "A branch that is not stacked (no base record, or a record of a start from the develop branch) is never restacked."
+        - "A restack is needed when the head of the layer below on the remote differs from the recorded position, or when the PR of the layer below is merged. After a merge, the branch is restacked onto the develop branch and the base record becomes a start from the develop branch."
+        - "Fetches the remote, then stops when the remote branch has commits that are not in the local branch, because the push would drop them."
+        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position. A branch that is not on the remote is not pushed."
+        - "After the restack, rewrites the base record with the merge base of the branch and the new base."
+        - "On conflicts, prints the conflicted files, leaves the rebase in progress, writes a progress record and exits with status 3. --continue goes on after the conflicts are resolved and staged. --abort goes back to the position before the restack. Both read only the progress record and refuse to touch a rebase that pecot did not start."
+        - Only one of --check, --continue and --abort can be given.
+        - "With --dry-run, fetches and decides like a restack, then prints a dry-run line of what would be done, without rebasing, pushing or writing records."
+        - Changes only the branch of the current working directory. Other worktrees are not touched.
+      examples:
+        - run: pecot pr restack --check
+          note: Check whether the current branch needs a restack.
+        - run: pecot pr restack
+          note: Restack the current branch and push it.
+        - run: pecot pr restack --continue
+          note: Go on after resolving the conflicts and staging the files.
+        - run: pecot pr restack --abort
+          note: Go back to the position before the restack.
+      default_notes: {}
+    summary: 積んだブランチを、base にしたブランチの新しい位置へ載せ直します。
+    arguments:
+      check: '載せ直しが要るかだけを確かめます。'
+      continue: '衝突で止まった載せ直しを、衝突を解いた後に続けます。'
+      abort: '衝突で止まった載せ直しを取りやめ、載せ直しの前の位置に戻します。'
+      dry_run: '載せ直し・push・記録の書き込みをせずに、する予定だけを出すかどうかです。'
+    constraints: []
+    details:
+      - '今のブランチを、積んで着手したときの base の記録を使って、下の段のブランチの新しい位置へ載せ直します。'
+      - '`--check` を付けると、載せ直しが要るかだけを出します。変わるのは、`git fetch` が進める手元の追跡参照だけです。'
+      - '積んでいないブランチ（base の記録が無いか、開発ブランチからの着手の記録）は、載せ直しません。'
+      - '載せ直しが要るのは、下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときです。マージ済みなら開発ブランチへ載せ直し、base の記録を開発ブランチからの着手に変えます。'
+      - 'remote を fetch した後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。'
+      - '`git rebase --no-update-refs --onto <新しい base> <記録の位置>` を打ちます。'
+      - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
+      - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。remote に無いブランチは push しません。'
+      - '載せ直しの後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
+      - '衝突したら、衝突したファイルを出し、rebase を途中のまま残します。途中の記録を書き、終了コード 3 で終わります。'
+      - '`--continue` は、衝突を解いて `git add` した後に続けます。`--abort` は、載せ直しの前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
+      - '`--check`・`--continue`・`--abort` は、1 つだけ渡せます。'
+      - '`--dry-run` を付けると、fetch と判断までを行い、する予定を `dry-run` の行に出します。rebase・push・記録の書き込みは行いません。'
+      - '書き換えるのは、今の作業ディレクトリのブランチだけです。ほかの worktree には触れません。'
+    stdin: none
+    output:
+      format: text
+      description: '`--check` のときだけ、`up to date: <branch> on <base>` か `needs restack: ...` の 1 行を出します。'
+    mcp_output:
+      fields:
+        branch: '載せ直すブランチです。'
+        base: '載せ直した後の base のブランチです。下の段の PR がマージ済みなら、開発ブランチです。'
+        outcome: '起きたことです。`up-to-date`・`needs-restack`・`restacked`・`synced`・`conflict`・`aborted` のどれかです。`check` を付けたときは、載せ直すと何が起きるかです。'
+        cause: '載せ直しが要る理由です。`base-moved` か `base-merged` です。`check` か `dry_run` を付けて、載せ直しが要るときだけ入ります。'
+        pullRequest: '下の段の、マージ済みの PR の番号です。`cause` が `base-merged` のときだけ入ります。'
+        pushed: 'ブランチを push したかどうかです。`outcome` が `restacked` のときだけ入ります。'
+        conflicts: '衝突したファイルの一覧です。`outcome` が `conflict` のときだけ入ります。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。ブランチと記録は変えていません。'
+    diagnostics: '標準エラーに、結果の行を 1 つ出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。失敗は `error` の行で、続けて直し方の行を出します。'
+    environment: []
+    exit_status:
+      - kind: git-unresolved
+        code: 1
+        when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
+      - kind: git-unresolved
+        code: 1
+        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`develop_branch` が未設定です。'
+      - kind: content-invalid
+        code: 1
+        when: '積んだ base の記録か、途中の記録の形が誤っています。'
+      - kind: pr-state
+        code: 1
+        when: '下の段のブランチが remote から消えていて、その PR がマージされていません。'
+      - kind: github-api
+        code: 1
+        when: '下の段の PR を GitHub から読めません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub の認証に失敗しました。'
+      - kind: github-not-found
+        code: 1
+        when: 'リポジトリが GitHub にありません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub の rate limit に当たりました。'
+      - kind: preflight-failed
+        code: 2
+        when: '未コミットの変更があります。`--check`・`--continue`・`--abort` では確かめません。'
+      - kind: git-conflict
+        code: 3
+        when: '載せ直しが衝突しました。`--continue` の後に、また衝突したときも含みます。'
+      - kind: invalid-input
+        code: 2
+        when: '`--check`・`--continue`・`--abort` を 2 つ以上渡したか、途中の記録が無いのに `--continue`・`--abort` を渡しました。pecot の記録が無い rebase の途中のときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'remote のブランチにだけあるコミットがあるか、push が拒まれました。ほかの名前に当たらない失敗も含みます。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒まれたときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。同じコマンドの打ち直しで続きます。remote のブランチにだけあるコミットで止まったときは、何も変えません。'
+    effects:
+      - target: git
+        kind: destructive
+        what: '`git fetch` で追跡参照を進め、今のブランチを rebase で書き換え、`--force-with-lease` で remote のブランチを置き換えます。remote に合わせるときは、今のブランチを remote のブランチの位置に動かします。'
+      - target: github
+        kind: read
+        what: '下の段のブランチを head に持つ PR を読みます。'
+      - target: file
+        kind: write
+        what: '`.pecot/state/.pecot-base` を書き直します。衝突で止まる間は `.pecot/state/.pecot-restack` を置き、終わるか取りやめると消します。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '積んで着手した作業ディレクトリで打ちます（`pecot session start` が base の記録を書きます）。'
+    idempotent: true
+    examples:
+      - run: pecot pr restack --check
+        note: '今のブランチに載せ直しが要るかを確かめます。'
+      - run: pecot pr restack
+        note: '今のブランチを載せ直して push します。'
+      - run: pecot pr restack --continue
+        note: '衝突を解いて `git add` した後に、続けます。'
+      - run: pecot pr restack --abort
+        note: '載せ直しの前の位置に戻します。'
+    default_notes: {}
+    behaviors:
+      - id: PW-PR-RESTACK-01
+        pattern: event
+        statement: '`--check` を付けて、下の段が動いていないときに打つと、`up to date: <branch> on <base>` を標準出力に出します'
+      - id: PW-PR-RESTACK-02
+        pattern: event
+        statement: '`--check` を付けて、下の段の remote の先頭が記録と違うときに打つと、`needs restack: <branch> on <base> (base moved)` を標準出力に出します'
+      - id: PW-PR-RESTACK-03
+        pattern: event
+        statement: '`--check` を付けて、下の段の PR がマージ済みのときに打つと、`needs restack: <branch> onto <develop> (base #N merged)` の行を出します'
+      - id: PW-PR-RESTACK-04
+        pattern: event
+        statement: '載せ直しが要るときに打つと、新しい base へ載せ直して `--force-with-lease` で push します。出す行は `updated: <branch> restacked on <base>` です'
+      - id: PW-PR-RESTACK-05
+        pattern: event
+        statement: '載せ直した結果の木が remote のブランチと同じで、remote のブランチが新しい base に載っている状態で打つと、push せずに remote のブランチへ合わせます。出す行は `updated: <branch> synced with <remote>/<branch>` です'
+      - id: PW-PR-RESTACK-06
+        pattern: event
+        statement: '下の段が動いていないときに打つと、何も変えずに `unchanged: <branch> is up to date` を出します'
+      - id: PW-PR-RESTACK-07
+        pattern: unwanted
+        statement: 'もし載せ直しが衝突したなら、衝突したファイルと `--continue`・`--abort` の案内を出し、途中の記録を書いて、終了コード 3 で終わります'
+      - id: PW-PR-RESTACK-08
+        pattern: unwanted
+        statement: 'もし未コミットの変更があるなら、載せ直さずに終了コード 2 で終わります。`--check` では確かめません'
+      - id: PW-PR-RESTACK-09
+        pattern: unwanted
+        statement: 'もし下の段のブランチが remote から消えていて、その PR がマージされていないなら、終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-10
+        pattern: state
+        statement: '積んでいないブランチの間、fetch と載せ直しをしません。`--check` は `up to date: <branch> on <develop>` を、載せ直しは `unchanged: <branch> is up to date` を出します'
+      - id: PW-PR-RESTACK-11
+        pattern: state
+        statement: 'remote に今のブランチが無い間、載せ直すだけで push しません'
+      - id: PW-PR-RESTACK-12
+        pattern: event
+        statement: '`--abort` を付けて打つと、載せ直しの前の位置に戻し、途中の記録を消して、`unchanged: <branch> restack aborted` を出します'
+      - id: PW-PR-RESTACK-13
+        pattern: event
+        statement: '`--continue` を付けて打つと、rebase を続け、終われば push と記録の書き直しまで進みます。衝突が残っていれば、もう一度終了コード 3 で終わります'
+      - id: PW-PR-RESTACK-14
+        pattern: unwanted
+        statement: 'もし途中の記録が無いのに `--continue` か `--abort` を付けたなら、途中の rebase を動かさずに終了コード 2 で終わります'
+      - id: PW-PR-RESTACK-15
+        pattern: unwanted
+        statement: 'もし `--check`・`--continue`・`--abort` を 2 つ以上付けたなら、終了コード 2 で終わります'
+      - id: PW-PR-RESTACK-16
+        pattern: unwanted
+        statement: 'もし remote のブランチにだけあるコミットがあるなら、載せ直しと push をせずに終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-17
+        pattern: unwanted
+        statement: 'もし push が拒まれたなら、base の記録を書き直さずに終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-18
+        pattern: unwanted
+        statement: 'もし `git fetch` が失敗したなら、終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-19
+        pattern: event
+        statement: '載せ直しか、remote への合わせが済むと、base の記録を新しい base のブランチと位置に書き直します。開発ブランチへ載せ直したときは、積んだ先の Issue を記録から外します'
+      - id: PW-PR-RESTACK-20
+        pattern: unwanted
+        statement: 'もし積んだ base の記録の形が誤っているなら、終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-21
+        pattern: unwanted
+        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-22
+        pattern: event
+        statement: '`--dry-run` を付けて打つと、載せ直し・push・記録の書き込みをせずに、する予定を `dry-run` の行で標準エラーに出します'
   PW-PR-SHOW:
     help:
       details:
@@ -4987,7 +5190,7 @@ entries:
         what: 'アクティブな設定ファイルを読みます。'
       - target: git
         kind: read
-        what: 'ディレクトリの今のブランチと、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。'
+        what: 'ディレクトリの今のブランチと、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。積んだ作業では、下の段のブランチの先頭を `git ls-remote` で remote に尋ねます。'
       - target: github
         kind: read
         what: 'Issue の題を読みます。'
@@ -5084,7 +5287,9 @@ entries:
         - When .pecot-active holds an Issue reference, an Active Issue section follows with the number, the title and the state of the Issue.
         - The body of the Issue follows in the section when it is not empty.
         - When .pecot-active holds an Issue reference and .pecot/state/.pecot-base names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
+        - "The Stack section has a needs restack line (yes or no) after the base line: yes when the head of the base branch on the remote differs from the recorded position or when its PR is merged. The line is decided without git fetch, by asking the remote, and is left out when the remote cannot be reached or the base branch is gone without a merged PR."
         - When the readiness of the active Issue is blocked, the Stack section also has a readiness line.
+        - "When open PRs of the same repository have the current branch as their base, the Stack section lists each as a stacked above line, even in a working directory that is not stacked."
         - The Stack section uses the config and the client of the Active Issue section and is left out when that section is.
         - The command is a diagnostic, so a value that cannot be read is shown as unknown or none, or left out, and does not fail the command.
         - Nothing is written.
@@ -5105,7 +5310,10 @@ entries:
       - '`.pecot-active` に Issue の参照があるときは、Active Issue の節が続きます。Issue の番号・題・状態を載せます。'
       - 'Issue の本文が空でなければ、その節に本文が続きます。'
       - '`.pecot-active` に Issue の参照があり、`.pecot/state/.pecot-base` が積んだ先の Issue を指すときは、Stack の節が続きます。節には、ブランチ・Issue・その PR を書いた base の行を載せます。PR は、fork からではない open の PR です。それが無ければ最新の PR、それも無ければ `no PR` で、読めないときは `PR unknown` です。'
+      - 'Stack の節の base の行の次に、needs restack の行（`yes` か `no`）を載せます。下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときが `yes` です。'
+      - 'needs restack の行は、`git fetch` をせずに remote へ尋ねて決めます。remote に届かないときは、行を出しません。下の段のブランチが消えていて PR がマージされていないときも、行を出しません。'
       - 'アクティブな Issue の着手の判定が `blocked` のときは、Stack の節に readiness の行も載せます。'
+      - '今のブランチを base にした、同じリポジトリの open の PR があれば、Stack の節に PR ごとの stacked above の行を載せます。積んで着手していない作業ディレクトリでも載せます。'
       - 'Stack の節は、Active Issue の節と同じ設定とクライアントを使います。Active Issue の節を出さないときは、Stack の節も出しません。'
       - 'このコマンドは診断用です。読めない値は、`unknown` か `none` と出すか省き、コマンドは失敗しません。'
       - '何も書き込みません。'
@@ -5120,7 +5328,8 @@ entries:
         inferredIssue: 'ブランチ名から推した Issue の番号です。推せないときは入りません。'
         flags: 'セッションのフラグの配列です。要素は `name`・`isSet`・`content` を持ちます。`content` は、フラグが未設定なら空です。'
         activeIssue: '`.pecot-active` の Issue を GitHub から読んだ結果です。未設定のときと、読めなかったときは入りません。`reference`（`owner/repo/N`）・`title`・`state`（`OPEN` か `CLOSED`）を持ちます。'
-        stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
+        stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、載せ直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
+        stackedAbove: '今のブランチを base にした、同じリポジトリの open の PR の一覧です。`number` と `branch`（head のブランチ）を持ちます。無いときと読めないときは入りません。'
     diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。`.pecot-active` に Issue の参照があり、アクティブな Issue を読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
     environment: []
     exit_status:
@@ -5140,13 +5349,13 @@ entries:
     effects:
       - target: git
         kind: read
-        what: 'ディレクトリの今のブランチと、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。'
+        what: 'ディレクトリの今のブランチと、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。積んだ作業では、下の段のブランチの先頭を `git ls-remote` で remote に尋ねます。'
       - target: file
         kind: read
         what: '`.pecot/state/` の下の `.pecot-active` と `.pecot-base`、アクティブな設定ファイルを読みます。'
       - target: github
         kind: read
-        what: '`.pecot-active` にある Issue の題・状態・本文を読みます。積んだ作業では、base のブランチの PR と、Issue の前提も読みます。'
+        what: '`.pecot-active` にある Issue の題・状態・本文を読みます。積んだ作業では、base のブランチの PR と、Issue の前提も読みます。今のブランチを base にした open の PR も読みます。'
     prerequisites: []
     idempotent: true
     examples:
@@ -5235,6 +5444,15 @@ entries:
       - id: PW-SESSION-SHOW-27
         pattern: unwanted
         statement: 'もし着手中の Issue の判定を読めないなら、`warning` の行を標準エラーに出し、Stack の節の base の行は出します'
+      - id: PW-SESSION-SHOW-28
+        pattern: state
+        statement: '積んで着手した作業ディレクトリの間、Stack の節に `needs restack` の行を出します。下の段の remote の先頭が記録の位置と違うか、下の段の PR がマージ済みなら `yes` です'
+      - id: PW-SESSION-SHOW-29
+        pattern: state
+        statement: '今のブランチを base にした open の PR がある間、Stack の節に PR ごとの `stacked above` の行を出します。積んで着手していない作業ディレクトリでも出します'
+      - id: PW-SESSION-SHOW-30
+        pattern: unwanted
+        statement: 'もし今のブランチを base にした PR を読めないなら、`warning` の行を標準エラーに出し、`stacked above` の行を出しません'
   PW-SESSION-START:
     help:
       details:

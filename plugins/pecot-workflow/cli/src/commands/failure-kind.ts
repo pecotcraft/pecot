@@ -28,6 +28,7 @@ export const FAILURE_KINDS = [
   'content-invalid',
   'preflight-failed',
   'pr-state',
+  'git-conflict',
   'partial-failure',
   'other',
 ] as const

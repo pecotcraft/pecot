@@ -29,7 +29,7 @@ import { FLAG_PECOT_ACTIVE, FLAG_PR_CREATE_SLASH_PENDING } from '../domain/state
 import type { BaseReading } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
+import { gitCurrentBranch, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, remoteBranchHead, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { PullRequestSlim, PullRequestWithReviews } from '../infra/github/pulls.js'
 import { TransportFailure } from '../infra/github/client.js'
@@ -62,8 +62,6 @@ const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
 // 下の段の PR が開いておらず、マージもされていない
 const NO_OPEN_BASE_EXIT_CODE = 2
-// git ls-remote --exit-code が、一致する参照が無いときに返す
-const LS_REMOTE_NOT_FOUND = 2
 
 // Python の `{e}` に当たる、例外の文
 export function reasonOf(error: unknown): string {
@@ -339,7 +337,7 @@ interface PullRequestContext {
 }
 
 // pr create の早い確認と pr check が共有する前提。満たさなければ終了コード 1
-function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
+export function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
   if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository', 'git-unresolved')
   const found = primaryRemote(directory)
   if (found === undefined) return stopWith(out, 'git remote not found', 'git-unresolved')
@@ -469,7 +467,7 @@ interface ValidatedInput {
   readonly reading: BaseReading | undefined
 }
 
-function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output>): void {
+export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output>): void {
   if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'), 'content-invalid')
 }
 
@@ -926,18 +924,13 @@ function hasBranch(branch: string, cwd: string): boolean {
   return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
 }
 
-// pr check の ls-remote は、認証の入力を待たずに、この時間で諦める
-const LS_REMOTE_TIMEOUT_MILLISECONDS = 10_000
-// 端末で尋ねさせない。ssh は GIT_SSH_COMMAND で BatchMode にすると利用者の GIT_SSH と core.sshCommand を上書きするので、askpass を失敗させる
-const NON_INTERACTIVE_GIT: Readonly<Record<string, string>> = { GIT_TERMINAL_PROMPT: '0', SSH_ASKPASS: 'false', SSH_ASKPASS_REQUIRE: 'force' }
-
 // 下の段のブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので、
-// remote に尋ね、無い（終了コード 2）ときだけ消えたとみなす。届かないか時間切れなら追跡参照で決める
+// remote に尋ね、無いと答えたときだけ消えたとみなす。届かないか時間切れなら追跡参照で決める
 function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<Output>): boolean {
-  const listed = runGit(['ls-remote', '--exit-code', remote, `refs/heads/${branch}`], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: LS_REMOTE_TIMEOUT_MILLISECONDS })
-  if (listed.exitCode === LS_REMOTE_NOT_FOUND) return false
+  const head = remoteBranchHead(cwd, remote, branch)
+  if (head.isReachable && head.sha === undefined) return false
   const isTracked = hasBranch(`${remote}/${branch}`, cwd)
-  if (!isTracked && listed.exitCode === 0) out.warning(`base branch ${branch} is on ${remote}, but ${remote}/${branch} is not fetched; compared with the develop branch\nrun: git fetch ${remote} ${branch}`)
+  if (!isTracked && head.isReachable) out.warning(`base branch ${branch} is on ${remote}, but ${remote}/${branch} is not fetched; compared with the develop branch\nrun: git fetch ${remote} ${branch}`)
   return isTracked
 }
 

@@ -5,6 +5,7 @@ import { BRANCH_COMMANDS } from './branch.js'
 import type { CommandDefinition } from './command-definition.js'
 import { registerCommandHints } from './command-hint.js'
 import { ISSUE_COMMANDS } from './issue.js'
+import { PR_RESTACK_COMMANDS } from './pr-restack.js'
 import { PR_COMMANDS } from './pr.js'
 import { PROJECT_COMMANDS } from './project.js'
 import { RELEASE_COMMANDS } from './release.js'
@@ -22,6 +23,7 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...ISSUE_COMMANDS,
   ...SESSION_COMMANDS,
   ...PR_COMMANDS,
+  ...PR_RESTACK_COMMANDS,
   ...RELEASE_COMMANDS,
   ...TRACKER_COMMANDS,
   ...WORKTREE_COMMANDS,
