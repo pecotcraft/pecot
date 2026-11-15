@@ -1,21 +1,7 @@
 // T007: 異常系の応答形テスト。
 //
-// 契約基準は aist-roadmap の specs/011-aistv-mcp-server/contracts/mcp-tools.md 「エラー契約」。
-// その 4 ケースを、応答の形として pin する。
-// ケースごとに isError / structuredContent / exitCode の組み合わせが異なる。
-// とくに inputSchema 違反だけは structuredContent を伴わない。
-// SDK v2 は JSON-RPC エラーにせず、`isError: true` の結果として本文に接頭辞なしの `Input validation error: ...` を載せて返す。
-// 本文は部分一致で見る。
-//
-// 4 ケースの組み合わせは次のとおり。
-// - inputSchema 違反: isError は true。structuredContent と exitCode は無し。
-// - 相対パス: isError は true。structuredContent は有り。exitCode は 2。
-// - 実行失敗 (入力不在): isError は true。structuredContent は有り。exitCode は 1。
-// - ハンドラ内未捕捉例外: isError は true。structuredContent と exitCode は無し (SDK が包む)。
-//
-// SC-005 (サーバ稼働継続) は 2 段で見る。
-// 1 段目は、実ツールのエラー 2 連投後に正常呼び出しが通ること。
-// 2 段目は、意図的に throw するツールを登録したサーバで後続呼び出しが通ること。
+// 4 ケースの組み合わせ: inputSchema 違反と未捕捉例外は structuredContent を伴わず、相対パス (invalid-path) と実行失敗は kind つきで返す。
+// SC-005 (サーバ稼働継続) は、エラーの後に正常呼び出しが通ることで見る。
 
 import path from 'node:path'
 
@@ -98,9 +84,9 @@ describe('MCP ツールの異常系応答', () => {
     expect(firstTextOf(called)).toContain('Input validation error:')
   })
 
-  it('相対パスは実処理を呼ばずに exitCode 2 で返す', async () => {
-    // 存在しない相対パスを渡す。実処理まで進んでいれば「入力不在」の exitCode 1 になるため、
-    // exitCode 2 が返ること自体、「実行前に弾いた」証拠になる。
+  it('相対パスは実処理を呼ばずに invalid-path で返す', async () => {
+    // 存在しない相対パスを渡す。実処理まで進んでいれば「入力不在」の input-not-found になるため、
+    // invalid-path が返ること自体、「実行前に弾いた」証拠になる。
     const called = await client().callTool({
       name: 'drawio_create',
       arguments: { input_path: 'no-such-dir-980/missing.drawio' },
@@ -108,13 +94,11 @@ describe('MCP ツールの異常系応答', () => {
     const structured = structuredOf(called)
 
     expect(called.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(structured['artifacts']).toEqual([])
-    expect(structured['message']).toContain('must be an absolute path')
+    expect(structured['kind']).toBe('invalid-path')
+    expect(firstTextOf(called)).toContain('must be an absolute path')
   })
 
-  it('入力ファイル不在は実行失敗として exitCode 1 で返す', async () => {
+  it('入力ファイル不在は実行失敗として input-not-found で返す', async () => {
     const called = await client().callTool({
       name: 'drawio_create',
       arguments: { input_path: MISSING_DRAWIO },
@@ -122,11 +106,9 @@ describe('MCP ツールの異常系応答', () => {
     const structured = structuredOf(called)
 
     expect(called.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(structured['artifacts']).toEqual([])
-    expect(typeof structured['message']).toBe('string')
-    expect(structured['message']).not.toBe('')
+    expect(structured['kind']).toBe('input-not-found')
+    expect(structured).not.toHaveProperty('reason')
+    expect(firstTextOf(called)).toBe(structured['detail'])
   })
 
   it('エラー 2 連投のあとでも同じ接続で正常呼び出しが通る', async (context) => {
@@ -141,9 +123,8 @@ describe('MCP ツールの異常系応答', () => {
     expect(invalid.isError).toBe(true)
     expect(failed.isError).toBe(true)
     expect(succeeded.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(isRecord(structured['data']) ? structured['data']['url'] : undefined)
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['url'])
       .toEqual(expect.stringContaining('https://'))
   })
 

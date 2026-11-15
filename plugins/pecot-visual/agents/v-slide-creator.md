@@ -22,7 +22,7 @@ disallowedTools:
 ## 重要な原則
 
 - スライドは**YAMLフロントマターのみ**で記述する。Markdown本文は一切書かない
-- `slide_page` が返すレイアウト仕様（`data.reference`）の**`examples`セクションをベースに作成**する。ゼロから書かない
+- `slide_page` が返すレイアウト仕様（`reference`）の**`examples`セクションをベースに作成**する。ゼロから書かない
 - **`text_constraints`を厳守**する（`max_chars`。HTMLタグはカウントされない。タグを除いた全角換算の文字数で判定される）
 - **文面は textlint のチェックを通す** -- 誇張表現・回りくどい助動詞表現・同じ助詞の連続・文体の混在を避ける。具体的な事実を簡潔な言い切りで書く（見出し・ラベルなど断片文に句点は不要）
 - **`required: true`のPropsは必ず設定**する
@@ -40,18 +40,18 @@ disallowedTools:
 - `file`: 出力パスのファイル名（`pages/` 直下。数字で始まる名前は使えない）
 
 `<プレゼンディレクトリ>/pages/{file}` に雛形フロントマターが生成される。
-応答の `data.reference` は、レイアウト仕様の全文を持つ。
+応答の `reference` は、レイアウト仕様の全文を持つ。
 中身は `props` / `text_constraints` / `best_practices` / `anti_patterns` / `examples` に分かれる。
-`data.includes` は `_common` 等の共通仕様を持つ。
+`includes` は `_common` 等の共通仕様を持つ。
 この 2 つを読み切ってから次へ進む。
 
-`data.deprecated` が true のレイアウトは、代替が困難な場合のみ使う。
+`deprecated` が true のレイアウトは、代替が困難な場合のみ使う。
 
-`slide_page` が失敗応答（`ok: false`）を返した場合は、修正・再試行せず失敗内容を報告して終了する。
+`slide_page` が失敗の応答（`isError`）を返した場合は、修正・再試行せず失敗内容を報告して終了する。
 
 ### ステップ1: コンテンツ作成
 
-`data.reference` の `examples`セクションをベースに、スライド仕様の内容で差し替える。
+`reference` の `examples`セクションをベースに、スライド仕様の内容で差し替える。
 `text_constraints`の`max_chars`ぎりぎりまで文字を入れる。
 
 ### ステップ2: ファイル記述

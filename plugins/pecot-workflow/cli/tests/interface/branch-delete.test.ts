@@ -150,17 +150,17 @@ describe('branch delete', () => {
 
     it('ブランチを削除すると、ブランチ・リポジトリ・deleted・削除した wip ブランチを data に返す', async () => {
       const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7')] })
-      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true, wipBranch: 'wip/feat/7' })
+      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true, wipBranch: 'wip/feat/7' })
     })
 
     it('wip ブランチが無いと、wipBranch を返さない', async () => {
       const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7', 422, { message: 'Reference does not exist' })] })
-      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true })
+      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true })
     })
 
     it('wip ブランチを削除できないと、wipBranch を返さず、warning を data.warnings に返す', async () => {
       const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7', 403, { message: 'Forbidden' })] })
-      expect(result.structured.data).toEqual({
+      expect(result.structured).toEqual({
         branch: 'feat/7',
         repository: 'acme/demo',
         deleted: true,
@@ -170,13 +170,13 @@ describe('branch delete', () => {
 
     it('dry_run で打つと、deleted を false にして dryRun を返す', async () => {
       const result = await runTool({ tool: 'branch_delete', arguments: { ...ARGUMENTS, dry_run: true }, github: [repository()] })
-      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: false, dryRun: true })
+      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: false, dryRun: true })
     })
 
     it('本流のブランチの削除で失敗すると、deleted を返さない', async () => {
       const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7', 422, { message: 'Validation Failed' })] })
-      expect(result.structured).toMatchObject({ ok: false })
-      expect(result.structured.data).not.toHaveProperty('deleted')
+      expect(result.isError).toBe(true)
+      expect(result.structured).not.toHaveProperty('deleted')
     })
   })
 })

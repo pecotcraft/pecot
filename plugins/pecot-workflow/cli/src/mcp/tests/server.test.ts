@@ -11,7 +11,7 @@ import { UsageError } from '../../commands/usage-error.js'
 import { exitWith, failWith, throwFailure } from '../../commands/tests/support.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { prepareProject } from '../../../tests/_helpers/board-issue-case.js'
-import { connectInMemory, outcomeOf, structuredOf } from '../../../tests/_helpers/mcp-client.js'
+import { connectInMemory, outcomeOf, outputSchemaIssues, structuredOf, toolOutcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import type { ConnectedClient } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import type { McpServerOptions } from '../server.js'
@@ -117,10 +117,10 @@ const COMMANDS: readonly CommandDefinition[] = [
 
 const TYPED_OUTPUT = z.strictObject({ name: z.string(), count: z.int().optional() })
 
-// mode で、合う data・合わない data・途中まで進んだ失敗を返す
+// mode で、合う項目・合わない項目・途中まで進んだ失敗を返す
 const TYPED = defineCommand({
   path: ['typed'],
-  description: '型のある data を返す',
+  description: '型のある項目を返す',
   input: z.object({ mode: z.enum(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong']) }),
   output: TYPED_OUTPUT,
   positional: ['mode'],
@@ -131,24 +131,19 @@ const TYPED = defineCommand({
     if (input.mode === 'wrong') {
       out.done({ verb: 'create', target: 'issue #1' })
       out.result({ count: 1 })
-      out.artifact('/abs/made.md')
       return await exitWith(0)
     }
     if (input.mode === 'fail' || input.mode === 'fail-wrong') {
       out.result({ name: 'x', count: input.mode === 'fail' ? 2 : 2.5 })
-      out.artifact('/abs/half.md')
       out.error('half done\nhint: retry')
       return await exitWith(1, 'github-api')
     }
     if (input.mode === 'crash' || input.mode === 'crash-wrong') {
       out.result({ count: input.mode === 'crash' ? 4 : 4.5 })
-      out.artifact('/abs/half.md')
       return await failWith('boom')
     }
     out.result({ name: 'a' })
     if (input.mode === 'twice') out.result({ name: 'b', count: 3 })
-    out.artifact('/abs/file.md')
-    out.artifact('/abs/file.md')
     return await exitWith(0)
   },
 })
@@ -184,47 +179,46 @@ afterEach(async () => {
 })
 
 describe('ツールの呼び出し', () => {
-  it('終了コード 0 なら、stdout・stderr を載せずに、structuredContent と同じ JSON の本文にし、isError を付けずに返す', async () => {
+  it('終了コード 0 なら、stdout・stderr を載せずに、結果の行の文と structuredContent と同じ JSON の 2 つの text にし、isError を付けずに返す', async () => {
     const result = await call('echo', { text: 'hi', count: 2 })
     expect(result.isError).toBeUndefined()
-    expect(result.structuredContent).toEqual({ ok: true, exitCode: 0, artifacts: [], data: {}, message: 'echo hi' })
-    expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
+    expect(result.structuredContent).toEqual({})
+    expect(result.content).toEqual([{ type: 'text', text: 'echo hi' }, { type: 'text', text: '{}' }])
     expect(calls).toEqual([{ text: 'hi', count: 2 }])
   })
 
-  it('終了コードが 0 でなければ、isError を付けて、終了コードをそのまま返す', async () => {
+  it('終了コードが 0 でなければ、isError を付けて、kind と detail を返す', async () => {
     const result = await call('exit_three')
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 3, kind: 'other', artifacts: [], data: { reason: 'other', detail: '' }, message: '' })
+    expect(structuredOf(result)).toEqual({ kind: 'other', detail: '' })
   })
 
-  it('確認が要るのに入力が無いと、Aborted. を data.detail に入れて終了コード 1 にする', async () => {
+  it('確認が要るのに入力が無いと、detail が Aborted. の失敗を返す', async () => {
     const result = await call('ask')
-    expect(result.isError).toBe(true)
-    expect(outcomeOf(result)).toEqual({ exitCode: 1, detail: 'Overwrite? [y/N]:Aborted.', warnings: [] })
+    expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Overwrite? [y/N]:Aborted.', warnings: [] })
   })
 
-  it('本体が投げた context の無い使い方の誤りには、コマンドの使い方を付けて終了コード 2 にする', async () => {
+  it('本体が投げた context の無い使い方の誤りには、コマンドの使い方を detail に付けて invalid-input の失敗にする', async () => {
     const result = await call('bad_parameter')
     const structured = outcomeOf(result)
-    expect(structured.exitCode).toBe(2)
+    expect(structured.isError).toBe(true)
     expect(structured.detail).toContain('Usage: ')
     expect(structured.detail).toContain('bad parameter')
     expect(structured.detail).toContain('Invalid value for x')
-    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input', message: 'Invalid value for x' })
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
   })
 
-  it('報告できる失敗は、error: の行の文を data.detail に入れて終了コード 1 にする', async () => {
+  it('報告できる失敗は、error: の行の文を detail と文の text に入れる', async () => {
     const result = await call('pecot_failure')
-    expect(outcomeOf(result)).toEqual({ exitCode: 1, detail: 'ルートがありません', warnings: [] })
-    expect(structuredOf(result)).toMatchObject({ kind: 'other', message: 'ルートがありません' })
+    expect(outcomeOf(result)).toEqual({ isError: true, detail: 'ルートがありません', warnings: [] })
+    expect(toolOutcomeOf(result)).toMatchObject({ text: 'ルートがありません', structured: { kind: 'other' } })
   })
 
   it('プログラムの誤りは、kind が other の JSON の結果にして、報告先にも伝える', async () => {
     const result = await call('bug')
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 1, kind: 'other', artifacts: [], data: { reason: 'other', detail: 'boom' }, message: 'boom' })
-    expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
+    expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'boom' })
+    expect(result.content).toEqual([{ type: 'text', text: 'boom' }, { type: 'text', text: JSON.stringify(result.structuredContent) }])
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(Error)
   })
@@ -237,7 +231,7 @@ describe('ツールの呼び出し', () => {
 
   it('自分の repo を持つコマンドの repo は、コマンド自身の入力として届く', async () => {
     const result = await call('own_repo', { repo: 'acme/demo' })
-    expect(structuredOf(result)).toMatchObject({ exitCode: 0, message: 'acme/demo' })
+    expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'acme/demo', structured: {} })
   })
 
   it('呼び出しは並行に来ても、1 件ずつ順に実行する', async () => {
@@ -257,17 +251,16 @@ describe('ツールの呼び出し', () => {
       client.callTool({ name: 'echo', arguments: { text: 'after' } }),
     ])
     expect(broken.isError).toBe(true)
-    expect(structuredOf(fine)).toMatchObject({ exitCode: 0, message: 'echo after' })
+    expect(toolOutcomeOf(fine)).toMatchObject({ isError: false, text: 'echo after' })
   })
 })
 
 describe('PECOT_GITHUB_API_URL', () => {
-  it('ループバックの http でなければ、入力の検証より先に、error: の行と終了コード 1 にする', async () => {
+  it('ループバックの http でなければ、入力の検証より先に失敗を返し、detail は error: の行の文になる', async () => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'https://example.com' })
     const result = await call('echo', { unknown: true })
-    expect(result.isError).toBe(true)
     expect(outcomeOf(result)).toEqual({
-      exitCode: 1,
+      isError: true,
       detail: 'PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://example.com',
       warnings: [],
     })
@@ -277,7 +270,7 @@ describe('PECOT_GITHUB_API_URL', () => {
   it('ループバックの http なら、そのまま実行する', async () => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.0.0.1:9' })
     const result = await call('echo', { text: 'hi' })
-    expect(structuredOf(result)).toMatchObject({ exitCode: 0, message: 'echo hi' })
+    expect(toolOutcomeOf(result)).toMatchObject({ isError: false, text: 'echo hi' })
   })
 })
 
@@ -285,7 +278,7 @@ describe('入力の検証の誤り', () => {
   it('定義に無いキーが複数あると、全部を名指しして、本体を呼ばない', async () => {
     const result = await call('echo', { text: 'hi', one: 1, two: 2 })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: { reason: 'invalid-input', detail: 'invalid input: unknown keys \'one\', \'two\'' }, message: 'invalid input: unknown keys \'one\', \'two\'' })
+    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown keys \'one\', \'two\'' })
     expect(calls).toEqual([])
   })
 
@@ -293,14 +286,14 @@ describe('入力の検証の誤り', () => {
     const { client } = await open(REAL_COMMANDS.filter(command => command.path.join(' ') === 'issue comment'))
     const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'o/r/1', message: 'm' } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: { reason: 'invalid-input', detail: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' }, message: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
+    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
   })
 
   it('グローバルの repo の形が owner/repo でないと、本体を呼ばない', async () => {
     const result = await call('echo', { text: 'hi', repo: 'nope' })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(structuredOf(result).message).toContain('invalid input: repo: ')
+    expect(outcomeOf(result).detail).toContain('invalid input: repo: ')
     expect(calls).toEqual([])
   })
 
@@ -314,13 +307,13 @@ describe('入力の検証の誤り', () => {
     const result = await call('echo', { text: 'hi', flag: 'true' })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(structuredOf(result).message).toContain('invalid input: flag: ')
+    expect(outcomeOf(result).detail).toContain('invalid input: flag: ')
     expect(calls).toEqual([])
   })
 
   it('必須の入力が無いと、入力の名前を添えて断る', async () => {
     const result = await call('echo')
-    expect(structuredOf(result).message).toContain('invalid input: text: ')
+    expect(outcomeOf(result).detail).toContain('invalid input: text: ')
   })
 
   it('検証の途中で投げたプログラムの誤りは、isError の結果にして、報告先にも伝える', async () => {
@@ -340,7 +333,7 @@ describe('入力の検証の誤り', () => {
     } })
     const result = await client.callTool({ name: 'broken', arguments: {} })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toMatchObject({ ok: false, exitCode: 1, kind: 'other', message: 'refine bug' })
+    expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'refine bug' })
     expect(unexpected).toHaveLength(1)
   })
 
@@ -383,13 +376,13 @@ describe('入力の検証の誤り', () => {
     } })
     const result = await client.callTool({ name: 'noisy', arguments: {} })
     expect(reported).toEqual([{ stdout: 'half\n', stderr: 'warn\n' }])
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 1, kind: 'other', artifacts: [], data: { reason: 'other', detail: 'warn' }, message: 'boom' })
+    expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'warn' })
   })
 
   it('引数が無くても、空の入力として検証する', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'exit_three' })
-    expect(structuredOf(result)).toMatchObject({ exitCode: 3, kind: 'other' })
+    expect(toolOutcomeOf(result)).toMatchObject({ isError: true, structured: { kind: 'other' } })
   })
 
   it('入力の全体を見る検証の誤りは、名前を付けずに文だけを返す', async () => {
@@ -404,20 +397,19 @@ describe('入力の検証の誤り', () => {
     })
     const { client } = await open([refined])
     const result = await client.callTool({ name: 'refined', arguments: { a: 'x', b: 'y' } })
-    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input', message: 'invalid input: a と b は同時に渡せません' })
+    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: a と b は同時に渡せません' })
   })
 })
 
 describe('対象のリポを決められなかったとき', () => {
   const reason = 'cannot determine the target repository: test'
 
-  it('どのツールもコマンドを呼ばず、理由を data.detail に持つ失敗を返す', async () => {
+  it('どのツールもコマンドを呼ばず、理由を detail に持つ失敗を返す', async () => {
     const { client } = await open(COMMANDS, { unavailableReason: reason })
     for (const name of ['echo', 'own_repo', 'bug']) {
       const result = await client.callTool({ name, arguments: {} })
       expect(result.isError).toBe(true)
-      expect(outcomeOf(result)).toEqual({ exitCode: 1, detail: reason, warnings: [] })
-      expect(structuredOf(result)).toMatchObject({ kind: 'session-directory-unresolved', message: reason })
+      expect(structuredOf(result)).toEqual({ kind: 'session-directory-unresolved', detail: reason })
     }
     expect(calls).toEqual([])
   })
@@ -442,20 +434,11 @@ describe('失敗の原因の名前', () => {
     const { client } = await open(BOARD_ADD_COMMANDS)
     const result = await client.callTool({ name: 'board_add', arguments: { issue_ref: 'acme/demo/7', status: 'active' } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({
-      ok: false,
-      exitCode: 1,
-      kind: 'status-not-configured',
-      artifacts: [],
-      data: { reason: 'status-not-configured', detail: 'status \'active\' is not configured in the project' },
-      message: 'status \'active\' is not configured in the project',
-    })
+    expect(structuredOf(result)).toEqual({ kind: 'status-not-configured', detail: 'status \'active\' is not configured in the project' })
   })
 })
 
-const BranchSchema = z.looseObject({ properties: z.record(z.string(), z.unknown()), additionalProperties: z.literal(false) })
-const DataSchema = z.looseObject({ anyOf: z.array(BranchSchema) })
-const DataBranchesSchema = z.looseObject({ properties: z.looseObject({ data: DataSchema }) })
+const SchemaShape = z.looseObject({ type: z.literal('object'), properties: z.record(z.string(), z.unknown()), anyOf: z.array(z.unknown()).optional() })
 
 async function callTyped(mode: string): Promise<Awaited<ReturnType<ConnectedClient['client']['callTool']>>> {
   const { client } = await open([TYPED], { reportUnexpected: (error) => {
@@ -464,100 +447,75 @@ async function callTyped(mode: string): Promise<Awaited<ReturnType<ConnectedClie
   return await client.callTool({ name: 'typed', arguments: { mode } })
 }
 
-describe('成功の data', () => {
-  it('result・artifact・warning で渡した値を、data・重なりの無い artifacts・data.warnings へ入れる', async () => {
+describe('結果の項目', () => {
+  it('result・warning で渡した値を、structuredContent の最上位の項目と warnings に入れる', async () => {
     const result = await callTyped('ok')
     expect(result.isError).toBeUndefined()
-    expect(result.structuredContent).toEqual({ ok: true, exitCode: 0, artifacts: ['/abs/file.md'], data: { name: 'a', warnings: ['slow API'] }, message: '' })
+    expect(result.structuredContent).toEqual({ name: 'a', warnings: ['slow API'] })
+    expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
   })
 
   it('result を何度も呼ぶと、項目を浅く重ねて後の値を残す', async () => {
     const result = await callTyped('twice')
-    expect(structuredOf(result).data).toEqual({ name: 'b', count: 3, warnings: ['slow API'] })
+    expect(structuredOf(result)).toEqual({ name: 'b', count: 3, warnings: ['slow API'] })
   })
 
-  it('終了コード 0 で data が output に合わないと、data と artifacts を残した other の失敗にし、呼び直さないよう伝えて、報告先に伝える', async () => {
+  it('終了コード 0 で項目が output に合わないと、省略可の形に合う項目を残した other の失敗にし、呼び直さないよう detail で伝えて、報告先に伝える', async () => {
     const result = await callTyped('wrong')
     expect(result.isError).toBe(true)
-    const message = 'the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again'
-    expect(result.structuredContent).toEqual({
-      ok: false,
-      exitCode: 1,
-      kind: 'other',
-      artifacts: ['/abs/made.md'],
-      data: { count: 1, reason: 'other', detail: message, warnings: ['slow API'] },
-      message,
-    })
+    const detail = 'the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again'
+    expect(result.structuredContent).toEqual({ kind: 'other', detail, count: 1, warnings: ['slow API'] })
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(z.ZodError)
   })
 
-  it('失敗では、reason・detail と、途中まで進んだ項目と artifacts を data に入れる', async () => {
+  it('失敗では、kind・detail と、途中まで進んだ項目を最上位に入れ、reason を入れない', async () => {
     const result = await callTyped('fail')
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toEqual({
-      ok: false,
-      exitCode: 1,
-      kind: 'github-api',
-      artifacts: ['/abs/half.md'],
-      data: { name: 'x', count: 2, reason: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] },
-      message: 'half done',
-    })
+    expect(result.structuredContent).toEqual({ kind: 'github-api', detail: 'half done\n  hint: retry', name: 'x', count: 2, warnings: ['slow API'] })
     expect(unexpected).toEqual([])
   })
 
-  it('失敗で data が output の省略可の形に合わないと、kind・終了コード・message・artifacts を保って成功の項目を捨て、報告先に伝える', async () => {
+  it('失敗で項目が output の省略可の形に合わないと、kind・detail を保ってツールの項目を捨て、報告先に伝える', async () => {
     const result = await callTyped('fail-wrong')
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toEqual({
-      ok: false,
-      exitCode: 1,
-      kind: 'github-api',
-      artifacts: ['/abs/half.md'],
-      data: { reason: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] },
-      message: 'half done',
-    })
+    expect(result.structuredContent).toEqual({ kind: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] })
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(z.ZodError)
   })
 
-  it('プログラムの誤りで終わると、途中まで集めた data と artifacts を other の失敗に載せる', async () => {
+  it('プログラムの誤りで終わると、途中まで集めた項目を other の失敗に載せる', async () => {
     const result = await callTyped('crash')
-    expect(result.structuredContent).toEqual({
-      ok: false,
-      exitCode: 1,
-      kind: 'other',
-      artifacts: ['/abs/half.md'],
-      data: { count: 4, reason: 'other', detail: 'boom', warnings: ['slow API'] },
-      message: 'boom',
-    })
+    expect(result.structuredContent).toEqual({ kind: 'other', detail: 'boom', count: 4, warnings: ['slow API'] })
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(Error)
   })
 
-  it('プログラムの誤りで終わり、途中の data も output の省略可の形に合わないと、成功の項目を捨てて artifacts を残す', async () => {
+  it('プログラムの誤りで終わり、途中の項目も output の省略可の形に合わないと、ツールの項目を捨てる', async () => {
     const result = await callTyped('crash-wrong')
-    expect(result.structuredContent).toEqual({
-      ok: false,
-      exitCode: 1,
-      kind: 'other',
-      artifacts: ['/abs/half.md'],
-      data: { reason: 'other', detail: 'boom', warnings: ['slow API'] },
-      message: 'boom',
-    })
+    expect(result.structuredContent).toEqual({ kind: 'other', detail: 'boom', warnings: ['slow API'] })
     expect(unexpected).toHaveLength(2)
     expect(unexpected[1]).toBeInstanceOf(z.ZodError)
   })
 
-  it('tools/list の outputSchema の data は、成功の型と失敗の型の anyOf で、最上位は 6 つの名前だけ', async () => {
+  it.for(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong'])('mode %s の structuredContent は、tools/list の outputSchema に合う', async (mode) => {
     const { client } = await open([TYPED])
     const { tools } = await client.listTools()
-    const raw = z.looseObject({ properties: z.record(z.string(), z.unknown()) }).parse(tools[0]?.outputSchema)
-    expect(Object.keys(raw.properties)).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
-    const schema = DataBranchesSchema.parse(tools[0]?.outputSchema)
-    expect(schema.properties.data.anyOf.map(branch => Object.keys(branch.properties))).toEqual([
-      ['name', 'count', 'warnings'],
-      ['name', 'count', 'reason', 'detail', 'warnings', 'log'],
-    ])
+    const result = await callTyped(mode)
+    expect(await outputSchemaIssues(SchemaShape.parse(tools[0]?.outputSchema), result.structuredContent)).toEqual([])
+  })
+
+  it('tools/list の outputSchema は、最上位の properties にツールの項目と共通の 4 項目を並べ、anyOf で成功の必須項目か kind と detail を求める', async () => {
+    const { client } = await open([TYPED])
+    const { tools } = await client.listTools()
+    const schema = SchemaShape.parse(tools[0]?.outputSchema)
+    expect(Object.keys(schema.properties)).toEqual(['name', 'count', 'kind', 'detail', 'log', 'warnings'])
+    expect(schema).toMatchObject({ additionalProperties: false, anyOf: [{ required: ['name'] }, { required: ['kind', 'detail'] }] })
+  })
+
+  it('成功の必須項目が無いツールの outputSchema に、anyOf が無い', async () => {
+    const { client } = await open(COMMANDS.slice(0, 1))
+    const { tools } = await client.listTools()
+    expect(SchemaShape.parse(tools[0]?.outputSchema).anyOf).toBeUndefined()
   })
 })

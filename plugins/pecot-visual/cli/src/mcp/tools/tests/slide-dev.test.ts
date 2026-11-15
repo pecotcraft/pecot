@@ -47,9 +47,13 @@ function structuredOf(result: Readonly<CallToolResult>): Record<string, unknown>
 }
 
 function dataOf(result: Readonly<CallToolResult>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 /**
@@ -731,14 +735,14 @@ describe('slideDevTool', () => {
     rmSync(workDirectory, { recursive: true, force: true })
   })
 
-  it('相対パスは実処理前に exitCode 2 で弾く', async () => {
+  it('相対パスは実処理前に invalid-path で弾く', async () => {
     const result = await toolWith(unusedRegistry()).handler({ dir: 'relative/deck', stop: false }, CALL)
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)).toHaveProperty('invalidPaths')
   })
 
-  it('talk-dir が無ければ spawn せず即失敗し、data.log を載せない', async (context) => {
+  it('talk-dir が無ければ spawn せず即失敗し、log を載せない', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-07')
     const result = await toolWith(unusedRegistry()).handler(
       { dir: path.join(workDirectory, 'no-such-deck'), stop: false },
@@ -746,7 +750,7 @@ describe('slideDevTool', () => {
     )
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)['reason']).toBe('talk-dir-not-found')
+    expect(structuredOf(result)['kind']).toBe('talk-dir-not-found')
     expect(dataOf(result)).not.toHaveProperty('log')
     expect(structuredOf(result)).not.toHaveProperty('stderr')
   })
@@ -757,7 +761,7 @@ describe('slideDevTool', () => {
 
     const result = await toolWith(unusedRegistry()).handler({ dir: talkDirectory, stop: false }, CALL)
 
-    expect(dataOf(result)['reason']).toBe('slides-md-not-found')
+    expect(structuredOf(result)['kind']).toBe('slides-md-not-found')
   })
 
   it('node_modules を解決できなければ slide_sync を案内する', async () => {
@@ -767,7 +771,7 @@ describe('slideDevTool', () => {
 
     const result = await toolWith(unusedRegistry()).handler({ dir: talkDirectory, stop: false }, CALL)
 
-    expect(dataOf(result)['reason']).toBe('node-modules-unresolved')
+    expect(structuredOf(result)['kind']).toBe('node-modules-unresolved')
     expect(String(dataOf(result)['detail'])).toContain('`slide_sync`')
   })
 
@@ -779,7 +783,7 @@ describe('slideDevTool', () => {
     const result = await tool.handler({ dir: talkDirectory, stop: false }, CALL)
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)['reason']).toBe('theme-none')
+    expect(structuredOf(result)['kind']).toBe('theme-none')
   })
 
   it('テーマの取得に失敗したら、原因ごとの reason と文言で止まり、spawn しない', async () => {
@@ -792,7 +796,7 @@ describe('slideDevTool', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['event']).toBe('slide.dev.error')
-    expect(dataOf(result)['reason']).toBe('theme-tag')
+    expect(structuredOf(result)['kind']).toBe('theme-tag')
     expect(String(dataOf(result)['detail'])).toContain('タグ名を確認してください')
   })
 
@@ -804,7 +808,7 @@ describe('slideDevTool', () => {
       CALL,
     )
 
-    expect(dataOf(result)['reason']).toBe('theme-none')
+    expect(structuredOf(result)['kind']).toBe('theme-none')
   })
 
   it('テーマの張り直しは node_modules の確認より前に行う (張り直しで復旧できる状態を拒まない)', async () => {
@@ -896,7 +900,7 @@ describe('slideDevTool', () => {
     expect(calls).toStrictEqual(['start'])
   })
 
-  it('MCP のキャンセルの signal と警告の出力先を、テーマの取得へ渡し、警告を data.warnings に載せる', async () => {
+  it('MCP のキャンセルの signal と警告の出力先を、テーマの取得へ渡し、警告を warnings に載せる', async () => {
     const received: { signal: AbortSignal | undefined }[] = []
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(557).child }))
     const controller = new AbortController()
@@ -915,10 +919,10 @@ describe('slideDevTool', () => {
     expect(dataOf(result)['warnings']).toEqual(['取得中の警告'])
   })
 
-  it('テーマの取得に失敗したときも、取得中の警告を data.warnings に残す', async () => {
+  it('テーマの取得に失敗したときも、取得中の警告を warnings に残す', async () => {
     const result = await toolWith(unusedRegistry(), failingAfterWarning).handler({ dir: talkDirectory, stop: false }, CALL)
 
-    expect(dataOf(result)['reason']).toBe('theme-connection')
+    expect(structuredOf(result)['kind']).toBe('theme-connection')
     expect(dataOf(result)['warnings']).toEqual(['取得中の警告'])
   })
 
@@ -960,7 +964,7 @@ describe('slideDevTool', () => {
       reused: false,
       pid: 555,
     })
-    expect(String(structuredOf(result)['message'])).toContain('http://localhost:3030')
+    expect(sentenceOf(result)).toContain('http://localhost:3030')
   })
 
   it('port を指定したらそのポートで起動する', async (context) => {
@@ -980,8 +984,8 @@ describe('slideDevTool', () => {
     const result = await toolWith(registry).handler({ dir: talkDirectory, port: 5000, stop: false }, CALL)
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)['reason']).toBe('dev-server-port-in-use')
-    expect(String(structuredOf(result)['message'])).toContain('5000')
+    expect(structuredOf(result)['kind']).toBe('dev-server-port-in-use')
+    expect(sentenceOf(result)).toContain('5000')
   })
 
   it.each([0, 65_536, 3030.5])('ポートとして成り立たない port (%s) は受け付けない', async (port) => {
@@ -1010,7 +1014,7 @@ describe('slideDevTool', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.dev.reused', reused: true, port: 3030 })
   })
 
-  it('起動に失敗したら、捕捉した出力を data.log に添えて返す', async () => {
+  it('起動に失敗したら、捕捉した出力を log に添えて返す', async () => {
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -1027,12 +1031,12 @@ describe('slideDevTool', () => {
     const result = await toolWith(registry).handler({ dir: talkDirectory, stop: false }, CALL)
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)['reason']).toBe('dev-server-exited')
+    expect(structuredOf(result)['kind']).toBe('dev-server-exited')
     expect(String(dataOf(result)['log'])).toContain('起動に失敗')
-    expect(String(dataOf(result)['detail'])).toContain('see data.log')
+    expect(String(dataOf(result)['detail'])).toContain('see log')
   })
 
-  it('起動に失敗した子の出力が上限を超えても、早く出た warning を data.warnings に残す', async () => {
+  it('起動に失敗した子の出力が上限を超えても、早く出た warning を warnings に残す', async () => {
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {

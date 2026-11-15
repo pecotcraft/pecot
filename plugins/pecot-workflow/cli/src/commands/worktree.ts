@@ -130,11 +130,7 @@ function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>
     out.done(operation)
     out.data(result.path)
     const created = { name: result.name, path: result.path, branch: result.branch, base: result.baseBranch }
-    if (input.dry_run) out.result(created)
-    else {
-      out.result({ ...created, setupFailed: result.setupResult !== undefined && result.setupResult.exitCode !== 0 })
-      out.artifact(result.path)
-    }
+    out.result(input.dry_run ? created : { ...created, setupFailed: result.setupResult !== undefined && result.setupResult.exitCode !== 0 })
     if (result.linkedFiles.length > 0) countLinkResults(result.linkedFiles, out)
     if (result.copiedFiles.length > 0) countCopyResults(result.copiedFiles, out)
     return 0
@@ -227,12 +223,10 @@ function writeInitFiles(configFile: string, ignoreFile: string, config: Readonly
     saveConfig(config, configFile)
     out.done({ verb: 'create', target: `worktree config ${configFile}` })
     out.result({ configFile })
-    out.artifact(configFile)
     mkdirSync(path.dirname(ignoreFile), { recursive: true })
     writeFileSync(ignoreFile, DEFAULT_WORKTREEIGNORE_CONTENT)
     out.done({ verb: 'create', target: `worktree ignore file ${ignoreFile}` })
     out.result({ ignoreFile })
-    out.artifact(ignoreFile)
   }
   catch (error: unknown) {
     throw hasErrorCode(error) ? toOsError(error) : error
@@ -391,7 +385,6 @@ function applyLinks(target: string, config: Readonly<WorktreeConfig>, projectRoo
     if (result.action === 'created') return { ...base, change: plans.at(index) === 'create' ? 'create' : 'update' }
     return { ...base, change: result.action === 'skipped' ? 'skip' : 'error', reason: result.message }
   })
-  for (const entry of links) if (entry.change === 'create' || entry.change === 'update') out.artifact(entry.path)
   return { counts: [created.length, skipped.length, results.filter(result => result.action === 'error').length], links }
 }
 

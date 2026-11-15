@@ -9,7 +9,7 @@ import { normalizeInput } from '../../src/commands/input-schema.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { parseJson } from '../../src/tests/_helpers/json.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { connectInMemory, outcomeOf, structuredOf } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
 
 const GENERATED = path.resolve(import.meta.dirname, '../../../interface/generated.json')
@@ -22,6 +22,20 @@ const EntrySchema = z.object({
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 const RepositorySchema = z.looseObject({ type: z.literal('string') })
 const WithRepositorySchema = z.object({ properties: z.object({ repo: RepositorySchema }) })
+
+const OutputSchemaShape = z.looseObject({ type: z.literal('object'), properties: z.record(z.string(), z.unknown()), additionalProperties: z.unknown() })
+const ENVELOPE_NAMES: ReadonlySet<string> = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'reason'])
+
+// properties・items・anyOf などの下の schema の位置に、真偽値の true があるか（Claude Code がツールを拒む）
+function hasTrueSchema(schema: unknown): boolean {
+  if (schema === true) return true
+  if (Array.isArray(schema)) return schema.some(item => hasTrueSchema(item))
+  if (typeof schema !== 'object' || schema === null) return false
+  const entries: [string, unknown][] = Object.entries(schema)
+  return entries.some(([key, value]) => key === 'properties' && typeof value === 'object' && value !== null
+    ? Object.values(value).some(item => hasTrueSchema(item))
+    : ['items', 'anyOf', 'oneOf', 'allOf', 'additionalProperties'].includes(key) && hasTrueSchema(value))
+}
 
 const generated = GeneratedSchema.parse(parseJson(readFileSync(GENERATED, 'utf8')))
 
@@ -77,6 +91,22 @@ describe('tools/list', () => {
     expect(outputs).toEqual(expected)
   })
 
+  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', async ({ command }) => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const schema = OutputSchemaShape.parse(tools.find(tool => tool.name === command.toolName)?.outputSchema)
+    const names = Object.keys(schema.properties)
+    expect(names).toEqual([...Object.keys(command.output.shape), 'kind', 'detail', 'log', 'warnings'])
+    expect(names.filter(name => ENVELOPE_NAMES.has(name))).toEqual([])
+    expect(schema.additionalProperties).toBe(false)
+  })
+
+  it('全ツールの outputSchema に、真偽値の true の schema が無い', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    expect(tools.filter(tool => hasTrueSchema(tool.outputSchema)).map(tool => tool.name)).toEqual([])
+  })
+
   it('全ツールの生の入力が、additionalProperties: false を持つ', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
@@ -96,14 +126,14 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_create', arguments: { message: 'm', repo: 'acme/demo', bogus: true } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: { reason: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' }, message: 'invalid input: unknown key \'bogus\'' })
+    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' })
   })
 
   it('改名前の入力名を渡すと、新しい名前を添えて、コマンドを呼ばずに isError で返す', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'acme/demo/7', message: 'm', template: 'plan' } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: { reason: 'invalid-input', detail: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' }, message: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
+    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {
@@ -111,7 +141,7 @@ describe('入力の検証の誤り', () => {
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', force: 'true' } })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(structuredOf(result).message).toContain('force')
+    expect(outcomeOf(result).detail).toContain('force')
   })
 
   it('必須の入力が無いと、コマンドを呼ばずに isError で返す', async () => {
@@ -119,7 +149,7 @@ describe('入力の検証の誤り', () => {
     const result = await client.callTool({ name: 'worktree_link', arguments: {} })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(structuredOf(result).message).toContain('directory')
+    expect(outcomeOf(result).detail).toContain('directory')
   })
 
   it('repo の形が owner/repo でないと、コマンドを呼ばずに isError で返す', async () => {
@@ -127,6 +157,6 @@ describe('入力の検証の誤り', () => {
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', repo: 'not-a-repo' } })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(structuredOf(result).message).toContain('repo')
+    expect(outcomeOf(result).detail).toContain('repo')
   })
 })

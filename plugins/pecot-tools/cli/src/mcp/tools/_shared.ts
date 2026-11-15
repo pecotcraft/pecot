@@ -26,25 +26,6 @@ import type { ToolCallContext, ToolDefinition } from '../server.js'
 */
 export const TOOL_TIMEOUT_MS = 120_000
 
-// 終了コードの規約は、許可リストの呼び出しと SSO の呼び出しで同じ値を使う。
-// 応答を読む側が 1 つの表で解釈できるようにするため。SSO 側（tools/sso.ts）から参照するので export する。
-/**
-awscli を起動せずに拒否したときの終了コード（UsageError 相当）。
-*/
-export const PRE_EXECUTION_EXIT_CODE = 2
-/**
-時間切れの終了コード（coreutils timeout の慣習）。
-*/
-export const TIMEOUT_EXIT_CODE = 124
-/**
-コマンドが見つからないときの終了コード（シェルの慣習）。
-*/
-export const COMMAND_NOT_FOUND_EXIT_CODE = 127
-/**
-終了コードを持たない失敗（シグナル終了等）の既定値。
-*/
-export const UNKNOWN_FAILURE_EXIT_CODE = 1
-
 /**
 `profile` だけの入力。SSO の 2 件は region を取らないので、共通入力から切り出す。
 */
@@ -82,29 +63,17 @@ export const LIMIT_NEXT_TOKEN_PAGINATION_SHAPE = {
 const WARNINGS_SCHEMA = z.array(z.string()).optional().describe('Warnings raised during the run (omitted when there are none)')
 
 /**
-awscli の JSON 出力か行の配列。ツールごとに形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
+全ツール共通の outputSchema。最上位は awscli の JSON 出力か行の配列なので、開いた object にする。名前を持つのは共通の 4 項目だけ。
 */
-const DATA_SCHEMA = z.looseObject({
-  warnings: WARNINGS_SCHEMA,
-  reason: z.string().optional().describe('Failure kind, the same value as kind (failure only)'),
+export const TOOL_OUTPUT_SCHEMA = z.looseObject({
+  kind: z.string().optional().describe('Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds'),
   detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
   log: z.string().optional().describe('Redacted awscli output, only the beginning when it exceeds the limit (failure only)'),
-}).describe('awscli JSON output, or an array of lines')
-
-/**
-ExecutionResult と同形の outputSchema。全ツールで共有する。
-*/
-export const TOOL_OUTPUT_SCHEMA = z.object({
-  ok: z.boolean().describe('Whether the awscli run succeeded'),
-  exitCode: z.number().describe('Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)'),
-  kind: z.string().optional().describe('Failure kind (omitted on success)'),
-  data: DATA_SCHEMA,
-  artifacts: z.array(z.string()).describe('Absolute paths of the local files written'),
-  message: z.string().describe('One-line summary for the calling agent'),
+  warnings: WARNINGS_SCHEMA,
 })
 
 /**
-失敗種別ごとの再試行方法。message の後半に載せる。
+失敗種別ごとの再試行方法。detail の後半に載せる。
 */
 const FAILURE_HINTS: Record<FailureKind, string> = {
   'not-allowed': 'Operation not allowed. Use only the exposed tools',
@@ -115,7 +84,7 @@ const FAILURE_HINTS: Record<FailureKind, string> = {
   'permission-denied': 'Permission denied. Check the profile / role',
   'resource-not-found': 'Resource not found. Check the name and region',
   'timeout': 'Timed out. Narrow the range and run again',
-  'other': 'awscli failed. Check data.log',
+  'other': 'awscli failed. Check log',
 }
 
 /**
@@ -126,9 +95,9 @@ const TRUNCATION_MESSAGE
     + 'Reduce max_items or split the request with starting_token.'
 
 /**
-data.log が上限で切り詰められたときに message へ足す注記。
+log が上限で切り詰められたときに detail へ足す注記。
 */
-const LOG_TRUNCATION_NOTE = '(data.log exceeded the limit, so only the beginning is included)'
+const LOG_TRUNCATION_NOTE = '(log exceeded the limit, so only the beginning is included)'
 
 /**
 実行前に拒否したときの理由。awscli は起動しない。
@@ -148,9 +117,9 @@ export interface ExecuteOptions {
   */
   readonly reject?: (arguments_: Readonly<Record<string, unknown>>) => PreExecutionRejection | undefined
   /**
-  成功時に artifacts へ載せる書き出し先。切り詰めの有無に依らず適用する。
+  成功時に file の項目へ載せる書き出し先。切り詰めの有無に依らず適用する。
   */
-  readonly artifactsOf?: (arguments_: Readonly<Record<string, unknown>>) => readonly string[]
+  readonly fileOf?: (arguments_: Readonly<Record<string, unknown>>) => string | undefined
 }
 
 /**
@@ -173,7 +142,7 @@ export interface AllowlistedToolSpec {
   readonly description: string
   readonly inputSchema: z.ZodObject
   readonly reject?: ExecuteOptions['reject']
-  readonly artifactsOf?: ExecuteOptions['artifactsOf']
+  readonly fileOf?: ExecuteOptions['fileOf']
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -205,15 +174,6 @@ function toLines(text: string): string[] {
   return body === '' ? [] : body.split('\n')
 }
 
-/**
-失敗種別と awscli の終了コードから応答の exitCode を決める。exitCode を持たない失敗は 1 以上へ畳む。
-*/
-export function resolveExitCode(kind: FailureKind, exitCode?: number | null): number {
-  if (kind === 'timeout') return TIMEOUT_EXIT_CODE
-  if (kind === 'awscli-missing') return COMMAND_NOT_FOUND_EXIT_CODE
-  return exitCode ?? UNKNOWN_FAILURE_EXIT_CODE
-}
-
 function failureMessage(toolName: string, kind: FailureKind): string {
   // eslint-disable-next-line security/detect-object-injection -- kind は FailureKind の列挙値
   return `${toolName} failed (${kind}). ${FAILURE_HINTS[kind]}`
@@ -231,7 +191,7 @@ function successData(entry: Readonly<AllowlistEntry>, stdout: string): Record<st
 }
 
 /**
-許可リストのエントリ 1 件を実行し、ExecutionResult を返す。検証で弾けば awscli を起動せず（exitCode 2）、出力は秘匿化と上限を通す。
+許可リストのエントリ 1 件を実行し、ExecutionResult を返す。検証で弾けば awscli を起動せず、出力は秘匿化と上限を通す。
 */
 export async function executeAllowlisted(
   entry: Readonly<AllowlistEntry>,
@@ -243,11 +203,9 @@ export async function executeAllowlisted(
   if (invalid !== undefined) {
     return {
       ok: false,
-      exitCode: PRE_EXECUTION_EXIT_CODE,
       kind: invalid.kind,
+      detail: invalid.message,
       data: {},
-      artifacts: [],
-      message: invalid.message,
     }
   }
 
@@ -255,11 +213,9 @@ export async function executeAllowlisted(
   if (rejected !== undefined) {
     return {
       ok: false,
-      exitCode: PRE_EXECUTION_EXIT_CODE,
       kind: rejected.kind,
+      detail: rejected.message,
       data: {},
-      artifacts: [],
-      message: rejected.message,
     }
   }
 
@@ -267,11 +223,9 @@ export async function executeAllowlisted(
   if (!probe.ok) {
     return {
       ok: false,
-      exitCode: COMMAND_NOT_FOUND_EXIT_CODE,
       kind: probe.kind,
+      detail: probe.message,
       data: {},
-      artifacts: [],
-      message: probe.message,
     }
   }
 
@@ -287,39 +241,34 @@ export async function executeAllowlisted(
       timedOut: result.timedOut,
       ...(result.spawnErrorCode !== undefined && { spawnErrorCode: result.spawnErrorCode }),
     })
-    // 巨大な出力は先頭だけを data.log に載せる。通知せず欠けると読み手が全文だと誤認するため、
-    // 切り詰めたことを message に残す。
+    // 巨大な出力は先頭だけを log に載せる。通知せず欠けると読み手が全文だと誤認するため、
+    // 切り詰めたことを detail に残す。
     const limitedStderr = limitOutput(redactSecrets(result.stderr))
     return {
       ok: false,
-      exitCode: resolveExitCode(kind, result.exitCode),
       kind,
-      data: limitedStderr.text === '' ? {} : { log: limitedStderr.text },
-      artifacts: [],
-      message: failureMessage(entry.toolName, kind)
+      detail: failureMessage(entry.toolName, kind)
         + (limitedStderr.truncated ? LOG_TRUNCATION_NOTE : ''),
+      data: limitedStderr.text === '' ? {} : { log: limitedStderr.text },
     }
   }
 
-  // artifacts は切り詰めの有無に依らず載せる。書き出しは awscli 側で完了しており、
+  // 書き出し先は切り詰めの有無に依らず載せる。書き出しは awscli 側で完了しており、
   // 応答の切り詰めは「出力が長い」ことしか意味しないため。
-  const artifacts = options.artifactsOf?.(arguments_) ?? []
+  const file = options.fileOf?.(arguments_)
+  const filePart = file === undefined ? {} : { file }
   const limited = limitOutput(redactSecrets(result.stdout))
   if (limited.truncated) {
     return {
       ok: true,
-      exitCode: 0,
-      data: { output: limited.text, truncated: true },
-      artifacts,
+      data: { output: limited.text, truncated: true, ...filePart },
       message: TRUNCATION_MESSAGE,
     }
   }
 
   return {
     ok: true,
-    exitCode: 0,
-    data: successData(entry, limited.text),
-    artifacts,
+    data: { ...successData(entry, limited.text), ...filePart },
     message: `${entry.toolName} succeeded`,
   }
 }
@@ -345,7 +294,7 @@ export function allowlistedTool(
   const executeOptions: ExecuteOptions = {
     ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
     ...(spec.reject !== undefined && { reject: spec.reject }),
-    ...(spec.artifactsOf !== undefined && { artifactsOf: spec.artifactsOf }),
+    ...(spec.fileOf !== undefined && { fileOf: spec.fileOf }),
   }
 
   return {

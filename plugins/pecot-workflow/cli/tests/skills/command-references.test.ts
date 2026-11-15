@@ -1,7 +1,7 @@
 // 本文に書かれたツールの呼び出しを、COMMANDS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
 // - w-help の commands.md に、COMMANDS の全コマンドが載っている
-// - w-release の release-multi.md が、board_show の data の packages の項目名で読む
+// - w-release の release-multi.md が、board_show の repositories の packages の項目名で読む
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
@@ -139,7 +139,7 @@ describe('commands.md', () => {
 })
 
 describe('release-multi.md', () => {
-  it('package を読むときは、board_show の結果の data.repositories[].packages の name と changelog で読む', () => {
+  it('package を読むときは、board_show の結果の repositories[].packages の name と changelog で読む', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'demo',
@@ -154,7 +154,7 @@ describe('release-multi.md', () => {
       ['demo/repo', [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }]],
     ])
     const document = readPluginFile('skills/w-release/references/release-multi.md')
-    expect(document).toContain('`data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ')
+    expect(document).toContain('`repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ')
     expect(document).toContain('選んだ要素の `packages` のうち、`name` が `<package>` の要素の `changelog` のファイルを編集する')
     expect(document).not.toContain('package: NAME')
   })

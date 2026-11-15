@@ -429,7 +429,7 @@ cat > "$TMP/smoke.mjs" << 'SMOKE'
 //
 // 使い方: node smoke.mjs <script> [args...]  （script は node で起動する）
 // 環境変数 SMOKE_TOOL_CALLS に [{"name":..,"arguments":{..}}, ...] の JSON を渡すと、
-// tools/list の後に続けて tools/call を送り、各応答の終了コードと出力（structuredContent）を
+// tools/list の後に続けて tools/call を送り、各応答の isError と出力（structuredContent）を
 // 返り値の calls 配列（呼び出し順）に載せる（配布ツリーが実際に起動して応答することの検証。
 // tools/list が緑のまま tools/call だけ壊れる回帰を拾うため）。
 // 環境変数 SMOKE_CWD があれば、それをサーバの cwd にする。
@@ -498,9 +498,9 @@ const tools = listed?.result?.tools ?? []
 const calls = CALLS.map((_, index) => {
   const response = seen.get(CALL_ID_BASE + index)
   const outcome = response?.result?.structuredContent
-  const branch = outcome?.data?.branch ?? ''
-  const artifact = outcome?.artifacts?.[0] ?? ''
-  return { exitCode: outcome?.exitCode ?? null, isError: response?.result?.isError ?? false, branch, artifact }
+  const branch = outcome?.branch ?? ''
+  const artifact = outcome?.file ?? ''
+  return { isError: response === undefined ? null : response.result?.isError ?? false, branch, artifact }
 })
 const initialized = seen.get(1)
 process.stdout.write(JSON.stringify({
@@ -580,7 +580,7 @@ assert_eq "README の登録名が initialize の serverInfo.name と一致する
 # tools/list が緑でも、dist の外のファイルを読めないと tools/call は失敗する。
 # 一時 git リポ（ブランチ名に Issue 番号なし）を cwd に、gh を呼ばない session_show と issue_comment (prepare) を投げる。
 call_value() {
-    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'exitCode'・'branch'・'artifact'
+    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'isError'・'branch'・'artifact'
     node -e "
 const fs = require('node:fs')
 let value
@@ -611,12 +611,12 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
         fail "tools/call smoke が何も出力しなかった ($smoke_err_tail)"
         ;;
     *)
-        assert_eq "session_show の tools/call が終了コード 0 を返す" "0" \
-            "$(call_value "$SMOKE_CALLS_OUT" 0 exitCode)"
-        assert_eq "session_show が一時リポのブランチ名を data.branch に返す" "smoke-branch" \
+        assert_eq "session_show の tools/call が成功（isError が false）を返す" "false" \
+            "$(call_value "$SMOKE_CALLS_OUT" 0 isError)"
+        assert_eq "session_show が一時リポのブランチ名を branch に返す" "smoke-branch" \
             "$(call_value "$SMOKE_CALLS_OUT" 0 branch)"
-        assert_eq "issue_comment (prepare) の tools/call が終了コード 0 を返す" "0" \
-            "$(call_value "$SMOKE_CALLS_OUT" 1 exitCode)"
+        assert_eq "issue_comment (prepare) の tools/call が成功（isError が false）を返す" "false" \
+            "$(call_value "$SMOKE_CALLS_OUT" 1 isError)"
         PREPARED="$(call_value "$SMOKE_CALLS_OUT" 1 artifact)"
         case "$PREPARED" in
             "$CALL_REPO"/.pecot/tmp/output/comment-plan-*.md) pass "issue_comment (prepare) が一時リポの出力先にファイルを作る" ;;
@@ -648,8 +648,8 @@ DEVCONTAINER=1 SMOKE_CWD="$LINK_WT" \
     SMOKE_TOOL_CALLS="[{\"name\":\"worktree_link\",\"arguments\":{\"directory\":\"$LINK_WT\"}}]" \
     smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
     > "$SMOKE_LINK_OUT" 2> "$SMOKE_LINK_OUT.err"
-assert_eq "worktree_link の tools/call が終了コード 0 を返す" "0" \
-    "$(call_value "$SMOKE_LINK_OUT" 0 exitCode)"
+assert_eq "worktree_link の tools/call が成功（isError が false）を返す" "false" \
+    "$(call_value "$SMOKE_LINK_OUT" 0 isError)"
 LINK_TEXT="$(call_value "$SMOKE_LINK_OUT" 0 text | tr '\n' ' ')"
 if [ -L "$LINK_WT/.pecot/work" ]; then
     pass "worktree_link が worktree に symlink を張る"

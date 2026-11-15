@@ -108,9 +108,13 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 function textOf(value: unknown): string {
@@ -138,9 +142,8 @@ describe('slide_page の成功ルート', () => {
     const target = path.join(directory, 'pages', 'strategy.md')
 
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([target])
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['path']).toBe(target)
     expect(data['event']).toBe('slide.page.done')
     expect(data['layout']).toBe('plain')
     expect(data['category']).toBe('text')
@@ -160,8 +163,8 @@ describe('slide_page の成功ルート', () => {
     expect(textOf(includes['_common'])).toBe(readFileSync(path.join(THEME_FIXTURE, 'references', '_common.yaml'), 'utf8'))
 
     // slides.md への登録が別作業であることを message で案内する (require-slides-entry の予防)。
-    expect(textOf(structured['message'])).toContain('slides.md')
-    expect(textOf(structured['message'])).toContain('src: ./pages/strategy.md')
+    expect(textOf(sentenceOf(result))).toContain('slides.md')
+    expect(textOf(sentenceOf(result))).toContain('src: ./pages/strategy.md')
   })
 
   it('ページを書いても slides.md は書き換えない', async (context) => {
@@ -172,7 +175,7 @@ describe('slide_page の成功ルート', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'strategy' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(existsSync(path.join(directory, 'pages', 'strategy.md'))).toBe(true)
     expect(readFileSync(slides, 'utf8')).toBe(before)
   })
@@ -201,7 +204,7 @@ describe('slide_page の成功ルート', () => {
 
     const result = await tool.handler({ layout: 'cover', dir: directory, file: 'legacy' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(dataOf(result)['category']).toBe('uncategorized')
   })
 
@@ -212,7 +215,7 @@ describe('slide_page の成功ルート', () => {
 
     const result = await tool.handler({ layout: 'cover', dir: directory, file: 'legacy-cover' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(dataOf(result)['deprecated']).toBe(true)
   })
 
@@ -231,7 +234,7 @@ describe('slide_page の成功ルート', () => {
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'override' }, CALL)
     const data = dataOf(result)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(data['skeleton']).toBe('---\nlayout: plain\nheading: talk-dir の雛形\n---\n')
     const includes = data['includes']
     if (!isRecord(includes)) throw new Error('includes が返っていません')
@@ -239,13 +242,13 @@ describe('slide_page の成功ルート', () => {
   })
 
   it.each(CATALOG)('$layout のスケルトンが有効なフロントマターとして書き出される', async (entry) => {
-    // Acceptance「data.layouts に載る任意のレイアウト名」を代表値でなく全件で満たす。
+    // Acceptance「layouts に載る任意のレイアウト名」を代表値でなく全件で満たす。
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: entry.layout, dir: directory, file: 'page' }, CALL)
     const data = dataOf(result)
 
-    expect(structuredOf(result)['ok'], `layout: ${entry.layout}`).toBe(true)
+    expect(result.isError, `layout: ${entry.layout}`).toBeUndefined()
     expect(data['deprecated'], `layout: ${entry.layout}`).toBe(entry.deprecated)
     expect(data['category'], `layout: ${entry.layout}`).toBe(entry.category)
 
@@ -281,7 +284,7 @@ describe('slide_page の引数検証', () => {
     const result = await tool.handler({ layout: 'plain', dir: 'talk', file: 'page' }, CALL)
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['dir=talk'])
   })
 
@@ -293,8 +296,7 @@ describe('slide_page の引数検証', () => {
 
       const result = await tool.handler({ layout: 'plain', dir: directory, file }, CALL)
 
-      expect(structuredOf(result)['ok']).toBe(false)
-      expect(dataOf(result)['reason']).toBe('invalid-file-name')
+      expect(structuredOf(result)['kind']).toBe('invalid-file-name')
       expect(pageFilesOf(directory)).toEqual([])
     },
   )
@@ -304,7 +306,7 @@ describe('slide_page の引数検証', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: '' }, CALL)
 
-    expect(dataOf(result)['reason']).toBe('invalid-file-name')
+    expect(structuredOf(result)['kind']).toBe('invalid-file-name')
     expect(pageFilesOf(directory)).toEqual([])
   })
 
@@ -317,8 +319,7 @@ describe('slide_page の引数検証', () => {
 
       const result = await tool.handler({ layout: 'plain', dir: directory, file }, CALL)
 
-      expect(structuredOf(result)['ok'], `file: ${file}`).toBe(false)
-      expect(dataOf(result)['reason'], `file: ${file}`).toBe('invalid-file-name')
+      expect(structuredOf(result)['kind'], `file: ${file}`).toBe('invalid-file-name')
       expect(pageFilesOf(directory), `file: ${file}`).toEqual([])
     },
   )
@@ -349,8 +350,7 @@ describe('slide_page の引数検証', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: '01-cover' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('numeric-filename-prefix')
+    expect(structuredOf(result)['kind']).toBe('numeric-filename-prefix')
     expect(textOf(dataOf(result)['detail'])).toContain('slides.md')
     expect(pageFilesOf(directory)).toEqual([])
   })
@@ -362,15 +362,13 @@ describe('slide_page のテーマの失敗', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(structuredOf(result)['exitCode']).toBe(1)
+    expect(structuredOf(result)).toHaveProperty('kind')
     expect(dataOf(result)['event']).toBe('slide.page.error')
-    expect(dataOf(result)['reason']).toBe('theme-unlinked')
+    expect(structuredOf(result)['kind']).toBe('theme-unlinked')
     const detail = textOf(dataOf(result)['detail'])
     expect(detail).toContain('slide_sync')
     expect(detail).toContain('node_modules_only: true')
-    expect(Object.keys(structuredOf(result))).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
-    expect(dataOf(result)).not.toHaveProperty('log')
+    expect(Object.keys(structuredOf(result)).toSorted(compareStrings)).toEqual(['detail', 'event', 'kind'])
     expect(pageFilesOf(directory)).toEqual([])
   })
 
@@ -380,7 +378,7 @@ describe('slide_page のテーマの失敗', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
-    expect(dataOf(result)['reason']).toBe('theme-none')
+    expect(structuredOf(result)['kind']).toBe('theme-none')
     expect(textOf(dataOf(result)['detail'])).toContain('slide sync --theme <theme-spec>')
     expect(pageFilesOf(directory)).toEqual([])
   })
@@ -395,7 +393,7 @@ describe('slide_page のテーマの失敗', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
-    expect(dataOf(result)['reason']).toBe('theme-unknown-rule')
+    expect(structuredOf(result)['kind']).toBe('theme-unknown-rule')
     expect(pageFilesOf(directory)).toEqual([])
   })
 
@@ -404,13 +402,12 @@ describe('slide_page のテーマの失敗', () => {
 
     const result = await tool.handler({ layout: 'one', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('skeleton-unavailable')
+    expect(structuredOf(result)['kind']).toBe('skeleton-unavailable')
     expect(textOf(dataOf(result)['detail'])).toContain('no reference yaml')
     expect(pageFilesOf(directory)).toEqual([])
   })
 
-  it('テーマの警告は data.warnings に載せる', async () => {
+  it('テーマの警告は warnings に載せる', async () => {
     const directory = makeTalkDirectory({ themeFixture: BARE_FIXTURE, themeName: BARE_NAME })
 
     const result = await tool.handler({ layout: 'one', dir: directory, file: 'page' }, CALL)
@@ -429,7 +426,7 @@ describe('slide_page の失敗ルート', () => {
     const data = dataOf(result)
 
     expect(result.isError).toBe(true)
-    expect(data['reason']).toBe('unknown-layout')
+    expect(data['kind']).toBe('unknown-layout')
     const layouts = data['layouts']
     if (!Array.isArray(layouts)) throw new TypeError('data.layouts が返っていません')
     expect(layouts).toHaveLength(CATALOG.length)
@@ -463,8 +460,7 @@ describe('slide_page の失敗ルート', () => {
 
     const result = await tool.handler({ layout, dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok'], `layout: ${layout}`).toBe(false)
-    expect(dataOf(result)['reason'], `layout: ${layout}`).toBe('unknown-layout')
+    expect(structuredOf(result)['kind'], `layout: ${layout}`).toBe('unknown-layout')
     expect(pageFilesOf(directory), `layout: ${layout}`).toEqual([])
   })
 
@@ -478,8 +474,7 @@ describe('slide_page の失敗ルート', () => {
 
     const refused = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(refused)['ok']).toBe(false)
-    expect(dataOf(refused)['reason']).toBe('file-exists')
+    expect(structuredOf(refused)['kind']).toBe('file-exists')
     expect(textOf(dataOf(refused)['detail'])).toContain('force')
     expect(readFileSync(target, 'utf8')).toBe('---\nlayout: cover\n---\n')
 
@@ -488,7 +483,7 @@ describe('slide_page の失敗ルート', () => {
       CALL,
     )
 
-    expect(structuredOf(overwritten)['ok']).toBe(true)
+    expect(structuredOf(overwritten)).not.toHaveProperty('kind')
     expect(readFileSync(target, 'utf8')).toContain('layout: plain')
   })
 
@@ -502,8 +497,7 @@ describe('slide_page の失敗ルート', () => {
 
     const result = await tool.handler({ layout: 'no-examples', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('skeleton-unavailable')
+    expect(structuredOf(result)['kind']).toBe('skeleton-unavailable')
     expect(pageFilesOf(directory)).toEqual([])
   })
 
@@ -522,7 +516,7 @@ describe('slide_page の失敗ルート', () => {
     const result = await tool.handler({ layout: 'commented', dir: directory, file: 'page' }, CALL)
     const includes = dataOf(result)['includes']
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     if (!isRecord(includes)) throw new Error('includes が返っていません')
     expect(Object.keys(includes)).toEqual(['_common', '_footer'])
   })
@@ -540,7 +534,7 @@ describe('slide_page の失敗ルート', () => {
     const result = await tool.handler({ layout: 'terminated', dir: directory, file: 'page' }, CALL)
     const includes = dataOf(result)['includes']
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     if (!isRecord(includes)) throw new Error('includes が返っていません')
     expect(Object.keys(includes)).toEqual(['_common'])
   })
@@ -556,7 +550,7 @@ describe('slide_page の失敗ルート', () => {
 
     const result = await tool.handler({ layout: 'standalone', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(dataOf(result)['includes']).toEqual({})
   })
 
@@ -573,8 +567,7 @@ describe('slide_page の失敗ルート', () => {
 
     const result = await tool.handler({ layout: 'unwrapped', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('skeleton-unavailable')
+    expect(structuredOf(result)['kind']).toBe('skeleton-unavailable')
     expect(textOf(dataOf(result)['detail'])).toContain('---')
     expect(pageFilesOf(directory)).toEqual([])
   })
@@ -586,8 +579,7 @@ describe('slide_page の失敗ルート', () => {
 
     const result = await racing.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('reference-read-failed')
+    expect(structuredOf(result)['kind']).toBe('reference-read-failed')
     expect(textOf(dataOf(result)['detail'])).toContain('plain.yaml')
     expect(textOf(dataOf(result)['detail'])).toContain('race')
     expect(pageFilesOf(directory)).toEqual([])
@@ -603,9 +595,7 @@ describe('slide_page の失敗ルート', () => {
       CALL,
     )
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('write-failed')
+    expect(structuredOf(result)['kind']).toBe('write-failed')
     expect(textOf(dataOf(result)['detail'])).toContain('ENAMETOOLONG')
     expect(pageFilesOf(directory)).toEqual([])
   })
@@ -625,7 +615,7 @@ describe('slide_page の失敗ルート', () => {
     const result = await tool.handler({ layout: 'prototyped', dir: directory, file: 'page' }, CALL)
     const includes = dataOf(result)['includes']
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     if (!isRecord(includes)) throw new Error('includes が返っていません')
     expect(Object.keys(includes)).toEqual(['__proto__'])
     expect(textOf(Object.getOwnPropertyDescriptor(includes, '__proto__')?.value)).toContain('危険なキー')
@@ -637,8 +627,7 @@ describe('slide_page の失敗ルート', () => {
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('broken-reference')
+    expect(structuredOf(result)['kind']).toBe('broken-reference')
     expect(textOf(dataOf(result)['detail'])).toContain('_common.yaml')
     expect(pageFilesOf(directory)).toEqual([])
   })

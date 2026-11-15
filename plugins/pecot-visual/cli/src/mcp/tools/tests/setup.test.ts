@@ -35,18 +35,22 @@ function structuredOf(result: Readonly<CallToolResult>): Record<string, unknown>
 }
 
 function dataOf(result: Readonly<CallToolResult>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 /**
-data 直下の系統別サマリ (runtime / chromium)。
+structuredContent 直下の系統別サマリ (runtime / chromium)。
 */
 function stageOf(result: Readonly<CallToolResult>, stage: 'runtime' | 'chromium' | 'hostDeps'): Record<string, unknown> {
   // eslint-disable-next-line security/detect-object-injection -- stage は本ファイル内の literal union
   const section = dataOf(result)[stage]
-  if (!isRecord(section)) throw new Error(`data.${stage} が返っていません`)
+  if (!isRecord(section)) throw new Error(`${stage} が返っていません`)
   return section
 }
 
@@ -182,10 +186,8 @@ describe('runtime_setup: chromium', () => {
     expect(result.isError).toBeUndefined()
     expect(installCalls()).toBe(1)
     const structured = structuredOf(result)
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    // 置いた実体の場所を成果物として返す。
-    expect(structured['artifacts']).toEqual([BROWSERS_ROOT])
+    expect(structured).not.toHaveProperty('kind')
+    // 置いた実体の場所は chromium.location で返す。
     expect(dataOf(result)['event']).toBe('setup.done')
     expect(stageOf(result, 'chromium')).toMatchObject({
       installed: true,
@@ -207,7 +209,6 @@ describe('runtime_setup: chromium', () => {
 
     expect(result.isError).toBeUndefined()
     expect(installCalls()).toBe(1)
-    expect(structuredOf(result)['artifacts'], '何も置いていないので成果物は無い').toEqual([])
     expect(dataOf(result)['event']).toBe('setup.skipped')
     expect(stageOf(result, 'chromium')).toMatchObject({ installed: true, downloaded: false })
   })
@@ -232,9 +233,8 @@ describe('runtime_setup: chromium', () => {
 
     const structured = structuredOf(await callSetup(deps))
 
-    expect(structured['ok']).toBe(true)
-    expect(Object.keys(structured)).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
-    expect(structured['data']).not.toHaveProperty('log')
+    expect(structured).not.toHaveProperty('kind')
+    for (const key of ['ok', 'exitCode', 'artifacts', 'data', 'message', 'log', 'stdout', 'stderr']) expect(structured).not.toHaveProperty(key)
   })
 
   it('取得が失敗したら isError で原因と復旧手順を返す', async () => {
@@ -247,9 +247,7 @@ describe('runtime_setup: chromium', () => {
 
     expect(result.isError).toBe(true)
     const structured = structuredOf(result)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(structured['artifacts']).toEqual([])
+    expect(structured).toHaveProperty('kind')
     expect(dataOf(result)).toMatchObject({
       event: 'setup.error',
       reason: 'chromium-install-failed',
@@ -294,13 +292,12 @@ describe('runtime_setup: chromium', () => {
     const result = await callSetup(deps)
 
     expect(result.isError).toBeUndefined()
-    expect(structuredOf(result)['artifacts']).toEqual([])
     expect(stageOf(result, 'chromium')).not.toHaveProperty('location')
   })
 })
 
 describe('runtime_setup: 実行時依存 (永続層)', () => {
-  it('未取得なら npm install を実行し、取得先を成果物に載せる', async (context) => {
+  it('未取得なら npm install を実行し、取得先を runtime.location に載せる', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-01')
     const runtime = fakeRuntimeDependencies({ installed: false })
 
@@ -308,7 +305,6 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
 
     expect(result.isError).toBeUndefined()
     expect(runtime.installCalls()).toBe(1)
-    expect(structuredOf(result)['artifacts']).toEqual([RUNTIME_ROOT])
     expect(dataOf(result)['event']).toBe('setup.done')
     expect(stageOf(result, 'runtime')).toMatchObject({
       installed: true,
@@ -356,14 +352,13 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
     const result = await callSetup(chromium.deps, runtime.deps)
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)['exitCode']).toBe(1)
     expect(dataOf(result)).toMatchObject({ event: 'setup.error', reason: 'runtime-install-failed' })
     expect(String(dataOf(result)['detail'])).toContain('exited with 1')
     expect(dataOf(result)['log']).toBe('ERR_PNPM')
     // npm が破損している環境で chromium 取得まで巻き添えにしない。
     expect(chromium.installCalls()).toBe(1)
     expect(stageOf(result, 'chromium')['installed']).toBe(true)
-    expect(structuredOf(result)['artifacts'], 'chromium 側は取得できたので成果物に残る').toEqual([BROWSERS_ROOT])
+    expect(stageOf(result, 'chromium')['location'], 'chromium 側は取得できた').toBe(BROWSERS_ROOT)
   })
 
   it('npm を起動できない場合も理由付きで返す', async () => {
@@ -419,7 +414,6 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
     const result = await callSetup(fakeDependencies({ installed: true }).deps, runtime.deps)
 
     expect(result.isError).toBeUndefined()
-    expect(structuredOf(result)['artifacts'], '場所が分からないので成果物には出せない').toEqual([])
     expect(stageOf(result, 'runtime')).not.toHaveProperty('location')
   })
 
@@ -534,26 +528,28 @@ describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
 
 describe('runtime_setup: 両系統が失敗した場合', () => {
   // ネットワーク断・プロキシ誤設定では両方が落ちる。片方の理由しか message に載らないと、
-  // 利用者は data.<系統>.detail を読み比べないと全体像が分からない。
+  // 利用者は <系統>.detail を読み比べないと全体像が分からない。
 
-  it('message と data.detail に両方の理由を載せる', async () => {
+  it('message と detail に両方の理由を載せる', async () => {
     const result = await callSetupWithBothFailing()
 
     expect(result.isError).toBe(true)
     const detail = String(dataOf(result)['detail'])
     expect(detail, '実行時依存側の理由').toContain('npm install exited with 1')
     expect(detail, 'chromium 側の理由').toContain('PLAYWRIGHT_DOWNLOAD_HOST')
-    const message = String(structuredOf(result)['message'])
+    const message = sentenceOf(result)
     expect(message).toContain('runtime dependencies')
     expect(message).toContain('Playwright Chromium')
   })
 
-  it('reason は失敗した系統を全て並べる', async () => {
-    expect(dataOf(await callSetupWithBothFailing())['reason'])
-      .toBe('runtime-install-failed,chromium-install-failed')
+  it('reason は失敗した系統を全て並べ、kind は最初の失敗の系統を指す', async () => {
+    const structured = structuredOf(await callSetupWithBothFailing())
+
+    expect(structured['reason']).toBe('runtime-install-failed,chromium-install-failed')
+    expect(structured['kind']).toBe('runtime-install-failed')
   })
 
-  it('両系統が失敗したら、両系統の stdout と stderr を data.log に残す', async () => {
+  it('両系統が失敗したら、両系統の stdout と stderr を log に残す', async () => {
     const log = String(dataOf(await callSetupWithBothFailing())['log'])
 
     expect(log).toContain('ERR_NPM')
@@ -562,8 +558,11 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
     expect(log).toContain('pw-out')
   })
 
-  it('取得できた実体が無いので artifacts は空', async () => {
-    expect(structuredOf(await callSetupWithBothFailing())['artifacts']).toEqual([])
+  it('取得できた実体が無いので、どちらの系統も installed が false', async () => {
+    const result = await callSetupWithBothFailing()
+
+    expect(stageOf(result, 'runtime')['installed']).toBe(false)
+    expect(stageOf(result, 'chromium')['installed']).toBe(false)
   })
 })
 
@@ -573,7 +572,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(stageOf(result, 'hostDeps')).toMatchObject({ installed: true, downloaded: false })
     expect(host.records()).toEqual(['ok'])
   })
@@ -584,9 +583,9 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
 
     const structured = structuredOf(result)
-    expect(structured['ok']).toBe(true)
-    expect(String(structured['message'])).toContain('OS libraries required to launch Chromium installed')
-    expect(String(structured['message'])).toContain('libatk1.0-0t64')
+    expect(structured).not.toHaveProperty('kind')
+    expect(sentenceOf(result)).toContain('OS libraries required to launch Chromium installed')
+    expect(sentenceOf(result)).toContain('libatk1.0-0t64')
     expect(stageOf(result, 'hostDeps')).toMatchObject({ installed: true, downloaded: true })
     expect(host.records()).toEqual(['ok'])
   })
@@ -615,12 +614,12 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
 
     const structured = structuredOf(result)
-    expect(structured['ok']).toBe(false)
+    expect(structured).toHaveProperty('kind')
     expect(dataOf(result)['reason']).toBe('chromium-host-deps-missing')
-    expect(String(structured['message'])).toContain('sudo apt-get install -y --no-install-recommends libatk1.0-0t64')
-    expect(String(structured['message']), '取得の失敗ではなく不足として、前置きなしで 1 回だけ案内する')
+    expect(sentenceOf(result)).toContain('sudo apt-get install -y --no-install-recommends libatk1.0-0t64')
+    expect(sentenceOf(result), '取得の失敗ではなく不足として、前置きなしで 1 回だけ案内する')
       .toMatch(/^OS libraries required to launch Chromium are missing \(libatk-1\.0\.so\.0\); (?!.*OS libraries required)/)
-    expect(String(structured['message'])).not.toContain('download failed for')
+    expect(sentenceOf(result)).not.toContain('download failed for')
     expect(host.records()).toEqual(['missing'])
   })
 
@@ -629,9 +628,9 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(String(stageOf(result, 'hostDeps')['detail'])).toContain('browserType.launch: crashed')
-    expect(String(structuredOf(result)['message'])).toContain('browserType.launch: crashed')
+    expect(sentenceOf(result)).toContain('browserType.launch: crashed')
     expect(host.records()).toEqual(['launch-failed'])
   })
 

@@ -18,7 +18,7 @@ import type { CommandDefinition, PreparedCommand } from '../commands/registry.js
 import { outputWidth } from '../commands/rich-panel.js'
 import { UsageError } from '../commands/usage-error.js'
 import { readVersion } from '../version.js'
-import { collectIo, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from './result.js'
+import { collectIo, standardOutputSchema, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from './result.js'
 import type { CollectedIo } from './result.js'
 
 export const MCP_SERVER_NAME = 'pecot-workflow'
@@ -158,7 +158,6 @@ function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo,
     kind: ended.kind ?? collected.kind(),
     message: ended.message,
     resultLine: collected.resultLine(),
-    artifacts: collected.artifacts(),
     warnings: collected.warnings(),
   }
   const raw = collected.data()
@@ -166,14 +165,19 @@ function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo,
     const parsed = definition.output.safeParse(raw)
     if (parsed.success) return toToolResult({ ...outcome, data: parsed.data })
     options.reportUnexpected?.(parsed.error, { stdout, stderr })
-    // 書き込みが済んだ後の食い違いもありうる。data を捨てずに残し、呼び直さないよう伝える
+    // 書き込みが済んだ後の食い違いもありうるので、呼び直さないよう伝える。項目は失敗と同じく省略可の形で検証して残す
     const message = `the command finished, but its data does not match the output schema: ${issuesMessage(parsed.error)}; the operation may already be done, so do not call it again`
-    return toToolResult({ ...outcome, exitCode: 1, stderr: '', kind: 'other', message, data: raw })
+    return toToolResult({ ...outcome, exitCode: 1, stderr: '', kind: 'other', message, data: partialData(definition, raw, stdout, stderr, options) })
   }
-  // 失敗の結果は SDK とクライアントが検証しない。合わないときは kind などを保ち、成功の項目だけを捨てる
+  return toToolResult({ ...outcome, data: partialData(definition, raw, stdout, stderr, options) })
+}
+
+// 失敗の結果は SDK とクライアントが検証しない。省略可の形に合わなければ、kind などを保ち、ツールの項目だけを捨てる
+function partialData(definition: Readonly<CommandDefinition>, raw: Readonly<Record<string, unknown>>, stdout: string, stderr: string, options: Readonly<McpServerOptions>): Readonly<Record<string, unknown>> | undefined {
   const parsed = definition.output.partial().safeParse(raw)
-  if (!parsed.success) options.reportUnexpected?.(parsed.error, { stdout, stderr })
-  return toToolResult({ ...outcome, data: parsed.success ? parsed.data : undefined })
+  if (parsed.success) return parsed.data
+  options.reportUnexpected?.(parsed.error, { stdout, stderr })
+  return undefined
 }
 
 // コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
@@ -201,7 +205,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,
-      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: toolOutputSchema(definition.output) },
+      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)) },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options)),
     )
   }

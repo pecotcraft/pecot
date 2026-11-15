@@ -32,35 +32,26 @@ MCP サーバ名は `pecot-tools` です。`.mcp.json` の `mcpServers` の登�
 | 要求する awscli の最低版 | 2.22.0 | `src/infra/awscli.ts` の `MINIMUM_VERSION` |
 
 出力が 256 KiB を超えたときは先頭側だけを載せます。
-成功時は `data` が `{ output: <先頭のみ>, truncated: true }` に変わります（JSON への解釈は行いません）。
-失敗時は `stderr` を切り詰めたうえで、`message` に切り詰めた旨を足します。捕捉上限を超えた分は子プロセスの読み取り時点で
+成功時は、結果が `{ output: <先頭のみ>, truncated: true }` に変わります（JSON への解釈は行いません）。
+失敗時は `log` を切り詰めたうえで、`detail` に切り詰めた旨を足します。捕捉上限を超えた分は子プロセスの読み取り時点で
 捨てるため、応答に必要な範囲は必ず残ります。
 
 `max_items` には上限を設けていません（下限 1 のみ）。件数の制御は awscli 側と AWS API 側に委ねます。
 
-## ツール応答の exitCode
+## ツール応答の失敗
 
-ツール応答の `exitCode` は awscli の終了コードをそのまま返します（`252` / `253` / `255` などが
-そのまま出ます）。awscli の終了コードに由来しないのは次の 4 値だけです。
+ツールの結果に終了コードは入りません。成否は `isError` で読み、失敗の原因は `kind` で読みます。
+awscli の終了コードは、結果に入りません。秘匿化した awscli の出力は `log` に入ります。
 
-| 値 | 状況 |
-|--:|:----|
-| 2 | 実行前に拒否した（許可リスト外・入力の書式違反・S3 の方向不正など。awscli は起動しない） |
-| 124 | 制限時間を超えて打ち切った |
-| 127 | awscli が PATH に無い、または最低版を満たさない |
-| 1 | 終了コードを持たない失敗（シグナル終了、awscli を起動しない SSO の状態遷移） |
+| 終了コードの状況 | `kind` |
+|:----|:----|
+| 実行前に拒否した（許可リスト外・入力の書式違反・S3 の方向不正など。awscli は起動しない） | `not-allowed` か `invalid-input` |
+| 制限時間を超えて打ち切った | `timeout` |
+| awscli が PATH に無い、または最低版を満たさない | `awscli-missing` |
 
-4 値の定義は `src/mcp/tools/_shared.ts` にあります。
-
-- 2: `PRE_EXECUTION_EXIT_CODE`
-- 124: `TIMEOUT_EXIT_CODE`
-- 127: `COMMAND_NOT_FOUND_EXIT_CODE`
-- 1: `UNKNOWN_FAILURE_EXIT_CODE`
-
-サーバプロセス自体の終了コードはこれとは別の体系です。
+サーバプロセス自体の終了コードは、これとは別の体系です。
 `pecot-tools mcp` は、正常終了で 0、起動失敗（transport 接続エラー・stdout への書き込み失敗）で 1 を返します。
 SIGTERM で 143、SIGINT で 130 を返します（`src/mcp/serve.ts`）。
-ツール応答の `exitCode` と混同しないでください。
 
 ## ツールと失敗種別
 

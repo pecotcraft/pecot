@@ -23,7 +23,7 @@ import {
 } from '../../infra/playwright/chromium.js'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 
-import { createOutputCapture, joinCapturedText, toCallToolResult, type ToolResult } from '../result.js'
+import { createOutputCapture, joinCapturedText, toCallToolResult, type FailedToolResult, type ToolResult } from '../result.js'
 import { warningsOf } from '../warnings.js'
 import { toPosixPath } from '../windows-path.js'
 
@@ -45,27 +45,15 @@ const WARNINGS_SCHEMA = z.array(z.string()).optional().describe(
 )
 
 /**
-data はツールごとに形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
+全ツール共通の outputSchema。ツールごとの項目は形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
 */
-const DATA_SCHEMA = z.looseObject({
-  warnings: WARNINGS_SCHEMA,
-  reason: z.string().optional().describe('Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas'),
+export const TOOL_OUTPUT_SCHEMA = z.looseObject({
+  kind: z.string().optional().describe('Failure kind (failure only)'),
   detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
   log: z.string().optional().describe(
     'Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation',
   ),
-}).describe('Object with the details of the run')
-
-/**
-ToolResult 同形の outputSchema。
-*/
-export const TOOL_OUTPUT_SCHEMA = z.object({
-  ok: z.boolean().describe('Whether the tool completed its intended run'),
-  exitCode: z.number().describe('Exit code (0 = success)'),
-  kind: z.string().optional().describe('Failure kind (omitted on success)'),
-  artifacts: z.array(z.string()).describe('Absolute paths of files and directories created or updated'),
-  data: DATA_SCHEMA,
-  message: z.string().describe('One-line summary for the calling agent'),
+  warnings: WARNINGS_SCHEMA,
 })
 
 /**
@@ -82,10 +70,10 @@ function stringArrayOf(value: unknown): readonly string[] {
 }
 
 /**
-捕捉した出力を ToolResult の data へ移す。warning の文は data.warnings へ (既にある文と重ねて重複を除く)、
-失敗のときは出力の全体を data.log へ入れる。
+捕捉した出力を ToolResult の data へ移す。warning の文は warnings へ (既にある文と重ねて重複を除く)、
+失敗のときは出力の全体を log へ入れる。
 */
-export function withCapturedOutput(result: Readonly<ToolResult>, captured: Readonly<CapturedText>): ToolResult {
+export function withCapturedOutput<Result extends ToolResult>(result: Result, captured: Readonly<CapturedText>): Result {
   const existing = stringArrayOf(result.data['warnings'])
   const warnings = [...new Set([...existing, ...(captured.warnings ?? warningsOf(captured.stderr))])]
   const log = result.ok ? '' : joinCapturedText([captured.stdout, captured.stderr])
@@ -110,7 +98,7 @@ export interface CommandOutput {
   */
   finish(result: Readonly<ToolResult>): CallToolResult
   /**
-  捕捉した stderr の warning の文。finish が data.warnings へ入れる配列と同じ。message の件数を作るときに使う。
+  捕捉した stderr の warning の文。finish が warnings へ入れる配列と同じ。message の件数を作るときに使う。
   */
   warnings(): string[]
 }
@@ -132,12 +120,12 @@ export function captureCommandOutput(): CommandOutput {
 /**
 子プロセスの出力を result の data へ移す。warning は切り詰める前の stderr の全体から取る。
 */
-export function withSpawnOutput(result: Readonly<ToolResult>, spawned: Readonly<SpawnResult>): ToolResult {
+export function withSpawnOutput<Result extends ToolResult>(result: Result, spawned: Readonly<SpawnResult>): Result {
   return withCapturedOutput(result, { stdout: spawned.stdout, stderr: spawned.stderr })
 }
 
 /**
-ツールの失敗 message / data.detail に載せる 1 行の理由。
+ツールの失敗の detail に載せる 1 行の理由。
 */
 export function formatError(error: unknown): string {
   /* c8 ignore next -- 非 Error 例外は本実装範囲では未発生、false 分岐は防御網のみ */
@@ -145,10 +133,19 @@ export function formatError(error: unknown): string {
 }
 
 /**
-文面の違反で生成を止めたときの message。drawio_create と evidence_create で同じ文言にする。
+文面の違反で生成を止めたときの直し方。drawio_create と evidence_create で同じ文言にする。
 */
 export function textViolationMessage(count: number): string {
   return `${count.toString()} text violations; fix the text without loosening the rules, then run again`
+}
+
+/**
+失敗の detail。文面の違反なら、違反の一覧に直し方の 1 行を足す。
+*/
+export function failureDetailOf(error: unknown, data: Readonly<Record<string, unknown>>): string {
+  const violationCount = violationCountOf(data)
+  const detail = formatError(error)
+  return violationCount === undefined ? detail : `${detail}\n${textViolationMessage(violationCount)}`
 }
 
 /**
@@ -158,16 +155,6 @@ export function violationCountOf(data: Readonly<Record<string, unknown>>): numbe
   const violations = data['violations']
   return Array.isArray(violations) ? violations.length : undefined
 }
-
-/**
-chromium 不在 / 取得失敗で実処理を諦めたときの exit code (各コマンドの RuntimeError と同じ 1)。
-*/
-export const CHROMIUM_UNAVAILABLE_EXIT_CODE = 1
-
-/**
-実行時依存 (永続層) 不在 / 取得失敗で実処理を諦めたときの exit code。
-*/
-export const RUNTIME_UNAVAILABLE_EXIT_CODE = 1
 
 /**
 永続層の場所を特定できないときに利用者向けの応答へ載せる既定の表記。
@@ -273,7 +260,7 @@ function chromiumFailureReason(result: Readonly<SpawnResult>): string {
   if (result.timedOut) return `download timed out${NETWORK_HINT}`
   if (result.exitCode === null) {
     return result.signal === null
-      ? 'could not start the download command (see data.log for the reason); rebuild node_modules (pnpm install), then run again'
+      ? 'could not start the download command (see log for the reason); rebuild node_modules (pnpm install), then run again'
       : `download command was interrupted by ${result.signal}; the download was cut off externally`
   }
   return `download command exited with ${String(result.exitCode)}${NETWORK_HINT}`
@@ -297,24 +284,20 @@ export async function ensureChromium(
   dependencies: Readonly<ChromiumDependencies> = chromiumDefaultDependencies(),
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- AbortSignal は可変。EventTarget で addEventListener を呼ぶため readonly 化できない
   signal?: AbortSignal,
-): Promise<ToolResult | undefined> {
+): Promise<FailedToolResult | undefined> {
   if (await dependencies.isInstalled()) return undefined
 
   if (!dependencies.isAutoInstallEnabled()) {
     return {
       ok: false,
-      exitCode: CHROMIUM_UNAVAILABLE_EXIT_CODE,
-      artifacts: [],
       kind: 'chromium-not-installed',
+      detail: `cannot run ${label}: Playwright Chromium is not installed in ${expectedLocation(dependencies)}`
+        + '; call the `runtime_setup` tool to download it (about 120MB)'
+        + `; to automate the download, set ${AUTO_INSTALL_ENV}=1`,
       data: {
         event: 'chromium.unavailable',
-        reason: 'chromium-not-installed',
-        detail: `${label} needs Playwright Chromium, but it is not found in ${expectedLocation(dependencies)}`
-          + '; call the `runtime_setup` tool to download it (about 120MB)'
-          + `; to automate the download, set ${AUTO_INSTALL_ENV}=1`,
         expectedAt: expectedLocation(dependencies),
       },
-      message: `cannot run ${label}: Playwright Chromium is not installed; call the \`runtime_setup\` tool`,
     }
   }
 
@@ -326,19 +309,15 @@ export async function ensureChromium(
   const detail = result.exitCode === 0
     ? `download command succeeded, but chromium is not in ${expectedLocation(dependencies)}`
     : chromiumInstallFailureDetail(result)
-  // playwright install は失敗原因を stdout に書くこともあるため、両方を data.log に入れる。
-  return withSpawnOutput({
+  // playwright install は失敗原因を stdout に書くこともあるため、両方を log に入れる。
+  return withSpawnOutput<FailedToolResult>({
     ok: false,
-    exitCode: CHROMIUM_UNAVAILABLE_EXIT_CODE,
-    artifacts: [],
     kind: 'chromium-install-failed',
+    detail: `cannot run ${label}: downloading chromium with ${AUTO_INSTALL_ENV}=1 failed: ${detail}`,
     data: {
       event: 'chromium.unavailable',
-      reason: 'chromium-install-failed',
-      detail: `downloading chromium with ${AUTO_INSTALL_ENV}=1 for ${label} failed: ${detail}`,
       expectedAt: expectedLocation(dependencies),
     },
-    message: `cannot run ${label}: Playwright Chromium download failed`,
   }, result)
 }
 
@@ -392,23 +371,19 @@ ensureChromium と違い、自動取得の抜け道は持たない。npm install
 export function ensureRuntimeDependencies(
   label: string,
   dependencies: Readonly<RuntimeDependencies> = runtimeDefaultDependencies(),
-): ToolResult | undefined {
+): FailedToolResult | undefined {
   if (dependencies.isInstalled()) return undefined
 
   const expectedAt = dependencies.root() ?? RUNTIME_ROOT_PLACEHOLDER
   return {
     ok: false,
-    exitCode: RUNTIME_UNAVAILABLE_EXIT_CODE,
-    artifacts: [],
     kind: 'runtime-dependencies-not-installed',
+    detail: `cannot run ${label}: runtime dependencies are not installed`
+      + ` (@slidev/cli / dom-to-pptx / @slidev/parser cannot be resolved); ${DEPENDENCY_RECOVERY_HINT}`,
     data: {
       event: 'runtime-dependencies.unavailable',
-      reason: 'runtime-dependencies-not-installed',
-      detail: `${label} needs @slidev/cli / dom-to-pptx / @slidev/parser, which cannot be resolved; `
-        + DEPENDENCY_RECOVERY_HINT,
       expectedAt,
     },
-    message: `cannot run ${label}: runtime dependencies are not installed; call the \`runtime_setup\` tool`,
   }
 }
 

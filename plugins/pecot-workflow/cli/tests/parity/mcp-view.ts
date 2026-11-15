@@ -1,4 +1,4 @@
-// MCP 経由の結果と CLI の stderr を、同じ文字列（warning の文と、失敗の data.detail）にそろえて比べる。
+// MCP 経由の結果と CLI の stderr を、同じ文字列（warning の文と、失敗の detail）にそろえて比べる。
 // MCP の結果は stdout・stderr を持たないので、golden の stderr から同じ項目を取り出して比べる。
 // detail は両側を同じ detailOf で写した後の等しさを見る。detailOf 自身の正しさは、その単体テストが確かめる。
 import { detailOf, splitWarnings } from '../../src/mcp/result.js'

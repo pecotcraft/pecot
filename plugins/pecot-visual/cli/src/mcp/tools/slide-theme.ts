@@ -19,11 +19,6 @@ import { parsePathArguments, toCallToolResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import { formatError, TOOL_OUTPUT_SCHEMA, WINDOWS_PATH_NOTE } from './_shared.js'
 
-/**
-解決・宣言の失敗の exit code（各コマンドの RuntimeError と同じ 1）。
-*/
-const SLIDE_THEME_EXIT_CODE = 1
-
 const slideThemeInput = z.object({
   dir: z.string()
     .describe('Absolute path of the talk-dir whose theme to inspect. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
@@ -57,22 +52,16 @@ export function slideThemeTool(
         const { data } = await executeSlideTheme({ dir }, buildDependencies())
         return toCallToolResult({
           ok: true,
-          exitCode: 0,
-          artifacts: [],
           data: { ...data },
           message: `slide theme: ${data.theme.name} (${String(data.layouts.length)} layouts)`,
         })
       }
       catch (error: unknown) {
-        const detail = formatError(error)
-        const reason = errorToReason(error)
         return toCallToolResult({
           ok: false,
-          exitCode: SLIDE_THEME_EXIT_CODE,
-          kind: failureKindOf(reason),
-          artifacts: [],
-          data: { event: 'slide.theme.error', reason, detail },
-          message: detail,
+          kind: failureKindOf(errorToReason(error)),
+          detail: formatError(error),
+          data: { event: 'slide.theme.error' },
         })
       }
     },

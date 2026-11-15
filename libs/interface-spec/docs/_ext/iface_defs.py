@@ -370,44 +370,30 @@ def _constraint(item: object) -> str:
     return json.dumps(item, ensure_ascii=False)
 
 
-MCP_DATA_EMPTY = "成功の `data` に返す中身はありません。"
-# 全ツールに共通の data の項目。ツールごとの表には出さない。
-_MCP_DATA_COMMON = frozenset({"warnings"})
-
-
-def _mcp_success_data(entry: dict[str, Any]) -> dict[str, Any] | None:
-    """mcp.output の data のうち、成功側（reason を必須にしない枝）の JSON Schema。"""
-    data = _get(entry, "mcp.output.properties.data")
-    if not isinstance(data, dict):
-        return None
-    body = cast("dict[str, Any]", data)
-    branches = cast("list[Any]", body.get("anyOf", [body]))
-    for branch in branches:
-        if isinstance(branch, dict):
-            spec = cast("dict[str, Any]", branch)
-            if "reason" not in cast("list[str]", spec.get("required", [])):
-                return spec
-    return None
+MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
+MCP_FIELDS_OPEN = "このほかの項目も返します（型を閉じていません）。"
+# structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
+_MCP_COMMON = frozenset({"kind", "detail", "log", "warnings"})
 
 
 def _mcp_output(entry: dict[str, Any]) -> list[str]:
-    """MCP の成功の data の表と、artifacts の説明。説明は mcp_output を先に、無ければ schema の description を使う。"""
-    success = _mcp_success_data(entry)
-    if success is None:
+    """MCP の structuredContent のツールごとの項目の表。説明は mcp_output を先に、無ければ schema の description を使う。"""
+    output = _get(entry, "mcp.output")
+    if not isinstance(output, dict):
         return []
+    body = cast("dict[str, Any]", output)
     authored = cast("dict[str, Any]", entry.get("mcp_output", {}))
-    written = cast("dict[str, str]", authored.get("data", {}))
-    properties, _ = _schema(success)
+    written = cast("dict[str, str]", authored.get("fields", {}))
+    properties, _ = _schema(body)
     rows = [
         [name, _type(spec), written.get(name, spec.get("description", ""))]
         for name, spec in properties.items()
-        if name not in _MCP_DATA_COMMON
+        if name not in _MCP_COMMON
     ]
-    table = _table("MCP の成功の data", ["項目名", "型", "説明"], rows)
-    lines = table or _para(MCP_DATA_EMPTY)
-    if authored.get("artifacts"):
-        lines += _fields([("artifacts", authored["artifacts"])])
-    return lines
+    lines = _table("MCP の結果の項目", ["項目名", "型", "説明"], rows)
+    if body.get("additionalProperties") is not False:
+        return lines + _para(MCP_FIELDS_OPEN)
+    return lines or _para(MCP_FIELDS_EMPTY)
 
 
 def _output(entry: dict[str, Any]) -> list[str]:

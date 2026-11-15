@@ -20,7 +20,7 @@ CHANGELOG を更新してリリースする。
 
    `board_show` を引数なしで呼ぶ。
 
-   結果の `data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `release_type` を読む:
+   結果の `repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `release_type` を読む:
 
    - `single` → **[references/release-single.md](references/release-single.md)** に従う
    - `multi`  → **[references/release-multi.md](references/release-multi.md)** に従う

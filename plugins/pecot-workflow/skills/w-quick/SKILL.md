@@ -18,18 +18,18 @@ argument-hint: "[タスクの内容]"
 
 #### 起票の前の確認
 
-`session_start`（Step 2）は、Issue を作った後に、結果の `ok` を `false`、`exitCode` を 2 にして止まることがある。作ってから止まらないよう、Issue を作る前に確かめる。
+`session_start`（Step 2）は、Issue を作った後に、結果を失敗（`isError`）にして止まることがある。作ってから止まらないよう、Issue を作る前に確かめる。
 
 - 作業ディレクトリのリポが Issue のリポと違うとき
 - `.pecot-active` に別の OPEN の Issue が残っているとき
 
-`session_show` を `directory: "."` で呼ぶ。残っている Issue は結果の `data.activeIssue.reference` に、その OPEN/CLOSED は `data.activeIssue.state` にある。
-Issue を GitHub から読めないと、`data.activeIssue` は無い。そのときは `data.flags` の、`name` が `.pecot-active` の要素の `content` を見る。起票先のリポ（下の「リポジトリの特定方法」）と、作業ディレクトリのリポも比べる。
+`session_show` を `directory: "."` で呼ぶ。残っている Issue は結果の `activeIssue.reference` に、その OPEN/CLOSED は `activeIssue.state` にある。
+Issue を GitHub から読めないと、`activeIssue` は無い。そのときは `flags` の、`name` が `.pecot-active` の要素の `content` を見る。起票先のリポ（下の「リポジトリの特定方法」）と、作業ディレクトリのリポも比べる。
 
 - 別の OPEN の Issue が残っていたら、前の Issue を片付けてから始める。stale だと確信できるときだけ、Step 2 で `force_overwrite_active: true` を付ける
 - 起票先のリポが作業ディレクトリのリポと違うときは、起票先のリポの worktree でセッションを始め直す。始め直せないときだけ、Step 2 で `allow_cross_repo: true` を付ける
 
-> **ガード**: `issue_create` の結果の `data.issues` で Issue 番号を確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
+> **ガード**: `issue_create` の結果の `issues` で Issue 番号を確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
 
 #### Issue作成
 
@@ -37,7 +37,7 @@ Issue を GitHub から読めないと、`data.activeIssue` は無い。その�
 
 **`message` の書き方:** テンプレを経由しないため `message` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
 
-**成功確認:** 結果の `data.issues` に要素が 1 つあること。その `number` が Issue 番号、`owner`・`repository` がリポになる。
+**成功確認:** 結果の `issues` に要素が 1 つあること。その `number` が Issue 番号、`owner`・`repository` がリポになる。
 
 **特徴:**
 
@@ -50,7 +50,7 @@ Issue を GitHub から読めないと、`data.activeIssue` は無い。その�
 **リポジトリの特定方法:**
 
 - ユーザーが明示的に指定している場合はその値を使用
-- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `project_get` を `key: "aggregation_repo"` で呼び、結果の `data.value` を根拠に決める（推測で `repo` を埋めない）。未設定なら `data.value` は無い
+- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `project_get` を `key: "aggregation_repo"` で呼び、結果の `value` を根拠に決める（推測で `repo` を埋めない）。未設定なら `value` は無い
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 2: ブランチ作成（session_start）とブランチ切り替え
@@ -64,7 +64,7 @@ Issue を GitHub から読めないと、`data.activeIssue` は無い。その�
 - `feat/` + タスクの簡潔な説明（英語、ケバブケース）
 - 例: `feat/add-user-authentication`, `feat/fix-login-bug`
 
-結果の `data.branch`（ブランチ名）と `data.repository`（`owner/repo`）を読み、ブランチを切り替える。
+結果の `branch`（ブランチ名）と `repository`（`owner/repo`）を読み、ブランチを切り替える。
 
 ```bash
 git fetch origin
@@ -73,7 +73,7 @@ git checkout feat/description
 
 **ワークツリー環境の場合:**
 
-`data.repository` のリポのワークツリーのうち、今のワークツリーと同じ WT 名のもので `git checkout` を実行する。
+`repository` のリポのワークツリーのうち、今のワークツリーと同じ WT 名のもので `git checkout` を実行する。
 
 同じ WT 名のワークツリーがそのリポに存在しない場合は、
 `/pecot-w:w-worktree-add` コマンドでWT作成を案内するか、作業を中止する。
@@ -86,7 +86,7 @@ git checkout feat/description
 
 plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
 `issue_comment` を `prepare: true`・`template: "plan"`・`issue_ref: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
-できたファイルの絶対パスは、結果の `artifacts` にある。
+できたファイルの絶対パスは、結果の `file` にある。
 
 変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 
@@ -94,7 +94,7 @@ plan テンプレのファイルを作り、テンプレの見出しと規則の
 
 通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、結果の `data.detail` にある指摘を直して呼び直す。
+結果が失敗（`isError`）で、`kind` が `content-invalid` で止まったら、結果の `detail` にある指摘を直して呼び直す。
 
 ### Step 6: プランモードで承認を得る
 

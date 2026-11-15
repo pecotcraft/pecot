@@ -325,29 +325,22 @@ function readOnlyFindings(file: string, scope: string, entry: AuthoredEntry, gen
   })).toArray()
 }
 
-// 全ツールに共通の data の項目。成功の項目ごとの説明には数えない
-const COMMON_DATA_FIELDS: ReadonlySet<string> = new Set(['warnings'])
+// structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールの項目ごとの説明には数えない
+const COMMON_OUTPUT_FIELDS: ReadonlySet<string> = new Set(['kind', 'detail', 'log', 'warnings'])
 
-// mcp.output の data の、成功側（reason を必須にしない枝）の JSON Schema
-function successDataOf(generated: GeneratedEntry): Readonly<Record<string, unknown>> | undefined {
-  const data = generated.mcp?.output?.properties['data']
-  if (!isRecord(data)) return undefined
-  const branches = Array.isArray(data['anyOf']) ? data['anyOf'].filter(branch => isRecord(branch)) : [data]
-  return branches.find(branch => !(Array.isArray(branch['required']) && branch['required'].includes('reason')))
-}
-
-// 成功の側の data が閉じた型（additionalProperties: false）の項目は、mcp_output を必須にする。閉じていない項目は、書かなくてよい
+// mcp.output が閉じた型（最上位の additionalProperties: false）の項目は、mcp_output を必須にする。閉じていない項目は、書かなくてよい
 function mcpOutputFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+  const output = generated.mcp?.output
+  const isClosed = output?.['additionalProperties'] === false
   if (entry.mcp_output === undefined) {
-    const isRequired = generated.surfaces.mcp !== undefined && successDataOf(generated)?.['additionalProperties'] === false
-    return isRequired ? [{ file, scope, field: 'mcp_output', reason: 'is missing (the success data in mcp.output is a closed type; write each data field, or an empty data when it returns none)' }] : []
+    const isRequired = generated.surfaces.mcp !== undefined && isClosed
+    return isRequired ? [{ file, scope, field: 'mcp_output', reason: 'is missing (the tool fields in mcp.output are a closed type; write each field, or an empty fields when it returns none)' }] : []
   }
   if (generated.surfaces.mcp === undefined) return [{ file, scope, field: 'mcp_output', reason: 'is only for entries with an MCP surface (remove it)' }]
-  const finding = (reason: string): Finding => ({ file, scope, field: 'mcp_output.data', reason })
-  const success = successDataOf(generated)
-  if (success?.['additionalProperties'] !== false || !isRecord(success['properties'])) return []
-  const expected = Object.keys(success['properties']).filter(name => !COMMON_DATA_FIELDS.has(name)).toSorted(compareText)
-  const written = Object.keys(entry.mcp_output.data).toSorted(compareText)
+  if (output === undefined || !isClosed) return []
+  const finding = (reason: string): Finding => ({ file, scope, field: 'mcp_output.fields', reason })
+  const expected = Object.keys(output.properties).filter(name => !COMMON_OUTPUT_FIELDS.has(name)).toSorted(compareText)
+  const written = Object.keys(entry.mcp_output.fields).toSorted(compareText)
   const missing = expected.filter(name => !written.includes(name))
   const unknown = written.filter(name => !expected.includes(name))
   return [
@@ -364,8 +357,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...entry.details.map((text, index) => [`details[${String(index)}]`, text] as const),
     ['stdin', entry.stdin],
     ...(entry.output.format === 'none' ? [] : [['output.description', entry.output.description] as const]),
-    ...Object.entries(entry.mcp_output?.data ?? {}).map(([name, text]) => [`mcp_output.data.${name}`, text] as const),
-    ...(entry.mcp_output?.artifacts === undefined ? [] : [['mcp_output.artifacts', entry.mcp_output.artifacts] as const]),
+    ...Object.entries(entry.mcp_output?.fields ?? {}).map(([name, text]) => [`mcp_output.fields.${name}`, text] as const),
     ['diagnostics', entry.diagnostics],
     ...entry.environment.map((item, index) => [`environment[${String(index)}].effect`, item.effect] as const),
     ...exitTexts(entry),

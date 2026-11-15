@@ -6,7 +6,7 @@
 
 `project_list` を引数なしで呼ぶ。
 
-結果の `data.projects` が空でなければ設定あり。各要素の `name` が設定ファイル名になる。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。`project_activate` を `project: "<設定ファイル名>"` で呼ぶ。
+結果の `projects` が空でなければ設定あり。各要素の `name` が設定ファイル名になる。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。`project_activate` を `project: "<設定ファイル名>"` で呼ぶ。
 
 ## 2. 兄弟リポに同一プロジェクトの設定あり
 
@@ -88,7 +88,7 @@ cp <兄弟リポのJSONパス> .pecot/config/projects/
 
 AskUserQuestion でホスト・オーナーを確認してから検索する。`project_activate` を `host: "<host>"`・`owner: "<owner>"` で呼ぶ。
 
-結果の `data.candidates` に init 済みプロジェクトがあれば、AskUserQuestion で選択させ、番号（`number`）指定で activate する。`project_activate` を `project: "<番号>"`・`host: "<host>"`・`owner: "<owner>"` で呼ぶ。
+結果の `candidates` に init 済みプロジェクトがあれば、AskUserQuestion で選択させ、番号（`number`）指定で activate する。`project_activate` を `project: "<番号>"`・`host: "<host>"`・`owner: "<owner>"` で呼ぶ。
 
 → Step 3 へ。
 

@@ -40,11 +40,6 @@ import {
 } from './_shared.js'
 
 /**
-ページを生成できなかったときの exit code (各コマンドの RuntimeError と同じ 1)。
-*/
-const SLIDE_PAGE_EXIT_CODE = 1
-
-/**
 生成するページの拡張子。省略された `file` にはこれを補う。
 */
 const PAGE_EXTENSION = '.md'
@@ -83,8 +78,8 @@ const YAML_COMMENT_REGEX = /^[ \t]*#/
 
 const slidePageInput = z.object({
   layout: z.string()
-    .describe('Layout name. Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, '
-      + 'then choose from the names in data.layouts that belong to that category'),
+    .describe('Layout name. Decide the presentation style from the categories (categories) in the slide_create / slide_sync response, '
+      + 'then choose from the names in layouts that belong to that category'),
   dir: z.string()
     .describe('Absolute path of the talk-dir to generate the page in. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
   file: z.string()
@@ -103,11 +98,9 @@ function failure(
 ): FailedToolResult {
   return {
     ok: false,
-    exitCode: SLIDE_PAGE_EXIT_CODE,
     kind: failureKindOf(reason),
-    artifacts: [],
-    data: { event: 'slide.page.error', reason, detail, ...extra },
-    message: detail,
+    detail,
+    data: { event: 'slide.page.error', ...extra },
   }
 }
 
@@ -259,7 +252,7 @@ async function generatePage(
     return failure(
       'unknown-layout',
       `layout not found in theme ${theme.theme.name} referenced by ${input.dir}: ${input.layout}`
-      + '; decide the presentation style from data.categories, then choose from data.layouts of that category',
+      + '; decide the presentation style from categories, then choose from layouts of that category',
       { categories: theme.categories, layouts: theme.layouts },
     )
   }
@@ -321,10 +314,9 @@ async function generatePage(
     )
   }
 
+  // 書いたページのパスは path の項目で返す。
   return {
     ok: true,
-    exitCode: 0,
-    artifacts: [target],
     data: {
       event: 'slide.page.done',
       layout: entry.layout,
@@ -336,7 +328,7 @@ async function generatePage(
       includes: included.includes,
     },
     message: `slide page: generated (${target})`
-      + '; fill in the content following props / text_constraints in data.reference, '
+      + '; fill in the content following props / text_constraints in reference, '
       + `then register "src: ./pages/${file.filename}" in slides.md separately`,
   }
 }
@@ -354,7 +346,7 @@ async function handleSlidePage(
   const validated = parsePathArguments(slidePageInput, arguments_, ['dir'])
   if (validated.rejected !== undefined) return toCallToolResult(validated.rejected)
 
-  // テーマの警告は捕捉先の stderr に書き、output.finish で data.warnings へ移す。
+  // テーマの警告は捕捉先の stderr に書き、output.finish で warnings へ移す。
   const output = captureCommandOutput()
   try {
     return output.finish(await generatePage(validated.input, readReferenceText, output))
@@ -377,10 +369,10 @@ export function slidePageTool(
       title: 'Generate a Slidev page',
       description: 'Generates a skeleton page for one layout under pages/ of the talk-dir, '
         + 'and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). '
-        + 'The specification is returned in data.reference and data.includes. '
-        + 'Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, '
-        + 'then choose the layout name from data.layouts of that category '
-        + '(passing an unknown name returns data.categories and data.layouts in the response). '
+        + 'The specification is returned in reference and includes. '
+        + 'Decide the presentation style from the categories (categories) in the slide_create / slide_sync response, '
+        + 'then choose the layout name from layouts of that category '
+        + '(passing an unknown name returns categories and layouts in the response). '
         + 'The generated page must be registered separately as a src: entry in slides.md.',
       inputSchema: slidePageInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,

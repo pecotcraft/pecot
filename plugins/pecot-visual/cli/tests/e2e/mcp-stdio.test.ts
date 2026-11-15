@@ -267,7 +267,7 @@ describe('pecotv mcp (stdio)', () => {
         const called = await responseOf(3)
         expect(called['result']).toMatchObject({
           isError: true,
-          structuredContent: { ok: false, data: { reason: 'dir-not-found' } },
+          structuredContent: { kind: 'dir-not-found' },
         })
       }
       finally {

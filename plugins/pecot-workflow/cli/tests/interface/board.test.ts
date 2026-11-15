@@ -404,13 +404,13 @@ describe('board sync', () => {
   describe('MCP の data', () => {
     it('Issue を動かすと、動かした Issue と削除した Archived の件数を返す', async () => {
       const result = await tool('board_sync', {}, blockedToReadyRules())
-      expect(result.structured.data).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
+      expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
     })
 
     it('dry_run で呼ぶと、札を変える予定も moves に入れて dryRun を返す', async () => {
       const rules = [rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), rateLimit(100)]
       const result = await tool('board_sync', { dry_run: true }, rules)
-      expect(result.structured.data).toEqual({
+      expect(result.structured).toEqual({
         moves: [
           { issue: '#1', from: 'Ready', to: 'Blocked', label: 'Needs Attention', reason: 'blocked by #5 (closed without merge: #5)' },
           { issue: '#3', label: 'Todo', reason: 'startable' },
@@ -422,18 +422,18 @@ describe('board sync', () => {
 
     it('20 件を超えた Archived を削除すると、その件数を deletedArchived に返す', async () => {
       const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02'), rateLimit(130)])
-      expect(result.structured.data).toEqual({ moves: [], deletedArchived: 2 })
+      expect(result.structured).toEqual({ moves: [], deletedArchived: 2 })
     })
 
     it('Archived の削除が一部で失敗すると、削除できた件数と warning を data に残して失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
       await verifies(context, 'PW-COMMON-19')
       const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01', 500), deletion('PVTI_a02'), rateLimit(130)])
-      expect(result.structured).toMatchObject({ ok: false, exitCode: 1, kind: 'partial-failure' })
-      expect(result.structured.data).toEqual({
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'partial-failure' } })
+      expect(result.structured).toEqual({
         moves: [],
         deletedArchived: 1,
-        reason: 'partial-failure',
+        kind: 'partial-failure',
         detail: 'could not delete 1 archived item from the board',
         warnings: ['failed to delete 1 archived items'],
       })
@@ -445,12 +445,12 @@ describe('board add', () => {
   describe('MCP の data', () => {
     it('Issue を足すと、足した Issue・設定した Status を返す', async () => {
       const result = await tool('board_add', { issue_ref: 'acme/demo/7' }, [linkedRepositories(), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
-      expect(result.structured.data).toEqual({ issue: 'acme/demo/7', added: true, status: 'ready' })
+      expect(result.structured).toEqual({ issue: 'acme/demo/7', added: true, status: 'ready' })
     })
 
     it('dry_run で呼ぶと、足す予定の Issue・Status と dryRun を返す', async () => {
       const result = await tool('board_add', { issue_ref: 'acme/demo/7', status: 'active', dry_run: true }, [linkedRepositories(), issueNodeId()])
-      expect(result.structured.data).toEqual({ issue: 'acme/demo/7', added: true, status: 'active', dryRun: true })
+      expect(result.structured).toEqual({ issue: 'acme/demo/7', added: true, status: 'active', dryRun: true })
     })
   })
 })
@@ -459,12 +459,12 @@ describe('board move', () => {
   describe('MCP の data', () => {
     it('Status を設定すると、その Issue と Status を返す', async () => {
       const result = await tool('board_move', { issue_ref: 'acme/demo/7', status: 'in_review' }, [linkedRepositories(), boardItems(), fieldUpdated('o5')])
-      expect(result.structured.data).toEqual({ issue: 'acme/demo/7', status: 'in_review' })
+      expect(result.structured).toEqual({ issue: 'acme/demo/7', status: 'in_review' })
     })
 
     it('dry_run で呼ぶと、設定する予定の Status と dryRun を返し、フィールドを書かない', async () => {
       const result = await tool('board_move', { issue_ref: 'acme/demo/7', status: 'in_review', dry_run: true }, [linkedRepositories(), boardItems()])
-      expect(result.structured.data).toEqual({ issue: 'acme/demo/7', status: 'in_review', dryRun: true })
+      expect(result.structured).toEqual({ issue: 'acme/demo/7', status: 'in_review', dryRun: true })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
     })
   })
@@ -494,12 +494,12 @@ describe('board show', () => {
 
     it('json を省くと、--json の中身に release_type・packages と列の合わない件数を足して返す', async () => {
       const result = await tool('board_show', {}, showRules(), boardConfig(FULL_WORKFLOW, repositories))
-      expect(result.structured.data).toEqual(expected)
+      expect(result.structured).toEqual(expected)
     })
 
     it('json を true にしても、同じ data を返す', async () => {
       const result = await tool('board_show', { json: true }, showRules(), boardConfig(FULL_WORKFLOW, repositories))
-      expect(result.structured.data).toEqual(expected)
+      expect(result.structured).toEqual(expected)
     })
   })
 })

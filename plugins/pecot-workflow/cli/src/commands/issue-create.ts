@@ -384,7 +384,6 @@ function prepareTemplate(output: CreateOutput, template: IssueType | 'task-imple
     withReservedOutputPath(outputDirectory(), timestamp => `issue-${template}-${timestamp}${nameSuffix}.md`, (reserved) => {
       writeFileSync(reserved, content, 'utf8')
       output.result({ file: path.resolve(reserved) })
-      output.artifact(reserved)
       output.data(reserved)
     })
   }

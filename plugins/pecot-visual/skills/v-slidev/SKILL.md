@@ -33,7 +33,7 @@ PR で対応します）。既存 talk-dir のテーマの版上げと移行に�
 
 `package.json` の依存の版でテーマを取得して `node_modules` を張り直します。あわせて、本体の生成ファイル（`vite.config.ts`・`start.mjs`）を本体の今の内容にそろえます。ほかのファイルは変えません。
 生成ファイルへの手での編集は残らないので、Vite の追加設定は `setup/vite-plugins.ts` に置いてください。
-`node_modules_only` の有無に関わらず同じ動きです。応答の `data.theme` に、張ったテーマの `name` / `spec` / `directory` が入ります。
+`node_modules_only` の有無に関わらず同じ動きです。応答の `theme` に、張ったテーマの `name` / `spec` / `directory` が入ります。
 
 テーマの版を上げる手順は次のとおりです。
 
@@ -47,13 +47,13 @@ PR で対応します）。既存 talk-dir のテーマの版上げと移行に�
 ユーザーが指定していなければ、使うテーマを聞いてから呼びます。`theme` を渡さないと `theme-required` で止まります。
 
 - `slides.md` の `theme:` と `package.json` の依存を、テーマの参照に書き換える
-- 旧版のテンプレート由来のファイルとディレクトリを消す。応答の `data.migration.removed` に消した名前が入る
+- 旧版のテンプレート由来のファイルとディレクトリを消す。応答の `migration.removed` に消した名前が入る
 - 利用者作品（`slides.md` の本文 / `pages/` / `public/slides/`）は残る
 - 取得に失敗したときは、何も消さずに止まる
 
 移行後の手順は次のとおりです。
 
-1. 応答の `data.migration.removed` をユーザーに伝える
+1. 応答の `migration.removed` をユーザーに伝える
 2. 起動済みの `slide_dev` は `stop: true` で止め、起動し直す
 
 `node_modules_only` と `theme` は同時に渡せません。
@@ -69,14 +69,14 @@ PR で対応します）。既存 talk-dir のテーマの版上げと移行に�
 
 scaffold 直後の初期ページは、テーマの参照（`references/`）の examples から作られ、lint クリーンです。
 
-Step 2 へ進む前に、応答の `data.categories` と `data.layouts` を読み切ります。
-`data.categories` は見せ方の分類（`id` / `label` / `question`）、
-`data.layouts` は選択できるレイアウトの全件です（非公開レイアウトは含まれません）。
-`data.layouts` の各要素は `layout` / `description` / `category` / `deprecated` / `filename` を持ちます。
+Step 2 へ進む前に、応答の `categories` と `layouts` を読み切ります。
+`categories` は見せ方の分類（`id` / `label` / `question`）、
+`layouts` は選択できるレイアウトの全件です（非公開レイアウトは含まれません）。
+`layouts` の各要素は `layout` / `description` / `category` / `deprecated` / `filename` を持ちます。
 レイアウトの名前と用途は、このスキルには書きません。使えるレイアウトはテーマごとに違うため、必ずこの応答から選びます。
 既存の talk-dir を編集するときは、`slide_theme`（`dir`: talk-dir の絶対パス）を呼びます。
-`data.categories` と `data.layouts` は `slide_create` の応答と同じ形です。
-`slide_theme` の `data` は、ほかに次の項目を持ちます。
+`categories` と `layouts` は `slide_create` の応答と同じ形です。
+`slide_theme` の結果は、ほかに次の項目を持ちます。
 
 - `theme`: 参照しているテーマの `name` / `spec` / `declared`（`pecot-theme.json` の有無）/ `directory` / `linked`
 - `declaration`: テーマの宣言。書体（`fonts`）・文字サイズ（`fontSizes`、px）・PPTX の書体とリンク色（`pptx`）を持つ。図の枠を持つレイアウトと寸法（`drawio.panels`）、図に印を求めるレイアウト（`drawio.markerLayouts`）も持つ
@@ -86,10 +86,10 @@ Step 2 へ進む前に、応答の `data.categories` と `data.layouts` を読�
 
 レイアウトは 2 段で決め、計画書にアウトライン表を残します。
 
-1. スライドごとに `data.categories` の `question` に照らして見せ方の分類を 1 つ決める。
+1. スライドごとに `categories` の `question` に照らして見せ方の分類を 1 つ決める。
    `fixed` は表紙・目次・章扉・参考・裏表紙にだけ使う。本編の締め（まとめ）は `summary` から選ぶ。
    `showpiece` はユーザーが明示的に指示した枚にだけ使い、指示が無い枚では分類の候補にしない。
-2. `category` がその分類と一致する `data.layouts` を数え、件数に応じて決める。
+2. `category` がその分類と一致する `layouts` を数え、件数に応じて決める。
 
 - 2 件以上あるときは 2 候補以上を比較して決める
 - 1 件のときはその 1 件を採り、比較候補の欄に「層内 1 件」と書く。あわせて分類の選択自体が妥当かを `question` に照らして確認する
@@ -101,12 +101,12 @@ Step 2 へ進む前に、応答の `data.categories` と `data.layouts` を読�
 |----|--------------|------|------------|--------------------|----------|
 
 - 「図の中身」列には、図に描く要素とそのつながりを書く。
-  対象は、図の枠を持つレイアウトを選んだ行である。図の枠を持つレイアウトは、`slide_theme` の `data.declaration.drawio.panels` のキーに当たる。それ以外の行は空でかまわない
+  対象は、図の枠を持つレイアウトを選んだ行である。図の枠を持つレイアウトは、`slide_theme` の `declaration.drawio.panels` のキーに当たる。それ以外の行は空でかまわない
 - 主張が 3 つ以上の要素と、その間のつながり（呼び出し・データの受け渡し・包含・依存・分岐先）で成り立つ枚がある。
   その枚で図の枠を持つレイアウト以外を選ぶときは、「比較候補と選定理由」列に、図の枠を持つレイアウトとの比較を書く。
   時間順に一方向で進む段階だけなら、段階を並べるレイアウトが妥当である。
   同じ観点で属性を比べるなら、表のレイアウトが妥当である。2 者の対比や 1 対 1 の因果なら、左右に対比するレイアウトが妥当である。
-  どのレイアウトがそれに当たるかは、`data.layouts[].description` で判断する
+  どのレイアウトがそれに当たるかは、`layouts[].description` で判断する
 - `deprecated: true` のレイアウトは選ばない（品質が水準に達していないため。候補に数えない）
 - テーマの `references/<layout>.yaml` の `text_constraints`（`max_chars` / `bold_required`）も踏まえて設計する。talk-dir の `references/` に同名の yaml があれば、そちらが優先される
 
@@ -136,7 +136,7 @@ HTML ブロックの中の文は確かめられません。タグの行の直後
 指摘された文面はその場で書き直します（同じ違反が残ったまま次のページへ進まない）。
 旧形式のデッキを `slide_sync` で移した直後は、旧文面の文面違反がまとめて出ます。
 デッキ全体は `pecot-visual` サーバの `slide_lint`（`dir`: talk-dir の絶対パス）で一括 lint できます。
-`slide_create` / `slide_sync` の応答では同じ lint 結果が `data.lint` に載ります。
+`slide_create` / `slide_sync` の応答では同じ lint 結果が `lint` に載ります。
 
 ### Step 4: プレビュー
 
@@ -146,8 +146,8 @@ HTML ブロックの中の文は確かめられません。タグの行の直後
 - `port`: 起動するポート（省略時は 3030〜3034 の空きを使う。ユーザーから指定があったときだけ渡す）
 - `stop: true`: 起動中のプレビューを停止する
 
-応答の `data.url` をユーザーに伝え、ブラウザで確認してもらいます。同じ talk-dir を再度呼ぶと
-起動済みのサーバをそのまま返します（`data.reused: true`）。編集内容は HMR で反映されるため、
+応答の `url` をユーザーに伝え、ブラウザで確認してもらいます。同じ talk-dir を再度呼ぶと
+起動済みのサーバをそのまま返します（`reused: true`）。編集内容は HMR で反映されるため、
 編集のたびに呼び直す必要はありません。サーバはセッションが終わると停止します。
 
 ### Step 5: PPTX 変換（任意）
@@ -157,8 +157,8 @@ HTML ブロックの中の文は確かめられません。タグの行の直後
 - `project_dir`: talk-dir の絶対パス
 - `cache: false`: 差分キャッシュを読まずに全スライドを変換する
 
-結果は応答の `data`（`output` / `timings` / `cache` / `warnings` / `errors`）で確認します。
-`data.warnings` は警告の文の配列です。失敗したときは、slidev / vite の出力が `data.log` に入ります。
+結果は応答の項目（`output` / `timings` / `cache` / `warnings` / `errors`）で確認します。
+`warnings` は警告の文の配列です。失敗したときは、slidev / vite の出力が `log` に入ります。
 
 出力先は `<talk-dir>/pptx/<slides.md の title>.pptx` です。title のファイル名不可文字は `_` に正規化されます。title が無ければ `<talk-dir の basename>.pptx` になります。
 convert 内でフォント補正・hyperlink 化・transition 挿入が自動適用されます。

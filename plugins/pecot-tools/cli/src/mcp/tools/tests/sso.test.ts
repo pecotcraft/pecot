@@ -15,7 +15,6 @@ import { isRecord } from '../../../../tests/_helpers/records.js'
 import { useFakeAws } from '../../../../tests/_helpers/fake-aws.js'
 import { OUTPUT_LIMIT_BYTES, resetAwscliProbe } from '../../../infra/awscli.js'
 import type { ToolCallContext, ToolDefinition } from '../../server.js'
-import { TIMEOUT_EXIT_CODE } from '../_shared.js'
 import { ssoTools } from '../sso.js'
 import { useLoginRegistry } from '../../../../tests/_helpers/login-registry.js'
 import { useTemporaryDirectories } from '../../../../tests/_helpers/temporary-directory.js'
@@ -45,9 +44,15 @@ function toolOf(tools: readonly ToolDefinition[], name: string): ToolDefinition 
 function dataOf(result: Readonly<CallToolResult>): Record<string, unknown> {
   const structured = result.structuredContent
   if (!isRecord(structured)) throw new Error('structuredContent が無い')
-  const data = structured['data']
-  if (!isRecord(data)) throw new Error('data が無い')
-  return data
+  return structured
+}
+
+/**
+content の 1 つ目の text（成功の文か失敗の detail）。
+*/
+function sentenceOf(result: Readonly<CallToolResult>): string {
+  const [first] = result.content
+  return first?.type === 'text' ? first.text : ''
 }
 
 describe('ssoTools', () => {
@@ -60,7 +65,7 @@ describe('ssoTools', () => {
 
     const result = await toolOf(tools, 'aws_sso_login').handler({}, ABORTED_CONTEXT)
 
-    expect(result.structuredContent).toMatchObject({ ok: true, exitCode: 0 })
+    expect(result.isError).toBeUndefined()
     expect(dataOf(result)).toMatchObject({
       state: 'pending',
       userCode: 'ABCD-EFGH',
@@ -69,7 +74,7 @@ describe('ssoTools', () => {
     expect(registry.get()?.state).toBe('pending')
   })
 
-  it('status の output は上限で切り詰めて注記を message に残す', async () => {
+  it('status の output は上限で切り詰めて、注記を文に残す', async () => {
     const fixtureDirectory = makeFixtureDirectory('pecot-tools-sso-limit-')
     // 上限を確実に超える出力。デバイスフローに入らず exit 0 で終わるので completed になる。
     writeFileSync(
@@ -86,9 +91,8 @@ describe('ssoTools', () => {
     const output = dataOf(result)['output']
     expect(typeof output).toBe('string')
     expect(Buffer.byteLength(String(output), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
-    expect(result.structuredContent).toMatchObject({ ok: true, exitCode: 0 })
-    expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
-      .toContain('exceeded the limit')
+    expect(result.isError).toBeUndefined()
+    expect(sentenceOf(result)).toContain('exceeded the limit')
   })
 
   it('確定待ちより先にタイムアウトが来ると timed-out を返す', async () => {
@@ -103,15 +107,13 @@ describe('ssoTools', () => {
     const result = await toolOf(tools, 'aws_sso_login').handler({}, ABORTED_CONTEXT)
 
     expect(result.structuredContent).toMatchObject({
-      ok: false,
-      exitCode: TIMEOUT_EXIT_CODE,
       kind: 'timeout',
     })
-    expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
-      .toContain('Call aws_sso_login again')
+    expect(result.isError).toBe(true)
+    expect(sentenceOf(result)).toContain('Call aws_sso_login again')
   })
 
-  it('開始に失敗して出力が上限を超えると注記を message に残す', async () => {
+  it('開始に失敗して出力が上限を超えると、注記を detail に残す', async () => {
     const fixtureDirectory = makeFixtureDirectory('pecot-tools-sso-fail-limit-')
     writeFileSync(
       path.join(fixtureDirectory, 'sso-login.stderr'),
@@ -124,12 +126,10 @@ describe('ssoTools', () => {
 
     const result = await toolOf(tools, 'aws_sso_login').handler({}, ABORTED_CONTEXT)
 
-    expect(result.structuredContent).toMatchObject({ ok: false, exitCode: 253 })
-    const data = isRecord(result.structuredContent) ? result.structuredContent['data'] : undefined
-    const log = isRecord(data) ? data['log'] : undefined
+    expect(result.isError).toBe(true)
+    const log = dataOf(result)['log']
     expect(typeof log).toBe('string')
     expect(Buffer.byteLength(String(log), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
-    expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
-      .toContain('exceeded the limit')
+    expect(sentenceOf(result)).toContain('exceeded the limit')
   })
 })

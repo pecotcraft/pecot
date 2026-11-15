@@ -88,16 +88,16 @@ argument-hint: "[画像のパス]"
 - **`imagePath`・`input_path`・`out_path` はすべて絶対パスで組み立てる。**
   `input_path` / `out_path` の相対パスは実行前に拒否される。
   `imagePath` の相対パスは、仕様 JSON の位置ではなくプロセスのカレントディレクトリ基準で解決される。そのため画像が `not-found` になる
-- 報告は応答の `data` を読んで行う
+- 報告は応答の項目を読んで行う
 
 ## 5. エラー処理
 
 失敗は 2 系統ある。
 
-- **絶対パス違反**（`input_path` / `out_path` に相対パスを渡した）: `ok: false` / `exitCode: 2` で、`data` は
-  `{"invalidPaths":["out_path=..."]}` のみ。`kind` は `invalid-path` である。
+- **絶対パス違反**（`input_path` / `out_path` に相対パスを渡した）: 結果が失敗（`isError`）で、`kind` が `invalid-path`、項目は
+  `kind`・`detail`・`invalidPaths`（`["out_path=..."]`）のみ。
   `invalidPaths` に挙がった引数を絶対パスに直して呼び直す
-- 実行失敗は `ok: false` / `exitCode: 1` で返る。原因は `kind` で読み、`data` は `{"event":"evidence.create.error","reason":"...","detail":"..."}` になる。
+- 実行失敗は結果が失敗（`isError`）で返る。原因は `kind` で読み、項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
   `kind` は 8 値で、それぞれ回復手順が決まっている（対応表は `references/evidence-spec.md`）。
   うち `invalid-option` は引数の検証が先に済むこの場面では返らない
 
@@ -105,7 +105,7 @@ argument-hint: "[画像のパス]"
 1 件ずつ試さず、列挙されたパスをすべて直してから再実行する。
 
 文言に文章規則の違反があると、xlsx は書き出されず `kind: "text-violation"` が返る。
-`data.violations[].item` が直す先を名指しする。形は `title` / `items[i].caption` / `items[i].annotations[j].text` で、`i` は 0 始まりの添字を指す。
+`violations[].item` が直す先を名指しする。形は `title` / `items[i].caption` / `items[i].annotations[j].text` で、`i` は 0 始まりの添字を指す。
 `j` は `annotations` の添字で、highlight と arrow も数える。callout の `text` だけが判定の対象になる。
 `caption` を省いてファイル名で補った項目は、確かめない。
 `item` の全件を言い換えてから再実行する。規則・除外は変えない。
@@ -113,8 +113,8 @@ argument-hint: "[画像のパス]"
 
 ## 6. 結果報告
 
-成功時は `ok: true` / `exitCode: 0` が返る。`data` は
-`{"event":"result","outPath":...,"items":...,"annotations":...,"skipped":[...]}` になる。この `data` を正として報告する。
+成功時は結果が成功（`isError` が無い）で返る。項目は
+`{"event":"result","outPath":...,"items":...,"annotations":...,"skipped":[...]}` になる。この項目を正として報告する。
 
 - 生成した xlsx の**絶対パス**（`outPath`）
 - 配置した項目数（`items`）と注記数（`annotations`）

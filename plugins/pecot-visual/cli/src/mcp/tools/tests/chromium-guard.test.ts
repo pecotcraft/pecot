@@ -46,9 +46,13 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: Readonly<Record<string, unknown>>): string {
+  const content = result['content']
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 function spawnResult(overrides: Partial<SpawnResult> = {}): SpawnResult {
@@ -140,21 +144,19 @@ describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内
     const rejected = await ensureChromium('drawio_export', deps)
 
     expect(installCalls(), 'モデルから呼ばれたツールは通知なしに 120MB を取得してはいけない').toBe(0)
-    expect(rejected?.ok).toBe(false)
-    expect(rejected?.exitCode).toBe(1)
-    expect(rejected?.artifacts).toEqual([])
-    expect(rejected?.data).toMatchObject({
-      event: 'chromium.unavailable',
-      reason: 'chromium-not-installed',
-      expectedAt: '/fake/ms-playwright',
+    expect(rejected).toMatchObject({
+      ok: false,
+      kind: 'chromium-not-installed',
+      data: { event: 'chromium.unavailable', expectedAt: '/fake/ms-playwright' },
     })
+    expect(rejected?.data).not.toHaveProperty('reason')
   })
 
   it('案内文が「何が無いか / どこに期待していたか / 何を実行すべきか」を含む', async () => {
     const { deps } = fakeDependencies({ installed: false, autoInstall: false })
 
     const rejected = await ensureChromium('drawio_export', deps)
-    const detail = String(rejected?.data['detail'])
+    const detail = String(rejected?.detail)
 
     expect(detail).toContain('Chromium')
     expect(detail).toContain('/fake/ms-playwright')
@@ -175,17 +177,17 @@ describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内
     const rejected = await ensureChromium('drawio_export', { ...deps, browsersRoot: () => undefined })
 
     expect(rejected?.data['expectedAt']).toBe('the default Playwright browsers directory')
-    expect(String(rejected?.data['detail'])).not.toContain('undefined')
+    expect(String(rejected?.detail)).not.toContain('undefined')
   })
 
-  it('message は 1 行で runtime_setup ツールを名指しする', async () => {
+  it('detail は runtime_setup ツールを名指しする', async () => {
     const { deps } = fakeDependencies({ installed: false, autoInstall: false })
 
     const rejected = await ensureChromium('slide_convert', deps)
-    const message = rejected?.message ?? ''
+    const detail = rejected?.detail ?? ''
 
-    expect(message).toContain('slide_convert')
-    expect(message).toContain('call the `runtime_setup` tool')
+    expect(detail).toContain('slide_convert')
+    expect(detail).toContain('call the `runtime_setup` tool')
   })
 })
 
@@ -218,12 +220,12 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     const rejected = await ensureChromium('drawio_export', deps)
 
     expect(rejected?.ok).toBe(false)
-    expect(rejected?.data).toMatchObject({ reason: 'chromium-install-failed' })
+    expect(rejected?.kind).toBe('chromium-install-failed')
     // bin/pecotv の fatal メッセージと同じ誘導内容に揃える。
-    const detail = String(rejected?.data['detail'])
+    const detail = String(rejected?.detail)
     expect(detail).toContain('HTTPS_PROXY')
     expect(detail).toContain('PLAYWRIGHT_DOWNLOAD_HOST')
-    // playwright install は失敗原因を stdout に書くこともあるため、両方が data.log に入る。
+    // playwright install は失敗原因を stdout に書くこともあるため、両方が log に入る。
     expect(rejected?.data['log']).toBe('Downloading Chromium 140.0 (playwright build v1217)\ndownload failed')
   })
 
@@ -241,7 +243,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     const rejected = await ensureChromium('drawio_export', deps)
 
-    const detail = String(rejected?.data['detail'])
+    const detail = String(rejected?.detail)
 
     expect(detail, '既存の誘導は残す').toContain('PLAYWRIGHT_DOWNLOAD_HOST')
     expect(detail).toContain('TLS certificate verification failed')
@@ -259,7 +261,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     })
 
     const rejected = await ensureChromium('drawio_export', deps)
-    const detail = String(rejected?.data['detail'])
+    const detail = String(rejected?.detail)
 
     expect(detail).not.toContain('exit null')
     expect(detail).toContain('could not start the download command')
@@ -274,7 +276,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     })
 
     const rejected = await ensureChromium('drawio_export', deps)
-    const detail = String(rejected?.data['detail'])
+    const detail = String(rejected?.detail)
 
     expect(detail).not.toContain('exit null')
     expect(detail).toContain('SIGTERM')
@@ -290,7 +292,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     const rejected = await ensureChromium('drawio_export', deps)
 
-    expect(String(rejected?.data['detail'])).toContain('another process is downloading chromium')
+    expect(String(rejected?.detail)).toContain('another process is downloading chromium')
   })
 
   it('呼び出し元の signal を取得コマンドへ渡す', async () => {
@@ -311,7 +313,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     const rejected = await ensureChromium('drawio_export', deps)
 
-    expect(String(rejected?.data['detail'])).toContain('download timed out')
+    expect(String(rejected?.detail)).toContain('download timed out')
   })
 
   it('exit 0 でも実体が置かれていなければ失敗として扱う', async () => {
@@ -325,8 +327,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     const rejected = await ensureChromium('drawio_export', dependencies)
 
-    expect(rejected?.data).toMatchObject({ reason: 'chromium-install-failed' })
-    expect(String(rejected?.data['detail'])).toContain('/fake/ms-playwright')
+    expect(rejected?.kind).toBe('chromium-install-failed')
+    expect(String(rejected?.detail)).toContain('/fake/ms-playwright')
   })
 })
 
@@ -343,9 +345,8 @@ describe('chromium 未取得時のツール応答', () => {
     )
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('chromium-not-installed')
-    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
+    expect(structuredOf(result)['kind']).toBe('chromium-not-installed')
+    expect(sentenceOf(result)).toContain('call the `runtime_setup` tool')
     expect(snapshotTree(workDirectory)).toEqual(new Map())
   })
 
@@ -372,8 +373,8 @@ describe('chromium 未取得時のツール応答', () => {
     )
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)['reason']).toBe('chromium-not-installed')
-    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
+    expect(structuredOf(result)['kind']).toBe('chromium-not-installed')
+    expect(sentenceOf(result)).toContain('call the `runtime_setup` tool')
   })
 
   it('drawio_create は PNG を諦めて表示用 HTML は書く (CLI の degrade と同じ)', async (context) => {
@@ -391,14 +392,12 @@ describe('chromium 未取得時のツール応答', () => {
 
     expect(degraded.isError).toBeUndefined()
     const structured = structuredOf(degraded)
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(3)
-    expect(structured['artifacts']).toEqual([outPath])
+    expect(structured['file']).toBe(outPath)
     // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
     expect(dataOf(degraded)).toMatchObject({ png: null, pngFailed: true })
     expect(dataOf(degraded)['warnings']).toEqual([expect.stringContaining('PNG export failed')])
-    // 復旧手段は message に載せる (data は CLI の PNG 失敗時と同形に保つ)。
-    expect(String(structured['message'])).toContain('call the `runtime_setup` tool')
+    // 復旧手段は文に載せる (ツールの項目は CLI の PNG 失敗時と同形に保つ)。
+    expect(sentenceOf(degraded)).toContain('call the `runtime_setup` tool')
   })
 
   it('drawio_create は out_path 省略なら chromium 未取得でも URL を返す', async () => {
@@ -422,6 +421,6 @@ describe('chromium 未取得時のツール応答', () => {
     )
 
     expect(result.isError).toBeUndefined()
-    expect(structuredOf(result)['artifacts']).toEqual([outPath])
+    expect(structuredOf(result)['file']).toBe(outPath)
   })
 })

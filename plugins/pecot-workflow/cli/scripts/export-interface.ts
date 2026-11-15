@@ -33,10 +33,7 @@ export interface InterfaceEntry {
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function outputOf(command: CommandDefinition): Record<string, unknown> {
-  // input と同じく $schema を外す
-  const schema: Record<string, unknown> = { ...z.toJSONSchema(toolOutputSchema(command.output), { io: 'output' }) }
-  delete schema['$schema']
-  return schema
+  return toolOutputSchema(command.output)
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない

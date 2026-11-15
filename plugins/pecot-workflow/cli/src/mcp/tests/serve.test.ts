@@ -12,7 +12,7 @@ import { childStdin, setChildStdin } from '../../infra/child-stdin.js'
 import { defineCommand } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
-import { outcomeOf, structuredOf } from '../../../tests/_helpers/mcp-client.js'
+import { outcomeOf, structuredOf, toolOutcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import { defaultDependencies, executeMcpServe, installStdoutGuard, runMcpServe } from '../serve.js'
 import type { McpServeDependencies, WritableTarget } from '../serve.js'
@@ -180,7 +180,7 @@ describe('runMcpServe', () => {
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const result = await client.callTool({ name: 'hello', arguments: {} })
-    expect(structuredOf(result)).toMatchObject({ exitCode: 0, message: 'hello', data: {} })
+    expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'hello', structured: {} })
   })
 
   it('実行中に stdin が閉じたら、待っている呼び出しは本体を呼ばない', async () => {
@@ -323,7 +323,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     expect(changeDirectory).not.toHaveBeenCalled()
-    expect(structuredOf(await client.callTool(hello))).toMatchObject({ exitCode: 0, message: 'hello', data: {} })
+    expect(toolOutcomeOf(await client.callTool(hello))).toEqual({ isError: false, text: 'hello', structured: {} })
   })
 
   it('決まったディレクトリへ、待ち受けを始める前に 1 回だけ移る', () => {
@@ -363,8 +363,8 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(listed.tools.map(tool => tool.name)).toEqual(['slow', 'hello', 'noisy_bug', 'bug'])
     const result = await client.callTool(hello)
     expect(result.isError).toBe(true)
-    expect(outcomeOf(result)).toEqual({ exitCode: 1, detail: reason, warnings: [] })
-    expect(structuredOf(result)).toMatchObject({ kind: 'session-directory-unresolved', message: reason })
+    expect(outcomeOf(result)).toEqual({ isError: true, detail: reason, warnings: [] })
+    expect(structuredOf(result)).toEqual({ kind: 'session-directory-unresolved', detail: reason })
     await client.callTool({ name: 'slow', arguments: { name: 'x' } })
     expect(started).toEqual([])
     expect(changeDirectory).not.toHaveBeenCalled()
@@ -388,7 +388,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(stderr.chunks).toEqual([`error: ${reason}\n`])
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, detail: reason, warnings: [] })
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ isError: true, detail: reason, warnings: [] })
   })
 
   it('cwd を読めなくても（消えている）起動し、読めない旨と元の失敗を理由にして返す', async () => {
@@ -406,7 +406,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(stderr.chunks).toEqual([`error: ${CWD_READ_REASON}\n`])
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, detail: CWD_READ_REASON, warnings: [] })
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ isError: true, detail: CWD_READ_REASON, warnings: [] })
     expect(changeDirectory).not.toHaveBeenCalled()
   })
 

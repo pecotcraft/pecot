@@ -269,11 +269,8 @@ describe('pecot-tools mcp (stdio)', () => {
       )
 
       expect(result.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(result.structuredContent).toMatchObject({
-        ok: true,
-        exitCode: 0,
-        data: { Account: '123456789012' },
-      })
+      expect(result.structuredContent).toStrictEqual(expect.objectContaining({ Account: '123456789012' }))
+      expect(result.structuredContent).not.toHaveProperty('ok')
     }
     finally {
       await client.close()
@@ -311,7 +308,7 @@ describe('pecot-tools mcp (stdio)', () => {
       )
 
       expect(result.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(result.structuredContent).toMatchObject({ ok: true, exitCode: 0 })
+      expect(result.structuredContent).not.toHaveProperty('exitCode')
 
       const filtered = await client.callTool(
         {
@@ -325,7 +322,7 @@ describe('pecot-tools mcp (stdio)', () => {
       )
 
       expect(filtered.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(filtered.structuredContent).toMatchObject({ ok: true, exitCode: 0 })
+      expect(filtered.structuredContent).not.toHaveProperty('exitCode')
       expect(readCallLog(fake.callLogPath).filter(call => call[0] !== '--version')).toEqual([
         [
           'cloudwatch', 'get-metric-statistics',
@@ -381,11 +378,8 @@ describe('pecot-tools mcp (stdio)', () => {
         { timeout: REQUEST_TIMEOUT_MS },
       )
       expect(result.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(result.structuredContent).toMatchObject({
-        ok: true,
-        exitCode: 0,
-        data: { Account: '123456789012' },
-      })
+      expect(result.structuredContent).toStrictEqual(expect.objectContaining({ Account: '123456789012' }))
+      expect(result.structuredContent).not.toHaveProperty('ok')
     }
     finally {
       await client.close()
@@ -586,7 +580,7 @@ describe('pecot-tools mcp (stdio)', () => {
       expect(response, `子プロセス stderr: ${server.stderr()}`).toMatchObject({
         jsonrpc: '2.0',
         id: 2,
-        result: { structuredContent: { ok: true, data: { state: 'pending' } } },
+        result: { structuredContent: { state: 'pending' } },
       })
 
       const pid = readPidFile(fake.pidFilePath)
@@ -724,7 +718,7 @@ describe('pecot-tools mcp (stdio)', () => {
       }))
       await vi.waitFor(() => {
         expect(findResponse(server.stdout(), 3)).toMatchObject({
-          result: { structuredContent: { ok: true, data: { Account: '123456789012' } } },
+          result: { structuredContent: { Account: '123456789012' } },
         })
       }, { timeout: REQUEST_TIMEOUT_MS })
     }

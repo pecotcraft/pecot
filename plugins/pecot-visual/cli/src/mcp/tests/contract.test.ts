@@ -243,9 +243,9 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
 ]
 
 /**
-ToolResult 同形の outputSchema で必須になるフィールド。
+outputSchema が名前を持たせる共通の項目。ツールの項目は名前を持たせず、開いた object で受ける。
 */
-const OUTPUT_REQUIRED = ['artifacts', 'data', 'exitCode', 'message', 'ok']
+const COMMON_OUTPUT_ITEMS = ['detail', 'kind', 'log', 'warnings']
 
 // src/mcp/tests → cli/。実在しないディレクトリを起点に、実処理が即失敗する入力を作る。
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -256,7 +256,7 @@ const MISSING_DIRECTORY = path.join(CLI_ROOT, 'no-such-dir-980')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 
 /**
-相対パスの確認 (FR-011) を突く値。実処理まで進めば「入力不在」の exitCode 1 になる。
+相対パスの確認 (FR-011) を突く値。実処理まで進めば「入力不在」の失敗になる。
 */
 const RELATIVE_PATH = 'no-such-dir-980/probe'
 /**
@@ -514,11 +514,11 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it.for(TOOL_CONTRACTS)('$name のパス型パラメータは相対パスなら実処理前に exitCode 2 で弾く', async (contract, context) => {
+  it.for(TOOL_CONTRACTS)('$name のパス型パラメータは相対パスなら実処理前に invalid-path で弾く', async (contract, context) => {
     await verifies(context, 'PV-COMMON-03')
     // 必須パラメータは絶対パスで埋め、対象の 1 件だけを相対パスにする。
-    // 実処理まで進めば、結果は「入力不在」の exitCode 1。
-    // exitCode 2 を返すこと自体が、実行前の拒否の証拠となる (FR-011)。
+    // 実処理まで進めば、結果は「入力不在」の失敗。
+    // invalid-path を返すこと自体が、実行前の拒否の証拠となる (FR-011)。
     const absoluteRequired = Object.fromEntries(contract.required.map(name => [name, ABSOLUTE_PATH]))
 
     for (const name of contract.pathParameters) {
@@ -526,17 +526,14 @@ describe('MCP ツール契約 (tools/list)', () => {
         name: contract.name,
         arguments: { ...absoluteRequired, [name]: RELATIVE_PATH },
       })
-      const structured = structuredOf(called)
+      const { detail, ...structured } = structuredOf(called)
 
       expect(called.isError, `${contract.name}.${name}`).toBe(true)
-      expect(structured['exitCode'], `${contract.name}.${name}`).toBe(2)
-      expect(structured['artifacts']).toEqual([])
-      expect(structured['kind'], `${contract.name}.${name}`).toBe('invalid-path')
-      expect(structured['data']).toEqual({
-        reason: 'invalid-path',
-        detail: structured['message'],
+      expect(structured, `${contract.name}.${name}`).toStrictEqual({
         invalidPaths: [`${name}=${RELATIVE_PATH}`],
+        kind: 'invalid-path',
       })
+      expect(String(detail)).toContain('must be an absolute path')
     }
   })
 
@@ -549,7 +546,7 @@ describe('MCP ツール契約 (tools/list)', () => {
 
   it.for(SINGLE_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して下流へ渡す', async (contract, context) => {
     await verifies(context, 'PV-COMMON-04')
-    // パス引数が 1 件のツールは、変換後の値がそのまま下流へ渡るので応答 (message / data) に現れる。
+    // パス引数が 1 件のツールは、変換後の値がそのまま下流へ渡るので応答 (detail やツールの項目) に現れる。
     // slide 系の既定 deps ファクトリは CLAUDE_PLUGIN_ROOT を要る。未設定だと、引数を見る前に失敗する。
     // すると変換後のパスが応答に出ない。プラグイン導入時と同じ値を入れて、実処理まで進ませる。
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
@@ -563,20 +560,16 @@ describe('MCP ツール契約 (tools/list)', () => {
         }))
 
         // 変換に失敗していれば最初のガードで弾かれ、ここに invalidPaths が載る。
-        expect(structured['data'], `${contract.name}.${name} (${windowsPath})`)
+        expect(structured, `${contract.name}.${name} (${windowsPath})`)
           .not.toHaveProperty('invalidPaths')
-        expect(
-          JSON.stringify([structured['message'], structured['data']]),
-          `${contract.name}.${name} (${windowsPath})`,
-        ).toContain(convertedPath)
+        expect(JSON.stringify(structured), `${contract.name}.${name} (${windowsPath})`).toContain(convertedPath)
 
         // 変換後のパス (実在する空ディレクトリ) を受けて実処理へ進み、即座に失敗している前提を
         // 明示的に pin する (#1094 F-15)。空ディレクトリを受理する方向へ挙動が変わっても
         // ここで検知できないと、実 scaffold / dev サーバ起動を伴う重いテストへ静かに変わる。
         const expectedReason = SINGLE_PATH_IMMEDIATE_FAILURE[contract.name]
         if (expectedReason === undefined) throw new Error(`${contract.name} の即失敗 reason が SINGLE_PATH_IMMEDIATE_FAILURE に未定義です`)
-        expect(structured['ok'], `${contract.name}.${name} (${windowsPath})`).toBe(false)
-        expect(structured['data'], `${contract.name}.${name} (${windowsPath})`).toMatchObject({ reason: expectedReason })
+        expect(structured['kind'], `${contract.name}.${name} (${windowsPath})`).toBe(expectedReason)
       }
     }
   })
@@ -587,7 +580,7 @@ describe('MCP ツール契約 (tools/list)', () => {
     // 「変換後のパスが応答に現れる」だけでは、全引数を覆えない。
     // そこで 2 点で引数ごとに変換を観測する。
     // 1 点目は、受理されること (invalidPaths が無いこと)。
-    // 2 点目は、別のパス引数を相対パスにして拒否させたときの data.convertedPaths (元値 → 変換後)。
+    // 2 点目は、別のパス引数を相対パスにして拒否させたときの convertedPaths (元値 → 変換後)。
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     const base = windowsBaseArgumentsOf(contract.name)
 
@@ -597,29 +590,27 @@ describe('MCP ツール契約 (tools/list)', () => {
           name: contract.name,
           arguments: { ...base, [name]: windowsPath },
         }))
-        expect(accepted['data'], `${contract.name}.${name} (${windowsPath})`)
+        expect(accepted, `${contract.name}.${name} (${windowsPath})`)
           .not.toHaveProperty('invalidPaths')
 
         const companion = contract.pathParameters.find(other => other !== name)
         if (companion === undefined) throw new Error(`${contract.name}.${name} に相方のパス引数がありません`)
-        const rejected = structuredOf(await client().callTool({
+        const { detail, ...rejected } = structuredOf(await client().callTool({
           name: contract.name,
           arguments: { ...base, [name]: windowsPath, [companion]: RELATIVE_PATH },
         }))
 
-        expect(rejected['exitCode'], `${contract.name}.${name} (${windowsPath})`).toBe(2)
-        expect(rejected['kind'], `${contract.name}.${name} (${windowsPath})`).toBe('invalid-path')
-        expect(rejected['data'], `${contract.name}.${name} (${windowsPath})`).toEqual({
-          reason: 'invalid-path',
-          detail: rejected['message'],
+        expect(rejected, `${contract.name}.${name} (${windowsPath})`).toStrictEqual({
           invalidPaths: [`${companion}=${RELATIVE_PATH}`],
           convertedPaths: { [name]: { from: windowsPath, to: convertedPath } },
+          kind: 'invalid-path',
         })
+        expect(String(detail)).toContain('must be an absolute path')
       }
     }
   })
 
-  it('drawio_create の out_path を変換後の mount root 配下へ向けると artifacts に変換後パスが載る (#1094 F-13)', async () => {
+  it('drawio_create の out_path を変換後の mount root 配下へ向けると file に変換後パスが載る (#1094 F-13)', async () => {
     // 直前の 2 テストは、「受理されること (invalidPaths 無し)」までしか見ていない。
     // out_path が実際に下流 (成果物の書き出し先) で使われることまでは、テストで覆えていなかった。
     // 対象は drawio_create / drawio_export / slide_convert の out_path。
@@ -637,35 +628,33 @@ describe('MCP ツール契約 (tools/list)', () => {
       arguments: { input_path: inputPath, out_path: windowsOutPath, png: false },
     }))
 
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([expectedOutPath])
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['file']).toBe(expectedOutPath)
   })
 
-  it.each(TOOL_CONTRACTS)('$name が ToolResult 同形の outputSchema を公開する', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の outputSchema は、共通の 4 項目だけに名前を持たせた開いた object になる', (contract) => {
     const outputSchema = toolOf(contract.name).outputSchema
-    const properties = Object.keys(outputSchema?.['properties'] ?? {})
-    const required = outputSchema?.['required']
+    const properties = outputSchema?.['properties']
+    const names = Object.keys(isRecord(properties) ? properties : {})
 
-    expect(sorted(properties)).toEqual(sorted([...OUTPUT_REQUIRED, 'kind']))
-    expect(sorted(Array.isArray(required) ? required.map(String) : [])).toEqual(OUTPUT_REQUIRED)
+    expect(outputSchema?.['type']).toBe('object')
+    expect(sorted(names)).toEqual(COMMON_OUTPUT_ITEMS)
+    expect(outputSchema?.['required'] ?? []).toEqual([])
+    expect(outputSchema).not.toHaveProperty('anyOf')
+    expect(outputSchema?.['additionalProperties']).toEqual({})
+    // JSON Schema の boolean スキーマ（true）を出さない。
+    expect(JSON.stringify(outputSchema)).not.toMatch(/:true[,\}]/v)
   })
 
-  it.each(TOOL_CONTRACTS)('$name の data の schema は、共通の 4 項目を省略可で持ち、ほかの項目も受ける', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の outputSchema は、共通の 4 項目を省略可の型で持つ', (contract) => {
     const properties = toolOf(contract.name).outputSchema?.['properties']
-    const data = propertyOf(isRecord(properties) ? properties : undefined, 'data')
 
-    const common = data['properties']
-    expect(common).toMatchObject({
+    expect(properties).toMatchObject({
       warnings: { type: 'array', items: { type: 'string' } },
-      reason: { type: 'string' },
+      kind: { type: 'string' },
       detail: { type: 'string' },
       log: { type: 'string' },
     })
-    const names = Object.keys(isRecord(common) ? common : {})
-    expect(sorted(names)).toEqual(['detail', 'log', 'reason', 'warnings'])
-    expect(data['required'] ?? []).toEqual([])
-    expect(data['additionalProperties']).toEqual({})
   })
 
   it.each(TOOL_CONTRACTS)('$name の annotations が実行判断のヒントを持つ', (contract) => {
@@ -712,18 +701,18 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(tool.description).toContain('600MB')
   })
 
-  it.each(FAST_FAILURES)('$name の失敗は、stdout / stderr を持たず、data.reason と data.detail を返す', async (failure) => {
+  it.each(FAST_FAILURES)('$name の失敗は、入れ物の項目と stdout / stderr と reason を持たず、kind と detail を返す', async (failure) => {
     // 相対パス拒否は実処理の前に返るので、実処理へ入る引数 (絶対パスだが実在しない入力) を使う。
     const structured = structuredOf(await client().callTool({
       name: failure.name,
       arguments: { ...failure.arguments },
     }))
 
-    expect(structured['data'], `${failure.name} が実処理へ入っていない`).not.toHaveProperty('invalidPaths')
-    expect(Object.keys(structured)).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
-    const data = isRecord(structured['data']) ? structured['data'] : {}
-    expect(typeof data['reason']).toBe('string')
-    expect(typeof data['detail']).toBe('string')
+    expect(structured, `${failure.name} が実処理へ入っていない`).not.toHaveProperty('invalidPaths')
+    for (const key of ['ok', 'exitCode', 'artifacts', 'data', 'message', 'stdout', 'stderr', 'reason']) {
+      expect(structured, `${failure.name}.${key}`).not.toHaveProperty(key)
+    }
     expect(typeof structured['kind']).toBe('string')
+    expect(typeof structured['detail']).toBe('string')
   })
 })

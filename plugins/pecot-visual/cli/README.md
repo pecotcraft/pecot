@@ -299,28 +299,26 @@ stdio（stdin / stdout）で待ち受ける MCP サーバとして起動しま�
 `slide lint` / `pptx preview` / `drawio export` は本 README に節がありません。引数・オプションは
 `pecotv <cmd> --help` で確認してください。
 
-**MCP 応答の exitCode**
+**MCP 応答の形**
 
-ツールの応答は `ok` / `exitCode` / `artifacts` / `data` / `message` を持ちます。`ok` は目的の実行を
-完了できたかだけを表し、`ok: false` のときだけ MCP の `isError: true` が付きます。`exitCode` は
-対応する CLI コマンドの終了コード規約と同じ値です。
+ツールの結果は、MCP の仕様どおり `content`・`structuredContent`・`isError` を持ちます。ツールごとの項目は `structuredContent` の最上位に入ります。
+成否は `isError` で読み、失敗したときだけ `isError: true` が付きます。失敗の `structuredContent` は、原因の名前の `kind`、文の `detail`、子プロセスの出力の `log` を持ちます。
+結果に `exitCode` は入りません。CLI の終了コードは、次の状況に当たります。
 
-| 状況 | `ok` | `exitCode` | `data.reason` |
-|---|---|---|---|
-| `*_path` / `*_dir` に相対パスを渡した | false | 2（実行前に拒否） | なし（該当引数は `data.invalidPaths`） |
-| 実行に失敗した | false | 各コマンドの reason 一覧と同じ値 | 各コマンドの reason 一覧と同じ値 |
-| 依存が未取得 | false | 1 | `chromium-not-installed` / `chromium-install-failed` / `runtime-dependencies-not-installed` |
-| `slide_lint` が違反を検出 | true | 1 | — |
-| `drawio_create` / `drawio_export` が警告を検出 | true | 3 | — |
+| 状況 | 結果 | `kind` |
+|---|---|---|
+| `*_path` / `*_dir` に相対パスを渡した | 失敗（実行前に拒否） | `invalid-path`（該当引数は `invalidPaths`） |
+| 実行に失敗した | 失敗 | 各コマンドの reason 一覧と同じ値 |
+| 依存が未取得 | 失敗 | `chromium-not-installed` / `chromium-install-failed` / `runtime-dependencies-not-installed` |
+| `slide_lint` が違反を検出 | 成功（CLI は終了コード 1） | — |
+| `drawio_create` / `drawio_export` が警告を検出 | 成功（CLI は終了コード 3） | — |
 
 `slide_lint` の違反検出と `drawio_create` / `drawio_export` の警告は報告そのものが成果なので `isError` は付きません。
-`evidence_create` の実行失敗時 `exitCode` は 1 です。
-相対パス拒否の 2 は上表のとおりです。
 CLI の `invalid-option` による 2 は inputSchema の検証が先に済ませるため、MCP 経由では出ません。
 `drawio_create` の PNG 出力だけは、Chromium が未取得でも URL の書き出しが成立します。
-そのため失敗ではなく、警告 1 件（`exitCode` 3 / `pngFailed: true`）として返ります。
+そのため失敗ではなく、警告 1 件（`warnings` / `pngFailed: true`）として返ります。
 `drawio_export` の PDF も同様に、生成に失敗しても SVG は書き出します。
-その場合は警告 1 件（`exitCode` 3 / `pdf: null` / `pdfFailed: true`）として返ります。
+その場合は警告 1 件（`warnings` / `pdf: null` / `pdfFailed: true`）として返ります。
 
 **`runtime_setup` が前提になるツール**
 

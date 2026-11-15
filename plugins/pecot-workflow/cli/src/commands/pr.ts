@@ -744,7 +744,6 @@ async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateD
     withReservedOutputPath(outputDirectory(), timestamp => `${prefix}-${timestamp}.md`, (reserved) => {
       writeFileSync(reserved, content, 'utf8')
       out.result({ file: path.resolve(reserved) })
-      out.artifact(reserved)
       out.data(reserved)
     })
   }

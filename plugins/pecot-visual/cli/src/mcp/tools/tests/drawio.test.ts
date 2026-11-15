@@ -47,9 +47,13 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 const temporaryDirectories: string[] = []
@@ -94,35 +98,30 @@ function makeThemeDirectory(): string {
 }
 
 describe('drawio_create', () => {
-  it('相対パスは実処理を呼ばずに exitCode 2 で返す', async () => {
-    // 存在しない相対パスを渡す。実処理まで進めば、「入力不在」の exitCode 1 が返る。
-    // exitCode 2 が返れば、それが実行前に弾いた証拠となる。
+  it('相対パスは実処理を呼ばずに invalid-path で返す', async () => {
+    // 存在しない相対パスを渡す。実処理まで進めば input-not-found が返る。invalid-path なら、実行前に弾いている。
     const result = await drawioCreateTool.handler({ input_path: 'tests/fixtures/drawio/minimal.drawio' }, CALL)
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(structured['artifacts']).toEqual([])
+    expect(structured['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['input_path=tests/fixtures/drawio/minimal.drawio'])
   })
 
   it('out_path だけが相対でも弾く', async () => {
     const result = await drawioCreateTool.handler({ input_path: MINIMAL, out_path: 'out/diagram.drawio.html' }, CALL)
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['out_path=out/diagram.drawio.html'])
   })
 
-  it('out_path 省略時は URL だけを data に載せ、artifacts は空になる', async (context) => {
+  it('out_path 省略時は URL だけを返し、file を持たない', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-01')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL }, CALL)
     const structured = structuredOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([])
+    expect(structured).not.toHaveProperty('kind')
     const data = dataOf(result)
     expect(Object.keys(data).toSorted(compareStrings)).toEqual(['event', 'theme', 'url'])
     expect(data['theme']).toEqual({ source: 'default', fonts: { body: ['sans-serif'] } })
@@ -134,27 +133,23 @@ describe('drawio_create', () => {
     await verifies(context, 'PV-DRAWIO-CREATE-01')
     const result = await drawioCreateTool.handler({ input_path: ICON_RESOLVABLE }, CALL)
     const url = dataOf(result)['url']
-    if (typeof url !== 'string') throw new TypeError('data.url が文字列ではありません')
+    if (typeof url !== 'string') throw new TypeError('url が文字列ではありません')
 
     const xml = decodeData(url.slice(url.indexOf('#R') + 2))
     expect(xml).toContain('data:image/svg+xml')
     expect(xml).not.toContain('icon://')
   })
 
-  it('入力ファイル不在は reason input-not-found + exitCode 1 で返す', async (context) => {
+  it('入力ファイルが無いと、kind input-not-found で返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-09')
     const result = await drawioCreateTool.handler(
       { input_path: path.join(makeTemporaryDirectory(), 'missing.drawio') },
       CALL,
     )
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(structured['artifacts']).toEqual([])
-    expect(dataOf(result)).toMatchObject({ event: 'drawio.url.error', reason: 'input-not-found' })
-    expect(structured['message']).toContain('pecotv drawio url:')
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'input-not-found' })
+    expect(sentenceOf(result)).toContain('pecotv drawio url:')
   })
 
   it('CLAUDE_PLUGIN_ROOT 未設定でも例外を投げず ok:false を返す', async () => {
@@ -164,37 +159,36 @@ describe('drawio_create', () => {
     const result = await drawioCreateTool.handler({ input_path: MINIMAL }, CALL)
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(structured['message']).toContain('CLAUDE_PLUGIN_ROOT')
+    expect(structured).toHaveProperty('kind')
+    expect(sentenceOf(result)).toContain('CLAUDE_PLUGIN_ROOT')
   })
 
-  it('警告のある入力は ok:true のまま exitCode 3 になり、警告本文を data.warnings に載せる', async () => {
+  it('警告のある入力は、成功のまま警告本文を warnings に載せる', async () => {
     const result = await drawioCreateTool.handler({ input_path: ICON_INCLUDED }, CALL)
     const structured = structuredOf(result)
 
-    // 実行そのものは完了しているので ok は true のまま (exit 3 は警告の通知)。
+    // 実行そのものは完了しているので isError を立てない。
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(3)
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['warnings']).not.toEqual([])
     expect(dataOf(result)['warnings']).toEqual([expect.stringContaining('icon not found')])
     expect(structured).not.toHaveProperty('stderr')
-    expect(structured['message']).toContain('1 warnings')
+    expect(sentenceOf(result)).toContain('1 warnings')
   })
 
   describe('theme', () => {
     it('theme 無しは既定値で書体だけを確かめる（52px は警告にしない）', async () => {
       const result = await drawioCreateTool.handler({ input_path: writePoster() }, CALL)
-      expect(structuredOf(result)['exitCode']).toBe(3)
+      expect(structuredOf(result)['warnings']).not.toEqual([])
       expect(dataOf(result)['warnings']).toHaveLength(1)
       expect(String(dataOf(result)['warnings'])).not.toContain('52px')
     })
 
     it('theme にテーマのパスを渡すと、その宣言で書体とサイズを確かめる', async () => {
       const result = await drawioCreateTool.handler({ input_path: writePoster(), theme: makeThemeDirectory() }, CALL)
-      expect(structuredOf(result)['exitCode']).toBe(3)
+      expect(structuredOf(result)['warnings']).not.toEqual([])
       expect(dataOf(result)['warnings']).toHaveLength(2)
-      expect(structuredOf(result)['message']).toContain('(2 warnings; see data.warnings)')
+      expect(sentenceOf(result)).toContain('(2 warnings; see warnings)')
       expect(String(dataOf(result)['warnings'])).toContain('52px')
       expect(dataOf(result)['theme']).toMatchObject({ source: 'option', name: 'slidev-theme-pecotv-test-declared' })
     })
@@ -202,43 +196,39 @@ describe('drawio_create', () => {
     it('theme の file: に相対パスを渡すと実処理を呼ばずに invalid-option で弾く', async () => {
       const result = await drawioCreateTool.handler({ input_path: MINIMAL, theme: 'file:relative/theme' }, CALL)
       expect(result.isError).toBe(true)
-      expect(structuredOf(result)['exitCode']).toBe(2)
-      expect(dataOf(result)).toMatchObject({ event: 'drawio.url.error', reason: 'invalid-option' })
+      expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-option' })
     })
 
     it('theme のパスが相対なら弾く（MCP サーバの作業ディレクトリは呼び出し元と異なる）', async () => {
       const result = await drawioCreateTool.handler({ input_path: MINIMAL, theme: 'relative/theme' }, CALL)
-      expect(structuredOf(result)['exitCode']).toBe(2)
-      expect(dataOf(result)).toMatchObject({ event: 'drawio.url.error', reason: 'invalid-option' })
+      expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-option' })
     })
 
-    it('解けないテーマは invalid-theme（exitCode 2）で返す', async () => {
+    it('解けないテーマは invalid-theme で返す', async () => {
       const empty = makeTemporaryDirectory()
       const result = await drawioCreateTool.handler({ input_path: MINIMAL, theme: empty }, CALL)
-      expect(structuredOf(result)['exitCode']).toBe(2)
-      expect(dataOf(result)).toMatchObject({ event: 'drawio.url.error', reason: 'invalid-theme' })
+      expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-theme' })
     })
   })
 
-  it('png:false 指定の out_path は表示用 HTML だけを artifacts に載せる', async (context) => {
+  it('png:false 指定の out_path は表示用 HTML だけを file に載せ、png を持たない', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-02')
     await verifies(context, 'PV-DRAWIO-CREATE-04')
     const outPath = path.join(makeTemporaryDirectory(), 'out.drawio.html')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL, out_path: outPath, png: false }, CALL)
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([outPath])
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['file']).toBe(outPath)
     expect(dataOf(result)).toEqual({ event: 'drawio.url.done', file: outPath, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
     const written = readFileSync(outPath, 'utf8')
     expect(written.startsWith('<!doctype html>\n')).toBe(true)
     expect(written).toContain('<a id="target" href="https://app.diagrams.net/')
-    expect(structured['message']).toContain('wrote drawio viewer HTML')
-    expect(structured['message']).toContain(outPath)
+    expect(sentenceOf(result)).toContain('wrote drawio viewer HTML')
+    expect(sentenceOf(result)).toContain(outPath)
   })
 
-  it('.html 以外の out_path は reason invalid-output-extension + exitCode 2 で弾く', async (context) => {
+  it('.html 以外の out_path は invalid-output-extension で弾く', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-08')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'out.drawio.url')
@@ -246,13 +236,9 @@ describe('drawio_create', () => {
       { input_path: MINIMAL, out_path: outPath, png: false },
       CALL,
     )
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(structured['artifacts']).toEqual([])
-    expect(dataOf(result)).toMatchObject({ event: 'drawio.url.error', reason: 'invalid-output-extension' })
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-output-extension' })
     expect(existsSync(outPath)).toBe(false)
   })
 
@@ -265,10 +251,10 @@ describe('drawio_create', () => {
     const result = await drawioCreateTool.handler({ input_path: MINIMAL, out_path: outPath }, CALL)
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(3)
-    // 生成できなかった PNG は artifacts に含めない。
-    expect(structured['artifacts']).toEqual([outPath])
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['warnings']).not.toEqual([])
+    // 生成できなかった PNG は png に載せない。
+    expect(structured['file']).toBe(outPath)
     expect(existsSync(path.join(directory, 'out.drawio.png'))).toBe(false)
     expect(dataOf(result)).toEqual({
       event: 'drawio.url.done',
@@ -283,7 +269,7 @@ describe('drawio_create', () => {
 })
 
 describe('drawio_export', () => {
-  it('icons_dir が相対なら exitCode 2 で弾く', async () => {
+  it('icons_dir が相対なら invalid-path で弾く', async () => {
     const result = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, icons_dir: 'assets/drawio-icons' },
       CALL,
@@ -291,7 +277,7 @@ describe('drawio_export', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['exitCode']).toBe(2)
+    expect(structured['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['icons_dir=assets/drawio-icons'])
   })
 
@@ -302,8 +288,8 @@ describe('drawio_export', () => {
     expect(result.isError).toBe(true)
     expect(structured['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['icons_dir='])
-    expect(dataOf(result)['reason']).toBe('invalid-path')
-    expect(dataOf(result)['detail']).toBe(structured['message'])
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
+    expect(structuredOf(result)['detail']).toBe(sentenceOf(result))
   })
 
   it('icons_dir 省略時は plugin-root 同梱のカタログを既定に使う', async () => {
@@ -317,7 +303,7 @@ describe('drawio_export', () => {
       CALL,
     )
 
-    expect(structuredOf(omitted)['ok']).toBe(true)
+    expect(structuredOf(omitted)).not.toHaveProperty('kind')
     expect(dataOf(omitted)['sourceSha256']).toBe(dataOf(explicit)['sourceSha256'])
   })
 
@@ -332,7 +318,7 @@ describe('drawio_export', () => {
       CALL,
     )
 
-    expect(structuredOf(empty)['ok']).toBe(true)
+    expect(structuredOf(empty)).not.toHaveProperty('kind')
     expect(dataOf(empty)['sourceSha256']).not.toBe(dataOf(omitted)['sourceSha256'])
   })
 
@@ -348,7 +334,7 @@ describe('drawio_export', () => {
       CALL,
     )
 
-    expect(structuredOf(withoutEnvironment)['ok']).toBe(true)
+    expect(structuredOf(withoutEnvironment)).not.toHaveProperty('kind')
     expect(dataOf(withoutEnvironment)['sourceSha256']).toBe(dataOf(withEnvironment)['sourceSha256'])
   })
 
@@ -373,7 +359,7 @@ describe('drawio_export', () => {
       CALL,
     )
 
-    expect(structuredOf(fromFakeRoot)['ok']).toBe(true)
+    expect(structuredOf(fromFakeRoot)).not.toHaveProperty('kind')
     expect(dataOf(fromFakeRoot)['sourceSha256']).not.toBe(dataOf(bundled)['sourceSha256'])
     expect(dataOf(fromFakeRoot)['sourceSha256']).toBe(dataOf(unresolvable)['sourceSha256'])
   })
@@ -388,9 +374,7 @@ describe('drawio_export', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([])
+    expect(structured).not.toHaveProperty('kind')
     expect(existsSync(outPath)).toBe(false)
     const data = dataOf(result)
     expect(Object.keys(data).toSorted(compareStrings)).toEqual(['event', 'file', 'icons', 'sourceSha256'])
@@ -398,34 +382,29 @@ describe('drawio_export', () => {
     expect(data['file']).toBe(ICON_RESOLVABLE)
     expect(data['icons']).toBe(2)
     expect(data['sourceSha256']).toMatch(/^[\da-f]{64}$/)
-    expect(structured['message']).toContain('computed composite hash')
+    expect(sentenceOf(result)).toContain('computed composite hash')
   })
 
-  it('解決できない icon:// があれば reason icon-unresolved + exitCode 1 で返す', async () => {
+  it('解決できない icon:// があると、kind icon-unresolved で返す', async () => {
     const result = await drawioExportTool.handler(
       { input_path: ICON_INCLUDED, icons_dir: ICON_ROOT, out_path: path.join(makeTemporaryDirectory(), 'out.svg') },
       CALL,
     )
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(structured['artifacts']).toEqual([])
-    expect(dataOf(result)).toMatchObject({ event: 'drawio.export.error', reason: 'icon-unresolved' })
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.export.error', kind: 'icon-unresolved' })
   })
 
-  it('入力ファイル不在は reason input-not-found + exitCode 1 で返す', async () => {
+  it('入力ファイルが無いと、kind input-not-found で返す', async () => {
     const result = await drawioExportTool.handler(
       { input_path: path.join(makeTemporaryDirectory(), 'missing.drawio'), icons_dir: ICON_ROOT },
       CALL,
     )
 
-    expect(dataOf(result)).toMatchObject({ event: 'drawio.export.error', reason: 'input-not-found' })
-    expect(structuredOf(result)['exitCode']).toBe(1)
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.export.error', kind: 'input-not-found' })
   })
 
-  it('export 失敗は reason export-failed + exitCode 1 で返す', async (context) => {
+  it('export が失敗すると、kind export-failed で返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-05')
     // 実 Chromium / embed.diagrams.net を起こさずに export 失敗ルートへ入るための失敗注入。
     vi.stubEnv('PECOTV_FORCE_SVG_FAIL', '1')
@@ -435,8 +414,7 @@ describe('drawio_export', () => {
       CALL,
     )
 
-    expect(dataOf(result)).toMatchObject({ event: 'drawio.export.error', reason: 'export-failed' })
-    expect(structuredOf(result)['exitCode']).toBe(1)
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.export.error', kind: 'export-failed' })
     expect(existsSync(outPath)).toBe(false)
   })
 })

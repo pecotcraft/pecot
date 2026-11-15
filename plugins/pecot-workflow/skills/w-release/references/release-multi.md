@@ -15,7 +15,7 @@
 
 `board_show` を引数なしで呼ぶ。
 
-`board_show` の結果の `data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
+`board_show` の結果の `repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
 リリース package を `<package>`、バージョンを `<ver>` と表記。
 
 ### 2. bump 種別のユーザー確認
@@ -145,7 +145,7 @@ git pull --ff-only origin <develop>
 `release_check` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
-alert の件数は結果の `data.dependabotAlerts.openCount` に、警告の文は `data.warnings` に入る。
+alert の件数は結果の `dependabotAlerts.openCount` に、警告の文は `warnings` に入る。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。取得できないときは、トークンと権限を直して再実行する。
 扱いは [release-nx.md](release-nx.md) の preflight の説明と同じ。
@@ -154,7 +154,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 `pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
 
-結果の `artifacts` にある下書きファイルを編集:
+結果の `file` にある下書きファイルを編集:
 
 - `repository: <owner>/<repo>`
 - `head: <develop>`
@@ -167,7 +167,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 6. リリース PR マージ
 
-`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。`<PR番号>` は、Step 5 の投稿の結果の `data.number` を使う。
+`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。`<PR番号>` は、Step 5 の投稿の結果の `number` を使う。
 
 ### 7. タグ + GitHub Release
 
@@ -177,6 +177,6 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 次の 3 つを報告して終了。
 
-- タグ名 `<package>@v<ver>`（`release_create` の結果の `data.tag`）
-- GitHub Release URL（`release_create` の結果の `data.url`）
-- リリース PR URL（Step 5 の投稿の結果の `data.url`）
+- タグ名 `<package>@v<ver>`（`release_create` の結果の `tag`）
+- GitHub Release URL（`release_create` の結果の `url`）
+- リリース PR URL（Step 5 の投稿の結果の `url`）

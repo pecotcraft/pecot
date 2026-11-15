@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { graphql, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
@@ -65,7 +65,7 @@ const CLEANUP = ['session', 'finish', 'acme/demo/21']
 const NO_PULL_REQUEST = { repository: { pullRequest: null } }
 
 // コマンドは process.cwd() を作業リポジトリとして読むので、呼ぶ間だけ移る
-async function finishTool(workspace: Readonly<Workspace>, argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+async function finishTool(workspace: Readonly<Workspace>, argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   const previous = process.cwd()
   process.chdir(workspace.directory)
   try {
@@ -433,10 +433,10 @@ describe('session finish', () => {
     it('ブランチの削除とローカルの片付けまで通すと、close した Issue・消したブランチ・切り替えた先を data に返す', async () => {
       const workspace = await cleanupBranch({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
 
-      const structured = await finishTool(workspace, { delete_branch: true })
+      const outcome = await finishTool(workspace, { delete_branch: true })
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(structured.data).toEqual({
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
         closedIssues: [12],
         skippedIssues: [],
         deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: `wip/${BRANCH}`, location: 'remote' }, { branch: BRANCH, location: 'local' }],
@@ -447,17 +447,17 @@ describe('session finish', () => {
     it('Epic を守って close しなかったとき、その番号と epic を data.skippedIssues に返す', async () => {
       const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'epic']] }, [kindRule(10, { issueType: 'Epic' }), kindRule(12), closeRule(12)]) })
 
-      const structured = await finishTool(workspace, { skip_local_cleanup: true })
+      const outcome = await finishTool(workspace, { skip_local_cleanup: true })
 
-      expect(structured.data).toEqual({ closedIssues: [12], skippedIssues: [{ number: 10, reason: 'epic' }], deletedBranches: [] })
+      expect(outcome.structured).toEqual({ closedIssues: [12], skippedIssues: [{ number: 10, reason: 'epic' }], deletedBranches: [] })
     })
 
     it('dry_run で打つと、close する予定の Issue・消す予定のブランチ・切り替える先と dryRun を data に返す', async () => {
       const workspace = await cleanupBranch({ github: mergedRules() })
 
-      const structured = await finishTool(workspace, { delete_branch: true, dry_run: true })
+      const outcome = await finishTool(workspace, { delete_branch: true, dry_run: true })
 
-      expect(structured.data).toEqual({
+      expect(outcome.structured).toEqual({
         closedIssues: [12],
         skippedIssues: [],
         deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: BRANCH, location: 'local' }],
@@ -471,10 +471,10 @@ describe('session finish', () => {
       await verifies(context, 'PW-COMMON-19')
       const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH, 403, 'Forbidden')]) })
 
-      const structured = await finishTool(workspace, { delete_branch: true })
+      const outcome = await finishTool(workspace, { delete_branch: true })
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(structured.data).toEqual({
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
         closedIssues: [12],
         skippedIssues: [],
         deletedBranches: [],

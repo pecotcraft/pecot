@@ -12,7 +12,7 @@
 //   - slide_page: talk-dir へページを書き出す。
 // slide_page を入れるのは、参照 yaml の読み取りと 1 ファイルの書き込みだけで、安価にカタログ全件を回せるため。
 // drawio_export を入れるのは、次の 2 点を dist から起動したサーバでしか観測できないため。
-// 1 点目は応答の artifacts に PDF が載ること、2 点目は警告時の exitCode。
+// 1 点目は応答の pdf に PDF のパスが載ること、2 点目は警告時の warnings。
 // in-process テストは embed を mock する。
 // slide_convert は実 build や Chromium を起こして、wall time が数分単位になる。
 // e2e lane (maxWorkers 制限付き並列) の負荷に見合わないため、含めない。
@@ -194,18 +194,7 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
-}
-
-/**
-structuredContent.artifacts を文字列配列として取り出す。
-*/
-function artifactsOf(result: Readonly<Record<string, unknown>>): readonly string[] {
-  const artifacts = structuredOf(result)['artifacts']
-  if (!Array.isArray(artifacts)) throw new TypeError('artifacts が返っていません')
-  return artifacts.filter(entry => typeof entry === 'string')
+  return structuredOf(result)
 }
 
 const workDirectory = useTemporaryDirectory('pecotv-test-e2e-', { hook: 'all' })
@@ -270,7 +259,6 @@ describe('pecotv mcp のツール (stdio)', () => {
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       expect(dataOf(called)).toEqual({ event: 'drawio.url.done', file: outPath, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
-      expect(artifactsOf(called)).toEqual([outPath])
       const written = readFileSync(outPath, 'utf8')
       expect(written.startsWith('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
       expect(written).toContain('<meta http-equiv="refresh" content="0;url=https://app.diagrams.net/')
@@ -278,7 +266,7 @@ describe('pecotv mcp のツール (stdio)', () => {
     })
   }, 60_000)
 
-  it.skipIf(!isChromiumReady)('drawio_export を out_path 付きで呼ぶと SVG と兄弟 PDF を artifacts に載せる', async () => {
+  it.skipIf(!isChromiumReady)('drawio_export を out_path 付きで呼ぶと SVG と兄弟 PDF のパスを返す', async () => {
     const outPath = workDirectory('export-ok', 'diagram.drawio.svg')
     const pdfPath = workDirectory('export-ok', 'diagram.drawio.pdf')
 
@@ -289,20 +277,18 @@ describe('pecotv mcp のツール (stdio)', () => {
       )
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(structuredOf(called)['exitCode']).toBe(0)
       expect(dataOf(called)).toMatchObject({
         event: 'drawio.export.done',
         file: outPath,
         pdf: pdfPath,
         pdfFailed: false,
       })
-      expect(artifactsOf(called)).toEqual([outPath, pdfPath])
       expect(existsSync(outPath)).toBe(true)
       expect(readFileSync(pdfPath).subarray(0, 5).toString('latin1')).toBe('%PDF-')
     })
   }, DRAWIO_EXPORT_TIMEOUT_MS + 30_000)
 
-  it.skipIf(!isChromiumReady)('drawio_export は PDF 生成に失敗しても SVG を返し exitCode 3 で degrade する', async () => {
+  it.skipIf(!isChromiumReady)('drawio_export は PDF 生成に失敗しても SVG を返し warnings つきで degrade する', async () => {
     const outPath = workDirectory('export-degrade', 'diagram.drawio.svg')
     const pdfPath = workDirectory('export-degrade', 'diagram.drawio.pdf')
 
@@ -312,11 +298,10 @@ describe('pecotv mcp のツール (stdio)', () => {
         { timeout: DRAWIO_EXPORT_TIMEOUT_MS },
       )
 
-      // 警告ありでも SVG は書けているので ok: true のまま (isError を立てない)。
+      // 警告ありでも SVG は書けているので isError を立てない。
       // 失敗の理由（SVG export の時間切れ等）は ToolResult の本文に出るため、子プロセスの stderr と並べて残す。
       expect(called.isError, `ToolResult: ${JSON.stringify(called).slice(0, 2000)}\n子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(structuredOf(called)['ok']).toBe(true)
-      expect(structuredOf(called)['exitCode']).toBe(3)
+      expect(structuredOf(called)).not.toHaveProperty('kind')
       expect(dataOf(called)).toMatchObject({
         event: 'drawio.export.done',
         file: outPath,
@@ -326,7 +311,6 @@ describe('pecotv mcp のツール (stdio)', () => {
         warnings: [expect.stringContaining('PDF export failed')],
       })
       expect(structuredOf(called)).not.toHaveProperty('stderr')
-      expect(artifactsOf(called)).toEqual([outPath])
       expect(existsSync(outPath)).toBe(true)
       expect(existsSync(pdfPath)).toBe(false)
     }, { PECOTV_FORCE_PDF_FAIL: '1' })
@@ -354,9 +338,8 @@ describe('pecotv mcp のツール (stdio)', () => {
       )
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(structuredOf(called)['ok']).toBe(true)
+      expect(structuredOf(called)).not.toHaveProperty('kind')
       expect(dataOf(called)).toMatchObject({ event: 'result', outPath, items: 1, skipped: [] })
-      expect(artifactsOf(called)).toEqual([outPath])
       expect(existsSync(outPath)).toBe(true)
       expect(statSync(outPath).size).toBeGreaterThan(0)
     })
@@ -365,7 +348,7 @@ describe('pecotv mcp のツール (stdio)', () => {
   it('slide_page が talk-dir のカタログ全件のページを実ファイルとして書き出す', async () => {
     // 実プロセスの talk-dir に対して、カタログに載る全レイアウトを 1 本の接続で順に回す
     // (ファイル読みと 1 ファイル書き込みだけなので spawn 1 回で足りる)。レイアウト名は
-    // テスト側に書き写さず slide_create の data.layouts から取る — 書き写すとレイアウトを
+    // テスト側に書き写さず slide_create の layouts から取る — 書き写すとレイアウトを
     // 足したときに片側だけ古くなる。
     const talkDirectory = workDirectory('page-talk')
 
@@ -377,7 +360,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       expect(created.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
 
       const layouts = dataOf(created)['layouts']
-      if (!Array.isArray(layouts)) throw new TypeError('slide_create が data.layouts を返していません')
+      if (!Array.isArray(layouts)) throw new TypeError('slide_create が layouts を返していません')
       expect(layouts.length).toBeGreaterThan(0)
 
       // 見せ方の分類も同じ応答に載り、layouts[].category と必ず join できる。
@@ -386,7 +369,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       const categoryIds = categories.map(entry => (isRecord(entry) ? entry['id'] : undefined))
       expect(categoryIds).toEqual(fixtureCategoryIds())
       for (const entry of layouts) {
-        if (!isRecord(entry)) throw new Error('data.layouts の要素が object ではありません')
+        if (!isRecord(entry)) throw new Error('layouts の要素が object ではありません')
         expect(categoryIds).toContain(entry['category'])
       }
 
@@ -399,7 +382,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       const deprecatedSeen = new Set<string>()
       const stableAfterDeprecated: string[] = []
       for (const entry of layouts) {
-        if (!isRecord(entry)) throw new Error('data.layouts の要素が object ではありません')
+        if (!isRecord(entry)) throw new Error('layouts の要素が object ではありません')
         const category = String(entry['category'])
         if (entry['deprecated'] === true) deprecatedSeen.add(category)
         else if (deprecatedSeen.has(category)) stableAfterDeprecated.push(String(entry['layout']))
@@ -408,7 +391,7 @@ describe('pecotv mcp のツール (stdio)', () => {
 
       const generatedFiles: string[] = []
       for (const entry of layouts) {
-        if (!isRecord(entry)) throw new Error('data.layouts の要素が object ではありません')
+        if (!isRecord(entry)) throw new Error('layouts の要素が object ではありません')
         const layout = String(entry['layout'])
         const file = `e2e-${layout}`
         const target = path.join(talkDirectory, 'pages', `${file}.md`)
@@ -420,7 +403,6 @@ describe('pecotv mcp のツール (stdio)', () => {
         )
 
         expect(called.isError, `${layout}: ${readStderr()}`).toBeUndefined()
-        expect(artifactsOf(called), `layout: ${layout}`).toEqual([target])
         expect(dataOf(called), `layout: ${layout}`).toMatchObject({
           event: 'slide.page.done',
           layout,
@@ -443,7 +425,7 @@ describe('pecotv mcp のツール (stdio)', () => {
         { timeout: REQUEST_TIMEOUT_MS },
       )
       expect(unknown.isError).toBe(true)
-      expect(dataOf(unknown)['reason']).toBe('unknown-layout')
+      expect(dataOf(unknown)['kind']).toBe('unknown-layout')
       expect(dataOf(unknown)['layouts']).toHaveLength(layouts.length)
       expect(dataOf(unknown)['categories']).toHaveLength(categories.length)
       expect(existsSync(path.join(talkDirectory, 'pages', 'e2e-unknown.md'))).toBe(false)
@@ -455,7 +437,7 @@ describe('pecotv mcp のツール (stdio)', () => {
         { timeout: REQUEST_TIMEOUT_MS },
       )
       expect(refused.isError).toBe(true)
-      expect(dataOf(refused)['reason']).toBe('file-exists')
+      expect(dataOf(refused)['kind']).toBe('file-exists')
       expect(readFileSync(existing, 'utf8')).toContain('layout: cover')
 
       const overwritten = await client.callTool(
@@ -478,10 +460,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       )
       expect(linted.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       const lintData = dataOf(linted)
-      expect(
-        structuredOf(linted)['exitCode'],
-        `lint 違反: ${JSON.stringify(lintData['violations'])}`,
-      ).toBe(0)
+      expect(lintData['violations'], `lint 違反: ${JSON.stringify(lintData['violations'])}`).toEqual([])
       expect(lintData['event']).toBe('slide.lint.done')
     })
   }, 120_000)
@@ -554,7 +533,7 @@ describe('pecotv mcp のツール (stdio)', () => {
           { timeout: DEV_SERVER_TIMEOUT_MS },
         )
         expect(blocked.isError, `子プロセス stderr: ${readStderr()}`).toBe(true)
-        expect(dataOf(blocked)['reason']).toBe('dev-server-port-in-use')
+        expect(dataOf(blocked)['kind']).toBe('dev-server-port-in-use')
         expect(await isPortListening(port)).toBe(true)
       }
       finally {
@@ -672,7 +651,7 @@ describe('pecotv mcp のツール (stdio)', () => {
         expect(blocked.isError, `子プロセス stderr: ${readStderr()}`).toBe(true)
         expect(dataOf(blocked)).toMatchObject({
           event: 'chromium.unavailable',
-          reason: 'chromium-not-installed',
+          kind: 'chromium-not-installed',
           expectedAt: emptyBrowsersRoot,
         })
         expect(String(dataOf(blocked)['detail'])).toContain('`runtime_setup` tool')
@@ -711,7 +690,6 @@ describe('pecotv mcp のツール (stdio)', () => {
         runtime: { installed: true, downloaded: false },
         chromium: { installed: true, downloaded: false },
       })
-      expect(artifactsOf(called), '何も置いていないので成果物は無い').toEqual([])
     })
   }, 120_000)
 

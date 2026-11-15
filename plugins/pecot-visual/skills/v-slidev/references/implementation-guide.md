@@ -16,7 +16,7 @@
 | 図の目的 | 何を伝えるための図か（アウトライン表の主張） |
 | 主要要素 | 図に描く要素の全量（アウトライン表の図の中身）。図の文字はこの語だけで書かせる |
 | スタイル | 日本語のデッキは `infographic/ja`、英語のデッキは `infographic/en`。AWS・Azure の構成図だけは `aws` / `azure`（`${CLAUDE_PLUGIN_ROOT}/skills/v-drawio/SKILL.md`「用途別スタイルリファレンス」） |
-| 表示サイズ | スライドに載せる図。図の外接矩形（線幅を含む）の上限。これを超えると縮小される。寸法は `slide_theme` の `data.declaration.drawio.panels` の、選んだレイアウトの値（`width` × `height`） |
+| 表示サイズ | スライドに載せる図。図の外接矩形（線幅を含む）の上限。これを超えると縮小される。寸法は `slide_theme` の `declaration.drawio.panels` の、選んだレイアウトの値（`width` × `height`） |
 | 出力パス | `<プレゼンディレクトリ>/public/slides/diagrams/{filename}.drawio` |
 | プレゼン全体情報 | タイトル、対象者 |
 | 対象スライドの概要 | タイトル・説明内容 |
@@ -54,7 +54,7 @@ src: ./pages/overview.md
 | 情報 | 内容 |
 |------|------|
 | プレゼンディレクトリ | 生成済みの絶対パス（例: `/home/user/my-talk/`） |
-| レイアウト名 | 使用するレイアウト（`slide_theme` の `data.layouts[].layout` の値） |
+| レイアウト名 | 使用するレイアウト（`slide_theme` の `layouts[].layout` の値） |
 | 分類と選定理由 | プランで決めた見せ方の分類と、同一分類の他レイアウト候補との比較を含む 1 行以上の文 |
 | スライド仕様 | タイトル、要点、メディアヒント |
 | プレゼン全体情報 | タイトル、対象者、全体アウトライン |
@@ -83,7 +83,7 @@ public/
 ## プレビューと出力
 
 **プレビュー確認。** `pecot-visual` サーバの `slide_dev`（`dir`: プレゼンディレクトリの絶対パス）を呼び、
-応答の `data.url` をユーザーに伝えて動作確認を依頼する。停止は `stop: true` で行う。
+応答の `url` をユーザーに伝えて動作確認を依頼する。停止は `stop: true` で行う。
 
 **PPTX 変換（任意）。** PPTX が必要なときは、`pecot-visual` サーバの `slide_convert`（`project_dir`: プレゼンディレクトリの絶対パス）で生成する。
 

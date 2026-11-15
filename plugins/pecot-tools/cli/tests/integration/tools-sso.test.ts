@@ -48,21 +48,34 @@ function reinstall(options: Parameters<typeof fakeAws.reinstall>[0] = {}): void 
   fakeAws.reinstall(options)
 }
 
-async function call(
+/**
+tools/call の応答のうち、テストが見る部分。sentence は content の 1 つ目の text（成功の文か失敗の detail）。
+*/
+interface Called {
+  readonly structured: Record<string, unknown>
+  readonly isError: boolean
+  readonly sentence: string
+}
+
+async function callTool(
   name: string,
   arguments_: Readonly<Record<string, unknown>> = {},
-): Promise<Record<string, unknown>> {
+): Promise<Called> {
   if (mcp.connected === undefined) throw new Error('サーバへ接続できていません')
   const result = await mcp.connected.client.callTool({ name, arguments: { ...arguments_ } })
   const structured = result.structuredContent
   if (!isRecord(structured)) throw new Error(`${name} の structuredContent がありません`)
-  return structured
+  const [first] = Array.isArray(result.content) ? result.content : []
+  const sentence = first?.type === 'text' ? first.text : ''
+  return { structured, isError: result.isError === true, sentence }
 }
 
-function dataOf(structured: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structured['data']
-  if (!isRecord(data)) throw new Error('data が Record ではありません')
-  return data
+async function call(
+  name: string,
+  arguments_: Readonly<Record<string, unknown>> = {},
+): Promise<Record<string, unknown>> {
+  const called = await callTool(name, arguments_)
+  return called.structured
 }
 
 /**
@@ -80,9 +93,10 @@ describe('SSO の 2 段構成', () => {
     const instance = fakeAws.install({ exitWhenFile: true })
     await connect()
 
-    const started = await call('aws_sso_login')
-    expect(started).toMatchObject({ ok: true, exitCode: 0 })
-    expect(dataOf(started)).toMatchObject({
+    const startedCall = await callTool('aws_sso_login')
+    const started = startedCall.structured
+    expect(startedCall.isError).toBe(false)
+    expect(started).toMatchObject({
       state: 'pending',
       profile: '',
       verificationUrl: 'https://example.awsapps.com/start/#/device',
@@ -90,22 +104,22 @@ describe('SSO の 2 段構成', () => {
       verificationUrlComplete: 'https://example.awsapps.com/start/#/device?user_code=ABCD-EFGH',
       userCode: 'ABCD-EFGH',
     })
-    expect(String(started['message'])).toContain('verificationUrlComplete')
+    expect(startedCall.sentence).toContain('verificationUrlComplete')
 
-    const pending = await call('aws_sso_login_status')
-    expect(dataOf(pending)).toMatchObject({ state: 'pending' })
-    expect(String(pending['message'])).toContain('Not approved yet')
+    const pending = await callTool('aws_sso_login_status')
+    expect(pending.structured).toMatchObject({ state: 'pending' })
+    expect(pending.sentence).toContain('Not approved yet')
     // 状態確認は awscli を起こさない（契約書 §SSO 認証）。
     expect(commandCallCount(instance)).toBe(1)
 
     instance.release()
     await vi.waitFor(async () => {
-      expect(dataOf(await call('aws_sso_login_status'))).toMatchObject({ state: 'completed' })
+      expect(await call('aws_sso_login_status')).toMatchObject({ state: 'completed' })
     }, { timeout: TRANSITION_TIMEOUT_MS })
 
-    const completed = await call('aws_sso_login_status')
-    expect(completed).toMatchObject({ ok: true, exitCode: 0 })
-    expect(String(dataOf(completed)['output'])).toContain('Successfully logged into Start URL')
+    const completed = await callTool('aws_sso_login_status')
+    expect(completed.isError).toBe(false)
+    expect(String(completed.structured['output'])).toContain('Successfully logged into Start URL')
     expect(commandCallCount(instance)).toBe(1)
   })
 
@@ -116,8 +130,8 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login_status')
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 2, kind: 'invalid-input' })
-    expect(String(structured['message'])).toContain('aws_sso_login')
+    expect(structured).toMatchObject({ kind: 'invalid-input' })
+    expect(String(structured['detail'])).toContain('aws_sso_login')
     expect(commandCallCount(instance)).toBe(0)
   })
 
@@ -131,8 +145,8 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login')
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 127, kind: 'awscli-missing' })
-    expect(String(structured['message'])).toContain('2.22.0 or later')
+    expect(structured).toMatchObject({ kind: 'awscli-missing' })
+    expect(String(structured['detail'])).toContain('2.22.0 or later')
     expect(commandCallCount(instance)).toBe(0)
   })
 
@@ -143,10 +157,9 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login', { profile: 'plain' })
 
-    // exitCode は awscli の終了コードをそのまま返す（許可リストの呼び出しと同じ規約）。
-    expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
-    expect(String(dataOf(structured)['log'])).toContain('Missing the following required SSO configuration')
-    expect(String(structured['message'])).toContain('aws configure sso')
+    expect(structured).toMatchObject({ kind: 'auth-missing' })
+    expect(String(structured['log'])).toContain('Missing the following required SSO configuration')
+    expect(String(structured['detail'])).toContain('aws configure sso')
   })
 
   it('失敗したフローの状態確認は同じ種別と出力を返す', async (context) => {
@@ -159,25 +172,25 @@ describe('SSO の 2 段構成', () => {
     await call('aws_sso_login', { profile: 'plain' })
     const structured = await call('aws_sso_login_status', { profile: 'plain' })
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
-    expect(dataOf(structured)).toMatchObject({ state: 'failed' })
-    expect(String(dataOf(structured)['log'])).toContain('Missing the following required SSO configuration')
+    expect(structured).toMatchObject({ kind: 'auth-missing' })
+    expect(structured).toMatchObject({ state: 'failed' })
+    expect(String(structured['log'])).toContain('Missing the following required SSO configuration')
   })
 
-  it('時間切れの状態確認は 124 と再開始の案内を返す', async (context) => {
+  it('時間切れの状態確認は timeout と再開始の案内を返す', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-05')
     fakeAws.install({ exitWhenFile: true })
     await connect({ timeoutMs: 1000 })
 
-    expect(dataOf(await call('aws_sso_login'))).toMatchObject({ state: 'pending' })
+    expect(await call('aws_sso_login')).toMatchObject({ state: 'pending' })
 
     await vi.waitFor(async () => {
-      expect(dataOf(await call('aws_sso_login_status'))).toMatchObject({ state: 'timed-out' })
+      expect(await call('aws_sso_login_status')).toMatchObject({ state: 'timed-out' })
     }, { timeout: TRANSITION_TIMEOUT_MS })
 
     const structured = await call('aws_sso_login_status')
-    expect(structured).toMatchObject({ ok: false, exitCode: 124, kind: 'timeout' })
-    expect(String(structured['message'])).toContain('Call aws_sso_login again')
+    expect(structured).toMatchObject({ kind: 'timeout' })
+    expect(String(structured['detail'])).toContain('Call aws_sso_login again')
   })
 
   it('region と未知キーを渡しても拒否されず通常応答を返し、awscli の引数にも現れない', async () => {
@@ -192,7 +205,7 @@ describe('SSO の 2 段構成', () => {
       bogus: 'unexpected',
     })
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
+    expect(structured).toMatchObject({ kind: 'auth-missing' })
     expect(instance.callLog().filter(call => call[0] !== '--version')).toEqual([
       ['sso', 'login', '--profile=plain', '--no-browser', '--use-device-code'],
     ])
@@ -204,12 +217,12 @@ describe('SSO の 2 段構成', () => {
     fakeAws.install({ fixture: 'sso-login.no-config' })
     await connect()
 
-    expect(await call('aws_sso_login')).toMatchObject({ ok: false, kind: 'auth-missing' })
+    expect(await callTool('aws_sso_login')).toMatchObject({ isError: true, structured: { kind: 'auth-missing' } })
 
     reinstall({ exitWhenFile: true })
-    const retried = await call('aws_sso_login')
+    const retried = await callTool('aws_sso_login')
 
-    expect(retried).toMatchObject({ ok: true, exitCode: 0 })
-    expect(dataOf(retried)).toMatchObject({ state: 'pending', userCode: 'ABCD-EFGH' })
+    expect(retried.isError).toBe(false)
+    expect(retried.structured).toMatchObject({ state: 'pending', userCode: 'ABCD-EFGH' })
   })
 })

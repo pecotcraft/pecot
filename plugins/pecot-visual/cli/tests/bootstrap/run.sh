@@ -870,11 +870,11 @@ if ! node - "$RESULT13A" <<'NODE'
   const message = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const result = message.result;
   if (!result || result.isError !== true) { console.error("expected isError: true"); process.exit(1); }
-  const data = result.structuredContent && result.structuredContent.data;
-  if (!data || data.reason !== "chromium-not-installed") {
+  const data = result.structuredContent;
+  if (!data || data.kind !== "chromium-not-installed") {
     console.error("unexpected data: " + JSON.stringify(data)); process.exit(1);
   }
-  if (!String(data.detail).includes("`runtime_setup` ツール")) {
+  if (!String(data.detail).includes("`runtime_setup` tool")) {
     console.error("detail does not guide to the runtime_setup tool: " + data.detail); process.exit(1);
   }
 NODE
@@ -897,9 +897,9 @@ if ! node -e '
   const fs = require("fs");
   const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
   if (!result || result.isError !== true) { console.error("expected isError: true"); process.exit(1); }
-  const data = result.structuredContent.data;
-  if (data.reason !== "chromium-install-failed") {
-    console.error("unexpected reason: " + JSON.stringify(data)); process.exit(1);
+  const data = result.structuredContent;
+  if (data.kind !== "chromium-install-failed") {
+    console.error("unexpected kind: " + JSON.stringify(data)); process.exit(1);
   }
   for (const hint of ["HTTPS_PROXY", "PLAYWRIGHT_DOWNLOAD_HOST"]) {
     if (!String(data.detail).includes(hint)) {
@@ -941,7 +941,7 @@ if ! node -e '
   if (!result || result.isError !== undefined) {
     console.error("expected success, got: " + JSON.stringify(result && result.structuredContent)); process.exit(1);
   }
-  const data = result.structuredContent.data;
+  const data = result.structuredContent;
   const expectedEvent = process.argv[2];
   const expectedDownloaded = process.argv[3] === "true";
   const chromium = data.chromium || {};

@@ -63,7 +63,7 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 - 機能追加・改善: `template: "task"`
 - バグ修正: `template: "bug"`
 
-結果の `artifacts` にあるファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
+結果の `file` にあるファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
 `title`（必須）と `parent_epic`（必須）を設定する。`repository` は `repo` で設定済み。
 
 `parent_epic` は full path `owner/repo/N` を推奨。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。

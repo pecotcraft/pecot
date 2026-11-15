@@ -1,7 +1,6 @@
 // evidence 系の MCP ツール定義 (evidence_create)。
 //
-// ハンドラは既存 CLI と同じ executeEvidenceCreate を呼ぶ。CLI の `--json` が出す
-// オブジェクトをそのまま ToolResult.data に載せるため、CLI と MCP の結果は同形になる。
+// ハンドラは既存 CLI と同じ executeEvidenceCreate を呼び、CLI の `--json` が出すオブジェクトをそのまま項目として返す。
 
 import path from 'node:path'
 
@@ -11,15 +10,14 @@ import type { CallToolResult } from '@modelcontextprotocol/server'
 import {
   errorData,
   errorToReason,
-  EVIDENCE_CREATE_FAILURE_EXIT_CODE,
   evidenceCreateDefaultDependencies,
   executeEvidenceCreate,
   type EvidenceCreateDependencies,
 } from '../../commands/evidence-xlsx/create.js'
 import { failureKindOf } from '../../domain/_shared/failure-kind.js'
-import { parsePathArguments, toCallToolResult } from '../result.js'
+import { parsePathArguments, toCallToolResult, withoutCommonFailureFields } from '../result.js'
 import type { ToolDefinition } from '../server.js'
-import { captureCommandOutput, formatError, textViolationMessage, TOOL_OUTPUT_SCHEMA, violationCountOf, WINDOWS_PATH_NOTE } from './_shared.js'
+import { captureCommandOutput, failureDetailOf, TOOL_OUTPUT_SCHEMA, WINDOWS_PATH_NOTE } from './_shared.js'
 
 const evidenceCreateInput = z.object({
   input_path: z.string().describe('Absolute path of the EvidenceSpec JSON. ' + WINDOWS_PATH_NOTE),
@@ -60,26 +58,20 @@ async function handleEvidenceCreate(
       dependencies,
     )
     const counts = `${String(data.items)} items; ${String(data.annotations)} annotations; ${String(data.skipped.length)} skipped`
+    // 書いた xlsx のパスは outPath の項目で返す。
     return output.finish({
       ok: true,
-      exitCode: 0,
-      artifacts: [data.outPath],
       data: { ...data },
       message: `generated evidence xlsx: ${data.outPath} (${counts})`,
     })
   }
   catch (error: unknown) {
     const data = errorData(error)
-    const violationCount = violationCountOf(data)
     return output.finish({
       ok: false,
-      // usage エラー (exit 2) は commander の引数検証にしか無い。MCP では
-      // inputSchema と parsePathArguments が先に弾くため、ここは実行失敗の 1 のみ。
-      exitCode: EVIDENCE_CREATE_FAILURE_EXIT_CODE,
       kind: failureKindOf(errorToReason(error)),
-      artifacts: [],
-      data,
-      message: violationCount === undefined ? formatError(error) : textViolationMessage(violationCount),
+      detail: failureDetailOf(error, data),
+      data: withoutCommonFailureFields(data),
     })
   }
 }

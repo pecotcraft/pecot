@@ -23,7 +23,7 @@ main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<�
 
 ### Step 1: （初回のみ）ワークツリー設定を用意
 
-対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると、`worktree_add` の結果は `ok` が `false`、`kind` が `not-initialized`（`exitCode` は 1）になる。
+対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると、`worktree_add` の結果は失敗（`isError`）で、`kind` が `not-initialized` になる。
 init は両ファイルを同時に生成する。`worktree_init` を `directory: "<project-root>/base/<repo>"` で呼ぶ。
 
 生成される `worktree-config.json` の `links[]` を編集する（symlink 不要なら空でよい）。
@@ -46,9 +46,9 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 }
 ```
 
-`worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（結果の `ok` は `true` のまま）になる。
-失敗のときは、結果の `data.setupFailed` が `true` になる。`data.warnings` には `setup command ...` で始まる文が入り、コマンドの出力が続く。
-成功のときや setup を動かさないときは、`data.setupFailed` が `false` になる。`dry_run: true` のときは、`data.setupFailed` が無い。
+`worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（結果は成功のまま）になる。
+失敗のときは、結果の `setupFailed` が `true` になる。`warnings` には `setup command ...` で始まる文が入り、コマンドの出力が続く。
+成功のときや setup を動かさないときは、`setupFailed` が `false` になる。`dry_run: true` のときは、`setupFailed` が無い。
 
 ### Step 2: add を呼ぶ
 
@@ -57,7 +57,7 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 入力は `worktree_add` の入力の定義で確かめる。既存ブランチ衝突時は `allow_existing_branch: true` で再利用可能。
 
 採番されたセット名 `<wtN>` で、`<project-root>/<wtN>/<リポ名>/` に WT が作られる。
-セット名は結果の `data.name` に、WT の絶対パスは `data.path` にある。
+セット名は結果の `name` に、WT の絶対パスは `path` にある。
 symlink は add 時に自動で張られる（`.pecot/config/worktree-config.json` がある場合）。
 
 ### Step 3: 既存サブ WT に symlink 設定を反映する

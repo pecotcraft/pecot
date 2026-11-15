@@ -41,72 +41,49 @@ entries:
     details:
       - '`.drawio` ファイルを 1 つ読み、draw.io で開く URL を作ります。HTML を開くと、その URL へ移ります。'
       - '図の中の `icon://` の参照は、データ URI にして埋め込みます。'
-      - '作る前に、ラベルの文面を文面の規則と照らし、フォントとフォントサイズをテーマの宣言と照らします。使ったテーマは `data.theme` に入ります。'
+      - '作る前に、ラベルの文面を文面の規則と照らし、フォントとフォントサイズをテーマの宣言と照らします。使ったテーマは `theme` に入ります。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: '書いた HTML と PNG の絶対パスです。`out_path` を省いたときと、失敗したときは空です。'
-        data: '図の URL（`url`）、使ったテーマ（`theme`）、PNG を書けなかったかどうか（`pngFailed`）です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。件数の項目はありません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: '成功は 0、HTML は書けたが PNG を書けなかったときは 3、失敗は 1、引数が不正なら 2 です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。PNG だけを書けなかったときも `true` です。'
+        url: '図の URL です。'
+        theme: '使ったテーマです。'
+        file: '書いた表示用 HTML の絶対パスです。`out_path` を省いたときは入りません。'
+        png: '書いた PNG の絶対パスです。PNG を書けなかったときは `null` です。'
+        pngFailed: 'PNG を書けなかったときだけ `true` です。HTML は残ります。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        violations: '`text-violation` のときの、違反の全件の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_PNG_FAIL
-        effect: '`1` にすると、PNG の描画をわざと失敗させます。呼び出しは、PNG を書かずに `exitCode` 3 を返します。失敗したときの動きを試すために使います。'
+        effect: '`1` にすると、PNG の描画をわざと失敗させます。呼び出しは、PNG を書かず、`pngFailed` を `true` にした結果を返します（CLI の終了コードは 3 です）。失敗したときの動きを試すために使います。'
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: invalid-option
         code: 2
         when: '`theme` が、相対パスか、変換できない `file:` のパスです。'
@@ -124,7 +101,7 @@ entries:
         when: '`out_path` のファイルを書けませんでした。'
       - kind: text-violation
         code: 1
-        when: 'ラベルの文面が文面の規則に反しているか、フォントがテーマの宣言に反しています。ファイルは書きません。違反は、全件が `data.violations` に並びます。'
+        when: 'ラベルの文面が文面の規則に反しているか、フォントがテーマの宣言に反しています。ファイルは書きません。違反は、全件が `violations` に並びます。'
       - kind: text-lint-failed
         code: 1
         when: '文面の規則を確かめる処理が動きませんでした。'
@@ -170,7 +147,7 @@ entries:
       - kind: unknown
         code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
-    on_error: '文面の確認か入力の確認で失敗したときは、ファイルを 1 つも書きません。PNG を書けなかったときは、HTML を残し、失敗ではなく `exitCode` 3 で返します。'
+    on_error: '文面の確認か入力の確認で失敗したときは、ファイルを 1 つも書きません。PNG を書けなかったときは、HTML を残し、失敗ではなく、`pngFailed` か `pdfFailed` を `true` にした成功の結果で返します。'
     effects:
       - target: file
         kind: read
@@ -185,7 +162,7 @@ entries:
         kind: write
         what: '`theme` が、まだ取得していない git URL のときは、git と pnpm を動かしてテーマを取得します。'
     prerequisites:
-      - '`out_path` を渡して PNG も書くときは、Playwright の Chromium が要ります。入っていなければ、先に `runtime_setup` を呼びます。入っていないときは、HTML だけを書いて `exitCode` 3 を返します。'
+      - '`out_path` を渡して PNG も書くときは、Playwright の Chromium が要ります。入っていなければ、先に `runtime_setup` を呼びます。入っていないときは、HTML だけを書き、`pngFailed` を `true` にして返します。'
     idempotent: true
     examples:
       - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"out_path\": \"/work/diagram.html\"}"
@@ -193,15 +170,15 @@ entries:
       - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"mode\": \"edit\"}"
         note: 'ファイルを書かずに、編集用の URL だけを受け取ります。'
     default_notes:
-      out_path: '省くと、ファイルを書かずに `data.url` だけを返します。'
+      out_path: '省くと、ファイルを書かずに `url` だけを返します。'
       theme: '省くと、図が talk-dir の `public/` の下にあれば、その talk-dir のテーマを使います。それ以外は、組み込みの既定（sans-serif）を使います。'
     behaviors:
       - id: PV-DRAWIO-CREATE-01
         pattern: event
-        statement: '`input_path` を渡して呼ぶと、データ URI に解決した図の URL を `data.url` に載せた成功の応答を返します'
+        statement: '`input_path` を渡して呼ぶと、データ URI に解決した図の URL を `url` に載せた成功の応答を返します'
       - id: PV-DRAWIO-CREATE-02
         pattern: event
-        statement: '`out_path` を渡して呼ぶと、その `.html` に表示用の HTML を書き、`artifacts` に載せます'
+        statement: '`out_path` を渡して呼ぶと、その `.html` に表示用の HTML を書き、`file` に載せます'
       - id: PV-DRAWIO-CREATE-03
         pattern: event
         statement: '`out_path` を渡して `png` を省くと、同じ名前で拡張子を `.png` にした PNG も書きます'
@@ -210,19 +187,19 @@ entries:
         statement: '`png` を `false` にして呼ぶと、PNG を書かず、Chromium を起動しません'
       - id: PV-DRAWIO-CREATE-05
         pattern: unwanted
-        statement: 'もしラベルの文面が文面の規則に反するなら、何も書かずに `text-violation` の失敗を返し、違反の全件を `data.violations` に載せます'
+        statement: 'もしラベルの文面が文面の規則に反するなら、何も書かずに `text-violation` の失敗を返し、違反の全件を `violations` に載せます'
       - id: PV-DRAWIO-CREATE-06
         pattern: unwanted
-        statement: 'もし PNG を書けなかったなら、HTML は残し、`exitCode` 3・`data.pngFailed` が `true` の成功の応答を返します'
+        statement: 'もし PNG を書けなかったなら、HTML は残し、`pngFailed` が `true` の成功の応答を返します'
       - id: PV-DRAWIO-CREATE-07
         pattern: unwanted
-        statement: 'もし Chromium が入っていないなら、HTML だけを書き、`exitCode` 3 の成功の応答を返し、`message` で `runtime_setup` の呼び出しを案内します'
+        statement: 'もし Chromium が入っていないなら、HTML だけを書き、`pngFailed` が `true` の成功の応答を返し、`warnings` で `runtime_setup` の呼び出しを案内します'
       - id: PV-DRAWIO-CREATE-08
         pattern: unwanted
-        statement: 'もし `out_path` の拡張子が `.html` でないなら、何も書かずに `invalid-output-extension`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `out_path` の拡張子が `.html` でないなら、何も書かずに `invalid-output-extension` の失敗を返します'
       - id: PV-DRAWIO-CREATE-09
         pattern: unwanted
-        statement: 'もし `input_path` のファイルが無いなら、`input-not-found`・`exitCode` 1 の失敗を返します'
+        statement: 'もし `input_path` のファイルが無いなら、`input-not-found` の失敗を返します'
   PV-DRAWIO-EXPORT:
     summary: draw.io の図を、SVG と PDF に書き出します。
     arguments:
@@ -240,68 +217,43 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: '書いた SVG と PDF の絶対パスです。`print_hash` を `true` にしたときと、失敗したときは空です。'
-        data: '合成ハッシュ（`sourceSha256`）と、PDF を書けなかったかどうか（`pdfFailed`）です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。件数の項目はありません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: '成功は 0、SVG は書けたが PDF を書けなかったときは 3、失敗は 1、引数が不正なら 2 です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。PDF だけを書けなかったときも `true` です。'
+        file: '書いた SVG の絶対パスです。`print_hash` を `true` にしたときは入りません。'
+        pdf: '書いた PDF の絶対パスです。PDF を書けなかったときと `pdf` を `false` にしたときは `null` です。'
+        pdfFailed: 'PDF を書けなかったときだけ `true` です。SVG は残ります。'
+        sourceSha256: '`print_hash` を `true` にしたときの合成ハッシュです。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_SVG_FAIL
         effect: '`1` にすると、SVG の書き出しをわざと失敗させます。呼び出しは `export-failed` で失敗します。失敗したときの動きを試すために使います。'
       - name: PECOTV_FORCE_PDF_FAIL
-        effect: '`1` にすると、PDF の書き出しをわざと失敗させます。呼び出しは、PDF を書かずに `exitCode` 3 を返します。失敗したときの動きを試すために使います。'
+        effect: '`1` にすると、PDF の書き出しをわざと失敗させます。呼び出しは、PDF を書かず、`pdfFailed` を `true` にした結果を返します（CLI の終了コードは 3 です）。失敗したときの動きを試すために使います。'
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: invalid-output-extension
         code: 2
         when: '`print_hash` が `false` で、`out_path` の拡張子が `.pdf` です。'
@@ -319,14 +271,14 @@ entries:
         when: '`out_path` のファイルを書けませんでした。'
       - kind: chromium-not-installed
         code: 1
-        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `runtime_setup` の呼び出しを案内します。'
+        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
         code: 1
         when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
       - kind: unknown
         code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
-    on_error: '入力の確認か SVG の書き出しで失敗したときは、ファイルを 1 つも書きません。PDF を書けなかったときは、SVG を残し、失敗ではなく `exitCode` 3 で返します。'
+    on_error: '入力の確認か SVG の書き出しで失敗したときは、ファイルを 1 つも書きません。PDF を書けなかったときは、SVG を残し、失敗ではなく、`pngFailed` か `pdfFailed` を `true` にした成功の結果で返します。'
     effects:
       - target: file
         kind: read
@@ -352,25 +304,25 @@ entries:
     behaviors:
       - id: PV-DRAWIO-EXPORT-01
         pattern: event
-        statement: '`input_path` を渡して呼ぶと、SVG と同じ名前の PDF を書き、`artifacts` に両方を載せた成功の応答を返します'
+        statement: '`input_path` を渡して呼ぶと、SVG と同じ名前の PDF を書き、`file` と `pdf` に載せた成功の応答を返します'
       - id: PV-DRAWIO-EXPORT-02
         pattern: event
         statement: '`pdf` を `false` にして呼ぶと、SVG だけを書きます'
       - id: PV-DRAWIO-EXPORT-03
         pattern: event
-        statement: '`print_hash` を `true` にして呼ぶと、何も書かず、Chromium を起動せずに、`data.sourceSha256` に合成ハッシュを載せて返します'
+        statement: '`print_hash` を `true` にして呼ぶと、何も書かず、Chromium を起動せずに、`sourceSha256` に合成ハッシュを載せて返します'
       - id: PV-DRAWIO-EXPORT-04
         pattern: unwanted
-        statement: 'もし PDF を書けなかったなら、SVG は残し、`exitCode` 3・`data.pdfFailed` が `true` の成功の応答を返します'
+        statement: 'もし PDF を書けなかったなら、SVG は残し、`pdfFailed` が `true` の成功の応答を返します'
       - id: PV-DRAWIO-EXPORT-05
         pattern: unwanted
-        statement: 'もし SVG の書き出しに失敗したなら、何も書かずに `export-failed`・`exitCode` 1 の失敗を返します'
+        statement: 'もし SVG の書き出しに失敗したなら、何も書かずに `export-failed` の失敗を返します'
       - id: PV-DRAWIO-EXPORT-06
         pattern: unwanted
-        statement: 'もし `out_path` の拡張子が `.svg` でないなら、何も書かずに `invalid-output-extension`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `out_path` の拡張子が `.svg` でないなら、何も書かずに `invalid-output-extension` の失敗を返します'
       - id: PV-DRAWIO-EXPORT-07
         pattern: unwanted
-        statement: 'もし Chromium が入っていないなら、何も書かずに `chromium-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
+        statement: 'もし Chromium が入っていないなら、何も書かずに `chromium-not-installed` の失敗を返し、`detail` で `runtime_setup` の呼び出しを案内します'
   PV-EVIDENCE-CREATE:
     summary: スクリーンショットを貼った作業エビデンスの xlsx を作ります。
     arguments:
@@ -384,64 +336,40 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 作った xlsx の絶対パスです。失敗したときは空です。
-        data: '貼った項目の数（`items`）、注釈の数（`annotations`）、飛ばした画像（`skipped`）です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        outPath: '書いた xlsx の絶対パスです。'
+        items: '貼った項目の数です。'
+        annotations: '注釈の数です。'
+        skipped: '飛ばした画像と理由の配列です。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        violations: '`text-violation` のときの、違反の全件の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: input-not-found
         code: 1
         when: '`input_path` のファイルがありません。'
@@ -453,7 +381,7 @@ entries:
         when: 'JSON が EvidenceSpec の形式に合っていません。'
       - kind: text-violation
         code: 1
-        when: '題・見出し・注釈のどれかが文面の規則に反しています。xlsx は書きません。違反は、全件が `data.violations` に並びます。'
+        when: '題・見出し・注釈のどれかが文面の規則に反しています。xlsx は書きません。違反は、全件が `violations` に並びます。'
       - kind: text-lint-failed
         code: 1
         when: '文面の規則を確かめる処理が動きませんでした。'
@@ -484,19 +412,19 @@ entries:
     behaviors:
       - id: PV-EVIDENCE-CREATE-01
         pattern: event
-        statement: '`input_path` を渡して呼ぶと、EvidenceSpec の順に画像を貼った xlsx を書き、`artifacts` にそのパスを載せた成功の応答を返します'
+        statement: '`input_path` を渡して呼ぶと、EvidenceSpec の順に画像を貼った xlsx を書き、`outPath` にそのパスを載せた成功の応答を返します'
       - id: PV-EVIDENCE-CREATE-02
         pattern: event
-        statement: '貼れない画像が EvidenceSpec に含まれると、その画像を飛ばし、飛ばした画像と理由を `data.skipped` に載せます'
+        statement: '貼れない画像が EvidenceSpec に含まれると、その画像を飛ばし、飛ばした画像と理由を `skipped` に載せます'
       - id: PV-EVIDENCE-CREATE-03
         pattern: unwanted
-        statement: 'もし題・見出し・注釈が文面の規則に反するなら、何も書かずに `text-violation` の失敗を返し、違反の全件を `data.violations` に載せます'
+        statement: 'もし題・見出し・注釈が文面の規則に反するなら、何も書かずに `text-violation` の失敗を返し、違反の全件を `violations` に載せます'
       - id: PV-EVIDENCE-CREATE-04
         pattern: unwanted
-        statement: 'もし `input_path` の中身を JSON として読めないなら、`invalid-json`・`exitCode` 1 の失敗を返します'
+        statement: 'もし `input_path` の中身を JSON として読めないなら、`invalid-json` の失敗を返します'
       - id: PV-EVIDENCE-CREATE-05
         pattern: unwanted
-        statement: 'もし `input_path` のファイルが無いなら、`input-not-found`・`exitCode` 1 の失敗を返します'
+        statement: 'もし `input_path` のファイルが無いなら、`input-not-found` の失敗を返します'
   PV-RUNTIME-SETUP:
     summary: スライドと図のツールが使う実行時依存と Chromium を入れます。
     constraints: []
@@ -511,70 +439,44 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 空です。
-        data: '実行時依存（`runtime`）、Chromium（`chromium`）、OS のライブラリ（`hostDeps`）のそれぞれの結果です。ダウンロードしたかどうかは `downloaded`、失敗の理由は `detail` に入ります。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`（失敗した段階の名前をカンマでつないだ文字列）、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: '成功は 0、どれかの手順が失敗したら 1 です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。複数の手順が失敗したときは、最初に失敗した手順の名前です。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: 'すべての手順が成功したら `true`、どれかが失敗したら `false` です。'
+        runtime: '実行時依存の結果です。`downloaded`（取得したかどうか）・`location`（取得した置き場所）・`detail`（失敗の理由）を持ちます。'
+        chromium: 'Chromium の結果です。`runtime` と同じ項目を持ちます。'
+        hostDeps: 'OS のライブラリの結果です。入れるためのコマンドは `detail` に入ります。'
+        reason: '失敗した段階の名前をカンマでつないだ文字列です。失敗のときだけ入ります。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: runtime-install-failed
         code: 1
-        when: '実行時依存のインストールに失敗しました。原因は `data.runtime.detail` に入ります。TLS の証明書の検証で失敗したときは、`NODE_EXTRA_CA_CERTS` の案内が加わります。'
+        when: '実行時依存のインストールに失敗しました。原因は `runtime.detail` に入ります。TLS の証明書の検証で失敗したときは、`NODE_EXTRA_CA_CERTS` の案内が加わります。'
       - kind: chromium-install-failed
         code: 1
         when: 'Chromium のダウンロードに失敗しました。'
       - kind: chromium-host-deps-missing
         code: 1
-        when: 'Chromium の起動に要る OS のライブラリが足りず、入れられませんでした。入れるためのコマンドは `data.hostDeps.detail` に入ります。'
+        when: 'Chromium の起動に要る OS のライブラリが足りず、入れられませんでした。入れるためのコマンドは `hostDeps.detail` に入ります。'
     on_error: '失敗した手順より前にダウンロードしたものは、入ったまま残ります。原因を直してから呼ぶと、続きから進みます。実行時依存で失敗しても、Chromium と OS のライブラリの手順は続けます。'
     effects:
       - target: file
@@ -596,22 +498,22 @@ entries:
     behaviors:
       - id: PV-RUNTIME-SETUP-01
         pattern: event
-        statement: '実行時依存が未導入の状態で呼ぶと、実行時依存を取得し、`data.runtime.downloaded` を `true` にします'
+        statement: '実行時依存が未導入の状態で呼ぶと、実行時依存を取得し、`runtime.downloaded` を `true` にします'
       - id: PV-RUNTIME-SETUP-02
         pattern: event
-        statement: '実行時依存が導入済みの状態で呼ぶと、取得を飛ばし、`data.runtime.downloaded` を `false` にします'
+        statement: '実行時依存が導入済みの状態で呼ぶと、取得を飛ばし、`runtime.downloaded` を `false` にします'
       - id: PV-RUNTIME-SETUP-03
         pattern: event
-        statement: 'Chromium が未導入の状態で呼ぶと、Chromium を取得し、`data.chromium.downloaded` を `true` にします'
+        statement: 'Chromium が未導入の状態で呼ぶと、Chromium を取得し、`chromium.downloaded` を `true` にします'
       - id: PV-RUNTIME-SETUP-04
         pattern: event
-        statement: 'すべて導入済みの状態で呼ぶと、`data.event` を `setup.skipped` にした成功の応答を返します'
+        statement: 'すべて導入済みの状態で呼ぶと、`event` を `setup.skipped` にした成功の応答を返します'
       - id: PV-RUNTIME-SETUP-05
         pattern: unwanted
         statement: 'もし実行時依存の取得に失敗したなら、Chromium の取得は続けて行います'
       - id: PV-RUNTIME-SETUP-06
         pattern: unwanted
-        statement: 'もし Chromium の起動に要る OS のライブラリが無くて入れられないなら、`chromium-host-deps-missing` の失敗を返し、入れるためのコマンドを `message` に載せます'
+        statement: 'もし Chromium の起動に要る OS のライブラリが無くて入れられないなら、`chromium-host-deps-missing` の失敗を返し、入れるためのコマンドを `detail` に載せます'
       - id: PV-RUNTIME-SETUP-07
         pattern: unwanted
         statement: 'もし取得の失敗が TLS の証明書の検証によるなら、`NODE_EXTRA_CA_CERTS` で証明書を渡す案内を `detail` に加えます'
@@ -638,57 +540,30 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書いた PPTX の絶対パスです。失敗したときは空です。
-        data: '変換の詳細です。ビルドの警告は `warnings`、エラーは `errors` に入ります。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        output: '書いた PPTX の絶対パスです。'
+        errors: 'ビルドのエラーの配列です。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment:
@@ -699,13 +574,13 @@ entries:
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-not-installed
         code: 1
-        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `runtime_setup` の呼び出しを案内します。'
+        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
         code: 1
         when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
@@ -720,7 +595,7 @@ entries:
         when: '字間の JSON かハイパーリンクの JSON を読めないか、形が違います。'
       - kind: slidev-build-failed
         code: 1
-        when: '`slidev build` がエラーで終わりました。診断は `data.warnings` と `data.errors` に、失敗の文は `data.detail` に、ビルドの出力は `data.log` に入ります。'
+        when: '`slidev build` がエラーで終わりました。診断は `warnings` と `errors` に、失敗の文は `detail` に、ビルドの出力は `log` に入ります。'
       - kind: slidev-build-timeout
         code: 1
         when: '`slidev build` が、制限時間の内に終わりませんでした。'
@@ -741,7 +616,7 @@ entries:
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
         code: 1
-        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-connection
         code: 1
         when: 'テーマのリポジトリに接続できません。'
@@ -796,7 +671,7 @@ entries:
     behaviors:
       - id: PV-SLIDE-CONVERT-01
         pattern: event
-        statement: '`project_dir` を渡して呼ぶと、PPTX を書き、`artifacts` にそのパスを載せた成功の応答を返します'
+        statement: '`project_dir` を渡して呼ぶと、PPTX を書き、`output` にそのパスを載せた成功の応答を返します'
       - id: PV-SLIDE-CONVERT-02
         pattern: event
         statement: '`out_path` を渡して呼ぶと、その場所に PPTX を書きます'
@@ -811,13 +686,13 @@ entries:
         statement: '`transition_type` を `morph` にして呼ぶと、`morph_option` の粒度で切り替え効果を付けます'
       - id: PV-SLIDE-CONVERT-06
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、`runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、`runtime-dependencies-not-installed` の失敗を返し、`detail` で `runtime_setup` の呼び出しを案内します'
       - id: PV-SLIDE-CONVERT-07
         pattern: unwanted
-        statement: 'もし Chromium が入っていないなら、`chromium-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
+        statement: 'もし Chromium が入っていないなら、`chromium-not-installed` の失敗を返し、`detail` で `runtime_setup` の呼び出しを案内します'
       - id: PV-SLIDE-CONVERT-08
         pattern: unwanted
-        statement: 'もし `project_dir` が Slidev のプロジェクトでないなら、`project-not-found`・`exitCode` 1 の失敗を返します'
+        statement: 'もし `project_dir` が Slidev のプロジェクトでないなら、`project-not-found` の失敗を返します'
       - id: PV-SLIDE-CONVERT-09
         pattern: unwanted
         statement: 'もし talk-dir がテーマを参照していないなら、`theme-none` の失敗を返します'
@@ -833,65 +708,40 @@ entries:
     constraints: []
     details:
       - '`project_dir` に、`theme` の Slidev のテーマを参照する talk-dir を作ります。'
-      - 'テーマの提示カテゴリを `data.categories` に、選べるレイアウトを `data.layouts` に返します。'
-      - '作った直後にデッキ全体を lint し、結果を `data.lint` に返します。違反があっても、作成は成功です。'
+      - 'テーマの提示カテゴリを `categories` に、選べるレイアウトを `layouts` に返します。'
+      - '作った直後にデッキ全体を lint し、結果を `lint` に返します。違反があっても、作成は成功です。'
       - '作られる `start.mjs` は、`SLIDEV_PORT` があれば、そのポートで dev サーバを起動します。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: '作った talk-dir の絶対パスです。失敗したときは空です。'
-        data: 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、作った直後の lint の結果（`lint`）です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。lint の違反があっても `true` です。'
+        projectDir: '作った talk-dir の絶対パスです。'
+        categories: 'テーマの提示カテゴリです。'
+        layouts: '選べるレイアウトです。'
+        lint: '作った直後のデッキ全体の lint の結果です。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment:
@@ -900,10 +750,10 @@ entries:
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: invalid-option
         code: 2
         when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
@@ -965,7 +815,7 @@ entries:
         what: 'git のテーマをまだ取得していないときは、git で tag を解決し、pnpm でテーマの依存をネットワークから入れます。'
       - target: process
         kind: read
-        what: '`data.lint` のために、作ったデッキに eslint を動かします。'
+        what: '`lint` のために、作ったデッキに eslint を動かします。'
     prerequisites:
       - '実行時依存が要ります。入っていなければ、先に `runtime_setup` を呼びます。'
       - '`project_dir` とその親に、書き込めることが要ります。'
@@ -979,13 +829,13 @@ entries:
     behaviors:
       - id: PV-SLIDE-CREATE-01
         pattern: event
-        statement: '`project_dir` と `theme` を渡して呼ぶと、テーマを参照する talk-dir を作り、`artifacts` に `project_dir` を載せた成功の応答を返します'
+        statement: '`project_dir` と `theme` を渡して呼ぶと、テーマを参照する talk-dir を作り、`projectDir` に `project_dir` を載せた成功の応答を返します'
       - id: PV-SLIDE-CREATE-02
         pattern: event
-        statement: '呼ぶと、`data.categories` と `data.layouts` に、テーマの提示カテゴリと選べるレイアウトを載せます'
+        statement: '呼ぶと、`categories` と `layouts` に、テーマの提示カテゴリと選べるレイアウトを載せます'
       - id: PV-SLIDE-CREATE-03
         pattern: event
-        statement: '呼ぶと、作った直後のデッキ全体の lint の結果を `data.lint` に載せます'
+        statement: '呼ぶと、作った直後のデッキ全体の lint の結果を `lint` に載せます'
       - id: PV-SLIDE-CREATE-04
         pattern: unwanted
         statement: 'もし作った直後の lint が違反を見つけたなら、作成は成功として返します'
@@ -994,16 +844,16 @@ entries:
         statement: '`force` を `true` にして呼ぶと、組み立てが済んだ後で、既にある `project_dir` を置き換えます'
       - id: PV-SLIDE-CREATE-06
         pattern: unwanted
-        statement: 'もし `project_dir` が既にあり `force` が `false` なら、何も変えずに `dest-exists`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `project_dir` が既にあり `force` が `false` なら、何も変えずに `dest-exists` の失敗を返します'
       - id: PV-SLIDE-CREATE-07
         pattern: unwanted
-        statement: 'もし `theme` が tag の無い git URL なら、何も作らずに `theme-tag-required`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `theme` が tag の無い git URL なら、何も作らずに `theme-tag-required` の失敗を返します'
       - id: PV-SLIDE-CREATE-08
         pattern: unwanted
-        statement: 'もし `file:` の `theme` が相対パスなら、何も作らずに `invalid-option`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `file:` の `theme` が相対パスなら、何も作らずに `invalid-option` の失敗を返します'
       - id: PV-SLIDE-CREATE-09
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、何も作らずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、何も作らずに `runtime-dependencies-not-installed` の失敗を返し、`detail` で `runtime_setup` の呼び出しを案内します'
       - id: PV-SLIDE-CREATE-10
         pattern: unwanted
         statement: 'もし組み立ての途中で失敗したなら、既にある `project_dir` を残し、一時ディレクトリを消します'
@@ -1015,8 +865,8 @@ entries:
       stop: '`true` にすると、その talk-dir の dev サーバを止めます。止めるときは、`dir` のほかの引数を無視します。'
     constraints: []
     details:
-      - 'ブラウザで開ける URL を `data.url` に、ポートを `data.port` に返します。'
-      - '同じ talk-dir にもう一度呼ぶと、起動中のサーバをそのまま返します。`data.reused` が `true` になります。'
+      - 'ブラウザで開ける URL を `url` に、ポートを `port` に返します。'
+      - '同じ talk-dir にもう一度呼ぶと、起動中のサーバをそのまま返します。`reused` が `true` になります。'
       - 'サーバが動くのは、MCP サーバのプロセスが生きている間だけです。プレビューは、セッションと一緒に終わります。'
       - '起動の前に、`node_modules` のテーマのリンクを張り直し、talk-dir の生成ファイルをそろえます。そのとき起動中のサーバがあれば、止めて起動し直します。'
     stdin: none
@@ -1024,67 +874,42 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 空です。
-        data: 'プレビューの URL（`url`）、ポート（`port`）、起動中のサーバを使ったかどうか（`reused`）です。止めたときは、動いていたかどうか（`stopped`）です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        url: 'プレビューの URL です。'
+        port: 'プレビューのポートです。'
+        reused: '起動中のサーバを使ったかどうかです。'
+        stopped: '`stop` を `true` にしたときの、動いていたサーバを止めたかどうかです。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: talk-dir-not-found
         code: 1
         when: '`dir` が無いか、ディレクトリではありません。'
@@ -1093,7 +918,7 @@ entries:
         when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: node-modules-unresolved
         code: 1
-        when: 'テーマを張り直しても、`dir` の `node_modules` を解決できません。`message` が `slide_sync` の呼び出しを示します。'
+        when: 'テーマを張り直しても、`dir` の `node_modules` を解決できません。`detail` が `slide_sync` の呼び出しを示します。'
       - kind: dev-server-port-in-use
         code: 1
         when: '渡したポートが使用中か、3030 から 3034 のポートがすべて使用中です。'
@@ -1102,7 +927,7 @@ entries:
         when: 'dev サーバのプロセスを起動できませんでした。'
       - kind: dev-server-exited
         code: 1
-        when: 'dev サーバが、起動してすぐに終わりました。理由は `data.detail` に、dev サーバの出力は `data.log` に入ります。'
+        when: 'dev サーバが、起動してすぐに終わりました。理由は `detail` に、dev サーバの出力は `log` に入ります。'
       - kind: dev-server-timeout
         code: 1
         when: 'dev サーバが、15 秒の内に応答しませんでした。'
@@ -1158,19 +983,19 @@ entries:
     behaviors:
       - id: PV-SLIDE-DEV-01
         pattern: event
-        statement: '`dir` を渡して呼ぶと、dev サーバを起動し、URL とポートを `data` に載せた成功の応答を返します'
+        statement: '`dir` を渡して呼ぶと、dev サーバを起動し、URL とポートを `url` と `port` に載せた成功の応答を返します'
       - id: PV-SLIDE-DEV-02
         pattern: event
-        statement: '起動中の talk-dir に同じ呼び出しをすると、起動中のサーバをそのまま返し、`data.reused` を `true` にします'
+        statement: '起動中の talk-dir に同じ呼び出しをすると、起動中のサーバをそのまま返し、`reused` を `true` にします'
       - id: PV-SLIDE-DEV-03
         pattern: event
         statement: '`port` を渡して呼ぶと、そのポートで起動します'
       - id: PV-SLIDE-DEV-04
         pattern: event
-        statement: '`stop` を `true` にして呼ぶと、その talk-dir の dev サーバを止め、`data.stopped` を `true` にします'
+        statement: '`stop` を `true` にして呼ぶと、その talk-dir の dev サーバを止め、`stopped` を `true` にします'
       - id: PV-SLIDE-DEV-05
         pattern: event
-        statement: '起動していない talk-dir に `stop` を `true` にして呼ぶと、何も止めずに、`data.stopped` を `false` にした成功の応答を返します'
+        statement: '起動していない talk-dir に `stop` を `true` にして呼ぶと、何も止めずに、`stopped` を `false` にした成功の応答を返します'
       - id: PV-SLIDE-DEV-06
         pattern: unwanted
         statement: 'もし `port` を渡して、そのポートが使用中なら、別のポートへ移らずに `dev-server-port-in-use` の失敗を返します'
@@ -1182,7 +1007,7 @@ entries:
         statement: 'もし talk-dir がテーマを参照していないなら、サーバを起動せずに `theme-none` の失敗を返します'
       - id: PV-SLIDE-DEV-09
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、サーバを起動せず `runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` を案内します'
+        statement: 'もし実行時依存が未導入なら、サーバを起動せず `runtime-dependencies-not-installed` の失敗を返し、`detail` で `runtime_setup` を案内します'
       - id: PV-SLIDE-DEV-10
         pattern: unwanted
         statement: 'もしサーバが 15 秒以内に応答しないなら、そのサーバを止め、`dev-server-timeout` の失敗を返します'
@@ -1193,71 +1018,45 @@ entries:
     constraints: []
     details:
       - 'talk-dir の全体（`pages/**/*.md` と `slides.md`）を、テーマの規則で lint します。ファイルは直しません。'
-      - '違反があっても、呼び出しは失敗ではありません。`ok` は `true` のままで、`exitCode` が 1 になります。'
-      - '`pages/` の下のシンボリックリンクのディレクトリは調べません。飛ばしたディレクトリは、`data.skippedSymlinkDirectories` に入ります。'
+      - '違反があっても、呼び出しは失敗（`isError`）になりません。違反は `violations` と `event` で読みます。'
+      - '`pages/` の下のシンボリックリンクのディレクトリは調べません。飛ばしたディレクトリは、`skippedSymlinkDirectories` に入ります。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 空です。
-        data: '違反の一覧（`violations`）、結果の種類（`event`）、飛ばしたシンボリックリンクのディレクトリ（`skippedSymlinkDirectories`）です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: '違反が無ければ 0、違反があるか失敗したら 1、パスの引数が不正なら 2 です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: 'lint を最後まで動かせたら `true`、動かせなかったら `false` です。違反があっても `true` です。'
+        event: '結果の種類です。違反が無ければ `slide.lint.done`、あれば `slide.lint.violations` です。'
+        violations: '違反の一覧です。違反があっても、結果は失敗（`isError`）ではありません。'
+        skippedSymlinkDirectories: '飛ばしたシンボリックリンクのディレクトリです。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: dir-not-found
         code: 1
         when: '`dir` がありません。'
@@ -1284,7 +1083,7 @@ entries:
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
         code: 1
-        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
         code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
@@ -1312,13 +1111,13 @@ entries:
     behaviors:
       - id: PV-SLIDE-LINT-01
         pattern: event
-        statement: '`dir` を渡して呼ぶと、デッキ全体を lint し、違反の一覧を `data.violations` に載せて返します'
+        statement: '`dir` を渡して呼ぶと、デッキ全体を lint し、違反の一覧を `violations` に載せて返します'
       - id: PV-SLIDE-LINT-02
         pattern: unwanted
-        statement: 'もし違反が 1 件以上あるなら、`ok` を `true` のまま `exitCode` 1 で返し、`data.event` を `slide.lint.violations` にします'
+        statement: 'もし違反が 1 件以上あるなら、失敗にせず、`event` を `slide.lint.violations` にします'
       - id: PV-SLIDE-LINT-03
         pattern: event
-        statement: '違反が無いデッキを渡すと、`exitCode` 0・`data.event` が `slide.lint.done` の成功の応答を返します'
+        statement: '違反が無いデッキを渡すと、`event` が `slide.lint.done` の成功の応答を返します'
       - id: PV-SLIDE-LINT-04
         pattern: ubiquitous
         statement: '常に、ファイルを書き換えません'
@@ -1334,76 +1133,52 @@ entries:
       dir: 'ページを作る talk-dir の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
       file: '`pages/` の直下に作るファイルの名前です。`.md` は省けます。パスの区切りを含む名前と、数字で始まる名前は受け付けません。'
       force: '同じ名前のページが既にあるときに、上書きするかどうかです。'
-      layout: 'レイアウトの名前です。`slide_create` か `slide_sync` の応答の `data.categories` で見せ方を決め、そのカテゴリの `data.layouts` にある名前から選びます。'
+      layout: 'レイアウトの名前です。`slide_create` か `slide_sync` の応答の `categories` で見せ方を決め、そのカテゴリの `layouts` にある名前から選びます。'
     constraints: []
     details:
       - 'レイアウト 1 つの骨組みのページを、talk-dir の `pages/<file>.md` に書きます。'
-      - 'レイアウトの仕様（props・文字数の制約・クリックの数・良い例と悪い例）を `data.reference` に、その仕様が取り込む共通の仕様を `data.includes` に返します。'
+      - 'レイアウトの仕様（props・文字数の制約・クリックの数・良い例と悪い例）を `reference` に、その仕様が取り込む共通の仕様を `includes` に返します。'
       - '作ったページは、`slides.md` には登録しません。`src:` の行は、呼び出した側が足します。'
-      - 'テーマに無いレイアウトの名前を渡すと失敗し、`data.categories` と `data.layouts` を返します。そこから名前を選び直せます。'
+      - 'テーマに無いレイアウトの名前を渡すと失敗し、`categories` と `layouts` を返します。そこから名前を選び直せます。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 作ったページの絶対パスです。失敗したときは空です。
-        data: 'レイアウトの仕様（`reference`）と、共通の仕様（`includes`）です。レイアウトの名前がテーマに無いときは、`categories` と `layouts` です。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        path: '書いたページの絶対パスです。'
+        reference: 'レイアウトの仕様です。'
+        includes: 'その仕様が取り込む共通の仕様です。'
+        categories: '`unknown-layout` のときの、テーマの提示カテゴリです。'
+        layouts: '`unknown-layout` のときの、選べるレイアウトです。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: invalid-file-name
         code: 1
         when: '`file` が空か、パスの区切りを含むか、ページの名前に使えない文字を含みます。'
@@ -1412,7 +1187,7 @@ entries:
         when: '`file` が数字で始まります。'
       - kind: unknown-layout
         code: 1
-        when: '`layout` が、talk-dir のテーマにありません。選べる名前は、`data.categories` と `data.layouts` に並びます。'
+        when: '`layout` が、talk-dir のテーマにありません。選べる名前は、`categories` と `layouts` に並びます。'
       - kind: skeleton-unavailable
         code: 1
         when: 'レイアウトの仕様の yaml が無いか、使える骨組みがありません。'
@@ -1433,7 +1208,7 @@ entries:
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
         code: 1
-        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
         code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
@@ -1453,7 +1228,7 @@ entries:
         what: '`dir` の `pages/<file>.md` を書きます。既にあるページを置き換えるのは、`force` が `true` のときだけです。'
     prerequisites:
       - '`dir` は、テーマを参照する talk-dir です。'
-      - 'レイアウトの名前は、`slide_create` か `slide_sync` の `data.layouts` から選びます。'
+      - 'レイアウトの名前は、`slide_create` か `slide_sync` の `layouts` から選びます。'
     idempotent: false
     examples:
       - run: "slide_page {\"layout\": \"cover\", \"dir\": \"/work/talk\", \"file\": \"cover\"}"
@@ -1462,10 +1237,10 @@ entries:
     behaviors:
       - id: PV-SLIDE-PAGE-01
         pattern: event
-        statement: '`layout`・`dir`・`file` を渡して呼ぶと、`pages/` に骨組みのページを書き、`artifacts` にそのパスを載せた成功の応答を返します'
+        statement: '`layout`・`dir`・`file` を渡して呼ぶと、`pages/` に骨組みのページを書き、`path` にそのパスを載せた成功の応答を返します'
       - id: PV-SLIDE-PAGE-02
         pattern: event
-        statement: '呼ぶと、レイアウトの仕様を `data.reference` に、その共通の仕様を `data.includes` に載せます'
+        statement: '呼ぶと、レイアウトの仕様を `reference` に、その共通の仕様を `includes` に載せます'
       - id: PV-SLIDE-PAGE-03
         pattern: event
         statement: '`file` を `.md` なしで渡すと、`.md` を補ったファイル名で書きます'
@@ -1477,7 +1252,7 @@ entries:
         statement: 'もし同じ名前のページがあり `force` が `false` なら、何も書かずに `file-exists` の失敗を返します'
       - id: PV-SLIDE-PAGE-06
         pattern: unwanted
-        statement: 'もし `layout` がテーマに無いなら、何も書かずに `unknown-layout` の失敗を返し、`data.categories` と `data.layouts` を載せます'
+        statement: 'もし `layout` がテーマに無いなら、何も書かずに `unknown-layout` の失敗を返し、`categories` と `layouts` を載せます'
       - id: PV-SLIDE-PAGE-07
         pattern: unwanted
         statement: 'もし `file` が数字で始まるなら、何も書かずに `numeric-filename-prefix` の失敗を返します'
@@ -1498,77 +1273,53 @@ entries:
           - theme
           - node_modules_only
     details:
-      - '移行前の talk-dir（テンプレートの写しを持つもの）は、`theme` のテーマを参照する形へ移します。テンプレートから来たファイルを消し、作業の領域（`slides.md`・`pages/*.md`・`public/slides/`）を残します。消した名前は、`data.migration.removed` に入ります。'
+      - '移行前の talk-dir（テンプレートの写しを持つもの）は、`theme` のテーマを参照する形へ移します。テンプレートから来たファイルを消し、作業の領域（`slides.md`・`pages/*.md`・`public/slides/`）を残します。消した名前は、`migration.removed` に入ります。'
       - '移行済みの talk-dir は、`package.json` の依存に書かれた版でテーマを取得し、`node_modules` を張り直します。`vite.config.ts` と `start.mjs` は、プラグインの今の内容にそろえます。ほかのファイルは変えません。'
       - 'テーマの版を上げるときは、呼ぶ前に、`package.json` の依存の `#<tag>` を書き換えます。'
-      - 'テーマの提示カテゴリ（`data.categories`）、選べるレイアウト（`data.layouts`）、そろえた後のデッキ全体の lint の結果を返します。'
+      - 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、そろえた後のデッキ全体の lint の結果を返します。'
       - '起動中の `slide_dev` は、`stop` を `true` にして止めてから、起動し直します。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 'そろえた talk-dir の絶対パスです。失敗したときは空です。'
-        data: 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、そろえた後の lint の結果（`lint`）です。移行したときは、消した名前が `migration.removed` に入ります。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        dir: '揃えた talk-dir の絶対パスです。'
+        categories: 'テーマの提示カテゴリです。'
+        layouts: '選べるレイアウトです。'
+        migration: '移行したときの、消した名前（`removed`）です。移行しなかったときは `null` です。'
+        lint: 'そろえた後のデッキ全体の lint の結果です。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
         code: 1
-        when: '実行時依存が入っていません。`message` が `runtime_setup` の呼び出しを案内します。'
+        when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: invalid-option
         code: 2
         when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
@@ -1628,7 +1379,7 @@ entries:
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-unlinked
         code: 1
-        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: unknown
         code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
@@ -1645,7 +1396,7 @@ entries:
         what: 'テーマをまだ取得していないときは、git と pnpm を動かして、ネットワークから取得します。'
       - target: process
         kind: read
-        what: '`data.lint` のために、デッキに eslint を動かします。'
+        what: '`lint` のために、デッキに eslint を動かします。'
     prerequisites:
       - '実行時依存が要ります。入っていなければ、先に `runtime_setup` を呼びます。'
       - '`dir` の `slide_dev` が起動中なら、先に止めます。'
@@ -1659,7 +1410,7 @@ entries:
     behaviors:
       - id: PV-SLIDE-SYNC-01
         pattern: event
-        statement: '移行前の talk-dir に `theme` を渡して呼ぶと、テンプレートから来たファイルを消してテーマを参照する形へ移し、消した名前を `data.migration.removed` に載せます'
+        statement: '移行前の talk-dir に `theme` を渡して呼ぶと、テンプレートから来たファイルを消してテーマを参照する形へ移し、消した名前を `migration.removed` に載せます'
       - id: PV-SLIDE-SYNC-02
         pattern: event
         statement: '移行前の talk-dir を移すと、`slides.md`・`pages/*.md`・`public/slides/` を残します'
@@ -1674,16 +1425,16 @@ entries:
         statement: '`node_modules_only` を `true` にして呼ぶと、`node_modules` の張り直しと、生成ファイルをそろえることだけを行います'
       - id: PV-SLIDE-SYNC-06
         pattern: event
-        statement: '呼ぶと、そろえた後のデッキ全体の lint の結果を `data.lint` に載せます'
+        statement: '呼ぶと、そろえた後のデッキ全体の lint の結果を `lint` に載せます'
       - id: PV-SLIDE-SYNC-07
         pattern: unwanted
-        statement: 'もし移行前の talk-dir に `theme` を渡さないなら、何も変えずに `theme-required`・`exitCode` 2 の失敗を返します'
+        statement: 'もし移行前の talk-dir に `theme` を渡さないなら、何も変えずに `theme-required` の失敗を返します'
       - id: PV-SLIDE-SYNC-08
         pattern: unwanted
-        statement: 'もし `theme` と `node_modules_only` を同時に渡したなら、何も変えずに `theme-with-node-modules-only`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `theme` と `node_modules_only` を同時に渡したなら、何も変えずに `theme-with-node-modules-only` の失敗を返します'
       - id: PV-SLIDE-SYNC-09
         pattern: unwanted
-        statement: 'もし実行時依存が未導入なら、何も変えずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `runtime_setup` の呼び出しを案内します'
+        statement: 'もし実行時依存が未導入なら、何も変えずに `runtime-dependencies-not-installed` の失敗を返し、`detail` で `runtime_setup` の呼び出しを案内します'
   PV-SLIDE-THEME:
     summary: talk-dir が参照するテーマの宣言と、レイアウトの一覧を返します。
     arguments:
@@ -1697,70 +1448,41 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 空です。
-        data: 'テーマの名前・指定・ルート（`theme`）、宣言（`declaration`）、選べるレイアウト（`layouts`）、提示カテゴリ（`categories`）です。lint の設定（`lint`）と警告（`warnings`）も入ります。警告の文は `warnings` に配列で入ります。無ければ項目ごと入りません。失敗のときは、原因の名前が `reason`、文と案内の全文が `detail`、子プロセスの出力が `log` に入ります。`log` は 64KB を超えると末尾だけ残ります。切り詰めたときは、`log` の冒頭の 1 行で知らせます。'
-        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。原因が失敗の名前の一覧に無いときは、`unknown` で、元の名前は `data.reason` に入ります。'
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
+        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of files and directories created or updated
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: Failure kind (failure only)
+            type: string
+          log:
+            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: Object with the details of the run
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Raw output of the command or child process, with the beginning truncated over 64KB (failure only)
-                type: string
-              reason:
-                description: Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the tool completed its intended run
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - artifacts
-          - data
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-path
         code: 2
-        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: theme-none
         code: 1
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
         code: 1
-        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
         code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
@@ -1785,7 +1507,7 @@ entries:
     behaviors:
       - id: PV-SLIDE-THEME-01
         pattern: event
-        statement: '`dir` を渡して呼ぶと、参照するテーマの名前・宣言・レイアウト・カテゴリを `data` に載せた成功の応答を返します'
+        statement: '`dir` を渡して呼ぶと、参照するテーマの名前・宣言・レイアウト・カテゴリを結果の最上位に載せた成功の応答を返します'
       - id: PV-SLIDE-THEME-02
         pattern: ubiquitous
         statement: '常に、ファイルを書き換えず、テーマを取得しません'
@@ -1794,7 +1516,7 @@ entries:
         statement: 'もし talk-dir がテーマを参照していないなら、`theme-none` の失敗を返します'
       - id: PV-SLIDE-THEME-04
         pattern: unwanted
-        statement: 'もしテーマが `node_modules` に張られていないなら、`theme-unlinked` の失敗を返し、`message` で `slide_sync` の呼び出しを案内します'
+        statement: 'もしテーマが `node_modules` に張られていないなら、`theme-unlinked` の失敗を返し、`detail` で `slide_sync` の呼び出しを案内します'
       - id: PV-SLIDE-THEME-05
         pattern: unwanted
         statement: 'もしテーマの宣言が決まった形でないなら、`theme-invalid-shape` の失敗を返します'
@@ -1807,19 +1529,19 @@ common_behaviors:
     statement: '最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行します'
   - id: PV-COMMON-03
     pattern: unwanted
-    statement: 'もしパスを渡す入力が相対パスなら、処理を始めずに `ok` が `false`・`exitCode` 2 の失敗を返し、渡した値を `data.invalidPaths` に載せます'
+    statement: 'もしパスを渡す入力が相対パスなら、処理を始めずに 失敗（`isError`）を返し、渡した値を `invalidPaths` に載せます'
   - id: PV-COMMON-04
     pattern: event
     statement: 'Windows 形式のパスを渡すと、`/mnt/<ドライブ>/` の下か WSL の中の絶対パスに変換して処理します'
   - id: PV-COMMON-05
     pattern: unwanted
-    statement: 'もし Windows 形式のパスを POSIX の絶対パスに変換できないなら、処理を始めずに `ok` が `false`・`exitCode` 2 の失敗を返します'
+    statement: 'もし Windows 形式のパスを POSIX の絶対パスに変換できないなら、処理を始めずに 失敗（`isError`）を返します'
   - id: PV-COMMON-06
     pattern: ubiquitous
     statement: '常に、応答の `structuredContent` と同じ内容の JSON を、`content` のテキストにも載せます'
   - id: PV-COMMON-07
     pattern: unwanted
-    statement: 'もし `ok` が `false` なら、応答の `isError` を真にします'
+    statement: 'もし結果が失敗なら、`isError` を真にし、`kind` と `detail` を最上位に載せます'
   - id: PV-COMMON-08
     pattern: event
     statement: '呼び出しが同時に届くと、1 件ずつ到着順に実行します'
@@ -1831,7 +1553,7 @@ common_behaviors:
     statement: 'もしクライアントが呼び出しを取り消したなら、取り消した呼び出しへの progress 通知を止めます'
   - id: PV-COMMON-11
     pattern: unwanted
-    statement: 'もし失敗のときの子プロセスの出力が 64 KiB を超えたなら、先頭を捨てて末尾の 64 KiB を `data.log` に残し、先頭に切り詰めを示す行を付けます'
+    statement: 'もし失敗のときの子プロセスの出力が 64 KiB を超えたなら、先頭を捨てて末尾の 64 KiB を `log` に残し、先頭に切り詰めを示す行を付けます'
   - id: PV-COMMON-12
     pattern: event
     statement: '呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応えます'

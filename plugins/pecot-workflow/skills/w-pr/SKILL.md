@@ -18,8 +18,8 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 `pr_check` を `directory: "."` で呼ぶ。
 
-結果の `ok` が `false` なら、`kind`・`message`・`data.detail` を見て解決し、呼び直してから次へ進む。
-`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が結果の `data.warnings` に入る。
+結果が失敗（`isError`）なら、`kind`・`detail` を見て解決し、呼び直してから次へ進む。
+`kind` が `preflight-failed` のときは、事前確認を通らなかった理由が結果の `warnings` に入る。
 
 ### Step 2: 変更内容の確認とコミット
 
@@ -35,27 +35,27 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 ### Step 3: PR作成
 
 1. テンプレートを準備する。`pr_create` を `prepare: true` で呼ぶ
-2. 結果の `artifacts` にあるファイルを編集する
+2. 結果の `file` にあるファイルを編集する
    - 冒頭の <!-- 読者: / 書き方: / フィールド: --> ガイドコメントに従って YAML フロントマターと本文を記述する
 3. 投稿する。`pr_create` を `file: "<ファイルパス>"` で呼ぶ
 
 feature PR の `base` は `prepare: true` の呼び出しが config 由来で自動設定する。2ブランチモードのリポは
 開発ブランチ（`develop-aist` 等）、単一ブランチモード（`develop` == `release` / trunk-based）の
-リポは `main`。自動設定された `base` は、`prepare: true` の結果の `data.base` にある。これを書き換えない。
+リポは `main`。自動設定された `base` は、`prepare: true` の結果の `base` にある。これを書き換えない。
 積んで着手したブランチでは、開発ブランチではなく、下の段のブランチが入る。これも書き換えない。
 
-`pr_create` の結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）なら、`data.detail` にある指摘を直して呼び直す。
-`data.detail` に `base branch must be ... while its PR #N is open` があるときは、`base` を、示されたブランチに戻して呼び直す。
+`pr_create` の結果が失敗（`isError`）で、`kind` が `content-invalid` なら、`detail` にある指摘を直して呼び直す。
+`detail` に `base branch must be ... while its PR #N is open` があるときは、`base` を、示されたブランチに戻して呼び直す。
 
-`kind` が `pr-state`（`exitCode` は 2）で、`data.detail` に `has no open PR` があるときは、下の段の PR が開いていない。
-`data.detail` を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
+`kind` が `pr-state` で、`detail` に `has no open PR` があるときは、下の段の PR が開いていない。
+`detail` を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
 
-PR を作った後は、`pr_create` の結果の `data` を見て利用者に伝える。
+PR を作った後は、`pr_create` の結果の項目を見て利用者に伝える。
 
-- `data.stack.registered` が `true` なら、PR が `data.stack.number` のスタックに入ったと伝える
-- `data.moves` に要素があれば、この PR を待っていた Issue が動いたと伝える。動いた Issue（`issue`）と列（`to`）も添える
+- `stack.registered` が `true` なら、PR が `stack.number` のスタックに入ったと伝える
+- `moves` に要素があれば、この PR を待っていた Issue が動いたと伝える。動いた Issue（`issue`）と列（`to`）も添える
 
-結果に `data.warnings` があっても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。
+結果に `warnings` があっても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。
 スタックを手で作らず、`pr_create` を呼び直さない。PR は作られている。
 
 本文に、上下の PR やスタックの中の位置を書かない。GitHub の画面が示す情報だからだ。

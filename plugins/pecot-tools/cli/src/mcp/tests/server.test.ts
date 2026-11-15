@@ -220,11 +220,9 @@ describe('createMcpServer', () => {
       config: { description: 'ExecutionResult 変換の往復検証', inputSchema: z.object({}) },
       handler: () => Promise.resolve(toCallToolResult({
         ok: false,
-        exitCode: 254,
         kind: 'permission-denied',
-        artifacts: [],
+        detail: '権限が不足しています',
         data: { log: 'An error occurred (AccessDenied)' },
-        message: '権限が不足しています',
       })),
     }
 
@@ -233,7 +231,7 @@ describe('createMcpServer', () => {
       const called = await connected.client.callTool({ name: 'failing', arguments: {} })
 
       expect(called.isError).toBe(true)
-      expect(called.structuredContent).toMatchObject({ kind: 'permission-denied', exitCode: 254 })
+      expect(called.structuredContent).toStrictEqual({ log: 'An error occurred (AccessDenied)', kind: 'permission-denied', detail: '権限が不足しています' })
     }
     finally {
       await closeMcp(connected)

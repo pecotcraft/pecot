@@ -15,7 +15,7 @@ import { z } from 'zod'
 
 import type { AllowlistEntry, FailureKind } from '../../../domain/allowlist.js'
 import { OUTPUT_LIMIT_BYTES, resetAwscliProbe } from '../../../infra/awscli.js'
-import { toCallToolResult } from '../../result.js'
+import { toCallToolResult, type ExecutionResult } from '../../result.js'
 import type { ToolDefinition } from '../../server.js'
 import { closeMcp, connectMcp } from '../../tests/_client.js'
 import {
@@ -80,6 +80,14 @@ const CONTEXT = { signal: new AbortController().signal }
 */
 const NO_REJECTION = (): undefined => undefined
 
+/**
+失敗の detail。成功が返ったらテストを落とす。
+*/
+function detailOf(result: Readonly<ExecutionResult>): string {
+  if (result.ok) throw new Error('expected a failure')
+  return result.detail
+}
+
 const fakeAws = useFakeAws()
 
 beforeEach(() => {
@@ -116,9 +124,8 @@ describe('共通スキーマ', () => {
     expect(Object.keys(LIMIT_NEXT_TOKEN_PAGINATION_SHAPE)).toEqual(['limit', 'next_token', 'start_from_head'])
   })
 
-  it('outputSchema は ExecutionResult と同形', () => {
-    expect(Object.keys(TOOL_OUTPUT_SCHEMA.shape))
-      .toEqual(['ok', 'exitCode', 'kind', 'data', 'artifacts', 'message'])
+  it('outputSchema は共通の 4 項目だけに名前を持たせる', () => {
+    expect(Object.keys(TOOL_OUTPUT_SCHEMA.shape)).toEqual(['kind', 'detail', 'log', 'warnings'])
   })
 
   it('既定の制限時間は 120 秒', async (context) => {
@@ -133,7 +140,7 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(IDENTITY_ENTRY, { region: 'ap-northeast-1' }, CONTEXT)
 
-    expect(result).toMatchObject({ ok: true, exitCode: 0 })
+    expect(result.ok).toBe(true)
     expect(result.data).toMatchObject({ Account: '123456789012' })
     expect(result.kind).toBeUndefined()
     expect(commandCalls(fake)).toEqual([
@@ -146,18 +153,18 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, { max_items: 0 }, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 2, kind: 'invalid-input' })
+    expect(result).toMatchObject({ ok: false, kind: 'invalid-input' })
     expect(commandCalls(fake)).toEqual([])
   })
 
-  it('AccessDenied を permission-denied にし、data.log に秘密を伏せた出力を入れる', async (context) => {
+  it('AccessDenied を permission-denied にし、log に秘密を伏せた出力を入れる', async (context) => {
     await verifies(context, 'PT-COMMON-12')
     fakeAws.install({ fixture: 'access-denied' })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 254, kind: 'permission-denied' })
-    expect(result.message).toContain('permission-denied')
+    expect(result).toMatchObject({ ok: false, kind: 'permission-denied' })
+    expect(detailOf(result)).toContain('permission-denied')
     const log = String(result.data['log'])
     expect(log).toContain('AccessDeniedException')
     expect(log).toContain('[redacted]')
@@ -169,21 +176,20 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 252, kind: 'invalid-input' })
+    expect(result).toMatchObject({ ok: false, kind: 'invalid-input' })
   })
 
   // 実 awscli 2.36.40（2026-09-07 採取）の stderr と終了コードをそのまま置いた fixture。
   // 分類器の単体テストとは別に、実出力が実行処理を通っても同じ種別になることを見る。
   const CAPTURED_FIXTURES: readonly {
     readonly fixture: string
-    readonly exitCode: number
     readonly kind: FailureKind
   }[] = [
-    { fixture: 'no-credentials', exitCode: 253, kind: 'auth-missing' },
-    { fixture: 's3-cp-no-credentials', exitCode: 1, kind: 'auth-missing' },
-    { fixture: 'profile-not-found', exitCode: 255, kind: 'auth-missing' },
-    { fixture: 'sso-token-expired', exitCode: 255, kind: 'auth-expired' },
-    { fixture: 'invalid-token', exitCode: 254, kind: 'auth-expired' },
+    { fixture: 'no-credentials', kind: 'auth-missing' },
+    { fixture: 's3-cp-no-credentials', kind: 'auth-missing' },
+    { fixture: 'profile-not-found', kind: 'auth-missing' },
+    { fixture: 'sso-token-expired', kind: 'auth-expired' },
+    { fixture: 'invalid-token', kind: 'auth-expired' },
   ]
 
   it.each(CAPTURED_FIXTURES)('実採取 fixture $fixture を $kind にする', async (captured) => {
@@ -193,31 +199,30 @@ describe('executeAllowlisted', () => {
 
     expect(result).toMatchObject({
       ok: false,
-      exitCode: captured.exitCode,
       kind: captured.kind,
     })
   })
 
-  it('時間切れは exitCode 124 の timeout にする', async (context) => {
+  it('時間切れは timeout にする', async (context) => {
     await verifies(context, 'PT-COMMON-08')
     fakeAws.install({ hang: true })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, { timeoutMs: 500 })
 
-    expect(result).toMatchObject({ ok: false, exitCode: 124, kind: 'timeout' })
-    expect(result.message).toContain('Narrow the range')
+    expect(result).toMatchObject({ ok: false, kind: 'timeout' })
+    expect(detailOf(result)).toContain('Narrow the range')
   })
 
-  it('awscli 未導入は exitCode 127 の awscli-missing にする', async () => {
+  it('awscli 未導入は awscli-missing にする', async () => {
     fakeAws.withoutAws()
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 127, kind: 'awscli-missing' })
-    expect(result.message).toContain('PATH')
+    expect(result).toMatchObject({ ok: false, kind: 'awscli-missing' })
+    expect(detailOf(result)).toContain('PATH')
   })
 
-  it('NextToken を data.nextToken へ転記する', async () => {
+  it('NextToken を nextToken へ転記する', async () => {
     fakeAws.install({ fixture: 'paginated' })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
@@ -276,7 +281,7 @@ describe('executeAllowlisted', () => {
 
   it('成功時の stdout も秘匿化する', async (context) => {
     await verifies(context, 'PT-COMMON-15')
-    // SC-006 は応答全体が対象。data.log 側だけ固定すると、成功時の退行を見逃す。
+    // SC-006 は応答全体が対象。log 側だけ固定すると、成功時の退行を見逃す。
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'leaky.stdout'), '{"AccessKeyId":"AKIAIOSFODNN7EXAMPLE"}\n')
       fakeAws.install({ fixture: 'leaky', fixtureDir: directory })
@@ -288,7 +293,7 @@ describe('executeAllowlisted', () => {
     })
   })
 
-  it('data.log が上限を超えたら切り詰めたことを message に残す', async () => {
+  it('log が上限を超えたら切り詰めたことを detail に残す', async () => {
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'noisy.stderr'), 'y'.repeat(OUTPUT_LIMIT_BYTES + 1024))
       writeFileSync(path.join(directory, 'noisy.exit'), '254\n')
@@ -298,7 +303,7 @@ describe('executeAllowlisted', () => {
 
       expect(result.ok).toBe(false)
       expect(Buffer.byteLength(String(result.data['log']), 'utf8')).toBe(OUTPUT_LIMIT_BYTES)
-      expect(result.message).toContain('data.log exceeded the limit')
+      expect(detailOf(result)).toContain('log exceeded the limit')
     })
   })
 
@@ -314,31 +319,31 @@ describe('executeAllowlisted', () => {
     expect(parsed.success).toBe(true)
   })
 
-  it('失敗のときは、data の reason に kind を、detail に message を入れ、最上位に stderr を載せない', async () => {
+  it('失敗のときは、最上位に kind と detail を置き、reason と stderr を載せない', async () => {
     fakeAws.install({ fixture: 'access-denied' })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
     const content = toCallToolResult(result).structuredContent
 
     expect(content).not.toHaveProperty('stderr')
-    expect(content).toMatchObject({ data: { reason: 'permission-denied', detail: result.message } })
+    expect(content).toMatchObject({ kind: 'permission-denied', detail: detailOf(result) })
+    expect(content).not.toHaveProperty('reason')
   })
 
-  it('成功のときは、最上位に stderr を、data に log を載せない', async () => {
+  it('成功のときは、stderr・log・入れ物の項目を載せない', async () => {
     fakeAws.install()
 
     const content = toCallToolResult(await executeAllowlisted(IDENTITY_ENTRY, {}, CONTEXT)).structuredContent
 
     expect(content).not.toHaveProperty('stderr')
-    expect(content).not.toHaveProperty('data.log')
+    expect(content).not.toHaveProperty('log')
+    for (const key of ['ok', 'exitCode', 'data', 'artifacts', 'message']) expect(content).not.toHaveProperty(key)
   })
 
-  it('data の schema は共通の 4 項目を任意で持ち、ほかの項目も通す', () => {
-    const data = TOOL_OUTPUT_SCHEMA.shape.data
-
-    expect(Object.keys(data.shape)).toEqual(['warnings', 'reason', 'detail', 'log'])
-    expect(data.safeParse({ Account: '1' }).success).toBe(true)
-    expect(data.safeParse({ log: 1 }).success).toBe(false)
+  it('outputSchema は共通の 4 項目を任意で持ち、ほかの項目も通す', () => {
+    expect(TOOL_OUTPUT_SCHEMA.safeParse({ Account: '1' }).success).toBe(true)
+    expect(TOOL_OUTPUT_SCHEMA.safeParse({ Account: '1' }).success).toBe(true)
+    expect(TOOL_OUTPUT_SCHEMA.safeParse({ log: 1 }).success).toBe(false)
   })
 
   it('上限を超える出力は先頭を残して truncated を立てる', async (context) => {
@@ -355,8 +360,10 @@ describe('executeAllowlisted', () => {
       const output = String(result.data['output'])
       expect(body.startsWith(output)).toBe(true)
       expect(Buffer.byteLength(output, 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
-      expect(result.message).toContain('max_items')
-      expect(result.message).toContain('starting_token')
+      const [sentence] = toCallToolResult(result).content
+      const text = sentence?.type === 'text' ? sentence.text : ''
+      expect(text).toContain('max_items')
+      expect(text).toContain('starting_token')
     })
   })
 
@@ -395,7 +402,7 @@ async function callTool(
 }
 
 describe('実行前拒否 (reject)', () => {
-  it('reject が理由を返したら awscli を起動せず exitCode 2 で返す', async () => {
+  it('reject が理由を返したら、awscli を起動せず、その kind と文で失敗を返す', async () => {
     const fake = fakeAws.install()
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, {
@@ -404,9 +411,8 @@ describe('実行前拒否 (reject)', () => {
 
     expect(result).toMatchObject({
       ok: false,
-      exitCode: 2,
       kind: 'not-allowed',
-      message: '変更系クエリは実行できません',
+      detail: '変更系クエリは実行できません',
     })
     expect(fake.callLog()).toEqual([])
   })
@@ -418,7 +424,7 @@ describe('実行前拒否 (reject)', () => {
       reject: () => ({ kind: 'invalid-input', message: '書き出し先が既にあります' }),
     })
 
-    expect(result).toMatchObject({ ok: false, exitCode: 2, kind: 'invalid-input' })
+    expect(result).toMatchObject({ ok: false, kind: 'invalid-input' })
     expect(fake.callLog()).toEqual([])
   })
 
@@ -447,22 +453,22 @@ describe('実行前拒否 (reject)', () => {
   })
 })
 
-describe('artifacts', () => {
-  it('成功時に artifactsOf の戻り値を載せる', async () => {
+describe('file', () => {
+  it('成功のとき、fileOf の戻り値を file に載せる', async () => {
     fakeAws.install({ fixture: 's3-cp' })
 
     const result = await executeAllowlisted(
       FETCH_ENTRY,
       { s3_uri: 's3://bucket/report.json', local_path: '/var/data/report.json' },
       CONTEXT,
-      { artifactsOf: arguments_ => [String(arguments_['local_path'])] },
+      { fileOf: arguments_ => String(arguments_['local_path']) },
     )
 
     expect(result.ok).toBe(true)
-    expect(result.artifacts).toEqual(['/var/data/report.json'])
+    expect(result.data['file']).toBe('/var/data/report.json')
   })
 
-  it('出力が切り詰められても artifacts は載せる', async () => {
+  it('出力が切り詰められても、file は載せる', async () => {
     // 書き出しは awscli 側で終わっている。応答の切り詰めは出力が長いことしか意味しない。
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'huge.stdout'), 'x'.repeat(OUTPUT_LIMIT_BYTES + 1024))
@@ -472,34 +478,33 @@ describe('artifacts', () => {
         FETCH_ENTRY,
         { s3_uri: 's3://bucket/report.json', local_path: '/var/data/report.json' },
         CONTEXT,
-        { artifactsOf: () => ['/var/data/report.json'] },
+        { fileOf: () => '/var/data/report.json' },
       )
 
-      expect(result.data).toMatchObject({ truncated: true })
-      expect(result.artifacts).toEqual(['/var/data/report.json'])
+      expect(result.data).toMatchObject({ truncated: true, file: '/var/data/report.json' })
     })
   })
 
-  it('artifactsOf が無ければ空配列', async () => {
+  it('fileOf が無ければ、file を載せない', async () => {
     fakeAws.install()
 
     const result = await executeAllowlisted(IDENTITY_ENTRY, {}, CONTEXT)
 
-    expect(result.artifacts).toEqual([])
+    expect(result.data).not.toHaveProperty('file')
   })
 
-  it('失敗時は artifactsOf があっても載せない', async () => {
+  it('失敗のときは、fileOf があっても file を載せない', async () => {
     fakeAws.install({ fixture: 's3-cp-no-credentials' })
 
     const result = await executeAllowlisted(
       FETCH_ENTRY,
       { s3_uri: 's3://bucket/report.json', local_path: '/var/data/report.json' },
       CONTEXT,
-      { artifactsOf: () => ['/var/data/report.json'] },
+      { fileOf: () => '/var/data/report.json' },
     )
 
     expect(result.ok).toBe(false)
-    expect(result.artifacts).toEqual([])
+    expect(toCallToolResult(result).structuredContent).not.toHaveProperty('file')
   })
 })
 
@@ -553,7 +558,7 @@ describe('allowlistedTool', () => {
     )
 
     expect(result['isError']).toBeUndefined()
-    expect(result['structuredContent']).toMatchObject({ ok: true, exitCode: 0 })
+    expect(result['structuredContent']).toHaveProperty('Account')
     expect(commandCalls(instance)).toEqual([
       ['sts', 'get-caller-identity', '--output', 'json', '--no-cli-pager', '--region', 'ap-northeast-1'],
     ])
@@ -572,7 +577,7 @@ describe('allowlistedTool', () => {
     const rejected = await callTool(tool, {})
 
     expect(rejected['isError']).toBe(true)
-    expect(rejected['structuredContent']).toMatchObject({ exitCode: 2, kind: 'invalid-input' })
+    expect(rejected['structuredContent']).toMatchObject({ kind: 'invalid-input' })
     expect(commandCalls(instance)).toEqual([])
   })
 
@@ -583,7 +588,7 @@ describe('allowlistedTool', () => {
     const result = await callTool(tool, {})
 
     // hang する偽 awscli が 500ms で打ち切られる = timeoutMs が届いている。
-    expect(result['structuredContent']).toMatchObject({ exitCode: 124, kind: 'timeout' })
+    expect(result['structuredContent']).toMatchObject({ kind: 'timeout' })
   })
 })
 

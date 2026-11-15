@@ -9,7 +9,7 @@ import { z } from 'zod'
 
 import { toolNameOf } from '../../src/commands/registry.js'
 import { parseJson } from '../../src/tests/_helpers/json.js'
-import { structuredOf } from '../_helpers/mcp-client.js'
+import { outputSchemaIssues, toolOutcomeOf } from '../_helpers/mcp-client.js'
 import { readToolShape, toolInputOf } from './mcp-input.js'
 import { renderMcpView } from './mcp-view.js'
 import type { ChildResult, Launcher } from './run.js'
@@ -22,7 +22,7 @@ const McpSurfaceSchema = z.object({ mcp: z.object({ tool: z.string() }) })
 const OutputEntrySchema = z.looseObject({ surfaces: McpSurfaceSchema, input: InputSchemaShape, mcp: z.object({ output: InputSchemaShape }) })
 const OutputEntriesSchema = z.object({ entries: z.array(OutputEntrySchema) })
 
-// 入力の検証でコマンドを呼ばずに断った結果の message の前置き（server.ts の rejected）
+// 入力の検証でコマンドを呼ばずに断った結果の detail の前置き（server.ts の rejected）
 const REJECTED_PREFIX = 'invalid input: '
 
 const generatedCache: { entries?: readonly z.output<typeof OutputEntrySchema>[] } = {}
@@ -79,15 +79,20 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
     const input = toolInputOf(readToolShape(scenario.command.path), scenario.command.args)
     const name = toolNameOf(scenario.command.path)
     // toolDefinition を渡すと、client が成功の structuredContent を定義書の outputSchema で検証し、合わなければ例外にする
-    const result = await client.callTool({ name, arguments: { ...input } }, { timeout: CHILD_TIMEOUT_MS, toolDefinition: toolDefinitionOf(name) })
-    const outcome = structuredOf(result)
-    // 入力の検証の誤り（コマンドを呼んでいない）は、本体の終了コードと分けるため、message を stdout に残して -1 にする
-    if (outcome.kind === 'invalid-input' && outcome.message.startsWith(REJECTED_PREFIX) && outcome.data['detail'] === outcome.message) {
-      return { stdout: outcome.message, stderr: serverStderr, code: undefined, signal: undefined, spawnError: undefined, timedOut: false, data: outcome.data }
+    const definition = toolDefinitionOf(name)
+    const result = await client.callTool({ name, arguments: { ...input } }, { timeout: CHILD_TIMEOUT_MS, toolDefinition: definition })
+    const { isError, structured } = toolOutcomeOf(result)
+    // client は失敗の結果を検証しないので、同じ outputSchema でここで確かめる
+    const issues = isError ? await outputSchemaIssues(definition.outputSchema, structured) : []
+    if (issues.length > 0) throw new Error(`失敗の structuredContent が定義書の outputSchema に合いません: ${issues.join('; ')}`)
+    const detail = typeof structured['detail'] === 'string' ? structured['detail'] : undefined
+    // 入力の検証の誤り（コマンドを呼んでいない）は、本体の結果と分けるため、detail を stdout に残して -1 にする
+    if (structured['kind'] === 'invalid-input' && detail?.startsWith(REJECTED_PREFIX) === true) {
+      return { stdout: detail, stderr: serverStderr, code: undefined, signal: undefined, spawnError: undefined, timedOut: false, data: structured }
     }
-    const warnings = Array.isArray(outcome.data['warnings']) ? outcome.data['warnings'].map(String) : []
-    const detail = outcome.ok ? undefined : String(outcome.data['detail'])
-    return { stdout: '', stderr: renderMcpView({ warnings, detail }), code: outcome.exitCode, signal: undefined, spawnError: undefined, timedOut: false, data: outcome.data }
+    const warnings = Array.isArray(structured['warnings']) ? structured['warnings'].map(String) : []
+    // MCP の結果は終了コードを持たないので、成否を 0 と 1 にする。golden の側も同じく写して比べる（parity.test.ts）
+    return { stdout: '', stderr: renderMcpView({ warnings, detail: isError ? String(detail) : undefined }), code: isError ? 1 : 0, signal: undefined, spawnError: undefined, timedOut: false, data: structured }
   }
   catch (error: unknown) {
     return failed(error)

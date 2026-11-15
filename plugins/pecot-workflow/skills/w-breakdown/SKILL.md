@@ -11,7 +11,7 @@ when_to_use: "Epic をサブタスクに分解したい、speckit で計画を�
 
 Epic の内容を読み取り、main が speckit コマンド（specify → clarify → plan → tasks）を
 逐次実行して分解する。speckit の成果物（ブランチ・`.specify/` 配下のファイル）は
-**w-breakdown を実行したリポジトリ** に作成する。ただし `board_show` の結果の `data.project.aggregation_repo` に
+**w-breakdown を実行したリポジトリ** に作成する。ただし `board_show` の結果の `project.aggregation_repo` に
 **ロードマップリポ** が設定されている場合、そのロードマップリポでのみ実行を許可
 する。ロードマップリポ設定があるのに別リポで起動された場合は中止し、ロードマップリポでの
 再実行を案内する。
@@ -26,7 +26,7 @@ Epic の内容を読み取り、main が speckit コマンド（specify → clar
 
 ### Step 2: 成果物作成先の決定（ロードマップリポチェック）
 
-Step 1 の `board_show` の結果の `data.project.aggregation_repo` と CWD のリポを比べる。
+Step 1 の `board_show` の結果の `project.aggregation_repo` と CWD のリポを比べる。
 
 CWD のリポを取得:
 
@@ -38,9 +38,9 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 
 判定:
 
-- **`data.project.aggregation_repo` が null** → CWD のリポで成果物を作る前提で進む
-- **`data.project.aggregation_repo` が `<owner/repo>`** かつ **CWD == その値** → そのまま進む
-- **`data.project.aggregation_repo` が `<owner/repo>`** かつ **CWD が異なる** → 中止し、次の文をユーザーに案内する
+- **`project.aggregation_repo` が null** → CWD のリポで成果物を作る前提で進む
+- **`project.aggregation_repo` が `<owner/repo>`** かつ **CWD == その値** → そのまま進む
+- **`project.aggregation_repo` が `<owner/repo>`** かつ **CWD が異なる** → 中止し、次の文をユーザーに案内する
 
   > このプロジェクトではロードマップリポ `<owner/repo>` が設定されている。
   > w-breakdown はロードマップリポでのみ実行できる。`<owner/repo>` のワークツリーで再実行すること。

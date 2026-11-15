@@ -279,7 +279,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
 
   describe('結果の outputSchema 検証', () => {
     it('失敗結果 (isError + structuredContent) もスキーマ拒否とは区別されてクライアントへ届く', async () => {
-      const failure = toCallToolResult({ ok: false, exitCode: 1, kind: 'unknown', artifacts: [], data: { event: 'x' }, message: 'failed' })
+      const failure = toCallToolResult({ ok: false, kind: 'unknown', detail: 'failed', data: { event: 'x' } })
 
       const called = await callLintWith(era, () => failure)
 
@@ -288,7 +288,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
     })
 
     it('outputSchema に違反する structuredContent は拒否され、違反した値はクライアントへ届かない', async () => {
-      const violating: CallToolResult = { content: [{ type: 'text', text: '{}' }], structuredContent: { ok: 'yes' } }
+      const violating: CallToolResult = { content: [{ type: 'text', text: '{}' }], structuredContent: { kind: 1 } }
 
       const called = await callLintWith(era, () => violating)
 

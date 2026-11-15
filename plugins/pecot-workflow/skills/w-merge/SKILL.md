@@ -21,8 +21,8 @@ PRをマージし、マージ後にブランチ削除とワークツリー環境
 
 PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_check` を `directory: "."` で呼ぶ。
 
-結果の `ok` が `false` なら、`kind`・`message`・`data.detail` を見て解決し、呼び直してからマージに進む。
-`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が結果の `data.warnings` に入る。
+結果が失敗（`isError`）なら、`kind`・`detail` を見て解決し、呼び直してからマージに進む。
+`kind` が `preflight-failed` のときは、事前確認を通らなかった理由が結果の `warnings` に入る。
 
 ### Step 2: マージと片付け
 
@@ -77,7 +77,7 @@ code-scanning open alerts: #28 #29
   - アラート: `gh api repos/<owner>/<repo>/code-scanning/alerts/<番号>`
   - 承認: `gh pr view <PR番号> --repo <owner>/<repo> --json reviewDecision`
 - `stalled` では、2 行目の `queue=` と `checks-pending=`、3 行目以降のルールとアラートを伝える。`queue=true` か `checks-pending` が 1 以上なら、進んでいる見込みなので待ち直しを勧める
-- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を呼び直す。未マージなら `kind` が `pr-state`（`exitCode` は 1）で何もしない
+- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を呼び直す。未マージなら `kind` が `pr-state` で何もしない
 
 #### 2.3 片付け
 
@@ -85,7 +85,7 @@ code-scanning open alerts: #28 #29
 
 > 注意: マージ後の片付けは必ず `session_finish` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
 
-`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず、`ok` が `false`、`kind` が `pr-state`（`exitCode` は 1）で終わる。
+`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず、結果が失敗（`isError`）で、`kind` が `pr-state` になる。
 
 **入力**:
 
@@ -101,7 +101,7 @@ code-scanning open alerts: #28 #29
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
 - クロスリポでは、現在のリポとPRのリポが異なる場合、ローカルクリーンアップはスキップされる
 
-`session_finish` の結果に `data.warnings` があれば、その文を読んで以下で手動対応:
+`session_finish` の結果に `warnings` があれば、その文を読んで以下で手動対応:
 
 - ワーキングツリーが汚れている場合: 変更を一時的な WIP commit で退避してから再実行する。stash は全ワークツリーで共有されるので、使うときは `git stash push -u -m "<名前>"` で名前を付け、戻すときもその entry を指定する
 - `skip_local_cleanup: true` でローカル後処理をスキップし、手動で対応
@@ -117,18 +117,18 @@ code-scanning open alerts: #28 #29
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
 - 対象のIssue（4.1）が 1 件も無い（Issue未紐付けPR）
-- 対象のIssue（4.1）を `issue_show` で読んだ結果の `data.parent` が null（独立タスク、フォローアップ修正等）
+- 対象のIssue（4.1）を `issue_show` で読んだ結果の `parent` が null（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
 対象のIssueは、`session_finish` の結果の次の 2 つとする。
 
-- `data.closedIssues`（閉じた Issue の番号の配列）の番号
-- `data.skippedIssues` のうち、`reason` が `already-closed` の要素の `number`（既に閉じていた Issue）
+- `closedIssues`（閉じた Issue の番号の配列）の番号
+- `skippedIssues` のうち、`reason` が `already-closed` の要素の `number`（既に閉じていた Issue）
 
 その番号からIssueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
 
-- 結果の `data.parent.number` から親EpicのIssue番号を取得 → `data.parent` が null なら **Step 4-5 をスキップ**
+- 結果の `parent.number` から親EpicのIssue番号を取得 → `parent` が null なら **Step 4-5 をスキップ**
 
 #### 4.2 実装内容の把握
 
@@ -143,7 +143,7 @@ code-scanning open alerts: #28 #29
 
 Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。`issue_comment` を `prepare: true`・`template: "merge-diff"`・`issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
 
-- 結果の `artifacts` にあるファイルを開き、冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
+- 結果の `file` にあるファイルを開き、冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
 - 見出しレベル・記号・節構成はテンプレを基準とする。SKILL.md にはフォーマット例示を持たない
 
 #### 4.4 Epicにコメント投稿
@@ -169,7 +169,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 
 `issue_show` を `issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
 
-結果の `data.sub_issues`（各要素に `number`・`state`・`title`）から次を行う。
+結果の `sub_issues`（各要素に `number`・`state`・`title`）から次を行う。
 
 1. 現在のタスクを特定（タイトルの `#XXX-NN` で識別。枝の文字がある場合は `#XXX-NNa` まで含める）
 2. 現在のタスク以外の OPEN なサブタスクを抽出（orderの大小は問わない）
@@ -179,7 +179,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 後続フェーズに影響する変更がある場合、テンプレ実体に従って影響コメントを生成・投稿する。
 
 1. `issue_comment` を `prepare: true`・`template: "precede-notify"`・`issue_ref: "<owner>/<repo>/<後続issue番号>"` で呼ぶ
-2. 結果の `artifacts` にある md を編集する
+2. 結果の `file` にある md を編集する
 3. `issue_comment` を `file: "<編集後ファイル>"` で呼ぶ
 
 - フォーマットはテンプレ実体に従う。SKILL.md にはフォーマット例示を持たない

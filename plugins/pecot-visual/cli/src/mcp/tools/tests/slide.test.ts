@@ -85,14 +85,13 @@ function structuredOf(result: CallToolResult): Record<string, unknown> {
 }
 
 function dataOf(result: CallToolResult): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が object ではありません')
-  return data
+  return structuredOf(result)
 }
 
-function stringsOf(value: unknown): readonly string[] {
-  if (!Array.isArray(value)) throw new TypeError('配列ではありません')
-  return value.filter(entry => typeof entry === 'string')
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 /**
@@ -368,13 +367,12 @@ describe('slide_create', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(structured['message']).toContain('must be an absolute path')
+    expect(structured['kind']).toBe('invalid-path')
+    expect(sentenceOf(result)).toContain('must be an absolute path')
     expect(dataOf(result)['invalidPaths']).toEqual(['project_dir=relative/deck'])
   })
 
-  it('生成に成功すると slide.create.done を data に載せ、生成先を artifacts に返す', async (context) => {
+  it('生成に成功すると slide.create.done を data に載せ、生成先を projectDir に返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-01')
 
     await verifies(context, 'PV-SLIDE-CREATE-02')
@@ -389,9 +387,8 @@ describe('slide_create', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(stringsOf(structured['artifacts'])).toEqual([projectDirectory])
+    expect(structured).not.toHaveProperty('kind')
+    expect(structured['projectDir']).toBe(projectDirectory)
     expect(dataOf(result)['event']).toBe('slide.create.done')
     expect(dataOf(result)['theme']).toEqual({
       name: THEME_NAME,
@@ -401,11 +398,11 @@ describe('slide_create', () => {
     expect(dataOf(result)['layouts']).toHaveLength(8)
     expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
     const categories = dataOf(result)['categories']
-    if (!Array.isArray(categories)) throw new TypeError('slide_create が data.categories を返していません')
+    if (!Array.isArray(categories)) throw new TypeError('slide_create が categories を返していません')
     const categoryIds = categories.map(entry => (isRecord(entry) ? entry['id'] : undefined))
     expect(categoryIds).toEqual(fixtureCategoryIds())
     const layouts = dataOf(result)['layouts']
-    if (!Array.isArray(layouts)) throw new TypeError('slide_create が data.layouts を返していません')
+    if (!Array.isArray(layouts)) throw new TypeError('slide_create が layouts を返していません')
     for (const entry of layouts) {
       expect(categoryIds).toContain(isRecord(entry) ? entry['category'] : undefined)
     }
@@ -431,12 +428,9 @@ describe('slide_create', () => {
       project_dir: temporaryRoot('deck-no-tag'),
       theme: 'git+https://example.com/org/theme.git',
     })
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.create.error', reason: 'theme-tag-required' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.create.error', kind: 'theme-tag-required' })
     expect(existsSync(temporaryRoot('deck-no-tag'))).toBe(false)
     expect(existsSync(temporaryRoot('store'))).toBe(false)
   })
@@ -448,12 +442,10 @@ describe('slide_create', () => {
       project_dir: projectDirectory,
       theme: 'file:../my-theme',
     })
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['exitCode']).toBe(2)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.create.error', reason: 'invalid-option' })
-    expect(textOf(structured['message'])).toContain('must be an absolute path')
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.create.error', kind: 'invalid-option' })
+    expect(textOf(sentenceOf(result))).toContain('must be an absolute path')
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -464,9 +456,8 @@ describe('slide_create', () => {
       theme: 'file:C:my-theme',
     })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
-    expect(dataOf(result)['reason']).toBe('invalid-option')
-    expect(textOf(structuredOf(result)['message'])).toContain('drive-relative')
+    expect(structuredOf(result)['kind']).toBe('invalid-option')
+    expect(textOf(sentenceOf(result))).toContain('drive-relative')
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -477,9 +468,9 @@ describe('slide_create', () => {
     })
 
     // 変換後の /mnt/c/themes/my-theme は実在しないので、取得の失敗として返る。変換されたパスが文言に出る。
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(textOf(structuredOf(result)['message'])).toContain('/mnt/c/themes/my-theme')
-    expect(dataOf(result)['reason']).toBe('theme-unknown')
+    expect(structuredOf(result)).toHaveProperty('kind')
+    expect(textOf(sentenceOf(result))).toContain('/mnt/c/themes/my-theme')
+    expect(structuredOf(result)['kind']).toBe('theme-unknown')
   })
 
   it('force なしで既存ディレクトリを指すと exitCode 2 で返す', async (context) => {
@@ -493,8 +484,7 @@ describe('slide_create', () => {
       project_dir: projectDirectory,
       theme,
     })
-    expect(structuredOf(rejected)['exitCode']).toBe(2)
-    expect(dataOf(rejected)['reason']).toBe('dest-exists')
+    expect(structuredOf(rejected)['kind']).toBe('dest-exists')
     expect(snapshotTree(projectDirectory)).toEqual(before)
 
     // force: true なら同じ入力で成功する (上書き分岐が生きていることの確認)。
@@ -503,7 +493,7 @@ describe('slide_create', () => {
       theme,
       force: true,
     })
-    expect(structuredOf(forced)['ok']).toBe(true)
+    expect(structuredOf(forced)).not.toHaveProperty('kind')
   })
 
   it('CLAUDE_PLUGIN_ROOT 未設定の既定 deps は実行失敗 (exitCode 1) として返る', async () => {
@@ -514,9 +504,8 @@ describe('slide_create', () => {
       const result = await call(slideCreateTool(), { project_dir: temporaryRoot('deck-noenv'), theme: makeThemeSpec() })
       const structured = structuredOf(result)
 
-      expect(structured['ok']).toBe(false)
-      expect(structured['exitCode']).toBe(1)
-      expect(textOf(structured['message'])).toContain('CLAUDE_PLUGIN_ROOT')
+      expect(structured).toHaveProperty('kind')
+      expect(textOf(sentenceOf(result))).toContain('CLAUDE_PLUGIN_ROOT')
     }
     finally {
       if (previous !== undefined) process.env['CLAUDE_PLUGIN_ROOT'] = previous
@@ -528,7 +517,7 @@ describe('slide_sync', () => {
   it('相対 dir は exitCode 2 で返す', async () => {
     const result = await call(createSyncTool(makePluginRoot()), { dir: 'relative/talk' })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['dir=relative/talk'])
   })
 
@@ -537,9 +526,7 @@ describe('slide_sync', () => {
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, node_modules_only: true })
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(stringsOf(structured['artifacts'])).toEqual([talk])
+    expect(structured).not.toHaveProperty('kind')
     expect(dataOf(result)).toMatchObject({
       event: 'slide.sync.done',
       dir: talk,
@@ -565,8 +552,8 @@ describe('slide_sync', () => {
     const result = await call(tool, { dir: talk })
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(true)
-    expect(textOf(structured['message'])).toBe(`slide sync: succeeded (${talk}); theme: ${THEME_NAME} (${spec})`)
+    expect(structured).not.toHaveProperty('kind')
+    expect(textOf(sentenceOf(result))).toBe(`slide sync: succeeded (${talk}); theme: ${THEME_NAME} (${spec})`)
     expect(dataOf(result)).toMatchObject({
       event: 'slide.sync.done',
       nodeModulesOnly: false,
@@ -574,7 +561,7 @@ describe('slide_sync', () => {
     })
   })
 
-  it('移行前の talk-dir に theme を渡すと、テーマを参照する形へ移し、消した名前を data.migration.removed と message に返す', async (context) => {
+  it('移行前の talk-dir に theme を渡すと、テーマを参照する形へ移し、消した名前を migration.removed と message に返す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-01')
     const talk = makeTalkDirectory('talk-legacy')
     mkdirSync(path.join(talk, 'layouts'))
@@ -585,15 +572,15 @@ describe('slide_sync', () => {
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, theme })
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(true)
+    expect(structured).not.toHaveProperty('kind')
     expect(dataOf(result)).toMatchObject({
       event: 'slide.sync.done',
       nodeModulesOnly: false,
       migration: { removed: ['layouts'] },
       theme: { name: THEME_NAME },
     })
-    expect(textOf(structured['message'])).toContain(`theme: ${THEME_NAME}`)
-    expect(textOf(structured['message'])).toContain('migration: removed 1 files from the template (layouts)')
+    expect(textOf(sentenceOf(result))).toContain(`theme: ${THEME_NAME}`)
+    expect(textOf(sentenceOf(result))).toContain('migration: removed 1 files from the template (layouts)')
     expect(existsSync(path.join(talk, 'layouts'))).toBe(false)
     expect(readFileSync(path.join(talk, 'pages', 'cover.md'), 'utf8')).toBe('COVER')
     expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
@@ -605,12 +592,10 @@ describe('slide_sync', () => {
     mkdirSync(path.join(talk, 'layouts'))
 
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk })
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['exitCode']).toBe(2)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'theme-required' })
-    expect(textOf(structured['message'])).toContain('theme: <theme-spec>')
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.sync.error', kind: 'theme-required' })
+    expect(textOf(sentenceOf(result))).toContain('theme: <theme-spec>')
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
   })
 
@@ -623,8 +608,7 @@ describe('slide_sync', () => {
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, theme: makeThemeSpec(), node_modules_only: true })
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)['exitCode']).toBe(2)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'theme-with-node-modules-only' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.sync.error', kind: 'theme-with-node-modules-only' })
     expect(snapshotTree(talk)).toEqual(before)
   })
 
@@ -634,8 +618,7 @@ describe('slide_sync', () => {
 
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, theme: 'file:../my-theme' })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'invalid-option' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.sync.error', kind: 'invalid-option' })
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
   })
 
@@ -644,8 +627,7 @@ describe('slide_sync', () => {
 
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, theme: 'git+https://example.com/org/theme.git' })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'theme-tag-required' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.sync.error', kind: 'theme-tag-required' })
   })
 
   it('slides.md の無いディレクトリは実行失敗 (exitCode 1) として返る', async () => {
@@ -653,12 +635,9 @@ describe('slide_sync', () => {
     mkdirSync(notTalk, { recursive: true })
 
     const result = await call(createSyncTool(makePluginRoot()), { dir: notTalk })
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'not-talk-dir' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.sync.error', kind: 'not-talk-dir' })
   })
 })
 
@@ -666,8 +645,8 @@ describe('slide_lint', () => {
   it('相対 dir は exitCode 2 で返す', async () => {
     const result = await call(createLintTool(fakeEslint(0, [])), { dir: 'relative/talk' })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
-    expect(textOf(structuredOf(result)['message'])).toContain('must be an absolute path')
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
+    expect(textOf(sentenceOf(result))).toContain('must be an absolute path')
   })
 
   it('違反なしは slide.lint.done / exitCode 0 で返す', async (context) => {
@@ -680,9 +659,7 @@ describe('slide_lint', () => {
     const result = await call(createLintTool(eslint), { dir: talk })
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(stringsOf(structured['artifacts'])).toEqual([])
+    expect(structured).not.toHaveProperty('kind')
     expect(dataOf(result)).toMatchObject({ event: 'slide.lint.done', outcome: 'clean' })
   })
 
@@ -703,9 +680,8 @@ describe('slide_lint', () => {
 
     // ok は「目的の実行を完了したか」なので、違反の検出自体は成功として扱う。
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(1)
-    expect(textOf(structured['message'])).toContain('violations found')
+    expect(structured).not.toHaveProperty('kind')
+    expect(textOf(sentenceOf(result))).toContain('violations found')
     expect(dataOf(result)).toMatchObject({
       event: 'slide.lint.violations',
       outcome: 'violations',
@@ -722,8 +698,7 @@ describe('slide_lint', () => {
     const result = await call(createLintTool(eslint.runner), { dir: notTalk })
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.lint.error', reason: 'not-talk-dir' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.lint.error', kind: 'not-talk-dir' })
     expect(eslint.calls()).toBe(0)
   })
 
@@ -735,8 +710,7 @@ describe('slide_lint', () => {
     const result = await call(createLintTool(eslint.runner), { dir: talk })
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.lint.error', reason: 'theme-none' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.lint.error', kind: 'theme-none' })
     expect(eslint.calls()).toBe(0)
   })
 
@@ -744,12 +718,9 @@ describe('slide_lint', () => {
     const result = await call(createLintTool(fakeEslint(0, [])), {
       dir: temporaryRoot('no-such-talk'),
     })
-    const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.lint.error', reason: 'dir-not-found' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.lint.error', kind: 'dir-not-found' })
   })
 
   it('eslint が異常終了すると実行失敗として返り、stderr 抜粋が message に載る', async () => {
@@ -767,10 +738,9 @@ describe('slide_lint', () => {
     const result = await call(createLintTool(broken), { dir: talk })
     const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(textOf(structured['message'])).toContain('config error')
-    expect(dataOf(result)['reason']).toBe('eslint-failed')
+    expect(structured).toHaveProperty('kind')
+    expect(textOf(sentenceOf(result))).toContain('config error')
+    expect(structuredOf(result)['kind']).toBe('eslint-failed')
   })
 })
 
@@ -781,12 +751,12 @@ describe('slide_convert', () => {
       out_path: 'relative/out.pptx',
     })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths'])
       .toEqual(['project_dir=relative/deck', 'out_path=relative/out.pptx'])
   })
 
-  it('変換に成功すると slide.convert.done を data に載せ、出力 PPTX を artifacts に返す', async (context) => {
+  it('変換に成功すると slide.convert.done を data に載せ、出力 PPTX を output に返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-01')
 
     await verifies(context, 'PV-SLIDE-CONVERT-02')
@@ -798,9 +768,7 @@ describe('slide_convert', () => {
     const data = dataOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(stringsOf(structured['artifacts'])).toEqual([out])
+    expect(structured).not.toHaveProperty('kind')
     // 進捗イベントの slide.convert.start は結果ではないので data に畳まない。
     expect(data['event']).toBe('slide.convert.done')
     expect(data['output']).toBe(out)
@@ -827,7 +795,7 @@ describe('slide_convert', () => {
       { reportProgress: (message) => { messages.push(message) } },
     )
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     // 割合は切り捨て (2/3 なら 66%)。
     expect(messages).toEqual([
       'running slidev build',
@@ -861,7 +829,7 @@ describe('slide_convert', () => {
       cache: false,
     })
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     // cache: false は「読み取りだけ止める」ので cacheSkipRead に写る。
     expect(pipeline.calls).toEqual([{ theme: '@slidev/theme-default', cacheSkipRead: true }])
   })
@@ -873,7 +841,6 @@ describe('slide_convert', () => {
     const result = await call(createConvertTool(fakePipeline()), { project_dir: project })
     const expected = path.join(project, 'pptx', 'デモ資料.pptx')
 
-    expect(stringsOf(structuredOf(result)['artifacts'])).toEqual([expected])
     expect(dataOf(result)['output']).toBe(expected)
   })
 
@@ -888,10 +855,9 @@ describe('slide_convert', () => {
     const data = dataOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
+    expect(structured).toHaveProperty('kind')
     expect(data['event']).toBe('slide.convert.error')
-    expect(data['reason']).toBe('pptx-convert-failed')
+    expect(data['kind']).toBe('pptx-convert-failed')
     expect(data['errors']).toEqual([{ level: 'slide', slideNumber: 1, message: '変換に失敗しました' }])
   })
 
@@ -920,7 +886,7 @@ describe('slide_convert', () => {
 
     expect(received?.aborted).toBe(true)
     expect(result.isError).toBe(true)
-    expect(dataOf(result)['reason']).toBe('cancelled')
+    expect(structuredOf(result)['kind']).toBe('cancelled')
     expect(existsSync(out)).toBe(false)
   })
 
@@ -929,11 +895,8 @@ describe('slide_convert', () => {
       project_dir: makeTalkDirectory('convert-theme'),
       theme: 'bad theme',
     })
-    const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(dataOf(result)['reason']).toBe('invalid-theme')
+    expect(structuredOf(result)['kind']).toBe('invalid-theme')
   })
 
   it('project-dir 不在は実行失敗 (exitCode 1) として返る', async (context) => {
@@ -941,10 +904,7 @@ describe('slide_convert', () => {
     const result = await call(createConvertTool(fakePipeline()), {
       project_dir: temporaryRoot('no-such-project'),
     })
-    const structured = structuredOf(result)
 
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('project-not-found')
+    expect(structuredOf(result)['kind']).toBe('project-not-found')
   })
 })

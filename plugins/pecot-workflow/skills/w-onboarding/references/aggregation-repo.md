@@ -6,8 +6,8 @@
 
 `project_get` を `key: "aggregation_repo"` で呼ぶ。
 
-- 未設定（結果に `data.value` が無い）なら Step 4.1 Q1 は通常 3 択。
-- 既設定（結果の `data.value` が `<owner/repo>`）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。
+- 未設定（結果に `value` が無い）なら Step 4.1 Q1 は通常 3 択。
+- 既設定（結果の `value` が `<owner/repo>`）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。
   例: `project_set` を `key: "aggregation_repo"`・`value: "<owner/repo>"`・`yes: true` で呼ぶ。
 
 ## 4.1 AskUserQuestion Q1: 方針選択
@@ -28,7 +28,7 @@
 
 ## 4.2a 既存リポを指定
 
-`board_show` の結果の `data.repositories` の `full_name` から候補を取得する。`board_show` を引数なしで呼ぶ。
+`board_show` の結果の `repositories` の `full_name` から候補を取得する。`board_show` を引数なしで呼ぶ。
 
 AskUserQuestion Q2a で選択:
 
@@ -93,4 +93,4 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 
 `project_get` を `key: "aggregation_repo"` で呼ぶ。
 
-結果の `data.value` が意図した `owner/repo` なら Step 5 へ進む。
+結果の `value` が意図した `owner/repo` なら Step 5 へ進む。

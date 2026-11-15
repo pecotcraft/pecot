@@ -18,7 +18,7 @@ import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 
 useIsolatedEnvironment()
@@ -212,7 +212,7 @@ function writePrFile(workspace: Readonly<Workspace>, options: Readonly<FileOptio
 }
 
 // 作業リポジトリに入り、MCP のツールを同じプロセスの中のクライアントから 1 回呼ぶ
-async function callTool(workspace: Readonly<Workspace>, name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+async function callTool(workspace: Readonly<Workspace>, name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   const previous = process.cwd()
   process.chdir(workspace.directory)
   try {
@@ -1164,13 +1164,13 @@ describe('pr create', () => {
     it('PR を作ると、URL・番号・ブランチ・題と、In Review にした Issue を返す', async () => {
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
-      expect(result.data).toEqual(CREATED)
+      expect(result.structured).toEqual(CREATED)
     })
 
     it('待っている Issue の列を動かすと、その Issue を moves に返す', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
-      expect(result.data).toEqual({ ...CREATED, moves: [{ issue: '#13', from: 'Blocked', to: 'Ready', reason: 'stackable on #12' }] })
+      expect(result.structured).toEqual({ ...CREATED, moves: [{ issue: '#13', from: 'Blocked', to: 'Ready', reason: 'stackable on #12' }] })
     })
 
     it('待つ Issue の 2 件目の列の書き込みが API エラーで失敗すると、成功のまま 1 件目だけを moves に返し、warning を data に入れる', async (context) => {
@@ -1178,8 +1178,8 @@ describe('pr create', () => {
       const failing = rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_14' } }, { status: 500, body: { message: 'boom' } })
       const workspace = await pushedBranch({ github: [...TWO_WAITING_RULES, failing] })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
-      expect(result).toMatchObject({ ok: true, exitCode: 0 })
-      const { warnings, ...kept } = result.data
+      expect(result.isError).toBe(false)
+      const { warnings, ...kept } = result.structured
       expect(kept).toEqual({ ...CREATED, moves: [MOVED_13] })
       expect(warnings).toEqual([expect.stringMatching(/^could not move #14: GraphQL query error: Server error '500 Internal Server Error'/u)])
     })
@@ -1194,32 +1194,31 @@ describe('pr create', () => {
       prependToPath(bin)
       symlinkSync(path.join(workspace.directory, 'no-such-directory', '.env'), path.join(workspace.directory, '.pecot', 'config', '.env'))
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
-      expect(result).toMatchObject({ ok: false, exitCode: 1, kind: 'other' })
-      const { detail, ...kept } = result.data
-      expect(kept).toEqual({ ...CREATED, moves: [MOVED_13], reason: 'other' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'other' } })
+      const { detail, ...kept } = result.structured
+      expect(kept).toEqual({ ...CREATED, moves: [MOVED_13], kind: 'other' })
       expect(detail).toMatch(/^\[Errno 2\] No such file or directory: '.+\/\.pecot\/config\/\.env'$/u)
     })
 
     it('積んだ PR を作ると、下の段の PR とスタックの番号を stack に返す', async () => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, base: LOWER })
-      expect(result.data).toEqual({ ...CREATED, base: LOWER, stack: { lower: 20, registered: true, number: 5 } })
+      expect(result.structured).toEqual({ ...CREATED, base: LOWER, stack: { lower: 20, registered: true, number: 5 } })
     })
 
     it('dry_run で呼ぶと、作る予定のブランチと題と dryRun を返す', async () => {
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, dry_run: true })
-      expect(result.data).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
+      expect(result.structured).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
     })
 
-    it('prepare で呼ぶと、書いたファイルのパスと埋めた base を返し、ファイルを artifacts に入れる', async (context) => {
+    it('prepare で呼ぶと、書いたファイルのパスと埋めた base を返す', async (context) => {
       await verifies(context, 'PW-COMMON-20')
       const workspace = await pushedBranch({ github: [NOT_EPIC_RULE] })
       const result = await callTool(workspace, 'pr_create', { prepare: true })
       const outputDirectory = path.join(workspace.directory, '.pecot', 'tmp', 'output')
       const [written] = readdirSync(outputDirectory).map(name => path.join(outputDirectory, name))
-      expect(result.data).toEqual({ base: 'main', file: written })
-      expect(result.artifacts).toEqual([written])
+      expect(result.structured).toEqual({ base: 'main', file: written })
     })
 
     it('PR を作った後に応答の html_url が無いと、作った PR の値を data に残して失敗を返す', async (context) => {
@@ -1227,15 +1226,15 @@ describe('pr create', () => {
       const created = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21 })
       const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, created, ...AFTER_CREATE_RULES] })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
-      expect(result).toMatchObject({ ok: false, exitCode: 1, kind: 'other' })
-      expect(result.data).toEqual({
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'other' } })
+      expect(result.structured).toEqual({
         head: BRANCH,
         base: 'main',
         title: TITLE,
         number: 21,
         inReview: 12,
         moves: [],
-        reason: 'other',
+        kind: 'other',
         detail: 'PR was created, but the response has no html_url; find it on GitHub',
       })
     })
@@ -1245,8 +1244,8 @@ describe('pr create', () => {
       const failing = rule({ operation: 'UpdateProjectItemField' }, { status: 500, body: { message: 'Server Error' } })
       const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), failing, NO_WAITING_RULE] })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
-      expect(result).toMatchObject({ ok: true, exitCode: 0 })
-      expect(result.data).toEqual({
+      expect(result.isError).toBe(false)
+      expect(result.structured).toEqual({
         head: BRANCH,
         base: 'main',
         title: TITLE,
@@ -1260,9 +1259,9 @@ describe('pr create', () => {
     it('本文の検証に失敗すると、違反の文を data.detail に入れて content-invalid を返す', async () => {
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, message: '本文だけ #12', base: 'develop' })
-      expect(result).toMatchObject({ ok: false, exitCode: 3, kind: 'content-invalid' })
-      expect(result.data).toEqual({
-        reason: 'content-invalid',
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'content-invalid' } })
+      expect(result.structured).toEqual({
+        kind: 'content-invalid',
         detail: 'missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nerror: base branch must be main (given: develop)',
       })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
@@ -1442,7 +1441,7 @@ describe('pr show', () => {
     it('json を省いても、--json と同じ中身を返す', async () => {
       const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
       const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
-      expect(result.data).toEqual({
+      expect(result.structured).toEqual({
         number: 21,
         state: 'OPEN',
         title: TITLE,
@@ -1462,7 +1461,7 @@ describe('pr show', () => {
       const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE), { times: 2 })] })
       const json = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
       const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21', reviews: true })
-      expect(result.data).toEqual(JSON.parse(json.stdout))
+      expect(result.structured).toEqual(JSON.parse(json.stdout))
     })
   })
 })
@@ -1742,7 +1741,7 @@ describe('pr check', () => {
     it('節の中身を項目ごとに返す', async () => {
       const workspace = await pushedBranch()
       const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
-      expect(result.data).toEqual({
+      expect(result.structured).toEqual({
         remoteUrl: 'git@ghes.example.com:acme/demo.git',
         currentBranch: BRANCH,
         pushed: true,
@@ -1761,10 +1760,10 @@ describe('pr check', () => {
       await verifies(context, 'PW-COMMON-19')
       const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
       const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
-      expect(result).toMatchObject({ ok: false, exitCode: 2, kind: 'preflight-failed' })
-      expect(result.data).toMatchObject({ currentBranch: BRANCH, pushed: true })
-      expect(result.data['gitStatus']).toContain('Untracked files:\n\tmemo.txt\n')
-      expect(result.data['warnings']).toEqual(['Git Status: modified or untracked files (fix: commit)'])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'preflight-failed' } })
+      expect(result.structured).toMatchObject({ currentBranch: BRANCH, pushed: true })
+      expect(result.structured['gitStatus']).toContain('Untracked files:\n\tmemo.txt\n')
+      expect(result.structured['warnings']).toEqual(['Git Status: modified or untracked files (fix: commit)'])
     })
   })
 })

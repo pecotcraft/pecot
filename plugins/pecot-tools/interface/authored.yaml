@@ -31,63 +31,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -103,7 +73,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -122,7 +92,7 @@ entries:
     behaviors:
       - id: PT-AWS-ATHENA-GET-QUERY-EXECUTION-01
         pattern: event
-        statement: '`query_execution_id` を渡して呼ぶと、awscli の `athena get-query-execution` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`query_execution_id` を渡して呼ぶと、awscli の `athena get-query-execution` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
   PT-AWS-ATHENA-GET-QUERY-RESULTS:
     summary: 終わった Athena のクエリの結果の行を返します。
     arguments:
@@ -139,63 +109,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -211,7 +151,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -230,10 +170,10 @@ entries:
     behaviors:
       - id: PT-AWS-ATHENA-GET-QUERY-RESULTS-01
         pattern: event
-        statement: '`query_execution_id` を渡して呼ぶと、awscli の `athena get-query-results` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`query_execution_id` を渡して呼ぶと、awscli の `athena get-query-results` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-ATHENA-GET-QUERY-RESULTS-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-ATHENA-START-QUERY-EXECUTION:
     summary: 参照専用の Athena のクエリを 1 つ始めます。
     arguments:
@@ -257,57 +197,27 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
@@ -316,7 +226,7 @@ entries:
         code: 2
         when: 入力が、公開している操作の外の操作を求めています。awscli は起動しません。
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -332,7 +242,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -356,19 +266,19 @@ entries:
     behaviors:
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-01
         pattern: event
-        statement: '参照専用のクエリを渡して呼ぶと、awscli の `athena start-query-execution` を実行し、クエリ実行 ID を含む JSON 出力を `data` に載せて返します'
+        statement: '参照専用のクエリを渡して呼ぶと、awscli の `athena start-query-execution` を実行し、クエリ実行 ID を含む JSON 出力の項目を結果の最上位に載せて返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-02
         pattern: unwanted
-        statement: 'もし `query_string` が参照専用でないなら、awscli を起動せず `not-allowed`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `query_string` が参照専用でないなら、awscli を起動せず `not-allowed` の失敗を返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-03
         pattern: unwanted
-        statement: 'もし `query_string` が複数の文を含むなら、awscli を起動せず `not-allowed`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `query_string` が複数の文を含むなら、awscli を起動せず `not-allowed` の失敗を返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-04
         pattern: unwanted
-        statement: 'もし `catalog` を `database` なしで渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `catalog` を `database` なしで渡したなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-05
         pattern: unwanted
-        statement: 'もし `database`・`catalog`・`output_location` に `,` `=` `{` `}` を含むなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `database`・`catalog`・`output_location` に `,` `=` `{` `}` を含むなら、awscli を起動せず `invalid-input` の失敗を返します'
   PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS:
     summary: CloudWatch のメトリクス 1 つのデータポイントを返します。
     arguments:
@@ -391,63 +301,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -463,7 +343,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -482,10 +362,10 @@ entries:
     behaviors:
       - id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-01
         pattern: event
-        statement: '必須の引数を渡して呼ぶと、awscli の `cloudwatch get-metric-statistics` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '必須の引数を渡して呼ぶと、awscli の `cloudwatch get-metric-statistics` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-02
         pattern: unwanted
-        statement: 'もし `start_time` または `end_time` がタイムゾーンの無い日時なら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `start_time` または `end_time` がタイムゾーンの無い日時なら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-03
         pattern: unwanted
         statement: 'もし `dimensions` の要素に宣言外のキーがあるなら、入力検証エラーを返し、awscli を起動しません'
@@ -507,63 +387,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -579,7 +429,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -598,13 +448,13 @@ entries:
     behaviors:
       - id: PT-AWS-EC2-DESCRIBE-INSTANCES-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `ec2 describe-instances` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `ec2 describe-instances` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-EC2-DESCRIBE-INSTANCES-02
         pattern: unwanted
         statement: 'もし `filters` の要素に宣言外のキーがあるなら、入力検証エラーを返し、awscli を起動しません'
       - id: PT-AWS-EC2-DESCRIBE-INSTANCES-03
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-ECR-DESCRIBE-IMAGES:
     summary: ECR のリポジトリ 1 つのイメージを返します。
     arguments:
@@ -628,63 +478,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -700,7 +520,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -720,16 +540,16 @@ entries:
     behaviors:
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-01
         pattern: event
-        statement: '`repository_name` を渡して呼ぶと、awscli の `ecr describe-images` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`repository_name` を渡して呼ぶと、awscli の `ecr describe-images` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-02
         pattern: event
         statement: '`tag_status` を渡して呼ぶと、そのタグ状態のイメージだけに絞って取得します'
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-03
         pattern: unwanted
-        statement: 'もし `image_ids` と `starting_token` を同時に渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `image_ids` と `starting_token` を同時に渡したなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-04
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION:
     summary: Lambda の関数 1 つの設定を返します。
     arguments:
@@ -745,63 +565,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -817,7 +607,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -837,7 +627,7 @@ entries:
     behaviors:
       - id: PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-01
         pattern: event
-        statement: '`function_name` を渡して呼ぶと、awscli の `lambda get-function-configuration` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`function_name` を渡して呼ぶと、awscli の `lambda get-function-configuration` を実行し、JSON 出力の項目を最上位に載せた成功の応答を返します'
       - id: PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-02
         pattern: event
         statement: '`qualifier` を渡して呼ぶと、そのバージョンまたはエイリアスの設定を取得します'
@@ -859,63 +649,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -931,7 +691,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -950,10 +710,10 @@ entries:
     behaviors:
       - id: PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `lambda list-event-source-mappings` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `lambda list-event-source-mappings` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-LAMBDA-LIST-FUNCTIONS:
     summary: リージョンの Lambda の関数を一覧にします。
     arguments:
@@ -964,69 +724,39 @@ entries:
     constraints: []
     details:
       - リージョンの Lambda の関数を、1 回の呼び出しで 1 ページずつ一覧にします。
-      - '続きのページが残っているときは、`data.nextToken` を返します。'
+      - '続きのページが残っているときは、`nextToken` を返します。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1042,7 +772,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1061,10 +791,10 @@ entries:
     behaviors:
       - id: PT-AWS-LAMBDA-LIST-FUNCTIONS-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `lambda list-functions` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `lambda list-functions` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-LAMBDA-LIST-FUNCTIONS-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-LOGS-DESCRIBE-LOG-GROUPS:
     summary: CloudWatch Logs のロググループを一覧にします。
     arguments:
@@ -1081,63 +811,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1153,7 +853,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1172,10 +872,10 @@ entries:
     behaviors:
       - id: PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `logs describe-log-groups` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `logs describe-log-groups` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-LOGS-DESCRIBE-LOG-STREAMS:
     summary: ロググループ 1 つのログストリームを一覧にします。
     arguments:
@@ -1196,63 +896,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1268,7 +938,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1287,13 +957,13 @@ entries:
     behaviors:
       - id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-01
         pattern: event
-        statement: '`log_group_name` を渡して呼ぶと、awscli の `logs describe-log-streams` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`log_group_name` を渡して呼ぶと、awscli の `logs describe-log-streams` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-02
         pattern: event
         statement: '`descending` を省いて呼ぶと、昇順を表す `--no-descending` を付けて実行します'
       - id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-03
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-LOGS-FILTER-LOG-EVENTS:
     summary: ロググループのイベントを、フィルタパターンで検索します。
     arguments:
@@ -1318,63 +988,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1390,7 +1030,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1409,13 +1049,13 @@ entries:
     behaviors:
       - id: PT-AWS-LOGS-FILTER-LOG-EVENTS-01
         pattern: event
-        statement: '`log_group_name` を渡して呼ぶと、awscli の `logs filter-log-events` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`log_group_name` を渡して呼ぶと、awscli の `logs filter-log-events` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-FILTER-LOG-EVENTS-02
         pattern: unwanted
-        statement: 'もし `log_stream_names` と `log_stream_name_prefix` を共に渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `log_stream_names` と `log_stream_name_prefix` を共に渡したなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-LOGS-FILTER-LOG-EVENTS-03
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-LOGS-GET-LOG-EVENTS:
     summary: ログストリーム 1 つのイベントを返します。
     arguments:
@@ -1430,70 +1070,40 @@ entries:
       start_time: 開始時刻です（UNIX エポックからのミリ秒）。
     constraints: []
     details:
-      - 'ログストリーム 1 つのイベントを返します。API のページ送りのトークンは、`data` に入ります。'
+      - 'ログストリーム 1 つのイベントを返します。API のページ送りのトークンは、結果の最上位に入ります。'
       - '続きを取得するには、応答の `nextForwardToken` を `next_token` に渡します。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1509,7 +1119,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1528,7 +1138,7 @@ entries:
     behaviors:
       - id: PT-AWS-LOGS-GET-LOG-EVENTS-01
         pattern: event
-        statement: 'ロググループとストリームの名前を渡して呼ぶと、awscli の `logs get-log-events` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: 'ロググループとストリームの名前を渡して呼ぶと、awscli の `logs get-log-events` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-GET-LOG-EVENTS-02
         pattern: event
         statement: '`start_from_head` を省いて呼ぶと、新しい側から返すことを表す `--no-start-from-head` を付けて実行します'
@@ -1548,63 +1158,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1620,7 +1200,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1639,10 +1219,10 @@ entries:
     behaviors:
       - id: PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `rds describe-db-clusters` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `rds describe-db-clusters` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-RDS-DESCRIBE-DB-INSTANCES:
     summary: RDS の DB インスタンスを一覧にします。
     arguments:
@@ -1659,63 +1239,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1731,7 +1281,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1750,10 +1300,10 @@ entries:
     behaviors:
       - id: PT-AWS-RDS-DESCRIBE-DB-INSTANCES-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `rds describe-db-instances` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `rds describe-db-instances` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-RDS-DESCRIBE-DB-INSTANCES-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-RDS-DESCRIBE-EVENTS:
     summary: RDS のイベントを返します。
     arguments:
@@ -1782,63 +1332,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1854,7 +1374,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1873,16 +1393,16 @@ entries:
     behaviors:
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `rds describe-events` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `rds describe-events` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-02
         pattern: unwanted
-        statement: 'もし `start_time` または `end_time` と `duration` を同時に渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `start_time` または `end_time` と `duration` を同時に渡したなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-03
         pattern: unwanted
-        statement: 'もし `start_time` または `end_time` がタイムゾーンの無い日時なら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `start_time` または `end_time` がタイムゾーンの無い日時なら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-04
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-S3-CP:
     summary: S3 のオブジェクト 1 つを、ローカルにダウンロードします。
     arguments:
@@ -1895,69 +1415,40 @@ entries:
     details:
       - S3 のオブジェクト 1 つを、ローカルの絶対パスにダウンロードします。
       - アップロードと再帰的なコピーは公開していません。
-      - '書いたファイルの絶対パスは、`artifacts` に入ります。'
+      - '書いたファイルの絶対パスは、`file` に入ります。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        file: '書き出したローカルファイルの絶対パスです。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -1973,7 +1464,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -1995,19 +1486,19 @@ entries:
     behaviors:
       - id: PT-AWS-S3-CP-01
         pattern: event
-        statement: '`s3_uri` と `local_path` を渡して呼ぶと、オブジェクトを `local_path` に書き出し、パスを `artifacts` に載せて返します'
+        statement: '`s3_uri` と `local_path` を渡して呼ぶと、オブジェクトを `local_path` に書き出し、パスを `file` に載せて返します'
       - id: PT-AWS-S3-CP-02
         pattern: unwanted
-        statement: 'もし `local_path` が既存のファイルで `overwrite` が `true` でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `local_path` が既存のファイルで `overwrite` が `true` でないなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3-CP-03
         pattern: unwanted
-        statement: 'もし `local_path` がディレクトリなら、`overwrite` に関わらず awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `local_path` がディレクトリなら、`overwrite` に関わらず awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3-CP-04
         pattern: unwanted
-        statement: 'もし `s3_uri` が `s3://<bucket>/<key>` の形でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `s3_uri` が `s3://<bucket>/<key>` の形でないなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3-CP-05
         pattern: unwanted
-        statement: 'もし `local_path` が絶対パスでないか `s3://` で始まるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `local_path` が絶対パスでないか `s3://` で始まるなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3-CP-06
         pattern: event
         statement: '`overwrite` を `true` にして、既存のファイルがある `local_path` を渡して呼ぶと、そのファイルを置き換えて書き出します'
@@ -2020,11 +1511,11 @@ entries:
     constraints: []
     details:
       - 'S3 のバケットかプレフィックスの直下の項目を一覧にします。`s3_uri` を省くと、バケットを一覧にします。'
-      - 'このコマンドは JSON を出しません。出力は、1 行を 1 要素にして `data.lines` へ入れます。'
+      - 'このコマンドは JSON を出しません。出力は、1 行を 1 要素にして `lines` へ入れます。'
     stdin: none
     output:
       format: json
-      description: '結果は JSON のオブジェクトです。awscli が出した行は、`data.lines` に並びます。'
+      description: '結果は JSON のオブジェクトです。awscli が出した行は、`lines` に並びます。'
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
@@ -2082,7 +1573,7 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2098,7 +1589,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -2117,13 +1608,13 @@ entries:
     behaviors:
       - id: PT-AWS-S3-LS-01
         pattern: event
-        statement: '`s3_uri` を渡して呼ぶと、awscli の `s3 ls` を実行し、その出力を 1 行 1 要素にして `data.lines` に載せます'
+        statement: '`s3_uri` を渡して呼ぶと、awscli の `s3 ls` を実行し、その出力を 1 行 1 要素にして `lines` に載せます'
       - id: PT-AWS-S3-LS-02
         pattern: event
-        statement: '`s3_uri` を省いて呼ぶと、バケットの一覧を `data.lines` に載せます'
+        statement: '`s3_uri` を省いて呼ぶと、バケットの一覧を `lines` に載せます'
       - id: PT-AWS-S3-LS-03
         pattern: unwanted
-        statement: 'もし `s3_uri` が `s3://` で始まる形でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `s3_uri` が `s3://` で始まる形でないなら、awscli を起動せず `invalid-input` の失敗を返します'
   PT-AWS-S3API-GET-OBJECT:
     summary: S3 のオブジェクト 1 つをローカルに書き、メタデータを返します。
     arguments:
@@ -2139,69 +1630,40 @@ entries:
     details:
       - バケットとキーで S3 のオブジェクト 1 つを取得し、ローカルの絶対パスに書きます。オブジェクトのメタデータを JSON で返します。
       - '`version_id` を渡すと、そのバージョンを取得します。`range` を渡すと、そのバイトの範囲だけをダウンロードします。'
-      - '書いたファイルの絶対パスは、`artifacts` に入ります。'
+      - '書いたファイルの絶対パスは、`file` に入ります。'
     stdin: none
     output:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        file: '書き出したローカルファイルの絶対パスです。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2217,7 +1679,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -2239,19 +1701,19 @@ entries:
     behaviors:
       - id: PT-AWS-S3API-GET-OBJECT-01
         pattern: event
-        statement: '`bucket`・`key`・`outfile` を渡して呼ぶと、オブジェクトを `outfile` に書き出し、メタデータを `data` に、パスを `artifacts` に載せて返します'
+        statement: '`bucket`・`key`・`outfile` を渡して呼ぶと、オブジェクトを `outfile` に書き出し、メタデータを結果の最上位に、パスを `file` に載せて返します'
       - id: PT-AWS-S3API-GET-OBJECT-02
         pattern: unwanted
-        statement: 'もし `outfile` が既存のファイルで `overwrite` が `true` でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `outfile` が既存のファイルで `overwrite` が `true` でないなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3API-GET-OBJECT-03
         pattern: unwanted
-        statement: 'もし `outfile` がディレクトリなら、`overwrite` に関わらず awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `outfile` がディレクトリなら、`overwrite` に関わらず awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3API-GET-OBJECT-04
         pattern: unwanted
-        statement: 'もし `range` が `bytes=` で始まらないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `range` が `bytes=` で始まらないなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-S3API-GET-OBJECT-05
         pattern: unwanted
-        statement: 'もし `outfile` が絶対パスでないか `s3://` で始まるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `outfile` が絶対パスでないか `s3://` で始まるなら、awscli を起動せず `invalid-input` の失敗を返します'
   PT-AWS-SCHEDULER-GET-SCHEDULE:
     summary: EventBridge Scheduler のスケジュール 1 つの定義を返します。
     arguments:
@@ -2267,63 +1729,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2339,7 +1771,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -2359,7 +1791,7 @@ entries:
     behaviors:
       - id: PT-AWS-SCHEDULER-GET-SCHEDULE-01
         pattern: event
-        statement: '`name` を渡して呼ぶと、awscli の `scheduler get-schedule` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`name` を渡して呼ぶと、awscli の `scheduler get-schedule` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
   PT-AWS-SCHEDULER-LIST-SCHEDULES:
     summary: EventBridge Scheduler のスケジュールを一覧にします。
     arguments:
@@ -2378,63 +1810,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2450,7 +1852,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -2470,10 +1872,10 @@ entries:
     behaviors:
       - id: PT-AWS-SCHEDULER-LIST-SCHEDULES-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `scheduler list-schedules` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `scheduler list-schedules` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-SCHEDULER-LIST-SCHEDULES-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-SQS-GET-QUEUE-ATTRIBUTES:
     summary: SQS のキュー 1 つの属性を返します。
     arguments:
@@ -2490,63 +1892,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2562,7 +1934,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -2581,7 +1953,7 @@ entries:
     behaviors:
       - id: PT-AWS-SQS-GET-QUEUE-ATTRIBUTES-01
         pattern: event
-        statement: '`queue_url` を渡して呼ぶと、awscli の `sqs get-queue-attributes` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '`queue_url` を渡して呼ぶと、awscli の `sqs get-queue-attributes` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-SQS-GET-QUEUE-ATTRIBUTES-02
         pattern: event
         statement: '`attribute_names` を省いて呼ぶと、`All` を指定して全属性を取得します'
@@ -2601,63 +1973,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2673,7 +2015,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -2692,10 +2034,10 @@ entries:
     behaviors:
       - id: PT-AWS-SQS-LIST-QUEUES-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `sqs list-queues` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `sqs list-queues` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
       - id: PT-AWS-SQS-LIST-QUEUES-02
         pattern: event
-        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
+        statement: '応答に `NextToken` が含まれると、その値を `nextToken` に載せます'
   PT-AWS-SSO-LOGIN:
     summary: AWS SSO のデバイス認可を始め、確認用の URL とユーザーコードを返します。
     arguments:
@@ -2710,57 +2052,27 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
@@ -2782,7 +2094,7 @@ entries:
         code: 124
         when: 確認用の URL とユーザーコードが 15 秒以内に出ません。または、ユーザーが 10 分以内に承認しません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: '始めた認可は、完了・失敗・10 分での時間切れのどれかになるまで、承認待ちのままです。失敗と時間切れは、`aws_sso_login_status` が報告します。'
     effects:
       - target: process
@@ -2803,13 +2115,13 @@ entries:
     behaviors:
       - id: PT-AWS-SSO-LOGIN-01
         pattern: event
-        statement: 'デバイス認可を開始できると、確認用の URL とユーザーコードを `data` に載せ、`state` が `pending` の応答を承認の完了を待たずに返します'
+        statement: 'デバイス認可を開始できると、確認用の URL とユーザーコードを結果の最上位に載せ、`state` が `pending` の応答を承認の完了を待たずに返します'
       - id: PT-AWS-SSO-LOGIN-02
         pattern: state
         statement: '同じ `profile` の認可が `pending` の間、新しい認可を始めず、既存の URL とコードを返します'
       - id: PT-AWS-SSO-LOGIN-03
         pattern: unwanted
-        statement: 'もし awscli が 2.22 未満なら、認可を始めずに `kind` `awscli-missing`・`exitCode` 127 の失敗を返します'
+        statement: 'もし awscli が 2.22 未満なら、認可を始めずに `kind` `awscli-missing` の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-04
         pattern: unwanted
         statement: 'もし `profile` に SSO 設定が無いなら、`kind` `auth-missing` の失敗を返します'
@@ -2829,57 +2141,27 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
@@ -2899,7 +2181,7 @@ entries:
         code: 124
         when: '`aws_sso_login` で始めた認可が、10 分以内に終わりません。'
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: process
@@ -2922,13 +2204,13 @@ entries:
         statement: '承認を待っている間、`state` が `pending` で、承認前であることを示す応答を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-03
         pattern: unwanted
-        statement: 'もし `aws_sso_login` で認可を開始していないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+        statement: 'もし `aws_sso_login` で認可を開始していないなら、awscli を起動せず `invalid-input` の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-04
         pattern: unwanted
         statement: 'もし認可が失敗していたなら、失敗の種別と awscli の出力を含む応答を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-05
         pattern: unwanted
-        statement: 'もし認可が 10 分以内に完了しなかったなら、`kind` `timeout`・`exitCode` 124 の失敗を返します'
+        statement: 'もし認可が 10 分以内に完了しなかったなら、`kind` `timeout` の失敗を返します'
   PT-AWS-STS-GET-CALLER-IDENTITY:
     summary: プロファイルが指す ID のアカウント・ユーザー ID・ARN を返します。
     arguments:
@@ -2942,63 +2224,33 @@ entries:
       format: json
       description: 結果は JSON のオブジェクトです。
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
+        kind: '失敗の種別です。成功したときは入りません。'
+        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
       schema:
-        additionalProperties: false
+        additionalProperties: {}
         properties:
-          artifacts:
-            description: Absolute paths of the local files written
+          detail:
+            description: Full text of the failure and how to recover (failure only)
+            type: string
+          kind:
+            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
+            type: string
+          log:
+            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
+            type: string
+          warnings:
+            description: Warnings raised during the run (omitted when there are none)
             items:
               type: string
             type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
         type: object
     diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -3014,7 +2266,7 @@ entries:
         code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: aws
@@ -3033,7 +2285,7 @@ entries:
     behaviors:
       - id: PT-AWS-STS-GET-CALLER-IDENTITY-01
         pattern: event
-        statement: '引数なしで呼ぶと、awscli の `sts get-caller-identity` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
+        statement: '引数なしで呼ぶと、awscli の `sts get-caller-identity` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
 common_behaviors:
   - id: PT-COMMON-01
     pattern: unwanted
@@ -3049,25 +2301,25 @@ common_behaviors:
     statement: 'もし公開していないツール名で呼ばれたなら、awscli を起動せずに JSON-RPC エラー -32602 を返します'
   - id: PT-COMMON-05
     pattern: unwanted
-    statement: 'もし位置引数または文字列の配列の要素の値が `-` で始まるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+    statement: 'もし位置引数または文字列の配列の要素の値が `-` で始まるなら、awscli を起動せず `invalid-input` の失敗を返します'
   - id: PT-COMMON-06
     pattern: unwanted
-    statement: 'もし値に制御文字が含まれるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+    statement: 'もし値に制御文字が含まれるなら、awscli を起動せず `invalid-input` の失敗を返します'
   - id: PT-COMMON-07
     pattern: unwanted
-    statement: 'もし awscli が見つからないか 2.22 未満なら、`awscli-missing`・`exitCode` 127 の失敗を返します'
+    statement: 'もし awscli が見つからないか 2.22 未満なら、`awscli-missing` の失敗を返します'
   - id: PT-COMMON-08
     pattern: unwanted
-    statement: 'もし awscli が 120 秒以内に終わらないなら、`kind` `timeout`・`exitCode` 124 の失敗を返します'
+    statement: 'もし awscli が 120 秒以内に終わらないなら、`kind` `timeout` の失敗を返します'
   - id: PT-COMMON-09
     pattern: unwanted
-    statement: 'もし awscli が 0 以外の終了コードで終わったなら、`ok` が `false` で、失敗の種別 `kind` と、秘匿化済みの出力 `data.log` を含む応答を `isError` を真にして返します'
+    statement: 'もし awscli が 0 以外の終了コードで終わったなら、結果は失敗（`isError`）で、失敗の種別 `kind` と、秘匿化済みの出力 `log` を含む応答を `isError` を真にして返します'
   - id: PT-COMMON-10
     pattern: ubiquitous
     statement: '常に、応答の `structuredContent` と同じ内容の JSON を `content` のテキストにも載せます'
   - id: PT-COMMON-11
     pattern: unwanted
-    statement: 'もし awscli の出力が 256 KiB を超えたなら、先頭の 256 KiB を `data.output` に載せ、`data.truncated` を `true` にします'
+    statement: 'もし awscli の出力が 256 KiB を超えたなら、先頭の 256 KiB を `output` に載せ、`truncated` を `true` にします'
   - id: PT-COMMON-12
     pattern: ubiquitous
     statement: '常に、出力中の `aws_secret_access_key=`・`aws_session_token=`・`x-amz-security-token:` の値を `[redacted]` にします'
@@ -3076,7 +2328,7 @@ common_behaviors:
     statement: 'ツールの呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応えます'
   - id: PT-COMMON-14
     pattern: unwanted
-    statement: 'もし許可リストの書式の規則に反する入力を渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
+    statement: 'もし許可リストの書式の規則に反する入力を渡したなら、awscli を起動せず `invalid-input` の失敗を返します'
   - id: PT-COMMON-15
     pattern: ubiquitous
     statement: '常に、出力中の `AKIA` または `ASIA` で始まるアクセスキー ID を `[redacted]` にします'

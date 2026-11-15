@@ -54,14 +54,22 @@
         "output": {
           "type": "object",
           "properties": {
-            "copied": {
-              "type": "boolean"
+            "kind": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            },
+            "log": {
+              "type": "string"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
-          },
-          "required": [
-            "copied"
-          ],
-          "additionalProperties": false
+          }
         },
         "annotations": {
           "readOnlyHint": false,
@@ -99,17 +107,22 @@
         "output": {
           "type": "object",
           "properties": {
-            "lines": {
+            "kind": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            },
+            "log": {
+              "type": "string"
+            },
+            "warnings": {
               "type": "array",
               "items": {
                 "type": "string"
               }
             }
-          },
-          "required": [
-            "lines"
-          ],
-          "additionalProperties": false
+          }
         },
         "annotations": {
           "readOnlyHint": true,

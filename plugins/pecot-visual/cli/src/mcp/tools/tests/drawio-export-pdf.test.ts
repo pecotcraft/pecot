@@ -62,6 +62,12 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
   return structured
 }
 
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
+}
+
 const temporaryDirectories: string[] = []
 
 function makeTemporaryDirectory(): string {
@@ -85,7 +91,7 @@ afterEach(() => {
 })
 
 describe('drawio_export の兄弟 PDF', () => {
-  it('標準で SVG と兄弟 PDF を書き、artifacts と data.pdf に載せる', async (context) => {
+  it('標準で SVG と兄弟 PDF を書き、file と pdf に載せる', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-01')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'diagram.drawio.svg')
@@ -98,18 +104,13 @@ describe('drawio_export の兄弟 PDF', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured).toMatchObject({
-      ok: true,
-      exitCode: 0,
-      artifacts: [svgPath, pdfPath],
-      data: { event: 'drawio.export.done', file: svgPath, pdf: pdfPath, pdfFailed: false },
-      message: `wrote SVG to ${svgPath} (PDF: ${pdfPath})`,
-    })
+    expect(structured).toMatchObject({ event: 'drawio.export.done', file: svgPath, pdf: pdfPath, pdfFailed: false })
+    expect(sentenceOf(result)).toBe(`wrote SVG to ${svgPath} (PDF: ${pdfPath})`)
     expect(readFileSync(svgPath, 'utf8')).toContain('color-scheme: light;')
     expect(readFileSync(pdfPath)).toEqual(PDF_BYTES)
   })
 
-  it('PECOTV_FORCE_PDF_FAIL=1 では SVG だけを残し、ok: true のまま exitCode 3 で警告を返す', async (context) => {
+  it('PECOTV_FORCE_PDF_FAIL=1 では SVG だけを残し、成功のまま pdfFailed と警告を返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-04')
     vi.stubEnv('PECOTV_FORCE_PDF_FAIL', '1')
     const directory = makeTemporaryDirectory()
@@ -125,15 +126,10 @@ describe('drawio_export の兄弟 PDF', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured).toMatchObject({
-      ok: true,
-      exitCode: 3,
-      artifacts: [svgPath],
-      // eslint-disable-next-line unicorn/no-null -- CLI の --json と同形性を保つため PDF 失敗時は null を pin する
-      data: { event: 'drawio.export.done', file: svgPath, pdf: null, pdfFailed: true },
-      message: `wrote SVG to ${svgPath} (1 warnings; see data.warnings)`,
-    })
-    expect(structured['data']).toMatchObject({ warnings: [expect.stringContaining('PDF export failed: forced PDF failure')] })
+    // eslint-disable-next-line unicorn/no-null -- CLI の --json と同形性を保つため PDF 失敗時は null を pin する
+    expect(structured).toMatchObject({ event: 'drawio.export.done', file: svgPath, pdf: null, pdfFailed: true })
+    expect(sentenceOf(result)).toBe(`wrote SVG to ${svgPath} (1 warnings; see warnings)`)
+    expect(structured).toMatchObject({ warnings: [expect.stringContaining('PDF export failed: forced PDF failure')] })
     expect(structured).not.toHaveProperty('stderr')
     expect(existsSync(svgPath)).toBe(true)
     expect(existsSync(pdfPath)).toBe(false)
@@ -151,18 +147,13 @@ describe('drawio_export の兄弟 PDF', () => {
       CALL,
     )
 
-    expect(structuredOf(result)).toMatchObject({
-      ok: true,
-      exitCode: 0,
-      artifacts: [svgPath],
-      // eslint-disable-next-line unicorn/no-null -- PDF を出さないときの `pdf: null` を pin する
-      data: { pdf: null, pdfFailed: false },
-      message: `wrote SVG to ${svgPath}`,
-    })
+    // eslint-disable-next-line unicorn/no-null -- PDF を出さないときの `pdf: null` を pin する
+    expect(structuredOf(result)).toMatchObject({ file: svgPath, pdf: null, pdfFailed: false })
+    expect(sentenceOf(result)).toBe(`wrote SVG to ${svgPath}`)
     expect(readFileSync(pdfPath, 'utf8')).toBe('%PDF-old')
   })
 
-  it('out_path の拡張子が .pdf なら exit 2 の invalid-output-extension で何も書かない', async (context) => {
+  it('out_path の拡張子が .pdf なら invalid-output-extension で何も書かない', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-06')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'diagram.pdf')
@@ -173,15 +164,11 @@ describe('drawio_export の兄弟 PDF', () => {
     )
 
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toMatchObject({
-      ok: false,
-      exitCode: 2,
-      data: { event: 'drawio.export.error', reason: 'invalid-output-extension' },
-    })
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.export.error', kind: 'invalid-output-extension' })
     expect(existsSync(outPath)).toBe(false)
   })
 
-  it('pdf: false でも out_path の拡張子が .pdf なら exit 2 で拒否する', async () => {
+  it('pdf: false でも out_path の拡張子が .pdf なら invalid-output-extension で拒否する', async () => {
     const outPath = path.join(makeTemporaryDirectory(), 'diagram.pdf')
 
     const result = await drawioExportTool.handler(
@@ -189,15 +176,11 @@ describe('drawio_export の兄弟 PDF', () => {
       CALL,
     )
 
-    expect(structuredOf(result)).toMatchObject({
-      ok: false,
-      exitCode: 2,
-      data: { event: 'drawio.export.error', reason: 'invalid-output-extension' },
-    })
+    expect(structuredOf(result)).toMatchObject({ event: 'drawio.export.error', kind: 'invalid-output-extension' })
     expect(existsSync(outPath)).toBe(false)
   })
 
-  it('Chromium 未取得でも out_path の拡張子の確認が先に行われ exit 2 を返す', async () => {
+  it('Chromium 未取得でも out_path の拡張子の確認が先に行われ invalid-output-extension を返す', async () => {
     chromiumState.installed = false
     const directory = makeTemporaryDirectory()
 
@@ -211,15 +194,8 @@ describe('drawio_export の兄弟 PDF', () => {
       CALL,
     )
 
-    expect(structuredOf(rejected)).toMatchObject({
-      ok: false,
-      exitCode: 2,
-      data: { event: 'drawio.export.error', reason: 'invalid-output-extension' },
-    })
-    expect(structuredOf(unavailable)).toMatchObject({
-      ok: false,
-      data: { reason: 'chromium-not-installed' },
-    })
+    expect(structuredOf(rejected)).toMatchObject({ event: 'drawio.export.error', kind: 'invalid-output-extension' })
+    expect(structuredOf(unavailable)).toMatchObject({ kind: 'chromium-not-installed' })
   })
 })
 /* eslint-enable security/detect-non-literal-fs-filename */

@@ -46,7 +46,7 @@ const ISSUE_COMMENT_OUTPUT = z.strictObject({
   issue: z.string().optional().describe('Issue commented on (owner/repo/N; omitted with prepare)'),
   commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted on dry_run, with prepare, or when GitHub returned no URL)'),
   change: z.enum(['created', 'updated']).optional().describe('Whether the comment was created or updated (omitted with prepare)'),
-  file: z.string().optional().describe('Absolute path of the template file copied (only with prepare)'),
+  file: z.string().optional().describe('Absolute path of the file written: the template copied with prepare, or the file whose comment_url was written back after posting from it (omitted otherwise)'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -76,7 +76,6 @@ function prepareTemplate(output: CommentOutput, template: string, issueReference
     withReservedOutputPath(outputDirectory(), timestamp => `comment-${template}-${timestamp}.md`, (reserved) => {
       writeFileSync(reserved, content, 'utf8')
       output.result({ file: path.resolve(reserved) })
-      output.artifact(reserved)
       output.data(reserved)
     })
   }
@@ -104,11 +103,11 @@ function commentIdFor(output: Output, commentUrl: string, host: string, target: 
 }
 
 // 次に同じファイルを渡したとき更新になるよう、URL を書き戻す。できなければ warning だけ出す
-function writeBackCommentUrl(output: Output, file: string, commentUrl: string): void {
+function writeBackCommentUrl(output: CommentOutput, file: string, commentUrl: string): void {
   try {
     const content = readTextFile(file)
     writeFileSync(file, setFrontmatterValue(content, 'comment_url', commentUrl), 'utf8')
-    output.artifact(file)
+    output.result({ file: path.resolve(file) })
   }
   catch (error: unknown) {
     const converted = toOsError(error, file)
