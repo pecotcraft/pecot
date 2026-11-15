@@ -1,5 +1,5 @@
 #!/bin/bash
-# gh pr create / gh issue create コマンドを検出するコアチェックスクリプト。
+# gh pr create / gh issue create / gh stack（view と --help を除く）を検出するコアチェックスクリプト。
 #
 # 入力は環境変数 HOOK_COMMAND（確認対象のコマンド文字列）。
 # 出力は次のとおり。
@@ -45,6 +45,22 @@ fi
 GH_PR_CREATE_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*(/[^ ]*/)?gh[[:space:]]+pr[[:space:]]+create([[:space:]]|$)'
 GH_ISSUE_CREATE_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*(/[^ ]*/)?gh[[:space:]]+issue[[:space:]]+create([[:space:]]|$)'
 
+GH_STACK_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*(/[^ ]*/)?gh[[:space:]]+stack([[:space:]]|$)'
+GH_STACK_VIEW_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*(/[^ ]*/)?gh[[:space:]]+stack[[:space:]]+view([[:space:]]|$)'
+GH_STACK_HELP_PATTERN='(^|[[:space:]])(--help|-h)([[:space:]]|$)'
+
+# gh stack の各セグメントについて、view と --help の付いたものは通し、それ以外があれば止める。
+_gh_stack_blocked() {
+  local segment
+  while IFS= read -r segment; do
+    [[ "$segment" =~ $GH_STACK_PATTERN ]] || continue
+    [[ "$segment" =~ $GH_STACK_VIEW_PATTERN ]] && continue
+    [[ "$segment" =~ $GH_STACK_HELP_PATTERN ]] && continue
+    return 0
+  done <<< "$(printf '%s' "$HOOK_COMMAND" | sed -E 's/(;|&&|&|\|\||\|)/\n/g')"
+  return 1
+}
+
 if pecot_hook_enabled "gh-pr-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_PR_CREATE_PATTERN ]]; then
   hook_message error "$(mcp_guidance_gh_pr_create)"
   exit 1
@@ -52,6 +68,11 @@ fi
 
 if pecot_hook_enabled "gh-issue-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_ISSUE_CREATE_PATTERN ]]; then
   hook_message error "$(mcp_guidance_gh_issue_create)"
+  exit 1
+fi
+
+if pecot_hook_enabled "gh-stack-check" true && _gh_stack_blocked; then
+  hook_message error "$(mcp_guidance_gh_stack)"
   exit 1
 fi
 

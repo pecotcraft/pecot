@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse MCP handler: pecot-workflow の issue_create / pr_create の投稿を ask にする。
-# ask の文は core/mcp-guidance.sh の mcp_guidance_post_ask_issue / mcp_guidance_post_ask_pr。
+# PreToolUse MCP handler: pecot-workflow の issue_create / pr_create の投稿と pr_merge を ask にする。
+# ask の文は core/mcp-guidance.sh の mcp_guidance_post_ask_issue / _pr / _pr_merge。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
@@ -20,6 +20,11 @@ case "$TOOL" in
         MESSAGE="$(mcp_guidance_post_ask_pr)"
         FLAG="${CLAUDE_PROJECT_DIR}/.pecot/state/pr-create-slash-pending"
         ;;
+    pr_merge)
+        pecot_hook_enabled "pecot-pr-merge-ask" true || exit 0
+        MESSAGE="$(mcp_guidance_post_ask_pr_merge)"
+        FLAG="${CLAUDE_PROJECT_DIR}/.pecot/state/merge-slash-pending"
+        ;;
     *)
         exit 0
         ;;
@@ -29,7 +34,7 @@ esac
 # jq が失敗したときは空のまま ask に進む（fail-safe）。
 FLAGS=$(jq -r '(.tool_input | if type == "object" then . else {} end) as $ti | [($ti.prepare == true), ($ti.dry_run == true)] | @tsv' 2>/dev/null)
 IFS=$'\t' read -r PREPARE DRY_RUN <<< "$FLAGS"
-[ "$PREPARE" = "true" ] && exit 0
+[ "$PREPARE" = "true" ] && [ "$TOOL" != "pr_merge" ] && exit 0
 [ "$DRY_RUN" = "true" ] && exit 0
 [ -f "$FLAG" ] && exit 0
 

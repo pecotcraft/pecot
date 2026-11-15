@@ -35,6 +35,17 @@
       "auth": "token"
     },
     {
+      "type": "graphql",
+      "operation": "GetIssueBlockingReferences",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 12,
+        "blockingFirst": 50
+      },
+      "auth": "token"
+    },
+    {
       "type": "rest",
       "method": "DELETE",
       "path": "/repos/acme/demo/git/refs/heads/feat/demo/12",

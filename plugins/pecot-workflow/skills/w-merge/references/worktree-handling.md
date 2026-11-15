@@ -6,7 +6,7 @@
 
 ## PRマージ後の片付け（ブランチ削除込み）
 
-マージは `gh pr merge <番号> --repo <owner>/<repo> --squash` で行い、マージされたあとの片付けに `session_finish` を使用します。`pr_ref: "<owner>/<repo>/<番号>"` と `delete_branch: true` で呼びます。
+マージは pecot-workflow の MCP ツール `pr_merge` で行い、マージされたあとの片付けに `session_finish` を使用します。`pr_ref: "<owner>/<repo>/<番号>"` と `delete_branch: true` で呼びます。
 
 **入力**:
 

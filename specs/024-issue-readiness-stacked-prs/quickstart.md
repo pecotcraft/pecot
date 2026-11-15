@@ -169,7 +169,7 @@ pecot pr cleanup <owner/repo/Phase 1 の PR> --delete-branch
 |---|---|
 | Phase 2 の PR のマージ | 終了コード 2。先にマージする PR が出る |
 | Phase 1 の PR のマージ | `merged:` が出る。Phase 1 の Issue が閉じる |
-| `cleanup` の出力 | `Readiness changed:` に、Phase 2 より後ろの Issue の変化が出る。載せ直しの案内が出る |
+| `cleanup` の出力 | `Readiness changed:` に、Phase 1 を待つ Phase 2 の変化（`stackable on` から `startable`）が出る。載せ直しの案内が出る |
 | Phase 2 の PR | 開いたまま、base が開発ブランチになっている |
 | Phase 2 のブランチ | リモートに残っている |
 

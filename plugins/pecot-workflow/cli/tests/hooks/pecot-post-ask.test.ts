@@ -15,10 +15,11 @@ const forms = [
   { label: '接頭辞が短い形', prefix: 'pecot-workflow-' },
 ]
 
-// 対象の 2 ツールと、ask の文を返す mcp-guidance.sh の関数・設定キー・スラッシュコマンド起点のフラグ。
+// 対象の 3 ツールと、ask の文を返す mcp-guidance.sh の関数・設定キー・スラッシュコマンド起点のフラグ。
 const targets = [
-  { tool: 'issue_create', guidance: 'mcp_guidance_post_ask_issue', key: 'pecot-issue-create-ask', flag: 'issue-create-slash-pending' },
-  { tool: 'pr_create', guidance: 'mcp_guidance_post_ask_pr', key: 'pecot-pr-create-ask', flag: 'pr-create-slash-pending' },
+  { tool: 'issue_create', guidance: 'mcp_guidance_post_ask_issue', key: 'pecot-issue-create-ask', flag: 'issue-create-slash-pending', hasPrepare: true },
+  { tool: 'pr_create', guidance: 'mcp_guidance_post_ask_pr', key: 'pecot-pr-create-ask', flag: 'pr-create-slash-pending', hasPrepare: true },
+  { tool: 'pr_merge', guidance: 'mcp_guidance_post_ask_pr_merge', key: 'pecot-pr-merge-ask', flag: 'merge-slash-pending', hasPrepare: false },
 ]
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -67,8 +68,13 @@ describe.for(forms)('ツール名が$label', (form) => {
       expect(result?.reason).toBe(expectedReason(target.guidance))
     })
 
-    it('prepare が true だと、素通しにする', () => {
+    it.skipIf(!target.hasPrepare)('prepare が true だと、素通しにする', () => {
       expect(outputOf(toolName, { prepare: true })).toBe('')
+    })
+
+    // pr_merge に prepare の入力は無いので、免除にしない。
+    it.skipIf(target.hasPrepare)('prepare が true でも、ask を返す', () => {
+      expect(decisionOf(toolName, { prepare: true })).toBe('ask')
     })
 
     it('prepare が文字列の "true" だと、ask を返す', () => {
@@ -113,6 +119,12 @@ describe.for(forms)('ツール名が$label', (form) => {
     it('別の種類のスラッシュコマンド起点のフラグだけでは、ask を返す', () => {
       const project = createProject()
       writeStateFlag(project, target.flag === 'pr-create-slash-pending' ? 'issue-create-slash-pending' : 'pr-create-slash-pending')
+      expect(decisionOf(toolName, {}, project)).toBe('ask')
+    })
+
+    it.skipIf(target.tool === 'pr_merge')('マージのフラグだけでは、ask を返す', () => {
+      const project = createProject()
+      writeStateFlag(project, 'merge-slash-pending')
       expect(decisionOf(toolName, {}, project)).toBe('ask')
     })
 

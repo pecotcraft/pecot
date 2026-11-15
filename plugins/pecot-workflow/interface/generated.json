@@ -2727,6 +2727,138 @@
       }
     },
     {
+      "id": "PW-PR-MERGE",
+      "name": "pr merge",
+      "description": "Merge a PR with the asynchronous merge API (a PR in a stack must be the bottom one)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "merge"
+          ]
+        },
+        "mcp": {
+          "tool": "pr_merge"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Read the PR and its stack, and show what would happen without merging"
+          },
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "pr_ref"
+        ],
+        "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "pullRequest": {
+              "type": "string",
+              "description": "PR (owner/repo/N)"
+            },
+            "base": {
+              "type": "string",
+              "description": "Base branch the PR is merged into"
+            },
+            "status": {
+              "description": "merged, or enqueued when the PR was added to the merge queue (absent on dry_run)",
+              "type": "string",
+              "enum": [
+                "merged",
+                "enqueued"
+              ]
+            },
+            "stack": {
+              "description": "Stack the PR is the bottom of (absent for a PR outside a stack)",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Stack number"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Number of PRs in the stack from this PR upward (K of \"1 of K\")"
+                }
+              },
+              "required": [
+                "number",
+                "size"
+              ],
+              "additionalProperties": false
+            },
+            "dryRun": {
+              "description": "true on dry_run (nothing was changed)",
+              "type": "boolean",
+              "const": true
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "pullRequest",
+                "base"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "PW-PR-SHOW",
       "name": "pr show",
       "description": "Get PR details efficiently (GraphQL, only the needed fields)",
@@ -4690,6 +4822,54 @@
               },
               "description": "Branches deleted (to be deleted on dry_run)"
             },
+            "readinessChanges": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "issue": {
+                    "type": "string",
+                    "description": "Issue waiting for a closed Issue (#N, or owner/repo#N in another repository)"
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Readiness before the merge (blocked, startable, or stackable on #N)"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Readiness after the merge (blocked, startable, or stackable on #N)"
+                  }
+                },
+                "required": [
+                  "issue",
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Issues waiting for the closed Issues whose readiness changed by the merge"
+            },
+            "restack": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "issue": {
+                    "type": "string",
+                    "description": "Started Issue stacked on a closed Issue (#N, or owner/repo#N in another repository)"
+                  },
+                  "branch": {
+                    "description": "Branch linked to that Issue, to restack in its working directory (omitted when none)",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "issue"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Upper stacked Issues to restack with pr restack in their working directories"
+            },
             "currentBranch": {
               "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
               "type": "string"
@@ -4725,7 +4905,9 @@
               "required": [
                 "closedIssues",
                 "skippedIssues",
-                "deletedBranches"
+                "deletedBranches",
+                "readinessChanges",
+                "restack"
               ]
             },
             {

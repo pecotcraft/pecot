@@ -74,3 +74,8 @@ github:
     respond:
       status: 200
       body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 0}}}}}
+  - match:
+      operation: "GetIssueBlockingReferences"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"blocking": {"totalCount": 0, "nodes": []}}}}}

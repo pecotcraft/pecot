@@ -2811,6 +2811,157 @@ entries:
       - id: PW-PR-CREATE-64
         pattern: unwanted
         statement: 'もし head の番号の Issue が PR のリポジトリに無いなら、待っている Issue の確認を、何も出さずに飛ばします'
+  PW-PR-MERGE:
+    help:
+      details:
+        - Merges a PR with the asynchronous merge API of GitHub, for a PR in a stack and for a PR outside a stack alike.
+        - A draft PR is not merged, and the command stops with exit status 2 without sending the request.
+        - A PR in a stack is merged only when no PR below it in the stack is open. Otherwise the command stops with exit status 2 without sending the request, and the error line names the lowest open PR to merge first.
+        - A repository without the stack API is handled as a PR outside a stack.
+        - The request carries the head commit that was read, so a PR that was pushed after the read is not merged.
+        - When the base branch has no merge queue, the merge method is squash. When it has a merge queue, no merge method is sent and the PR is added to the queue.
+        - "After the request is accepted, reads the result every 2 seconds until it is merged, enqueued or failed, and stops with exit status 1 after 60 seconds."
+        - When the same PR already has a merge request, keeps reading the result of that request.
+        - When the result can no longer be read, decides from the state of the PR whether it is merged or in the merge queue.
+        - Does not clean up after the merge. Run pecot session finish next.
+        - "With --dry-run, reads the PR and its stack and writes a dry-run: would merge line without sending the request."
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      examples:
+        - run: pecot pr merge example-org/my-repo/123
+          note: Merge a PR.
+        - run: pecot pr merge example-org/my-repo/123 --dry-run
+          note: Show what would be merged without merging.
+      default_notes:
+        pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    summary: 'PR をマージします。スタックの中の PR は、最下段のものだけをマージします。'
+    arguments:
+      dry_run: 'マージせずに、行う内容だけを出すかどうかです。'
+      pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
+    constraints: []
+    details:
+      - 'GitHub の非同期のマージ API で PR をマージします。スタックの中の PR も、スタックの外の PR も同じです。'
+      - 'ドラフトの PR はマージしません。要求を送らずに、終了コード 2 で終わります。'
+      - 'スタックの中の PR は、それより下に開いている PR が無いときだけマージします。あるときは、要求を送らずに終了コード 2 で終わり、先にマージするいちばん下の開いている PR を `error` の行に出します。'
+      - 'スタックの API が無いリポジトリでは、スタックの外の PR として扱います。'
+      - '要求には、読んだ head のコミットを添えます。読んだ後に push された PR は、マージしません。'
+      - 'base ブランチに merge queue が無いときは、squash でマージします。あるときは、マージの方法を送らず、PR は merge queue に入ります。'
+      - '要求が受け付けられた後は、結果を 2 秒おきに読みます。`merged`・`enqueued`・`failed` のどれかになるまで読み、60 秒で終わらなければ終了コード 1 で終わります。'
+      - '同じ PR のマージの要求が既にあるときは、その要求の結果を読み続けます。'
+      - '結果を読めなくなったときは、PR の状態から、マージ済みか merge queue の中かを決めます。'
+      - 'マージの後の片付けはしません。続けて `pecot session finish` を打ちます。'
+      - '`--dry-run` を付けると、PR とスタックを読み、要求を送らずに `dry-run: would merge` の行を出します。'
+      - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    stdin: none
+    output:
+      format: none
+    mcp_output:
+      fields:
+        pullRequest: 'マージした PR です。`owner/repo/N` の形です。'
+        base: 'PR をマージした先の base ブランチです。'
+        status: '結果です。`merged`（マージした）か `enqueued`（merge queue に入った）です。`dry_run` のときは入りません。'
+        stack: 'PR が最下段だったスタックです。`number`（スタックの番号）と `size`（この PR から上の PR の数）を持ちます。スタックの外の PR では入りません。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。マージしていません。'
+    diagnostics: '標準エラーに、結果の行を出します。マージしたときは `merged`、merge queue に入ったときは `added` です。スタックの最下段の PR では、`merged` の行にスタックの番号と段の数が付きます。失敗ごとに `error` の行を出します。'
+    environment: []
+    exit_status:
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: pr-state
+        code: 2
+        when: 'PR がドラフトか、スタックの最下段ではありません。要求は送っていません。'
+      - kind: pr-state
+        code: 1
+        when: 'GitHub がマージを拒みました。または、結果を読めず、PR がマージ済みでも merge queue の中でもありません。'
+      - kind: invalid-input
+        code: 2
+        when: 'PR の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。または、マージが 60 秒で終わりませんでした。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'マージが 60 秒で終わらないときは、要求は GitHub に残っています。PR の状態を確かめてから打ち直します。打ち直すと、残っている要求の結果を読み続けます。'
+    effects:
+      - target: github
+        kind: write
+        what: 'PR をマージするか、merge queue に入れます。'
+      - target: github
+        kind: read
+        what: 'PR、PR が入っているスタック、スタックの下の段の PR、マージの結果を読みます。'
+      - target: file
+        kind: read
+        what: 'アクティブな設定ファイルを読みます。'
+    prerequisites:
+      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - 'ホストの GitHub トークンが要ります。'
+    idempotent: false
+    examples:
+      - run: pecot pr merge example-org/my-repo/123
+        note: 'PR をマージします。'
+      - run: pecot pr merge example-org/my-repo/123 --dry-run
+        note: 'マージせずに、行う内容を出します。'
+    default_notes:
+      pr_ref: '短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    behaviors:
+      - id: PW-PR-MERGE-01
+        pattern: event
+        statement: 'スタックの外の PR を渡すと、読んだ head のコミットと squash でマージを頼み、`merged` の行を標準エラーに出します'
+      - id: PW-PR-MERGE-02
+        pattern: event
+        statement: 'スタックの最下段の PR を渡すと、スタックの番号と段の数を添えた `merged` の行を標準エラーに出します'
+      - id: PW-PR-MERGE-03
+        pattern: state
+        statement: '下の段の PR がマージ済みでスタックの並びに残っている間、その上の PR を最下段として扱います'
+      - id: PW-PR-MERGE-04
+        pattern: state
+        statement: 'base ブランチに merge queue がある間、マージの方法を送らず、merge queue に入ると `added` の行を標準エラーに出します'
+      - id: PW-PR-MERGE-05
+        pattern: unwanted
+        statement: 'もしスタックの下の段に開いている PR があるなら、要求を送らずに、先にマージする PR を示して終了コード 2 で終わります'
+      - id: PW-PR-MERGE-06
+        pattern: unwanted
+        statement: 'もし PR がドラフトなら、要求を送らずに終了コード 2 で終わります'
+      - id: PW-PR-MERGE-07
+        pattern: unwanted
+        statement: 'もし GitHub がマージを拒んだなら、GitHub の文を添えた `error` の行を出して終了コード 1 で終わります'
+      - id: PW-PR-MERGE-08
+        pattern: unwanted
+        statement: 'もしマージが 60 秒で終わらないなら、確かめる PR を示して終了コード 1 で終わります'
+      - id: PW-PR-MERGE-09
+        pattern: event
+        statement: '同じ PR のマージの要求が既にあると、その要求の結果を読み続けます'
+      - id: PW-PR-MERGE-10
+        pattern: event
+        statement: '結果を読めなくなると、PR の状態を読み直し、マージ済みなら `merged`、merge queue の中なら `added` の行を標準エラーに出します'
+      - id: PW-PR-MERGE-11
+        pattern: unwanted
+        statement: 'もし結果を読めず、PR がマージ済みでも merge queue の中でもないなら、終了コード 1 で終わります'
+      - id: PW-PR-MERGE-12
+        pattern: state
+        statement: 'リポジトリにスタックの API が無い間、スタックの外の PR として扱います'
+      - id: PW-PR-MERGE-13
+        pattern: unwanted
+        statement: 'もし GitHub API がほかのエラーを返したなら、終了コード 1 で終わります'
+      - id: PW-PR-MERGE-14
+        pattern: event
+        statement: '`--dry-run` を付けて打つと、PR とスタックを読み、要求を送らずに `dry-run` の行を標準エラーに出します'
   PW-PR-SHOW:
     help:
       details:
@@ -4685,6 +4836,10 @@ entries:
         - "Cleans up after a merged PR: closes the related Issues, optionally deletes the remote branches and returns the local checkout to the development branch."
         - The related Issues are the closing issues of the PR, the Issues named after Closes, Fixes or Resolves in its body, and the Issue whose number ends the head branch name.
         - Does not close an Epic or an Issue that has sub-issues, and writes a skipped line for it.
+        - "After closing the Issues, reads the Issues that wait for them and moves their board column and Status label by the readiness judgement. Issues with a trace of work are not moved. When the judgement does not show the closed Issue as done, reads once more after about 1.5 seconds, and if it still does not, prints a warning that tells to run pecot board sync later and does not move the column."
+        - "Prints the Issues whose readiness changed to standard output under the line Readiness changed:, one line per Issue such as - #13 stackable on #12 -> startable. The readiness before the merge is judged by treating the closed Issues and the PR as still open. Nothing is printed when no readiness changed."
+        - When a waiting Issue of the stack kind has a branch or a PR, it is a layer stacked on this PR. Prints a warning that tells to restack its branch in its working directory, and never deletes that branch.
+        - An Issue that is not on the board of the active project, or that is outside the columns Ready, Blocked, Active and In Review, is neither moved nor listed.
         - With --delete-branch, deletes the remote head branch and then wip/<head>.
         - A wip/<head> that does not exist is skipped without a message.
         - A wip/<head> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
@@ -4713,6 +4868,10 @@ entries:
       - 'マージ済みの PR の後片付けをします。関連する Issue を閉じ、ローカルのチェックアウトを開発ブランチに戻します。オプションを付けると、リモートブランチも削除します。'
       - '関連する Issue は、次の 3 つです。PR の closing issues。本文の Closes・Fixes・Resolves の後に書いた Issue。head ブランチ名の末尾の番号の Issue。'
       - 'Epic と、sub-issue を持つ Issue は閉じず、`skipped` の行を書きます。'
+      - 'Issue を閉じた後、その Issue を待っている Issue を読み、判定に合わせてボードの列と Status の札を動かします。着手の跡がある Issue は動かしません。判定に、閉じた Issue が済んだ前提として出ていないときは、約 1.5 秒後に 1 回だけ読み直します。それでも出なければ、後で `pecot board sync` を打つよう `warning` で知らせ、列を動かしません。'
+      - '判定が変わった Issue を、標準出力の `Readiness changed:` の行の下に、1 件 1 行で出します。行は `- #13 stackable on #12 -> startable` の形です。マージ前の判定は、閉じた Issue と PR がまだ開いていたものとして出します。変わった Issue が無ければ、何も出しません。'
+      - '待っている Issue のうち、種類が `stack` でブランチか PR を持つものは、この PR の上に積んだ段です。その作業ディレクトリでブランチを載せ直すよう `warning` で知らせます。そのブランチは削除しません。'
+      - 'アクティブなプロジェクトのボードに無い Issue と、`Ready`・`Blocked`・`Active`・`In Review` の外の列の Issue は、動かさず、一覧にも出しません。'
       - '`--delete-branch` を付けると、リモートの head ブランチを削除し、続けて `wip/<head>` を削除します。'
       - '`wip/<head>` が無いときは、何も出さずに飛ばします。'
       - '`wip/<head>` があるのに削除できないときは、`warning` を出し、終了コード 0 で終わります。'
@@ -4725,15 +4884,18 @@ entries:
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
     stdin: none
     output:
-      format: none
+      format: text
+      description: '判定の変わった Issue があるときだけ、`Readiness changed:` の行と、Issue ごとの `- <Issue> <前の判定> -> <後の判定>` の行を出します。無ければ何も出しません。'
     mcp_output:
       fields:
         closedIssues: '閉じた Issue の番号の配列です。`dry_run` のときは、閉じる予定の番号です。'
         skippedIssues: 'PR が閉じる対象のうち、閉じなかった Issue の配列です。要素は `number` と `reason` を持ちます。`reason` は `epic`（保護している）・`already-closed`・`not-found`・`failed`（`warnings` を見る）のどれかです。'
         deletedBranches: '削除したブランチの配列です。`dry_run` のときは、削除する予定のブランチです。要素は `branch` と `location`（`remote` か `local`）を持ちます。'
+        readinessChanges: '判定が変わった Issue の配列です。要素は `issue`（`#N` か `owner/repo#N`）・`from`・`to` を持ちます。`from` と `to` は `blocked`・`startable`・`stackable on #N` のどれかです。無ければ空の配列です。'
+        restack: 'この PR の上に積んだ段の配列です。要素は `issue` と、Issue につながるブランチがあれば `branch` を持ちます。その作業ディレクトリで載せ直しが要ります。無ければ空の配列です。'
         currentBranch: 'ローカルの後片付けのあとのブランチです。後片付けを飛ばしたときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。`wip/<head>` があるのに削除できないときも含みます。ローカルの片付けを飛ばしたときも、`warning` の行を出します。'
+    diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`moved`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。`wip/<head>` があるのに削除できないときも含みます。ローカルの片付けを飛ばしたときも、`warning` の行を出します。上に積んだ段があるときと、待っている Issue の判定を確かめられないときも、`warning` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -4892,6 +5054,30 @@ entries:
       - id: PW-SESSION-FINISH-30
         pattern: unwanted
         statement: 'もし `wip/<head>` があるのに削除できなかったなら、`warning` の行を標準エラーに出します'
+      - id: PW-SESSION-FINISH-31
+        pattern: event
+        statement: 'Issue を閉じると、ブランチを消す前に、その Issue を待っている Issue の列と札を判定どおりに動かします'
+      - id: PW-SESSION-FINISH-32
+        pattern: unwanted
+        statement: 'もし待っている Issue に着手の跡があるなら、その列と札を動かしません'
+      - id: PW-SESSION-FINISH-33
+        pattern: event
+        statement: '待っている Issue の判定が変わると、標準出力の `Readiness changed:` の下にその Issue を出します'
+      - id: PW-SESSION-FINISH-34
+        pattern: unwanted
+        statement: 'もし判定の変わった Issue が無いなら、`Readiness changed:` の行を出しません'
+      - id: PW-SESSION-FINISH-35
+        pattern: state
+        statement: '上に積んだ段がある間、載せ直しを `warning` の行で案内し、その段のブランチを消す要求を送りません'
+      - id: PW-SESSION-FINISH-36
+        pattern: unwanted
+        statement: 'もし読み直しても、閉じた Issue が済んだ前提として判定に出ないなら、`warning` の行を出して列を動かしません'
+      - id: PW-SESSION-FINISH-37
+        pattern: event
+        statement: '`--dry-run` を付けて打つと、閉じる予定の Issue を済んだものとして判定し、列を書かずに予定の行と判定の変化を出します'
+      - id: PW-SESSION-FINISH-38
+        pattern: event
+        statement: 'base が開発ブランチでない PR を片付けると、その PR の Issue を閉じます'
   PW-SESSION-RESTORE:
     help:
       details:

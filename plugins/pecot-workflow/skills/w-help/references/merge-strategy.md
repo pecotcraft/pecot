@@ -9,7 +9,7 @@
 
 | マージ対象 | method | コマンド・ツール | 理由 |
 |-----------|--------|---------|------|
-| feature → develop ブランチ | squash | `gh pr merge --squash`（片付けは `session_finish`） | コミット履歴を整理 |
+| feature → develop ブランチ | squash | `pr_merge`（片付けは `session_finish`） | コミット履歴を整理 |
 | develop ブランチ → release ブランチ | merge | `release_merge` | merge-base 追跡を維持 |
 
 squash merge を使うと git の merge-base が正しく更新されず、差分が正しく表示されない。
@@ -19,7 +19,7 @@ develop → release は regular merge を使い、merge-base を維持する。
 
 | マージ対象 | method | コマンド | 理由 |
 |-----------|--------|---------|------|
-| feature → main | squash | `gh pr merge --squash`（片付けは `session_finish`） | コミット履歴を整理 |
+| feature → main | squash | `pr_merge`（片付けは `session_finish`） | コミット履歴を整理 |
 
 単一ブランチモードには `develop → main` の中間 PR が存在しない。
 リリースは `main` 上で直接行う。

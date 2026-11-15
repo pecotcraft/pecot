@@ -79,3 +79,8 @@ github:
     respond:
       status: 200
       body: {"number": 12, "state": "closed"}
+  - match:
+      operation: "GetIssueBlockingReferences"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"blocking": {"totalCount": 0, "nodes": []}}}}}

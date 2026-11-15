@@ -97,6 +97,15 @@ describe('hooks-config.json によるスクリプトの無効化', () => {
     expect(result.stdout).toBe('')
   })
 
+  it('gh-stack-check を設定で無効にすると、gh stack を通す', () => {
+    const hookCase = createHookCase()
+    const config = hooksConfig(hookCase).path
+    writeFileSync(config, '{"gh-stack-check": false}')
+    const result = runGhCheck(hookCase, 'gh stack submit', config)
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
+  })
+
   it('gh pr create だけを無効にしても、gh issue create はブロックする', () => {
     const hookCase = createHookCase()
     const config = hooksConfig(hookCase).path

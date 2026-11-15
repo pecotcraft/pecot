@@ -36,6 +36,7 @@
 | --- | --- |
 | `pr check` | Show all the information to check before creating a PR |
 | `pr create` | Create a PR (pull request) |
+| `pr merge` | Merge a PR with the asynchronous merge API (a PR in a stack must be the bottom one) |
 | `pr show` | Get PR details efficiently (GraphQL, only the needed fields) |
 
 ## project

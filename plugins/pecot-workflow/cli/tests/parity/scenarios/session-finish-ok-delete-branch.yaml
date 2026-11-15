@@ -79,6 +79,11 @@ github:
       status: 200
       body: {"number": 12, "state": "closed"}
   - match:
+      operation: "GetIssueBlockingReferences"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"blocking": {"totalCount": 0, "nodes": []}}}}}
+  - match:
       method: "DELETE"
       path: "/repos/acme/demo/git/refs/heads/feat/demo/12"
     respond:

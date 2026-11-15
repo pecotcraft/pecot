@@ -23,13 +23,18 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR がマージ可能�
 
 #### 2.1 マージ
 
-```bash
-gh pr merge <PR番号> --repo <owner>/<repo> --squash
-```
+pecot-workflow の MCP ツール `pr_merge` を使って、PR をマージする。結果に合う行を実行する。
 
-merge queue のあるリポや、必須チェックが終わっていない PR では、その場ではマージされない。2.2 で待つ。
+| 結果 | 次の手順 |
+|---|---|
+| マージされた | 2.3 へ進む |
+| merge queue に入った | 2.2 で待つ |
+| スタックの最下段でないと止まった | 先にマージする PR をユーザーに示して止まる。下の段の PR をマージしない |
+| GitHub が拒んだ | 理由をユーザーに伝える。必須チェックが終わっていないなら、通過を待って 2.1 からやり直す |
 
 #### 2.2 マージを待つ
+
+merge queue に入ったときだけ行う。
 
 Claude Code では Monitor ツールで、次のスクリプトを動かして待つ。期限（timeout_ms）は 30 分（1800000）で渡す。期限で止まったら、同じコマンドで起動し直す。
 
@@ -50,7 +55,7 @@ bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>
 | `blocked` | 出力をユーザーに伝えて止まる |
 | `query-failed` | 出力の `gh` のエラーをユーザーに伝えて止まる |
 
-- push した後は、2 行目の `auto-merge=` が `true` なら 2.2 から、`false` なら 2.1 からやり直す
+- push した後は、2.1 からやり直す
 - CI や queue が 15 分を超えるリポでは、`--stall-minutes <分>` を付けて起動する
 - GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 をやり直す
 
@@ -59,6 +64,9 @@ bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>
 pecot-workflow の MCP ツール `session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。
 
 警告が出たら、その文に従って手で対応する。ワークツリー環境の手順は [ワークツリー環境での処理](references/worktree-handling.md) にある。
+
+結果に判定の変化（`readinessChanges`）があれば、着手できるようになった Issue をユーザーに伝える。
+上に積んだ段（`restack`）があれば、その段の作業ディレクトリで載せ直しが要ることをユーザーに伝える。ほかの作業ディレクトリには入らない。
 
 ### Step 3: 実装差分分析・Epicコメント
 
@@ -74,6 +82,6 @@ pecot-workflow の MCP ツール `session_finish` を使って、マージ後の
 
 speckit 由来のタスクで、後続のフェーズに影響する変更があるときだけ行う。speckit 由来とは、Issue の本文か、親 Epic のほかのサブタスクが `specs/`・`.specify/` に触れているものを指す。
 
-1. `issue_show` を使って親 Epic を読み、現在のタスク以外の OPEN のサブタスクを選ぶ
+1. 通知する Issue を選ぶ。片付けの結果に判定の変化（`readinessChanges`）があれば、その Issue を選ぶ。無ければ、`issue_show` を使って親 Epic を読み、現在のタスク以外の OPEN のサブタスクを選ぶ
 2. `issue_comment` を使って、その Issue 宛ての precede-notify テンプレのファイルを作る
 3. テンプレのガイドに従って本文を書き、`issue_comment` を使って投稿する
