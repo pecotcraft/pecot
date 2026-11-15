@@ -4,6 +4,9 @@ import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
+import type { CommandDefinition } from '../../src/commands/registry.js'
+import { createMcpServer } from '../../src/mcp/server.js'
+
 /**
 全ツールに共通の入れ物。最上位は 6 つの名前だけで、stdout・stderr を持たない。data の中身はツールごとの outputSchema が決める
 */
@@ -53,5 +56,25 @@ export async function connectInMemory(server: McpServer): Promise<ConnectedClien
       await client.close()
       await server.close()
     },
+  }
+}
+
+/**
+ツールの呼び出しの Promise を受けて、待ち方を変える関数。偽のタイマーを進めながら待つときに渡す
+*/
+export type Settle = <T>(pending: Promise<T>) => Promise<T>
+
+const awaitAsIs: Settle = async pending => await pending
+
+/**
+commands から MCP のサーバを作り、同じプロセスの中のクライアントからツールを 1 回呼んで、structuredContent を返す。cwd は呼ぶ側が決める
+*/
+export async function callToolOnce(commands: readonly CommandDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolEnvelope> {
+  const connected = await connectInMemory(createMcpServer(commands))
+  try {
+    return structuredOf(await settle(connected.client.callTool({ name, arguments: { ...arguments_ } })))
+  }
+  finally {
+    await connected.close()
   }
 }

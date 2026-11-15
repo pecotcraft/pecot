@@ -47,11 +47,11 @@ import { kindOfFailure } from './failure.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
-import { BOARD_MOVE_JSON, moveJson } from './board-sync.js'
+import { BOARD_MOVE_JSON, moveJson } from './issue-board.js'
 import type { BoardMoveLine } from './issue-board.js'
 import { moveWaitingIssues } from './pr-waiting.js'
 
@@ -196,7 +196,7 @@ const PR_CREATE_OUTPUT = z.strictObject({
   }).optional().describe('Stack of the PR (omitted when the PR is not stacked)'),
   moves: z.array(BOARD_MOVE_JSON).optional().describe('Issues waiting for this PR whose column or Status was written (omitted on dry_run and prepare)'),
   file: z.string().optional().describe('Absolute path of the draft file written on prepare'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (the PR was not created)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type PrCreateData = z.input<typeof PR_CREATE_OUTPUT>
@@ -407,14 +407,14 @@ async function registerStack(client: GitHubClient, location: RepositoryReference
   }
 }
 
-async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>): Promise<readonly BoardMoveLine[]> {
+// moves に、書けた列と札を足していく。例外で止まっても、それまでの分が残る
+async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>, moves: BoardMoveLine[]): Promise<void> {
   try {
-    return await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest })
+    await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest }, moves)
   }
   catch (error: unknown) {
     if (!isRequestFailure(error)) throw error
     out.warning(`could not move the Issues waiting for #${String(issueNumber)}: ${describeRequestFailure(error)}`)
-    return []
   }
 }
 
@@ -431,17 +431,22 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   out.done(createOperation(draft))
   const createdNumber = jsonField(created, 'number')
   const pullRequest = typeof createdNumber === 'number' ? createdNumber : undefined
-  out.result({ head: draft.head, base: draft.base, title: draft.title, ...pullRequest !== undefined && { number: pullRequest } })
+  const url = jsonField(created, 'html_url')
+  // url は先に渡す。後の処理が例外で止まっても、作った PR を結果から読める
+  out.result({ head: draft.head, base: draft.base, title: draft.title, ...pullRequest !== undefined && { number: pullRequest }, ...typeof url === 'string' && { url } })
   const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.head, out)
   if (inReview !== undefined) out.result({ inReview })
   if (stackOn !== undefined) out.result({ stack: await registerStack(client(), draft.location, stackOn, pullRequest, out) })
   const issueNumber = extractIssueNumberFromBranch(draft.head)
-  const moves = !draft.isRelease && isPositive(issueNumber) ? await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out) : []
-  out.result({ moves: moves.map(move => moveJson(move)) })
+  const moves: BoardMoveLine[] = []
+  try {
+    if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out, moves)
+  }
+  finally {
+    out.result({ moves: moves.map(move => moveJson(move)) })
+  }
   consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
-  const url = jsonField(created, 'html_url')
   if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub', 'other')
-  out.result({ url })
   out.data(url)
 }
 
@@ -556,7 +561,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
   const issueNumber = extractIssueNumberFromBranch(head)
   if (!isRelease && issueNumber !== undefined) out.planned(inReviewOperation(issueNumber))
   if (use?.stackOn !== undefined) out.planned({ verb: 'add', target: `the new PR to the stack of PR #${String(use.stackOn)}` })
-  out.result({ head, base, title, ...use?.stackOn !== undefined && { stack: { lower: use.stackOn } }, dryRun: true })
+  out.result({ head, base, title, ...use?.stackOn !== undefined && { stack: { lower: use.stackOn } } })
 }
 
 function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {
@@ -873,6 +878,7 @@ type PrShowJson = z.input<typeof PR_SHOW_OUTPUT>
 --json の標準出力と MCP の data の中身。キーを並べた順が --json の出力の順になる
 */
 function pullRequestJson(pr: Readonly<PullRequestSlim> | Readonly<PullRequestWithReviews>): PrShowJson {
+  // 項目を手で並べるので、satisfies で PR の型の項目の過不足を tsc に止めさせる
   const base = {
     number: pr.number,
     state: pr.state,
@@ -886,8 +892,8 @@ function pullRequestJson(pr: Readonly<PullRequestSlim> | Readonly<PullRequestWit
     closing_issues: pr.closing_issues.map(issue => ({ ...issue })),
     referenced_issues: pr.referenced_issues.map(issue => ({ ...issue })),
     reviews: pr.reviews.map(review => ({ ...review })),
-  }
-  return 'review_threads' in pr ? { ...base, review_threads: pr.review_threads.map(thread => ({ ...thread, comments: thread.comments.map(comment => ({ ...comment })) })) } : base
+  } satisfies Record<keyof PullRequestSlim, unknown>
+  return 'review_threads' in pr ? { ...base, review_threads: pr.review_threads.map(thread => ({ ...thread, comments: thread.comments.map(comment => ({ ...comment })) })) } satisfies Record<keyof PullRequestWithReviews, unknown> : base
 }
 
 async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {

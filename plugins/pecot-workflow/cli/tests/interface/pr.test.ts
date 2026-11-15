@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // pr の 3 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -17,10 +17,9 @@ import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, Wor
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import type { ResponseRule } from '../fake-github/server.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { COMMANDS } from '../../src/commands/registry.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 
 useIsolatedEnvironment()
 
@@ -162,6 +161,21 @@ function waitingTarget(hasPullRequest: boolean): TargetSpec {
   return { number: 13, blockedBy: [blocker] }
 }
 
+// #12 を待つ Issue が #13・#14 の 2 件。#13 の列は書け、#14 の書き込みの応答はテストごとに足す
+const TWO_WAITING_NODES = [13, 14].map(number => ({ id: `I_demo_${String(number)}`, number, state: 'OPEN', repository: { owner: { login: 'acme' }, name: 'demo' } }))
+const ISSUE_14 = { number: 14, title: '課題14', state: 'OPEN', url: `https://${HOST}/acme/demo/issues/14`, repository: { owner: { login: 'acme' }, name: 'demo' }, projectItems: { nodes: [{ id: 'PVTI_14', project: { id: 'PVT_1' }, workflow: { name: 'Blocked' } }] } }
+const TWO_WAITING_RULES: ResponseRuleList = [
+  CREATED_RULE,
+  ...IN_REVIEW_RULES,
+  graphql('GetIssueBlockingReferences', { repository: { issue: { blocking: { totalCount: 2, nodes: TWO_WAITING_NODES } } } }, { variables: { number: 12 } }),
+  BOARD_RULE,
+  graphql('GetIssueBoardItem', { repository: { issue: ISSUE_14 } }, { variables: { number: 14 } }),
+  prerequisitesRule(waitingTarget(true)),
+  prerequisitesRule({ ...waitingTarget(true), number: 14 }),
+  READY_WRITE_RULE,
+]
+const MOVED_13 = { issue: '#13', from: 'Blocked', to: 'Ready', reason: 'stackable on #12' }
+
 // pr create
 
 function pushedBranch(extra: Readonly<WorkspaceOptions> = {}): Promise<Workspace> {
@@ -201,12 +215,10 @@ function writePrFile(workspace: Readonly<Workspace>, options: Readonly<FileOptio
 async function callTool(workspace: Readonly<Workspace>, name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
   const previous = process.cwd()
   process.chdir(workspace.directory)
-  const connected = await connectInMemory(createMcpServer(COMMANDS))
   try {
-    return structuredOf(await connected.client.callTool({ name, arguments: { ...arguments_ } }))
+    return await callToolOnce(COMMANDS, name, arguments_)
   }
   finally {
-    await connected.close()
     process.chdir(previous)
   }
 }
@@ -1161,6 +1173,33 @@ describe('pr create', () => {
       expect(result.data).toEqual({ ...CREATED, moves: [{ issue: '#13', from: 'Blocked', to: 'Ready', reason: 'stackable on #12' }] })
     })
 
+    it('待つ Issue の 2 件目の列の書き込みが API エラーで失敗すると、成功のまま 1 件目だけを moves に返し、warning を data に入れる', async (context) => {
+      await verifies(context, 'PW-COMMON-19')
+      const failing = rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_14' } }, { status: 500, body: { message: 'boom' } })
+      const workspace = await pushedBranch({ github: [...TWO_WAITING_RULES, failing] })
+      const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
+      expect(result).toMatchObject({ ok: true, exitCode: 0 })
+      const { warnings, ...kept } = result.data
+      expect(kept).toEqual({ ...CREATED, moves: [MOVED_13] })
+      expect(warnings).toEqual([expect.stringMatching(/^could not move #14: GraphQL query error: Server error '500 Internal Server Error'/u)])
+    })
+
+    it('待つ Issue の 2 件目の移動で想定外の例外が出ると、作った PR と動かせた 1 件目を data に残して失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      // 401 で gh のトークンへ切り替えるのに失敗し、.env を書けないと、要求の失敗でない例外になる
+      const unauthorized = rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_14' } }, { status: 401, body: { message: 'Bad credentials' } })
+      const workspace = await pushedBranch({ github: [...TWO_WAITING_RULES, unauthorized] })
+      const bin = makeTemporaryDirectory('pecot-gh-')
+      installFakeExecutable(bin, 'gh', 'exit 1\n')
+      prependToPath(bin)
+      symlinkSync(path.join(workspace.directory, 'no-such-directory', '.env'), path.join(workspace.directory, '.pecot', 'config', '.env'))
+      const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
+      expect(result).toMatchObject({ ok: false, exitCode: 1, kind: 'other' })
+      const { detail, ...kept } = result.data
+      expect(kept).toEqual({ ...CREATED, moves: [MOVED_13], reason: 'other' })
+      expect(detail).toMatch(/^\[Errno 2\] No such file or directory: '.+\/\.pecot\/config\/\.env'$/u)
+    })
+
     it('積んだ PR を作ると、下の段の PR とスタックの番号を stack に返す', async () => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, base: LOWER })
@@ -1173,13 +1212,60 @@ describe('pr create', () => {
       expect(result.data).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
     })
 
-    it('prepare で呼ぶと、書いたファイルのパスと埋めた base を返し、ファイルを artifacts に入れる', async () => {
+    it('prepare で呼ぶと、書いたファイルのパスと埋めた base を返し、ファイルを artifacts に入れる', async (context) => {
+      await verifies(context, 'PW-COMMON-20')
       const workspace = await pushedBranch({ github: [NOT_EPIC_RULE] })
       const result = await callTool(workspace, 'pr_create', { prepare: true })
       const outputDirectory = path.join(workspace.directory, '.pecot', 'tmp', 'output')
       const [written] = readdirSync(outputDirectory).map(name => path.join(outputDirectory, name))
       expect(result.data).toEqual({ base: 'main', file: written })
       expect(result.artifacts).toEqual([written])
+    })
+
+    it('PR を作った後に応答の html_url が無いと、作った PR の値を data に残して失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      const created = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21 })
+      const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, created, ...AFTER_CREATE_RULES] })
+      const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
+      expect(result).toMatchObject({ ok: false, exitCode: 1, kind: 'other' })
+      expect(result.data).toEqual({
+        head: BRANCH,
+        base: 'main',
+        title: TITLE,
+        number: 21,
+        inReview: 12,
+        moves: [],
+        reason: 'other',
+        detail: 'PR was created, but the response has no html_url; find it on GitHub',
+      })
+    })
+
+    it('PR を作った後に列の移動が失敗すると、作った PR の値と warning を data に返し、inReview を返さない', async (context) => {
+      await verifies(context, 'PW-COMMON-19')
+      const failing = rule({ operation: 'UpdateProjectItemField' }, { status: 500, body: { message: 'Server Error' } })
+      const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), failing, NO_WAITING_RULE] })
+      const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
+      expect(result).toMatchObject({ ok: true, exitCode: 0 })
+      expect(result.data).toEqual({
+        head: BRANCH,
+        base: 'main',
+        title: TITLE,
+        number: 21,
+        moves: [],
+        url: PULL_URL,
+        warnings: [expect.stringMatching(/^status update of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error'/u)],
+      })
+    })
+
+    it('本文の検証に失敗すると、違反の文を data.detail に入れて content-invalid を返す', async () => {
+      const workspace = await pushedBranch({ github: SUBMIT_RULES })
+      const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, message: '本文だけ #12', base: 'develop' })
+      expect(result).toMatchObject({ ok: false, exitCode: 3, kind: 'content-invalid' })
+      expect(result.data).toEqual({
+        reason: 'content-invalid',
+        detail: 'missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nerror: base branch must be main (given: develop)',
+      })
+      expect(restRequests(workspace, 'POST')).toStrictEqual([])
     })
   })
 })
@@ -1670,12 +1756,15 @@ describe('pr check', () => {
       })
     })
 
-    it('preflight の warning で失敗しても、集めた値を data に残す', async () => {
+    it('preflight の warning で失敗しても、集めた値を data に残す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      await verifies(context, 'PW-COMMON-19')
       const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
       const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
       expect(result).toMatchObject({ ok: false, exitCode: 2, kind: 'preflight-failed' })
       expect(result.data).toMatchObject({ currentBranch: BRANCH, pushed: true })
       expect(result.data['gitStatus']).toContain('Untracked files:\n\tmemo.txt\n')
+      expect(result.data['warnings']).toEqual(['Git Status: modified or untracked files (fix: commit)'])
     })
   })
 })

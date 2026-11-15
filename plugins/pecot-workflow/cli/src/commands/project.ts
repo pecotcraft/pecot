@@ -25,7 +25,7 @@ import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './co
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import type { OptionSpec, SyncedProjectConfig } from './project-sync.js'
 import {
@@ -48,10 +48,6 @@ import {
 } from './project-sync.js'
 
 const DEFAULT_HOST = 'github.com'
-function dryRunMark(isDryRun: boolean): { dryRun?: true } {
-  return isDryRun ? { dryRun: true } : {}
-}
-
 function linkChange(existing: Repository | undefined): 'create' | 'update' {
   return existing === undefined ? 'create' : 'update'
 }
@@ -354,7 +350,7 @@ const INIT_ROW = z.strictObject({
 
 const INIT_OUTPUT = z.strictObject({
   fields: z.array(INIT_ROW).describe('The workflow, priority and size fields, plus the Status field when its options were looked at'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created or changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const initCommand = defineCommand({
@@ -375,7 +371,7 @@ const initCommand = defineCommand({
     const out = createOutput<z.input<typeof INIT_OUTPUT>>(input.dry_run, io)
     const { owner, name, host, suffix } = input
     const client = createGitHubClient(out, host)
-    if (input.dry_run) out.result({ dryRun: true })
+    if (input.dry_run) out.result({})
     const mark = fieldReporter((fields) => {
       out.result({ fields })
     })
@@ -396,7 +392,7 @@ const CREATE_OUTPUT = z.strictObject({
   url: z.string().optional().describe('URL of the created project (omitted on dry_run)'),
   title: z.string().describe('Title of the project'),
   owner: z.string().describe('Project owner'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const projectCreationCommand = defineCommand({
@@ -432,7 +428,7 @@ const projectCreationCommand = defineCommand({
       // フィールドと設定ファイルは作ったプロジェクトの ID を使うので、予行ではプロジェクトの行だけ出す
       if (input.dry_run) {
         out.planned({ verb: 'create', target: `project ${title} for ${owner}` })
-        out.result({ title, owner, dryRun: true })
+        out.result({ title, owner })
         return
       }
 
@@ -580,14 +576,14 @@ const ACTIVATE_OUTPUT = z.strictObject({
   configPath: z.string().optional().describe('Path of the project config file'),
   change: z.enum(['create', 'update', 'unchanged']).optional().describe('What happened to the config file'),
   candidates: z.array(CANDIDATE_ROW).optional().describe('Initialized projects of the owner, given only when no project was named (nothing was activated)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type ActivateData = z.input<typeof ACTIVATE_OUTPUT>
 
 // 設定ファイルの結果を data に渡す。書いたファイルだけを artifact にする
 function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<SyncedProjectConfig>, isDryRun: boolean): void {
-  out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change, ...dryRunMark(isDryRun) })
+  out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change })
   if (!isDryRun && synced.change !== 'unchanged') out.artifact(synced.configPath)
 }
 
@@ -626,7 +622,8 @@ example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_e
       }
       const client = createGitHubClient(out, host)
       const owner = await resolveActivationOwner(out, client, input.owner)
-      if (project === undefined) await echoInitializedProjects(out, client, host, owner)
+      // 一覧は書き込まないので、dry_run でも data に dryRun を足さない
+      if (project === undefined) await echoInitializedProjects(createOutput<ActivateData>(false, io), client, host, owner)
       else await activateByReference(out, client, { host, owner, project, isDryRun: input.dry_run })
     })
     return 0
@@ -727,7 +724,7 @@ const LINK_OUTPUT = z.strictObject({
   projectNumber: z.int().describe('Number of the active project'),
   change: z.enum(['create', 'update']).describe('create: the repository was added to the config; update: its entry was changed'),
   configPath: z.string().describe('Path of the project config file'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const projectLinkCommand = defineCommand({
@@ -796,7 +793,7 @@ const projectLinkCommand = defineCommand({
     out.planned(saved)
     const reported = { repository: `${owner}/${name}`, projectNumber: config.project.number, change: linkChange(existing), configPath }
     if (input.dry_run) {
-      out.result({ ...reported, dryRun: true })
+      out.result(reported)
       return 0
     }
     saveConfig(checked, configPath)
@@ -834,14 +831,14 @@ const SET_OUTPUT = z.strictObject({
   value: z.string().describe('Value of the key after the command (on dry_run, after it would run)'),
   previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
   change: z.enum(['create', 'update', 'unchanged']).describe('create: the key was not set; update: its value was replaced; unchanged: it already had the value'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const UNSET_OUTPUT = z.strictObject({
   key: CONFIG_KEY_FIELD,
   previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
   change: z.enum(['delete', 'unchanged']).describe('delete: the key was cleared; unchanged: it was not set'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type GetData = z.input<typeof GET_OUTPUT>
@@ -856,7 +853,7 @@ function setAggregationRepository(out: Readonly<Output<SetData>>, value: string,
     const unchanged: Operation = { verb: 'unchanged', target: `aggregation_repo ${value}` }
     out.planned(unchanged)
     out.done(unchanged)
-    out.result({ key: 'aggregation_repo', value, previous: value, change: 'unchanged', ...dryRunMark(options.isDryRun) })
+    out.result({ key: 'aggregation_repo', value, previous: value, change: 'unchanged' })
     return
   }
   const operation: Operation = { verb: 'set', target: `aggregation_repo to ${value}` }
@@ -864,7 +861,7 @@ function setAggregationRepository(out: Readonly<Output<SetData>>, value: string,
   const reported = { key: 'aggregation_repo', value, ...hasPrevious && { previous: current }, change: setChange(hasPrevious) } satisfies SetData
   if (options.isDryRun) {
     out.planned(current === undefined || current === '' ? operation : { ...operation, target: `${operation.target} (was ${current})` })
-    out.result({ ...reported, dryRun: true })
+    out.result(reported)
     return
   }
   if (current !== undefined && current !== '') {
@@ -883,13 +880,13 @@ function unsetAggregationRepository(out: Readonly<Output<UnsetData>>, isDryRun: 
     const unchanged: Operation = { verb: 'unchanged', target: 'aggregation_repo (not set)' }
     out.planned(unchanged)
     out.done(unchanged)
-    out.result({ key: 'aggregation_repo', change: 'unchanged', ...dryRunMark(isDryRun) })
+    out.result({ key: 'aggregation_repo', change: 'unchanged' })
     return
   }
   const operation: Operation = { verb: 'remove', target: `aggregation_repo (was ${previous})` }
   out.planned(operation)
   if (isDryRun) {
-    out.result({ key: 'aggregation_repo', previous, change: 'delete', dryRun: true })
+    out.result({ key: 'aggregation_repo', previous, change: 'delete' })
     return
   }
   saveConfig(withAggregationRepository(config, undefined), configPath)

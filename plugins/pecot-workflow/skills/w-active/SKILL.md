@@ -47,7 +47,7 @@ Issue を GitHub から読めないと、`data.activeIssue` は無い。その�
 
 ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`board_show` を引数なしで呼ぶ。
 
-結果の `data.board.items[].readiness.kind` の判定を、利用者に伝える。
+結果の `data.board.items[].readiness.kind` の判定を、利用者に伝える。`readiness` が null の項目（`Ready` と `Blocked` 以外の列）は、判定を持たない。
 `data.mismatches` が 1 以上なら、`data.warnings` の食い違いの警告も伝える。
 
 ### Step 2: 対象タスクを確認

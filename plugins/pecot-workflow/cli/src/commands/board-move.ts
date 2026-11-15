@@ -18,12 +18,12 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 
 const BOARD_MOVE_OUTPUT = z.strictObject({
   issue: z.string().describe('Issue (owner/repo/N)'),
   status: z.string().describe('Status set on the board (on dry_run, to be set)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const BOARD_MOVE = defineCommand({
@@ -56,7 +56,7 @@ const BOARD_MOVE = defineCommand({
         if (input.dry_run) {
           if (!isStatusConfigured(config, status)) stopWith(output, notConfiguredMessage(status), 'status-not-configured')
           output.planned({ verb: 'set', target: `${target} status ${status}` })
-          output.result({ issue: issuePath(owner, repository, number), status, dryRun: true })
+          output.result({ issue: issuePath(owner, repository, number), status })
           return
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {

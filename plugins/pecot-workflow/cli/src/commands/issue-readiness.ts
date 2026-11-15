@@ -1,8 +1,9 @@
 // Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
+import { z } from 'zod'
+
 import { findRepository, workflowFieldName } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
-import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import type { IssuePrerequisitesReadout, PullRequestReadout } from '../domain/issue-readout.js'
 import { readWaitsForMerge } from '../domain/prerequisites.js'
@@ -271,9 +272,30 @@ export async function readIssueReadiness(client: Readonly<GitHubClient>, config:
 }
 
 /**
+readinessJson の形。キーの並びは readinessJson と同じにする
+*/
+export const READINESS_JSON = z.strictObject({
+  kind: z.enum(['startable', 'stackable', 'blocked']).describe('Readiness judgment'),
+  stackOn: z.strictObject({
+    number: z.int().describe('Issue number to stack on'),
+    repository: z.string().describe('Repository of that Issue (owner/repo)'),
+    branch: z.string().describe('Branch to stack on'),
+  }).nullable().describe('Prerequisite to stack on (null unless stackable)'),
+  reason: z.string().nullable().describe('Code of the reason for blocked (null unless blocked)'),
+  text: z.string().describe('Readiness as shown in the Readiness line'),
+})
+
+export type ReadinessJson = z.input<typeof READINESS_JSON>
+
+/**
+board show の判定。前提を読めなかった Issue の kind は unknown
+*/
+export type BoardReadinessJson = Omit<ReadinessJson, 'kind'> & { readonly kind: ReadinessJson['kind'] | 'unknown' }
+
+/**
 JSON の出力に使う判定。reason は blocked のときだけの理由のコード、stackOn は積む先
 */
-export function readinessJson(readiness: Readonly<Readiness>, text: string): JsonObject {
+export function readinessJson(readiness: Readonly<Readiness>, text: string): ReadinessJson {
   const { stackOn } = readiness
   return {
     kind: readiness.kind,

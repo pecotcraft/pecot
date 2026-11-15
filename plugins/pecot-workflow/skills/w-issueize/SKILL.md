@@ -118,7 +118,8 @@ before / after の例を示す。
 - 結果の `ok` が `false`（`exitCode` は 1）でも、`data.issues` に要素があれば、その Issue は作られている。`kind` ではなく `data.issues` で決める。同じ `files` で呼び直さない。呼び直すと Issue が重複する
   - 前提の付け直しだけに失敗したときは、`kind` が `partial-failure` になる
 - 結果の `data.detail` の `could not add some blocked-by; add them again with:` の後ろに、付け直すコマンドの行が並ぶ。打たずにそのままユーザーへ示す
-- `data.issues` が無いまま `ok` が `false` で止まったときは、投稿の前の確認で止まっている。`data.detail` の文に従ってファイルを直し、呼び直してよい
+- `data.issues` が無いまま `ok` が `false` で止まったときは、`kind` が `other` でなければ、投稿の前の確認で止まっている。`data.detail` の文に従ってファイルを直し、呼び直してよい
+- `kind` が `other` のときは、操作が済んでいる可能性がある。`data.issues` に作り終えた Issue が残っていれば、それを示す。残っていなくても呼び直さず、結果の `message` と `data.detail` を利用者に示して止まる
 
 ### Step 4: 完了報告
 

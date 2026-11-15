@@ -7,12 +7,13 @@ import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/depe
 import type { DependabotAlertStatus } from '../domain/dependabot.js'
 import { formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
-import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { compareStrings } from '../domain/python-format.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import { READINESS_JSON } from './issue-readiness.js'
+import type { BoardReadinessJson } from './issue-readiness.js'
 import type { Output } from './output.js'
 import { STATUS_FIELD_NAME } from './project-sync.js'
 
@@ -121,15 +122,9 @@ const ALERTS_JSON = z.union([
   }),
 ])
 
-// キーの並びは readinessJson と同じにする。parse の結果を --json に出すので、並びが出力の順になる
-const BOARD_READINESS_JSON = z.strictObject({
+// extend は同じ名前のキーを元の位置のまま置き換えるので、キーの並びは readinessJson と同じに保たれる
+const BOARD_READINESS_JSON = READINESS_JSON.extend({
   kind: z.enum(['startable', 'stackable', 'blocked', 'unknown']).describe('Readiness judgment (unknown when the prerequisites could not be read)'),
-  stackOn: z.strictObject({
-    number: z.int().describe('Issue number to stack on'),
-    repository: z.string().describe('Repository of that Issue (owner/repo)'),
-    branch: z.string().describe('Branch to stack on'),
-  }).nullable().describe('Prerequisite to stack on (null unless stackable)'),
-  reason: z.string().nullable().describe('Code of the reason for blocked (null unless blocked)'),
   text: z.string().describe('Readiness as shown in the Readiness column'),
 })
 
@@ -212,7 +207,7 @@ export interface BoardShowView {
 /**
 アイテムの JSON の readiness を引く。判定の無いアイテムは null
 */
-export type ReadinessSource = (item: BoardItem) => JsonObject | typeof JSON_NULL
+export type ReadinessSource = (item: BoardItem) => BoardReadinessJson | typeof JSON_NULL
 
 function repositoryJson(entry: Repository, status: AlertStatus): BoardShowCore['repositories'][number] {
   return {
@@ -248,7 +243,7 @@ export function boardShowData(view: Readonly<BoardShowView>, items: readonly Boa
       ? { items: formatItemsJson(items).items.map(item => itemJson(item)) }
       : { items: items.map((item) => {
           const found = readiness(item)
-          return { ...itemJson(item), readiness: found === JSON_NULL ? JSON_NULL : BOARD_READINESS_JSON.parse(found) }
+          return { ...itemJson(item), readiness: found }
         }) },
   }
 }

@@ -29,7 +29,7 @@ import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import type { JudgedIssue } from './issue-readiness.js'
 import { ensureRepositoryInProject, ISSUE_REF_DESCRIPTION, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import type { IssueTarget } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -40,7 +40,6 @@ const BLOCK_PATH = ['issue', 'block']
 
 const ISSUE_FIELD = z.string().describe('The waiting Issue (owner/repo/N)')
 const BY_FIELD = z.string().describe('The prerequisite Issue (owner/repo/N)')
-const DRY_RUN_FIELD = z.literal(true).optional().describe('true on dry_run (nothing was written)')
 
 const ISSUE_BLOCK_OUTPUT = z.strictObject({
   issue: ISSUE_FIELD,
@@ -216,7 +215,7 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
   if (linked === undefined && total >= MAX_BLOCKED_BY) stopWith(out, `${name} already has ${String(MAX_BLOCKED_BY)} blocked-by issues`, 'dependency-rejected')
 
   const decision = decideBlock({ body: read.body, home, by, wait: input.wait, reason, isLinked: linked !== undefined })
-  const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait, ...input.dry_run && { dryRun: true } }
+  const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait }
   if (decision.kind === 'malformed') {
     stopWith(out, `Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and run the command again`, 'content-invalid', CONTENT_EXIT_CODE)
   }
@@ -290,7 +289,7 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
   if (linked === undefined && total > issues.length) stopWith(out, `could not read blocked-by of ${name}: ${String(issues.length)} of ${String(total)} issues were read`, 'dependency-unreadable')
 
   const decision = decideUnblock({ body: read.body, home, by, isLinked: linked !== undefined })
-  const result: Omit<z.input<typeof ISSUE_UNBLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), ...input.dry_run && { dryRun: true } }
+  const result: Omit<z.input<typeof ISSUE_UNBLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by) }
   if (linked === undefined || decision.kind === 'unchanged') {
     out.result({ ...result, change: 'unchanged' })
     out.planned({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })

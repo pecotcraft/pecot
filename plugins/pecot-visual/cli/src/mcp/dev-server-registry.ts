@@ -153,6 +153,10 @@ export interface DevServerStartFailure {
   readonly detail: string
   readonly stdout: string
   readonly stderr: string
+  /**
+  子の stderr の warning の文。stderr の切り詰めと関係なく保つ。子を起こしていなければ省く。
+  */
+  readonly warnings?: readonly string[]
 }
 
 export type DevServerStartResult = DevServerStarted | DevServerStartFailure
@@ -199,6 +203,7 @@ interface DevServerHandle {
   readonly kill: () => void
   readonly stdout: () => string
   readonly stderr: () => string
+  readonly warnings: () => string[]
 }
 
 /**
@@ -263,6 +268,7 @@ function trackChild(child: DevServerChild, port: number, killEscalationMs: numbe
     },
     stdout: () => stdoutCapture.text(),
     stderr: () => mergeStderr(stderrCapture.text(), spawnError),
+    warnings: () => stderrCapture.warnings(),
   }
 }
 
@@ -370,6 +376,7 @@ export function createDevServerRegistry(
         detail: failureDetailOf(outcome, handle.port, dependencies.readyTimeoutMs),
         stdout: handle.stdout(),
         stderr,
+        warnings: handle.warnings(),
       },
     }
   }
@@ -476,6 +483,7 @@ function portInUseFailure(
     detail,
     stdout: raced?.stdout ?? '',
     stderr: raced?.stderr ?? '',
+    ...(raced?.warnings !== undefined && { warnings: raced.warnings }),
   }
 }
 

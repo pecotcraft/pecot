@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
 // 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
+import { z } from 'zod'
+
 import { COLUMN_CONFIG_KEYS, LABEL_CONFIG_KEYS } from '../domain/board-move.js'
 import type { BoardMove, LabelValue, MissingValue, MovableColumn } from '../domain/board-move.js'
 import { getFieldId, getOptionId } from '../domain/config.js'
@@ -134,10 +136,29 @@ export async function putOnBoard(
 */
 export interface BoardMoveLine {
   readonly issue: string
-  readonly from: string | undefined
-  readonly to: MovableColumn | undefined
+  readonly column: { readonly from: string, readonly to: MovableColumn } | undefined
   readonly label: LabelValue | undefined
   readonly reason: string
+}
+
+/**
+列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync と pr create の data が使う
+*/
+export const BOARD_MOVE_JSON = z.strictObject({
+  issue: z.string().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
+  from: z.string().optional().describe('Column before the move (omitted when only the Status changed)'),
+  to: z.string().optional().describe('Column after the move (omitted when only the Status changed)'),
+  label: z.string().optional().describe('Status value set (omitted when the Status did not change)'),
+  reason: z.string().describe('Readiness that decided the move'),
+})
+
+export function moveJson({ issue, column, label, reason }: Readonly<BoardMoveLine>): z.input<typeof BOARD_MOVE_JSON> {
+  return {
+    issue,
+    ...column !== undefined && { from: column.from, to: column.to },
+    ...label !== undefined && { label },
+    reason,
+  }
 }
 
 export interface AppliedMove {
@@ -189,12 +210,12 @@ export async function applyBoardMove(
 ): Promise<AppliedMove> {
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
-  let moved: MovableColumn | undefined
+  let column: BoardMoveLine['column']
   let label: LabelValue | undefined
   let hasFailed = false
   try {
     if (move.column !== undefined && await setIssueField(client, config, itemId, 'workflow', COLUMN_CONFIG_KEYS[move.column.to])) {
-      moved = move.column.to
+      column = { from: move.column.from, to: move.column.to }
       out.done(moveOperation(name, move.column, text))
     }
     if (move.label !== undefined && await setIssueField(client, config, itemId, 'status', LABEL_CONFIG_KEYS[move.label])) {
@@ -207,8 +228,8 @@ export async function applyBoardMove(
     out.warning(`could not move ${name}: ${error.message}`)
     hasFailed = true
   }
-  const written = moved === undefined && label === undefined ? undefined : { issue: name, from: moved === undefined ? undefined : move.column?.from, to: moved, label, reason: text }
-  return { column: moved, missing: move.missing, hasFailed, written }
+  const written = column === undefined && label === undefined ? undefined : { issue: name, column, label, reason: text }
+  return { column: column?.to, missing: move.missing, hasFailed, written }
 }
 
 /**
@@ -219,5 +240,6 @@ export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: R
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
   if (move.column !== undefined) out.planned(moveOperation(name, move.column, text))
   if (move.label !== undefined) out.planned(labelOperation(name, move.label))
-  return move.column === undefined && move.label === undefined ? undefined : { issue: name, from: move.column?.from, to: move.column?.to, label: move.label, reason: text }
+  const column = move.column === undefined ? undefined : { from: move.column.from, to: move.column.to }
+  return column === undefined && move.label === undefined ? undefined : { issue: name, column, label: move.label, reason: text }
 }

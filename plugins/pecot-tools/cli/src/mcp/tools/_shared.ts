@@ -128,7 +128,7 @@ const TRUNCATION_MESSAGE
 /**
 data.log が上限で切り詰められたときに message へ足す注記。
 */
-const STDERR_TRUNCATION_NOTE = '(data.log exceeded the limit, so only the beginning is included)'
+const LOG_TRUNCATION_NOTE = '(data.log exceeded the limit, so only the beginning is included)'
 
 /**
 実行前に拒否したときの理由。awscli は起動しない。
@@ -297,7 +297,7 @@ export async function executeAllowlisted(
       data: limitedStderr.text === '' ? {} : { log: limitedStderr.text },
       artifacts: [],
       message: failureMessage(entry.toolName, kind)
-        + (limitedStderr.truncated ? STDERR_TRUNCATION_NOTE : ''),
+        + (limitedStderr.truncated ? LOG_TRUNCATION_NOTE : ''),
     }
   }
 

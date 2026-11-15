@@ -11,7 +11,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation } from './output.js'
 import { requireRepositoryMatch } from './repository-match.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
@@ -21,7 +21,7 @@ const BRANCH_DELETE_OUTPUT = z.strictObject({
   repository: z.string().describe('Repository of the branch (owner/repo)'),
   deleted: z.boolean().describe('Whether the remote branch was deleted (false on dry_run)'),
   wipBranch: z.string().optional().describe('Name of the wip branch that was deleted along with it (omitted when there was none or it could not be deleted)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was deleted)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const branchDeleteCommand = defineCommand({
@@ -82,7 +82,7 @@ const branchDeleteCommand = defineCommand({
     const operation: Operation = { verb: 'delete', target: `remote branch ${input.branch} in ${owner}/${repository}` }
     if (input.dry_run) {
       out.planned(operation)
-      out.result({ branch: input.branch, repository: `${owner}/${repository}`, deleted: false, dryRun: true })
+      out.result({ branch: input.branch, repository: `${owner}/${repository}`, deleted: false })
       return 0
     }
 

@@ -17,8 +17,8 @@ import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
-import { blockedByReadCount, createReadinessCache, judgeSnapshot, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
-import type { IssueSnapshot, JudgedIssue } from './issue-readiness.js'
+import { blockedByReadCount, createReadinessCache, judgeSnapshot, READINESS_JSON, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
+import type { IssueSnapshot, JudgedIssue, ReadinessJson } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 
@@ -77,19 +77,6 @@ const PREREQUISITE_JSON = z.strictObject({
   reason: z.string().nullable().describe('Reason written in the Waits for merge section (null when none)'),
 })
 
-const STACK_ON_JSON = z.strictObject({
-  number: z.int().describe('Issue number to stack on'),
-  repository: z.string().describe('Repository of that Issue (owner/repo)'),
-  branch: z.string().describe('Branch to stack on'),
-})
-
-const READINESS_JSON = z.strictObject({
-  kind: z.enum(['startable', 'stackable', 'blocked']).describe('Readiness judgment'),
-  stackOn: STACK_ON_JSON.nullable().describe('Prerequisite to stack on (null unless stackable)'),
-  reason: z.string().nullable().describe('Code of the reason for blocked (null unless blocked)'),
-  text: z.string().describe('Readiness as shown in the Readiness line'),
-})
-
 const COMMENT_JSON = z.strictObject({
   author: z.string().describe('Login of the author (ghost when deleted)'),
   created_at: z.string().describe('Creation time (ISO 8601)'),
@@ -143,7 +130,7 @@ type PrerequisiteJson = z.input<typeof PREREQUISITE_JSON>
 interface ReadinessView {
   readonly lines: readonly string[]
   readonly blockedBy: readonly Readonly<PrerequisiteJson>[] | typeof JSON_NULL
-  readonly readiness: Readonly<z.input<typeof READINESS_JSON>> | typeof JSON_NULL
+  readonly readiness: Readonly<ReadinessJson> | typeof JSON_NULL
 }
 
 // 前提と判定を読めなかったとき
@@ -175,8 +162,7 @@ function readinessView(source: Readonly<PrerequisiteSource>, readiness: Readines
   return {
     lines,
     blockedBy: entries.map(entry => ({ number: entry.ref.number, repository: repositoryFullName(entry.ref.repository), state: entry.state, wait: entry.wait, reason: entry.reason ?? JSON_NULL })),
-    // 形は board show と共有の readinessJson が決める。型の付いた値にするため schema で読み直す
-    readiness: readiness === undefined || text === undefined ? JSON_NULL : READINESS_JSON.parse(readinessJson(readiness, text)),
+    readiness: readiness === undefined || text === undefined ? JSON_NULL : readinessJson(readiness, text),
   }
 }
 

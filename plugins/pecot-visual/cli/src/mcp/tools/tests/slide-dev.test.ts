@@ -1032,6 +1032,27 @@ describe('slideDevTool', () => {
     expect(String(dataOf(result)['detail'])).toContain('see data.log')
   })
 
+  it('起動に失敗した子の出力が上限を超えても、早く出た warning を data.warnings に残す', async () => {
+    let current: FakeChild | undefined
+    const registry = createDevServerRegistry(makeDependencies({
+      spawn: () => {
+        current = makeFakeChild(558)
+        return current.child
+      },
+      probe: () => {
+        current?.writeStderr('warning: early from vite\n')
+        current?.writeStderr(`${'x'.repeat(128 * 1024)}\n`)
+        current?.exit()
+        return Promise.resolve(false)
+      },
+    }))
+
+    const result = await toolWith(registry).handler({ dir: talkDirectory, stop: false }, CALL)
+
+    expect(String(dataOf(result)['log']).includes('early from vite')).toBe(false)
+    expect(dataOf(result)['warnings']).toEqual(['early from vite'])
+  })
+
   it('実行時依存を失っていても stop は通る', async () => {
     // 止めるのに @slidev/cli は要らない。ガードを停止の前に置くと、起動後に依存を失った
     // 環境で「動いているサーバを止められない」行き止まりになる。

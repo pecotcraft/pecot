@@ -37,12 +37,13 @@ git branch
 
 > **ブランチモードについて**: 以下で「開発ブランチ」と表記する箇所は config 由来で
 > 決まる。2ブランチモードでは `develop-aist`、単一ブランチモード（`develop` == `release` /
-> trunk-based）では `main`。`pr_check` の結果の `data.baseBranch` の
-> ブランチを使えば、どちらのモードでも正しい開発ブランチに揃う。
+> trunk-based）では `main`。`pr_check` の結果の `data.baseBranch` から
+> 先頭の remote の名前と `/` を除いたブランチ（`origin/main` なら `main`）を使えば、
+> どちらのモードでも正しい開発ブランチに揃う。
 
 ### 通常環境（ワークツリー未使用）
 
-デフォルトブランチ（`pr_check` の結果の `data.baseBranch` のブランチ）に切り替え:
+デフォルトブランチ（`pr_check` の結果の `data.baseBranch` から、先頭の remote の名前と `/` を除いたブランチ。`origin/main` なら `main`）に切り替え:
 
 ```bash
 # デフォルトブランチに切り替え（開発ブランチ または main）

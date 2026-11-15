@@ -424,6 +424,20 @@ describe('board sync', () => {
       const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02'), rateLimit(130)])
       expect(result.structured.data).toEqual({ moves: [], deletedArchived: 2 })
     })
+
+    it('Archived の削除が一部で失敗すると、削除できた件数と warning を data に残して失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      await verifies(context, 'PW-COMMON-19')
+      const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01', 500), deletion('PVTI_a02'), rateLimit(130)])
+      expect(result.structured).toMatchObject({ ok: false, exitCode: 1, kind: 'partial-failure' })
+      expect(result.structured.data).toEqual({
+        moves: [],
+        deletedArchived: 1,
+        reason: 'partial-failure',
+        detail: 'could not delete 1 archived item from the board',
+        warnings: ['failed to delete 1 archived items'],
+      })
+    })
   })
 })
 
@@ -446,6 +460,12 @@ describe('board move', () => {
     it('Status を設定すると、その Issue と Status を返す', async () => {
       const result = await tool('board_move', { issue_ref: 'acme/demo/7', status: 'in_review' }, [linkedRepositories(), boardItems(), fieldUpdated('o5')])
       expect(result.structured.data).toEqual({ issue: 'acme/demo/7', status: 'in_review' })
+    })
+
+    it('dry_run で呼ぶと、設定する予定の Status と dryRun を返し、フィールドを書かない', async () => {
+      const result = await tool('board_move', { issue_ref: 'acme/demo/7', status: 'in_review', dry_run: true }, [linkedRepositories(), boardItems()])
+      expect(result.structured.data).toEqual({ issue: 'acme/demo/7', status: 'in_review', dryRun: true })
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
     })
   })
 })

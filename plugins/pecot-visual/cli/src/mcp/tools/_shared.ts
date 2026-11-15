@@ -23,7 +23,8 @@ import {
 } from '../../infra/playwright/chromium.js'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 
-import { createOutputCapture, toCallToolResult, truncateCapturedText, type ToolResult } from '../result.js'
+import { createOutputCapture, joinCapturedText, toCallToolResult, type ToolResult } from '../result.js'
+import { warningsOf } from '../warnings.js'
 import { toPosixPath } from '../windows-path.js'
 
 /**
@@ -38,7 +39,10 @@ export const WINDOWS_PATH_NOTE
   = String.raw`Windows-style paths (C:\... / \\wsl.localhost\<distro>\...) are accepted and `
     + 'converted to an absolute path under /mnt/<drive>/ or inside WSL.'
 
-const WARNINGS_SCHEMA = z.array(z.string()).optional().describe('Warnings raised during the run (omitted when there are none)')
+const WARNINGS_SCHEMA = z.array(z.string()).optional().describe(
+  'Warnings raised during the run (omitted when there are none). '
+  + 'Beyond 100 warnings or 64KB, the last item tells how many were omitted',
+)
 
 /**
 data はツールごとに形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
@@ -47,7 +51,9 @@ const DATA_SCHEMA = z.looseObject({
   warnings: WARNINGS_SCHEMA,
   reason: z.string().optional().describe('Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas'),
   detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
-  log: z.string().optional().describe('Raw output of the command or child process, with the beginning truncated over 64KB (failure only)'),
+  log: z.string().optional().describe(
+    'Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation',
+  ),
 }).describe('Object with the details of the run')
 
 /**
@@ -63,36 +69,12 @@ export const TOOL_OUTPUT_SCHEMA = z.object({
 })
 
 /**
-捕捉した stdout / stderr の文字列。
+捕捉した stdout / stderr の文字列。warnings を省くと stderr から取る。
 */
 export interface CapturedText {
   readonly stdout: string
   readonly stderr: string
-}
-
-const WARNING_PREFIX = 'warning: '
-
-/**
-diagnostics の `warning: ` の行を文の配列にする。続きの行 (先頭に空白 2 つ) は同じ文に含める。
-*/
-export function warningsOf(stderr: string): string[] {
-  const warnings: string[] = []
-  let current: string[] | undefined
-  for (const line of stderr.split('\n')) {
-    if (line.startsWith(WARNING_PREFIX)) {
-      if (current !== undefined) warnings.push(current.join('\n'))
-      current = [line.slice(WARNING_PREFIX.length)]
-    }
-    else if (current !== undefined && line.startsWith('  ')) {
-      current.push(line.slice(2))
-    }
-    else if (current !== undefined) {
-      warnings.push(current.join('\n'))
-      current = undefined
-    }
-  }
-  if (current !== undefined) warnings.push(current.join('\n'))
-  return warnings
+  readonly warnings?: readonly string[]
 }
 
 function stringArrayOf(value: unknown): readonly string[] {
@@ -100,13 +82,13 @@ function stringArrayOf(value: unknown): readonly string[] {
 }
 
 /**
-捕捉した出力を ToolResult の data へ移す。warning の行は data.warnings へ (既にある文と重ねて重複を除く)、
+捕捉した出力を ToolResult の data へ移す。warning の文は data.warnings へ (既にある文と重ねて重複を除く)、
 失敗のときは出力の全体を data.log へ入れる。
 */
 export function withCapturedOutput(result: Readonly<ToolResult>, captured: Readonly<CapturedText>): ToolResult {
   const existing = stringArrayOf(result.data['warnings'])
-  const warnings = [...new Set([...existing, ...warningsOf(captured.stderr)])]
-  const log = result.ok ? '' : truncateCapturedText([captured.stdout, captured.stderr].filter(text => text !== '').join('\n'))
+  const warnings = [...new Set([...existing, ...(captured.warnings ?? warningsOf(captured.stderr))])]
+  const log = result.ok ? '' : joinCapturedText([captured.stdout, captured.stderr])
   return {
     ...result,
     data: {
@@ -142,16 +124,16 @@ export function captureCommandOutput(): CommandOutput {
   return {
     stdout: stdout.stream,
     stderr: stderr.stream,
-    finish: result => toCallToolResult(withCapturedOutput(result, { stdout: stdout.text(), stderr: stderr.text() })),
-    warnings: () => [...new Set(warningsOf(stderr.text()))],
+    finish: result => toCallToolResult(withCapturedOutput(result, { stdout: stdout.text(), stderr: stderr.text(), warnings: stderr.warnings() })),
+    warnings: () => stderr.warnings(),
   }
 }
 
 /**
-子プロセスの出力を result の data へ移す。Writable を通さない出力にも同じ上限をかける。
+子プロセスの出力を result の data へ移す。warning は切り詰める前の stderr の全体から取る。
 */
 export function withSpawnOutput(result: Readonly<ToolResult>, spawned: Readonly<SpawnResult>): ToolResult {
-  return withCapturedOutput(result, { stdout: truncateCapturedText(spawned.stdout), stderr: truncateCapturedText(spawned.stderr) })
+  return withCapturedOutput(result, { stdout: spawned.stdout, stderr: spawned.stderr })
 }
 
 /**

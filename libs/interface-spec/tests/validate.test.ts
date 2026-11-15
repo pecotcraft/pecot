@@ -113,12 +113,12 @@ describe('validateRepository', () => {
     }
 
     // PT-AWS-S3-LS の mcp.output に data を足し、authored.yaml の entry の diagnostics の前に mcp_output を足す
-    async function withMcpOutput(mcpOutput: string, entry = 'PT-AWS-S3-LS'): Promise<string> {
+    async function withMcpOutput(mcpOutput: string, entry = 'PT-AWS-S3-LS', data: object = LS_DATA): Promise<string> {
       const root = await materialize('valid')
       const generatedFile = path.join(root, PT, 'generated.json')
       const generated = generatedFileSchema.parse(JSON.parse(await readFile(generatedFile, 'utf8')))
       const entries = generated.entries.map(item => item.id === 'PT-AWS-S3-LS' && item.mcp?.output !== undefined
-        ? { ...item, mcp: { ...item.mcp, output: { ...item.mcp.output, properties: { ...item.mcp.output.properties, data: LS_DATA } } } }
+        ? { ...item, mcp: { ...item.mcp, output: { ...item.mcp.output, properties: { ...item.mcp.output.properties, data } } } }
         : item)
       expect(entries).not.toEqual(generated.entries)
       await writeFile(generatedFile, JSON.stringify({ ...generated, entries }))
@@ -144,14 +144,22 @@ describe('validateRepository', () => {
     })
 
     it('MCP の面を持たない項目に書くと、消すよう報告する', async () => {
-      const root = await withMcpOutput('    mcp_output:\n      data:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE')
+      const root = await withMcpOutput('    mcp_output:\n      data:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE', { anyOf: [{ type: 'object', properties: { lines: { type: 'array' } } }] })
       expect(await validateRepository(root)).toEqual([
         `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)`,
       ])
     })
 
-    it('mcp_output を書いていない項目は、data のキーを比べない', async () => {
+    it('成功の data が閉じた型の項目が mcp_output を書いていないと、書くよう報告する', async () => {
       const root = await withMcpOutput('')
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (the success data in mcp.output is a closed type; write each data field, or an empty data when it returns none)`,
+      ])
+    })
+
+    it('成功の data が閉じていない型の項目は、mcp_output を書かなくてよい', async () => {
+      const open = { anyOf: [{ type: 'object', properties: { lines: { type: 'array' } } }] }
+      const root = await withMcpOutput('', 'PT-AWS-S3-LS', open)
       expect(await validateRepository(root)).toEqual([])
     })
   })

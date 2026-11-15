@@ -54,6 +54,11 @@ export interface Operation {
 }
 
 /**
+dry_run を持つコマンドの output の dryRun。値は createOutput の result が入れる
+*/
+export const DRY_RUN_FIELD = z.literal(true).optional().describe('true on dry_run (nothing was changed)')
+
+/**
 D は MCP の成功の data の型（コマンドの output の z.input）。CLI では result と artifact は何も出さない
 */
 export interface Output<D extends object = Record<string, unknown>> {
@@ -79,7 +84,8 @@ export interface Output<D extends object = Record<string, unknown>> {
   */
   readonly data: (text: string) => void
   /**
-  MCP の成功の data に項目を渡す。何度も呼べば浅く重なる（後の値が勝つ）ので、配列は組み終えてから 1 回だけ渡す
+  MCP の成功の data に項目を渡す。何度も呼べば浅く重なる（後の値が勝つ）ので、配列は組み終えてから 1 回だけ渡す。
+  dry-run のときは dryRun: true を重ねるので、output に DRY_RUN_FIELD を置く
   */
   // 補助の関数が Output（既定の D）で受け取れるよう、メソッドの形で書く（引数の型の比べ方が双変になる）
   result(fields: Readonly<Partial<D>>): void
@@ -90,11 +96,16 @@ export interface Output<D extends object = Record<string, unknown>> {
 }
 
 /**
+warning の行の前置き。MCP の側はこれで stderr から warning の文を拾う
+*/
+export const WARNING_PREFIX = 'warning: '
+
+/**
 末尾の改行を取り除き、2 行目以降の先頭に空白 2 つを付け、末尾に改行を 1 つ付ける
 */
 function formatMessage(prefix: string, message: string): string {
   const lines = message.replace(/\n+$/, '').split('\n')
-  return `${prefix}: ${lines.join('\n  ')}\n`
+  return `${prefix}${lines.join('\n  ')}\n`
 }
 
 export function createOutput<D extends object = Record<string, unknown>>(isDryRun: boolean, io: CommandIo): Output<D> {
@@ -115,11 +126,11 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
     },
     warning: (message) => {
       const text = render(message)
-      io.stderr(formatMessage('warning', text))
+      io.stderr(formatMessage(WARNING_PREFIX, text))
       io.warning?.(text.replace(/\n+$/, ''))
     },
     error: (message) => {
-      io.stderr(formatMessage('error', render(message)))
+      io.stderr(formatMessage('error: ', render(message)))
     },
     count: (label, value) => {
       io.stderr(`count: ${label}: ${value === undefined ? 'unknown' : String(value)}\n`)
@@ -128,7 +139,7 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
       io.stdout(text.endsWith('\n') ? text : `${text}\n`)
     },
     result(fields) {
-      io.data?.(fields)
+      io.data?.(isDryRun ? { ...fields, dryRun: true } : fields)
     },
     artifact(file) {
       io.artifact?.(path.resolve(file))

@@ -127,7 +127,7 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 
 ## 版を固定する
 
-雛形は `npx -y --prefix=/ @pecot/workflow-mcp@6 board sync` を打ち、major の最新に追従します。`@6.0.0` のように書くと、版を固定できます。
+雛形は `npx -y --prefix=/ @pecot/workflow-mcp@7 board sync` を打ち、major の最新に追従します。`@7.0.0` のように書くと、版を固定できます。
 
 ## 試す
 

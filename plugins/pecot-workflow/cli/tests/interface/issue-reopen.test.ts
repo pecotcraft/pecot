@@ -4,10 +4,9 @@ import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ISSUE_REOPEN_COMMANDS } from '../../src/commands/issue-reopen.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { CliResult } from '../_helpers/interface-case.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
@@ -30,13 +29,7 @@ const COMMENT = 'POST /repos/acme/demo/issues/7/comments'
 
 async function reopenTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
   useFakeDelays()
-  const connected = await connectInMemory(createMcpServer(ISSUE_REOPEN_COMMANDS))
-  try {
-    return structuredOf(await settleWithFakeDelays(connected.client.callTool({ name: 'issue_reopen', arguments: { ...argumentsOfTool } })))
-  }
-  finally {
-    await connected.close()
-  }
+  return await callToolOnce(ISSUE_REOPEN_COMMANDS, 'issue_reopen', argumentsOfTool, settleWithFakeDelays)
 }
 
 describe('issue reopen', () => {

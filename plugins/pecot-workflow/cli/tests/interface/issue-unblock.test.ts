@@ -4,10 +4,9 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { requestLabels } from '../_helpers/command-harness.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
@@ -31,13 +30,7 @@ function writes(github: Readonly<RunningGithub>): readonly string[] {
 }
 
 async function unblockTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
-  const connected = await connectInMemory(createMcpServer(ISSUE_DEPENDENCY_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'issue_unblock', arguments: { ...argumentsOfTool } }))
-  }
-  finally {
-    await connected.close()
-  }
+  return await callToolOnce(ISSUE_DEPENDENCY_COMMANDS, 'issue_unblock', argumentsOfTool)
 }
 
 describe('issue unblock', () => {

@@ -5,7 +5,6 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { writeTree } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
@@ -36,7 +35,7 @@ import {
   TASK_FRONTMATTER,
   updatedFields,
 } from '../_helpers/issue-create-case.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { IssueSpec } from '../_helpers/prerequisites.js'
@@ -93,13 +92,7 @@ const OPEN_PREREQUISITE: IssueSpec = { number: 12, state: 'OPEN' }
 const TASK_WITH_PARENT = { ...TASK_FRONTMATTER, parent_epic: 'acme/demo/3', order: '3' }
 
 async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
-  const connected = await connectInMemory(createMcpServer(ISSUE_CREATE_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'issue_create', arguments: { ...argumentsOfTool } }))
-  }
-  finally {
-    await connected.close()
-  }
+  return await callToolOnce(ISSUE_CREATE_COMMANDS, 'issue_create', argumentsOfTool)
 }
 
 describe('issue create', () => {

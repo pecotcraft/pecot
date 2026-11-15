@@ -116,12 +116,17 @@ code-scanning open alerts: #28 #29
 
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
-- `session_finish` の結果の `data.closedIssues` が空（Issue未紐付けPR）
-- `data.closedIssues` のIssueを `issue_show` で読んだ結果の `data.parent` が null（独立タスク、フォローアップ修正等）
+- 対象のIssue（4.1）が 1 件も無い（Issue未紐付けPR）
+- 対象のIssue（4.1）を `issue_show` で読んだ結果の `data.parent` が null（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-`session_finish` の結果の `data.closedIssues`（閉じた Issue の番号の配列）からIssue番号を取得し、Issueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
+対象のIssueは、`session_finish` の結果の次の 2 つとする。
+
+- `data.closedIssues`（閉じた Issue の番号の配列）の番号
+- `data.skippedIssues` のうち、`reason` が `already-closed` の要素の `number`（既に閉じていた Issue）
+
+その番号からIssueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
 
 - 結果の `data.parent.number` から親EpicのIssue番号を取得 → `data.parent` が null なら **Step 4-5 をスキップ**
 

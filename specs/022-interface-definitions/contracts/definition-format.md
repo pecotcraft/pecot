@@ -194,7 +194,7 @@ MCP ツールの成功の結果の `data` の項目と、`artifacts` に返す�
 | `data` のキー | `mcp.output` の `data` の成功側（`reason` を必須にしない枝）の `properties` から `warnings` を除いたものと、同じ集まりにする。成功側が `additionalProperties: false` のときだけ比べる |
 | `data` の値 | 項目ごとの説明の文。言語は `prose` に従う |
 | `artifacts` | ファイルを返すツールだけに書く |
-| 省いたとき | キーを比べない。成功の `data` に返す中身が無いツールは、省いてよい |
+| 省いたとき | 成功の側が `additionalProperties: false` の項目は、省くと `error` になる（返す中身が無いときは `data: {}` と書く）。閉じていない項目は、省いてよく、キーを比べない |
 
 全ツールに共通の `data` の項目（`warnings`・`reason`・`detail`・`log`）は、`mcp_output` に書かない。
 
@@ -257,6 +257,7 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | YAML の構文 | `error: <file>:17: map keys must be unique`。JSON の構文も、位置が分かるときは `error: <file>:3: is not valid JSON`（位置が無いときは行番号なし）。alias の展開で読めない YAML は行番号なしで止める |
 | `mcp_output.data` のキーが足りない | `error: <file>: PW-SESSION-START: mcp_output.data: is missing "branch" (present in mcp.output)` |
 | `mcp_output.data` のキーが余る | `error: <file>: PW-SESSION-START: mcp_output.data: has "branchName" not in mcp.output (remove it)` |
+| `mcp_output` の書き忘れ | `error: <file>: PW-SESSION-START: mcp_output: is missing (the success data in mcp.output is a closed type; write each data field, or an empty data when it returns none)` |
 | MCP の面の無い項目の `mcp_output` | `error: <file>: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)` |
 | 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
 | 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: x: unknown validation issue (not_multiple_of): Invalid number: must be a multiple of 5` |

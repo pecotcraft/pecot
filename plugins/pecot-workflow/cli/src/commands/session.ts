@@ -23,7 +23,8 @@ import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
-import { createOutput } from './output.js'
+import { issuePath } from './issue-shared.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { SESSION_FINISH_COMMANDS } from './session-finish.js'
 import { SESSION_START_COMMANDS } from './session-start.js'
@@ -267,7 +268,7 @@ function parseTarget(issue: string, output: Output): RestoreTarget {
 const SESSION_RESTORE_OUTPUT = z.strictObject({
   issue: z.string().describe('Work Issue recorded (owner/repo/N)'),
   workDirectory: z.string().optional().describe('Absolute path of the work directory (omitted on dry_run or when it could not be created)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was recorded)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const SESSION_RESTORE = defineCommand({
@@ -293,9 +294,9 @@ const SESSION_RESTORE = defineCommand({
       if (!(error instanceof ConfigError)) throw error
       return stopWith(output, error.message, 'config-invalid', FAILURE_EXIT_CODE)
     }
-    const issue = `${target.owner}/${target.repository}/${String(target.number)}`
+    const issue = issuePath(target.owner, target.repository, target.number)
     if (input.dry_run) {
-      output.result({ issue, dryRun: true })
+      output.result({ issue })
       planWorkTarget(output, target.owner, target.repository, target.number)
       return 0
     }

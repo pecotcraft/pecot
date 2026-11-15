@@ -22,8 +22,7 @@ import type { PrOptions } from '../_helpers/tracker-sync-dependabot-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
-import { createMcpServer } from '../../src/mcp/server.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -494,6 +493,23 @@ describe('tracker sync', () => {
       const data = await syncTool(listings([pullRequest({ number: 2, ...MAJOR })]), { dry_run: true })
       expect(data).toEqual({ source: 'dependabot', created: true, added: [PR_2], removed: [], closed: false, dryRun: true })
     })
+
+    it('表を書き直した後で Tracker を閉じられないと、外した PR を data に残し、closed を false にして失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      const rules = [...listings([], withOthers(TRACKER_WITH_OLD_ROW)), patched(9, { body: trackerBody([]) }), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9', body: { state: 'closed' } })]
+      const data = await syncTool(rules)
+      expect(data).toEqual({
+        source: 'dependabot',
+        tracker: 9,
+        created: false,
+        added: [],
+        removed: [{ kind: 'pull-request', number: 1 }],
+        closed: false,
+        reason: 'partial-failure',
+        detail: 'could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500',
+        warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'],
+      })
+    })
   })
 })
 
@@ -501,11 +517,6 @@ describe('tracker sync', () => {
 async function syncTool(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}): Promise<Record<string, unknown>> {
   prepareSync()
   await startGithub(rules)
-  const connected = await connectInMemory(createMcpServer(TRACKER_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'tracker_sync', arguments: { source: 'dependabot', ...arguments_ } })).data
-  }
-  finally {
-    await connected.close()
-  }
+  const { data } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', ...arguments_ })
+  return data
 }

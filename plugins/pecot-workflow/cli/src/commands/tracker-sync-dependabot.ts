@@ -185,7 +185,7 @@ export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: C
   const rows = rowsOf(plan, number)
   const synced: Pick<TrackerSyncData, 'source' | 'tracker'> = { source: 'dependabot', ...number !== undefined && { tracker: number } }
   if (input.dry_run) {
-    out.result({ ...synced, created: number === undefined && plan.create, ...rows, closed: plan.close, dryRun: true })
+    out.result({ ...synced, created: number === undefined && plan.create, ...rows, closed: plan.close })
     return 0
   }
   out.result({ ...synced, created: false, added: [], removed: [], closed: false })

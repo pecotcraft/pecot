@@ -135,4 +135,20 @@ describe('detailOf', () => {
     expect(detailOf('warning: w\n╭ Usage ╮\n│ x │\n', 'm')).toBe('╭ Usage ╮\n│ x │')
     expect(detailOf('warning: w\n', 'm')).toBe('m')
   })
+
+  it('error の行の前に結果の行があると、error の行から後だけを返す', () => {
+    expect(detailOf('created: issue #12\nadded: issue #12 to the board\nerror: cannot set the status\n', 'm')).toBe('cannot set the status')
+  })
+
+  it('error の行の後に片付けの行があると、片付けの行も返す', () => {
+    expect(detailOf('error: push failed\nremoved: worktree /w/a\n', 'm')).toBe('push failed\nremoved: worktree /w/a')
+  })
+
+  it('error の続きに hint の行があると、字下げを保って返す', () => {
+    expect(detailOf('error: not ready\n  hint: run pecot board show\n', 'm')).toBe('not ready\n  hint: run pecot board show')
+  })
+
+  it('warning が error の行の間に挟まると、warning とその続きの行だけを除く', () => {
+    expect(detailOf('error: first\nwarning: slow API\n  retrying\nerror: second\n', 'm')).toBe('first\nerror: second')
+  })
 })

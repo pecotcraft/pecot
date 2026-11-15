@@ -552,7 +552,7 @@ describe('振る舞いの項目のつなぎ', () => {
 
   it('共通の項目の ID が、すべて vitest の verifies につながる', () => {
     const common = authored.common_behaviors.map(behavior => behavior.id)
-    expect(common).toHaveLength(17)
+    expect(common).toHaveLength(20)
     expect(missingIds(common, collectVerifiedIds(root, include))).toStrictEqual([])
   })
 })

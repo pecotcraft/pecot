@@ -10,42 +10,23 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GraphqlRateLimit } from '../infra/github/repos.js'
 import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
 import type { BoardContext } from './board-judgment.js'
+import { BOARD_MOVE_JSON, moveJson } from './issue-board.js'
 import type { BoardMoveLine } from './issue-board.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, placeholder } from './command-hint.js'
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
 import { makeClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { pruneArchivedItems, readBoard } from './board-view.js'
 import type { BoardRead } from './board-view.js'
 import { failApi } from './project-sync.js'
 
-/**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync と pr create の data が使う
-*/
-export const BOARD_MOVE_JSON = z.strictObject({
-  issue: z.string().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-  from: z.string().optional().describe('Column before the move (omitted when only the Status changed)'),
-  to: z.string().optional().describe('Column after the move (omitted when only the Status changed)'),
-  label: z.string().optional().describe('Status value set (omitted when the Status did not change)'),
-  reason: z.string().describe('Readiness that decided the move'),
-})
-
-export function moveJson(move: Readonly<BoardMoveLine>): z.input<typeof BOARD_MOVE_JSON> {
-  return {
-    issue: move.issue,
-    ...move.from !== undefined && move.to !== undefined && { from: move.from, to: move.to },
-    ...move.label !== undefined && { label: move.label },
-    reason: move.reason,
-  }
-}
-
 const BOARD_SYNC_OUTPUT = z.strictObject({
   moves: z.array(BOARD_MOVE_JSON).describe('Issues whose column or Status was written (on dry_run, would be written)'),
   deletedArchived: z.int().describe('Number of Archived items deleted from the board (on dry_run, to be deleted)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 function unsupportedWarning(out: Readonly<Output>): void {
@@ -134,7 +115,7 @@ const boardSyncCommand = defineCommand({
     const { failures, moves } = read.isLegacy ? { failures: 0, moves: [] } : await syncBoard({ out, client, config, home: homeRepositoryOf(config) }, read, input.dry_run)
     const pruned = await pruneArchivedItems(out, client, config, read.allItems, input.dry_run)
     const pruneFailures = pruned.failed
-    out.result({ moves: moves.map(move => moveJson(move)), deletedArchived: pruned.deleted, ...input.dry_run && { dryRun: true } })
+    out.result({ moves: moves.map(move => moveJson(move)), deletedArchived: pruned.deleted })
     reportPoints(out, before, await client.getGraphqlRateLimit())
     if (failures === 0 && pruneFailures === 0) return 0
     if (failures > 0) out.error(failureMessage(failures))

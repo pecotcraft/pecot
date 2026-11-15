@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { TRACKER_COMMANDS } from '../../src/commands/tracker.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
-import { createMcpServer } from '../../src/mcp/server.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import {
@@ -668,16 +667,29 @@ describe('tracker sync', () => {
       const data = await syncTool({ dry_run: true })
       expect(data).toEqual({ source: 'security', created: true, added: [{ kind: 'dependabot', number: 1 }, { kind: 'code-scanning', number: 10 }], removed: [], closed: false, dryRun: true })
     })
+
+    it('Tracker を作った後にボードへの追加が失敗すると、作った Tracker と足した alert を data に残して失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      freezeClock()
+      prepareSync()
+      const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
+      const data = await syncTool()
+      expect(data).toEqual({
+        source: 'security',
+        tracker: 12,
+        created: true,
+        added: [{ kind: 'dependabot', number: 1 }],
+        removed: [],
+        closed: false,
+        reason: 'partial-failure',
+        detail: `Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}`,
+      })
+    })
   })
 })
 
 // tracker_sync を source: security で、同じプロセスの中のクライアントから 1 回呼び、data を返す
 async function syncTool(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Record<string, unknown>> {
-  const connected = await connectInMemory(createMcpServer(TRACKER_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'tracker_sync', arguments: { source: 'security', ...arguments_ } })).data
-  }
-  finally {
-    await connected.close()
-  }
+  const { data } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'security', ...arguments_ })
+  return data
 }

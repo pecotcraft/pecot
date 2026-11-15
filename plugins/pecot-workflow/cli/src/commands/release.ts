@@ -28,7 +28,8 @@ import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './co
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient, makeClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { issuePath } from './issue-shared.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -289,7 +290,7 @@ const RELEASE_CREATE_OUTPUT = z.strictObject({
   tag: z.string().describe('Tag of the release'),
   url: z.string().optional().describe('URL of the created release (omitted on dry_run)'),
   releaseNotes: z.string().describe('Release notes from the CHANGELOG'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const releaseCreateCommand = defineCommand({
@@ -335,7 +336,7 @@ const releaseCreateCommand = defineCommand({
 
     if (input.dry_run) {
       out.planned(operation)
-      out.result({ tag: tagName, releaseNotes, dryRun: true })
+      out.result({ tag: tagName, releaseNotes })
       out.data(releaseNotes)
       return 0
     }
@@ -361,7 +362,7 @@ const RELEASE_MERGE_OUTPUT = z.strictObject({
   head: z.string().describe('Head branch of the PR'),
   base: z.string().describe('Base branch of the PR (the release branch)'),
   deletedBranch: z.boolean().describe('Whether the remote head branch was deleted (false without delete_branch, on dry_run, or when the deletion failed)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was merged)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const releaseMergeCommand = defineCommand({
@@ -392,7 +393,7 @@ const releaseMergeCommand = defineCommand({
     }
     const { owner, repository } = reference.repository
     const number = reference.number
-    const pullRequestName = `${owner}/${repository}/${String(number)}`
+    const pullRequestName = issuePath(owner, repository, number)
 
     let client
     let pullRequest
@@ -421,7 +422,7 @@ const releaseMergeCommand = defineCommand({
     const merged = { pullRequest: pullRequestName, head: headBranch, base: pullRequest.base_ref, deletedBranch: false }
     if (input.dry_run) {
       out.planned(operation)
-      out.result({ ...merged, dryRun: true })
+      out.result(merged)
       return 0
     }
 

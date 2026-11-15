@@ -5,9 +5,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
@@ -29,13 +28,7 @@ function stateFile(session: Readonly<SessionCase>, name: string): string {
 const SET_LINE = (number: number): string => `set: work target acme/demo/${String(number)} (work directory .pecot/work/${String(number)}/)\n`
 
 async function restoreTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
-  const connected = await connectInMemory(createMcpServer(SESSION_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'session_restore', arguments: { ...argumentsOfTool } }))
-  }
-  finally {
-    await connected.close()
-  }
+  return await callToolOnce(SESSION_COMMANDS, 'session_restore', argumentsOfTool)
 }
 
 describe('session restore', () => {

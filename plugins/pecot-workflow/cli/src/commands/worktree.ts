@@ -33,7 +33,7 @@ import {
   WorktreeConfigError,
 } from '../infra/worktree-links.js'
 import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-links.js'
-import { createOutput, isConfirmed } from './output.js'
+import { createOutput, DRY_RUN_FIELD, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import { commandHint, hinted, hintedTextOf, inputHint, placeholder } from './command-hint.js'
@@ -51,10 +51,6 @@ function lenientRealPath(value: string): string {
     if (!hasErrorCode(error)) throw error
     return path.resolve(value)
   }
-}
-
-function dryRunMark(isDryRun: boolean): { dryRun?: true } {
-  return isDryRun ? { dryRun: true } : {}
 }
 
 const dryRunInput = z.boolean().default(false).describe('Show what would happen without changing anything')
@@ -100,7 +96,7 @@ const ADD_OUTPUT = z.strictObject({
   branch: z.string().describe('Branch checked out in the worktree'),
   base: z.string().describe('Base branch the worktree branch starts from'),
   setupFailed: z.boolean().optional().describe('true when the setup command failed or timed out, false when it succeeded or was not run (omitted on dry_run)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const worktreeAddCommand = defineCommand({
@@ -134,7 +130,7 @@ function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>
     out.done(operation)
     out.data(result.path)
     const created = { name: result.name, path: result.path, branch: result.branch, base: result.baseBranch }
-    if (input.dry_run) out.result({ ...created, dryRun: true })
+    if (input.dry_run) out.result(created)
     else {
       out.result({ ...created, setupFailed: result.setupResult !== undefined && result.setupResult.exitCode !== 0 })
       out.artifact(result.path)
@@ -159,7 +155,7 @@ const worktreeRemoveInput = z.object({
 const REMOVE_OUTPUT = z.strictObject({
   name: z.string().describe('Name of the worktree that was (on dry_run, would be) removed, as given'),
   deletedBranch: z.boolean().describe('Whether the local branch was deleted (false when kept, when the deletion failed, and on dry_run)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const worktreeRemoveCommand = defineCommand({
@@ -184,7 +180,7 @@ function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & Global
     out.done(removed)
     if (input.dry_run) {
       if (!input.keep_branch) out.planned({ verb: 'delete', target: `local branch ${input.name}` })
-      out.result({ name: input.name, deletedBranch: false, dryRun: true })
+      out.result({ name: input.name, deletedBranch: false })
       return 0
     }
     const shouldDelete = !input.keep_branch
@@ -205,7 +201,7 @@ const worktreeInitInput = z.object({ directory: directorySchema, dry_run: dryRun
 const INIT_OUTPUT = z.strictObject({
   configFile: z.string().describe('Absolute path of the worktree config file (on dry_run, where it would be)'),
   ignoreFile: z.string().describe('Absolute path of the worktree ignore file (on dry_run, where it would be)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 const worktreeInitCommand = defineCommand({
@@ -272,7 +268,7 @@ function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInpu
   if (input.dry_run) {
     out.planned({ verb: 'create', target: `worktree config ${configFile}` })
     out.planned({ verb: 'create', target: `worktree ignore file ${ignoreFile}` })
-    out.result({ configFile, ignoreFile, dryRun: true })
+    out.result({ configFile, ignoreFile })
     return 0
   }
   writeInitFiles(configFile, ignoreFile, getDefaultConfig(targetRepository, path.basename(mainWorktree)), out)
@@ -310,7 +306,7 @@ const LINK_ROW = z.strictObject({
 
 const LINK_OUTPUT = z.strictObject({
   links: z.array(LINK_ROW).describe('One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (no symlink was changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type LinkData = z.input<typeof LINK_OUTPUT>
@@ -374,7 +370,7 @@ function previewLinks(targets: readonly string[], config: Readonly<WorktreeConfi
       links.push(plannedEntry(plan, path.join(target, link.path), destination))
     }
   }
-  out.result({ links, dryRun: true })
+  out.result({ links })
 }
 
 // 1 つの worktree にリンクを作り、(作った数, 飛ばした数, 失敗した数) を返す
@@ -415,7 +411,7 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
     const targets = resolved.directories
     if (targets.length === 0) {
       out.count('sub-worktrees', 0)
-      out.result({ links: [], ...dryRunMark(input.dry_run) })
+      out.result({ links: [] })
       return 0
     }
     const options = { force: input.force, all: input.all }

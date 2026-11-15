@@ -120,7 +120,7 @@ export async function runWithExit(body: () => Promise<void>): Promise<0> {
 // --- Issue 参照 ---
 
 /**
-`owner/repo/N` の表記。エラー文と done の行の対象に使う
+`owner/repo/N` の表記。エラー文と done の行の対象、MCP の data の参照に使う
 */
 export function issuePath(owner: string, repository: string, number: number): string {
   return `${owner}/${repository}/${String(number)}`

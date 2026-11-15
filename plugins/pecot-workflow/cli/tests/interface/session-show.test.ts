@@ -4,9 +4,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
@@ -42,13 +41,7 @@ const rules = (spec: Partial<TargetSpec>, ...nodes: readonly Record<string, unkn
 ]
 
 async function showTool(directory: string): Promise<ToolEnvelope> {
-  const connected = await connectInMemory(createMcpServer(SESSION_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'session_show', arguments: { directory } }))
-  }
-  finally {
-    await connected.close()
-  }
+  return await callToolOnce(SESSION_COMMANDS, 'session_show', { directory })
 }
 
 describe('session show', () => {
@@ -390,6 +383,36 @@ describe('session show', () => {
         flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
         activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
         stack: { branch: 'feat/3', stackedOn: 'acme/demo/3', pullRequest: { number: 30, state: 'CLOSED' }, readiness: 'blocked by #3 (not in review: #3 (not started))' },
+      })
+    })
+
+    it.for([
+      { name: '404', status: 404, warning: /^cannot read the active Issue: .*404/u },
+      { name: 'API エラー', status: 502, warning: /^cannot read the active Issue: .*502/u },
+    ])('Issue の取得が $name で失敗すると、activeIssue を返さず、flags の content に参照を残す', async (row) => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueFailure(row.status)])
+
+      const structured = await showTool(repository)
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).not.toHaveProperty('activeIssue')
+      expect(structured.data).toMatchObject({ flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }] })
+      expect(structured.data['warnings']).toEqual([expect.stringMatching(row.warning)])
+    })
+
+    it('Issue が閉じていると、activeIssue の state を CLOSED で返す', async () => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' })])
+
+      const structured = await showTool(repository)
+
+      expect(structured.data).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
+        activeIssue: { reference: 'acme/demo/7', title: '閉じた Issue', state: 'CLOSED' },
       })
     })
   })

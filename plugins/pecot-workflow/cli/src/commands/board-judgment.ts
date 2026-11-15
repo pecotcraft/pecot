@@ -131,13 +131,13 @@ export interface BoardContext {
 
 /**
 判定の結果に合わせて、列と札を動かす。読めない Issue は warning にし、ボードに無い値は最後に 1 行の warning にまとめる。
-isDryRun は同じ文を予定の行で出し、書かない。書き込みに失敗した Issue の数と、行に出した列と札（dry-run では予定）を返す
+isDryRun は同じ文を予定の行で出し、書かない。書き込みに失敗した Issue の数と、行に出した列と札（dry-run では予定）を返す。
+moves を渡すと、行に出した列と札をそこへ足していくので、途中で例外が出ても書けた分が残る
 */
-export async function applyJudgedMoves(context: Readonly<BoardContext>, judged: readonly JudgedTarget[], isDryRun = false): Promise<{ readonly failures: number, readonly moves: readonly BoardMoveLine[] }> {
+export async function applyJudgedMoves(context: Readonly<BoardContext>, judged: readonly JudgedTarget[], isDryRun = false, moves: BoardMoveLine[] = []): Promise<{ readonly failures: number, readonly moves: readonly BoardMoveLine[] }> {
   const { out, client, config, home } = context
   const missing = new Set<MissingValue>()
   let failures = 0
-  const moves: BoardMoveLine[] = []
   for (const { target, result } of judged) {
     if (result.kind === 'unreadable') {
       out.warning(`could not judge ${displayReference(target.ref, home)}: ${result.reason.replaceAll(/\s+/gu, ' ')}`)

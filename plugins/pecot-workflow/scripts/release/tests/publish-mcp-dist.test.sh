@@ -298,7 +298,8 @@ let matchCount = 0
 for (const file of walk(path.join(dist, 'cli/dist'))) {
   if (!file.endsWith('.js')) continue
   const source = fs.readFileSync(file, 'utf8')
-  for (const match of source.matchAll(/(?:from|import)\s*\(?\s*(['\"])([^'\"]+)\1/g)) {
+  // 指定子は 1 行に収まる。行をまたぐ一致は、文字列の中の from の後ろを拾ったもの
+  for (const match of source.matchAll(/(?:from|import)\s*\(?\s*(['\"])([^'\"\n]+)\1/g)) {
     matchCount++
     const specifier = match[2]
     if (specifier.startsWith('.') || specifier.startsWith('node:')) continue
@@ -497,8 +498,9 @@ const tools = listed?.result?.tools ?? []
 const calls = CALLS.map((_, index) => {
   const response = seen.get(CALL_ID_BASE + index)
   const outcome = response?.result?.structuredContent
-  const text = `${outcome?.stdout ?? ''}${outcome?.stderr ?? ''}`
-  return { exitCode: outcome?.exitCode ?? null, isError: response?.result?.isError ?? false, text }
+  const branch = outcome?.data?.branch ?? ''
+  const artifact = outcome?.artifacts?.[0] ?? ''
+  return { exitCode: outcome?.exitCode ?? null, isError: response?.result?.isError ?? false, branch, artifact }
 })
 const initialized = seen.get(1)
 process.stdout.write(JSON.stringify({
@@ -578,7 +580,7 @@ assert_eq "README の登録名が initialize の serverInfo.name と一致する
 # tools/list が緑でも、dist の外のファイルを読めないと tools/call は失敗する。
 # 一時 git リポ（ブランチ名に Issue 番号なし）を cwd に、gh を呼ばない session_show と issue_comment (prepare) を投げる。
 call_value() {
-    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'exitCode' か 'text'
+    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'exitCode'・'branch'・'artifact'
     node -e "
 const fs = require('node:fs')
 let value
@@ -611,14 +613,11 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
     *)
         assert_eq "session_show の tools/call が終了コード 0 を返す" "0" \
             "$(call_value "$SMOKE_CALLS_OUT" 0 exitCode)"
-        SESSION_TEXT="$(call_value "$SMOKE_CALLS_OUT" 0 text)"
-        case "$SESSION_TEXT" in
-            *"- Branch: smoke-branch"*) pass "session_show が一時リポのブランチ名を返す" ;;
-            *) fail "session_show の結果にブランチ名が無い: $SESSION_TEXT" ;;
-        esac
+        assert_eq "session_show が一時リポのブランチ名を data.branch に返す" "smoke-branch" \
+            "$(call_value "$SMOKE_CALLS_OUT" 0 branch)"
         assert_eq "issue_comment (prepare) の tools/call が終了コード 0 を返す" "0" \
             "$(call_value "$SMOKE_CALLS_OUT" 1 exitCode)"
-        PREPARED="$(call_value "$SMOKE_CALLS_OUT" 1 text | tr -d '\n')"
+        PREPARED="$(call_value "$SMOKE_CALLS_OUT" 1 artifact)"
         case "$PREPARED" in
             "$CALL_REPO"/.pecot/tmp/output/comment-plan-*.md) pass "issue_comment (prepare) が一時リポの出力先にファイルを作る" ;;
             *) fail "issue_comment (prepare) の出力先が期待と違う: $PREPARED" ;;

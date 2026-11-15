@@ -7,9 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { ISSUE_COMMENT_COMMANDS } from '../../src/commands/issue-comment.js'
 import { compareStrings } from '../../src/domain/python-format.js'
 import { templateFile } from '../../src/infra/template-store.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, MERGE_DIFF_BODY, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
@@ -29,13 +28,7 @@ function outputFiles(root: string): string[] {
 }
 
 async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
-  const connected = await connectInMemory(createMcpServer(ISSUE_COMMENT_COMMANDS))
-  try {
-    return structuredOf(await connected.client.callTool({ name: 'issue_comment', arguments: { ...argumentsOfTool } }))
-  }
-  finally {
-    await connected.close()
-  }
+  return await callToolOnce(ISSUE_COMMENT_COMMANDS, 'issue_comment', argumentsOfTool)
 }
 
 describe('issue comment', () => {
@@ -380,7 +373,8 @@ describe('issue comment', () => {
       expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
     })
 
-    it('prepare で打つと、書いたテンプレのパスを data.file と artifacts に返す', async () => {
+    it('prepare で打つと、書いたテンプレのパスを data.file と artifacts に返す', async (context) => {
+      await verifies(context, 'PW-COMMON-20')
       const { root } = setUpProject()
 
       const structured = await commentTool({ prepare: true, template: 'plan' })
@@ -389,6 +383,24 @@ describe('issue comment', () => {
       const written = path.join(root, '.pecot', 'tmp', 'output', name)
       expect(structured).toMatchObject({ ok: true, artifacts: [written] })
       expect(structured.data).toEqual({ file: written })
+    })
+
+    it('ファイルの本文がテンプレに合わないと、違反の文を data.detail に入れて content-invalid を返す', async () => {
+      const { file } = setUpCommentProject({ body: '## 進捗\n\n- 見出しなし\n- ✅ 完了\n' })
+      const github = await startGithub([])
+
+      const structured = await commentTool({ file })
+
+      expect(structured).toMatchObject({ ok: false, exitCode: 3, kind: 'content-invalid' })
+      expect(structured.data).toEqual({
+        reason: 'content-invalid',
+        detail: [
+          `the body does not follow the template ${templateFile('comment', 'merge-diff')}`,
+          '  missing sections: ## Merge — <summary>, ### Variance — <summary>, ### Impact — <summary>',
+          '  unusable notation: emoji are not allowed',
+        ].join('\n'),
+      })
+      expect(github.requests()).toEqual([])
     })
   })
 })

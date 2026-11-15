@@ -6938,3 +6938,12 @@ common_behaviors:
   - id: PW-COMMON-17
     pattern: unwanted
     statement: 'もしコマンドが捕まえなかった pecot の独自の例外が起きたなら、終了コード 1 で終わります（リポジトリが曖昧なときの終了コード 2 も、ここを通ると 1 になります）'
+  - id: PW-COMMON-18
+    pattern: unwanted
+    statement: 'もし MCP のツールが失敗したなら、`data` に `reason`・`detail` と、止まる前に進んだ項目を入れて返します'
+  - id: PW-COMMON-19
+    pattern: event
+    statement: 'MCP のツールが warning を出すと、`warning: ` の前置きを除いた文を `data.warnings` に入れて返します'
+  - id: PW-COMMON-20
+    pattern: event
+    statement: 'MCP のツールがファイルやディレクトリを作ると、その絶対パスを `artifacts` に入れて返します'

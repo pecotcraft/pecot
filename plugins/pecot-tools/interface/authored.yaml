@@ -33,7 +33,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -141,7 +141,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -259,7 +259,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -393,7 +393,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -509,7 +509,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -630,7 +630,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -747,7 +747,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -861,7 +861,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -972,7 +972,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1083,7 +1083,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1198,7 +1198,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1320,7 +1320,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1439,7 +1439,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1550,7 +1550,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1661,7 +1661,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1784,7 +1784,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -1903,7 +1903,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2028,7 +2028,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli が出した行の配列（`lines`）です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli が出した行の配列（`lines`）です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2147,7 +2147,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2269,7 +2269,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2380,7 +2380,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2492,7 +2492,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2603,7 +2603,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2712,7 +2712,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2831,7 +2831,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
@@ -2944,7 +2944,7 @@ entries:
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
         kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。'
+        data: 'awscli の JSON 出力か、出力の行の配列です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'

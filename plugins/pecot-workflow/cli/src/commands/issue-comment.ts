@@ -33,7 +33,7 @@ import {
   runWithExit,
 } from './issue-shared.js'
 import type { IssueTarget } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 
 const TEMPLATE_SCHEMA = z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'])
@@ -47,14 +47,10 @@ const ISSUE_COMMENT_OUTPUT = z.strictObject({
   commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted on dry_run, with prepare, or when GitHub returned no URL)'),
   change: z.enum(['created', 'updated']).optional().describe('Whether the comment was created or updated (omitted with prepare)'),
   file: z.string().optional().describe('Absolute path of the template file copied (only with prepare)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was posted or written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type CommentOutput = Output<z.input<typeof ISSUE_COMMENT_OUTPUT>>
-
-function targetData(target: IssueTarget): string {
-  return `${target.owner}/${target.repository}/${String(target.number)}`
-}
 
 function htmlUrlOf(comment: JsonObject, fallback: string): string {
   const url = jsonField(comment, 'html_url')
@@ -68,7 +64,7 @@ function prepareTemplate(output: CommentOutput, template: string, issueReference
     stopWith(output, `template not found: ${templatePath}`, 'other')
   }
   if (isDryRun) {
-    output.result({ dryRun: true })
+    output.result({})
     output.planned({ verb: 'create', target: `comment template ${template} in ${outputDirectory()}` })
     return
   }
@@ -136,7 +132,7 @@ async function createComment(output: CommentOutput, client: GitHubClient, target
     return stopWith(output, `could not create a comment on Issue ${display}: ${error.message}`, kindOfFailure(error))
   }
   const createdUrl = htmlUrlOf(comment, '')
-  output.result({ issue: targetData(target), change: 'created', ...createdUrl !== '' && { commentUrl: createdUrl } })
+  output.result({ issue: issuePath(target.owner, target.repository, target.number), change: 'created', ...createdUrl !== '' && { commentUrl: createdUrl } })
   output.done({ verb: 'create', target: `comment on ${display}` })
   output.data(createdUrl)
   return createdUrl
@@ -154,7 +150,7 @@ async function updateComment(output: CommentOutput, client: GitHubClient, target
     return stopWith(output, `could not update the comment on Issue ${display}: ${error.message}`, kindOfFailure(error))
   }
   const updatedUrl = htmlUrlOf(comment, commentUrl)
-  output.result({ issue: targetData(target), change: 'updated', commentUrl: updatedUrl })
+  output.result({ issue: issuePath(target.owner, target.repository, target.number), change: 'updated', commentUrl: updatedUrl })
   output.done({ verb: 'update', target: `comment on ${display}` })
   output.data(updatedUrl)
 }
@@ -188,7 +184,7 @@ async function postFromFile(output: CommentOutput, config: ProjectConfig, reposi
   }
   if (isDryRun) {
     const display = issuePath(target.owner, target.repository, target.number)
-    output.result({ issue: targetData(target), change: hasCommentUrl ? 'updated' : 'created', dryRun: true })
+    output.result({ issue: issuePath(target.owner, target.repository, target.number), change: hasCommentUrl ? 'updated' : 'created' })
     output.planned({ verb: hasCommentUrl ? 'update' : 'create', target: `comment on ${display}` })
     if (!hasCommentUrl) output.planned({ verb: 'set', target: `comment_url in ${file}` })
     return
@@ -208,7 +204,7 @@ async function postDirect(output: CommentOutput, config: ProjectConfig, reposito
   if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
   if (isDryRun) {
-    output.result({ issue: targetData(target), change: 'created', dryRun: true })
+    output.result({ issue: issuePath(target.owner, target.repository, target.number), change: 'created' })
     output.planned({ verb: 'create', target: `comment on ${issuePath(target.owner, target.repository, target.number)}` })
     return
   }

@@ -1,8 +1,4 @@
-// MCP ツールの結果表現と、SDK の CallToolResult への変換。
-//
-// pecotv の各ツールは「既存 CLI コマンドの実処理を呼び、その成否・生成物・出力を一様な形で返す」構造になる。
-// そのためコマンド固有の戻り値ではなく ToolResult に正規化してからプロトコル表現へ変換する。加えて parsePathArguments が、引数の parse とパス引数への
-// Windows 形式パス変換 (windows-path.ts) をまとめて担う。
+// MCP ツールの結果表現 (ToolResult) と、SDK の CallToolResult への変換。
 
 import path from 'node:path'
 import { Writable } from 'node:stream'
@@ -11,6 +7,7 @@ import type { CallToolResult } from '@modelcontextprotocol/server'
 import type { z } from 'zod'
 
 import type { FailureKind } from '../domain/_shared/failure-kind.js'
+import { createWarningCollector, WARNING_LIMIT_BYTES } from './warnings.js'
 import { toPosixPath } from './windows-path.js'
 
 /**
@@ -57,14 +54,7 @@ export type SucceededToolResult = ToolResultFields & { readonly ok: true, readon
 export type FailedToolResult = ToolResultFields & { readonly ok: false, readonly kind: FailureKind }
 
 /**
-ToolResult を MCP の CallToolResult へ変換する。
-
-content には structuredContent と同じ内容の JSON テキストを載せる。structuredContent を
-読めないクライアントでもツール結果を解釈できるようにするための二重化で、
-MCP 仕様が推奨する形。
-
-引数は deep readonly だが、戻り値は SDK 側の mutable 型のまま返す。
-SDK が readonly 型を公開していないため、この非対称は境界として許容する。
+content に structuredContent と同じ JSON を載せる。structuredContent を読めないクライアントのため。
 */
 export function toCallToolResult(result: Readonly<ToolResult>): CallToolResult {
   const structuredContent = toStructuredContent(result)
@@ -83,16 +73,14 @@ function toStructuredContent(result: Readonly<ToolResult>): Record<string, unkno
     ...(!result.ok && { kind: result.kind }),
     artifacts: [...result.artifacts],
     // 失敗は、ツールが入れていなくても reason と detail を持つ（3 つのプラグインで同じ読み方にする）
+    // ツールが data に入れた reason・detail を優先する。runtime_setup は、失敗した段階のつながった文字列を reason に入れるため
     data: result.ok ? { ...result.data } : { reason: result.kind, detail: result.message, ...result.data },
     message: result.message,
   }
 }
 
 /**
-parsePathArguments の結果。`rejected` の有無で分岐し、受理時だけ `input` を持つ。
-
-拒否用の ToolResult と検証済み引数を 1 つの戻り値に畳むのは、ハンドラ側で
-「確認は通したが変換前の値を使う」という取り違えを型として起こせなくするため。
+1 つの戻り値に畳み、確認を通した後に変換前の値を使う取り違えを型で防ぐ。
 */
 export type PathArgumentsResult<Output>
   = | { readonly rejected: ToolResult, readonly input?: never }
@@ -107,23 +95,8 @@ interface ConvertedPath {
 }
 
 /**
-引数の parse と、パスパラメータ群の変換・絶対パス確認 (FR-011) をまとめて行う。
-
-受理したときは変換済みの値を載せた同型オブジェクトを返す。ハンドラ側に未変換の束縛を残さないための形にしている。
-パスを下流へ渡すルートが 1 箇所でも取りこぼすと、Windows のクライアントには「変換されたりされなかったり」に見える。
-そのため確認と変換を別々の関数に割らない。
-
-拒否するのは (1) Windows 形式だが POSIX パスへ畳めないもの (他 distro の UNC 等) と
-(2) 変換後も絶対パスにならないものの 2 つ。両方が同じ呼び出しに含まれるときは、
-一方を返して他方を隠すと利用者が取りこぼすため invalidPaths に両方を列挙する。
-message は解決不能側 (1) を主文にする。cwd 依存の曖昧さより「渡した値をそもそも
-解釈できない」方が原因の特定に時間がかかるため。MCP クライアントの cwd はサーバ
-プロセスの cwd と一致する保証が無いため、相対パスは解決せず即座に弾く。invalidPaths
-には利用者が渡した元の値を載せる (変換後の値だけを見せると、渡した引数との対応が取れない)。
-
-見るのは「cwd 非依存で一意に解決できるか」だけで、`/a/../etc/passwd` のような
-`..` を含む絶対パスは通す。FR-011 は cwd の曖昧さを排除する規約で、
-サンドボックス境界ではない。アクセス範囲の制限は本関数の責務ではない。
+引数の parse と、パス引数の変換・絶対パスの確認 (FR-011) を 1 つで行う。分けると変換の取りこぼしが起きるため。
+`..` を含む絶対パスは通す。FR-011 は cwd の曖昧さを除く決まりで、アクセス範囲の制限ではない。
 */
 export function parsePathArguments<Output extends Readonly<Record<string, unknown>>>(
   // zod のスキーマはメソッドを持つクラス型で、readonly 化すると parse を呼べない。
@@ -184,28 +157,38 @@ export function parsePathArguments<Output extends Readonly<Record<string, unknow
     }
   }
 
-  // 変換が 1 件も無ければ parse 済みの値をそのまま返す。変換があれば、
-  // draft は parsed のキー集合と型をそのまま保ち、パス引数の値だけを toPosixPath が返した
-  // 文字列へ差し替えている (schema の他フィールドには一切触れない)。差し替え後の値も
-  // string で schema 側の型と矛盾しないため、再 parse せず Output として返す。
+  // draft は parsed のパス引数の値を、string のまま差し替えただけなので、再 parse せず Output として返す。
   // eslint-disable-next-line no-restricted-syntax -- 上記の理由により draft は Output と同型 (unknown 経由の narrowing)
   return ({ input: Object.keys(converted).length === 0 ? parsed : draft as unknown as Output })
 }
 
 /**
-既に文字列として手元にある出力を、出力捕捉と同じ上限・同じマーカーで切り詰める。
-
-子プロセスの結果 (SpawnResult) のように Writable を経由しない出力にも同じ上限を働かせる
-ためのエントリ。上限を超える出力をそのまま ToolResult に載せると、エージェントのコンテキストを
-際限なく食う (`playwright install` は非 TTY でも進捗を stdout へ書く)。
+Writable を通さない出力 (SpawnResult) を、出力の捕捉と同じ上限・同じマーカーで切り詰める。
 */
 export function truncateCapturedText(text: string): string {
   const buffer = Buffer.from(text, 'utf8')
-  // createOutputCapture と同じく新しい方 (末尾) を残す。失敗の直接原因は末尾に出る。
   return buffer.length <= OUTPUT_CAPTURE_LIMIT_BYTES
     ? text
     : TRUNCATION_MARKER + buffer.subarray(buffer.length - OUTPUT_CAPTURE_LIMIT_BYTES).toString('utf8')
 }
+
+/**
+捕捉した出力をつないで上限で切り詰める。各部分の切り詰めのマーカーは外し、印を冒頭の 1 つにまとめる。
+*/
+export function joinCapturedText(parts: readonly string[]): string {
+  const wasTruncated = parts.some(part => part.startsWith(TRUNCATION_MARKER))
+  const joined = parts
+    .map(part => (part.startsWith(TRUNCATION_MARKER) ? part.slice(TRUNCATION_MARKER.length) : part))
+    .filter(part => part !== '')
+    .join('\n')
+  const text = truncateCapturedText(joined)
+  return wasTruncated && text === joined ? TRUNCATION_MARKER + text : text
+}
+
+/**
+改行を待つ間に持つ 1 行の上限。warning の文の上限に、接頭辞 `warning: ` の分の余裕を足す。
+*/
+const PENDING_LINE_LIMIT_BYTES = WARNING_LIMIT_BYTES + 16
 
 export interface OutputCapture {
   /**
@@ -216,23 +199,48 @@ export interface OutputCapture {
   ここまでに書き込まれた内容を連結して返す (上限超過時は末尾側だけを保持する)。
   */
   text(): string
+  /**
+  ここまでに書き込まれた `warning: ` の文。text() の切り詰めと関係なく、早く出たものから保つ。
+  */
+  warnings(): string[]
 }
 
 /**
-メモリ上に蓄積する Writable を作る。
-
-MCP サーバのプロセス stdout は JSON-RPC 専有なので、既存コマンドの stdout / stderr は
-これに差し替えて捕捉し、ToolResult へ転写する。
-
-蓄積量は OUTPUT_CAPTURE_LIMIT_BYTES で頭打ちにし、超えた分は先頭から捨てる。
+MCP サーバの stdout は JSON-RPC 専有なので、既存コマンドの stdout / stderr をこれに差し替えて捕捉する。
 */
 export function createOutputCapture(): OutputCapture {
-  // Buffer のまま溜めて取り出し時に一括デコードする。chunk 単位でデコードすると
-  // マルチバイト文字が chunk 境界で破損しうる。
-  // decodeStrings は既定 true なので、文字列を write しても _write には Buffer で届く。
+  // chunk 境界のマルチバイト文字を正しくデコードするため、Buffer のまま溜めて取り出すときにデコードする。
   const chunks: Buffer[] = []
   let retainedBytes = 0
   let isTruncated = false
+  const collector = createWarningCollector()
+  let pending: Buffer[] = []
+  let pendingBytes = 0
+
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Buffer は可変の型
+  const keepPending = (part: Buffer): void => {
+    const room = PENDING_LINE_LIMIT_BYTES - pendingBytes
+    if (room <= 0 || part.length === 0) return
+    const kept = part.length <= room ? part : part.subarray(0, room)
+    pending.push(kept)
+    pendingBytes += kept.length
+  }
+
+  /**
+  改行 (0x0A) で行に分けて warning の収集へ渡す。UTF-8 では 0x0A がマルチバイト文字の途中に現れない。
+  */
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Buffer は可変の型
+  const feedLines = (buffered: Buffer): void => {
+    let start = 0
+    for (let index = buffered.indexOf(0x0A); index !== -1; index = buffered.indexOf(0x0A, start)) {
+      keepPending(buffered.subarray(start, index))
+      collector.addLine(Buffer.concat(pending).toString('utf8'))
+      pending = []
+      pendingBytes = 0
+      start = index + 1
+    }
+    keepPending(buffered.subarray(start))
+  }
 
   /**
   保持量が上限に収まるまで先頭から捨てる。境界にかかる chunk は途中から切り出す。
@@ -260,6 +268,7 @@ export function createOutputCapture(): OutputCapture {
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     write(chunk: Uint8Array, _encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
       const buffered = Buffer.from(chunk)
+      feedLines(buffered)
       chunks.push(buffered)
       retainedBytes += buffered.length
       dropOverflow()
@@ -268,8 +277,8 @@ export function createOutputCapture(): OutputCapture {
   })
   return {
     stream,
-    // 切り詰めた場合、残った先頭は多バイト文字の途中から始まりうる (その 1 文字だけが
-    // U+FFFD になる)。バイト数で頭打ちにする以上避けられないので、マーカーで明示する。
+    // 切り詰めた先頭はマルチバイト文字の途中から始まりうる (その 1 文字が U+FFFD になる)。
     text: () => (isTruncated ? TRUNCATION_MARKER : '') + Buffer.concat(chunks).toString('utf8'),
+    warnings: () => collector.list(pendingBytes === 0 ? undefined : Buffer.concat(pending).toString('utf8')),
   }
 }

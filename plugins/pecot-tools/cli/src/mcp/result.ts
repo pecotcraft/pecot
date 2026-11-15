@@ -69,6 +69,7 @@ function toStructuredContent(result: Readonly<ExecutionResult>): Record<string, 
     exitCode: result.exitCode,
     ...(result.kind !== undefined && { kind: result.kind }),
     // 失敗の原因の名前と全文は、3 つのプラグインで同じ data.reason・data.detail から読めるようにする。
+    // ツールの data より kind・message を優先する。pecot-tools のツールは、kind と別の原因を data に入れないため
     data: result.kind === undefined ? { ...result.data } : { ...result.data, reason: result.kind, detail: result.message },
     artifacts: [...result.artifacts],
     message: result.message,

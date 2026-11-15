@@ -25,14 +25,25 @@ const OutputEntriesSchema = z.object({ entries: z.array(OutputEntrySchema) })
 // 入力の検証でコマンドを呼ばずに断った結果の message の前置き（server.ts の rejected）
 const REJECTED_PREFIX = 'invalid input: '
 
+const generatedCache: { entries?: readonly z.output<typeof OutputEntrySchema>[] } = {}
+
+/**
+generated.json の項目。シナリオごとに読み直さないよう、最初に読んで parse した結果を使い回す
+*/
+function generatedEntries(): readonly z.output<typeof OutputEntrySchema>[] {
+  if (generatedCache.entries === undefined) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- plugin の interface/ の下の固定のファイル
+    const text = readFileSync(path.join(pluginRoot, 'interface', 'generated.json'), 'utf8')
+    generatedCache.entries = OutputEntriesSchema.parse(parseJson(text)).entries
+  }
+  return generatedCache.entries
+}
+
 /**
 定義書の項目を、client が成功の structuredContent を outputSchema で検証するための toolDefinition にする
 */
 function toolDefinitionOf(name: string): { name: string, inputSchema: z.output<typeof InputSchemaShape>, outputSchema: z.output<typeof InputSchemaShape> } {
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- plugin の interface/ の下の固定のファイル
-  const text = readFileSync(path.join(pluginRoot, 'interface', 'generated.json'), 'utf8')
-  const generated = OutputEntriesSchema.parse(parseJson(text))
-  const entry = generated.entries.find(item => item.surfaces.mcp.tool === name)
+  const entry = generatedEntries().find(item => item.surfaces.mcp.tool === name)
   if (entry === undefined) throw new Error(`定義書に ${name} がありません`)
   return { name, inputSchema: entry.input, outputSchema: entry.mcp.output }
 }

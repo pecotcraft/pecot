@@ -59,7 +59,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -67,7 +67,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -165,7 +165,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -173,7 +173,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -260,7 +260,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -268,7 +268,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -345,7 +345,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -353,7 +353,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -477,7 +477,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -485,7 +485,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -575,7 +575,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -583,7 +583,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -674,7 +674,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -682,7 +682,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -766,7 +766,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -774,7 +774,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -872,7 +872,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -880,7 +880,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -969,7 +969,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -977,7 +977,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },
@@ -1061,7 +1061,7 @@
                   "type": "string"
                 },
                 "log": {
-                  "description": "Raw output of the command or child process, with the beginning truncated over 64KB (failure only)",
+                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
                   "type": "string"
                 },
                 "reason": {
@@ -1069,7 +1069,7 @@
                   "type": "string"
                 },
                 "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
+                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
                   "items": {
                     "type": "string"
                   },

@@ -44,6 +44,10 @@ describe('コマンドの一覧', () => {
     ])
   })
 
+  it.for(COMMANDS.map(command => ({ name: command.path.join(' '), output: command.output })))('$name の output は、入力の向きと出力の向きで JSON Schema が同じになる', ({ output }) => {
+    expect(z.toJSONSchema(output, { io: 'input' })).toEqual(z.toJSONSchema(output, { io: 'output' }))
+  })
+
   it('toolName は重複せず、path から作られている', () => {
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)
@@ -254,6 +258,18 @@ describe('defineCommand', () => {
       interactive: false,
       run: async () => await exitWith(0),
     })).toThrow(TypeError)
+  })
+
+  it.for(['reason', 'detail', 'warnings', 'log'])('output が共通の項目の名前 %s を持つと作れない', (key) => {
+    expect(() => defineCommand({
+      path: ['x'],
+      description: '',
+      input: z.object({}),
+      output: z.strictObject({ name: z.string(), [key]: z.string() }),
+      positional: [],
+      interactive: false,
+      run: async () => await exitWith(0),
+    })).toThrow(new TypeError(`output の ${key} は MCP の結果の共通の項目の予約名です`))
   })
 })
 

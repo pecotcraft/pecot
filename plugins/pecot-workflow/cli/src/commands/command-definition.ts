@@ -62,6 +62,7 @@ export class CommandExit extends BaseError {
 グローバルの --repo を入力にしたもの。全コマンドの入力に足される
 */
 const GLOBAL_SHAPE = { repo: z.string().optional() }
+const RESERVED_OUTPUT_KEYS: readonly string[] = ['reason', 'detail', 'warnings', 'log']
 const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
 
 export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
@@ -227,6 +228,9 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
   // 定義書の data の成功の側を閉じた型（additionalProperties: false）にするため
   if (!(spec.output.def.catchall instanceof z.ZodNever)) throw new TypeError('output は z.strictObject で書きます')
+  // MCP の結果の data は共通の項目を extend で重ねるので、同じ名前は知らせなしに上書きされる
+  const reserved = RESERVED_OUTPUT_KEYS.filter(key => Object.hasOwn(spec.output.shape, key))
+  if (reserved.length > 0) throw new TypeError(`output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
   assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
   const aliased = Object.keys(spec.aliases ?? {})
   for (const name of aliased) {

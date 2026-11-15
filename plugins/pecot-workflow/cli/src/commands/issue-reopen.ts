@@ -22,7 +22,7 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 
 // Projects V2 の自動化が Issue をもう一度閉じることがあるため、status を設定した後に待つ
@@ -39,21 +39,17 @@ const ISSUE_REOPEN_OUTPUT = z.strictObject({
   status: z.string().optional().describe('Workflow status set on the board (omitted when the Issue is not on the board or the status is not configured)'),
   unarchived: z.boolean().describe('Whether the item was unarchived on the board'),
   commented: z.boolean().describe('Whether the reason was posted as a comment'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type ReopenOutput = Output<z.input<typeof ISSUE_REOPEN_OUTPUT>>
-
-function issueData({ owner, repository, number }: Readonly<ReopenTarget>): string {
-  return `${owner}/${repository}/${String(number)}`
-}
 
 // アーカイブの解除、1 回目の reopen、ボードの status の更新。設定できたら自動化を待つ
 async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string): Promise<void> {
   const { owner, repository, number } = issue
   const target = `Issue ${issuePath(owner, repository, number)}`
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
-  output.result({ issue: issueData(issue), unarchived: false, commented: false })
+  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), unarchived: false, commented: false })
   // アーカイブ済みの項目はボードの列に出ないので戻す。失敗したら Issue を開かずに止める
   if (item?.isArchived === true) {
     try {
@@ -105,7 +101,7 @@ async function planReopen(output: ReopenOutput, client: GitHubClient, config: Pr
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
   const hasComment = comment !== undefined && comment !== ''
   const willSetStatus = item !== undefined && isStatusConfigured(config, status)
-  output.result({ issue: issueData(issue), ...willSetStatus && { status }, unarchived: item?.isArchived === true, commented: hasComment, dryRun: true })
+  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), ...willSetStatus && { status }, unarchived: item?.isArchived === true, commented: hasComment })
   output.planned({ verb: 'reopen', target })
   if (item?.isArchived === true) output.planned({ verb: 'update', target: `${target} unarchived on the board` })
   if (item === undefined) output.warning(`${target} is not on the project board`)

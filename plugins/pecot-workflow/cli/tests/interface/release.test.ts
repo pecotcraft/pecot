@@ -2,10 +2,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { RELEASE_COMMANDS } from '../../src/commands/release.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { startFakeGithub } from '../fake-github/server.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { alertPath, alertRules, compareRule, createProject, DEFAULT_REPOSITORY, failRemoteLookupFrom, NOTES_0_2_0, pathsOf, pullRequestResponse, rest, runRelease } from '../_helpers/release-sandbox.js'
@@ -74,14 +73,12 @@ async function callTool(target: Readonly<Project>, name: string, arguments_: Rea
   setEnvironment({ PECOT_GITHUB_API_URL: server.url })
   const original = process.cwd()
   process.chdir(target.directory)
-  const connected = await connectInMemory(createMcpServer(RELEASE_COMMANDS))
   try {
-    const result = structuredOf(await connected.client.callTool({ name, arguments: { ...arguments_ } }))
+    const result = await callToolOnce(RELEASE_COMMANDS, name, arguments_)
     expect({ problems: server.problems(), unused: server.unused() }).toEqual({ problems: [], unused: [] })
     return result
   }
   finally {
-    await connected.close()
     process.chdir(original)
     await server.close()
   }
@@ -862,6 +859,28 @@ describe('release merge', () => {
     it('dry_run で呼ぶと、deletedBranch を false にして dryRun を返す', async () => {
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true, dry_run: true }, [pullRequestResponse()])
       expect(result.data).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: false, dryRun: true })
+    })
+
+    it('マージの後に head ブランチを削除できないと、マージした PR と warning を data に返し、deletedBranch を false にする', async (context) => {
+      await verifies(context, 'PW-COMMON-19')
+      const failing = rest('DELETE', '/repos/acme/demo/git/refs/heads/develop', 422, { message: 'Reference does not exist' })
+      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, failing])
+      expect(result).toMatchObject({ ok: true, exitCode: 0 })
+      expect(result.data).toEqual({
+        pullRequest: 'acme/demo/31',
+        head: 'develop',
+        base: 'release',
+        deletedBranch: false,
+        warnings: [expect.stringMatching(/^deleting remote branch develop failed: /u)],
+      })
+    })
+
+    it('マージが失敗すると、data に reason と detail だけを入れて失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      const rejected = rest('PUT', '/repos/acme/demo/pulls/31/merge', 405, { message: 'Pull Request is not mergeable' })
+      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31' }, [pullRequestResponse(), rejected])
+      expect(result).toMatchObject({ ok: false, exitCode: 1, kind: 'github-api' })
+      expect(result.data).toEqual({ reason: 'github-api', detail: 'could not merge PR acme/demo/31: GitHub API error: 405 Pull Request is not mergeable' })
     })
   })
 })

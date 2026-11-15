@@ -70,7 +70,7 @@ import {
   warnEpicRepositoryException,
 } from './issue-shared.js'
 import type { IssueField, IssueType } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -92,12 +92,21 @@ interface CreatedIssue {
   readonly number: number
 }
 
+// validateStatusForType が、作るときの status を型の既定（backlog・ready）か、前提があるときの blocked に限る
+const CREATED_STATUS = z.enum(['backlog', 'blocked', 'ready'])
+
+type CreatedStatus = z.infer<typeof CREATED_STATUS>
+
+function isCreatedStatus(value: string): value is CreatedStatus {
+  return CREATED_STATUS.safeParse(value).success
+}
+
 const CREATED_ISSUE_DATA = z.strictObject({
   owner: z.string().describe('Owner of the repository of the Issue'),
   repository: z.string().describe('Name of the repository of the Issue'),
   number: z.int().describe('Issue number'),
   url: z.string().describe('URL of the Issue'),
-  status: z.string().optional().describe('Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)'),
+  status: CREATED_STATUS.optional().describe('Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)'),
   parent: z.string().optional().describe('Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)'),
 })
 
@@ -128,7 +137,7 @@ const ISSUE_CREATE_OUTPUT = z.strictObject({
   plan: z.array(PLAN_ROW_DATA).optional().describe('Progression table of the files (only on dry_run with files)'),
   plannedIssue: PLANNED_ISSUE_DATA.optional().describe('Issue that would be created (only on dry_run with message or freeform)'),
   file: z.string().optional().describe('Absolute path of the template file copied (only with prepare)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type IssueCreateData = z.input<typeof ISSUE_CREATE_OUTPUT>
@@ -315,10 +324,11 @@ async function postIssue(output: CreateOutput, client: GitHubClient, config: Pro
   if (!hasTriedBoard) added = await addToBoardOrWarn(output, client, config, owner, repository, number, posting.useResponseNodeId ? nodeId : undefined, url)
 
   let isMovedToReady = false
-  let status: string | undefined
+  let status: CreatedStatus | undefined
   if (added !== undefined) {
     const written = await setIssueFields(output, client, config, added.itemId, target, posting.fields)
-    if (written.includes('workflow')) status = posting.fields.find(field => field.fieldName === 'workflow')?.optionName
+    const option = written.includes('workflow') ? posting.fields.find(field => field.fieldName === 'workflow')?.optionName : undefined
+    if (option !== undefined && isCreatedStatus(option)) status = option
     recordIssue(output, session, { ...entry, ...status !== undefined && { status } }, true)
     if (posting.settleColumn && written.includes('workflow') && linked === posting.prerequisites.length) {
       isMovedToReady = await settleColumn(output, client, config, session, reference, added, linked) === 'Ready'
@@ -340,7 +350,7 @@ async function postIssue(output: CreateOutput, client: GitHubClient, config: Pro
 予行の行。番号の要るボード・欄・親 Epic の書き込みは出さない
 */
 function planIssue(output: CreateOutput, owner: string, repository: string, title: string): void {
-  output.result({ plannedIssue: { owner, repository, title }, dryRun: true })
+  output.result({ plannedIssue: { owner, repository, title } })
   output.planned({ verb: 'create', target: `Issue in ${owner}/${repository}: ${title}` })
 }
 
@@ -361,7 +371,7 @@ function prepareTemplate(output: CreateOutput, template: IssueType | 'task-imple
     stopWith(output, `template not found: ${source}`, 'other')
   }
   if (isDryRun) {
-    output.result({ dryRun: true })
+    output.result({})
     output.planned({ verb: 'create', target: `Issue template ${template} in ${outputDirectory()}` })
     return
   }
@@ -739,7 +749,7 @@ function printPlan(output: CreateOutput, context: Readonly<BatchContext>): void 
     progression: context.progressions.get(local.key),
   }))
   const labels = existingLabels(context)
-  output.result({ plan: rows.map(row => planRowData(row, context.home)), ...chainsData(context.progressions, labels), dryRun: true })
+  output.result({ plan: rows.map(row => planRowData(row, context.home)), ...chainsData(context.progressions, labels) })
   const chains = chainsText(context.progressions, labels)
   output.data([formatPlanTable(rows, context.home), ...chains === undefined ? [] : ['', chains]].join('\n'))
 }

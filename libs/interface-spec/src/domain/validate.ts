@@ -336,9 +336,12 @@ function successDataOf(generated: GeneratedEntry): Readonly<Record<string, unkno
   return branches.find(branch => !(Array.isArray(branch['required']) && branch['required'].includes('reason')))
 }
 
-// mcp_output を書いていない項目は比べない（書くかどうかは、項目ごとに追って足す）
+// 成功の側の data が閉じた型（additionalProperties: false）の項目は、mcp_output を必須にする。閉じていない項目は、書かなくてよい
 function mcpOutputFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
-  if (entry.mcp_output === undefined) return []
+  if (entry.mcp_output === undefined) {
+    const isRequired = generated.surfaces.mcp !== undefined && successDataOf(generated)?.['additionalProperties'] === false
+    return isRequired ? [{ file, scope, field: 'mcp_output', reason: 'is missing (the success data in mcp.output is a closed type; write each data field, or an empty data when it returns none)' }] : []
+  }
   if (generated.surfaces.mcp === undefined) return [{ file, scope, field: 'mcp_output', reason: 'is only for entries with an MCP surface (remove it)' }]
   const finding = (reason: string): Finding => ({ file, scope, field: 'mcp_output.data', reason })
   const success = successDataOf(generated)

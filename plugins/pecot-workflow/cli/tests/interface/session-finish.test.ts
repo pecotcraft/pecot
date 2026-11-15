@@ -7,9 +7,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
@@ -69,12 +68,10 @@ const NO_PULL_REQUEST = { repository: { pullRequest: null } }
 async function finishTool(workspace: Readonly<Workspace>, argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
   const previous = process.cwd()
   process.chdir(workspace.directory)
-  const connected = await connectInMemory(createMcpServer(COMMANDS))
   try {
-    return structuredOf(await connected.client.callTool({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21', ...argumentsOfTool } }))
+    return await callToolOnce(COMMANDS, 'session_finish', { pr_ref: 'acme/demo/21', ...argumentsOfTool })
   }
   finally {
-    await connected.close()
     process.chdir(previous)
   }
 }
@@ -466,6 +463,23 @@ describe('session finish', () => {
         deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: BRANCH, location: 'local' }],
         currentBranch: 'main',
         dryRun: true,
+      })
+      expect(currentBranch(workspace)).toBe(BRANCH)
+    })
+
+    it('リモートのブランチの削除と checkout が失敗すると、済んだ分と warning を data に返して続ける', async (context) => {
+      await verifies(context, 'PW-COMMON-19')
+      const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH, 403, 'Forbidden')]) })
+
+      const structured = await finishTool(workspace, { delete_branch: true })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({
+        closedIssues: [12],
+        skippedIssues: [],
+        deletedBranches: [],
+        currentBranch: BRANCH,
+        warnings: [expect.stringMatching(new RegExp(`^deleting remote branch ${BRANCH} failed: `, 'u')), expect.stringMatching(/^checking out ghost failed: /u)],
       })
       expect(currentBranch(workspace)).toBe(BRANCH)
     })

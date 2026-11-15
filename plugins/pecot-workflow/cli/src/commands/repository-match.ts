@@ -8,8 +8,7 @@ import type { RepositoryReference, ResolvedRepository } from '../domain/reposito
 import { gitRunnerFor } from '../infra/git.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
-
-const WARNING_PREFIX = 'warning: '
+import { WARNING_PREFIX } from './output.js'
 
 /**
 今の git remote からリポジトリを解決する。git の外・remote 無しは undefined

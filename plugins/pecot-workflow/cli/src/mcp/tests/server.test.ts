@@ -121,7 +121,7 @@ const TYPED_OUTPUT = z.strictObject({ name: z.string(), count: z.int().optional(
 const TYPED = defineCommand({
   path: ['typed'],
   description: '型のある data を返す',
-  input: z.object({ mode: z.enum(['ok', 'twice', 'wrong', 'fail']) }),
+  input: z.object({ mode: z.enum(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong']) }),
   output: TYPED_OUTPUT,
   positional: ['mode'],
   interactive: false,
@@ -129,13 +129,21 @@ const TYPED = defineCommand({
     const out = createOutput<z.input<typeof TYPED_OUTPUT>>(false, io)
     out.warning('slow API')
     if (input.mode === 'wrong') {
+      out.done({ verb: 'create', target: 'issue #1' })
       out.result({ count: 1 })
+      out.artifact('/abs/made.md')
       return await exitWith(0)
     }
-    if (input.mode === 'fail') {
-      out.result({ count: 2 })
+    if (input.mode === 'fail' || input.mode === 'fail-wrong') {
+      out.result({ name: 'x', count: input.mode === 'fail' ? 2 : 2.5 })
+      out.artifact('/abs/half.md')
       out.error('half done\nhint: retry')
       return await exitWith(1, 'github-api')
+    }
+    if (input.mode === 'crash' || input.mode === 'crash-wrong') {
+      out.result({ count: input.mode === 'crash' ? 4 : 4.5 })
+      out.artifact('/abs/half.md')
+      return await failWith('boom')
     }
     out.result({ name: 'a' })
     if (input.mode === 'twice') out.result({ name: 'b', count: 3 })
@@ -468,27 +476,77 @@ describe('成功の data', () => {
     expect(structuredOf(result).data).toEqual({ name: 'b', count: 3, warnings: ['slow API'] })
   })
 
-  it('data がコマンドの output に合わないと、kind が other の失敗にして、報告先に伝える', async () => {
+  it('終了コード 0 で data が output に合わないと、data と artifacts を残した other の失敗にし、呼び直さないよう伝えて、報告先に伝える', async () => {
     const result = await callTyped('wrong')
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toMatchObject({ ok: false, exitCode: 1, kind: 'other', data: { reason: 'other', warnings: ['slow API'] } })
-    expect(structuredOf(result).message).toMatch(/^data does not match the output schema: name: /u)
+    const message = 'the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again'
+    expect(result.structuredContent).toEqual({
+      ok: false,
+      exitCode: 1,
+      kind: 'other',
+      artifacts: ['/abs/made.md'],
+      data: { count: 1, reason: 'other', detail: message, warnings: ['slow API'] },
+      message,
+    })
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(z.ZodError)
   })
 
-  it('失敗では、reason・detail と、途中まで進んだ項目を data に入れる', async () => {
+  it('失敗では、reason・detail と、途中まで進んだ項目と artifacts を data に入れる', async () => {
     const result = await callTyped('fail')
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toEqual({
       ok: false,
       exitCode: 1,
       kind: 'github-api',
-      artifacts: [],
-      data: { count: 2, reason: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] },
+      artifacts: ['/abs/half.md'],
+      data: { name: 'x', count: 2, reason: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] },
       message: 'half done',
     })
     expect(unexpected).toEqual([])
+  })
+
+  it('失敗で data が output の省略可の形に合わないと、kind・終了コード・message・artifacts を保って成功の項目を捨て、報告先に伝える', async () => {
+    const result = await callTyped('fail-wrong')
+    expect(result.isError).toBe(true)
+    expect(result.structuredContent).toEqual({
+      ok: false,
+      exitCode: 1,
+      kind: 'github-api',
+      artifacts: ['/abs/half.md'],
+      data: { reason: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] },
+      message: 'half done',
+    })
+    expect(unexpected).toHaveLength(1)
+    expect(unexpected[0]).toBeInstanceOf(z.ZodError)
+  })
+
+  it('プログラムの誤りで終わると、途中まで集めた data と artifacts を other の失敗に載せる', async () => {
+    const result = await callTyped('crash')
+    expect(result.structuredContent).toEqual({
+      ok: false,
+      exitCode: 1,
+      kind: 'other',
+      artifacts: ['/abs/half.md'],
+      data: { count: 4, reason: 'other', detail: 'boom', warnings: ['slow API'] },
+      message: 'boom',
+    })
+    expect(unexpected).toHaveLength(1)
+    expect(unexpected[0]).toBeInstanceOf(Error)
+  })
+
+  it('プログラムの誤りで終わり、途中の data も output の省略可の形に合わないと、成功の項目を捨てて artifacts を残す', async () => {
+    const result = await callTyped('crash-wrong')
+    expect(result.structuredContent).toEqual({
+      ok: false,
+      exitCode: 1,
+      kind: 'other',
+      artifacts: ['/abs/half.md'],
+      data: { reason: 'other', detail: 'boom', warnings: ['slow API'] },
+      message: 'boom',
+    })
+    expect(unexpected).toHaveLength(2)
+    expect(unexpected[1]).toBeInstanceOf(z.ZodError)
   })
 
   it('tools/list の outputSchema の data は、成功の型と失敗の型の anyOf で、最上位は 6 つの名前だけ', async () => {

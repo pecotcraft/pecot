@@ -114,30 +114,29 @@ async function readBoardItems(waiting: Readonly<Waiting>, issues: readonly Block
   return items.flatMap(item => item ?? [])
 }
 
-async function moveWaiting(waiting: Readonly<Waiting>, issues: readonly BlockedByReference[]): Promise<readonly BoardMoveLine[]> {
+async function moveWaiting(waiting: Readonly<Waiting>, issues: readonly BlockedByReference[], moves: BoardMoveLine[]): Promise<void> {
   const { context, created } = waiting
   const items = await readBoardItems(waiting, issues)
-  if (items.length === 0) return []
+  if (items.length === 0) return
   const judged = await judgeConfirmed(waiting, items)
-  if (judged === undefined) return []
-  const { moves } = await applyJudgedMoves(context, judged.confirmed)
+  if (judged === undefined) return
+  await applyJudgedMoves(context, judged.confirmed, false, moves)
   for (const { target } of judged.unconfirmed) {
     context.out.warning(hinted`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${displayReference(target.ref, context.home)}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`)
   }
-  return moves
 }
 
 /**
-head の Issue を待つ Issue を読み、判定に合わせてボードの列と札を動かす。読むのは、待つ Issue のボードの項目だけ。動かした列と札（moved: と set: の行の値）を返す
+head の Issue を待つ Issue を読み、判定に合わせてボードの列と札を動かす。読むのは、待つ Issue のボードの項目だけ。
+動かした列と札（moved: と set: の行の値）を moves に足していき、それを返す。途中で例外が出ても、書けた分は moves に残る
 */
-export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest): Promise<readonly BoardMoveLine[]> {
+export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest, moves: BoardMoveLine[] = []): Promise<readonly BoardMoveLine[]> {
   const context: BoardContext = { out, client, config, home: homeRepositoryOf(config) }
   const waiting: Waiting = { context, created, head: createIssueReference(created.repository, created.issueNumber) }
   const read = await readWaitingIssues(waiting)
-  if (read === undefined) return []
-  let moves: readonly BoardMoveLine[] = []
+  if (read === undefined) return moves
   try {
-    if (read.issues.length > 0) moves = await moveWaiting(waiting, read.issues)
+    if (read.issues.length > 0) await moveWaiting(waiting, read.issues, moves)
   }
   catch (error: unknown) {
     out.warning(`could not move the Issues waiting for ${displayReference(waiting.head, context.home)}: ${apiFailureMessage(error)}`)

@@ -246,7 +246,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -280,7 +280,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -418,7 +418,7 @@
                       "description": "Status set on the board (on dry_run, to be set)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -448,7 +448,7 @@
                       "description": "Status set on the board (on dry_run, to be set)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -1381,7 +1381,7 @@
                       "description": "Number of Archived items deleted from the board (on dry_run, to be deleted)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -1443,7 +1443,7 @@
                       "description": "Number of Archived items deleted from the board (on dry_run, to be deleted)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -1589,7 +1589,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was deleted)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -1628,7 +1628,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was deleted)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -1803,7 +1803,7 @@
                       "description": "added (new blocked-by), updated (wait kind or reason changed), or unchanged"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -1852,7 +1852,7 @@
                       "description": "added (new blocked-by), updated (wait kind or reason changed), or unchanged"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -2034,7 +2034,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was posted or written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -2072,7 +2072,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was posted or written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -2346,7 +2346,12 @@
                           },
                           "status": {
                             "description": "Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)",
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                              "backlog",
+                              "blocked",
+                              "ready"
+                            ]
                           },
                           "parent": {
                             "description": "Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)",
@@ -2466,7 +2471,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -2509,7 +2514,12 @@
                           },
                           "status": {
                             "description": "Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)",
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                              "backlog",
+                              "blocked",
+                              "ready"
+                            ]
                           },
                           "parent": {
                             "description": "Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)",
@@ -2629,7 +2639,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -2786,7 +2796,7 @@
                       "description": "Whether the reason was posted as a comment"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -2825,7 +2835,7 @@
                       "description": "Whether the reason was posted as a comment"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -3758,7 +3768,7 @@
                       "description": "removed, or unchanged when it was not a blocked-by"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -3797,7 +3807,7 @@
                       "description": "removed, or unchanged when it was not a blocked-by"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -4346,7 +4356,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (the PR was not created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -4456,7 +4466,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (the PR was not created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -5187,7 +5197,7 @@
                       }
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -5249,7 +5259,7 @@
                       }
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -5415,7 +5425,7 @@
                       "description": "Project owner"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -5455,7 +5465,7 @@
                       "description": "Project owner"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -5789,7 +5799,7 @@
                       "description": "The workflow, priority and size fields, plus the Status field when its options were looked at"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created or changed)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -5846,7 +5856,7 @@
                       "description": "The workflow, priority and size fields, plus the Status field when its options were looked at"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created or changed)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -6039,7 +6049,7 @@
                       "description": "Path of the project config file"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -6085,7 +6095,7 @@
                       "description": "Path of the project config file"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -6612,7 +6622,7 @@
                       "description": "create: the key was not set; update: its value was replaced; unchanged: it already had the value"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -6659,7 +6669,7 @@
                       "description": "create: the key was not set; update: its value was replaced; unchanged: it already had the value"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -6805,7 +6815,7 @@
                       "description": "delete: the key was cleared; unchanged: it was not set"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -6846,7 +6856,7 @@
                       "description": "delete: the key was cleared; unchanged: it was not set"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was written)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -7229,7 +7239,7 @@
                       "description": "Release notes from the CHANGELOG"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -7263,7 +7273,7 @@
                       "description": "Release notes from the CHANGELOG"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -7420,7 +7430,7 @@
                       "description": "Whether the remote head branch was deleted (false without delete_branch, on dry_run, or when the deletion failed)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was merged)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -7460,7 +7470,7 @@
                       "description": "Whether the remote head branch was deleted (false without delete_branch, on dry_run, or when the deletion failed)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was merged)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -7904,7 +7914,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was recorded)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -7933,7 +7943,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was recorded)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -8470,7 +8480,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created or recorded)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -8520,7 +8530,7 @@
                       "type": "string"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (nothing was created or recorded)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -9413,7 +9423,7 @@
                       "description": "One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (no symlink was changed)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },
@@ -9471,7 +9481,7 @@
                       "description": "One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)"
                     },
                     "dryRun": {
-                      "description": "true on dry_run (no symlink was changed)",
+                      "description": "true on dry_run (nothing was changed)",
                       "type": "boolean",
                       "const": true
                     },

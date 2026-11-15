@@ -22,13 +22,12 @@ import { COMMANDS } from '../../src/commands/registry.js'
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
 import { getEnvironmentVariableName } from '../../src/infra/github/auth.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { setEnvironment } from '../../src/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temporary.js'
 import { startFakeGithub } from '../fake-github/server.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
-import { connectInMemory, structuredOf } from './mcp-client.js'
+import { callToolOnce } from './mcp-client.js'
 import type { ToolEnvelope } from './mcp-client.js'
 
 export const DEFAULT_HOST = 'ghes.example.com'
@@ -238,13 +237,7 @@ runCommand と同じ用意の上で、MCP のツールを同じプロセスの�
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runTool(run: Readonly<ToolRun>): Promise<ToolResult> {
   return await inSandbox(run, async () => {
-    const connected = await connectInMemory(createMcpServer(run.commands ?? COMMANDS))
-    try {
-      return { structured: structuredOf(await connected.client.callTool({ name: run.tool, arguments: { ...run.arguments } })) }
-    }
-    finally {
-      await connected.close()
-    }
+    return { structured: await callToolOnce(run.commands ?? COMMANDS, run.tool, run.arguments) }
   })
 }
 

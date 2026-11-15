@@ -21,7 +21,7 @@ import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
@@ -43,7 +43,7 @@ const SESSION_FINISH_OUTPUT = z.strictObject({
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
   deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted (to be deleted on dry_run)'),
   currentBranch: z.string().optional().describe('Current branch after the local cleanup (omitted when the local cleanup was skipped)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 type FinishData = z.input<typeof SESSION_FINISH_OUTPUT>
@@ -285,7 +285,7 @@ async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & Gl
   }
   finally {
     const { closedIssues, skippedIssues, deletedBranches, currentBranch } = record
-    if (record.hasStarted) out.result({ closedIssues, skippedIssues, deletedBranches, ...currentBranch !== undefined && { currentBranch }, ...input.dry_run && { dryRun: true } })
+    if (record.hasStarted) out.result({ closedIssues, skippedIssues, deletedBranches, ...currentBranch !== undefined && { currentBranch } })
   }
 }
 

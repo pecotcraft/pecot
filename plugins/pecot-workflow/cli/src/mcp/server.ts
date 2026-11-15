@@ -10,6 +10,7 @@ import { resolveApiUrlOverride } from '../infra/github/client.js'
 import { usageOf, withUsage } from '../commands/command-binding.js'
 import { createOutput } from '../commands/output.js'
 import { exitCodeOfFailure } from '../commands/failure.js'
+import type { FailureKind } from '../commands/failure-kind.js'
 import { isRecord } from '../commands/input-schema.js'
 import { COMMANDS } from '../commands/registry.js'
 import { findRenamedInput, renamedInputNote } from '../commands/renamed-commands.js'
@@ -131,33 +132,48 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     }
     catch (error_: unknown) {
       options.reportUnexpected?.(error_, { stdout: collected.stdout(), stderr: collected.stderr() })
-      return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'other', message: unexpectedMessage(error_), warnings: collected.warnings() })
+      return finish(definition, collected, { exitCode: 1, message: unexpectedMessage(error_), kind: 'other' }, options)
     }
   }
   return finish(definition, collected, { exitCode, message }, options)
 }
 
-// SDK の検証に任せると、合わない結果は structuredContent の無い文字列だけになる。ここで検証し、合わなければ other の失敗にする
-function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo, ended: { readonly exitCode: number, readonly message: string | undefined }, options: Readonly<McpServerOptions>): CallToolResult {
+interface Ended {
+  readonly exitCode: number
+  readonly message: string | undefined
+  /**
+  無ければコマンドが io で渡した kind
+  */
+  readonly kind?: FailureKind
+}
+
+// SDK の検証に任せると、合わない結果は structuredContent の無い文字列だけになるので、ここで検証する
+function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo, ended: Ended, options: Readonly<McpServerOptions>): CallToolResult {
   const stdout = collected.stdout()
   const stderr = collected.stderr()
-  const schema = ended.exitCode === 0 ? definition.output : definition.output.partial()
-  const parsed = schema.safeParse(collected.data())
-  if (!parsed.success) {
-    options.reportUnexpected?.(parsed.error, { stdout, stderr })
-    return toToolResult({ exitCode: 1, stdout, stderr, kind: 'other', message: `data does not match the output schema: ${issuesMessage(parsed.error)}`, warnings: collected.warnings() })
-  }
-  return toToolResult({
+  const outcome = {
     exitCode: ended.exitCode,
     stdout,
     stderr,
-    kind: collected.kind(),
+    kind: ended.kind ?? collected.kind(),
     message: ended.message,
     resultLine: collected.resultLine(),
-    data: parsed.data,
     artifacts: collected.artifacts(),
     warnings: collected.warnings(),
-  })
+  }
+  const raw = collected.data()
+  if (ended.exitCode === 0) {
+    const parsed = definition.output.safeParse(raw)
+    if (parsed.success) return toToolResult({ ...outcome, data: parsed.data })
+    options.reportUnexpected?.(parsed.error, { stdout, stderr })
+    // 書き込みが済んだ後の食い違いもありうる。data を捨てずに残し、呼び直さないよう伝える
+    const message = `the command finished, but its data does not match the output schema: ${issuesMessage(parsed.error)}; the operation may already be done, so do not call it again`
+    return toToolResult({ ...outcome, exitCode: 1, stderr: '', kind: 'other', message, data: raw })
+  }
+  // 失敗の結果は SDK とクライアントが検証しない。合わないときは kind などを保ち、成功の項目だけを捨てる
+  const parsed = definition.output.partial().safeParse(raw)
+  if (!parsed.success) options.reportUnexpected?.(parsed.error, { stdout, stderr })
+  return toToolResult({ ...outcome, data: parsed.success ? parsed.data : undefined })
 }
 
 // コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する

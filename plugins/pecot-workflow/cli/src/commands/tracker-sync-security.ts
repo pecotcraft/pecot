@@ -177,7 +177,7 @@ export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: Com
 
   const rows = rowsOf(plan, number, isUnchanged)
   const synced: Pick<TrackerSyncData, 'source' | 'tracker' | 'closed'> = { source: 'security', ...number !== undefined && { tracker: number }, closed: false }
-  out.result(input.dry_run ? { ...synced, created: number === undefined && plan.create, ...rows, dryRun: true } : { ...synced, created: false, added: [], removed: [] })
+  out.result(input.dry_run ? { ...synced, created: number === undefined && plan.create, ...rows } : { ...synced, created: false, added: [], removed: [] })
   const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged, rows })
   if (failed.size > 0 || failures > 0) throw new CommandExit(1, 'partial-failure')
   return 0

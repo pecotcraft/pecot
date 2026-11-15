@@ -4,6 +4,7 @@ import type { CallToolResult } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
 import type { FailureKind } from '../commands/failure-kind.js'
+import { WARNING_PREFIX } from '../commands/output.js'
 import type { CommandIo } from '../commands/registry.js'
 import { USAGE_EXIT_CODE } from '../commands/usage-error.js'
 
@@ -132,7 +133,6 @@ interface ToolOutput {
 }
 
 const ERROR_PREFIX = 'error: '
-const WARNING_PREFIX = 'warning: '
 const CONTINUATION = '  '
 
 function linesOf(text: string): readonly string[] {
@@ -188,6 +188,7 @@ function toOutput(outcome: Readonly<CommandOutcome>): ToolOutput {
   const message = messageOf(outcome)
   const warnings = outcome.warnings ?? []
   const kind = outcome.kind ?? 'other'
+  // reason・detail は、ツールが data に入れた値より優先する（pecot-visual は逆）
   const data = {
     ...outcome.data,
     ...!isOk && { reason: kind, detail: detailOf(outcome.stderr, message) },

@@ -7,6 +7,7 @@ import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireActiveConfigPlain } from './command-stop.js'
+import { DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { requireReleaseTargetRepository } from './release.js'
 
@@ -30,7 +31,7 @@ export const TRACKER_SYNC_OUTPUT = z.strictObject({
   added: z.array(TRACKER_ENTRY_JSON).describe('Rows added to the Tracker list (on dry_run, to be added)'),
   removed: z.array(TRACKER_ENTRY_JSON).describe('Rows removed from the Tracker list (on dry_run, to be removed)'),
   closed: z.boolean().describe('Whether the Tracker was closed because its list became none (on dry_run, would be closed)'),
-  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was changed)'),
+  dryRun: DRY_RUN_FIELD,
 })
 
 export type TrackerSyncData = z.input<typeof TRACKER_SYNC_OUTPUT>

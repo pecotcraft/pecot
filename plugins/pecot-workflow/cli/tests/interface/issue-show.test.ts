@@ -3,13 +3,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_SHOW_COMMANDS } from '../../src/commands/issue-show.js'
-import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
-import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -300,26 +300,14 @@ describe('issue show', () => {
     await startGithub([rule])
 
     const cli = await read('acme/demo/7')
-    const connected = await connectInMemory(createMcpServer(ISSUE_SHOW_COMMANDS))
-    try {
-      const structured = structuredOf(await connected.client.callTool({ name: 'issue_show', arguments: { issue_ref: 'acme/demo/7' } }))
-      expect(structured).toMatchObject({ ok: false, exitCode: cli.code, kind: 'github-not-found', data: { reason: 'github-not-found', detail: cli.stderr.replace(/^error: /u, '').replace(/\n+$/u, '') } })
-      expect(structured).not.toHaveProperty('stderr')
-      expect(cli.code).toBe(1)
-    }
-    finally {
-      await connected.close()
-    }
+    const structured = await callToolOnce(ISSUE_SHOW_COMMANDS, 'issue_show', { issue_ref: 'acme/demo/7' })
+    expect(structured).toMatchObject({ ok: false, exitCode: cli.code, kind: 'github-not-found', data: { reason: 'github-not-found', detail: cli.stderr.replace(/^error: /u, '').replace(/\n+$/u, '') } })
+    expect(structured).not.toHaveProperty('stderr')
+    expect(cli.code).toBe(1)
   })
   describe('MCP の data', () => {
-    async function show(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ReturnType<typeof structuredOf>> {
-      const connected = await connectInMemory(createMcpServer(ISSUE_SHOW_COMMANDS))
-      try {
-        return structuredOf(await connected.client.callTool({ name: 'issue_show', arguments: { ...argumentsOfTool } }))
-      }
-      finally {
-        await connected.close()
-      }
+    async function show(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+      return await callToolOnce(ISSUE_SHOW_COMMANDS, 'issue_show', argumentsOfTool)
     }
 
     const parent = { number: 3, title: '親の Epic', state: 'OPEN', repository: { name: 'demo', owner: { login: 'acme' } } }
