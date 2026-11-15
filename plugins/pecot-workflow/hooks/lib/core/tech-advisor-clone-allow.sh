@@ -1,5 +1,5 @@
 #!/bin/bash
-# w-tech-advisor 定型 clone の自動許可判定。
+# w-tech-advisor と w-reviewer の定型 clone の自動許可判定。
 #
 # HOOK_COMMAND が、次のコマンドに厳密一致する場合のみ exit 10 を返す。
 # 対象は「.pecot/work/<数字>/tech-advisor/<名前> を clone 先とする単一の git clone コマンド」。

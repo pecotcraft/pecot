@@ -102,15 +102,16 @@ describe('w-active の手順', () => {
 
   it('レビューは一巡 1 回で、再レビューを求めない', () => {
     const body = sectionBody(text, titleIndex(headings, 'レビュー'))
-    for (const word of ['w-tech-advisor', 'w-e2e-planner', '一巡 1 回', '再レビューは不要']) expect(body).toContain(word)
+    for (const word of ['w-reviewer', '一巡 1 回', '再レビューは不要']) expect(body).toContain(word)
   })
 
-  it('レビューの 2 者は、並列 spawn を既定にする', () => {
+  it('レビューは、w-reviewer を 1 回起こして agent ID を控え、ほかのエージェントを起こさない', () => {
     const body = sectionBody(text, titleIndex(headings, 'レビュー'))
-    expect(body).toContain('2 者の並列 spawn を既定とする')
-    expect(body).toContain(SERIAL_REASON_MARKER)
-    expect(body).toContain(PARALLEL_SPAWN_NOTE)
-    expect(body).not.toContain('spawn してよい')
+    expect(body).toContain('`Agent` ツールで w-reviewer を 1 回起こし')
+    expect(body).toContain('agent teams が有効なら `name: w-reviewer` を付ける')
+    expect(body).toContain('返った agent ID を控える。完了した w-reviewer は `SendMessage` で再開できる')
+    for (const agent of ['w-tech-advisor', 'w-e2e-planner', 'w-implementer']) expect(body).not.toContain(agent)
+    for (const word of ['並列 spawn', '単発 spawn', '待機']) expect(body).not.toContain(word)
   })
 
   it('ブランチ作成で止まったときは、エラーの案内を利用者に示し、エージェントの判断で先へ進めない', () => {
@@ -163,8 +164,19 @@ describe('w-revise の手順', () => {
   const text = readSkill('w-revise')
   const headings = stepHeadings(text)
 
-  it('Step 5 は、複数の w-implementer の並列起動を既定にし、直列の理由を書かせる', () => {
+  it('Step 5 は、main が直すことを基本にし、委譲する条件を subagent-usage.md から読ませる', () => {
     const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('main が直すことを基本にする')
+    expect(body).toContain('当たらなければ main が直し、w-implementer を起こさない')
+    const link = '../w-help/references/subagent-usage.md'
+    expect(body).toContain(link)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
+    expect(body.indexOf(link)).toBeLessThan(body.indexOf('複数 w-implementer の並列起動を既定とする'))
+  })
+
+  it('Step 5 は、委譲するときに複数の w-implementer の並列起動を既定にし、直列の理由を書かせる', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('条件に当たって委譲するときは')
     expect(body).toContain('複数 w-implementer の並列起動を既定とする')
     expect(body).toContain(SERIAL_REASON_MARKER)
     expect(body).toContain(PARALLEL_SPAWN_NOTE)
@@ -178,12 +190,41 @@ describe('w-revise の手順', () => {
     expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
   })
 
-  it('Step 2 は、3 体のレビューアを並列 spawn する', () => {
+  it('Step 2 は、控えた w-reviewer に SendMessage を送り、拒否されたか控えが無ければ新しく起こす', () => {
     const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).toContain('3 体の並列 spawn を既定とする')
+    expect(body).toContain('w-reviewer に diff をレビューさせる')
+    expect(body).toContain('w-active の Step 8 で控えた agent ID か名前があれば、それを宛先に `SendMessage` を送り、PR の diff のレビューを依頼する')
+    expect(body).toContain('送信が拒否されたら（宛先が無いなど）、または ID と名前のどちらも控えていなければ、`Agent` ツールで w-reviewer を新しく起こす')
+    expect(body).toContain('GitHub Copilot CLI では、`SendMessage` を送らずに新しく起こす')
+    for (const word of ['単発 spawn', '残っていれば', 'w-tech-advisor', 'w-implementer']) expect(body).not.toContain(word)
+  })
+
+  it('Step 2 は、CUJ があるときだけ w-e2e-planner を起こし、実行者が main の CUJ は渡さない', () => {
+    const body = sectionBody(text, numberIndex(headings, 2))
+    expect(body).toContain('PR の計画に CUJ があるときだけ、w-e2e-planner も `Agent` ツールで起こし')
+    expect(body).toContain('実行者が main の CUJ は main が実行し、w-e2e-planner には渡さない。')
+    expect(body).toContain('w-reviewer への依頼と w-e2e-planner の spawn は、並列を既定とする')
     expect(body).toContain(SERIAL_REASON_MARKER)
-    expect(body).toContain(PARALLEL_SPAWN_NOTE)
-    for (const reviewer of ['w-tech-advisor', 'w-e2e-planner', 'w-implementer']) expect(body).toContain(reviewer)
+    expect(body).toContain('1 メッセージ内の複数の呼び出し（`SendMessage` か `Agent`）で依頼する。別メッセージで順に呼ぶと直列になる。')
+  })
+
+  it('Step 6 の CUJ の再実行は、w-e2e-planner を Agent ツールで起こし、実行者が main の CUJ は渡さない', () => {
+    const body = sectionBody(text, numberIndex(headings, 6))
+    expect(body).toContain('w-e2e-planner を `Agent` ツールで起こして再実行させる')
+    expect(body).toContain('実行者が main の CUJ と、実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。')
+    expect(body).not.toContain('単発 spawn')
+  })
+
+  it('2 巡目以降のレビューも、Step 2 と同じ分岐で w-reviewer に頼む', () => {
+    expect(text).toContain('Step 6 より後の 2 巡目以降のレビューも、Step 2 と同じ分岐で頼む。控えた w-reviewer に `SendMessage` を送り、拒否されたら新しく起こす。')
+  })
+
+  it('Step 3 のインラインコメントは、w-reviewer の指摘に視点の印を付け、外部のレビュアーの指摘には付けない', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('`**F-NN** [視点の印]` で始める')
+    for (const mark of ['`[tech]`', '`[cuj]`', '`[quality]`']) expect(body).toContain(mark)
+    expect(body).toContain('w-e2e-planner が返した CUJ の不合格は `[cuj]` にする')
+    expect(body).toContain('外部のレビュアーの指摘には印を付けない')
   })
 
   it('Step 6 の一括 resolve は、別名を使う', () => {

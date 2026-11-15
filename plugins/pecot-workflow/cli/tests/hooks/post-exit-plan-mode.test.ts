@@ -110,6 +110,16 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).toContain('In GitHub Copilot CLI, omit `model`.')
   })
 
+  it('implementer への引き継ぎは、委譲する条件の置き場を示し、条件に当たらない単位を main が実装すると案内する', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    const text = additionalContext(runHook(hookCase, EXIT_PLAN))
+    expect(text).toContain('subagent-usage.md')
+    expect(text).toContain('main implements a unit unless it meets the delegation conditions.')
+    expect(text).toContain('Do not spawn an agent for such a unit.')
+  })
+
   it('Copilot の tool 名 exit_plan_mode でも、コメントの更新と引き継ぎを案内する', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)

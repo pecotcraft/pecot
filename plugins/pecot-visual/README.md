@@ -26,8 +26,7 @@
 
 | エージェント | 役割 |
 |:-----------|:----|
-| v-diagram-creator | v-drawio スキルと連携して draw.io ダイアグラムを 1 つ作成する |
-| v-slide-creator | 担当するスライドを 1 枚ずつ新規作成する |
+| v-diagram-creator | v-drawio・v-slidev スキルと連携して draw.io ダイアグラムを 1 つ作成する |
 
 ## MCP ツール
 

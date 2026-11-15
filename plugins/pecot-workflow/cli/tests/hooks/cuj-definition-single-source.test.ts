@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはリポ内の固定のパスのみ */
-// CUJ の定義段落が、plan テンプレと w-e2e-planner.md の 2 箇所で一致することの固定。
+// CUJ の定義段落が、plan テンプレ・w-e2e-planner.md・w-reviewer.md の 3 箇所で一致することの固定。
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -10,6 +10,7 @@ import { projectRoot } from './_helpers/paths.js'
 const SOURCES: readonly string[] = [
   'plugins/pecot-workflow/cli/templates/comment/plan.md',
   'plugins/pecot-workflow/agents/w-e2e-planner.md',
+  'plugins/pecot-workflow/agents/w-reviewer.md',
 ]
 
 // `CUJ = ` で始まる行から、次の空行の手前までを 1 段落として返す。
@@ -23,7 +24,7 @@ function extractDefinition(file: string): string {
 }
 
 describe('CUJ の定義段落', () => {
-  it('配布物の 2 箇所で一致する', () => {
+  it('配布物の 3 箇所で一致する', () => {
     const definitions = new Map<string, string>()
     for (const relative of SOURCES) {
       const file = path.join(projectRoot, relative)
@@ -31,6 +32,6 @@ describe('CUJ の定義段落', () => {
       definitions.set(relative, extractDefinition(file))
     }
     const joined = [...definitions].map(([relative, text]) => `--- ${relative} ---\n${text}`).join('\n')
-    expect(new Set(definitions.values()).size, `CUJ 定義段落が 2 箇所で一致していない:\n${joined}`).toBe(1)
+    expect(new Set(definitions.values()).size, `CUJ 定義段落が 3 箇所で一致していない:\n${joined}`).toBe(1)
   })
 })

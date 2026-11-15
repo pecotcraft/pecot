@@ -45,6 +45,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | speckit / spec 駆動ワークフロー | [spec 駆動ワークフロー](references/spec-driven-workflow.md) |
 | Issue/PR 起票時のフロー基本ルール | [Issue/PR フロー基本ルール](references/issue-flow-rules.md) |
 | スキルが起こすエージェントのモデルの決め方 | [エージェントのモデル](references/agent-models.md) |
+| サブエージェントに委譲する条件と、起こす箇所ごとの理由 | [サブエージェントの使い方](references/subagent-usage.md) |
 
 ## よくある操作
 

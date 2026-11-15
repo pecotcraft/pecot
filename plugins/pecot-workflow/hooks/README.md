@@ -77,7 +77,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
 | `git-worktree-branch-check` | `wt*`/`develop-aist` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
-| `tech-advisor-clone-allow` | w-tech-advisor の定型 clone（`.pecot/work/<Issue番号>/tech-advisor/<名前>` 宛の単一 `git clone`）を自動許可し、確認プロンプトを抑制する。全 deny ガード通過後のみ判定 | コアガード | `true` |
+| `tech-advisor-clone-allow` | w-tech-advisor の定型 clone（`.pecot/work/<Issue番号>/tech-advisor/<名前>` 宛の単一 `git clone`）を自動許可し、確認プロンプトを抑制する。w-reviewer の clone も同じパスに置くので、同じく許可される。全 deny ガード通過後のみ判定 | コアガード | `true` |
 
 > コアガードは `claude-bash-guards` から呼び出される。個別に無効化可能。
 > `pre-tool-use-bash.sh` は `merge-hook-outputs.sh` でガードの出力（deny / ask / allow とその理由）と、`tmp-path-warner` / `pecot-issue-pending-reminder` のリマインダーを 1 つの JSON にまとめて返す。
@@ -362,13 +362,13 @@ Copilot での 60,000 バイトを超えるコマンドと MCP の PR 作成（�
 |---|---|---|
 | スキルの `argument-hint` | スラッシュコマンドの入力欄に引数ヒントが出る | 文字列なら読み込まれるがモデルには渡らない。引用符なしの `[x]` は YAML のリストになり、そのスキルが読み込まれない（`argument-hint must be a string`）。値は必ず二重引用符で囲む |
 | スキルの `when_to_use` | スキル一覧で description の後ろに付く（合計 1,536 文字まで） | 警告なしで読み込まれるが、モデルには渡らない |
-| エージェントの `disallowedTools` | 指定したツールがエージェントから消える | 警告なしで読み込まれるが、制限として働かない（v-slide-creator で Bash が実行された） |
+| エージェントの `disallowedTools` | 指定したツールがエージェントから消える | 警告なしで読み込まれるが、制限として働かない（`Bash` を除外したエージェントで Bash が実行された） |
 
 - Claude はサブエージェントから `AskUserQuestion` / `EnterPlanMode` / `ExitPlanMode` をもともと外すため、これらの
   除外は効果が無い。w-e2e-planner の `disallowedTools`（`AskUserQuestion` だけ）は Claude では実質の除外が無い
 - `Agent` を除外すると、`--agent` 起動の init の tools からは `Task` が消える。`Bash` を除外すると `Monitor` も消える
-- Windows では PowerShell ツールが自動で有効になるため、シェルを使わせない v-slide-creator は `Bash` と合わせて
-  `PowerShell` も除外している
+- Windows では PowerShell ツールが自動で有効になるため、シェルを使わせないエージェントでは `Bash` と合わせて
+  `PowerShell` も除外する
 - Copilot でツールを制限するには、許可型の `tools` が要る（Copilot の custom agents は `disallowedTools` を持たない）。
   `tools` は許可したツール以外をすべて外すので、MCP ツール名の形がクライアントで違うことと、許可の書き忘れで作業が止まることに
   注意する。ここでは Issue #1231 の指定どおり除外型だけを使い、Copilot では制限が働かない
