@@ -42,7 +42,7 @@ draw.ioのXMLダイアグラムを生成し、ブラウザで直接開けるリ�
   宣言が無いときは `fontFamily=sans-serif` だけを書く
 - `png`: 既定 `true` で、`out_path` の拡張子を `.png` に置換した兄弟ファイルへ、実描画 PNG を同時出力する。PNG が不要なときだけ `false` にする
 
-`out_path` の親ディレクトリは自動で作成される。応答には、表示用 HTML のパス（`file`）・PNG のパス（`png`）・PNG 生成の可否（`pngFailed`）が載る。
+`out_path` の親ディレクトリは自動で作成される。
 確かめた宣言は `theme` に載る。中身は `source`・`name`・`fonts` で、サイズを確かめたときは `fontSizes` も載る。
 
 ### 注意

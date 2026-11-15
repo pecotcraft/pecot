@@ -17,11 +17,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-pecot-workflow の MCP ツール `session_show` を使って、このディレクトリに残っている作業を確かめる。
-
-- 別の OPEN の Issue が残っていたら、前の Issue を片付けてから着手する
-- 作業ディレクトリのリポが対象の Issue のリポと違うときは、対象リポの worktree でセッションを始め直す。`cd` では変わらない
-- 未コミットの差分が残っていたら、commit / stash / 破棄で clean にしてから着手する。前の Issue の差分なら、先にその Issue を終える
+未コミットの差分が残っていたら、commit / stash / 破棄で clean にしてから着手する。前の Issue の差分なら、先にその Issue を終える。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
 

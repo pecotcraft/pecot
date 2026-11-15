@@ -88,7 +88,6 @@ argument-hint: "[画像のパス]"
 - **`imagePath`・`input_path`・`out_path` はすべて絶対パスで組み立てる。**
   `input_path` / `out_path` の相対パスは実行前に拒否される。
   `imagePath` の相対パスは、仕様 JSON の位置ではなくプロセスのカレントディレクトリ基準で解決される。そのため画像が `not-found` になる
-- 報告は応答の項目を読んで行う
 
 ## 5. エラー処理
 
@@ -108,8 +107,7 @@ argument-hint: "[画像のパス]"
 
 ## 6. 結果報告
 
-成功時の項目は
-`{"event":"result","outPath":...,"items":...,"annotations":...,"skipped":[...]}` になる。この項目を正として報告する。
+ツールの結果を正として、次を報告する。
 
 - 生成した xlsx の**絶対パス**（`outPath`）
 - 配置した項目数（`items`）と注記数（`annotations`）
