@@ -27,7 +27,7 @@ import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import type { OptionSpec } from './project-sync.js'
+import type { OptionSpec, SyncedProjectConfig } from './project-sync.js'
 import {
   BLOCKED_SPEC,
   NEEDS_ATTENTION_SPEC,
@@ -48,6 +48,18 @@ import {
 } from './project-sync.js'
 
 const DEFAULT_HOST = 'github.com'
+function dryRunMark(isDryRun: boolean): { dryRun?: true } {
+  return isDryRun ? { dryRun: true } : {}
+}
+
+function linkChange(existing: Repository | undefined): 'create' | 'update' {
+  return existing === undefined ? 'create' : 'update'
+}
+
+function setChange(hasPrevious: boolean): 'create' | 'update' {
+  return hasPrevious ? 'update' : 'create'
+}
+
 const dryRunInput = z.boolean().default(false).describe('Show what would change without writing anything')
 const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u
 const MISSING_PATH_CODES: ReadonlySet<string> = new Set(['ENOENT', 'ENOTDIR', 'ELOOP'])
@@ -112,34 +124,59 @@ function validated(config: ProjectConfig): ProjectConfig {
 
 // project list
 
+const LIST_ROW = z.strictObject({
+  name: z.string().describe('Name of the project config (the file name without .json)'),
+  active: z.boolean().describe('Whether this config is the active project'),
+})
+
+const LIST_OUTPUT = z.strictObject({
+  projects: z.array(LIST_ROW).describe('Project configs under the projects directory (an empty array when there is none)'),
+})
+
 const listCommand = defineCommand({
   path: ['project', 'list'],
   description: 'List available projects',
   input: z.strictObject({}),
-  output: z.strictObject({}),
+  output: LIST_OUTPUT,
   positional: [],
   interactive: false,
   run: (_input, io) => {
-    const out = createOutput(false, io)
+    const out = createOutput<z.input<typeof LIST_OUTPUT>>(false, io)
     const lines = ['=== Projects ===']
     const directory = projectsDirectory()
     const files = readProjectFiles(directory)
     if (files.length === 0) {
       lines.push('  none')
       out.data(lines.join('\n'))
+      out.result({ projects: [] })
       return Promise.resolve(0)
     }
     const active = getActiveConfigPath()
+    const projects: { name: string, active: boolean }[] = []
     for (const file of files) {
       const isActive = active !== undefined && resolveRealPath(path.join(directory, file)) === resolveRealPath(active)
       lines.push(`  ${path.parse(file).name}${isActive ? ' [ACTIVE]' : ''}`)
+      projects.push({ name: path.parse(file).name, active: isActive })
     }
     out.data(lines.join('\n'))
+    out.result({ projects })
     return Promise.resolve(0)
   },
 })
 
 // project search
+
+const SEARCH_ROW = z.strictObject({
+  number: z.int().optional().describe('Project number (omitted when GitHub did not return it)'),
+  title: z.string().optional().describe('Project title (omitted when GitHub did not return it)'),
+  url: z.string().optional().describe('Project URL (omitted when GitHub did not return it)'),
+})
+
+const SEARCH_OUTPUT = z.strictObject({
+  owner: z.string().describe('Project owner that was searched'),
+  host: z.string().describe('GitHub host that was searched'),
+  projects: z.array(SEARCH_ROW).describe('Projects of the owner'),
+})
 
 const searchCommand = defineCommand({
   path: ['project', 'search'],
@@ -148,12 +185,12 @@ const searchCommand = defineCommand({
     owner: z.string().describe('Project owner'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
   }),
-  output: z.strictObject({}),
+  output: SEARCH_OUTPUT,
   positional: ['owner'],
   shortFlags: { host: '-h' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(false, io)
+    const out = createOutput<z.input<typeof SEARCH_OUTPUT>>(false, io)
     const { owner, host } = input
     await guarded(out, 'list projects', async () => {
       const projects = await createGitHubClient(out, host).listProjects(owner)
@@ -166,6 +203,11 @@ const searchCommand = defineCommand({
         lines.push(`${padEndCodePoints(number, 4)} ${padEndCodePoints(title, SEARCH_TITLE_WIDTH)} ${project['url'] === undefined ? '' : textOf(project['url'])}`)
       }
       out.data(lines.join('\n'))
+      out.result({ owner, host, projects: projects.map(project => ({
+        ...typeof project['number'] === 'number' && { number: project['number'] },
+        ...typeof project['title'] === 'string' && { title: project['title'] },
+        ...typeof project['url'] === 'string' && { url: project['url'] },
+      })) })
     })
     return 0
   },
@@ -186,8 +228,30 @@ function optionInputsOf(field: Readonly<JsonObject>): readonly FieldOptionInput[
   })
 }
 
+interface FieldReport {
+  readonly name: string
+  change: 'create' | 'update' | 'unchanged' | 'skip'
+  addedOptions: string[]
+}
+
+type MarkField = (name: string, change: FieldReport['change'], addedOption?: string) => void
+
+// フィールドごとの結果を溜め、進むたびに全体を渡す。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- data の型が可変の配列
+function fieldReporter(publish: ((fields: FieldReport[]) => void) | undefined): MarkField {
+  const entries = new Map<string, FieldReport>()
+  return (name, change, addedOption) => {
+    const entry = entries.get(name) ?? { name, change, addedOptions: [] }
+    entry.change = change
+    if (addedOption !== undefined) entry.addedOptions.push(addedOption)
+    entries.set(name, entry)
+    publish?.(Array.from(entries.values(), report => ({ ...report, addedOptions: [...report.addedOptions] })))
+  }
+}
+
 // 既にあるフィールドに選択肢を 1 つ足す。足した（予行では、足す予定の）数（0 か 1）を返す
-async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec, isDryRun: boolean): Promise<number> {
+async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
+  const { isDryRun, mark } = run
   const { option } = spec
   const fieldName = textOf(field['name'])
   const existing = optionInputsOf(field)
@@ -196,11 +260,13 @@ async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClie
     const unchanged: Operation = { verb: 'unchanged', target: `option ${option.name} in field ${fieldName}` }
     out.planned(unchanged)
     out.done(unchanged)
+    mark(fieldName, 'unchanged')
     return 0
   }
   const added: Operation = { verb: 'add', target: `option ${option.name} to field ${fieldName}` }
   if (isDryRun) {
     out.planned(added)
+    mark(fieldName, 'update', option.name)
     return 1
   }
   try {
@@ -210,23 +276,26 @@ async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClie
     if (!(error instanceof GitHubAPIError)) throw error
     // 選択肢の id を拒む GHES などで足せなくても、作ったフィールドと設定ファイルの同期は進める
     out.warning(`could not add option ${option.name} to field ${fieldName}: ${error.message}`)
+    mark(fieldName, 'unchanged')
     return 0
   }
   out.done(added)
+  mark(fieldName, 'update', option.name)
   return 1
 }
 
 // 既にあるフィールドに足す選択肢。fields は作る前の状態なので、作ったばかりの進行の欄は「無い」扱いで何も出さない（created の行が出ている）
 // 足した（予行では、足す予定の）選択肢の数を返す
-async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string, isDryRun: boolean): Promise<number> {
+async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
   const workflowField = lastFieldNamed(fields, workflowFieldName)
-  const blocked = workflowField === undefined ? 0 : await addFieldOption(out, client, workflowField, BLOCKED_SPEC, isDryRun)
+  const blocked = workflowField === undefined ? 0 : await addFieldOption(out, client, workflowField, BLOCKED_SPEC, run)
   const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
   if (statusField === undefined) {
     skipped(out, `field ${STATUS_FIELD_NAME} (not found)`)
+    run.mark(STATUS_FIELD_NAME, 'skip')
     return blocked
   }
-  return blocked + await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC, isDryRun)
+  return blocked + await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC, run)
 }
 
 function skipped(out: Readonly<Output>, target: string): void {
@@ -236,8 +305,9 @@ function skipped(out: Readonly<Output>, target: string): void {
 
 // フィールドを作り、既にあるフィールドには足りない選択肢を足す。既にある進行の欄の必須の値が欠けていれば、何も書かずに止める。
 // 作る・足す（予行では、その予定の）フィールドと選択肢の数を返す
-async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>, isDryRun: boolean): Promise<number> {
+async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
   const { owner, name, suffix } = target
+  const { isDryRun, mark } = run
   const project = await findProjectByTitle(out, client, owner, name)
   const projectId = requireString(project['id'], 'project.id')
   const projectInfo = await client.getProjectFields(owner, requireNumber(project['number'], 'project.number'))
@@ -258,18 +328,34 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
   for (const [fieldName, options] of wanted) {
     if (fields.some(field => jsonField(field, 'name') === fieldName)) {
       skipped(out, `field ${fieldName} (already exists)`)
+      mark(fieldName, 'unchanged')
       continue
     }
     newFieldCount += 1
     if (isDryRun) {
       out.planned({ verb: 'create', target: `field ${fieldName}` })
+      mark(fieldName, 'create')
       continue
     }
     const created = await client.createProjectField(projectId, fieldName, options)
     out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
+    mark(fieldName, 'create')
   }
-  return newFieldCount + await addMissingOptions(out, client, fields, workflowFieldName, isDryRun)
+  return newFieldCount + await addMissingOptions(out, client, fields, workflowFieldName, run)
 }
+
+const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip'])
+
+const INIT_ROW = z.strictObject({
+  name: z.string().describe('Name of the project field'),
+  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found'),
+  addedOptions: z.array(z.string()).describe('Names of the options added to the field (empty when none)'),
+})
+
+const INIT_OUTPUT = z.strictObject({
+  fields: z.array(INIT_ROW).describe('The workflow, priority and size fields, plus the Status field when its options were looked at'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created or changed)'),
+})
 
 const initCommand = defineCommand({
   path: ['project', 'init'],
@@ -281,15 +367,19 @@ const initCommand = defineCommand({
     suffix: z.string().describe('Suffix of the workflow field'),
     dry_run: dryRunInput,
   }),
-  output: z.strictObject({}),
+  output: INIT_OUTPUT,
   positional: ['owner', 'name'],
   shortFlags: { host: '-h', suffix: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof INIT_OUTPUT>>(input.dry_run, io)
     const { owner, name, host, suffix } = input
     const client = createGitHubClient(out, host)
-    const changeCount = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, input.dry_run))
+    if (input.dry_run) out.result({ dryRun: true })
+    const mark = fieldReporter((fields) => {
+      out.result({ fields })
+    })
+    const changeCount = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, { isDryRun: input.dry_run, mark }))
     // 設定ファイルは作るフィールドと選択肢の ID を書くので、予行では作る前の設定を出さない
     if (changeCount > 0 && input.dry_run) return 0
     await guarded(out, 'sync project config', async () => {
@@ -301,6 +391,14 @@ const initCommand = defineCommand({
 
 // project create
 
+const CREATE_OUTPUT = z.strictObject({
+  number: z.int().optional().describe('Number of the created project (omitted on dry_run)'),
+  url: z.string().optional().describe('URL of the created project (omitted on dry_run)'),
+  title: z.string().describe('Title of the project'),
+  owner: z.string().describe('Project owner'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created)'),
+})
+
 const projectCreationCommand = defineCommand({
   path: ['project', 'create'],
   description: 'Create a new project (to add the fields to an existing project, use project init)',
@@ -311,12 +409,12 @@ const projectCreationCommand = defineCommand({
     suffix: z.string().describe('Suffix of the workflow field'),
     dry_run: dryRunInput,
   }),
-  output: z.strictObject({}),
+  output: CREATE_OUTPUT,
   positional: ['owner', 'title'],
   shortFlags: { host: '-h', suffix: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof CREATE_OUTPUT>>(input.dry_run, io)
     const { owner, title, host, suffix } = input
     await guarded(out, 'create project', async () => {
       const client = createGitHubClient(out, host)
@@ -334,13 +432,20 @@ const projectCreationCommand = defineCommand({
       // フィールドと設定ファイルは作ったプロジェクトの ID を使うので、予行ではプロジェクトの行だけ出す
       if (input.dry_run) {
         out.planned({ verb: 'create', target: `project ${title} for ${owner}` })
+        out.result({ title, owner, dryRun: true })
         return
       }
 
       const created = await client.createProject(ownerId, title)
       out.done({ verb: 'create', target: `project #${textOf(created['number'])} ${textOf(created['url'])}` })
+      out.result({
+        title,
+        owner,
+        ...typeof created['number'] === 'number' && { number: created['number'] },
+        ...typeof created['url'] === 'string' && { url: created['url'] },
+      })
       await guarded(out, 'initialize project fields', async () => {
-        await initializeFields(out, client, { owner, name: title, suffix }, false)
+        await initializeFields(out, client, { owner, name: title, suffix }, { isDryRun: false, mark: fieldReporter(undefined) })
       })
       await guarded(out, 'sync project config', async () => {
         await syncProjectConfig(out, client, { owner, name: title, host, suffix })
@@ -359,7 +464,7 @@ function findConfigFileArgument(project: string): string | undefined {
   return isFile(named) ? named : undefined
 }
 
-async function activateFromConfigFile(out: Readonly<Output>, configPath: string, host: string | undefined, isDryRun: boolean): Promise<void> {
+async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, configPath: string, host: string | undefined, isDryRun: boolean): Promise<void> {
   let config: ProjectConfig
   try {
     config = loadConfig(configPath)
@@ -378,7 +483,7 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun })
+    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun }), isDryRun)
   })
 }
 
@@ -396,7 +501,7 @@ async function resolveActivationOwner(out: Readonly<Output>, client: Readonly<Gi
 }
 
 // 一覧の表示モード。初期化済みのプロジェクトに [ACTIVE] を付ける
-async function echoInitializedProjects(out: Readonly<Output>, client: Readonly<GitHubClient>, host: string, owner: string): Promise<void> {
+async function echoInitializedProjects(out: Readonly<Output<ActivateData>>, client: Readonly<GitHubClient>, host: string, owner: string): Promise<void> {
   const lines = [`=== Initialized projects (${host}/${owner}) ===`]
   const initialized: JsonValue[] = []
   const owned = await client.listProjects(owner)
@@ -410,15 +515,20 @@ async function echoInitializedProjects(out: Readonly<Output>, client: Readonly<G
   if (initialized.length === 0) {
     lines.push('  none')
     out.data(lines.join('\n'))
+    out.result({ candidates: [] })
     return
   }
   const activeNumber = activeProjectNumber(host, owner)
+  const candidates: { number?: number, title?: string, active: boolean }[] = []
   for (const project of initialized) {
     const number = jsonField(project, 'number')
     const title = jsonField(project, 'title')
-    lines.push(`  #${textOf(number)}: ${title === undefined ? '(untitled)' : textOf(title)}${activeNumber === number ? ' [ACTIVE]' : ''}`)
+    const isActive = activeNumber === number
+    lines.push(`  #${textOf(number)}: ${title === undefined ? '(untitled)' : textOf(title)}${isActive ? ' [ACTIVE]' : ''}`)
+    candidates.push({ ...typeof number === 'number' && { number }, ...typeof title === 'string' && { title }, active: isActive })
   }
   out.data(lines.join('\n'))
+  out.result({ candidates })
 }
 
 function activeProjectNumber(host: string, owner: string): number | undefined {
@@ -446,18 +556,40 @@ async function fetchProjectInfoByReference(out: Readonly<Output>, client: Readon
   return info !== undefined && isTruthy(info) ? info : stopWith(out, `could not read project fields: ${project}`, 'not-initialized')
 }
 
-async function activateByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string, isDryRun: boolean }>): Promise<void> {
+async function activateByReference(out: Readonly<Output<ActivateData>>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string, isDryRun: boolean }>): Promise<void> {
   const { host, owner, project, isDryRun } = target
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
     stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
-  await syncProjectConfig(out, client, { owner, name: title, host, isDryRun })
+  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, isDryRun }), isDryRun)
 }
 
 const ACTIVATE_PATH = ['project', 'activate']
 const LINK_PATH = ['project', 'link']
+
+const CANDIDATE_ROW = z.strictObject({
+  number: z.int().optional().describe('Project number'),
+  title: z.string().optional().describe('Project title'),
+  active: z.boolean().describe('Whether this project is the active one'),
+})
+
+const ACTIVATE_OUTPUT = z.strictObject({
+  project: z.string().optional().describe('Name of the project config that was (on dry_run, would be) made active'),
+  configPath: z.string().optional().describe('Path of the project config file'),
+  change: z.enum(['create', 'update', 'unchanged']).optional().describe('What happened to the config file'),
+  candidates: z.array(CANDIDATE_ROW).optional().describe('Initialized projects of the owner, given only when no project was named (nothing was activated)'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+})
+
+type ActivateData = z.input<typeof ACTIVATE_OUTPUT>
+
+// 設定ファイルの結果を data に渡す。書いたファイルだけを artifact にする
+function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<SyncedProjectConfig>, isDryRun: boolean): void {
+  out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change, ...dryRunMark(isDryRun) })
+  if (!isDryRun && synced.change !== 'unchanged') out.artifact(synced.configPath)
+}
 
 const activateCommand = defineCommand({
   path: ['project', 'activate'],
@@ -468,12 +600,12 @@ const activateCommand = defineCommand({
     host: z.string().optional().describe('GitHub host'),
     dry_run: dryRunInput,
   }),
-  output: z.strictObject({}),
+  output: ACTIVATE_OUTPUT,
   positional: ['project'],
   shortFlags: { owner: '-o', host: '-h', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<ActivateData>(input.dry_run, io)
     const { project, host } = input
     // --host の要らない形（設定ファイルのパスか名前）を先に見る
     const configPath = project === undefined ? undefined : findConfigFileArgument(project)
@@ -590,6 +722,14 @@ async function plannedLink(out: Readonly<Output>, config: ProjectConfig, reposit
   }
 }
 
+const LINK_OUTPUT = z.strictObject({
+  repository: z.string().describe('Repository in owner/repo form'),
+  projectNumber: z.int().describe('Number of the active project'),
+  change: z.enum(['create', 'update']).describe('create: the repository was added to the config; update: its entry was changed'),
+  configPath: z.string().describe('Path of the project config file'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+})
+
 const projectLinkCommand = defineCommand({
   path: ['project', 'link'],
   hasOwnRepo: true,
@@ -605,12 +745,12 @@ const projectLinkCommand = defineCommand({
     release_type: z.string().optional().describe('Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)'),
     dry_run: dryRunInput,
   }),
-  output: z.strictObject({}),
+  output: LINK_OUTPUT,
   positional: ['repo'],
   shortFlags: { develop_branch: '-b', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof LINK_OUTPUT>>(input.dry_run, io)
     if (input.release_type !== undefined && toReleaseType(input.release_type) === undefined) {
       // Python は sorted() の順（multi, nx, single）で見せる
       stopWith(out, hinted`${inputNameHint(LINK_PATH, 'release_type')} must be one of [${RELEASE_TYPES.toSorted(compareStrings).map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`, 'invalid-input')
@@ -654,9 +794,15 @@ const projectLinkCommand = defineCommand({
     }
     const checked = validated(next)
     out.planned(saved)
-    if (input.dry_run) return 0
+    const reported = { repository: `${owner}/${name}`, projectNumber: config.project.number, change: linkChange(existing), configPath }
+    if (input.dry_run) {
+      out.result({ ...reported, dryRun: true })
+      return 0
+    }
     saveConfig(checked, configPath)
     out.done(saved)
+    out.result(reported)
+    out.artifact(configPath)
     return 0
   },
 })
@@ -671,12 +817,38 @@ type ConfigKey = z.infer<typeof CONFIG_KEY>
 設定の 1 つのキーへの get・set・unset。どれも stdout・stderr に結果を出し、失敗なら止まる
 */
 interface ConfigKeyOperations {
-  readonly get: (out: Readonly<Output>) => void
-  readonly set: (out: Readonly<Output>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>) => void
-  readonly unset: (out: Readonly<Output>, isDryRun: boolean) => void
+  readonly get: (out: Readonly<Output<GetData>>) => void
+  readonly set: (out: Readonly<Output<SetData>>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>) => void
+  readonly unset: (out: Readonly<Output<UnsetData>>, isDryRun: boolean) => void
 }
 
-function setAggregationRepository(out: Readonly<Output>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>): void {
+const CONFIG_KEY_FIELD = z.enum(['aggregation_repo']).describe('Key of the project config')
+
+const GET_OUTPUT = z.strictObject({
+  key: CONFIG_KEY_FIELD,
+  value: z.string().optional().describe('Value of the key (omitted when it is not set)'),
+})
+
+const SET_OUTPUT = z.strictObject({
+  key: CONFIG_KEY_FIELD,
+  value: z.string().describe('Value of the key after the command (on dry_run, after it would run)'),
+  previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
+  change: z.enum(['create', 'update', 'unchanged']).describe('create: the key was not set; update: its value was replaced; unchanged: it already had the value'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+})
+
+const UNSET_OUTPUT = z.strictObject({
+  key: CONFIG_KEY_FIELD,
+  previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
+  change: z.enum(['delete', 'unchanged']).describe('delete: the key was cleared; unchanged: it was not set'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was written)'),
+})
+
+type GetData = z.input<typeof GET_OUTPUT>
+type SetData = z.input<typeof SET_OUTPUT>
+type UnsetData = z.input<typeof UNSET_OUTPUT>
+
+function setAggregationRepository(out: Readonly<Output<SetData>>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>): void {
   if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`, 'invalid-input')
   const { config, configPath } = requireActiveWithPath(out)
   const current = config.aggregation_repo
@@ -684,11 +856,15 @@ function setAggregationRepository(out: Readonly<Output>, value: string, options:
     const unchanged: Operation = { verb: 'unchanged', target: `aggregation_repo ${value}` }
     out.planned(unchanged)
     out.done(unchanged)
+    out.result({ key: 'aggregation_repo', value, previous: value, change: 'unchanged', ...dryRunMark(options.isDryRun) })
     return
   }
   const operation: Operation = { verb: 'set', target: `aggregation_repo to ${value}` }
+  const hasPrevious = current !== undefined && current !== ''
+  const reported = { key: 'aggregation_repo', value, ...hasPrevious && { previous: current }, change: setChange(hasPrevious) } satisfies SetData
   if (options.isDryRun) {
     out.planned(current === undefined || current === '' ? operation : { ...operation, target: `${operation.target} (was ${current})` })
+    out.result({ ...reported, dryRun: true })
     return
   }
   if (current !== undefined && current !== '') {
@@ -696,29 +872,37 @@ function setAggregationRepository(out: Readonly<Output>, value: string, options:
   }
   saveConfig(withAggregationRepository(config, value), configPath)
   out.done(operation)
+  out.result(reported)
 }
 
-function unsetAggregationRepository(out: Readonly<Output>, isDryRun: boolean): void {
+function unsetAggregationRepository(out: Readonly<Output<UnsetData>>, isDryRun: boolean): void {
   const { config, configPath } = requireActiveWithPath(out)
   const previous = config.aggregation_repo
   if (previous === undefined) {
     const unchanged: Operation = { verb: 'unchanged', target: 'aggregation_repo (not set)' }
     out.planned(unchanged)
     out.done(unchanged)
+    out.result({ key: 'aggregation_repo', change: 'unchanged', ...dryRunMark(isDryRun) })
     return
   }
   const operation: Operation = { verb: 'remove', target: `aggregation_repo (was ${previous})` }
   out.planned(operation)
-  if (isDryRun) return
+  if (isDryRun) {
+    out.result({ key: 'aggregation_repo', previous, change: 'delete', dryRun: true })
+    return
+  }
   saveConfig(withAggregationRepository(config, undefined), configPath)
   out.done(operation)
+  out.result({ key: 'aggregation_repo', previous, change: 'delete' })
 }
 
 // キーを足したら、ここに操作を足さないと型の確認で止まる
 const CONFIG_KEY_OPERATIONS: Readonly<Record<ConfigKey, ConfigKeyOperations>> = {
   aggregation_repo: {
     get: (out) => {
-      out.data(requireActiveConfig(out).aggregation_repo ?? 'none')
+      const value = requireActiveConfig(out).aggregation_repo
+      out.data(value ?? 'none')
+      out.result({ key: 'aggregation_repo', ...value !== undefined && { value } })
     },
     set: setAggregationRepository,
     unset: unsetAggregationRepository,
@@ -734,12 +918,12 @@ const projectSetCommand = defineCommand({
     yes: z.boolean().default(false).describe('Overwrite an existing value without confirmation (a warning goes to stderr)'),
     dry_run: dryRunInput,
   }),
-  output: z.strictObject({}),
+  output: SET_OUTPUT,
   positional: ['key', 'value'],
   shortFlags: { yes: '-y', dry_run: '-n' },
   interactive: false,
   run: (input, io) => {
-    CONFIG_KEY_OPERATIONS[input.key].set(createOutput(input.dry_run, io), input.value, { isConfirmed: input.yes, isDryRun: input.dry_run })
+    CONFIG_KEY_OPERATIONS[input.key].set(createOutput<SetData>(input.dry_run, io), input.value, { isConfirmed: input.yes, isDryRun: input.dry_run })
     return Promise.resolve(0)
   },
 })
@@ -748,12 +932,12 @@ const projectUnsetCommand = defineCommand({
   path: ['project', 'unset'],
   description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo',
   input: z.strictObject({ key: CONFIG_KEY, dry_run: dryRunInput }),
-  output: z.strictObject({}),
+  output: UNSET_OUTPUT,
   positional: ['key'],
   shortFlags: { dry_run: '-n' },
   interactive: false,
   run: (input, io) => {
-    CONFIG_KEY_OPERATIONS[input.key].unset(createOutput(input.dry_run, io), input.dry_run)
+    CONFIG_KEY_OPERATIONS[input.key].unset(createOutput<UnsetData>(input.dry_run, io), input.dry_run)
     return Promise.resolve(0)
   },
 })
@@ -762,11 +946,11 @@ const projectGetCommand = defineCommand({
   path: ['project', 'get'],
   description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({ key: CONFIG_KEY }),
-  output: z.strictObject({}),
+  output: GET_OUTPUT,
   positional: ['key'],
   interactive: false,
   run: (input, io) => {
-    CONFIG_KEY_OPERATIONS[input.key].get(createOutput(false, io))
+    CONFIG_KEY_OPERATIONS[input.key].get(createOutput<GetData>(false, io))
     return Promise.resolve(0)
   },
 })

@@ -311,6 +311,71 @@ describe('issue show', () => {
       await connected.close()
     }
   })
+  describe('MCP の data', () => {
+    async function show(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ReturnType<typeof structuredOf>> {
+      const connected = await connectInMemory(createMcpServer(ISSUE_SHOW_COMMANDS))
+      try {
+        return structuredOf(await connected.client.callTool({ name: 'issue_show', arguments: { ...argumentsOfTool } }))
+      }
+      finally {
+        await connected.close()
+      }
+    }
+
+    const parent = { number: 3, title: '親の Epic', state: 'OPEN', repository: { name: 'demo', owner: { login: 'acme' } } }
+    const subIssues = [{ number: 8, state: 'OPEN', title: '子の Issue' }, { number: 9, state: 'CLOSED', title: '済んだ子' }]
+
+    it('json を付けずに読むと、--json と同じ中身を data に返す', async () => {
+      setUpProject()
+      await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues }), prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues })])
+
+      const structured = await show({ issue_ref: 'acme/demo/7' })
+      const cli = await read('acme/demo/7', '--json')
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual(JSON.parse(cli.stdout))
+      expect(structured.data).toMatchObject({
+        parent: { number: 3, title: '親の Epic', state: 'OPEN', owner: 'acme', repo: 'demo' },
+        sub_issues: subIssues,
+        readiness: { kind: 'startable' },
+      })
+    })
+
+    it('json を付けて読んでも、付けないときと同じ data を返す', async () => {
+      setUpProject()
+      await startGithub([prerequisitesRule({ number: 7 }), issueRule(), prerequisitesRule({ number: 7 }), issueRule()])
+
+      const plain = await show({ issue_ref: 'acme/demo/7' })
+      const withJson = await show({ issue_ref: 'acme/demo/7', json: true })
+
+      expect(withJson.data).toEqual(plain.data)
+    })
+
+    it('前提のある Issue を読むと、blockedBy と blocked の判定を data に返す', async () => {
+      setUpProject()
+      const blockedBy = [{ number: 4, title: '待つ前提' }]
+      await startGithub([issueRule(), prerequisitesRule({ number: 7, blockedBy, body: '## Waits for merge\n- #4: 公開後に確かめる\n' })])
+
+      const structured = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(structured.data).toMatchObject({
+        blockedBy: [{ number: 4, repository: 'acme/demo', state: 'OPEN', wait: 'merge', reason: '公開後に確かめる' }],
+        readiness: { kind: 'blocked', stackOn: null, reason: 'waits-merge', text: 'blocked by #4 (waits for merge)' },
+      })
+    })
+
+    it('前提を読めないと、blockedBy と readiness を null にし、warning を data.warnings に返す', async () => {
+      setUpProject()
+      await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const structured = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(structured.ok).toBe(true)
+      expect(structured.data).toMatchObject({ blockedBy: null, readiness: null })
+      expect(structured.data['warnings']).toEqual([expect.stringMatching(/^could not read blocked-by of #7: /u)])
+    })
+  })
+
   describe('前提（blocked by）', () => {
     const dependent = (extra: Partial<Parameters<typeof prerequisitesRule>[0]> = {}): Parameters<typeof prerequisitesRule>[0] => ({
       number: 7,

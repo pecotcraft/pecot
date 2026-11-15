@@ -5,6 +5,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { runDependabotSync } from './tracker-sync-dependabot.js'
 import { runSecuritySync } from './tracker-sync-security.js'
+import { TRACKER_SYNC_OUTPUT } from './tracker-sync.js'
 
 const syncCommand = defineCommand({
   path: ['tracker', 'sync'],
@@ -13,7 +14,7 @@ const syncCommand = defineCommand({
     source: z.enum(['dependabot', 'security']).describe('What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)'),
     dry_run: z.boolean().default(false).describe('Show the planned Tracker changes without changing anything'),
   }),
-  output: z.strictObject({}),
+  output: TRACKER_SYNC_OUTPUT,
   positional: ['source'],
   interactive: false,
   run: async (input, io) => await (input.source === 'dependabot' ? runDependabotSync(input, io) : runSecuritySync(input, io)),

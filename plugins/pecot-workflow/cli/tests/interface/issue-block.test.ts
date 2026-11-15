@@ -5,8 +5,11 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { requestLabels } from '../_helpers/command-harness.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
@@ -33,6 +36,16 @@ const NOT_IN_REVIEW = 'blocked by #5 (not in review: #5 (not started))'
 
 function writes(github: Readonly<RunningGithub>): readonly string[] {
   return requestLabels(github.requests()).filter(label => ['AddBlockedBy', 'UpdateProjectItemField'].includes(label) || label.startsWith('PATCH'))
+}
+
+async function blockTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  const connected = await connectInMemory(createMcpServer(ISSUE_DEPENDENCY_COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name: 'issue_block', arguments: { ...argumentsOfTool } }))
+  }
+  finally {
+    await connected.close()
+  }
 }
 
 describe('issue block', () => {
@@ -397,5 +410,51 @@ describe('issue block', () => {
 
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not read blocked-by of #7: /u)
+  })
+
+  describe('MCP の data', () => {
+    it('前提を付けると、Issue と前提の参照と種類と added を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([
+        bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), bodyWritten(7, MERGE_BODY),
+        prerequisitesRule({ number: 7, column: 'Ready', body: MERGE_BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
+      ])
+
+      const structured = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: 'main の版が要る' })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'added' })
+    })
+
+    it('既に付いている前提の理由を変えると、updated を data に返す', async () => {
+      prepareDependencyProject()
+      const changed = `${BODY}\n${WAITS_SECTION(['#5: 検証の手順が main にある'])}`
+      await startGithub([
+        bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }]), bodyWritten(7, changed),
+        prerequisitesRule({ number: 7, column: 'Blocked', body: changed, blockedBy: [{ number: 5 }] }),
+      ])
+
+      const structured = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: '検証の手順が main にある' })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'updated' })
+    })
+
+    it('既に付いていて種類と理由が同じなら、unchanged を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }])])
+
+      const structured = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: 'main の版が要る' })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'unchanged' })
+    })
+
+    it('dry_run で打つと、付ける予定の added と dryRun を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {})])
+
+      const structured = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', dry_run: true })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'stack', change: 'added', dryRun: true })
+    })
   })
 })

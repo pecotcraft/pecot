@@ -6,7 +6,11 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { COMMANDS } from '../../src/commands/registry.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { graphql, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
@@ -60,6 +64,20 @@ function cleanupBranch(extra: Readonly<WorkspaceOptions> = {}): Promise<Workspac
 const CLEANUP = ['session', 'finish', 'acme/demo/21']
 // eslint-disable-next-line unicorn/no-null -- 応答の形（PR が無いと null）
 const NO_PULL_REQUEST = { repository: { pullRequest: null } }
+
+// コマンドは process.cwd() を作業リポジトリとして読むので、呼ぶ間だけ移る
+async function finishTool(workspace: Readonly<Workspace>, argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  const previous = process.cwd()
+  process.chdir(workspace.directory)
+  const connected = await connectInMemory(createMcpServer(COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21', ...argumentsOfTool } }))
+  }
+  finally {
+    await connected.close()
+    process.chdir(previous)
+  }
+}
 
 describe('session finish', () => {
   it('マージ済みの PR の参照を渡すと、closing issues・本文の Closes / Fixes / Resolves・head ブランチ名の末尾の番号の Issue を close する', async (context) => {
@@ -412,5 +430,44 @@ describe('session finish', () => {
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
     expect(result.stderr).toContain(`warning: deleting remote branch wip/${BRANCH} failed: `)
+  })
+
+  describe('MCP の data', () => {
+    it('ブランチの削除とローカルの片付けまで通すと、close した Issue・消したブランチ・切り替えた先を data に返す', async () => {
+      const workspace = await cleanupBranch({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+
+      const structured = await finishTool(workspace, { delete_branch: true })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({
+        closedIssues: [12],
+        skippedIssues: [],
+        deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: `wip/${BRANCH}`, location: 'remote' }, { branch: BRANCH, location: 'local' }],
+        currentBranch: 'main',
+      })
+    })
+
+    it('Epic を守って close しなかったとき、その番号と epic を data.skippedIssues に返す', async () => {
+      const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'epic']] }, [kindRule(10, { issueType: 'Epic' }), kindRule(12), closeRule(12)]) })
+
+      const structured = await finishTool(workspace, { skip_local_cleanup: true })
+
+      expect(structured.data).toEqual({ closedIssues: [12], skippedIssues: [{ number: 10, reason: 'epic' }], deletedBranches: [] })
+    })
+
+    it('dry_run で打つと、close する予定の Issue・消す予定のブランチ・切り替える先と dryRun を data に返す', async () => {
+      const workspace = await cleanupBranch({ github: mergedRules() })
+
+      const structured = await finishTool(workspace, { delete_branch: true, dry_run: true })
+
+      expect(structured.data).toEqual({
+        closedIssues: [12],
+        skippedIssues: [],
+        deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: BRANCH, location: 'local' }],
+        currentBranch: 'main',
+        dryRun: true,
+      })
+      expect(currentBranch(workspace)).toBe(BRANCH)
+    })
   })
 })

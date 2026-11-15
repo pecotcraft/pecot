@@ -4,8 +4,11 @@ import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ISSUE_REOPEN_COMMANDS } from '../../src/commands/issue-reopen.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { CliResult } from '../_helpers/interface-case.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
@@ -24,6 +27,17 @@ function labelOf(request: RecordedRequest): string {
 
 const PATCH = 'PATCH /repos/acme/demo/issues/7'
 const COMMENT = 'POST /repos/acme/demo/issues/7/comments'
+
+async function reopenTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  useFakeDelays()
+  const connected = await connectInMemory(createMcpServer(ISSUE_REOPEN_COMMANDS))
+  try {
+    return structuredOf(await settleWithFakeDelays(connected.client.callTool({ name: 'issue_reopen', arguments: { ...argumentsOfTool } })))
+  }
+  finally {
+    await connected.close()
+  }
+}
 
 describe('issue reopen', () => {
   it('閉じた Issue の参照を渡すと、reopen して reopened の行を標準エラーに出す', async (context) => {
@@ -303,5 +317,37 @@ describe('issue reopen', () => {
     expect(result.code).toBe(2)
     expect(result.stderr).toContain('invalid reference')
     expect(github.requests()).toEqual([])
+  })
+
+  describe('MCP の data', () => {
+    it('アーカイブを解いて status を書きコメントを投稿すると、その結果を data に返す', async () => {
+      prepareProject()
+      const archived: ResponseRule = { match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number: 7 } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_7', isArchived: true, project: { id: 'PVT_1' } }] } } } } } }, times: 1 }
+      const unarchived: ResponseRule = { match: { operation: 'UnarchiveProjectItem', variables: { projectId: 'PVT_1', itemId: 'PVTI_7' } }, respond: { status: 200, body: { data: { unarchiveProjectV2Item: { item: { id: 'PVTI_7' } } } } }, times: 1 }
+      await startGithub([linkedRepositories(), reopened(), archived, unarchived, fieldUpdated('o4'), reopened(), commented()])
+
+      const structured = await reopenTool({ issue_ref: 'acme/demo/7', status: 'active', comment: '再発したので開き直す' })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', status: 'active', unarchived: true, commented: true })
+    })
+
+    it('Issue がボードに無いとき、status を省いた data を返す', async () => {
+      prepareProject()
+      await startGithub([linkedRepositories(), reopened(), boardItems({ onBoard: false }), reopened()])
+
+      const structured = await reopenTool({ issue_ref: 'acme/demo/7' })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', unarchived: false, commented: false, warnings: ['Issue acme/demo/7 is not on the project board'] })
+    })
+
+    it('dry_run で打つと、書く予定の status と dryRun を data に返す', async () => {
+      prepareProject()
+      await startGithub([linkedRepositories(), boardItems()])
+
+      const structured = await reopenTool({ issue_ref: 'acme/demo/7', comment: '理由', dry_run: true })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, commented: true, dryRun: true })
+    })
   })
 })

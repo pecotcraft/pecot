@@ -16,6 +16,14 @@ import type { Operation } from './output.js'
 import { requireRepositoryMatch } from './repository-match.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
+const BRANCH_DELETE_OUTPUT = z.strictObject({
+  branch: z.string().describe('Name of the remote branch'),
+  repository: z.string().describe('Repository of the branch (owner/repo)'),
+  deleted: z.boolean().describe('Whether the remote branch was deleted (false on dry_run)'),
+  wipBranch: z.string().optional().describe('Name of the wip branch that was deleted along with it (omitted when there was none or it could not be deleted)'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was deleted)'),
+})
+
 const branchDeleteCommand = defineCommand({
   path: ['branch', 'delete'],
   hasOwnRepo: true,
@@ -26,14 +34,14 @@ const branchDeleteCommand = defineCommand({
     branch: z.string().describe('Name of the branch to delete'),
     dry_run: z.boolean().default(false).describe('Show what would be deleted without deleting anything'),
   }),
-  output: z.strictObject({}),
+  output: BRANCH_DELETE_OUTPUT,
   positional: ['repo', 'branch'],
   shortFlags: { dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
     // 位置引数の repo は対象のリポで、cwd と比べる明示値ではない
     requireRepositoryMatch('reject', undefined, io, process.cwd())
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof BRANCH_DELETE_OUTPUT>>(input.dry_run, io)
     // 1. repo をパース
     let target
     try {
@@ -74,6 +82,7 @@ const branchDeleteCommand = defineCommand({
     const operation: Operation = { verb: 'delete', target: `remote branch ${input.branch} in ${owner}/${repository}` }
     if (input.dry_run) {
       out.planned(operation)
+      out.result({ branch: input.branch, repository: `${owner}/${repository}`, deleted: false, dryRun: true })
       return 0
     }
 
@@ -86,6 +95,7 @@ const branchDeleteCommand = defineCommand({
       return stopWith(out, `could not delete remote branch ${input.branch} in ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
     }
     out.done(operation)
+    out.result({ branch: input.branch, repository: `${owner}/${repository}`, deleted: true })
 
     // wip ブランチも連動削除
     const wipBranch = `wip/${input.branch}`
@@ -99,6 +109,7 @@ const branchDeleteCommand = defineCommand({
       return 0
     }
     out.done({ verb: 'delete', target: `remote branch ${wipBranch} in ${owner}/${repository}` })
+    out.result({ wipBranch })
     return 0
   },
 })

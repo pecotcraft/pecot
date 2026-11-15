@@ -8,6 +8,7 @@ import { ChangelogFileNotFoundError, InvalidVersionError, validateSemver } from 
 import { effectiveReleaseType, findPackage, findRepository, getDevelopBranch, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig, Repository } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'
+import type { DependabotAlertStatus } from '../domain/dependabot.js'
 import { PecotError } from '../domain/errors.js'
 import { pythonStringRepr } from '../domain/python-format.js'
 import { parsePullRequestReference, ReferenceParseError } from '../domain/reference-parser.js'
@@ -110,8 +111,8 @@ function warnAlertsUnavailable(out: Readonly<Output>, reason: string): void {
   out.warning(`could not check Dependabot alerts. The release is not blocked.\nreason: ${first.trim().replace(/\.+$/u, '').trimEnd()}`)
 }
 
-// open の Dependabot alert は警告だけで、リリースを止めない
-async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string): Promise<void> {
+// open の Dependabot alert は警告だけで、リリースを止めない。読めた状態を返し、読めなければ undefined
+async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string, skip: (target: string) => void): Promise<DependabotAlertStatus | undefined> {
   let status
   try {
     const client = createGitHubClient(out, config.host)
@@ -120,33 +121,34 @@ async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfi
   catch (error: unknown) {
     if (error instanceof DependabotAlertError) {
       warnAlertsUnavailable(out, error.message)
-      return
+      return undefined
     }
     if (error instanceof GitHubAPIError) {
       warnAlertsUnavailable(out, error.message)
-      return
+      return undefined
     }
     throw error
   }
 
   if (!status.enabled) {
-    out.done({ verb: 'skip', target: 'Dependabot alerts (feature disabled)', aside: true })
-    return
+    skip('Dependabot alerts (feature disabled)')
+    return status
   }
   if (status.openCount === 0) {
     out.count('open Dependabot alerts', 0)
-    return
+    return status
   }
   const severity = status.maxSeverity === undefined ? '' : ` (highest severity: ${status.maxSeverity})`
   const listing = status.openAlerts.map(alert => `\n${alertLabel(alert.number, alert.package, alert.severity)}`).join('')
   const noun = status.openCount === 1 ? 'alert' : 'alerts'
   out.warning(`${String(status.openCount)} open Dependabot ${noun}${severity}. The release is not blocked.${listing}\n→ ${status.alertsUrl}`)
+  return status
 }
 
 /**
 code scanning・secret scanning の open の alert があれば、false を返す。機能が無効のリポジトリは通る
 */
-async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus: () => Promise<ScanAlertStatus>): Promise<boolean> {
+async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus: () => Promise<ScanAlertStatus>, skip: (target: string) => void): Promise<boolean> {
   let status: ScanAlertStatus
   try {
     status = await fetchStatus()
@@ -157,7 +159,7 @@ async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus
     return false
   }
   if (!status.enabled) {
-    out.done({ verb: 'skip', target: `${name} (feature disabled)`, aside: true })
+    skip(`${name} (feature disabled)`)
     return true
   }
   if (status.openCount === 0) {
@@ -169,17 +171,35 @@ async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus
   return false
 }
 
+interface AlertChecks {
+  readonly isPassed: boolean
+  /**
+  skipped: の行に出した確認
+  */
+  readonly skipped: readonly string[]
+  /**
+  Dependabot alert の状態。読めなければ undefined
+  */
+  readonly dependabot: DependabotAlertStatus | undefined
+}
+
 /**
 3 種を確かめる。1 つが失敗しても残りを続け、最後に成否を返す
 */
-async function areAlertsPassed(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string): Promise<boolean> {
+async function checkAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string): Promise<AlertChecks> {
+  const skipped: string[] = []
+  const skip = (target: string): void => {
+    out.done({ verb: 'skip', target, aside: true })
+    skipped.push(target)
+  }
+  let dependabot: DependabotAlertStatus | undefined
   const checks: readonly (() => Promise<boolean>)[] = [
     async () => {
-      await checkDependabotAlerts(out, config, owner, repository)
+      dependabot = await checkDependabotAlerts(out, config, owner, repository, skip)
       return true
     },
-    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository)),
-    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository)),
+    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository), skip),
+    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository), skip),
   ]
   let isPassed = true
   for (const check of checks) {
@@ -192,8 +212,22 @@ async function areAlertsPassed(out: Readonly<Output>, config: ProjectConfig, own
       isPassed = false
     }
   }
-  return isPassed
+  return { isPassed, skipped, dependabot }
 }
+
+const RELEASE_CHECK_OUTPUT = z.strictObject({
+  version: z.string().optional().describe('Version to release (omitted when release_type is nx, where only the alerts are checked)'),
+  tag: z.string().optional().describe('Tag to create (omitted when release_type is nx)'),
+  releaseNotes: z.string().optional().describe('Release notes from the CHANGELOG (omitted when release_type is nx)'),
+  commitCount: z.int().optional().describe('Number of commits from the release branch to the develop branch (omitted when release_type is nx)'),
+  skipped: z.array(z.string()).describe('Checks skipped because the feature is disabled, as in the skipped lines (e.g. "Dependabot alerts (feature disabled)")'),
+  dependabotAlerts: z.strictObject({
+    enabled: z.boolean().describe('Whether Dependabot alerts are enabled'),
+    openCount: z.int().describe('Number of open alerts (0 when disabled)'),
+    maxSeverity: z.string().optional().describe('Highest severity of the open alerts (omitted when there is none)'),
+    alertsUrl: z.string().describe('URL of the alert list'),
+  }).optional().describe('Dependabot alert status (omitted when it could not be read; the release is not blocked)'),
+})
 
 const releaseCheckCommand = defineCommand({
   path: CHECK_PATH,
@@ -202,18 +236,23 @@ const releaseCheckCommand = defineCommand({
     version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
   }),
-  output: z.strictObject({}),
+  output: RELEASE_CHECK_OUTPUT,
   positional: ['version'],
   interactive: false,
   run: async (input, io) => {
     const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
-    const out = createOutput(false, io)
+    const out = createOutput<z.input<typeof RELEASE_CHECK_OUTPUT>>(false, io)
     const cwd = process.cwd()
     const context = loadReleaseContext(out, adopted, input.repo, input.package, { version: input.version, nxAlertsOnly: true })
     const { config, owner, repository } = context
 
-    const isAlertsPassed = await areAlertsPassed(out, config, owner, repository)
-    if (!isAlertsPassed) throw new CommandExit(1, 'preflight-failed')
+    const alerts = await checkAlerts(out, config, owner, repository)
+    const { dependabot } = alerts
+    out.result({
+      skipped: [...alerts.skipped],
+      ...dependabot !== undefined && { dependabotAlerts: { enabled: dependabot.enabled, openCount: dependabot.openCount, ...dependabot.maxSeverity !== undefined && { maxSeverity: dependabot.maxSeverity }, alertsUrl: dependabot.alertsUrl } },
+    })
+    if (!alerts.isPassed) throw new CommandExit(1, 'preflight-failed')
     if (context.repositoryConfig !== undefined && effectiveReleaseType(context.repositoryConfig) === 'nx') return 0
 
     const developBranch = requireBranchSetting(out, getDevelopBranch(config, owner, repository), 'develop', owner, repository)
@@ -232,6 +271,7 @@ const releaseCheckCommand = defineCommand({
         remote,
       }, gitRunnerFor(cwd), async (base, head) => await client.countCommitsAhead(owner, repository, base, head))
       out.count(`commits to release (${remote}/${result.developBranch} -> ${remote}/${result.releaseBranch})`, result.diffCount)
+      out.result({ version: result.version, tag: result.tagName, releaseNotes: result.releaseNotes, commitCount: result.diffCount })
       out.data(`version: ${result.version}\ntag: ${result.tagName}\n\n${result.releaseNotes}`)
       return 0
     }
@@ -245,6 +285,13 @@ const releaseCheckCommand = defineCommand({
   },
 })
 
+const RELEASE_CREATE_OUTPUT = z.strictObject({
+  tag: z.string().describe('Tag of the release'),
+  url: z.string().optional().describe('URL of the created release (omitted on dry_run)'),
+  releaseNotes: z.string().describe('Release notes from the CHANGELOG'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was created)'),
+})
+
 const releaseCreateCommand = defineCommand({
   path: ['release', 'create'],
   description: 'Create a GitHub release and its tag (the release notes come from the CHANGELOG)',
@@ -253,12 +300,12 @@ const releaseCreateCommand = defineCommand({
     dry_run: z.boolean().default(false).describe('Show what would happen without changing anything'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
   }),
-  output: z.strictObject({}),
+  output: RELEASE_CREATE_OUTPUT,
   positional: ['version'],
   interactive: false,
   run: async (input, io) => {
     const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof RELEASE_CREATE_OUTPUT>>(input.dry_run, io)
 
     try {
       validateSemver(input.version)
@@ -288,6 +335,7 @@ const releaseCreateCommand = defineCommand({
 
     if (input.dry_run) {
       out.planned(operation)
+      out.result({ tag: tagName, releaseNotes, dryRun: true })
       out.data(releaseNotes)
       return 0
     }
@@ -297,6 +345,7 @@ const releaseCreateCommand = defineCommand({
       const result = await client.createRelease(owner, repository, tagName, releaseName, releaseNotes, { targetCommitish: releaseBranch })
       out.done(operation)
       const url = result['html_url']
+      out.result({ tag: tagName, releaseNotes, ...typeof url === 'string' && { url } })
       out.data(typeof url === 'string' ? url : '')
       return 0
     }
@@ -305,6 +354,14 @@ const releaseCreateCommand = defineCommand({
       return stopWith(out, `could not create release ${tagName} in ${owner}/${repository}: ${describeApiError(error)}`, kindOfFailure(error))
     }
   },
+})
+
+const RELEASE_MERGE_OUTPUT = z.strictObject({
+  pullRequest: z.string().describe('Release PR (owner/repo/N)'),
+  head: z.string().describe('Head branch of the PR'),
+  base: z.string().describe('Base branch of the PR (the release branch)'),
+  deletedBranch: z.boolean().describe('Whether the remote head branch was deleted (false without delete_branch, on dry_run, or when the deletion failed)'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was merged)'),
 })
 
 const releaseMergeCommand = defineCommand({
@@ -316,13 +373,13 @@ const releaseMergeCommand = defineCommand({
     delete_branch: z.boolean().default(false).describe('Delete the branch after merging'),
     admin: z.boolean().default(false).describe('Merge with admin rights (skip the mergeability check)'),
   }),
-  output: z.strictObject({}),
+  output: RELEASE_MERGE_OUTPUT,
   positional: ['pr_ref'],
   shortFlags: { dry_run: '-n', delete_branch: '-d' },
   interactive: false,
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof RELEASE_MERGE_OUTPUT>>(input.dry_run, io)
     const config = loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
 
     let reference
@@ -361,8 +418,10 @@ const releaseMergeCommand = defineCommand({
 
     const headBranch = pullRequest.head_ref
     const operation: Operation = { verb: 'merge', target: `PR ${pullRequestName} (${headBranch} -> ${pullRequest.base_ref}, merge commit)` }
+    const merged = { pullRequest: pullRequestName, head: headBranch, base: pullRequest.base_ref, deletedBranch: false }
     if (input.dry_run) {
       out.planned(operation)
+      out.result({ ...merged, dryRun: true })
       return 0
     }
 
@@ -374,11 +433,13 @@ const releaseMergeCommand = defineCommand({
       return stopWith(out, `could not merge PR ${pullRequestName}: ${describeApiError(error)}`, kindOfFailure(error))
     }
     out.done(operation)
+    out.result(merged)
 
     if (input.delete_branch) {
       try {
         await client.deleteBranch(owner, repository, headBranch)
         out.done({ verb: 'delete', target: `remote branch ${headBranch} in ${owner}/${repository}` })
+        out.result({ deletedBranch: true })
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error

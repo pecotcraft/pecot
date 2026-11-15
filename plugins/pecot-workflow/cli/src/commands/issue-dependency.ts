@@ -11,7 +11,7 @@ import type { ProjectConfig } from '../domain/config.js'
 import type { BlockedByReference } from '../domain/issue-readout.js'
 import { describeReadiness, displayReference, hasStarted } from '../domain/readiness.js'
 import type { Wait } from '../domain/readiness.js'
-import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
+import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
@@ -37,6 +37,28 @@ const CONTENT_EXIT_CODE = 3
 // たどる Issue の数の上限。大きな連鎖で止まらないことより、確かめずに付けないことを優先する
 const MAX_CYCLE_ISSUES = 200
 const BLOCK_PATH = ['issue', 'block']
+
+const ISSUE_FIELD = z.string().describe('The waiting Issue (owner/repo/N)')
+const BY_FIELD = z.string().describe('The prerequisite Issue (owner/repo/N)')
+const DRY_RUN_FIELD = z.literal(true).optional().describe('true on dry_run (nothing was written)')
+
+const ISSUE_BLOCK_OUTPUT = z.strictObject({
+  issue: ISSUE_FIELD,
+  by: BY_FIELD,
+  wait: z.enum(['stack', 'merge']).describe('Wait kind of the blocked-by after the command'),
+  change: z.enum(['added', 'updated', 'unchanged']).describe('added (new blocked-by), updated (wait kind or reason changed), or unchanged'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+const ISSUE_UNBLOCK_OUTPUT = z.strictObject({
+  issue: ISSUE_FIELD,
+  by: BY_FIELD,
+  change: z.enum(['removed', 'unchanged']).describe('removed, or unchanged when it was not a blocked-by'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+type BlockOutput = Output<z.input<typeof ISSUE_BLOCK_OUTPUT>>
+type UnblockOutput = Output<z.input<typeof ISSUE_UNBLOCK_OUTPUT>>
 
 interface Context {
   readonly out: Output
@@ -172,7 +194,7 @@ async function checkNoCycle(context: Context, byId: string): Promise<void> {
   else if (result.kind === 'unverifiable') stopWith(out, `could not check blocked-by cycle of ${displayReference(target, home)}: ${result.reason}`, 'dependency-unreadable')
 }
 
-async function runBlock(out: Output, input: BlockInput): Promise<void> {
+async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
   const config = requireActiveConfigPlain(out)
   const targetIssue = parseIssueReferenceOrExit(out, input.repo, input.issue_ref)
   const byIssue = parseIssueReferenceOrExit(out, input.repo, input.by)
@@ -194,10 +216,12 @@ async function runBlock(out: Output, input: BlockInput): Promise<void> {
   if (linked === undefined && total >= MAX_BLOCKED_BY) stopWith(out, `${name} already has ${String(MAX_BLOCKED_BY)} blocked-by issues`, 'dependency-rejected')
 
   const decision = decideBlock({ body: read.body, home, by, wait: input.wait, reason, isLinked: linked !== undefined })
+  const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait, ...input.dry_run && { dryRun: true } }
   if (decision.kind === 'malformed') {
     stopWith(out, `Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and run the command again`, 'content-invalid', CONTENT_EXIT_CODE)
   }
   else if (decision.kind === 'unchanged') {
+    out.result({ ...result, change: 'unchanged' })
     out.planned({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
     out.done({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
     return
@@ -212,7 +236,11 @@ async function runBlock(out: Output, input: BlockInput): Promise<void> {
     ? { verb: 'add', target: `blocked-by ${byName} to ${name}` }
     : { verb: 'update', target: `blocked-by ${byName} on ${name} (wait: ${input.wait})` }
   out.planned(operation)
-  if (input.dry_run) return
+  const change = decision.kind === 'add' ? 'added' : 'updated'
+  if (input.dry_run) {
+    out.result({ ...result, change })
+    return
+  }
 
   if (byId !== undefined && decision.kind === 'add') {
     const blockingId = byId
@@ -228,6 +256,7 @@ async function runBlock(out: Output, input: BlockInput): Promise<void> {
     })
   }
   if (decision.kind === 'update') out.done(operation)
+  out.result({ ...result, change })
 
   const keys = new Set([...keysOf(issues), issueReferenceKey(by)])
   await moveBoard(context, { keys, by, wait: { wait: input.wait, reason } }, true)
@@ -240,7 +269,7 @@ interface UnblockInput {
   readonly repo?: string | undefined
 }
 
-async function runUnblock(out: Output, input: UnblockInput): Promise<void> {
+async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void> {
   const config = requireActiveConfigPlain(out)
   const targetIssue = parseIssueReferenceOrExit(out, input.repo, input.issue_ref)
   const byIssue = parseIssueReferenceOrExit(out, input.repo, input.by)
@@ -261,19 +290,25 @@ async function runUnblock(out: Output, input: UnblockInput): Promise<void> {
   if (linked === undefined && total > issues.length) stopWith(out, `could not read blocked-by of ${name}: ${String(issues.length)} of ${String(total)} issues were read`, 'dependency-unreadable')
 
   const decision = decideUnblock({ body: read.body, home, by, isLinked: linked !== undefined })
+  const result: Omit<z.input<typeof ISSUE_UNBLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), ...input.dry_run && { dryRun: true } }
   if (linked === undefined || decision.kind === 'unchanged') {
+    out.result({ ...result, change: 'unchanged' })
     out.planned({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })
     out.done({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })
     return
   }
   const operation: Operation = { verb: 'remove', target: `blocked-by ${byName} from ${name}` }
   out.planned(operation)
-  if (input.dry_run) return
+  if (input.dry_run) {
+    out.result({ ...result, change: 'removed' })
+    return
+  }
 
   await wrapped(out, `could not remove blocked-by ${byName} from ${name}`, async () => {
     await client.removeBlockedBy(read.id, linked.id)
   })
   out.done(operation)
+  out.result({ ...result, change: 'removed' })
   if (decision.malformedReason !== undefined) {
     out.warning(`Waits for merge of ${name} is malformed: ${decision.malformedReason}; the section was not changed`)
   }
@@ -299,11 +334,11 @@ const ISSUE_BLOCK = defineCommand({
     reason: z.string().optional().describe('Why it waits for the merge (required with --wait merge)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
-  output: z.strictObject({}),
+  output: ISSUE_BLOCK_OUTPUT,
   positional: ['issue_ref'],
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof ISSUE_BLOCK_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
       await runBlock(out, input)
     })
@@ -318,11 +353,11 @@ const ISSUE_UNBLOCK = defineCommand({
     by: z.string().describe('The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
-  output: z.strictObject({}),
+  output: ISSUE_UNBLOCK_OUTPUT,
   positional: ['issue_ref'],
   interactive: false,
   run: async (input, io) => {
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof ISSUE_UNBLOCK_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
       await runUnblock(out, input)
     })

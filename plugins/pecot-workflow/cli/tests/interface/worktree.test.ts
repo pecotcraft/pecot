@@ -8,10 +8,13 @@ import path from 'node:path'
 import { expect, it, describe, beforeEach, vi } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { runCli } from '../../src/cli.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temporary.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 
 // 本物の /.dockerenv は実行する環境で違うので、無い環境に固定する。devcontainer は環境変数で示す
@@ -163,6 +166,22 @@ async function pecot(argv: readonly string[], options: Readonly<RunOptions> = {}
     process.chdir(previous)
   }
 }
+
+// MCP のツールを、同じプロセスの中のクライアントから 1 回呼ぶ。作業ディレクトリは main worktree
+async function tool(name: string, toolArguments: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  const previous = process.cwd()
+  process.chdir(currentProject().repository)
+  const connected = await connectInMemory(createMcpServer(COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name, arguments: { ...toolArguments } }))
+  }
+  finally {
+    await connected.close()
+    process.chdir(previous)
+  }
+}
+
+const sharedLink = (worktree: string, destination: string): Record<string, unknown> => ({ path: path.join(worktree, 'CLAUDE.local.md'), destination })
 
 function outsideGit(): string {
   const directory = makeTemporaryDirectory('pecot-nogit-')
@@ -708,6 +727,33 @@ describe('worktree add', () => {
     expect(result.code).toBe(0)
     expect(result.stderr).toContain(`dry-run: would create worktree wt1 at ${path.join(file, 'sub')} `)
   })
+
+  describe('MCP の data', () => {
+    it('worktree_add で作ると、名前・パス・ブランチ・base・setupFailed を data に返し、worktree のディレクトリを artifacts に返す', async () => {
+      const { repository, root } = createProject()
+      const result = await tool('worktree_add', { directory: repository })
+      const worktree = path.join(root, 'wt1', 'demo')
+      expect(result.ok).toBe(true)
+      expect(result.data).toEqual({ name: 'wt1', path: worktree, branch: 'wt1', base: 'develop', setupFailed: false })
+      expect(result.artifacts).toEqual([worktree])
+    })
+
+    it('worktree_add の setup のコマンドが失敗すると、setupFailed を true にして、warning を返す', async () => {
+      const { repository } = createProject()
+      const result = await tool('worktree_add', { directory: repository, setup: 'exit 3' })
+      expect(result.ok).toBe(true)
+      expect(result.data).toMatchObject({ name: 'wt1', setupFailed: true })
+      expect(result.data['warnings']).toEqual([expect.stringContaining('setup command failed (exit 3)')])
+    })
+
+    it('worktree_add を dry_run で打つと、作る予定の値と dryRun を返し、setupFailed と artifacts を返さない', async () => {
+      const { repository, root } = createProject()
+      const result = await tool('worktree_add', { directory: repository, dry_run: true })
+      expect(result.data).toEqual({ name: 'wt1', path: path.join(root, 'wt1', 'demo'), branch: 'wt1', base: 'develop', dryRun: true })
+      expect(result.artifacts).toEqual([])
+      expect(existsSync(path.join(root, 'wt1'))).toBe(false)
+    })
+  })
 })
 
 describe('worktree init', () => {
@@ -864,6 +910,24 @@ describe('worktree init', () => {
     finally {
       chmodSync(directory, 0o755)
     }
+  })
+
+  describe('MCP の data', () => {
+    it('worktree_init で作ると、2 つのファイルの絶対パスを data と artifacts に返す', async () => {
+      const { repository } = initialProject()
+      const files = configPaths(repository)
+      const result = await tool('worktree_init', { directory: repository })
+      expect(result.data).toEqual({ configFile: files.config, ignoreFile: files.ignore })
+      expect(result.artifacts).toEqual([files.config, files.ignore])
+    })
+
+    it('worktree_init を dry_run で打つと、書く予定のパスと dryRun を返し、artifacts を返さない', async () => {
+      const { repository } = initialProject()
+      const files = configPaths(repository)
+      const result = await tool('worktree_init', { directory: repository, dry_run: true })
+      expect(result.data).toEqual({ configFile: files.config, ignoreFile: files.ignore, dryRun: true })
+      expect(result.artifacts).toEqual([])
+    })
   })
 })
 
@@ -1124,6 +1188,44 @@ describe('worktree link', () => {
     expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(true)
     expect(existsSync(path.join(subdirectory, 'CLAUDE.local.md'))).toBe(false)
   })
+
+  describe('MCP の data', () => {
+    it('worktree_link でリンクを作ると、change を create にして、作った symlink を artifacts に返す', async () => {
+      const { project, worktree } = await linkedProject()
+      const result = await tool('worktree_link', { directory: worktree })
+      const link = path.join(worktree, 'CLAUDE.local.md')
+      expect(result.data).toEqual({ links: [{ ...sharedLink(worktree, path.join(project.repository, 'CLAUDE.local.md')), change: 'create' }] })
+      expect(result.artifacts).toEqual([link])
+    })
+
+    it('worktree_link で既にあるリンクを張り替えると、change を update にする', async () => {
+      const { project, worktree } = await linkedProject()
+      symlinkSync('/nonexistent', path.join(worktree, 'CLAUDE.local.md'))
+      const result = await tool('worktree_link', { directory: worktree })
+      expect(result.data).toEqual({ links: [{ ...sharedLink(worktree, path.join(project.repository, 'CLAUDE.local.md')), change: 'update' }] })
+    })
+
+    it('worktree_link でリンク先が無いと、change を skip にして、飛ばした理由を返し、artifacts を返さない', async () => {
+      const { project, worktree } = await linkedProject()
+      rmSync(path.join(project.repository, 'CLAUDE.local.md'))
+      const result = await tool('worktree_link', { directory: worktree })
+      expect(result.data).toMatchObject({ links: [{ change: 'skip', reason: `target does not exist: ${path.join(project.repository, 'CLAUDE.local.md')}` }] })
+      expect(result.artifacts).toEqual([])
+    })
+
+    it('worktree_link を dry_run で打つと、予定の change と dryRun を返す', async () => {
+      const { project, worktree } = await linkedProject()
+      const result = await tool('worktree_link', { directory: worktree, dry_run: true })
+      expect(result.data).toEqual({ links: [{ ...sharedLink(worktree, path.join(project.repository, 'CLAUDE.local.md')), change: 'create' }], dryRun: true })
+      expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
+    })
+
+    it('worktree_link に all を付けてサブの worktree が無いと、links を空の配列で返す', async () => {
+      const { repository } = createProject()
+      const result = await tool('worktree_link', { directory: repository, all: true })
+      expect(result.data).toEqual({ links: [] })
+    })
+  })
 })
 
 describe('worktree remove', () => {
@@ -1301,5 +1403,37 @@ describe('worktree remove', () => {
     const result = await pecot(['worktree', 'remove', 'topic', '-D', repository])
     expect(result.code).toBe(0)
     expect(existsSync(elsewhere)).toBe(false)
+  })
+
+  describe('MCP の data', () => {
+    it('worktree_remove で削除すると、名前と、ブランチを削除したかを data に返す', async () => {
+      const { repository } = createProject()
+      await addWorktree()
+      const result = await tool('worktree_remove', { directory: repository, name: 'wt1' })
+      expect(result.data).toEqual({ name: 'wt1', deletedBranch: true })
+    })
+
+    it('worktree_remove に keep_branch を付けると、deletedBranch を false にする', async () => {
+      const { repository } = createProject()
+      await addWorktree()
+      const result = await tool('worktree_remove', { directory: repository, name: 'wt1', keep_branch: true })
+      expect(result.data).toEqual({ name: 'wt1', deletedBranch: false })
+    })
+
+    it('worktree_remove でブランチを削除できないと、deletedBranch を false にして、warning を返す', async () => {
+      const { repository, root } = createProject()
+      const worktree = await addWorktree()
+      gitForTest(worktree, ['checkout', '-q', '-b', 'feature'])
+      gitForTest(repository, ['worktree', 'add', '-q', path.join(root, 'holder'), 'wt1'])
+      const result = await tool('worktree_remove', { directory: repository, name: 'wt1' })
+      expect(result.data).toMatchObject({ name: 'wt1', deletedBranch: false, warnings: [expect.stringContaining('could not delete local branch wt1')] })
+    })
+
+    it('worktree_remove を dry_run で打つと、deletedBranch を false にして dryRun を返す', async () => {
+      const { repository } = createProject()
+      await addWorktree()
+      const result = await tool('worktree_remove', { directory: repository, name: 'wt1', dry_run: true })
+      expect(result.data).toEqual({ name: 'wt1', deletedBranch: false, dryRun: true })
+    })
   })
 })

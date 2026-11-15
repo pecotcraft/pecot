@@ -1,7 +1,12 @@
 // release check・create・merge の振る舞い（PW-RELEASE-*）を、runCli をプロセス内で呼んで確かめる。
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { RELEASE_COMMANDS } from '../../src/commands/release.js'
+import { createMcpServer } from '../../src/mcp/server.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { startFakeGithub } from '../fake-github/server.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { alertPath, alertRules, compareRule, createProject, DEFAULT_REPOSITORY, failRemoteLookupFrom, NOTES_0_2_0, pathsOf, pullRequestResponse, rest, runRelease } from '../_helpers/release-sandbox.js'
 import type { Project, ProjectOptions } from '../_helpers/release-sandbox.js'
@@ -61,6 +66,26 @@ const DEPENDABOT_ALERTS = [
 ]
 const FORBIDDEN = { message: 'Resource not accessible by integration' }
 const NOT_FOUND = { message: 'Not Found' }
+const ALERTS_URL = 'https://ghes.example.com/acme/demo/security/dependabot'
+
+// release の MCP のツールを、作業ディレクトリで同じプロセスの中のクライアントから 1 回呼ぶ
+async function callTool(target: Readonly<Project>, name: string, arguments_: Readonly<Record<string, unknown>>, rules: readonly ResponseRule[]): Promise<ToolEnvelope> {
+  const server = await startFakeGithub(rules)
+  setEnvironment({ PECOT_GITHUB_API_URL: server.url })
+  const original = process.cwd()
+  process.chdir(target.directory)
+  const connected = await connectInMemory(createMcpServer(RELEASE_COMMANDS))
+  try {
+    const result = structuredOf(await connected.client.callTool({ name, arguments: { ...arguments_ } }))
+    expect({ problems: server.problems(), unused: server.unused() }).toEqual({ problems: [], unused: [] })
+    return result
+  }
+  finally {
+    await connected.close()
+    process.chdir(original)
+    await server.close()
+  }
+}
 
 describe('release check', () => {
   it('版を省いて打つと、CHANGELOG の最初の版を対象にチェックする', async (context) => {
@@ -411,6 +436,48 @@ describe('release check', () => {
       expect(result.code).toBe(1)
     })
   })
+
+  describe('MCP の data', () => {
+    it('チェックが通ると、版・タグ・リリースノート・コミット数と、Dependabot alert の件数を返す', async () => {
+      const rules = [...alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] }), compareRule(1)]
+      const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
+      expect(result.data).toEqual({
+        version: '0.2.0',
+        tag: 'v0.2.0',
+        releaseNotes: NOTES_0_2_0,
+        commitCount: 1,
+        skipped: [],
+        dependabotAlerts: { enabled: true, openCount: 2, maxSeverity: 'critical', alertsUrl: ALERTS_URL },
+        warnings: [`2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n#1 (minimatch, medium)\n#2 (glob, critical)\n→ ${ALERTS_URL}`],
+      })
+    })
+
+    it('機能が無効なら、飛ばした確認の名前を skipped に返す', async () => {
+      const rules = [...alertRules({
+        dependabot: [rest('GET', alertPath('dependabot'), 403, FORBIDDEN), rest('GET', '/repos/acme/demo/vulnerability-alerts', 404)],
+        code: [rest('GET', alertPath('code'), 403, { message: 'Advanced Security must be enabled for this repository to use code scanning.' })],
+        secret: [rest('GET', alertPath('secret'), 404, NOT_FOUND), rest('GET', '/repos/acme/demo', 200, { security_and_analysis: { secret_scanning: { status: 'disabled' } } })],
+      }), compareRule(1)]
+      const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
+      expect(result.data).toEqual({
+        version: '0.2.0',
+        tag: 'v0.2.0',
+        releaseNotes: NOTES_0_2_0,
+        commitCount: 1,
+        skipped: ['Dependabot alerts (feature disabled)', 'code scanning (feature disabled)', 'secret scanning (feature disabled)'],
+        dependabotAlerts: { enabled: false, openCount: 0, alertsUrl: ALERTS_URL },
+      })
+    })
+
+    it('alert が残って失敗しても、alert の結果を data に残す', async () => {
+      const rules = alertRules({ secret: [rest('GET', alertPath('secret'), 200, [{ number: 5 }])] })
+      const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
+      expect(result).toMatchObject({ ok: false, exitCode: 1 })
+      const { detail, ...collected } = result.data
+      expect(collected).toEqual({ skipped: [], dependabotAlerts: { enabled: true, openCount: 0, alertsUrl: ALERTS_URL }, reason: 'preflight-failed' })
+      expect(detail).toMatch(/^secret scanning has 1 open alert\n/u)
+    })
+  })
 })
 
 describe('release create', () => {
@@ -592,6 +659,18 @@ describe('release create', () => {
     expect(result.code).toBe(1)
     expect(result.requests).toEqual([])
   })
+
+  describe('MCP の data', () => {
+    it('リリースを作ると、タグ・URL・リリースノートを返す', async () => {
+      const result = await callTool(project(), 'release_create', { version: '0.2.0' }, [releaseCreated()])
+      expect(result.data).toEqual({ tag: 'v0.2.0', url: 'https://ghes.example.com/acme/demo/releases/tag/v0.2.0', releaseNotes: NOTES_0_2_0 })
+    })
+
+    it('dry_run で呼ぶと、URL を省いて dryRun を返す', async () => {
+      const result = await callTool(project(), 'release_create', { version: '0.2.0', dry_run: true }, [])
+      expect(result.data).toEqual({ tag: 'v0.2.0', releaseNotes: NOTES_0_2_0, dryRun: true })
+    })
+  })
 })
 
 describe('release merge', () => {
@@ -772,5 +851,17 @@ describe('release merge', () => {
     await verifies(context, 'PW-RELEASE-MERGE-25')
     const result = await runMerge(project({ isGit: false }))
     expect(result.code).toBe(1)
+  })
+
+  describe('MCP の data', () => {
+    it('マージして head ブランチを削除すると、PR・ブランチと deletedBranch を返す', async () => {
+      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, deleted])
+      expect(result.data).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: true })
+    })
+
+    it('dry_run で呼ぶと、deletedBranch を false にして dryRun を返す', async () => {
+      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true, dry_run: true }, [pullRequestResponse()])
+      expect(result.data).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: false, dryRun: true })
+    })
   })
 })

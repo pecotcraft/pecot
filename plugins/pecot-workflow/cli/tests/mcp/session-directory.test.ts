@@ -36,6 +36,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: session })
     expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden).toMatchObject({ exitCode: 0, stderr: '' })
+    expect(outcome.data?.['repository']).toBe('acme/session-repo')
   })
 
   it('COPILOT_SESSION_CWD が無くても、CLAUDE_PROJECT_DIR があれば、そのリポを対象にする', { timeout: TEST_TIMEOUT_MS }, async () => {
@@ -44,6 +45,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const outcome = await statusFrom(pluginRoot, { CLAUDE_PROJECT_DIR: project })
     expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden).toMatchObject({ exitCode: 0, stderr: '' })
+    expect(outcome.data?.['repository']).toBe('acme/project-repo')
   })
 
   it('どちらの変数も無ければ、プラグインの root のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {

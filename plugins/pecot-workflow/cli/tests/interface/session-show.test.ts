@@ -4,7 +4,10 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
@@ -37,6 +40,16 @@ const pullRequests = (...nodes: readonly Record<string, unknown>[]): ResponseRul
 const rules = (spec: Partial<TargetSpec>, ...nodes: readonly Record<string, unknown>[]): ResponseRule[] => [
   issueResponse({ number: 7, title: 't' }), pullRequests(...nodes), prerequisitesRule({ number: 7, ...spec }),
 ]
+
+async function showTool(directory: string): Promise<ToolEnvelope> {
+  const connected = await connectInMemory(createMcpServer(SESSION_COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name: 'session_show', arguments: { directory } }))
+  }
+  finally {
+    await connected.close()
+  }
+}
 
 describe('session show', () => {
   it('--directory を渡すと、ブランチ・リポジトリ・推定した Issue・フラグの表を標準出力に出す', async (context) => {
@@ -345,6 +358,39 @@ describe('session show', () => {
       const result = await status(repository)
 
       expect(result.stdout).not.toContain('## Stack')
+    })
+  })
+
+  describe('MCP の data', () => {
+    it('.pecot-active が無いとき、ブランチ・リポジトリ・推定した Issue・フラグを data に返す', async () => {
+      const { repository } = prepareSession()
+
+      const structured = await showTool(repository)
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: false, content: '' }],
+      })
+    })
+
+    it('積んで着手した作業ディレクトリでは、アクティブな Issue と積んだ先を data に返す', async () => {
+      const SHA = '0123456789abcdef0123456789abcdef01234567'
+      const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
+      await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
+
+      const structured = await showTool(repository)
+
+      expect(structured.data).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        stack: { branch: 'feat/3', stackedOn: 'acme/demo/3', pullRequest: { number: 30, state: 'CLOSED' }, readiness: 'blocked by #3 (not in review: #3 (not started))' },
+      })
     })
   })
 })

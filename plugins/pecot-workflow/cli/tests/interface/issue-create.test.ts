@@ -5,6 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { writeTree } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
@@ -35,6 +36,8 @@ import {
   TASK_FRONTMATTER,
   updatedFields,
 } from '../_helpers/issue-create-case.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { IssueSpec } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -88,6 +91,16 @@ function workflowWrites(github: RunningGithub): readonly unknown[] {
 const OPEN_PREREQUISITE: IssueSpec = { number: 12, state: 'OPEN' }
 
 const TASK_WITH_PARENT = { ...TASK_FRONTMATTER, parent_epic: 'acme/demo/3', order: '3' }
+
+async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  const connected = await connectInMemory(createMcpServer(ISSUE_CREATE_COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name: 'issue_create', arguments: { ...argumentsOfTool } }))
+  }
+  finally {
+    await connected.close()
+  }
+}
 
 describe('issue create', () => {
   describe('--prepare', () => {
@@ -1022,6 +1035,121 @@ describe('issue create', () => {
       const result = await create(path.join(project.root, 'a.md'), path.join(project.root, 'b.md'))
 
       expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: order 4 is specified by more than one file: a.md, b.md\n' })
+    })
+  })
+
+  describe('MCP の data', () => {
+    const DIRECT = { title: '一覧に状態を出す', repo: 'acme/demo', message: TASK_BODY }
+
+    it('message で作ると、作った Issue の番号・URL・書いた status を data.issues に返す', async () => {
+      setUpIssueProject()
+      await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
+
+      const structured = await createTool(DIRECT)
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0, artifacts: [] })
+      expect(structured.data).toEqual({ issues: [{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }] })
+    })
+
+    it('親 Epic を付けて作ると、つないだ親の参照を data.issues の parent に返す', async () => {
+      setUpIssueProject()
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+
+      const structured = await createTool({ ...DIRECT, parent_epic: '3', order: 3 })
+
+      expect(structured.data['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready', parent: 'acme/demo/3' }])
+    })
+
+    it('message を dry_run で打つと、作る予定の Issue と dryRun を data に返す', async () => {
+      setUpIssueProject()
+      await startGithub([linkedRepositories()])
+
+      const structured = await createTool({ ...DIRECT, dry_run: true })
+
+      expect(structured.data).toEqual({ plannedIssue: { owner: 'acme', repository: 'demo', title: '[Task] 一覧に状態を出す' }, dryRun: true })
+    })
+
+    it('ファイルを dry_run で打つと、進め方の表の行と積める並びを data に返す', async () => {
+      const project = setUpIssueProject()
+      writeTree(project.root, {
+        'a.md': taskFile('先頭', PARENT),
+        'b.md': taskFile('2 番目', PARENT, ...blockedBy('a')),
+        'c.md': taskFile('3 番目', PARENT, 'blocked_by:', '  - issue: b', '    wait: merge', '    reason: 配られてから', '  - issue: acme/demo/12'),
+      })
+      await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE]), issueNodeId(12)])
+
+      const structured = await createTool({ files: inRoot(project.root, 'a.md', 'b.md', 'c.md'), dry_run: true })
+
+      expect(structured.data).toEqual({
+        plan: [
+          { file: 'a', order: 3, blockedBy: [], approach: 'alone' },
+          { file: 'b', order: 4, blockedBy: [{ issue: 'a', wait: 'stack' }], approach: 'stack', stackOn: 'a' },
+          { file: 'c', order: 5, blockedBy: [{ issue: 'b', wait: 'merge' }, { issue: '#12', wait: 'stack' }], approach: 'wait-merge' },
+        ],
+        stackableChains: [['a', 'b']],
+        dryRun: true,
+      })
+    })
+
+    it('前提の済んだ Issue を Blocked で作って Ready へ動かすと、data.issues の status を ready にする', async () => {
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
+      await startGithub([
+        linkedRepositories(),
+        blockedBySupported(),
+        issueNodeId(12),
+        createdIssue(13),
+        blockedByAdded(),
+        issueNodeId(13),
+        addedToProject(),
+        updatedFields(2),
+        prerequisitesRule({ number: 13, column: 'Blocked', blockedBy: [{ number: 12, state: 'CLOSED', branch: 'feat/12', pullRequests: [{ number: 5, state: 'MERGED', head: 'feat/12' }] }] }),
+      ])
+
+      const structured = await createTool({ files: inRoot(project.root, 'a.md') })
+
+      expect(structured.data['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' }])
+    })
+
+    it('途中のファイルで作成に失敗すると、作り終えた Issue を失敗の data.issues に残す', async () => {
+      const project = setUpIssueProject()
+      writeTree(project.root, {
+        'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
+        'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
+      })
+      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), failedIssueCreation(403)])
+
+      const structured = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
+
+      expect(structured).toMatchObject({ ok: false, exitCode: 1, kind: 'github-api' })
+      expect(structured.data['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }])
+    })
+
+    it('前提を付けられずに partial-failure で終わっても、作り終えた Issue をすべて data.issues に残す', async () => {
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
+      await startGithub([linkedRepositories(), blockedBySupported(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), failedBlockedBy(), addedToProject(2), updatedFields(2)])
+
+      const structured = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
+
+      expect(structured).toMatchObject({ ok: false, exitCode: 1, kind: 'partial-failure' })
+      expect(structured.data['issues']).toEqual([
+        { owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' },
+        { owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'blocked' },
+      ])
+    })
+
+    it('prepare で打つと、コピーしたテンプレの絶対パスを data.file と artifacts に返す', async () => {
+      const project = setUpIssueProject()
+
+      const structured = await createTool({ prepare: true, template: 'task', repo: 'acme/demo' })
+
+      expect(structured.ok).toBe(true)
+      const file = String(structured.data['file'])
+      expect(path.dirname(file)).toBe(path.join(project.root, '.pecot', 'tmp', 'output'))
+      expect(path.basename(file)).toMatch(/^issue-task-\d{8}-\d{6}\.md$/u)
+      expect(structured.data).toEqual({ file })
+      expect(structured.artifacts).toEqual([file])
     })
   })
 })

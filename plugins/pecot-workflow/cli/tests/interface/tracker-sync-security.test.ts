@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { TRACKER_COMMANDS } from '../../src/commands/tracker.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { createMcpServer } from '../../src/mcp/server.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import {
@@ -635,4 +637,47 @@ describe('tracker sync', () => {
       expect(result.stderr).toContain('Invalid value for \'source\': \'foo\' is not one of \'dependabot\', \'security\'.')
     })
   })
+
+  describe('MCP の data', () => {
+    it('Tracker を作ると、その番号と足した alert を返す', async () => {
+      await startCreating()
+      const data = await syncTool()
+      const added = [{ kind: 'dependabot', number: 1 }, { kind: 'dependabot', number: 2 }, { kind: 'code-scanning', number: 10 }]
+      expect(data).toEqual({ source: 'security', tracker: 12, created: true, added, removed: [], closed: false })
+    })
+
+    it('既存の Tracker の行を足し外すと、足した alert と外した alert を返す', async () => {
+      prepareSync()
+      const body = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 9))
+      await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, body, 'medium'))
+      const data = await syncTool()
+      expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [{ kind: 'dependabot', number: 2 }], removed: [{ kind: 'code-scanning', number: 9 }], closed: false })
+    })
+
+    it('本文が今と同じだと、足し外しを空にして返す', async () => {
+      prepareSync()
+      await startGithub([...listings(ONE_DEPENDABOT, [trackerIssue(5, BODY_WITH_ONE)]), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })])
+      const data = await syncTool()
+      expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [], removed: [], closed: false })
+    })
+
+    it('dry_run で呼ぶと、作る予定の Tracker に足す alert と dryRun を返す', async () => {
+      freezeClock()
+      prepareSync()
+      await startGithub(listings({ dependabot: [dependabotAlert(1, 'high')], codeScanning: [codeScanningAlert(10)] }, []))
+      const data = await syncTool({ dry_run: true })
+      expect(data).toEqual({ source: 'security', created: true, added: [{ kind: 'dependabot', number: 1 }, { kind: 'code-scanning', number: 10 }], removed: [], closed: false, dryRun: true })
+    })
+  })
 })
+
+// tracker_sync を source: security で、同じプロセスの中のクライアントから 1 回呼び、data を返す
+async function syncTool(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Record<string, unknown>> {
+  const connected = await connectInMemory(createMcpServer(TRACKER_COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name: 'tracker_sync', arguments: { source: 'security', ...arguments_ } })).data
+  }
+  finally {
+    await connected.close()
+  }
+}

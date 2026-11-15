@@ -39,6 +39,10 @@ export interface Outcome {
   readonly signal: string | undefined
   readonly timedOut: boolean
   /**
+  MCP 経由で呼んだときの structuredContent の data。golden には入れない
+  */
+  readonly data?: Readonly<Record<string, unknown>>
+  /**
   偽サーバが見つけた誤り
   */
   readonly problems: readonly string[]
@@ -128,6 +132,10 @@ export interface ChildResult {
   readonly signal: NodeJS.Signals | undefined
   readonly spawnError: string | undefined
   readonly timedOut: boolean
+  /**
+  MCP 経由で呼んだときの structuredContent の data。CLI 経由と呼べなかったときは undefined
+  */
+  readonly data?: Readonly<Record<string, unknown>>
 }
 
 function runChild(
@@ -228,6 +236,7 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
       spawnError: child.spawnError,
       signal: child.signal,
       timedOut: child.timedOut,
+      ...child.data !== undefined && { data: child.data },
       problems: server.problems(),
       unused: server.unused(),
     }

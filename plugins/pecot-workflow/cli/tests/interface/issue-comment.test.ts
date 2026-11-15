@@ -7,7 +7,10 @@ import { describe, expect, it } from 'vitest'
 import { ISSUE_COMMENT_COMMANDS } from '../../src/commands/issue-comment.js'
 import { compareStrings } from '../../src/domain/python-format.js'
 import { templateFile } from '../../src/infra/template-store.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, MERGE_DIFF_BODY, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -23,6 +26,16 @@ async function comment(...argv: readonly string[]): Promise<Awaited<ReturnType<t
 function outputFiles(root: string): string[] {
   const directory = path.join(root, '.pecot', 'tmp', 'output')
   return existsSync(directory) ? readdirSync(directory).toSorted(compareStrings) : []
+}
+
+async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  const connected = await connectInMemory(createMcpServer(ISSUE_COMMENT_COMMANDS))
+  try {
+    return structuredOf(await connected.client.callTool({ name: 'issue_comment', arguments: { ...argumentsOfTool } }))
+  }
+  finally {
+    await connected.close()
+  }
 }
 
 describe('issue comment', () => {
@@ -335,5 +348,47 @@ describe('issue comment', () => {
       stderr: 'error: invalid reference: invalid-format\n  accepted forms:\n    - full: \'owner/repo/N\'\n    - short: \'N\' (with a base repository)\n',
     })
     expect(github.requests()).toEqual([])
+  })
+
+  describe('MCP の data', () => {
+    it('ファイルから投稿すると、コメントの URL と created を data に返し、ファイルを artifacts に返す', async () => {
+      const { file } = setUpCommentProject()
+      await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
+
+      const structured = await commentTool({ file })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0, artifacts: [file] })
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'created', commentUrl: COMMENT_URL })
+    })
+
+    it('comment_url を持つファイルを渡すと、updated を data に返す', async () => {
+      const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
+      const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
+      await startGithub([linkedRepositories(), updatedComment(456, url)])
+
+      const structured = await commentTool({ file })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'updated', commentUrl: url })
+    })
+
+    it('message を dry_run で打つと、投稿する予定の Issue と dryRun を data に返す', async () => {
+      setUpProject()
+      await startGithub([])
+
+      const structured = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', dry_run: true })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
+    })
+
+    it('prepare で打つと、書いたテンプレのパスを data.file と artifacts に返す', async () => {
+      const { root } = setUpProject()
+
+      const structured = await commentTool({ prepare: true, template: 'plan' })
+
+      const [name = ''] = outputFiles(root)
+      const written = path.join(root, '.pecot', 'tmp', 'output', name)
+      expect(structured).toMatchObject({ ok: true, artifacts: [written] })
+      expect(structured.data).toEqual({ file: written })
+    })
   })
 })

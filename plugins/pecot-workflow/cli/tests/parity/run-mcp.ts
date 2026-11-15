@@ -72,11 +72,11 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
     const outcome = structuredOf(result)
     // 入力の検証の誤り（コマンドを呼んでいない）は、本体の終了コードと分けるため、message を stdout に残して -1 にする
     if (outcome.kind === 'invalid-input' && outcome.message.startsWith(REJECTED_PREFIX) && outcome.data['detail'] === outcome.message) {
-      return { stdout: outcome.message, stderr: serverStderr, code: undefined, signal: undefined, spawnError: undefined, timedOut: false }
+      return { stdout: outcome.message, stderr: serverStderr, code: undefined, signal: undefined, spawnError: undefined, timedOut: false, data: outcome.data }
     }
     const warnings = Array.isArray(outcome.data['warnings']) ? outcome.data['warnings'].map(String) : []
     const detail = outcome.ok ? undefined : String(outcome.data['detail'])
-    return { stdout: '', stderr: renderMcpView({ warnings, detail }), code: outcome.exitCode, signal: undefined, spawnError: undefined, timedOut: false }
+    return { stdout: '', stderr: renderMcpView({ warnings, detail }), code: outcome.exitCode, signal: undefined, spawnError: undefined, timedOut: false, data: outcome.data }
   }
   catch (error: unknown) {
     return failed(error)

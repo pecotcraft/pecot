@@ -2,6 +2,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者の引数とテンプレートの置き場で決まる */
 // issue comment。cli/commands/issue.py の issue_comment とその内部関数の移植。
 import { existsSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 
 import { z } from 'zod'
 
@@ -41,18 +42,33 @@ const TEMPLATE_CHOICES = TEMPLATE_SCHEMA.options.join(' / ')
 // PR へのコメントは GitHub が /pull/ の形で html_url を返すので、両方受ける
 const COMMENT_URL_PATTERN = /^https?:\/\/(?<host>[^/]+)\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/(?:issues|pull)\/(?<number>\d+)#issuecomment-(?<id>\d+)$/u
 
+const ISSUE_COMMENT_OUTPUT = z.strictObject({
+  issue: z.string().optional().describe('Issue commented on (owner/repo/N; omitted with prepare)'),
+  commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted on dry_run, with prepare, or when GitHub returned no URL)'),
+  change: z.enum(['created', 'updated']).optional().describe('Whether the comment was created or updated (omitted with prepare)'),
+  file: z.string().optional().describe('Absolute path of the template file copied (only with prepare)'),
+  dryRun: z.literal(true).optional().describe('true on dry_run (nothing was posted or written)'),
+})
+
+type CommentOutput = Output<z.input<typeof ISSUE_COMMENT_OUTPUT>>
+
+function targetData(target: IssueTarget): string {
+  return `${target.owner}/${target.repository}/${String(target.number)}`
+}
+
 function htmlUrlOf(comment: JsonObject, fallback: string): string {
   const url = jsonField(comment, 'html_url')
   return typeof url === 'string' ? url : fallback
 }
 
 // テンプレートをコピーして、そのパスを標準出力に出す。issue_ref が渡されていれば、コピーの issue_ref に入れる
-function prepareTemplate(output: Output, template: string, issueReference: string | undefined, isDryRun: boolean): void {
+function prepareTemplate(output: CommentOutput, template: string, issueReference: string | undefined, isDryRun: boolean): void {
   const templatePath = templateFile('comment', template)
   if (!existsSync(templatePath)) {
     stopWith(output, `template not found: ${templatePath}`, 'other')
   }
   if (isDryRun) {
+    output.result({ dryRun: true })
     output.planned({ verb: 'create', target: `comment template ${template} in ${outputDirectory()}` })
     return
   }
@@ -63,6 +79,8 @@ function prepareTemplate(output: Output, template: string, issueReference: strin
   try {
     withReservedOutputPath(outputDirectory(), timestamp => `comment-${template}-${timestamp}.md`, (reserved) => {
       writeFileSync(reserved, content, 'utf8')
+      output.result({ file: path.resolve(reserved) })
+      output.artifact(reserved)
       output.data(reserved)
     })
   }
@@ -94,6 +112,7 @@ function writeBackCommentUrl(output: Output, file: string, commentUrl: string): 
   try {
     const content = readTextFile(file)
     writeFileSync(file, setFrontmatterValue(content, 'comment_url', commentUrl), 'utf8')
+    output.artifact(file)
   }
   catch (error: unknown) {
     const converted = toOsError(error, file)
@@ -106,7 +125,7 @@ function writeBackCommentUrl(output: Output, file: string, commentUrl: string): 
 }
 
 // コメントを作って created の行と URL を出す。失敗は error の行と終了コード 1。作ったコメントの URL を返す
-async function createComment(output: Output, client: GitHubClient, target: IssueTarget, body: string): Promise<string> {
+async function createComment(output: CommentOutput, client: GitHubClient, target: IssueTarget, body: string): Promise<string> {
   const display = issuePath(target.owner, target.repository, target.number)
   let comment
   try {
@@ -117,13 +136,14 @@ async function createComment(output: Output, client: GitHubClient, target: Issue
     return stopWith(output, `could not create a comment on Issue ${display}: ${error.message}`, kindOfFailure(error))
   }
   const createdUrl = htmlUrlOf(comment, '')
+  output.result({ issue: targetData(target), change: 'created', ...createdUrl !== '' && { commentUrl: createdUrl } })
   output.done({ verb: 'create', target: `comment on ${display}` })
   output.data(createdUrl)
   return createdUrl
 }
 
 // comment_url のコメントを書き換える。失敗は error の行と終了コード 1
-async function updateComment(output: Output, client: GitHubClient, target: IssueTarget, commentId: number, commentUrl: string, body: string): Promise<void> {
+async function updateComment(output: CommentOutput, client: GitHubClient, target: IssueTarget, commentId: number, commentUrl: string, body: string): Promise<void> {
   const display = issuePath(target.owner, target.repository, target.number)
   let comment
   try {
@@ -133,11 +153,13 @@ async function updateComment(output: Output, client: GitHubClient, target: Issue
     if (!(error instanceof GitHubAPIError)) throw error
     return stopWith(output, `could not update the comment on Issue ${display}: ${error.message}`, kindOfFailure(error))
   }
+  const updatedUrl = htmlUrlOf(comment, commentUrl)
+  output.result({ issue: targetData(target), change: 'updated', commentUrl: updatedUrl })
   output.done({ verb: 'update', target: `comment on ${display}` })
-  output.data(htmlUrlOf(comment, commentUrl))
+  output.data(updatedUrl)
 }
 
-async function postFromFile(output: Output, config: ProjectConfig, repository: string | undefined, file: string, isDryRun: boolean): Promise<void> {
+async function postFromFile(output: CommentOutput, config: ProjectConfig, repository: string | undefined, file: string, isDryRun: boolean): Promise<void> {
   let parsed
   try {
     parsed = parseCommentFile(file)
@@ -166,6 +188,7 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   }
   if (isDryRun) {
     const display = issuePath(target.owner, target.repository, target.number)
+    output.result({ issue: targetData(target), change: hasCommentUrl ? 'updated' : 'created', dryRun: true })
     output.planned({ verb: hasCommentUrl ? 'update' : 'create', target: `comment on ${display}` })
     if (!hasCommentUrl) output.planned({ verb: 'set', target: `comment_url in ${file}` })
     return
@@ -179,12 +202,13 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   if (createdUrl !== '') writeBackCommentUrl(output, file, createdUrl)
 }
 
-async function postDirect(output: Output, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
+async function postDirect(output: CommentOutput, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
 
   if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
   if (isDryRun) {
+    output.result({ issue: targetData(target), change: 'created', dryRun: true })
     output.planned({ verb: 'create', target: `comment on ${issuePath(target.owner, target.repository, target.number)}` })
     return
   }
@@ -206,12 +230,12 @@ const ISSUE_COMMENT = defineCommand({
     ),
     dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
-  output: z.strictObject({}),
+  output: ISSUE_COMMENT_OUTPUT,
   positional: ['file'],
   shortFlags: { message: '-m', issue_ref: '-i', prepare: '-p', template: '-t', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const output = createOutput(input.dry_run, io)
+    const output = createOutput<z.input<typeof ISSUE_COMMENT_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
       const { file, message, issue_ref: issue, prepare, template } = input
       if (template === undefined && (prepare || (message !== undefined && file === undefined))) {
