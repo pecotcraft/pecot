@@ -79,16 +79,12 @@ code-scanning open alerts: #28 #29
 
 pecot-workflow の MCP ツール `session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。
 
-> 注意: マージ後の片付けは必ず `session_finish` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
-
 ### Step 3: ローカルクリーンアップの確認
 
 ローカルの片付け（ブランチの切り替え・pull・フィーチャーブランチの削除）は、`session_finish` が行う。警告が出たら、その文を読んで次のように手で対応する。
 
 - ワーキングツリーが汚れている場合: 変更を一時的な WIP commit で退避してから再実行する。stash は全ワークツリーで共有されるので、使うときは `git stash push -u -m "<名前>"` で名前を付け、戻すときもその entry を指定する
 - `skip_local_cleanup: true` でローカル後処理をスキップし、手動で対応
-
-> 注意: ワークツリー環境では`wtX`ブランチ（ベースブランチ）を削除しない。`cd`コマンドで他のワークツリーやmainワークツリーに移動しない
 
 詳細: [ワークツリー環境での処理](references/worktree-handling.md)
 
@@ -128,8 +124,6 @@ pecot-workflow の MCP ツール `issue_comment` を使って、Epic 宛ての�
 #### 4.4 Epicにコメント投稿
 
 `issue_comment` を使って、4.3 で編集したファイルを Epic に投稿する。
-
-> 注意: `issue_comment` 以外の方法（`gh` や GitHub の MCP など）でIssueコメントを投稿しない
 
 差分がまったくない（計画通り）の場合も、「計画通り完了」のコメントを投稿する。
 

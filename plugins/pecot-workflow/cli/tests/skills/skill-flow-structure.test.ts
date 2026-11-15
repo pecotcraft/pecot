@@ -145,14 +145,6 @@ describe('w-quick の手順', () => {
     expect(headings.filter(heading => heading.title.includes('レビュー'))).toEqual([])
   })
 
-  it('Step 1 の引用ブロックのガードが残る', () => {
-    const body = sectionBody(text, numberIndex(headings, 1))
-    const guard = body.split('\n').filter(line => line.trimStart().startsWith('>')).join('\n')
-    expect(guard).not.toBe('')
-    expect(guard).toContain('Issue 番号')
-    expect(guard).toContain('EnterPlanMode')
-  })
-
   it('Step 1 は、issue_create（freeform）で起票する', () => {
     const body = sectionBody(text, numberIndex(headings, 1))
     expect(body).toContain('`issue_create` を使って、Issue を作る')

@@ -16,8 +16,6 @@ argument-hint: "[タスクの内容]"
 
 ### Step 1: Issue作成（issue_create）
 
-> **ガード**: Issue 番号を確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
-
 pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る。基本形（親Epicなし）は、テンプレを通さずに `freeform: true` と `message` で作る。
 
 **`message` の書き方:** テンプレを経由しないため `message` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
