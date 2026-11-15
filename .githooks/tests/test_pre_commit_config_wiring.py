@@ -182,7 +182,7 @@ def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path
         "plugins/pecot-tools/.mcp.json",
         "plugins/pecot-workflow/skills/w-pr/SKILL.md",
         "plugins/pecot-visual/skills/v-drawio/SKILL.md",
-        "plugins/pecot-visual/agents/v-slide-creator.md",
+        "plugins/pecot-visual/agents/v-diagram-creator.md",
     ],
 )
 def test_plugin_validate_runs_when_definitions_change(script_dir: Path, changed_path: str) -> None:

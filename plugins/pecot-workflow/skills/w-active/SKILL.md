@@ -97,10 +97,8 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 書いた計画をレビューしてもらう。
 
-- w-tech-advisor を `Agent` ツールの単発 spawn でレビュー依頼する
-- w-e2e-planner を `Agent` ツールの単発 spawn でレビュー依頼する
-- 2 者の並列 spawn を既定とする。直列にする場合のみ、理由を `w-tech-advisor` の Goal 末尾に括弧書きで添える（例: `(直列の理由: ...)`）。Goal は spawn prompt の冒頭行を指す
-- 1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。
+- w-reviewer を `Agent` ツールで `name: w-reviewer` を付けて 1 回起こし、計画のファイルのパスを渡してレビューを依頼する。視点は w-reviewer の定義が持つ
+- レビューが返った後も w-reviewer を終了させず、待機させておく。w-revise の PR のレビューを、計画を読んだ同じ w-reviewer に頼むためである
 - 指摘を計画に反映してから次の Step へ進む
 
 レビューは一巡 1 回で、反映後の再レビューは不要。追質問は `SendMessage` で送る。

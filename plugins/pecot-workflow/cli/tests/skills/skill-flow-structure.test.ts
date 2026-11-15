@@ -102,15 +102,15 @@ describe('w-active の手順', () => {
 
   it('レビューは一巡 1 回で、再レビューを求めない', () => {
     const body = sectionBody(text, titleIndex(headings, 'レビュー'))
-    for (const word of ['w-tech-advisor', 'w-e2e-planner', '一巡 1 回', '再レビューは不要']) expect(body).toContain(word)
+    for (const word of ['w-reviewer', '一巡 1 回', '再レビューは不要']) expect(body).toContain(word)
   })
 
-  it('レビューの 2 者は、並列 spawn を既定にする', () => {
+  it('レビューは、名前付きの w-reviewer を 1 回起こして待機させ、ほかのエージェントを起こさない', () => {
     const body = sectionBody(text, titleIndex(headings, 'レビュー'))
-    expect(body).toContain('2 者の並列 spawn を既定とする')
-    expect(body).toContain(SERIAL_REASON_MARKER)
-    expect(body).toContain(PARALLEL_SPAWN_NOTE)
-    expect(body).not.toContain('spawn してよい')
+    expect(body).toContain('w-reviewer を `Agent` ツールで `name: w-reviewer` を付けて 1 回起こし')
+    expect(body).toContain('レビューが返った後も w-reviewer を終了させず、待機させておく')
+    for (const agent of ['w-tech-advisor', 'w-e2e-planner', 'w-implementer']) expect(body).not.toContain(agent)
+    for (const word of ['並列 spawn', '単発 spawn']) expect(body).not.toContain(word)
   })
 
   it('ブランチ作成で止まったときは、エラーの案内を利用者に示し、エージェントの判断で先へ進めない', () => {
@@ -163,8 +163,19 @@ describe('w-revise の手順', () => {
   const text = readSkill('w-revise')
   const headings = stepHeadings(text)
 
-  it('Step 5 は、複数の w-implementer の並列起動を既定にし、直列の理由を書かせる', () => {
+  it('Step 5 は、main が直すことを基本にし、委譲する条件を subagent-usage.md から読ませる', () => {
     const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('main が直すことを基本にする')
+    expect(body).toContain('当たらなければ main が直し、w-implementer を起こさない')
+    const link = '../w-help/references/subagent-usage.md'
+    expect(body).toContain(link)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
+    expect(body.indexOf(link)).toBeLessThan(body.indexOf('複数 w-implementer の並列起動を既定とする'))
+  })
+
+  it('Step 5 は、委譲するときに複数の w-implementer の並列起動を既定にし、直列の理由を書かせる', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('条件に当たって委譲するときは')
     expect(body).toContain('複数 w-implementer の並列起動を既定とする')
     expect(body).toContain(SERIAL_REASON_MARKER)
     expect(body).toContain(PARALLEL_SPAWN_NOTE)
@@ -178,12 +189,31 @@ describe('w-revise の手順', () => {
     expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
   })
 
-  it('Step 2 は、3 体のレビューアを並列 spawn する', () => {
+  it('Step 2 は、計画をレビューした w-reviewer が残っていれば SendMessage で頼み、残っていなければ名前付きで起こす', () => {
     const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).toContain('3 体の並列 spawn を既定とする')
+    expect(body).toContain('w-reviewer に diff をレビューさせる')
+    expect(body).toContain('計画をレビューした w-reviewer が残っていれば、新しく起こさない。`SendMessage` で `to: "w-reviewer"` に PR の diff のレビューを依頼する')
+    expect(body).toContain('残っていなければ（別のセッション・計画をレビューしていない PR など）、`Agent` ツールで `name: w-reviewer` を付けて新しく起こす')
+    expect(body).not.toContain('w-reviewer を単発')
+    for (const agent of ['w-tech-advisor', 'w-implementer']) expect(body).not.toContain(agent)
+  })
+
+  it('Step 2 は、CUJ があるときだけ w-e2e-planner を、w-reviewer への依頼と並列に起こす', () => {
+    const body = sectionBody(text, numberIndex(headings, 2))
+    expect(body).toContain('PR の計画に CUJ があるときだけ、w-e2e-planner も単発 spawn し')
+    expect(body).toContain('w-reviewer への依頼と w-e2e-planner の spawn は、並列を既定とする')
     expect(body).toContain(SERIAL_REASON_MARKER)
-    expect(body).toContain(PARALLEL_SPAWN_NOTE)
-    for (const reviewer of ['w-tech-advisor', 'w-e2e-planner', 'w-implementer']) expect(body).toContain(reviewer)
+    expect(body).toContain('1 メッセージ内の複数の呼び出し（`SendMessage` か `Agent`）で依頼する。別メッセージで順に呼ぶと直列になる。')
+  })
+
+  it('2 巡目以降のレビューも、同じ w-reviewer に SendMessage で頼む', () => {
+    expect(text).toContain('Step 6 より後の 2 巡目以降のレビューも、新しく起こさず、同じ w-reviewer に `SendMessage` で頼む。')
+  })
+
+  it('Step 3 のインラインコメントは、F-NN の後に視点の印を書く', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('`**F-NN** [視点の印]` で始める')
+    for (const mark of ['`[tech]`', '`[cuj]`', '`[quality]`']) expect(body).toContain(mark)
   })
 
   it('Step 6 の一括 resolve は、別名を使う', () => {
