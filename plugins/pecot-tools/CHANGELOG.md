@@ -1,3 +1,18 @@
+# 2.0.0 (2026-11-15)
+
+### 🩹 Fixes
+
+- ツール名の語彙（`aws`・サービスの一覧）を定義書に書き出し、名前の決まりを検証で確かめる。 ([#431](https://github.com/pecotcraft/pecot/pull/431), [#428](https://github.com/pecotcraft/pecot/issues/428))
+  ツールの名前と動きは変わらない。
+
+### ⚠️  Breaking Changes
+
+- MCP ツールの結果で、失敗の原因の名前を `category` ではなく `kind` で返す。`category` は無くなった。 ([#429](https://github.com/pecotcraft/pecot/pull/429), [#422](https://github.com/pecotcraft/pecot/issues/422))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 1.1.1 (2026-11-13)
 
 ### 🩹 Fixes

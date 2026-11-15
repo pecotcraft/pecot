@@ -1,3 +1,23 @@
+# 2.0.0 (2026-11-15)
+
+### 🚀 Features
+
+- MCP ツールの失敗の結果に、原因の名前を `kind` で足した。`data.reason` は今までどおり返す。 ([#429](https://github.com/pecotcraft/pecot/pull/429), [#422](https://github.com/pecotcraft/pecot/issues/422))
+
+### 🩹 Fixes
+
+- GitHub Copilot CLI の auto でも、図とスライドを作るエージェントが起きて結果を返す。 ([#425](https://github.com/pecotcraft/pecot/pull/425), [#416](https://github.com/pecotcraft/pecot/issues/416))
+- `hono` を 4.13.13 から 4.13.18 に更新。 ([#420](https://github.com/pecotcraft/pecot/pull/420))
+
+### ⚠️  Breaking Changes
+
+- MCP ツール `setup` を `runtime_setup` に改名した。古い名前は使えない。 ([#431](https://github.com/pecotcraft/pecot/pull/431), [#428](https://github.com/pecotcraft/pecot/issues/428))
+  許可の設定やスクリプトの `setup` は、`runtime_setup` に書き換える。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 1.3.1 (2026-11-13)
 
 ### 🩹 Fixes

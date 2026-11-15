@@ -1,3 +1,48 @@
+# 6.0.0 (2026-11-15)
+
+### 🚀 Features
+
+- `pecot issue block` と `pecot issue unblock` を足し、既存の Issue の前提と種類を後から直せるようにする。 ([#423](https://github.com/pecotcraft/pecot/pull/423), [#379](https://github.com/pecotcraft/pecot/issues/379))
+- `pecot session start` が着手の判定で base を選び、ブロック中の Issue では止まる。 ([#419](https://github.com/pecotcraft/pecot/pull/419), [#380](https://github.com/pecotcraft/pecot/issues/380))
+- `pecot pr create` が、積んで着手したブランチの PR を下の段のブランチ向けに作ってスタックに登録し、その PR を待っていた Issue の列を動かす。 ([#430](https://github.com/pecotcraft/pecot/pull/430), [#381](https://github.com/pecotcraft/pecot/issues/381))
+- w-breakdown が、tasks の工程でできる tasks.md に、4 列の前提の表（Phase・前提・種類・理由）を書かせる。 ([#427](https://github.com/pecotcraft/pecot/pull/427), [#382](https://github.com/pecotcraft/pecot/issues/382))
+  できた表は、承認の前に確かめる。
+  w-issueize が、見出しの行と区切りの行だけの表を「前提が無い」と読み、`reason` を表の理由のとおりに写す。
+
+- 列と札を判定に合わせて直す `pecot board sync`（`board_sync`）を足した。 ([#410](https://github.com/pecotcraft/pecot/pull/410), [#404](https://github.com/pecotcraft/pecot/issues/404))
+  GitHub Actions から打つワークフローの雛形も足した。置くかは利用者が選ぶ。
+
+- レビューのエージェントが main のモデルを引き継がず opus で動き、実装者は計画の作業単位ごとに選んだモデルで起きる。 ([#411](https://github.com/pecotcraft/pecot/pull/411), [#408](https://github.com/pecotcraft/pecot/issues/408))
+- `pecot board show` と `pecot issue show` が着手の判定を出す。 ([#402](https://github.com/pecotcraft/pecot/pull/402), [#377](https://github.com/pecotcraft/pecot/issues/377))
+- `pecot issue create` が、Issue ファイルの `blocked_by` を blocked by として付ける。 ([#414](https://github.com/pecotcraft/pecot/pull/414), [#378](https://github.com/pecotcraft/pecot/issues/378))
+  `--plan` で、投稿せずに進め方の表を出す。番号は通し番号になり、`parallel` は使えない。
+
+
+### 🩹 Fixes
+
+- python3 の無い端末でも、w-onboarding と w-pr の手順が通る。 ([#401](https://github.com/pecotcraft/pecot/pull/401), [#399](https://github.com/pecotcraft/pecot/issues/399))
+- GitHub Copilot CLI でも、プランの承認の後に、計画の打ち直しと実装の引き継ぎの案内が出る。 ([#409](https://github.com/pecotcraft/pecot/pull/409), [#403](https://github.com/pecotcraft/pecot/issues/403))
+- w-help の Issue 起票の規則が、消えた Python のファイルと関数を示さない。 ([#407](https://github.com/pecotcraft/pecot/pull/407), [#406](https://github.com/pecotcraft/pecot/issues/406))
+- board sync のワークフローの案内に、1 回の実行の GraphQL の点数の式と、merge queue のリポでの動き、fine-grained PAT を使えない場面を足した。 ([#432](https://github.com/pecotcraft/pecot/pull/432), [#413](https://github.com/pecotcraft/pecot/issues/413))
+- コマンドの `--help` が、定義書の **`help` の欄**（英語の文）から Details・Examples・初期値の補足を読む。出る文は変わらない。 ([#421](https://github.com/pecotcraft/pecot/pull/421), [#415](https://github.com/pecotcraft/pecot/issues/415))
+- GitHub Copilot CLI の auto でも、レビューと実装のエージェントが起きて結果を返す。 ([#425](https://github.com/pecotcraft/pecot/pull/425), [#416](https://github.com/pecotcraft/pecot/issues/416))
+
+### ⚠️  Breaking Changes
+
+- `issue quick` を消し、入力名を `issue_ref`・`repo`・`branch`・`dry_run` にそろえた。 ([#431](https://github.com/pecotcraft/pecot/pull/431), [#428](https://github.com/pecotcraft/pecot/issues/428))
+  読むコマンドは何も書き換えず、書き込むコマンドは `--dry-run` で予行できる。
+  古い入力名は使えない。README の「コマンド名の移行」で書き換える。
+
+- MCP ツールの結果を、pecot-tools・pecot-visual と同じ JSON の形にした。 ([#429](https://github.com/pecotcraft/pecot/pull/429), [#422](https://github.com/pecotcraft/pecot/issues/422))
+  失敗の原因の名前を `kind` で返す。文だけの結果と `exit code: <n>` の行は無くなった。
+
+- コマンド名とツール名を、対象のグループと決めた動詞の 2 語にそろえ、17 個の名前が変わった。 ([#424](https://github.com/pecotcraft/pecot/pull/424), [#412](https://github.com/pecotcraft/pecot/issues/412))
+  古い名前は使えない。許可の設定とスクリプトは、README の「コマンド名の移行」で書き換える。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 5.0.0 (2026-11-13)
 
 ### 🚀 Features
