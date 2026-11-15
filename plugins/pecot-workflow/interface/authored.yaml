@@ -3853,6 +3853,7 @@ entries:
         previous: '実行前のキーの値です。未設定だったときは入りません。'
         change: '設定がどうなったかです。`create`（未設定だった）・`update`（値を置き換えた）・`unchanged`（既に同じ値だった）のどれかです。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+      artifacts: '書き換えた設定ファイルの絶対パスです。`dry_run` のときと、`change` が `unchanged` のときは入りません。'
     diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -3954,6 +3955,7 @@ entries:
         previous: '実行前のキーの値です。未設定だったときは入りません。'
         change: '設定がどうなったかです。`delete`（キーを消した）か `unchanged`（もともと未設定だった）です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+      artifacts: '書き換えた設定ファイルの絶対パスです。`dry_run` のときと、`change` が `unchanged` のときは入りません。'
     diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
     environment: []
     exit_status:

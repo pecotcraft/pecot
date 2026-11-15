@@ -871,6 +871,7 @@ function setAggregationRepository(out: Readonly<Output<SetData>>, value: string,
     out.warning(options.isConfirmed ? `overwriting aggregation_repo: ${current} -> ${value}` : hinted`overwriting aggregation_repo: ${current} -> ${value}\npass ${inputHint(['project', 'set'], 'yes')} to omit this hint`)
   }
   saveConfig(withAggregationRepository(config, value), configPath)
+  out.artifact(configPath)
   out.done(operation)
   out.result(reported)
 }
@@ -892,6 +893,7 @@ function unsetAggregationRepository(out: Readonly<Output<UnsetData>>, isDryRun: 
     return
   }
   saveConfig(withAggregationRepository(config, undefined), configPath)
+  out.artifact(configPath)
   out.done(operation)
   out.result({ key: 'aggregation_repo', previous, change: 'delete' })
 }

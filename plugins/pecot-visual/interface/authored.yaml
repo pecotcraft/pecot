@@ -720,7 +720,7 @@ entries:
         when: '字間の JSON かハイパーリンクの JSON を読めないか、形が違います。'
       - kind: slidev-build-failed
         code: 1
-        when: '`slidev build` がエラーで終わりました。失敗の文は `data.detail` に、ビルドの出力は `data.log` に入ります。'
+        when: '`slidev build` がエラーで終わりました。診断は `data.warnings` と `data.errors` に、失敗の文は `data.detail` に、ビルドの出力は `data.log` に入ります。'
       - kind: slidev-build-timeout
         code: 1
         when: '`slidev build` が、制限時間の内に終わりませんでした。'

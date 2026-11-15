@@ -1421,6 +1421,12 @@ describe('project set', () => {
       expect(result.structured.data).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create' })
     })
 
+    it('project_set は、設定ファイルを書き換えると、そのパスを artifacts に返す', async () => {
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' })
+      expect(result.structured.artifacts).toHaveLength(1)
+      expect(result.structured.artifacts[0]).toMatch(/^\/.*\.json$/)
+    })
+
     it('project_set は、別の値に上書きすると、change を update にして previous を返し、warning を data.warnings に返す', async () => {
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new' }, [], withAggregation('acme/roadmap'))
       expect(result.structured.data).toMatchObject({ key: 'aggregation_repo', value: 'acme/new', previous: 'acme/roadmap', change: 'update' })
@@ -1482,6 +1488,7 @@ describe('project unset', () => {
     it('project_unset は、値を消すと change を delete にして、消した値を previous に返す', async () => {
       const result = await tool('project_unset', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
       expect(result.structured.data).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete' })
+      expect(result.structured.artifacts).toHaveLength(1)
     })
 
     it('project_unset は、未設定だと change を unchanged にする', async () => {
