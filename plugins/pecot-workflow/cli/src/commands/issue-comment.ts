@@ -206,6 +206,7 @@ const ISSUE_COMMENT = defineCommand({
     ),
     dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
+  output: z.strictObject({}),
   positional: ['file'],
   shortFlags: { message: '-m', issue_ref: '-i', prepare: '-p', template: '-t', dry_run: '-n' },
   interactive: false,

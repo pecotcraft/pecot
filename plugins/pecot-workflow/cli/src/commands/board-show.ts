@@ -43,6 +43,7 @@ const boardShowCommand = defineCommand({
     }).optional().describe('Target repository, given explicitly as \'owner/repo\''),
   }),
   hasOwnRepo: true,
+  output: z.strictObject({}),
   positional: [],
   shortFlags: { json: '-j' },
   interactive: false,

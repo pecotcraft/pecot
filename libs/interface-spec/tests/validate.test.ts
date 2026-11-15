@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { generatedFileSchema } from '../src/domain/schema.js'
 import { validateRepository } from '../src/validate-repository.js'
 import { materialize } from './helpers/repository.js'
 
@@ -101,6 +102,58 @@ describe('validateRepository', () => {
     expect(lines).toContain(`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`)
     expect(lines.some(line => line.includes('environment[0].name') && line.includes('"bad-name"'))).toBe(true)
     expect(lines).toContain(`error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`)
+  })
+
+  describe('mcp_output', () => {
+    const LS_DATA = {
+      anyOf: [
+        { type: 'object', properties: { lines: { type: 'array' }, warnings: { type: 'array' } }, required: ['lines'], additionalProperties: false },
+        { type: 'object', properties: { lines: { type: 'array' }, reason: { type: 'string' }, detail: { type: 'string' } }, required: ['reason', 'detail'], additionalProperties: false },
+      ],
+    }
+
+    // PT-AWS-S3-LS の mcp.output に data を足し、authored.yaml の entry の diagnostics の前に mcp_output を足す
+    async function withMcpOutput(mcpOutput: string, entry = 'PT-AWS-S3-LS'): Promise<string> {
+      const root = await materialize('valid')
+      const generatedFile = path.join(root, PT, 'generated.json')
+      const generated = generatedFileSchema.parse(JSON.parse(await readFile(generatedFile, 'utf8')))
+      const entries = generated.entries.map(item => item.id === 'PT-AWS-S3-LS' && item.mcp?.output !== undefined
+        ? { ...item, mcp: { ...item.mcp, output: { ...item.mcp.output, properties: { ...item.mcp.output.properties, data: LS_DATA } } } }
+        : item)
+      expect(entries).not.toEqual(generated.entries)
+      await writeFile(generatedFile, JSON.stringify({ ...generated, entries }))
+      const file = path.join(root, entry.startsWith('PW-') ? PW : PT, 'authored.yaml')
+      const original = await readFile(file, 'utf8')
+      const start = original.indexOf(`  ${entry}:\n`)
+      const at = original.indexOf('    diagnostics:', start)
+      await writeFile(file, `${original.slice(0, at)}${mcpOutput}${original.slice(at)}`)
+      return root
+    }
+
+    it('data のキーが成功側の properties（warnings を除く）とそろうと、何も報告しない', async () => {
+      const root = await withMcpOutput('    mcp_output:\n      data:\n        lines: The listed keys.\n      artifacts: None.\n')
+      expect(await validateRepository(root)).toEqual([])
+    })
+
+    it('data のキーが成功側の properties と食い違うと、足りないキーと余るキーを報告する', async () => {
+      const root = await withMcpOutput('    mcp_output:\n      data:\n        keys: The listed keys.\n')
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.data: has "keys" not in mcp.output (remove it)`,
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.data: is missing "lines" (present in mcp.output)`,
+      ])
+    })
+
+    it('MCP の面を持たない項目に書くと、消すよう報告する', async () => {
+      const root = await withMcpOutput('    mcp_output:\n      data:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE')
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)`,
+      ])
+    })
+
+    it('mcp_output を書いていない項目は、data のキーを比べない', async () => {
+      const root = await withMcpOutput('')
+      expect(await validateRepository(root)).toEqual([])
+    })
   })
 
   it('targets.json が無いと、報告する', async () => {

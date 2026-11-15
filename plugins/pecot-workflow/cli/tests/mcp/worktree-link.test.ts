@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { cliEntry, builtCliProblem } from '../parity/built-cli.js'
+import { mcpViewOfStderr } from '../parity/mcp-view.js'
 import { runScenario } from '../parity/run.js'
 import type { Launcher } from '../parity/run.js'
 import { readGolden, readScenario } from '../parity/scenario.js'
@@ -20,7 +21,7 @@ describe('worktree_link', () => {
     const outcome = await runScenario(scenario, mcp)
     const golden = readGolden('worktree-link-state-overwrite-eof')
     expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toEqual(golden)
+    expect(outcome.golden).toEqual({ ...golden, stdout: '', stderr: mcpViewOfStderr(golden.stderr, golden.exitCode) })
     expect(outcome.golden).toMatchObject({ exitCode: 1 })
     expect(outcome.golden.stderr).toMatch(/Aborted\.\n$/u)
   })

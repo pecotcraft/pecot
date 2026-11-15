@@ -27,6 +27,7 @@ const BOARD_ADD = defineCommand({
     status: z.string().default('ready').describe('Initial status (backlog/pending/blocked/ready/active/in_review/archived)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: z.strictObject({}),
   positional: ['issue_ref'],
   shortFlags: { status: '-s', dry_run: '-n' },
   interactive: false,

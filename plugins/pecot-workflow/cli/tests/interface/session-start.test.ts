@@ -11,7 +11,7 @@ import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
-import { graphqlRule, projectConfig, requestLabels, restRule, runCommand } from '../_helpers/command-harness.js'
+import { graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
@@ -66,7 +66,7 @@ async function create(extra: Partial<CommandRun> = {}, argv: readonly string[] =
   return await runCommand({ argv, github: succeeding(), ...extra })
 }
 
-function expectClean(result: Readonly<CommandResult>): void {
+function expectClean(result: Readonly<Pick<CommandResult, 'problems' | 'unused'>>): void {
   expect(result.problems).toEqual([])
   expect(result.unused).toEqual([])
 }
@@ -355,6 +355,53 @@ describe('session start', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
     expect(result.requests).toEqual([])
+  })
+
+  describe('MCP の data', () => {
+    const ARGUMENTS = { issue_ref: 'acme/demo/7', branch: 'feat' }
+
+    it('ブランチを作ると、作ったブランチ・リポジトリ・base・作業 Issue・作業ディレクトリの絶対パスを data に返す', async () => {
+      const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: succeeding() })
+      expectClean(result)
+      expect(result.structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(result.structured.data).toEqual({
+        branch: 'feat/7',
+        repository: 'acme/demo',
+        base: 'main',
+        issue: 'acme/demo/7',
+        workDirectory: path.join(result.directory, '.pecot/work/7'),
+      })
+    })
+
+    it('前提の PR に積んで作ると、積んだ先の Issue の番号を stackedOn に返す', async () => {
+      const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
+      const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: judged({ blockedBy: [inReview] }, 'feat/3') })
+      expectClean(result)
+      expect(result.structured.data).toMatchObject({ branch: 'feat/7', base: 'feat/3', stackedOn: 3 })
+    })
+
+    it('dry_run で打つと、作る予定のブランチと dryRun を data に返し、作業ディレクトリを返さない', async () => {
+      const result = await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, dry_run: true }, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main')] })
+      expectClean(result)
+      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', dryRun: true })
+      expect(result.read(ACTIVE)).toBeUndefined()
+    })
+
+    it('Status を active にできないと、warning を data.warnings に返し、ブランチの data は返す', async () => {
+      const empty = graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
+      const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), empty] })
+      expectClean(result)
+      expect(result.structured.data).toMatchObject({ branch: 'feat/7', warnings: ['could not set Issue acme/demo/7 status active: the Issue is not on the project board'] })
+    })
+
+    it('ブランチを作れないと、失敗の reason と detail を data に返し、成功の項目を返さない', async () => {
+      const notFound = restRule('GET', '/repos/acme/demo/git/ref/heads/main', 404, { message: 'Not Found' })
+      const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: [linkedRepositories(), noPrerequisites(), issueNode(), notFound] })
+      expectClean(result)
+      expect(result.structured).toMatchObject({ ok: false, exitCode: 1, kind: 'github-not-found' })
+      expect(Object.keys(result.structured.data).toSorted((left, right) => left.localeCompare(right))).toEqual(['detail', 'reason'])
+      expect(result.structured.data['detail']).toMatch(/^could not create branch feat\/7 in acme\/demo: resource not found: /u)
+    })
   })
   describe('着手の判定', () => {
     const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }

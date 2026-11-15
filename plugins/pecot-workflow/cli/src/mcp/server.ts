@@ -17,7 +17,8 @@ import type { CommandDefinition, PreparedCommand } from '../commands/registry.js
 import { outputWidth } from '../commands/rich-panel.js'
 import { UsageError } from '../commands/usage-error.js'
 import { readVersion } from '../version.js'
-import { collectIo, TOOL_OUTPUT_SCHEMA, toAbortedResult, toRejectedResult, toToolResult } from './result.js'
+import { collectIo, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from './result.js'
+import type { CollectedIo } from './result.js'
 
 export const MCP_SERVER_NAME = 'pecot-workflow'
 
@@ -130,10 +131,33 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     }
     catch (error_: unknown) {
       options.reportUnexpected?.(error_, { stdout: collected.stdout(), stderr: collected.stderr() })
-      return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'other', message: unexpectedMessage(error_) })
+      return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'other', message: unexpectedMessage(error_), warnings: collected.warnings() })
     }
   }
-  return toToolResult({ exitCode, stdout: collected.stdout(), stderr: collected.stderr(), kind: collected.kind(), message, resultLine: collected.resultLine() })
+  return finish(definition, collected, { exitCode, message }, options)
+}
+
+// SDK の検証に任せると、合わない結果は structuredContent の無い文字列だけになる。ここで検証し、合わなければ other の失敗にする
+function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo, ended: { readonly exitCode: number, readonly message: string | undefined }, options: Readonly<McpServerOptions>): CallToolResult {
+  const stdout = collected.stdout()
+  const stderr = collected.stderr()
+  const schema = ended.exitCode === 0 ? definition.output : definition.output.partial()
+  const parsed = schema.safeParse(collected.data())
+  if (!parsed.success) {
+    options.reportUnexpected?.(parsed.error, { stdout, stderr })
+    return toToolResult({ exitCode: 1, stdout, stderr, kind: 'other', message: `data does not match the output schema: ${issuesMessage(parsed.error)}`, warnings: collected.warnings() })
+  }
+  return toToolResult({
+    exitCode: ended.exitCode,
+    stdout,
+    stderr,
+    kind: collected.kind(),
+    message: ended.message,
+    resultLine: collected.resultLine(),
+    data: parsed.data,
+    artifacts: collected.artifacts(),
+    warnings: collected.warnings(),
+  })
 }
 
 // コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
@@ -161,7 +185,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,
-      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: TOOL_OUTPUT_SCHEMA },
+      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: toolOutputSchema(definition.output) },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options)),
     )
   }

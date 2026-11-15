@@ -40,7 +40,8 @@ async function syncBoard(context: Readonly<BoardContext>, read: Readonly<BoardRe
     unsupportedWarning(out)
     return 0
   }
-  return await applyJudgedMoves(context, judged, isDryRun)
+  const { failures } = await applyJudgedMoves(context, judged, isDryRun)
+  return failures
 }
 
 function availableNames(): string {
@@ -86,6 +87,7 @@ const boardSyncCommand = defineCommand({
     dry_run: z.boolean().default(false).describe('Show the planned moves without writing to the board'),
     project: z.string().optional().describe('Name of the project config under .pecot/config/projects (without .json). Without it, the active project; when none is active and only one config exists, that one'),
   }),
+  output: z.strictObject({}),
   positional: [],
   interactive: false,
   run: async (input, io) => {

@@ -28,6 +28,7 @@ const alpha = defineCommand({
     mode: z.enum(['fast', 'slow']).default('fast').describe('Mode.'),
     verbose: z.boolean().default(true).describe('Be loud.'),
   }),
+  output: z.strictObject({}),
   positional: ['name'],
   shortFlags: { count: '-c', json: '-j' },
   negations: { verbose: '--no-verbose' },
@@ -46,6 +47,7 @@ const beta = defineCommand({
     label: strings.optional().describe('Labels.'),
     limit: z.int().min(1).max(10).default(5).describe('Upper limit.'),
   }),
+  output: z.strictObject({}),
   positional: ['source', 'files'],
   shortFlags: { label: '-l' },
   run: () => Promise.resolve(0),
@@ -128,6 +130,7 @@ describe('exportEntries', () => {
         repo: z.string().optional().describe('Target repository.'),
       }),
       hasOwnRepo: true,
+      output: z.strictObject({}),
       positional: [],
       shortFlags: { json: '-j' },
       run: () => Promise.resolve(0),
@@ -168,6 +171,7 @@ describe('exportEntries', () => {
       path: ['gamma'],
       description: 'Numbers.',
       input: z.strictObject({ one: z.int().optional(), many: integers.optional() }),
+      output: z.strictObject({}),
       positional: [],
       run: () => Promise.resolve(0),
       interactive: false,
@@ -184,6 +188,7 @@ describe('exportEntries', () => {
       path: ['sub', 'add-to_x'],
       description: 'Sub.',
       input: z.strictObject({}),
+      output: z.strictObject({}),
       positional: [],
       run: () => Promise.resolve(0),
       interactive: false,
@@ -202,6 +207,7 @@ describe('exportEntries の別名', () => {
       verbose: z.boolean().default(true),
       directory: z.string().optional(),
     }),
+    output: z.strictObject({}),
     positional: [],
     shortFlags: { directory: '-D' },
     aliases: { allow_existing_branch: '--force', verbose: '--loud' },
@@ -221,7 +227,7 @@ describe('exportEntries の別名', () => {
 
 describe('exportEntries の失敗と refine', () => {
   function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineCommand> {
-    return defineCommand({ path: ['bad', 'cmd'], description: 'Bad.', input: z.strictObject(shape), positional: [], run: () => Promise.resolve(0), interactive: false })
+    return defineCommand({ path: ['bad', 'cmd'], description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), positional: [], run: () => Promise.resolve(0), interactive: false })
   }
 
   it('全体の refine を持つ input でも書き出せ、repo を出さない', () => {
@@ -229,6 +235,7 @@ describe('exportEntries の失敗と refine', () => {
       path: ['refined'],
       description: 'Refined.',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined),
+      output: z.strictObject({}),
       positional: [],
       run: () => Promise.resolve(0),
       interactive: false,
@@ -437,6 +444,7 @@ describe('main の --check', () => {
       path: ['broken'],
       description: 'Has an invalid path',
       input: z.strictObject({}),
+      output: z.strictObject({}),
       positional: [],
       run: () => Promise.resolve(0),
       interactive: false,

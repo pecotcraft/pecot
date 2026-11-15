@@ -28,6 +28,7 @@ const BOARD_MOVE = defineCommand({
     status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: z.strictObject({}),
   positional: ['issue_ref', 'status'],
   shortFlags: { dry_run: '-n' },
   interactive: false,

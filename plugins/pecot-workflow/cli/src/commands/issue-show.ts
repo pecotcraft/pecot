@@ -166,6 +166,7 @@ const ISSUE_SHOW = defineCommand({
     json: z.boolean().default(false).describe('Output as JSON'),
     comment_limit: z.int().min(0).max(MAX_COMMENT_LIMIT).default(DEFAULT_COMMENT_LIMIT).describe('Number of comments to show (0-20; 0 hides them)'),
   }),
+  output: z.strictObject({}),
   positional: ['issue_ref'],
   shortFlags: { json: '-j', comment_limit: '-c' },
   interactive: false,

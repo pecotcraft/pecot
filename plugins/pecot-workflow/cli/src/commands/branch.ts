@@ -26,6 +26,7 @@ const branchDeleteCommand = defineCommand({
     branch: z.string().describe('Name of the branch to delete'),
     dry_run: z.boolean().default(false).describe('Show what would be deleted without deleting anything'),
   }),
+  output: z.strictObject({}),
   positional: ['repo', 'branch'],
   shortFlags: { dry_run: '-n' },
   interactive: false,

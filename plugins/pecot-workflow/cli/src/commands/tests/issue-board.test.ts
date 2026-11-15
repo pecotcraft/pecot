@@ -163,7 +163,7 @@ describe('applyBoardMove', () => {
     const { client, server } = await startClient([updateRule(1)])
     const io = capture()
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 'blocked by #3')
-    expect(applied).toEqual({ column: 'Blocked', missing: [], hasFailed: false })
+    expect(applied).toEqual({ column: 'Blocked', missing: [], hasFailed: false, written: { issue: '#7', from: 'Ready', to: 'Blocked', label: undefined, reason: 'blocked by #3' } })
     expect(io.err.join('')).toBe('moved: #7 Ready -> Blocked (blocked by #3)\n')
     expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_workflow', optionId: 'O_blocked' } }])
   })
@@ -180,7 +180,7 @@ describe('applyBoardMove', () => {
     const { client, server } = await startClient([updateRule(1)])
     const io = capture()
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { label: 'Todo', missing: [] }, 'startable')
-    expect(applied).toEqual({ column: undefined, missing: [], hasFailed: false })
+    expect(applied).toEqual({ column: undefined, missing: [], hasFailed: false, written: { issue: '#7', from: undefined, to: undefined, label: 'Todo', reason: 'startable' } })
     expect(io.err.join('')).toBe('set: Status of #7 to Todo\n')
     expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_status', optionId: 'O_todo' } }])
   })
@@ -195,10 +195,11 @@ describe('applyBoardMove', () => {
     expect(graphqlRequests(server)).toEqual([])
   })
 
-  it('planBoardMove は、applyBoardMove と同じ文を dry-run の行で出し、書かない', () => {
+  it('planBoardMove は、applyBoardMove と同じ文を dry-run の行で出し、書かずに予定の列と札を返す', () => {
     const io = capture()
     const reason: Readiness = { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: true, attention: [] }
-    planBoardMove(createOutput(true, io), target, { column: { from: 'Ready', to: 'Blocked', reason }, label: 'Todo', missing: [] }, 'blocked by #3')
+    const planned = planBoardMove(createOutput(true, io), target, { column: { from: 'Ready', to: 'Blocked', reason }, label: 'Todo', missing: [] }, 'blocked by #3')
+    expect(planned).toEqual({ issue: '#7', from: 'Ready', to: 'Blocked', label: 'Todo', reason: 'blocked by #3' })
     expect(io.err.join('')).toBe('dry-run: would move #7 Ready -> Blocked (blocked by #3)\ndry-run: would set Status of #7 to Todo\n')
   })
 })

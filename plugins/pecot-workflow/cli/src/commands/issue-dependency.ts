@@ -299,6 +299,7 @@ const ISSUE_BLOCK = defineCommand({
     reason: z.string().optional().describe('Why it waits for the merge (required with --wait merge)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: z.strictObject({}),
   positional: ['issue_ref'],
   interactive: false,
   run: async (input, io) => {
@@ -317,6 +318,7 @@ const ISSUE_UNBLOCK = defineCommand({
     by: z.string().describe('The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: z.strictObject({}),
   positional: ['issue_ref'],
   interactive: false,
   run: async (input, io) => {

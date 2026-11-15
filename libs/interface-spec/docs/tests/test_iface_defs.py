@@ -13,7 +13,7 @@ DOCS = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(DOCS / "_ext"))
 
-from iface_defs import Case, outcome_of  # noqa: E402
+from iface_defs import MCP_DATA_EMPTY, Case, outcome_of, render_sections  # noqa: E402
 
 INDEX = """\
 Sample
@@ -409,3 +409,66 @@ def case(result: str) -> Case:
 )
 def test_outcome_of(results: list[str], expected: str) -> None:
     assert outcome_of([case(r) for r in results]) == expected
+
+
+def _mcp_entry(success: dict[str, Any], mcp_output: dict[str, Any] | None = None) -> dict[str, Any]:
+    failure = {
+        "type": "object",
+        "properties": {"reason": {"type": "string"}, "detail": {"type": "string"}},
+        "required": ["reason", "detail"],
+    }
+    entry: dict[str, Any] = {
+        "surfaces": {"mcp": {"tool": "sample_tool"}},
+        "output": {"format": "none"},
+        "mcp": {
+            "output": {
+                "type": "object",
+                "properties": {"ok": {"type": "boolean"}, "data": {"anyOf": [success, failure]}},
+            }
+        },
+    }
+    if mcp_output is not None:
+        entry["mcp_output"] = mcp_output
+    return entry
+
+
+def _output_section(entry: dict[str, Any]) -> str:
+    return "\n".join(dict(render_sections(entry))["出力"])
+
+
+def test_mcp_success_data_table_uses_authored_text_and_skips_common_fields() -> None:
+    success = {
+        "type": "object",
+        "properties": {
+            "branch": {"type": "string", "description": "Branch created"},
+            "stackedOn": {
+                "anyOf": [{"type": "integer"}, {"type": "null"}],
+                "description": "Stacked",
+            },
+            "dryRun": {"type": "boolean", "const": True},
+            "warnings": {"type": "array"},
+        },
+        "additionalProperties": False,
+    }
+    text = _output_section(
+        _mcp_entry(success, {"data": {"branch": "作ったブランチ"}, "artifacts": "書いたファイル"})
+    )
+    assert "作ったブランチ" in text
+    assert "Branch created" not in text
+    assert "integer \\| null" in text
+    assert "     - true" in text
+    assert "warnings" not in text.replace("artifacts", "")
+    assert "- **artifacts**: 書いたファイル" in text
+    assert "``ok``" not in text
+
+
+def test_mcp_success_data_without_fields_says_there_is_nothing() -> None:
+    success = {
+        "type": "object",
+        "properties": {"warnings": {"type": "array"}},
+        "additionalProperties": False,
+    }
+    text = _output_section(_mcp_entry(success))
+    assert MCP_DATA_EMPTY == "成功の `data` に返す中身はありません。"
+    assert "成功の \\ ``data``\\  に返す中身はありません。" in text
+    assert "項目名" not in text

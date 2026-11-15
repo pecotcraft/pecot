@@ -9,6 +9,8 @@ import { gitRunnerFor } from '../infra/git.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
 
+const WARNING_PREFIX = 'warning: '
+
 /**
 今の git remote からリポジトリを解決する。git の外・remote 無しは undefined
 */
@@ -34,7 +36,11 @@ export function requireRepositoryMatch(
   cwd: string,
 ): RepositoryReference | undefined {
   const outcome = applyRepositoryPolicy({ explicit, resolved: resolveCurrentRepository(cwd), mode })
-  for (const line of outcome.stderr) io.stderr(`${formatHinted(line, io.surface ?? 'cli')}\n`)
+  for (const line of outcome.stderr) {
+    const text = formatHinted(line, io.surface ?? 'cli')
+    io.stderr(`${text}\n`)
+    if (text.startsWith(WARNING_PREFIX)) io.warning?.(text.slice(WARNING_PREFIX.length))
+  }
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted
 }

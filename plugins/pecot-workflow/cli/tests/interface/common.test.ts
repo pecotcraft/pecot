@@ -29,6 +29,7 @@ function sample(name: string, body: () => void | Promise<void>): CommandDefiniti
     path: [name],
     description: '見本のコマンド',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async () => {
@@ -44,6 +45,7 @@ const TARGET = defineCommand({
   path: ['target'],
   description: '対象を解決する',
   input: z.object({}),
+  output: z.strictObject({}),
   positional: [],
   interactive: false,
   run: async (input, io) => {

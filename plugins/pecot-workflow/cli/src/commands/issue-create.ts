@@ -958,6 +958,7 @@ const ISSUE_CREATE = defineCommand({
     template: TEMPLATE_SCHEMA,
     suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),
   }),
+  output: z.strictObject({}),
   positional: ['files'],
   shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l', prepare: '-p', suffix: '-s', dry_run: '-n' },
   interactive: false,

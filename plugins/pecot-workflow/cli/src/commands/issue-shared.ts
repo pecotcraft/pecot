@@ -440,7 +440,7 @@ export async function setIssueFields(
 }
 
 /**
-親 Epic のサブ Issue にする。失敗は Issue の URL（issueUrl が undefined なら出し済みとして省く）、error の行の順に出して終了コード 1。issueNodeId は、無ければ取り直す関数
+親 Epic のサブ Issue にする。失敗は Issue の URL（issueUrl が undefined なら出し済みとして省く）、error の行の順に出して終了コード 1。issueNodeId は、無ければ取り直す関数。行に出した親の参照（owner/repo/N）を返す
 */
 export async function linkToParentEpic(
   output: Output,
@@ -449,7 +449,7 @@ export async function linkToParentEpic(
   parentReference: IssueReference,
   issueNodeId: string | (() => Promise<string>),
   issueUrl: string | undefined,
-): Promise<void> {
+): Promise<string> {
   const parent = issueReferenceToCliReference(parentReference)
   try {
     const parentNodeId = await client.getIssueNodeId(parentReference.repository.owner, parentReference.repository.repository, parentReference.number)
@@ -461,6 +461,7 @@ export async function linkToParentEpic(
     stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}\nthe order in its title is not counted for the next numbering until it is linked to the parent; link it by hand`, kindOfFailure(error))
   }
   output.done({ verb: 'add', target: `${target} as sub-issue of ${parent}` })
+  return parent
 }
 
 /**

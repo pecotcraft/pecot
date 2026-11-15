@@ -229,24 +229,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -336,24 +367,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -436,24 +498,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -535,24 +628,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -642,24 +766,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -769,24 +924,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -908,24 +1094,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1134,24 +1351,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1252,24 +1500,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1364,24 +1643,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1472,24 +1782,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1566,24 +1907,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1745,24 +2117,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1855,24 +2258,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -1970,24 +2404,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2095,24 +2560,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2189,24 +2685,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2314,24 +2841,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2462,24 +3020,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2544,24 +3133,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2645,24 +3265,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2764,24 +3415,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2868,24 +3550,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -2965,24 +3678,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3072,24 +3816,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3190,24 +3965,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3308,24 +4114,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3419,24 +4256,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3513,24 +4381,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3655,24 +4554,123 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "branch": {
+                      "type": "string",
+                      "description": "Branch created (or to be created), with the Issue number appended"
+                    },
+                    "repository": {
+                      "type": "string",
+                      "description": "Repository of the branch (owner/repo)"
+                    },
+                    "base": {
+                      "type": "string",
+                      "description": "Base branch the branch starts from"
+                    },
+                    "stackedOn": {
+                      "description": "Issue number whose branch this one is stacked on (omitted when not stacked)",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "issue": {
+                      "type": "string",
+                      "description": "Work Issue (owner/repo/N)"
+                    },
+                    "workDirectory": {
+                      "description": "Absolute path of the work directory (omitted on dry_run or when it could not be created)",
+                      "type": "string"
+                    },
+                    "dryRun": {
+                      "description": "true on dry_run (nothing was created or recorded)",
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "required": [
+                    "branch",
+                    "repository",
+                    "base",
+                    "issue"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "branch": {
+                      "type": "string",
+                      "description": "Branch created (or to be created), with the Issue number appended"
+                    },
+                    "repository": {
+                      "type": "string",
+                      "description": "Repository of the branch (owner/repo)"
+                    },
+                    "base": {
+                      "type": "string",
+                      "description": "Base branch the branch starts from"
+                    },
+                    "stackedOn": {
+                      "description": "Issue number whose branch this one is stacked on (omitted when not stacked)",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "issue": {
+                      "type": "string",
+                      "description": "Work Issue (owner/repo/N)"
+                    },
+                    "workDirectory": {
+                      "description": "Absolute path of the work directory (omitted on dry_run or when it could not be created)",
+                      "type": "string"
+                    },
+                    "dryRun": {
+                      "description": "true on dry_run (nothing was created or recorded)",
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3759,24 +4757,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -3907,24 +4936,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -4010,24 +5070,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -4128,24 +5219,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [
@@ -4254,24 +5376,55 @@
               "description": "Absolute paths of files and directories created or updated"
             },
             "data": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {},
-              "description": "Object with the details of the run"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "description": "Failure kind, the same value as kind"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "description": "Full failure text: the error message and the guidance lines that follow it"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+                    },
+                    "log": {
+                      "description": "Raw output of a child process (failure only; omitted when not captured)",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
             },
             "message": {
               "type": "string",
               "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
-            },
-            "stdout": {
-              "description": "Captured stdout (omitted when empty)",
-              "type": "string"
-            },
-            "stderr": {
-              "description": "Captured stderr (omitted when empty)",
-              "type": "string"
             }
           },
           "required": [

@@ -26,6 +26,7 @@ const SAMPLE = defineCommand({
   path: ['sample'],
   description: '準備の確認用',
   input: z.object({}),
+  output: z.strictObject({}),
   positional: [],
   interactive: false,
   run: async (_input, io) => {

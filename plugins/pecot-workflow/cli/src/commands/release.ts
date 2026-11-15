@@ -202,6 +202,7 @@ const releaseCheckCommand = defineCommand({
     version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
   }),
+  output: z.strictObject({}),
   positional: ['version'],
   interactive: false,
   run: async (input, io) => {
@@ -252,6 +253,7 @@ const releaseCreateCommand = defineCommand({
     dry_run: z.boolean().default(false).describe('Show what would happen without changing anything'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
   }),
+  output: z.strictObject({}),
   positional: ['version'],
   interactive: false,
   run: async (input, io) => {
@@ -314,6 +316,7 @@ const releaseMergeCommand = defineCommand({
     delete_branch: z.boolean().default(false).describe('Delete the branch after merging'),
     admin: z.boolean().default(false).describe('Merge with admin rights (skip the mergeability check)'),
   }),
+  output: z.strictObject({}),
   positional: ['pr_ref'],
   shortFlags: { dry_run: '-n', delete_branch: '-d' },
   interactive: false,

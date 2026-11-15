@@ -290,6 +290,11 @@ def _type(spec: dict[str, Any]) -> str:
         return " | ".join(
             json.dumps(v, ensure_ascii=False) for v in cast("list[Any]", spec["enum"])
         )
+    if "const" in spec:
+        return json.dumps(spec["const"], ensure_ascii=False)
+    if "anyOf" in spec:
+        branches = cast("list[Any]", spec["anyOf"])
+        return " | ".join(_type(cast("dict[str, Any]", b)) for b in branches if isinstance(b, dict))
     kind = spec.get("type", "")
     return " | ".join(cast("list[str]", kind)) if isinstance(kind, list) else str(kind)
 
@@ -365,6 +370,46 @@ def _constraint(item: object) -> str:
     return json.dumps(item, ensure_ascii=False)
 
 
+MCP_DATA_EMPTY = "成功の `data` に返す中身はありません。"
+# 全ツールに共通の data の項目。ツールごとの表には出さない。
+_MCP_DATA_COMMON = frozenset({"warnings"})
+
+
+def _mcp_success_data(entry: dict[str, Any]) -> dict[str, Any] | None:
+    """mcp.output の data のうち、成功側（reason を必須にしない枝）の JSON Schema。"""
+    data = _get(entry, "mcp.output.properties.data")
+    if not isinstance(data, dict):
+        return None
+    body = cast("dict[str, Any]", data)
+    branches = cast("list[Any]", body.get("anyOf", [body]))
+    for branch in branches:
+        if isinstance(branch, dict):
+            spec = cast("dict[str, Any]", branch)
+            if "reason" not in cast("list[str]", spec.get("required", [])):
+                return spec
+    return None
+
+
+def _mcp_output(entry: dict[str, Any]) -> list[str]:
+    """MCP の成功の data の表と、artifacts の説明。説明は mcp_output を先に、無ければ schema の description を使う。"""
+    success = _mcp_success_data(entry)
+    if success is None:
+        return []
+    authored = cast("dict[str, Any]", entry.get("mcp_output", {}))
+    written = cast("dict[str, str]", authored.get("data", {}))
+    properties, _ = _schema(success)
+    rows = [
+        [name, _type(spec), written.get(name, spec.get("description", ""))]
+        for name, spec in properties.items()
+        if name not in _MCP_DATA_COMMON
+    ]
+    table = _table("MCP の成功の data", ["項目名", "型", "説明"], rows)
+    lines = table or _para(MCP_DATA_EMPTY)
+    if authored.get("artifacts"):
+        lines += _fields([("artifacts", authored["artifacts"])])
+    return lines
+
+
 def _output(entry: dict[str, Any]) -> list[str]:
     output = cast("dict[str, Any]", entry.get("output", {}))
     lines: list[str] = []
@@ -372,8 +417,7 @@ def _output(entry: dict[str, Any]) -> list[str]:
         lines += _para("標準出力には何も出しません。")
     elif output.get("description"):
         lines += _para(output["description"])
-    schema = output.get("schema", _get(entry, "mcp.output"))
-    properties, _ = _schema(None if schema is _MISSING else schema)
+    properties, _ = _schema(output.get("schema"))
     written = cast("dict[str, str]", output.get("fields", {}))
     rows = [
         [
@@ -384,6 +428,7 @@ def _output(entry: dict[str, Any]) -> list[str]:
         for name, spec in properties.items()
     ]
     lines += _table("", ["項目名", "型", "説明"], rows)
+    lines += _mcp_output(entry)
     extra = [
         (label, entry[key])
         for key, label in (("stdin", "標準入力"), ("diagnostics", "標準エラー"))

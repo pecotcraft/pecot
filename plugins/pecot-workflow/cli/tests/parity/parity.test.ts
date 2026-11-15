@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { cliEntry, builtCliProblem } from './built-cli.js'
 import { readToolShape, toolInputOf } from './mcp-input.js'
+import { mcpViewOfStderr } from './mcp-view.js'
 import { runScenario } from './run.js'
 import type { Launcher, Outcome } from './run.js'
 import type { Golden } from './scenario.js'
@@ -84,8 +85,10 @@ async function compareWithGolden(id: string, launcher: Launcher, isStdoutSkipped
   const outcome = await runScenario(readScenario(id), launcher)
   const compared = (result: Golden): Golden => isStdoutSkipped ? { ...result, stdout: '' } : result
   const golden = readGolden(id)
-  // 案内の文は、CLI では打つコマンド、MCP ではツールの呼び出しの形で出る。MCP だけ違う stderr は mcp-stderr.json に置く
-  const expected = launcher.via === 'mcp' ? { ...golden, stderr: new Map(Object.entries(mcpStderr())).get(id) ?? golden.stderr } : golden
+  // 案内の文は、CLI では打つコマンド、MCP ではツールの呼び出しの形で出る。MCP だけ違う stderr は mcp-stderr.json に置く。
+  // MCP の結果は stdout・stderr を持たないので、stderr から取り出した warning の文と失敗の detail で比べる（mcp-view.ts）
+  const cliStderr = new Map(Object.entries(mcpStderr())).get(id) ?? golden.stderr
+  const expected = launcher.via === 'mcp' ? { ...golden, stdout: '', stderr: mcpViewOfStderr(cliStderr, golden.exitCode) } : golden
   return { outcome, actual: compared(outcome.golden), expected: compared(expected) }
 }
 
@@ -126,7 +129,7 @@ describe('前後比較', () => {
     expect(withStdin.length).toBeGreaterThan(0)
   })
 
-  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、golden と同じ出力になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、golden と同じ終了コード・要求・ファイルと、stderr と同じ warning・detail になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
     const { outcome, actual, expected } = await compareWithGolden(id, nodeMcp, false)
     expect(outcome).toMatchObject(COMPLETED)
     expect(actual).toEqual(expected)

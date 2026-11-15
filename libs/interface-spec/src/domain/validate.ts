@@ -325,6 +325,34 @@ function readOnlyFindings(file: string, scope: string, entry: AuthoredEntry, gen
   })).toArray()
 }
 
+// 全ツールに共通の data の項目。成功の項目ごとの説明には数えない
+const COMMON_DATA_FIELDS: ReadonlySet<string> = new Set(['warnings'])
+
+// mcp.output の data の、成功側（reason を必須にしない枝）の JSON Schema
+function successDataOf(generated: GeneratedEntry): Readonly<Record<string, unknown>> | undefined {
+  const data = generated.mcp?.output?.properties['data']
+  if (!isRecord(data)) return undefined
+  const branches = Array.isArray(data['anyOf']) ? data['anyOf'].filter(branch => isRecord(branch)) : [data]
+  return branches.find(branch => !(Array.isArray(branch['required']) && branch['required'].includes('reason')))
+}
+
+// mcp_output を書いていない項目は比べない（書くかどうかは、項目ごとに追って足す）
+function mcpOutputFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+  if (entry.mcp_output === undefined) return []
+  if (generated.surfaces.mcp === undefined) return [{ file, scope, field: 'mcp_output', reason: 'is only for entries with an MCP surface (remove it)' }]
+  const finding = (reason: string): Finding => ({ file, scope, field: 'mcp_output.data', reason })
+  const success = successDataOf(generated)
+  if (success?.['additionalProperties'] !== false || !isRecord(success['properties'])) return []
+  const expected = Object.keys(success['properties']).filter(name => !COMMON_DATA_FIELDS.has(name)).toSorted(compareText)
+  const written = Object.keys(entry.mcp_output.data).toSorted(compareText)
+  const missing = expected.filter(name => !written.includes(name))
+  const unknown = written.filter(name => !expected.includes(name))
+  return [
+    ...(missing.length === 0 ? [] : [finding(`is missing ${missing.map(name => quote(name)).join(', ')} (present in mcp.output)`)]),
+    ...(unknown.length === 0 ? [] : [finding(`has ${unknown.map(name => quote(name)).join(', ')} not in mcp.output (remove it)`)]),
+  ]
+}
+
 function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry, names: Names, prose: NonNullable<Prose>): Finding[] {
   const texts: TextPair[] = [
     ...(entry.summary === undefined ? [] : [['summary', entry.summary] as const]),
@@ -333,6 +361,8 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...entry.details.map((text, index) => [`details[${String(index)}]`, text] as const),
     ['stdin', entry.stdin],
     ...(entry.output.format === 'none' ? [] : [['output.description', entry.output.description] as const]),
+    ...Object.entries(entry.mcp_output?.data ?? {}).map(([name, text]) => [`mcp_output.data.${name}`, text] as const),
+    ...(entry.mcp_output?.artifacts === undefined ? [] : [['mcp_output.artifacts', entry.mcp_output.artifacts] as const]),
     ['diagnostics', entry.diagnostics],
     ...entry.environment.map((item, index) => [`environment[${String(index)}].effect`, item.effect] as const),
     ...exitTexts(entry),
@@ -348,6 +378,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...namesFindings(file, id, entry, generated),
     ...annotationFindings(file, id, entry, generated),
     ...readOnlyFindings(file, id, entry, generated, names),
+    ...mcpOutputFindings(file, id, entry, generated),
     ...behaviorFindings(file, entry.behaviors, id, id, 'behaviors'),
     ...environmentNameFindings(file, id, entry.environment),
   ]

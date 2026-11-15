@@ -101,6 +101,11 @@ export const authoredEntrySchema = z.strictObject({
   details: z.array(authoredText),
   stdin: authoredText,
   output,
+  // MCP の成功の data の項目ごとの説明と、artifacts に返すファイルの説明。data のキーは mcp.output の成功側の properties とそろえる。
+  mcp_output: z.strictObject({
+    data: z.record(z.string(), authoredText),
+    artifacts: authoredText.optional(),
+  }).optional(),
   diagnostics: authoredText,
   environment: z.array(environmentVariable),
   exit_status: z.array(z.unknown()),

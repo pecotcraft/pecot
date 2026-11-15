@@ -4,6 +4,7 @@
 // コマンドは操作（動詞と対象）を 1 つ作り、実行の前に planned を、実行の後に done を呼ぶ。
 // 期待の行は tests/output/cases.json に置き、Python の側と同じ値を共有する。
 import { readSync } from 'node:fs'
+import path from 'node:path'
 
 import { z } from 'zod'
 
@@ -52,7 +53,10 @@ export interface Operation {
   readonly aside?: boolean
 }
 
-export interface Output {
+/**
+D は MCP の成功の data の型（コマンドの output の z.input）。CLI では result と artifact は何も出さない
+*/
+export interface Output<D extends object = Record<string, unknown>> {
   /**
   dry-run のときだけ、実行する操作を stderr に出す
   */
@@ -74,6 +78,15 @@ export interface Output {
   結果の本体を stdout にそのまま出す。末尾に改行が無ければ 1 つ足す
   */
   readonly data: (text: string) => void
+  /**
+  MCP の成功の data に項目を渡す。何度も呼べば浅く重なる（後の値が勝つ）ので、配列は組み終えてから 1 回だけ渡す
+  */
+  // 補助の関数が Output（既定の D）で受け取れるよう、メソッドの形で書く（引数の型の比べ方が双変になる）
+  result(fields: Readonly<Partial<D>>): void
+  /**
+  作ったか書き換えたファイル・ディレクトリを、MCP の結果の artifacts に絶対パスで渡す
+  */
+  artifact(file: string): void
 }
 
 /**
@@ -84,7 +97,7 @@ function formatMessage(prefix: string, message: string): string {
   return `${prefix}: ${lines.join('\n  ')}\n`
 }
 
-export function createOutput(isDryRun: boolean, io: CommandIo): Output {
+export function createOutput<D extends object = Record<string, unknown>>(isDryRun: boolean, io: CommandIo): Output<D> {
   const render = (message: string | HintedText): string => formatHinted(message, io.surface ?? 'cli')
   const writeResult = (line: string, aside: boolean | undefined): void => {
     io.stderr(`${line}\n`)
@@ -101,7 +114,9 @@ export function createOutput(isDryRun: boolean, io: CommandIo): Output {
       writeResult(`${pastOf(verb)}: ${target}`, aside)
     },
     warning: (message) => {
-      io.stderr(formatMessage('warning', render(message)))
+      const text = render(message)
+      io.stderr(formatMessage('warning', text))
+      io.warning?.(text.replace(/\n+$/, ''))
     },
     error: (message) => {
       io.stderr(formatMessage('error', render(message)))
@@ -111,6 +126,12 @@ export function createOutput(isDryRun: boolean, io: CommandIo): Output {
     },
     data: (text) => {
       io.stdout(text.endsWith('\n') ? text : `${text}\n`)
+    },
+    result(fields) {
+      io.data?.(fields)
+    },
+    artifact(file) {
+      io.artifact?.(path.resolve(file))
     },
   }
 }

@@ -35,7 +35,12 @@ export const POSIX_MAP: readonly PosixRow[] = [
   { section: 'INPUT FILES・OUTPUT FILES', fields: ['effects'], writer: '人', mcp: '同じ' },
   { section: 'ENVIRONMENT VARIABLES', fields: ['environment'], writer: '人。ソースの文字列と比べる', mcp: '同じ' },
   { section: 'ASYNCHRONOUS EVENTS', fields: [], writer: '欄にしない。全項目が既定の扱い', mcp: '—' },
-  { section: 'STDOUT', fields: ['output', 'mcp.output'], writer: 'CLI は人。MCP ツールは書き出し', mcp: 'Tool の outputSchema と結果の構造' },
+  {
+    section: 'STDOUT',
+    fields: ['output', 'mcp.output', 'mcp_output.data', 'mcp_output.artifacts'],
+    writer: 'CLI は人。MCP ツールの形は書き出し、成功の data と artifacts の説明は人',
+    mcp: 'Tool の outputSchema と結果の構造',
+  },
   { section: 'STDERR', fields: ['diagnostics'], writer: '人', mcp: '失敗の結果に入る文言' },
   { section: 'EXIT STATUS', fields: ['exit_status'], writer: '人', mcp: '失敗の種別' },
   { section: 'CONSEQUENCES OF ERRORS', fields: ['on_error'], writer: '人', mcp: '同じ' },

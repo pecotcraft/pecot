@@ -19,6 +19,7 @@ import type { BoardContext, JudgedTarget } from './board-judgment.js'
 import { mapWithLimit } from './board-view.js'
 import { commandHint, hinted } from './command-hint.js'
 import { apiFailureMessage } from './github-client.js'
+import type { BoardMoveLine } from './issue-board.js'
 import type { Output } from './output.js'
 
 // GitHub は書いた直後の読み取りの一致を保証しない。読み直す前に、反映を待つ時間
@@ -113,31 +114,34 @@ async function readBoardItems(waiting: Readonly<Waiting>, issues: readonly Block
   return items.flatMap(item => item ?? [])
 }
 
-async function moveWaiting(waiting: Readonly<Waiting>, issues: readonly BlockedByReference[]): Promise<void> {
+async function moveWaiting(waiting: Readonly<Waiting>, issues: readonly BlockedByReference[]): Promise<readonly BoardMoveLine[]> {
   const { context, created } = waiting
   const items = await readBoardItems(waiting, issues)
-  if (items.length === 0) return
+  if (items.length === 0) return []
   const judged = await judgeConfirmed(waiting, items)
-  if (judged === undefined) return
-  await applyJudgedMoves(context, judged.confirmed)
+  if (judged === undefined) return []
+  const { moves } = await applyJudgedMoves(context, judged.confirmed)
   for (const { target } of judged.unconfirmed) {
     context.out.warning(hinted`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${displayReference(target.ref, context.home)}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`)
   }
+  return moves
 }
 
 /**
-head の Issue を待つ Issue を読み、判定に合わせてボードの列と札を動かす。読むのは、待つ Issue のボードの項目だけ
+head の Issue を待つ Issue を読み、判定に合わせてボードの列と札を動かす。読むのは、待つ Issue のボードの項目だけ。動かした列と札（moved: と set: の行の値）を返す
 */
-export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest): Promise<void> {
+export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest): Promise<readonly BoardMoveLine[]> {
   const context: BoardContext = { out, client, config, home: homeRepositoryOf(config) }
   const waiting: Waiting = { context, created, head: createIssueReference(created.repository, created.issueNumber) }
   const read = await readWaitingIssues(waiting)
-  if (read === undefined) return
+  if (read === undefined) return []
+  let moves: readonly BoardMoveLine[] = []
   try {
-    if (read.issues.length > 0) await moveWaiting(waiting, read.issues)
+    if (read.issues.length > 0) moves = await moveWaiting(waiting, read.issues)
   }
   catch (error: unknown) {
     out.warning(`could not move the Issues waiting for ${displayReference(waiting.head, context.home)}: ${apiFailureMessage(error)}`)
   }
   if (read.partial !== undefined) out.warning(read.partial)
+  return moves
 }

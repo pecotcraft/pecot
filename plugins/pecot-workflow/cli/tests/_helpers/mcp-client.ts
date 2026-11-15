@@ -4,23 +4,37 @@ import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import { TOOL_OUTPUT_SCHEMA } from '../../src/mcp/result.js'
+/**
+全ツールに共通の入れ物。最上位は 6 つの名前だけで、stdout・stderr を持たない。data の中身はツールごとの outputSchema が決める
+*/
+export const ToolEnvelopeSchema = z.strictObject({
+  ok: z.boolean(),
+  exitCode: z.number(),
+  kind: z.string().optional(),
+  artifacts: z.array(z.string()),
+  data: z.record(z.string(), z.unknown()),
+  message: z.string(),
+})
 
-const StructuredSchema = z.object({ structuredContent: TOOL_OUTPUT_SCHEMA })
+export type ToolEnvelope = z.output<typeof ToolEnvelopeSchema>
+
+const StructuredSchema = z.looseObject({ structuredContent: ToolEnvelopeSchema })
 
 /**
 ツールの結果の structuredContent を読む。無いか形が違えば例外
 */
-export function structuredOf(result: Readonly<Record<string, unknown>>): z.output<typeof TOOL_OUTPUT_SCHEMA> {
+export function structuredOf(result: Readonly<Record<string, unknown>>): ToolEnvelope {
   return StructuredSchema.parse(result).structuredContent
 }
 
 /**
-structuredContent から、終了コードと stdout・stderr（無ければ空）を読む
+structuredContent から、終了コードと、失敗の data.detail・data.warnings（無ければ空）を読む
 */
-export function outcomeOf(result: Readonly<Record<string, unknown>>): { readonly exitCode: number, readonly stdout: string, readonly stderr: string } {
-  const { exitCode, stdout = '', stderr = '' } = structuredOf(result)
-  return { exitCode, stdout, stderr }
+export function outcomeOf(result: Readonly<Record<string, unknown>>): { readonly exitCode: number, readonly detail: string | undefined, readonly warnings: readonly string[] } {
+  const { exitCode, data } = structuredOf(result)
+  const detail = typeof data['detail'] === 'string' ? data['detail'] : undefined
+  const warnings = Array.isArray(data['warnings']) ? data['warnings'].map(String) : []
+  return { exitCode, detail, warnings }
 }
 
 export interface ConnectedClient {

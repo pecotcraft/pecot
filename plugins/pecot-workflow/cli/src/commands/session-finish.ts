@@ -260,6 +260,7 @@ const sessionFinishCommand = defineCommand({
   path: ['session', 'finish'],
   description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
   input: FinishInputSchema,
+  output: z.strictObject({}),
   positional: ['pr_ref'],
   shortFlags: { dry_run: '-n', delete_branch: '-d' },
   interactive: false,

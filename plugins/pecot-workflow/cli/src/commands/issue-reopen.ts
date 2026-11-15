@@ -107,6 +107,7 @@ const ISSUE_REOPEN = defineCommand({
     comment: z.string().optional().describe('Reason for reopening (posted as a comment)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: z.strictObject({}),
   positional: ['issue_ref'],
   shortFlags: { status: '-s', comment: '-c', dry_run: '-n' },
   interactive: false,

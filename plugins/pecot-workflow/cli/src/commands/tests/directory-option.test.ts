@@ -19,6 +19,7 @@ const preflight = defineCommand({
   path: ['pr', 'preflight'],
   description: '見本',
   input: z.object({ directory: directorySchema }),
+  output: z.strictObject({}),
   positional: [],
   shortFlags: { directory: '-D' },
   interactive: false,

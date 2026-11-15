@@ -303,7 +303,8 @@ describe('issue show', () => {
     const connected = await connectInMemory(createMcpServer(ISSUE_SHOW_COMMANDS))
     try {
       const structured = structuredOf(await connected.client.callTool({ name: 'issue_show', arguments: { issue_ref: 'acme/demo/7' } }))
-      expect(structured).toMatchObject({ ok: false, exitCode: cli.code, kind: 'github-not-found', stderr: cli.stderr })
+      expect(structured).toMatchObject({ ok: false, exitCode: cli.code, kind: 'github-not-found', data: { reason: 'github-not-found', detail: cli.stderr.replace(/^error: /u, '').replace(/\n+$/u, '') } })
+      expect(structured).not.toHaveProperty('stderr')
       expect(cli.code).toBe(1)
     }
     finally {

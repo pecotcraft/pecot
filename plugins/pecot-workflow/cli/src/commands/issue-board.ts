@@ -129,6 +129,17 @@ export async function putOnBoard(
   }
 }
 
+/**
+列と札の行（moved: と set: Status of）に出した値。issue は行の表示の参照、reason は列を動かす理由の文。書いていない側は undefined
+*/
+export interface BoardMoveLine {
+  readonly issue: string
+  readonly from: string | undefined
+  readonly to: MovableColumn | undefined
+  readonly label: LabelValue | undefined
+  readonly reason: string
+}
+
 export interface AppliedMove {
   /**
   実際に動いた先の列。動かなかったら undefined
@@ -139,6 +150,10 @@ export interface AppliedMove {
   書き込みに失敗した。列だけ書けて札で失敗したときも真
   */
   readonly hasFailed: boolean
+  /**
+  書けた列と札。どちらも書かなかったら undefined
+  */
+  readonly written: BoardMoveLine | undefined
 }
 
 interface MoveTarget {
@@ -175,6 +190,7 @@ export async function applyBoardMove(
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
   let moved: MovableColumn | undefined
+  let label: LabelValue | undefined
   let hasFailed = false
   try {
     if (move.column !== undefined && await setIssueField(client, config, itemId, 'workflow', COLUMN_CONFIG_KEYS[move.column.to])) {
@@ -182,6 +198,7 @@ export async function applyBoardMove(
       out.done(moveOperation(name, move.column, text))
     }
     if (move.label !== undefined && await setIssueField(client, config, itemId, 'status', LABEL_CONFIG_KEYS[move.label])) {
+      label = move.label
       out.done(labelOperation(name, move.label))
     }
   }
@@ -190,15 +207,17 @@ export async function applyBoardMove(
     out.warning(`could not move ${name}: ${error.message}`)
     hasFailed = true
   }
-  return { column: moved, missing: move.missing, hasFailed }
+  const written = moved === undefined && label === undefined ? undefined : { issue: name, from: moved === undefined ? undefined : move.column?.from, to: moved, label, reason: text }
+  return { column: moved, missing: move.missing, hasFailed, written }
 }
 
 /**
-applyBoardMove と同じ文を、書かずに予定の行として出す（--dry-run）
+applyBoardMove と同じ文を、書かずに予定の行として出す（--dry-run）。予定の列と札を返し、どちらも無ければ undefined
 */
-export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: Readonly<BoardMove>, text: string): void {
+export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: Readonly<BoardMove>, text: string): BoardMoveLine | undefined {
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
   if (move.column !== undefined) out.planned(moveOperation(name, move.column, text))
   if (move.label !== undefined) out.planned(labelOperation(name, move.label))
+  return move.column === undefined && move.label === undefined ? undefined : { issue: name, from: move.column?.from, to: move.column?.to, label: move.label, reason: text }
 }
