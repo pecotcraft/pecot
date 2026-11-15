@@ -22,6 +22,7 @@ import type { PrOptions } from '../_helpers/tracker-sync-dependabot-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -467,4 +468,55 @@ describe('tracker sync', () => {
     const { github } = await sync([pullRequestList([]), issueList([])])
     expect(github.requests()[1]).toMatchObject({ method: 'GET', query: { labels: 'dependabot-pr', state: 'all', per_page: '100' } })
   })
+
+  describe('MCP の data', () => {
+    const PR_2 = { kind: 'pull-request', number: 2 }
+
+    it('Tracker を作ると、その番号と足した PR を返す', async () => {
+      const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 3, name: 'lodash' })]
+      const data = await syncTool([...listings(nodes), createdTracker(100), ...boardRules(100, { priority: 'medium', onlyIfEmpty: false })])
+      expect(data).toEqual({ source: 'dependabot', tracker: 100, created: true, added: [PR_2], removed: [], closed: false })
+    })
+
+    it('表の行を足し外すと、足した PR と外した PR を返す', async () => {
+      const existing = trackerBody([[1, 'Bump old', 'failed']])
+      const data = await syncTool([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
+      expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [PR_2], removed: [{ kind: 'pull-request', number: 1 }], closed: false })
+    })
+
+    it('表が none になって Tracker を閉じると、closed を true にして返す', async () => {
+      const data = await syncTool([...listings([], CLOSING_ISSUES), ...CLOSING])
+      expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [{ kind: 'pull-request', number: 1 }], closed: true, warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'] })
+    })
+
+    it('dry_run で呼ぶと、作る予定の Tracker に足す PR と dryRun を返す', async () => {
+      const data = await syncTool(listings([pullRequest({ number: 2, ...MAJOR })]), { dry_run: true })
+      expect(data).toEqual({ source: 'dependabot', created: true, added: [PR_2], removed: [], closed: false, dryRun: true })
+    })
+
+    it('表を書き直した後で Tracker を閉じられないと、外した PR を data に残し、closed を false にして失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-18')
+      const rules = [...listings([], withOthers(TRACKER_WITH_OLD_ROW)), patched(9, { body: trackerBody([]) }), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9', body: { state: 'closed' } })]
+      const data = await syncTool(rules)
+      expect(data).toEqual({
+        source: 'dependabot',
+        tracker: 9,
+        created: false,
+        added: [],
+        removed: [{ kind: 'pull-request', number: 1 }],
+        closed: false,
+        reason: 'partial-failure',
+        detail: 'could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500',
+        warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'],
+      })
+    })
+  })
 })
+
+// tracker_sync を source: dependabot で、同じプロセスの中のクライアントから 1 回呼び、data を返す
+async function syncTool(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}): Promise<Record<string, unknown>> {
+  prepareSync()
+  await startGithub(rules)
+  const { data } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', ...arguments_ })
+  return data
+}

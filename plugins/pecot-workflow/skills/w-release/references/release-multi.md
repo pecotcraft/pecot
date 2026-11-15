@@ -15,7 +15,7 @@
 
 `board_show` を引数なしで呼ぶ。
 
-`board_show` の結果の `stdout` にある `package: NAME → CHANGELOG パス` の行から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
+`board_show` の結果の `data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
 リリース package を `<package>`、バージョンを `<ver>` と表記。
 
 ### 2. bump 種別のユーザー確認
@@ -58,7 +58,7 @@ git checkout -b docs/changelog-<package>-v<ver> origin/<develop>
 
 #### 3-2. 対象 CHANGELOG 編集
 
-`board_show` の結果の `stdout` にある `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
+Step 1 の `board_show` の結果で選んだ要素の `packages` のうち、`name` が `<package>` の要素の `changelog` のファイルを編集する。
 前回タグ `<package>@v<前バージョン>` からの差分をまとめる。
 
 ```bash
@@ -145,6 +145,7 @@ git pull --ff-only origin <develop>
 `release_check` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
+alert の件数は結果の `data.dependabotAlerts.openCount` に、警告の文は `data.warnings` に入る。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。取得できないときは、トークンと権限を直して再実行する。
 扱いは [release-nx.md](release-nx.md) の preflight の説明と同じ。
@@ -153,7 +154,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 `pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
 
-下書きファイルを編集:
+結果の `artifacts` にある下書きファイルを編集:
 
 - `repository: <owner>/<repo>`
 - `head: <develop>`
@@ -166,7 +167,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 6. リリース PR マージ
 
-`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
+`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。`<PR番号>` は、Step 5 の投稿の結果の `data.number` を使う。
 
 ### 7. タグ + GitHub Release
 
@@ -174,4 +175,8 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 8. 完了報告
 
-タグ名 `<package>@v<ver>`、GitHub Release URL、リリース PR URL を報告して終了。
+次の 3 つを報告して終了。
+
+- タグ名 `<package>@v<ver>`（`release_create` の結果の `data.tag`）
+- GitHub Release URL（`release_create` の結果の `data.url`）
+- リリース PR URL（Step 5 の投稿の結果の `data.url`）

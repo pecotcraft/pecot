@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { projectConfig, requestLabels, restRule, runCommand } from '../_helpers/command-harness.js'
+import { projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
@@ -143,5 +143,40 @@ describe('branch delete', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
     expect(result.requests).toEqual([])
+  })
+
+  describe('MCP の data', () => {
+    const ARGUMENTS = { repo: 'acme/demo', branch: 'feat/7' }
+
+    it('ブランチを削除すると、ブランチ・リポジトリ・deleted・削除した wip ブランチを data に返す', async () => {
+      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7')] })
+      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true, wipBranch: 'wip/feat/7' })
+    })
+
+    it('wip ブランチが無いと、wipBranch を返さない', async () => {
+      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7', 422, { message: 'Reference does not exist' })] })
+      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true })
+    })
+
+    it('wip ブランチを削除できないと、wipBranch を返さず、warning を data.warnings に返す', async () => {
+      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7', 403, { message: 'Forbidden' })] })
+      expect(result.structured.data).toEqual({
+        branch: 'feat/7',
+        repository: 'acme/demo',
+        deleted: true,
+        warnings: ['could not delete remote branch wip/feat/7 in acme/demo: access denied Forbidden'],
+      })
+    })
+
+    it('dry_run で打つと、deleted を false にして dryRun を返す', async () => {
+      const result = await runTool({ tool: 'branch_delete', arguments: { ...ARGUMENTS, dry_run: true }, github: [repository()] })
+      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: false, dryRun: true })
+    })
+
+    it('本流のブランチの削除で失敗すると、deleted を返さない', async () => {
+      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7', 422, { message: 'Validation Failed' })] })
+      expect(result.structured).toMatchObject({ ok: false })
+      expect(result.structured.data).not.toHaveProperty('deleted')
+    })
   })
 })

@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
@@ -24,6 +26,10 @@ function stateFile(session: Readonly<SessionCase>, name: string): string {
 }
 
 const SET_LINE = (number: number): string => `set: work target acme/demo/${String(number)} (work directory .pecot/work/${String(number)}/)\n`
+
+async function restoreTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  return await callToolOnce(SESSION_COMMANDS, 'session_restore', argumentsOfTool)
+}
 
 describe('session restore', () => {
   it('--issue-ref に owner/repo/N を渡すと、その Issue を作業対象に記録し、ブランチと remote は読まない', async (context) => {
@@ -258,5 +264,25 @@ describe('session restore', () => {
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: invalid config file/u)
     expect(existsSync(path.join(session.project.root, '.pecot/state/.pecot-active'))).toBe(false)
+  })
+
+  describe('MCP の data', () => {
+    it('作業対象を記録すると、Issue の参照と作業ディレクトリの絶対パスを data に返す', async () => {
+      const session = prepareSession()
+      await startGithub([issueResponse({ number: 7, title: 't' })])
+
+      const structured = await restoreTool({ directory: session.repository })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', workDirectory: path.join(session.project.root, '.pecot/work/7') })
+    })
+
+    it('dry_run で打つと、記録する予定の Issue と dryRun を data に返す', async () => {
+      const session = prepareSession()
+
+      const structured = await restoreTool({ directory: session.repository, issue_ref: 'acme/demo/9', dry_run: true })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/9', dryRun: true })
+    })
   })
 })

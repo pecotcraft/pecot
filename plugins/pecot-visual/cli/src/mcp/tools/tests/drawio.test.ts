@@ -124,11 +124,10 @@ describe('drawio_create', () => {
     expect(structured['exitCode']).toBe(0)
     expect(structured['artifacts']).toEqual([])
     const data = dataOf(result)
-    expect(Object.keys(data).toSorted(compareStrings)).toEqual(['event', 'theme', 'url', 'warnings'])
+    expect(Object.keys(data).toSorted(compareStrings)).toEqual(['event', 'theme', 'url'])
     expect(data['theme']).toEqual({ source: 'default', fonts: { body: ['sans-serif'] } })
     expect(data['event']).toBe('drawio.url.done')
     expect(data['url']).toEqual(expect.stringContaining('https://app.diagrams.net/'))
-    expect(data['warnings']).toBe(0)
   })
 
   it('icon:// を含む入力は、URL に載る図の XML で icon がデータ URI に解決される', async (context) => {
@@ -170,7 +169,7 @@ describe('drawio_create', () => {
     expect(structured['message']).toContain('CLAUDE_PLUGIN_ROOT')
   })
 
-  it('警告のある入力は ok:true のまま exitCode 3 になり、警告本文を stderr に載せる', async () => {
+  it('警告のある入力は ok:true のまま exitCode 3 になり、警告本文を data.warnings に載せる', async () => {
     const result = await drawioCreateTool.handler({ input_path: ICON_INCLUDED }, CALL)
     const structured = structuredOf(result)
 
@@ -178,8 +177,8 @@ describe('drawio_create', () => {
     expect(result.isError).toBeUndefined()
     expect(structured['ok']).toBe(true)
     expect(structured['exitCode']).toBe(3)
-    expect(dataOf(result)['warnings']).toBe(1)
-    expect(structured['stderr']).toContain('icon not found')
+    expect(dataOf(result)['warnings']).toEqual([expect.stringContaining('icon not found')])
+    expect(structured).not.toHaveProperty('stderr')
     expect(structured['message']).toContain('1 warnings')
   })
 
@@ -187,15 +186,16 @@ describe('drawio_create', () => {
     it('theme 無しは既定値で書体だけを確かめる（52px は警告にしない）', async () => {
       const result = await drawioCreateTool.handler({ input_path: writePoster() }, CALL)
       expect(structuredOf(result)['exitCode']).toBe(3)
-      expect(dataOf(result)['warnings']).toBe(1)
-      expect(structuredOf(result)['stderr']).not.toContain('52px')
+      expect(dataOf(result)['warnings']).toHaveLength(1)
+      expect(String(dataOf(result)['warnings'])).not.toContain('52px')
     })
 
     it('theme にテーマのパスを渡すと、その宣言で書体とサイズを確かめる', async () => {
       const result = await drawioCreateTool.handler({ input_path: writePoster(), theme: makeThemeDirectory() }, CALL)
       expect(structuredOf(result)['exitCode']).toBe(3)
-      expect(dataOf(result)['warnings']).toBe(2)
-      expect(structuredOf(result)['stderr']).toContain('52px')
+      expect(dataOf(result)['warnings']).toHaveLength(2)
+      expect(structuredOf(result)['message']).toContain('(2 warnings; see data.warnings)')
+      expect(String(dataOf(result)['warnings'])).toContain('52px')
       expect(dataOf(result)['theme']).toMatchObject({ source: 'option', name: 'slidev-theme-pecotv-test-declared' })
     })
 
@@ -230,7 +230,7 @@ describe('drawio_create', () => {
     expect(structured['ok']).toBe(true)
     expect(structured['exitCode']).toBe(0)
     expect(structured['artifacts']).toEqual([outPath])
-    expect(dataOf(result)).toEqual({ event: 'drawio.url.done', file: outPath, warnings: 0, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
+    expect(dataOf(result)).toEqual({ event: 'drawio.url.done', file: outPath, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
     const written = readFileSync(outPath, 'utf8')
     expect(written.startsWith('<!doctype html>\n')).toBe(true)
     expect(written).toContain('<a id="target" href="https://app.diagrams.net/')
@@ -276,10 +276,9 @@ describe('drawio_create', () => {
       // eslint-disable-next-line unicorn/no-null -- CLI の --json と同形性を保つため PNG 失敗時は null を pin する
       png: null,
       pngFailed: true,
-      warnings: 1,
+      warnings: [expect.stringContaining('PNG export failed')],
       theme: { source: 'default', fonts: { body: ['sans-serif'] } },
     })
-    expect(structured['stderr']).toContain('warning: PNG export failed')
   })
 })
 
@@ -303,7 +302,8 @@ describe('drawio_export', () => {
     expect(result.isError).toBe(true)
     expect(structured['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['icons_dir='])
-    expect(dataOf(result)['reason']).toBeUndefined()
+    expect(dataOf(result)['reason']).toBe('invalid-path')
+    expect(dataOf(result)['detail']).toBe(structured['message'])
   })
 
   it('icons_dir 省略時は plugin-root 同梱のカタログを既定に使う', async () => {

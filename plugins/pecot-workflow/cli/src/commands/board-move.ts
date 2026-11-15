@@ -18,7 +18,13 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
+
+const BOARD_MOVE_OUTPUT = z.strictObject({
+  issue: z.string().describe('Issue (owner/repo/N)'),
+  status: z.string().describe('Status set on the board (on dry_run, to be set)'),
+  dryRun: DRY_RUN_FIELD,
+})
 
 const BOARD_MOVE = defineCommand({
   path: ['board', 'move'],
@@ -28,11 +34,12 @@ const BOARD_MOVE = defineCommand({
     status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: BOARD_MOVE_OUTPUT,
   positional: ['issue_ref', 'status'],
   shortFlags: { dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const output = createOutput(input.dry_run, io)
+    const output = createOutput<z.input<typeof BOARD_MOVE_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
       const { status } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
@@ -49,12 +56,14 @@ const BOARD_MOVE = defineCommand({
         if (input.dry_run) {
           if (!isStatusConfigured(config, status)) stopWith(output, notConfiguredMessage(status), 'status-not-configured')
           output.planned({ verb: 'set', target: `${target} status ${status}` })
+          output.result({ issue: issuePath(owner, repository, number), status })
           return
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {
           stopWith(output, notConfiguredMessage(status), 'status-not-configured')
         }
         output.done({ verb: 'set', target: `${target} status ${status}` })
+        output.result({ issue: issuePath(owner, repository, number), status })
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error

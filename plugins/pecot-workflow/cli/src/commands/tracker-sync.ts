@@ -1,4 +1,5 @@
 // tracker sync と session finish が共有する出力の補助。
+import { z } from 'zod'
 
 import type { ProjectConfig } from '../domain/config.js'
 import type { TrackerIssue } from '../domain/tracker-body.js'
@@ -6,6 +7,7 @@ import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireActiveConfigPlain } from './command-stop.js'
+import { DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { requireReleaseTargetRepository } from './release.js'
 
@@ -16,6 +18,23 @@ export function settle(out: Output, operation: Operation): void {
   out.planned(operation)
   out.done(operation)
 }
+
+const TRACKER_ENTRY_JSON = z.strictObject({
+  kind: z.enum(['pull-request', 'dependabot', 'code-scanning', 'secret-scanning']).describe('Kind of the row: a Dependabot PR, or the kind of security alert'),
+  number: z.int().describe('PR or alert number'),
+})
+
+export const TRACKER_SYNC_OUTPUT = z.strictObject({
+  source: z.enum(['dependabot', 'security']).describe('Source synced'),
+  tracker: z.int().optional().describe('Number of the Tracker used or created (omitted when there is none, or on dry_run before creation)'),
+  created: z.boolean().describe('Whether a new Tracker was created (on dry_run, would be created)'),
+  added: z.array(TRACKER_ENTRY_JSON).describe('Rows added to the Tracker list (on dry_run, to be added)'),
+  removed: z.array(TRACKER_ENTRY_JSON).describe('Rows removed from the Tracker list (on dry_run, to be removed)'),
+  closed: z.boolean().describe('Whether the Tracker was closed because its list became none (on dry_run, would be closed)'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+export type TrackerSyncData = z.input<typeof TRACKER_SYNC_OUTPUT>
 
 /**
 tracker sync の各 source の本体が受ける入力

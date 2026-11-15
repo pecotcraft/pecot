@@ -304,6 +304,7 @@ function sampleCommand(description: string, argumentDescription: string | undefi
     path: ['sample'],
     description,
     input: z.object({ name: argumentDescription === undefined ? field : field.describe(argumentDescription) }),
+    output: z.strictObject({}),
     positional: ['name'],
     interactive: false,
     run: async () => await exitWith(0),

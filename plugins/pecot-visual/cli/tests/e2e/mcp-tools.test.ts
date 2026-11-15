@@ -246,13 +246,12 @@ describe('pecotv mcp のツール (stdio)', () => {
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       const data = dataOf(called)
-      // out_path を省略した分岐の data は、event / theme / url / warnings の 4 キーだけ。
+      // out_path を省略した分岐の data は、event / theme / url の 3 キーだけ。
       // in-process の parity テストが、CLI の --json と同形であることを別途 pin している。
-      expect(Object.keys(data).toSorted(compareStrings)).toEqual(['event', 'theme', 'url', 'warnings'])
+      expect(Object.keys(data).toSorted(compareStrings)).toEqual(['event', 'theme', 'url'])
       expect(data['theme']).toEqual({ source: 'default', fonts: { body: ['sans-serif'] } })
       expect(data['event']).toBe('drawio.url.done')
       expect(data['url']).toEqual(expect.stringContaining('https://'))
-      expect(data['warnings']).toBe(0)
     })
   }, 60_000)
 
@@ -270,7 +269,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       )
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
-      expect(dataOf(called)).toEqual({ event: 'drawio.url.done', file: outPath, warnings: 0, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
+      expect(dataOf(called)).toEqual({ event: 'drawio.url.done', file: outPath, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
       expect(artifactsOf(called)).toEqual([outPath])
       const written = readFileSync(outPath, 'utf8')
       expect(written.startsWith('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
@@ -296,7 +295,6 @@ describe('pecotv mcp のツール (stdio)', () => {
         file: outPath,
         pdf: pdfPath,
         pdfFailed: false,
-        warnings: 0,
       })
       expect(artifactsOf(called)).toEqual([outPath, pdfPath])
       expect(existsSync(outPath)).toBe(true)
@@ -325,8 +323,9 @@ describe('pecotv mcp のツール (stdio)', () => {
         // eslint-disable-next-line unicorn/no-null -- JSON の契約が `pdf: null`
         pdf: null,
         pdfFailed: true,
-        warnings: 1,
+        warnings: [expect.stringContaining('PDF export failed')],
       })
+      expect(structuredOf(called)).not.toHaveProperty('stderr')
       expect(artifactsOf(called)).toEqual([outPath])
       expect(existsSync(outPath)).toBe(true)
       expect(existsSync(pdfPath)).toBe(false)

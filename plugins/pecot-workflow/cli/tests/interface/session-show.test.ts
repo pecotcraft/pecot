@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest'
 
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
@@ -37,6 +39,10 @@ const pullRequests = (...nodes: readonly Record<string, unknown>[]): ResponseRul
 const rules = (spec: Partial<TargetSpec>, ...nodes: readonly Record<string, unknown>[]): ResponseRule[] => [
   issueResponse({ number: 7, title: 't' }), pullRequests(...nodes), prerequisitesRule({ number: 7, ...spec }),
 ]
+
+async function showTool(directory: string): Promise<ToolEnvelope> {
+  return await callToolOnce(SESSION_COMMANDS, 'session_show', { directory })
+}
 
 describe('session show', () => {
   it('--directory を渡すと、ブランチ・リポジトリ・推定した Issue・フラグの表を標準出力に出す', async (context) => {
@@ -345,6 +351,69 @@ describe('session show', () => {
       const result = await status(repository)
 
       expect(result.stdout).not.toContain('## Stack')
+    })
+  })
+
+  describe('MCP の data', () => {
+    it('.pecot-active が無いとき、ブランチ・リポジトリ・推定した Issue・フラグを data に返す', async () => {
+      const { repository } = prepareSession()
+
+      const structured = await showTool(repository)
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: false, content: '' }],
+      })
+    })
+
+    it('積んで着手した作業ディレクトリでは、アクティブな Issue と積んだ先を data に返す', async () => {
+      const SHA = '0123456789abcdef0123456789abcdef01234567'
+      const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
+      await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
+
+      const structured = await showTool(repository)
+
+      expect(structured.data).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        stack: { branch: 'feat/3', stackedOn: 'acme/demo/3', pullRequest: { number: 30, state: 'CLOSED' }, readiness: 'blocked by #3 (not in review: #3 (not started))' },
+      })
+    })
+
+    it.for([
+      { name: '404', status: 404, warning: /^cannot read the active Issue: .*404/u },
+      { name: 'API エラー', status: 502, warning: /^cannot read the active Issue: .*502/u },
+    ])('Issue の取得が $name で失敗すると、activeIssue を返さず、flags の content に参照を残す', async (row) => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueFailure(row.status)])
+
+      const structured = await showTool(repository)
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).not.toHaveProperty('activeIssue')
+      expect(structured.data).toMatchObject({ flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }] })
+      expect(structured.data['warnings']).toEqual([expect.stringMatching(row.warning)])
+    })
+
+    it('Issue が閉じていると、activeIssue の state を CLOSED で返す', async () => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' })])
+
+      const structured = await showTool(repository)
+
+      expect(structured.data).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
+        activeIssue: { reference: 'acme/demo/7', title: '閉じた Issue', state: 'CLOSED' },
+      })
     })
   })
 })

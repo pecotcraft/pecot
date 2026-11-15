@@ -44,6 +44,10 @@ describe('コマンドの一覧', () => {
     ])
   })
 
+  it.for(COMMANDS.map(command => ({ name: command.path.join(' '), output: command.output })))('$name の output は、入力の向きと出力の向きで JSON Schema が同じになる', ({ output }) => {
+    expect(z.toJSONSchema(output, { io: 'input' })).toEqual(z.toJSONSchema(output, { io: 'output' }))
+  })
+
   it('toolName は重複せず、path から作られている', () => {
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)
@@ -64,6 +68,7 @@ describe('defineCommand', () => {
     path: ['issue', 'read'],
     description: 'Issue を読む',
     input: z.object({ issue_ref: z.string(), comment_limit: z.number().default(5) }),
+    output: z.strictObject({}),
     positional: ['issue_ref'],
     shortFlags: { comment_limit: '-c' },
     interactive: false,
@@ -111,6 +116,7 @@ describe('defineCommand', () => {
       path: ['pr', 'read'],
       description: 'PR を読む',
       input: z.object({}),
+      output: z.strictObject({}),
       positional: [],
       interactive: true,
       run: async () => await exitWith(0),
@@ -126,6 +132,7 @@ describe('defineCommand', () => {
       description: '',
       hasOwnRepo: true,
       input: z.object({ repo: z.string().optional(), name: z.string() }),
+      output: z.strictObject({}),
       positional: [],
       interactive: false,
       run: async (input) => {
@@ -147,6 +154,7 @@ describe('defineCommand', () => {
       path: ['strict'],
       description: '',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined, 'a か b が要ります'),
+      output: z.strictObject({}),
       positional: [],
       interactive: false,
       run: async (input) => {
@@ -175,6 +183,7 @@ describe('defineCommand', () => {
       path: ['al'],
       description: '',
       input: z.object({ allow_existing_branch: z.boolean().default(false) }),
+      output: z.strictObject({}),
       positional: [],
       aliases: { allow_existing_branch: '--force' },
       interactive: false,
@@ -189,6 +198,7 @@ describe('defineCommand', () => {
       path: ['both'],
       description: '',
       input: z.object({ force: z.boolean().default(false) }),
+      output: z.strictObject({}),
       positional: [],
       shortFlags: { force: '-f' },
       aliases: { force: '--yes' },
@@ -202,6 +212,7 @@ describe('defineCommand', () => {
       path: ['neg'],
       description: '',
       input: z.object({ checkout: z.boolean().default(true) }),
+      output: z.strictObject({}),
       positional: [],
       negations: { checkout: '--no-checkout' },
       interactive: false,
@@ -215,6 +226,7 @@ describe('defineCommand', () => {
       path: ['dup'],
       description: '',
       input: z.object({ x: z.boolean().default(true), no_x: z.boolean().default(false) }),
+      output: z.strictObject({}),
       positional: [],
       negations: { x: '--no-x' },
       interactive: false,
@@ -227,6 +239,7 @@ describe('defineCommand', () => {
       path: ['ok'],
       description: '',
       input: z.object({ x: z.boolean().default(true) }),
+      output: z.strictObject({}),
       positional: [],
       negations: { x: '--no-x' },
       interactive: false,
@@ -240,10 +253,23 @@ describe('defineCommand', () => {
       path: [],
       description: '',
       input: z.object({}),
+      output: z.strictObject({}),
       positional: [],
       interactive: false,
       run: async () => await exitWith(0),
     })).toThrow(TypeError)
+  })
+
+  it.for(['reason', 'detail', 'warnings', 'log'])('output が共通の項目の名前 %s を持つと作れない', (key) => {
+    expect(() => defineCommand({
+      path: ['x'],
+      description: '',
+      input: z.object({}),
+      output: z.strictObject({ name: z.string(), [key]: z.string() }),
+      positional: [],
+      interactive: false,
+      run: async () => await exitWith(0),
+    })).toThrow(new TypeError(`output の ${key} は MCP の結果の共通の項目の予約名です`))
   })
 })
 
@@ -253,6 +279,7 @@ describe('findCommand', () => {
       path: ['pr', 'read'],
       description: '',
       input: z.object({}),
+      output: z.strictObject({}),
       positional: [],
       interactive: false,
       run: async () => await exitWith(0),

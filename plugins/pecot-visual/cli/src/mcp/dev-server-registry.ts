@@ -153,6 +153,10 @@ export interface DevServerStartFailure {
   readonly detail: string
   readonly stdout: string
   readonly stderr: string
+  /**
+  子の stderr の warning の文。stderr の切り詰めと関係なく保つ。子を起こしていなければ省く。
+  */
+  readonly warnings?: readonly string[]
 }
 
 export type DevServerStartResult = DevServerStarted | DevServerStartFailure
@@ -199,6 +203,7 @@ interface DevServerHandle {
   readonly kill: () => void
   readonly stdout: () => string
   readonly stderr: () => string
+  readonly warnings: () => string[]
 }
 
 /**
@@ -263,6 +268,7 @@ function trackChild(child: DevServerChild, port: number, killEscalationMs: numbe
     },
     stdout: () => stdoutCapture.text(),
     stderr: () => mergeStderr(stderrCapture.text(), spawnError),
+    warnings: () => stderrCapture.warnings(),
   }
 }
 
@@ -370,6 +376,7 @@ export function createDevServerRegistry(
         detail: failureDetailOf(outcome, handle.port, dependencies.readyTimeoutMs),
         stdout: handle.stdout(),
         stderr,
+        warnings: handle.warnings(),
       },
     }
   }
@@ -476,6 +483,7 @@ function portInUseFailure(
     detail,
     stdout: raced?.stdout ?? '',
     stderr: raced?.stderr ?? '',
+    ...(raced?.warnings !== undefined && { warnings: raced.warnings }),
   }
 }
 
@@ -517,7 +525,7 @@ function failureReasonOf(outcome: Exclude<ReadyOutcome, 'ready'>): DevServerFail
 function failureDetailOf(outcome: Exclude<ReadyOutcome, 'ready'>, port: number, timeoutMs: number): string {
   switch (outcome) {
     case 'exited': {
-      return `Slidev dev server on port ${String(port)} exited right after starting (see stderr for the reason)`
+      return `Slidev dev server on port ${String(port)} exited right after starting (see data.log for the reason)`
     }
     case 'timeout': {
       return `Slidev dev server on port ${String(port)} did not become reachable within `

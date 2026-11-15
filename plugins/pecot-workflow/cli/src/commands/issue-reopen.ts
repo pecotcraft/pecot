@@ -22,7 +22,7 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 
 // Projects V2 の自動化が Issue をもう一度閉じることがあるため、status を設定した後に待つ
@@ -34,11 +34,22 @@ interface ReopenTarget {
   readonly number: number
 }
 
+const ISSUE_REOPEN_OUTPUT = z.strictObject({
+  issue: z.string().describe('Issue reopened (owner/repo/N)'),
+  status: z.string().optional().describe('Workflow status set on the board (omitted when the Issue is not on the board or the status is not configured)'),
+  unarchived: z.boolean().describe('Whether the item was unarchived on the board'),
+  commented: z.boolean().describe('Whether the reason was posted as a comment'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+type ReopenOutput = Output<z.input<typeof ISSUE_REOPEN_OUTPUT>>
+
 // アーカイブの解除、1 回目の reopen、ボードの status の更新。設定できたら自動化を待つ
-async function reopenAndSetStatus(output: Output, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string): Promise<void> {
+async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string): Promise<void> {
   const { owner, repository, number } = issue
   const target = `Issue ${issuePath(owner, repository, number)}`
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
+  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), unarchived: false, commented: false })
   // アーカイブ済みの項目はボードの列に出ないので戻す。失敗したら Issue を開かずに止める
   if (item?.isArchived === true) {
     try {
@@ -49,6 +60,7 @@ async function reopenAndSetStatus(output: Output, client: GitHubClient, config: 
       stopWith(output, `could not unarchive ${target} on the board: ${error.message}`, kindOfFailure(error))
     }
     output.done({ verb: 'update', target: `${target} unarchived on the board` })
+    output.result({ unarchived: true })
   }
   await client.reopenIssue(owner, repository, number)
   const itemId = item?.id
@@ -57,6 +69,7 @@ async function reopenAndSetStatus(output: Output, client: GitHubClient, config: 
   }
   else if (await setIssueField(client, config, itemId, 'workflow', status)) {
     output.done({ verb: 'set', target: `${target} status ${status}` })
+    output.result({ status })
     await delay(AUTOMATION_WAIT_MILLISECONDS)
   }
   else {
@@ -65,7 +78,7 @@ async function reopenAndSetStatus(output: Output, client: GitHubClient, config: 
 }
 
 // 2 回目の reopen（自動化による close への対策）で open を確かめ、--comment があれば理由を投稿する
-async function confirmReopened(output: Output, client: GitHubClient, issue: Readonly<ReopenTarget>, comment: string | undefined): Promise<void> {
+async function confirmReopened(output: ReopenOutput, client: GitHubClient, issue: Readonly<ReopenTarget>, comment: string | undefined): Promise<void> {
   const { owner, repository, number } = issue
   const target = `Issue ${issuePath(owner, repository, number)}`
   const result = await client.reopenIssue(owner, repository, number)
@@ -78,22 +91,26 @@ async function confirmReopened(output: Output, client: GitHubClient, issue: Read
   if (comment === undefined || comment === '') return
   await client.addIssueComment(owner, repository, number, comment)
   output.done({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
+  output.result({ commented: true })
 }
 
 // 予行。ボードの項目を読み、書く操作を並べる
-async function planReopen(output: Output, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
+async function planReopen(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
   const { owner, repository, number } = issue
   const target = `Issue ${issuePath(owner, repository, number)}`
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
+  const hasComment = comment !== undefined && comment !== ''
+  const willSetStatus = item !== undefined && isStatusConfigured(config, status)
+  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), ...willSetStatus && { status }, unarchived: item?.isArchived === true, commented: hasComment })
   output.planned({ verb: 'reopen', target })
   if (item?.isArchived === true) output.planned({ verb: 'update', target: `${target} unarchived on the board` })
   if (item === undefined) output.warning(`${target} is not on the project board`)
-  else if (isStatusConfigured(config, status)) output.planned({ verb: 'set', target: `${target} status ${status}` })
+  else if (willSetStatus) output.planned({ verb: 'set', target: `${target} status ${status}` })
   else output.warning(notConfiguredMessage(status))
-  if (comment !== undefined && comment !== '') output.planned({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
+  if (hasComment) output.planned({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
 }
 
-async function reopenIssue(output: Output, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
+async function reopenIssue(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
   await reopenAndSetStatus(output, client, config, issue, status)
   await confirmReopened(output, client, issue, comment)
 }
@@ -107,11 +124,12 @@ const ISSUE_REOPEN = defineCommand({
     comment: z.string().optional().describe('Reason for reopening (posted as a comment)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: ISSUE_REOPEN_OUTPUT,
   positional: ['issue_ref'],
   shortFlags: { status: '-s', comment: '-c', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const output = createOutput(input.dry_run, io)
+    const output = createOutput<z.input<typeof ISSUE_REOPEN_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
       const { status, comment } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)

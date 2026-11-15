@@ -86,6 +86,7 @@ const COMMANDS = [
     path: ['slow'],
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
+    output: z.strictObject({}),
     positional: ['name'],
     interactive: false,
     run: async (input) => {
@@ -100,6 +101,7 @@ const COMMANDS = [
     path: ['hello'],
     description: 'あいさつ',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async (_input, io) => {
@@ -111,6 +113,7 @@ const COMMANDS = [
     path: ['noisy', 'bug'],
     description: '出力の後にプログラムの誤り',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async (_input, io) => {
@@ -123,6 +126,7 @@ const COMMANDS = [
     path: ['bug'],
     description: 'プログラムの誤り',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async () => await failWith('boom'),
@@ -176,7 +180,7 @@ describe('runMcpServe', () => {
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const result = await client.callTool({ name: 'hello', arguments: {} })
-    expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'hello\n', stderr: '' })
+    expect(structuredOf(result)).toMatchObject({ exitCode: 0, message: 'hello', data: {} })
   })
 
   it('実行中に stdin が閉じたら、待っている呼び出しは本体を呼ばない', async () => {
@@ -319,7 +323,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     expect(changeDirectory).not.toHaveBeenCalled()
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 0, stdout: 'hello\n', stderr: '' })
+    expect(structuredOf(await client.callTool(hello))).toMatchObject({ exitCode: 0, message: 'hello', data: {} })
   })
 
   it('決まったディレクトリへ、待ち受けを始める前に 1 回だけ移る', () => {
@@ -359,7 +363,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(listed.tools.map(tool => tool.name)).toEqual(['slow', 'hello', 'noisy_bug', 'bug'])
     const result = await client.callTool(hello)
     expect(result.isError).toBe(true)
-    expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
+    expect(outcomeOf(result)).toEqual({ exitCode: 1, detail: reason, warnings: [] })
     expect(structuredOf(result)).toMatchObject({ kind: 'session-directory-unresolved', message: reason })
     await client.callTool({ name: 'slow', arguments: { name: 'x' } })
     expect(started).toEqual([])
@@ -384,7 +388,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(stderr.chunks).toEqual([`error: ${reason}\n`])
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, detail: reason, warnings: [] })
   })
 
   it('cwd を読めなくても（消えている）起動し、読めない旨と元の失敗を理由にして返す', async () => {
@@ -402,7 +406,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(stderr.chunks).toEqual([`error: ${CWD_READ_REASON}\n`])
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${CWD_READ_REASON}\n` })
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, detail: CWD_READ_REASON, warnings: [] })
     expect(changeDirectory).not.toHaveBeenCalled()
   })
 

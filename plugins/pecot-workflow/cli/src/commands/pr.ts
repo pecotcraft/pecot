@@ -31,6 +31,7 @@ import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
 import { gitCurrentBranch, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import type { PullRequestSlim, PullRequestWithReviews } from '../infra/github/pulls.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
@@ -46,10 +47,12 @@ import { kindOfFailure } from './failure.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
+import { BOARD_MOVE_JSON, moveJson } from './issue-board.js'
+import type { BoardMoveLine } from './issue-board.js'
 import { moveWaitingIssues } from './pr-waiting.js'
 
 export const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
@@ -179,13 +182,33 @@ function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<Output
 
 // pr create
 
+const PR_CREATE_OUTPUT = z.strictObject({
+  url: z.string().optional().describe('URL of the created PR (omitted on dry_run and prepare)'),
+  number: z.int().optional().describe('Number of the created PR (omitted on dry_run and prepare, or when the response has none)'),
+  head: z.string().optional().describe('Head branch of the PR (omitted on prepare)'),
+  base: z.string().optional().describe('Base branch of the PR. On prepare, the base filled into the draft (omitted when it was not filled)'),
+  title: z.string().optional().describe('Title of the PR (omitted on prepare)'),
+  inReview: z.int().optional().describe('Issue number whose status was set to In Review (omitted when not set)'),
+  stack: z.strictObject({
+    lower: z.int().describe('PR number of the lower stage the new PR is stacked on'),
+    registered: z.boolean().optional().describe('Whether the new PR was registered to the stack (omitted on dry_run)'),
+    number: z.int().optional().describe('Stack number (omitted when not registered)'),
+  }).optional().describe('Stack of the PR (omitted when the PR is not stacked)'),
+  moves: z.array(BOARD_MOVE_JSON).optional().describe('Issues waiting for this PR whose column or Status was written (omitted on dry_run and prepare)'),
+  file: z.string().optional().describe('Absolute path of the draft file written on prepare'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+type PrCreateData = z.input<typeof PR_CREATE_OUTPUT>
+
 function inReviewOperation(issueNumber: number): Operation {
   return { verb: 'set', target: `Issue #${String(issueNumber)} status to In Review` }
 }
 
-async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, client: GitHubClient, location: RepositoryReference, headBranch: string, out: Readonly<Output>): Promise<void> {
+// Status を In Review にした Issue の番号を返す。書かなかったら undefined
+async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, client: GitHubClient, location: RepositoryReference, headBranch: string, out: Readonly<Output>): Promise<number | undefined> {
   const issueNumber = extractIssueNumberFromBranch(headBranch)
-  if (issueNumber === undefined) return
+  if (issueNumber === undefined) return undefined
   const label = `Issue #${String(issueNumber)}`
 
   let itemId: string | undefined
@@ -218,6 +241,7 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
     return
   }
   out.done(inReviewOperation(issueNumber))
+  return issueNumber
 }
 
 const LINK_PATH = ['project', 'link']
@@ -353,11 +377,14 @@ function lazyClient(config: Readonly<ProjectConfig>, out: Readonly<Output>): () 
   }
 }
 
+type StackResult = NonNullable<PrCreateData['stack']>
+
 // 下の段の PR が入っているスタックに足す。無ければ下の段と新しい PR で作る。失敗は warning にとどめる
-async function registerStack(client: GitHubClient, location: RepositoryReference, lower: number, created: number | undefined, out: Readonly<Output>): Promise<void> {
+async function registerStack(client: GitHubClient, location: RepositoryReference, lower: number, created: number | undefined, out: Readonly<Output>): Promise<StackResult> {
+  const unregistered: StackResult = { lower, registered: false }
   if (created === undefined) {
     out.warning('could not register stack: the PR creation response has no PR number')
-    return
+    return unregistered
   }
   try {
     const stack = await client.getStackOfPullRequest(location.owner, location.repository, lower)
@@ -365,22 +392,25 @@ async function registerStack(client: GitHubClient, location: RepositoryReference
     // GitHub は一番上にしか足せないので、同じ下の段に 2 つ目を積んだときは 422 を待たずに知らせる
     if (stack !== undefined && top !== lower) {
       out.warning(`could not register stack: PR #${String(lower)} is not the top of stack #${String(stack.number)} (top: PR #${String(top)}); PR #${String(created)} was not added`)
-      return
+      return unregistered
     }
     const registered = stack === undefined
       ? await client.createStack(location.owner, location.repository, [lower, created])
       : await client.addToStack(location.owner, location.repository, stack.number, [created])
     out.done({ verb: 'add', target: `PR #${String(created)} to stack #${String(registered.number)}` })
+    return { lower, registered: true, number: registered.number }
   }
   catch (error: unknown) {
     if (!isRequestFailure(error)) throw error
     out.warning(`could not register stack: ${describeRequestFailure(error)}`)
+    return unregistered
   }
 }
 
-async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>): Promise<void> {
+// moves に、書けた列と札を足していく。例外で止まっても、それまでの分が残る
+async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>, moves: BoardMoveLine[]): Promise<void> {
   try {
-    await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest })
+    await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest }, moves)
   }
   catch (error: unknown) {
     if (!isRequestFailure(error)) throw error
@@ -388,7 +418,7 @@ async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<Pr
   }
 }
 
-async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => GitHubClient, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, out: Readonly<Output>): Promise<void> {
+async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => GitHubClient, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, out: Readonly<Output<PrCreateData>>): Promise<void> {
   runPreflightChecksOrExit(directory, out)
   let created: JsonObject
   try {
@@ -401,12 +431,21 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   out.done(createOperation(draft))
   const createdNumber = jsonField(created, 'number')
   const pullRequest = typeof createdNumber === 'number' ? createdNumber : undefined
-  if (!draft.isRelease) await updateIssueStatusToInReview(config, client(), draft.location, draft.head, out)
-  if (stackOn !== undefined) await registerStack(client(), draft.location, stackOn, pullRequest, out)
-  const issueNumber = extractIssueNumberFromBranch(draft.head)
-  if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out)
-  consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   const url = jsonField(created, 'html_url')
+  // url は先に渡す。後の処理が例外で止まっても、作った PR を結果から読める
+  out.result({ head: draft.head, base: draft.base, title: draft.title, ...pullRequest !== undefined && { number: pullRequest }, ...typeof url === 'string' && { url } })
+  const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.head, out)
+  if (inReview !== undefined) out.result({ inReview })
+  if (stackOn !== undefined) out.result({ stack: await registerStack(client(), draft.location, stackOn, pullRequest, out) })
+  const issueNumber = extractIssueNumberFromBranch(draft.head)
+  const moves: BoardMoveLine[] = []
+  try {
+    if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out, moves)
+  }
+  finally {
+    out.result({ moves: moves.map(move => moveJson(move)) })
+  }
+  consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub', 'other')
   out.data(url)
 }
@@ -484,7 +523,7 @@ function stackedScopeOf(reading: BaseReading | undefined, use: Readonly<PullRequ
 }
 
 // 検証して、dry-run なら計画を出し、そうでなければ投稿する。file と -m の両方がここを通る
-async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<Output>): Promise<void> {
+async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<Output<PrCreateData>>): Promise<void> {
   const { config, directory, template, location, title, head } = input
   const client = lazyClient(config, out)
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
@@ -522,6 +561,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
   const issueNumber = extractIssueNumberFromBranch(head)
   if (!isRelease && issueNumber !== undefined) out.planned(inReviewOperation(issueNumber))
   if (use?.stackOn !== undefined) out.planned({ verb: 'add', target: `the new PR to the stack of PR #${String(use.stackOn)}` })
+  out.result({ head, base, title, ...use?.stackOn !== undefined && { stack: { lower: use.stackOn } } })
 }
 
 function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {
@@ -535,7 +575,7 @@ interface FileModeInput {
   readonly dryRun: boolean
 }
 
-async function createFromFile(input: Readonly<FileModeInput>, directory: string, out: Readonly<Output>): Promise<void> {
+async function createFromFile(input: Readonly<FileModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
   const config = requireActiveConfigPlain(out)
   let parsed: ParsedPullRequest
   try {
@@ -586,7 +626,7 @@ interface DirectModeInput {
   readonly screenshot: string | undefined
 }
 
-async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output>): Promise<void> {
+async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
   const config = requireActiveConfigPlain(out)
   let location: RepositoryReference
   if (input.repository === undefined || input.repository === '') {
@@ -673,7 +713,7 @@ async function fillClosesInTemplate(content: string, config: Readonly<ProjectCon
   return content.replace(pattern, () => `Closes #${String(target.number)}`)
 }
 
-async function prepareTemplate(directory: string, out: Readonly<Output>, template: string): Promise<void> {
+async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateData>>, template: string): Promise<void> {
   const templatePath = templateFile('pr', templateKindOf(template))
   if (!existsSync(templatePath)) stopWith(out, `template not found: ${templatePath}`, 'other')
   let content = readTextFile(templatePath)
@@ -692,6 +732,7 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
         const base = record?.branch ?? developBranch
         content = content.replace(/^base:\s*"[^"]*"/mu, () => `base: "${base}"`)
         out.done({ verb: 'set', target: `base to ${base}` })
+        out.result({ base })
         content = addScopeHint(content, config, { owner: location.owner, repository: location.repository }, base, directory, record === undefined ? undefined : { sha: record.sha }, out)
       }
     }
@@ -702,6 +743,8 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
   try {
     withReservedOutputPath(outputDirectory(), timestamp => `${prefix}-${timestamp}.md`, (reserved) => {
       writeFileSync(reserved, content, 'utf8')
+      out.result({ file: path.resolve(reserved) })
+      out.artifact(reserved)
       out.data(reserved)
     })
   }
@@ -728,11 +771,11 @@ const CreateInputSchema = z.strictObject({
 
 async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
   const directory = process.cwd()
-  const out = createOutput(input.dry_run, io)
+  const out = createOutput<PrCreateData>(input.dry_run, io)
   if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`, 'invalid-input')
 
   if (input.prepare) {
-    await prepareTemplate(directory, createOutput(false, io), input.template)
+    await prepareTemplate(directory, createOutput<PrCreateData>(false, io), input.template)
   }
   else if (input.file !== undefined) {
     if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`, 'invalid-input')
@@ -788,19 +831,88 @@ const ShowInputSchema = z.strictObject({
   reviews: z.boolean().default(false).describe('Include review details (bodies and line comments)'),
 })
 
+const ISSUE_LINK_JSON = z.strictObject({
+  number: z.int().describe('Issue number'),
+  title: z.string().describe('Title of the Issue (empty for referenced_issues)'),
+})
+
+const REVIEW_JSON = z.strictObject({
+  state: z.string().describe('State of the review'),
+  author: z.string().nullable().describe('Login of the reviewer (null when deleted)'),
+  body: z.string().optional().describe('Body of the review (only with reviews)'),
+  submitted_at: z.string().nullable().optional().describe('Submission time (only with reviews)'),
+})
+
+const REVIEW_COMMENT_JSON = z.strictObject({
+  author: z.string().nullable().describe('Login of the author (null when deleted)'),
+  body: z.string().describe('Body of the comment'),
+  created_at: z.string().nullable().describe('Creation time'),
+})
+
+const REVIEW_THREAD_JSON = z.strictObject({
+  is_resolved: z.boolean().describe('Whether the thread is resolved'),
+  path: z.string().nullable().describe('File path of the thread'),
+  line: z.int().nullable().describe('Line of the thread'),
+  comments: z.array(REVIEW_COMMENT_JSON).describe('Comments in the thread'),
+})
+
+const PR_SHOW_OUTPUT = z.strictObject({
+  number: z.int().describe('PR number'),
+  state: z.string().describe('State of the PR (OPEN, CLOSED or MERGED)'),
+  title: z.string().describe('Title of the PR'),
+  body: z.string().describe('Body of the PR'),
+  head_ref: z.string().describe('Head branch'),
+  base_ref: z.string().describe('Base branch'),
+  is_draft: z.boolean().describe('Whether the PR is a draft'),
+  mergeable: z.string().describe('Mergeability (MERGEABLE, CONFLICTING or UNKNOWN)'),
+  comments: z.int().describe('Number of comments'),
+  closing_issues: z.array(ISSUE_LINK_JSON).describe('Issues the PR closes'),
+  referenced_issues: z.array(ISSUE_LINK_JSON).describe('Issues referenced by Refs in the body and not in closing_issues'),
+  reviews: z.array(REVIEW_JSON).describe('Reviews'),
+  review_threads: z.array(REVIEW_THREAD_JSON).optional().describe('Line comment threads (only with reviews)'),
+})
+
+type PrShowJson = z.input<typeof PR_SHOW_OUTPUT>
+
+/**
+--json の標準出力と MCP の data の中身。キーを並べた順が --json の出力の順になる
+*/
+function pullRequestJson(pr: Readonly<PullRequestSlim> | Readonly<PullRequestWithReviews>): PrShowJson {
+  // 項目を手で並べるので、satisfies で PR の型の項目の過不足を tsc に止めさせる
+  const base = {
+    number: pr.number,
+    state: pr.state,
+    title: pr.title,
+    body: pr.body,
+    head_ref: pr.head_ref,
+    base_ref: pr.base_ref,
+    is_draft: pr.is_draft,
+    mergeable: pr.mergeable,
+    comments: pr.comments,
+    closing_issues: pr.closing_issues.map(issue => ({ ...issue })),
+    referenced_issues: pr.referenced_issues.map(issue => ({ ...issue })),
+    reviews: pr.reviews.map(review => ({ ...review })),
+  } satisfies Record<keyof PullRequestSlim, unknown>
+  return 'review_threads' in pr ? { ...base, review_threads: pr.review_threads.map(thread => ({ ...thread, comments: thread.comments.map(comment => ({ ...comment })) })) } satisfies Record<keyof PullRequestWithReviews, unknown> : base
+}
+
 async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput(false, io)
+  const out = createOutput<PrShowJson>(false, io)
   const config = requireActiveConfigPlain(out)
   const { owner, repository, number } = parseReference(input.pr_ref, input.repo, out)
   try {
     const client = createGitHubClient(out, config.host)
     if (input.reviews) {
       const pr = await client.getPullRequestWithReviews(owner, repository, number)
-      out.data(`${input.json ? JSON.stringify(pr, undefined, 2) : formatPullRequestWithReviewsMarkdown(pr, owner, repository)}\n`)
+      const json = pullRequestJson(pr)
+      out.result(json)
+      out.data(`${input.json ? JSON.stringify(json, undefined, 2) : formatPullRequestWithReviewsMarkdown(pr, owner, repository)}\n`)
     }
     else {
       const pr = await client.getPullRequestSlim(owner, repository, number)
-      out.data(`${input.json ? JSON.stringify(pr, undefined, 2) : formatPullRequestMarkdown(pr)}\n`)
+      const json = pullRequestJson(pr)
+      out.result(json)
+      out.data(`${input.json ? JSON.stringify(json, undefined, 2) : formatPullRequestMarkdown(pr)}\n`)
     }
   }
   catch (error: unknown) {
@@ -869,19 +981,39 @@ function readGitExclude(cwd: string): string {
   }
 }
 
-function getWorktreeInfo(cwd: string): string {
+const PR_CHECK_OUTPUT = z.strictObject({
+  remoteUrl: z.string().describe('URL of the primary git remote'),
+  currentBranch: z.string().describe('Current branch'),
+  pushed: z.boolean().describe('Whether the current branch is pushed and even with its remote branch'),
+  pushStatus: z.string().describe('Push status as shown in the Push Status section'),
+  baseBranch: z.string().describe('Remote branch compared against (remote/branch): the lower stage when stacked, else the develop branch'),
+  gitStatus: z.string().describe('Output of git status'),
+  commits: z.string().describe('Commits since the base branch, as shown in the Commits section'),
+  diffSummary: z.string().describe('Diff stat against the base branch, as shown in the Diff Summary section'),
+  worktree: z.strictObject({
+    list: z.string().describe('Output of git worktree list'),
+    directoryName: z.string().describe('Name of the current directory'),
+    isWorktree: z.boolean().optional().describe('Whether the directory is a linked worktree (omitted when it could not be determined)'),
+  }).describe('Worktree information'),
+  stashList: z.string().describe('Stash list, as shown in the Stash List section'),
+})
+
+type PrCheckData = z.input<typeof PR_CHECK_OUTPUT>
+
+function readWorktreeInfo(cwd: string): PrCheckData['worktree'] {
   const listed = gitStdout(['worktree', 'list'], { cwd })
-  const lines = [listed === undefined ? '(git worktree list failed)' : pythonStrip(listed), '', `Current directory name: ${path.basename(cwd)}`]
+  const list = listed === undefined ? '(git worktree list failed)' : pythonStrip(listed)
+  const directoryName = path.basename(cwd)
   const gitDirectory = gitStdout(['rev-parse', '--git-dir'], { cwd })
   const commonDirectory = gitDirectory === undefined ? undefined : gitStdout(['rev-parse', '--git-common-dir'], { cwd })
-  if (gitDirectory === undefined || commonDirectory === undefined) {
-    lines.push('Is worktree environment: (unknown)')
-  }
-  else {
-    const isWorktree = resolveRealPath(path.resolve(cwd, pythonStrip(gitDirectory))) !== resolveRealPath(path.resolve(cwd, pythonStrip(commonDirectory)))
-    lines.push(`Is worktree environment: ${isWorktree ? 'true' : 'false'}`)
-  }
-  return lines.join('\n')
+  if (gitDirectory === undefined || commonDirectory === undefined) return { list, directoryName }
+  const isWorktree = resolveRealPath(path.resolve(cwd, pythonStrip(gitDirectory))) !== resolveRealPath(path.resolve(cwd, pythonStrip(commonDirectory)))
+  return { list, directoryName, isWorktree }
+}
+
+function formatWorktreeInfo(info: Readonly<PrCheckData['worktree']>): string {
+  const worktreeText = info.isWorktree === undefined ? '(unknown)' : String(info.isWorktree)
+  return [info.list, '', `Current directory name: ${info.directoryName}`, `Is worktree environment: ${worktreeText}`].join('\n')
 }
 
 const CheckInputSchema = z.strictObject({
@@ -889,7 +1021,7 @@ const CheckInputSchema = z.strictObject({
 })
 
 function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readonly<CommandIo>): void {
-  const out = createOutput(false, io)
+  const out = createOutput<PrCheckData>(false, io)
   const directory = input.directory
   const context = validatePullRequestContext(directory, out)
   const baseBranch = determineBaseBranch(context.location, directory, context.remoteName, out)
@@ -899,6 +1031,11 @@ function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readon
   const diffSummary = gitStdout(['diff', '--stat', `${baseBranch}...HEAD`], { cwd: directory })
   const push = getPushStatus(context.currentBranch, directory, context.remoteName)
   const stashList = getStashList(directory)
+  const commitsText = commits === undefined ? '(git log failed)' : pythonStrip(commits) || '(no commits)'
+  const diffText = diffSummary === undefined ? '(git diff failed)' : pythonStrip(diffSummary) || '(no diff)'
+  const worktree = readWorktreeInfo(directory)
+  // preflight の warning で失敗に終わっても、集めた値を data に残す
+  out.result({ remoteUrl: context.remoteUrl, currentBranch: context.currentBranch, pushed: push.isPushed, pushStatus: push.message, baseBranch, gitStatus, commits: commitsText, diffSummary: diffText, worktree, stashList })
 
   const sections: readonly (readonly [string, string])[] = [
     ['=== Git Remote ===', context.remoteUrl],
@@ -908,9 +1045,9 @@ function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readon
     ['=== Git Status ===', gitStatus],
     ['=== .gitignore ===', readGitignore(directory)],
     ['=== Git Exclude ===', readGitExclude(directory)],
-    [`=== Commits (vs ${baseBranch}) ===`, commits === undefined ? '(git log failed)' : pythonStrip(commits) || '(no commits)'],
-    [`=== Diff Summary (vs ${baseBranch}) ===`, diffSummary === undefined ? '(git diff failed)' : pythonStrip(diffSummary) || '(no diff)'],
-    ['=== Worktree Info ===', getWorktreeInfo(directory)],
+    [`=== Commits (vs ${baseBranch}) ===`, commitsText],
+    [`=== Diff Summary (vs ${baseBranch}) ===`, diffText],
+    ['=== Worktree Info ===', formatWorktreeInfo(worktree)],
     ['=== Stash List ===', stashList],
   ]
   for (const [index, [heading, content]] of sections.entries()) {
@@ -929,6 +1066,7 @@ const prCreate = defineCommand({
   path: PR_CREATE_PATH,
   description: 'Create a PR (pull request)',
   input: CreateInputSchema,
+  output: PR_CREATE_OUTPUT,
   positional: ['file'],
   shortFlags: { message: '-m', title: '-t', base: '-b', draft: '-d', prepare: '-p', dry_run: '-n', repo: '-r' },
   hasOwnRepo: true,
@@ -943,6 +1081,7 @@ const prShow = defineCommand({
   path: ['pr', 'show'],
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
   input: ShowInputSchema,
+  output: PR_SHOW_OUTPUT,
   positional: ['pr_ref'],
   shortFlags: { json: '-j', reviews: '-r' },
   interactive: false,
@@ -956,6 +1095,7 @@ const prCheck = defineCommand({
   path: ['pr', 'check'],
   description: 'Show all the information to check before creating a PR',
   input: CheckInputSchema,
+  output: PR_CHECK_OUTPUT,
   positional: [],
   shortFlags: { directory: '-D' },
   interactive: false,

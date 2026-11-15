@@ -44,6 +44,7 @@ const COMMANDS = [
     path: ['issue', 'read'],
     description: 'Issue を読む',
     input: z.object({ issue_ref: z.string() }),
+    output: z.strictObject({}),
     positional: ['issue_ref'],
     interactive: false,
     run: async (input, io) => {
@@ -56,6 +57,7 @@ const COMMANDS = [
     path: ['boom'],
     description: '落ちる',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async () => await failWith('boom'),
@@ -64,6 +66,7 @@ const COMMANDS = [
     path: ['abort'],
     description: '中止する',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: true,
     run: async (_input, io) => await abortWith(io),
@@ -73,6 +76,7 @@ const COMMANDS = [
     path: ['add-to-project'],
     description: 'Project へ追加する',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async () => await exitWith(0),
@@ -142,7 +146,7 @@ describe('引数なしと --help', () => {
   })
 
   it('説明を持たないグループも並べる', async () => {
-    const customCommands = [defineCommand({ path: ['custom', 'run'], description: '実行する', input: z.object({}), positional: [], interactive: false, run: async () => await exitWith(0) })]
+    const customCommands = [defineCommand({ path: ['custom', 'run'], description: '実行する', input: z.object({}), output: z.strictObject({}), positional: [], interactive: false, run: async () => await exitWith(0) })]
     const io = captureIo()
     const context = { commands: customCommands, cwd: process.cwd(), environment: {}, terminalColumns: undefined }
     expect(await runCli([], { ...context, io })).toBe(2)
@@ -165,6 +169,7 @@ const BRANCH_COMMAND = defineCommand({
   path: ['session', 'start'],
   description: 'Create a branch linked to an Issue',
   input: z.object({ issue_ref: z.string().describe('Issue reference'), branch_name: z.string().describe('Name of the branch'), base: z.string().optional().describe('Base branch') }),
+  output: z.strictObject({}),
   positional: ['issue_ref', 'branch_name'],
   shortFlags: { base: '-b' },
   interactive: false,
@@ -576,6 +581,7 @@ async function runFailing(failure: Error): Promise<Run> {
     path: ['fail'],
     description: '落ちる',
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async () => await throwFailure(failure),

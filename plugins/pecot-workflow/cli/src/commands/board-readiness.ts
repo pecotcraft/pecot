@@ -5,7 +5,6 @@ import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem, BoardProgress, StackableChain } from '../domain/format.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
-import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { describeReadiness, describeUnknown, displayReference, progressionsFromReadiness, stackChains } from '../domain/readiness.js'
 import type { Readiness } from '../domain/readiness.js'
@@ -17,7 +16,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { boardMoveOf, judgeBoard } from './board-judgment.js'
 import type { BoardTarget } from './board-judgment.js'
 import { readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
-import type { IssueSnapshot } from './issue-readiness.js'
+import type { BoardReadinessJson, IssueSnapshot } from './issue-readiness.js'
 import type { Output } from './output.js'
 
 const JUDGED_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked'])
@@ -30,7 +29,7 @@ export interface BoardReadiness {
   /**
   boardItemKey → JSON の readiness。undefined なら JSON に足さない
   */
-  readonly json: ReadonlyMap<string, JsonObject> | undefined
+  readonly json: ReadonlyMap<string, BoardReadinessJson> | undefined
   readonly chains: readonly StackableChain[]
   /**
   board sync が列か札を動かしそうな Ready・Blocked の Issue の数
@@ -97,7 +96,7 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
   const home = homeRepositoryOf(config, repository)
 
   const texts = new Map<string, string>()
-  const json = new Map<string, JsonObject>()
+  const json = new Map<string, BoardReadinessJson>()
   const readinessByKey = new Map<string, Readiness>()
   const parents = new Map<string, IssueReference>()
   const references = new Map<string, IssueReference>(judged.map(({ target }) => [target.key, target.ref]))
@@ -133,7 +132,7 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
 /**
 アイテムのキーを引いて JSON の readiness を返す。判定が無ければ null
 */
-export function readinessOf(readiness: BoardReadiness, item: BoardItem): JsonObject | typeof JSON_NULL {
+export function readinessOf(readiness: BoardReadiness, item: BoardItem): BoardReadinessJson | typeof JSON_NULL {
   const key = boardItemKey(item)
   return (key === undefined ? undefined : readiness.json?.get(key)) ?? JSON_NULL
 }

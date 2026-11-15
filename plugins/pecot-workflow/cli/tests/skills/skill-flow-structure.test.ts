@@ -116,25 +116,27 @@ describe('w-active の手順', () => {
     expect(body).not.toContain('spawn してよい')
   })
 
-  it('ブロック中で止まったときは、出力の案内の行を利用者に示す', () => {
+  it('ブロック中で止まったときは、結果の data.detail の案内の行を利用者に示す', () => {
     const body = sectionBody(text, titleIndex(headings, '事前確認'))
-    for (const word of ['is blocked by', 'issue unblock', '--wait stack', '前提を見直すかどうかは利用者が決める']) expect(body).toContain(word)
+    for (const word of ['`data.detail` に `is blocked by` が入る', '`data.detail` の案内の行', 'issue unblock', '--wait stack', '前提を見直すかどうかは利用者が決める']) expect(body).toContain(word)
   })
 
-  it('kind が dependency-unreadable で止まったときは、出力を利用者に示して止まる', () => {
+  it('kind が dependency-unreadable で止まったときは、結果の data.detail を利用者に示して止まる', () => {
     const body = sectionBody(text, titleIndex(headings, '事前確認'))
-    for (const word of ['dependency-unreadable', 'could not read blocked-by', 'could not judge readiness', '利用者に示して止まる']) expect(body).toContain(word)
+    for (const word of ['dependency-unreadable', '`data.detail` に `could not read blocked-by` か `could not judge readiness` が入る', '利用者に示して止まる']) expect(body).toContain(word)
   })
 
   it('Step 2 では、判定が blocked の Issue を選んだら、列が Ready でも止める', () => {
-    expect(text).toContain('判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。')
+    expect(text).toContain('結果の `data.readiness.kind` の判定')
+    expect(text).toContain('判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、`data.readiness.text` で理由を伝えて止める。')
   })
 
   it('ブランチ作成では base を渡さず、積んで着手した旨を伝える', () => {
     const create = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
     const switching = sectionBody(text, titleIndex(headings, 'ブランチ切り替え'))
     expect(create).toContain('`base` は渡さない')
-    expect(switching).toContain('(stacked on #N)')
+    expect(switching).toContain('`session_start` の結果の `data.branch`（ブランチ名）と `data.repository`（`owner/repo`）を読み')
+    expect(switching).toContain('結果に `data.stackedOn` があれば')
     expect(switching).toContain('積んで着手した旨を利用者に伝える')
   })
 
@@ -162,7 +164,7 @@ describe('w-quick の手順', () => {
 
   it('Step 1 は、起票の前に session_show で確かめ、issue_create（freeform）で起票する', () => {
     const body = sectionBody(text, numberIndex(headings, 1))
-    expect(body).toContain('`session_show` を `directory: "."` で呼び')
+    expect(body).toContain('`session_show` を `directory: "."` で呼ぶ')
     expect(body.indexOf('`session_show`')).toBeLessThan(body.indexOf('`issue_create` を `freeform: true`'))
   })
 
@@ -223,16 +225,24 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('表が無かった旨を伝える')
   })
 
-  it('Step 3 は、dry_run: true の出力を前提の表と並べて示す', () => {
+  it('Step 3 は、dry_run: true の結果の data.plan を前提の表と並べて示す', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('`data.plan`')
+    expect(body).toContain('`data.stackableChains`')
     expect(body).toContain('前提の表と並べて')
   })
 
-  it('Step 3 は、ok が false でも URL の行があれば呼び直さないと書く', () => {
+  it('Step 3 は、ok が false でも data.issues に要素があれば呼び直さないと書く', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
-    expect(body).toContain('`stdout` に URL の行が出ていれば Issue は作られている')
+    expect(body).toContain('`data.issues` に要素があれば、その Issue は作られている')
+    expect(body).toContain('`kind` ではなく `data.issues` で決める')
     expect(body).toContain('同じ `files` で呼び直さない')
-    expect(body).toContain('`stdout` に URL の行が 1 つも出ずに `stderr` の `error:` で止まったときは')
+    expect(body).toContain('`data.issues` が無いまま `ok` が `false` で止まったときは')
+  })
+
+  it('Step 3 は、付け直すコマンドの行を結果の data.detail から示す', () => {
+    const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('`data.detail` の `could not add some blocked-by; add them again with:` の後ろ')
   })
 
   it('dry_run: true の呼び出しは、投稿の呼び出しより前にある', () => {

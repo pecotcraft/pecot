@@ -200,14 +200,13 @@ describe('evidence_create ツール', () => {
     expect(dataOf(result)['reason']).toBe('no-valid-images')
   })
 
-  it('プロセスの stdout / stderr ではなく捕捉した出力を返す', async () => {
-    // MCP サーバの process.stdout は JSON-RPC 専有のため、既存コマンドの出力先は
-    // 必ず createOutputCapture 側へ差し替わっている必要がある。
+  it('成功の結果に、捕捉した出力の stdout / stderr も data.log も載せない', async () => {
     const specPath = placeSpec(validSpec())
 
     const structured = structuredOf(await callEvidenceCreate({ input_path: specPath }))
 
-    expect(structured['stdout']).toBe('')
-    expect(structured['stderr']).toBe('')
+    expect(structured['ok']).toBe(true)
+    expect(Object.keys(structured)).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
+    expect(structured['data']).not.toHaveProperty('log')
   })
 })

@@ -17,7 +17,14 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
+
+const BOARD_ADD_OUTPUT = z.strictObject({
+  issue: z.string().describe('Issue (owner/repo/N)'),
+  added: z.boolean().describe('true when the Issue is on the board (on dry_run, would be added)'),
+  status: z.string().optional().describe('Status set on the board (omitted when status is empty)'),
+  dryRun: DRY_RUN_FIELD,
+})
 
 const BOARD_ADD = defineCommand({
   path: ['board', 'add'],
@@ -27,11 +34,12 @@ const BOARD_ADD = defineCommand({
     status: z.string().default('ready').describe('Initial status (backlog/pending/blocked/ready/active/in_review/archived)'),
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
+  output: BOARD_ADD_OUTPUT,
   positional: ['issue_ref'],
   shortFlags: { status: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const output = createOutput(input.dry_run, io)
+    const output = createOutput<z.input<typeof BOARD_ADD_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
       const { status } = input
       if (status !== '' && !VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
@@ -50,13 +58,16 @@ const BOARD_ADD = defineCommand({
           await client.getIssueNodeId(owner, repository, number)
           output.planned({ verb: 'add', target: `${target} to project` })
           if (status !== '') output.planned({ verb: 'set', target: `${target} status ${status}` })
+          output.result({ issue: issuePath(owner, repository, number), added: true, ...status !== '' && { status } })
           return
         }
         const { itemId } = await addIssueToBoard(client, config, owner, repository, number, undefined)
         output.done({ verb: 'add', target: `${target} to project` })
+        output.result({ issue: issuePath(owner, repository, number), added: true })
         if (status !== '') {
           await setIssueField(client, config, itemId, 'workflow', status)
           output.done({ verb: 'set', target: `${target} status ${status}` })
+          output.result({ status })
         }
       }
       catch (error: unknown) {

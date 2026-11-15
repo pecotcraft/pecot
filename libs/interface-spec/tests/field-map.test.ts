@@ -7,7 +7,7 @@ describe('field map', () => {
       'arguments', 'behaviors', 'cli.flags', 'cli.positional', 'constraints', 'default_notes', 'deprecated', 'description', 'details',
       'diagnostics', 'effects', 'environment', 'examples', 'exit_status', 'help.default_notes', 'help.details', 'help.examples', 'hidden', 'id', 'idempotent',
       'input',
-      'mcp.annotations', 'mcp.output', 'name', 'on_error', 'output', 'prerequisites', 'stdin', 'summary', 'surfaces.cli.path', 'surfaces.mcp.tool',
+      'mcp.annotations', 'mcp.output', 'mcp_output.artifacts', 'mcp_output.data', 'name', 'on_error', 'output', 'prerequisites', 'stdin', 'summary', 'surfaces.cli.path', 'surfaces.mcp.tool',
     ])
   })
 

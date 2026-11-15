@@ -293,9 +293,8 @@ describe('createMcpServer', () => {
         exitCode: 3,
         kind: 'export-failed',
         artifacts: ['/tmp/out.png'],
-        data: { warnings: 1 },
+        data: { reason: 'export-failed', detail: 'export failed', log: 'error: export failed' },
         message: '警告あり',
-        stderr: 'warning: icon not found',
       })),
     }
 
@@ -305,9 +304,8 @@ describe('createMcpServer', () => {
       exitCode: 3,
       kind: 'export-failed',
       artifacts: ['/tmp/out.png'],
-      data: { warnings: 1 },
+      data: { reason: 'export-failed', detail: 'export failed', log: 'error: export failed' },
       message: '警告あり',
-      stderr: 'warning: icon not found',
     }
 
     const connected = await connectMcp([failing])

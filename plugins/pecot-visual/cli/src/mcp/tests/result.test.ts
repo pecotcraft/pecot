@@ -57,13 +57,27 @@ describe('toCallToolResult', () => {
     expect(toCallToolResult(BASE_RESULT).structuredContent).not.toHaveProperty('kind')
   })
 
-  it('stdout / stderr は与えられたときだけ structuredContent に現れる', () => {
-    const without = toCallToolResult(BASE_RESULT)
-    expect(without.structuredContent).not.toHaveProperty('stdout')
-    expect(without.structuredContent).not.toHaveProperty('stderr')
+  it('失敗の結果は、ツールが data に入れていなくても、reason に kind、detail に message を入れる', () => {
+    const failed = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 2, kind: 'invalid-path', data: { invalidPaths: ['a=b'] }, message: 'relative path' })
 
-    const with_ = toCallToolResult({ ...BASE_RESULT, stdout: 'out', stderr: 'err' })
-    expect(with_.structuredContent).toMatchObject({ stdout: 'out', stderr: 'err' })
+    expect(failed.structuredContent).toEqual(expect.objectContaining({ data: { reason: 'invalid-path', detail: 'relative path', invalidPaths: ['a=b'] } }))
+  })
+
+  it('ツールが data.reason・data.detail を入れているときは、その値を残す', () => {
+    const failed = toCallToolResult({
+      ...BASE_RESULT,
+      ok: false,
+      exitCode: 1,
+      kind: 'export-failed',
+      data: { reason: 'invalid-theme', detail: 'theme is broken' },
+      message: 'export failed',
+    })
+
+    expect(failed.structuredContent).toEqual(expect.objectContaining({ data: { reason: 'invalid-theme', detail: 'theme is broken' } }))
+  })
+
+  it('最上位は ok・exitCode・kind・artifacts・data・message の 6 つだけで、stdout / stderr を持たない', () => {
+    expect(Object.keys(toCallToolResult(BASE_RESULT).structuredContent ?? {})).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
   })
 })
 

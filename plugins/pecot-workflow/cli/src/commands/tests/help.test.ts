@@ -12,6 +12,7 @@ function define(path: readonly string[], description: string): CommandDefinition
     path,
     description,
     input: z.object({}),
+    output: z.strictObject({}),
     positional: [],
     interactive: false,
     run: async () => await exitWith(0),

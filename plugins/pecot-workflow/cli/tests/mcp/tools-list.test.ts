@@ -96,14 +96,14 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_create', arguments: { message: 'm', repo: 'acme/demo', bogus: true } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: {}, message: 'invalid input: unknown key \'bogus\'' })
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: { reason: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' }, message: 'invalid input: unknown key \'bogus\'' })
   })
 
   it('改名前の入力名を渡すと、新しい名前を添えて、コマンドを呼ばずに isError で返す', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'acme/demo/7', message: 'm', template: 'plan' } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: {}, message: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: { reason: 'invalid-input', detail: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' }, message: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {

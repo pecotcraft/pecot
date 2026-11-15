@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { requestLabels } from '../_helpers/command-harness.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolEnvelope } from '../_helpers/mcp-client.js'
 import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { bodyWritten, bothLinked, labelUpdated, prepareDependencyProject, removeBlockedByRule, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
@@ -25,6 +27,10 @@ const WITH_SECTION = `${BODY}\n${WAITS_SECTION(['#5: main の版が要る'])}`
 
 function writes(github: Readonly<RunningGithub>): readonly string[] {
   return requestLabels(github.requests()).filter(label => ['RemoveBlockedBy', 'UpdateProjectItemField'].includes(label) || label.startsWith('PATCH'))
+}
+
+async function unblockTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+  return await callToolOnce(ISSUE_DEPENDENCY_COMMANDS, 'issue_unblock', argumentsOfTool)
 }
 
 describe('issue unblock', () => {
@@ -245,5 +251,38 @@ describe('issue unblock', () => {
 
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not remove blocked-by #5 from #7: /u)
+  })
+
+  describe('MCP の data', () => {
+    it('前提を外すと、Issue と前提の参照と removed を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([
+        bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
+        prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+      ])
+
+      const structured = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'removed' })
+    })
+
+    it('付いていない前提を外すと、unchanged を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
+
+      const structured = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged' })
+    })
+
+    it('dry_run で打つと、外す予定の removed と dryRun を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }])])
+
+      const structured = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', dry_run: true })
+
+      expect(structured.data).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'removed', dryRun: true })
+    })
   })
 })

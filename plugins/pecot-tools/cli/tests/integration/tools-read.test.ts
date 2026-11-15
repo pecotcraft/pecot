@@ -763,8 +763,11 @@ describe('失敗種別', () => {
       kind: failure.kind,
     })
     expect(result.structured['message']).toContain(failure.kind)
-    const stderr = result.structured['stderr']
-    expect(typeof stderr === 'string' && stderr.length > 0, `stderr: ${JSON.stringify(stderr)}`).toBe(true)
+    expect(result.structured).not.toHaveProperty('stderr')
+    const data = result.structured['data']
+    expect(data).toMatchObject({ reason: failure.kind, detail: result.structured['message'] })
+    const log = isRecord(data) ? data['log'] : undefined
+    expect(typeof log === 'string' && log.length > 0, `data.log: ${JSON.stringify(log)}`).toBe(true)
   })
 
   it('高レベル s3 コマンドの exit 1 も stderr から種別を決める', async () => {

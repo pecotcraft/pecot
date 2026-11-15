@@ -293,7 +293,16 @@ function loadExistingConfig(configPath: string): ProjectConfig | undefined {
 }
 
 /**
-GitHub Projects V2 の情報から設定ファイルを作るか更新し、アクティブにする。作った設定ファイルのパスを返す。
+syncProjectConfig の結果。行に出した値と同じ。change は設定ファイルの扱い、activeProject はアクティブにした（dry-run では、する）設定の名前で、unchanged なら undefined
+*/
+export interface SyncedProjectConfig {
+  readonly configPath: string
+  readonly change: 'create' | 'update' | 'unchanged'
+  readonly activeProject: string | undefined
+}
+
+/**
+GitHub Projects V2 の情報から設定ファイルを作るか更新し、アクティブにする。設定ファイルのパスと、行に出した扱いを返す。
 pecot-workflow に合うプロジェクトだけを扱う。suffix はその名前の workflow フィールドを使う。
 skipIfUnchanged は、設定ファイルの内容が同じなら何も書かない。isDryRun は読むだけで、書く操作を planned で出す
 */
@@ -301,7 +310,7 @@ export async function syncProjectConfig(
   out: Readonly<Output>,
   client: Readonly<GitHubClient>,
   target: Readonly<{ owner: string, name: string, host: string, suffix?: string | undefined, skipIfUnchanged?: boolean | undefined, isDryRun?: boolean | undefined }>,
-): Promise<string> {
+): Promise<SyncedProjectConfig> {
   const { owner, name, host, skipIfUnchanged = false } = target
   const project = await findProjectByTitle(out, client, owner, name)
   const number = requireNumber(project['number'], 'project.number')
@@ -338,17 +347,18 @@ export async function syncProjectConfig(
   const normalized = parseProjectConfig(parseJsonText(serializeProjectConfig(config)))
   if (skipIfUnchanged && existing !== undefined && serializeProjectConfig(existing) === serializeProjectConfig(normalized)) {
     out.planned({ verb: 'unchanged', target: `config file ${configPath}` })
-    return configPath
+    return { configPath, change: 'unchanged', activeProject: undefined }
   }
   const verb = existing === undefined ? 'create' : 'update'
+  const activeProject = path.parse(configPath).name
   if (target.isDryRun === true) {
     out.planned({ verb, target: `config file ${configPath}` })
-    out.planned({ verb: 'set', target: `active project to ${path.parse(configPath).name}` })
-    return configPath
+    out.planned({ verb: 'set', target: `active project to ${activeProject}` })
+    return { configPath, change: verb, activeProject }
   }
   saveConfig(config, configPath)
   out.done({ verb, target: `config file ${configPath}` })
   setActiveConfig(configPath)
-  out.done({ verb: 'set', target: `active project to ${path.parse(configPath).name}` })
-  return configPath
+  out.done({ verb: 'set', target: `active project to ${activeProject}` })
+  return { configPath, change: verb, activeProject }
 }

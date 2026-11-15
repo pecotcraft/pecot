@@ -6,7 +6,7 @@ import { ConfigError } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { PecotError } from '../domain/errors.js'
 import { describeReadiness } from '../domain/readiness.js'
-import { parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
+import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
 import { describeStackBase, pickBasePullRequest } from '../domain/work-start.js'
@@ -23,7 +23,8 @@ import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
-import { createOutput } from './output.js'
+import { issuePath } from './issue-shared.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { SESSION_FINISH_COMMANDS } from './session-finish.js'
 import { SESSION_START_COMMANDS } from './session-start.js'
@@ -45,11 +46,47 @@ function collectFlagStatuses(): FlagStatus[] {
   })
 }
 
+const FLAG_DATA = z.strictObject({
+  name: z.string().describe('Name of the session flag'),
+  isSet: z.boolean().describe('Whether the flag is set'),
+  content: z.string().describe('Content of the flag (empty when unset)'),
+})
+
+const ACTIVE_ISSUE_DATA = z.strictObject({
+  reference: z.string().describe('Issue in .pecot-active (owner/repo/N)'),
+  title: z.string().describe('Title of the Issue'),
+  state: z.string().describe('State of the Issue (OPEN or CLOSED)'),
+})
+
+const BASE_PULL_REQUEST_DATA = z.strictObject({
+  number: z.int().describe('PR number'),
+  state: z.string().describe('State of the PR'),
+})
+
+const STACK_DATA = z.strictObject({
+  branch: z.string().describe('Base branch the work branch is stacked on'),
+  stackedOn: z.string().describe('Issue stacked on (owner/repo/N)'),
+  pullRequest: BASE_PULL_REQUEST_DATA.optional().describe('PR of the base branch (omitted when there is none or it cannot be read)'),
+  readiness: z.string().optional().describe('Readiness of the active Issue (only when blocked)'),
+})
+
+const SESSION_SHOW_OUTPUT = z.strictObject({
+  branch: z.string().optional().describe('Current branch (omitted when it cannot be read)'),
+  repository: z.string().optional().describe('Repository of the git remote (owner/repo; omitted when it cannot be read)'),
+  inferredIssue: z.int().optional().describe('Issue number inferred from the branch name (omitted when none)'),
+  flags: z.array(FLAG_DATA).describe('Session flags'),
+  activeIssue: ACTIVE_ISSUE_DATA.optional().describe('Issue in .pecot-active as read from GitHub (omitted when unset or unreadable)'),
+  stack: STACK_DATA.optional().describe('Base the work was stacked on (omitted when not stacked)'),
+})
+
+type SessionShowData = z.input<typeof SESSION_SHOW_OUTPUT>
+
 interface ActiveIssue {
   readonly reference: IssueReference
   readonly config: Readonly<ProjectConfig>
   readonly client: Readonly<GitHubClient>
   readonly lines: readonly string[]
+  readonly data: Readonly<z.input<typeof ACTIVE_ISSUE_DATA>>
 }
 
 // .pecot-active の Issue を GitHub から読んで、Markdown の行にする。読めなければ warning だけ出して undefined にする
@@ -88,14 +125,19 @@ async function readActiveIssue(statuses: readonly FlagStatus[], output: Output):
 
   const lines = ['', '## Active Issue', '', `#${String(issue.number)} ${issue.title} (${issue.state})`]
   if (issue.body !== '') lines.push('', issue.body)
-  return { reference, config, client, lines }
+  return { reference, config, client, lines, data: { reference: issueReferenceToCliReference(reference), title: issue.title, state: issue.state } }
+}
+
+interface StackSection {
+  readonly lines: readonly string[]
+  readonly data?: SessionShowData['stack']
 }
 
 // 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
-async function stackLines(active: Readonly<ActiveIssue>, output: Output): Promise<string[]> {
+async function stackSection(active: Readonly<ActiveIssue>, output: Output): Promise<StackSection> {
   const reading = readBaseRecord()
   if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
-  if (reading.kind !== 'stacked') return []
+  if (reading.kind !== 'stacked') return { lines: [] }
   const { record, stackedOn } = reading
   const { owner, repository } = stackedOn.repository
   let pullRequest: ReturnType<typeof pickBasePullRequest> | 'unknown'
@@ -108,36 +150,54 @@ async function stackLines(active: Readonly<ActiveIssue>, output: Output): Promis
     output.warning(`cannot read the PR of the base branch: ${error.message}`)
     pullRequest = 'unknown'
   }
-  const readiness = await readinessLines(active, output)
-  return ['', '## Stack', describeStackBase(record.branch, stackedOn, pullRequest), ...readiness]
+  const readiness = await blockedReadiness(active, output)
+  return {
+    lines: ['', '## Stack', describeStackBase(record.branch, stackedOn, pullRequest), ...readiness === undefined ? [] : [`- readiness: ${readiness}`]],
+    data: {
+      branch: record.branch,
+      stackedOn: issueReferenceToCliReference(stackedOn),
+      ...pullRequest !== 'unknown' && pullRequest !== undefined && { pullRequest: { number: pullRequest.number, state: pullRequest.state } },
+      ...readiness !== undefined && { readiness },
+    },
+  }
 }
 
-// 着手中の Issue の判定が blocked のときだけ出す
-async function readinessLines(active: Readonly<ActiveIssue>, output: Output): Promise<string[]> {
+// 着手中の Issue の判定が blocked のときだけ、判定の文を返す
+async function blockedReadiness(active: Readonly<ActiveIssue>, output: Output): Promise<string | undefined> {
   const result = await readIssueReadinessIfSupported(active.client, active.config, active.reference, createReadinessCache())
-  if (result === undefined) return []
+  if (result === undefined) return undefined
   if (result.kind === 'unreadable') {
     output.warning(`cannot judge readiness of the active Issue: ${result.reason}`)
-    return []
+    return undefined
   }
   const { readiness } = result
-  return readiness?.kind === 'blocked' ? [`- readiness: ${describeReadiness(readiness, result.prerequisites, active.reference.repository)}`] : []
+  return readiness?.kind === 'blocked' ? describeReadiness(readiness, result.prerequisites, active.reference.repository) : undefined
 }
 
 const SESSION_SHOW = defineCommand({
   path: ['session', 'show'],
   description: 'Show the session flag state, branch information, and inferred Issue',
   input: z.object({ directory: directorySchema }),
+  output: SESSION_SHOW_OUTPUT,
   positional: [],
   shortFlags: { directory: '-D' },
   interactive: false,
   run: async (input, io: CommandIo) => {
-    const output = createOutput(false, io)
+    const output = createOutput<SessionShowData>(false, io)
     const branch = gitCurrentBranch(input.directory)
     const origin = primaryRemoteRepository(input.directory)
     const issueNumber = branch === undefined ? undefined : extractIssueNumberFromBranch(branch)
     const statuses = collectFlagStatuses()
     const active = await readActiveIssue(statuses, output)
+    const stack = active === undefined ? { lines: [] } : await stackSection(active, output)
+    output.result({
+      ...branch !== undefined && { branch },
+      ...origin !== undefined && { repository: `${origin.owner}/${origin.repository}` },
+      ...issueNumber !== undefined && { inferredIssue: issueNumber },
+      flags: statuses.map(status => ({ ...status })),
+      ...active !== undefined && { activeIssue: active.data },
+      ...stack.data !== undefined && { stack: stack.data },
+    })
 
     const lines = [
       '# Session status',
@@ -150,7 +210,7 @@ const SESSION_SHOW = defineCommand({
       '|------|-------|---------|',
       ...statuses.map(status => `| ${status.name} | ${status.isSet ? 'set' : 'unset'} | ${status.content} |`),
       ...active?.lines ?? [],
-      ...active === undefined ? [] : await stackLines(active, output),
+      ...stack.lines,
     ]
     output.data(lines.join('\n'))
     return 0
@@ -205,6 +265,12 @@ function parseTarget(issue: string, output: Output): RestoreTarget {
   }
 }
 
+const SESSION_RESTORE_OUTPUT = z.strictObject({
+  issue: z.string().describe('Work Issue recorded (owner/repo/N)'),
+  workDirectory: z.string().optional().describe('Absolute path of the work directory (omitted on dry_run or when it could not be created)'),
+  dryRun: DRY_RUN_FIELD,
+})
+
 const SESSION_RESTORE = defineCommand({
   path: ['session', 'restore'],
   description: 'Restore lost session flags (such as .pecot-active) from the branch information',
@@ -213,11 +279,12 @@ const SESSION_RESTORE = defineCommand({
     directory: directorySchema,
     dry_run: z.boolean().default(false).describe('Show what would be recorded without writing anything'),
   }),
+  output: SESSION_RESTORE_OUTPUT,
   positional: [],
   shortFlags: { issue_ref: '-i', directory: '-D', dry_run: '-n' },
   interactive: false,
   run: async (input, io: CommandIo) => {
-    const output = createOutput(input.dry_run, io)
+    const output = createOutput<z.input<typeof SESSION_RESTORE_OUTPUT>>(input.dry_run, io)
     const target = input.issue_ref === undefined ? inferTarget(input.directory, output) : parseTarget(input.issue_ref, output)
     let title: string
     try {
@@ -227,8 +294,14 @@ const SESSION_RESTORE = defineCommand({
       if (!(error instanceof ConfigError)) throw error
       return stopWith(output, error.message, 'config-invalid', FAILURE_EXIT_CODE)
     }
-    if (input.dry_run) planWorkTarget(output, target.owner, target.repository, target.number)
-    else recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
+    const issue = issuePath(target.owner, target.repository, target.number)
+    if (input.dry_run) {
+      output.result({ issue })
+      planWorkTarget(output, target.owner, target.repository, target.number)
+      return 0
+    }
+    const recorded = recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
+    output.result({ issue, ...recorded.workDirectory !== undefined && { workDirectory: recorded.workDirectory } })
     return 0
   },
 })

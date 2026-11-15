@@ -61,7 +61,7 @@ Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本�
 
 `repo: "<owner/repo>"` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
-各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
+できたファイルの絶対パスは、それぞれの結果の `artifacts` にある。各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
 `title` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。`repository` には、`repo` で指定した値が入っている。
 
 `blocked_by` の写し方は次のとおり。
@@ -107,19 +107,21 @@ before / after の例を示す。
 
 全フェーズ分のファイルを Phase の順に並べる。前提が後ろのフェーズを指すときは、前提にされるフェーズのファイルを先にする。
 
-投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、番号・前提・進め方の表と、積める並びが出る。`stdout` の表を Step 2 の前提の表と並べてユーザーに示し、前提の食い違いが無いかを見てもらう。
-食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果の `ok` が `false` で、`stderr` の `error:` で止まったときも、文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
+投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、結果の `data.plan` に番号・前提・進め方が、`data.stackableChains` に積める並びが入る。
+`data.plan` の `order`・`blockedBy`・`approach` を表にし、Step 2 の前提の表と並べてユーザーに示す。前提の食い違いが無いかを見てもらう。
+食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果の `ok` が `false` で止まったときも、`data.detail` の文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
 
 投稿は、同じ `files` で `issue_create` を `dry_run` なしで 1 回だけ呼ぶ。複数回に分けて呼ばない。
 
 投稿の結果は、次のとおり読み分ける。
 
-- 結果の `ok` が `false`（`exitCode` は 1）でも、`stdout` に URL の行が出ていれば Issue は作られている。同じ `files` で呼び直さない。呼び直すと Issue が重複する
+- 結果の `ok` が `false`（`exitCode` は 1）でも、`data.issues` に要素があれば、その Issue は作られている。`kind` ではなく `data.issues` で決める。同じ `files` で呼び直さない。呼び直すと Issue が重複する
   - 前提の付け直しだけに失敗したときは、`kind` が `partial-failure` になる
-- `stderr` の `error: could not add some blocked-by; add them again with:` の後ろに、付け直すコマンドの行が並ぶ。打たずにそのままユーザーへ示す
-- `stdout` に URL の行が 1 つも出ずに `stderr` の `error:` で止まったときは、投稿の前の確認で止まっている。文に従ってファイルを直し、呼び直してよい
+- 結果の `data.detail` の `could not add some blocked-by; add them again with:` の後ろに、付け直すコマンドの行が並ぶ。打たずにそのままユーザーへ示す
+- `data.issues` が無いまま `ok` が `false` で止まったときは、`kind` が `other` でなければ、投稿の前の確認で止まっている。`data.detail` の文に従ってファイルを直し、呼び直してよい
+- `kind` が `other` のときは、操作が済んでいる可能性がある。`data.issues` に作り終えた Issue が残っていれば、それを示す。残っていなくても呼び直さず、結果の `message` と `data.detail` を利用者に示して止まる
 
 ### Step 4: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の結果の `stdout` にある表の `Approach` 列）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
-投稿の結果の `stderr` のうち、`set:` の行の `status ready` と、`moved:` の行の `-> Ready` から読む。`stderr` に `warning:` の行があるときは、そのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の結果の `data.plan[].approach`）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+投稿の結果の `data.issues[].status` が `ready` の Issue が、それに当たる。結果に `data.warnings` があるときは、その文をそのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。

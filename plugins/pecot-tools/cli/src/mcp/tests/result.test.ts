@@ -35,22 +35,29 @@ describe('toCallToolResult', () => {
     expect(JSON.parse(block?.type === 'text' ? block.text : '')).toEqual(converted.structuredContent)
   })
 
-  it('ok: false を isError: true に連動させ、kind と stderr を載せる', () => {
+  it('ok: false を isError: true に連動させ、data に reason と detail を足す', () => {
     const converted = toCallToolResult({
       ...BASE_RESULT,
       ok: false,
       exitCode: 254,
       kind: 'permission-denied',
+      data: { log: 'An error occurred (AccessDenied)' },
       message: '権限が不足しています',
-      stderr: 'An error occurred (AccessDenied)',
     })
 
     expect(converted.isError).toBe(true)
     expect(converted.structuredContent).toMatchObject({
       kind: 'permission-denied',
       exitCode: 254,
-      stderr: 'An error occurred (AccessDenied)',
+      data: { log: 'An error occurred (AccessDenied)', reason: 'permission-denied', detail: '権限が不足しています' },
     })
+  })
+
+  it('最上位は ok・exitCode・kind・data・artifacts・message だけで、stdout と stderr を載せない', () => {
+    const failed = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 254, kind: 'permission-denied', message: 'x' })
+
+    expect(Object.keys(toCallToolResult(BASE_RESULT).structuredContent ?? {})).toEqual(['ok', 'exitCode', 'data', 'artifacts', 'message'])
+    expect(Object.keys(failed.structuredContent ?? {})).toEqual(['ok', 'exitCode', 'kind', 'data', 'artifacts', 'message'])
   })
 
   it('artifacts を複製して載せる', () => {

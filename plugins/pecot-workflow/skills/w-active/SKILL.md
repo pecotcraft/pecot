@@ -26,16 +26,19 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 先に `session_show` を `directory: "."` で呼んで確かめる。
 
-`.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
+残っている Issue は、結果の `data.activeIssue.reference` にある。その OPEN/CLOSED は `data.activeIssue.state` にある。
+Issue を GitHub から読めないと、`data.activeIssue` は無い。そのときは `data.flags` の、`name` が `.pecot-active` の要素の `content` を見る。違反時の対応:
 
 1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`session_start` は `kind` が `guard-blocked`（`exitCode` は 2）で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
 2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`session_start` は `kind` が `repo-mismatch`（`exitCode` は 2）で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
    MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
    始め直せないときだけ `allow_cross_repo: true` を付ける。
-3. 判定が blocked のとき、`session_start` は `kind` が `not-ready`（`exitCode` は 2）で止まり、`stderr` に `is blocked by` が出る。`stderr` の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
-4. 前提を読めないか判定できないとき、`session_start` は `kind` が `dependency-unreadable`（`exitCode` は 1）で止まる。`stderr` に `could not read blocked-by` か `could not judge readiness` が出る。
-   積む先のブランチが無くなったときは `kind` が `git-unresolved`（`exitCode` は 1）で、`stderr` に `not found` が出る。
-   `stderr`（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
+3. 判定が blocked のとき、`session_start` は `kind` が `not-ready`（`exitCode` は 2）で止まる。結果の `data.detail` に `is blocked by` が入る。
+   `data.detail` の案内の行（`issue unblock ...`。待つ理由がマージなら `issue block ... --wait stack` も）を、そのまま利用者に示す。
+   前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
+4. 前提を読めないか判定できないとき、`session_start` は `kind` が `dependency-unreadable`（`exitCode` は 1）で止まる。結果の `data.detail` に `could not read blocked-by` か `could not judge readiness` が入る。
+   積む先のブランチが無くなったときは `kind` が `git-unresolved`（`exitCode` は 1）で、結果の `data.detail` に `not found` が入る。
+   `data.detail`（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
 5. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
@@ -44,13 +47,15 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`board_show` を引数なしで呼ぶ。
 
-`stdout` の表にある判定の列（`Readiness`）と、`stderr` の食い違いの警告（`warning:`）を、利用者に伝える。
+結果の `data.board.items[].readiness.kind` の判定を、利用者に伝える。`readiness` が null の項目（`Ready` と `Blocked` 以外の列）は、判定を持たない。
+`data.mismatches` が 1 以上なら、`data.warnings` の食い違いの警告も伝える。
 
 ### Step 2: 対象タスクを確認
 
 ユーザーが選択したタスクのIssue内容を確認する。`issue_show` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
-利用者がタスクを選ぶ材料に、判定（`startable`・`stackable`・`blocked`）を示す。判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。
+利用者がタスクを選ぶ材料に、結果の `data.readiness.kind` の判定（`startable`・`stackable`・`blocked`）を示す。
+判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、`data.readiness.text` で理由を伝えて止める。
 
 ### Step 3: ベースブランチを最新化
 
@@ -71,9 +76,9 @@ git pull
 
 ### Step 5: ブランチ切り替え
 
-`session_start` の結果の `stderr` にある `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
-ブランチ名とリポを取り出し、ブランチを切り替える。
-行に `(stacked on #N)` があれば、#N の上に積んで着手した旨を利用者に伝える。
+`session_start` の結果の `data.branch`（ブランチ名）と `data.repository`（`owner/repo`）を読み、ブランチを切り替える。
+`data.base` は、ブランチを作った元のブランチだ。
+結果に `data.stackedOn` があれば、その番号の Issue の上に積んで着手した旨を利用者に伝える。
 **そのリポジトリの** ワークツリーで実行すること。
 
 ```bash
@@ -83,7 +88,7 @@ git checkout feat/description/XXX
 
 **CWDと対象リポジトリが異なる場合:**
 
-`stderr` の `created: branch` の行の `in <owner/repo>` は、ブランチを作成したリポジトリを指す。
+結果の `data.repository` は、ブランチを作成したリポジトリを指す。
 CWDが別リポジトリであっても、そのリポジトリのワークツリーで `git checkout` を実行する。
 ワークスペース内に該当リポジトリのワークツリーがあれば、そのディレクトリで実行すればよい。
 
@@ -98,6 +103,7 @@ CWDが別リポジトリであっても、そのリポジトリのワークツ�
 
 plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
 `issue_comment` を `prepare: true`・`template: "plan"`・`issue_ref: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
+できたファイルの絶対パスは、結果の `artifacts` にある。
 
 w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。
 tasks.md のチェックはタスクの単位の進捗で、並行で進められるタスクを探すときに読む。この PR のマージでフェーズの Issue が閉じるのと同時に、tasks.md のチェックもそろう。
@@ -120,7 +126,7 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、`stderr` に出た指摘を直して呼び直す。
+結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、結果の `data.detail` にある指摘を直して呼び直す。
 
 ### Step 10: プランモードで承認を得る
 

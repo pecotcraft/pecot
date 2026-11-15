@@ -37,12 +37,13 @@ git branch
 
 > **ブランチモードについて**: 以下で「開発ブランチ」と表記する箇所は config 由来で
 > 決まる。2ブランチモードでは `develop-aist`、単一ブランチモード（`develop` == `release` /
-> trunk-based）では `main`。`pr_check` の結果の `stdout` の
-> `=== Base Branch ===` の節にあるブランチを使えば、どちらのモードでも正しい開発ブランチに揃う。
+> trunk-based）では `main`。`pr_check` の結果の `data.baseBranch` から
+> 先頭の remote の名前と `/` を除いたブランチ（`origin/main` なら `main`）を使えば、
+> どちらのモードでも正しい開発ブランチに揃う。
 
 ### 通常環境（ワークツリー未使用）
 
-デフォルトブランチ（`pr_check` の `stdout` の `=== Base Branch ===` の節のブランチ）に切り替え:
+デフォルトブランチ（`pr_check` の結果の `data.baseBranch` から、先頭の remote の名前と `/` を除いたブランチ。`origin/main` なら `main`）に切り替え:
 
 ```bash
 # デフォルトブランチに切り替え（開発ブランチ または main）
@@ -60,9 +61,9 @@ mainワークツリーへの移動や更新は**不要**。
 
 ```bash
 # 1. ワークツリー専用ブランチに切り替え
-#    pr_check の結果の `stdout` にある「Current directory name:」の値を使用
+#    pr_check の結果の `data.worktree.directoryName` の値を使用
 #    例: wt1, wt2, wt3
-git checkout <Current directory nameの値>
+git checkout <data.worktree.directoryName の値>
 
 # 2. git pullで開発ブランチをマージ
 git pull <remote> <開発ブランチ>  # remote は origin、無ければ最初の remote

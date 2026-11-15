@@ -35,9 +35,8 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const session = repositoryWithRemote('session-repo')
     const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: session })
     expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden.exitCode).toBe(0)
-    expect(outcome.golden.stdout).toContain('- Repository: acme/session-repo')
-    expect(outcome.golden.stdout).not.toContain('plugin-root')
+    expect(outcome.golden).toMatchObject({ exitCode: 0, stderr: '' })
+    expect(outcome.data?.['repository']).toBe('acme/session-repo')
   })
 
   it('COPILOT_SESSION_CWD が無くても、CLAUDE_PROJECT_DIR があれば、そのリポを対象にする', { timeout: TEST_TIMEOUT_MS }, async () => {
@@ -45,8 +44,8 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const project = repositoryWithRemote('project-repo')
     const outcome = await statusFrom(pluginRoot, { CLAUDE_PROJECT_DIR: project })
     expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden.exitCode).toBe(0)
-    expect(outcome.golden.stdout).toContain('- Repository: acme/project-repo')
+    expect(outcome.golden).toMatchObject({ exitCode: 0, stderr: '' })
+    expect(outcome.data?.['repository']).toBe('acme/project-repo')
   })
 
   it('どちらの変数も無ければ、プラグインの root のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
@@ -54,8 +53,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const outcome = await statusFrom(pluginRoot, {})
     expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden.exitCode).toBe(1)
-    expect(outcome.golden.stdout).toBe('')
-    expect(outcome.golden.stderr).toContain(`error: ${REASON} (`)
+    expect(outcome.golden.stderr).toContain(`detail: ${REASON} (`)
     expect(outcome.golden.stderr).toContain('upgrade GitHub Copilot CLI to 1.0.106 or later')
   })
 
@@ -65,8 +63,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const outcome = await statusFrom(pluginRoot, { COPILOT_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: inherited })
     expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden.exitCode).toBe(1)
-    expect(outcome.golden.stdout).toBe('')
-    expect(outcome.golden.stderr).toContain(`error: ${REASON} (`)
+    expect(outcome.golden.stderr).toContain(`detail: ${REASON} (`)
     expect(outcome.golden.stderr).not.toContain('inherited-repo')
   })
 
@@ -76,6 +73,6 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: missing })
     expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden.exitCode).toBe(1)
-    expect(outcome.golden.stderr).toBe(`error: cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${missing}\n`)
+    expect(outcome.golden.stderr).toBe(`detail: cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${missing}\n`)
   })
 })

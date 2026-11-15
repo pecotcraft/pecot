@@ -60,19 +60,18 @@ async function handleEvidenceCreate(
       dependencies,
     )
     const counts = `${String(data.items)} items; ${String(data.annotations)} annotations; ${String(data.skipped.length)} skipped`
-    return toCallToolResult({
+    return output.finish({
       ok: true,
       exitCode: 0,
       artifacts: [data.outPath],
       data: { ...data },
       message: `generated evidence xlsx: ${data.outPath} (${counts})`,
-      ...output.part(),
     })
   }
   catch (error: unknown) {
     const data = errorData(error)
     const violationCount = violationCountOf(data)
-    return toCallToolResult({
+    return output.finish({
       ok: false,
       // usage エラー (exit 2) は commander の引数検証にしか無い。MCP では
       // inputSchema と parsePathArguments が先に弾くため、ここは実行失敗の 1 のみ。
@@ -81,7 +80,6 @@ async function handleEvidenceCreate(
       artifacts: [],
       data,
       message: violationCount === undefined ? formatError(error) : textViolationMessage(violationCount),
-      ...output.part(),
     })
   }
 }

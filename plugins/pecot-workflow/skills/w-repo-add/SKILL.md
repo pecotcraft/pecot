@@ -18,7 +18,7 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 `board_show` を引数なしで呼ぶ。
 
-プロジェクト情報が表示された場合は Step 2 へ。
+結果の `ok` が `true` なら Step 2 へ。
 結果の `kind` が `no-active-project` の場合は以下を案内して終了:
 
 ```text
@@ -127,7 +127,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 `board_show` を引数なしで呼ぶ。
 
-`Registered repositories` セクションに追加したリポジトリが表示されれば成功。
+結果の `data.repositories` の `full_name` に、追加したリポジトリがあれば成功。
 
 ### Step 5: 完了案内
 

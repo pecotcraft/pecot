@@ -10,6 +10,7 @@ import { resolveApiUrlOverride } from '../infra/github/client.js'
 import { usageOf, withUsage } from '../commands/command-binding.js'
 import { createOutput } from '../commands/output.js'
 import { exitCodeOfFailure } from '../commands/failure.js'
+import type { FailureKind } from '../commands/failure-kind.js'
 import { isRecord } from '../commands/input-schema.js'
 import { COMMANDS } from '../commands/registry.js'
 import { findRenamedInput, renamedInputNote } from '../commands/renamed-commands.js'
@@ -17,7 +18,8 @@ import type { CommandDefinition, PreparedCommand } from '../commands/registry.js
 import { outputWidth } from '../commands/rich-panel.js'
 import { UsageError } from '../commands/usage-error.js'
 import { readVersion } from '../version.js'
-import { collectIo, TOOL_OUTPUT_SCHEMA, toAbortedResult, toRejectedResult, toToolResult } from './result.js'
+import { collectIo, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from './result.js'
+import type { CollectedIo } from './result.js'
 
 export const MCP_SERVER_NAME = 'pecot-workflow'
 
@@ -130,10 +132,48 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     }
     catch (error_: unknown) {
       options.reportUnexpected?.(error_, { stdout: collected.stdout(), stderr: collected.stderr() })
-      return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'other', message: unexpectedMessage(error_) })
+      return finish(definition, collected, { exitCode: 1, message: unexpectedMessage(error_), kind: 'other' }, options)
     }
   }
-  return toToolResult({ exitCode, stdout: collected.stdout(), stderr: collected.stderr(), kind: collected.kind(), message, resultLine: collected.resultLine() })
+  return finish(definition, collected, { exitCode, message }, options)
+}
+
+interface Ended {
+  readonly exitCode: number
+  readonly message: string | undefined
+  /**
+  無ければコマンドが io で渡した kind
+  */
+  readonly kind?: FailureKind
+}
+
+// SDK の検証に任せると、合わない結果は structuredContent の無い文字列だけになるので、ここで検証する
+function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo, ended: Ended, options: Readonly<McpServerOptions>): CallToolResult {
+  const stdout = collected.stdout()
+  const stderr = collected.stderr()
+  const outcome = {
+    exitCode: ended.exitCode,
+    stdout,
+    stderr,
+    kind: ended.kind ?? collected.kind(),
+    message: ended.message,
+    resultLine: collected.resultLine(),
+    artifacts: collected.artifacts(),
+    warnings: collected.warnings(),
+  }
+  const raw = collected.data()
+  if (ended.exitCode === 0) {
+    const parsed = definition.output.safeParse(raw)
+    if (parsed.success) return toToolResult({ ...outcome, data: parsed.data })
+    options.reportUnexpected?.(parsed.error, { stdout, stderr })
+    // 書き込みが済んだ後の食い違いもありうる。data を捨てずに残し、呼び直さないよう伝える
+    const message = `the command finished, but its data does not match the output schema: ${issuesMessage(parsed.error)}; the operation may already be done, so do not call it again`
+    return toToolResult({ ...outcome, exitCode: 1, stderr: '', kind: 'other', message, data: raw })
+  }
+  // 失敗の結果は SDK とクライアントが検証しない。合わないときは kind などを保ち、成功の項目だけを捨てる
+  const parsed = definition.output.partial().safeParse(raw)
+  if (!parsed.success) options.reportUnexpected?.(parsed.error, { stdout, stderr })
+  return toToolResult({ ...outcome, data: parsed.success ? parsed.data : undefined })
 }
 
 // コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
@@ -161,7 +201,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,
-      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: TOOL_OUTPUT_SCHEMA },
+      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: toolOutputSchema(definition.output) },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options)),
     )
   }

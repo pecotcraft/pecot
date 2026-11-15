@@ -145,7 +145,7 @@ describe('SSO の 2 段構成', () => {
 
     // exitCode は awscli の終了コードをそのまま返す（許可リストの呼び出しと同じ規約）。
     expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
-    expect(String(structured['stderr'])).toContain('Missing the following required SSO configuration')
+    expect(String(dataOf(structured)['log'])).toContain('Missing the following required SSO configuration')
     expect(String(structured['message'])).toContain('aws configure sso')
   })
 
@@ -161,7 +161,7 @@ describe('SSO の 2 段構成', () => {
 
     expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
     expect(dataOf(structured)).toMatchObject({ state: 'failed' })
-    expect(String(structured['stderr'])).toContain('Missing the following required SSO configuration')
+    expect(String(dataOf(structured)['log'])).toContain('Missing the following required SSO configuration')
   })
 
   it('時間切れの状態確認は 124 と再開始の案内を返す', async (context) => {

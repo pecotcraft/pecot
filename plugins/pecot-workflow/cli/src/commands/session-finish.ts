@@ -21,16 +21,47 @@ import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { settle } from './tracker-sync.js'
 import { isPositive, parseReference, PR_REFERENCE_DESCRIPTION, primaryRemote, reasonOf } from './pr.js'
 
+const SKIPPED_ISSUE_DATA = z.strictObject({
+  number: z.int().describe('Issue number'),
+  reason: z.enum(['epic', 'already-closed', 'not-found', 'failed']).describe('Why it was not closed: epic (protected), already-closed, not-found, or failed (see warnings)'),
+})
+
+const DELETED_BRANCH_DATA = z.strictObject({
+  branch: z.string().describe('Name of the branch'),
+  location: z.enum(['remote', 'local']).describe('Whether the remote or the local branch was deleted'),
+})
+
+const SESSION_FINISH_OUTPUT = z.strictObject({
+  closedIssues: z.array(z.int()).describe('Issue numbers closed (to be closed on dry_run)'),
+  skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
+  deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted (to be deleted on dry_run)'),
+  currentBranch: z.string().optional().describe('Current branch after the local cleanup (omitted when the local cleanup was skipped)'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+type FinishData = z.input<typeof SESSION_FINISH_OUTPUT>
+
+// 各段の結果を集め、最後に 1 回だけ result に渡す
+interface FinishRecord {
+  readonly closedIssues: number[]
+  readonly skippedIssues: FinishData['skippedIssues']
+  readonly deletedBranches: FinishData['deletedBranches']
+  currentBranch?: string
+  // PR を確かめる前に止まったときは、空の項目を失敗の data に載せない
+  hasStarted: boolean
+}
+
 interface FinishContext {
   readonly out: Output
   readonly isDryRun: boolean
+  readonly record: FinishRecord
 }
 
 async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, location: Readonly<RepositoryReference & { readonly number: number }>, out: Readonly<Output>): Promise<{ readonly client: GitHubClient, readonly pr: PullRequestSlim }> {
@@ -71,25 +102,35 @@ async function findEpicProtectedNumbers(client: GitHubClient, location: Reposito
 }
 
 async function closeRelatedIssues(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, closing: ReadonlySet<number>, epicProtected: ReadonlySet<number>): Promise<void> {
-  const { out, isDryRun } = context
+  const { out, isDryRun, record } = context
   const protectedOrdered = [...epicProtected].toSorted((a, b) => a - b)
   const closingOrdered = [...closing].toSorted((a, b) => a - b)
-  for (const number of protectedOrdered) settle(out, { verb: 'skip', target: `closing Issue #${String(number)} (Epic)` })
+  for (const number of protectedOrdered) {
+    settle(out, { verb: 'skip', target: `closing Issue #${String(number)} (Epic)` })
+    record.skippedIssues.push({ number, reason: 'epic' })
+  }
   for (const number of closingOrdered) {
     const operation: Operation = { verb: 'close', target: `Issue #${String(number)}` }
     out.planned(operation)
-    if (isDryRun) continue
+    if (isDryRun) {
+      record.closedIssues.push(number)
+      continue
+    }
     try {
       await client.closeIssue(location.owner, location.repository, number)
       out.done(operation)
+      record.closedIssues.push(number)
     }
     catch (error: unknown) {
       if (error instanceof GitHubNotFoundError) {
         out.warning(`Issue #${String(number)} not found; skipped`)
+        record.skippedIssues.push({ number, reason: 'not-found' })
       }
       else if (error instanceof GitHubAPIError) {
-        if (isClosedByAnotherRequest(error)) out.done({ verb: 'unchanged', target: `Issue #${String(number)} (already closed)` })
+        const isClosed = isClosedByAnotherRequest(error)
+        if (isClosed) out.done({ verb: 'unchanged', target: `Issue #${String(number)} (already closed)` })
         else out.warning(`closing Issue #${String(number)} failed: ${describeApiError(error)}`)
+        record.skippedIssues.push({ number, reason: isClosed ? 'already-closed' : 'failed' })
       }
       else {
         throw error
@@ -100,13 +141,17 @@ async function closeRelatedIssues(context: Readonly<FinishContext>, client: GitH
 
 // head ブランチを消し、続けて wip ブランチを消す。head が無くても wip は試す
 async function deleteMergedBranch(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, headBranch: string): Promise<void> {
-  const { out, isDryRun } = context
+  const { out, isDryRun, record } = context
   const operation: Operation = { verb: 'delete', target: `remote branch ${headBranch}` }
   out.planned(operation)
-  if (isDryRun) return
+  if (isDryRun) {
+    record.deletedBranches.push({ branch: headBranch, location: 'remote' })
+    return
+  }
   try {
     await client.deleteBranch(location.owner, location.repository, headBranch)
     out.done(operation)
+    record.deletedBranches.push({ branch: headBranch, location: 'remote' })
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
@@ -120,6 +165,7 @@ async function deleteMergedBranch(context: Readonly<FinishContext>, client: GitH
   try {
     await client.deleteBranch(location.owner, location.repository, wipBranch)
     out.done({ verb: 'delete', target: `remote branch ${wipBranch}` })
+    record.deletedBranches.push({ branch: wipBranch, location: 'remote' })
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
@@ -202,14 +248,16 @@ function localCleanupAfterMerge(context: Readonly<FinishContext>, headBranch: st
   }
   else if (!didRunLocalStep(context, { verb: 'set', target: `current branch to ${checkoutTarget}` }, cwd, ['checkout', checkoutTarget], `checking out ${checkoutTarget}`)) {
     // checkout が失敗したら、pull と branch -D は別のブランチに当たるので止める
+    if (currentBranch !== undefined) context.record.currentBranch = currentBranch
     return
   }
+  context.record.currentBranch = checkoutTarget
   didRunLocalStep(context, { verb: 'update', target: `${checkoutTarget} from ${remote}/${developBranch}` }, cwd, ['pull', remote, developBranch], `pulling ${developBranch}`)
   if (headBranch === checkoutTarget) {
     settle(out, { verb: 'skip', target: `deleting local branch ${headBranch} (it is the checkout target)` })
   }
-  else {
-    didRunLocalStep(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)
+  else if (didRunLocalStep(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)) {
+    context.record.deletedBranches.push({ branch: headBranch, location: 'local' })
   }
 }
 
@@ -230,14 +278,26 @@ const FinishInputSchema = z.strictObject({
 })
 
 async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput(input.dry_run, io)
-  const context: FinishContext = { out, isDryRun: input.dry_run }
+  const out = createOutput<FinishData>(input.dry_run, io)
+  const record: FinishRecord = { closedIssues: [], skippedIssues: [], deletedBranches: [], hasStarted: false }
+  try {
+    await finish(input, { out, isDryRun: input.dry_run, record })
+  }
+  finally {
+    const { closedIssues, skippedIssues, deletedBranches, currentBranch } = record
+    if (record.hasStarted) out.result({ closedIssues, skippedIssues, deletedBranches, ...currentBranch !== undefined && { currentBranch } })
+  }
+}
+
+async function finish(input: Readonly<z.output<typeof FinishInputSchema> & GlobalInput>, context: Readonly<FinishContext>): Promise<void> {
+  const { out } = context
   const config = requireActiveConfigPlain(out)
   const reference = parseReference(input.pr_ref, input.repo, out)
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
 
   const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
   if (pr.state !== 'MERGED') stopWith(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`, 'pr-state')
+  context.record.hasStarted = true
 
   const closing = collectClosingIssueNumbers(pr)
   const epicProtected = await findEpicProtectedNumbers(client, location, closing, out)
@@ -260,6 +320,7 @@ const sessionFinishCommand = defineCommand({
   path: ['session', 'finish'],
   description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
   input: FinishInputSchema,
+  output: SESSION_FINISH_OUTPUT,
   positional: ['pr_ref'],
   shortFlags: { dry_run: '-n', delete_branch: '-d' },
   interactive: false,

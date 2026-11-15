@@ -20,6 +20,15 @@ export interface RecordWorkTargetOptions {
 }
 
 /**
+recordWorkTarget の結果。workDirectory は作れた作業ディレクトリの絶対パス
+*/
+export interface RecordedWorkTarget {
+  readonly status: 'recorded' | 'failed'
+  readonly issue: string
+  readonly workDirectory?: string | undefined
+}
+
+/**
 記録の失敗として扱う例外か。OS の失敗・値の誤り・プロジェクトルート不明。プログラムの誤りは伝える
 */
 function isRecordingFailure(error: unknown): error is Error {
@@ -33,7 +42,7 @@ function describeFailure(error: Readonly<Error>): string {
 
 /**
 .pecot-base を消してから作業対象を書き、`set: work target ...` の行を出す。options.base があれば記録後に .pecot-base も書く。
-失敗は warning の行。failWithExit なら error の行と CommandExit(1)。記録できたかを返す
+失敗は warning の行。failWithExit なら error の行と CommandExit(1)。記録できたかと、行に出した参照・作業ディレクトリを返す
 */
 export function recordWorkTarget(
   out: Readonly<Output>,
@@ -42,14 +51,16 @@ export function recordWorkTarget(
   issueNumber: number,
   title: string,
   options: Readonly<RecordWorkTargetOptions> = {},
-): 'recorded' | 'failed' {
+): RecordedWorkTarget {
   const issueReference = `${owner}/${repository}/${String(issueNumber)}`
   clearBase(out)
   let target: string
+  let workDirectory: string | undefined
   try {
     writeWorkTarget(issueReference, title)
     target = `work target ${issueReference}`
-    if (ensureWorkDirectory(issueReference) !== undefined) target += ` (work directory ${WORK_DIR}/${String(issueNumber)}/)`
+    workDirectory = ensureWorkDirectory(issueReference)
+    if (workDirectory !== undefined) target += ` (work directory ${WORK_DIR}/${String(issueNumber)}/)`
   }
   catch (error: unknown) {
     if (!isRecordingFailure(error)) throw error
@@ -57,11 +68,11 @@ export function recordWorkTarget(
       stopWith(out, `could not record the work target: ${describeFailure(error)}`, 'other')
     }
     out.warning(`could not record the work target: ${describeFailure(error)}`)
-    return 'failed'
+    return { status: 'failed', issue: issueReference }
   }
   out.done({ verb: 'set', target })
   if (options.base !== undefined) recordBase(options.base, out)
-  return 'recorded'
+  return { status: 'recorded', issue: issueReference, workDirectory }
 }
 
 function warnBase(out: Readonly<Output>, error: unknown): void {

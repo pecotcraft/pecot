@@ -18,7 +18,7 @@ import { createIssue, putOnBoard } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { apiErrorDetail, isBodyUnchanged, loadTarget, settle, todayUtc, warnExtraTrackers } from './tracker-sync.js'
-import type { SyncApplyContext, SyncStages, TrackerSyncInput } from './tracker-sync.js'
+import type { SyncApplyContext, SyncStages, TrackerSyncData, TrackerSyncInput } from './tracker-sync.js'
 
 interface FetchedAlerts {
   readonly alerts: ReadonlyMap<AlertKind, readonly Alert[]>
@@ -68,15 +68,27 @@ function operationsOf(plan: TrackerPlan, tracker: number | undefined, title: str
   return { create: [], rewrite: rewrite.length === 0 ? [{ verb: 'update', target: `Tracker ${label} body` }] : rewrite }
 }
 
+// 足す行と外す行。open の Tracker が無ければ、立てる Tracker に載せる行を足す行にする。本文が変わらなければどちらも空
+function rowsOf(plan: TrackerPlan, tracker: number | undefined, isUnchanged: boolean): Pick<TrackerSyncData, 'added' | 'removed'> {
+  if (tracker !== undefined && isUnchanged) return { added: [], removed: [] }
+  const added = tracker === undefined ? (plan.create ? plan.entries : []) : plan.added
+  const removed = tracker === undefined ? [] : plan.removed
+  return {
+    added: added.map(entry => ({ kind: entry.kind, number: entry.number })),
+    removed: removed.map(entry => ({ kind: entry.kind, number: entry.number })),
+  }
+}
+
 interface ApplyInput extends SyncApplyContext {
   readonly plan: TrackerPlan
   readonly stages: SyncStages
+  readonly rows: Pick<TrackerSyncData, 'added' | 'removed'>
 }
 
 // Tracker を作る・書き直す・ボードに載せる。失敗の数を返す。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は可変
-async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>): Promise<number> {
-  const { client, config, owner, repository, plan, title, body, stages, number, isUnchanged } = input
+async function applyChanges(out: Readonly<Output<TrackerSyncData>>, input: Readonly<ApplyInput>): Promise<number> {
+  const { client, config, owner, repository, plan, title, body, stages, number, isUnchanged, rows } = input
   const priority = maxPriority(plan.entries)
   try {
     if (number === undefined) {
@@ -86,7 +98,9 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
       }
       const issue = await createIssue(client, owner, repository, title, body, [ALERT_LABEL])
       for (const operation of stages.create) out.done(operation)
-      await putOnBoard(client, config, owner, repository, requireNumber(issue['number'], 'number'), priority, { onlyIfEmpty: false })
+      const created = requireNumber(issue['number'], 'number')
+      out.result({ tracker: created, created: true, added: rows.added })
+      await putOnBoard(client, config, owner, repository, created, priority, { onlyIfEmpty: false })
       return 0
     }
     let failures = 0
@@ -104,7 +118,10 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
         out.error(`could not update Tracker #${String(number)} body: ${text}`)
       }
     }
-    if (isUpdated) for (const operation of stages.rewrite) out.done(operation)
+    if (isUpdated) {
+      for (const operation of stages.rewrite) out.done(operation)
+      out.result(rows)
+    }
     // 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
     await putOnBoard(client, config, owner, repository, number, priority, { onlyIfEmpty: true })
     return failures
@@ -121,7 +138,7 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
 tracker sync の source security の本体。Tracker の open security alerts の一覧を書き直す
 */
 export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<0> {
-  const out = createOutput(input.dry_run, io)
+  const out = createOutput<TrackerSyncData>(input.dry_run, io)
   const { config, owner, repository } = loadTarget(out, input.repo)
   const client = makeClient(out, config)
 
@@ -158,7 +175,10 @@ export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: Com
   const stages = operationsOf(plan, number, title, isUnchanged)
   for (const operation of [...stages.create, ...stages.rewrite]) out.planned(operation)
 
-  const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged })
+  const rows = rowsOf(plan, number, isUnchanged)
+  const synced: Pick<TrackerSyncData, 'source' | 'tracker' | 'closed'> = { source: 'security', ...number !== undefined && { tracker: number }, closed: false }
+  out.result(input.dry_run ? { ...synced, created: number === undefined && plan.create, ...rows } : { ...synced, created: false, added: [], removed: [] })
+  const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged, rows })
   if (failed.size > 0 || failures > 0) throw new CommandExit(1, 'partial-failure')
   return 0
 }

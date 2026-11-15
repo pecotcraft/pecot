@@ -1,16 +1,19 @@
 // board show の表示と、Archived の整理、Dependabot alert の収集。
+import { z } from 'zod'
+
 import { effectiveReleaseType, workflowFieldName } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
+import type { ProjectConfig, Repository } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'
 import type { DependabotAlertStatus } from '../domain/dependabot.js'
 import { formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
-import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { compareStrings } from '../domain/python-format.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import { READINESS_JSON } from './issue-readiness.js'
+import type { BoardReadinessJson } from './issue-readiness.js'
 import type { Output } from './output.js'
 import { STATUS_FIELD_NAME } from './project-sync.js'
 
@@ -37,15 +40,15 @@ function updatedAtOf(item: Readonly<BoardItem>): string {
 
 /**
 Archived のアイテムを updatedAt の新しい順に並べ、最新の 20 件を残して、残りをボードから消す。
-消せなかった件数を warning の行に出し、その数を返す
+消せなかった件数を warning の行に出す。消した件数（dry-run は消す予定の件数）と、消せなかった件数を返す
 */
-export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[], isDryRun: boolean): Promise<number> {
+export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[], isDryRun: boolean): Promise<{ readonly deleted: number, readonly failed: number }> {
   const archived = allItems.filter(item => item.workflow === 'Archived').toSorted((first, second) => compareStrings(updatedAtOf(second), updatedAtOf(first)))
-  if (archived.length <= ARCHIVED_KEEP) return 0
+  if (archived.length <= ARCHIVED_KEEP) return { deleted: 0, failed: 0 }
   const targets = archived.slice(ARCHIVED_KEEP)
   if (isDryRun) {
     out.planned({ verb: 'delete', target: `${String(targets.length)} archived items` })
-    return 0
+    return { deleted: targets.length, failed: 0 }
   }
   let deleted = 0
   for (const item of targets) {
@@ -63,7 +66,7 @@ export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly
   if (deleted > 0) out.done({ verb: 'delete', target: `${String(deleted)} archived items`, aside: true })
   const failed = targets.length - deleted
   if (failed > 0) out.warning(`failed to delete ${String(failed)} archived items`)
-  return failed
+  return { deleted, failed }
 }
 
 /**
@@ -107,7 +110,85 @@ function statusAt(statuses: readonly AlertStatus[], index: number): AlertStatus 
   return status
 }
 
-function alertsJson(status: AlertStatus): JsonObject {
+const ALERTS_JSON = z.union([
+  z.strictObject({
+    error: z.string().describe('Reason the Dependabot alerts could not be fetched'),
+  }),
+  z.strictObject({
+    enabled: z.boolean().describe('Whether Dependabot alerts are enabled'),
+    open_count: z.int().describe('Number of open alerts (0 when disabled)'),
+    max_severity: z.string().nullable().describe('Highest severity of the open alerts (null when there is none)'),
+    alerts_url: z.string().describe('URL of the alert list'),
+  }),
+])
+
+// extend は同じ名前のキーを元の位置のまま置き換えるので、キーの並びは readinessJson と同じに保たれる
+const BOARD_READINESS_JSON = READINESS_JSON.extend({
+  kind: z.enum(['startable', 'stackable', 'blocked', 'unknown']).describe('Readiness judgment (unknown when the prerequisites could not be read)'),
+  text: z.string().describe('Readiness as shown in the Readiness column'),
+})
+
+const BOARD_CONTENT_JSON = z.strictObject({
+  number: z.unknown().optional().describe('Issue or PR number'),
+  state: z.unknown().optional().describe('State of the Issue or PR (OPEN etc.)'),
+  url: z.unknown().optional().describe('URL of the Issue or PR'),
+  labels: z.array(z.string()).optional().describe('Label names'),
+  repository: z.string().optional().describe('Repository (owner/repo)'),
+})
+
+const BOARD_ITEM_JSON = z.strictObject({
+  id: z.unknown().optional().describe('Project item ID'),
+  workflow: z.string().nullable().optional().describe('Column (workflow field value) of the item'),
+  title: z.unknown().optional().describe('Title of the Issue or PR'),
+  updatedAt: z.unknown().optional().describe('Last update time of the item'),
+  content: BOARD_CONTENT_JSON.describe('Issue or PR on the card'),
+  readiness: BOARD_READINESS_JSON.nullable().optional().describe('Readiness of a Ready or Blocked Issue (null for other items; omitted when the server does not support issue dependencies)'),
+})
+
+const PACKAGE_JSON = z.strictObject({
+  name: z.string().describe('Package name'),
+  changelog: z.string().describe('Path of the CHANGELOG of the package'),
+})
+
+const REPOSITORY_JSON = z.strictObject({
+  full_name: z.string().describe('Repository (owner/repo)'),
+  owner: z.string().describe('Owner of the repository'),
+  name: z.string().describe('Name of the repository'),
+  develop_branch: z.string().nullable().describe('Develop branch (null when not set)'),
+  release_branch: z.string().nullable().describe('Release branch (null when not set)'),
+  dependabot_alerts: ALERTS_JSON.describe('Dependabot alert status, or the reason it could not be fetched'),
+  release_type: z.enum(['single', 'multi', 'nx']).describe('Release type in effect (data only; not in --json)'),
+  packages: z.array(PACKAGE_JSON).describe('Packages of a monorepo (data only; empty when none)'),
+  changelog_file: z.string().optional().describe('CHANGELOG path set for a repository without packages (data only; omitted when not set)'),
+})
+/**
+board show の MCP の data。project・repositories・board は --json と同じ。repositories の release_type・packages・changelog_file と mismatches は data にだけ足す
+*/
+export const BOARD_SHOW_OUTPUT = z.strictObject({
+  project: z.strictObject({
+    name: z.string().describe('Name of the project config'),
+    host: z.string().describe('GitHub host'),
+    owner: z.string().describe('Owner of the project'),
+    number: z.int().describe('Project number'),
+    aggregation_repo: z.string().nullable().describe('Roadmap (aggregation) repository (null when not set)'),
+  }).describe('Overview of the project'),
+  repositories: z.array(REPOSITORY_JSON).describe('Registered repositories, in registration order'),
+  board: z.strictObject({
+    items: z.array(BOARD_ITEM_JSON).describe('Open items in Backlog, Pending, Blocked, Ready, Active and In Review'),
+  }).describe('Board status'),
+  mismatches: z.int().describe('Number of Ready or Blocked Issues whose column or Status may not match the judgment (data only)'),
+})
+
+export type BoardShowJson = z.input<typeof BOARD_SHOW_OUTPUT>
+
+type RepositoryExtras = Pick<BoardShowJson['repositories'][number], 'release_type' | 'packages' | 'changelog_file'>
+
+/**
+--json に出す中身（data にだけ足す項目を除いたもの）
+*/
+export type BoardShowCore = Omit<BoardShowJson, 'repositories' | 'mismatches'> & { readonly repositories: readonly Omit<BoardShowJson['repositories'][number], keyof RepositoryExtras>[] }
+
+function alertsJson(status: AlertStatus): z.input<typeof ALERTS_JSON> {
   return typeof status === 'string' ? { error: status } : { enabled: status.enabled, open_count: status.openCount, max_severity: status.maxSeverity ?? JSON_NULL, alerts_url: status.alertsUrl }
 }
 
@@ -126,14 +207,30 @@ export interface BoardShowView {
 /**
 アイテムの JSON の readiness を引く。判定の無いアイテムは null
 */
-export type ReadinessSource = (item: BoardItem) => JsonObject | typeof JSON_NULL
+export type ReadinessSource = (item: BoardItem) => BoardReadinessJson | typeof JSON_NULL
+
+function repositoryJson(entry: Repository, status: AlertStatus): BoardShowCore['repositories'][number] {
+  return {
+    full_name: `${entry.owner}/${entry.name}`,
+    owner: entry.owner,
+    name: entry.name,
+    develop_branch: entry.develop_branch ?? JSON_NULL,
+    release_branch: entry.release_branch ?? JSON_NULL,
+    dependabot_alerts: alertsJson(status),
+  }
+}
+
+function itemJson(item: BoardItem): z.input<typeof BOARD_ITEM_JSON> {
+  const { labels } = item.content
+  return { ...item, content: { ...item.content, labels: labels === undefined ? undefined : [...labels] } }
+}
 
 /**
-info --json の出力
+--json の標準出力と MCP の data の中身。キーを並べた順が --json の出力の順になる
 */
-export function boardShowJson(view: Readonly<BoardShowView>, items: readonly BoardItem[], readiness?: ReadinessSource): string {
+export function boardShowData(view: Readonly<BoardShowView>, items: readonly BoardItem[], readiness?: ReadinessSource): BoardShowCore {
   const { config, projectName, statuses } = view
-  const output = {
+  return {
     project: {
       name: projectName,
       host: config.host,
@@ -141,17 +238,43 @@ export function boardShowJson(view: Readonly<BoardShowView>, items: readonly Boa
       number: config.project.number,
       aggregation_repo: config.aggregation_repo ?? JSON_NULL,
     },
-    repositories: config.repositories.map((entry, index) => ({
-      full_name: `${entry.owner}/${entry.name}`,
-      owner: entry.owner,
-      name: entry.name,
-      develop_branch: entry.develop_branch ?? JSON_NULL,
-      release_branch: entry.release_branch ?? JSON_NULL,
-      dependabot_alerts: alertsJson(statusAt(statuses, index)),
-    })),
-    board: readiness === undefined ? formatItemsJson(items) : { items: items.map(item => ({ ...item, readiness: readiness(item) })) },
+    repositories: config.repositories.map((entry, index) => repositoryJson(entry, statusAt(statuses, index))),
+    board: readiness === undefined
+      ? { items: formatItemsJson(items).items.map(item => itemJson(item)) }
+      : { items: items.map((item) => {
+          const found = readiness(item)
+          return { ...itemJson(item), readiness: found }
+        }) },
   }
-  return JSON.stringify(output, undefined, 2)
+}
+
+/**
+info --json の出力
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の input の型は配列が可変
+export function boardShowJson(data: Readonly<BoardShowCore>): string {
+  return JSON.stringify(data, undefined, 2)
+}
+
+/**
+MCP の data。--json の中身に、リポジトリごとの release_type・packages・changelog_file と、食い違いの件数を足す
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の input の型は配列が可変
+export function boardShowResult(view: Readonly<BoardShowView>, core: Readonly<BoardShowCore>, mismatches: number): BoardShowJson {
+  const { config, statuses } = view
+  return {
+    ...core,
+    repositories: config.repositories.map((entry, index) => ({ ...repositoryJson(entry, statusAt(statuses, index)), ...repositoryExtras(entry) })),
+    mismatches,
+  }
+}
+
+function repositoryExtras(entry: Repository): RepositoryExtras {
+  return {
+    release_type: effectiveReleaseType(entry),
+    packages: (entry.packages ?? []).map(item => ({ name: item.name, changelog: item.changelog })),
+    ...entry.changelog_file !== undefined && entry.changelog_file !== '' && { changelog_file: entry.changelog_file },
+  }
 }
 
 function repositoryLines(view: Readonly<BoardShowView>): readonly string[] {

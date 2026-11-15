@@ -243,7 +243,7 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
 ]
 
 /**
-ToolResult 同形の outputSchema で必須になるフィールド (stdout / stderr は任意)。
+ToolResult 同形の outputSchema で必須になるフィールド。
 */
 const OUTPUT_REQUIRED = ['artifacts', 'data', 'exitCode', 'message', 'ok']
 
@@ -276,14 +276,13 @@ const ABSOLUTE_PATH = path.join(MISSING_DIRECTORY, 'probe')
 即失敗テーブルの対象外にするツール。`runtime_setup` は引数を取らないため、入力起因の即失敗を作れない。
 失敗させるには、実際に Chromium の取得を動かすしかない (取得先の細工が要る)。
 出力捕捉を含む runtime_setup の応答は src/mcp/tools/tests/setup.test.ts が見る。
-`slide_theme` は読み取りだけで何も出力しないため、出力捕捉（stdout / stderr のキー）の対象外にする。
+`slide_theme` は読み取りだけで出力を捕捉しないため、対象外にする。
 */
 const NO_FAST_FAILURE = new Set(['runtime_setup', 'slide_theme'])
 
 /**
-実処理に入って即座に失敗する引数。「捕捉した出力は空でもキーを残す」を一律で見るために使う。
+実処理に入って即座に失敗する引数。失敗の結果の形を一律で見るために使う。
 成功時の呼び出しは実 build / LibreOffice を起こし、e2e 相当の重さになる。
-捕捉の有無という観測対象は、失敗時でも変わらない。
 */
 const FAST_FAILURES: readonly { readonly name: string, readonly arguments: Readonly<Record<string, unknown>> }[] = [
   // タグの無いテーマの指定は、取得と生成先のどちらよりも先に弾かれる。
@@ -532,7 +531,12 @@ describe('MCP ツール契約 (tools/list)', () => {
       expect(called.isError, `${contract.name}.${name}`).toBe(true)
       expect(structured['exitCode'], `${contract.name}.${name}`).toBe(2)
       expect(structured['artifacts']).toEqual([])
-      expect(structured['data']).toEqual({ invalidPaths: [`${name}=${RELATIVE_PATH}`] })
+      expect(structured['kind'], `${contract.name}.${name}`).toBe('invalid-path')
+      expect(structured['data']).toEqual({
+        reason: 'invalid-path',
+        detail: structured['message'],
+        invalidPaths: [`${name}=${RELATIVE_PATH}`],
+      })
     }
   })
 
@@ -604,7 +608,10 @@ describe('MCP ツール契約 (tools/list)', () => {
         }))
 
         expect(rejected['exitCode'], `${contract.name}.${name} (${windowsPath})`).toBe(2)
+        expect(rejected['kind'], `${contract.name}.${name} (${windowsPath})`).toBe('invalid-path')
         expect(rejected['data'], `${contract.name}.${name} (${windowsPath})`).toEqual({
+          reason: 'invalid-path',
+          detail: rejected['message'],
           invalidPaths: [`${companion}=${RELATIVE_PATH}`],
           convertedPaths: { [name]: { from: windowsPath, to: convertedPath } },
         })
@@ -640,9 +647,25 @@ describe('MCP ツール契約 (tools/list)', () => {
     const properties = Object.keys(outputSchema?.['properties'] ?? {})
     const required = outputSchema?.['required']
 
-    expect(properties).toEqual(expect.arrayContaining(OUTPUT_REQUIRED))
-    // stdout / stderr は捕捉できたときだけ載るため必須にしない。
+    expect(sorted(properties)).toEqual(sorted([...OUTPUT_REQUIRED, 'kind']))
     expect(sorted(Array.isArray(required) ? required.map(String) : [])).toEqual(OUTPUT_REQUIRED)
+  })
+
+  it.each(TOOL_CONTRACTS)('$name の data の schema は、共通の 4 項目を省略可で持ち、ほかの項目も受ける', (contract) => {
+    const properties = toolOf(contract.name).outputSchema?.['properties']
+    const data = propertyOf(isRecord(properties) ? properties : undefined, 'data')
+
+    const common = data['properties']
+    expect(common).toMatchObject({
+      warnings: { type: 'array', items: { type: 'string' } },
+      reason: { type: 'string' },
+      detail: { type: 'string' },
+      log: { type: 'string' },
+    })
+    const names = Object.keys(isRecord(common) ? common : {})
+    expect(sorted(names)).toEqual(['detail', 'log', 'reason', 'warnings'])
+    expect(data['required'] ?? []).toEqual([])
+    expect(data['additionalProperties']).toEqual({})
   })
 
   it.each(TOOL_CONTRACTS)('$name の annotations が実行判断のヒントを持つ', (contract) => {
@@ -689,18 +712,18 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(tool.description).toContain('600MB')
   })
 
-  it.each(FAST_FAILURES)('$name は捕捉した出力が空でも stdout / stderr のキーを残す', async (failure) => {
-    // stdout / stderr が省略されるのは「捕捉していない」ときだけ、という宣言 (tools/_shared.ts)
-    // を 11 ツール一律で pin する。相対パス拒否は捕捉前に返るので、ここでは実処理へ入る
-    // 引数 (絶対パスだが実在しない入力) を使う。
+  it.each(FAST_FAILURES)('$name の失敗は、stdout / stderr を持たず、data.reason と data.detail を返す', async (failure) => {
+    // 相対パス拒否は実処理の前に返るので、実処理へ入る引数 (絶対パスだが実在しない入力) を使う。
     const structured = structuredOf(await client().callTool({
       name: failure.name,
       arguments: { ...failure.arguments },
     }))
 
-    // 相対パス拒否になっていないこと = 捕捉を伴う処理まで進んだことの確認。
     expect(structured['data'], `${failure.name} が実処理へ入っていない`).not.toHaveProperty('invalidPaths')
-    expect(typeof structured['stdout'], `${failure.name} の stdout`).toBe('string')
-    expect(typeof structured['stderr'], `${failure.name} の stderr`).toBe('string')
+    expect(Object.keys(structured)).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
+    const data = isRecord(structured['data']) ? structured['data'] : {}
+    expect(typeof data['reason']).toBe('string')
+    expect(typeof data['detail']).toBe('string')
+    expect(typeof structured['kind']).toBe('string')
   })
 })

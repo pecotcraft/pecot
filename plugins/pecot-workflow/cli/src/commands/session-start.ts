@@ -14,7 +14,8 @@ import type { StartDecision } from '../domain/work-start.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { readFlag } from '../infra/state-store.js'
-import { createOutput } from './output.js'
+import { issuePath } from './issue-shared.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -78,7 +79,7 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
   if (base !== undefined && base !== '') return base
   const developBranch = findRepository(config, owner, repository)?.develop_branch
   if (developBranch === undefined || developBranch === '') {
-    const withBase = commandHint(START_PATH, { issue_ref: `${owner}/${repository}/${String(issueNumber)}`, branch, base: 'main' })
+    const withBase = commandHint(START_PATH, { issue_ref: issuePath(owner, repository, issueNumber), branch, base: 'main' })
     stopWith(out, joinHinted([`develop_branch is not set for ${owner}/${repository}`, developBranchGuide(owner, repository), hinted`or give the base: ${withBase}`]), 'repo-setting-missing')
   }
   return developBranch
@@ -145,7 +146,7 @@ async function guardActiveOverwrite(out: Readonly<Output>, client: Readonly<GitH
 */
 async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<{ owner: string, repository: string, number: number }>): Promise<void> {
   const { owner, repository, number } = issue
-  const target = `Issue ${owner}/${repository}/${String(number)} status active`
+  const target = `Issue ${issuePath(owner, repository, number)} status active`
   try {
     const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
     if (itemId === undefined || itemId === '') {
@@ -168,6 +169,16 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
   }
 }
 
+const SESSION_START_OUTPUT = z.strictObject({
+  branch: z.string().describe('Branch created (or to be created), with the Issue number appended'),
+  repository: z.string().describe('Repository of the branch (owner/repo)'),
+  base: z.string().describe('Base branch the branch starts from'),
+  stackedOn: z.int().optional().describe('Issue number whose branch this one is stacked on (omitted when not stacked)'),
+  issue: z.string().describe('Work Issue (owner/repo/N)'),
+  workDirectory: z.string().optional().describe('Absolute path of the work directory (omitted on dry_run or when it could not be created)'),
+  dryRun: DRY_RUN_FIELD,
+})
+
 const sessionStartCommand = defineCommand({
   path: START_PATH,
   description: 'Create a branch linked to an Issue (shown in the Development section of the Issue)',
@@ -180,13 +191,14 @@ const sessionStartCommand = defineCommand({
     force_overwrite_active: z.boolean().default(false).describe('Disable the .pecot-active overwrite guard (when sure it is stale)'),
     dry_run: z.boolean().default(false).describe('Show what would be created and recorded without writing anything'),
   }),
+  output: SESSION_START_OUTPUT,
   positional: ['issue_ref', 'branch'],
   shortFlags: { base: '-b', allow_cross_repo: '-X', force_overwrite_active: '-F', dry_run: '-n' },
   negations: { checkout: '--no-checkout' },
   interactive: false,
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
-    const out = createOutput(input.dry_run, io)
+    const out = createOutput<z.input<typeof SESSION_START_OUTPUT>>(input.dry_run, io)
     // 1. 設定取得
     const config = requireActiveConfig(out)
 
@@ -210,7 +222,7 @@ const sessionStartCommand = defineCommand({
       const client = createGitHubClient(out, config.host)
 
       // A-2. .pecot-active 上書きガード
-      if (!input.force_overwrite_active) await guardActiveOverwrite(out, client, `${owner}/${repository}/${String(issueNumber)}`)
+      if (!input.force_overwrite_active) await guardActiveOverwrite(out, client, issuePath(owner, repository, issueNumber))
 
       // 4. リポジトリがプロジェクトに含まれているか確認
       if (!await isRepositoryInProject(config, owner, repository, client)) {
@@ -240,23 +252,27 @@ const sessionStartCommand = defineCommand({
       }
 
       const stackedNote = decision.kind === 'stack' ? ` (stacked on ${displayReference(decision.issue, issue.repository)})` : ''
+      const started = { repository: `${owner}/${repository}`, base: baseBranch, ...decision.kind === 'stack' && { stackedOn: decision.issue.number }, issue: issuePath(owner, repository, issueNumber) }
       if (input.dry_run) {
+        out.result({ ...started, branch: finalBranchName })
         out.planned({ verb: 'create', target: `branch ${finalBranchName} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
-        out.planned({ verb: 'set', target: `Issue ${owner}/${repository}/${String(issueNumber)} status active` })
+        out.planned({ verb: 'set', target: `Issue ${issuePath(owner, repository, issueNumber)} status active` })
         planWorkTarget(out, owner, repository, issueNumber)
         return 0
       }
       // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
       const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
       out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
+      out.result({ ...started, branch: createdBranch })
 
       // 7.5. プロジェクトアイテムのステータスを active に更新
       await setIssueStatusActive(out, client, config, { owner, repository, number: issueNumber })
 
       // 9. 作業対象を .pecot-active と .pecot-session-title に保存（hook の自動投稿とセッション名用）
-      recordWorkTarget(out, owner, repository, issueNumber, issueTitle, {
+      const recorded = recordWorkTarget(out, owner, repository, issueNumber, issueTitle, {
         base: { branch: baseBranch, sha: baseSha, stackedOn: decision.kind === 'stack' ? decision.issue : undefined },
       })
+      if (recorded.workDirectory !== undefined) out.result({ workDirectory: recorded.workDirectory })
       return 0
     }
     catch (error: unknown) {

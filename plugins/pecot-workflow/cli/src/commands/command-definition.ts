@@ -29,6 +29,18 @@ export interface CommandIo {
   結果の行（created: など。改行を含まない）を受け取る。片付けの行は渡さない。MCP だけが渡す
   */
   readonly resultLine?: (line: string) => void
+  /**
+  成功の data の項目を受け取る。何度も渡されたら浅く重ねる（後の値が勝つ）。MCP だけが渡す
+  */
+  readonly data?: (fields: Readonly<Record<string, unknown>>) => void
+  /**
+  作ったか書き換えたファイル・ディレクトリの絶対パスを受け取る。MCP だけが渡す
+  */
+  readonly artifact?: (path: string) => void
+  /**
+  warning の文（`warning: ` の前置きと字下げを除いたもの）を受け取る。MCP だけが渡す
+  */
+  readonly warning?: (text: string) => void
 }
 
 /**
@@ -50,11 +62,12 @@ export class CommandExit extends BaseError {
 グローバルの --repo を入力にしたもの。全コマンドの入力に足される
 */
 const GLOBAL_SHAPE = { repo: z.string().optional() }
+const RESERVED_OUTPUT_KEYS: readonly string[] = ['reason', 'detail', 'warnings', 'log']
 const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
 
 export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
-export interface CommandSpec<Input extends z.ZodObject> {
+export interface CommandSpec<Input extends z.ZodObject, Output extends z.ZodObject> {
   /**
   `['issue', 'create']`、`['board', 'add']`。決まりは `<対象> <動詞>` の 2 語で、どちらも英小文字だけ（names.ts の commandNameViolations）
   */
@@ -68,6 +81,11 @@ export interface CommandSpec<Input extends z.ZodObject> {
   `repo` はグローバルの --repo 用の予約名。hasOwnRepo が真のコマンドだけ、自分の `--repo` として持てる
   */
   readonly input: Input
+  /**
+  MCP の成功の data の型（z.strictObject）。run は createOutput<z.input<typeof output>>() の result で項目を渡す。
+  `.default()`・transform・z.date() は使わない（定義書への書き出しで形が変わるか、例外になる）
+  */
+  readonly output: Output
   /**
   自分の `--repo` を持つ印。真なら input に `repo` を書ける（説明は `.describe()`、形の検証は input の refine）。
   実行時の `repo` は、サブコマンドの値を先に使い、無ければグローバルの値になる
@@ -123,6 +141,10 @@ export interface CommandDefinition {
   グローバルの repo を足した入力
   */
   readonly input: z.ZodObject
+  /**
+  MCP の成功の data の型
+  */
+  readonly output: z.ZodObject
   readonly positional: readonly string[]
   /**
   自分の `--repo` を持つか。真のとき、input の repo はコマンド自身の引数
@@ -197,14 +219,18 @@ async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promis
 /**
 型付きの仕様から、型を消した定義を作る。parse が input で検証してから本体を呼ぶので、型を消しても安全に呼べる
 */
-
-export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandSpec<Input>>): CommandDefinition {
+export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObject>(spec: Readonly<CommandSpec<Input, Output>>): CommandDefinition {
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
   const hasOwnRepository = spec.hasOwnRepo === true
   const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
   // eslint-disable-next-line no-restricted-syntax -- コマンドの定義の誤りで、利用者には出ない
   if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
+  // 定義書の data の成功の側を閉じた型（additionalProperties: false）にするため
+  if (!(spec.output.def.catchall instanceof z.ZodNever)) throw new TypeError('output は z.strictObject で書きます')
+  // MCP の結果の data は共通の項目を extend で重ねるので、同じ名前は知らせなしに上書きされる
+  const reserved = RESERVED_OUTPUT_KEYS.filter(key => Object.hasOwn(spec.output.shape, key))
+  if (reserved.length > 0) throw new TypeError(`output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
   assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
   const aliased = Object.keys(spec.aliases ?? {})
   for (const name of aliased) {
@@ -224,6 +250,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     toolName: toolNameOf(spec.path),
     description: spec.description,
     input,
+    output: spec.output,
     positional: spec.positional,
     hasOwnRepo: hasOwnRepository,
     ignoresGlobalRepo: spec.ignoresGlobalRepo === true,

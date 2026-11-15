@@ -24,7 +24,7 @@ import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING, FLAG_PECOT_QUICK_M
 import { compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
 import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { describeReadiness, displayReference, hasStarted } from '../domain/readiness.js'
+import { describeReadiness, displayReference, hasStarted, stackChains } from '../domain/readiness.js'
 import type { Progression } from '../domain/readiness.js'
 import { parseIssueFile } from '../infra/frontmatter-file.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
@@ -70,7 +70,7 @@ import {
   warnEpicRepositoryException,
 } from './issue-shared.js'
 import type { IssueField, IssueType } from './issue-shared.js'
-import { createOutput } from './output.js'
+import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -91,6 +91,58 @@ interface CreatedIssue {
   readonly repository: string
   readonly number: number
 }
+
+// validateStatusForType が、作るときの status を型の既定（backlog・ready）か、前提があるときの blocked に限る
+const CREATED_STATUS = z.enum(['backlog', 'blocked', 'ready'])
+
+type CreatedStatus = z.infer<typeof CREATED_STATUS>
+
+function isCreatedStatus(value: string): value is CreatedStatus {
+  return CREATED_STATUS.safeParse(value).success
+}
+
+const CREATED_ISSUE_DATA = z.strictObject({
+  owner: z.string().describe('Owner of the repository of the Issue'),
+  repository: z.string().describe('Name of the repository of the Issue'),
+  number: z.int().describe('Issue number'),
+  url: z.string().describe('URL of the Issue'),
+  status: CREATED_STATUS.optional().describe('Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)'),
+  parent: z.string().optional().describe('Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)'),
+})
+
+const STACKABLE_CHAINS = z.array(z.array(z.string())).optional().describe('Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)')
+
+const PLAN_PREREQUISITE_DATA = z.strictObject({
+  issue: z.string().describe('Prerequisite: key of a file, or #N / owner/repo#N for an existing Issue'),
+  wait: z.enum(['stack', 'merge']).describe('How to wait for the prerequisite'),
+})
+
+const PLAN_ROW_DATA = z.strictObject({
+  file: z.string().describe('Key of the file (the --prepare suffix, else the file stem)'),
+  order: z.int().optional().describe('Order number in the title (omitted without a parent Epic)'),
+  blockedBy: z.array(PLAN_PREREQUISITE_DATA).describe('Prerequisites in the order written'),
+  approach: z.enum(['alone', 'wait-merge', 'stack', 'join']).describe('How to proceed'),
+  stackOn: z.string().optional().describe('Prerequisite to stack on (only when approach is stack)'),
+})
+
+const PLANNED_ISSUE_DATA = z.strictObject({
+  owner: z.string().describe('Owner of the repository'),
+  repository: z.string().describe('Name of the repository'),
+  title: z.string().describe('Title of the Issue'),
+})
+
+const ISSUE_CREATE_OUTPUT = z.strictObject({
+  issues: z.array(CREATED_ISSUE_DATA).optional().describe('Issues created, in the order of creation (also kept on a failure after some were created)'),
+  stackableChains: STACKABLE_CHAINS,
+  plan: z.array(PLAN_ROW_DATA).optional().describe('Progression table of the files (only on dry_run with files)'),
+  plannedIssue: PLANNED_ISSUE_DATA.optional().describe('Issue that would be created (only on dry_run with message or freeform)'),
+  file: z.string().optional().describe('Absolute path of the template file copied (only with prepare)'),
+  dryRun: DRY_RUN_FIELD,
+})
+
+type IssueCreateData = z.input<typeof ISSUE_CREATE_OUTPUT>
+type CreatedIssueData = z.input<typeof CREATED_ISSUE_DATA>
+type CreateOutput = Output<IssueCreateData>
 
 // --- 共通 ---
 
@@ -142,6 +194,21 @@ interface Posting {
 interface PostingSession {
   readonly failures: CommandHint[]
   readonly cache: ReadinessCache
+  /**
+  作った Issue の data。失敗で止まっても残すよう、変わるたびに result へ渡す
+  */
+  readonly issues: CreatedIssueData[]
+}
+
+function newSession(): PostingSession {
+  return { failures: [], cache: createReadinessCache(), issues: [] }
+}
+
+// 投稿中の Issue は常に末尾にある。isUpdate なら末尾を書き換え、そうでなければ足す
+function recordIssue(output: CreateOutput, session: PostingSession, entry: Readonly<CreatedIssueData>, isUpdate: boolean): void {
+  if (isUpdate) session.issues.pop()
+  session.issues.push(entry)
+  output.result({ issues: [...session.issues] })
 }
 
 interface PostedIssue {
@@ -233,10 +300,12 @@ Issue を作り、前提・ボード・欄・列の直し・親 Epic への接�
 前提を先に付けるので、後の段で止まっても、作った Issue の前提は付いている。
 ボードへの追加に失敗したら、欄と列は飛ばして親 Epic への接続へ進む
 */
-async function postIssue(output: Output, client: GitHubClient, config: ProjectConfig, session: PostingSession, posting: Readonly<Posting>): Promise<PostedIssue> {
+async function postIssue(output: CreateOutput, client: GitHubClient, config: ProjectConfig, session: PostingSession, posting: Readonly<Posting>): Promise<PostedIssue> {
   const { owner, repository } = posting
   const issue = await createIssueOrExit(output, client, owner, repository, posting.title, posting.body, posting.labels, posting.source)
   const { number, url, nodeId } = summarizeCreatedIssue(issue)
+  const entry: CreatedIssueData = { owner, repository, number, url }
+  recordIssue(output, session, entry, false)
   const target = `Issue ${issuePath(owner, repository, number)}`
   const reference = createIssueReference(createRepositoryReference(owner, repository), number)
   consumeFlag(FLAG_ISSUE_PENDING)
@@ -255,17 +324,24 @@ async function postIssue(output: Output, client: GitHubClient, config: ProjectCo
   if (!hasTriedBoard) added = await addToBoardOrWarn(output, client, config, owner, repository, number, posting.useResponseNodeId ? nodeId : undefined, url)
 
   let isMovedToReady = false
+  let status: CreatedStatus | undefined
   if (added !== undefined) {
     const written = await setIssueFields(output, client, config, added.itemId, target, posting.fields)
+    const option = written.includes('workflow') ? posting.fields.find(field => field.fieldName === 'workflow')?.optionName : undefined
+    if (option !== undefined && isCreatedStatus(option)) status = option
+    recordIssue(output, session, { ...entry, ...status !== undefined && { status } }, true)
     if (posting.settleColumn && written.includes('workflow') && linked === posting.prerequisites.length) {
       isMovedToReady = await settleColumn(output, client, config, session, reference, added, linked) === 'Ready'
+      if (isMovedToReady) status = 'ready'
     }
   }
   const knownNodeId = added?.issueNodeId ?? issueNodeId
+  let parent: string | undefined
   if (posting.parentReference !== undefined) {
     // ボードへの追加に失敗したときは、URL を出し済み
-    await linkToParentEpic(output, client, target, posting.parentReference, knownNodeId ?? (() => client.getIssueNodeId(owner, repository, number)), added === undefined ? undefined : url)
+    parent = await linkToParentEpic(output, client, target, posting.parentReference, knownNodeId ?? (() => client.getIssueNodeId(owner, repository, number)), added === undefined ? undefined : url)
   }
+  recordIssue(output, session, { ...entry, ...status !== undefined && { status }, ...parent !== undefined && { parent } }, true)
   if (added !== undefined) output.data(url)
   return { number, nodeId: knownNodeId, isMovedToReady, isOnBoard: added !== undefined }
 }
@@ -273,7 +349,8 @@ async function postIssue(output: Output, client: GitHubClient, config: ProjectCo
 /**
 予行の行。番号の要るボード・欄・親 Epic の書き込みは出さない
 */
-function planIssue(output: Output, owner: string, repository: string, title: string): void {
+function planIssue(output: CreateOutput, owner: string, repository: string, title: string): void {
+  output.result({ plannedIssue: { owner, repository, title } })
   output.planned({ verb: 'create', target: `Issue in ${owner}/${repository}: ${title}` })
 }
 
@@ -283,7 +360,7 @@ function parentReferenceOf(raw: number | string | undefined, config: ProjectConf
 
 // --- --prepare ---
 
-function prepareTemplate(output: Output, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined, isDryRun: boolean): void {
+function prepareTemplate(output: CreateOutput, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined, isDryRun: boolean): void {
   if (template !== 'epic' && repository === undefined) {
     stopWith(output, hinted`${inputHint(CREATE_PATH, 'repo', placeholder('owner/repo'))} is required with ${inputHint(CREATE_PATH, 'prepare')} unless ${inputHint(CREATE_PATH, 'template', 'epic')}`, 'invalid-input', USAGE_EXIT_CODE)
   }
@@ -294,6 +371,7 @@ function prepareTemplate(output: Output, template: IssueType | 'task-implement',
     stopWith(output, `template not found: ${source}`, 'other')
   }
   if (isDryRun) {
+    output.result({})
     output.planned({ verb: 'create', target: `Issue template ${template} in ${outputDirectory()}` })
     return
   }
@@ -305,6 +383,8 @@ function prepareTemplate(output: Output, template: IssueType | 'task-implement',
   try {
     withReservedOutputPath(outputDirectory(), timestamp => `issue-${template}-${timestamp}${nameSuffix}.md`, (reserved) => {
       writeFileSync(reserved, content, 'utf8')
+      output.result({ file: path.resolve(reserved) })
+      output.artifact(reserved)
       output.data(reserved)
     })
   }
@@ -555,6 +635,12 @@ function chainsText(progressions: ReadonlyMap<string, Progression>, labels: Read
   return formatStackableChains(progressions, key => labels.get(key) ?? key)
 }
 
+// formatStackableChains と同じ並びを、表記に直した配列で返す
+function chainsData(progressions: ReadonlyMap<string, Progression>, labels: ReadonlyMap<string, string>): Pick<IssueCreateData, 'stackableChains'> {
+  const chains = stackChains(progressions).filter(chain => chain.length >= 2).map(chain => chain.map(key => labels.get(key) ?? key))
+  return chains.length === 0 ? {} : { stackableChains: chains }
+}
+
 function expandPlaceholders(body: string, created: ReadonlyMap<string, CreatedIssue>, owner: string, repository: string): string {
   return body.replaceAll(PLACEHOLDER_PATTERN, (whole: string, key: string) => {
     const issue = created.get(key)
@@ -642,14 +728,29 @@ function existingLabels(context: Readonly<BatchContext>): Map<string, string> {
   return labels
 }
 
-function printPlan(output: Output, context: Readonly<BatchContext>): void {
+function planRowData(row: Readonly<PlanRow>, home: RepositoryReference): z.input<typeof PLAN_ROW_DATA> {
+  const label = ({ target, key }: Readonly<ResolvedPrerequisite>): string => target.kind === 'file' ? key : displayReference(target.reference, home)
+  const { progression } = row
+  const stackOn = progression?.kind === 'stack' ? row.prerequisites.find(({ key }) => key === progression.on) : undefined
+  return {
+    file: row.file,
+    ...row.order !== undefined && { order: row.order },
+    blockedBy: row.prerequisites.map(prerequisite => ({ issue: label(prerequisite), wait: prerequisite.wait })),
+    approach: progression?.kind ?? 'alone',
+    ...progression?.kind === 'stack' && { stackOn: stackOn === undefined ? progression.on : label(stackOn) },
+  }
+}
+
+function printPlan(output: CreateOutput, context: Readonly<BatchContext>): void {
   const rows = context.locals.map((local, index): PlanRow => ({
     file: local.key,
     order: context.orders.at(index),
     prerequisites: context.prerequisites.at(index) ?? [],
     progression: context.progressions.get(local.key),
   }))
-  const chains = chainsText(context.progressions, existingLabels(context))
+  const labels = existingLabels(context)
+  output.result({ plan: rows.map(row => planRowData(row, context.home)), ...chainsData(context.progressions, labels) })
+  const chains = chainsText(context.progressions, labels)
   output.data([formatPlanTable(rows, context.home), ...chains === undefined ? [] : ['', chains]].join('\n'))
 }
 
@@ -676,9 +777,9 @@ interface PostedFile {
   readonly nodeId: string | undefined
 }
 
-async function postFiles(output: Output, context: Readonly<BatchContext>): Promise<void> {
+async function postFiles(output: CreateOutput, context: Readonly<BatchContext>): Promise<void> {
   const { locals, client, config } = context
-  const session: PostingSession = { failures: [], cache: createReadinessCache() }
+  const session = newSession()
   const created = new Map<string, CreatedIssue>()
   const posted: (PostedFile | undefined)[] = []
   const labels = existingLabels(context)
@@ -717,6 +818,7 @@ async function postFiles(output: Output, context: Readonly<BatchContext>): Promi
   }
   consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
   if (session.failures.length > 0) throw new CommandExit(1, 'partial-failure')
+  output.result(chainsData(progressions, labels))
   const chains = chainsText(progressions, labels)
   if (chains !== undefined) output.data(`\n${chains}`)
 }
@@ -726,7 +828,7 @@ function isBatchReference(reference: IssueReference, posted: readonly (PostedFil
   return posted.some(entry => entry !== undefined && issueReferenceKey(entry.reference) === issueReferenceKey(reference))
 }
 
-async function createFromFiles(output: Output, files: readonly string[], isDryRun: boolean): Promise<void> {
+async function createFromFiles(output: CreateOutput, files: readonly string[], isDryRun: boolean): Promise<void> {
   const context = await prepareBatch(output, files)
   if (isDryRun) {
     printPlan(output, context)
@@ -751,7 +853,7 @@ interface DirectOptions {
 }
 
 // config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
-async function createDirect(output: Output, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined, isDryRun: boolean): Promise<void> {
+async function createDirect(output: CreateOutput, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined, isDryRun: boolean): Promise<void> {
   const { issueType } = options
   // status は設定の取得や作成より前に確かめる
   let status: string
@@ -780,7 +882,7 @@ async function createDirect(output: Output, options: Readonly<DirectOptions>, lo
   if (options.priority !== undefined && options.priority !== '') fields.push({ fieldName: 'priority', optionName: options.priority, label: `priority ${options.priority}` })
   if (options.size !== undefined && options.size !== '') fields.push({ fieldName: 'size', optionName: options.size, label: `size ${options.size}` })
 
-  await postIssue(output, client, config, { failures: [], cache: createReadinessCache() }, {
+  await postIssue(output, client, config, newSession(), {
     owner,
     repository,
     title,
@@ -860,7 +962,7 @@ interface FreeformInput {
 }
 
 // テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは先頭 50 文字の空白を 1 つにまとめたもの
-async function createFreeform(output: Output, input: Readonly<FreeformInput>, isDryRun: boolean): Promise<void> {
+async function createFreeform(output: CreateOutput, input: Readonly<FreeformInput>, isDryRun: boolean): Promise<void> {
   const { message, repo, type: issueType } = input
   if (message === undefined || pythonStrip(message) === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'message')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
   if (repo === undefined || repo === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
@@ -885,7 +987,7 @@ async function createFreeform(output: Output, input: Readonly<FreeformInput>, is
     return
   }
 
-  const posted = await postIssue(output, client, config, { failures: [], cache: createReadinessCache() }, {
+  const posted = await postIssue(output, client, config, newSession(), {
     owner,
     repository,
     title,
@@ -915,7 +1017,7 @@ interface MessageInput {
 }
 
 // -m の直接投稿。入力の確認から作成まで
-async function createFromMessage(output: Output, input: Readonly<MessageInput>, message: string, isDryRun: boolean): Promise<void> {
+async function createFromMessage(output: CreateOutput, input: Readonly<MessageInput>, message: string, isDryRun: boolean): Promise<void> {
   if (input.title === undefined || input.title === '') {
     stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'title')} is required with ${inputNameHint(CREATE_PATH, 'message')}`, 'invalid-input')
   }
@@ -958,11 +1060,12 @@ const ISSUE_CREATE = defineCommand({
     template: TEMPLATE_SCHEMA,
     suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),
   }),
+  output: ISSUE_CREATE_OUTPUT,
   positional: ['files'],
   shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l', prepare: '-p', suffix: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io: CommandIo) => {
-    const output = createOutput(input.dry_run, io)
+    const output = createOutput<IssueCreateData>(input.dry_run, io)
     const hasFiles = input.files !== undefined && input.files.length > 0
     return await runWithExit(async () => {
       if ((hasFiles || input.prepare || input.title !== undefined) && input.freeform) {
