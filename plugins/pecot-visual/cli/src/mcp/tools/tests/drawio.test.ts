@@ -302,7 +302,8 @@ describe('drawio_export', () => {
     expect(result.isError).toBe(true)
     expect(structured['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['icons_dir='])
-    expect(dataOf(result)['reason']).toBeUndefined()
+    expect(dataOf(result)['reason']).toBe('invalid-path')
+    expect(dataOf(result)['detail']).toBe(structured['message'])
   })
 
   it('icons_dir 省略時は plugin-root 同梱のカタログを既定に使う', async () => {

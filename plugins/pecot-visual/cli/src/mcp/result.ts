@@ -82,7 +82,8 @@ function toStructuredContent(result: Readonly<ToolResult>): Record<string, unkno
     exitCode: result.exitCode,
     ...(!result.ok && { kind: result.kind }),
     artifacts: [...result.artifacts],
-    data: { ...result.data },
+    // 失敗は、ツールが入れていなくても reason と detail を持つ（3 つのプラグインで同じ読み方にする）
+    data: result.ok ? { ...result.data } : { reason: result.kind, detail: result.message, ...result.data },
     message: result.message,
   }
 }

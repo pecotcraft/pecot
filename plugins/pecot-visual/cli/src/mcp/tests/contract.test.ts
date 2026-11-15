@@ -531,7 +531,12 @@ describe('MCP ツール契約 (tools/list)', () => {
       expect(called.isError, `${contract.name}.${name}`).toBe(true)
       expect(structured['exitCode'], `${contract.name}.${name}`).toBe(2)
       expect(structured['artifacts']).toEqual([])
-      expect(structured['data']).toEqual({ invalidPaths: [`${name}=${RELATIVE_PATH}`] })
+      expect(structured['kind'], `${contract.name}.${name}`).toBe('invalid-path')
+      expect(structured['data']).toEqual({
+        reason: 'invalid-path',
+        detail: structured['message'],
+        invalidPaths: [`${name}=${RELATIVE_PATH}`],
+      })
     }
   })
 
@@ -603,7 +608,10 @@ describe('MCP ツール契約 (tools/list)', () => {
         }))
 
         expect(rejected['exitCode'], `${contract.name}.${name} (${windowsPath})`).toBe(2)
+        expect(rejected['kind'], `${contract.name}.${name} (${windowsPath})`).toBe('invalid-path')
         expect(rejected['data'], `${contract.name}.${name} (${windowsPath})`).toEqual({
+          reason: 'invalid-path',
+          detail: rejected['message'],
           invalidPaths: [`${companion}=${RELATIVE_PATH}`],
           convertedPaths: { [name]: { from: windowsPath, to: convertedPath } },
         })

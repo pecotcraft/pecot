@@ -208,6 +208,7 @@ describe('slide_convert への接続', () => {
     const result = await tool.handler({ project_dir: 'relative/dir' }, CALL)
 
     expect(dataOf(result)).toHaveProperty('invalidPaths')
-    expect(dataOf(result)['reason']).toBeUndefined()
+    expect(dataOf(result)['reason']).toBe('invalid-path')
+    expect(dataOf(result)['detail']).toBe(structuredOf(result)['message'])
   })
 })
