@@ -109,9 +109,8 @@ Step 2 へ進む前に、結果のレイアウトの分類と一覧を読み切�
 2. `slides.md` に全ページの `src:` エントリを登録（ファイル本体は未作成でよい）
 3. `slides.md` の root frontmatter に `description:` を指定（全スライドのヘッダーに伝播）
 4. 各スライドを、自分で 1 枚ずつ順に作る。サブエージェントには任せない。
-   `pecot-visual` サーバの `slide_page`（`layout` / `dir` / `file`）でスケルトンページを生成し、
-   応答のレイアウト仕様に従って中身を埋める。
-   ページは前後のつながりと語の統一で互いに依存するので、アウトラインを持つ自分が通して書く
+   ページは前後のつながりと語の統一で互いに依存するので、アウトラインを持つ自分が通して書く。
+   1 枚ごとの手順と書くときの決まりは、`references/implementation-guide.md` の「スライド作成」にある
 
 lint は PostToolUse hook が `pages/**/*.md` および `slides.md` / `references/*.yaml` の
 編集時に自動実行します。違反は hook 出力（`additionalContext`）として流れるので、それに従って修正します。

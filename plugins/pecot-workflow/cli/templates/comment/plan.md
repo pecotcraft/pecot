@@ -9,7 +9,7 @@ template: plan
 書き方:
 - Files は、外に触る代表ファイルを並べ、`<details>` の中にファイルごとのどう触るかを詳しく書く
 - Files の `<details>` の先頭に作業単位の表（実装者・モデル・担当）を書く。実装者は `w-implementer-1` から順に名付け、main が自分で直すなら `main` と書き、その行のモデルは `—` にする。モデルの基準は w-help スキルの参照「エージェントのモデル」（pecot-w の `skills/w-help/references/agent-models.md`）
-- 作業単位を委譲する条件は、w-help スキルの参照「サブエージェントの使い方」（pecot-w の `skills/w-help/references/subagent-usage.md`）にある。当たらない単位の実装者は `main` にする
+- 作業単位を委譲するかは、w-help スキルの参照「サブエージェントの使い方」（pecot-w の `skills/w-help/references/subagent-usage.md`）の「実装と修正を委譲する条件」で決める。当たらない単位の実装者は `main` にする
 - Claude Code の plan mode の標準 5 項目は、Context・Approach（推奨方針）・Files（主要ファイルと再利用する既存関数）・E2E（検証）に書く
 
 CUJ = 利用者（人またはエージェント）が製品の起点から始め、利用者が観測する結果で終わる操作フロー。

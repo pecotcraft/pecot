@@ -2,7 +2,7 @@
 name: w-revise
 description: |
   PRのレビュー指摘を分析し修正を適用します。
-  Use after creating a PR to self-review and improve it before merge — one w-reviewer reviews the diff from three viewpoints, reusing the one that reviewed the plan when it is still waiting (w-e2e-planner runs the CUJs when the plan has them), and main applies the adopted fixes. Triggers: "review the PR", "address review comments".
+  Use after creating a PR to self-review and improve it before merge — one w-reviewer reviews the diff from three viewpoints, resuming the one that reviewed the plan when it can (w-e2e-planner runs the CUJs when the plan has them), and main applies the adopted fixes, delegating to w-implementer only when the delegation conditions are met. Triggers: "review the PR", "address review comments".
   Only for your own team's PR — not for reviewing other teams' PRs.
 when_to_use: "PR のレビュー指摘に対応したい、マージ前に PR を見直して直したい"
 ---
@@ -25,10 +25,11 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを�
 
 Step 1 の情報を渡し、w-reviewer に diff をレビューさせる。視点は w-reviewer の定義が持つ。追質問は `SendMessage` で送る。
 
-- 同じセッションに、w-active の Step 8 で計画をレビューした w-reviewer が残っていれば、新しく起こさない。`SendMessage` で `to: "w-reviewer"` に PR の diff のレビューを依頼する
-- 残っていなければ（別のセッション・計画をレビューしていない PR など）、`Agent` ツールで `name: w-reviewer` を付けて新しく起こす
+- w-active の Step 8 で控えた agent ID か名前があれば、それを宛先に `SendMessage` を送り、PR の diff のレビューを依頼する
+- 送信が拒否されたら（宛先が無いなど）、または ID と名前のどちらも控えていなければ、`Agent` ツールで w-reviewer を新しく起こす。agent teams が有効なら `name: w-reviewer` を付け、返った agent ID を控える
+- GitHub Copilot CLI では、`SendMessage` を送らずに新しく起こす
 
-PR の計画に CUJ があるときだけ、w-e2e-planner も単発 spawn し、CUJ を実行させる。レビューではなく、検証として起こす。prompt には CUJ の 3 要素（誰が・起点・合格基準）を貼る。
+PR の計画に CUJ があるときだけ、w-e2e-planner も `Agent` ツールで起こし、CUJ を実行させる。レビューではなく、検証として起こす。prompt には CUJ の 3 要素（誰が・起点・合格基準）を貼る。実行者が main の CUJ は main が実行し、w-e2e-planner には渡さない。
 
 - w-reviewer への依頼と w-e2e-planner の spawn は、並列を既定とする。直列にする場合のみ、理由を `w-reviewer` への依頼の Goal（冒頭行）末尾に括弧書きで添える（例: `(直列の理由: ...)`）
 - 1 メッセージ内の複数の呼び出し（`SendMessage` か `Agent`）で依頼する。別メッセージで順に呼ぶと直列になる。
@@ -47,7 +48,7 @@ Resolved 済みの既存スレッドは対象に含めない。
 | ファイル単位でしか言えない | ファイルコメント |
 | それ以外（PR 本文・欠落・diff 外・横断的な設計） | `review-findings` の General 節 |
 
-インラインコメントの本文は `**F-NN** [視点の印]` で始める。印は w-reviewer が返した `[tech]`・`[cuj]`・`[quality]` のどれかにする。`<...>` のプレースホルダ・チェックボックス記法を書かず、型や比較の記法はバッククォートで囲む。
+w-reviewer の指摘のインラインコメントは、本文を `**F-NN** [視点の印]` で始める。印は w-reviewer が返した `[tech]`・`[cuj]`・`[quality]` のどれかにする。w-e2e-planner が返した CUJ の不合格は `[cuj]` にする。外部のレビュアーの指摘には印を付けない。`<...>` のプレースホルダ・チェックボックス記法を書かず、型や比較の記法はバッククォートで囲む。
 
 #### ホストと head sha
 
@@ -153,7 +154,7 @@ Step 3 で投稿したコメントの URL を示し、AskUserQuestion で次の 
 
 「対応なし」ならここで Step 6 へ進む。採用分があれば、main が直すことを基本にする。
 
-委譲するかは、w-help の [サブエージェントの使い方](../w-help/references/subagent-usage.md) の委譲する条件で決める。当たらなければ main が直し、w-implementer を起こさない。
+委譲するかは、w-help の [サブエージェントの使い方](../w-help/references/subagent-usage.md) の「実装と修正を委譲する条件」で決める。当たらなければ main が直し、w-implementer を起こさない。
 
 条件に当たって委譲するときは、次のとおりにする。
 
@@ -172,7 +173,8 @@ Step 3 で投稿したコメントの URL を示し、AskUserQuestion で次の 
 
 #### CUJ 再実行
 
-Step 2 で w-e2e-planner が実行した CUJ が、直したファイルを読むなら、w-e2e-planner を単発 spawn して再実行させる。prompt には CUJ の 3 要素（誰が・起点・合格基準）と修正の要約を貼る。実投稿を含む CUJ は main が実行する。不合格なら Step 5 の修正に戻る。
+Step 2 で w-e2e-planner が実行した CUJ が、直したファイルを読むなら、w-e2e-planner を `Agent` ツールで起こして再実行させる。prompt には CUJ の 3 要素（誰が・起点・合格基準）と修正の要約を貼る。
+実行者が main の CUJ と、実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。不合格なら Step 5 の修正に戻る。
 
 #### スレッドを一括 resolve
 
@@ -206,5 +208,5 @@ Step 5 で書き始めたファイルを、テンプレのガイドに従って�
 
 - 採否は Step 4 のユーザーの判断で決める。指摘を盲目的に適用しない。
 - 返信と resolve は、w-revise が開いたスレッドに限る。
-- Step 6 より後の 2 巡目以降のレビューも、新しく起こさず、同じ w-reviewer に `SendMessage` で頼む。
+- Step 6 より後の 2 巡目以降のレビューも、Step 2 と同じ分岐で頼む。控えた w-reviewer に `SendMessage` を送り、拒否されたら新しく起こす。
 - 2 巡目以降は F-NN を `F-01` から振り直し、本文は `**R2/F-01**` の形で始める。前のラウンドで開いた未解決スレッドと同じ趣旨の指摘は、新しく投稿せずそのスレッドに返信する。

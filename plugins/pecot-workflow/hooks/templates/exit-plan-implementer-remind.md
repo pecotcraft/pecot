@@ -1,6 +1,7 @@
 <!-- mode: shared -->
 note: **Implementation handoff** — main implements a unit unless it meets the delegation conditions.
-Do not spawn an agent for such a unit. The conditions are in the reference "subagent-usage.md" of the w-help skill.
+Do not spawn an agent for such a unit.
+The conditions are in "実装と修正を委譲する条件" of "subagent-usage.md" in the w-help skill.
 While implementing, ask w-tech-advisor about anything unclear in the technology.
 
 Split the units that meet the conditions from the Files of the plan. Start w-implementer with a single `Agent` spawn per unit.
