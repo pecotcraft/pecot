@@ -18,7 +18,7 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 `board_show` を引数なしで呼ぶ。
 
-結果が成功（`isError` が無い）なら Step 2 へ。
+結果が成功なら Step 2 へ。
 結果の `kind` が `no-active-project` の場合は以下を案内して終了:
 
 ```text

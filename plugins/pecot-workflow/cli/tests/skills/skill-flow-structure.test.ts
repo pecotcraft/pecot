@@ -237,7 +237,7 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('`issues` に要素があれば、その Issue は作られている')
     expect(body).toContain('`kind` ではなく `issues` で決める')
     expect(body).toContain('同じ `files` で呼び直さない')
-    expect(body).toContain('失敗（`isError`）の結果に `issues` が無いときは')
+    expect(body).toContain('失敗の結果に `issues` が無いときは')
   })
 
   it('Step 3 は、付け直すコマンドの行を結果の detail から示す', () => {

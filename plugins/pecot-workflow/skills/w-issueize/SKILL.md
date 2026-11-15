@@ -109,16 +109,16 @@ before / after の例を示す。
 
 投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、結果の `plan` に番号・前提・進め方が、`stackableChains` に積める並びが入る。
 `plan` の `order`・`blockedBy`・`approach` を表にし、Step 2 の前提の表と並べてユーザーに示す。前提の食い違いが無いかを見てもらう。
-食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果が失敗（`isError`）で止まったときも、`detail` の文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
+食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果が失敗で止まったときも、`detail` の文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
 
 投稿は、同じ `files` で `issue_create` を `dry_run` なしで 1 回だけ呼ぶ。複数回に分けて呼ばない。
 
 投稿の結果は、次のとおり読み分ける。
 
-- 結果が失敗（`isError`）でも、`issues` に要素があれば、その Issue は作られている。`kind` ではなく `issues` で決める。同じ `files` で呼び直さない。呼び直すと Issue が重複する
+- 結果が失敗でも、`issues` に要素があれば、その Issue は作られている。`kind` ではなく `issues` で決める。同じ `files` で呼び直さない。呼び直すと Issue が重複する
   - 前提の付け直しだけに失敗したときは、`kind` が `partial-failure` になる
 - 結果の `detail` の `could not add some blocked-by; add them again with:` の後ろに、付け直すコマンドの行が並ぶ。打たずにそのままユーザーへ示す
-- 失敗（`isError`）の結果に `issues` が無いときは、`kind` を見る。`other` でなければ、投稿の前の確認で止まっている。`detail` の文に従ってファイルを直し、呼び直してよい
+- 失敗の結果に `issues` が無いときは、`kind` を見る。`other` でなければ、投稿の前の確認で止まっている。`detail` の文に従ってファイルを直し、呼び直してよい
 - `kind` が `other` のときは、操作が済んでいる可能性がある。`issues` に作り終えた Issue が残っていれば、それを示す。残っていなくても呼び直さず、結果の `detail` を利用者に示して止まる
 
 ### Step 4: 完了報告

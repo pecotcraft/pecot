@@ -18,7 +18,7 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 `pr_check` を `directory: "."` で呼ぶ。
 
-結果が失敗（`isError`）なら、`kind`・`detail` を見て解決し、呼び直してから次へ進む。
+結果が失敗なら、`kind`・`detail` を見て解決し、呼び直してから次へ進む。
 `kind` が `preflight-failed` のときは、事前確認を通らなかった理由が結果の `warnings` に入る。
 
 ### Step 2: 変更内容の確認とコミット
@@ -44,7 +44,7 @@ feature PR の `base` は `prepare: true` の呼び出しが config 由来で自
 リポは `main`。自動設定された `base` は、`prepare: true` の結果の `base` にある。これを書き換えない。
 積んで着手したブランチでは、開発ブランチではなく、下の段のブランチが入る。これも書き換えない。
 
-`pr_create` の結果が失敗（`isError`）で、`kind` が `content-invalid` なら、`detail` にある指摘を直して呼び直す。
+`pr_create` の結果が失敗で、`kind` が `content-invalid` なら、`detail` にある指摘を直して呼び直す。
 `detail` に `base branch must be ... while its PR #N is open` があるときは、`base` を、示されたブランチに戻して呼び直す。
 
 `kind` が `pr-state` で、`detail` に `has no open PR` があるときは、下の段の PR が開いていない。

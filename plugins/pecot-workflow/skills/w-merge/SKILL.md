@@ -21,7 +21,7 @@ PRをマージし、マージ後にブランチ削除とワークツリー環境
 
 PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_check` を `directory: "."` で呼ぶ。
 
-結果が失敗（`isError`）なら、`kind`・`detail` を見て解決し、呼び直してからマージに進む。
+結果が失敗なら、`kind`・`detail` を見て解決し、呼び直してからマージに進む。
 `kind` が `preflight-failed` のときは、事前確認を通らなかった理由が結果の `warnings` に入る。
 
 ### Step 2: マージと片付け
@@ -85,7 +85,7 @@ code-scanning open alerts: #28 #29
 
 > 注意: マージ後の片付けは必ず `session_finish` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
 
-`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず、結果が失敗（`isError`）で、`kind` が `pr-state` になる。
+`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず、結果が失敗で、`kind` が `pr-state` になる。
 
 **入力**:
 

@@ -18,7 +18,7 @@ argument-hint: "[タスクの内容]"
 
 #### 起票の前の確認
 
-`session_start`（Step 2）は、Issue を作った後に、結果を失敗（`isError`）にして止まることがある。作ってから止まらないよう、Issue を作る前に確かめる。
+`session_start`（Step 2）は、Issue を作った後に、結果を失敗にして止まることがある。作ってから止まらないよう、Issue を作る前に確かめる。
 
 - 作業ディレクトリのリポが Issue のリポと違うとき
 - `.pecot-active` に別の OPEN の Issue が残っているとき
@@ -94,7 +94,7 @@ plan テンプレのファイルを作り、テンプレの見出しと規則の
 
 通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-結果が失敗（`isError`）で、`kind` が `content-invalid` で止まったら、結果の `detail` にある指摘を直して呼び直す。
+結果が失敗で、`kind` が `content-invalid` で止まったら、結果の `detail` にある指摘を直して呼び直す。
 
 ### Step 6: プランモードで承認を得る
 

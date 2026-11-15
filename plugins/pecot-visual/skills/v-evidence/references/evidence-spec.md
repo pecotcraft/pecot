@@ -171,7 +171,7 @@ h ≥ 1 × 14.7 × 1.2 / 600 = 0.0294   → 余裕を見て h = 0.05
 
 ## エラー（`evidence.create.error`）
 
-実行失敗の応答は、結果が失敗（`isError`）で返る。項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
+実行失敗の応答の項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
 絶対パス違反だけは別系統で、`kind` は `invalid-path` になる。
 項目は `kind`・`detail`・`invalidPaths`（`[...]`）のみで、`event` を持たない。
 下の表の名前は `kind` で読む。

@@ -26,7 +26,7 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 2. 集約リポと実装リポが異なる場合、サブタスクは実装リポ側を `repo` で指定する
 3. どちらに作るべきか判断材料が無い場合は AskUserQuestion で確認する（推測で埋めない）
 
-`issue_create` の結果が失敗（`isError`）になる代表ケース:
+`issue_create` の結果が失敗になる代表ケース:
 
 - Epic で `repo` 未指定かつ `aggregation_repo` も未設定（決定不能）。`kind` は `repo-setting-missing`
 - 通常 Issue（task / bug / tracker）で `repository: ""` のまま投稿（必須フィールド欠落）。`kind` は `content-invalid`

@@ -94,10 +94,10 @@ argument-hint: "[画像のパス]"
 
 失敗は 2 系統ある。
 
-- **絶対パス違反**（`input_path` / `out_path` に相対パスを渡した）: 結果が失敗（`isError`）で、`kind` が `invalid-path`、項目は
+- **絶対パス違反**（`input_path` / `out_path` に相対パスを渡した）: 結果が失敗で、`kind` が `invalid-path`、項目は
   `kind`・`detail`・`invalidPaths`（`["out_path=..."]`）のみ。
   `invalidPaths` に挙がった引数を絶対パスに直して呼び直す
-- 実行失敗は結果が失敗（`isError`）で返る。原因は `kind` で読み、項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
+- 実行失敗の原因は `kind` で読む。項目は `event`（`evidence.create.error`）・`kind`・`detail` になる。
   `kind` は 8 値で、それぞれ回復手順が決まっている（対応表は `references/evidence-spec.md`）。
   うち `invalid-option` は引数の検証が先に済むこの場面では返らない
 
@@ -113,7 +113,7 @@ argument-hint: "[画像のパス]"
 
 ## 6. 結果報告
 
-成功時は結果が成功（`isError` が無い）で返る。項目は
+成功時の項目は
 `{"event":"result","outPath":...,"items":...,"annotations":...,"skipped":[...]}` になる。この項目を正として報告する。
 
 - 生成した xlsx の**絶対パス**（`outPath`）

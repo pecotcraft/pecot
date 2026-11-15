@@ -75,7 +75,7 @@ describe('ツールの結果の読み方', () => {
 })
 
 /**
-#436 で結果から外した入れ物の読み方。項目は `data.` を付けずに読み、成否は `isError`、失敗の原因は `kind` で読む
+#436 で結果から外した入れ物の読み方。項目は `data.` を付けずに読み、失敗の原因は `kind` で読む
 */
 const CONTAINER_PATTERNS: readonly RegExp[] = [
   /`data\.[A-Za-z_]/u,
@@ -101,9 +101,16 @@ describe('ツールの結果の入れ物', () => {
     expect(before.filter(line => CONTAINER_PATTERNS.every(pattern => !pattern.test(line)))).toEqual([])
   })
 
-  it('失敗は isError と kind で読ませる', () => {
+  it('失敗の原因は kind で読ませる', () => {
     const text = readDocuments().find(({ file }) => file === 'skills/w-active/SKILL.md')?.text ?? ''
-    expect(text).toContain('失敗（`isError`）')
     expect(text).toContain('`kind` が `guard-blocked`')
+  })
+
+  it('スキルは、MCP の仕様が決める結果の項目（isError・structuredContent）を説明しない', () => {
+    const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
+      .map((line, index) => ({ file, number: index + 1, line }))
+      .filter(({ line }) => /isError|structuredContent/u.test(line))
+      .map(({ file: name, number, line }) => `${name}:${String(number)}: ${line.trim()}`))
+    expect(found).toEqual([])
   })
 })

@@ -17,7 +17,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-`session_start` は、次のときに、結果を失敗（`isError`）にして止まる。`kind` は、前から順に `repo-mismatch`・`guard-blocked`・`not-ready`・`invalid-input` になる。
+`session_start` は、次のときに、結果を失敗にして止まる。`kind` は、前から順に `repo-mismatch`・`guard-blocked`・`not-ready`・`invalid-input` になる。
 
 - 作業ディレクトリのリポが Issue のリポと違うとき
 - `.pecot-active` に別の Issue が残っているとき
@@ -126,7 +126,7 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-結果が失敗（`isError`）で、`kind` が `content-invalid` で止まったら、結果の `detail` にある指摘を直して呼び直す。
+結果が失敗で、`kind` が `content-invalid` で止まったら、結果の `detail` にある指摘を直して呼び直す。
 
 ### Step 10: プランモードで承認を得る
 

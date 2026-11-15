@@ -23,7 +23,7 @@ main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<�
 
 ### Step 1: （初回のみ）ワークツリー設定を用意
 
-対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると、`worktree_add` の結果は失敗（`isError`）で、`kind` が `not-initialized` になる。
+対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると、`worktree_add` の結果は失敗で、`kind` が `not-initialized` になる。
 init は両ファイルを同時に生成する。`worktree_init` を `directory: "<project-root>/base/<repo>"` で呼ぶ。
 
 生成される `worktree-config.json` の `links[]` を編集する（symlink 不要なら空でよい）。
