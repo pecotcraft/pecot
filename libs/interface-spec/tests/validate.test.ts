@@ -105,20 +105,21 @@ describe('validateRepository', () => {
   })
 
   describe('mcp_output', () => {
-    const LS_DATA = {
-      anyOf: [
-        { type: 'object', properties: { lines: { type: 'array' }, warnings: { type: 'array' } }, required: ['lines'], additionalProperties: false },
-        { type: 'object', properties: { lines: { type: 'array' }, reason: { type: 'string' }, detail: { type: 'string' } }, required: ['reason', 'detail'], additionalProperties: false },
-      ],
+    const COMMON = { kind: { type: 'string' }, detail: { type: 'string' }, log: { type: 'string' }, warnings: { type: 'array' } }
+    const LS_OUTPUT = {
+      type: 'object',
+      properties: { lines: { type: 'array' }, ...COMMON },
+      additionalProperties: false,
+      anyOf: [{ required: ['lines'] }, { required: ['kind', 'detail'] }],
     }
 
-    // PT-AWS-S3-LS の mcp.output に data を足し、authored.yaml の entry の diagnostics の前に mcp_output を足す
-    async function withMcpOutput(mcpOutput: string, entry = 'PT-AWS-S3-LS', data: object = LS_DATA): Promise<string> {
+    // PT-AWS-S3-LS の mcp.output を差し替え、authored.yaml の entry の diagnostics の前に mcp_output を足す
+    async function withMcpOutput(mcpOutput: string, entry = 'PT-AWS-S3-LS', output: object = LS_OUTPUT): Promise<string> {
       const root = await materialize('valid')
       const generatedFile = path.join(root, PT, 'generated.json')
       const generated = generatedFileSchema.parse(JSON.parse(await readFile(generatedFile, 'utf8')))
       const entries = generated.entries.map(item => item.id === 'PT-AWS-S3-LS' && item.mcp?.output !== undefined
-        ? { ...item, mcp: { ...item.mcp, output: { ...item.mcp.output, properties: { ...item.mcp.output.properties, data } } } }
+        ? { ...item, mcp: { ...item.mcp, output } }
         : item)
       expect(entries).not.toEqual(generated.entries)
       await writeFile(generatedFile, JSON.stringify({ ...generated, entries }))
@@ -130,36 +131,40 @@ describe('validateRepository', () => {
       return root
     }
 
-    it('data のキーが成功側の properties（warnings を除く）とそろうと、何も報告しない', async () => {
-      const root = await withMcpOutput('    mcp_output:\n      data:\n        lines: The listed keys.\n      artifacts: None.\n')
+    it('fields のキーが最上位の properties（共通の 4 項目を除く）とそろうと、何も報告しない', async () => {
+      const root = await withMcpOutput('    mcp_output:\n      fields:\n        lines: The listed keys.\n')
       expect(await validateRepository(root)).toEqual([])
     })
 
-    it('data のキーが成功側の properties と食い違うと、足りないキーと余るキーを報告する', async () => {
-      const root = await withMcpOutput('    mcp_output:\n      data:\n        keys: The listed keys.\n')
+    it('fields のキーが最上位の properties と食い違うと、足りないキーと余るキーを報告する', async () => {
+      const root = await withMcpOutput('    mcp_output:\n      fields:\n        keys: The listed keys.\n        kind: The failure kind.\n')
       expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.data: has "keys" not in mcp.output (remove it)`,
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.data: is missing "lines" (present in mcp.output)`,
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.fields: has "keys", "kind" not in mcp.output (remove it)`,
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.fields: is missing "lines" (present in mcp.output)`,
       ])
     })
 
     it('MCP の面を持たない項目に書くと、消すよう報告する', async () => {
-      const root = await withMcpOutput('    mcp_output:\n      data:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE', { anyOf: [{ type: 'object', properties: { lines: { type: 'array' } } }] })
+      const root = await withMcpOutput('    mcp_output:\n      fields:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE', { type: 'object', properties: { lines: { type: 'array' }, ...COMMON } })
       expect(await validateRepository(root)).toEqual([
         `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)`,
       ])
     })
 
-    it('成功の data が閉じた型の項目が mcp_output を書いていないと、書くよう報告する', async () => {
+    it('最上位が閉じた型の項目が mcp_output を書いていないと、書くよう報告する', async () => {
       const root = await withMcpOutput('')
       expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (the success data in mcp.output is a closed type; write each data field, or an empty data when it returns none)`,
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (the tool fields in mcp.output are a closed type; write each field, or an empty fields when it returns none)`,
       ])
     })
 
-    it('成功の data が閉じていない型の項目は、mcp_output を書かなくてよい', async () => {
-      const open = { anyOf: [{ type: 'object', properties: { lines: { type: 'array' } } }] }
-      const root = await withMcpOutput('', 'PT-AWS-S3-LS', open)
+    it('最上位が閉じていない型の項目は、mcp_output を書かなくてよい', async () => {
+      const root = await withMcpOutput('', 'PT-AWS-S3-LS', { type: 'object', properties: { lines: { type: 'array' }, ...COMMON } })
+      expect(await validateRepository(root)).toEqual([])
+    })
+
+    it('成功の項目が anyOf の枝の中にだけあり、最上位が閉じていない型なら、mcp_output を求めない', async () => {
+      const root = await withMcpOutput('', 'PT-AWS-S3-LS', { type: 'object', properties: COMMON, anyOf: [{ type: 'object', properties: { lines: { type: 'array' } }, additionalProperties: false }] })
       expect(await validateRepository(root)).toEqual([])
     })
   })

@@ -70,17 +70,17 @@ ls "${CLAUDE_PLUGIN_ROOT}/assets/drawio-icons/{Category}/"
 PNG は diagrams.net の viewer で、テーマの宣言の書体を読み込んで描いた図の画像。スライドに置いたときと同じ字幅で折り返すので、はみ出し・重なり・揃いはこの PNG で判断する。
 draw.io 公式の「XML 埋め込み PNG (`.drawio.png`)」形式になっている。draw.io で開けば、ダイアグラムとして再編集できる。ただし埋め込まれるのは `icon://` を data URI に展開した解決後の XML になる。編集は `.drawio` 側で行う（PNG を直接編集しても `.drawio` からの再生成に反映されず枝分かれする）。
 
-`drawio_create` が `kind: text-violation` を返したときは、HTML と PNG のどちらも書き出されていない。
-`data.violations[].item` の `mxCell id="..."` が、直すセルを名指しする。そのセルの `value` を言い換える。
+`drawio_create` が文章規則の違反で止まったときは、HTML と PNG のどちらも書き出されていない。
+`violations[].item` の `mxCell id="..."` が、直すセルを名指しする。そのセルの `value` を言い換える。
 `<object>` や `<UserObject>` で包んだセルは、包んだ側の `label` を言い換える。`html=1` のセルは、タグを除いた文言で判定される。
 `item` の全件を直してから、ステップ 2-3 を再実行する。規則・除外は変えない。
-`kind: text-lint-failed` のときは何も書き出されない。`data.detail` を読み、圧縮形式の XML なら非圧縮で保存し直して再実行する。
+判定器が動かなかったときも、何も書き出されない。エラーの文を読み、圧縮形式の XML なら非圧縮で保存し直して再実行する。
 
-`exitCode: 3` は失敗ではないが原因が分かれるので、`data.pngFailed` と `data.warnings`（警告の文の配列）で判別する。
+警告ありの成功は原因が分かれるので、`pngFailed` と `warnings`（警告の文の配列）で判別する。
 
-- `data.pngFailed` が `true`（`data.png` が `null`）: 表示用 HTML は生成済みだが、PNG を生成できていない。原因は、`data.warnings` のうち `PNG export failed: ...` で始まる文から判別する。
+- `pngFailed` が `true`（`png` が `null`）: 表示用 HTML は生成済みだが、PNG を生成できていない。原因は、`warnings` のうち `PNG export failed: ...` で始まる文から判別する。
   Chromium 未取得なら `pecot-visual` サーバの `runtime_setup` を呼んで取得してから `drawio_create` を再実行する。それ以外（描画タイムアウト等）は `drawio_create` の再実行を 1 回だけ試し、それでも失敗するなら PNG 無しの旨を報告に含める
-- `data.pngFailed` が `false`: 通常の警告で、表示用 HTML と PNG の生成は成功している。`data.warnings` の警告の文を確認したうえで処理を継続する（失敗扱いにしない）。
+- `pngFailed` が `false`: 通常の警告で、表示用 HTML と PNG の生成は成功している。`warnings` の警告の文を確認したうえで処理を継続する（失敗扱いにしない）。
   警告の文が名指しした mxCell を、その文の指示どおりに直し、ステップ 2-3 を再実行する
 
 **Read してよいのは常に `.drawio.png` の方。** 表示用 HTML（`.drawio.html`）は巨大な base64 URL の器なので Read しない（コンテキストを消費する）。PNG は次のステップで `Read` する。

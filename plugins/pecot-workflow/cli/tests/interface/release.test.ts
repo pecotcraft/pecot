@@ -5,7 +5,7 @@ import { RELEASE_COMMANDS } from '../../src/commands/release.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { startFakeGithub } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { alertPath, alertRules, compareRule, createProject, DEFAULT_REPOSITORY, failRemoteLookupFrom, NOTES_0_2_0, pathsOf, pullRequestResponse, rest, runRelease } from '../_helpers/release-sandbox.js'
 import type { Project, ProjectOptions } from '../_helpers/release-sandbox.js'
@@ -68,7 +68,7 @@ const NOT_FOUND = { message: 'Not Found' }
 const ALERTS_URL = 'https://ghes.example.com/acme/demo/security/dependabot'
 
 // release の MCP のツールを、作業ディレクトリで同じプロセスの中のクライアントから 1 回呼ぶ
-async function callTool(target: Readonly<Project>, name: string, arguments_: Readonly<Record<string, unknown>>, rules: readonly ResponseRule[]): Promise<ToolEnvelope> {
+async function callTool(target: Readonly<Project>, name: string, arguments_: Readonly<Record<string, unknown>>, rules: readonly ResponseRule[]): Promise<ToolOutcome> {
   const server = await startFakeGithub(rules)
   setEnvironment({ PECOT_GITHUB_API_URL: server.url })
   const original = process.cwd()
@@ -438,7 +438,7 @@ describe('release check', () => {
     it('チェックが通ると、版・タグ・リリースノート・コミット数と、Dependabot alert の件数を返す', async () => {
       const rules = [...alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] }), compareRule(1)]
       const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
-      expect(result.data).toEqual({
+      expect(result.structured).toEqual({
         version: '0.2.0',
         tag: 'v0.2.0',
         releaseNotes: NOTES_0_2_0,
@@ -456,7 +456,7 @@ describe('release check', () => {
         secret: [rest('GET', alertPath('secret'), 404, NOT_FOUND), rest('GET', '/repos/acme/demo', 200, { security_and_analysis: { secret_scanning: { status: 'disabled' } } })],
       }), compareRule(1)]
       const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
-      expect(result.data).toEqual({
+      expect(result.structured).toEqual({
         version: '0.2.0',
         tag: 'v0.2.0',
         releaseNotes: NOTES_0_2_0,
@@ -469,9 +469,9 @@ describe('release check', () => {
     it('alert が残って失敗しても、alert の結果を data に残す', async () => {
       const rules = alertRules({ secret: [rest('GET', alertPath('secret'), 200, [{ number: 5 }])] })
       const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
-      expect(result).toMatchObject({ ok: false, exitCode: 1 })
-      const { detail, ...collected } = result.data
-      expect(collected).toEqual({ skipped: [], dependabotAlerts: { enabled: true, openCount: 0, alertsUrl: ALERTS_URL }, reason: 'preflight-failed' })
+      expect(result.isError).toBe(true)
+      const { detail, ...collected } = result.structured
+      expect(collected).toEqual({ skipped: [], dependabotAlerts: { enabled: true, openCount: 0, alertsUrl: ALERTS_URL }, kind: 'preflight-failed' })
       expect(detail).toMatch(/^secret scanning has 1 open alert\n/u)
     })
   })
@@ -660,12 +660,12 @@ describe('release create', () => {
   describe('MCP の data', () => {
     it('リリースを作ると、タグ・URL・リリースノートを返す', async () => {
       const result = await callTool(project(), 'release_create', { version: '0.2.0' }, [releaseCreated()])
-      expect(result.data).toEqual({ tag: 'v0.2.0', url: 'https://ghes.example.com/acme/demo/releases/tag/v0.2.0', releaseNotes: NOTES_0_2_0 })
+      expect(result.structured).toEqual({ tag: 'v0.2.0', url: 'https://ghes.example.com/acme/demo/releases/tag/v0.2.0', releaseNotes: NOTES_0_2_0 })
     })
 
     it('dry_run で呼ぶと、URL を省いて dryRun を返す', async () => {
       const result = await callTool(project(), 'release_create', { version: '0.2.0', dry_run: true }, [])
-      expect(result.data).toEqual({ tag: 'v0.2.0', releaseNotes: NOTES_0_2_0, dryRun: true })
+      expect(result.structured).toEqual({ tag: 'v0.2.0', releaseNotes: NOTES_0_2_0, dryRun: true })
     })
   })
 })
@@ -853,20 +853,20 @@ describe('release merge', () => {
   describe('MCP の data', () => {
     it('マージして head ブランチを削除すると、PR・ブランチと deletedBranch を返す', async () => {
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, deleted])
-      expect(result.data).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: true })
+      expect(result.structured).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: true })
     })
 
     it('dry_run で呼ぶと、deletedBranch を false にして dryRun を返す', async () => {
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true, dry_run: true }, [pullRequestResponse()])
-      expect(result.data).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: false, dryRun: true })
+      expect(result.structured).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: false, dryRun: true })
     })
 
     it('マージの後に head ブランチを削除できないと、マージした PR と warning を data に返し、deletedBranch を false にする', async (context) => {
       await verifies(context, 'PW-COMMON-19')
       const failing = rest('DELETE', '/repos/acme/demo/git/refs/heads/develop', 422, { message: 'Reference does not exist' })
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, failing])
-      expect(result).toMatchObject({ ok: true, exitCode: 0 })
-      expect(result.data).toEqual({
+      expect(result.isError).toBe(false)
+      expect(result.structured).toEqual({
         pullRequest: 'acme/demo/31',
         head: 'develop',
         base: 'release',
@@ -879,8 +879,8 @@ describe('release merge', () => {
       await verifies(context, 'PW-COMMON-18')
       const rejected = rest('PUT', '/repos/acme/demo/pulls/31/merge', 405, { message: 'Pull Request is not mergeable' })
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31' }, [pullRequestResponse(), rejected])
-      expect(result).toMatchObject({ ok: false, exitCode: 1, kind: 'github-api' })
-      expect(result.data).toEqual({ reason: 'github-api', detail: 'could not merge PR acme/demo/31: GitHub API error: 405 Pull Request is not mergeable' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'github-api' } })
+      expect(result.structured).toEqual({ kind: 'github-api', detail: 'could not merge PR acme/demo/31: GitHub API error: 405 Pull Request is not mergeable' })
     })
   })
 })

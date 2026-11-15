@@ -169,19 +169,17 @@ describe('v-slidev SKILL.md の応答キー名', () => {
     const responseKeys = [...categoryKeys, ...layoutKeys]
     const categoryIds = new Set(catalog.categories.map(category => category.id))
 
-    // 見るのは `data.categories` / `data.layouts` を名指しする行だけ。その行のバッククォート
+    // 見るのは `categories` / `layouts` を名指しする行だけ。その行のバッククォート
     // トークンのうち、1 語の小文字（= キー名の形）で分類 id でないものをキー名候補とする。
     const lines = skill.split('\n')
-      .filter(line => line.includes('data.categories') || line.includes('data.layouts'))
+      .filter(line => line.includes('`categories`') || line.includes('`layouts`'))
     expect(lines.length).toBeGreaterThan(0)
 
     const containers = new Set<string>()
     const fields = new Set<string>()
     for (const line of lines) {
       for (const [, token = ''] of line.matchAll(/`([^`]+)`/g)) {
-        if (token === 'data.categories' || token === 'data.layouts') {
-          containers.add(token.slice('data.'.length))
-        }
+        if (token === 'categories' || token === 'layouts') containers.add(token)
         else if (/^[a-z]+$/.test(token) && !categoryIds.has(token)) fields.add(token)
       }
     }

@@ -4,7 +4,6 @@
 // コマンドは操作（動詞と対象）を 1 つ作り、実行の前に planned を、実行の後に done を呼ぶ。
 // 期待の行は tests/output/cases.json に置き、Python の側と同じ値を共有する。
 import { readSync } from 'node:fs'
-import path from 'node:path'
 
 import { z } from 'zod'
 
@@ -59,7 +58,7 @@ dry_run を持つコマンドの output の dryRun。値は createOutput の res
 export const DRY_RUN_FIELD = z.literal(true).optional().describe('true on dry_run (nothing was changed)')
 
 /**
-D は MCP の成功の data の型（コマンドの output の z.input）。CLI では result と artifact は何も出さない
+D は MCP の成功の data の型（コマンドの output の z.input）。CLI では result は何も出さない
 */
 export interface Output<D extends object = Record<string, unknown>> {
   /**
@@ -89,10 +88,6 @@ export interface Output<D extends object = Record<string, unknown>> {
   */
   // 補助の関数が Output（既定の D）で受け取れるよう、メソッドの形で書く（引数の型の比べ方が双変になる）
   result(fields: Readonly<Partial<D>>): void
-  /**
-  作ったか書き換えたファイル・ディレクトリを、MCP の結果の artifacts に絶対パスで渡す
-  */
-  artifact(file: string): void
 }
 
 /**
@@ -140,9 +135,6 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
     },
     result(fields) {
       io.data?.(isDryRun ? { ...fields, dryRun: true } : fields)
-    },
-    artifact(file) {
-      io.artifact?.(path.resolve(file))
     },
   }
 }

@@ -16,29 +16,26 @@ import {
   drawioExportDefaultDependencies,
   errorToReason as drawioExportErrorToReason,
   executeDrawioExport,
-  toExitCode as drawioExportToExitCode,
 } from '../../commands/drawio/export.js'
 import {
   drawioUrlDefaultDependencies,
   errorData as drawioUrlErrorData,
   errorToReason as drawioUrlErrorToReason,
   executeDrawioUrl,
-  toExitCode as drawioUrlToExitCode,
   type DrawioUrlExecution,
 } from '../../commands/drawio/url.js'
 import { createDiagnostics } from '../../diagnostics.js'
 import { failureKindOf } from '../../domain/_shared/failure-kind.js'
 import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import { defaultIconRoot } from '../../infra/drawio/icons.js'
-import { parsePathArguments, toCallToolResult, type ToolResult } from '../result.js'
+import { parsePathArguments, toCallToolResult, withoutCommonFailureFields, type FailedToolResult, type SucceededToolResult } from '../result.js'
 import type { ToolDefinition, ToolCallContext } from '../server.js'
 import {
   captureCommandOutput,
   chromiumDefaultDependencies,
   ensureChromium,
+  failureDetailOf,
   formatError,
-  textViolationMessage,
-  violationCountOf,
   normalizeThemeArgument,
   TOOL_OUTPUT_SCHEMA,
   WINDOWS_PATH_NOTE,
@@ -47,7 +44,7 @@ import {
 const drawioCreateInput = z.object({
   input_path: z.string().describe('Absolute path of the input .drawio file. ' + WINDOWS_PATH_NOTE),
   mode: z.enum(['view', 'edit']).describe('Purpose of the generated URL (view / edit). The generated URL is the same for both').default('view'),
-  out_path: z.string().describe('Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in data.url. ' + WINDOWS_PATH_NOTE).optional(),
+  out_path: z.string().describe('Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in url. ' + WINDOWS_PATH_NOTE).optional(),
   theme: z.string()
     .describe('Theme used to check the font and font size: `git+https://<host>/<owner>/<repo>.git#<tag>`, `file:<absolute path>`, '
       + 'or the absolute path of a talk-dir or a theme root. If omitted, the theme of the talk-dir is used when the diagram is under its `public/`; '
@@ -66,19 +63,14 @@ const drawioExportInput = z.object({
 })
 
 /**
-PNG を出せなかったときの exit code。CLI の「警告あり」と同じ 3 に揃える。
-*/
-const PNG_SKIPPED_EXIT_CODE = 3
-
-/**
 message 末尾の警告件数サフィックス。drawio_create / drawio_export で表記を揃える。
 */
 function warningSuffix(warningCount: number): string {
-  return warningCount > 0 ? ` (${String(warningCount)} warnings; see data.warnings)` : ''
+  return warningCount > 0 ? ` (${String(warningCount)} warnings; see warnings)` : ''
 }
 
 /**
-CLI の `--json` の `warnings` は件数。MCP では data.warnings を捕捉した文の配列にするため、件数を外す (件数は配列の長さで分かる)。
+CLI の `--json` の `warnings` は件数。MCP では warnings を捕捉した文の配列にするため、件数を外す (件数は配列の長さで分かる)。
 */
 function withoutWarningCount(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const { warnings: _count, ...rest } = data
@@ -96,25 +88,24 @@ function drawioCreateMessage(outputFile: string | undefined, warningCount: numbe
 chromium 不在で PNG を諦めたときの結果を、CLI の degrade と同形に寄せる (SC-002)。
 
 CLI (`pecotv drawio url`) は PNG 生成の失敗を warning に格下げする。
-表示用 HTML は書いたうえで、`png: null` / `pngFailed: true` / warning 1 件 / exit 3 を返す。
+表示用 HTML は書いたうえで、`png: null` / `pngFailed: true` / warning 1 件を返す。
 MCP だけが実処理の前に hard-fail すると、CLI と結果が食い違う。
 degrade できる条件はこれだけ。drawio_export と slide_convert は、chromium が無いと成果物を 1 つも作れない。
-data は CLI の PNG 失敗時と同一にし、`runtime_setup` の誘導は message へ載せる。
+項目は CLI の PNG 失敗時と同一にし、`runtime_setup` の誘導は message へ載せる。
 */
 function degradeToPngSkipped(
   execution: Readonly<DrawioUrlExecution>,
-  unavailable: Readonly<ToolResult>,
+  unavailable: Readonly<FailedToolResult>,
   warningCount: number,
-): Pick<ToolResult, 'exitCode' | 'data' | 'message'> {
+): Pick<SucceededToolResult, 'data' | 'message'> {
   return {
-    exitCode: PNG_SKIPPED_EXIT_CODE,
     data: {
       ...withoutWarningCount(execution.data),
       // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
       png: null,
       pngFailed: true,
     },
-    message: `${drawioCreateMessage(execution.outputFile, warningCount)}: ${unavailable.message}`,
+    message: `${drawioCreateMessage(execution.outputFile, warningCount)}: ${unavailable.detail}`,
   }
 }
 
@@ -133,11 +124,9 @@ const handleDrawioCreate = async (
     const detail = normalized.detail
     return toCallToolResult({
       ok: false,
-      exitCode: 2,
       kind: 'invalid-option',
-      artifacts: [],
-      data: { event: 'drawio.url.error', reason: 'invalid-option', detail },
-      message: `pecotv drawio url: ${detail}`,
+      detail: `pecotv drawio url: ${detail}`,
+      data: { event: 'drawio.url.error' },
     })
   }
 
@@ -147,8 +136,8 @@ const handleDrawioCreate = async (
     : undefined
 
   const output = captureCommandOutput()
-  // CLI と同じく PNG の失敗を warning の行に書き、data.warnings に入れる。
-  if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG export failed: ${unavailable.message}`)
+  // CLI と同じく PNG の失敗を warning の行に書き、warnings に入れる。
+  if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG export failed: ${unavailable.detail}`)
   try {
     const execution = await executeDrawioUrl(
       input.input_path,
@@ -156,11 +145,9 @@ const handleDrawioCreate = async (
       { mode: input.mode, png: input.png && unavailable === undefined, theme: normalized?.theme, output: input.out_path },
       { ...drawioUrlDefaultDependencies(), stdout: output.stdout, stderr: output.stderr, signal: call.signal },
     )
-    // 警告あり (exitCode 3) でも URL の生成そのものは完了しているので ok: true。
+    // 警告あり (CLI の exit 3) でも URL の生成そのものは完了しているので成功で返す。file・png の項目が CLI の artifacts と同じパスを持つ。
     return output.finish({
       ok: true,
-      exitCode: execution.exitCode,
-      artifacts: execution.artifacts,
       data: withoutWarningCount(execution.data),
       message: drawioCreateMessage(execution.outputFile, output.warnings().length),
       ...(unavailable !== undefined && degradeToPngSkipped(execution, unavailable, output.warnings().length)),
@@ -168,14 +155,11 @@ const handleDrawioCreate = async (
   }
   catch (error: unknown) {
     const data = drawioUrlErrorData(error)
-    const violationCount = violationCountOf(data)
     return output.finish({
       ok: false,
-      exitCode: drawioUrlToExitCode(error),
       kind: failureKindOf(drawioUrlErrorToReason(error)),
-      artifacts: [],
-      data,
-      message: violationCount === undefined ? `pecotv drawio url: ${formatError(error)}` : textViolationMessage(violationCount),
+      detail: `pecotv drawio url: ${failureDetailOf(error, data)}`,
+      data: withoutCommonFailureFields(data),
     })
   }
 }
@@ -219,11 +203,9 @@ const handleDrawioExport = async (
       { icons: iconsRoot, output: input.out_path, printHash: input.print_hash, pdf: input.pdf },
       { ...drawioExportDefaultDependencies(), stdout: output.stdout, stderr: output.stderr },
     )
-    // 警告あり (exitCode 3。PDF 生成失敗) でも SVG の書き出しは完了しているので ok: true。
+    // 警告あり (CLI の exit 3。PDF 生成失敗) でも SVG の書き出しは完了しているので成功で返す。file・pdf の項目が CLI の artifacts と同じパスを持つ。
     return output.finish({
       ok: true,
-      exitCode: execution.exitCode,
-      artifacts: execution.artifacts,
       data: withoutWarningCount(execution.data),
       message: drawioExportMessage(execution, output.warnings().length),
     })
@@ -236,16 +218,12 @@ const handleDrawioExport = async (
 /**
 drawio_export の失敗を CLI の `--json` エラーと同形の ToolResult に写す。
 */
-function drawioExportFailure(error: unknown): ToolResult {
-  const detail = formatError(error)
-  const reason = drawioExportErrorToReason(error)
+function drawioExportFailure(error: unknown): FailedToolResult {
   return {
     ok: false,
-    exitCode: drawioExportToExitCode(error),
-    kind: failureKindOf(reason),
-    artifacts: [],
-    data: { event: 'drawio.export.error', reason, detail },
-    message: `pecotv drawio export: ${detail}`,
+    kind: failureKindOf(drawioExportErrorToReason(error)),
+    detail: `pecotv drawio export: ${formatError(error)}`,
+    data: { event: 'drawio.export.error' },
   }
 }
 
@@ -261,7 +239,7 @@ export const drawioCreateTool: ToolDefinition = {
   name: 'drawio_create',
   config: {
     title: 'Output a drawio diagram as a deliverable',
-    description: 'Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in data.theme.',
+    description: 'Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in theme.',
     inputSchema: drawioCreateInput,
     outputSchema: TOOL_OUTPUT_SCHEMA,
   },

@@ -22,9 +22,9 @@
 
 - 列を動かすものは 3 つある
   - pecot の操作: 着手・PR の作成・片付けなどが、その場で列を動かす
-  - `board_sync`: ボード全体を判定に合わせて、列と札を直す。画面でのマージ・blocked by の付け外し・カードの手での移動で、ずれたものが対象になる。手元でも GitHub Actions でも同じコマンドを打つ
+  - pecot-workflow の MCP ツール `board_sync`: ボード全体を判定に合わせて、列と札を直す。画面でのマージ・blocked by の付け外し・カードの手での移動で、ずれたものが対象になる。手元でも GitHub Actions でも同じコマンドを打つ
   - ワークフロー: `board_sync` を GitHub Actions で打つ。入れるかは任意で、置き方は[ボードを自動で直すワークフロー](board-sync-workflow.md)にある
-- `board_show` は列を動かさない。判定と食い違いそうな Issue があると、結果の `data.mismatches` に件数が、`data.warnings` に直し方の案内が入る
+- pecot-workflow の MCP ツール `board_show` は列を動かさない。判定と食い違いそうな Issue があると、件数と直し方の案内を警告で返す
 - `Ready` には、着手できるタスクだけを置く。前提を待つタスクは `Blocked` に置く
 
 ## 既定の Status
@@ -40,4 +40,4 @@
 
 `Blocked` と `Needs Attention` は、あれば使う値です。無いボードでも pecot は止まらず、列を動かしません。
 
-値を足すときは、`project_init` を呼ぶ。
+値を足すときは、pecot-workflow の MCP ツール `project_init` を呼ぶ。

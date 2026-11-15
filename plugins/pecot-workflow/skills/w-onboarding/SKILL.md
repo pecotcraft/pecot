@@ -18,12 +18,12 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 次の優先順位で既存設定を確認し、最初にマッチしたケースで対処する。
 
-1. **カレントリポに設定あり** → `project_activate` を `project: "<設定ファイル名>"` で呼ぶ → Step 3 へ
+1. **カレントリポに設定あり** → pecot-workflow の MCP ツール `project_activate` を使って、その設定を有効にする → Step 3 へ
 2. **兄弟リポに同一プロジェクトの設定あり** → コピーして activate → Step 3 へ
-3. **GitHub 上に init 済みプロジェクトあり** → `project_activate` を `host: "<host>"`・`owner: "<owner>"` で呼ぶ → Step 3 へ
+3. **GitHub 上に init 済みプロジェクトあり** → `project_activate` を使って、そのプロジェクトを有効にする（`host`・`owner`）→ Step 3 へ
 4. **どれもない** → Step 2 へ
 
-最初のチェックには、`project_list` を引数なしで呼ぶ。
+最初のチェックには、pecot-workflow の MCP ツール `project_list` を使う。
 
 各パターンの検出手順・兄弟リポを走査するスクリプトの詳細は [既存設定検出の詳細](references/existing-config-detection.md) を参照。
 
@@ -31,7 +31,7 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 AskUserQuestion でプロジェクト名とワークフローサフィックスを質問する。
 
-`project_create` でプロジェクトを作成する（create = プロジェクト作成 + フィールド追加 + activate を実行）。`owner: "<owner>"`・`title: "<プロジェクト名>"`・`host: "<host>"`・`suffix: "<suffix>"` で呼ぶ。
+pecot-workflow の MCP ツール `project_create` を使って、プロジェクトを作る（`owner`・`title`・`host`・`suffix`）。
 
 | 入力 | 説明 |
 |------|------|
@@ -42,13 +42,13 @@ AskUserQuestion でプロジェクト名とワークフローサフィックス�
 
 ### Step 3: Epic 集約リポの設定（任意）
 
-マルチリポ運用では **Epic は 1 つの集約リポに集約するのが標準**。集約リポを設定すると `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
+マルチリポ運用では **Epic は 1 つの集約リポに集約するのが標準**。集約リポを設定すると pecot-workflow の MCP ツール `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
 未設定でも運用可能だが、その場合 Epic 作成時に毎回 `repo` の指定が必要で、運用者ごとに作成先がブレやすい。
 後からの追加は既存 Epic の移送が必要で重いため、**オンボーディング時の設定を推奨** する。
 
 概略フロー:
 
-1. 現状確認: `project_get`（`key: "aggregation_repo"`）
+1. 現状確認: pecot-workflow の MCP ツール `project_get`（`key: "aggregation_repo"`）
 2. AskUserQuestion Q1 で方針を選択: 使わない / 既存リポを指定（推奨） / 新規リポを作成 / 現状維持（既設定時のみ）
 3. 選択に応じて集約リポを設定（既存リポ指定 / 新規リポ作成 / スキップ）
 4. `project_get`（`key: "aggregation_repo"`）で設定値を再確認
@@ -57,7 +57,7 @@ AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ�
 
 ### Step 4: 動作確認
 
-`board_show` を引数なしで呼ぶ。結果の `ok` が `true` で、`data.project` に作ったプロジェクトが入ることを確認する。
+pecot-workflow の MCP ツール `board_show` を使って、作ったプロジェクトのボードが出ることを確かめる。
 
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
 
@@ -86,7 +86,7 @@ printf '%s\n' "$board_url"
 
 ### Step 5: 次ステップ案内
 
-集約リポの設定状況に応じて案内を分岐する。`project_get`（`key: "aggregation_repo"`）の結果の `data.value` で確認できる。未設定なら `data.value` は無い。
+集約リポの設定状況に応じて案内を分岐する。設定は pecot-workflow の MCP ツール `project_get` で確かめる。
 
 - 集約リポが設定済みのとき
 

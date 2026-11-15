@@ -1058,9 +1058,8 @@ const summarize = (message) => {
   if (payload.isError !== undefined) summary.isError = payload.isError
   if (payload.structuredContent !== undefined) {
     summary.call = {
-      ok: payload.structuredContent.ok,
-      exitCode: payload.structuredContent.exitCode,
-      data: payload.structuredContent.data
+      ok: payload.isError !== true,
+      data: payload.structuredContent
     }
   }
   return summary
@@ -1236,8 +1235,8 @@ else
         fail "icons_dir の明示が既定を上書きしていない (empty='$HASH_EMPTY' default='$HASH_DEFAULT')"
     fi
 
-    # ok と warnings は 1 件の判定にまとめる（ok だけを見ると「警告なしに」の部分が空文になる）。
-    assert_eq "drawio_create が配布ツリーで警告なしに成功する" "ok=true warnings=0" \
+    # ok（isError が無い）と warnings の無さは 1 件の判定にまとめる。warnings は、警告が無いと項目ごと入らない。
+    assert_eq "drawio_create が配布ツリーで警告なしに成功する" "ok=true warnings=" \
         "ok=$(smoke_value "$SMOKE_JSON" 6.call.ok) warnings=$(smoke_value "$SMOKE_JSON" 6.call.data.warnings)"
 
     # 同梱した text-rules が配布ツリーで動き、slide_lint が文面違反を text-constraints/textlint で返す。
@@ -1245,8 +1244,8 @@ else
         "$(smoke_value "$SMOKE_JSON" 8.call.ok) $(smoke_value "$SMOKE_JSON" 8.call.data | grep -o 'text-constraints/textlint' | sort -u)"
 
     assert_eq "icons_dir 省略の実 export が icon 解決と chromium ガードを抜ける" \
-        "export-failed" "$(smoke_value "$SMOKE_JSON" 7.call.data.reason)"
-    # reason だけでは、到達点を特定できない。
+        "export-failed" "$(smoke_value "$SMOKE_JSON" 7.call.data.kind)"
+    # kind だけでは、到達点を特定できない。
     # 偽 chromium キャッシュにはバイナリが無い。
     # PECOTV_FORCE_SVG_FAIL が外れると、`browserType.launch: Executable doesn't exist` でも、
     # 同じ export-failed になる。

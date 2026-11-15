@@ -106,8 +106,8 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、次の�
 
 ツールのパス引数には `C:\...` と `\\wsl.localhost\<distro>\...` をそのまま渡せます。
 変換の対象はツール引数のみです。spec ファイル等の中身に書かれたパスは変換しません。
-応答の `artifacts` と `data` は、ドライブレター形式なら `/mnt/<drive>/...`、UNC 形式なら
-WSL 内の絶対パス（例: `/home/alice/deck`）で返ります。
+応答のパスの項目（`file`・`outPath` など）は、WSL 内のパスで返ります。
+ドライブレター形式なら `/mnt/<drive>/...`、UNC 形式なら WSL 内の絶対パス（例: `/home/alice/deck`）です。
 `/etc/wsl.conf` の `[automount] root` を既定から変えている場合は、その値を環境変数
 `PECOTV_WSL_MOUNT_ROOT` に設定してください。
 

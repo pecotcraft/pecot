@@ -105,84 +105,26 @@
         "output": {
           "type": "object",
           "properties": {
-            "ok": {
-              "type": "boolean",
-              "description": "Whether the tool completed its intended run"
-            },
-            "exitCode": {
-              "type": "number",
-              "description": "Exit code (0 = success)"
-            },
             "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
+              "type": "string",
+              "description": "Failure kind (failure only)"
             },
-            "artifacts": {
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Absolute paths of files and directories created or updated"
-            },
-            "data": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "warnings": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "reason": {
-                      "type": "string",
-                      "description": "Failure kind, the same value as kind"
-                    },
-                    "detail": {
-                      "type": "string",
-                      "description": "Full failure text: the error message and the guidance lines that follow it"
-                    },
-                    "warnings": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
-                    },
-                    "log": {
-                      "description": "Raw output of a child process (failure only; omitted when not captured)",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "reason",
-                    "detail"
-                  ],
-                  "additionalProperties": false
-                }
-              ],
-              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
-            },
-            "message": {
-              "type": "string",
-              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "additionalProperties": false
         }
       }
@@ -254,84 +196,26 @@
         "output": {
           "type": "object",
           "properties": {
-            "ok": {
-              "type": "boolean",
-              "description": "Whether the tool completed its intended run"
-            },
-            "exitCode": {
-              "type": "number",
-              "description": "Exit code (0 = success)"
-            },
             "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
+              "type": "string",
+              "description": "Failure kind (failure only)"
             },
-            "artifacts": {
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Absolute paths of files and directories created or updated"
-            },
-            "data": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "warnings": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "reason": {
-                      "type": "string",
-                      "description": "Failure kind, the same value as kind"
-                    },
-                    "detail": {
-                      "type": "string",
-                      "description": "Full failure text: the error message and the guidance lines that follow it"
-                    },
-                    "warnings": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
-                    },
-                    "log": {
-                      "description": "Raw output of a child process (failure only; omitted when not captured)",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "reason",
-                    "detail"
-                  ],
-                  "additionalProperties": false
-                }
-              ],
-              "description": "On success, the tool's result fields. On failure, reason and detail, plus any result fields reached before the failure"
-            },
-            "message": {
-              "type": "string",
-              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "additionalProperties": false
         }
       }

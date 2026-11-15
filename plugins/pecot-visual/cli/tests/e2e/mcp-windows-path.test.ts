@@ -91,15 +91,14 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       const structured = structuredOf(called)
-      expect(structured['ok']).toBe(true)
-      expect(structured['exitCode']).toBe(0)
+      expect(structured).not.toHaveProperty('kind')
       // 変換に失敗していれば入り口のガードで弾かれ、ここに invalidPaths が載る。
-      expect(structured['data']).not.toHaveProperty('invalidPaths')
-      expect(structured['artifacts']).toEqual([expectedOut])
+      expect(structured).not.toHaveProperty('invalidPaths')
+      expect(structured['outPath']).toBe(expectedOut)
       expect(existsSync(expectedOut)).toBe(true)
       expect(statSync(expectedOut).size).toBeGreaterThan(0)
 
-      // 別 distro の UNC は解決不能として exitCode 2 で拒否される (#1094 F-14)。
+      // 別 distro の UNC は解決不能として invalid-path で拒否される (#1094 F-14)。
       // 同一 spawn 内に呼び出しを 1 本足すだけなので、この E2E の増分コストはほぼゼロ。
       const otherDistro = `${DISTRO}-other`
       const otherDistroPath = `\\\\wsl.localhost\\${otherDistro}${specPath().replaceAll('/', '\\')}`
@@ -110,9 +109,9 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
 
       expect(rejected.isError, `子プロセス stderr: ${readStderr()}`).toBe(true)
       const rejectedStructured = structuredOf(rejected)
-      expect(rejectedStructured['exitCode']).toBe(2)
-      expect(rejectedStructured['message']).toContain('cannot resolve Windows-style path')
-      expect(rejectedStructured['message']).toContain(otherDistro)
+      expect(rejectedStructured['kind']).toBe('invalid-path')
+      expect(rejectedStructured['detail']).toContain('cannot resolve Windows-style path')
+      expect(rejectedStructured['detail']).toContain(otherDistro)
     }
     finally {
       await client.close()
@@ -121,8 +120,8 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
 
   it('spec 内の imagePath は変換対象外で、Windows 形式のまま渡ると not-found で除外される (#1094 F-11)', async () => {
     // 変換が働くのはツール引数 (input_path / out_path) のみで、EvidenceSpec の中身 (imagePath) までは変換しない。
-    // この境界を越えて imagePath に Windows 形式を書くと、全件なら exitCode 1 (配置できる画像がありません)。
-    // POSIX と混在なら ok: true のまま、当該画像だけ data.skipped に入る (成果物が静かに欠ける)。
+    // この境界を越えて imagePath に Windows 形式を書くと、全件なら失敗する (配置できる画像がありません)。
+    // POSIX と混在なら成功のまま、当該画像だけ skipped に入る (成果物が静かに欠ける)。
     // 混在ケースを pin する。
     const mixedRoot = mkdtempSync(path.join(tmpdir(), 'pecotv-1094-e2e-mixed-'))
     const validImagePath = path.join(mixedRoot, '01-login.png')
@@ -151,9 +150,8 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       const structured = structuredOf(called)
-      expect(structured['ok']).toBe(true)
-      expect(structured['exitCode']).toBe(0)
-      expect(structured['data']).toMatchObject({
+      expect(structured).not.toHaveProperty('kind')
+      expect(structured).toMatchObject({
         skipped: [{ path: missingWindowsImagePath, reason: 'not-found' }],
       })
       expect(existsSync(outPath)).toBe(true)

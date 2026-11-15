@@ -681,15 +681,15 @@ describe('tracker sync', () => {
         added: [{ kind: 'dependabot', number: 1 }],
         removed: [],
         closed: false,
-        reason: 'partial-failure',
+        kind: 'partial-failure',
         detail: `Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}`,
       })
     })
   })
 })
 
-// tracker_sync を source: security で、同じプロセスの中のクライアントから 1 回呼び、data を返す
-async function syncTool(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Record<string, unknown>> {
-  const { data } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'security', ...arguments_ })
-  return data
+// tracker_sync を source: security で、同じプロセスの中のクライアントから 1 回呼び、structuredContent を返す
+async function syncTool(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Readonly<Record<string, unknown>>> {
+  const { structured } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'security', ...arguments_ })
+  return structured
 }

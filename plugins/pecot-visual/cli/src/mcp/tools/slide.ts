@@ -12,21 +12,18 @@ import {
   errorToReason as slideCreateErrorToReason,
   executeSlideCreate,
   slideCreateDefaultDependencies,
-  toExitCode as slideCreateExitCode,
 } from '../../commands/slidev-project/create.js'
 import type { SlideCreateDependencies } from '../../commands/slidev-project/create.js'
 import {
   errorToReason as slideLintErrorToReason,
   executeSlideLint,
   slideLintDefaultDependencies,
-  toExitCode as slideLintExitCode,
 } from '../../commands/slidev-project/lint.js'
 import type { SlideLintDependencies } from '../../commands/slidev-project/lint.js'
 import {
   errorToReason as slideSyncErrorToReason,
   executeSlideSync,
   slideSyncDefaultDependencies,
-  toExitCode as slideSyncExitCode,
 } from '../../commands/slidev-project/sync.js'
 import type { SlideSyncDependencies, SlideSyncResultSummary } from '../../commands/slidev-project/sync.js'
 import {
@@ -35,7 +32,6 @@ import {
   executeSlideConvert,
   resolveDefaultOut,
   slideConvertDefaultDependencies,
-  toExitCode as slideConvertExitCode,
 } from '../../commands/slidev-to-pptx/convert.js'
 import type {
   SlideConvertDependencies,
@@ -64,18 +60,14 @@ import {
 function failureResult(
   event: string,
   reason: FailureReason,
-  exitCode: number,
   error: unknown,
   extra: Readonly<Record<string, unknown>> = {},
 ): FailedToolResult {
-  const detail = formatError(error)
   return {
     ok: false,
-    exitCode,
     kind: failureKindOf(reason),
-    artifacts: [],
-    data: { event, reason, detail, ...extra },
-    message: detail,
+    detail: formatError(error),
+    data: { event, ...extra },
   }
 }
 
@@ -106,7 +98,7 @@ export function slideCreateTool(
       description: 'Generates a new talk-dir that references the Slidev theme given by `theme`. '
         + 'The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) '
         + 'or a local path (`file:<path>`). '
-        + 'Returns the presentation categories (data.categories) and the list of selectable layouts (data.layouts). '
+        + 'Returns the presentation categories (categories) and the list of selectable layouts (layouts). '
         + 'Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).',
       inputSchema: slideCreateInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
@@ -119,7 +111,7 @@ export function slideCreateTool(
 
       const normalized = normalizeThemeArgument(input.theme)
       if (!normalized.ok) {
-        return toCallToolResult(failureResult('slide.create.error', 'invalid-option', 2, new Error(normalized.detail)))
+        return toCallToolResult(failureResult('slide.create.error', 'invalid-option', new Error(normalized.detail)))
       }
 
       // 生成の最後に行う node_modules の張り直しは依存ルートの実体を要る。実処理より前に見る。
@@ -138,14 +130,12 @@ export function slideCreateTool(
         const execution = await executeSlideCreate(
           input.project_dir,
           // 人間向けの catalog 整形出力は stdout を汚すので出さない。
-          // 同じ元データは data.layouts に構造化して載る。
+          // 同じ元データは layouts に構造化して載る。
           { theme: normalized.theme, force: input.force, emitCatalog: false },
           dependencies,
         )
         return output.finish({
           ok: true,
-          exitCode: 0,
-          artifacts: [execution.summary.projectDirectory],
           data: execution.data,
           message: `slide create: succeeded (${execution.summary.projectDirectory})`,
         })
@@ -154,7 +144,6 @@ export function slideCreateTool(
         return output.finish(failureResult(
           'slide.create.error',
           slideCreateErrorToReason(error),
-          slideCreateExitCode(error),
           error,
         ))
       }
@@ -229,7 +218,7 @@ export function slideConvertTool(
 
       const output = captureCommandOutput()
       try {
-        // json: false 相当で呼び、出力を捕捉する。warning の行は data.warnings、失敗のときの出力は data.log に入る。
+        // json: false 相当で呼び、出力を捕捉する。warning の行は warnings、失敗のときの出力は log に入る。
         const dependencies: SlideConvertDependencies = {
           ...buildDependencies(),
           stdout: output.stdout,
@@ -255,8 +244,6 @@ export function slideConvertTool(
         const execution = await executeSlideConvert(input.project_dir, options, dependencies)
         return output.finish({
           ok: true,
-          exitCode: 0,
-          artifacts: [execution.summary.outputAbs],
           data: execution.data,
           message: `slide convert: ${execution.summary.inputAbs} -> ${execution.summary.outputAbs}`
             + ` (${String(Math.round(execution.summary.durationMs))}ms)`,
@@ -266,7 +253,6 @@ export function slideConvertTool(
         return output.finish(failureResult(
           'slide.convert.error',
           slideConvertErrorToReason(error),
-          slideConvertExitCode(error),
           error,
           convertErrorDiagnostics(error),
         ))
@@ -303,12 +289,12 @@ export function slideSyncTool(
       description: 'Syncs an existing talk-dir. '
         + 'A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) '
         + 'is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, '
-        + 'and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in data.migration.removed. '
+        + 'and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in migration.removed. '
         + 'A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) '
         + 'fetches the theme at the version in the dependency and relinks node_modules, '
         + 'and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. '
         + 'To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. '
-        + 'Returns the presentation categories (data.categories), the list of selectable layouts (data.layouts), '
+        + 'Returns the presentation categories (categories), the list of selectable layouts (layouts), '
         + 'and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.',
       inputSchema: slideSyncInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
@@ -325,7 +311,7 @@ export function slideSyncTool(
       if (input.theme !== undefined) {
         const normalized = normalizeThemeArgument(input.theme)
         if (!normalized.ok) {
-          return toCallToolResult(failureResult('slide.sync.error', 'invalid-option', 2, new Error(normalized.detail)))
+          return toCallToolResult(failureResult('slide.sync.error', 'invalid-option', new Error(normalized.detail)))
         }
         theme = normalized.theme
       }
@@ -348,8 +334,6 @@ export function slideSyncTool(
         )
         return output.finish({
           ok: true,
-          exitCode: 0,
-          artifacts: [execution.summary.directory],
           data: execution.data,
           message: syncSuccessMessage(execution.summary),
         })
@@ -358,7 +342,6 @@ export function slideSyncTool(
         return output.finish(failureResult(
           'slide.sync.error',
           slideSyncErrorToReason(error),
-          slideSyncExitCode(error),
           error,
         ))
       }
@@ -381,8 +364,8 @@ const slideLintInput = z.object({
 })
 
 /**
-`pecotv slide lint` 相当。違反の検出は「報告が成果」なので ok: true / exitCode 1 で返す
-(CLI の exit code 規約は exitCode 側に載せ、ok は目的の実行を完了できたかだけを表す)。
+`pecotv slide lint` 相当。違反の検出は「報告が成果」なので、違反があっても成功で返す (CLI は exit 1)。
+違反の有無は outcome の項目で読む。
 */
 export function slideLintTool(
   buildDependencies: () => SlideLintDependencies = slideLintDefaultDependencies,
@@ -392,7 +375,7 @@ export function slideLintTool(
     config: {
       title: 'Lint a Slidev deck',
       description: 'Lints the whole talk-dir (pages/**/*.md and slides.md) '
-        + 'and returns the list of violations. The call itself succeeds (exitCode 1) even with violations.',
+        + 'and returns the list of violations. The call itself succeeds even with violations; outcome is violations when any are found.',
       inputSchema: slideLintInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
       // 読み取りのみで何も書き換えず、ネットワークにも到達しない。
@@ -414,8 +397,6 @@ export function slideLintTool(
         const hasViolations = summary.outcome === 'violations'
         return output.finish({
           ok: true,
-          exitCode: hasViolations ? 1 : 0,
-          artifacts: [],
           data,
           message: hasViolations
             ? `slide lint: violations found (${summary.directory}); ${String(summary.errorCount)} errors`
@@ -427,7 +408,6 @@ export function slideLintTool(
         return output.finish(failureResult(
           'slide.lint.error',
           slideLintErrorToReason(error),
-          slideLintExitCode(error),
           error,
         ))
       }

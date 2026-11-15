@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の mutable な型を使う */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
@@ -7,6 +9,7 @@ import {
   parsePathArguments,
   toCallToolResult,
   truncateCapturedText,
+  withoutCommonFailureFields,
   type ToolResult,
 } from '../result.js'
 
@@ -17,67 +20,72 @@ const LIMIT_BYTES = 64 * 1024
 
 const BASE_RESULT: ToolResult = {
   ok: true,
-  exitCode: 0,
-  artifacts: ['/tmp/out.drawio'],
-  data: { url: 'https://example.invalid/x' },
+  data: { url: 'https://example.invalid/x', file: '/tmp/out.drawio' },
   message: 'done',
 }
 
+const FAILED_RESULT: ToolResult = {
+  ok: false,
+  kind: 'invalid-path',
+  detail: 'relative path',
+  data: { invalidPaths: ['a=b'] },
+}
+
+function textsOf(result: Readonly<ReturnType<typeof toCallToolResult>>): string[] {
+  return result.content.map(block => (block.type === 'text' ? block.text : ''))
+}
+
 describe('toCallToolResult', () => {
-  it('成功時は isError を持たず structuredContent と同内容の JSON テキストを載せる', async (context) => {
-    await verifies(context, 'PV-COMMON-06')
+  it('成功のとき、ツールの項目を structuredContent の最上位に置き、入れ物の項目と isError を持たない', () => {
     const converted = toCallToolResult(BASE_RESULT)
 
     expect(converted.isError).toBeUndefined()
-    expect(converted.structuredContent).toEqual({
-      ok: true,
-      exitCode: 0,
-      artifacts: ['/tmp/out.drawio'],
-      data: { url: 'https://example.invalid/x' },
-      message: 'done',
-    })
-    const [block] = converted.content
-    expect(block).toMatchObject({ type: 'text' })
-    expect(JSON.parse(block?.type === 'text' ? block.text : '')).toEqual(converted.structuredContent)
+    expect(converted.structuredContent).toStrictEqual({ url: 'https://example.invalid/x', file: '/tmp/out.drawio' })
   })
 
-  it('exitCode を保持しつつ ok: false を isError: true に連動させる', async (context) => {
+  it('content の 2 つ目の text が、structuredContent の JSON と 1 字も違わない', async (context) => {
+    await verifies(context, 'PV-COMMON-06')
+    for (const result of [BASE_RESULT, FAILED_RESULT]) {
+      const converted = toCallToolResult(result)
+
+      expect(textsOf(converted)).toHaveLength(2)
+      expect(textsOf(converted)[1]).toBe(JSON.stringify(converted.structuredContent))
+    }
+  })
+
+  it('成功のとき、content の 1 つ目の text に文を入れ、文が空なら JSON の text だけにする', () => {
+    expect(textsOf(toCallToolResult(BASE_RESULT))[0]).toBe('done')
+    expect(textsOf(toCallToolResult({ ...BASE_RESULT, message: '' })))
+      .toStrictEqual(['{"url":"https://example.invalid/x","file":"/tmp/out.drawio"}'])
+  })
+
+  it('失敗のとき、isError を立て、ツールの項目に kind と detail を重ね、reason を持たない', async (context) => {
     await verifies(context, 'PV-COMMON-07')
-    const converted = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 3, kind: 'unknown', message: 'warnings' })
+    const converted = toCallToolResult(FAILED_RESULT)
 
     expect(converted.isError).toBe(true)
-    expect(converted.structuredContent).toMatchObject({ ok: false, exitCode: 3, message: 'warnings' })
+    expect(converted.structuredContent).toStrictEqual({ invalidPaths: ['a=b'], kind: 'invalid-path', detail: 'relative path' })
+    expect(textsOf(converted)[0]).toBe('relative path')
   })
 
-  it('失敗のときだけ kind を exitCode の次に出す', () => {
-    const failed = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 1, kind: 'export-failed' })
+  it('ツールの項目に kind と detail があると、共通の値で上書きする', () => {
+    const converted = toCallToolResult({ ok: false, kind: 'export-failed', detail: 'export failed', data: { kind: 'x', detail: 'theme is broken' } })
 
-    expect(Object.keys(failed.structuredContent ?? {})).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
-    expect(failed.structuredContent).toMatchObject({ kind: 'export-failed' })
-    expect(toCallToolResult(BASE_RESULT).structuredContent).not.toHaveProperty('kind')
+    expect(converted.structuredContent).toStrictEqual({ kind: 'export-failed', detail: 'export failed' })
   })
 
-  it('失敗の結果は、ツールが data に入れていなくても、reason に kind、detail に message を入れる', () => {
-    const failed = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 2, kind: 'invalid-path', data: { invalidPaths: ['a=b'] }, message: 'relative path' })
-
-    expect(failed.structuredContent).toEqual(expect.objectContaining({ data: { reason: 'invalid-path', detail: 'relative path', invalidPaths: ['a=b'] } }))
+  it('stdout・stderr・exitCode を持たない', () => {
+    for (const result of [BASE_RESULT, FAILED_RESULT]) {
+      const content = toCallToolResult(result).structuredContent
+      for (const key of ['ok', 'exitCode', 'artifacts', 'data', 'message', 'stdout', 'stderr']) expect(content).not.toHaveProperty(key)
+    }
   })
+})
 
-  it('ツールが data.reason・data.detail を入れているときは、その値を残す', () => {
-    const failed = toCallToolResult({
-      ...BASE_RESULT,
-      ok: false,
-      exitCode: 1,
-      kind: 'export-failed',
-      data: { reason: 'invalid-theme', detail: 'theme is broken' },
-      message: 'export failed',
-    })
-
-    expect(failed.structuredContent).toEqual(expect.objectContaining({ data: { reason: 'invalid-theme', detail: 'theme is broken' } }))
-  })
-
-  it('最上位は ok・exitCode・kind・artifacts・data・message の 6 つだけで、stdout / stderr を持たない', () => {
-    expect(Object.keys(toCallToolResult(BASE_RESULT).structuredContent ?? {})).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
+describe('withoutCommonFailureFields', () => {
+  it('CLI の失敗の payload から reason と detail を外し、ほかの項目を残す', () => {
+    expect(withoutCommonFailureFields({ event: 'x.error', reason: 'invalid-theme', detail: 'broken', file: '/a' }))
+      .toStrictEqual({ event: 'x.error', file: '/a' })
   })
 })
 
@@ -94,6 +102,14 @@ const PATH_SCHEMA = z.object({
 注入する mount root。実在しない合成パスで、この層は文字列の組み立てしか見ない。
 */
 const MOUNT_ROOT = '/pecotv-1094-mount'
+
+/**
+拒否結果の detail。拒否でなければテストを落とす。
+*/
+function detailOf(result: Readonly<ToolResult> | undefined): string {
+  if (result === undefined || result.ok) throw new Error('expected a rejection')
+  return result.detail
+}
 
 describe('parsePathArguments', () => {
   beforeEach(() => {
@@ -138,7 +154,7 @@ describe('parsePathArguments', () => {
     })
   })
 
-  it('相対パスが 1 件でもあれば exitCode 2 の拒否結果を返す', () => {
+  it('相対パスが 1 件でもあれば invalid-path の拒否結果を返す', () => {
     const parsed = parsePathArguments(
       PATH_SCHEMA,
       { input_path: '/a/b.drawio', out_path: 'relative/c.png' },
@@ -148,12 +164,10 @@ describe('parsePathArguments', () => {
     expect(parsed.input).toBeUndefined()
     expect(parsed.rejected).toMatchObject({
       ok: false,
-      exitCode: 2,
       kind: 'invalid-path',
-      artifacts: [],
       data: { invalidPaths: ['out_path=relative/c.png'] },
     })
-    expect(parsed.rejected?.message).toContain('must be an absolute path')
+    expect(detailOf(parsed.rejected)).toContain('must be an absolute path')
     // 変換が 1 件も起きていないので convertedPaths は載せない。
     expect(parsed.rejected?.data).not.toHaveProperty('convertedPaths')
   })
@@ -163,10 +177,8 @@ describe('parsePathArguments', () => {
     if (parsed.rejected === undefined) throw new Error('相対パスが受理された')
 
     expect(toCallToolResult(parsed.rejected).structuredContent).toMatchObject({
-      ok: false,
-      exitCode: 2,
       kind: 'invalid-path',
-      data: { invalidPaths: ['input_path=talks/demo'] },
+      invalidPaths: ['input_path=talks/demo'],
     })
   })
 
@@ -203,19 +215,17 @@ describe('parsePathArguments', () => {
 
     expect(parsed.rejected).toMatchObject({
       ok: false,
-      exitCode: 2,
       kind: 'invalid-path',
-      artifacts: [],
       data: {
         invalidPaths: [String.raw`input_path=\\wsl.localhost\Debian\home\a.drawio`],
         convertedPaths: { out_path: { from: String.raw`C:\deck\a.png`, to: `${MOUNT_ROOT}/c/deck/a.png` } },
       },
     })
-    expect(parsed.rejected?.message).toContain('Windows-style')
-    expect(parsed.rejected?.message).toContain('Debian')
+    expect(detailOf(parsed.rejected)).toContain('Windows-style')
+    expect(detailOf(parsed.rejected)).toContain('Debian')
   })
 
-  it('解決不能と相対パスが両方含まれるときはそれぞれを invalidPaths に列挙し、解決不能側を message の主文にする', () => {
+  it('解決不能と相対パスが両方含まれるときはそれぞれを invalidPaths に列挙し、解決不能側を detail の主文にする', () => {
     const parsed = parsePathArguments(
       PATH_SCHEMA,
       { input_path: 'C:relative', out_path: 'b.png' },
@@ -224,12 +234,12 @@ describe('parsePathArguments', () => {
 
     // 旧仕様 (解決不能があると相対パス側の違反を隠す) から、両方を列挙する形へ変えた (#1094 F-06)。
     expect(parsed.rejected?.data['invalidPaths']).toEqual(['input_path=C:relative', 'out_path=b.png'])
-    expect(parsed.rejected?.message).toContain('cannot resolve Windows-style path')
-    expect(parsed.rejected?.message).toContain('C:relative')
-    expect(parsed.rejected?.message).toContain('must be an absolute path')
-    expect(parsed.rejected?.message).toContain('out_path=b.png')
-    // 解決不能側を主文にする: message の先頭がそちらであること。
-    expect(parsed.rejected?.message.startsWith('cannot resolve Windows-style')).toBe(true)
+    expect(detailOf(parsed.rejected)).toContain('cannot resolve Windows-style path')
+    expect(detailOf(parsed.rejected)).toContain('C:relative')
+    expect(detailOf(parsed.rejected)).toContain('must be an absolute path')
+    expect(detailOf(parsed.rejected)).toContain('out_path=b.png')
+    // 解決不能側を主文にする: detail の先頭がそちらであること。
+    expect(detailOf(parsed.rejected).startsWith('cannot resolve Windows-style')).toBe(true)
   })
 })
 

@@ -1,7 +1,7 @@
 // T013: CLI と MCP の同等性テスト (SC-002)。
 //
 // 同じ入力に対して 2 つのエントリポイント (commander の `--json` 実行と MCP の tools/call) を in-process で実行する。
-// CLI が stdout へ出す JSON と MCP の structuredContent.data が一致することを見る。
+// CLI が stdout へ出す JSON と MCP の structuredContent が一致することを見る。
 // 実処理と data 組み立ては execute<Cmd>() に一本化してある。
 // ここで不一致が出たときは、「どちらかのルートにだけ後処理が残った」ことを意味する。
 //
@@ -29,7 +29,7 @@ import { buildPng } from '../../../tests/_helpers/image-fixture.js'
 import { createChromiumCacheDirectory, removeChromiumCacheDirectory } from '../../../tests/_helpers/chromium-cache.js'
 import { copyFixtureTheme } from '../../../tests/_helpers/theme-fixtures.js'
 import { readZipEntries } from '../../../tests/_helpers/zip-entries.js'
-import { createOutputCapture } from '../result.js'
+import { createOutputCapture, withoutCommonFailureFields } from '../result.js'
 import { allTools } from '../tools/index.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
@@ -40,7 +40,7 @@ const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 // 警告 0 件で URL を返す既存 fixture。
 const MINIMAL_DRAWIO = path.join(CLI_ROOT, 'tests', 'fixtures', 'drawio', 'minimal.drawio')
 
-// talk-dir の外で --theme 無しのとき、data.theme に載る既定値
+// talk-dir の外で --theme 無しのとき、theme に載る既定値
 const DEFAULT_THEME_DATA = { source: 'default', fonts: { body: ['sans-serif'] } }
 
 /**
@@ -60,16 +60,14 @@ function parseJsonLine(text: string): Record<string, unknown> {
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const structured = result['structuredContent']
   if (!isRecord(structured)) throw new Error('structuredContent が返っていません')
-  const data = structured['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structured
 }
 
 /**
-MCP の data を CLI の `--json` の形に戻す。log を外し、CLI の warnings が件数なら、MCP の warnings (文の配列) を長さに置き換える。
+MCP の structuredContent を CLI の `--json` の形に戻す。共通の kind・detail・log を外し、CLI の warnings が件数なら、MCP の warnings (文の配列) を長さに置き換える。
 */
 function asCliData(data: Readonly<Record<string, unknown>>, cli: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const rest = Object.fromEntries(Object.entries(data).filter(([key]) => !['warnings', 'log'].includes(key)))
+  const rest = Object.fromEntries(Object.entries(data).filter(([key]) => !['warnings', 'log', 'kind', 'detail'].includes(key)))
   if (typeof cli['warnings'] !== 'number') return rest
   const warnings = data['warnings']
   return { ...rest, warnings: Array.isArray(warnings) ? warnings.length : 0 }
@@ -155,7 +153,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
 
     it('out_path 指定・PNG 抑止時 (data = file) が一致する', async () => {
       // 同じ出力先へ順に書く。表示用 HTML は同じ URL からは同じバイト列になり決定的なので上書きしてよく、
-      // data.file が両ルートで同一パスになるぶん比較が素直になる。
+      // file が両ルートで同一パスになるぶん比較が素直になる。
       const outPath = path.join(workDirectory, 'diagram.drawio.html')
 
       const cli = await runDrawioUrlCli([MINIMAL_DRAWIO, '--json', '-o', outPath, '--no-png'])
@@ -222,7 +220,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
       })
     })
 
-    it('theme 指定時 (data.theme = option) が一致する', async () => {
+    it('theme 指定時 (theme = option) が一致する', async () => {
       const themeDirectory = path.join(workDirectory, 'theme')
       copyFixtureTheme('with-declaration', themeDirectory)
 
@@ -247,8 +245,10 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
       })
 
       expect(called.isError).toBe(true)
-      expect(asCliData(dataOf(called), cli)).toEqual(cli)
+      expect(asCliData(dataOf(called), cli)).toEqual(withoutCommonFailureFields(cli))
       expect(cli).toMatchObject({ event: 'drawio.url.error', reason: 'invalid-theme' })
+      expect(dataOf(called)['kind']).toBe(cli['reason'])
+      expect(String(dataOf(called)['detail'])).toContain(String(cli['detail']))
     })
   })
 
@@ -263,7 +263,7 @@ describe('CLI と MCP の結果同等性 (SC-002)', () => {
         items: [{ imagePath, caption: 'ログイン画面' }],
       }), 'utf8')
 
-      // data.outPath を同値にするため出力先は共通にし、CLI の生成物は先に退避しておく。
+      // outPath を同値にするため出力先は共通にし、CLI の生成物は先に退避しておく。
       const outPath = path.join(workDirectory, 'evidence.xlsx')
       const cliCopy = path.join(workDirectory, 'evidence-cli.xlsx')
 

@@ -13,12 +13,8 @@ import {
 import { limitOutput, toCallToolResult, type ExecutionResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import {
-  PRE_EXECUTION_EXIT_CODE,
   PROFILE_INPUT_SHAPE,
-  resolveExitCode,
-  TIMEOUT_EXIT_CODE,
   TOOL_OUTPUT_SCHEMA,
-  UNKNOWN_FAILURE_EXIT_CODE,
   type ToolOptions,
 } from './_shared.js'
 
@@ -34,11 +30,11 @@ const SSO_FAILURE_HINTS: Record<FailureKind, string> = {
   'permission-denied': 'Check that the SSO permission set includes the target account',
   'resource-not-found': 'Check sso_start_url / sso_region of the profile',
   'timeout': 'Authentication did not complete within the time limit. Call aws_sso_login again',
-  'other': 'awscli failed. Check data.log',
+  'other': 'awscli failed. Check log',
 }
 
 /**
-出力が上限で切り詰められたときに message へ足す注記。
+出力が上限で切り詰められたときに文へ足す注記。
 */
 const OUTPUT_TRUNCATION_NOTE = '(Output exceeded the limit, so only the beginning is included)'
 
@@ -54,7 +50,7 @@ function profileOf(arguments_: Readonly<Record<string, unknown>>): string | unde
 }
 
 /**
-応答 data に載せる URL / コード。確定前と、デバイスフローに入らなかった場合は載らない。
+応答の項目に載せる URL / コード。確定前と、デバイスフローに入らなかった場合は載らない。
 */
 function promptData(session: Readonly<SsoLoginSession>): Record<string, unknown> {
   return {
@@ -81,7 +77,7 @@ function hintOf(kind: FailureKind): string {
 }
 
 /**
-失敗セッションを ExecutionResult にする。exitCode は必ず 1 以上になる。
+失敗セッションを ExecutionResult にする。
 */
 function failureResult(
   session: Readonly<SsoLoginSession>,
@@ -90,20 +86,13 @@ function failureResult(
   /* c8 ignore next -- レジストリは failed に必ず kind を付ける。既定値は型を閉じるための防御網 */
   const kind = session.kind ?? 'other'
   const limited = limitOutput(session.output)
-  // awscli の終了コードをそのまま返す（SSO 設定なしなら 253）。ok: false と同居できないので、0 以下とシグナル終了は 1 にする。
-  const resolved = resolveExitCode(kind, session.exitCode)
 
   return {
     ok: false,
-    // resolveExitCode は 'timeout' なら 124、'awscli-missing' なら 127、それ以外は session.exitCode（未設定なら 1）を返す。
-    // 0 以下にならず、false 分岐は型を閉じるための防御。
-    /* c8 ignore next */
-    exitCode: resolved > 0 ? resolved : UNKNOWN_FAILURE_EXIT_CODE,
     kind,
-    data: limited.text === '' ? { ...data } : { ...data, log: limited.text },
-    artifacts: [],
-    message: `SSO authentication failed (${kind}). ${hintOf(kind)}`
+    detail: `SSO authentication failed (${kind}). ${hintOf(kind)}`
       + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
+    data: limited.text === '' ? { ...data } : { ...data, log: limited.text },
   }
 }
 
@@ -113,11 +102,9 @@ function failureResult(
 function timedOutResult(data: Readonly<Record<string, unknown>>): ExecutionResult {
   return {
     ok: false,
-    exitCode: TIMEOUT_EXIT_CODE,
     kind: 'timeout',
+    detail: `SSO authentication timed out. ${hintOf('timeout')}`,
     data: { ...data },
-    artifacts: [],
-    message: `SSO authentication timed out. ${hintOf('timeout')}`,
   }
 }
 
@@ -131,11 +118,9 @@ async function startLogin(
   if (!probe.ok) {
     return {
       ok: false,
-      exitCode: resolveExitCode(probe.kind),
       kind: probe.kind,
+      detail: probe.message,
       data: {},
-      artifacts: [],
-      message: probe.message,
     }
   }
 
@@ -146,18 +131,14 @@ async function startLogin(
     case 'pending': {
       return {
         ok: true,
-        exitCode: 0,
         data: { ...promptData(session), ...base },
-        artifacts: [],
         message: pendingMessage(session),
       }
     }
     case 'completed': {
       return {
         ok: true,
-        exitCode: 0,
         data: { ...promptData(session), ...base },
-        artifacts: [],
         message: 'Already authenticated before device authorization started',
       }
     }
@@ -178,11 +159,9 @@ function loginStatus(
   if (session === undefined) {
     return {
       ok: false,
-      exitCode: PRE_EXECUTION_EXIT_CODE,
       kind: 'invalid-input',
+      detail: 'No SSO login in progress. Call aws_sso_login first',
       data: {},
-      artifacts: [],
-      message: 'No SSO login in progress. Call aws_sso_login first',
     }
   }
 
@@ -192,9 +171,7 @@ function loginStatus(
     case 'pending': {
       return {
         ok: true,
-        exitCode: 0,
         data: { ...promptData(session), ...base },
-        artifacts: [],
         message: 'Not approved yet. Approve at the given URL, then call again',
       }
     }
@@ -202,9 +179,7 @@ function loginStatus(
       const limited = limitOutput(session.output)
       return {
         ok: true,
-        exitCode: 0,
         data: { ...promptData(session), ...base, output: limited.text },
-        artifacts: [],
         message: 'SSO authentication completed'
           + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
       }

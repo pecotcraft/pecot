@@ -88,7 +88,8 @@ async function compareWithGolden(id: string, launcher: Launcher, isStdoutSkipped
   // 案内の文は、CLI では打つコマンド、MCP ではツールの呼び出しの形で出る。MCP だけ違う stderr は mcp-stderr.json に置く。
   // MCP の結果は stdout・stderr を持たないので、stderr から取り出した warning の文と失敗の detail で比べる（mcp-view.ts）
   const cliStderr = new Map(Object.entries(mcpStderr())).get(id) ?? golden.stderr
-  const expected = launcher.via === 'mcp' ? { ...golden, stdout: '', stderr: mcpViewOfStderr(cliStderr, golden.exitCode) } : golden
+  // MCP の結果は終了コードを持たないので、終了コードは成否（0 か 1）に写して比べる
+  const expected = launcher.via === 'mcp' ? { ...golden, stdout: '', stderr: mcpViewOfStderr(cliStderr, golden.exitCode), exitCode: golden.exitCode === 0 ? 0 : 1 } : golden
   return { outcome, actual: compared(outcome.golden), expected: compared(expected) }
 }
 
@@ -129,7 +130,7 @@ describe('前後比較', () => {
     expect(withStdin.length).toBeGreaterThan(0)
   })
 
-  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、golden と同じ終了コード・要求・ファイルと、stderr と同じ warning・detail になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、golden と同じ成否・要求・ファイルと、stderr と同じ warning・detail になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
     const { outcome, actual, expected } = await compareWithGolden(id, nodeMcp, false)
     expect(outcome).toMatchObject(COMPLETED)
     expect(actual).toEqual(expected)

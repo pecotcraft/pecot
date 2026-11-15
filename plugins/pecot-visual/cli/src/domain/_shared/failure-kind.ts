@@ -1,4 +1,4 @@
-// MCP ツールが失敗の結果の `kind`（と `data.reason`）で返しうる名前の一覧。
+// MCP ツールが失敗の結果の `kind` で返しうる名前の一覧。
 // 定義書の exit_status[].kind の集合との一致は、failure-kinds-definition.test.ts が確かめる。
 
 // eslint-disable-next-line no-restricted-syntax -- 名前の一覧から型を作るため、要素をリテラルの型のまま残す
@@ -97,7 +97,7 @@ export const CLI_ONLY_FAILURE_REASONS = [
 ] as const
 
 /**
-CLI の `--json` と MCP の `data.reason` に載る失敗の名前。
+CLI の `--json` の `reason` に載る失敗の名前。MCP は failureKindOf で kind に写して返す。
 */
 export type FailureReason = FailureKind | typeof CLI_ONLY_FAILURE_REASONS[number]
 

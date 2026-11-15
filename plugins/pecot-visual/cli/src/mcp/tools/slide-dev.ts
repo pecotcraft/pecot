@@ -41,11 +41,6 @@ import {
 } from './_shared.js'
 
 /**
-dev サーバを起動できなかったときの exit code (各コマンドの RuntimeError と同じ 1)。
-*/
-const DEV_SERVER_EXIT_CODE = 1
-
-/**
 テーマを今の値で張る port。dev は、テーマを参照しない talk-dir を `theme-none` で止める。
 */
 // context に AbortSignal を持つため readonly にできない。
@@ -141,17 +136,13 @@ function inspectNodeModules(directory: string): TalkDirectoryDefect | undefined 
 function guardFailure(defect: Readonly<TalkDirectoryDefect>, directory: string, warnings: readonly string[] = []): ToolResult {
   return {
     ok: false,
-    exitCode: DEV_SERVER_EXIT_CODE,
     kind: failureKindOf(defect.reason),
-    artifacts: [],
+    detail: defect.detail,
     data: {
       event: 'slide.dev.error',
-      reason: defect.reason,
-      detail: defect.detail,
       dir: directory,
       ...(warnings.length > 0 && { warnings }),
     },
-    message: defect.detail,
   }
 }
 
@@ -183,8 +174,6 @@ export function slideDevTool(
       const stopped = buildRegistry().stop(input.dir)
       return toCallToolResult({
         ok: true,
-        exitCode: 0,
-        artifacts: [],
         data: {
           event: 'slide.dev.stopped',
           dir: input.dir,
@@ -207,7 +196,7 @@ export function slideDevTool(
     if (defect !== undefined) return toCallToolResult(guardFailure(defect, input.dir))
 
     // テーマを今の値で張る。取得済みなら stamp を比べるだけで、ネットワークには出ない。
-    // 取得中の警告は応答の data.warnings に載せ、MCP のキャンセルは取得 (git) まで届ける。
+    // 取得中の警告は応答の warnings に載せ、MCP のキャンセルは取得 (git) まで届ける。
     const warnings: string[] = []
     let ensured: EnsureThemeLinkedResult
     const context: ThemeLinkContext = {
@@ -236,24 +225,18 @@ export function slideDevTool(
     if (!started.ok) {
       return toCallToolResult(withCapturedOutput({
         ok: false,
-        exitCode: DEV_SERVER_EXIT_CODE,
         kind: started.reason,
-        artifacts: [],
+        detail: started.detail,
         data: {
           event: 'slide.dev.error',
-          reason: started.reason,
-          detail: started.detail,
           dir: input.dir,
           ...(warnings.length > 0 && { warnings }),
         },
-        message: started.detail,
       }, started))
     }
 
     return toCallToolResult({
       ok: true,
-      exitCode: 0,
-      artifacts: [],
       data: {
         event: started.reused ? 'slide.dev.reused' : 'slide.dev.started',
         dir: input.dir,
@@ -274,9 +257,9 @@ export function slideDevTool(
     name: 'slide_dev',
     config: {
       title: 'Start a Slidev preview',
-      description: 'Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (data.url). '
+      description: 'Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (url). '
         + 'The port can be set with port; if omitted, a free port from 3030 to 3034 is used. '
-        + 'Calling again for the same talk-dir returns the running server as it is (data.reused: true). '
+        + 'Calling again for the same talk-dir returns the running server as it is (reused: true). '
         + 'Set stop: true to stop it. '
         + 'The server runs only while the MCP server process is alive; the preview ends with the session.',
       inputSchema: slideDevInput,

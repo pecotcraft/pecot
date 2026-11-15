@@ -52,9 +52,13 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が object ではありません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 describe('slide_theme の定義', () => {
@@ -76,10 +80,8 @@ describe('slide_theme の成功', () => {
     const result = await tool.handler({ dir: talk }, CALL)
 
     const structured = structuredOf(result)
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([])
-    expect(structured['message']).toBe(`slide theme: ${THEME_NAME} (8 layouts)`)
+    expect(structured).not.toHaveProperty('kind')
+    expect(sentenceOf(result)).toBe(`slide theme: ${THEME_NAME} (8 layouts)`)
     expect(result.isError).toBeUndefined()
 
     const data = dataOf(result)
@@ -132,7 +134,7 @@ describe('slide_theme の成功', () => {
 
     const result = await tool.handler({ dir: talk }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(snapshotTree(talk)).toEqual(before)
   })
 })
@@ -146,14 +148,13 @@ describe('slide_theme の失敗', () => {
     const result = await tool.handler({ dir: talk }, CALL)
 
     const structured = structuredOf(result)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
+    expect(structured).toHaveProperty('kind')
     expect(result.isError).toBe(true)
     const data = dataOf(result)
     expect(data['event']).toBe('slide.theme.error')
-    expect(data['reason']).toBe('theme-unlinked')
+    expect(data['kind']).toBe('theme-unlinked')
     expect(data['detail']).toEqual(expect.stringContaining('--node-modules-only'))
-    expect(structured['message']).toEqual(expect.stringContaining('slide_sync'))
+    expect(sentenceOf(result)).toEqual(expect.stringContaining('slide_sync'))
     // 張り直しと取得をしないので、node_modules は作られない。
     expect(snapshotTree(talk)).toEqual(before)
   })
@@ -163,9 +164,9 @@ describe('slide_theme の失敗', () => {
     const talk = makeTalk({ theme: 'none' })
     const result = await tool.handler({ dir: talk }, CALL)
 
-    expect(structuredOf(result)['ok']).toBe(false)
+    expect(structuredOf(result)).toHaveProperty('kind')
     const data = dataOf(result)
-    expect(data['reason']).toBe('theme-none')
+    expect(data['kind']).toBe('theme-none')
     expect(data['detail']).toEqual(expect.stringContaining('slide sync --theme <theme-spec>'))
   })
 
@@ -179,7 +180,7 @@ describe('slide_theme の失敗', () => {
     symlinkSync(broken, path.join(talk, 'node_modules', THEME_NAME), 'dir')
 
     const data = dataOf(await tool.handler({ dir: talk }, CALL))
-    expect(data['reason']).toBe('theme-unknown-rule')
+    expect(data['kind']).toBe('theme-unknown-rule')
   })
 
   it('宣言の形が決まった形でなければ theme-invalid-shape で返す', async (context) => {
@@ -195,12 +196,11 @@ describe('slide_theme の失敗', () => {
     const result = await tool.handler({ dir: talk }, CALL)
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)).toMatchObject({ event: 'slide.theme.error', reason: 'theme-invalid-shape' })
+    expect(structuredOf(result)).toMatchObject({ event: 'slide.theme.error', kind: 'theme-invalid-shape' })
   })
 
-  it('相対パスの dir は usage error（exit 2）で拒む', async () => {
+  it('相対パスの dir は invalid-path で拒む', async () => {
     const result = await tool.handler({ dir: 'relative/talk' }, CALL)
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
   })
 })

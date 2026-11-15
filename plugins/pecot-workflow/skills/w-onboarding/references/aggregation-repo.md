@@ -1,14 +1,14 @@
 # Epic 集約リポ設定の詳細
 
-`/pecot-w:w-onboarding` Step 4 の補足。集約リポ (`aggregation_repo`) を設定すると `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
+`/pecot-w:w-onboarding` Step 4 の補足。集約リポ (`aggregation_repo`) を設定すると pecot-workflow の MCP ツール `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
 
 ## 4.0 現状確認
 
-`project_get` を `key: "aggregation_repo"` で呼ぶ。
+pecot-workflow の MCP ツール `project_get` を使う（`key: "aggregation_repo"`）。
 
-- 未設定（結果に `data.value` が無い）なら Step 4.1 Q1 は通常 3 択。
-- 既設定（結果の `data.value` が `<owner/repo>`）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。
-  例: `project_set` を `key: "aggregation_repo"`・`value: "<owner/repo>"`・`yes: true` で呼ぶ。
+- 未設定なら Step 4.1 Q1 は通常 3 択。
+- 既設定なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。
+  設定には pecot-workflow の MCP ツール `project_set` を使う（`key: "aggregation_repo"`・`value`・`yes: true`）。
 
 ## 4.1 AskUserQuestion Q1: 方針選択
 
@@ -28,7 +28,7 @@
 
 ## 4.2a 既存リポを指定
 
-`board_show` の結果の `data.repositories` の `full_name` から候補を取得する。`board_show` を引数なしで呼ぶ。
+pecot-workflow の MCP ツール `board_show` を使って、登録済みのリポジトリから候補を取得する。
 
 AskUserQuestion Q2a で選択:
 
@@ -38,7 +38,7 @@ AskUserQuestion Q2a で選択:
   - 登録済みリポジトリを 1 件ずつ列挙（例: `<owner>/<repoA>`, `<owner>/<repoB>` …）
   - label: "別のリポジトリ（自由入力）", description: "登録済み以外の `owner/repo` を入力"
 
-選択結果で設定する。`project_set` を `key: "aggregation_repo"`・`value: "<owner/repo>"` で呼ぶ。
+選択結果で設定する。`project_set` を使う（`key: "aggregation_repo"`・`value: "<owner/repo>"`）。
 
 4.0 で既設定を検出済なら `yes: true` を付与する。
 
@@ -82,8 +82,8 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 ヒアリング結果を使って、次の 3 つを **この順序で** 実行する。
 
 1. `gh repo create <owner/repo> --<visibility> --add-readme`（Bash）
-2. `project_link` を `repo: "<owner/repo>"`・`develop_branch: "main"` で呼ぶ
-3. `project_set` を `key: "aggregation_repo"`・`value: "<owner/repo>"` で呼ぶ
+2. pecot-workflow の MCP ツール `project_link` を使う（`repo: "<owner/repo>"`・`develop_branch: "main"`）
+3. `project_set` を使う（`key: "aggregation_repo"`・`value: "<owner/repo>"`）
 
 - `--add-readme` は空リポ回避（README が無い空リポは clone できず、以降の Epic 作成も失敗しやすい）。
 - 4.0 で既に集約リポが設定済みの場合、3 つ目の呼び出しに `yes: true` を足す。
@@ -91,6 +91,6 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 
 ## 4.3 確認
 
-`project_get` を `key: "aggregation_repo"` で呼ぶ。
+`project_get` を使う（`key: "aggregation_repo"`）。
 
-結果の `data.value` が意図した `owner/repo` なら Step 5 へ進む。
+意図した `owner/repo` が入っていれば Step 5 へ進む。

@@ -46,7 +46,7 @@
 | `details` | 文字列の配列 | 英語 | 必ず書く | 外から観測できる結果を 1 文ずつ。内部の手順は書かない |
 | `stdin` | 文字列 | 英語 | `none` | 標準入力から読むものと、その形 |
 | `output` | 対象 | 英語 | `format: none` | CLI の標準出力の形。`format` は `text`・`json`・`none`。`json` なら `schema` に JSON Schema を書く。実装の出力と比べる確認は置かない |
-| `mcp_output` | 対象 | `prose` に従う | 省く | MCP の成功の `data` の項目ごとの説明（`data`）と、`artifacts` に返すファイルの説明。`data` のキーは `mcp.output` の成功側とそろえる。MCP の面のある項目だけに書く |
+| `mcp_output` | 対象 | `prose` に従う | 省く | MCP のツールの項目ごとの説明（`fields`）。`fields` のキーは `mcp.output` の最上位の項目（共通の 4 項目を除く）とそろえる。MCP の面のある項目だけに書く |
 | `diagnostics` | 文字列 | 英語 | `default` | 標準エラーに出すもの。`default` は、共通の関数の `error:`・`warning:` の行だけを指す |
 | `environment` | 配列 | 英語 | `[]` | この項目だけが読む環境変数の名前と、変わる振る舞い。全項目に共通のものは、ファイルの先頭の `environment` に書く |
 | `exit_status` | 配列 | 英語 | 必ず書く | CLI は終了コードと条件。MCP ツールは失敗の種別と条件 |

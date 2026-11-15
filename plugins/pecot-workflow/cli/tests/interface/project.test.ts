@@ -214,12 +214,12 @@ describe('project list', () => {
   describe('MCP の data', () => {
     it('設定の名前とアクティブかどうかを projects に返す', async () => {
       const result = await tool('project_list', {}, [], { files: otherFile })
-      expect(result.structured.data).toEqual({ projects: [{ name: CONFIG_NAME, active: true }, { name: OTHER_NAME, active: false }] })
+      expect(result.structured).toEqual({ projects: [{ name: CONFIG_NAME, active: true }, { name: OTHER_NAME, active: false }] })
     })
 
     it('設定が 1 つも無いと projects を空の配列で返す', async () => {
       const result = await tool('project_list', {}, [], { config: false })
-      expect(result.structured.data).toEqual({ projects: [] })
+      expect(result.structured).toEqual({ projects: [] })
     })
   })
 })
@@ -263,7 +263,7 @@ describe('project search', () => {
   describe('MCP の data', () => {
     it('番号・タイトル・URL を projects に返し、検索した owner と host も返す', async () => {
       const result = await tool('project_search', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'other'))], { config: false })
-      expect(result.structured.data).toEqual({
+      expect(result.structured).toEqual({
         ...owned,
         projects: [{ number: 1, title: 'board', url: BOARD_URL }, { number: 2, title: 'other', url: `https://${DEFAULT_HOST}/users/acme/projects/2` }],
       })
@@ -469,7 +469,7 @@ describe('project init', () => {
     it('作ったフィールドと足した選択肢を fields に返す', async () => {
       const rules = [...initRules([...titleOnly, workflowWithBlocked]), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()]
       const result = await tool('project_init', initArguments, rules, { config: false })
-      expect(result.structured.data).toEqual({
+      expect(result.structured).toEqual({
         fields: [
           { name: 'pecot-workflow-acme', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-priority', change: 'create', addedOptions: [] },
@@ -481,12 +481,12 @@ describe('project init', () => {
 
     it('Status の欄が無いと、その欄を skip にする', async () => {
       const result = await tool('project_init', initArguments, [...initRules(titleWithoutStatus), ...createFields(), ...syncRules()], { config: false })
-      expect(result.structured.data).toMatchObject({ fields: [{ name: 'pecot-workflow-acme', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, { name: 'Status', change: 'skip', addedOptions: [] }] })
+      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-workflow-acme', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, { name: 'Status', change: 'skip', addedOptions: [] }] })
     })
 
     it('dry_run だと、作る予定のフィールドと dryRun を返す', async () => {
       const result = await tool('project_init', { ...initArguments, dry_run: true }, initRules(titleWithoutStatus), { config: false })
-      expect(result.structured.data).toEqual({
+      expect(result.structured).toEqual({
         fields: [
           { name: 'pecot-workflow-acme', change: 'create', addedOptions: [] },
           { name: 'pecot-priority', change: 'create', addedOptions: [] },
@@ -587,12 +587,12 @@ describe('project create', () => {
   describe('MCP の data', () => {
     it('作ったプロジェクトの番号・URL・タイトル・owner を返す', async () => {
       const result = await tool('project_create', { ...owned, title: 'board', suffix: 'acme' }, createRules(), { config: false })
-      expect(result.structured.data).toEqual({ number: 1, url: BOARD_URL, title: 'board', owner: 'acme' })
+      expect(result.structured).toEqual({ number: 1, url: BOARD_URL, title: 'board', owner: 'acme' })
     })
 
     it('dry_run だと、タイトルと owner と dryRun だけを返す', async () => {
       const result = await tool('project_create', { ...owned, title: 'board', suffix: 'acme', dry_run: true }, [graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects()], { config: false })
-      expect(result.structured.data).toEqual({ title: 'board', owner: 'acme', dryRun: true })
+      expect(result.structured).toEqual({ title: 'board', owner: 'acme', dryRun: true })
     })
   })
 })
@@ -1162,32 +1162,30 @@ describe('project activate', () => {
   })
 
   describe('MCP の data', () => {
-    it('アクティブにした設定の名前・パス・change を返し、書いた設定ファイルを artifacts に返す', async () => {
+    it('アクティブにした設定の名前・パス・change を返す', async () => {
       const result = await tool('project_activate', { ...owned, project: '1' }, [projectFields(), ...syncRules()], { config: false })
       const configPath = path.join(result.directory, CONFIG_FILE)
-      expect(result.structured.data).toEqual({ project: CONFIG_NAME, configPath, change: 'create' })
-      expect(result.structured.artifacts).toEqual([configPath])
+      expect(result.structured).toEqual({ project: CONFIG_NAME, configPath, change: 'create' })
     })
 
     it('設定ファイルがあると change を update にする', async () => {
       const result = await tool('project_activate', { ...owned, project: '1' }, [projectFields(), ...syncRules()])
-      expect(result.structured.data).toMatchObject({ project: CONFIG_NAME, change: 'update' })
+      expect(result.structured).toMatchObject({ project: CONFIG_NAME, change: 'update' })
     })
 
-    it('dry_run だと、予定の change と dryRun を返し、artifacts を返さない', async () => {
+    it('dry_run だと、予定の change と dryRun を返す', async () => {
       const result = await tool('project_activate', { ...owned, project: '1', dry_run: true }, [projectFields(), ...syncRules()], { config: false })
-      expect(result.structured.data).toEqual({ project: CONFIG_NAME, configPath: path.join(result.directory, CONFIG_FILE), change: 'create', dryRun: true })
-      expect(result.structured.artifacts).toEqual([])
+      expect(result.structured).toEqual({ project: CONFIG_NAME, configPath: path.join(result.directory, CONFIG_FILE), change: 'create', dryRun: true })
     })
 
     it('プロジェクトを渡さないと、初期化済みの候補を candidates に返す', async () => {
       const result = await tool('project_activate', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), projectFields(), projectFields(titleOnly, 'plain')])
-      expect(result.structured.data).toEqual({ candidates: [{ number: 1, title: 'board', active: true }] })
+      expect(result.structured).toEqual({ candidates: [{ number: 1, title: 'board', active: true }] })
     })
 
     it('初期化済みのプロジェクトが無いと、candidates を空の配列で返す', async () => {
       const result = await tool('project_activate', owned, [listProjects(projectNode(1, 'plain')), projectFields(titleOnly, 'plain')], { config: false })
-      expect(result.structured.data).toEqual({ candidates: [] })
+      expect(result.structured).toEqual({ candidates: [] })
     })
   })
 })
@@ -1333,22 +1331,20 @@ describe('project link', () => {
   })
 
   describe('MCP の data', () => {
-    it('リポジトリ・プロジェクト番号・change・設定ファイルのパスを返し、設定ファイルを artifacts に返す', async () => {
+    it('リポジトリ・プロジェクト番号・change・設定ファイルのパスを返す', async () => {
       const result = await tool('project_link', { repo: 'acme/other' }, linkRules())
       const configPath = path.join(result.directory, CONFIG_FILE)
-      expect(result.structured.data).toEqual({ repository: 'acme/other', projectNumber: 1, change: 'create', configPath })
-      expect(result.structured.artifacts).toEqual([configPath])
+      expect(result.structured).toEqual({ repository: 'acme/other', projectNumber: 1, change: 'create', configPath })
     })
 
     it('登録済みのリポジトリだと change を update にする', async () => {
       const result = await tool('project_link', { repo: 'acme/demo', develop_branch: 'dev' })
-      expect(result.structured.data).toMatchObject({ repository: 'acme/demo', change: 'update' })
+      expect(result.structured).toMatchObject({ repository: 'acme/demo', change: 'update' })
     })
 
-    it('dry_run だと dryRun を返し、artifacts を返さない', async () => {
+    it('dry_run だと dryRun を返す', async () => {
       const result = await tool('project_link', { repo: 'acme/demo', develop_branch: 'dev', dry_run: true })
-      expect(result.structured.data).toMatchObject({ repository: 'acme/demo', change: 'update', dryRun: true })
-      expect(result.structured.artifacts).toEqual([])
+      expect(result.structured).toMatchObject({ repository: 'acme/demo', change: 'update', dryRun: true })
     })
   })
 })
@@ -1416,31 +1412,26 @@ describe('project set', () => {
   })
 
   describe('MCP の data', () => {
-    it('未設定のキーに書くと change を create にして、previous を返さない', async () => {
+    it('未設定のキーに書くと change を create にして、previous を返さず、書いた設定ファイルのパスを configPath に返す', async () => {
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' })
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create' })
-    })
-
-    it('設定ファイルを書き換えると、そのパスを artifacts に返す', async () => {
-      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' })
-      expect(result.structured.artifacts).toHaveLength(1)
-      expect(result.structured.artifacts[0]).toMatch(/^\/.*\.json$/)
+      const configPath = path.join(result.directory, CONFIG_FILE)
+      expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create', configPath })
     })
 
     it('別の値に上書きすると、change を update にして previous を返し、warning を data.warnings に返す', async () => {
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new' }, [], withAggregation('acme/roadmap'))
-      expect(result.structured.data).toMatchObject({ key: 'aggregation_repo', value: 'acme/new', previous: 'acme/roadmap', change: 'update' })
-      expect(result.structured.data['warnings']).toHaveLength(1)
+      expect(result.structured).toMatchObject({ key: 'aggregation_repo', value: 'acme/new', previous: 'acme/roadmap', change: 'update', configPath: path.join(result.directory, CONFIG_FILE) })
+      expect(result.structured['warnings']).toHaveLength(1)
     })
 
     it('同じ値だと change を unchanged にする', async () => {
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, [], withAggregation('acme/roadmap'))
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', previous: 'acme/roadmap', change: 'unchanged' })
+      expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', previous: 'acme/roadmap', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
-    it('dry_run だと dryRun を返す', async () => {
+    it('dry_run だと、書く予定の設定ファイルのパスを configPath に入れ、dryRun を返す', async () => {
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap', dry_run: true })
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create', dryRun: true })
+      expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create', configPath: path.join(result.directory, CONFIG_FILE), dryRun: true })
     })
   })
 })
@@ -1485,21 +1476,19 @@ describe('project unset', () => {
   })
 
   describe('MCP の data', () => {
-    it('値を消すと change を delete にして、消した値を previous に返す', async () => {
+    it('値を消すと change を delete にして、消した値を previous に、書いた設定ファイルのパスを configPath に返す', async () => {
       const result = await tool('project_unset', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete' })
-      expect(result.structured.artifacts).toHaveLength(1)
+      expect(result.structured).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
     it('未設定だと change を unchanged にする', async () => {
       const result = await tool('project_unset', { key: 'aggregation_repo' })
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', change: 'unchanged' })
+      expect(result.structured).toEqual({ key: 'aggregation_repo', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
-    it('dry_run だと、消す予定の値と dryRun を返し、設定ファイルを書かず artifacts を返さない', async () => {
+    it('dry_run だと、消す予定の値と dryRun を返し、設定ファイルを書かない', async () => {
       const result = await tool('project_unset', { key: 'aggregation_repo', dry_run: true }, [], withAggregation('acme/roadmap'))
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', dryRun: true })
-      expect(result.structured.artifacts).toEqual([])
+      expect(result.structured).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', configPath: path.join(result.directory, CONFIG_FILE), dryRun: true })
       expect(savedConfig(result)).toHaveProperty('aggregation_repo', 'acme/roadmap')
     })
   })
@@ -1539,12 +1528,12 @@ describe('project get', () => {
   describe('MCP の data', () => {
     it('値があると key と value を返す', async () => {
       const result = await tool('project_get', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap' })
+      expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap' })
     })
 
     it('値が未設定だと value を返さない', async () => {
       const result = await tool('project_get', { key: 'aggregation_repo' })
-      expect(result.structured.data).toEqual({ key: 'aggregation_repo' })
+      expect(result.structured).toEqual({ key: 'aggregation_repo' })
     })
   })
 })

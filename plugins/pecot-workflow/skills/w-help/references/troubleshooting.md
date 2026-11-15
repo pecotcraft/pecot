@@ -9,9 +9,9 @@ gh auth refresh -s project   # projectスコープ追加
 
 ## プロジェクトが見つからない
 
-- 一覧確認: `project_list` を引数なしで呼ぶ
-- 検索: `project_search` を `owner: "<owner>"` で呼ぶ
+- 一覧確認: pecot-workflow の MCP ツール `project_list` を使う
+- 検索: pecot-workflow の MCP ツール `project_search` を使う（`owner: "<owner>"`）
 
 ## フィールドが見つからない
 
-`project_init` を `owner: "<owner>"`・`name: "<project-name>"`・`suffix: "<suffix>"` で呼ぶ。
+pecot-workflow の MCP ツール `project_init` を使う（`owner`・`name`・`suffix`）。

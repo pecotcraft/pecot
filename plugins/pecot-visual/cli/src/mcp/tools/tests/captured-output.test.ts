@@ -9,15 +9,13 @@ const LIMIT_BYTES = 64 * 1024
 
 const MARKER_HEAD = '[pecotv] output exceeded'
 
-const SUCCEEDED: ToolResult = { ok: true, exitCode: 0, artifacts: [], data: { event: 'done' }, message: 'done' }
+const SUCCEEDED: ToolResult = { ok: true, data: { event: 'done' }, message: 'done' }
 
 const FAILED: ToolResult = {
   ok: false,
-  exitCode: 1,
   kind: 'export-failed',
-  artifacts: [],
-  data: { reason: 'export-failed', detail: 'export failed: the whole text' },
-  message: 'export failed',
+  detail: 'export failed: the whole text',
+  data: { event: 'export.error' },
 }
 
 describe('warningsOf', () => {
@@ -73,51 +71,50 @@ describe('createWarningCollector', () => {
 })
 
 describe('withCapturedOutput', () => {
-  it('成功のときは、warning の行を data.warnings に入れ、data.log を足さない', () => {
+  it('成功のときは、warning の行を warnings に入れ、log を足さない', () => {
     const result = withCapturedOutput(SUCCEEDED, { stdout: 'progress\n', stderr: 'warning: icon not found\n' })
 
     expect(result.data).toEqual({ event: 'done', warnings: ['icon not found'] })
   })
 
-  it('成功で warning の行が無ければ、data を変えない', () => {
+  it('成功で warning の行が無ければ、ツールの項目を変えない', () => {
     expect(withCapturedOutput(SUCCEEDED, { stdout: 'progress\n', stderr: 'note: x\n' }).data).toEqual({ event: 'done' })
   })
 
-  it('data に文の warnings があれば、捕捉した warning を後ろに重ね、同じ文は 1 つにする', () => {
+  it('ツールの項目に文の warnings があれば、捕捉した warning を後ろに重ね、同じ文は 1 つにする', () => {
     const result = withCapturedOutput(
       { ...SUCCEEDED, data: { warnings: ['from data', 'shared'] } },
       { stdout: '', stderr: 'warning: shared\nwarning: from stderr\n' },
     )
 
-    expect(result.data['warnings']).toEqual(['from data', 'shared', 'from stderr'])
+    expect(result.data.warnings).toEqual(['from data', 'shared', 'from stderr'])
   })
 
-  it('data にある空の warnings は空のまま残す', () => {
+  it('ツールの項目にある空の warnings は空のまま残す', () => {
     expect(withCapturedOutput({ ...SUCCEEDED, data: { warnings: [] } }, { stdout: '', stderr: '' }).data).toEqual({ warnings: [] })
   })
 
-  it('失敗のときは、stdout と stderr をつないで data.log に入れ、reason と detail を残す', () => {
+  it('失敗のときは、stdout と stderr をつないで log に入れ、ツールの項目を残す', () => {
     const result = withCapturedOutput(FAILED, { stdout: 'out line', stderr: 'error: boom\n' })
 
     expect(result.data).toEqual({
-      reason: 'export-failed',
-      detail: 'export failed: the whole text',
+      event: 'export.error',
       log: 'out line\nerror: boom\n',
     })
   })
 
-  it('失敗で出力が空なら data.log を足さない', () => {
+  it('失敗で出力が空なら log を足さない', () => {
     expect(withCapturedOutput(FAILED, { stdout: '', stderr: '' }).data).not.toHaveProperty('log')
   })
 
-  it('data.log は 64KB を超えると先頭を捨て、切り詰めたことを冒頭に書く', () => {
+  it('log は 64KB を超えると先頭を捨て、切り詰めたことを冒頭に書く', () => {
     const log = String(withCapturedOutput(FAILED, { stdout: 'x'.repeat(64 * 1024), stderr: 'END' }).data['log'])
 
     expect(log.startsWith(MARKER_HEAD)).toBe(true)
     expect(log.endsWith('END')).toBe(true)
   })
 
-  it('data.log がちょうど 64KB なら切り詰めない', () => {
+  it('log がちょうど 64KB なら切り詰めない', () => {
     const stdout = 'x'.repeat(LIMIT_BYTES - 4)
 
     expect(withCapturedOutput(FAILED, { stdout, stderr: 'END' }).data['log']).toBe(`${stdout}\nEND`)
@@ -130,7 +127,7 @@ describe('withCapturedOutput', () => {
     expect(log.split('\n', 2)[1]).toBe(`\u{FFFD}${'あ'.repeat(21_845)}`)
   })
 
-  it('失敗のときも、stderr の warning を data.warnings に入れる', () => {
+  it('失敗のときも、stderr の warning を warnings に入れる', () => {
     const result = withCapturedOutput(FAILED, { stdout: '', stderr: 'warning: font missing\nerror: boom\n' })
 
     expect(result.data['warnings']).toEqual(['font missing'])
@@ -145,7 +142,7 @@ describe('withCapturedOutput', () => {
 })
 
 describe('captureCommandOutput', () => {
-  it('finish は捕捉した出力を data へ移し、最上位に stdout と stderr を足さない', async () => {
+  it('finish は捕捉した出力を最上位の項目へ移し、stdout と stderr を足さない', async () => {
     const output = captureCommandOutput()
     output.stdout.write('result line\n')
     output.stderr.write('warning: careful\n')
@@ -155,10 +152,10 @@ describe('captureCommandOutput', () => {
 
     const result = output.finish(SUCCEEDED)
 
-    expect(result.structuredContent).toEqual({ ...SUCCEEDED, data: { event: 'done', warnings: ['careful'] } })
+    expect(result.structuredContent).toStrictEqual({ event: 'done', warnings: ['careful'] })
   })
 
-  it('出力が上限を超えても、早く出た warning を data.warnings に残す', async () => {
+  it('出力が上限を超えても、早く出た warning を warnings に残す', async () => {
     const output = captureCommandOutput()
     output.stderr.write('warning: early one\n  continued\n')
     output.stderr.write(`${'x'.repeat(LIMIT_BYTES * 2)}\n`)
@@ -181,7 +178,7 @@ describe('captureCommandOutput', () => {
     expect(output.warnings()).toEqual(['分割された行', '最後'])
   })
 
-  it('message に使う warnings の件数は、data.warnings の長さと同じ', async () => {
+  it('message に使う warnings の件数は、warnings の長さと同じ', async () => {
     const output = captureCommandOutput()
     output.stderr.write('warning: a\nwarning: b\nwarning: a\n')
     await finished(output)
@@ -192,7 +189,7 @@ describe('captureCommandOutput', () => {
     expect(dataOf(output.finish(SUCCEEDED).structuredContent)['warnings']).toHaveLength(count)
   })
 
-  it('stdout と stderr がどちらも上限を超えても、data.log の切り詰めの印は冒頭の 1 つだけ', async () => {
+  it('stdout と stderr がどちらも上限を超えても、log の切り詰めの印は冒頭の 1 つだけ', async () => {
     const output = captureCommandOutput()
     output.stdout.write('o'.repeat(LIMIT_BYTES + 10))
     output.stderr.write('e'.repeat(LIMIT_BYTES + 10))
@@ -218,21 +215,21 @@ describe('captureCommandOutput', () => {
 })
 
 describe('withSpawnOutput', () => {
-  it('失敗のときは、子プロセスの出力を data.log に入れる', () => {
+  it('失敗のときは、子プロセスの出力を log に入れる', () => {
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は signal を null で表す
     const result = withSpawnOutput(FAILED, { exitCode: 1, signal: null, stdout: 'pw-out', stderr: 'ECONNREFUSED', timedOut: false })
 
     expect(result.data['log']).toBe('pw-out\nECONNREFUSED')
   })
 
-  it('成功のときは data.log を足さず、warning だけを data.warnings に入れる', () => {
+  it('成功のときは log を足さず、warning だけを warnings に入れる', () => {
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は signal を null で表す
     const result = withSpawnOutput(SUCCEEDED, { exitCode: 0, signal: null, stdout: 'done', stderr: 'warning: deprecated\n', timedOut: false })
 
     expect(result.data).toEqual({ event: 'done', warnings: ['deprecated'] })
   })
 
-  it('stderr が上限を超えても、早く出た warning を data.warnings に残す', () => {
+  it('stderr が上限を超えても、早く出た warning を warnings に残す', () => {
     const stderr = `warning: early\n${'x'.repeat(LIMIT_BYTES * 2)}\n`
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は signal を null で表す
     const result = withSpawnOutput(FAILED, { exitCode: 1, signal: null, stdout: '', stderr, timedOut: false })
@@ -250,5 +247,5 @@ async function finished(output: CommandOutput): Promise<void> {
 }
 
 function dataOf(structuredContent: unknown): Record<string, unknown> {
-  return z.object({ data: z.record(z.string(), z.unknown()) }).parse(structuredContent).data
+  return z.record(z.string(), z.unknown()).parse(structuredContent)
 }

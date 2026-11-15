@@ -290,22 +290,18 @@ describe('createMcpServer', () => {
       config: { description: 'ToolResult 変換の往復検証', inputSchema: z.object({}) },
       handler: () => Promise.resolve(toCallToolResult({
         ok: false,
-        exitCode: 3,
         kind: 'export-failed',
-        artifacts: ['/tmp/out.png'],
-        data: { reason: 'export-failed', detail: 'export failed', log: 'error: export failed' },
-        message: '警告あり',
+        detail: 'export failed',
+        data: { file: '/tmp/out.png', log: 'error: export failed' },
       })),
     }
 
-    // toStructuredContent が組み立てるキー順と同じ順で書く (content の JSON テキストと比べるため)。
+    // toCallToolResult が組み立てるキー順と同じ順で書く (content の JSON テキストと比べるため)。
     const expectedStructured = {
-      ok: false,
-      exitCode: 3,
+      file: '/tmp/out.png',
+      log: 'error: export failed',
       kind: 'export-failed',
-      artifacts: ['/tmp/out.png'],
-      data: { reason: 'export-failed', detail: 'export failed', log: 'error: export failed' },
-      message: '警告あり',
+      detail: 'export failed',
     }
 
     const connected = await connectMcp([failing])
@@ -314,7 +310,10 @@ describe('createMcpServer', () => {
 
       expect(called.isError).toBe(true)
       expect(called.structuredContent).toEqual(expectedStructured)
-      expect(called.content).toEqual([{ type: 'text', text: JSON.stringify(expectedStructured) }])
+      expect(called.content).toEqual([
+        { type: 'text', text: 'export failed' },
+        { type: 'text', text: JSON.stringify(expectedStructured) },
+      ])
     }
     finally {
       await closeMcp(connected)

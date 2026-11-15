@@ -34,10 +34,6 @@ export interface CommandIo {
   */
   readonly data?: (fields: Readonly<Record<string, unknown>>) => void
   /**
-  作ったか書き換えたファイル・ディレクトリの絶対パスを受け取る。MCP だけが渡す
-  */
-  readonly artifact?: (path: string) => void
-  /**
   warning の文（`warning: ` の前置きと字下げを除いたもの）を受け取る。MCP だけが渡す
   */
   readonly warning?: (text: string) => void

@@ -11,6 +11,7 @@ import { existsSync, rmSync, writeFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
+import { compareStrings } from '../../../domain/_shared/compare-strings.js'
 import { buildPng } from '../../../../tests/_helpers/image-fixture.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
@@ -39,9 +40,13 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: Readonly<Record<string, unknown>>): string {
+  const content = result['content']
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 const workDirectory = useTemporaryDirectory('pecotv-test-evidence-')
@@ -74,7 +79,7 @@ function validSpec(): Record<string, unknown> {
 }
 
 describe('evidence_create ツール', () => {
-  it('spec から xlsx を生成し、CLI の --json と同形の data を返す', async (context) => {
+  it('spec から xlsx を生成し、CLI の --json と同形の項目を返す', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-01')
     const specPath = placeSpec(validSpec())
     const outPath = workDirectory('login-evidence.xlsx')
@@ -83,10 +88,7 @@ describe('evidence_create ツール', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBeUndefined()
-    expect(structured['ok']).toBe(true)
-    expect(structured['exitCode']).toBe(0)
-    expect(structured['artifacts']).toEqual([outPath])
-    expect(dataOf(result)).toEqual({
+    expect(structured).toStrictEqual({
       event: 'result',
       outPath,
       items: 1,
@@ -103,7 +105,7 @@ describe('evidence_create ツール', () => {
 
     const result = await callEvidenceCreate({ input_path: specPath })
 
-    expect(structuredOf(result)['artifacts']).toEqual([expectedOut])
+    expect(structuredOf(result)['outPath']).toBe(expectedOut)
     expect(existsSync(expectedOut)).toBe(true)
   })
 
@@ -122,46 +124,43 @@ describe('evidence_create ツール', () => {
     })
     const data = dataOf(result)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(result.isError).toBeUndefined()
     expect(data['items']).toBe(1)
     expect(data['skipped']).toStrictEqual([{ path: missing, reason: 'not-found' }])
   })
 
-  it('相対の input_path は実処理を呼ばず exitCode 2 で返す', async () => {
+  it('相対の input_path は実処理を呼ばず invalid-path で返す', async () => {
     const result = await callEvidenceCreate({ input_path: 'spec.json' })
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(2)
-    expect(structured['artifacts']).toEqual([])
-    expect(structured['message']).toContain('must be an absolute path')
+    expect(structured['kind']).toBe('invalid-path')
+    expect(structured['detail']).toContain('must be an absolute path')
     expect(dataOf(result)['invalidPaths']).toEqual(['input_path=spec.json'])
   })
 
-  it('相対の out_path も同じく exitCode 2 で弾く', async () => {
+  it('相対の out_path も同じく invalid-path で弾く', async () => {
     const specPath = placeSpec(validSpec())
 
     const result = await callEvidenceCreate({ input_path: specPath, out_path: 'out/evidence.xlsx' })
 
-    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)['invalidPaths']).toEqual(['out_path=out/evidence.xlsx'])
   })
 
-  it('spec が存在しないときは input-not-found で exitCode 1', async (context) => {
+  it('spec が存在しないときは input-not-found で返す', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-05')
     const result = await callEvidenceCreate({ input_path: workDirectory('no-such.json') })
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
-    expect(structured['artifacts']).toEqual([])
-    expect(dataOf(result)).toMatchObject({
+    expect(structured).toMatchObject({
       event: 'evidence.create.error',
-      reason: 'input-not-found',
+      kind: 'input-not-found',
     })
-    expect(structured['message']).not.toBe('')
+    expect(structured).not.toHaveProperty('reason')
+    expect(sentenceOf(result)).not.toBe('')
+    expect(sentenceOf(result)).toBe(structured['detail'])
   })
 
   it('spec が JSON として破損しているときは invalid-json', async (context) => {
@@ -171,8 +170,8 @@ describe('evidence_create ツール', () => {
 
     const result = await callEvidenceCreate({ input_path: specPath })
 
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('invalid-json')
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)['kind']).toBe('invalid-json')
   })
 
   it('spec の検証で失敗するときは invalid-spec', async () => {
@@ -180,8 +179,8 @@ describe('evidence_create ツール', () => {
 
     const result = await callEvidenceCreate({ input_path: specPath })
 
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('invalid-spec')
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)['kind']).toBe('invalid-spec')
   })
 
   it('有効な画像が 1 件も無いときは no-valid-images', async () => {
@@ -196,17 +195,15 @@ describe('evidence_create ツール', () => {
       out_path: workDirectory('evidence.xlsx'),
     })
 
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('no-valid-images')
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)['kind']).toBe('no-valid-images')
   })
 
-  it('成功の結果に、捕捉した出力の stdout / stderr も data.log も載せない', async () => {
+  it('成功の結果に、入れ物の項目と、捕捉した出力の stdout / stderr・log を載せない', async () => {
     const specPath = placeSpec(validSpec())
 
     const structured = structuredOf(await callEvidenceCreate({ input_path: specPath }))
 
-    expect(structured['ok']).toBe(true)
-    expect(Object.keys(structured)).toEqual(['ok', 'exitCode', 'artifacts', 'data', 'message'])
-    expect(structured['data']).not.toHaveProperty('log')
+    expect(Object.keys(structured).toSorted(compareStrings)).toEqual(['annotations', 'event', 'items', 'outPath', 'skipped'])
   })
 })

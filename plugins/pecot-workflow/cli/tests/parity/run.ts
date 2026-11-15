@@ -39,7 +39,7 @@ export interface Outcome {
   readonly signal: string | undefined
   readonly timedOut: boolean
   /**
-  MCP 経由で呼んだときの structuredContent の data。golden には入れない
+  MCP 経由で呼んだときの structuredContent。golden には入れない
   */
   readonly data?: Readonly<Record<string, unknown>>
   /**
@@ -133,7 +133,7 @@ export interface ChildResult {
   readonly spawnError: string | undefined
   readonly timedOut: boolean
   /**
-  MCP 経由で呼んだときの structuredContent の data。CLI 経由と呼べなかったときは undefined
+  MCP 経由で呼んだときの structuredContent。CLI 経由と呼べなかったときは undefined
   */
   readonly data?: Readonly<Record<string, unknown>>
 }

@@ -4,7 +4,7 @@
 // 使い方。テストファイルの describe の外で useIsolatedEnvironment() を 1 回呼んでおく。
 // runCommand に argv と偽サーバの応答の列を渡す。応答は restRule と graphqlRule で作る。
 // 結果は、終了コードと出力と受けた要求を持つ。終わった後のファイルは read で読む。
-// MCP の結果の data を確かめるときは、runTool にツール名と arguments を渡す。
+// MCP の結果の項目を確かめるときは、runTool にツール名と arguments を渡す。
 //
 // 作るもの:
 //   - 一時 git リポ。origin は `git@<host>:<owner>/<name>.git`。`remote: false` なら git の外の空ディレクトリにする
@@ -28,7 +28,7 @@ import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temp
 import { startFakeGithub } from '../fake-github/server.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from './mcp-client.js'
-import type { ToolEnvelope } from './mcp-client.js'
+import type { ToolOutcome } from './mcp-client.js'
 
 export const DEFAULT_HOST = 'ghes.example.com'
 export const DEFAULT_OWNER = 'acme'
@@ -224,20 +224,15 @@ export interface ToolRun extends Omit<CommandRun, 'argv'> {
   readonly arguments: Readonly<Record<string, unknown>>
 }
 
-export interface ToolResult extends Sandboxed {
-  /**
-  ツールの結果の structuredContent（ok・exitCode・kind・data・artifacts・message）
-  */
-  readonly structured: ToolEnvelope
-}
+export interface ToolResult extends Sandboxed, ToolOutcome {}
 
 /**
-runCommand と同じ用意の上で、MCP のツールを同じプロセスの中のクライアントから 1 回呼ぶ。data の中身を確かめるときに使う
+runCommand と同じ用意の上で、MCP のツールを同じプロセスの中のクライアントから 1 回呼ぶ。structuredContent の項目を確かめるときに使う
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runTool(run: Readonly<ToolRun>): Promise<ToolResult> {
   return await inSandbox(run, async () => {
-    return { structured: await callToolOnce(run.commands ?? COMMANDS, run.tool, run.arguments) }
+    return await callToolOnce(run.commands ?? COMMANDS, run.tool, run.arguments)
   })
 }
 

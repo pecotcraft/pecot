@@ -9,7 +9,7 @@ import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -300,13 +300,13 @@ describe('issue show', () => {
     await startGithub([rule])
 
     const cli = await read('acme/demo/7')
-    const structured = await callToolOnce(ISSUE_SHOW_COMMANDS, 'issue_show', { issue_ref: 'acme/demo/7' })
-    expect(structured).toMatchObject({ ok: false, exitCode: cli.code, kind: 'github-not-found', data: { reason: 'github-not-found', detail: cli.stderr.replace(/^error: /u, '').replace(/\n+$/u, '') } })
-    expect(structured).not.toHaveProperty('stderr')
+    const outcome = await callToolOnce(ISSUE_SHOW_COMMANDS, 'issue_show', { issue_ref: 'acme/demo/7' })
+    expect(outcome).toMatchObject({ isError: true, structured: { kind: 'github-not-found', detail: cli.stderr.replace(/^error: /u, '').replace(/\n+$/u, '') } })
+    expect(outcome).not.toHaveProperty('stderr')
     expect(cli.code).toBe(1)
   })
   describe('MCP の data', () => {
-    async function show(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+    async function show(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
       return await callToolOnce(ISSUE_SHOW_COMMANDS, 'issue_show', argumentsOfTool)
     }
 
@@ -317,12 +317,12 @@ describe('issue show', () => {
       setUpProject()
       await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues }), prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues })])
 
-      const structured = await show({ issue_ref: 'acme/demo/7' })
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
       const cli = await read('acme/demo/7', '--json')
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(structured.data).toEqual(JSON.parse(cli.stdout))
-      expect(structured.data).toMatchObject({
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual(JSON.parse(cli.stdout))
+      expect(outcome.structured).toMatchObject({
         parent: { number: 3, title: '親の Epic', state: 'OPEN', owner: 'acme', repo: 'demo' },
         sub_issues: subIssues,
         readiness: { kind: 'startable' },
@@ -336,7 +336,7 @@ describe('issue show', () => {
       const plain = await show({ issue_ref: 'acme/demo/7' })
       const withJson = await show({ issue_ref: 'acme/demo/7', json: true })
 
-      expect(withJson.data).toEqual(plain.data)
+      expect(withJson.structured).toEqual(plain.structured)
     })
 
     it('前提のある Issue を読むと、blockedBy と blocked の判定を data に返す', async () => {
@@ -344,9 +344,9 @@ describe('issue show', () => {
       const blockedBy = [{ number: 4, title: '待つ前提' }]
       await startGithub([issueRule(), prerequisitesRule({ number: 7, blockedBy, body: '## Waits for merge\n- #4: 公開後に確かめる\n' })])
 
-      const structured = await show({ issue_ref: 'acme/demo/7' })
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
 
-      expect(structured.data).toMatchObject({
+      expect(outcome.structured).toMatchObject({
         blockedBy: [{ number: 4, repository: 'acme/demo', state: 'OPEN', wait: 'merge', reason: '公開後に確かめる' }],
         readiness: { kind: 'blocked', stackOn: null, reason: 'waits-merge', text: 'blocked by #4 (waits for merge)' },
       })
@@ -356,11 +356,11 @@ describe('issue show', () => {
       setUpProject()
       await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
-      const structured = await show({ issue_ref: 'acme/demo/7' })
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
 
-      expect(structured.ok).toBe(true)
-      expect(structured.data).toMatchObject({ blockedBy: null, readiness: null })
-      expect(structured.data['warnings']).toEqual([expect.stringMatching(/^could not read blocked-by of #7: /u)])
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toMatchObject({ blockedBy: null, readiness: null })
+      expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^could not read blocked-by of #7: /u)])
     })
   })
 

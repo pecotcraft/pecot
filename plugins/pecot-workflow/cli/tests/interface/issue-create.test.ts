@@ -36,7 +36,7 @@ import {
   updatedFields,
 } from '../_helpers/issue-create-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { IssueSpec } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -91,7 +91,7 @@ const OPEN_PREREQUISITE: IssueSpec = { number: 12, state: 'OPEN' }
 
 const TASK_WITH_PARENT = { ...TASK_FRONTMATTER, parent_epic: 'acme/demo/3', order: '3' }
 
-async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   return await callToolOnce(ISSUE_CREATE_COMMANDS, 'issue_create', argumentsOfTool)
 }
 
@@ -1038,28 +1038,28 @@ describe('issue create', () => {
       setUpIssueProject()
       await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
-      const structured = await createTool(DIRECT)
+      const outcome = await createTool(DIRECT)
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0, artifacts: [] })
-      expect(structured.data).toEqual({ issues: [{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }] })
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ issues: [{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }] })
     })
 
     it('親 Epic を付けて作ると、つないだ親の参照を data.issues の parent に返す', async () => {
       setUpIssueProject()
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
-      const structured = await createTool({ ...DIRECT, parent_epic: '3', order: 3 })
+      const outcome = await createTool({ ...DIRECT, parent_epic: '3', order: 3 })
 
-      expect(structured.data['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready', parent: 'acme/demo/3' }])
+      expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready', parent: 'acme/demo/3' }])
     })
 
     it('message を dry_run で打つと、作る予定の Issue と dryRun を data に返す', async () => {
       setUpIssueProject()
       await startGithub([linkedRepositories()])
 
-      const structured = await createTool({ ...DIRECT, dry_run: true })
+      const outcome = await createTool({ ...DIRECT, dry_run: true })
 
-      expect(structured.data).toEqual({ plannedIssue: { owner: 'acme', repository: 'demo', title: '[Task] 一覧に状態を出す' }, dryRun: true })
+      expect(outcome.structured).toEqual({ plannedIssue: { owner: 'acme', repository: 'demo', title: '[Task] 一覧に状態を出す' }, dryRun: true })
     })
 
     it('ファイルを dry_run で打つと、進め方の表の行と積める並びを data に返す', async () => {
@@ -1071,9 +1071,9 @@ describe('issue create', () => {
       })
       await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE]), issueNodeId(12)])
 
-      const structured = await createTool({ files: inRoot(project.root, 'a.md', 'b.md', 'c.md'), dry_run: true })
+      const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md', 'c.md'), dry_run: true })
 
-      expect(structured.data).toEqual({
+      expect(outcome.structured).toEqual({
         plan: [
           { file: 'a', order: 3, blockedBy: [], approach: 'alone' },
           { file: 'b', order: 4, blockedBy: [{ issue: 'a', wait: 'stack' }], approach: 'stack', stackOn: 'a' },
@@ -1099,9 +1099,9 @@ describe('issue create', () => {
         prerequisitesRule({ number: 13, column: 'Blocked', blockedBy: [{ number: 12, state: 'CLOSED', branch: 'feat/12', pullRequests: [{ number: 5, state: 'MERGED', head: 'feat/12' }] }] }),
       ])
 
-      const structured = await createTool({ files: inRoot(project.root, 'a.md') })
+      const outcome = await createTool({ files: inRoot(project.root, 'a.md') })
 
-      expect(structured.data['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' }])
+      expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' }])
     })
 
     it('途中のファイルで作成に失敗すると、作り終えた Issue を失敗の data.issues に残す', async () => {
@@ -1112,10 +1112,10 @@ describe('issue create', () => {
       })
       await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), failedIssueCreation(403)])
 
-      const structured = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
+      const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
 
-      expect(structured).toMatchObject({ ok: false, exitCode: 1, kind: 'github-api' })
-      expect(structured.data['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }])
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'github-api' } })
+      expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }])
     })
 
     it('前提を付けられずに partial-failure で終わっても、作り終えた Issue をすべて data.issues に残す', async () => {
@@ -1123,26 +1123,25 @@ describe('issue create', () => {
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
       await startGithub([linkedRepositories(), blockedBySupported(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), failedBlockedBy(), addedToProject(2), updatedFields(2)])
 
-      const structured = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
+      const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
 
-      expect(structured).toMatchObject({ ok: false, exitCode: 1, kind: 'partial-failure' })
-      expect(structured.data['issues']).toEqual([
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'partial-failure' } })
+      expect(outcome.structured['issues']).toEqual([
         { owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' },
         { owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'blocked' },
       ])
     })
 
-    it('prepare で打つと、コピーしたテンプレの絶対パスを data.file と artifacts に返す', async () => {
+    it('prepare で打つと、コピーしたテンプレの絶対パスを file に返す', async () => {
       const project = setUpIssueProject()
 
-      const structured = await createTool({ prepare: true, template: 'task', repo: 'acme/demo' })
+      const outcome = await createTool({ prepare: true, template: 'task', repo: 'acme/demo' })
 
-      expect(structured.ok).toBe(true)
-      const file = String(structured.data['file'])
+      expect(outcome.isError).toBe(false)
+      const file = String(outcome.structured['file'])
       expect(path.dirname(file)).toBe(path.join(project.root, '.pecot', 'tmp', 'output'))
       expect(path.basename(file)).toMatch(/^issue-task-\d{8}-\d{6}\.md$/u)
-      expect(structured.data).toEqual({ file })
-      expect(structured.artifacts).toEqual([file])
+      expect(outcome.structured).toEqual({ file })
     })
   })
 })

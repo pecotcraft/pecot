@@ -363,8 +363,8 @@ describe('session start', () => {
     it('ブランチを作ると、作ったブランチ・リポジトリ・base・作業 Issue・作業ディレクトリの絶対パスを data に返す', async () => {
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: succeeding() })
       expectClean(result)
-      expect(result.structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(result.structured.data).toEqual({
+      expect(result.isError).toBe(false)
+      expect(result.structured).toEqual({
         branch: 'feat/7',
         repository: 'acme/demo',
         base: 'main',
@@ -377,13 +377,13 @@ describe('session start', () => {
       const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: judged({ blockedBy: [inReview] }, 'feat/3') })
       expectClean(result)
-      expect(result.structured.data).toMatchObject({ branch: 'feat/7', base: 'feat/3', stackedOn: 3 })
+      expect(result.structured).toMatchObject({ branch: 'feat/7', base: 'feat/3', stackedOn: 3 })
     })
 
     it('dry_run で打つと、作る予定のブランチと dryRun を data に返し、作業ディレクトリを返さない', async () => {
       const result = await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, dry_run: true }, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main')] })
       expectClean(result)
-      expect(result.structured.data).toEqual({ branch: 'feat/7', repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', dryRun: true })
+      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', dryRun: true })
       expect(result.read(ACTIVE)).toBeUndefined()
     })
 
@@ -391,16 +391,16 @@ describe('session start', () => {
       const empty = graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), empty] })
       expectClean(result)
-      expect(result.structured.data).toMatchObject({ branch: 'feat/7', warnings: ['could not set Issue acme/demo/7 status active: the Issue is not on the project board'] })
+      expect(result.structured).toMatchObject({ branch: 'feat/7', warnings: ['could not set Issue acme/demo/7 status active: the Issue is not on the project board'] })
     })
 
-    it('ブランチを作れないと、失敗の reason と detail を data に返し、成功の項目を返さない', async () => {
+    it('ブランチを作れないと、失敗の kind と detail を返し、成功の項目を返さない', async () => {
       const notFound = restRule('GET', '/repos/acme/demo/git/ref/heads/main', 404, { message: 'Not Found' })
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: [linkedRepositories(), noPrerequisites(), issueNode(), notFound] })
       expectClean(result)
-      expect(result.structured).toMatchObject({ ok: false, exitCode: 1, kind: 'github-not-found' })
-      expect(Object.keys(result.structured.data).toSorted((left, right) => left.localeCompare(right))).toEqual(['detail', 'reason'])
-      expect(result.structured.data['detail']).toMatch(/^could not create branch feat\/7 in acme\/demo: resource not found: /u)
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'github-not-found' } })
+      expect(Object.keys(result.structured).toSorted((left, right) => left.localeCompare(right))).toEqual(['detail', 'kind'])
+      expect(result.structured['detail']).toMatch(/^could not create branch feat\/7 in acme\/demo: resource not found: /u)
     })
   })
   describe('着手の判定', () => {

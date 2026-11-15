@@ -479,7 +479,7 @@ async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, confi
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun }), isDryRun)
+    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun }))
   })
 }
 
@@ -559,7 +559,7 @@ async function activateByReference(out: Readonly<Output<ActivateData>>, client: 
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
     stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
-  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, isDryRun }), isDryRun)
+  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, isDryRun }))
 }
 
 const ACTIVATE_PATH = ['project', 'activate']
@@ -581,10 +581,9 @@ const ACTIVATE_OUTPUT = z.strictObject({
 
 type ActivateData = z.input<typeof ACTIVATE_OUTPUT>
 
-// 設定ファイルの結果を data に渡す。書いたファイルだけを artifact にする
-function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<SyncedProjectConfig>, isDryRun: boolean): void {
+// 設定ファイルの結果を data に渡す
+function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<SyncedProjectConfig>): void {
   out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change })
-  if (!isDryRun && synced.change !== 'unchanged') out.artifact(synced.configPath)
 }
 
 const activateCommand = defineCommand({
@@ -799,7 +798,6 @@ const projectLinkCommand = defineCommand({
     saveConfig(checked, configPath)
     out.done(saved)
     out.result(reported)
-    out.artifact(configPath)
     return 0
   },
 })
@@ -831,6 +829,7 @@ const SET_OUTPUT = z.strictObject({
   value: z.string().describe('Value of the key after the command (on dry_run, after it would run)'),
   previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
   change: z.enum(['create', 'update', 'unchanged']).describe('create: the key was not set; update: its value was replaced; unchanged: it already had the value'),
+  configPath: z.string().describe('Path of the project config file'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -838,6 +837,7 @@ const UNSET_OUTPUT = z.strictObject({
   key: CONFIG_KEY_FIELD,
   previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
   change: z.enum(['delete', 'unchanged']).describe('delete: the key was cleared; unchanged: it was not set'),
+  configPath: z.string().describe('Path of the project config file'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -853,12 +853,12 @@ function setAggregationRepository(out: Readonly<Output<SetData>>, value: string,
     const unchanged: Operation = { verb: 'unchanged', target: `aggregation_repo ${value}` }
     out.planned(unchanged)
     out.done(unchanged)
-    out.result({ key: 'aggregation_repo', value, previous: value, change: 'unchanged' })
+    out.result({ key: 'aggregation_repo', value, previous: value, change: 'unchanged', configPath })
     return
   }
   const operation: Operation = { verb: 'set', target: `aggregation_repo to ${value}` }
   const hasPrevious = current !== undefined && current !== ''
-  const reported = { key: 'aggregation_repo', value, ...hasPrevious && { previous: current }, change: setChange(hasPrevious) } satisfies SetData
+  const reported = { key: 'aggregation_repo', value, ...hasPrevious && { previous: current }, change: setChange(hasPrevious), configPath } satisfies SetData
   if (options.isDryRun) {
     out.planned(current === undefined || current === '' ? operation : { ...operation, target: `${operation.target} (was ${current})` })
     out.result(reported)
@@ -868,7 +868,6 @@ function setAggregationRepository(out: Readonly<Output<SetData>>, value: string,
     out.warning(options.isConfirmed ? `overwriting aggregation_repo: ${current} -> ${value}` : hinted`overwriting aggregation_repo: ${current} -> ${value}\npass ${inputHint(['project', 'set'], 'yes')} to omit this hint`)
   }
   saveConfig(withAggregationRepository(config, value), configPath)
-  out.artifact(configPath)
   out.done(operation)
   out.result(reported)
 }
@@ -880,19 +879,18 @@ function unsetAggregationRepository(out: Readonly<Output<UnsetData>>, isDryRun: 
     const unchanged: Operation = { verb: 'unchanged', target: 'aggregation_repo (not set)' }
     out.planned(unchanged)
     out.done(unchanged)
-    out.result({ key: 'aggregation_repo', change: 'unchanged' })
+    out.result({ key: 'aggregation_repo', change: 'unchanged', configPath })
     return
   }
   const operation: Operation = { verb: 'remove', target: `aggregation_repo (was ${previous})` }
   out.planned(operation)
   if (isDryRun) {
-    out.result({ key: 'aggregation_repo', previous, change: 'delete' })
+    out.result({ key: 'aggregation_repo', previous, change: 'delete', configPath })
     return
   }
   saveConfig(withAggregationRepository(config, undefined), configPath)
-  out.artifact(configPath)
   out.done(operation)
-  out.result({ key: 'aggregation_repo', previous, change: 'delete' })
+  out.result({ key: 'aggregation_repo', previous, change: 'delete', configPath })
 }
 
 // キーを足したら、ここに操作を足さないと型の確認で止まる

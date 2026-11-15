@@ -10,30 +10,34 @@ import type { FailureKind } from '../domain/allowlist.js'
 import { OUTPUT_LIMIT_BYTES } from '../infra/awscli.js'
 
 /**
-ツール 1 回分の実行結果（data-model.md の ExecutionResult）。
+ツール 1 回分の実行結果（data-model.md の ExecutionResult）。data はツールの項目で、structuredContent の最上位に並ぶ。
 */
-export interface ExecutionResult {
-  readonly ok: boolean
-  /**
-  awscli の終了コード。実行前拒否は 2、時間切れは 124、awscli 不在は 127。
-  */
-  readonly exitCode: number
-  /**
-  失敗時のみ。ok が true のときはキーごと無い。
-  */
-  readonly kind?: FailureKind
-  /**
-  失敗のときは awscli の秘匿化した出力を log に持つ。reason と detail は toCallToolResult が足す。
-  */
+export type ExecutionResult = SucceededExecution | FailedExecution
+
+export interface SucceededExecution {
+  readonly ok: true
+  readonly kind?: never
   readonly data: Readonly<Record<string, unknown>>
   /**
-  書き出したローカルファイルの絶対パス。
-  */
-  readonly artifacts: readonly string[]
-  /**
-  エージェント向けの 1 行サマリ（失敗時は再試行方法を含む）。
+  content の 1 つ目の text に入るエージェント向けの 1 行。
   */
   readonly message: string
+}
+
+export interface FailedExecution {
+  readonly ok: false
+  /**
+  終了コードの代わりに読む原因の名前。実行前拒否は not-allowed / invalid-input、時間切れは timeout、awscli 不在は awscli-missing。
+  */
+  readonly kind: FailureKind
+  /**
+  失敗の文と再試行方法。structuredContent の detail と、content の 1 つ目の text に入る。
+  */
+  readonly detail: string
+  /**
+  awscli の秘匿化した出力（log）など。kind・detail と同じ名前は共通の値で上書きされる。
+  */
+  readonly data: Readonly<Record<string, unknown>>
 }
 
 /**
@@ -47,32 +51,23 @@ export interface LimitedOutput {
 /**
 ExecutionResult を MCP の CallToolResult へ変換する。
 
-content には structuredContent と同じ内容の JSON テキストを載せる。structuredContent を
-読めないクライアントでも結果を解釈できるようにするための二重化で、MCP 仕様が推奨する形。
-
-引数は deep readonly だが、戻り値は SDK 側の mutable 型のまま返す。
-SDK が readonly 型を公開していないため、この非対称は境界として許容する。
+content は文の text と、structuredContent と 1 字も違わない JSON の text（MCP の仕様の SHOULD）。
+戻り値は SDK 側の mutable 型のまま返す。SDK が readonly 型を公開していないため。
 */
 export function toCallToolResult(result: Readonly<ExecutionResult>): CallToolResult {
-  const structuredContent = toStructuredContent(result)
+  const structuredContent = result.ok
+    ? { ...result.data }
+    : { ...result.data, kind: result.kind, detail: result.detail }
+  const text = result.ok ? result.message : result.detail
+  const sentence: CallToolResult['content'] = text === '' ? [] : [{ type: 'text', text }]
   return {
-    content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+    content: [
+      ...sentence,
+      { type: 'text', text: JSON.stringify(structuredContent) },
+    ],
     // exactOptionalPropertyTypes 下で「成功時は isError キー自体を持たない」を表現する。
     ...(!result.ok && { isError: true }),
     structuredContent,
-  }
-}
-
-function toStructuredContent(result: Readonly<ExecutionResult>): Record<string, unknown> {
-  return {
-    ok: result.ok,
-    exitCode: result.exitCode,
-    ...(result.kind !== undefined && { kind: result.kind }),
-    // 失敗の原因の名前と全文は、3 つのプラグインで同じ data.reason・data.detail から読めるようにする。
-    // ツールの data より kind・message を優先する。pecot-tools のツールは、kind と別の原因を data に入れないため
-    data: result.kind === undefined ? { ...result.data } : { ...result.data, reason: result.kind, detail: result.message },
-    artifacts: [...result.artifacts],
-    message: result.message,
   }
 }
 

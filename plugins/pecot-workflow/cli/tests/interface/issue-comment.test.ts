@@ -9,7 +9,7 @@ import { compareStrings } from '../../src/domain/python-format.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, MERGE_DIFF_BODY, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -27,7 +27,7 @@ function outputFiles(root: string): string[] {
   return existsSync(directory) ? readdirSync(directory).toSorted(compareStrings) : []
 }
 
-async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   return await callToolOnce(ISSUE_COMMENT_COMMANDS, 'issue_comment', argumentsOfTool)
 }
 
@@ -344,14 +344,30 @@ describe('issue comment', () => {
   })
 
   describe('MCP の data', () => {
-    it('ファイルから投稿すると、コメントの URL と created を data に返し、ファイルを artifacts に返す', async () => {
+    it('ファイルから投稿すると、コメントの URL・created・comment_url を書き戻したファイルのパスを返す', async () => {
       const { file } = setUpCommentProject()
       await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-      const structured = await commentTool({ file })
+      const outcome = await commentTool({ file })
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0, artifacts: [file] })
-      expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'created', commentUrl: COMMENT_URL })
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'created', commentUrl: COMMENT_URL, file: path.resolve(file) })
+    })
+
+    it('comment_url を書き戻せないと、file を返さず、warning を warnings に返す', async () => {
+      const { file } = setUpCommentProject()
+      chmodSync(file, 0o444)
+      await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
+
+      const outcome = await commentTool({ file })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        change: 'created',
+        commentUrl: COMMENT_URL,
+        warnings: [`could not write comment_url back to the file: [Errno 13] Permission denied: '${file}'`],
+      })
     })
 
     it('comment_url を持つファイルを渡すと、updated を data に返す', async () => {
@@ -359,41 +375,41 @@ describe('issue comment', () => {
       const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
       await startGithub([linkedRepositories(), updatedComment(456, url)])
 
-      const structured = await commentTool({ file })
+      const outcome = await commentTool({ file })
 
-      expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'updated', commentUrl: url })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'updated', commentUrl: url })
     })
 
     it('message を dry_run で打つと、投稿する予定の Issue と dryRun を data に返す', async () => {
       setUpProject()
       await startGithub([])
 
-      const structured = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', dry_run: true })
+      const outcome = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', dry_run: true })
 
-      expect(structured.data).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
     })
 
-    it('prepare で打つと、書いたテンプレのパスを data.file と artifacts に返す', async (context) => {
+    it('prepare で打つと、書いたテンプレのパスを file に返す', async (context) => {
       await verifies(context, 'PW-COMMON-20')
       const { root } = setUpProject()
 
-      const structured = await commentTool({ prepare: true, template: 'plan' })
+      const outcome = await commentTool({ prepare: true, template: 'plan' })
 
       const [name = ''] = outputFiles(root)
       const written = path.join(root, '.pecot', 'tmp', 'output', name)
-      expect(structured).toMatchObject({ ok: true, artifacts: [written] })
-      expect(structured.data).toEqual({ file: written })
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ file: written })
     })
 
-    it('ファイルの本文がテンプレに合わないと、違反の文を data.detail に入れて content-invalid を返す', async () => {
+    it('ファイルの本文がテンプレに合わないと、違反の文を detail に入れて content-invalid を返す', async () => {
       const { file } = setUpCommentProject({ body: '## 進捗\n\n- 見出しなし\n- ✅ 完了\n' })
       const github = await startGithub([])
 
-      const structured = await commentTool({ file })
+      const outcome = await commentTool({ file })
 
-      expect(structured).toMatchObject({ ok: false, exitCode: 3, kind: 'content-invalid' })
-      expect(structured.data).toEqual({
-        reason: 'content-invalid',
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'content-invalid' } })
+      expect(outcome.structured).toEqual({
+        kind: 'content-invalid',
         detail: [
           `the body does not follow the template ${templateFile('comment', 'merge-diff')}`,
           '  missing sections: ## Merge — <summary>, ### Variance — <summary>, ### Impact — <summary>',

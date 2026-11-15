@@ -114,9 +114,7 @@ spy が返す成功結果。outputSchema 検証を通る完全な形にしてお
 */
 export const SPY_RESULT: ToolResult = {
   ok: true,
-  exitCode: 0,
   data: { spy: true },
-  artifacts: [],
   message: 'spy',
 }
 

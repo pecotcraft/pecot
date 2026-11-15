@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
@@ -40,7 +40,7 @@ const rules = (spec: Partial<TargetSpec>, ...nodes: readonly Record<string, unkn
   issueResponse({ number: 7, title: 't' }), pullRequests(...nodes), prerequisitesRule({ number: 7, ...spec }),
 ]
 
-async function showTool(directory: string): Promise<ToolEnvelope> {
+async function showTool(directory: string): Promise<ToolOutcome> {
   return await callToolOnce(SESSION_COMMANDS, 'session_show', { directory })
 }
 
@@ -358,10 +358,10 @@ describe('session show', () => {
     it('.pecot-active が無いとき、ブランチ・リポジトリ・推定した Issue・フラグを data に返す', async () => {
       const { repository } = prepareSession()
 
-      const structured = await showTool(repository)
+      const outcome = await showTool(repository)
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(structured.data).toEqual({
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
         inferredIssue: 7,
@@ -374,9 +374,9 @@ describe('session show', () => {
       const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
       await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
 
-      const structured = await showTool(repository)
+      const outcome = await showTool(repository)
 
-      expect(structured.data).toEqual({
+      expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
         inferredIssue: 7,
@@ -393,21 +393,21 @@ describe('session show', () => {
       const { repository } = prepareSession({ files: ACTIVE })
       await startGithub([issueFailure(row.status)])
 
-      const structured = await showTool(repository)
+      const outcome = await showTool(repository)
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(structured.data).not.toHaveProperty('activeIssue')
-      expect(structured.data).toMatchObject({ flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }] })
-      expect(structured.data['warnings']).toEqual([expect.stringMatching(row.warning)])
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).not.toHaveProperty('activeIssue')
+      expect(outcome.structured).toMatchObject({ flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }] })
+      expect(outcome.structured['warnings']).toEqual([expect.stringMatching(row.warning)])
     })
 
     it('Issue が閉じていると、activeIssue の state を CLOSED で返す', async () => {
       const { repository } = prepareSession({ files: ACTIVE })
       await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' })])
 
-      const structured = await showTool(repository)
+      const outcome = await showTool(repository)
 
-      expect(structured.data).toEqual({
+      expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
         inferredIssue: 7,

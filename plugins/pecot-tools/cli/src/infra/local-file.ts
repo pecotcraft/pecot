@@ -2,7 +2,7 @@
 //
 // 上書き規則（research R7）の判定は、「既にある書き出し先には overwrite を要する」の 1 点だけ。
 // ただしディレクトリは、overwrite を付けても救えない。
-// `aws s3 cp s3://b/k /dir` は `/dir/k` を書くので、artifacts に載せる書き出し先（`/dir`）と実体がずれる。
+// `aws s3 cp s3://b/k /dir` は `/dir/k` を書くので、file に載せる書き出し先（`/dir`）と実体がずれる。
 // 呼び出し側が種別で分岐できるよう、存在確認とディレクトリ判定を別に公開する。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 引数は許可リストの abs-path 検証を通った書き出し先のみ */

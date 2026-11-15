@@ -152,14 +152,19 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(items.every(value => value === false)).toBe(true)
   })
 
-  it.each(GENERATED_TOOLS)('$name が ExecutionResult 同形の outputSchema を公開する', ({ name }) => {
+  it.each(GENERATED_TOOLS)('$name の outputSchema は、共通の 4 項目だけに名前を持たせた開いた object になる', ({ name }) => {
     const outputSchema = toolOf(name).outputSchema
 
-    const exposedKeys = Object.keys(propertiesOf(outputSchema))
+    const names = Object.keys(propertiesOf(outputSchema))
 
-    expect(sorted(exposedKeys)).toEqual(sorted(Object.keys(TOOL_OUTPUT_SCHEMA.shape)))
-    // kind は失敗時のみ載るため必須にしない。
-    expect(sorted(asStringArray(outputSchema?.['required']))).toEqual(['artifacts', 'data', 'exitCode', 'message', 'ok'])
+    expect(outputSchema?.['type']).toBe('object')
+    expect(sorted(names)).toEqual(sorted(Object.keys(TOOL_OUTPUT_SCHEMA.shape)))
+    expect(sorted(names)).toEqual(['detail', 'kind', 'log', 'warnings'])
+    expect(asStringArray(outputSchema?.['required'])).toEqual([])
+    expect(outputSchema).not.toHaveProperty('anyOf')
+    expect(outputSchema?.['additionalProperties']).toEqual({})
+    // JSON Schema の boolean スキーマ（true）を出さない。
+    expect(JSON.stringify(outputSchema)).not.toMatch(/:true[,}]/)
   })
 
   it.each(GENERATED_TOOLS)('$name が title と description を持ち openWorldHint が true', ({ name }) => {

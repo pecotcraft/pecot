@@ -1,6 +1,7 @@
-// MCP のツールの結果。コマンドの出力と、MCP の io だけが受ける data・artifacts・warning を集め、pecot-tools・pecot-visual と同じ形の結果にする。
+// MCP のツールの結果。コマンドの出力と、MCP の io だけが受ける項目・warning を集め、仕様の content・structuredContent・isError の形にする。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は readonly にできない */
-import type { CallToolResult } from '@modelcontextprotocol/server'
+import { fromJsonSchema } from '@modelcontextprotocol/server'
+import type { CallToolResult, JsonSchemaType, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
 import type { FailureKind } from '../commands/failure-kind.js'
@@ -9,13 +10,16 @@ import type { CommandIo } from '../commands/registry.js'
 import { USAGE_EXIT_CODE } from '../commands/usage-error.js'
 
 export interface CommandOutcome {
+  /**
+  成否を決めるためだけに使う。結果には載せない
+  */
   readonly exitCode: number
   /**
-  成功の message を決めるためだけに使う。結果には載せない
+  成功の文を決めるためだけに使う。結果には載せない
   */
   readonly stdout: string
   /**
-  失敗の message と data.detail を決めるためだけに使う。結果には載せない
+  失敗の detail を決めるためだけに使う。結果には載せない
   */
   readonly stderr: string
   /**
@@ -23,18 +27,17 @@ export interface CommandOutcome {
   */
   readonly kind?: FailureKind | undefined
   /**
-  失敗の message に使う文。無ければ stderr の行から決める
+  失敗の detail の代わりの文。warning を除いた stderr が空のときに使う
   */
   readonly message?: string | undefined
   /**
-  成功の message に使う結果の行（片付けの行を除いた最初のもの）。無ければ stdout の最初の空でない行
+  成功の文に使う結果の行（片付けの行を除いた最初のもの）。無ければ stdout の最初の空でない行
   */
   readonly resultLine?: string | undefined
   /**
-  コマンドの output で検証した後の data の項目。失敗では途中まで進んだ結果
+  コマンドの output で検証した後の項目。失敗では途中まで進んだ結果
   */
   readonly data?: Readonly<Record<string, unknown>> | undefined
-  readonly artifacts?: readonly string[] | undefined
   readonly warnings?: readonly string[] | undefined
 }
 
@@ -48,12 +51,11 @@ export interface CollectedIo {
   readonly kind: () => FailureKind | undefined
   readonly resultLine: () => string | undefined
   readonly data: () => Readonly<Record<string, unknown>>
-  readonly artifacts: () => readonly string[]
   readonly warnings: () => readonly string[]
 }
 
 /**
-stdout・stderr に書かれた文字列と、失敗の原因の名前、最初の結果の行、data の項目、作ったパス、warning の文を集める io
+stdout・stderr に書かれた文字列と、失敗の原因の名前、最初の結果の行、項目、warning の文を集める io
 */
 export function collectIo(): CollectedIo {
   const out: string[] = []
@@ -62,7 +64,6 @@ export function collectIo(): CollectedIo {
   let firstResult: string | undefined
   // createOutput を何度も呼ぶコマンドがあるので、項目はここで重ねる
   let fields: Record<string, unknown> = {}
-  const paths: string[] = []
   const warnings: string[] = []
   return {
     io: {
@@ -82,9 +83,6 @@ export function collectIo(): CollectedIo {
       data: (added) => {
         fields = { ...fields, ...added }
       },
-      artifact: (file) => {
-        if (!paths.includes(file)) paths.push(file)
-      },
       warning: (text) => {
         warnings.push(text)
       },
@@ -94,42 +92,49 @@ export function collectIo(): CollectedIo {
     kind: () => failureKind,
     resultLine: () => firstResult,
     data: () => fields,
-    artifacts: () => [...paths],
     warnings: () => [...warnings],
   }
 }
 
-const WARNINGS_SCHEMA = z.array(z.string()).describe('Warning messages, without the "warning: " prefix (omitted when there is none)')
-
 /**
-ツールの outputSchema。最上位は pecot-tools・pecot-visual と同じ 6 つの名前。
-data は、成功の型（コマンドの output と warnings）と、失敗の型（共通の reason・detail・warnings・log と、成功の項目を省略可にしたもの）の anyOf
+ツールの項目と並べて structuredContent の最上位に置く、全ツールに共通の 4 項目
 */
-export function toolOutputSchema(output: z.ZodObject): z.ZodObject {
-  const success = output.extend({ warnings: WARNINGS_SCHEMA.optional() })
-  const failure = output.partial().extend({
-    reason: z.string().describe('Failure kind, the same value as kind'),
-    detail: z.string().describe('Full failure text: the error message and the guidance lines that follow it'),
-    warnings: WARNINGS_SCHEMA.optional(),
-    log: z.string().optional().describe('Raw output of a child process (failure only; omitted when not captured)'),
-  })
-  return z.object({
-    ok: z.boolean().describe('Whether the tool completed its intended run'),
-    exitCode: z.number().describe('Exit code (0 = success)'),
-    kind: z.string().optional().describe('Failure kind (omitted on success)'),
-    artifacts: z.array(z.string()).describe('Absolute paths of files and directories created or updated'),
-    data: z.union([success, failure]).describe('On success, the tool\'s result fields. On failure, reason and detail, plus any result fields reached before the failure'),
-    message: z.string().describe('One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither'),
-  })
+export const COMMON_OUTPUT_PROPERTIES = {
+  kind: { type: 'string', description: 'Failure kind (failure only)' },
+  detail: { type: 'string', description: 'Full failure text: the error message and the guidance lines that follow it (failure only)' },
+  log: { type: 'string', description: 'Raw output of a child process (failure only; omitted when not captured)' },
+  warnings: { type: 'array', items: { type: 'string' }, description: 'Warning messages, without the "warning: " prefix (omitted when there is none)' },
 }
 
-interface ToolOutput {
-  readonly ok: boolean
-  readonly exitCode: number
-  readonly kind?: string
-  readonly artifacts: readonly string[]
-  readonly data: Readonly<Record<string, unknown>>
-  readonly message: string
+const FAILURE_REQUIRED: readonly string[] = ['kind', 'detail']
+
+const JsonObjectSchema = z.looseObject({
+  properties: z.record(z.string(), z.unknown()).optional(),
+  required: z.array(z.string()).optional(),
+})
+
+/**
+ツールの outputSchema（JSON Schema）。最上位の properties にコマンドの output の項目と共通の 4 項目を並べ、
+anyOf の枝で「成功の必須項目」か「kind と detail」を求める。成功の必須項目が無ければ anyOf を置かない
+*/
+export function toolOutputSchema(output: z.ZodObject): Record<string, unknown> {
+  const generated = Object.entries(z.toJSONSchema(output, { io: 'output' })).filter(([key]) => key !== '$schema')
+  const { required = [], properties = {}, ...rest } = JsonObjectSchema.parse(Object.fromEntries(generated))
+  return {
+    type: 'object',
+    properties: { ...properties, ...COMMON_OUTPUT_PROPERTIES },
+    // 定義書に書き出す順（type・properties・additionalProperties）に合わせる
+    ...rest,
+    ...required.length > 0 && { anyOf: [{ required }, { required: [...FAILURE_REQUIRED] }] },
+  }
+}
+
+/**
+手組みの JSON Schema を、SDK が受ける形にする。検証は SDK の ajv（2020-12）で、値を変えない
+*/
+export function standardOutputSchema(schema: Readonly<Record<string, unknown>>): StandardSchemaWithJSON {
+  // eslint-disable-next-line no-restricted-syntax -- JsonSchemaType は全キーワードの型で、組み立てた object を当てられない
+  return fromJsonSchema(schema as JsonSchemaType)
 }
 
 const ERROR_PREFIX = 'error: '
@@ -174,45 +179,48 @@ export function detailOf(stderr: string, message: string): string {
   return text === '' ? message : text
 }
 
-// 失敗は最初の error の行の文、無ければ stderr の最初の行。成功は結果の行、無ければ stdout の最初の行
-function messageOf(outcome: Readonly<CommandOutcome>): string {
-  if (outcome.exitCode === 0) return outcome.resultLine ?? linesOf(outcome.stdout).at(0)?.trim() ?? ''
-  const lines = linesOf(outcome.stderr)
+// 失敗の detail の代わりの文。渡された message、無ければ最初の error の行の文、それも無ければ stderr の最初の行
+function failureMessageOf(outcome: Readonly<CommandOutcome>): string {
   if (outcome.message !== undefined) return outcome.message
+  const lines = linesOf(outcome.stderr)
   const errorLine = lines.find(line => line.startsWith(ERROR_PREFIX))
   return errorLine === undefined ? (lines.at(0)?.trim() ?? '') : errorLine.slice(ERROR_PREFIX.length)
 }
 
+interface ToolOutput {
+  readonly isOk: boolean
+  readonly text: string
+  readonly structured: Readonly<Record<string, unknown>>
+}
+
 function toOutput(outcome: Readonly<CommandOutcome>): ToolOutput {
-  const isOk = outcome.exitCode === 0
-  const message = messageOf(outcome)
   const warnings = outcome.warnings ?? []
-  const kind = outcome.kind ?? 'other'
-  // reason・detail は、ツールが data に入れた値より優先する（pecot-visual は逆）
-  const data = {
-    ...outcome.data,
-    ...!isOk && { reason: kind, detail: detailOf(outcome.stderr, message) },
-    ...warnings.length > 0 && { warnings },
+  const warned = warnings.length > 0 ? { warnings } : {}
+  if (outcome.exitCode === 0) {
+    return {
+      isOk: true,
+      text: outcome.resultLine ?? linesOf(outcome.stdout).at(0)?.trim() ?? '',
+      structured: { ...outcome.data, ...warned },
+    }
   }
+  const detail = detailOf(outcome.stderr, failureMessageOf(outcome))
   return {
-    ok: isOk,
-    exitCode: outcome.exitCode,
-    ...!isOk && { kind },
-    artifacts: outcome.artifacts ?? [],
-    data,
-    message,
+    isOk: false,
+    text: detail,
+    structured: { kind: outcome.kind ?? 'other', detail, ...outcome.data, ...warned },
   }
 }
 
 /**
-structuredContent と、同じ JSON を本文にした content の両方で返す。ホストがどちらを渡しても同じ中身が届く
+content は、文の text（空なら省く）と、structuredContent と 1 字も違わない JSON の text。ホストがどちらを渡しても同じ中身が届く
 */
 export function toToolResult(outcome: Readonly<CommandOutcome>): CallToolResult {
-  const output = toOutput(outcome)
+  const { isOk, text, structured } = toOutput(outcome)
+  const json: CallToolResult['content'][number] = { type: 'text', text: JSON.stringify(structured) }
   return {
-    content: [{ type: 'text', text: JSON.stringify(output) }],
-    structuredContent: { ...output },
-    ...!output.ok && { isError: true },
+    content: text === '' ? [json] : [{ type: 'text', text }, json],
+    structuredContent: { ...structured },
+    ...!isOk && { isError: true },
   }
 }
 

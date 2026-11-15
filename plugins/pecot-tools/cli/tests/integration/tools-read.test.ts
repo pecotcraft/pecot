@@ -215,7 +215,7 @@ const TOOL_COMMANDS: readonly {
 }))
 
 /**
-NextToken を data.nextToken へ転記するツール（許可リストで pagination が max-items のもの）と項目 ID。
+NextToken を nextToken へ転記するツール（許可リストで pagination が max-items のもの）と項目 ID。
 */
 const PAGINATED_ROWS: readonly { readonly name: string, readonly id: string }[] = [
   { name: 'aws_athena_get_query_results', id: 'PT-AWS-ATHENA-GET-QUERY-RESULTS-02' },
@@ -305,10 +305,10 @@ function fixtureJson(command: Readonly<{ service: string, subcommand: string }>)
 }
 
 /**
-data から nextToken を除く。successData が NextToken から転記する 1 キーで、fixture には無い。
+structuredContent から、pecot-tools が足す nextToken（NextToken の転記）と file（書き出し先）を除く。fixture には無い。
 */
-function withoutNextToken(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'nextToken'))
+function withoutAddedItems(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'nextToken' && key !== 'file'))
 }
 
 /**
@@ -351,21 +351,20 @@ function sortedNames(names: readonly string[]): readonly string[] {
 const ALLOWLIST_NAMES = sortedNames(ALLOWLIST.map(entry => entry.toolName))
 
 describe('全 24 ツールの正常系', () => {
-  it.for(TOOL_COMMANDS)('$name が既定 fixture で成功し、引数と data が契約どおりになる', async (command, context) => {
+  it.for(TOOL_COMMANDS)('$name が既定 fixture で成功し、引数と structuredContent が契約どおりになる', async (command, context) => {
     for (const id of happyPathIdsOf(command.name)) await verifies(context, id)
     const instance = fakeAws.install()
 
-    const structured = await callMinimal(command.name)
+    const result = await call(command.name, MINIMAL_ARGUMENTS[command.name] ?? {})
+    const structured = result.structured
 
-    expect(structured['ok'], `${command.name}: ${JSON.stringify(structured)}`).toBe(true)
-    expect(structured['exitCode']).toBe(0)
+    expect(result.isError, `${command.name}: ${JSON.stringify(structured)}`).toBeUndefined()
     expect(structured['kind']).toBeUndefined()
+    for (const key of ['ok', 'exitCode', 'data', 'artifacts', 'message']) expect(structured).not.toHaveProperty(key)
     expect(commandCalls(instance), `${command.name} の引数`).toEqual([expectedArgumentsOf(command.name)])
 
     if (!command.jsonOutput) return
-    const data = structured['data']
-    if (!isRecord(data)) throw new Error(`${command.name} の data が Record ではありません`)
-    expect(withoutNextToken(data), `${command.name} の data`).toEqual(fixtureJson(command))
+    expect(withoutAddedItems(structured), `${command.name} の structuredContent`).toEqual(fixtureJson(command))
   })
 
   it('最小引数の表が許可リストと 1:1 で対応する', () => {
@@ -653,48 +652,46 @@ describe('引数の組み立て', () => {
 })
 
 describe('応答の中身', () => {
-  it('JSON 出力はそのまま data に載る', async () => {
+  it('JSON 出力は structuredContent の最上位にそのまま載る', async () => {
     fakeAws.install()
 
     const structured = await callMinimal('aws_athena_get_query_execution')
-    const data = structured['data']
-    const execution = isRecord(data) ? data['QueryExecution'] : undefined
+    const execution = structured['QueryExecution']
 
     expect(isRecord(execution) ? execution['QueryExecutionId'] : undefined)
       .toBe('b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e')
   })
 
-  it('aws_s3_ls は JSON 出力を持たないので data.lines になる', async (context) => {
+  it('aws_s3_ls は JSON 出力を持たないので lines になる', async (context) => {
     await verifies(context, 'PT-AWS-S3-LS-02')
     const instance = fakeAws.install()
     const structured = await callMinimal('aws_s3_ls')
 
     expect(commandCalls(instance)).toEqual([['s3', 'ls', '--no-cli-pager']])
-    expect(structured['data']).toEqual({
+    expect(structured).toEqual({
       lines: ['2026-09-01 10:00:00       1024 report.json', '                           PRE logs/'],
     })
   })
 
-  it('s3_uri を渡すと、出力を 1 行 1 要素にして data.lines に載せる', async (context) => {
+  it('s3_uri を渡すと、出力を 1 行 1 要素にして lines に載せる', async (context) => {
     await verifies(context, 'PT-AWS-S3-LS-01')
     const instance = fakeAws.install()
 
     const result = await call('aws_s3_ls', { s3_uri: 's3://example-bucket/logs/' })
 
     expect(commandCalls(instance)).toEqual([['s3', 'ls', 's3://example-bucket/logs/', '--no-cli-pager']])
-    expect(result.structured['data']).toEqual({
+    expect(result.structured).toEqual({
       lines: ['2026-09-01 10:00:00       1024 report.json', '                           PRE logs/'],
     })
   })
 
-  it.for(PAGINATED_ROWS)('$name の NextToken を data.nextToken へ転記する', async (row, context) => {
+  it.for(PAGINATED_ROWS)('$name の NextToken を nextToken へ転記する', async (row, context) => {
     await verifies(context, row.id)
     fakeAws.install({ fixture: 'paginated' })
 
     const structured = await callMinimal(row.name)
-    const data = structured['data']
 
-    expect(isRecord(data) ? data['nextToken'] : undefined).toBe('eyJuZXh0IjogMX0=')
+    expect(structured['nextToken']).toBe('eyJuZXh0IjogMX0=')
   })
 
   it('NextToken の表が max-items のツールと 1:1 で対応する', () => {
@@ -711,10 +708,10 @@ describe('応答の中身', () => {
 
     const structured = await callMinimal('aws_athena_get_query_execution')
 
-    expect(isRecord(structured['data']) && 'nextToken' in structured['data']).toBe(false)
+    expect(structured).not.toHaveProperty('nextToken')
   })
 
-  it('書き出し先を artifacts に載せる', async (context) => {
+  it('書き出し先を file に載せる', async (context) => {
     await verifies(context, 'PT-AWS-S3-CP-01')
     await verifies(context, 'PT-AWS-S3API-GET-OBJECT-01')
     fakeAws.install()
@@ -722,16 +719,16 @@ describe('応答の中身', () => {
     const copied = await callMinimal('aws_s3_cp')
     const fetched = await callMinimal('aws_s3api_get_object')
 
-    expect(copied['artifacts']).toEqual(['/var/data/report.json'])
-    expect(fetched['artifacts']).toEqual(['/var/data/report.json'])
+    expect(copied['file']).toBe('/var/data/report.json')
+    expect(fetched['file']).toBe('/var/data/report.json')
   })
 
-  it('書き出しを伴わないツールの artifacts は空', async () => {
+  it('書き出しを伴わないツールは file を持たない', async () => {
     fakeAws.install()
 
     const structured = await callMinimal('aws_sts_get_caller_identity')
 
-    expect(structured['artifacts']).toEqual([])
+    expect(structured).not.toHaveProperty('file')
   })
 })
 
@@ -739,15 +736,14 @@ describe('失敗種別', () => {
   const FAILURES: readonly {
     readonly fixture: string
     readonly kind: FailureKind
-    readonly exitCode: number
   }[] = [
-    { fixture: 'no-credentials', kind: 'auth-missing', exitCode: 253 },
-    { fixture: 'profile-not-found', kind: 'auth-missing', exitCode: 255 },
-    { fixture: 'sso-token-expired', kind: 'auth-expired', exitCode: 255 },
-    { fixture: 'invalid-token', kind: 'auth-expired', exitCode: 254 },
-    { fixture: 'access-denied', kind: 'permission-denied', exitCode: 254 },
-    { fixture: 'resource-not-found', kind: 'resource-not-found', exitCode: 254 },
-    { fixture: 'invalid-input', kind: 'invalid-input', exitCode: 252 },
+    { fixture: 'no-credentials', kind: 'auth-missing' },
+    { fixture: 'profile-not-found', kind: 'auth-missing' },
+    { fixture: 'sso-token-expired', kind: 'auth-expired' },
+    { fixture: 'invalid-token', kind: 'auth-expired' },
+    { fixture: 'access-denied', kind: 'permission-denied' },
+    { fixture: 'resource-not-found', kind: 'resource-not-found' },
+    { fixture: 'invalid-input', kind: 'invalid-input' },
   ]
 
   it.for(FAILURES)('fixture $fixture を $kind にする', async (failure, context) => {
@@ -757,17 +753,12 @@ describe('失敗種別', () => {
     const result = await call('aws_lambda_get_function_configuration', { function_name: 'x' })
 
     expect(result.isError).toBe(true)
-    expect(result.structured).toMatchObject({
-      ok: false,
-      exitCode: failure.exitCode,
-      kind: failure.kind,
-    })
-    expect(result.structured['message']).toContain(failure.kind)
+    expect(result.structured['kind']).toBe(failure.kind)
+    expect(result.structured['detail']).toContain(failure.kind)
     expect(result.structured).not.toHaveProperty('stderr')
-    const data = result.structured['data']
-    expect(data).toMatchObject({ reason: failure.kind, detail: result.structured['message'] })
-    const log = isRecord(data) ? data['log'] : undefined
-    expect(typeof log === 'string' && log.length > 0, `data.log: ${JSON.stringify(log)}`).toBe(true)
+    expect(result.structured).not.toHaveProperty('reason')
+    const log = result.structured['log']
+    expect(typeof log === 'string' && log.length > 0, `log: ${JSON.stringify(log)}`).toBe(true)
   })
 
   it('高レベル s3 コマンドの exit 1 も stderr から種別を決める', async () => {
@@ -778,7 +769,7 @@ describe('失敗種別', () => {
       local_path: '/var/data/report.json',
     })
 
-    expect(result.structured).toMatchObject({ ok: false, exitCode: 1, kind: 'auth-missing' })
+    expect(result.structured).toMatchObject({ kind: 'auth-missing' })
   })
 
   it('awscli 未導入は awscli-missing にする', async (context) => {
@@ -787,7 +778,7 @@ describe('失敗種別', () => {
 
     const result = await call('aws_sts_get_caller_identity', {})
 
-    expect(result.structured).toMatchObject({ ok: false, exitCode: 127, kind: 'awscli-missing' })
+    expect(result.structured).toMatchObject({ kind: 'awscli-missing' })
   })
 })
 
@@ -804,11 +795,11 @@ describe('SC-008 失敗の直後も同じ接続が次の呼び出しへ応答す
 
     reinstall({ fixture: 'large-output', fixtureDir: largeOutputDirectory() })
     const truncated = await call('aws_lambda_list_functions', {})
-    expect(truncated.structured['data']).toMatchObject({ truncated: true })
+    expect(truncated.structured).toMatchObject({ truncated: true })
 
     reinstall()
     const recovered = await call('aws_sts_get_caller_identity', {})
-    expect(recovered.structured['ok']).toBe(true)
+    expect(recovered.isError).toBeUndefined()
   })
 
   it('時間切れの後にも成功を返す', async (context) => {
@@ -818,10 +809,10 @@ describe('SC-008 失敗の直後も同じ接続が次の呼び出しへ応答す
     fakeAws.install({ hang: true })
     const timedOut = await call('aws_sts_get_caller_identity', {})
 
-    expect(timedOut.structured).toMatchObject({ exitCode: 124, kind: 'timeout' })
+    expect(timedOut.structured).toMatchObject({ kind: 'timeout' })
 
     reinstall()
     const recovered = await call('aws_sts_get_caller_identity', {})
-    expect(recovered.structured['ok']).toBe(true)
+    expect(recovered.isError).toBeUndefined()
   }, 30_000)
 })

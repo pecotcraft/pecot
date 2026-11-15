@@ -43,11 +43,9 @@ import {
 import { toCallToolResult, type ToolResult } from '../result.js'
 import type { ToolDefinition, ToolCallContext } from '../server.js'
 import {
-  CHROMIUM_UNAVAILABLE_EXIT_CODE,
   chromiumDefaultDependencies,
   chromiumInstallFailureDetail,
   runtimeDefaultDependencies,
-  RUNTIME_UNAVAILABLE_EXIT_CODE,
   tlsCertificateHint,
   TOOL_OUTPUT_SCHEMA,
   type ChromiumDependencies,
@@ -127,10 +125,10 @@ function runtimeFailureReason(result: Readonly<RuntimeInstallResult>): string {
   }
   if (result.exitCode === null) {
     return result.signal === null
-      ? 'could not start npm (see data.log for the reason)'
+      ? 'could not start npm (see log for the reason)'
       : `download command was interrupted by ${result.signal}; the download was cut off externally`
   }
-  return `npm install exited with ${String(result.exitCode)} (see data.log for the reason)`
+  return `npm install exited with ${String(result.exitCode)} (see log for the reason)`
 }
 
 /**
@@ -215,16 +213,6 @@ function stageData(outcome: Readonly<StageOutcome>): Record<string, unknown> {
   }
 }
 
-/**
-取得した実体の置き場所だけを artifacts に載せる。何も取得していなければ空。
-*/
-function artifactsOf(stages: readonly StageOutcome[]): string[] {
-  return stages
-    .filter(stage => stage.downloaded)
-    .map(stage => stage.location)
-    .filter((location): location is string => location !== undefined)
-}
-
 function successMessage(
   runtime: Readonly<StageOutcome>,
   chromium: Readonly<StageOutcome>,
@@ -275,7 +263,7 @@ export function setupTool(
     // OS のライブラリは実行ファイルが揃ってからでないと起動で確かめられない。
     const hostDependencies = chromium.installed ? await runHostDependenciesStage(buildHostDependencies(), call.signal) : undefined
 
-    const artifacts = artifactsOf([runtime, chromium])
+    // 取得した実体の置き場所は runtime.location・chromium.location の項目で返す。
     const data = {
       runtime: stageData(runtime),
       chromium: stageData(chromium),
@@ -285,9 +273,6 @@ export function setupTool(
     if (runtime.installed && chromium.installed && hostDependencies?.installed === true) {
       return toCallToolResult(withSpawnOutput({
         ok: true,
-        exitCode: 0,
-        // ダウンロードした実体の置き場所を成果物として返す。取得済みなら何も置いていない。
-        artifacts,
         data: {
           event: runtime.downloaded || chromium.downloaded || hostDependencies.downloaded ? 'setup.done' : 'setup.skipped',
           ...data,
@@ -297,7 +282,7 @@ export function setupTool(
     }
 
     // 両系統が失敗することもある (ネットワーク断・プロキシ誤設定では両方が落ちる)。
-    // 片方だけを見ると、もう片方の理由が data.<系統>.detail にしか残らず message から
+    // 片方だけを見ると、もう片方の理由が <系統>.detail にしか残らず detail から
     // 消えるため、失敗した系統を全て畳んで載せる。
     const failures = [
       ...(runtime.installed ? [] : [{ label: 'runtime dependencies', reason: 'runtime-install-failed', stage: runtime } satisfies StageFailure]),
@@ -306,12 +291,11 @@ export function setupTool(
         ? []
         : [{ label: 'Chromium OS libraries', reason: 'chromium-host-deps-missing', stage: hostDependencies } satisfies StageFailure]),
     ]
-    const detail = failures.map(failure => `${failure.label}: ${failure.stage.detail ?? ''}`).join(' / ')
     // OS ライブラリの失敗は「取得」ではなく「足りない」ことを案内するため、取得の失敗と分ける。
     // その detail は足りないライブラリと入れるコマンドまで書いた文なので、前置きを付けずに載せる。
     const acquisitionFailures = failures.filter(failure => failure.reason !== 'chromium-host-deps-missing')
     const hostDependenciesDetail = failures.find(failure => failure.reason === 'chromium-host-deps-missing')?.stage.detail
-    const message = [
+    const detail = [
       ...(acquisitionFailures.length === 0
         ? []
         : [`download failed for ${acquisitionFailures.map(failure => failure.label).join(' / ')}: `
@@ -320,17 +304,14 @@ export function setupTool(
     ].join(' / ')
     const result: ToolResult = withSpawnOutput({
       ok: false,
-      exitCode: runtime.installed ? CHROMIUM_UNAVAILABLE_EXIT_CODE : RUNTIME_UNAVAILABLE_EXIT_CODE,
-      // data.reason は失敗した段をカンマでつなぐ。kind には最初に失敗した段の名前を入れる。
+      // reason (runtime_setup の項目) は失敗した段をカンマでつなぐ。kind には最初に失敗した段の名前を入れる。
       kind: failures[0]?.reason ?? 'unknown',
-      artifacts,
+      detail,
       data: {
         event: 'setup.error',
         reason: failures.map(failure => failure.reason).join(','),
-        detail,
         ...data,
       },
-      message,
     }, mergeSpawned(failures.map(failure => failure.stage.spawned)))
     return toCallToolResult(result)
   }
@@ -368,7 +349,7 @@ function emptySpawn(): SpawnResult {
 }
 
 /**
-失敗した系統の出力を 1 つに畳む。両系統が失敗しても、どちらの出力も data.log に残す。
+失敗した系統の出力を 1 つに畳む。両系統が失敗しても、どちらの出力も log に残す。
 */
 function mergeSpawned(spawned: readonly (SpawnResult | undefined)[]): SpawnResult {
   const present = spawned.filter((result): result is SpawnResult => result !== undefined)

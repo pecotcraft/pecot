@@ -7,7 +7,7 @@ import { ISSUE_REOPEN_COMMANDS } from '../../src/commands/issue-reopen.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { ToolEnvelope } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
@@ -27,7 +27,7 @@ function labelOf(request: RecordedRequest): string {
 const PATCH = 'PATCH /repos/acme/demo/issues/7'
 const COMMENT = 'POST /repos/acme/demo/issues/7/comments'
 
-async function reopenTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolEnvelope> {
+async function reopenTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   useFakeDelays()
   return await callToolOnce(ISSUE_REOPEN_COMMANDS, 'issue_reopen', argumentsOfTool, settleWithFakeDelays)
 }
@@ -319,28 +319,28 @@ describe('issue reopen', () => {
       const unarchived: ResponseRule = { match: { operation: 'UnarchiveProjectItem', variables: { projectId: 'PVT_1', itemId: 'PVTI_7' } }, respond: { status: 200, body: { data: { unarchiveProjectV2Item: { item: { id: 'PVTI_7' } } } } }, times: 1 }
       await startGithub([linkedRepositories(), reopened(), archived, unarchived, fieldUpdated('o4'), reopened(), commented()])
 
-      const structured = await reopenTool({ issue_ref: 'acme/demo/7', status: 'active', comment: '再発したので開き直す' })
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', status: 'active', comment: '再発したので開き直す' })
 
-      expect(structured).toMatchObject({ ok: true, exitCode: 0 })
-      expect(structured.data).toEqual({ issue: 'acme/demo/7', status: 'active', unarchived: true, commented: true })
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'active', unarchived: true, commented: true })
     })
 
     it('Issue がボードに無いとき、status を省いた data を返す', async () => {
       prepareProject()
       await startGithub([linkedRepositories(), reopened(), boardItems({ onBoard: false }), reopened()])
 
-      const structured = await reopenTool({ issue_ref: 'acme/demo/7' })
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7' })
 
-      expect(structured.data).toEqual({ issue: 'acme/demo/7', unarchived: false, commented: false, warnings: ['Issue acme/demo/7 is not on the project board'] })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', unarchived: false, commented: false, warnings: ['Issue acme/demo/7 is not on the project board'] })
     })
 
     it('dry_run で打つと、書く予定の status と dryRun を data に返す', async () => {
       prepareProject()
       await startGithub([linkedRepositories(), boardItems()])
 
-      const structured = await reopenTool({ issue_ref: 'acme/demo/7', comment: '理由', dry_run: true })
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: '理由', dry_run: true })
 
-      expect(structured.data).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, commented: true, dryRun: true })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, commented: true, dryRun: true })
     })
   })
 })

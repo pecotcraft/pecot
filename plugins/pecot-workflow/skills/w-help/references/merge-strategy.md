@@ -1,8 +1,9 @@
 # マージ方法の使い分け
 
-ブランチモードによって対象が変わる。リポのブランチモードは `board_show` の結果で判定する。
-`data.repositories` のうち対象リポの要素で、`develop_branch` と `release_branch` を比べる。
+ブランチモードによって対象が変わる。リポのブランチモードは pecot-workflow の MCP ツール `board_show` の結果で判定する。
+`repositories` のうち対象リポの要素で、`develop_branch` と `release_branch` を比べる。
 異なれば2ブランチ、同じ（両方 `main`）なら単一ブランチになる。
+表の `session_finish`・`release_merge` は、pecot-workflow の MCP ツールの名前。
 
 ## 2ブランチモード（develop ≠ release）
 

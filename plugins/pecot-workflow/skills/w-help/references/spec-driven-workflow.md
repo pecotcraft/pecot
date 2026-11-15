@@ -67,7 +67,7 @@ specs/
 
 ポイントは次のとおり。
 
-- PRでレビュー・承認を経て開発ブランチにマージ（base は config の develop_branch で、`board_show` で確認する）
+- PRでレビュー・承認を経て開発ブランチにマージ（base は config の develop_branch で、pecot-workflow の MCP ツール `board_show` で確認する）
 - ボードには載せない（ノイズ防止）
 - 仕様確定後に実装フェーズへ
 
@@ -97,7 +97,7 @@ Feature Xの基盤部分を実装する。
 ### 3. サブIssue投入（一括）
 
 全 Phase のサブIssueを一括で投稿する。
-前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ、`Ready` で作る（`project_init` で足せる）。
+前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ、`Ready` で作る（pecot-workflow の MCP ツール `project_init` で足せる）。
 `Ready` には着手できる Issue だけが並ぶので、先の Phase を投稿しても肥大化しない。
 
 前提の書き方は、次の「前提の表から Issue 化まで」で説明する。
@@ -111,7 +111,7 @@ Feature Xの基盤部分を実装する。
 
 ### 5. 前提がそろう → 次Phase
 
-前の Phase の PR が出る（積める前提）か、マージされる（マージを待つ前提）と、`board_sync` が次の Phase の Issue を `Blocked` から `Ready` に移す。
+前の Phase の PR が出る（積める前提）か、マージされる（マージを待つ前提）と、次の Phase の Issue が `Blocked` から `Ready` に移る。移すのは pecot-workflow の MCP ツール `board_sync`。
 `board_sync` は、手で呼ぶか、[board-sync-workflow.md](./board-sync-workflow.md) の雛形のワークフローを置いて自動にする。どちらも無ければ、列は動かない。
 
 1. 前提がそろった Issue が `Ready` に移る
@@ -124,7 +124,7 @@ Phase の前後関係は、tasks.md の前提の表に書く。表が `blocked_b
 
 1. w-breakdown が、tasks の工程に、`### Phase Dependencies` の下の 4 列の表（Phase・前提・種類・理由）を書かせる
 2. w-issueize が、表の行を Issue ファイルの `blocked_by` に写す
-3. `issue_create` を `dry_run: true` で呼び、結果の `data.plan` の前提（`blockedBy`）と tasks.md の表を並べて確かめる。食い違いは、投稿の前に直す
+3. pecot-workflow の MCP ツール `issue_create` を使い（`dry_run: true`）、投稿される前提と tasks.md の表を並べて確かめる。食い違いは、投稿の前に直す
 4. 投稿する。前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ `Ready` で作る
 
 表の例を挙げる。

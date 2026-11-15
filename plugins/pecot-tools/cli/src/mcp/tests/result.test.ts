@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の mutable な型を使う */
+
 import { describe, expect, it } from 'vitest'
 
 import { verifies } from '../../../tests/_helpers/verifies.js'
@@ -6,64 +8,67 @@ import { limitOutput, toCallToolResult, type ExecutionResult } from '../result.j
 
 const BASE_RESULT: ExecutionResult = {
   ok: true,
-  exitCode: 0,
-  artifacts: [],
   data: { Account: '123456789012' },
-  message: 'aws_sts_get_caller_identity が成功しました',
+  message: 'aws_sts_get_caller_identity succeeded',
+}
+
+const FAILED_DETAIL = 'aws_sts_get_caller_identity failed (permission-denied). Permission denied. Check the profile / role'
+
+const FAILED_RESULT: ExecutionResult = {
+  ok: false,
+  kind: 'permission-denied',
+  detail: FAILED_DETAIL,
+  data: { log: 'An error occurred (AccessDenied)' },
+}
+
+function textsOf(result: Readonly<ReturnType<typeof toCallToolResult>>): string[] {
+  return result.content.map(block => (block.type === 'text' ? block.text : ''))
 }
 
 describe('toCallToolResult', () => {
-  it('成功時は isError と kind を持たない', () => {
+  it('成功のとき、ツールの項目を structuredContent の最上位に置き、入れ物の項目と isError を持たない', () => {
     const converted = toCallToolResult(BASE_RESULT)
 
     expect(converted.isError).toBeUndefined()
-    expect(converted.structuredContent).toEqual({
-      ok: true,
-      exitCode: 0,
-      data: { Account: '123456789012' },
-      artifacts: [],
-      message: 'aws_sts_get_caller_identity が成功しました',
-    })
+    expect(converted.structuredContent).toStrictEqual({ Account: '123456789012' })
   })
 
-  it('content の JSON テキストと structuredContent が同値になる', async (context) => {
+  it('content の 2 つ目の text が、structuredContent の JSON と 1 字も違わない', async (context) => {
     await verifies(context, 'PT-COMMON-10')
-    const converted = toCallToolResult(BASE_RESULT)
-    const [block] = converted.content
+    for (const result of [BASE_RESULT, FAILED_RESULT]) {
+      const converted = toCallToolResult(result)
 
-    expect(block).toMatchObject({ type: 'text' })
-    expect(JSON.parse(block?.type === 'text' ? block.text : '')).toEqual(converted.structuredContent)
+      expect(textsOf(converted)[1]).toBe(JSON.stringify(converted.structuredContent))
+    }
   })
 
-  it('ok: false を isError: true に連動させ、data に reason と detail を足す', () => {
-    const converted = toCallToolResult({
-      ...BASE_RESULT,
-      ok: false,
-      exitCode: 254,
-      kind: 'permission-denied',
-      data: { log: 'An error occurred (AccessDenied)' },
-      message: '権限が不足しています',
-    })
+  it('成功のとき、content の 1 つ目の text に文を入れる', () => {
+    expect(textsOf(toCallToolResult(BASE_RESULT))).toStrictEqual([
+      'aws_sts_get_caller_identity succeeded',
+      '{"Account":"123456789012"}',
+    ])
+  })
+
+  it('文が空のとき、content は JSON の text だけになる', () => {
+    expect(textsOf(toCallToolResult({ ...BASE_RESULT, message: '' }))).toStrictEqual(['{"Account":"123456789012"}'])
+  })
+
+  it('失敗のとき、isError を立て、ツールの項目に kind と detail を重ね、reason を持たない', () => {
+    const converted = toCallToolResult(FAILED_RESULT)
 
     expect(converted.isError).toBe(true)
-    expect(converted.structuredContent).toMatchObject({
+    expect(converted.structuredContent).toStrictEqual({
+      log: 'An error occurred (AccessDenied)',
       kind: 'permission-denied',
-      exitCode: 254,
-      data: { log: 'An error occurred (AccessDenied)', reason: 'permission-denied', detail: '権限が不足しています' },
+      detail: FAILED_DETAIL,
     })
+    expect(textsOf(converted)[0]).toBe(FAILED_DETAIL)
   })
 
-  it('最上位は ok・exitCode・kind・data・artifacts・message だけで、stdout と stderr を載せない', () => {
-    const failed = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 254, kind: 'permission-denied', message: 'x' })
+  it('ツールの項目に kind と detail があると、共通の値で上書きする', () => {
+    const converted = toCallToolResult({ ok: false, kind: 'timeout', detail: 'timed out', data: { kind: 'x', detail: 'y' } })
 
-    expect(Object.keys(toCallToolResult(BASE_RESULT).structuredContent ?? {})).toEqual(['ok', 'exitCode', 'data', 'artifacts', 'message'])
-    expect(Object.keys(failed.structuredContent ?? {})).toEqual(['ok', 'exitCode', 'kind', 'data', 'artifacts', 'message'])
-  })
-
-  it('artifacts を複製して載せる', () => {
-    const converted = toCallToolResult({ ...BASE_RESULT, artifacts: ['/var/data/out.json'] })
-
-    expect(converted.structuredContent).toMatchObject({ artifacts: ['/var/data/out.json'] })
+    expect(converted.structuredContent).toStrictEqual({ kind: 'timeout', detail: 'timed out' })
   })
 })
 

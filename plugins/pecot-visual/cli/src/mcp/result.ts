@@ -11,12 +11,7 @@ import { createWarningCollector, WARNING_LIMIT_BYTES } from './warnings.js'
 import { toPosixPath } from './windows-path.js'
 
 /**
-解決できないパス (相対パス / 変換できない Windows 形式) を受け取ったときの exit code (UsageError 相当)。
-*/
-const USAGE_ERROR_EXIT_CODE = 2
-
-/**
-捕捉と data.log で保持する出力の上限 (バイト)。失敗の直接原因は末尾に出るため、超えたら先頭を捨てる。
+捕捉と log で保持する出力の上限 (バイト)。失敗の直接原因は末尾に出るため、超えたら先頭を捨てる。
 */
 const OUTPUT_CAPTURE_LIMIT_BYTES = 64 * 1024
 
@@ -25,58 +20,61 @@ const OUTPUT_CAPTURE_LIMIT_BYTES = 64 * 1024
 */
 const TRUNCATION_MARKER = `[pecotv] output exceeded the ${String(OUTPUT_CAPTURE_LIMIT_BYTES)}-byte limit; the beginning was truncated\n`
 
-interface ToolResultFields {
-  /**
-  対応する CLI コマンドの exit code 規約をそのまま載せる (0 = success, 3 = warnings 等)。
-  */
-  readonly exitCode: number
-  /**
-  生成・更新したファイル・ディレクトリの絶対パス。
-  */
-  readonly artifacts: readonly string[]
-  /**
-  ツール固有の構造化データ。共通の項目は warnings・reason・detail・log (tools/_shared.ts の TOOL_OUTPUT_SCHEMA)。
-  */
+/**
+ツールの結果。toCallToolResult が MCP の CallToolResult に変える。
+data はツールごとの項目で、structuredContent の最上位にそのまま並ぶ。共通の項目は tools/_shared.ts の TOOL_OUTPUT_SCHEMA。
+*/
+export type ToolResult = SucceededToolResult | FailedToolResult
+
+export interface SucceededToolResult {
+  readonly ok: true
+  readonly kind?: never
   readonly data: Readonly<Record<string, unknown>>
   /**
-  呼び出し元エージェント向けの 1 行サマリ。
+  content の 1 つ目の text に入る文。空なら JSON の text だけを返す。
   */
   readonly message: string
 }
 
+export interface FailedToolResult {
+  readonly ok: false
+  readonly kind: FailureKind
+  /**
+  失敗の全文と直し方。structuredContent の detail と、content の 1 つ目の text に入る。
+  */
+  readonly detail: string
+  /**
+  途中まで進んだ分の項目。kind・detail と同じ名前は共通の値で上書きされる。
+  */
+  readonly data: Readonly<Record<string, unknown>>
+}
+
 /**
-ok が false のとき CallToolResult は isError: true になり、kind に失敗の名前が入る。
-*/
-export type ToolResult = SucceededToolResult | FailedToolResult
-
-export type SucceededToolResult = ToolResultFields & { readonly ok: true, readonly kind?: never }
-
-export type FailedToolResult = ToolResultFields & { readonly ok: false, readonly kind: FailureKind }
-
-/**
-content に structuredContent と同じ JSON を載せる。structuredContent を読めないクライアントのため。
+content は文の text と、structuredContent と 1 字も違わない JSON の text (MCP の仕様の SHOULD)。
 */
 export function toCallToolResult(result: Readonly<ToolResult>): CallToolResult {
-  const structuredContent = toStructuredContent(result)
+  const structuredContent = result.ok
+    ? { ...result.data }
+    : { ...result.data, kind: result.kind, detail: result.detail }
+  const text = result.ok ? result.message : result.detail
+  const sentence: CallToolResult['content'] = text === '' ? [] : [{ type: 'text', text }]
   return {
-    content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+    content: [
+      ...sentence,
+      { type: 'text', text: JSON.stringify(structuredContent) },
+    ],
     structuredContent,
     // exactOptionalPropertyTypes 下で「成功時は isError キー自体を持たない」を表現する。
     ...(!result.ok && { isError: true }),
   }
 }
 
-function toStructuredContent(result: Readonly<ToolResult>): Record<string, unknown> {
-  return {
-    ok: result.ok,
-    exitCode: result.exitCode,
-    ...(!result.ok && { kind: result.kind }),
-    artifacts: [...result.artifacts],
-    // 失敗は、ツールが入れていなくても reason と detail を持つ（3 つのプラグインで同じ読み方にする）
-    // ツールが data に入れた reason・detail を優先する。runtime_setup は、失敗した段階のつながった文字列を reason に入れるため
-    data: result.ok ? { ...result.data } : { reason: result.kind, detail: result.message, ...result.data },
-    message: result.message,
-  }
+/**
+CLI の `--json` の失敗の payload から、共通の項目と重なる reason・detail を外す。原因の名前は kind、全文は detail で返すため。
+*/
+export function withoutCommonFailureFields(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const { reason: _reason, detail: _detail, ...rest } = data
+  return rest
 }
 
 /**
@@ -148,11 +146,9 @@ export function parsePathArguments<Output extends Readonly<Record<string, unknow
     return {
       rejected: {
         ok: false,
-        exitCode: USAGE_ERROR_EXIT_CODE,
         kind: 'invalid-path',
-        artifacts: [],
+        detail: messages.join('; '),
         data: { invalidPaths, ...convertedPart },
-        message: messages.join('; '),
       },
     }
   }

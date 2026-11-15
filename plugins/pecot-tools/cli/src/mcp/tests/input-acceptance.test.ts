@@ -539,11 +539,9 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
     it('失敗結果 (isError + structuredContent) も検証を通ってクライアントへ届く', async () => {
       const failure = toCallToolResult({
         ok: false,
-        exitCode: 254,
         kind: 'permission-denied',
+        detail: '権限が不足しています',
         data: { log: 'AccessDenied' },
-        artifacts: [],
-        message: '権限が不足しています',
       })
       const sts = allTools().find(tool => tool.name === 'aws_sts_get_caller_identity')
       if (sts === undefined) throw new Error('aws_sts_get_caller_identity が公開されていません')
@@ -564,7 +562,7 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       if (sts === undefined) throw new Error('aws_sts_get_caller_identity が公開されていません')
       const violating = await connectMcp([{
         ...sts,
-        handler: () => Promise.resolve({ content: [], structuredContent: { spy: true } }),
+        handler: () => Promise.resolve({ content: [], structuredContent: { log: 1 } }),
       }], { era })
       try {
         const called = await violating.client.callTool({ name: sts.name, arguments: {} })

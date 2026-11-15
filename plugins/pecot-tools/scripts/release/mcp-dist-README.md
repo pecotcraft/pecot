@@ -76,7 +76,7 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 
 SSO で認証するときは、開始と完了確認の 2 つのツールを順に呼びます。
 
-1. `aws_sso_login`（任意で `profile`）を呼ぶ。応答の `data` に `verificationUrl` と `userCode` が
+1. `aws_sso_login`（任意で `profile`）を呼ぶ。応答に `verificationUrl` と `userCode` が
    返るので、URL をブラウザで開いてコードを入力し承認する
 2. `aws_sso_login_status`（同じ `profile`）を呼ぶ。`state` が `completed` になれば認証済み
 3. 以降は `aws_sts_get_caller_identity` 等の各ツールを同じ `profile` で呼ぶ
@@ -125,14 +125,14 @@ SSO で認証するときは、開始と完了確認の 2 つのツールを順�
 | kind | 内容と対処 |
 |---|---|
 | `not-allowed` | 許可リストに無い操作。公開しているツールの範囲で実行する |
-| `invalid-input` | 入力が書式・制約に合わない。message の指摘に従って入力を直す |
+| `invalid-input` | 入力が書式・制約に合わない。`detail` の指摘に従って入力を直す |
 | `awscli-missing` | awscli が見つからない。awscli v2（2.22 以上）を導入して PATH を通す |
 | `auth-missing` | 認証設定が無い。`aws_sso_login` を実行するか `profile` を指定する |
 | `auth-expired` | 認証の有効期限切れ。`aws_sso_login` で再認証する |
 | `permission-denied` | 権限不足。`profile` と AWS 側のロール・許可セットを確認する |
 | `resource-not-found` | 対象が無い。名前とリージョンを確認する |
 | `timeout` | 時間切れ。取得範囲を狭めて再実行する |
-| `other` | 上記以外。応答の `stderr` を確認する |
+| `other` | 上記以外。応答の `log` を確認する |
 
 `EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認してください。
 

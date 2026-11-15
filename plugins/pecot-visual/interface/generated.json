@@ -2,7 +2,7 @@
   "entries": [
     {
       "deprecated": false,
-      "description": "Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in data.theme.",
+      "description": "Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in theme.",
       "hidden": false,
       "id": "PV-DRAWIO-CREATE",
       "input": {
@@ -21,7 +21,7 @@
             "type": "string"
           },
           "out_path": {
-            "description": "Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in data.url. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "description": "Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in url. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
             "type": "string"
           },
           "png": {
@@ -41,65 +41,28 @@
       },
       "mcp": {
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -147,65 +110,28 @@
       },
       "mcp": {
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -242,65 +168,28 @@
           "openWorldHint": false
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -327,65 +216,28 @@
           "openWorldHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -459,65 +311,28 @@
       },
       "mcp": {
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -530,7 +345,7 @@
     },
     {
       "deprecated": false,
-      "description": "Generates a new talk-dir that references the Slidev theme given by `theme`. The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) or a local path (`file:<path>`). Returns the presentation categories (data.categories) and the list of selectable layouts (data.layouts). Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).",
+      "description": "Generates a new talk-dir that references the Slidev theme given by `theme`. The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) or a local path (`file:<path>`). Returns the presentation categories (categories) and the list of selectable layouts (layouts). Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).",
       "hidden": false,
       "id": "PV-SLIDE-CREATE",
       "input": {
@@ -557,65 +372,28 @@
       },
       "mcp": {
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -628,7 +406,7 @@
     },
     {
       "deprecated": false,
-      "description": "Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (data.url). The port can be set with port; if omitted, a free port from 3030 to 3034 is used. Calling again for the same talk-dir returns the running server as it is (data.reused: true). Set stop: true to stop it. The server runs only while the MCP server process is alive; the preview ends with the session.",
+      "description": "Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (url). The port can be set with port; if omitted, a free port from 3030 to 3034 is used. Calling again for the same talk-dir returns the running server as it is (reused: true). Set stop: true to stop it. The server runs only while the MCP server process is alive; the preview ends with the session.",
       "hidden": false,
       "id": "PV-SLIDE-DEV",
       "input": {
@@ -656,65 +434,28 @@
       },
       "mcp": {
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -727,7 +468,7 @@
     },
     {
       "deprecated": false,
-      "description": "Lints the whole talk-dir (pages/**/*.md and slides.md) and returns the list of violations. The call itself succeeds (exitCode 1) even with violations.",
+      "description": "Lints the whole talk-dir (pages/**/*.md and slides.md) and returns the list of violations. The call itself succeeds even with violations; outcome is violations when any are found.",
       "hidden": false,
       "id": "PV-SLIDE-LINT",
       "input": {
@@ -748,65 +489,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -819,7 +523,7 @@
     },
     {
       "deprecated": false,
-      "description": "Generates a skeleton page for one layout under pages/ of the talk-dir, and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). The specification is returned in data.reference and data.includes. Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, then choose the layout name from data.layouts of that category (passing an unknown name returns data.categories and data.layouts in the response). The generated page must be registered separately as a src: entry in slides.md.",
+      "description": "Generates a skeleton page for one layout under pages/ of the talk-dir, and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). The specification is returned in reference and includes. Decide the presentation style from the categories (categories) in the slide_create / slide_sync response, then choose the layout name from layouts of that category (passing an unknown name returns categories and layouts in the response). The generated page must be registered separately as a src: entry in slides.md.",
       "hidden": false,
       "id": "PV-SLIDE-PAGE",
       "input": {
@@ -838,7 +542,7 @@
             "type": "boolean"
           },
           "layout": {
-            "description": "Layout name. Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, then choose from the names in data.layouts that belong to that category",
+            "description": "Layout name. Decide the presentation style from the categories (categories) in the slide_create / slide_sync response, then choose from the names in layouts that belong to that category",
             "type": "string"
           }
         },
@@ -854,65 +558,28 @@
           "openWorldHint": false
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -925,7 +592,7 @@
     },
     {
       "deprecated": false,
-      "description": "Syncs an existing talk-dir. A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in data.migration.removed. A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) fetches the theme at the version in the dependency and relinks node_modules, and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. Returns the presentation categories (data.categories), the list of selectable layouts (data.layouts), and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.",
+      "description": "Syncs an existing talk-dir. A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in migration.removed. A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) fetches the theme at the version in the dependency and relinks node_modules, and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. Returns the presentation categories (categories), the list of selectable layouts (layouts), and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.",
       "hidden": false,
       "id": "PV-SLIDE-SYNC",
       "input": {
@@ -951,65 +618,28 @@
       },
       "mcp": {
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1043,65 +673,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of files and directories created or updated",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only)",
+              "type": "string"
+            },
+            "log": {
+              "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "Object with the details of the run",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure cause (failure only). Same as kind, except that runtime_setup joins every failed stage with commas",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the tool completed its intended run",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "artifacts",
-            "data",
-            "message"
-          ],
           "type": "object"
         }
       },

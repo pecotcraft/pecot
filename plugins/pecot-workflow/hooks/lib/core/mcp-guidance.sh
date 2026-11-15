@@ -60,7 +60,7 @@ Subtask Issue filing is not complete.
 Complete Step 4 of w-ready before moving on.
   1. Call the MCP tool issue_create with prepare: true, template: task, and repo (owner/repo)
 
-  2. Edit the file at the path in artifacts of the result (set title / parent_epic; repository is already set by repo)
+  2. Edit the file at the path in file of the result (set title / parent_epic; repository is already set by repo)
 
   3. Call the MCP tool issue_create with files (the file path)
 

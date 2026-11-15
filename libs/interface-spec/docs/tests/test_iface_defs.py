@@ -13,7 +13,7 @@ DOCS = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(DOCS / "_ext"))
 
-from iface_defs import MCP_DATA_EMPTY, Case, outcome_of, render_sections  # noqa: E402
+from iface_defs import MCP_FIELDS_EMPTY, MCP_FIELDS_OPEN, Case, outcome_of, render_sections  # noqa: E402
 
 INDEX = """\
 Sample
@@ -411,21 +411,24 @@ def test_outcome_of(results: list[str], expected: str) -> None:
     assert outcome_of([case(r) for r in results]) == expected
 
 
-def _mcp_entry(success: dict[str, Any], mcp_output: dict[str, Any] | None = None) -> dict[str, Any]:
-    failure = {
-        "type": "object",
-        "properties": {"reason": {"type": "string"}, "detail": {"type": "string"}},
-        "required": ["reason", "detail"],
-    }
+_COMMON = {
+    "kind": {"type": "string"},
+    "detail": {"type": "string"},
+    "log": {"type": "string"},
+    "warnings": {"type": "array"},
+}
+
+
+def _mcp_entry(
+    fields: dict[str, Any], mcp_output: dict[str, Any] | None = None, *, closed: bool = True
+) -> dict[str, Any]:
+    output: dict[str, Any] = {"type": "object", "properties": {**fields, **_COMMON}}
+    if closed:
+        output["additionalProperties"] = False
     entry: dict[str, Any] = {
         "surfaces": {"mcp": {"tool": "sample_tool"}},
         "output": {"format": "none"},
-        "mcp": {
-            "output": {
-                "type": "object",
-                "properties": {"ok": {"type": "boolean"}, "data": {"anyOf": [success, failure]}},
-            }
-        },
+        "mcp": {"output": output},
     }
     if mcp_output is not None:
         entry["mcp_output"] = mcp_output
@@ -436,39 +439,34 @@ def _output_section(entry: dict[str, Any]) -> str:
     return "\n".join(dict(render_sections(entry))["出力"])
 
 
-def test_mcp_success_data_table_uses_authored_text_and_skips_common_fields() -> None:
-    success = {
-        "type": "object",
-        "properties": {
-            "branch": {"type": "string", "description": "Branch created"},
-            "stackedOn": {
-                "anyOf": [{"type": "integer"}, {"type": "null"}],
-                "description": "Stacked",
-            },
-            "dryRun": {"type": "boolean", "const": True},
-            "warnings": {"type": "array"},
+def test_mcp_fields_table_uses_authored_text_and_skips_common_fields() -> None:
+    fields = {
+        "branch": {"type": "string", "description": "Branch created"},
+        "stackedOn": {
+            "anyOf": [{"type": "integer"}, {"type": "null"}],
+            "description": "Stacked",
         },
-        "additionalProperties": False,
+        "dryRun": {"type": "boolean", "const": True},
     }
-    text = _output_section(
-        _mcp_entry(success, {"data": {"branch": "作ったブランチ"}, "artifacts": "書いたファイル"})
-    )
+    text = _output_section(_mcp_entry(fields, {"fields": {"branch": "作ったブランチ"}}))
     assert "作ったブランチ" in text
     assert "Branch created" not in text
     assert "integer \\| null" in text
     assert "     - true" in text
-    assert "warnings" not in text.replace("artifacts", "")
-    assert "- **artifacts**: 書いたファイル" in text
-    assert "``ok``" not in text
+    for name in ("kind", "detail", "log", "warnings", "artifacts"):
+        assert f"``{name}``" not in text
+    assert MCP_FIELDS_OPEN.split("（")[0] not in text
 
 
-def test_mcp_success_data_without_fields_says_there_is_nothing() -> None:
-    success = {
-        "type": "object",
-        "properties": {"warnings": {"type": "array"}},
-        "additionalProperties": False,
-    }
-    text = _output_section(_mcp_entry(success))
-    assert MCP_DATA_EMPTY == "成功の `data` に返す中身はありません。"
-    assert "成功の \\ ``data``\\  に返す中身はありません。" in text
+def test_mcp_without_tool_fields_says_there_is_nothing() -> None:
+    text = _output_section(_mcp_entry({}))
+    assert MCP_FIELDS_EMPTY == "ツールごとに返す項目はありません。"
+    assert MCP_FIELDS_EMPTY in text
     assert "項目名" not in text
+
+
+def test_mcp_open_output_says_other_fields_are_returned() -> None:
+    text = _output_section(_mcp_entry({}, closed=False))
+    assert MCP_FIELDS_OPEN == "このほかの項目も返します（型を閉じていません）。"
+    assert MCP_FIELDS_OPEN in text
+    assert MCP_FIELDS_EMPTY not in text

@@ -505,7 +505,7 @@ describe('tracker sync', () => {
         added: [],
         removed: [{ kind: 'pull-request', number: 1 }],
         closed: false,
-        reason: 'partial-failure',
+        kind: 'partial-failure',
         detail: 'could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500',
         warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'],
       })
@@ -513,10 +513,10 @@ describe('tracker sync', () => {
   })
 })
 
-// tracker_sync を source: dependabot で、同じプロセスの中のクライアントから 1 回呼び、data を返す
-async function syncTool(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}): Promise<Record<string, unknown>> {
+// tracker_sync を source: dependabot で、同じプロセスの中のクライアントから 1 回呼び、structuredContent を返す
+async function syncTool(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}): Promise<Readonly<Record<string, unknown>>> {
   prepareSync()
   await startGithub(rules)
-  const { data } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', ...arguments_ })
-  return data
+  const { structured } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', ...arguments_ })
+  return structured
 }

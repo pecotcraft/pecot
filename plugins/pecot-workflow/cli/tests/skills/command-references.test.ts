@@ -1,7 +1,7 @@
 // 本文に書かれたツールの呼び出しを、COMMANDS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
 // - w-help の commands.md に、COMMANDS の全コマンドが載っている
-// - w-release の release-multi.md が、board_show の data の packages の項目名で読む
+// - w-release の release-multi.md が、board_show の repositories の packages の項目名で読む
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
@@ -19,8 +19,8 @@ const INLINE_TOOL = /^`([a-z][a-z_]*)`$/u
 const INLINE_INPUT = /^`([a-z][a-z_]*): (?:"|true\b|false\b|\[)[^`]*`$/u
 const FENCE = /^(`{3,}|~{3,})/u
 const BLOCK_INPUT = /^ {2}([a-z][a-z_]*):/u
-// 実数 158 件に近い下限（95% 程度の切りのよい数）。実数が大きく増えたら引き上げる
-const COUNT_FLOOR = 150
+// 実数 108 件に近い下限（95% 程度の切りのよい数）。実数が大きく増えたら引き上げる
+const COUNT_FLOOR = 100
 
 /**
 本文から、ツールの呼び出しの入力名を集める。
@@ -88,7 +88,7 @@ describe('本文のツールの呼び出し', () => {
     expect(invalid).toEqual([])
   })
 
-  it('呼び出しを 150 件以上拾う（拾えない呼び出しがあれば失敗する）', () => {
+  it('呼び出しを 100 件以上拾う（拾えない呼び出しがあれば失敗する）', () => {
     const tools = new Set(toolInputs().keys())
     const count = readDocuments().reduce((sum, { text }) => sum + collectCalls(text, tools).length, 0)
     expect(count).toBeGreaterThanOrEqual(COUNT_FLOOR)
@@ -139,7 +139,7 @@ describe('commands.md', () => {
 })
 
 describe('release-multi.md', () => {
-  it('package を読むときは、board_show の結果の data.repositories[].packages の name と changelog で読む', () => {
+  it('package は、対象リポの package の一覧から選ぶ', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'demo',
@@ -154,7 +154,7 @@ describe('release-multi.md', () => {
       ['demo/repo', [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }]],
     ])
     const document = readPluginFile('skills/w-release/references/release-multi.md')
-    expect(document).toContain('`data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ')
+    expect(document).toContain('対象リポの package の一覧から、対象の package 名を選ぶ')
     expect(document).toContain('選んだ要素の `packages` のうち、`name` が `<package>` の要素の `changelog` のファイルを編集する')
     expect(document).not.toContain('package: NAME')
   })

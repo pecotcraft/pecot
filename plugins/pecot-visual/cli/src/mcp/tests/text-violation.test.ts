@@ -64,9 +64,13 @@ function structuredOf(result: Readonly<Record<string, unknown>>): Record<string,
 }
 
 function dataOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const data = structuredOf(result)['data']
-  if (!isRecord(data)) throw new Error('data が返っていません')
-  return data
+  return structuredOf(result)
+}
+
+function sentenceOf(result: { readonly content?: unknown }): string {
+  const content: unknown = result.content
+  const first: unknown = Array.isArray(content) ? content[0] : undefined
+  return isRecord(first) && typeof first['text'] === 'string' ? first['text'] : ''
 }
 
 function violationsOf(result: Readonly<Record<string, unknown>>): Record<string, unknown>[] {
@@ -117,13 +121,10 @@ describe('drawio_create の文面確認', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
     expect(structured['kind']).toBe('text-violation')
-    expect(structured['artifacts']).toStrictEqual([])
-    expect(structured['message']).toBe(VIOLATION_MESSAGE_1)
+    expect(sentenceOf(result)).toContain(VIOLATION_MESSAGE_1)
     expect(dataOf(result)['event']).toBe('drawio.url.error')
-    expect(dataOf(result)['reason']).toBe('text-violation')
+    expect(structuredOf(result)['kind']).toBe('text-violation')
     const [violation, ...rest] = violationsOf(result)
     expect(rest).toStrictEqual([])
     expect(violation).toMatchObject({ item: 'mxCell id="n1"', ruleId: HYPE_ID, text: HYPE })
@@ -142,7 +143,7 @@ describe('drawio_create の文面確認', () => {
 
     const result = await callDrawio(input, out)
 
-    expect(structuredOf(result)['message']).toBe(VIOLATION_MESSAGE_3)
+    expect(sentenceOf(result)).toContain(VIOLATION_MESSAGE_3)
     expect(violationsOf(result).map(v => [v['item'], v['ruleId'], v['text']])).toStrictEqual([
       ['mxCell id="n1"', HYPE_ID, HYPE],
       ['mxCell id="n2"', HYPE_ID, HYPE_2],
@@ -156,7 +157,7 @@ describe('drawio_create の文面確認', () => {
 
     const result = await callDrawio(input, out)
 
-    expect(structuredOf(result)['ok']).toBe(true)
+    expect(structuredOf(result)).not.toHaveProperty('kind')
     expect(existsSync(out)).toBe(true)
   })
 
@@ -168,9 +169,7 @@ describe('drawio_create の文面確認', () => {
 
     const result = await callDrawio(input, out)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(structuredOf(result)['exitCode']).toBe(1)
-    expect(dataOf(result)['reason']).toBe('text-lint-failed')
+    expect(structuredOf(result)['kind']).toBe('text-lint-failed')
     expect(String(dataOf(result)['detail'])).toContain('辞書を読めません')
     expect(dataOf(result)['violations']).toBeUndefined()
     expect(existsSync(out)).toBe(false)
@@ -190,13 +189,10 @@ describe('evidence_create の文面確認', () => {
     const structured = structuredOf(result)
 
     expect(result.isError).toBe(true)
-    expect(structured['ok']).toBe(false)
-    expect(structured['exitCode']).toBe(1)
     expect(structured['kind']).toBe('text-violation')
-    expect(structured['artifacts']).toStrictEqual([])
-    expect(structured['message']).toBe(VIOLATION_MESSAGE_1)
+    expect(sentenceOf(result)).toContain(VIOLATION_MESSAGE_1)
     expect(dataOf(result)['event']).toBe('evidence.create.error')
-    expect(dataOf(result)['reason']).toBe('text-violation')
+    expect(structuredOf(result)['kind']).toBe('text-violation')
     expect(violationsOf(result).map(v => [v['item'], v['ruleId'], v['text']])).toStrictEqual([
       ['title', HYPE_ID, HYPE],
     ])
@@ -220,7 +216,7 @@ describe('evidence_create の文面確認', () => {
 
     const result = await callEvidence(input, out)
 
-    expect(structuredOf(result)['message']).toBe(VIOLATION_MESSAGE_3)
+    expect(sentenceOf(result)).toContain(VIOLATION_MESSAGE_3)
     expect(violationsOf(result).map(v => v['item'])).toStrictEqual([
       'title',
       'items[0].caption',
@@ -239,7 +235,7 @@ describe('evidence_create の文面確認', () => {
 
     const result = await callEvidence(input, out)
 
-    expect(dataOf(result)['reason']).toBe('text-violation')
+    expect(structuredOf(result)['kind']).toBe('text-violation')
     expect(readFileSync(input, 'utf8')).toBe(before)
   })
 
@@ -255,8 +251,7 @@ describe('evidence_create の文面確認', () => {
 
     const result = await callEvidence(input, out)
 
-    expect(structuredOf(result)['ok']).toBe(false)
-    expect(dataOf(result)['reason']).toBe('text-lint-failed')
+    expect(structuredOf(result)['kind']).toBe('text-lint-failed')
     expect(String(dataOf(result)['detail'])).toContain('辞書を読めません')
     expect(existsSync(out)).toBe(false)
   })

@@ -34,65 +34,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -147,65 +110,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -266,65 +192,28 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -464,65 +353,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -604,65 +456,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -749,65 +564,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -856,65 +634,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -970,65 +711,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1076,65 +780,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1186,65 +853,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1316,65 +946,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1456,65 +1049,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1591,65 +1147,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1701,65 +1220,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1811,65 +1293,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -1960,65 +1405,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2031,7 +1439,7 @@
     },
     {
       "deprecated": false,
-      "description": "Downloads one S3 object to a local absolute path. Uploads and recursive copy are not exposed",
+      "description": "Downloads one S3 object to a local absolute path, returned in file. Uploads and recursive copy are not exposed",
       "hidden": false,
       "id": "PT-AWS-S3-CP",
       "input": {
@@ -2073,65 +1481,28 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2144,7 +1515,7 @@
     },
     {
       "deprecated": false,
-      "description": "Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in data.lines",
+      "description": "Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in lines",
       "hidden": false,
       "id": "PT-AWS-S3-LS",
       "input": {
@@ -2173,65 +1544,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2244,7 +1578,7 @@
     },
     {
       "deprecated": false,
-      "description": "Gets an object by bucket and key and returns its metadata as JSON. Use version_id to pick a version and range for a partial download",
+      "description": "Gets an object by bucket and key and returns its metadata as JSON, with the written path in file. Use version_id to pick a version and range for a partial download",
       "hidden": false,
       "id": "PT-AWS-S3API-GET-OBJECT",
       "input": {
@@ -2299,65 +1633,28 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2406,65 +1703,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2528,65 +1788,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2641,65 +1864,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2751,65 +1937,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2842,65 +1991,28 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -2933,65 +2045,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },
@@ -3029,65 +2104,28 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": false,
+          "additionalProperties": {},
           "properties": {
-            "artifacts": {
-              "description": "Absolute paths of the local files written",
+            "detail": {
+              "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+              "type": "string"
+            },
+            "log": {
+              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+              "type": "string"
+            },
+            "warnings": {
+              "description": "Warnings raised during the run (omitted when there are none)",
               "items": {
                 "type": "string"
               },
               "type": "array"
-            },
-            "data": {
-              "additionalProperties": {},
-              "description": "awscli JSON output, or an array of lines",
-              "properties": {
-                "detail": {
-                  "description": "Full text of the failure and how to recover (failure only)",
-                  "type": "string"
-                },
-                "log": {
-                  "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-                  "type": "string"
-                },
-                "reason": {
-                  "description": "Failure kind, the same value as kind (failure only)",
-                  "type": "string"
-                },
-                "warnings": {
-                  "description": "Warnings raised during the run (omitted when there are none)",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "type": "object"
-            },
-            "exitCode": {
-              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
-              "type": "number"
-            },
-            "kind": {
-              "description": "Failure kind (omitted on success)",
-              "type": "string"
-            },
-            "message": {
-              "description": "One-line summary for the calling agent",
-              "type": "string"
-            },
-            "ok": {
-              "description": "Whether the awscli run succeeded",
-              "type": "boolean"
             }
           },
-          "required": [
-            "ok",
-            "exitCode",
-            "data",
-            "artifacts",
-            "message"
-          ],
           "type": "object"
         }
       },

@@ -27,7 +27,7 @@ function targetOf(
 }
 
 /**
-書き出し先を実行前に見る（research R7）。ディレクトリは overwrite に依らず拒否する。`/dir/k` に書かれ、artifacts の `/dir` とずれるため。
+書き出し先を実行前に見る（research R7）。ディレクトリは overwrite に依らず拒否する。`/dir/k` に書かれ、file の `/dir` とずれるため。
 */
 function rejectExistingTarget(
   name: TargetName,
@@ -53,15 +53,12 @@ function rejectExistingTarget(
 }
 
 /**
-成功時に artifacts へ載せる書き出し先。
+成功時に file の項目へ載せる書き出し先。
 */
-function artifactsOfTarget(
+function fileOfTarget(
   name: TargetName,
-): (arguments_: Readonly<Record<string, unknown>>) => readonly string[] {
-  return (arguments_) => {
-    const target = targetOf(arguments_, name)
-    return target === undefined ? [] : [target]
-  }
+): (arguments_: Readonly<Record<string, unknown>>) => string | undefined {
+  return arguments_ => targetOf(arguments_, name)
 }
 
 const OVERWRITE_INPUT = z.boolean().default(false)
@@ -72,7 +69,7 @@ export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefin
     allowlistedTool({
       entry: S3_LS,
       title: 'List S3',
-      description: 'Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in data.lines',
+      description: 'Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in lines',
       inputSchema: z.object({
         s3_uri: z.string().optional().describe('Target to list (s3://bucket or s3://bucket/prefix/). If omitted, lists buckets'),
         ...COMMON_INPUT_SHAPE,
@@ -81,7 +78,7 @@ export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefin
     allowlistedTool({
       entry: S3_CP,
       title: 'Get S3 object',
-      description: 'Downloads one S3 object to a local absolute path. Uploads and recursive copy are not exposed',
+      description: 'Downloads one S3 object to a local absolute path, returned in file. Uploads and recursive copy are not exposed',
       inputSchema: z.object({
         s3_uri: z.string().describe('Source (s3://bucket/key)'),
         local_path: z.string().describe('Local absolute path to write to'),
@@ -89,12 +86,12 @@ export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefin
         ...COMMON_INPUT_SHAPE,
       }),
       reject: rejectExistingTarget('local_path'),
-      artifactsOf: artifactsOfTarget('local_path'),
+      fileOf: fileOfTarget('local_path'),
     }, options),
     allowlistedTool({
       entry: S3API_GET_OBJECT,
       title: 'Get S3 object (with metadata)',
-      description: 'Gets an object by bucket and key and returns its metadata as JSON. Use version_id to pick a version and range for a partial download',
+      description: 'Gets an object by bucket and key and returns its metadata as JSON, with the written path in file. Use version_id to pick a version and range for a partial download',
       inputSchema: z.object({
         bucket: z.string().describe('Bucket name'),
         key: z.string().describe('Object key'),
@@ -105,7 +102,7 @@ export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefin
         ...COMMON_INPUT_SHAPE,
       }),
       reject: rejectExistingTarget('outfile'),
-      artifactsOf: artifactsOfTarget('outfile'),
+      fileOf: fileOfTarget('outfile'),
     }, options),
   ]
 }

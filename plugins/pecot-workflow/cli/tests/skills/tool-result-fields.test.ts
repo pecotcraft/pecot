@@ -1,5 +1,5 @@
-// スキルが MCP ツールの結果を、文や行ではなく data の項目で読ませていることを確かめる。
-// 結果に stdout・stderr は無く、結果の行（created: など）も data の項目に移った。
+// スキルが MCP ツールの結果を、文や行ではなく項目で読ませていることを確かめる。
+// 結果に stdout・stderr は無く、結果の行（created: など）も項目に移った。#436 で、項目は data の下から最上位に上がった。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -71,5 +71,41 @@ describe('ツールの結果の読み方', () => {
     const invalid = ALLOWED.filter(entry => entry.reason === '' || lines.get(entry.file)?.has(entry.line) !== true || !isResultText(entry.line))
     expect(ALLOWED).toHaveLength(8)
     expect(invalid.map(entry => `${entry.file}: ${entry.line}`)).toEqual([])
+  })
+})
+
+/**
+#436 で結果から外した入れ物の読み方。項目は `data.` を付けずに読み、失敗の原因は `kind` で読む
+*/
+const CONTAINER_PATTERNS: readonly RegExp[] = [
+  /`data\.[A-Za-z_]/u,
+  /`data`/u,
+  /`ok`/u,
+  /`exitCode`/u,
+  /`artifacts`/u,
+  /`data\.reason`/u,
+  /結果の `message`/u,
+]
+
+describe('ツールの結果の入れ物', () => {
+  it('スキルは、結果の項目を data. 付きで読ませず、ok・exitCode・artifacts で分岐させない', () => {
+    const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
+      .map((line, index) => ({ file, number: index + 1, line }))
+      .filter(({ line }) => CONTAINER_PATTERNS.some(pattern => pattern.test(line)))
+      .map(({ file: name, number, line }) => `${name}:${String(number)}: ${line.trim()}`))
+    expect(found).toEqual([])
+  })
+
+  it('パターンは、変更前の読み方に当たる', () => {
+    const before = ['結果の `data.branch` を読む', '結果の `ok` が `false` なら止まる', '`kind` が `x`（`exitCode` は 2）', '結果の `artifacts` にある', '結果の `data` を見る']
+    expect(before.filter(line => CONTAINER_PATTERNS.every(pattern => !pattern.test(line)))).toEqual([])
+  })
+
+  it('スキルは、失敗の読み方（isError・structuredContent・kind・detail）を説明しない', () => {
+    const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
+      .map((line, index) => ({ file, number: index + 1, line }))
+      .filter(({ line }) => /isError|structuredContent|`kind`|`detail`/u.test(line))
+      .map(({ file: name, number, line }) => `${name}:${String(number)}: ${line.trim()}`))
+    expect(found).toEqual([])
   })
 })

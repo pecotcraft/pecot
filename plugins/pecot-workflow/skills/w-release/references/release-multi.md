@@ -1,7 +1,7 @@
 # packages monorepo のリリース
 
 1 リポ内に複数 package があり、package ごとに CHANGELOG とバージョンを持つ構成を扱う。
-設定は `project_link` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
+設定は pecot-workflow の MCP ツール `project_link` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
 
 ## バージョン決定基準
 
@@ -13,16 +13,15 @@
 
 ### 1. 対象確認
 
-`board_show` を引数なしで呼ぶ。
+pecot-workflow の MCP ツール `board_show` を使う。
 
-`board_show` の結果の `data.repositories` から、`full_name` が対象リポの要素を選ぶ。その要素の `packages` の `name` から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
+対象リポの package の一覧から、対象の package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
 リリース package を `<package>`、バージョンを `<ver>` と表記。
 
 ### 2. bump 種別のユーザー確認
 
 `<ver>` を確定する前に、ユーザーへ以下を提示して明示的承認を得る。
-承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_check`・
-`release_create` 等）には進まない。
+承認を得るまで、Step 3 以降（CHANGELOG 編集・docs PR・リリースの確認と作成）には進まない。
 
 提示項目:
 
@@ -95,7 +94,7 @@ git commit -m "docs(changelog): <package> <ver> リリースノートを追加"
 git push -u origin docs/changelog-<package>-v<ver>
 ```
 
-push したら、`pr_create` を次の入力で呼ぶ。
+push したら、pecot-workflow の MCP ツール `pr_create` を、次の入力で使う。
 
 ```text
 pr_create
@@ -128,7 +127,7 @@ pr_create
 gh pr merge <PR番号> --repo <owner>/<repo> --squash
 ```
 
-マージしたら、`session_finish` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
+マージしたら、pecot-workflow の MCP ツール `session_finish` を使って片付ける（`delete_branch: true`）。
 
 #### 3-5. develop 最新化
 
@@ -142,19 +141,18 @@ git pull --ff-only origin <develop>
 
 ### 4. プリフライト
 
-`release_check` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
+`release_check` を使う（`package: "<package>"`・`version: "<ver>"`）。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
-alert の件数は結果の `data.dependabotAlerts.openCount` に、警告の文は `data.warnings` に入る。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。取得できないときは、トークンと権限を直して再実行する。
 扱いは [release-nx.md](release-nx.md) の preflight の説明と同じ。
 
 ### 5. リリース PR 作成
 
-`pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
+`pr_create` を使う（`prepare: true`・`template: "release"`）。
 
-結果の `artifacts` にある下書きファイルを編集:
+できた下書きファイルを編集:
 
 - `repository: <owner>/<repo>`
 - `head: <develop>`
@@ -163,20 +161,20 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
   すべて埋める（1 つでも欠けると投稿時検証で弾かれる）。Changes には該当 CHANGELOG の
   `## [<ver>]` セクションを転記
 
-編集したら、`pr_create` を `template: "release"`・`file: "<ファイルパス>"` で呼ぶ。
+編集したら、`pr_create` を使う（`template: "release"`・`file: "<ファイルパス>"`）。
 
 ### 6. リリース PR マージ
 
-`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。`<PR番号>` は、Step 5 の投稿の結果の `data.number` を使う。
+pecot-workflow の MCP ツール `release_merge` を使う（`pr_ref: "<owner>/<repo>/<PR番号>"`）。`<PR番号>` は、Step 5 で作った PR の番号。
 
 ### 7. タグ + GitHub Release
 
-`release_create` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
+`release_create` を使う（`package: "<package>"`・`version: "<ver>"`）。
 
 ### 8. 完了報告
 
 次の 3 つを報告して終了。
 
-- タグ名 `<package>@v<ver>`（`release_create` の結果の `data.tag`）
-- GitHub Release URL（`release_create` の結果の `data.url`）
-- リリース PR URL（Step 5 の投稿の結果の `data.url`）
+- タグ名 `<package>@v<ver>`
+- GitHub Release URL
+- リリース PR URL（Step 5 で作った PR）

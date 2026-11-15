@@ -16,10 +16,10 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 ### Step 1: アクティブプロジェクトの確認
 
-`board_show` を引数なしで呼ぶ。
+pecot-workflow の MCP ツール `board_show` を使って、アクティブなプロジェクトを確かめる。
 
-結果の `ok` が `true` なら Step 2 へ。
-結果の `kind` が `no-active-project` の場合は以下を案内して終了:
+成功したら Step 2 へ。
+アクティブなプロジェクトが無くて失敗した場合は、以下を案内して終了:
 
 ```text
 アクティブなプロジェクトがありません。
@@ -90,7 +90,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 ### Step 3: リポジトリ追加
 
-ヒアリング結果に応じて `project_link` を呼ぶ。
+ヒアリング結果に応じて pecot-workflow の MCP ツール `project_link` を呼ぶ。
 
 **単一 CHANGELOG モード** (質問4 で「単一」を選択):
 
@@ -111,7 +111,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 - `package: ["<name1>:<changelog path1>", "<name2>:<changelog path2>"]`
 
 **リリースブランチ未設定**（CHANGELOG 質問なし）の場合は次のとおり。
-`project_link` を `repo: "<owner/repo>"`・`develop_branch: "<branch>"` で呼ぶ。
+`project_link` を使って、開発ブランチを設定する（`repo`・`develop_branch`）。
 
 | 入力 | 説明 |
 |------|------|
@@ -125,9 +125,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 ### Step 4: 動作確認
 
-`board_show` を引数なしで呼ぶ。
-
-結果の `data.repositories` の `full_name` に、追加したリポジトリがあれば成功。
+`board_show` を使って、追加したリポジトリがボードに出ることを確かめる。
 
 ### Step 5: 完了案内
 
