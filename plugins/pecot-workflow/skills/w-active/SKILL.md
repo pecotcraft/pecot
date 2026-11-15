@@ -13,7 +13,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 ## 手順
 
-### Step 1: 事前確認とプロジェクト情報表示
+### Step 1: 事前確認と、着手できるタスクの一覧
 
 #### 着手前の確認
 
@@ -21,22 +21,23 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
 
-#### プロジェクト情報表示
+#### 着手できるタスクの一覧
 
-pecot-workflow の MCP ツール `board_show` を使って、ボードの状態を確かめる。
-Ready と Blocked の Issue を、次の列の表で利用者に示す。ほかの列の Issue は載せない。
+pecot-workflow の MCP ツール `board_show` を使って、いま着手できる Issue を調べる。
+着手できる Issue だけを、次の表で利用者に示す。ほかの Issue は載せない。
 
-| 番号 | タイトル | 列 | 判定 |
-|---|---|---|---|
-| #123 | Issue のタイトル | Ready | startable |
+| 番号 | タイトル |
+|---|---|
+| #123 | Issue のタイトル |
 
-表の後に、どれに着手するかを地の文で尋ねる。AskUserQuestion は使わない。食い違いの警告が出ていれば、表の下に添える。
+別の Issue の上に積んで着手するものは、タイトルの後ろに「（#N の上に積む）」と添える。
+表の後に、どれに着手するかを地の文で尋ねる。AskUserQuestion は使わない。
 
 ### Step 2: 対象タスクを確認
 
 pecot-workflow の MCP ツール `issue_show` を使って、利用者が選んだ Issue の内容を確かめる。
 
-着手できるかの判定を、利用者に示す。判定が blocked の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。
+着手できない Issue（前提を待っているもの）が選ばれたら、理由を伝えて止める。
 
 ### Step 3: ベースブランチを最新化
 
