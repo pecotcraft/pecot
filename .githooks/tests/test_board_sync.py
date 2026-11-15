@@ -71,14 +71,29 @@ def test_function_environment_has_every_key_handler_reads() -> None:
         "SSM_WEBHOOK_SECRET_NAME",
         "WORKFLOW_FILE",
     ]
-    expected = {f"{p}{s}" for p in prefixes for s in suffixes} | {
-        "GITHUB_REPOSITORY_ID",
-        "GITHUB_REPOSITORY",
-        "DISPATCH_REF",
-        "CONFIG_VERSION",
-    }
+    scheduled = re.findall(r'workflowEnv: "([A-Z_]+)"', handler)
+    assert len(scheduled) == 3
+    expected = (
+        {f"{p}{s}" for p in prefixes for s in suffixes}
+        | set(scheduled)
+        | {
+            "GITHUB_REPOSITORY_ID",
+            "GITHUB_REPOSITORY",
+            "DISPATCH_REF",
+            "CONFIG_VERSION",
+        }
+    )
     variables = _template()["Resources"]["Function"]["Properties"]["Environment"]["Variables"]
     assert set(variables) == expected
+
+
+def test_workflow_file_defaults_name_existing_workflows() -> None:
+    parameters = _template()["Parameters"]
+    names = [name for name in parameters if name.endswith("WorkflowFile")]
+    assert len(names) == 3
+    for name in names:
+        workflow = _REPO_ROOT / ".github/workflows" / parameters[name]["Default"]
+        assert workflow.is_file(), name
 
 
 def test_schedule_input_source_matches_handler() -> None:

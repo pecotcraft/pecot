@@ -27,4 +27,6 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `security-alerts.yml`: main の security alert を Tracker 1 件にそろえる
 - 上の 2 本は App の webhook と Scheduler で起動し、cron は補助
   - 変数 `DEPENDABOT_PRS_APP_CLIENT_ID`・`SECURITY_APP_CLIENT_ID` が空の間は動かない
+- `pecot-board-sync.yml`: ボードの列と札を判定どおりに直す。pecot-workflow の雛形の写しで、書き換えない
+  - PR と Issue のイベントと、Scheduler（毎時）で起動する。変数 `PECOT_BOARD_SYNC_APP_CLIENT_ID` が空の間は動かない
 - `dependabot-*`・`release.yml` の push と auto-merge は、リリースの App のトークンで行う
