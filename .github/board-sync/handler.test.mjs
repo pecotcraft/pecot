@@ -28,11 +28,15 @@ const ENV = {
   DEPENDABOT_PRS_APP_CLIENT_ID: "Iv1.depclient",
   DEPENDABOT_PRS_APP_INSTALLATION_ID: "888",
   DEPENDABOT_PRS_WORKFLOW_FILE: "dependabot-prs.yml",
+  BOARD_SYNC_WORKFLOW_FILE: "pecot-board-sync.yml",
 };
 const SECURITY_WORKFLOW_URL =
   "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/security-alerts.yml/dispatches";
 const DEPENDABOT_WORKFLOW_URL =
   "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/dependabot-prs.yml/dispatches";
+const BOARD_SYNC_WORKFLOW_URL =
+  "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/pecot-board-sync.yml/dispatches";
+const RUN_IDS = { "security-alerts.yml": 9001, "dependabot-prs.yml": 9002, "pecot-board-sync.yml": 9003 };
 const SCHEDULER_EVENT = { source: "pecot-scheduler" };
 const NOW = Date.parse("2026-11-09T00:00:00Z");
 
@@ -65,7 +69,7 @@ function makeDeps({
       });
     }
     const status = failWorkflow && url.includes(failWorkflow) ? 500 : dispatchStatus;
-    return jsonResponse(status, { workflow_run_id: url.includes("dependabot-prs") ? 9002 : 9001 });
+    return jsonResponse(status, { workflow_run_id: RUN_IDS[url.split("/").at(-2)] });
   };
   const deps = {
     fetch: fetchFn,
@@ -479,17 +483,28 @@ test("片方の App の SSM が未設定でも、もう片方は動く", async (
   assert.equal(dispatchCalls(calls).length, 1);
 });
 
-test("Scheduler の固定の値で、署名なしに 2 つの workflow を起こす", async () => {
+test("Scheduler の固定の値で、署名なしに 3 つの workflow を起こす", async () => {
   const { deps, calls, logs } = makeDeps();
   const res = await createHandler(deps)(SCHEDULER_EVENT);
   assert.equal(res.statusCode, 200);
+  // 同じ App の 2 本は token を待つ間に前後するので、順は問わない。
   assert.deepEqual(
-    dispatchCalls(calls).map((c) => c.url),
-    [SECURITY_WORKFLOW_URL, DEPENDABOT_WORKFLOW_URL],
+    new Set(dispatchCalls(calls).map((c) => c.url)),
+    new Set([SECURITY_WORKFLOW_URL, DEPENDABOT_WORKFLOW_URL, BOARD_SYNC_WORKFLOW_URL]),
   );
-  assert.deepEqual(logs, [
-    { via: "scheduler", app: "security", run: 9001, result: "dispatched" },
-    { via: "scheduler", app: "dependabot-prs", run: 9002, result: "dispatched" },
+  assert.equal(dispatchCalls(calls).length, 3);
+  const dispatched = (app, workflow) => ({
+    via: "scheduler",
+    app,
+    workflow,
+    run: RUN_IDS[workflow],
+    result: "dispatched",
+  });
+  const byWorkflow = (a, b) => a.workflow.localeCompare(b.workflow);
+  assert.deepEqual(logs.toSorted(byWorkflow), [
+    dispatched("dependabot-prs", "dependabot-prs.yml"),
+    dispatched("security", "pecot-board-sync.yml"),
+    dispatched("security", "security-alerts.yml"),
   ]);
 });
 
@@ -509,23 +524,68 @@ test("requestContext.http があれば、Scheduler の値でも webhook とし�
   assert.equal(calls.length, 0);
 });
 
-test("Scheduler の起動は片方が失敗しても、もう片方を起こしてから throw する", async () => {
-  for (const failWorkflow of ["security-alerts.yml", "dependabot-prs.yml"]) {
+test("Scheduler の起動は 1 本が失敗しても、ほかの 2 本を起こしてから throw する", async () => {
+  for (const failWorkflow of Object.keys(RUN_IDS)) {
     const { deps, calls, logs } = makeDeps({ failWorkflow });
     await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
-    assert.equal(dispatchCalls(calls).length, 2);
-    assert.equal(logs.filter((l) => l.result === "dispatch-error").length, 1);
-    assert.equal(logs.filter((l) => l.result === "dispatched").length, 1);
+    assert.equal(dispatchCalls(calls).length, 3);
+    assert.deepEqual(
+      logs.filter((l) => l.result === "dispatch-error").map((l) => l.workflow),
+      [failWorkflow],
+    );
+    assert.equal(logs.filter((l) => l.result === "dispatched").length, 2);
   }
 });
 
 test("Scheduler の起動で片方の App の SSM が未設定でも、もう片方は起こす", async () => {
-  const { deps, calls } = makeDeps({ failSecretsFor: "security" });
-  await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
-  assert.deepEqual(
-    dispatchCalls(calls).map((c) => c.url),
-    [DEPENDABOT_WORKFLOW_URL],
-  );
+  const expected = {
+    security: [DEPENDABOT_WORKFLOW_URL],
+    "dependabot-prs": [SECURITY_WORKFLOW_URL, BOARD_SYNC_WORKFLOW_URL],
+  };
+  for (const [failSecretsFor, urls] of Object.entries(expected)) {
+    const { deps, calls } = makeDeps({ failSecretsFor });
+    await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
+    assert.deepEqual(
+      dispatchCalls(calls).map((c) => c.url),
+      urls,
+    );
+  }
+});
+
+test("Scheduler の 1 回の起動で、security の App の SSM の読み出しと token の発行は 1 回だけ", async () => {
+  const { deps, calls, secretsLoads } = makeDeps();
+  await createHandler(deps)(SCHEDULER_EVENT);
+  assert.deepEqual(secretsLoads, ["security", "dependabot-prs"]);
+  const urls = calls.filter((c) => c.url.endsWith("/access_tokens")).map((c) => c.url);
+  assert.deepEqual(urls, [
+    "https://api.github.com/app/installations/777/access_tokens",
+    "https://api.github.com/app/installations/888/access_tokens",
+  ]);
+});
+
+test("security の 2 本が同じ失効した token で 401 を受けても、token の取り直しは 1 回だけ", async () => {
+  const { deps, calls } = makeDeps();
+  let issued = 0;
+  const dispatchTokens = [];
+  deps.fetch = async (url, init) => {
+    calls.push({ url, init });
+    if (url.endsWith("/access_tokens")) {
+      issued += 1;
+      return jsonResponse(201, {
+        token: `ghs_token_${url.includes("/777/") ? "sec" : "dep"}_${issued}`,
+        expires_at: new Date(NOW + 3600_000).toISOString(),
+      });
+    }
+    const token = init.headers.Authorization;
+    dispatchTokens.push(token);
+    return jsonResponse(token === "Bearer ghs_token_sec_1" ? 401 : 200, {});
+  };
+  const res = await createHandler(deps)(SCHEDULER_EVENT);
+  assert.equal(res.statusCode, 200);
+  const securityTokens = calls.filter((c) => c.url.endsWith("/777/access_tokens")).length;
+  assert.equal(securityTokens, 2);
+  assert.equal(dispatchTokens.filter((t) => t === "Bearer ghs_token_sec_1").length, 2);
+  assert.equal(dispatchTokens.filter((t) => t.startsWith("Bearer ghs_token_sec_") && !t.endsWith("_1")).length, 2);
 });
 
 test("Scheduler でも webhook でもない event は、何もせずログだけ残す", async () => {
@@ -546,7 +606,7 @@ test("Scheduler のログにも token が出ない", async () => {
 
 const timeoutError = () => new DOMException("The operation timed out.", "TimeoutError");
 
-test("Scheduler は 2 つの App を並列に起こす", async () => {
+test("Scheduler は 3 つの workflow を並列に起こす", async () => {
   const { deps } = makeDeps();
   let active = 0;
   let peak = 0;
@@ -563,7 +623,7 @@ test("Scheduler は 2 つの App を並列に起こす", async () => {
   };
   const res = await createHandler(deps)(SCHEDULER_EVENT);
   assert.equal(res.statusCode, 200);
-  assert.equal(peak, 2);
+  assert.equal(peak, 3);
 });
 
 test("失敗のログに stage と数値の status が出て、token と message は出ない", async () => {
@@ -607,8 +667,28 @@ test("Scheduler の失敗のログにも stage と status が出る", async () =
   const { deps, logs } = makeDeps({ failWorkflow: "dependabot-prs.yml", failSecretsFor: "security" });
   await assert.rejects(createHandler(deps)(SCHEDULER_EVENT));
   assert.deepEqual(logs, [
-    { via: "scheduler", app: "security", result: "dispatch-error", stage: "secrets" },
-    { via: "scheduler", app: "dependabot-prs", result: "dispatch-error", stage: "dispatch", status: 500 },
+    {
+      via: "scheduler",
+      app: "security",
+      workflow: "security-alerts.yml",
+      result: "dispatch-error",
+      stage: "secrets",
+    },
+    {
+      via: "scheduler",
+      app: "dependabot-prs",
+      workflow: "dependabot-prs.yml",
+      result: "dispatch-error",
+      stage: "dispatch",
+      status: 500,
+    },
+    {
+      via: "scheduler",
+      app: "security",
+      workflow: "pecot-board-sync.yml",
+      result: "dispatch-error",
+      stage: "secrets",
+    },
   ]);
 });
 
