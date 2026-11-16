@@ -121,10 +121,20 @@
         "ssm:GetParameters",
         "ssm:GetParametersByPath",
         "ssm:GetParameterHistory",
-        "secretsmanager:GetSecretValue",
-        "kms:Decrypt"
+        "secretsmanager:GetSecretValue"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "NoDecryptOutsideLambda",
+      "Effect": "Deny",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "kms:ViaService": "lambda.<REGION>.amazonaws.com"
+        }
+      }
     },
     {
       "Sid": "KeepBoundary",
