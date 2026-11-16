@@ -3,8 +3,6 @@ name: ci
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main]
   merge_group:
     types: [checks_requested]
 
@@ -53,7 +51,6 @@ jobs:
         name: Start pulling dev container image
         run: .githooks/ci/dev-container.sh prefetch
 
-      # error-on-no-successful-workflow は書かない。成功した run が無いとき、noPreviousBuild=true で全レーンのモードに入る。
       - name: Derive base and head SHAs
         id: shas
         uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
@@ -120,7 +117,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # error-on-no-successful-workflow は書かない。成功した run が無いとき、noPreviousBuild=true で全レーンのモードに入る。
       - name: Derive base and head SHAs
         id: shas
         uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
@@ -297,9 +293,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # ci-result の needs には入れない。main の push で飛ばしても、ci-result の結果は変わらない。
   version-plan:
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
