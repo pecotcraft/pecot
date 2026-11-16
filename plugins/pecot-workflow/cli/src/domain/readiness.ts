@@ -436,6 +436,46 @@ export function describeReadiness(readiness: Readiness, prerequisites: readonly 
 }
 
 /**
+issues の前提と、その pullRequest を state にしたものとして置き換える。一覧に pullRequest が無ければ足す。
+マージの後の読み取りから、マージの前（open）や閉じた後（merged）の判定を作るのに使う
+*/
+export function assumePullRequestState(prerequisites: readonly Prerequisite[], issues: readonly IssueReference[], pullRequest: IssuePullRequest, state: 'open' | 'merged'): readonly Prerequisite[] {
+  const keys = new Set(issues.map(issue => issueReferenceKey(issue)))
+  const assumed: IssuePullRequest = { ...pullRequest, state }
+  const isSame = (other: IssuePullRequest): boolean => other.number === pullRequest.number && isSameRepository(other.repository, pullRequest.repository)
+  return prerequisites.map((prerequisite) => {
+    const { issue } = prerequisite
+    if (!keys.has(issueReferenceKey(issue.ref))) return prerequisite
+    const pullRequests = issue.pullRequests.some(other => isSame(other))
+      ? issue.pullRequests.map(other => (isSame(other) ? assumed : other))
+      : [...issue.pullRequests, assumed]
+    return { ...prerequisite, issue: { ...issue, state: state === 'open' ? 'open' : 'closed', pullRequests } }
+  })
+}
+
+/**
+判定の区分か積む先のブランチが違うか。理由と注記の違いは変化としない
+*/
+export function hasReadinessChanged(before: Readiness, after: Readiness): boolean {
+  return before.kind !== after.kind || before.stackOn?.branch !== after.stackOn?.branch
+}
+
+/**
+判定の変化の行の文。blocked は理由を付けず、stackable は積む先を付ける
+*/
+export function describeReadinessChange(readiness: Readiness, targetRepository: RepositoryReference): string {
+  return readiness.kind === 'blocked' ? 'blocked' : describeReadiness(readiness, [], targetRepository)
+}
+
+/**
+着手の跡があり、issues のどれかを stack で待つ（その上に積んだ段の）Issue か
+*/
+export function isStackedOn(target: IssueFacts, prerequisites: readonly Prerequisite[], issues: readonly IssueReference[]): boolean {
+  const keys = new Set(issues.map(issue => issueReferenceKey(issue)))
+  return hasStarted(target) && prerequisites.some(({ issue, wait }) => wait === 'stack' && keys.has(issueReferenceKey(issue.ref)))
+}
+
+/**
 読めなかった Issue の表示。列と札は動かさない
 */
 export function describeUnknown(reason: string): string {

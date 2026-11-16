@@ -33,6 +33,21 @@ Use one of these instead:
 EOF
 }
 
+# gh-command-check.sh: gh stack の阻止。
+mcp_guidance_gh_stack() {
+    cat <<'EOF'
+gh-stack-check: gh stack is not allowed (only gh stack view (use --json) and --help are).
+
+Reason: running gh stack directly changes the stack without the workflow's records,
+the Issue reference and the readiness checks, which breaks the consistency of the workflow.
+
+Use these instead:
+  the MCP tool pr_create of the workflow server  (open a PR, stacked when needed)
+  the MCP tool pr_merge of the workflow server   (merge a PR)
+  the MCP tool pr_restack of the workflow server (restack a stacked branch)
+EOF
+}
+
 # git-worktree-branch-check.sh: 保護ブランチの push の阻止に足す、リモートブランチ削除の案内。
 mcp_guidance_branch_delete() {
     cat <<'EOF'
@@ -82,8 +97,19 @@ external-post-check: gh pr merge publishes a PR merge externally.
 
 Do not run it until the user has explicitly approved.
 The canonical route for merging is /pecot-w:w-merge.
-Merge with gh pr merge, then clean up with the MCP tool session_finish.
+Merge with the MCP tool pr_merge, then clean up with the MCP tool session_finish.
 EOF
+}
+
+# pecot-post-ask.sh: PR マージの ask の文を、MCP の入力名で書いた版。
+mcp_guidance_post_ask_pr_merge() {
+    cat <<'EOT'
+external-post-check: the MCP tool pr_merge (a real merge) merges a PR externally.
+
+Do not call it until the user has explicitly approved.
+The canonical route for merging is /pecot-w:w-merge.
+To only see what would be merged, call pr_merge with dry_run: true.
+EOT
 }
 
 # pecot-post-ask.sh: Issue 投稿の ask の文を、MCP の入力名で書いた版。

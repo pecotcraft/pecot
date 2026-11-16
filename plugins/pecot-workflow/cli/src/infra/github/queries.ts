@@ -660,6 +660,34 @@ export const QUERY_GET_PULL_REQUEST_SLIM = `query ($owner: String!, $repo: Strin
   }
 }`
 
+// pr merge が読む PR の状態。GetPullRequestSlim を変えずに、マージの判断に要る項目だけを読む
+export const QUERY_GET_PULL_REQUEST_FOR_MERGE = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      number
+      state
+      isDraft
+      baseRefName
+      headRefOid
+      isMergeQueueEnabled
+      isInMergeQueue
+    }
+  }
+}`
+
+// 上のクエリから merge queue の項目を除いたもの。その項目を持たない GHES で読み直すのに使う
+export const QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      number
+      state
+      isDraft
+      baseRefName
+      headRefOid
+    }
+  }
+}`
+
 // PR詳細取得（レビュー詳細付き - --reviews オプション用）
 export const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {

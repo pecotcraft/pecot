@@ -15,7 +15,7 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
-import type { IssueReadiness, IssueSnapshot, JudgedIssue, UnreadableIssue } from './issue-readiness.js'
+import type { IssueReadiness, IssueSnapshot, JudgedIssue, ReadinessCache, UnreadableIssue } from './issue-readiness.js'
 import { mapWithLimit } from './board-view.js'
 import { commandHint, hinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
@@ -61,6 +61,10 @@ export interface JudgeBoardOptions {
   個別の読み取りを省く Issue。'skip' は判定から外し、IssueSnapshot は一覧の値だけで判定し、undefined は個別に読む
   */
   readonly withoutRead: (target: BoardTarget, progress: BoardProgress | undefined) => IssueSnapshot | 'skip' | undefined
+  /**
+  判定し直す呼び出しと共有するキャッシュ。無ければ判定ごとに作る
+  */
+  readonly cache?: ReadinessCache
 }
 
 // 対象の列の Issue か。PR と Tracker は対象にしない
@@ -106,7 +110,7 @@ export async function judgeBoard(client: GitHubClient, config: ProjectConfig, it
     if (snapshot.kind === 'snapshot') edges.set(issueReferenceKey(target.ref), prerequisiteKeys(snapshot))
   }
 
-  const cache = createReadinessCache()
+  const cache = options.cache ?? createReadinessCache()
   return await mapWithLimit(pairs, READ_MAX_WORKERS, async ({ target, snapshot }): Promise<JudgedTarget> => {
     if (snapshot.kind === 'unreadable') return { target, result: snapshot }
     try {

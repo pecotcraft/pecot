@@ -74,7 +74,7 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 ツールが対象にするリポジトリは、サーバを起動したディレクトリを含むリポジトリです。
 Claude Code では、Claude Code がサーバを起動するディレクトリ（通常はプロジェクトの root）になります。
 
-プラグインの hooks は働きません。`issue_create`・`pr_create` の確認は、MCP クライアント自身の確認だけになります。
+プラグインの hooks は働きません。`issue_create`・`pr_create`・`pr_merge` の確認は、MCP クライアント自身の確認だけになります。
 これらのツールは自動で許可しないでください。また、`--help` を打つと、プラグインで出る補足の節は出ません。
 
 ## ツール
@@ -109,6 +109,7 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `pr_create` | PR を作る |
 | `pr_show` | PR の詳細を必要な項目だけ取得する |
 | `pr_check` | PR を作る前に確かめる情報をまとめて表示する |
+| `pr_merge` | PR をマージする（スタックの中の PR は最下段だけ） |
 | `pr_restack` | 積んだブランチを、base にしたブランチの新しい位置へ載せ直す |
 | `release_check` | リリース前の確認をする |
 | `release_create` | GitHub のリリースとタグを作る（ノートは CHANGELOG から取る） |

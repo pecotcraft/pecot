@@ -22,14 +22,13 @@ import type { JsonObject } from '../domain/json.js'
 import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBase, describeBaseStop, describePushStatus, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, pickLowerPullRequest, validatePullRequestContent } from '../domain/pull-request.js'
 import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
-import { ReferenceParseError, parsePullRequestReference } from '../domain/reference-parser.js'
-import { AmbiguousRepositoryError, resolveRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
+import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_ACTIVE, FLAG_PR_CREATE_SLASH_PENDING } from '../domain/state.js'
 import type { BaseReading } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, remoteBranchHead, runGit } from '../infra/git.js'
+import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, primaryRemoteName, remoteBranchHead, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { PullRequestSlim, PullRequestWithReviews } from '../infra/github/pulls.js'
 import { TransportFailure } from '../infra/github/client.js'
@@ -44,7 +43,6 @@ import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './co
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
-import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
@@ -53,9 +51,11 @@ import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { BOARD_MOVE_JSON, moveJson } from './issue-board.js'
 import type { BoardMoveLine } from './issue-board.js'
+import { PR_MERGE_COMMAND } from './pr-merge.js'
+import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 import { moveWaitingIssues } from './pr-waiting.js'
 
-export const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
+export { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 
 // 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
 const VALIDATION_EXIT_CODE = 3
@@ -800,28 +800,6 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
 
 // pr show
 
-// グローバルの --repo か、いまの git の repository。決められなければ undefined
-function resolveBaseRepository(globalRepository: string | undefined): RepositoryReference | undefined {
-  try {
-    return resolveRepository(globalRepository, gitRunnerFor(process.cwd())).repository
-  }
-  catch (error: unknown) {
-    if (error instanceof AmbiguousRepositoryError) return undefined
-    throw error
-  }
-}
-
-export function parseReference(reference: string, globalRepository: string | undefined, out: Readonly<Output>): { readonly owner: string, readonly repository: string, readonly number: number } {
-  try {
-    const parsed = parsePullRequestReference(reference, resolveBaseRepository(globalRepository), { repositoryFlag: true })
-    return { owner: parsed.repository.owner, repository: parsed.repository.repository, number: parsed.number }
-  }
-  catch (error: unknown) {
-    if (error instanceof ReferenceParseError) return stopWith(out, error.hintedText ?? error.message, 'invalid-input', USAGE_EXIT_CODE)
-    throw error
-  }
-}
-
 const ShowInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
   json: z.boolean().default(false).describe('Output as JSON'),
@@ -1097,4 +1075,4 @@ const prCheck = defineCommand({
   },
 })
 
-export const PR_COMMANDS: readonly CommandDefinition[] = [prCreate, prShow, prCheck]
+export const PR_COMMANDS: readonly CommandDefinition[] = [prCreate, prShow, prCheck, PR_MERGE_COMMAND]

@@ -104,10 +104,14 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | merge queue に入った | `added: PR #N to merge queue of <base>` | 0 |
 | スタックの最下段でない | `error: PR #N is not the bottom of stack #S. Merge PR #M first` | 2 |
 | ドラフト | `error: PR #N is a draft` | 2 |
+| 閉じている | `error: PR #N is closed` | 2 |
+| マージ済み | `error: PR #N is already merged` | 2 |
+| `merge-async` が無い GitHub（404）で、単独の PR | 同期のマージ API で squash し、`merged: PR #N into <base>` | 0 |
+| `merge-async` が無い GitHub（404）で、スタックの中の PR | `error: could not merge PR ...` | 1 |
 | GitHub が規則で拒んだ | `error: merge was rejected: <GitHub の文>` | 1 |
 | 非同期のマージが時間内に終わらない | `error: merge did not finish in <秒>s. Check PR #N` | 1 |
 | 既にマージ済みか、キューの中（200） | `merged: PR #N into <base>` か `added: PR #N to merge queue of <base>` | 0 |
-| 閉じている PR など（400） | `error: merge was rejected: <GitHub の文>` | 1 |
+| 読んだ後に閉じられた PR など（400） | `error: merge was rejected: <GitHub の文>` | 1 |
 | 同じ PR の要求が既にある（409） | 既存の uuid の結果を読み続ける | 0 か 1 |
 
 - merge queue の有無は、GraphQL の `PullRequest.isMergeQueueEnabled` で判定する
@@ -116,7 +120,9 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
   - 200 は、既にマージ済みか、キューの中だ
   - 400 は、閉じている PR などで、マージできない
   - 409 は、同じ PR の要求が既にある。既存の uuid が返るので、その結果を読む
-  - uuid の結果は 24 時間で消える
+  - uuid の結果は 24 時間で消える。結果が 404 のときは、PR の状態を読み、決まらなければ期限まで読み直す
+- 終了コード 2 で終わるときは、フラグ `merge-slash-pending` を消す。`--dry-run` と、GitHub が拒んだときは消さない
+- merge queue の項目が無い GitHub では、merge queue が無いものとして読む
 - マージの方法の値は、merge queue の有無で変える
   - merge queue の無いブランチでは、`merge_method: "squash"` を渡す。省くと `default` になり、squash だけを許すリポで `failed` になった
   - merge queue のあるブランチでは、`merge_method`・`commit_title`・`commit_message`・`merge_action` を渡さない。`merge_method`・`commit_title`・`commit_message` は direct merge だけの値だ（research.md の R5）

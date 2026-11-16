@@ -323,34 +323,34 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 6 を通す。上の段の PR のマージは止まる。下の段をマージして片付けると、`Readiness changed:` が出て、上の段のブランチが残る
 
-- [ ] T073 [P] [US5] `p-w/cli/src/infra/github/tests/` に、マージの API の失敗するテストを書く。単独の PR もスタックの中の PR も、`PUT .../pulls/{n}/merge-async` を呼ぶ（同期の API は merge queue を扱わない）。結果は `GET .../merge-async/{uuid}` で、終わるまで読む
+- [x] T073 [P] [US5] `p-w/cli/src/infra/github/tests/` に、マージの API の失敗するテストを書く。単独の PR もスタックの中の PR も、`PUT .../pulls/{n}/merge-async` を呼ぶ（同期の API は merge queue を扱わない）。結果は `GET .../merge-async/{uuid}` で、終わるまで読む
   - merge queue の有無は、GraphQL の `PullRequest.isMergeQueueEnabled` で判定する。有りと無しの両方でテストする
   - merge queue の無いブランチでは `merge_method: "squash"` を渡す
   - merge queue のあるブランチでは `merge_method`・`commit_title`・`commit_message`・`merge_action` を渡さない（research.md の R5）
   - 応答は 202（pending）、200（既にマージ済みかキューの中）、400（閉じている PR など）、409（同じ PR の要求が既にある。既存の uuid を読む）を分ける
   - uuid の結果は 24 時間で消える。消えた後に読んだ場合の扱いも確かめる
   - `enqueued` と `failed` の `details.message` を、そのまま返す
-- [ ] T074 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr merge` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr merge` の表の 10 行のとおりだ
+- [x] T074 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr merge` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr merge` の表の 10 行のとおりだ
   - merge queue の無いブランチでは squash を渡し、あるブランチでは渡さない（research.md の R5）
   - `--dry-run` は、要求を送らない
-- [ ] T075 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr cleanup` の失敗するテストを書く
+- [x] T075 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr cleanup` の失敗するテストを書く
   - 片付けの後、この PR の Issue を前提にしている Issue の列と札が動く。着手の跡がある Issue は動かない
   - base が開発ブランチでない PR の片付けでも、その PR の Issue が閉じる
   - 判定が変わった Issue が、stdout の `Readiness changed:` に出る
   - 上に積んだ段があるとき、載せ直しの案内が出る。上の段のブランチを消す要求を送らない
   - base の記録のファイルが、`.pecot-active` と一緒に消える
   - 前提にされていない Issue の PR では、出力が今までと変わらない
-- [ ] T076 [US5] `p-w/cli/src/infra/github/pulls.ts` に、非同期のマージを足し、T073 を通す
-- [ ] T077 [US5] `p-w/cli/src/commands/pr.ts` に `pr merge` を足し、T074 を通す。`PR_COMMANDS` に登録する
-- [ ] T078 [US5] `p-w/cli/src/commands/pr.ts` の `runCleanup` を直し、T075 を通す
-- [ ] T079 [P] [US5] hook の規則を足す（research.md の R16）
+- [x] T076 [US5] `p-w/cli/src/infra/github/pulls.ts` に、非同期のマージを足し、T073 を通す
+- [x] T077 [US5] `p-w/cli/src/commands/pr.ts` に `pr merge` を足し、T074 を通す。`PR_COMMANDS` に登録する
+- [x] T078 [US5] `p-w/cli/src/commands/pr.ts` の `runCleanup` を直し、T075 を通す
+- [x] T079 [P] [US5] hook の規則を足す（research.md の R16）
   - `p-w/hooks/lib/core/gh-command-check.sh` で、`gh stack` で始まるコマンドを止める。`view` と `--help` は通す。案内は `pecot pr create`・`pecot pr merge`・`pecot pr restack` だ
   - `p-w/hooks/lib/mcp-handlers/pecot-post-ask.sh` で、MCP のツール `pr_merge` を確認にかける。`dry_run` が真のときは通す。w-merge の起動の印があれば通す
   - `issue block`・`issue unblock`・`pr restack` は確認にかけない
   - テストは `p-w/cli/tests/hooks/` に書く
-- [ ] T080 [US5] `p-w/skills/w-merge/SKILL.md` を、contracts/skill-flow.md の w-merge の表のとおりに直す。`gh pr merge` を `pecot pr merge` に変える。後続フェーズの通知は `Readiness changed:` を使う
-- [ ] T081 [US5] 定義書に `PW-PR-MERGE` を足し、`pr cleanup` の項目を直す。共通の完了条件の 4 つを済ませる。コマンドの数は 1 つ増える。スキルの文書のテストを直す
-- [ ] T082 [US5] version plan を `.nx/version-plans/` に足す
+- [x] T080 [US5] `p-w/skills/w-merge/SKILL.md` を、contracts/skill-flow.md の w-merge の表のとおりに直す。`gh pr merge` を `pecot pr merge` に変える。後続フェーズの通知は `Readiness changed:` を使う
+- [x] T081 [US5] 定義書に `PW-PR-MERGE` を足し、`pr cleanup` の項目を直す。共通の完了条件の 4 つを済ませる。コマンドの数は 1 つ増える。スキルの文書のテストを直す
+- [x] T082 [US5] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 積んだ PR を、順番を誤らずに開発ブランチへ届けられる
 

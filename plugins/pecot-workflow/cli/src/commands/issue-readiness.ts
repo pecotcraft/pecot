@@ -264,6 +264,34 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
 }
 
 /**
+判定済みの Issue の前提を assume で置き換え、同じ judgeSnapshot で判定し直す。API は、積んだ並びを引き足すときだけ呼ぶ
+*/
+export async function judgeAssuming(
+  client: Readonly<GitHubClient>,
+  config: ProjectConfig,
+  judged: Readonly<JudgedIssue>,
+  assume: (prerequisites: readonly Prerequisite[]) => readonly Prerequisite[],
+  cache: ReadinessCache,
+): Promise<IssueReadiness> {
+  const { repository } = judged.ref
+  const snapshot: IssueSnapshot = {
+    kind: 'snapshot',
+    ref: judged.ref,
+    title: judged.title,
+    target: judged.target,
+    prerequisites: assume(judged.prerequisites),
+    titles: judged.titles,
+    mismatches: judged.mismatches,
+    malformedReason: judged.malformedReason,
+    parent: judged.parent,
+    developmentBranch: findRepository(config, repository.owner, repository.repository)?.develop_branch,
+  }
+  // 輪は前提の辺だけで決まり、状態の置き換えで変わらない
+  const reason = judged.readiness?.reason
+  return await judgeSnapshot(client, snapshot, cache, reason?.code === 'cycle' ? reason.cycle : undefined)
+}
+
+/**
 Issue 1 件の読み取りから判定までを通す。輪は呼ぶ側が渡す（issue show は輪を見ない）
 */
 export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[], blockedByFirst?: number): Promise<IssueReadiness> {

@@ -7,14 +7,18 @@ import { readWaitsForMerge } from '../prerequisites.js'
 import type { WaitsForMergeReadout } from '../prerequisites.js'
 import { JSON_NULL } from '../json-null.js'
 import {
+  assumePullRequestState,
   cycleThrough,
   describePrerequisiteState,
   describeReadiness,
+  describeReadinessChange,
   describeUnknown,
   findCycle,
+  hasReadinessChanged,
   hasStarted,
   isDone,
   isInReview,
+  isStackedOn,
   judgeReadiness,
   planProgression,
   progressionsFromReadiness,
@@ -740,5 +744,76 @@ describe('describePrerequisiteState', () => {
     const notStarted = need(issue(3))
     expect(describePrerequisiteState(inReviewed)).toBe('in review')
     expect(describePrerequisiteState(notStarted)).toBe('not started')
+  })
+})
+
+describe('assumePullRequestState', () => {
+  const mergedPullRequest = pullRequest(1001, 'b1', DEV, { state: 'merged' })
+  const openPullRequest = pullRequest(1001, 'b1')
+  const heads = [reference(1)]
+  const reopened = need(issue(1, { pullRequests: [openPullRequest] }))
+
+  it('open にすると、前提の Issue と該当の PR を open にし、判定はマージの前の stackable に戻る', () => {
+    const prerequisites = [donePrerequisite(1)]
+    const assumed = assumePullRequestState(prerequisites, heads, mergedPullRequest, 'open')
+    expect(assumed).toEqual([reopened])
+    expect(judge(assumed)).toMatchObject({ kind: 'stackable', stackOn: { branch: 'b1', issue: heads[0] } })
+    expect(judge(prerequisites).kind).toBe('startable')
+  })
+
+  it('merged にすると、閉じる前の前提を済んだものにする', () => {
+    const unclosed = issue(1, { pullRequests: [mergedPullRequest] })
+    const assumed = assumePullRequestState([need(unclosed)], heads, openPullRequest, 'merged')
+    expect(assumed).toEqual([donePrerequisite(1)])
+    expect(judge(assumed).kind).toBe('startable')
+  })
+
+  it('前提の PR の一覧に該当の PR が無ければ、足す', () => {
+    const closed = issue(1, { state: 'closed' })
+    const assumed = assumePullRequestState([need(closed)], heads, mergedPullRequest, 'open')
+    expect(assumed).toEqual([reopened])
+  })
+
+  it('対象でない前提と、ほかの PR は変えない', () => {
+    const other = pullRequest(2001, 'old', DEV, { state: 'closed' })
+    const closed = issue(1, { state: 'closed', pullRequests: [other, mergedPullRequest] })
+    const assumed = assumePullRequestState([need(closed), donePrerequisite(2)], heads, mergedPullRequest, 'open')
+    const expected = issue(1, { pullRequests: [other, openPullRequest] })
+    expect(assumed).toEqual([need(expected), donePrerequisite(2)])
+  })
+})
+
+describe('hasReadinessChanged・describeReadinessChange', () => {
+  const stackable = judge([reviewing(1)])
+  const startable = judge([])
+  const blocked = judge([unstarted(1)])
+
+  it('区分か積む先のブランチが違えば変化とし、理由だけの違いは変化としない', () => {
+    const otherBase = { ...stackable, stackOn: { branch: 'b9', issue: reference(9) } }
+    const blockedOtherReason = judge([startedOnly(1)])
+    expect(hasReadinessChanged(stackable, startable)).toBe(true)
+    expect(hasReadinessChanged(stackable, { ...stackable })).toBe(false)
+    expect(hasReadinessChanged(stackable, otherBase)).toBe(true)
+    expect(hasReadinessChanged(blocked, blockedOtherReason)).toBe(false)
+  })
+
+  it('変化の文は、blocked を理由なしで、stackable を積む先つきで出す', () => {
+    expect(describeReadinessChange(blocked, repository_)).toBe('blocked')
+    expect(describeReadinessChange(stackable, repository_)).toBe('stackable on #1')
+    expect(describeReadinessChange(stackable, otherRepository)).toBe('stackable on acme/app#1')
+    expect(describeReadinessChange(startable, repository_)).toBe('startable')
+  })
+})
+
+describe('isStackedOn', () => {
+  it('着手の跡があり、指定の Issue を stack で待つ Issue だけを真にする', () => {
+    const started = issue(100, { branches: ['b100'] })
+    const heads = [reference(1)]
+    const done = [donePrerequisite(1)]
+    const waitsMerge = [need(merged(1), 'merge', '理由')]
+    expect(isStackedOn(started, done, heads)).toBe(true)
+    expect(isStackedOn(issue(100), done, heads)).toBe(false)
+    expect(isStackedOn(started, waitsMerge, heads)).toBe(false)
+    expect(isStackedOn(started, [donePrerequisite(2)], heads)).toBe(false)
   })
 })

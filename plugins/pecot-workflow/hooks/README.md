@@ -70,10 +70,12 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下7つのコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_create`（自由形式の起票は `freeform: true`）の使用を強制する | コアガード | `true` |
-| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（36 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
+| `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_create`・`pr_merge` の使用を強制する | コアガード | `true` |
+| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（37 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
 | `pecot-pr-create-ask` | MCP ツールの `pr_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `pecot-issue-create-ask` | MCP ツールの `issue_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
-| `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグの免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは MCP ツールの `session_finish`） | コアガード（external-post-check） | `true` |
+| `pecot-pr-merge-ask` | MCP ツールの `pr_merge`（実マージ）を検出しユーザー承認（ask）を要求。`dry_run: true` は素通し（`prepare` の入力は無い）。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
+| `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグの免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは MCP ツールの `pr_merge`、片付けは `session_finish`） | コアガード（external-post-check） | `true` |
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
 | `git-worktree-branch-check` | `wt*`/`develop-aist` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
@@ -84,19 +86,21 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 
 #### 外部反映ガード（external-post-check）
 
-MCP ツールの `pr_create`（実投稿）/ `issue_create`（実投稿）と、Bash の `gh pr merge` は、成果物を外部へ反映する操作。
+MCP ツールの `pr_create`（実投稿）/ `issue_create`（実投稿）/ `pr_merge`（実マージ）と、Bash の `gh pr merge` は、成果物を外部へ反映する操作。
 そのため実行前にガードを挟み、いずれもユーザー承認（ask）を要求する。
 MCP ツールの ask は `lib/mcp-handlers/pecot-post-ask.sh` が担う。`gh pr merge` の ask は `lib/core/external-post-check.sh` が担う。
-案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 9 つ。
+案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 11 個。
 
-- `mcp_guidance_gh_pr_create`・`mcp_guidance_gh_issue_create`・`mcp_guidance_branch_delete`
+- `mcp_guidance_gh_pr_create`・`mcp_guidance_gh_issue_create`・`mcp_guidance_gh_stack`
+- `mcp_guidance_branch_delete`
 - `mcp_guidance_reminder_quick`・`mcp_guidance_reminder_ready`・`mcp_guidance_reminder_other`
-- `mcp_guidance_pr_merge`・`mcp_guidance_post_ask_issue`・`mcp_guidance_post_ask_pr`
+- `mcp_guidance_pr_merge`・`mcp_guidance_post_ask_issue`
+- `mcp_guidance_post_ask_pr`・`mcp_guidance_post_ask_pr_merge`
 
 Bash での pecot の起動は `pecot-cli-deny` が deny するので、ask の対象にしない。
-マージは `gh pr merge`、片付けは MCP ツールの `session_finish` で行う。
+マージは MCP ツールの `pr_merge`、片付けは `session_finish` で行う。
 w-merge スキル起動はユーザーのマージ指示であり、マージ直前の再承認は求めない（#911）。
-そのため `gh pr merge` は、`/pecot-w:w-merge` 起点のフラグ（`merge-slash-pending`）があれば素通しする。フラグが無ければ ask する。
+そのため `gh pr merge` と `pr_merge` は、`/pecot-w:w-merge` 起点のフラグ（`merge-slash-pending`）があれば素通しする。フラグが無ければ ask する。
 `external-post-check` は `exit 11`（ask）を返し、`claude-bash-guards` が `permissionDecision: "ask"` に変換する。
 `pecot-cli-deny` は `exit 1` を返し、`claude-bash-guards` が `permissionDecision: "deny"` に変換する。順は `git-no-verify-check` の後、`external-post-check` の前で、deny は ask と allow より先に返る。
 
@@ -181,7 +185,7 @@ MCPツールやdraw.io等の外部ツールとの連携。
 | `pecot-issue-pending-state` | 先頭行が `/pecot-w:w-quick` / `/pecot-w:w-ready`（名前空間なしの短縮形 `/w-quick` / `/w-ready` を含む）で始まるプロンプトを検出し `issue-pending` フラグを作成する。pecot 未使用リポでは作成しない | UserPromptSubmit | `true` |
 | `pr-create-slash-flag` | プロンプトの先頭行が `/pecot-w:w-pr`（名前空間なしの短縮形 `/w-pr` を含む）のとき `pr-create-slash-pending` フラグを作成し、MCP ツール `pr_create`（実投稿）の ask を投稿成功（MCP ツールが消費）まで免除する。フラグはエージェント側からも作成可能であり、免除は利便性であって防御境界ではない。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を issue 側と共用） | UserPromptSubmit | `true` |
 | `issue-create-slash-flag` | プロンプトの先頭行が `/pecot-w:w-quick` `/pecot-w:w-ready` `/pecot-w:w-backlog` `/pecot-w:w-issueize`（名前空間なしの短縮形 `/w-quick` 等を含む）のとき `issue-create-slash-pending` フラグ（内容 = 起点コマンド名）を作成し、MCP ツール `issue_create`（実投稿）の ask を投稿成功（MCP ツールが消費）まで免除する。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を pr 側と共用） | UserPromptSubmit | `true` |
-| `merge-slash-flag` | プロンプトの先頭行が `/pecot-w:w-merge`（短縮形 `/w-merge` を含む）のとき `merge-slash-pending` フラグを作成し、`gh pr merge` の ask を免除する。削除は MCP ツール `session_finish` の成功時で、`gh pr merge` の時点では消さない（マージ待ちのあとに cleanup を呼ぶため）。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を共用） | UserPromptSubmit | `true` |
+| `merge-slash-flag` | プロンプトの先頭行が `/pecot-w:w-merge`（短縮形 `/w-merge` を含む）のとき `merge-slash-pending` フラグを作成し、`gh pr merge` と `pr_merge` の ask を免除する。削除は MCP ツール `session_finish` の成功時で、`gh pr merge` の時点では消さない（マージ待ちのあとに cleanup を呼ぶため）。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を共用） | UserPromptSubmit | `true` |
 | `pecot-issue-pending-reminder` | `issue-pending` フラグ存在中の Edit/Write/MultiEdit/NotebookEdit/EnterPlanMode（`pre-tool-use.sh`）と Bash の `git checkout`/`git switch`（`pre-tool-use-bash.sh`）に `additionalContext` で起票リマインドを注入する（非ブロック）。`*/.pecot/tmp/output/*` 宛の編集は除外。Copilot の Read / Edit は `tool_input.path` で届く | PreToolUse | `true` |
 | `commit-info-display` | `git commit` 成功後にコミットメッセージとdiff統計を表示する。成功の判定は `bash-post-match.sh`（Claude の `tool_response.stdout` / Copilot の `tool_result.text_result_for_llm`）が 1 回だけ行う | PostToolUse (Bash) | `true` |
 | `auto-push` | `git commit` 成功後にWIPブランチへ自動pushし、IssueのDevelopment欄にリンクする。対象は、`.pecot-active` の Issue 番号で終わり、`origin` が同じ owner/repo のブランチだけ。push の後で `origin/wip/` の追跡 ref を消し、`remote.origin.fetch` に `^refs/heads/wip/*` を足す | PostToolUse (Bash) | **`false`** |

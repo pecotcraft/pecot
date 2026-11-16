@@ -34,13 +34,15 @@ gh pr checks <PR番号> --repo <owner>/<repo> --watch --fail-fast > /dev/null 2>
 
 #### 2.2 マージ
 
-```bash
-gh pr merge <PR番号> --repo <owner>/<repo> --squash
-```
+pecot-workflow の MCP ツール `pr_merge` を使って、PR をマージする。結果に合う行を実行する。
 
-gh がエラーで止めたら（コンフリクト・ルールなど）、その文を利用者に伝えて止まる。
+| 結果 | 次の手順 |
+|---|---|
+| マージされた | 2.3 へ進む |
+| merge queue に入った | 下のコマンドで、queue から出るまで待つ |
+| スタックの最下段でないと止まった | 先にマージする PR を利用者に示して止まる。下の段の PR をマージしない |
+| GitHub が拒んだ | 必須チェックが終わっていないなら、2.1 からやり直す。ほかの理由は利用者に伝えて止まる |
 
-merge queue のあるリポでは、gh は `The merge strategy for main is set by the merge queue` と出し、PR を queue に入れる。エラーではない。
 queue から出るまで、2.1 と同じ実行の仕方で待つ。`gh pr view --json` は queue の状態を持たないので、GraphQL で読む。
 
 ```bash
@@ -56,6 +58,9 @@ pecot-workflow の MCP ツール `session_finish` を使って、マージ後の
 
 警告が出たら、その文に従って手で対応する。ワークツリー環境の手順は [ワークツリー環境での処理](references/worktree-handling.md) にある。
 
+結果に判定の変化（`readinessChanges`）があれば、着手できるようになった Issue を利用者に伝える。
+上に積んだ段（`restack`）があれば、その段の作業ディレクトリで載せ直しが要ることを利用者に伝える。ほかの作業ディレクトリには入らない。
+
 ### Step 3: 実装差分分析・Epicコメント
 
 片付けで閉じた Issue に親 Epic があるときだけ行う。親 Epic は、pecot-workflow の MCP ツール `issue_show` で確かめる。
@@ -70,6 +75,6 @@ pecot-workflow の MCP ツール `session_finish` を使って、マージ後の
 
 speckit 由来のタスクで、後続のフェーズに影響する変更があるときだけ行う。speckit 由来とは、Issue の本文か、親 Epic のほかのサブタスクが `specs/`・`.specify/` に触れているものを指す。
 
-1. `issue_show` を使って親 Epic を読み、現在のタスク以外の OPEN のサブタスクを選ぶ
+1. 通知する Issue を選ぶ。片付けの結果に判定の変化（`readinessChanges`）があれば、その Issue を選ぶ。無ければ、`issue_show` を使って親 Epic を読み、現在のタスク以外の OPEN のサブタスクを選ぶ
 2. `issue_comment` を使って、その Issue 宛ての precede-notify テンプレのファイルを作る
 3. テンプレのガイドに従って本文を書き、`issue_comment` を使って投稿する

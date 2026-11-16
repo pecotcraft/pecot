@@ -8,10 +8,11 @@ import type { PullRequestsByHeadReadout } from '../../domain/issue-readout.js'
 import { extractReferencesIssueNumbers } from '../../domain/reference-parser.js'
 import { isJsonArray } from '../../domain/python-format.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
+import type { RestResponse } from './client.js'
+import { GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { IssuesApi } from './issues.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
-import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_BASE, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
+import { QUERY_GET_PULL_REQUEST_FOR_MERGE, QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_BASE, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
 import { readPullRequests } from './readout.js'
 import { repositoryPath } from './rest-path.js'
 
@@ -84,6 +85,86 @@ export interface PullRequestStack {
 Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
 */
 export const STACKS_API_VERSION = '2026-03-10'
+
+/**
+pr merge が読む PR の状態
+*/
+export interface PullRequestForMerge {
+  readonly number: number
+  readonly state: string
+  readonly isDraft: boolean
+  readonly baseRefName: string
+  readonly headRefOid: string
+  readonly isMergeQueueEnabled: boolean
+  readonly isInMergeQueue: boolean
+}
+
+const MERGE_QUEUE_FIELD_ERROR = /(?:Field '|field ")(?:isMergeQueueEnabled|isInMergeQueue)['"]/u
+
+// eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
+const ASYNC_MERGE_STATUSES = ['pending', 'merged', 'enqueued', 'failed'] as const
+
+export type AsyncMergeStatus = typeof ASYNC_MERGE_STATUSES[number]
+
+/**
+非同期のマージの結果。uuid は pending のときだけ、message は details.message
+*/
+export interface AsyncMergeResult {
+  readonly status: AsyncMergeStatus
+  readonly uuid?: string
+  readonly message?: string
+}
+
+/**
+非同期のマージの要求への応答。accepted は 200・202、rejected は 400、conflict は 409
+*/
+export type AsyncMergeRequestOutcome
+  = | { readonly outcome: 'accepted', readonly result: AsyncMergeResult }
+    | { readonly outcome: 'rejected', readonly message: string }
+    | { readonly outcome: 'conflict', readonly uuid?: string }
+
+export interface AsyncMergeOptions {
+  /**
+  読んだ head の SHA。読んだ後に push された PR をマージしない
+  */
+  readonly sha: string
+  /**
+  base が merge queue を使うか。使うときはマージの方法の値を渡さない
+  */
+  readonly mergeQueue: boolean
+}
+
+function requiresBoolean(value: JsonValue | undefined, path: string): boolean {
+  return typeof value === 'boolean' ? value : throwMalformed(path)
+}
+
+function isAsyncMergeStatus(value: JsonValue | undefined): value is AsyncMergeStatus {
+  return ASYNC_MERGE_STATUSES.some(status => status === value)
+}
+
+function readAsyncMergeResult(value: JsonValue): AsyncMergeResult {
+  const status = jsonField(value, 'status')
+  if (!isAsyncMergeStatus(status)) throwMalformed(`mergeAsync.status (${typeof status === 'string' ? status : JSON.stringify(status)})`)
+  const details = jsonField(value, 'details')
+  const uuid = jsonField(details, 'uuid')
+  const message = jsonField(details, 'message')
+  if (status === 'pending' && typeof uuid !== 'string') throwMalformed('mergeAsync.details.uuid')
+  return {
+    status,
+    ...status === 'pending' && typeof uuid === 'string' && { uuid },
+    ...typeof message === 'string' && { message },
+  }
+}
+
+// 文書は 400・409 の本文の形を示していないので、JSON でなくても止めない
+function bodyOrUndefined(response: Readonly<RestResponse>): JsonValue | undefined {
+  try {
+    return response.json()
+  }
+  catch {
+    return undefined
+  }
+}
 
 function readStack(value: JsonValue | undefined): PullRequestStack {
   if (!isJsonObject(value)) throwMalformed('stack')
@@ -246,12 +327,72 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
-  PR をマージする。mergeMethod は merge・squash・rebase。既定は squash
+  PR をマージする。mergeMethod は merge・squash・rebase。既定は squash。
+  sha を渡すと、head がその SHA でなければ GitHub が 409 で拒む
   */
-  async mergePullRequest(owner: string, repository: string, number: number, mergeMethod = 'squash'): Promise<JsonObject> {
+  async mergePullRequest(owner: string, repository: string, number: number, mergeMethod = 'squash', sha?: string): Promise<JsonObject> {
     return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
-      json: { merge_method: mergeMethod },
+      json: sha === undefined ? { merge_method: mergeMethod } : { merge_method: mergeMethod, sha },
     })
+  }
+
+  /**
+  pr merge の判断に使う PR の状態を読む（GraphQL）。
+  merge queue の項目を持たない GHES は、項目なしのクエリで読み直し、どちらも false にする
+  */
+  async getPullRequestForMerge(owner: string, repository: string, number: number): Promise<PullRequestForMerge> {
+    let pullRequest: JsonValue
+    let hasQueueFields = true
+    try {
+      pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE, owner, repository, number)
+    }
+    catch (error: unknown) {
+      if (!isSchemaError(error) || !MERGE_QUEUE_FIELD_ERROR.test(error.message)) throw error
+      pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, owner, repository, number)
+      hasQueueFields = false
+    }
+    return {
+      number: requireNumber(jsonField(pullRequest, 'number'), 'pullRequest.number'),
+      state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
+      isDraft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
+      baseRefName: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
+      headRefOid: requireString(jsonField(pullRequest, 'headRefOid'), 'pullRequest.headRefOid'),
+      isMergeQueueEnabled: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isMergeQueueEnabled'), 'pullRequest.isMergeQueueEnabled'),
+      isInMergeQueue: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isInMergeQueue'), 'pullRequest.isInMergeQueue'),
+    }
+  }
+
+  /**
+  非同期のマージを頼む（https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request-asynchronously）。
+  403・422 などは handleHttpError の例外
+  */
+  async requestAsyncMerge(owner: string, repository: string, number: number, options: Readonly<AsyncMergeOptions>): Promise<AsyncMergeRequestOutcome> {
+    const response = await this.restRequest('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge-async`, {
+      json: options.mergeQueue ? { sha: options.sha } : { sha: options.sha, merge_method: 'squash' },
+      apiVersion: STACKS_API_VERSION,
+    })
+    if (response.statusCode === 400) {
+      const message = jsonField(bodyOrUndefined(response), 'message')
+      return { outcome: 'rejected', message: typeof message === 'string' ? message : response.text }
+    }
+    if (response.statusCode === 409) {
+      const uuid = jsonField(jsonField(bodyOrUndefined(response), 'details'), 'uuid')
+      return typeof uuid === 'string' ? { outcome: 'conflict', uuid } : { outcome: 'conflict' }
+    }
+    if (!response.isSuccess) this.handleHttpError(response)
+    return { outcome: 'accepted', result: readAsyncMergeResult(response.json()) }
+  }
+
+  /**
+  非同期のマージの結果を読む。結果が消えていれば（24 時間で消える）undefined
+  */
+  async getAsyncMergeResult(owner: string, repository: string, number: number, uuid: string): Promise<AsyncMergeResult | undefined> {
+    const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge-async/${encodeURIComponent(uuid)}`, {
+      apiVersion: STACKS_API_VERSION,
+    })
+    if (response.statusCode === 404) return undefined
+    if (!response.isSuccess) this.handleHttpError(response)
+    return readAsyncMergeResult(response.json())
   }
 
   /**

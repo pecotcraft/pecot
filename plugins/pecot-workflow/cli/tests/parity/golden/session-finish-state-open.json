@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: PR #21 is not merged yet (state: OPEN); merge it with gh pr merge first\n",
+  "stderr": "error: PR #21 is not merged yet (state: OPEN); merge it with pecot pr merge first\n",
   "exitCode": 1,
   "requests": [
     {

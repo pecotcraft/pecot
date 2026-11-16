@@ -5,10 +5,14 @@ import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
-import { getDevelopBranch } from '../domain/config.js'
+import { getDevelopBranch, homeRepositoryOf } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
 import { extractClosingIssueNumbers } from '../domain/pull-request.js'
+import { assumePullRequestState, describeReadinessChange, displayReference, hasReadinessChanged, isDone, isStackedOn } from '../domain/readiness.js'
+import type { IssuePullRequest } from '../domain/readiness.js'
+import { createIssueReference } from '../domain/reference-parser.js'
+import type { IssueReference } from '../domain/reference-parser.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_MERGE_SLASH_PENDING, FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
 import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
@@ -18,7 +22,14 @@ import type { PullRequestSlim } from '../infra/github/pulls.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { consumeFlag, removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
+import type { BoardContext } from './board-judgment.js'
+import { commandHint, hinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { createReadinessCache, judgeAssuming } from './issue-readiness.js'
+import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
+import { moveIssuesWaitingFor, prerequisiteOf } from './pr-waiting.js'
+import type { WaitingCheck } from './pr-waiting.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
@@ -38,10 +49,23 @@ const DELETED_BRANCH_DATA = z.strictObject({
   location: z.enum(['remote', 'local']).describe('Whether the remote or the local branch was deleted'),
 })
 
+const READINESS_CHANGE_DATA = z.strictObject({
+  issue: z.string().describe('Issue waiting for a closed Issue (#N, or owner/repo#N in another repository)'),
+  from: z.string().describe('Readiness before the merge (blocked, startable, or stackable on #N)'),
+  to: z.string().describe('Readiness after the merge (blocked, startable, or stackable on #N)'),
+})
+
+const RESTACK_DATA = z.strictObject({
+  issue: z.string().describe('Started Issue stacked on a closed Issue (#N, or owner/repo#N in another repository)'),
+  branch: z.string().optional().describe('Branch linked to that Issue, to restack in its working directory (omitted when none)'),
+})
+
 const SESSION_FINISH_OUTPUT = z.strictObject({
   closedIssues: z.array(z.int()).describe('Issue numbers closed (to be closed on dry_run)'),
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
   deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted (to be deleted on dry_run)'),
+  readinessChanges: z.array(READINESS_CHANGE_DATA).describe('Issues waiting for the closed Issues whose readiness changed by the merge'),
+  restack: z.array(RESTACK_DATA).describe('Upper stacked Issues to restack with pr restack in their working directories'),
   currentBranch: z.string().optional().describe('Current branch after the local cleanup (omitted when the local cleanup was skipped)'),
   dryRun: DRY_RUN_FIELD,
 })
@@ -53,6 +77,8 @@ interface FinishRecord {
   readonly closedIssues: number[]
   readonly skippedIssues: FinishData['skippedIssues']
   readonly deletedBranches: FinishData['deletedBranches']
+  readonly readinessChanges: FinishData['readinessChanges']
+  readonly restack: FinishData['restack']
   currentBranch?: string
   // PR を確かめる前に止まったときは、空の項目を失敗の data に載せない
   hasStarted: boolean
@@ -136,6 +162,69 @@ async function closeRelatedIssues(context: Readonly<FinishContext>, client: GitH
         throw error
       }
     }
+  }
+}
+
+interface WaitingSource {
+  readonly client: GitHubClient
+  readonly config: ProjectConfig
+  readonly location: RepositoryReference
+  readonly pullRequest: IssuePullRequest
+}
+
+function mergedPullRequestOf(location: RepositoryReference, number: number, pr: Readonly<PullRequestSlim>): IssuePullRequest {
+  return { repository: location, number, state: 'merged', headRefName: pr.head_ref, baseRefName: pr.base_ref, isDraft: pr.is_draft, isCrossRepository: false }
+}
+
+// 閉じた Issue のうち、判定に出ている前提がすべて済んでいるか
+function isClosedReflected(judged: JudgedIssue, heads: readonly IssueReference[]): boolean {
+  const found = heads.flatMap(head => prerequisiteOf(judged, head) ?? [])
+  return found.length > 0 && found.every(({ issue }) => isDone(issue))
+}
+
+function waitingCheck(source: Readonly<WaitingSource>, heads: readonly IssueReference[], isDryRun: boolean, cache: ReadinessCache, home: RepositoryReference | undefined): WaitingCheck {
+  const { client, config, pullRequest } = source
+  const names = heads.map(head => displayReference(head, home)).join(', ')
+  const unconfirmed = (name: string): HintedText => hinted`could not confirm that GitHub reflects the close of ${names} in the readiness of ${name}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`
+  if (!isDryRun) return { isReflected: judged => isClosedReflected(judged, heads), unconfirmed }
+  // dry-run では Issue を閉じていないので、閉じた後を置き換えで作る
+  return {
+    isReflected: () => true,
+    unconfirmed,
+    assume: async ({ target, result }) => (result.kind === 'judged'
+      ? { target, result: await judgeAssuming(client, config, result, prerequisites => assumePullRequestState(prerequisites, heads, pullRequest, 'merged'), cache) }
+      : { target, result }),
+  }
+}
+
+// 閉じた Issue を待つ Issue の列と札を動かし、マージの前と比べた判定の変化と、載せ直す上の段を記録する
+async function updateWaitingIssues(context: Readonly<FinishContext>, source: Readonly<WaitingSource>): Promise<void> {
+  const { out, isDryRun, record } = context
+  const { client, config, location, pullRequest } = source
+  const alreadyClosed = record.skippedIssues.filter(({ reason }) => reason === 'already-closed').map(({ number }) => number)
+  const heads = [...record.closedIssues, ...alreadyClosed].toSorted((a, b) => a - b).map(number => createIssueReference(location, number))
+  if (heads.length === 0) return
+  const home = homeRepositoryOf(config)
+  const cache = createReadinessCache()
+  const board: BoardContext = { out, client, config, home }
+  const judged = await moveIssuesWaitingFor(board, { heads, check: waitingCheck(source, heads, isDryRun, cache, home), isDryRun, cache })
+
+  for (const { target, result } of judged) {
+    if (result.kind !== 'judged' || result.readiness === undefined) continue
+    const before = await judgeAssuming(client, config, result, prerequisites => assumePullRequestState(prerequisites, heads, pullRequest, 'open'), cache)
+    if (before.kind !== 'judged' || before.readiness === undefined || !hasReadinessChanged(before.readiness, result.readiness)) continue
+    const { repository } = target.ref
+    record.readinessChanges.push({ issue: displayReference(target.ref, home), from: describeReadinessChange(before.readiness, repository), to: describeReadinessChange(result.readiness, repository) })
+  }
+  if (record.readinessChanges.length > 0) out.data(['Readiness changed:', ...record.readinessChanges.map(change => `- ${change.issue} ${change.from} -> ${change.to}`)].join('\n'))
+
+  for (const { target, result } of judged) {
+    if (result.kind !== 'judged' || !isStackedOn(result.target, result.prerequisites, heads)) continue
+    const name = displayReference(target.ref, home)
+    const lower = heads.filter(head => prerequisiteOf(result, head)?.wait === 'stack').map(head => displayReference(head, home)).join(', ')
+    const [branch] = result.target.branches
+    record.restack.push({ issue: name, ...branch !== undefined && { branch } })
+    out.warning(hinted`${name} is stacked on ${lower}; run ${commandHint(['pr', 'restack'])} in the working directory of ${branch ?? 'its branch'}`)
   }
 }
 
@@ -279,13 +368,13 @@ const FinishInputSchema = z.strictObject({
 
 async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput<FinishData>(input.dry_run, io)
-  const record: FinishRecord = { closedIssues: [], skippedIssues: [], deletedBranches: [], hasStarted: false }
+  const record: FinishRecord = { closedIssues: [], skippedIssues: [], deletedBranches: [], readinessChanges: [], restack: [], hasStarted: false }
   try {
     await finish(input, { out, isDryRun: input.dry_run, record })
   }
   finally {
-    const { closedIssues, skippedIssues, deletedBranches, currentBranch } = record
-    if (record.hasStarted) out.result({ closedIssues, skippedIssues, deletedBranches, ...currentBranch !== undefined && { currentBranch } })
+    const { closedIssues, skippedIssues, deletedBranches, readinessChanges, restack, currentBranch } = record
+    if (record.hasStarted) out.result({ closedIssues, skippedIssues, deletedBranches, readinessChanges, restack, ...currentBranch !== undefined && { currentBranch } })
   }
 }
 
@@ -296,7 +385,7 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
 
   const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
-  if (pr.state !== 'MERGED') stopWith(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`, 'pr-state')
+  if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with ${commandHint(['pr', 'merge'])} first`, 'pr-state')
   context.record.hasStarted = true
 
   const closing = collectClosingIssueNumbers(pr)
@@ -305,6 +394,7 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
 
   out.count('Issues to close', closing.size)
   await closeRelatedIssues(context, client, location, closing, epicProtected)
+  await updateWaitingIssues(context, { client, config, location, pullRequest: mergedPullRequestOf(location, reference.number, pr) })
   if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
   if (input.skip_local_cleanup) return
   localCleanupAfterMerge(context, pr.head_ref, config, location)

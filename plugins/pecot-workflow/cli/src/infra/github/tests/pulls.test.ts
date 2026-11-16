@@ -7,7 +7,7 @@ import { jsonField } from '../../../domain/json.js'
 import { JSON_NULL } from '../../../domain/json-null.js'
 import type { JsonValue } from '../../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
-import { failure, graphqlData, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
+import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
 
@@ -224,6 +224,12 @@ describe('mergePullRequest', () => {
     const { client, server } = await startClient([restResponse('PUT', '/repos/owner/repo/pulls/42/merge', { status: 200, body: merged })])
     expect(await client.mergePullRequest('owner', 'repo', 42, method)).toEqual(merged)
     expect(restRequests(server).map(({ method: requestMethod, body }) => ({ method: requestMethod, body }))).toEqual([{ method: 'PUT', body: { merge_method: expected } }])
+  })
+
+  it('sha を渡すと、merge_method と sha を PUT する', async () => {
+    const { client, server } = await startClient([restResponse('PUT', '/repos/owner/repo/pulls/42/merge', { status: 200, body: { merged: true } })])
+    expect(await client.mergePullRequest('owner', 'repo', 42, 'squash', 'abc123')).toEqual({ merged: true })
+    expect(restRequests(server).map(({ body }) => body)).toEqual([{ merge_method: 'squash', sha: 'abc123' }])
   })
 
   it('404 は GitHubNotFoundError', async () => {
@@ -486,5 +492,155 @@ describe('API の版', () => {
       { match: { method: 'PUT', path: '/repos/owner/repo/pulls/42/merge', apiVersion: '2022-11-28' }, respond: { status: 200, body: { merged: true } }, times: 1 },
     ])
     expect(await client.mergePullRequest('owner', 'repo', 42)).toEqual({ merged: true })
+  })
+})
+
+function mergeNode(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  return { number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123', isMergeQueueEnabled: false, isInMergeQueue: false, ...overrides }
+}
+
+describe('getPullRequestForMerge', () => {
+  it('マージの判断に使う項目を返す', async () => {
+    const { client, server } = await startClient([graphqlData('GetPullRequestForMerge', { repository: { pullRequest: mergeNode({ isMergeQueueEnabled: true }) } })])
+    expect(await client.getPullRequestForMerge('owner', 'repo', 11)).toEqual({
+      number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123', isMergeQueueEnabled: true, isInMergeQueue: false,
+    })
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetPullRequestForMerge', variables: { owner: 'owner', repo: 'repo', number: 11 } }])
+  })
+
+  it('PR が無ければ GitHubNotFoundError', async () => {
+    // eslint-disable-next-line unicorn/no-null -- 応答の形（PR が無いと null）
+    const { client } = await startClient([graphqlData('GetPullRequestForMerge', { repository: { pullRequest: null } })])
+    expect(await rejection(client.getPullRequestForMerge('owner', 'repo', 11))).toMatchObject(failure(GitHubNotFoundError, 'PR not found: owner/repo/11'))
+  })
+
+  it('isMergeQueueEnabled が真偽値でなければ GitHubAPIError', async () => {
+    const { client } = await startClient([graphqlData('GetPullRequestForMerge', { repository: { pullRequest: mergeNode({ isMergeQueueEnabled: 'yes' }) } })])
+    expect(await rejection(client.getPullRequestForMerge('owner', 'repo', 11))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.isMergeQueueEnabled'))
+  })
+
+  it.for([
+    'Field \'isMergeQueueEnabled\' doesn\'t exist on type \'PullRequest\'',
+    'Cannot query field "isInMergeQueue" on type "PullRequest"',
+  ])('merge queue の項目のスキーマの失敗（%s）は、項目なしのクエリで読み直し、どちらも false にする', async (message) => {
+    const withoutQueue = { number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123' }
+    const { client, server } = await startClient([
+      graphqlError('GetPullRequestForMerge', message),
+      graphqlData('GetPullRequestForMergeWithoutQueue', { repository: { pullRequest: withoutQueue } }),
+    ])
+    expect(await client.getPullRequestForMerge('owner', 'repo', 11)).toEqual({
+      number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123', isMergeQueueEnabled: false, isInMergeQueue: false,
+    })
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetPullRequestForMerge', 'GetPullRequestForMergeWithoutQueue'])
+  })
+
+  it('merge queue の項目でないスキーマの失敗は、読み直さずにそのまま投げる', async () => {
+    const { client, server } = await startClient([graphqlError('GetPullRequestForMerge', 'Cannot query field "headRefOid" on type "PullRequest"')])
+    const error = await rejection(client.getPullRequestForMerge('owner', 'repo', 11))
+    expect(error).toBeInstanceOf(GitHubAPIError)
+    expect(error).toHaveProperty('message', expect.stringContaining('Cannot query field "headRefOid" on type "PullRequest"'))
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetPullRequestForMerge'])
+  })
+})
+
+const MERGE_ASYNC = '/repos/owner/repo/pulls/11/merge-async'
+
+function pendingBody(uuid = 'u-1'): Readonly<Record<string, unknown>> {
+  return { status: 'pending', details: { message: 'Merge request accepted', uuid, merge_method: 'squash', merge_action: 'default', expected_head_sha: 'abc123', bypass_rules: false } }
+}
+
+describe('requestAsyncMerge', () => {
+  it('merge queue の無いブランチでは、版 2026-03-10 で sha と merge_method: squash だけを PUT する', async () => {
+    const { client, server } = await startClient([
+      { match: { method: 'PUT', path: MERGE_ASYNC, apiVersion: STACK_VERSION }, respond: { status: 202, body: pendingBody() }, times: 1 },
+    ])
+    expect(await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false })).toEqual({ outcome: 'accepted', result: { status: 'pending', uuid: 'u-1', message: 'Merge request accepted' } })
+    expect(restRequests(server).map(request => JSON.stringify(request.body))).toEqual([JSON.stringify({ sha: 'abc123', merge_method: 'squash' })])
+  })
+
+  it('merge queue のあるブランチでは、sha だけを PUT し、merge_method・commit_title・commit_message・merge_action を渡さない', async () => {
+    const { client, server } = await startClient([
+      { match: { method: 'PUT', path: MERGE_ASYNC, apiVersion: STACK_VERSION }, respond: { status: 202, body: pendingBody() }, times: 1 },
+    ])
+    await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: true })
+    expect(restRequests(server).map(request => JSON.stringify(request.body))).toEqual([JSON.stringify({ sha: 'abc123' })])
+  })
+
+  it.each([
+    ['既にマージ済み', { status: 'merged', details: { message: 'Pull request merged', sha: 'def456' } }, { status: 'merged', message: 'Pull request merged' }],
+    ['キューの中', { status: 'enqueued', details: { message: 'Added to the merge queue' } }, { status: 'enqueued', message: 'Added to the merge queue' }],
+  ])('200（%s）は、本文の status と details.message を返す', async (_label, body, expected) => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 200, body })])
+    expect(await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false })).toEqual({ outcome: 'accepted', result: expected })
+  })
+
+  it('400（閉じている PR など）は、GitHub の message を rejected で返す', async () => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 400, body: { message: 'Pull request is closed', documentation_url: 'https://docs.github.com', status: '400' } })])
+    expect(await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false })).toEqual({ outcome: 'rejected', message: 'Pull request is closed' })
+  })
+
+  it('400 の本文が JSON でなければ、本文の文字列を rejected で返す', async () => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 400, text: 'Bad Request' })])
+    expect(await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false })).toEqual({ outcome: 'rejected', message: 'Bad Request' })
+  })
+
+  it('409（同じ PR の要求が既にある）は、本文の uuid を conflict で返す', async () => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 409, body: pendingBody('u-old') })])
+    expect(await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false })).toEqual({ outcome: 'conflict', uuid: 'u-old' })
+  })
+
+  it('409 の本文に uuid が無ければ、uuid の無い conflict を返す', async () => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 409, body: { message: 'A merge request already exists' } })])
+    expect(await client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false })).toEqual({ outcome: 'conflict' })
+  })
+
+  it.each([403, 422])('%i は、ほかの API と同じ GitHubAPIError', async (status) => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status, text: 'nope' })])
+    expect(await rejection(client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false }))).toMatchObject(
+      failure(GitHubAPIError, status === 403 ? 'access denied' : 'GitHub API error: 422', { statusCode: status, responseBody: 'nope' }),
+    )
+  })
+
+  it('status が知らない値なら GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 202, body: { status: 'queued', details: {} } })])
+    expect(await rejection(client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false }))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: mergeAsync.status (queued)'))
+  })
+
+  it('pending なのに uuid が無ければ GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('PUT', MERGE_ASYNC, { status: 202, body: { status: 'pending', details: { message: 'x' } } })])
+    expect(await rejection(client.requestAsyncMerge('owner', 'repo', 11, { sha: 'abc123', mergeQueue: false }))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: mergeAsync.details.uuid'))
+  })
+})
+
+describe('getAsyncMergeResult', () => {
+  it('uuid のパスを版 2026-03-10 で GET し、status を返す', async () => {
+    const { client, server } = await startClient([
+      { match: { method: 'GET', path: `${MERGE_ASYNC}/u-1`, apiVersion: STACK_VERSION }, respond: { status: 200, body: { status: 'merged', details: { message: 'Pull request merged', sha: 'def456' } } }, times: 1 },
+    ])
+    expect(await client.getAsyncMergeResult('owner', 'repo', 11, 'u-1')).toEqual({ status: 'merged', message: 'Pull request merged' })
+    expect(restRequests(server).map(({ method, path }) => [method, path])).toEqual([['GET', `${MERGE_ASYNC}/u-1`]])
+  })
+
+  it.each([
+    ['enqueued', 'Added to the merge queue'],
+    ['failed', 'Repository rule violations found'],
+  ])('%s は details.message をそのまま返す', async (status, message) => {
+    const { client } = await startClient([restResponse('GET', `${MERGE_ASYNC}/u-1`, { status: 200, body: { status, details: { message } } })])
+    expect(await client.getAsyncMergeResult('owner', 'repo', 11, 'u-1')).toEqual({ status, message })
+  })
+
+  it('pending は uuid も返す', async () => {
+    const { client } = await startClient([restResponse('GET', `${MERGE_ASYNC}/u-1`, { status: 200, body: pendingBody() })])
+    expect(await client.getAsyncMergeResult('owner', 'repo', 11, 'u-1')).toEqual({ status: 'pending', uuid: 'u-1', message: 'Merge request accepted' })
+  })
+
+  it('404（24 時間を過ぎて結果が消えた）は undefined', async () => {
+    const { client } = await startClient([restResponse('GET', `${MERGE_ASYNC}/u-1`, { status: 404, text: 'Not Found' })])
+    expect(await client.getAsyncMergeResult('owner', 'repo', 11, 'u-1')).toBeUndefined()
+  })
+
+  it('403 は GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('GET', `${MERGE_ASYNC}/u-1`, { status: 403, text: 'nope' })])
+    expect(await rejection(client.getAsyncMergeResult('owner', 'repo', 11, 'u-1'))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403 }))
   })
 })
