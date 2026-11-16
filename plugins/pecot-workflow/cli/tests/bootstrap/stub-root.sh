@@ -41,10 +41,12 @@ stub_root_init() {
   DATA="$BASE/data"
   STUB_BIN="$BASE/stub-bin"
   CALLS="$BASE/calls"
+  PNPM_XDG="$BASE/pnpm-xdg"
   OUT="$BASE/stdout"
   ERR="$BASE/stderr"
   mkdir -p "$ROOT/bin" "$ROOT/.claude-plugin" "$ROOT/cli/src" "$ROOT/cli/scripts" "$DATA" "$STUB_BIN" "$BASE/home"
   : > "$CALLS"
+  : > "$PNPM_XDG"
   cp "$PLUGIN_ROOT_SRC/bin/pecot" "$PLUGIN_ROOT_SRC/bin/_lib.sh" "$ROOT/bin/"
   chmod +x "$ROOT/bin/pecot"
   printf '{"name":"pecot-w","version":"1.0.0"}\n' > "$ROOT/.claude-plugin/plugin.json"
@@ -60,11 +62,13 @@ JSON
   printf 'v1\n' > "$ROOT/cli/src/index.ts"
   printf '// tsc\n' > "$ROOT/cli/scripts/tsc.mjs"
 
-  # pnpm の stub。呼び出しを「cwd|引数」で CALLS に記録する。標準出力へ雑音を出すのは、wrapper が
-  # bootstrap の標準出力を JSON-RPC から外していること（MCP 起動）を見るため。
+  # pnpm の stub。呼び出しを「cwd|引数」で CALLS に、受け取った XDG_DATA_HOME を「種類|値」で PNPM_XDG に記録する。
+  # 標準出力へ雑音を出すのは、wrapper が bootstrap の標準出力を JSON-RPC から外していること（MCP 起動）を見るため。
   cat > "$STUB_BIN/pnpm" <<SH
 #!/usr/bin/env bash
 printf '%s|%s\n' "\$PWD" "\$*" >> "$CALLS"
+case "\$*" in *"install --frozen-lockfile"*) kind=install ;; *" run build"*) kind=build ;; *) kind=other ;; esac
+printf '%s|%s\n' "\$kind" "\${XDG_DATA_HOME-<unset>}" >> "$PNPM_XDG"
 echo "stub-pnpm-stdout-noise"
 case "\$*" in
   *"install --frozen-lockfile"*)
@@ -133,6 +137,7 @@ stub_spawn() {
 stub_run() {
   RC=0
   : > "$CALLS"
+  : > "$PNPM_XDG"
   stub_spawn "$OUT" "$ERR" "$@" || RC=$?
 }
 
