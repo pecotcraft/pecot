@@ -9,24 +9,26 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
+import { checkoutWorkBranch, gitRepository } from '../_helpers/git.js'
 import { hooksDirectory } from '../_helpers/paths.js'
 import { runScript } from '../_helpers/run.js'
 
 const EXIT_PLAN_REMIND = path.join(hooksDirectory, 'lib', 'post-tool-use', 'exit-plan-remind.sh')
 
-// 一時ディレクトリそのものを project にし、.pecot/state を作る。
+// git のリポを project にし、.pecot/state を作る。
 function setUpGuard(hookCase: HookCase): string {
-  const stateDirectory = path.join(hookCase.temporaryPath, '.pecot', 'state')
+  const project = gitRepository(hookCase, 'project')
+  const stateDirectory = path.join(project, '.pecot', 'state')
   mkdirSync(stateDirectory, { recursive: true })
-  hookCase.setEnv('CLAUDE_PROJECT_DIR', hookCase.temporaryPath)
+  hookCase.setEnv('CLAUDE_PROJECT_DIR', project)
   return stateDirectory
 }
 
 describe('exit-plan-remind.sh', () => {
-  it('Copilot CLI の bash ツールのとき、何も出力しない', () => {
+  it('作業中の Issue があっても、Copilot CLI の bash ツールのとき、何も出力しない', () => {
     const hookCase = createHookCase()
-    const stateDirectory = setUpGuard(hookCase)
-    writeFileSync(path.join(stateDirectory, '.pecot-active'), 'org/repo/1\n')
+    setUpGuard(hookCase)
+    checkoutWorkBranch(hookCase, path.join(hookCase.temporaryPath, 'project'), 'x/1')
     const result = runScript(hookCase, EXIT_PLAN_REMIND, [], { stdin: '{"tool_name":"bash","tool_input":{"command":"ls"}}' })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')

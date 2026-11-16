@@ -36,6 +36,14 @@ export function gitRepository(hookCase: HookCase, name?: string): string {
   return repositoryDirectory
 }
 
+const WORK_REMOTE_URL = 'https://github.com/owner/repo.git'
+
+// 作業中の Issue をブランチ名と remote で表す。remoteUrl を false にすると remote を足さない。
+export function checkoutWorkBranch(hookCase: HookCase, repository: string, branch: string, remoteUrl: string | false = WORK_REMOTE_URL): void {
+  if (remoteUrl !== false) gitOrThrow(hookCase, repository, ['remote', 'add', 'origin', remoteUrl])
+  gitOrThrow(hookCase, repository, ['checkout', '-q', '-B', branch])
+}
+
 export interface WorkLayout {
   // base の worktree
   readonly base: string

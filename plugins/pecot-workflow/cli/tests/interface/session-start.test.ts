@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 見るのは一時リポ配下だけ */
-// session start の振る舞い（PW-SESSION-START-01〜27）を、runCli をプロセス内で呼んで確かめる。
+// session start の振る舞い（PW-SESSION-START-01〜37）を、runCli をプロセス内で呼んで確かめる。
 // 一時 git リポ・設定ファイル・偽の GitHub サーバの上で動かし、受けた要求と終わった後のファイルを比べる。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -38,11 +38,6 @@ const statusUpdate = (): ResponseRule => graphqlRule(
   { projectId: 'PVT_1', itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o4' },
 )
 const noPrerequisites = (): ResponseRule => prerequisitesRule({ number: 7 })
-const slimIssue = (state: string): ResponseRule => graphqlRule(
-  'GetIssueSlim',
-  { repository: { issue: { number: 999, state, title: 't', body: 'b', comments: { totalCount: 0 } } } },
-  { owner: 'acme', repo: 'demo', number: 999 },
-)
 
 /**
 前提が spec の Issue の、最後まで成功する応答の列
@@ -60,7 +55,7 @@ function succeeding(base = 'main'): ResponseRule[] {
 
 const CREATED = 'created: branch feat/7 in acme/demo from main\n'
 const STATUS_SET = 'set: Issue acme/demo/7 status active\n'
-const TARGET_SET = 'set: work target acme/demo/7 (work directory .pecot/work/7/)\n'
+const TARGET_SET = 'created: work directory .pecot/work/7/\n'
 
 async function create(extra: Partial<CommandRun> = {}, argv: readonly string[] = ['session', 'start', 'acme/demo/7', 'feat']): Promise<CommandResult> {
   return await runCommand({ argv, github: succeeding(), ...extra })
@@ -108,21 +103,17 @@ describe('session start', () => {
     expect(result.stderr).toContain('created: branch feat/7 in acme/demo from develop\n')
   })
 
-  it('--allow-cross-repo を付けて打つと、作業ディレクトリのリポジトリと Issue のリポジトリを比べずにブランチを作る', async (context) => {
-    await verifies(context, 'PW-SESSION-START-04')
-    const result = await create({ remote: { owner: 'other', name: 'tree' } }, ['session', 'start', 'acme/demo/7', 'feat', '--allow-cross-repo'])
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(result.stderr).toContain(CREATED)
-  })
-
-  it('--force-overwrite-active を付けて打つと、.pecot-active の内容を確かめずに上書きする', async (context) => {
-    await verifies(context, 'PW-SESSION-START-05')
-    const result = await create({ files: { [ACTIVE]: 'acme/demo/999' } }, ['session', 'start', 'acme/demo/7', 'feat', '--force-overwrite-active'])
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(requestLabels(result.requests)).not.toContain('GetIssueSlim')
-    expect(result.read(ACTIVE)).toBe('acme/demo/7')
+  it.for([
+    { flag: '--allow-cross-repo' },
+    { flag: '--force-overwrite-active' },
+    { flag: '-X' },
+    { flag: '-F' },
+  ])('$flag を付けて打つと、未知のオプションとして終了コード 2 で終わり、ブランチを作らない', async ({ flag }, context) => {
+    await verifies(context, 'PW-SESSION-START-37')
+    const result = await create({ github: [] }, ['session', 'start', 'acme/demo/7', 'feat', flag])
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain(`No such option: ${flag}`)
+    expect(result.requests).toEqual([])
   })
 
   it.for([{ flag: '--checkout' }, { flag: '--no-checkout' }])('$flag を付けて打つと、付けないときと同じ結果になる', async ({ flag }, context) => {
@@ -132,7 +123,7 @@ describe('session start', () => {
     expect(flagged.code).toBe(plain.code)
     expect(flagged.stderr).toBe(plain.stderr)
     expect(flagged.requests).toEqual(plain.requests)
-    expect(flagged.read(ACTIVE)).toBe(plain.read(ACTIVE))
+    expect(flagged.read(TITLE)).toBe(plain.read(TITLE))
   })
 
   it('ブランチを作ると、ボード上の Issue の Status を active にする', async (context) => {
@@ -146,12 +137,19 @@ describe('session start', () => {
     })
   })
 
-  it('ブランチを作ると、その Issue を作業対象として .pecot-active と .pecot-session-title に記録する', async (context) => {
+  it('ブランチを作ると、セッション名を .pecot-session-title に記録して作業ディレクトリを作り、.pecot-active は作らない', async (context) => {
     await verifies(context, 'PW-SESSION-START-08')
     const result = await create()
-    expect(result.read(ACTIVE)).toBe('acme/demo/7')
     expect(result.read(TITLE)).toBe('#7 見本の Issue')
     expect(existsSync(path.join(result.directory, '.pecot/work/7'))).toBe(true)
+    expect(result.read(ACTIVE)).toBeUndefined()
+  })
+
+  it('作業ディレクトリがすでにあっても、ブランチを作って作業ディレクトリの created の行を出す', async (context) => {
+    await verifies(context, 'PW-SESSION-START-11')
+    const result = await create({ files: { '.pecot/work/7/keep': 'x' } })
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe(`${CREATED}${STATUS_SET}${TARGET_SET}`)
   })
 
   it('ブランチを作ると、created の行を標準エラーに出す', async (context) => {
@@ -167,40 +165,10 @@ describe('session start', () => {
     expect(result.stderr).toContain(STATUS_SET)
   })
 
-  it('作業対象を記録すると、set の行を標準エラーに出す', async (context) => {
+  it('作業ディレクトリを作ると、created の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-START-11')
     const result = await create()
     expect(result.stderr).toContain(TARGET_SET)
-  })
-
-  it('.pecot-active の内容が不正な形だと、warning の行を標準エラーに出して上書きする', async (context) => {
-    await verifies(context, 'PW-SESSION-START-12')
-    await verifies(context, 'PW-SESSION-START-13')
-    const result = await create({ files: { [ACTIVE]: 'garbage-value' } })
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(result.stderr).toContain('warning: the content of .pecot-active (\'garbage-value\') is malformed; overwriting it\n')
-    expect(requestLabels(result.requests)).not.toContain('GetIssueSlim')
-    expect(result.read(ACTIVE)).toBe('acme/demo/7')
-  })
-
-  it('.pecot-active の Issue が CLOSED だと、warning の行を標準エラーに出して上書きする', async (context) => {
-    await verifies(context, 'PW-SESSION-START-14')
-    await verifies(context, 'PW-SESSION-START-15')
-    const result = await create({ files: { [ACTIVE]: 'acme/demo/999' }, github: [slimIssue('CLOSED'), ...succeeding()] })
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(result.stderr).toContain('warning: .pecot-active points to closed Issue acme/demo/999; overwriting it\n')
-    expect(result.read(ACTIVE)).toBe('acme/demo/7')
-  })
-
-  it('.pecot-active の Issue が OPEN でも CLOSED でもないときも、warning の行を標準エラーに出して上書きする', async (context) => {
-    await verifies(context, 'PW-SESSION-START-14')
-    await verifies(context, 'PW-SESSION-START-15')
-    const result = await create({ files: { [ACTIVE]: 'acme/demo/999' }, github: [slimIssue('MERGED'), ...succeeding()] })
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain('warning: the state of acme/demo/999 in .pecot-active is unexpected (\'MERGED\'); overwriting it\n')
-    expect(result.read(ACTIVE)).toBe('acme/demo/7')
   })
 
   it('ボード上の Issue の Status を active にできないと、warning の行を標準エラーに出してブランチは作ったままにする', async (context) => {
@@ -234,12 +202,12 @@ describe('session start', () => {
   it('作業対象を記録できないと、warning の行を標準エラーに出して終了コード 0 で終わる', async (context) => {
     await verifies(context, 'PW-SESSION-START-17')
     // 状態ディレクトリの場所にファイルを置くと、書けない
-    const result = await create({ files: { '.pecot/state': 'not a directory' } }, ['session', 'start', 'acme/demo/7', 'feat', '--force-overwrite-active'])
+    const result = await create({ files: { '.pecot/state': 'not a directory' } }, ['session', 'start', 'acme/demo/7', 'feat'])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain(CREATED)
     expect(result.stderr).toMatch(/warning: could not record the work target: .+\n/u)
-    expect(result.stderr).not.toContain('set: work target')
+    expect(result.stderr).not.toContain('created: work directory')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
@@ -270,26 +238,9 @@ describe('session start', () => {
       '  move to the worktree of the target repository and run again:',
       '  <project-root>/base/demo/ or <project-root>/<wtN>/demo/',
       '  create one with /pecot-w:w-worktree-add only if the repository has no worktree',
-      '  to issue the command on purpose from outside the CWD (for example in a script), give --allow-cross-repo',
       '',
     ].join('\n'))
     expect(result.requests).toEqual([])
-  })
-
-  it('.pecot-active に別の OPEN な Issue が残っていると、ブランチを作らず終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-21')
-    const result = await create({ files: { [ACTIVE]: 'acme/demo/999' }, github: [slimIssue('OPEN')] })
-    expect(result.code).toBe(2)
-    expect(result.problems).toEqual([])
-    expect(requestLabels(result.requests)).toEqual(['GetIssueSlim'])
-    expect(result.stderr).toBe([
-      'error: this worktree is already working on another Issue (acme/demo/999, OPEN)',
-      '  overwriting .pecot-active could mix up the tasks',
-      '  finish the other Issue first, or create another worktree with /pecot-w:w-worktree-add and run /pecot-w:w-active again in its session',
-      '  if it is stale and you want to overwrite it on purpose, give --force-overwrite-active',
-      '',
-    ].join('\n'))
-    expect(result.read(ACTIVE)).toBe('acme/demo/999')
   })
 
   it('--base を省いて develop_branch も設定していないと、終了コード 1 で終わる', async (context) => {
@@ -324,7 +275,7 @@ describe('session start', () => {
     expectClean(result)
     expect(result.stderr).toMatch(/^error: could not create branch feat\/7 in acme\/demo: resource not found: http:\/\/127\.0\.0\.1:\d+\/repos\/acme\/demo\/git\/ref\/heads\/main\n$/u)
     expect(requestLabels(result.requests)).not.toContain('CreateLinkedBranch')
-    expect(result.read(ACTIVE)).toBeUndefined()
+    expect(result.read(TITLE)).toBeUndefined()
   })
 
   it('ブランチの作成の mutation が GraphQL の errors を返すと、ステータスの更新へ進まず終了コード 1 で終わる', async (context) => {
@@ -337,7 +288,7 @@ describe('session start', () => {
     expect(result.stderr).toMatch(/^error: could not create branch feat\/7 in acme\/demo: .*Ref already exists/u)
     expect(requestLabels(result.requests)).not.toContain('GetIssueProjectItems')
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
-    expect(result.read(ACTIVE)).toBeUndefined()
+    expect(result.read(TITLE)).toBeUndefined()
   })
 
   it('--repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async (context) => {
@@ -384,7 +335,17 @@ describe('session start', () => {
       const result = await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, dry_run: true }, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main')] })
       expectClean(result)
       expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', dryRun: true })
-      expect(result.read(ACTIVE)).toBeUndefined()
+      expect(result.read(TITLE)).toBeUndefined()
+    })
+
+    it.for([
+      { name: 'allow_cross_repo' },
+      { name: 'force_overwrite_active' },
+    ])('$name を渡すと、未知の入力として invalid-input で弾き、ブランチを作らない', async ({ name }, context) => {
+      await verifies(context, 'PW-SESSION-START-37')
+      const result = await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, [name]: true }, github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.requests).toEqual([])
     })
 
     it('Status を active にできないと、warning を data.warnings に返し、ブランチの data は返す', async () => {
@@ -442,7 +403,7 @@ describe('session start', () => {
       expect(result.code).toBe(2)
       expectClean(result)
       expect(result.stderr).toBe('error: --base release differs from the base chosen by readiness: feat/3 (stacked on #3)\n')
-      expect(result.read(ACTIVE)).toBeUndefined()
+      expect(result.read(TITLE)).toBeUndefined()
       expect(result.read(BASE)).toBeUndefined()
     })
 
@@ -462,7 +423,7 @@ describe('session start', () => {
         '  to stack on it instead of waiting for merge: pecot issue block acme/demo/7 --by acme/demo/4 --wait stack',
         '',
       ].join('\n'))
-      expect(result.read(ACTIVE)).toBeUndefined()
+      expect(result.read(TITLE)).toBeUndefined()
     })
 
     it('済んでいない前提が 1 件で merge 待ちなら、直し方にその Issue の参照を入れる', async (context) => {
@@ -505,7 +466,7 @@ describe('session start', () => {
       expect(result.code).toBe(1)
       expect(result.problems).toEqual([])
       expect(result.stderr).toMatch(/^error: could not read blocked-by of #7: .+500/u)
-      expect(result.read(ACTIVE)).toBeUndefined()
+      expect(result.read(TITLE)).toBeUndefined()
     })
 
     it('前提は読めても判定できないと、判定できない旨の error の行を出して終了コード 1 で終わる', async (context) => {
@@ -546,7 +507,7 @@ describe('session start', () => {
       expectClean(result)
       expect(result.stderr).toMatch(/^error: base branch feat\/3 of #3 not found: resource not found: .+\n$/u)
       expect(requestLabels(result.requests)).not.toContain('CreateLinkedBranch')
-      expect(result.read(ACTIVE)).toBeUndefined()
+      expect(result.read(TITLE)).toBeUndefined()
     })
 
     it('blocked の理由が diverged なら、直し方は unblock の行だけにする', async (context) => {

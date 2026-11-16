@@ -40,7 +40,7 @@ disallowedTools:
 
 ## 越境
 
-編集してよいのは、active Issue（`.pecot/state/.pecot-active` の owner/repo）のリポジトリ内のファイルだけ。
+編集してよいのは、作業中の worktree の remote のリポジトリ内のファイルだけ。
 越境する変更は対象リポを編集しない。unified diff を `.pecot/work/<Issue番号>/<slug>.patch` に退避し、そのパスを main に返す。判定手順は skills/w-help/references/issue-flow-rules.md §6 にある。
 
 ## 範囲と報告

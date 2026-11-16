@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // post-tool-use/auto-push.sh と stop/auto-push.sh のテスト。
 // コミット成功後の WIP ブランチへの自動 push と、Stop hook での URL 表示を確かめる。
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -142,7 +142,6 @@ function setUpEnvironment(hookCase: HookCase): Setup {
   gitOrThrow(hookCase, repository, ['remote', 'add', 'origin', DEFAULT_ORIGIN])
   const stateDirectory = path.join(project, '.pecot', 'state')
   mkdirSync(stateDirectory, { recursive: true })
-  writeFileSync(path.join(stateDirectory, '.pecot-active'), 'testowner/testrepo/1443\n')
   return { realGit, config, mock, repository, pushLog, graphqlLog, stateDirectory }
 }
 
@@ -161,11 +160,6 @@ function runAutoPush(hookCase: HookCase, setup: Setup, stdin: string = commitSuc
 
 function readText(file: string): string {
   return readFileSync(file, 'utf8')
-}
-
-function writePecotActive(setup: Setup): void {
-  mkdirSync(setup.stateDirectory, { recursive: true })
-  writeFileSync(path.join(setup.stateDirectory, '.pecot-active'), 'testowner/testrepo/1443\n')
 }
 
 // wip の追跡 ref の一覧
@@ -388,7 +382,6 @@ describe('auto-push.sh', () => {
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
       setRemote(hookCase, setup, 'git@ghes.example.com:testowner/testrepo.git')
-      writePecotActive(setup)
       const result = runAutoPush(hookCase, setup)
       expect(result.exitCode).toBe(0)
       // GraphQL は query と mutation の 2 回
@@ -405,7 +398,6 @@ describe('auto-push.sh', () => {
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
       setRemote(hookCase, setup, 'git@ghes.example.com:testowner/testrepo.git')
-      writePecotActive(setup)
       // 同一ブランチ名を事前に記録する
       writeFileSync(path.join(setup.stateDirectory, '.wip-branch-linked'), 'wip/feat/add-auth/1443')
       const result = runAutoPush(hookCase, setup)
@@ -416,12 +408,11 @@ describe('auto-push.sh', () => {
       expect(existsSync(setup.pushLog)).toBe(true)
     })
 
-    it('.pecot-active が無いとき、何も出力せず、push せず API も呼ばない', () => {
+    it('ブランチの番号が 0 のとき、作業中の Issue は無いとして、何も出力せず、push せず API も呼ばない', () => {
       const hookCase = createHookCase()
       const setup = setUpEnvironment(hookCase)
-      checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
-      rmSync(path.join(setup.stateDirectory, '.pecot-active'))
-      const result = runAutoPush(hookCase, setup)
+      checkout(hookCase, setup, 'feat/add-auth/0')
+      const result = runAutoPush(hookCase, setup, commitSuccessJson('feat/add-auth/0'))
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toBe('')
       expect(existsSync(setup.pushLog)).toBe(false)
@@ -433,7 +424,6 @@ describe('auto-push.sh', () => {
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
       setRemote(hookCase, setup, 'git@ghes.example.com:testowner/testrepo.git')
-      writePecotActive(setup)
       // GraphQL の API を失敗させる（終了コードが 0 でない）
       setup.mock.install('gh', mockGhBody(setup.graphqlLog, '1'))
       const result = runAutoPush(hookCase, setup)
@@ -449,7 +439,6 @@ describe('auto-push.sh', () => {
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
       setRemote(hookCase, setup, 'git@ghes.example.com:testowner/testrepo.git')
-      writePecotActive(setup)
       // エラーなしで linkedBranch が null になる（既にリンク済みの場合）
       setup.mock.install('gh', mockGhBody(setup.graphqlLog, '0', '{"data":{"createLinkedBranch":{"linkedBranch":null}}}'))
       const result = runAutoPush(hookCase, setup)
@@ -466,7 +455,6 @@ describe('auto-push.sh', () => {
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
       setRemote(hookCase, setup, 'git@ghes.example.com:testowner/testrepo.git')
-      writePecotActive(setup)
       // 終了コードは 0 だが errors がある
       setup.mock.install('gh', mockGhBody(setup.graphqlLog, '0', '{"data":{"createLinkedBranch":null},"errors":[{"message":"Something went wrong"}]}'))
       const result = runAutoPush(hookCase, setup)
@@ -481,7 +469,6 @@ describe('auto-push.sh', () => {
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
       setRemote(hookCase, setup, 'git@ghes.example.com:testowner/testrepo.git')
-      writePecotActive(setup)
       setup.mock.install('gh', mockGhBody(setup.graphqlLog, '0', '{"data":{"createLinkedBranch":null},"errors":[{"message":"A branch with the name already exists"}]}'))
       const result = runAutoPush(hookCase, setup)
       expect(result.exitCode).toBe(0)
@@ -494,43 +481,46 @@ describe('auto-push.sh', () => {
   })
 
   describe('対象の Issue とリポ', () => {
-    it('.pecot-active が空のとき、何も出力せず、push せず API も呼ばない', () => {
+    it('別の番号の .pecot-active があっても読まず、ブランチの番号の Issue にリンクして push する', () => {
       const hookCase = createHookCase()
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
-      writeFileSync(path.join(setup.stateDirectory, '.pecot-active'), '')
+      writeFileSync(path.join(setup.stateDirectory, '.pecot-active'), 'testowner/otherrepo/1\n')
       const result = runAutoPush(hookCase, setup)
       expect(result.exitCode).toBe(0)
-      expect(result.stdout).toBe('')
-      expect(existsSync(setup.pushLog)).toBe(false)
-      expect(existsSync(setup.graphqlLog)).toBe(false)
+      expect(existsSync(setup.pushLog)).toBe(true)
+      expect(readText(setup.graphqlLog)).toContain('-f owner=testowner -f repo=testrepo -F number=1443')
     })
 
-    it('.pecot-active の形式が不正なとき、push しない', () => {
+    it('ブランチの末尾の区切りが数字だけでないとき、push せず API も呼ばない', () => {
       const hookCase = createHookCase()
       const setup = setUpEnvironment(hookCase)
-      checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
-      writeFileSync(path.join(setup.stateDirectory, '.pecot-active'), 'testowner/testrepo\n')
-      const result = runAutoPush(hookCase, setup)
-      expect(result.exitCode).toBe(0)
-      expect(existsSync(setup.pushLog)).toBe(false)
-    })
-
-    it('ブランチの Issue 番号が active と違うとき、push せず API も呼ばない', () => {
-      const hookCase = createHookCase()
-      const setup = setUpEnvironment(hookCase)
-      checkout(hookCase, setup, 'feat/add-auth/999')
-      const result = runAutoPush(hookCase, setup, commitSuccessJson('feat/add-auth/999'))
+      checkout(hookCase, setup, 'feat/add-auth/1443a')
+      const result = runAutoPush(hookCase, setup, commitSuccessJson('feat/add-auth/1443a'))
       expect(result.exitCode).toBe(0)
       expect(existsSync(setup.pushLog)).toBe(false)
       expect(existsSync(setup.graphqlLog)).toBe(false)
     })
 
-    it('リモートが active のリポと違うとき、push せず API も呼ばない', () => {
+    it.for([
+      { label: 'ローカルのパス', url: '/srv/git/testrepo.git' },
+      { label: 'https で末尾に /（CLI の parseRemoteUrl が受けない形）', url: 'https://ghes.example.com/testowner/testrepo/' },
+    ])('origin の URL が $label のとき、作業中の Issue は無いとして、push せず API も呼ばない', (row) => {
       const hookCase = createHookCase()
       const setup = setUpEnvironment(hookCase)
       checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
-      setRemote(hookCase, setup, 'git@ghes.example.com:testowner/otherrepo.git')
+      setRemote(hookCase, setup, row.url)
+      const result = runAutoPush(hookCase, setup)
+      expect(result.exitCode).toBe(0)
+      expect(existsSync(setup.pushLog)).toBe(false)
+      expect(existsSync(setup.graphqlLog)).toBe(false)
+    })
+
+    it('remote が無いとき、push せず API も呼ばない', () => {
+      const hookCase = createHookCase()
+      const setup = setUpEnvironment(hookCase)
+      checkout(hookCase, setup, DEFAULT_BRANCH_NAME)
+      gitOrThrow(hookCase, setup.repository, ['remote', 'remove', 'origin'])
       const result = runAutoPush(hookCase, setup)
       expect(result.exitCode).toBe(0)
       expect(existsSync(setup.pushLog)).toBe(false)
@@ -541,7 +531,6 @@ describe('auto-push.sh', () => {
       { label: 'ssh://git@ghes.example.com:2222/testowner/testrepo.git', url: 'ssh://git@ghes.example.com:2222/testowner/testrepo.git', host: 'ghes.example.com' },
       { label: 'ssh://ghes.example.com/testowner/testrepo.git/', url: 'ssh://ghes.example.com/testowner/testrepo.git/', host: 'ghes.example.com' },
       { label: 'https://user:token@ghes.example.com/testowner/testrepo.git', url: 'https://user:token@ghes.example.com/testowner/testrepo.git', host: 'ghes.example.com' },
-      { label: 'https://ghes.example.com/testowner/testrepo/', url: 'https://ghes.example.com/testowner/testrepo/', host: 'ghes.example.com' },
       { label: 'git@ghes.example.com:TestOwner/TestRepo.git', url: 'git@ghes.example.com:TestOwner/TestRepo.git', host: 'ghes.example.com' },
     ])('リモートの URL が $label のとき、push し、認証情報を含まない URL を書く', (row) => {
       const hookCase = createHookCase()

@@ -1,5 +1,5 @@
 # Python が書いた形の状態ファイル（.pecot-session-title を含む）を読む。手本の golden は session-status-ok。
-# アクティブな Issue があり、GetIssueSlim が 200 を返す。フラグの表と Issue の本文を出す。
+# ブランチ feat/demo/7 と origin から作業中の Issue を求め、GetIssueSlim が 200 を返す。Issue の本文を出す。
 id: session-show-ok-python-state
 command:
   path: [session, show]
@@ -60,8 +60,6 @@ setup:
         }
       .pecot/config/projects/.active: |
         ghes.example.com_acme_board_acme.json
-      .pecot/state/.pecot-active: |
-        acme/demo/7
       .pecot/state/.pecot-session-title: |
         #7 見本の Issue
   env:

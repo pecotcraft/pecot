@@ -67,8 +67,7 @@
 | コマンド | 説明 |
 | --- | --- |
 | `session finish` | Clean up after a merged PR (close related Issues, delete branches, local cleanup) |
-| `session restore` | Restore lost session flags (such as .pecot-active) from the branch information |
-| `session show` | Show the session flag state, branch information, and inferred Issue |
+| `session show` | Show the branch, repository and work Issue of the session |
 | `session start` | Create a branch linked to an Issue (shown in the Development section of the Issue) |
 
 ## tracker

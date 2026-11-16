@@ -29,14 +29,13 @@ MCP ツールとフックが、作業中の Issue をどう求め、どう使う
 
 ## `issue_quick`
 
-| 入力・状況 | 今 | 変更の後 |
-|---|---|---|
-| ブランチを作った | `.pecot-active` と題名を書く。Epic・Tracker 以外なら `.pecot-quick-mode` を作る | 題名のキャッシュと作業ディレクトリを作る。`.pecot-quick-mode` は作らない |
-| `no_branch` | `.pecot-active` と題名を書く | 作業ディレクトリだけを作る |
-| ブランチの作成が API で失敗した | warning を出して続ける | 同じ |
-| `repo` がセッションのリポと違い、ブランチを作る | 起票し、ブランチを作る | 起票の前に終了コード 2 で止める |
-| `repo` がセッションのリポと違い、`no_branch` | 起票する | 同じ |
-| 起票に成功した | `issue-pending` と `issue-create-slash-pending` を消す | 消さない（読む者がいない） |
+`issue_quick` は #428 で無くなった。`issue create --freeform` はブランチを作らず、w-quick は起票の後に `session_start` を呼ぶ。
+
+| 入力・状況 | 変更の後 |
+|---|---|
+| `issue create --freeform` で起票した | `.pecot-active` を書かない |
+| w-quick の起票先 | セッションの remote のリポにする。リポが違えば `session_start` が終了コード 2 で止める（起票の前には止められない） |
+| 起票に成功した | `issue-pending` と `issue-create-slash-pending` を消し続ける。消すのをやめるのは、読むフックを除く Phase 2・3 |
 
 ## `pr_create`（下書き）
 
@@ -46,13 +45,13 @@ MCP ツールとフックが、作業中の Issue をどう求め、どう使う
 | 作業中の Issue が無い | 補わない |
 | `.pecot/state/` の無い clone で、紐づいたブランチにいる | `Closes #<番号>` |
 
-実投稿に成功しても、`pr-create-slash-pending` は消さない（読む者がいない）。
+実投稿に成功したときの `pr-create-slash-pending` の消費は、Phase 2（T012）で除く。
 
 ## `pr_cleanup`
 
 | 状況 | 今 | 変更の後 |
 |---|---|---|
-| 手元の片付けを終えた | `.pecot-active`・`.pecot-session-title`・`.pecot-quick-mode`・`.wip-branch-linked`・`merge-slash-pending` を消す | `.pecot-session-title` だけを消す |
+| 手元の片付けを終えた | `.pecot-active`・`.pecot-base`・`.pecot-session-title`・`.pecot-quick-mode`・`.wip-branch-linked`・`merge-slash-pending` を消す | `.pecot-active` を消さない。ほかは消し続ける（`.pecot-quick-mode` は Phase 6、`.wip-branch-linked` と `merge-slash-pending` は Phase 2・3 で除く） |
 
 ## `session_status`
 

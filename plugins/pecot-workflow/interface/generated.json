@@ -110,10 +110,6 @@
           "meaning": "作業を始める"
         },
         {
-          "word": "restore",
-          "meaning": "作業の状態を戻す"
-        },
-        {
           "word": "finish",
           "meaning": "作業を終えて片付ける"
         },
@@ -5148,119 +5144,9 @@
       }
     },
     {
-      "id": "PW-SESSION-RESTORE",
-      "name": "session restore",
-      "description": "Restore lost session flags (such as .pecot-active) from the branch information",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "session",
-            "restore"
-          ]
-        },
-        "mcp": {
-          "tool": "session_restore"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "directory": {
-            "type": "string",
-            "description": "Target Git repository (absolute or relative path)"
-          },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be recorded without writing anything"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (owner/repo/number)"
-          }
-        },
-        "required": [
-          "directory"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "issue_ref": [
-            "--issue-ref",
-            "-i"
-          ]
-        }
-      },
-      "mcp": {
-        "output": {
-          "type": "object",
-          "properties": {
-            "issue": {
-              "type": "string",
-              "description": "Work Issue recorded (owner/repo/N)"
-            },
-            "workDirectory": {
-              "description": "Absolute path of the work directory (omitted on dry_run or when it could not be created)",
-              "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "issue"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
       "id": "PW-SESSION-SHOW",
       "name": "session show",
-      "description": "Show the session flag state, branch information, and inferred Issue",
+      "description": "Show the branch, repository and work Issue of the session",
       "surfaces": {
         "cli": {
           "path": [
@@ -5308,60 +5194,25 @@
               "description": "Repository of the git remote (owner/repo; omitted when it cannot be read)",
               "type": "string"
             },
-            "inferredIssue": {
-              "description": "Issue number inferred from the branch name (omitted when none)",
-              "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991
-            },
-            "flags": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the session flag"
-                  },
-                  "isSet": {
-                    "type": "boolean",
-                    "description": "Whether the flag is set"
-                  },
-                  "content": {
-                    "type": "string",
-                    "description": "Content of the flag (empty when unset)"
-                  }
-                },
-                "required": [
-                  "name",
-                  "isSet",
-                  "content"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Session flags"
-            },
             "activeIssue": {
-              "description": "Issue in .pecot-active as read from GitHub (omitted when unset or unreadable)",
+              "description": "Work Issue of the session (omitted when there is none)",
               "type": "object",
               "properties": {
                 "reference": {
                   "type": "string",
-                  "description": "Issue in .pecot-active (owner/repo/N)"
+                  "description": "Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)"
                 },
                 "title": {
-                  "type": "string",
-                  "description": "Title of the Issue"
+                  "description": "Title of the Issue (omitted when it cannot be read from GitHub)",
+                  "type": "string"
                 },
                 "state": {
-                  "type": "string",
-                  "description": "State of the Issue (OPEN or CLOSED)"
+                  "description": "State of the Issue, OPEN or CLOSED (omitted when it cannot be read from GitHub)",
+                  "type": "string"
                 }
               },
               "required": [
-                "reference",
-                "title",
-                "state"
+                "reference"
               ],
               "additionalProperties": false
             },
@@ -5457,20 +5308,7 @@
               "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
             }
           },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "flags"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
+          "additionalProperties": false
         }
       }
     },
@@ -5494,11 +5332,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "allow_cross_repo": {
-            "type": "boolean",
-            "default": false,
-            "description": "Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)"
-          },
           "base": {
             "type": "string",
             "description": "Base branch (default: chosen by readiness, else develop_branch from the config)"
@@ -5517,11 +5350,6 @@
             "default": false,
             "description": "Show what would be created and recorded without writing anything"
           },
-          "force_overwrite_active": {
-            "type": "boolean",
-            "default": false,
-            "description": "Disable the .pecot-active overwrite guard (when sure it is stale)"
-          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (owner/repo/123)"
@@ -5539,10 +5367,6 @@
           "branch"
         ],
         "flags": {
-          "allow_cross_repo": [
-            "--allow-cross-repo",
-            "-X"
-          ],
           "base": [
             "--base",
             "-b"
@@ -5554,10 +5378,6 @@
           "dry_run": [
             "--dry-run",
             "-n"
-          ],
-          "force_overwrite_active": [
-            "--force-overwrite-active",
-            "-F"
           ]
         }
       },

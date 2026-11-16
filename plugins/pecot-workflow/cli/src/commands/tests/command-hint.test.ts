@@ -56,7 +56,7 @@ describe('formatHint のコマンド', () => {
 describe('formatHint の入力', () => {
   it.for([
     { name: '値を持つ入力', hint: inputHint(['session', 'start'], 'base', 'main'), cli: '--base main', mcp: 'base: "main"' },
-    { name: '真偽の入力', hint: inputHint(['session', 'start'], 'force_overwrite_active'), cli: '--force-overwrite-active', mcp: 'force_overwrite_active: true' },
+    { name: '真偽の入力', hint: inputHint(['session', 'start'], 'dry_run'), cli: '--dry-run', mcp: 'dry_run: true' },
     { name: '名前だけの入力', hint: inputNameHint(['issue', 'comment'], 'issue_ref'), cli: '--issue-ref', mcp: 'issue_ref' },
     { name: 'グローバルの repo の名前', hint: globalRepositoryHint(), cli: '--repo', mcp: 'repo' },
     { name: 'グローバルの repo と値', hint: globalRepositoryHint(placeholder('owner/repo')), cli: '--repo <owner/repo>', mcp: 'repo: <owner/repo>' },

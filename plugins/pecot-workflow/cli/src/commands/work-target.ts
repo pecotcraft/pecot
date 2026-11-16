@@ -1,18 +1,13 @@
-// 作業対象（.pecot-active と .pecot-session-title、作業ディレクトリ）を記録して、結果の行を出す。
+// 作業対象のセッション名のキャッシュ（.pecot-session-title）と作業ディレクトリを作って、結果の行を出す。
 import { InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
 import { FLAG_PECOT_BASE } from '../domain/state.js'
 import type { BaseRecord } from '../domain/state.js'
 import { OsError, hasErrorCode, toOsError } from '../infra/os-error.js'
 import { WORK_DIR } from '../infra/paths.js'
-import { ensureWorkDirectory, removeFlag, writeBaseRecord, writeWorkTarget } from '../infra/state-store.js'
-import { stopWith } from './command-stop.js'
+import { ensureWorkDirectory, removeFlag, writeBaseRecord, writeSessionTitle } from '../infra/state-store.js'
 import type { Output } from './output.js'
 
 export interface RecordWorkTargetOptions {
-  /**
-  真なら、記録の失敗を warning ではなく error の行で出し、終了コード 1 で止める
-  */
-  readonly failWithExit?: boolean
   /**
   着手で選んだ base。作業対象を記録できたときに .pecot-base へ書く。省くと .pecot-base は消えたままになる
   */
@@ -41,8 +36,9 @@ function describeFailure(error: Readonly<Error>): string {
 }
 
 /**
-.pecot-base を消してから作業対象を書き、`set: work target ...` の行を出す。options.base があれば記録後に .pecot-base も書く。
-失敗は warning の行。failWithExit なら error の行と CommandExit(1)。記録できたかと、行に出した参照・作業ディレクトリを返す
+.pecot-base を消してからセッション名のキャッシュを書き、作業ディレクトリを作って `create: work directory ...` の行を出す。
+作業ディレクトリがすでにあっても同じ行を出す。options.base があれば記録後に .pecot-base も書く。
+失敗は warning の行。記録できたかと、参照・作業ディレクトリを返す
 */
 export function recordWorkTarget(
   out: Readonly<Output>,
@@ -54,25 +50,23 @@ export function recordWorkTarget(
 ): RecordedWorkTarget {
   const issueReference = `${owner}/${repository}/${String(issueNumber)}`
   clearBase(out)
-  let target: string
-  let workDirectory: string | undefined
   try {
-    writeWorkTarget(issueReference, title)
-    target = `work target ${issueReference}`
-    workDirectory = ensureWorkDirectory(issueReference)
-    if (workDirectory !== undefined) target += ` (work directory ${WORK_DIR}/${String(issueNumber)}/)`
+    writeSessionTitle(issueReference, title)
   }
   catch (error: unknown) {
     if (!isRecordingFailure(error)) throw error
-    if (options.failWithExit === true) {
-      stopWith(out, `could not record the work target: ${describeFailure(error)}`, 'other')
-    }
     out.warning(`could not record the work target: ${describeFailure(error)}`)
     return { status: 'failed', issue: issueReference }
   }
-  out.done({ verb: 'set', target })
+  const workDirectory = ensureWorkDirectory(issueReference)
+  if (workDirectory === undefined) out.warning(`could not create ${workDirectoryTarget(issueNumber)}`)
+  else out.done({ verb: 'create', target: workDirectoryTarget(issueNumber) })
   if (options.base !== undefined) recordBase(options.base, out)
   return { status: 'recorded', issue: issueReference, workDirectory }
+}
+
+function workDirectoryTarget(issueNumber: number): string {
+  return `work directory ${WORK_DIR}/${String(issueNumber)}/`
 }
 
 function warnBase(out: Readonly<Output>, error: unknown): void {
@@ -107,8 +101,8 @@ function recordBase(record: Readonly<BaseRecord>, out: Readonly<Output>): void {
 }
 
 /**
-予行の行。recordWorkTarget が書く作業対象（.pecot-active・.pecot-session-title・.pecot-base）を書かずに出す
+予行の行。recordWorkTarget が作る作業ディレクトリ（と書く .pecot-session-title・.pecot-base）を作らずに出す
 */
-export function planWorkTarget(out: Readonly<Output>, owner: string, repository: string, issueNumber: number): void {
-  out.planned({ verb: 'set', target: `work target ${owner}/${repository}/${String(issueNumber)}` })
+export function planWorkTarget(out: Readonly<Output>, issueNumber: number): void {
+  out.planned({ verb: 'create', target: workDirectoryTarget(issueNumber) })
 }

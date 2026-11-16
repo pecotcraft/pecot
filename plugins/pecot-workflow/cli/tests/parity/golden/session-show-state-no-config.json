@@ -1,9 +1,7 @@
 {
-  "stdout": "# Session status\n\n- Branch: feat/demo/7\n- Repository: acme/demo\n- Inferred Issue: #7\n\n| Flag | State | Content |\n|------|-------|---------|\n| .pecot-active | set | acme/demo/7 |\n",
+  "stdout": "# Session status\n\n- Branch: feat/demo/7\n- Repository: acme/demo\n- Active Issue: acme/demo#7\n",
   "stderr": "warning: cannot read the active Issue: no active project\n",
   "exitCode": 0,
   "requests": [],
-  "files": {
-    ".pecot/state/.pecot-active": "acme/demo/7\n"
-  }
+  "files": {}
 }

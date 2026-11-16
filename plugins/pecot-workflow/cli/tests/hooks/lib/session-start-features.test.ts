@@ -390,10 +390,14 @@ describe('session-start のロジックスクリプト', () => {
       // 同じスクリプトの出力に素のテキストと JSON が入り込むと、JSON が文脈の文字列になってしまう
       const hookCase = createHookCase()
       const repository = setUpReachableRepository(hookCase, 'sync-title')
+      // 作業中の Issue は origin とブランチ名から求める。git pull は改名した remote の追跡ブランチから取る
+      const upstream = gitIn(hookCase, repository, ['branch', '--show-current']).trim()
+      gitIn(hookCase, repository, ['checkout', '-q', '-b', 'feat/x/1253', '--track', `origin/${upstream}`])
+      gitIn(hookCase, repository, ['remote', 'rename', 'origin', 'sync'])
+      gitIn(hookCase, repository, ['remote', 'add', 'origin', 'https://github.com/owner/repo.git'])
       const state = path.join(repository, '.pecot', 'state')
       mkdirSync(state, { recursive: true })
       writeFileSync(path.join(repository, '.pecot', '.gitignore'), '*\n')
-      writeFileSync(path.join(state, '.pecot-active'), 'owner/repo/1253\n')
       writeFileSync(path.join(state, '.pecot-session-title'), '#1253 題名\n')
       const result = runSessionStartEntry(hookCase, repository, { source: 'startup', transcript_path: '/t/c.jsonl' })
       expect(result.exitCode).toBe(0)

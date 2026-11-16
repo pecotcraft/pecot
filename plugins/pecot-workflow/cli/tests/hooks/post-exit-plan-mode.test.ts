@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from './_helpers/environment.js'
 import type { HookCase } from './_helpers/environment.js'
-import { workLayout } from './_helpers/git.js'
+import { checkoutWorkBranch, gitRepository, workLayout } from './_helpers/git.js'
 import { pecotBinMock } from './_helpers/mock-bin.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
@@ -20,13 +20,12 @@ const EXIT_PLAN = jsonDumps({ tool_name: 'ExitPlanMode' })
 
 interface Context {
   readonly project: string
-  readonly pecotActive: string
   readonly quickMode: string
   readonly marker: string
 }
 
 function setUpContext(hookCase: HookCase): Context {
-  const project = path.join(hookCase.temporaryPath, 'project')
+  const project = gitRepository(hookCase, 'project')
   const plugin = path.join(hookCase.temporaryPath, 'plugin')
   const stateDirectory = path.join(project, '.pecot', 'state')
   mkdirSync(stateDirectory, { recursive: true })
@@ -44,10 +43,14 @@ function setUpContext(hookCase: HookCase): Context {
   hooksConfig(hookCase).write({})
   return {
     project,
-    pecotActive: path.join(stateDirectory, '.pecot-active'),
     quickMode: path.join(stateDirectory, '.pecot-quick-mode'),
     marker: mock.marker,
   }
+}
+
+// 作業中の Issue（ブランチ feat/x/123 と remote）を用意する。
+function activate(hookCase: HookCase, context: Context): void {
+  checkoutWorkBranch(hookCase, context.project, 'feat/x/123')
 }
 
 function runHook(hookCase: HookCase, stdin: string): RunResult {
@@ -67,17 +70,20 @@ function additionalContext(result: RunResult): string {
 }
 
 describe('post-tool-use-exit-plan-mode.sh', () => {
-  it('pecot-active が無いとき、何も出力しない', () => {
+  it('作業中の Issue が無いとき、.pecot-active があっても何も出力しない', () => {
     const hookCase = createHookCase()
-    setUpContext(hookCase)
+    const context = setUpContext(hookCase)
+    checkoutWorkBranch(hookCase, context.project, 'main')
+    writeFileSync(path.join(context.project, '.pecot', 'state', '.pecot-active'), 'org/repo/123\n')
     const result = runHook(hookCase, EXIT_PLAN)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
   })
 
-  it('pecot を使っていないリポジトリ（.pecot が無い）では、何も書かず .pecot も作らない', () => {
+  it('pecot を使っていないリポジトリ（.pecot が無い）では、作業中の Issue のブランチでも、何も出さず .pecot も作らない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
+    checkoutWorkBranch(hookCase, context.project, 'x/1')
     rmSync(path.join(context.project, '.pecot'), { recursive: true })
     const result = runHook(hookCase, EXIT_PLAN)
     expect(result.exitCode).toBe(0)
@@ -88,7 +94,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it('共有モードでは、コメントの更新と implementer への引き継ぎを案内する', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     const result = runHook(hookCase, EXIT_PLAN)
     expect(result.exitCode).toBe(0)
     const text = additionalContext(result)
@@ -102,7 +108,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it('implementer への引き継ぎは、計画の作業単位のモデルを渡すよう案内し、Copilot CLI では省くよう示す', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     const text = additionalContext(runHook(hookCase, EXIT_PLAN))
     expect(text).toContain('the model the plan gives')
     expect(text).not.toMatch(/^\s*model: sonnet\s*$/mu)
@@ -113,7 +119,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it('implementer への引き継ぎは、委譲する条件の置き場を示し、条件に当たらない単位を main が実装すると案内する', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     const text = additionalContext(runHook(hookCase, EXIT_PLAN))
     expect(text).toContain('subagent-usage.md')
     expect(text).toContain('main implements a unit unless it meets the delegation conditions.')
@@ -123,7 +129,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it('Copilot の tool 名 exit_plan_mode でも、コメントの更新と引き継ぎを案内する', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     const result = runHook(hookCase, jsonDumps({ tool_name: 'exit_plan_mode' }))
     expect(result.exitCode).toBe(0)
     const text = additionalContext(result)
@@ -134,7 +140,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it('exit_plan のような別の tool 名では、何も出力しない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     writeFileSync(context.quickMode, '')
     const result = runHook(hookCase, jsonDumps({ tool_name: 'exit_plan' }))
     expect(result.exitCode).toBe(0)
@@ -145,7 +151,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it.for(['ExitPlanMode', 'exit_plan_mode'])('quick モードでは、%s でも、コメントの更新だけを案内し、quick モードのフラグを消す', (toolName) => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     writeFileSync(context.quickMode, '')
     const result = runHook(hookCase, jsonDumps({ tool_name: toolName }))
     expect(result.exitCode).toBe(0)
@@ -158,19 +164,19 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
   it('bin/pecot があっても、ExitPlanMode の後に Issue へ投稿しない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
-    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    activate(hookCase, context)
     const result = runHook(hookCase, EXIT_PLAN)
     expect(result.exitCode).toBe(0)
     expect(existsSync(context.marker)).toBe(false)
     expect(existsSync(path.join(context.project, '.pecot', 'tmp', 'plan-post'))).toBe(false)
   })
 
-  it('cwd が base の .pecot/work/N でも、セッションの worktree の pecot-active を読む', () => {
+  it('cwd が base の .pecot/work/N でも、セッションの worktree のブランチで判定する', () => {
     const hookCase = createHookCase()
     setUpContext(hookCase)
     const layout = workLayout(hookCase)
     mkdirSync(path.join(layout.wt, '.pecot', 'state'), { recursive: true })
-    writeFileSync(path.join(layout.wt, '.pecot', 'state', '.pecot-active'), 'org/repo/123\n')
+    checkoutWorkBranch(hookCase, layout.wt, 'x/123')
     hookCase.setEnv('CLAUDE_PROJECT_DIR', layout.wt)
     const payload = jsonDumps({ tool_name: 'ExitPlanMode', cwd: path.join(layout.work, '1244') })
 

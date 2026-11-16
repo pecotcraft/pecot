@@ -12,7 +12,7 @@ import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
-import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
+import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, REPOSITORY, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
@@ -280,16 +280,61 @@ describe('pr create', () => {
     expect(result.stderr).toContain('set: title scope hint to p-w\n')
   })
 
-  it('default のテンプレで --prepare を付けて打つと、末尾の Closes に着手中の Issue の番号を入れる', async (context) => {
+  it('default のテンプレで --prepare を付けて打つと、末尾の Closes に、remote とブランチ名から求めた作業中の Issue の番号を入れる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-05')
+    await verifies(context, 'PW-PR-CREATE-66')
     const workspace = await openWorkspace({
-      branch: 'feat/demo/other',
-      files: { [stateFile('.pecot-active')]: 'acme/demo/34\n' },
+      worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: 'main\n' } }],
+      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
+    })
+    const worktree = path.join(workspace.root, 'wt1', REPOSITORY)
+    expect(readdirSync(path.join(worktree, '.pecot/state'))).toEqual(['.pecot-base'])
+    const result = await workspace.run(['pr', 'create', '--prepare'], worktree)
+    expect(result.code).toBe(0)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
+    expect(result.stderr).toContain('set: Closes to #34\n')
+  })
+
+  it('.pecot/state/ の無い clone で紐づいたブランチにいるとき --prepare を付けて打つと、Closes にブランチの番号を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-68')
+    const workspace = await openWorkspace({
+      branches: [{ name: 'feat/demo/34' }],
+      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
+    })
+    const clone = path.join(workspace.root, 'clone', REPOSITORY)
+    workspace.git(['clone', '-q', '-b', 'feat/demo/34', workspace.git(['remote', 'get-url', 'origin']).trim(), clone])
+    expect(existsSync(path.join(clone, '.pecot/state'))).toBe(false)
+    const result = await workspace.run(['pr', 'create', '--prepare'], clone)
+    expect(result.code).toBe(0)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
+    expect(result.stderr).toContain('set: Closes to #34\n')
+  })
+
+  it('別の番号の古い .pecot-active が残っていても読まず、Closes にブランチの番号を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-67')
+    const workspace = await openWorkspace({
+      branch: 'feat/demo/34',
+      files: { [stateFile('.pecot-active')]: 'acme/demo/99\n' },
       github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
     })
     const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
     expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
     expect(result.stderr).toContain('set: Closes to #34\n')
+    expect(operationsOf(workspace)).toEqual(['GetIssueKind'])
+  })
+
+  it('ブランチ名の末尾が番号でなければ、古い .pecot-active があっても Closes を空のままにする', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-67')
+    const workspace = await openWorkspace({
+      branch: 'feat/demo/other',
+      files: { [stateFile('.pecot-active')]: 'acme/demo/34\n' },
+    })
+    const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #\s*$/mu)
+    expect(result.stderr).not.toContain('set: Closes')
+    expect(workspace.requests()).toEqual([])
   })
 
   it('着手中の Issue が Epic のときに --prepare を付けて打つと、Closes を空のままにする', async (context) => {

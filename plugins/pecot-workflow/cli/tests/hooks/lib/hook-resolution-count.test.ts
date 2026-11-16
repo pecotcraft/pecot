@@ -34,7 +34,6 @@ function setUpSandbox(hookCase: HookCase): Sandbox {
   gitOrThrow(hookCase, repository, ['config', `url.${bare}.pushInsteadOf`, ORIGIN_URL])
   gitOrThrow(hookCase, repository, ['checkout', '-q', '-b', BRANCH])
   mkdirSync(path.join(repository, '.pecot', 'state'), { recursive: true })
-  writeFileSync(path.join(repository, '.pecot', 'state', '.pecot-active'), 'testowner/testrepo/1229\n')
   config.write({ 'auto-push': true })
   mockBin(hookCase).install('gh', 'exit 1\n')
   hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)

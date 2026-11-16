@@ -1,7 +1,7 @@
 // コマンドの名前まわりの小さな関数。help・バインド・定義書の書き出しが同じものを使う。
 
 /**
-入力名を長いオプションの形にする。`force_overwrite_active` は `--force-overwrite-active`
+入力名を長いオプションの形にする。`dry_run` は `--dry-run`
 */
 export function flagOf(name: string): string {
   return `--${name.replaceAll('_', '-')}`
@@ -39,7 +39,7 @@ export const COMMAND_GROUPS: readonly CommandGroup[] = [
   { name: 'project', meaning: 'プロジェクトとの接続と設定ファイル。ボードの上の Issue には触らない', help: 'Connect to projects and manage the project config' },
   { name: 'board', meaning: 'ボードの上の Issue の置き場所。設定ファイルは書かない', help: 'Show the project board and place Issues on it' },
   { name: 'issue', meaning: 'Issue そのもの', help: 'Work with Issues' },
-  { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで', help: 'Start, show, restore and finish the work on an Issue' },
+  { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで', help: 'Start, show and finish the work on an Issue' },
   { name: 'pr', meaning: 'PR そのもの', help: 'Work with PRs' },
   { name: 'release', meaning: 'リリース', help: 'Work with releases' },
   { name: 'tracker', meaning: 'Tracker の Issue の書き直し', help: 'Rewrite the list in a Tracker Issue' },
@@ -66,7 +66,6 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'link', meaning: 'リポジトリをプロジェクトにつなぐ' },
   { name: 'activate', meaning: '使うプロジェクトを切り替える' },
   { name: 'start', meaning: '作業を始める' },
-  { name: 'restore', meaning: '作業の状態を戻す' },
   { name: 'finish', meaning: '作業を終えて片付ける' },
   { name: 'sync', meaning: '判定や一覧に合わせて書き直す' },
   { name: 'move', meaning: 'ボードの列を移す' },
