@@ -408,13 +408,13 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 1〜10 を、検証用のリポで通す。SC-001〜SC-016 の合否が PR に貼られている
 
-- [ ] T095 [P] `p-w/skills/w-help/references/spec-driven-workflow.md` に、積んで着手・PR・マージ・載せ直しの流れを足す（FR-045）
-- [ ] T096 [P] `p-w/skills/w-help/SKILL.md` と `p-w/README.md` に、新しい 4 つのコマンドと、列の読み方への案内を足す
-- [ ] T097 [P] `specs/023-label-triggered-autofix/` の文書の `Waiting` を `Needs Attention` に直す（FR-071）。直すのは値の名前だけで、ほかの文は変えない
-- [ ] T110 [P] `p-w/skills/w-ready/SKILL.md` が、先に終える Issue を `blocked_by` に書き、`dry_run: true` で確かめてから投稿する。`p-w/cli/templates/issue/task.md`・`bug.md` から `status`・`order` を外し、`blocked_by` を足す
-- [ ] T100 quickstart.md の 1〜10 を検証用のリポで通し、SC-001〜SC-016 の合否の表を PR に貼る。SC-003・SC-011 はスキルの通しが要るので、未判定と書く
+- [x] T095 [P] `p-w/skills/w-help/references/spec-driven-workflow.md` に、積んで着手・PR・マージ・載せ直しの流れを足す（FR-045）
+- [x] T096 [P] `p-w/skills/w-help/SKILL.md` と `p-w/README.md` に、新しい 4 つのコマンドと、列の読み方への案内を足す
+- [x] T097 [P] `specs/023-label-triggered-autofix/` の文書の `Waiting` を `Needs Attention` に直す（FR-071）。直すのは値の名前だけで、ほかの文は変えない
+- [x] T110 [P] `p-w/skills/w-ready/SKILL.md` が、先に終える Issue を `blocked_by` に書き、`dry_run: true` で確かめてから投稿する。`p-w/cli/templates/issue/task.md`・`bug.md` から `status`・`order` を外し、`blocked_by` を足す
+- [x] T100 quickstart.md の 1〜10 を検証用のリポで通し、SC-001〜SC-016 の合否の表を PR に貼る。SC-003・SC-011 はスキルの通しが要るので、未判定と書く
 - [ ] T101 検証用のリポとボードを消すかを利用者に確かめ、同意があれば消す
-- [ ] T102 version plan を `.nx/version-plans/` に足す
+- [x] T102 version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 利用者が、配布する文書を読んで、この機能を使い始められる
 
