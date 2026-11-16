@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/Claude_Code-6B4FBB?style=flat-square&logo=anthropic&logoColor=white" alt="Claude Code">
   <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js">
   <img src="https://img.shields.io/badge/GitHub_Projects-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub Projects">
+  <img src="https://img.shields.io/badge/Spec_Kit-181717?style=flat-square&logo=github&logoColor=white" alt="Spec Kit">
 </p>
 
 ## セットアップ
