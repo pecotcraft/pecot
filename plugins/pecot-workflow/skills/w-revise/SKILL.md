@@ -2,7 +2,7 @@
 name: w-revise
 description: |
   PRのレビュー指摘を分析し修正を適用します。
-  Use after creating a PR to self-review and improve it before merge — one w-reviewer reviews the diff from three viewpoints, resuming the one that reviewed the plan when it can (w-e2e-planner runs the CUJs when the plan has them), and main applies the adopted fixes, delegating to w-implementer only when the delegation conditions are met. Triggers: "review the PR", "address review comments".
+  Use after creating a PR to self-review it before merge — reviews the diff, posts the findings on the PR, and applies the fixes the user adopts. Triggers: "review the PR", "address review comments".
   Only for your own team's PR — not for reviewing other teams' PRs.
 when_to_use: "PR のレビュー指摘に対応したい、マージ前に PR を見直して直したい"
 ---
