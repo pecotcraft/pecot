@@ -91,6 +91,10 @@ export interface CommandRun {
   */
   readonly remote?: RepositoryOptions | false
   /**
+  origin の URL をそのまま渡す（GitHub の形でない手元のパスなど）。remote より先に使う
+  */
+  readonly remoteUrl?: string
+  /**
   プロジェクト設定。`false` なら置かない（アクティブなプロジェクトが無い）。既定は projectConfig()
   */
   readonly config?: Readonly<Record<string, unknown>> | false
@@ -144,8 +148,8 @@ function readIfExists(directory: string, relative: string): string | undefined {
   }
 }
 
-function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote'>>): string {
-  const { remote } = run
+function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote' | 'remoteUrl'>>): string {
+  const { remote, remoteUrl } = run
   if (remote === false) {
     const directory = makeTemporaryDirectory('pecot-nogit-')
     // 親をたどって実リポを読まない
@@ -154,7 +158,7 @@ function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote'>>): string {
   }
   const directory = createGitRepository()
   const { host = DEFAULT_HOST, owner = DEFAULT_OWNER, name = DEFAULT_NAME } = remote ?? {}
-  gitForTest(directory, ['remote', 'add', 'origin', `git@${host}:${owner}/${name}.git`])
+  gitForTest(directory, ['remote', 'add', 'origin', remoteUrl ?? `git@${host}:${owner}/${name}.git`])
   return directory
 }
 

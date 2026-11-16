@@ -1,4 +1,4 @@
-// branch delete の振る舞い（PW-BRANCH-DELETE-01〜18）を、runCli をプロセス内で呼んで確かめる。
+// branch delete の振る舞い（PW-BRANCH-DELETE-01〜19）を、runCli をプロセス内で呼んで確かめる。
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
@@ -100,8 +100,17 @@ describe('branch delete', () => {
     await verifies(context, 'PW-BRANCH-DELETE-18')
     const result = await remove({ remote: false, github: [] })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
+    expect(result.stderr).toBe('error: the repository is ambiguous\n  run inside a git repository that has a remote\n')
     expect(result.requests).toEqual([])
+  })
+
+  it('origin の URL が GitHub の形でなくても、引数のリポジトリのリモートブランチを削除する', async (context) => {
+    await verifies(context, 'PW-BRANCH-DELETE-19')
+    const result = await remove({ remoteUrl: '/srv/git/demo.git' })
+    expect(result.code).toBe(0)
+    expect(result.problems).toEqual([])
+    expect(result.stderr).toContain(DELETED)
+    expect(requestLabels(result.requests)).toContain('DELETE /repos/acme/demo/git/refs/heads/feat/7')
   })
 
   describe('MCP の data', () => {

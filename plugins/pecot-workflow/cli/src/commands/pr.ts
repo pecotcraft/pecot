@@ -23,11 +23,12 @@ import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBa
 import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
+import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { BaseReading } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, primaryRemoteName, remoteBranchHead, runGit } from '../infra/git.js'
+import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, isAncestor, primaryRemoteName, remoteBranchHead, resolveCommit, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { PullRequestSlim, PullRequestWithReviews } from '../infra/github/pulls.js'
 import { TransportFailure } from '../infra/github/client.js'
@@ -38,7 +39,7 @@ import { outputDirectory, OutputPathReservationError, resolveRealPath, withReser
 import { readBaseRecord } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -505,21 +506,41 @@ export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output
   if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'), 'content-invalid')
 }
 
-// merge-base --is-ancestor は、祖先でなければ 1、コミットを知らなければ 128 を返す
-const NOT_ANCESTOR = 1
-
 // 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
-// 記録のコミットが head の履歴に無ければ、別のブランチの記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため
-function readBaseRecordFor(head: string, template: string, directory: string, out: Readonly<Output>): BaseReading | undefined {
+// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手で載せ直した後の古い記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため
+async function readBaseRecordFor(head: string, template: string, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
   if (template === 'release' || head !== gitCurrentBranch(directory)) return undefined
   const reading = readBaseRecord()
   stopOnMalformedRecord(reading, out)
   if (reading.kind !== 'stacked') return reading
   const { branch, sha } = reading.record
-  const isForeign = runGit(['merge-base', '--is-ancestor', sha, head], { cwd: directory }).exitCode === NOT_ANCESTOR
-  return isForeign
-    ? stopWith(out, hinted`.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}\nrun pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`, 'git-unresolved')
-    : reading
+  // 手元が知らないコミットは、履歴に無いと決められないので止めない
+  if (resolveCommit(directory, sha) === undefined || isAncestor(directory, sha, head)) return reading
+  const isRestacked = await isRestackedLocally(reading, directory, target, out)
+  return stopWith(out, joinHinted([
+    `.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}`,
+    ...isRestacked ? [hinted`${head} is already restacked; rewrite the record with: ${commandHint(RESTACK_PATH)}`] : [],
+    hinted`run pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`,
+  ]), 'git-unresolved')
+}
+
+interface RecordTarget {
+  readonly config: Readonly<ProjectConfig>
+  readonly location: RepositoryReference
+}
+
+// pr restack と同じ判断で、載せ直し済み（rebased）か。下の段の PR か remote を読めなければ false
+async function isRestackedLocally(reading: Extract<BaseReading, { kind: 'stacked' }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<boolean> {
+  const { config, location } = target
+  const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
+  try {
+    const read = await readRestackDecision({ client: lazyClient(config, out), owner: location.owner, repository: location.repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch })
+    return read.kind === 'decided' && read.decision.kind === 'rebased'
+  }
+  catch (error: unknown) {
+    if (error instanceof TransportFailure) return false
+    throw error
+  }
 }
 
 interface BaseDecided {
@@ -631,7 +652,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)', 'content-invalid')
   const location = requireRepository(frontmatter.repository, out)
   const head = resolveHeadBranch(frontmatter.head, directory, out)
-  const reading = readBaseRecordFor(head, input.template, directory, out)
+  const reading = await readBaseRecordFor(head, input.template, directory, { config, location }, out)
 
   let body = parsed.body
   const issueNumber = extractIssueNumberFromBranch(head)
@@ -680,7 +701,7 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
     location = requireRepository(input.repository, out)
   }
   const head = resolveHeadBranch(input.head, directory, out)
-  const reading = readBaseRecordFor(head, input.template, directory, out)
+  const reading = await readBaseRecordFor(head, input.template, directory, { config, location }, out)
 
   let body = input.message
   const issueNumber = extractIssueNumberFromBranch(head)

@@ -340,6 +340,7 @@ describe('pushFixHintOf', () => {
   const rows: readonly { readonly name: string, readonly decision: RestackDecision | undefined, readonly expected: string }[] = [
     { name: '下の段が動いた', decision: { kind: 'moved', base: 'feat/1' }, expected: 'pecot pr restack' },
     { name: '下の段がマージ済み', decision: { kind: 'merged', base: 'main', pullRequest: 1 }, expected: 'pecot pr restack' },
+    { name: '載せ直し済みで記録だけが古い', decision: { kind: 'rebased', base: 'main' }, expected: 'pecot pr restack' },
     { name: '下の段が動いていない', decision: { kind: 'up-to-date', base: 'feat/1' }, expected: `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits` },
     { name: '下の段が消えた', decision: { kind: 'gone', base: 'feat/1', pullRequest: undefined }, expected: 'pecot pr restack --check' },
     { name: '判断を読めない', decision: undefined, expected: 'pecot pr restack --check' },

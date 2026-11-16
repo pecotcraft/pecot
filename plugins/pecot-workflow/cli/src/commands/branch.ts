@@ -12,7 +12,7 @@ import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation } from './output.js'
-import { requireRepositoryMatch } from './repository-match.js'
+import { requireGitRemote } from './repository-match.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const BRANCH_DELETE_OUTPUT = z.strictObject({
@@ -38,7 +38,7 @@ const branchDeleteCommand = defineCommand({
   interactive: false,
   run: async (input, io) => {
     // 位置引数の repo は対象のリポで、cwd と比べる明示値ではない
-    requireRepositoryMatch('reject', undefined, io, process.cwd())
+    requireGitRemote(io, process.cwd())
     const out = createOutput<z.input<typeof BRANCH_DELETE_OUTPUT>>(input.dry_run, io)
     // 1. repo をパース
     let target
