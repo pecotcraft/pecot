@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h3 align="center">Claude Code を、手を抜かない開発チームに。</h3>
+<h3 align="center">Claude Code の課題管理を、GitHub Projects で。</h3>
 
 <p align="center">
   計画を立て、レビューを受け、動作を確かめてから PR を出す。<br>
