@@ -8,8 +8,8 @@
 <h3 align="center">Claude Code の課題管理を、GitHub Projects で。</h3>
 
 <p align="center">
-  計画を立て、レビューを受け、動作を確かめてから PR を出す。<br>
-  チーム開発の手順を、Claude Code のスキルとして提供します。
+  AI 駆動で回す、高速なアジャイル開発。<br>
+  Epic を Spec Kit でタスクに分けてボードに積み、Claude Code が 1 つずつ消化していきます。
 </p>
 
 <p align="center">
