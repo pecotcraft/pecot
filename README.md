@@ -1,23 +1,66 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-wordmark-dark.svg">
-    <img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" width="260">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-badge-dark.svg">
+    <img src=".github/assets/pecot-badge-light.svg" alt="pecot" width="440">
   </picture>
 </p>
 
 <p align="center">
-  <b>Claude Code 向けのプラグインマーケットプレイス</b><br>
-  Issue の作成からリリースまでの開発作業や、図・スライドの作成、AWS の調査を、Claude Code のスキルで効率化します。
+  <b>やりたいことを Claude Code に伝えるだけで、Issue の作成からリリースまでが GitHub 上で進みます。</b>
 </p>
 
 <p align="center">
-  <a href="#はじめに">はじめに</a> ·
-  <a href="#プラグイン一覧">プラグイン一覧</a> ·
-  <a href="#開発の流れ">開発の流れ</a> ·
-  <a href="#アップデート">アップデート</a>
+  <img src=".github/assets/readme-board.png" alt="GitHub Projects のボード。タスクが Ready、Active、In Review、Archived の列を進んでいる" width="900">
 </p>
 
-## はじめに
+## Issue からリリースまでを自動化する
+
+pecot-w は、GitHub Projects のボードと連携して開発の流れを進める Claude Code のプラグインです。
+
+**Issue や PR の本文を書く必要はありません。**
+作業の内容から、Claude Code が Issue、実装計画、PR の説明文を作成します。
+
+**ボードは自動で更新されます。**
+着手すると Active へ、PR を作成すると In Review へ、マージすると Archived へ、タスクが移動します。
+
+**複数のタスクを並行して進められます。**
+git worktree を使用して、タスクごとに作業ディレクトリを分けられます。
+
+たとえば次のように実行すると、Issue とブランチを作成し、実装計画を立てるところまでを Claude Code が行います。
+
+```text
+/pecot-w:w-quick ログイン画面のエラーメッセージが英語のまま表示される問題を修正する
+```
+
+主なスキルは次のとおりです。
+
+| スキル | 用途 |
+|:------|:----|
+| `/pecot-w:w-quick` | 小さな修正の Issue、ブランチ、実装計画を作成する |
+| `/pecot-w:w-active` | ボードの Ready から次のタスクを選んで着手する |
+| `/pecot-w:w-pr` | PR を作成する |
+| `/pecot-w:w-revise` | PR をセルフレビューして修正する |
+| `/pecot-w:w-merge` | PR をマージして後処理をする |
+| `/pecot-w:w-release` | リリースする |
+
+すべてのスキルは [pecot-w の README](plugins/pecot-workflow/README.md) を参照してください。
+
+## 構成図やスライドを作成する
+
+pecot-v を使用すると、Claude Code との会話から draw.io の構成図や Slidev のプレゼンテーションを作成できます。
+プレゼンテーションは PPTX に変換できます。また、スクリーンショットをまとめて、作業エビデンスの xlsx を作成できます。
+
+<p align="center">
+  <img src=".github/assets/readme-drawio.png" alt="pecot-v で作成した AWS の構成図" width="760">
+</p>
+
+```text
+/pecot-v:v-drawio CloudFront、ALB、ECS、Aurora で構成した Web アプリの構成図を描く
+```
+
+詳しくは [pecot-v の README](plugins/pecot-visual/README.md) を参照してください。
+
+## インストール
 
 ### 動作環境
 
@@ -28,9 +71,7 @@ pecot のプラグインを使用するには、次のものが必要です。
 
 pecot-w を使用する場合は、[GitHub CLI](https://cli.github.com/) も必要です。認証後に `gh auth refresh -s project` を実行して、`project` スコープを追加してください。
 
-pecot-t を使用する場合は、[AWS CLI](https://aws.amazon.com/cli/) も必要です。
-
-### インストール
+### インストール手順
 
 マーケットプレイスを追加してから、使用するプラグインをインストールします。
 
@@ -38,61 +79,15 @@ pecot-t を使用する場合は、[AWS CLI](https://aws.amazon.com/cli/) も必
 claude plugin marketplace add https://github.com/pecotcraft/pecot.git
 claude plugin install pecot-w@pecot
 claude plugin install pecot-v@pecot
-claude plugin install pecot-t@pecot
 ```
 
-## プラグイン一覧
-
-<table>
-  <tr>
-    <th width="33%"><a href="plugins/pecot-workflow/README.md">pecot-w</a></th>
-    <th width="33%"><a href="plugins/pecot-visual/README.md">pecot-v</a></th>
-    <th width="33%"><a href="plugins/pecot-tools/README.md">pecot-t</a></th>
-  </tr>
-  <tr>
-    <td valign="top">GitHub Projects と連携して、Issue の作成から実装、PR、マージ、リリースまでの開発フローを自動化します。git worktree を使用した並行開発にも対応しています。</td>
-    <td valign="top">draw.io の構成図、Slidev のプレゼンテーション、スクリーンショットをまとめた作業エビデンスを作成します。プレゼンテーションは PPTX に、エビデンスは xlsx に出力できます。</td>
-    <td valign="top">許可リストで限定した AWS CLI のコマンドを、MCP ツールとして提供します。Lambda や CloudWatch Logs、RDS などの参照、Athena のクエリ、S3 からのダウンロードに使用できます。リソースを変更する操作は実行できません。</td>
-  </tr>
-  <tr>
-    <td valign="top">主なスキル<br><code>/pecot-w:w-quick</code><br><code>/pecot-w:w-pr</code><br><code>/pecot-w:w-merge</code></td>
-    <td valign="top">主なスキル<br><code>/pecot-v:v-drawio</code><br><code>/pecot-v:v-slidev</code><br><code>/pecot-v:v-evidence</code></td>
-    <td valign="top">主なツール（全 26 種）<br><code>aws_logs_filter_log_events</code><br><code>aws_athena_start_query_execution</code><br><code>aws_s3_cp</code></td>
-  </tr>
-</table>
-
-各プラグインのスキル、エージェント、ツールの一覧は、それぞれの README を参照してください。
-
-## 開発の流れ
-
-pecot-w のスキルを順に実行すると、1 つのタスクを Issue の作成からリリースまで進められます。
-図中のスキルは、`/pecot-w:w-quick` のように、名前の前に `/pecot-w:` を付けて実行します。
-
-```mermaid
-flowchart LR
-  quick["<b>w-quick</b><br>Issue の作成と計画"] --> pr["<b>w-pr</b><br>PR の作成"]
-  active["<b>w-active</b><br>既存のタスクに着手"] --> pr
-  pr --> revise["<b>w-revise</b><br>セルフレビュー"]
-  revise --> merge["<b>w-merge</b><br>マージと後処理"]
-  merge --> release["<b>w-release</b><br>リリース"]
-  classDef step fill:#2F8F83,stroke:#2F8F83,color:#ffffff
-  class quick,active,pr,revise,merge,release step
-```
-
-たとえば小さな修正であれば、修正したい内容を添えて `w-quick` を実行します。
-
-```text
-/pecot-w:w-quick ログイン画面のエラーメッセージが英語のまま表示される問題を修正する
-```
-
-## アップデート
+### アップデート
 
 最新のバージョンに更新するには、次のコマンドを実行します。
 
 ```bash
 claude plugin update pecot-w@pecot
 claude plugin update pecot-v@pecot
-claude plugin update pecot-t@pecot
 ```
 
 プロジェクトスコープでインストールした場合は、`-s project` を付けて実行してください。
