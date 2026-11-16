@@ -1,7 +1,8 @@
 # board-sync
 
-ボードの Tracker をそろえる 2 つの workflow を起こす AWS Lambda である（#175）。
-`security-alerts.yml` と `dependabot-prs.yml` を `workflow_dispatch` で起こす。
+ボードをそろえる 3 つの workflow を起こす AWS Lambda である（#175・#434）。
+Tracker をそろえる `security-alerts.yml`・`dependabot-prs.yml` と、列と札を直す `pecot-board-sync.yml` を起こす。
+起こし方は、どれも `workflow_dispatch` を使う。
 Actions のトリガーには security alert のイベントが無く、dependabot が起こした run には secret が渡らない。
 そのため、Actions の外で受けている。
 受け口は、このリポの運用のためのもので、配布物ではない。
@@ -16,14 +17,18 @@ EventBridge Scheduler (rate(1 hour)) ---> Lambda を直接起動 (署名なし�
 
 Lambda (handler.mjs)
   -> App の installation token を発行
-  -> workflow_dispatch で security-alerts.yml / dependabot-prs.yml を起動
+  -> workflow_dispatch で security-alerts.yml / dependabot-prs.yml / pecot-board-sync.yml を起動
 ```
 
 | 呼び出し元 | 起こす workflow |
 |---|---|
 | `POST /security` | `security-alerts.yml` |
 | `POST /dependabot-prs` | `dependabot-prs.yml` |
-| Scheduler | 両方 |
+| Scheduler | 3 本とも |
+
+- `pecot-board-sync.yml` は Scheduler だけが起こす。dispatch には security の App の token を使う
+  - PR と Issue のイベントは、workflow 自身の契機が拾う
+  - 関数が発行する token は Actions の write だけに絞っているので、App を分けていない
 
 - 鍵と webhook の secret は、App ごとに SSM Parameter Store の SecureString に置く。2 つの App で secret を共有しない
   - `/pecot/board-sync/security/app-private-key`
@@ -39,19 +44,22 @@ Lambda (handler.mjs)
 
 ### Scheduler の役割
 
-Scheduler は毎時 1 回、関数に固定の Input（`{"source":"pecot-scheduler"}`）を渡し、2 つの workflow を起こす。
-次の 2 つを拾う。
+Scheduler は毎時 1 回、関数に固定の Input（`{"source":"pecot-scheduler"}`）を渡し、3 つの workflow を起こす。
+次の 3 つを拾う。
 
 - 時間で決まる理由。30 分たって auto-merge が無い、24 時間たって検証が終わらない、といったもの。webhook は届かない
 - 配送の取りこぼし。GitHub は失敗した配送を自動で再送しない
+- `pecot-board-sync.yml` の契機に無い変化。blocked by の付け外し、手でのカードの移動、PR の本文を後から直した Issue との結び付け
 
 遅れの上限は次のとおり。
 
 - 時間で決まる理由は、GRACE か 24 時間 ＋ 最大 1 時間
 - 配送の取りこぼしは、最大 1 時間
+- 契機に無いボードの変化は、最大 1 時間
 
-2 つの workflow の `schedule`（cron）は、AWS 側の障害で Scheduler と webhook の両方が止まったときの最後の補助になる。
-数時間遅れることがある。そのため、各 workflow は毎時最大 2 回ずつ動く。
+Tracker の 2 つの workflow の `schedule`（cron）は、AWS 側の障害で Scheduler と webhook の両方が止まったときの最後の補助になる。
+数時間遅れることがある。そのため、この 2 つは毎時最大 2 回ずつ動く。
+`pecot-board-sync.yml` は `schedule` を持たない。
 
 ### 公開の許可
 
@@ -119,6 +127,12 @@ aws lambda get-policy --function-name pecot-board-sync \
     - Webhook を Active にし、URL に `<function URL>dependabot-prs`、secret に手順 8 の dependabot-prs の値を入れる
     - Subscribe to events で Pull request・Workflow run を選ぶ
 11. org の 2 つの App の installation で、権限の追加を承認する
+12. `pecot-board-sync.yml` が使う token を用意する。関数の App とは別の App `pecot-board-sync` を使う
+    - 権限は、組織の Projects の Read and write と、リポの Issues・Pull requests・Contents の Read-only。Webhook は Active にしない
+    - App をこのリポに入れる
+    - 変数 `PECOT_BOARD_SYNC_APP_CLIENT_ID` に Client ID を置く
+    - secret `PECOT_BOARD_SYNC_APP_PRIVATE_KEY` に秘密鍵を置く
+    - 変数が空の間は、workflow の実行が `skipped` で終わる
 
 2 回目以降は、installation id を省くと CloudFormation の前回の値を使う。
 `--security-client-id`・`--dependabot-prs-client-id`・`--repository-id` は、省くと `gh` で読む。
@@ -190,7 +204,7 @@ App ごとに行う。
 
 Lambda の鍵を持つ者は、その App の全権限の token を発行できる。影響は App ごとに違う。
 
-- security の App の鍵: 同じ権限で、security alert の読み取りと Tracker の更新ができる
+- security の App の鍵: 同じ権限で、security alert の読み取りと Tracker の更新ができる。`pecot-board-sync.yml` も起こせる
 - dependabot-prs の App の鍵: 同じ権限で、PR の読み取りと Tracker の更新ができる
 
 漏れたと分かったら、すぐに App の設定でその鍵を失効させる。
@@ -205,7 +219,7 @@ GitHub は、失敗した配送を自動で再送しない。
 1. 該当する App の設定の Advanced → Recent Deliveries で、失敗した配送を探す
 2. 3 日以内なら Redeliver する
 3. 関数のログ（CloudWatch Logs の `/aws/lambda/pecot-board-sync`）を見る
-   - 呼び出し元（`url` / `scheduler`）、App、イベント、action、番号、run の id だけが残る
+   - 呼び出し元（`url` / `scheduler`）、App、イベント、action、番号、run の id だけが残る。Scheduler の行には workflow のファイル名も残る
    - 失敗した行には、失敗した段（`secrets` / `token` / `dispatch`）と HTTP の番号が残る
 4. 予約を超えた配送には、function URL が 429 を返す。alert が一度にまとめて作られると起こる
 

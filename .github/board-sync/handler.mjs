@@ -1,4 +1,4 @@
-// 2 つの GitHub App の webhook と EventBridge Scheduler の起動を受け、Tracker をそろえる workflow を起こす。
+// 2 つの GitHub App の webhook と EventBridge Scheduler の起動を受け、Tracker とボードをそろえる workflow を起こす。
 // 依存は標準の crypto と fetch、Lambda のランタイムに同梱の SSM の SDK だけ。
 import { createHmac, createPrivateKey, sign, timingSafeEqual } from "node:crypto";
 
@@ -19,6 +19,12 @@ const APPS = {
   "dependabot-prs": { path: "/dependabot-prs", prefix: "DEPENDABOT_PRS_" },
 };
 const APP_BY_PATH = new Map(Object.entries(APPS).map(([name, app]) => [app.path, name]));
+// Scheduler が起こす workflow と、その dispatch に使う App。
+const SCHEDULED = [
+  { app: "security", workflowEnv: "SECURITY_WORKFLOW_FILE" },
+  { app: "dependabot-prs", workflowEnv: "DEPENDABOT_PRS_WORKFLOW_FILE" },
+  { app: "security", workflowEnv: "BOARD_SYNC_WORKFLOW_FILE" },
+];
 const SCHEDULER_SOURCE = "pecot-scheduler";
 const DEPENDABOT_EVENTS = new Set(["pull_request", "workflow_run"]);
 const API_BASE = "https://api.github.com";
@@ -202,6 +208,7 @@ export function createHandler(deps = {}) {
   // App ごとに、コールドスタートで 1 回だけ鍵を読む。失敗は持ち越さない。
   const secretsPromises = new Map();
   const cachedTokens = new Map();
+  const tokenPromises = new Map();
 
   const getSecrets = (appName) => {
     if (!secretsPromises.has(appName)) {
@@ -223,63 +230,78 @@ export function createHandler(deps = {}) {
     const nowMs = now();
     const cached = cachedTokens.get(appName);
     if (cached && nowMs < cached.expiresAtMs - TOKEN_MARGIN_MS) return cached.token;
-    const jwt = createAppJwt(privateKey, config.clientId, nowMs);
-    const repoName = config.repository.split("/")[1];
-    const fresh = await requestInstallationToken({
-      fetchFn,
-      jwt,
-      installationId: config.installationId,
-      repoName,
-    });
-    cachedTokens.set(appName, fresh);
-    return fresh.token;
+    // 並列の呼び出しが同じ発行を待てるよう、発行中の Promise を await の前に登録する。
+    if (!tokenPromises.has(appName)) {
+      const jwt = createAppJwt(privateKey, config.clientId, nowMs);
+      const repoName = config.repository.split("/")[1];
+      const pending = requestInstallationToken({
+        fetchFn,
+        jwt,
+        installationId: config.installationId,
+        repoName,
+      })
+        .then((fresh) => {
+          cachedTokens.set(appName, fresh);
+          return fresh.token;
+        })
+        .finally(() => tokenPromises.delete(appName));
+      tokenPromises.set(appName, pending);
+    }
+    return tokenPromises.get(appName);
   };
 
-  const dispatchFor = async (appName, secrets) => {
+  const dispatchFor = async (appName, secrets, workflowFile) => {
     const config = readConfig(env, appName);
     const send = async () => {
       const token = await withStage("token", () =>
         getInstallationToken(appName, config, secrets.privateKey),
       );
-      return withStage("dispatch", () =>
-        dispatchWorkflow({
-          fetchFn,
-          token,
-          repository: config.repository,
-          workflowFile: config.workflowFile,
-          ref: config.dispatchRef,
-        }),
-      );
+      try {
+        return await withStage("dispatch", () =>
+          dispatchWorkflow({
+            fetchFn,
+            token,
+            repository: config.repository,
+            workflowFile: workflowFile ?? config.workflowFile,
+            ref: config.dispatchRef,
+          }),
+        );
+      } catch (error) {
+        // 別の呼び出しが取り直した token は捨てない。
+        if (error?.status === 401 && cachedTokens.get(appName)?.token === token) {
+          cachedTokens.delete(appName);
+        }
+        throw error;
+      }
     };
     try {
       return await send();
     } catch (error) {
-      // 失効した token の 401 は、キャッシュを捨てて 1 回だけやり直す。
+      // 失効した token の 401 は、1 回だけやり直す。
       if (error?.stage !== "dispatch" || error.status !== 401) throw error;
-      cachedTokens.delete(appName);
       return send();
     }
   };
 
-  // 2 つの workflow を並列に起こす。片方が失敗してももう片方は起こし、
-  // 非同期の起動では返り値が Errors に数えられないので、両方終えてから throw する。
+  // 並列に起こす。非同期の起動では返り値が Errors に数えられないので、全部終えてから throw する。
   const handleScheduler = async () => {
     const results = await Promise.allSettled(
-      Object.keys(APPS).map(async (appName) => {
-        const secrets = await withStage("secrets", () => getSecrets(appName));
-        const runId = await dispatchFor(appName, secrets);
-        log({ via: "scheduler", app: appName, run: runId, result: "dispatched" });
+      SCHEDULED.map(async ({ app, workflowEnv }) => {
+        const secrets = await withStage("secrets", () => getSecrets(app));
+        const runId = await dispatchFor(app, secrets, env[workflowEnv]);
+        log({ via: "scheduler", app, workflow: env[workflowEnv], run: runId, result: "dispatched" });
       }),
     );
     let failed = false;
     results.forEach((outcome, i) => {
       if (outcome.status === "fulfilled") return;
       failed = true;
-      const appName = Object.keys(APPS)[i];
+      const { app, workflowEnv } = SCHEDULED[i];
       const { reason } = outcome;
       log({
         via: "scheduler",
-        app: appName,
+        app,
+        workflow: env[workflowEnv],
         result: "dispatch-error",
         ...failureFields(reason?.stage ?? "dispatch", reason),
       });

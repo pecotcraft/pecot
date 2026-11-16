@@ -38,10 +38,16 @@ export CLAUDE_PLUGIN_DATA="$DATA_DIR"
 
 HOLDER_PID=""
 MCP_PID=""
+LAST_STDERR=""
 cleanup() {
   local exit_code=$?
   [ -z "$HOLDER_PID" ] || kill "$HOLDER_PID" 2>/dev/null || true
   [ -z "$MCP_PID" ] || kill "$MCP_PID" 2>/dev/null || true
+  # $WORK_DIR を消すと CI から読めなくなるため、失敗時は最後に書いた stderr を先に出す。
+  if [ "$exit_code" -ne 0 ] && [ -f "$LAST_STDERR" ]; then
+    echo "--- $LAST_STDERR (末尾 40 行) ---" >&2
+    tail -n 40 "$LAST_STDERR" >&2
+  fi
   chmod -R u+w "$WORK_DIR" >/dev/null 2>&1 || true
   rm -rf "$WORK_DIR" >/dev/null 2>&1 || true
   exit "$exit_code"
@@ -118,6 +124,7 @@ run_mcp_exchange() {
   local pid deadline exit_deadline
 
   rm -f "$fifo" "$stdout_file" "$stderr_file"
+  LAST_STDERR="$stderr_file"
   mkfifo "$fifo"
 
   set +e
@@ -317,6 +324,7 @@ echo "[bootstrap-test] CUJ 4 pass"
 echo "[bootstrap-test] CUJ 5: default data directory when no variable is given"
 XDG_DIR="$WORK_DIR/xdg-share"
 STDERR5="$WORK_DIR/cuj5.stderr"
+LAST_STDERR="$STDERR5"
 set +e
 env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA XDG_DATA_HOME="$XDG_DIR" npm_config_store_dir="$PNPM_STORE" \
   CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" "$PLUGIN_ROOT/bin/pecot" --help >/dev/null 2>"$STDERR5"
@@ -343,6 +351,7 @@ else
   ln -s "$NPM_PATH" "$ISO_BIN_NODE_NPX/npm"
   ln -s "$NPX_PATH" "$ISO_BIN_NODE_NPX/npx"
   STDERR6="$WORK_DIR/cuj6.stderr"
+  LAST_STDERR="$STDERR6"
   set +e
   env -i CLAUDE_PLUGIN_DATA="$DATA_DIR_6" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_NPX:/usr/bin:/bin" \
     "$PLUGIN_ROOT/bin/pecot" --help >/dev/null 2>"$STDERR6"
@@ -363,6 +372,7 @@ NONODE_BIN="$WORK_DIR/nonode-bin"
 make_filtered_bin "$NONODE_BIN" node npm npx pnpm corepack
 DATA_DIR_7="$WORK_DIR/data-nonode"
 STDERR7="$WORK_DIR/cuj7.stderr"
+LAST_STDERR="$STDERR7"
 set +e
 env PATH="$NONODE_BIN" CLAUDE_PLUGIN_DATA="$DATA_DIR_7" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
   "$PLUGIN_ROOT/bin/pecot" --help >"$WORK_DIR/cuj7.stdout" 2>"$STDERR7"
@@ -400,6 +410,7 @@ case "$OUT_LINK" in *"$VERSION_OF_ROOT"*) ;; *) fail "CUJ 8 symlink 経由でル
 READONLY_DATA="$WORK_DIR/data-readonly"
 chmod -R a-w "$RESOLVE_ROOT"
 set +e
+LAST_STDERR="$WORK_DIR/cuj8.stderr"
 OUT_RO="$(env -u CLAUDE_PLUGIN_ROOT CLAUDE_PLUGIN_DATA="$READONLY_DATA" "$RESOLVE_ROOT/bin/pecot" --version 2>"$WORK_DIR/cuj8.stderr")"
 code=$?
 set -e
@@ -419,9 +430,11 @@ GEN_B=3333333333333333-4444444444444444
 VENV="$DATA_DIR/venv"
 VERSION_OF_PLUGIN=$(node -p 'require(process.argv[1]).version' "$PLUGIN_ROOT/.claude-plugin/plugin.json")
 RS_CODE=0
+LAST_STDERR="$WORK_DIR/cuj9.stderr"
 # run_start [VAR=値 ...]: 完成済みのミラーで bin/pecot --version を起動する。結果は RS_CODE と cuj9.stdout / cuj9.stderr に残す。
 run_start() {
   RS_CODE=0
+  LAST_STDERR="$WORK_DIR/cuj9.stderr"
   env -u CLAUDE_PLUGIN_ROOT HOME="$CUJ9_HOME" XDG_DATA_HOME= npm_config_store_dir="$PNPM_STORE" "$@" \
     "$PLUGIN_ROOT/bin/pecot" --version >"$WORK_DIR/cuj9.stdout" 2>"$WORK_DIR/cuj9.stderr" </dev/null || RS_CODE=$?
 }
