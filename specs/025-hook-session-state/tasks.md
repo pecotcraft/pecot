@@ -350,7 +350,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 - [x] T077 [US6] 同じ SKILL.md に、再開の手順を書く。`.specify/feature.json` が無いときは、`specs/` の該当のディレクトリを指す形で書き直す
 - [x] T078 [US6] 同じ SKILL.md の終わりを直す。成果物を w-pr でタスクを閉じる PR にし、その後に w-issueize へ進む
 - [x] T079 [US6] スキルの文を確かめる既存のテスト（`tests/skills/`）を通す。ツールの名前と入力の書き方を、ほかのスキルに合わせる
-- [x] T080 [US6] `SPEC/quickstart.md` の 5 を実機で確かめ、結果を PR に貼る
+- [ ] T080 [US6] `SPEC/quickstart.md` の 5 を実機で確かめ、結果を PR に貼る
 
 ---
 
