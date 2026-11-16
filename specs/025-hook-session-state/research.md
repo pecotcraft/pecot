@@ -262,14 +262,14 @@ README の最低対応版は、frontmatter のフックを実機で確かめた�
 
 ### Decision
 
-- w-breakdown は、対象の Epic を決めた後、`issue_quick` を `parent_epic` 付きで呼ぶ。分解の作業のタスクができ、Active に載り、紐づいたブランチができる
-- そのブランチ（`feat/<日時>/<番号>`）を checkout してから、speckit の工程を始める
+- w-breakdown は、対象の Epic を決めた後、`issue_create` を `freeform`・`parent_epic` 付きで呼んで分解の作業のタスクを起票する。続けて `session_start` で紐づいたブランチを作る。タスクは Active に載る
+- そのブランチ（`feat/breakdown-<名前>/<番号>`）を checkout してから、speckit の工程を始める
 - speckit の git 拡張がブランチを作る場面では、`GIT_BRANCH_NAME` に今のブランチ名を渡し、`--allow-existing-branch` を付ける。新しいブランチは作らせない
 - git 拡張を入れていないリポでは、何もしなくてよい
 - 再開で `.specify/feature.json` が無いときは、`specs/` の該当のディレクトリを指す形で書き直してから続ける
 - 成果物は、w-pr でタスクを閉じる PR にする
 
-**Rationale**: `issue_quick` が、起票・Epic への紐づけ・Active・ブランチの作成を 1 回で済ませる。足す実装は、スキルの本文だけになる。
+**Rationale**: `issue_quick` は #428 で無くなった。`issue_create` と `session_start` の 2 つで、起票・Epic への紐づけ・Active・ブランチの作成が済む。足す実装は、スキルの本文だけになる。
 
 **実機で確かめる点**: `GIT_BRANCH_NAME` と `--allow-existing-branch` で、`speckit.git.feature` が新しいブランチを作らずに通るか。
 

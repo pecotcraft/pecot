@@ -409,6 +409,7 @@ describe('w-breakdown の手順', () => {
   const tasksStep = (): number => titleIndex(headings, 'tasks 実行')
   const checkStep = (): number => titleIndex(headings, '前提の表を確かめる')
   const clarifyStep = (): number => titleIndex(headings, 'clarify')
+  const fileStep = (): number => titleIndex(headings, '分解のタスクを起票')
   const tasksBlock = (): string => firstCodeBlock(sectionBody(text, tasksStep()))
   const stepNumber = (position: number): number | undefined => headings.find((_, index) => index === position)?.number
 
@@ -442,6 +443,35 @@ describe('w-breakdown の手順', () => {
     expect(blockReferences.length).toBeGreaterThan(0)
     for (const step of [...tasksReferences, ...blockReferences]) expect(step).toBe(tasks)
     expect(approvalReferences).toEqual([stepNumber(clarifyStep())])
+  })
+
+  it('再開の Step の番号の参照は、準備の Step と、続ける工程の Step の番号と合う', () => {
+    const prepare = stepNumber(titleIndex(headings, '準備'))
+    const resumeReferences = referencedSteps(text, /Step (\d+) (?:で|の)再開/gu)
+    expect(resumeReferences.length).toBeGreaterThan(0)
+    for (const step of resumeReferences) expect(step).toBe(prepare)
+    const prepareBody = sectionBody(text, titleIndex(headings, '準備'))
+    const rows: Record<string, number> = {}
+    for (const match of prepareBody.matchAll(/^ *\| (\S+) \| Step (\d+)/gmu)) {
+      if (match[1] !== undefined) rows[match[1]] = Number(match[2])
+    }
+    expect(rows).toEqual({
+      tasks: stepNumber(headings.length - 1),
+      plan: stepNumber(tasksStep()),
+      clarify: stepNumber(clarifyStep()),
+      specify: stepNumber(clarifyStep()),
+      無い: stepNumber(titleIndex(headings, 'specify')),
+    })
+  })
+
+  it('準備の Step は、承認の commit のメッセージに工程の名前を入れさせ、再開でそれを読む', () => {
+    const body = sectionBody(text, titleIndex(headings, '準備'))
+    expect(body).toContain('メッセージに工程の名前（specify・clarify・plan・tasks）を入れる')
+    expect(body).toContain('git log --format=%s origin/<開発ブランチ>..HEAD -- specs/<NNN-名前>/')
+  })
+
+  it('準備の Step は、develop_branch が null なら止める', () => {
+    expect(sectionBody(text, titleIndex(headings, '準備'))).toContain('`develop_branch` が null なら止め')
   })
 
   it('tasks の Step は、/speckit.tasks の引数に、コードブロック 1 つをそのまま貼らせる', () => {
@@ -510,12 +540,60 @@ describe('w-breakdown の手順', () => {
     expect(sectionBody(text, checkStep())).toContain('積める行の理由が空のとき')
   })
 
-  it('analyze と w-issueize の案内は、確かめの Step の承認の文より後ろにある', () => {
+  it('analyze の案内は、確かめの Step の承認の文より後ろにある', () => {
     const body = sectionBody(text, checkStep())
     const approval = body.indexOf('AskUserQuestion')
     expect(approval).toBeGreaterThanOrEqual(0)
     expect(body.indexOf('/speckit.analyze')).toBeGreaterThan(approval)
-    expect(body.indexOf('/pecot-w:w-issueize')).toBeGreaterThan(approval)
+  })
+
+  it('起票の Step は、Epic の特定の後、specify の前にある', () => {
+    expect(titleIndex(headings, '対象Epic')).toBeLessThan(fileStep())
+    expect(fileStep()).toBeLessThan(titleIndex(headings, 'specify'))
+  })
+
+  it('起票の Step は、issue_create を freeform と owner/repo/N の parent_epic で呼び、session_start に base を渡さない', () => {
+    const body = sectionBody(text, fileStep())
+    for (const word of ['`issue_create`', '`freeform: true`', '`parent_epic`: Step 3 で読んだ Epic の `owner/repo/N`', '`session_start`', '`base` は渡さない']) expect(body).toContain(word)
+  })
+
+  it('起票の Step は、既存の分解のタスクを 3 通りに分けて扱い、2 重に起票しない', () => {
+    const body = sectionBody(text, fileStep())
+    for (const row of ['| タスクと、紐づいたブランチ | 起票しない。', '| タスクだけ（ブランチが無い） | 起票しない。', '| どちらも無い | 起票し、']) expect(body).toContain(row)
+    expect(body).toContain('`feat/breakdown-`')
+    expect(body.indexOf('題に「speckit で分解する:」を含む OPEN の sub-issue を探す')).toBeLessThan(body.indexOf('紐づいたブランチを確かめる'))
+    expect(body).toContain('`speckit で分解する: <Epic の題>`')
+  })
+
+  it('specify の Step は、/speckit.specify に足す 1 行で、今のブランチ名と --allow-existing-branch を hook に渡す', () => {
+    const block = firstCodeBlock(sectionBody(text, titleIndex(headings, 'specify')))
+    for (const word of ['GIT_BRANCH_NAME', '--allow-existing-branch', 'create-new-feature-branch.sh --json']) expect(block).toContain(word)
+    expect(block.startsWith('次の指示は hook の動かし方で、機能の説明ではない。spec には書かない。')).toBe(true)
+  })
+
+  it('specify の Step は、git 拡張の hook が無いか切れているリポでは何も足さない', () => {
+    const body = sectionBody(text, titleIndex(headings, 'specify'))
+    expect(body).toContain('`enabled` は `false` でない')
+    expect(body).toContain('条件に当たらないリポでは、何も足さない')
+  })
+
+  it('準備の Step は、再開のときに spec のディレクトリを求め、.specify/feature.json を書き直す', () => {
+    const body = sectionBody(text, titleIndex(headings, '準備'))
+    expect(body).toContain('git diff --name-only origin/<開発ブランチ>...HEAD -- specs/')
+    expect(body).toContain('"feature_directory": "specs/<NNN-名前>"')
+  })
+
+  it('specify・clarify・確かめの Step は、承認の後に spec のディレクトリを commit して push させる', () => {
+    for (const position of [titleIndex(headings, 'specify'), clarifyStep(), checkStep()]) {
+      expect(sectionBody(text, position)).toContain('を commit し、タスクのブランチへ push する')
+    }
+  })
+
+  it('最後の Step は、w-pr を案内し、w-issueize はマージの後に案内する', () => {
+    const body = sectionBody(text, headings.length - 1)
+    expect(body).toContain('`/pecot-w:w-pr`')
+    expect(body.indexOf('PR のマージの後')).toBeLessThan(body.indexOf('`/pecot-w:w-issueize`'))
+    expect(body).toContain('w-pr は、このスキルから起動しない')
   })
 
   it('表の列の名前は、w-issueize の Step 2 が読む列と同じ', () => {
