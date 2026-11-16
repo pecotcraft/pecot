@@ -21,38 +21,34 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR がマージ可能�
 
 ### Step 2: マージと片付け
 
-#### 2.1 マージ
+#### 2.1 CI を待つ
+
+w-pr の Step 4 と同じコマンドで、CI を待つ。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
+
+```bash
+gh pr checks <PR番号> --repo <owner>/<repo> --watch --fail-fast > /dev/null 2>&1; gh pr checks <PR番号> --repo <owner>/<repo>
+```
+
+- `no checks reported` が出たら、少しおいて打ち直す。2 回続いたら CI の無いリポとみなし、2.2 へ進む
+- 落ちたら、PR の変更が原因なら直して push し、2.1 からやり直す。関係ない失敗は利用者に伝えて止まる
+
+#### 2.2 マージ
 
 ```bash
 gh pr merge <PR番号> --repo <owner>/<repo> --squash
 ```
 
-merge queue のあるリポや、必須チェックが終わっていない PR では、その場ではマージされない。2.2 で待つ。
+gh がエラーで止めたら（コンフリクト・ルールなど）、その文を利用者に伝えて止まる。
 
-#### 2.2 マージを待つ
-
-Claude Code では Monitor ツールで、次のスクリプトを動かして待つ。期限（timeout_ms）は 30 分（1800000）で渡す。期限で止まったら、同じコマンドで起動し直す。
+merge queue のあるリポでは、gh は `The merge strategy for main is set by the merge queue` と出し、PR を queue に入れる。エラーではない。
+queue から出るまで、2.1 と同じ実行の仕方で待つ。`gh pr view --json` は queue の状態を持たないので、GraphQL で読む。
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>
+while [ "$(gh api graphql -F n=<PR番号> -f query='query($n:Int!){repository(owner:"<owner>",name:"<repo>"){pullRequest(number:$n){isInMergeQueue}}}' --jq .data.repository.pullRequest.isInMergeQueue)" = true ]; do sleep 30; done; gh pr view <PR番号> --repo <owner>/<repo> --json state -q .state
 ```
 
-スクリプトは、抜けた理由を 1 行目に、最後の状態を 2 行目以降に出す。理由に合う行を実行する。
-
-| 1 行目の理由 | 次の手順 |
-|---|---|
-| `merged` | 2.3 へ進む |
-| `conflicting` | `origin/main` を取り込み直し、コンフリクトを直して push する |
-| `required-failed` | 落ちたチェックを読んでユーザーに伝える。直して push する |
-| `not-queued` | 落ちたチェックがあれば直して push し、2.1 からやり直す。無ければ理由をユーザーに伝えて止まる |
-| `stalled` | 状態をユーザーに伝える。queue の中か、チェックが進んでいるなら、待ち直しを勧める |
-| `closed` | ユーザーに伝えて止まる |
-| `blocked` | 出力をユーザーに伝えて止まる |
-| `query-failed` | 出力の `gh` のエラーをユーザーに伝えて止まる |
-
-- push した後は、2 行目の `auto-merge=` が `true` なら 2.2 から、`false` なら 2.1 からやり直す
-- CI や queue が 15 分を超えるリポでは、`--stall-minutes <分>` を付けて起動する
-- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 をやり直す
+- `MERGED` なら 2.3 へ進む
+- `OPEN` なら、queue のチェックが落ちたかコンフリクトで外された。原因を読んで直し、2.1 からやり直す
 
 #### 2.3 片付け
 
