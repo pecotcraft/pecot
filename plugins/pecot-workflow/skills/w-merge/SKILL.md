@@ -40,10 +40,11 @@ gh pr merge <PR番号> --repo <owner>/<repo> --squash
 
 gh がエラーで止めたら（コンフリクト・ルールなど）、その文を利用者に伝えて止まる。
 
-merge queue のあるリポでは、PR は queue に入る。queue から出るまで、2.1 と同じ実行の仕方で待つ。
+merge queue のあるリポでは、gh は `The merge strategy for main is set by the merge queue` と出し、PR を queue に入れる。エラーではない。
+queue から出るまで、2.1 と同じ実行の仕方で待つ。`gh pr view --json` は queue の状態を持たないので、GraphQL で読む。
 
 ```bash
-while [ "$(gh pr view <PR番号> --repo <owner>/<repo> --json isInMergeQueue -q .isInMergeQueue)" = true ]; do sleep 30; done; gh pr view <PR番号> --repo <owner>/<repo> --json state -q .state
+while [ "$(gh api graphql -F n=<PR番号> -f query='query($n:Int!){repository(owner:"<owner>",name:"<repo>"){pullRequest(number:$n){isInMergeQueue}}}' --jq .data.repository.pullRequest.isInMergeQueue)" = true ]; do sleep 30; done; gh pr view <PR番号> --repo <owner>/<repo> --json state -q .state
 ```
 
 - `MERGED` なら 2.3 へ進む
