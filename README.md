@@ -18,9 +18,7 @@
   <img src="https://img.shields.io/badge/GitHub_Projects-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub Projects">
 </p>
 
-## インストール
-
-### 動作環境
+## 動作環境
 
 以下のソフトウェアがインストールされている必要があります。
 
@@ -29,7 +27,7 @@
 - [Git](https://git-scm.com/)
 - [GitHub CLI](https://cli.github.com/)
 
-### インストール手順
+## インストール
 
 GitHub CLI でログインし、GitHub Projects の操作に必要な `project` スコープを追加します。
 
@@ -49,7 +47,7 @@ claude plugin install pecot-v@pecot
 
 pecot-w を初めて使用するときは、作業するリポジトリで `/pecot-w:w-onboarding` を実行して、GitHub Projects のボードを作成してください。
 
-### アップデート
+## アップデート
 
 最新のバージョンに更新するには、次のコマンドを実行します。
 
