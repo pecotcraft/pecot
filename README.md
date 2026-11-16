@@ -23,12 +23,12 @@
 
 pecot のプラグインを使用するには、次のものが必要です。
 
-- [Claude Code](https://claude.ai/code) 2.1.141 以降
-- Node.js 24.22.1 以降（24 系）、または 26.12.1 以降
+- [Claude Code](https://claude.ai/code)
+- [Node.js](https://nodejs.org/ja)
 
 pecot-w を使用する場合は、[GitHub CLI](https://cli.github.com/) も必要です。認証後に `gh auth refresh -s project` を実行して、`project` スコープを追加してください。
 
-pecot-t を使用する場合は、[AWS CLI](https://aws.amazon.com/cli/) v2（2.22 以降）も必要です。
+pecot-t を使用する場合は、[AWS CLI](https://aws.amazon.com/cli/) も必要です。
 
 ### インストール
 
