@@ -19,7 +19,13 @@
   <img src="https://img.shields.io/badge/Spec_Kit-181717?style=flat-square&logo=github&logoColor=white" alt="Spec Kit">
 </p>
 
-## What is <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-wordmark-dark.svg"><img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" height="38" align="middle"></picture>&#63;
+<h2>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-wordmark-dark.svg">
+    <img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" height="38" align="middle">
+  </picture>
+  とは
+</h2>
 
 現在準備中です。
 
