@@ -40,10 +40,16 @@ function head(workspace: Readonly<Workspace>, reference = 'HEAD'): string {
   return workspace.git(['rev-parse', reference]).trim()
 }
 
-function writeState(workspace: Readonly<Workspace>, file: string, content: string): void {
-  const target = path.join(workspace.directory, file)
+// 1〜20 の行のファイル。changed の行だけを、その文字列に替える
+function numbered(changed: Readonly<Record<number, string>>): string {
+  return Array.from({ length: 20 }, (_, index) => `${changed[index + 1] ?? String(index + 1)}\n`).join('')
+}
+
+// 上の段の base の記録を、下の段の今の remote の先頭で書く
+function recordLowerBase(workspace: Readonly<Workspace>): void {
+  const target = path.join(workspace.directory, BASE_FILE)
   mkdirSync(path.dirname(target), { recursive: true })
-  writeFileSync(target, content)
+  writeFileSync(target, `${LOWER} ${head(workspace, `origin/${LOWER}`)} acme/demo#11\n`)
 }
 
 interface StackedOptions {
@@ -65,7 +71,7 @@ async function openStacked(options: Readonly<StackedOptions> = {}): Promise<Work
   workspace.git(['checkout', '-b', UPPER, `origin/${LOWER}`])
   commitFile(workspace, 'upper.txt', 'upper\n', 'upper')
   if (options.isPushed !== false) workspace.git(['push', '-u', 'origin', UPPER])
-  writeState(workspace, BASE_FILE, `${LOWER} ${head(workspace, `origin/${LOWER}`)} acme/demo#11\n`)
+  recordLowerBase(workspace)
   return workspace
 }
 
@@ -194,6 +200,27 @@ describe('pr restack', () => {
     expect(workspace.read(BASE_FILE)).toBe(`main ${head(workspace, 'origin/main')}`)
   })
 
+  it('下の段の直しが上の段の変更の近くに入ってからマージされても、GitHub が書き換えた上の段へ合わせる', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-05')
+    await verifies(context, 'PW-PR-RESTACK-16')
+    const workspace = await openWorkspace({
+      branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'f.txt': numbered({ 2: 'lower' }) } }] }],
+      github: [lowerPullRequests('MERGED')],
+    })
+    workspace.git(['checkout', '-b', UPPER, `origin/${LOWER}`])
+    commitFile(workspace, 'f.txt', numbered({ 2: 'lower', 8: 'upper' }), 'upper')
+    workspace.git(['push', '-u', 'origin', UPPER])
+    recordLowerBase(workspace)
+    // 下の段の直し（5 行目）は、上の段の変更（8 行目）の前後 3 行に入る
+    pushTo(workspace, 'origin/main', 'main', 'f.txt', numbered({ 2: 'lower', 5: 'fixed' }))
+    workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+    rewriteUpperOnRemote(workspace)
+    const rewritten = workspace.remoteGit(['rev-parse', UPPER]).trim()
+    const result = await workspace.run(['pr', 'restack'])
+    expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} synced with origin/${UPPER}\n` })
+    expect(head(workspace)).toBe(rewritten)
+  })
+
   it('下の段がマージ済みで、remote の上の段が書き換わっていないと、開発ブランチへ載せ直して push する', async (context) => {
     await verifies(context, 'PW-PR-RESTACK-04')
     const workspace = await openStacked({ github: [lowerPullRequests('MERGED')] })
@@ -311,6 +338,20 @@ describe('pr restack', () => {
     expect(workspace.exists(PROGRESS_FILE)).toBe(true)
   })
 
+  it('利用者が自分で rebase を終えた後に --continue を付けると、push して base の記録を書き直す', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-13')
+    const workspace = await openStacked({ github: [lowerPullRequests('OPEN')] })
+    makeConflict(workspace)
+    await workspace.run(['pr', 'restack'])
+    writeFileSync(path.join(workspace.directory, 'upper.txt'), 'resolved\n')
+    workspace.git(['add', 'upper.txt'])
+    workspace.git(['-c', 'core.editor=true', 'rebase', '--continue'])
+    const result = await workspace.run(['pr', 'restack', '--continue'])
+    expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on ${LOWER}\n` })
+    expect(workspace.remoteGit(['rev-parse', UPPER]).trim()).toBe(head(workspace))
+    expect(workspace.read(BASE_FILE)).toBe(`${LOWER} ${head(workspace, `origin/${LOWER}`)} acme/demo#11`)
+    expect(workspace.exists(PROGRESS_FILE)).toBe(false)
+  })
   it.for([{ flag: '--continue' }, { flag: '--abort' }])('途中の記録が無いのに $flag を付けると、利用者が始めた rebase を動かさずに終了コード 2 で終わる', async (row, context) => {
     await verifies(context, 'PW-PR-RESTACK-14')
     const workspace = await openStacked()
@@ -319,7 +360,7 @@ describe('pr restack', () => {
     expect(() => workspace.git(['rebase', `origin/${LOWER}`])).toThrow(Error)
     const stopped = head(workspace)
     const result = await workspace.run(['pr', 'restack', row.flag])
-    expect(result).toStrictEqual({ code: 2, stdout: '', stderr: 'error: no restack in progress\n' })
+    expect(result).toStrictEqual({ code: 2, stdout: '', stderr: 'error: no restack in progress\n  to restack the branch, run: pecot pr restack\n' })
     expect(head(workspace)).toBe(stopped)
     expect(workspace.exists(path.join('.git', 'rebase-merge'))).toBe(true)
   })
@@ -342,6 +383,7 @@ describe('pr restack', () => {
     expect(result.code).toBe(1)
     expect(lines(result.stderr)).toStrictEqual([
       `error: origin/${UPPER} has commits that are not in ${UPPER}`,
+      `  ${UPPER} is back at the position before the restack`,
       `  rebase or merge them into ${UPPER} first, then run again: pecot pr restack`,
     ])
     expect(head(workspace)).toBe(before)

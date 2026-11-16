@@ -61,6 +61,11 @@ function subjects(cwd: string, range: string): readonly string[] {
   return gitForTest(cwd, ['log', '--format=%s', range]).split('\n').filter(line => line !== '')
 }
 
+// 1〜20 の行のファイル。changed の行だけを、その文字列に替える
+function numbered(changed: Readonly<Record<number, string>>): string {
+  return Array.from({ length: 20 }, (_, index) => `${changed[index + 1] ?? String(index + 1)}\n`).join('')
+}
+
 /**
 main ← lower ← upper の積んだブランチ。lower と upper は別の作業ディレクトリで、どちらも origin に push 済み
 */
@@ -304,7 +309,26 @@ describe('remoteOnlyChanges', () => {
     rewriteRemoteUpperOntoMain(stack)
     expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
 
-    expect(remoteOnlyChanges(stack.upper, 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([])
+    expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([])
+  })
+
+  it('下の段の直しが上の段の変更の近くに入ると、書き換えたコミットは載せ直しの前の HEAD とは合わず、載せ直した後の HEAD とは合う', () => {
+    const initial = createStack()
+    commitFile(initial.lower, 'f.txt', numbered({}), 'L2')
+    gitForTest(initial.upper, ['rebase', '-q', 'lower'])
+    const rewritten = commitFile(initial.upper, 'f.txt', numbered({ 8: 'upper' }), 'U3')
+    gitForTest(initial.upper, ['push', '-q', '-f', 'origin', 'upper'])
+    const stack = { ...initial, recordedBase: sha(initial.lower, 'lower') }
+    commitFile(stack.lower, 'f.txt', numbered({ 5: 'fixed' }), 'fix near the upper change')
+    gitForTest(stack.lower, ['push', '-q', 'origin', 'lower'])
+    squashLowerIntoMain(stack)
+    rewriteRemoteUpperOntoMain(stack)
+    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    const excluded = [stack.recordedBase, 'origin/main']
+
+    expect(remoteOnlyChanges(stack.upper, rewritten, 'origin/upper', excluded)).toHaveLength(1)
+    expect(rebaseOnto(stack.upper, 'origin/main', stack.recordedBase)).toBe('done')
+    expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', excluded)).toEqual([])
   })
 
   it('remote の上の段にだけ足されたコミットを一覧に入れる', () => {
@@ -313,7 +337,7 @@ describe('remoteOnlyChanges', () => {
     const suggestion = rewriteRemoteUpperOntoMain(stack, 'apply suggestion')
     expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
 
-    expect(remoteOnlyChanges(stack.upper, 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([suggestion])
+    expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([suggestion])
   })
 
   it('書き換えの無い remote の上の段にだけ足されたコミットを一覧に入れ、下の段の新しいコミットは入れない', () => {
@@ -327,7 +351,7 @@ describe('remoteOnlyChanges', () => {
     gitForTest(scratch, ['push', '-q', 'origin', 'upper'])
     expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
 
-    expect(remoteOnlyChanges(stack.upper, 'origin/upper', [stack.recordedBase, 'origin/lower'])).toEqual([suggestion])
+    expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/lower'])).toEqual([suggestion])
   })
 })
 

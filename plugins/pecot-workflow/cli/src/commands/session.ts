@@ -15,7 +15,7 @@ import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError 
 import type { IssueReference } from '../domain/reference-parser.js'
 import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
 import type { BaseReading } from '../domain/state.js'
-import { describeStackBase, pickBasePullRequest } from '../domain/work-start.js'
+import { describeStackBase } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { gitCurrentBranch, primaryRemoteName, primaryRemoteRepository, remoteBranchHead } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
@@ -147,18 +147,19 @@ interface StackSection {
 }
 
 // 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
-async function stackSection(active: Readonly<ActiveIssue>, directory: string, output: Output): Promise<StackSection> {
+async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation> | undefined, directory: string, output: Output): Promise<StackSection> {
   const reading = readBaseRecord()
   if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
   if (reading.kind !== 'stacked') return { lines: [] }
   const { record, stackedOn } = reading
-  const { owner, repository } = stackedOn.repository
-  let pullRequest: ReturnType<typeof pickBasePullRequest> | 'unknown'
+  // ブランチは作業ディレクトリのリポにあるので、PR もそこで探す（pr restack と同じ）
+  const { owner, repository } = origin ?? stackedOn.repository
+  let pullRequest: ReturnType<typeof pickLowerPullRequest> | 'unknown'
   let restack: RestackDecision | undefined
   try {
     const found = await active.client.listPullRequestsByHead(owner, repository, record.branch)
-    pullRequest = pickBasePullRequest(found.pullRequests)
-    restack = restackDecision(reading, pickLowerPullRequest(found.pullRequests), directory)
+    pullRequest = pickLowerPullRequest(found.pullRequests)
+    restack = restackDecision(reading, pullRequest, directory)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
@@ -237,7 +238,7 @@ const SESSION_SHOW = defineCommand({
     const issueNumber = branch === undefined ? undefined : extractIssueNumberFromBranch(branch)
     const statuses = collectFlagStatuses()
     const active = await readActiveIssue(statuses, output)
-    const stack = active === undefined ? { lines: [] } : await stackSection(active, input.directory, output)
+    const stack = active === undefined ? { lines: [] } : await stackSection(active, origin, input.directory, output)
     const above = active === undefined || origin === undefined || branch === undefined ? undefined : await readStackedAbove(active, origin, branch, output)
     output.result({
       ...branch !== undefined && { branch },

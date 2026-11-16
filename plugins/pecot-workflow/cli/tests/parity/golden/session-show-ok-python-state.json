@@ -13,6 +13,16 @@
         "commentLimit": 0
       },
       "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListPullRequestsByBase",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "baseRefName": "feat/demo/7"
+      },
+      "auth": "token"
     }
   ],
   "files": {

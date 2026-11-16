@@ -143,7 +143,7 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | `--abort` で取りやめた | `unchanged: <branch> restack aborted` | 0 |
 | 途中の記録が無いのに `--continue`・`--abort` を付けた | `error: no restack in progress` | 2 |
 | `--check`・`--continue`・`--abort` を 2 つ以上付けた | 使い方の誤りの `error:` | 2 |
-| remote のブランチにだけある変更がある | `error: <remote>/<branch> has commits that are not in <branch>`、続けて取り込む案内 | 1 |
+| remote のブランチにだけある変更がある | `error: <remote>/<branch> has commits that are not in <branch>`、続けて、載せ直しの前へ戻した旨と取り込む案内 | 1 |
 | push が `--force-with-lease` で拒まれた | `error: push was rejected`、続けて打ち直しの案内 | 1 |
 | `git fetch` が失敗した | `error: cannot fetch <remote>` | 1 |
 
@@ -151,8 +151,9 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 - 積んでいないブランチ（記録が無いか、開発ブランチからの着手）は載せ直さない。開発ブランチが進むたびに PR を force push しないためだ
 - 載せ直しが要るかは、下の段の remote の先頭と、記録の位置を比べて決める
 - 未コミットの変更の確かめは、`--continue` と `--abort` では行わない
-- rebase の前に、remote のブランチにだけある変更を探す。`--force-with-lease` は、fetch で取り込んだのに rebase に入っていないコミットを守らないためだ
-  - GitHub が書き換えたコミットは、手元と同じ変更なので、これに当たらない
+- rebase の後に、remote のブランチにだけある変更を探す。`--force-with-lease` は、fetch で取り込んだのに rebase に入っていないコミットを守らないためだ
+  - 同じ変更かは、載せ直しの前と後のブランチの両方と比べる。GitHub が書き換えたコミットは、前後の行が載せ直しの後と同じになるためだ
+  - 見つけたら、ブランチを載せ直しの前の位置へ戻して止まる
 - rebase は `--no-update-refs` で打つ。利用者の `rebase.updateRefs` の設定で、ほかのブランチを書き換えないためだ
 - 衝突で止まるときに、途中の記録を書く（data-model.md の 8）。`--continue` と `--abort` は、この記録だけを読む
   - `--continue` がまた衝突したら、前と同じく終了コード 3 で止まる

@@ -252,12 +252,14 @@ Issue 化の前に、フェーズごとに出す見込み。Issue の状態を�
 |---|---|
 | remote | fetch と push の相手の remote の名前 |
 | ブランチ | 載せ直しているブランチ。rebase の途中は HEAD が detached なので、ここから読む |
+| 載せ直す前の位置 | 載せ直す前のブランチの先頭の SHA。remote にだけある変更が見つかったときに、ここへ戻す |
 | 載せ直す先 | 新しい base のブランチの名前と、その SHA |
 | lease の位置 | fetch した時点の、remote のブランチの SHA。remote に無ければ `-` |
 | 積んだ先の Issue | 載せ直した後も積んだ記録を保つときの `owner/repo#N`。開発ブランチへ載せ直すときは `-` |
 
 - 書くのは、衝突で止まった `pecot pr restack` だ
 - `--continue` と `--abort` は、この記録だけを読む。記録が無ければ、何もせずに止まる
+- 利用者が rebase を終えた後の `--continue` は、この記録を使って、push と base の記録の書き直しだけを行う
 - 消すのは、載せ直しが終わったときと、取りやめたときだ
 
 ## 9. Issue ファイルの frontmatter

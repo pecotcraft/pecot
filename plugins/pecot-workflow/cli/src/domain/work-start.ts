@@ -45,14 +45,6 @@ export function describeBaseMismatch(base: string | undefined, decision: Exclude
 }
 
 /**
-base のブランチを head に持つ PR のうち、表に出す 1 本。fork でない open のもの、無ければ fork でない最新のもの（新しい順に渡す）
-*/
-export function pickBasePullRequest(pullRequests: readonly PullRequestReadout[]): PullRequestReadout | undefined {
-  const own = pullRequests.filter(pullRequest => !pullRequest.isCrossRepository)
-  return own.find(pullRequest => pullRequest.state === 'OPEN') ?? own[0]
-}
-
-/**
 session show の `- base:` の行。PR が無ければ `no PR`、読めなければ `PR unknown`
 */
 export function describeStackBase(branch: string, issue: IssueReference, pullRequest: Readonly<PullRequestReadout> | undefined | 'unknown'): string {

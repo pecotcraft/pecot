@@ -2818,7 +2818,7 @@ entries:
         - "With --check, only reports whether a restack is needed and changes nothing except the remote-tracking refs updated by git fetch."
         - "A branch that is not stacked (no base record, or a record of a start from the develop branch) is never restacked."
         - "A restack is needed when the head of the layer below on the remote differs from the recorded position, or when the PR of the layer below is merged. After a merge, the branch is restacked onto the develop branch and the base record becomes a start from the develop branch."
-        - "Fetches the remote, then stops when the remote branch has commits that are not in the local branch, because the push would drop them."
+        - "After the rebase, stops when the remote branch has commits whose change is in the local branch neither before nor after the rebase, because the push would drop them. The branch goes back to the position before the restack."
         - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position. A branch that is not on the remote is not pushed."
         - "After the restack, rewrites the base record with the merge base of the branch and the new base."
         - "On conflicts, prints the conflicted files, leaves the rebase in progress, writes a progress record and exits with status 3. --continue goes on after the conflicts are resolved and staged. --abort goes back to the position before the restack. Both read only the progress record and refuse to touch a rebase that pecot did not start."
@@ -2847,7 +2847,8 @@ entries:
       - '`--check` を付けると、載せ直しが要るかだけを出します。変わるのは、`git fetch` が進める手元の追跡参照だけです。'
       - '積んでいないブランチ（base の記録が無いか、開発ブランチからの着手の記録）は、載せ直しません。'
       - '載せ直しが要るのは、下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときです。マージ済みなら開発ブランチへ載せ直し、base の記録を開発ブランチからの着手に変えます。'
-      - 'remote を fetch した後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。'
+      - 'rebase の後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。ブランチは載せ直しの前の位置へ戻します。'
+      - '同じ変更かは、載せ直しの前と後のブランチの両方と比べます。GitHub が書き換えたコミットを、別の変更と見ないためです。'
       - '`git rebase --no-update-refs --onto <新しい base> <記録の位置>` を打ちます。'
       - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
       - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。remote に無いブランチは push しません。'
@@ -2879,7 +2880,7 @@ entries:
         when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
       - kind: git-unresolved
         code: 1
-        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。'
+        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたときも同じです。'
       - kind: no-active-project
         code: 1
         when: 'アクティブなプロジェクトがありません。'
@@ -2912,17 +2913,17 @@ entries:
         when: '載せ直しが衝突しました。`--continue` の後に、また衝突したときも含みます。'
       - kind: invalid-input
         code: 2
-        when: '`--check`・`--continue`・`--abort` を 2 つ以上渡したか、途中の記録が無いのに `--continue`・`--abort` を渡しました。pecot の記録が無い rebase の途中のときと、ほかのコマンドラインの誤りも含みます。'
+        when: '`--check`・`--continue`・`--abort` を 2 つ以上渡したか、途中の載せ直しが無いのに `--continue`・`--abort` を渡しました。pecot の記録が無い rebase の途中のときと、ほかのコマンドラインの誤りも含みます。'
       - kind: project-root-not-found
         code: 1
         when: 'プロジェクトのルートを決められません。'
       - kind: other
         code: 1
-        when: 'remote のブランチにだけあるコミットがあるか、push が拒まれました。ほかの名前に当たらない失敗も含みます。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒まれたときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。同じコマンドの打ち直しで続きます。remote のブランチにだけあるコミットで止まったときは、何も変えません。'
+    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒まれたときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。同じコマンドの打ち直しで続きます。remote のブランチにだけあるコミットで止まったときは、ブランチを載せ直しの前の位置へ戻します。'
     effects:
       - target: git
         kind: destructive
@@ -2986,7 +2987,7 @@ entries:
         statement: '`--abort` を付けて打つと、載せ直しの前の位置に戻し、途中の記録を消して、`unchanged: <branch> restack aborted` を出します'
       - id: PW-PR-RESTACK-13
         pattern: event
-        statement: '`--continue` を付けて打つと、rebase を続け、終われば push と記録の書き直しまで進みます。衝突が残っていれば、もう一度終了コード 3 で終わります'
+        statement: '`--continue` を付けて打つと、rebase を続け、終われば push と記録の書き直しまで進みます。衝突が残っていれば、もう一度終了コード 3 で終わります。利用者が rebase を終えていれば、残りの手順だけを進めます'
       - id: PW-PR-RESTACK-14
         pattern: unwanted
         statement: 'もし途中の記録が無いのに `--continue` か `--abort` を付けたなら、途中の rebase を動かさずに終了コード 2 で終わります'
@@ -2995,7 +2996,7 @@ entries:
         statement: 'もし `--check`・`--continue`・`--abort` を 2 つ以上付けたなら、終了コード 2 で終わります'
       - id: PW-PR-RESTACK-16
         pattern: unwanted
-        statement: 'もし remote のブランチにだけあるコミットがあるなら、載せ直しと push をせずに終了コード 1 で終わります'
+        statement: 'もし remote のブランチにだけあるコミットがあるなら、ブランチを載せ直しの前の位置へ戻し、push をせずに終了コード 1 で終わります'
       - id: PW-PR-RESTACK-17
         pattern: unwanted
         statement: 'もし push が拒まれたなら、base の記録を書き直さずに終了コード 1 で終わります'

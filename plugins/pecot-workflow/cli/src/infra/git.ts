@@ -271,10 +271,10 @@ export function conflictedFiles(cwd: string): readonly string[] {
 }
 
 /**
-remoteBranch にあり、HEAD に同じ変更（patch-id）の無いコミットの SHA。excluded から届くコミットは除く
+remoteBranch にあり、local に同じ変更（patch-id）の無いコミットの SHA。excluded から届くコミットは除く
 */
-export function remoteOnlyChanges(cwd: string, remoteBranch: string, excluded: readonly string[]): readonly string[] {
-  const arguments_ = ['rev-list', '--right-only', '--cherry-pick', '--no-merges', `HEAD...${remoteBranch}`, ...excluded.map(reference => `^${reference}`), '--']
+export function remoteOnlyChanges(cwd: string, local: string, remoteBranch: string, excluded: readonly string[]): readonly string[] {
+  const arguments_ = ['rev-list', '--right-only', '--cherry-pick', '--no-merges', `${local}...${remoteBranch}`, ...excluded.map(reference => `^${reference}`), '--']
   return runGit(arguments_, { cwd, check: true }).stdout.split('\n').filter(line => line !== '')
 }
 

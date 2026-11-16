@@ -23,8 +23,7 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを�
 
 レビューの前に、積んだブランチの載せ直しが要るかを確かめる。
 
-- pecot-workflow の MCP ツール `session_show` を使って、今のブランチが積んだブランチかを確かめる（結果の `stack` があれば積んでいる）
-- 積んでいれば、pecot-workflow の MCP ツール `pr_restack` を使って、載せ直しが要るかを確かめる（`check: true`）
+- pecot-workflow の MCP ツール `pr_restack` を使って、載せ直しが要るかを確かめる（`check: true`）
 - 載せ直しが要るときは、`pr_restack` で載せ直してからレビューに進む。衝突で止まったら、利用者に伝えて止まる
 
 ### Step 2: w-reviewer にレビューを依頼
@@ -210,7 +209,7 @@ Step 5 で書き始めたファイルを、テンプレのガイドに従って�
 
 チャットには `review-resolution` の本文をそのまま示す。マージが必要なら `/pecot-w:w-merge` を案内する。
 
-修正を push したあと、pecot-workflow の MCP ツール `session_show` を使って、上の段の PR があるかを確かめる（結果の `stackedAbove`）。あれば、その PR の作業ディレクトリで `pr_restack` が要る旨を、チャットの報告に入れる。上の段の作業ディレクトリには入らない。
+修正を push したあと、pecot-workflow の MCP ツール `session_show` を使って、上の段の PR があるかを確かめる。あれば、その PR の作業ディレクトリで `pr_restack` が要る旨を、チャットの報告に入れる。上の段の作業ディレクトリには入らない。
 
 ## 注意
 

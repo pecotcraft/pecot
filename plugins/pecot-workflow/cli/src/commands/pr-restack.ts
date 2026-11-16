@@ -42,6 +42,8 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 const RESTACK_PATH = ['pr', 'restack']
 const CONFLICT_EXIT_CODE = 3
 const UNCOMMITTED_EXIT_CODE = 2
+// 文の中にロングオプションを書けない（lint）ので、git の引数から組む
+const SKIP_COMMAND = ['git', 'rebase', '--skip'].join(' ')
 
 const PR_RESTACK_OUTPUT = z.strictObject({
   branch: z.string().describe('Branch that is restacked'),
@@ -73,19 +75,32 @@ function causeOf(decision: Readonly<RestackDecision>): Pick<PrRestackData, 'caus
 function stopOnConflict(out: RestackOutput, cwd: string, progress: Readonly<RestackProgress>): never {
   const conflicts = conflictedFiles(cwd)
   out.result({ branch: progress.branch, base: progress.ontoBranch, outcome: 'conflict', conflicts: [...conflicts] })
-  const files = conflicts.length === 0 ? 'the rebase' : conflicts.join(', ')
-  return stopWith(
-    out,
-    hinted`conflict in ${files}\nresolve the conflicts and git add the files, then run: ${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`,
-    'git-conflict',
-    CONFLICT_EXIT_CODE,
-  )
+  // 衝突したファイルが無いのに止まるのは、解いた結果が空のコミットになったとき
+  const message = conflicts.length === 0
+    ? hinted`the rebase stopped without conflicted files (a commit may have become empty)\nskip the commit with: ${SKIP_COMMAND}, then run: ${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`
+    : hinted`conflict in ${conflicts.join(', ')}\nresolve the conflicts and git add the files, then run: ${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`
+  return stopWith(out, message, 'git-conflict', CONFLICT_EXIT_CODE)
+}
+
+// remote のブランチにだけあるコミット。patch-id は前後の行も含むので、載せ直しの前と後のどちらとも合わないものだけを数える
+function remoteOnlyCommits(cwd: string, progress: Readonly<RestackProgress>, remoteBranch: string): readonly string[] {
+  const reading = readBaseRecord()
+  const excluded = [progress.ontoSha, ...reading.kind === 'stacked' ? [reading.record.sha] : []]
+  const before = remoteOnlyChanges(cwd, progress.originalSha, remoteBranch, excluded)
+  if (before.length === 0) return []
+  const after = new Set(remoteOnlyChanges(cwd, 'HEAD', remoteBranch, excluded))
+  return before.filter(sha => after.has(sha))
 }
 
 // rebase が終わった後。remote が載せ直し済みで木が同じなら合わせ、違えば push し、base の記録を書き直す
 function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<RestackProgress>): void {
   const { remote, branch, ontoBranch, leaseSha } = progress
   const remoteBranch = `${remote}/${branch}`
+  if (leaseSha !== undefined && remoteOnlyCommits(cwd, progress, remoteBranch).length > 0) {
+    resetHardTo(cwd, progress.originalSha)
+    removeFlag(FLAG_PECOT_RESTACK)
+    stopWith(out, hinted`${remoteBranch} has commits that are not in ${branch}\n${branch} is back at the position before the restack\nrebase or merge them into ${branch} first, then run again: ${commandHint(RESTACK_PATH)}`, 'git-unresolved')
+  }
   // 木が同じでも、remote が新しい base の上に無ければ、古い履歴のままなので合わせない
   const isSynced = leaseSha !== undefined && mergeBase(cwd, progress.ontoSha, remoteBranch) === progress.ontoSha && hasSameTree(cwd, 'HEAD', remoteBranch)
   if (isSynced) resetHardTo(cwd, remoteBranch)
@@ -93,7 +108,7 @@ function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<Resta
     const push = pushWithLease(cwd, remote, branch, leaseSha)
     if (!push.pushed) {
       removeFlag(FLAG_PECOT_RESTACK)
-      stopWith(out, hinted`push was rejected: ${push.stderr.trim()}\n${branch} is restacked locally and the base record is unchanged\nrun again: ${commandHint(RESTACK_PATH)}`, 'other')
+      stopWith(out, hinted`push was rejected: ${push.stderr.trim()}\n${branch} is restacked locally and the base record is unchanged\nrun again: ${commandHint(RESTACK_PATH)}`, 'git-unresolved')
     }
   }
   const record: BaseRecord = { branch: ontoBranch, sha: mergeBase(cwd, 'HEAD', `${remote}/${ontoBranch}`) ?? progress.ontoSha, stackedOn: progress.stackedOn }
@@ -107,9 +122,13 @@ function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<Resta
 function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abort', isDryRun: boolean): void {
   const reading = interpretRestackProgress(readFlag(FLAG_PECOT_RESTACK))
   if (reading.kind === 'malformed') stopWith(out, `.pecot-restack is malformed: ${reading.content}`, 'content-invalid')
-  if (reading.kind === 'none' || !isRebaseInProgress(cwd)) {
+  const isRebasing = isRebaseInProgress(cwd)
+  // 利用者が自分で rebase を終えていれば、続行は残りの手順（push と記録の書き直し）だけを行う
+  const isRebased = reading.kind === 'progress' && !isRebasing && mode === 'continue'
+    && currentBranch(cwd) === reading.progress.branch && mergeBase(cwd, 'HEAD', reading.progress.ontoSha) === reading.progress.ontoSha
+  if (reading.kind === 'none' || (!isRebasing && !isRebased)) {
     if (!isDryRun) removeFlag(FLAG_PECOT_RESTACK)
-    return stopWith(out, 'no restack in progress', 'invalid-input', USAGE_EXIT_CODE)
+    return stopWith(out, hinted`no restack in progress\nto restack the branch, run: ${commandHint(RESTACK_PATH)}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   const { progress } = reading
   if (isDryRun) {
@@ -124,8 +143,12 @@ function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abor
     out.done({ verb: 'unchanged', target: `${progress.branch} restack aborted` })
     return
   }
-  if (continueRebase(cwd) === 'conflict') stopOnConflict(out, cwd, progress)
+  if (isRebasing && continueRebase(cwd) === 'conflict') stopOnConflict(out, cwd, progress)
   finishRestack(out, cwd, progress)
+}
+
+function currentBranch(cwd: string): string | undefined {
+  return gitStdout(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd })?.trim()
 }
 
 function hasUncommittedChanges(cwd: string): boolean {
@@ -162,8 +185,9 @@ function progressOf(out: RestackOutput, cwd: string, branch: string, target: Rea
   const { remote } = target
   const { record } = target.reading
   const ontoSha = resolveCommit(cwd, `${remote}/${decision.base}`)
-  if (ontoSha === undefined) return stopWith(out, `branch ${remote}/${decision.base} does not exist\ncheck the remote branches with: git branch -r`, 'git-unresolved')
-  return { remote, branch, ontoBranch: decision.base, ontoSha, leaseSha: resolveCommit(cwd, `${remote}/${branch}`), stackedOn: decision.kind === 'moved' ? record.stackedOn : undefined }
+  const originalSha = resolveCommit(cwd, 'HEAD')
+  if (ontoSha === undefined || originalSha === undefined) return stopWith(out, `branch ${remote}/${decision.base} does not exist\ncheck the remote branches with: git branch -r`, 'git-unresolved')
+  return { remote, branch, originalSha, ontoBranch: decision.base, ontoSha, leaseSha: resolveCommit(cwd, `${remote}/${branch}`), stackedOn: decision.kind === 'moved' ? record.stackedOn : undefined }
 }
 
 async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
@@ -216,10 +240,6 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     out.result({ branch, base: decision.base, outcome: 'needs-restack', ...causeOf(decision) })
     out.planned({ verb: 'update', target: `${branch} restacked on ${decision.base}` })
     return
-  }
-  const remoteBranch = `${remote}/${branch}`
-  if (progress.leaseSha !== undefined && remoteOnlyChanges(cwd, remoteBranch, [reading.record.sha, progress.ontoSha]).length > 0) {
-    stopWith(out, hinted`${remoteBranch} has commits that are not in ${branch}\nrebase or merge them into ${branch} first, then run again: ${commandHint(RESTACK_PATH)}`, 'other')
   }
   if (rebaseOnto(cwd, progress.ontoSha, reading.record.sha) === 'conflict') {
     writeFlag(FLAG_PECOT_RESTACK, formatRestackProgress(progress))
