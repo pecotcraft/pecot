@@ -144,4 +144,4 @@ artifact template が見つかったら本ルールに従って `plugins/pecot-w
 - `cli/tests/interface/` のテストが、次の 2 つを確かめる
   - write か destructive の effects を持つ項目は `dry_run` を持つ
   - 対象ごとに使える入力名は 1 つだけ
-- 名前を変えるときは、古い名前の案内の表（`cli/src/commands/renamed-commands.ts`）と README の「コマンド名の移行」も直す
+- 名前を変えるときは、古い名前の案内の表（`cli/src/commands/renamed-commands.ts`）も直す。README には移行の手順を書かず、利用者が読む変更点は version plan に書く

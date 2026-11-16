@@ -13,7 +13,7 @@ import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 
 // 利用者が端末で打つコマンドの説明として、本文に残してよい `pecot <サブコマンド>`。
 // 書式は `<プラグインからの相対パス>:<行>`。載せるのは、w-help の、利用者が端末か `!` で打つ説明だけ。
-const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:55', 'skills/w-help/SKILL.md:57']
+const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:57', 'skills/w-help/SKILL.md:59']
 
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'board_url'])
@@ -44,9 +44,6 @@ const CLI_FORM = new RegExp(
 // issue は `issue:` の形だけ拾う（issue_ref・issue 番号の語は拾わない）。plan は `plan: true` の形だけ拾う。
 const OLD_INPUT_NAMES = /\b(?:repo_ref|owner_repo|branch_name|issue_quick)\b|`plan: (?:true|false)`|`issue: "/u
 const PREFIXED = /mcp__plugin_pecot-w_pecot-workflow__([a-z_]+)/gu
-
-// 消したツール名・古い入力名の移行の案内。古い名前を出すのが役目なので、対象から外す
-const MIGRATION_NOTES: ReadonlySet<string> = new Set(['README.md', 'scripts/release/mcp-dist-README.md'])
 
 function lineNumberAt(text: string, index: number): number {
   return text.slice(0, index).split('\n').length
@@ -99,7 +96,6 @@ describe('本文のツール名', () => {
 
   it('本文以外の文書（hooks/README.md など）にも、古い入力名と古いツール名を書かない。バッククォートが付くかは問わない', () => {
     const files = globSync('**/*.md', { cwd: pluginRoot, exclude: name => ['node_modules', 'CHANGELOG.md', 'test-results'].includes(name) })
-      .filter(file => !MIGRATION_NOTES.has(file))
     expect(files).toContain('hooks/README.md')
     const offenders: string[] = []
     for (const file of files) {

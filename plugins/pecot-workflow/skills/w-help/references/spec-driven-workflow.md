@@ -46,8 +46,13 @@ Issue乱立を防ぎ、Phase単位で作業を管理する。
 │                                                          │
 │  前提がそろう:                                           │
 │    → 積める前提は PR が出たら、マージを待つ前提は        │
-│      マージされたら、board_sync が Ready に移す          │
-│    → board_sync は手で呼ぶか、雛形のワークフローで動かす │
+│      マージされたら、Ready に移る                        │
+│    → pecot の操作がその場で移す。画面での操作などで      │
+│      ずれたものは board_sync が直す                      │
+│                                                          │
+│  積んで進める:                                           │
+│    → 前提の PR の上に積んで着手し、PR を出す             │
+│    → 下の段からマージし、上の段を載せ直す                │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -104,17 +109,29 @@ Feature Xの基盤部分を実装する。
 
 ### 4. 作業実行
 
-1. Readyから1つ選択 → Active
-2. 実装・テスト
-3. PR作成・マージ
-4. 次のサブIssue
+1. `/pecot-w:w-active` で、`Ready` から 1 つ選ぶ。一覧の各 Issue には着手の判定が付く
+2. w-active がブランチを作り、Issue を `Active` に移す。base は判定で決まる。利用者とエージェントは base を選ばない
+3. 実装・テストの後、`/pecot-w:w-pr` で PR を出し、`/pecot-w:w-merge` でマージする
+4. 次のサブIssue へ進む
+
+着手の判定は 3 つある。
+
+| 判定 | 意味 | 着手の base |
+|---|---|---|
+| 着手できる（`startable`） | 前提が無いか、すべて済んでいる | 開発ブランチ |
+| 積めば着手できる（`stackable on #N`） | 残る前提が、PR の出ている積める前提だけ | 前提 #N の PR のブランチ |
+| ブロック中（`blocked by #N`） | 済んでいない前提がある | 着手できない。w-active は理由を示して止まる |
+
+判定は、前提の Issue に紐づけたブランチと、Development 欄の PR を読んで決める。
 
 ### 5. 前提がそろう → 次Phase
 
-前の Phase の PR が出る（積める前提）か、マージされる（マージを待つ前提）と、次の Phase の Issue が `Blocked` から `Ready` に移る。移すのは pecot-workflow の MCP ツール `board_sync`。
-`board_sync` は、手で呼ぶか、[board-sync-workflow.md](./board-sync-workflow.md) の雛形のワークフローを置いて自動にする。どちらも無ければ、列は動かない。
+前の Phase の PR が出る（積める前提）か、マージされる（マージを待つ前提）と、次の Phase の Issue が `Blocked` から `Ready` に移る。
 
-1. 前提がそろった Issue が `Ready` に移る
+- pecot の操作（一括投稿・PR の作成・マージの後の片付け・前提の変更）が、その場で影響を受ける Issue の列を動かす
+- 画面でのマージ・blocked by の付け外し・カードの手での移動でずれた列は、pecot-workflow の MCP ツール `board_sync` が直す。手で呼ぶか、[board-sync-workflow.md](./board-sync-workflow.md) の雛形のワークフローを置いて自動にする
+
+1. 前提がそろった Issue が `Ready` へ移る。マージの後は、w-merge が、着手できるようになった Issue を報告する
 2. `Ready` から着手する
 3. 全サブIssue の完了後に、Epic本文の完了条件をチェックする
 
@@ -153,6 +170,48 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 前提を持つフェーズが 1 つも無いときは、見出しの行と区切りの行だけの表を書く。この表は「前提は無い」と読む。
 この表の Phase は tasks.md のフェーズ（サブ Issue）を指し、Epic の前提は表せない。
 
+### 投稿の後に前提を直す
+
+計画が変わったら、pecot-workflow の MCP ツール `issue_block` と `issue_unblock` で前提を直す。GitHub の画面で直す必要は無い。
+
+- `issue_block` は、前提を付ける。付いている前提には、種類（積める・マージを待つ）と理由を付け直す
+- `issue_unblock` は、前提を外す
+- どちらも、本文の `## Waits for merge` の節と、ボードの列と札を、その場でそろえる。輪になる前提は止まる
+- 着手済み（`Active`・`In Review`）の Issue では、列と札を動かさず、残る前提を警告で伝える。ブランチは前提の PR の上へ移らない
+- 1 件ずつサブタスクを作る `/pecot-w:w-ready` も、先に終える Issue を `blocked_by` に書いて投稿する
+
+## 積んで進める
+
+積める前提の PR がレビュー中の間も、その PR の上に積んで次の Issue に着手できる。積んだブランチの PR の並びを、スタックと呼ぶ。
+
+### 積んで着手する
+
+1. 前提の PR が出ると、待っていた Issue が `Ready` に移り、判定が `stackable on #N` になる
+2. `/pecot-w:w-active` で着手する。ブランチは前提の PR のブランチから作られ、w-active はその旨を伝える
+3. base を選ぶ操作は無い。`gh stack` は使わない（hook が止める）
+
+### PR を出す
+
+`/pecot-w:w-pr` で PR を出す。積んだブランチの PR は、base が下の段のブランチになり、差分には自分の段の変更だけが出る。
+PR は、下の段の PR とスタックとして並ぶ。下の段の PR が無いときは止まる。
+
+### 下の段からマージする
+
+`/pecot-w:w-merge` でマージする。スタックは下の段から順にだけマージできる。上の段を頼むと、先にマージする PR を示して止まる。
+
+下の段をマージすると、次のことが起きる。
+
+- GitHub が、上の段の PR の base を開発ブランチへ書き換え、上の段のブランチを載せ直して force-push する
+- w-merge が、片付けの後に、着手できるようになった Issue と、載せ直しが要る上の段を報告する
+
+### 上の段を載せ直す
+
+上の段の作業ディレクトリで、次の作業の前に pecot-workflow の MCP ツール `pr_restack` を呼ぶ。`/pecot-w:w-revise` も、レビューの前に載せ直しが要るかを確かめる。
+
+- 下の段に直しを push したときも、上の段で `pr_restack` を呼ぶ。`check: true` で、載せ直しが要るかだけを確かめられる
+- 下の段のマージの後、`pr_check` が手元とリモートの分かれ（diverged）を出しても、push しない。GitHub が載せ直した版を、古い版で上書きしてしまう。`pr_restack` を呼ぶ
+- 衝突で止まったら、衝突したファイルを直して `pr_restack` を `continue: true` で呼ぶ。取りやめるときは `abort: true` で、載せ直しの前の位置に戻る
+
 ## ステータス運用
 
 現状のステータス構成を維持する。
@@ -162,8 +221,9 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 | **Backlog** | Epic（Phase単位）・Tracker置き場 |
 | **Pending** | 人が後回しにしたEpicまたはタスク。Ready／Backlog から手動で移動。人だけが出し入れする |
 | **Blocked** | 前提を待っているサブIssue。pecot が置き、pecot が出す。ボードに無ければ `project_init` で足す |
-| **Ready** | 今、着手できるサブIssue |
+| **Ready** | 今、着手できるサブIssue（積めば着手できるものを含む） |
 | **Active** | 作業中（同時1-2個まで） |
+| **In Review** | PR が出ている。積んだ PR も同じ列に入る |
 | **Archived** | 完了後退避 |
 
 ## 並列作業の制約と対策
@@ -202,7 +262,7 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 | 3 | 2 | 積める | Phase 3 が、Phase 2 の feature.ts を変える |
 ```
 
-表は `blocked_by` になる。後ろの Phase の Issue は `Blocked` に入り、前提がそろうと `board_sync` が `Ready` に移す。
+表は `blocked_by` になる。後ろの Phase の Issue は `Blocked` に入り、前提がそろうと `Ready` に移る。
 
 ### 対策3: 並列可能タスクの明示
 
@@ -232,7 +292,7 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 ### Issue 化のタイミング
 
 - 全 Phase のサブIssueを、Issue 化のときに一括で投稿する
-- 前提が済んでいない Issue は `Blocked` に入り、前提がそろうと `board_sync` が `Ready` に移す（積める前提は PR が出たとき、マージを待つ前提はマージされたとき）
+- 前提が済んでいない Issue は `Blocked` に入り、前提がそろうと `Ready` に移る（積める前提は PR が出たとき、マージを待つ前提はマージされたとき）。移すものは「5. 前提がそろう → 次Phase」にある
 
 ## 関連ドキュメント
 

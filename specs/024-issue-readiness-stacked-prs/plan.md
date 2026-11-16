@@ -158,7 +158,7 @@ specs/023-label-triggered-autofix/      # 待ちの値の名前だけを直す
 | 9 | マージのコマンドと、片付けの後の通知。w-merge と hook | US5、FR-032〜FR-035、FR-068 |
 | 10 | 載せ直しのコマンド。w-revise | US6、FR-036〜FR-040 |
 | 11 | w-breakdown が前提の表を書かせる | US8、FR-052〜FR-054 |
-| 12 | w-help の文書、spec 023 の名前の修正、このリポでの CUJ | FR-042、FR-044、FR-045、FR-076、FR-077、SC-001〜SC-016 |
+| 12 | w-help の文書、spec 023 の名前の修正、w-ready の前提、検証用のリポでの quickstart | FR-042、FR-044、FR-045、FR-076、FR-077、SC-001〜SC-016 |
 
 段階 5 までで、Issue 化からボードの列までが通る。段階 7 から 10 が、積んで進める動線だ。
 段階の前後関係と種類は、tasks.md の前提の表に書く。

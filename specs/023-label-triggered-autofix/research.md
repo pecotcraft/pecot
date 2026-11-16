@@ -154,7 +154,7 @@ Issue の本文は、action のサニタイズを通らない。そこで次の 
 
 ## R7. 待ちの値
 
-- Decision: `pecot project init` が、既定の Status に待ちの値を足す。値の名前は `Waiting`、色は赤にする。既にあるボードでも、同じコマンドを打ち直すと足される
+- Decision: `pecot project init` が、既定の Status に待ちの値を足す。値の名前は `Needs Attention`、色は赤にする。既にあるボードでも、同じコマンドを打ち直すと足される
 - Rationale: 新しいコマンドを増やさずに済む。`init` は今も、足りないフィールドだけを作る冪等なコマンドだ
 
 決まったこと:

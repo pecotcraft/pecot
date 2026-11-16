@@ -42,35 +42,35 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 
 ## Phase 1: User Story 4 — 既定の Status に待ちの値を足し、ボードの説明を実装に合わせる (Priority: P2)
 
-**Goal**: `pecot project init` が、既定の Status に赤の `Waiting` を足す。設定ファイルが既定の Status の ID を持つ。配布するボードの説明が、進行の欄の 6 つの値と既定の Status を書いている
+**Goal**: `pecot project init` が、既定の Status に赤の `Needs Attention` を足す。設定ファイルが既定の Status の ID を持つ。配布するボードの説明が、進行の欄の 6 つの値と既定の Status を書いている
 
-**Independent Test**: `pecot project init` を 2 回打つ。1 回目で `Waiting` が足され、2 回目は何も足さない。カードに入っていた Todo・In Progress・Done の値が残っている。設定ファイルに `fields.status` がある
+**Independent Test**: `pecot project init` を 2 回打つ。1 回目で `Needs Attention` が足され、2 回目は何も足さない。カードに入っていた Todo・In Progress・Done の値が残っている。設定ファイルに `fields.status` がある
 
 - [ ] T001 [P] [US4] `p-w/cli/tests/` に、既定の Status の読み取りと選択肢の追加の、失敗するテストを書く
   - 今の選択肢を `id` つきで全部読み、1 つ足した一覧を `updateProjectV2Field` に渡す
   - 渡す一覧の既存の選択肢が、どれも `id` を持つ。`id` の無い既存の選択肢があればテストが落ちる
-  - `Waiting` が既にあれば、mutation を呼ばない
+  - `Needs Attention` が既にあれば、mutation を呼ばない
   - 既定の Status のフィールドが見つからないときは、見つからない名前を出して終了コード 1 で止まる
   - Todo・In Progress・Done のどれかの名前が無いときは、無い名前を出して止まる
 - [ ] T002 [US4] 既定の Status の読み取りと選択肢の追加を足す。置き場は `p-w/cli/core/github/queries.py` と `p-w/cli/core/github/projects.py`
-  - 足す選択肢は、名前 `Waiting`・色 `RED`・説明の英語 1 文
+  - 足す選択肢は、名前 `Needs Attention`・色 `RED`・説明の英語 1 文
   - GraphQL の `updateProjectV2Field` を使う。research.md の R7 に従う
 - [ ] T003 [US4] 設定の `project.fields.status` を読み書きする。直すのは `p-w/cli/core/config.py` と `p-w/cli/commands/project.py`
   - 欄は data-model.md の「プロジェクトの設定に足すキー」のとおり。`id` と、`options` の `todo`・`in_progress`・`done`・`waiting`
   - `status` の無い設定は、今までどおり読める
-  - `project init` が `Waiting` を足し、`_sync_project_config` が `status` を書く
+  - `project init` が `Needs Attention` を足し、`_sync_project_config` が `status` を書く
   - `project create` は `init` を通るので、新しいボードにも足される
 - [ ] T004 [US4] `project init` と `project create` の定義書を直す。`p-w/interface/authored.yaml` の `details`・`effects`・振る舞いの項目に、既定の Status への追加を書く。対応する pytest に `verifies` を付ける
 - [ ] T005 [P] [US4] ボードの説明を直す（FR-044）
   - `p-w/skills/w-help/references/board-status.md` に、In Review の行を足す
-  - 同じファイルに、既定の Status の 4 つの値と、動かすものを書く。Todo・In Progress・Done は既定の自動化、`Waiting` は自動処理だ
+  - 同じファイルに、既定の Status の 4 つの値と、動かすものを書く。Todo・In Progress・Done は既定の自動化、`Needs Attention` は自動処理だ
   - `p-w/skills/w-help/references/spec-driven-workflow.md` の表に、In Review を足す
   - `p-w/skills/w-backlog/SKILL.md` の表が実装と合っているかを確かめ、違えば直す
 - [ ] T006 [P] [US4] `p-w/skills/w-onboarding/SKILL.md` の `board_url` を取るスクリプトを直す。`.active` の中身は `.json` で終わるので、`.json` を重ねて足さない
-- [ ] T007 [US4] このリポのボードで `pecot project init` を打ち、`Waiting` が足されたことを画面で確かめる。前後で、カードの既定の Status の値が変わっていないことを確かめる。`.pecot/config/projects/` の設定の差分をコミットする
+- [ ] T007 [US4] このリポのボードで `pecot project init` を打ち、`Needs Attention` が足されたことを画面で確かめる。前後で、カードの既定の Status の値が変わっていないことを確かめる。`.pecot/config/projects/` の設定の差分をコミットする
 - [ ] T008 [US4] version plan を `.nx/version-plans/` に足す
 
-**Checkpoint**: ボードに `Waiting` があり、設定ファイルから ID を引ける
+**Checkpoint**: ボードに `Needs Attention` があり、設定ファイルから ID を引ける
 
 ---
 
@@ -79,7 +79,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 **Goal**: `pecot auto gate`・`start`・`finish` が動く。対象外と上限の判定、結果のコメント、待ちの値、起動ラベルを外すことを、エージェントなしで確かめられる
 
 **Independent Test**: 手元で、イベントの JSON の fixture を `pecot auto gate` に渡す。data-model.md の表のとおりの `kind` と `proceed` が出る。
-試し用の Issue に `pecot auto finish --result question` を打つと、結果のコメントが付き、札が `Waiting` になり、起動ラベルが外れる。`pecot auto start` を打つと、札が Todo に戻る
+試し用の Issue に `pecot auto finish --result question` を打つと、結果のコメントが付き、札が `Needs Attention` になり、起動ラベルが外れる。`pecot auto start` を打つと、札が Todo に戻る
 
 - [ ] T009 [P] [US1] `p-w/cli/tests/unit/` に、判定の失敗するテストを書く。対象は `p-w/cli/core/auto/` の関数で、入力は Issue・コメント・イベントの値だ
   - data-model.md の「種類の決まり方」の表の 7 行を、1 行ずつ確かめる
@@ -109,11 +109,11 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 - [ ] T014 [US3] `p-w/cli/commands/auto.py` に `start` を足す
   - 出すものは contracts/cli-commands.md の `pecot auto start` の表のとおり
   - `answers` は、`author_association` が OWNER・MEMBER・COLLABORATOR のコメントに限る。ほかの人のコメントは、数だけを出す
-  - 既定の Status が `Waiting` なら、PR が無ければ Todo に、あれば In Progress に戻す。`Waiting` でなければ書かない
+  - 既定の Status が `Needs Attention` なら、PR が無ければ Todo に、あれば In Progress に戻す。`Needs Attention` でなければ書かない
   - Issue がボードに無ければ、進行の欄を Ready にして載せる。`pecot add-to-project` と同じ関数を使う
 - [ ] T015 [US3] `p-w/cli/commands/auto.py` に `finish` を足す
   - 振る舞いは contracts/cli-commands.md の `pecot auto finish` の表のとおり
-  - 既定の Status に `Waiting` が無いときは、結果のコメントに足りない設定を足し、終了コード 0 で終わる
+  - 既定の Status に `Needs Attention` が無いときは、結果のコメントに足りない設定を足し、終了コード 0 で終わる
   - 起動ラベルが既に外れていても、失敗にしない
   - 進行の欄は書かない
 - [ ] T016 [US1] 3 つのコマンドの CLI のテストを `p-w/cli/tests/cli/test_auto.py` に書く。HTTP だけをモックし、渡した値と出力の行を比べる。設定に `fields.status` が無いときは、`pecot project init` を案内して終了コード 2 で止まる
@@ -229,7 +229,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
   - 版の目印を 2 に上げる
 - [ ] T042 [US1] `gate` の `workflow_run` の判定を、実物のイベントの JSON で確かめる。fixture を `p-w/cli/tests/` に足す
   - CI が通ったとき、`ci-passed` の結果のコメントを書き、`proceed` は偽
-  - 上限に達したとき、`limit` の結果のコメントを書き、札を `Waiting` にする。`proceed` は偽
+  - 上限に達したとき、`limit` の結果のコメントを書き、札を `Needs Attention` にする。`proceed` は偽
   - fork の PR と、人が作った PR では、何も書かない
 - [ ] T043 [US1] 雛形のテストを直す。契機が 2 つあること、`allowed_bots` が `*` でないことを確かめる
 - [ ] T044 [US1] このリポの `.github/workflows/pecot-auto.yml` を、`pecot auto install --force` で書き出し直す。`pecot auto install --check` が、古い雛形で終了コード 1 を返すことを先に確かめる
@@ -299,7 +299,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 | Phase | 前提 | 理由 |
 |---|---|---|
 | 1 | 無い | — |
-| 2 | 1 | `start` と `finish` が、設定の `fields.status` と `Waiting` を使う |
+| 2 | 1 | `start` と `finish` が、設定の `fields.status` と `Needs Attention` を使う |
 | 3 | 2 | スキルが `pecot auto start`・`finish` を呼ぶ |
 | 4 | 2 | 雛形が `pecot auto gate`・`finish --ensure` を呼ぶ |
 | 5 | 3・4 | スキルと雛形の両方に、CI を直す種類を足す |

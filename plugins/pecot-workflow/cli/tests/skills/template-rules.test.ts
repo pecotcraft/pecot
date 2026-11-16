@@ -163,6 +163,22 @@ describe('plan テンプレート', () => {
   })
 })
 
+describe.each(['cli/templates/issue/task.md', 'cli/templates/issue/bug.md'])('%s のフロントマター', (template) => {
+  const keys = (readPluginFile(template).split('---\n', 2)[1] ?? '').split('\n').map(line => line.split(':', 1)[0])
+
+  it('blocked_by を持ち、status と order を持たない（置く列と番号は CLI が決める）', () => {
+    expect(keys).toContain('blocked_by')
+    expect(keys).not.toContain('status')
+    expect(keys).not.toContain('order')
+  })
+
+  it('フィールドの説明に、blocked_by と、order・status を書かない旨がある', () => {
+    const text = comment(template)
+    expect(text).toContain('- blocked_by: ')
+    expect(text).toContain('- order・status: 書かない')
+  })
+})
+
 describe('pr/create テンプレート', () => {
   it('Changes に振る舞いの変化を書くことと、Closes # に入れる番号を書く', () => {
     const rules = writingRules(PR_CREATE_TEMPLATE)

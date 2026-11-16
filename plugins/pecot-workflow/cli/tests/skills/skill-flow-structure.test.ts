@@ -247,6 +247,58 @@ describe('w-revise の手順', () => {
   })
 })
 
+describe('w-ready の手順', () => {
+  const text = readSkill('w-ready')
+  const headings = stepHeadings(text)
+
+  it('description は、前提に応じて Ready か Blocked に置くと書く', () => {
+    const frontmatter = text.split('---\n', 2)[1] ?? ''
+    expect(frontmatter).toContain('Blocked')
+  })
+
+  it('計画の Step は、前提を決めて blocked_by に書く', () => {
+    const body = sectionBody(text, titleIndex(headings, '計画'))
+    expect(body).toContain('`blocked_by`')
+    expect(body).toContain('`wait: merge`')
+    expect(body).toContain('`reason`')
+    expect(body).toContain('前提（`blocked_by`）と種類')
+  })
+
+  it('order の続番を数えさせない', () => {
+    expect(text).not.toContain('続番')
+    expect(text).not.toContain('枝つき')
+    expect(text).toContain('`order`・`status` は書かない')
+  })
+
+  it('投稿の前に dry_run: true で確かめる', () => {
+    const body = sectionBody(text, titleIndex(headings, '作成'))
+    const planned = body.indexOf('`dry_run: true`')
+    const posted = body.indexOf('（`dry_run` なし）')
+    expect(planned).toBeGreaterThanOrEqual(0)
+    expect(posted).toBeGreaterThan(planned)
+  })
+
+  it('dry_run では置く列を確かめさせない（dry_run の結果に列は無い）', () => {
+    const body = sectionBody(text, titleIndex(headings, '作成'))
+    expect(body.slice(0, body.indexOf('（`dry_run` なし）'))).not.toContain('置く列')
+  })
+
+  it('完了報告に、置いた列と、Blocked のときに待つものを入れる', () => {
+    const body = sectionBody(text, titleIndex(headings, '完了報告'))
+    for (const word of ['`Ready`', '`Blocked`', '待つ']) expect(body).toContain(word)
+  })
+
+  it('完了報告は、置いた列を投稿の結果から伝え、列が書かれていなければその旨を伝える', () => {
+    const body = sectionBody(text, titleIndex(headings, '完了報告'))
+    expect(body).toContain('投稿の結果')
+    expect(body).toContain('列が書かれていない')
+  })
+
+  it('既存の Issue に前提として付ける操作は issue_block で案内する', () => {
+    expect(text).toContain('`issue_block`')
+  })
+})
+
 describe('w-issueize の手順', () => {
   const text = readSkill('w-issueize')
   const headings = stepHeadings(text)
