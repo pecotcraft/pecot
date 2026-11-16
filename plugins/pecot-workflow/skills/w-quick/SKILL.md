@@ -6,6 +6,14 @@ description: |
   Do NOT use when picking up an existing task from the board (use w-active).
 when_to_use: "小さな修正をすぐ始めたい、Issue 作成からブランチ作成まで一度に済ませたい"
 argument-hint: "[タスクの内容]"
+hooks:
+  PostToolUse:
+    - matcher: "ExitPlanMode"
+      hooks:
+        - type: command
+          command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/post-tool-use-exit-plan-mode.sh --mode=quick'
+          timeout: 10
+          once: true
 ---
 
 # 簡単なタスクの即Issue化

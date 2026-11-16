@@ -1,8 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// exit-plan-remind.sh の tool 名ガードのテスト。
-// Copilot CLI は matcher を honor せず全ツールで発火する。
-// そのため冒頭の tool 名ガードで、ExitPlanMode と exit_plan_mode 以外を弾く。
-import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
+// exit-plan-remind.sh の tool 名ガードと --mode の検証のテスト。
+// frontmatter の matcher で絞られるが、単体で呼ばれたときの防御として、冒頭で ExitPlanMode 以外を弾く。
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -15,42 +14,32 @@ import { runScript } from '../_helpers/run.js'
 
 const EXIT_PLAN_REMIND = path.join(hooksDirectory, 'lib', 'post-tool-use', 'exit-plan-remind.sh')
 
-// git のリポを project にし、.pecot/state を作る。
-function setUpGuard(hookCase: HookCase): string {
+// git のリポを project にし、作業中の Issue のブランチへ切り替える。
+function setUpGuard(hookCase: HookCase): void {
   const project = gitRepository(hookCase, 'project')
-  const stateDirectory = path.join(project, '.pecot', 'state')
-  mkdirSync(stateDirectory, { recursive: true })
+  mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
   hookCase.setEnv('CLAUDE_PROJECT_DIR', project)
-  return stateDirectory
+  checkoutWorkBranch(hookCase, project, 'x/1')
 }
 
 describe('exit-plan-remind.sh', () => {
-  it('作業中の Issue があっても、Copilot CLI の bash ツールのとき、何も出力しない', () => {
+  it.for(['{"tool_name":"bash","tool_input":{"command":"ls"}}', '{"tool_name":"Bash"}', '{"tool_name":"exit_plan_mode"}', '{"tool_name":"exit_plan"}'])(
+    '作業中の Issue があっても、ExitPlanMode 以外の入力 %s のとき、何も出力しない',
+    (stdin) => {
+      const hookCase = createHookCase()
+      setUpGuard(hookCase)
+      const result = runScript(hookCase, EXIT_PLAN_REMIND, ['--mode=active'], { stdin })
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toBe('')
+    },
+  )
+
+  it.for([{ args: [] }, { args: ['--mode=other'] }, { args: ['--mode='] }, { args: ['--mode'] }])('--mode が無いか不正（$args）のとき、stderr に出して終了コード 1 で終わる', ({ args }) => {
     const hookCase = createHookCase()
     setUpGuard(hookCase)
-    checkoutWorkBranch(hookCase, path.join(hookCase.temporaryPath, 'project'), 'x/1')
-    const result = runScript(hookCase, EXIT_PLAN_REMIND, [], { stdin: '{"tool_name":"bash","tool_input":{"command":"ls"}}' })
-    expect(result.exitCode).toBe(0)
+    const result = runScript(hookCase, EXIT_PLAN_REMIND, args, { stdin: '{"tool_name":"ExitPlanMode"}' })
+    expect(result.exitCode).toBe(1)
     expect(result.stdout).toBe('')
-  })
-
-  it('Copilot CLI の exit_plan_mode のとき、ガードを通って quick-mode のフラグを消す', () => {
-    const hookCase = createHookCase()
-    const stateDirectory = setUpGuard(hookCase)
-    const quickMode = path.join(stateDirectory, '.pecot-quick-mode')
-    writeFileSync(quickMode, '')
-    const result = runScript(hookCase, EXIT_PLAN_REMIND, [], { stdin: '{"tool_name":"exit_plan_mode"}' })
-    expect(result.exitCode).toBe(0)
-    expect(existsSync(quickMode)).toBe(false)
-  })
-
-  it('Bash ツールのとき、quick-mode のフラグを残す', () => {
-    const hookCase = createHookCase()
-    const stateDirectory = setUpGuard(hookCase)
-    const quickMode = path.join(stateDirectory, '.pecot-quick-mode')
-    writeFileSync(quickMode, '')
-    const result = runScript(hookCase, EXIT_PLAN_REMIND, [], { stdin: '{"tool_name":"Bash"}' })
-    expect(result.exitCode).toBe(0)
-    expect(existsSync(quickMode) && statSync(quickMode).isFile()).toBe(true)
+    expect(result.stderr).toContain('exit-plan-remind: --mode must be active or quick')
   })
 })

@@ -31,7 +31,7 @@ function hasFile(root: string, relative: string): boolean {
 }
 
 describe('issue create --freeform', () => {
-  it('メッセージとリポジトリで起票し、priority medium・size s と型の既定の status を付け、quick のフラグを作る', async () => {
+  it('メッセージとリポジトリで起票し、priority medium・size s と型の既定の status を付け、.pecot-quick-mode を作らない', async () => {
     const project = setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
 
@@ -44,7 +44,7 @@ describe('issue create --freeform', () => {
     const body = created?.type === 'rest' ? JSON.stringify(created.body) : ''
     expect(body).toContain('<!-- issue create の freeform で起票（テンプレ検証スキップ）')
     expect(body).toContain(`"title":"[Task] ${MESSAGE}"`)
-    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(true)
+    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
     expect(github.requests().some(request => request.type === 'graphql' && request.operation === 'CreateLinkedBranch')).toBe(false)
     expect(hasFile(project.root, '.pecot/state/.pecot-active')).toBe(false)
   })
@@ -62,15 +62,14 @@ describe('issue create --freeform', () => {
     expect(title).toBe(`[Task] ${'あ'.repeat(10)} ${'い'.repeat(35)}`)
   })
 
-  it('Backlog に置く型（epic）は size を付けず、quick のフラグを作らない', async () => {
-    const project = setUpIssueProject()
+  it('Backlog に置く型（epic）は size を付けない', async () => {
+    setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(2)])
 
     const result = await freeform('-m', MESSAGE, '--repo', 'acme/demo', '--type', 'epic')
 
     expect(result.code).toBe(0)
     expect(result.stderr).not.toContain('size')
-    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
   })
 
   it.for([

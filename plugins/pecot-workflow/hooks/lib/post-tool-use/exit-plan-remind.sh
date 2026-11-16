@@ -1,31 +1,32 @@
 #!/bin/bash
-# ExitPlanMode 後のリマインダー。
-#
-# stdin: PostToolUse フック JSON
-# 計画の Issue 投稿は、確認を求める前にエージェントが済ませている（w-active / w-quick の手順）。
-# ここでは承認後の計画の更新と、quick 以外の実装の引き継ぎを案内する。
-# .pecot-quick-mode は、プランモードの終了でライフサイクルを終えるので消す。
+# ExitPlanMode 後の案内。Usage: exit-plan-remind.sh --mode=active|quick
+# active は計画の更新と実装の引き継ぎ、quick は計画の更新だけを出す。
+
+# 引数の検証より先に stdin を読み切る。先に終えると、送り手に EPIPE が返る。
+INPUT=$(cat)
+
+MODE=""
+for arg in "$@"; do
+    case "$arg" in
+        --mode=*) MODE="${arg#--mode=}" ;;
+    esac
+done
+case "$MODE" in
+    active|quick) ;;
+    *)
+        echo "exit-plan-remind: --mode must be active or quick" >&2
+        exit 1
+        ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
 source "${SCRIPT_DIR%/*}/core/active-issue.sh"
 pecot_hook_enabled "exit-plan-remind" true || exit 0
 
-STATE_DIR="${CLAUDE_PROJECT_DIR}/.pecot/state"
-
-INPUT=$(cat)
-
-# tool 名ガード: matcher は守られるが、単体で呼ばれたときの防御として残す。
-# Claude は ExitPlanMode、GitHub Copilot CLI は exit_plan_mode で届く（camelCase の toolName は読まない）。
+# tool 名ガード: frontmatter の matcher で絞られるが、単体で呼ばれたときの防御として残す。
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
-case "$TOOL_NAME" in
-    ExitPlanMode|exit_plan_mode) ;;
-    *) exit 0 ;;
-esac
-
-IS_QUICK=0
-[ -f "$STATE_DIR/.pecot-quick-mode" ] && IS_QUICK=1
-rm -f "$STATE_DIR/.pecot-quick-mode"
+[ "$TOOL_NAME" = "ExitPlanMode" ] || exit 0
 
 # pecot を使っていないリポと、作業中の Issue が無いセッションでは案内しない。
 [ -d "${CLAUDE_PROJECT_DIR}/.pecot" ] || exit 0
@@ -33,9 +34,8 @@ pecot_active_issue_number "$CLAUDE_PROJECT_DIR" >/dev/null || exit 0
 
 MESSAGE=$(cat "${PLUGIN_HOOKS}/templates/exit-plan-comment-update.md" 2>/dev/null)
 
-# クイックモードは main が実装するため、サブエージェントへの引き継ぎは案内しない。
 IMPLEMENTER_REMIND="${PLUGIN_HOOKS}/templates/exit-plan-implementer-remind.md"
-if [ "$IS_QUICK" -eq 0 ] && [ -f "$IMPLEMENTER_REMIND" ]; then
+if [ "$MODE" = "active" ] && [ -f "$IMPLEMENTER_REMIND" ]; then
     MESSAGE="${MESSAGE:+${MESSAGE}
 
 }$(cat "$IMPLEMENTER_REMIND")"

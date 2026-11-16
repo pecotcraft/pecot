@@ -5,6 +5,14 @@ description: |
   Use when the user wants to start an existing Ready task — picks the Issue, creates a feature branch, enters plan mode. Triggers: "next task", "pick a task", "start implementing".
   Do NOT use for new tasks from scratch (use w-quick) or for Issue-only creation (use w-ready).
 when_to_use: "Ready のタスクに着手したい、次のタスクを始めたい、Issue の実装を開始したい"
+hooks:
+  PostToolUse:
+    - matcher: "ExitPlanMode"
+      hooks:
+        - type: command
+          command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/post-tool-use-exit-plan-mode.sh --mode=active'
+          timeout: 10
+          once: true
 ---
 
 # Readyからタスクを実装

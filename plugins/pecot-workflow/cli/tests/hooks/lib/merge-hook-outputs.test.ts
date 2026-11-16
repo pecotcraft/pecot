@@ -184,11 +184,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  // トップレベルの additionalContext（Copilot CLI 1.0.103 は SessionStart / PostToolUse でこれだけを読む）。
-  it.for([
-    { label: 'SessionStart', event: 'SessionStart' },
-    { label: 'PostToolUse', event: 'PostToolUse' },
-  ])('$label のとき、additionalContext をトップレベルにも出す', (row) => {
+  // トップレベルの additionalContext（Copilot CLI 1.0.103 は SessionStart でこれだけを読む）。
+  it.for([{ label: 'SessionStart', event: 'SessionStart' }])('$label のとき、additionalContext をトップレベルにも出す', (row) => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const script = contextScript(scripts)
@@ -202,6 +199,7 @@ describe('merge-hook-outputs.sh', () => {
 
   it.for([
     { label: 'PreToolUse', event: 'PreToolUse' },
+    { label: 'PostToolUse', event: 'PostToolUse' },
     { label: 'UserPromptSubmit', event: 'UserPromptSubmit' },
   ])('$label のとき、additionalContext をトップレベルには出さない', (row) => {
     const hookCase = createHookCase()

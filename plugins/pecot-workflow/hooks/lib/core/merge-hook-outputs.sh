@@ -121,9 +121,9 @@ if [ "$(echo "$HSO" | jq 'length')" -gt 0 ]; then
     FINAL=$(echo "$FINAL" | jq --argjson hso "$HSO" '.hookSpecificOutput = $hso')
 fi
 # Copilot CLI 1.0.103 は SessionStart / PostToolUse でトップレベルの additionalContext だけを渡す。
-# Claude Code はトップレベルを読まないので、二重に入らない。
+# 出すのは SessionStart だけ（PostToolUse は Copilot 向けの定義に無い）。Claude Code は読まない。
 case "$MERGED_HOOK_EVENT_NAME" in
-    SessionStart | PostToolUse)
+    SessionStart)
         [ -n "$MERGED_ADDITIONAL_CONTEXT" ] && \
             FINAL=$(echo "$FINAL" | jq --arg v "$MERGED_ADDITIONAL_CONTEXT" '.additionalContext = $v')
         ;;

@@ -2,19 +2,17 @@
 // Copilot CLI の Skill 入力（名前空間なしのスキル名）のテスト。
 // 名前空間なしの名前は、自プラグインの skills/<名前>/SKILL.md が実在するときだけ自プラグインのスキルとして扱う。
 // 接頭辞だけで判定すると、他のプラグインの同名スキルを取り違えるため。
-import { existsSync, mkdirSync, statSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
-import { checkoutWorkBranch, gitRepository } from '../_helpers/git.js'
-import { toRecord } from '../_helpers/json.js'
+import { gitRepository } from '../_helpers/git.js'
 import { pluginRoot } from '../_helpers/paths.js'
 import { runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
-import { containing, parseJson } from '../_helpers/text.js'
 
 // CLAUDE_PROJECT_DIR を git リポに向け、スキルの実在確認に使う CLAUDE_PLUGIN_ROOT を設定する。
 function setUpProject(hookCase: HookCase): string {
@@ -25,14 +23,13 @@ function setUpProject(hookCase: HookCase): string {
   return repository
 }
 
-function runEntry(hookCase: HookCase, entry: string, event: string, skill: string, cwd: string, extra: Readonly<Record<string, unknown>> = {}): RunResult {
-  return runHookEntry(hookCase, entry, {
-    hook_event_name: event,
+function runEntry(hookCase: HookCase, skill: string, cwd: string): RunResult {
+  return runHookEntry(hookCase, 'pre-tool-use-skill.sh', {
+    hook_event_name: 'PreToolUse',
     tool_name: 'skill',
     tool_input: { skill },
     cwd,
     session_id: 'copilot-session',
-    ...extra,
   })
 }
 
@@ -49,7 +46,7 @@ describe('pre-tool-use-skill.sh', () => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     expect(existsSync(path.join(project, '.pecot'))).toBe(false)
-    const result = runEntry(hookCase, 'pre-tool-use-skill.sh', 'PreToolUse', row.skill, project)
+    const result = runEntry(hookCase, row.skill, project)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
     expect(isDirectory(path.join(project, '.pecot'))).toBe(true)
@@ -68,28 +65,9 @@ describe('pre-tool-use-skill.sh', () => {
   ])('このプラグインのものでないスキル（$label）のとき、何も出力せず、.pecot も作らない', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
-    const result = runEntry(hookCase, 'pre-tool-use-skill.sh', 'PreToolUse', row.skill, project)
+    const result = runEntry(hookCase, row.skill, project)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
     expect(existsSync(path.join(project, '.pecot'))).toBe(false)
-  })
-})
-
-// PostToolUse: exit-plan-remind
-describe('post-tool-use-exit-plan-mode.sh', () => {
-  // 案内は ExitPlanMode（Claude）でも exit_plan_mode（Copilot）でも merge を通る。
-  // Copilot CLI が読むトップレベルの additionalContext に出る。
-  it.for(['ExitPlanMode', 'exit_plan_mode'])('%s の案内を、トップレベルの additionalContext に出す', (toolName) => {
-    const hookCase = createHookCase()
-    const project = setUpProject(hookCase)
-    mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
-    checkoutWorkBranch(hookCase, project, 'x/1')
-    const result = runEntry(hookCase, 'post-tool-use-exit-plan-mode.sh', 'PostToolUse', 'x', project, { tool_name: toolName })
-    expect(result.exitCode).toBe(0)
-    const out = toRecord(parseJson(result.stdout), '出力')
-    const specific = toRecord(out['hookSpecificOutput'], 'hookSpecificOutput')
-    expect(out).toMatchObject({ additionalContext: containing('Plan comment update') })
-    expect(specific['additionalContext']).toBe(out['additionalContext'])
-    expect(specific['hookEventName']).toBe('PostToolUse')
   })
 })

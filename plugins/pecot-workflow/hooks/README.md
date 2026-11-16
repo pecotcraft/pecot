@@ -95,7 +95,7 @@ ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `exit-plan-remind` | ExitPlanMode後に案内を返す（Copilot では `exit_plan_mode` で届く）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode。Copilot は exit_plan_mode) | `true` |
+| `exit-plan-remind` | ExitPlanMode 後に案内を返す（Claude Code のみ。Copilot CLI は frontmatter のフックを読まない）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。`--mode=active` は実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足し、`--mode=quick` は足さない。`--mode` が無いか不正なら、stderr に出して終了コード 1 で終わる。計画の投稿はしない（確認の前にエージェントが投稿する） | w-active・w-quick の frontmatter の PostToolUse (ExitPlanMode) | `true` |
 
 ### セッション管理
 
@@ -118,14 +118,15 @@ ExitPlanMode の後のフック。
 ## フック実行フロー
 
 `hooks.json`（Claude Code）のトリガー定義からlib呼び出しまでの対応。
+`post-tool-use-exit-plan-mode.sh` は、w-active・w-quick の frontmatter の PostToolUse（ExitPlanMode）から呼ばれる。
+引数は `--mode=active|quick` で、`hooks.json` には登録しない。
 括弧内の注記（`(Claude Code)` / `（deny 系 → tech-advisor-clone-allow）` 等）は、1段深い呼び出しの参考記載。
 エントリスクリプトからの直接呼び出しではない。
 `com.github.copilot/hooks/hooks.json`（Copilot CLI）は同じエントリを指す。
 ただし、`user-prompt-submit-title.sh` の配線を持たない。
 SessionStart は matcher なし。
 Skill の matcher は `Skill|skill`。
-ExitPlanMode の matcher は `ExitPlanMode|exit_plan_mode`。
-各エントリの `timeout`（秒）は SessionStart 120、PreToolUse 10、PostToolUse（ExitPlanMode）90 になる。
+各エントリの `timeout`（秒）は SessionStart 120、PreToolUse 10 になる。
 UserPromptSubmit は 10。
 pecot-visual の PostToolUse（Write / Edit）は 80 で、中の lint の打ち切り 10 + 30 + 30 秒より長くする。
 
@@ -136,8 +137,6 @@ PreToolUse (Skill)              → pre-tool-use-skill.sh             → pecot-
 PreToolUse (Bash)               → pre-tool-use-bash.sh              → claude-bash-guards → コアガード群
                                                                        （deny 系 → tech-advisor-clone-allow）,
                                                                        tmp-path-warner
-
-PostToolUse (ExitPlanMode)      → post-tool-use-exit-plan-mode.sh   → exit-plan-remind
 
 SessionStart (startup|clear|resume|fork) → session-start.sh              → session-title (Claude Code のみ。common と別に merge へ渡す),
                                                                        session-start-common → git-sync
@@ -205,6 +204,7 @@ UserPromptSubmit                → user-prompt-submit-title.sh       → sessio
 - Copilot は SessionStart / PostToolUse で、トップレベルの `additionalContext` だけをモデルに渡す。
   `hookSpecificOutput.additionalContext` と素のテキストは届かない。PreToolUse の `hookSpecificOutput` は届く。
   `merge-hook-outputs.sh` がこの 2 イベントでトップレベルにも同じ内容を出し、SessionStart も merge 経由の JSON にした。
+  #466 で Copilot 向けの定義から PostToolUse が無くなり、トップレベルに出すのは SessionStart だけになった。
   Claude はトップレベルを読まないので、二重に入らない
 
 ### 変更後の記録

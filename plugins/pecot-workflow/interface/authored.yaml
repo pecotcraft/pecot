@@ -1316,7 +1316,6 @@ entries:
         - With --freeform, the title is the first 50 characters of the message with each run of whitespace turned into one space, prefixed by the type.
         - With --freeform, the status is --status, or the default of the type when it is not given. The priority is --priority or medium, and the size is --size or s, except that epic and tracker get no default size.
         - With --freeform, appends a comment that points to the issue-creation rules to the end of the body.
-        - With --freeform and a type other than epic and tracker, creates the flag .pecot/state/.pecot-quick-mode once the Issue is on the board.
         - With --freeform, a parent Epic given to an Epic gives a warning and continues.
         - With --freeform, creates no branch and records no work target. Use pecot session start for them.
         - The body must follow the template of the Issue type.
@@ -1393,7 +1392,6 @@ entries:
       - '`--freeform` の題は、`--message` の先頭の 50 文字です。連続した空白は 1 つの空白にまとめ、前に type を付けます。'
       - '`--freeform` の status は `--status` の値で、無ければ type の既定の値です。priority は `--priority` の値か `medium` です。size は `--size` の値か `s` で、`epic` と `tracker` には既定の size を付けません。'
       - '`--freeform` では、本文の末尾に、起票の決まりを指すコメントを付けます。'
-      - '`--freeform` で `epic` と `tracker` 以外の type をボードに入れると、フラグ `.pecot/state/.pecot-quick-mode` を作ります。'
       - '`--freeform` で Epic に親 Epic を渡すと、`warning` を出して続けます。'
       - '`--freeform` は、ブランチを作らず、作業対象も記録しません。それは `pecot session start` が行います。'
       - '本文は、Issue の種類のテンプレートに合っていなければなりません。'
@@ -1489,7 +1487,7 @@ entries:
         what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。`--dry-run` のときは、読むだけです。'
       - target: file
         kind: write
-        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`--freeform` で `epic` と `tracker` 以外をボードに入れると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
+        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`--dry-run` のときは、書きません。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -1699,9 +1697,6 @@ entries:
       - id: PW-ISSUE-CREATE-63
         pattern: event
         statement: '`--freeform` に `--parent-epic` を付けて打つと、その Epic の sub-issue につなぎます。Epic に付けたときは、`warning` の行を標準エラーに出します'
-      - id: PW-ISSUE-CREATE-64
-        pattern: event
-        statement: '`--freeform` で `epic` と `tracker` 以外をボードに入れると、`.pecot/state/.pecot-quick-mode` を作ります'
       - id: PW-ISSUE-CREATE-65
         pattern: unwanted
         statement: 'もし `--freeform` でボードへの追加に失敗したなら、`warning` の行と作った Issue の URL を出し、欄の設定をせず、終了コード 0 で終わります'
@@ -1729,9 +1724,6 @@ entries:
       - id: PW-ISSUE-CREATE-73
         pattern: event
         statement: '`--freeform` に `--priority` か `--size` を付けて打つと、既定の値の代わりにその値を設定します'
-      - id: PW-ISSUE-CREATE-74
-        pattern: unwanted
-        statement: 'もし `--freeform` でボードへの追加に失敗したなら、`.pecot/state/.pecot-quick-mode` を作りません'
   PW-ISSUE-REOPEN:
     help:
       details:
@@ -5090,7 +5082,7 @@ entries:
         - With --delete-branch, deletes the remote head branch.
         - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
         - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
-        - After the local cleanup, removes the flags .pecot-base, .pecot-session-title and .pecot-quick-mode under .pecot/state/. A leftover .pecot-active is not touched.
+        - After the local cleanup, removes the flags .pecot-base and .pecot-session-title under .pecot/state/. Leftover .pecot-quick-mode and .pecot-active from older versions are not touched.
         - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
         - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
         - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
@@ -5120,7 +5112,7 @@ entries:
       - '`--delete-branch` を付けると、リモートの head ブランチを削除します。'
       - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`pecot worktree add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
-      - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title`・`.pecot-quick-mode` です。古い版の `.pecot-active` が残っていても触れません。'
+      - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title` です。古い版の `.pecot-quick-mode`・`.pecot-active` が残っていても触れません。'
       - '`--skip-local-cleanup` を付けると、ローカルを片付けず、これらのフラグも残します。'
       - '`--dry-run` を付けると、結果の行の代わりに `dry-run: would` の行を書き、何も変えません。'
       - '2 回目の実行の後の状態は 1 回目と同じですが、書く行は違います。リモートブランチは `unchanged` として知らせ、ローカルのブランチへの `git branch -D` は `warning` になります。'

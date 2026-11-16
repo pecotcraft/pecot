@@ -4,11 +4,11 @@
 import { existsSync, globSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { parse } from 'yaml'
 import { describe, expect, it } from 'vitest'
 
 import { projectRoot } from '../_helpers/paths.js'
 import { splitLines } from '../_helpers/text.js'
+import { frontmatter } from '../../skills/_helpers/frontmatter.js'
 import { compareStrings } from '../../parity/baseline.js'
 
 const agentsDirectory = path.join(projectRoot, 'plugins', 'pecot-workflow', 'agents')
@@ -47,21 +47,6 @@ const EXPECTED_ARGUMENT_HINTS = {
   'v-drawio': '[図の内容]',
   'v-evidence': '[画像のパス]',
   'v-slidev': '[スライドの内容 または 既存デッキのパス]',
-}
-
-function asRecord(value: unknown): Readonly<Record<string, unknown>> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new TypeError('マッピングではありません')
-  return Object.fromEntries(Object.entries(value))
-}
-
-// 先頭の ---〜--- を YAML 1.1 で読む。重複キーは許す。
-function frontmatter(file: string): Readonly<Record<string, unknown>> {
-  const lines = splitLines(readFileSync(file, 'utf8'))
-  expect(lines.at(0), `${file}: frontmatter が無い`).toBe('---')
-  const end = lines.indexOf('---', 1)
-  expect(end, `${file}: frontmatter の閉じの --- が無い`).toBeGreaterThan(0)
-  const data: unknown = parse(lines.slice(1, end).join('\n'), { version: '1.1', uniqueKeys: false })
-  return asRecord(data)
 }
 
 // awk '/^---$/{c++} c==1 && /^model:/' 相当。
