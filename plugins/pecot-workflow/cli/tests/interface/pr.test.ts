@@ -136,6 +136,74 @@ function lowerPullRequests(nodes: readonly Record<string, unknown>[], times = 1)
   return graphql('ListPullRequestsByHead', data, { variables: { headRefName: LOWER }, times })
 }
 
+function commitFile(workspace: Readonly<Workspace>, file: string, content: string): void {
+  writeFileSync(path.join(workspace.directory, file), content)
+  workspace.git(['add', file])
+  workspace.git(['commit', '-q', '-m', `change ${file}`])
+}
+
+// 下の段の上に上の段（BRANCH）を積んで push し、下の段の今の remote の先頭で base の記録を書く
+async function openStackedUpper(github: ResponseRuleList): Promise<Workspace> {
+  const workspace = await openWorkspace({ branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github })
+  workspace.git(['checkout', '-q', '-b', BRANCH, `origin/${LOWER}`])
+  commitFile(workspace, 'upper.txt', 'upper\n')
+  workspace.git(['push', '-q', '-u', 'origin', BRANCH])
+  const record = path.join(workspace.directory, stateFile('.pecot-base'))
+  mkdirSync(path.dirname(record), { recursive: true })
+  writeFileSync(record, `${LOWER} ${workspace.git(['rev-parse', `origin/${LOWER}`]).trim()} acme/demo#11\n`)
+  return workspace
+}
+
+// from の上にコミットを作って origin の target へ push し、上の段に戻る
+function pushTo(workspace: Readonly<Workspace>, from: string, target: string, file: string, content: string): void {
+  workspace.git(['checkout', '-q', '-b', `work-${target.replaceAll('/', '-')}`, from])
+  commitFile(workspace, file, content)
+  workspace.git(['push', '-q', '--force', 'origin', `HEAD:refs/heads/${target}`])
+  workspace.git(['checkout', '-q', BRANCH])
+}
+
+// remote の上の段だけを、onto の上に作り直して置き換える。手元の上の段は古いまま残る
+function restackUpperOnRemote(workspace: Readonly<Workspace>, onto: string): void {
+  workspace.git(['checkout', '-q', '-b', 'rewritten', onto])
+  workspace.git(['cherry-pick', BRANCH])
+  workspace.git(['push', '-q', '--force', 'origin', `HEAD:refs/heads/${BRANCH}`])
+  workspace.git(['checkout', '-q', BRANCH])
+}
+
+type DivergeScene = 'moved' | 'merged' | 'amended'
+
+const STACKED_CHECK_ROWS: readonly { readonly name: string, readonly scene: DivergeScene, readonly state: string }[] = [
+  { name: '下の段が動き、remote の上の段がその上に載せ直された', scene: 'moved', state: 'OPEN' },
+  { name: '下の段がマージされ、remote の上の段が開発ブランチの上に載せ直された', scene: 'merged', state: 'MERGED' },
+]
+
+const STACKED_CREATE_ROWS: readonly { readonly name: string, readonly scene: DivergeScene, readonly expected: string }[] = [
+  { name: '下の段が動き、remote の上の段がその上に載せ直された', scene: 'moved', expected: 'pecot pr restack' },
+  { name: '下の段が動かないまま手元だけを書き換えた', scene: 'amended', expected: 'git push' },
+]
+
+// diverged の Push Status の warning の行ごとの、直し方
+function pushStatusFixes(stderr: string): string[] {
+  const prefix = 'warning: Push Status: diverged: '
+  return lines(stderr).filter(line => line.startsWith(prefix)).map(line => line.slice(line.lastIndexOf('(fix: ') + '(fix: '.length, -1))
+}
+
+// 積んだ上の段を、次の場面で remote とずらす
+function divergeStacked(workspace: Readonly<Workspace>, scene: DivergeScene): void {
+  if (scene === 'moved') {
+    pushTo(workspace, `origin/${LOWER}`, LOWER, 'lower-fix.txt', 'fix\n')
+    restackUpperOnRemote(workspace, `origin/${LOWER}`)
+  }
+  else if (scene === 'merged') {
+    pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
+    workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+    restackUpperOnRemote(workspace, 'origin/main')
+  }
+  else workspace.git(['commit', '-q', '--amend', '-m', 'upper amended'])
+}
+
+const UNREADABLE_LOWER_RULE: ResponseRule = { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+
 function stackedArguments(extra: readonly string[] = [], title = TITLE): string[] {
   return ['pr', 'create', '-m', VALID_BODY, '-t', title, '-b', LOWER, '-r', 'acme/demo', '--screenshot', SCREENSHOT, ...extra]
 }
@@ -588,6 +656,16 @@ describe('pr create', () => {
     const result = await workspace.run(messageArguments())
     expect(result.code).toBe(2)
     expect(result.stderr).toBe('error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n')
+  })
+
+  it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row, context) => {
+    await verifies(context, 'PW-PR-CREATE-66')
+    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')], 2), NOT_EPIC_RULE])
+    divergeStacked(workspace, row.scene)
+    const result = await workspace.run(stackedArguments())
+    expect(result.code).toBe(2)
+    expect(pushStatusFixes(result.stderr)).toStrictEqual([row.expected])
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
   it('事前の確認が git のリポジトリでないなどの致命的な場合に当たると、終了コード 1 で終わる', async (context) => {
@@ -1639,6 +1717,39 @@ describe('pr check', () => {
     }
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: ${row.expected} (fix: git push)`])
+  })
+
+  it.for(STACKED_CHECK_ROWS)('積んだ記録があり、$name ときに打つと、Push Status の直し方に pr restack を出す', async (row, context) => {
+    await verifies(context, 'PW-PR-CHECK-21')
+    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest(row.state)])])
+    divergeStacked(workspace, row.scene)
+    const result = await preflight(workspace)
+    expect(result.code).toBe(2)
+    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
+  })
+
+  it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に git push を出す', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-22')
+    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
+    divergeStacked(workspace, 'amended')
+    const result = await preflight(workspace)
+    expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: git push)`])
+  })
+
+  it('積んだ記録があって remote とずれ、下の段の PR を読めないと、Push Status の直し方に pr restack --check を出す', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-23')
+    const workspace = await openStackedUpper([UNREADABLE_LOWER_RULE])
+    divergeStacked(workspace, 'moved')
+    const result = await preflight(workspace)
+    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack --check'])
+  })
+
+  it('MCP で呼ぶと、Push Status の直し方をツールの名前で出す', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-21')
+    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
+    divergeStacked(workspace, 'moved')
+    const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
+    expect(JSON.stringify(result.structured)).toMatch(/Push Status: diverged: [^"]+ \(fix: pr_restack\)/u)
   })
 
   it('未コミットの変更があると、Git Status の warning を数える', async (context) => {

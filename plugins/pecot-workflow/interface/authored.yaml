@@ -2266,6 +2266,7 @@ entries:
         - "When the base record is malformed, stops with exit status 1 because the base cannot be decided."
         - Prints every section even when there are warnings.
         - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
+        - "When the base record of a stacked start exists and the branch has diverged from the remote, reads the PR of the layer below and the head of that branch on the remote, and decides whether a restack is needed in the same way as pr restack. This is the only case that reads GitHub. The fix of the Push Status warning is pr restack when a restack is needed, git push when it is not, and pr restack --check when it cannot be decided."
         - Exits with status 2 when there is at least one warning.
         - Reads the repository and the config and changes nothing.
       examples:
@@ -2286,6 +2287,8 @@ entries:
       - '積んだ base の記録の形が誤っているときは、base を決められないので、終了コード 1 で止まります。'
       - '`warning` があっても、すべての節を出します。'
       - '`warning` として数えるのは、push していないか remote とずれたブランチ、変更したファイルか追跡していないファイル、stash の項目です。'
+      - '積んで着手した記録があり、ブランチが remote とずれているときは、下の段の PR と remote の先頭を読み、`pr restack` と同じに載せ直しの要否を決めます。GitHub を読むのは、このときだけです。'
+      - 'Push Status の直し方は、載せ直しが要れば `pr restack`、要らなければ `git push`、決められなければ `pr restack --check` です。'
       - '`warning` が 1 件以上あると、終了コード 2 で終わります。'
       - 'リポジトリと設定を読むだけで、何も変えません。'
     stdin: none
@@ -2414,6 +2417,15 @@ entries:
       - id: PW-PR-CHECK-20
         pattern: event
         statement: '下の段のブランチが remote にあり、手元に追跡参照が無いときに打つと、開発ブランチと比べ、`git fetch` を案内する `warning` の行を出します'
+      - id: PW-PR-CHECK-21
+        pattern: unwanted
+        statement: 'もし積んだ記録があってブランチが remote とずれ、下の段が動いたかマージされているなら、Push Status の直し方に `pr restack` を出します'
+      - id: PW-PR-CHECK-22
+        pattern: unwanted
+        statement: 'もし積んだ記録があってブランチが remote とずれ、下の段が動いていないなら、Push Status の直し方に `git push` を出します'
+      - id: PW-PR-CHECK-23
+        pattern: unwanted
+        statement: 'もし積んだ記録があってブランチが remote とずれ、下の段の PR か remote の先頭を読めないなら、Push Status の直し方に `pr restack --check` を出します'
   PW-PR-CREATE:
     help:
       details:
@@ -2441,7 +2453,7 @@ entries:
         - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
         - In a repository whose release type is nx, also stops with exit status 3 when the title scope differs from the scope of the changed nx projects.
         - "For a stacked base, the changed files of the scope come from the diff between the commit of the base record and the head when the PR of the layer below is merged, and from the diff against the branch of the layer below while that PR is open. The scope hint of --prepare comes from the commit of the record."
-        - Unless --dry-run is given, runs the same checks as pr check on the current directory and stops with exit status 2 when they find a warning.
+        - Unless --dry-run is given, runs the same checks as pr check on the current directory and stops with exit status 2 when they find a warning. The fix of the Push Status warning on a stacked branch that has diverged is decided as in pr check.
         - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
         - "With --dry-run and an open PR of the layer below, also writes the line dry-run: would add the new PR to the stack of PR #<below>."
         - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
@@ -2499,7 +2511,7 @@ entries:
       - '題・本文・base を確かめ、次のどれかが誤っていると終了コード 3 で止まります。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
       - 'リリースの種類が nx のリポジトリでは、題の scope が、変更した nx のプロジェクトの scope と違うときも、終了コード 3 で止まります。'
       - '積んだ base の scope は、下の段の PR がマージ済みなら、記録のコミットから head までの差分で求めます。開いている間は、下の段のブランチとの差分で求めます。`--prepare` の目安は、記録のコミットから求めます。'
-      - '`--dry-run` を付けなければ、今のディレクトリを `pr check` と同じように確かめ、`warning` が見つかると終了コード 2 で止まります。'
+      - '`--dry-run` を付けなければ、今のディレクトリを `pr check` と同じように確かめ、`warning` が見つかると終了コード 2 で止まります。積んだブランチが remote とずれたときの Push Status の直し方も、`pr check` と同じに決めます。'
       - '`--dry-run` を付けると、検証して `dry-run: would` の行を書き、PR は作りません。'
       - '`--dry-run` で下の段の PR が開いているときは、スタックへの登録の予定も書きます。行は `dry-run: would add the new PR to the stack of PR #<下>` です。'
       - 'PR を作った後、head ブランチが指す Issue を In Review にします。テンプレートが `release` のときは行いません。'
@@ -2814,6 +2826,9 @@ entries:
       - id: PW-PR-CREATE-64
         pattern: unwanted
         statement: 'もし head の番号の Issue が PR のリポジトリに無いなら、待っている Issue の確認を、何も出さずに飛ばします'
+      - id: PW-PR-CREATE-66
+        pattern: unwanted
+        statement: 'もし積んだ記録があり、事前の確認がブランチと remote のずれを見つけたなら、Push Status の直し方を `pr check` と同じに決めます'
   PW-PR-MERGE:
     help:
       details:

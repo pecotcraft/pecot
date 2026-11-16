@@ -1,13 +1,14 @@
 // PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr show` の Markdown の整形、preflight の警告の判定。
 // 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
 
-import { hinted, inputHint, inputNameHint } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
 import { hasSummaryImage, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
 import type { BaseReading } from './state.js'
+import type { RestackDecision } from './restack.js'
 
 // Issue 参照（`#N`、URL 内のフラグメントは除く）。`owner/repo#N` の形も受ける
 const ISSUE_REFERENCE_PATTERN = /(?:^|[^/])#\d+|[\w-]+\/[\w.-]+#\d+/u
@@ -359,7 +360,7 @@ export function formatPullRequestWithReviewsMarkdown(pr: PullRequestWithReviewsV
 export interface PreflightWarning {
   readonly label: string
   readonly message: string
-  readonly fixHint: string
+  readonly fixHint: HintedText
 }
 
 /**
@@ -380,16 +381,30 @@ export function hasStashEntries(stashList: string): boolean {
 export interface PushStatus {
   readonly isPushed: boolean
   readonly message: string
+  /**
+  手元と remote の両方に、相手に無いコミットがあるか
+  */
+  readonly isDiverged: boolean
 }
 
 /**
 ahead と behind のコミット数から、push の状態の文を作る
 */
 export function describePushStatus(remote: string, branch: string, ahead: number, behind: number): PushStatus {
-  if (ahead === 0 && behind === 0) return { isPushed: true, message: `in sync with ${remote}/${branch}` }
-  if (behind === 0) return { isPushed: false, message: `${String(ahead)} unpushed commits` }
-  if (ahead === 0) return { isPushed: true, message: `${remote}/${branch} is ${String(behind)} commits ahead (pull recommended)` }
-  return { isPushed: false, message: `diverged: local is ${String(ahead)} commits ahead, ${remote}/${branch} is ${String(behind)} ahead` }
+  if (ahead === 0 && behind === 0) return { isPushed: true, message: `in sync with ${remote}/${branch}`, isDiverged: false }
+  if (behind === 0) return { isPushed: false, message: `${String(ahead)} unpushed commits`, isDiverged: false }
+  if (ahead === 0) return { isPushed: true, message: `${remote}/${branch} is ${String(behind)} commits ahead (pull recommended)`, isDiverged: false }
+  return { isPushed: false, message: `diverged: local is ${String(ahead)} commits ahead, ${remote}/${branch} is ${String(behind)} ahead`, isDiverged: true }
+}
+
+const RESTACK_PATH = ['pr', 'restack']
+
+/**
+積んだブランチが diverged のときの直し方。載せ直しが要れば pr restack、要らなければ git push、決められなければ pr restack --check
+*/
+export function pushFixHintOf(decision: Readonly<RestackDecision> | undefined): HintedText {
+  if (decision === undefined || decision.kind === 'gone') return hinted`${commandHint(RESTACK_PATH, { check: true })}`
+  return decision.kind === 'moved' || decision.kind === 'merged' ? hinted`${commandHint(RESTACK_PATH)}` : hinted`git push`
 }
 
 export interface PreflightFacts {
@@ -397,6 +412,10 @@ export interface PreflightFacts {
   readonly stashList: string
   readonly isPushed: boolean
   readonly pushMessage: string
+  /**
+  Push Status の直し方。省くと git push
+  */
+  readonly pushFixHint?: HintedText | undefined
 }
 
 /**
@@ -404,11 +423,11 @@ export interface PreflightFacts {
 */
 export function collectPreflightWarnings(facts: Readonly<PreflightFacts>): readonly PreflightWarning[] {
   const warnings: PreflightWarning[] = []
-  if (!facts.isPushed) warnings.push({ label: 'Push Status', message: facts.pushMessage, fixHint: 'git push' })
-  if (hasStatusChanges(facts.gitStatus)) warnings.push({ label: 'Git Status', message: 'modified or untracked files', fixHint: 'commit' })
+  if (!facts.isPushed) warnings.push({ label: 'Push Status', message: facts.pushMessage, fixHint: facts.pushFixHint ?? hinted`git push` })
+  if (hasStatusChanges(facts.gitStatus)) warnings.push({ label: 'Git Status', message: 'modified or untracked files', fixHint: hinted`commit` })
   if (hasStashEntries(facts.stashList)) {
     const count = facts.stashList.split(LINE_BREAK).filter(line => pythonStrip(line) !== '').length
-    warnings.push({ label: 'Stash List', message: `${String(count)} stash entries`, fixHint: 'check them' })
+    warnings.push({ label: 'Stash List', message: `${String(count)} stash entries`, fixHint: hinted`check them` })
   }
   return warnings
 }
@@ -416,6 +435,6 @@ export function collectPreflightWarnings(facts: Readonly<PreflightFacts>): reado
 /**
 警告 1 行の文
 */
-export function formatPreflightWarning(warning: PreflightWarning): string {
-  return `${warning.label}: ${warning.message} (fix: ${warning.fixHint})`
+export function formatPreflightWarning(warning: PreflightWarning): HintedText {
+  return joinHinted([`${warning.label}: ${warning.message} (fix: `, warning.fixHint, ')'], '')
 }
