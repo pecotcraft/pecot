@@ -6,36 +6,42 @@
 </p>
 
 <p align="center">
-  <b>Claude Code のためのプラグインマーケットプレイス</b><br>
-  Issue から PR・リリースまでの開発の流れと、図・スライド作り、AWS の調べものを、スキルで任せる
+  <b>Claude Code 向けのプラグインマーケットプレイス</b><br>
+  Issue の作成からリリースまでの開発作業や、図・スライドの作成、AWS の調査を、Claude Code のスキルで効率化します。
 </p>
 
 <p align="center">
-  <a href="#はじめる">はじめる</a> ·
-  <a href="#プラグイン">プラグイン</a> ·
+  <a href="#はじめに">はじめに</a> ·
+  <a href="#プラグイン一覧">プラグイン一覧</a> ·
   <a href="#開発の流れ">開発の流れ</a> ·
-  <a href="#更新">更新</a>
+  <a href="#アップデート">アップデート</a>
 </p>
 
-## はじめる
+## はじめに
+
+### 前提条件
+
+pecot のプラグインを使用するには、次のものが必要です。
+
+- [Claude Code](https://claude.ai/code) 2.1.141 以降
+- Node.js 24.22.1 以降（24 系）、または 26.12.1 以降
+
+pecot-w を使用する場合は、[GitHub CLI](https://cli.github.com/) も必要です。認証後に `gh auth refresh -s project` を実行して、`project` スコープを追加してください。
+
+pecot-t を使用する場合は、[AWS CLI](https://aws.amazon.com/cli/) v2（2.22 以降）も必要です。
+
+### インストール
+
+マーケットプレイスを追加してから、使用するプラグインをインストールします。
 
 ```bash
 claude plugin marketplace add https://github.com/pecotcraft/pecot.git
-claude plugin install pecot-w@pecot   # 開発の流れ
-claude plugin install pecot-v@pecot   # 図・スライド
-claude plugin install pecot-t@pecot   # AWS の調べもの
+claude plugin install pecot-w@pecot
+claude plugin install pecot-v@pecot
+claude plugin install pecot-t@pecot
 ```
 
-要るものは、入れるプラグインで変わります。
-
-| 要るもの | 入れるプラグイン |
-|:--------|:--------------|
-| [Claude Code](https://claude.ai/code) 2.1.141 以上 | すべて |
-| Node.js 24.22.1 以上（24 系）か 26.12.1 以上 | すべて。これより古い版では起動しない |
-| [gh CLI](https://cli.github.com/)。`gh auth refresh -s project` で `project` スコープを足す | pecot-w |
-| [AWS CLI](https://aws.amazon.com/cli/) v2（2.22 以上） | pecot-t |
-
-## プラグイン
+## プラグイン一覧
 
 <table>
   <tr>
@@ -44,42 +50,44 @@ claude plugin install pecot-t@pecot   # AWS の調べもの
     <th width="33%"><a href="plugins/pecot-tools/README.md">pecot-t</a></th>
   </tr>
   <tr>
-    <td valign="top">GitHub Projects のボードと連動して、Issue の起票から実装・PR・マージ・リリースまでを進める。git worktree での並行作業に対応する</td>
-    <td valign="top">draw.io の構成図、Slidev のスライドと PPTX、スクリーンショットをまとめた作業エビデンスの xlsx を作る</td>
-    <td valign="top">許可リストで絞った awscli のコマンドを MCP ツールにする。Lambda・CloudWatch Logs・RDS・Athena・S3 などの参照と取得だけで、変更系は拒否する</td>
+    <td valign="top">GitHub Projects と連携して、Issue の作成から実装、PR、マージ、リリースまでの開発フローを自動化します。git worktree を使用した並行開発にも対応しています。</td>
+    <td valign="top">draw.io の構成図、Slidev のプレゼンテーション、スクリーンショットをまとめた作業エビデンスを作成します。プレゼンテーションは PPTX に、エビデンスは xlsx に出力できます。</td>
+    <td valign="top">許可リストで限定した AWS CLI のコマンドを、MCP ツールとして提供します。Lambda や CloudWatch Logs、RDS などの参照、Athena のクエリ、S3 からのダウンロードに使用できます。リソースを変更する操作は実行できません。</td>
   </tr>
   <tr>
-    <td valign="top"><code>/pecot-w:w-quick</code><br><code>/pecot-w:w-pr</code><br><code>/pecot-w:w-merge</code></td>
-    <td valign="top"><code>/pecot-v:v-drawio</code><br><code>/pecot-v:v-slidev</code><br><code>/pecot-v:v-evidence</code></td>
-    <td valign="top"><code>aws_logs_filter_log_events</code><br><code>aws_athena_start_query_execution</code><br>ほか 26 ツール</td>
+    <td valign="top">主なスキル<br><code>/pecot-w:w-quick</code><br><code>/pecot-w:w-pr</code><br><code>/pecot-w:w-merge</code></td>
+    <td valign="top">主なスキル<br><code>/pecot-v:v-drawio</code><br><code>/pecot-v:v-slidev</code><br><code>/pecot-v:v-evidence</code></td>
+    <td valign="top">主なツール（全 26 種）<br><code>aws_logs_filter_log_events</code><br><code>aws_athena_start_query_execution</code><br><code>aws_s3_cp</code></td>
   </tr>
 </table>
 
-スキル・エージェント・ツールの一覧は、各プラグインの README にあります。
+各プラグインのスキル、エージェント、ツールの一覧は、それぞれの README を参照してください。
 
 ## 開発の流れ
 
-pecot-w では、ボードの列に沿ってスキルを呼ぶだけで、1 つのタスクが Issue からリリースまで進みます。
-図の名前は、`/pecot-w:w-quick` のように `/pecot-w:` を付けて呼びます。
+pecot-w のスキルを順に実行すると、1 つのタスクを Issue の作成からリリースまで進められます。
+図中のスキルは、`/pecot-w:w-quick` のように、名前の前に `/pecot-w:` を付けて実行します。
 
 ```mermaid
 flowchart LR
-  quick["<b>w-quick</b><br>起票と計画"] --> pr["<b>w-pr</b><br>PR を作る"]
-  active["<b>w-active</b><br>Ready から着手"] --> pr
-  pr --> revise["<b>w-revise</b><br>見直しと修正"]
-  revise --> merge["<b>w-merge</b><br>マージ"]
+  quick["<b>w-quick</b><br>Issue の作成と計画"] --> pr["<b>w-pr</b><br>PR の作成"]
+  active["<b>w-active</b><br>既存のタスクに着手"] --> pr
+  pr --> revise["<b>w-revise</b><br>セルフレビュー"]
+  revise --> merge["<b>w-merge</b><br>マージと後処理"]
   merge --> release["<b>w-release</b><br>リリース"]
   classDef step fill:#2F8F83,stroke:#2F8F83,color:#ffffff
   class quick,active,pr,revise,merge,release step
 ```
 
-小さな修正なら、やりたいことを書いて呼ぶところから始めます。
+たとえば小さな修正であれば、修正したい内容を添えて `w-quick` を実行します。
 
 ```text
-/pecot-w:w-quick ログイン画面で、エラーの文が英語のまま出るのを直す
+/pecot-w:w-quick ログイン画面のエラーメッセージが英語のまま表示される問題を修正する
 ```
 
-## 更新
+## アップデート
+
+最新のバージョンに更新するには、次のコマンドを実行します。
 
 ```bash
 claude plugin update pecot-w@pecot
@@ -87,8 +95,8 @@ claude plugin update pecot-v@pecot
 claude plugin update pecot-t@pecot
 ```
 
-project スコープで入れている場合は `-s project` を付けてください。
+プロジェクトスコープでインストールした場合は、`-s project` を付けて実行してください。
 
 ## ライセンス
 
-MIT License です。全文は [LICENSE](LICENSE) にあります。
+MIT License で公開しています。詳しくは [LICENSE](LICENSE) を参照してください。
