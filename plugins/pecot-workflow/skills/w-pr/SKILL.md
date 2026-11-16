@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff. Triggers: "create PR", "submit for review".
   Does not merge PRs (use w-merge).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*), Monitor
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい"
 ---
 
@@ -127,10 +127,14 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Step 4: CI を待って直す
 
-`gh pr checks <PR番号> --watch --fail-fast` で CI を待つ。Claude Code では Monitor ツール（期限 30 分）、GitHub Copilot CLI では非同期の実行で動かす。
+次のコマンドで CI を待ち、終わった後の結果だけを 1 回出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
 
-- push の直後に `no checks reported` で抜けたら、少しおいて打ち直す。続くなら CI の無いリポとみなす
+```bash
+gh pr checks <PR番号> --watch --fail-fast > /dev/null 2>&1; gh pr checks <PR番号>
+```
+
+- `no checks reported` が出たら、少しおいて打ち直す。2 回続いたら CI の無いリポとみなし、その旨を伝えて終える
 - 落ちたら、PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる
-- 直すのは 3 回まで
+- 直すのは 3 回まで。超えたら状況を利用者に伝えて止まる
 
 PR作成後、レビュー対応は `/pecot-w:w-revise`、マージは `/pecot-w:w-merge` を使用する。
