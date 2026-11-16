@@ -1,4 +1,5 @@
-import { rmSync } from 'node:fs'
+/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
+import { rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -7,9 +8,11 @@ import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
+import type { RunningGithub } from '../_helpers/interface-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
@@ -35,10 +38,21 @@ const pullRequests = (...nodes: readonly Record<string, unknown>[]): ResponseRul
   respond: { status: 200, body: { data: { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes } } } } },
   times: 1,
 })
+const above = (number: number, head: string, isCrossRepository = false): Record<string, unknown> => ({ ...pullRequest(number, 'OPEN', isCrossRepository), headRefName: head, baseRefName: 'feat/demo/7' })
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
+const stackedAbove = (...nodes: readonly Record<string, unknown>[]): ResponseRule => ({
+  match: { operation: 'ListPullRequestsByBase' },
+  respond: { status: 200, body: { data: { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes } } } } },
+  times: 1,
+})
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 const rules = (spec: Partial<TargetSpec>, ...nodes: readonly Record<string, unknown>[]): ResponseRule[] => [
-  issueResponse({ number: 7, title: 't' }), pullRequests(...nodes), prerequisitesRule({ number: 7, ...spec }),
+  issueResponse({ number: 7, title: 't' }), pullRequests(...nodes), prerequisitesRule({ number: 7, ...spec }), stackedAbove(),
 ]
+
+function operationsOf(github: Readonly<RunningGithub>): readonly string[] {
+  return github.requests().map(request => request.type === 'graphql' ? request.operation : request.path)
+}
 
 async function showTool(directory: string): Promise<ToolOutcome> {
   return await callToolOnce(SESSION_COMMANDS, 'session_show', { directory })
@@ -63,7 +77,7 @@ describe('session show', () => {
   it('.pecot-active があるとき、表にその行を set と内容で出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-03')
     const { repository } = prepareSession({ files: ACTIVE })
-    await startGithub([issueResponse({ number: 7, title: 't' })])
+    await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
     const result = await status(repository)
 
     expect(result.stdout).toContain('| .pecot-active | set | acme/demo/7 |\n')
@@ -73,7 +87,7 @@ describe('session show', () => {
     await verifies(context, 'PW-SESSION-SHOW-05')
     await verifies(context, 'PW-SESSION-SHOW-06')
     const { repository } = prepareSession({ files: ACTIVE })
-    const github = await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n本文の 2 行目\n' })])
+    const github = await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n本文の 2 行目\n' }), stackedAbove()])
 
     const result = await status(repository)
 
@@ -83,13 +97,16 @@ describe('session show', () => {
       `${HEADER}- Branch: feat/demo/7\n- Repository: acme/demo\n- Inferred Issue: #7\n\n${TABLE_HEAD}| .pecot-active | set | acme/demo/7 |\n`
       + '\n## Active Issue\n\n#7 見本の Issue (OPEN)\n\n本文の 1 行目\n本文の 2 行目\n',
     )
-    expect(github.requests()).toMatchObject([{ type: 'graphql', operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'demo', number: 7, commentLimit: 0 } }])
+    expect(github.requests()).toMatchObject([
+      { type: 'graphql', operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'demo', number: 7, commentLimit: 0 } },
+      { type: 'graphql', operation: 'ListPullRequestsByBase', variables: { owner: 'acme', repo: 'demo', baseRefName: 'feat/demo/7' } },
+    ])
   })
 
   it('本文が空の Issue は、題名の行までで Active Issue の節を終える', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-05')
     const { repository } = prepareSession({ files: ACTIVE })
-    await startGithub([issueResponse({ number: 7, title: '題名だけ', state: 'CLOSED' })])
+    await startGithub([issueResponse({ number: 7, title: '題名だけ', state: 'CLOSED' }), stackedAbove()])
 
     const result = await status(repository)
 
@@ -256,6 +273,26 @@ describe('session show', () => {
       expect(result.stdout).not.toContain('readiness:')
     })
 
+    it.for([
+      { name: '下の段の remote の先頭が記録と同じ', isMoved: false, state: 'OPEN', expected: 'no' },
+      { name: '下の段の remote の先頭が記録と違う', isMoved: true, state: 'OPEN', expected: 'yes' },
+      { name: '下の段の PR がマージ済み', isMoved: false, state: 'MERGED', expected: 'yes' },
+    ])('$name と、Stack の節に needs restack: $expected の行を出す', async (row, context) => {
+      await verifies(context, 'PW-SESSION-SHOW-28')
+      const bare = makeTemporaryDirectory('pecot-bare-')
+      gitForTest(bare, ['init', '-q', '--bare'])
+      const { project, repository } = prepareSession({ remotes: { origin: bare }, files: ACTIVE })
+      gitForTest(repository, ['push', '-q', 'origin', 'HEAD:refs/heads/feat/3'])
+      const recorded = row.isMoved ? SHA : gitForTest(repository, ['rev-parse', 'HEAD']).trim()
+      writeFileSync(path.join(project.root, '.pecot/state/.pecot-base'), `feat/3 ${recorded} acme/demo#3\n`)
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, row.state)), prerequisitesRule({ number: 7, blockedBy: [inReview] })])
+
+      const result = await status(repository)
+
+      expect(result.stderr).toBe('')
+      expect(result.stdout.endsWith(`\n## Stack\n- base: feat/3 (#3, PR #30 ${row.state})\n- needs restack: ${row.expected}\n`)).toBe(true)
+    })
+
     it('open の PR が無ければ fork でない最新の PR を、PR が無ければ no PR を出す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-23')
       const { repository } = prepareSession({ files: STACKED })
@@ -282,7 +319,7 @@ describe('session show', () => {
       await verifies(context, 'PW-SESSION-SHOW-25')
       const { repository } = prepareSession({ files: STACKED })
       const failing: ResponseRule = { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
-      await startGithub([issueResponse({ number: 7, title: 't' }), failing, prerequisitesRule({ number: 7, blockedBy: [inReview] })])
+      await startGithub([issueResponse({ number: 7, title: 't' }), failing, prerequisitesRule({ number: 7, blockedBy: [inReview] }), stackedAbove()])
 
       const result = await status(repository)
 
@@ -294,7 +331,7 @@ describe('session show', () => {
     it('.pecot-base の形が誤っていると、warning を出し、Stack の節を出さない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-26')
       const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': 'garbage\n' } })
-      await startGithub([issueResponse({ number: 7, title: 't' })])
+      await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
       const result = await status(repository)
 
@@ -306,7 +343,7 @@ describe('session show', () => {
       await verifies(context, 'PW-SESSION-SHOW-27')
       const { repository } = prepareSession({ files: STACKED })
       const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
-      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), failing])
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), failing, stackedAbove()])
 
       const result = await status(repository)
 
@@ -320,7 +357,7 @@ describe('session show', () => {
       await verifies(context, 'PW-SESSION-SHOW-24')
       const { repository } = prepareSession({ files: STACKED })
       const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
-      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), unsupported])
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), unsupported, stackedAbove()])
 
       const result = await status(repository)
 
@@ -336,12 +373,12 @@ describe('session show', () => {
     ])('$name ときは、Stack の節を出さず、判定も読まない', async ({ files }, context) => {
       await verifies(context, 'PW-SESSION-SHOW-23')
       const { repository } = prepareSession({ files })
-      const github = await startGithub([issueResponse({ number: 7, title: 't' })])
+      const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
       const result = await status(repository)
 
       expect(result.stdout).not.toContain('## Stack')
-      expect(github.requests()).toHaveLength(1)
+      expect(operationsOf(github)).toEqual(['GetIssueSlim', 'ListPullRequestsByBase'])
     })
 
     it('.pecot-active が無ければ、.pecot-base があっても Stack の節を出さない', async (context) => {
@@ -354,7 +391,117 @@ describe('session show', () => {
     })
   })
 
+  describe('上に積んだ段', () => {
+    const SHA = '0123456789abcdef0123456789abcdef01234567'
+    const STACKED = { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
+
+    it('今のブランチを base にした開いている PR があれば、積んだ記録が無くても Stack の節に PR ごとの stacked above の行を出す', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-29')
+      const { repository } = prepareSession({ files: ACTIVE })
+      const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'), above(41, 'feat/other/9', true), above(42, 'feat/demo/10'))])
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('')
+      expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- stacked above: PR #40 (feat/demo/8)\n- stacked above: PR #42 (feat/demo/10)\n')).toBe(true)
+      expect(operationsOf(github)).toEqual(['GetIssueSlim', 'ListPullRequestsByBase'])
+    })
+
+    it('積んだ記録もあるとき、base と readiness の行の後に stacked above の行を並べる', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-29')
+      const { repository } = prepareSession({ files: STACKED })
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'CLOSED')), prerequisitesRule({ number: 7, blockedBy: [{ number: 3, title: '未着手' }] }), stackedAbove(above(40, 'feat/demo/8'))])
+
+      const result = await status(repository)
+
+      expect(result.stdout.endsWith('\n## Stack\n- base: feat/3 (#3, PR #30 CLOSED)\n- readiness: blocked by #3 (not in review: #3 (not started))\n- stacked above: PR #40 (feat/demo/8)\n')).toBe(true)
+    })
+
+    it('fork の PR しか無ければ、上の段が無いものとして Stack の節を出さない', async () => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(41, 'feat/other/9', true))])
+
+      const result = await status(repository)
+
+      expect(result.stdout).not.toContain('## Stack')
+      expect(result.stderr).toBe('')
+    })
+
+    it('上の段を読めなければ、warning を出し、stacked above の行を省いて base の行は残す', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-30')
+      const { repository } = prepareSession({ files: STACKED })
+      const failing: ResponseRule = { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+      const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), prerequisitesRule({ number: 7, blockedBy: [inReview] }), failing])
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stdout.endsWith('\n## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')).toBe(true)
+      expect(result.stderr).toMatch(/^warning: cannot read the PRs stacked above: .+500/u)
+    })
+
+    it('積んだ記録が無く上の段を読めなければ、warning を出し、Stack の節を出さない', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-30')
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueResponse({ number: 7, title: 't' }), { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).not.toContain('## Stack')
+      expect(result.stderr).toMatch(/^warning: cannot read the PRs stacked above: .+500/u)
+    })
+
+    it('remote が無いとき、上の段を読まない', async () => {
+      const { repository } = prepareSession({ files: ACTIVE, remotes: {} })
+      const github = await startGithub([issueResponse({ number: 7, title: 't' })])
+
+      const result = await status(repository)
+
+      expect(result.stdout).not.toContain('## Stack')
+      expect(result.stderr).toBe('')
+      expect(operationsOf(github)).toEqual(['GetIssueSlim'])
+    })
+
+    it('アクティブな Issue を読めないとき、上の段を読まない', async () => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      const github = await startGithub([issueFailure(502)])
+
+      await status(repository)
+
+      expect(operationsOf(github)).toEqual(['GetIssueSlim'])
+    })
+  })
+
   describe('MCP の data', () => {
+    it('上の段があれば、stackedAbove に PR の番号とブランチを返す', async () => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'), above(42, 'feat/demo/10'))])
+
+      const outcome = await showTool(repository)
+
+      expect(outcome.structured).toEqual({
+        branch: 'feat/demo/7',
+        repository: 'acme/demo',
+        inferredIssue: 7,
+        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        stackedAbove: [{ number: 40, branch: 'feat/demo/8' }, { number: 42, branch: 'feat/demo/10' }],
+      })
+    })
+
+    it('上の段を読めなければ、stackedAbove を省いて warning を返す', async () => {
+      const { repository } = prepareSession({ files: ACTIVE })
+      await startGithub([issueResponse({ number: 7, title: 't' }), { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const outcome = await showTool(repository)
+
+      expect(outcome.structured).not.toHaveProperty('stackedAbove')
+      expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^cannot read the PRs stacked above: .+500/u)])
+    })
+
     it('.pecot-active が無いとき、ブランチ・リポジトリ・推定した Issue・フラグを data に返す', async () => {
       const { repository } = prepareSession()
 
@@ -403,7 +550,7 @@ describe('session show', () => {
 
     it('Issue が閉じていると、activeIssue の state を CLOSED で返す', async () => {
       const { repository } = prepareSession({ files: ACTIVE })
-      await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' })])
+      await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' }), stackedAbove()])
 
       const outcome = await showTool(repository)
 

@@ -224,8 +224,7 @@ async function updateWaitingIssues(context: Readonly<FinishContext>, source: Rea
     const lower = heads.filter(head => prerequisiteOf(result, head)?.wait === 'stack').map(head => displayReference(head, home)).join(', ')
     const [branch] = result.target.branches
     record.restack.push({ issue: name, ...branch !== undefined && { branch } })
-    // pr restack は #384 で登録されるまで commandHint で描けないので、コマンド名を出さない
-    out.warning(`${name} is stacked on ${lower}; restack ${branch ?? 'its branch'} onto the new base in its working directory`)
+    out.warning(hinted`${name} is stacked on ${lower}; run ${commandHint(['pr', 'restack'])} in the working directory of ${branch ?? 'its branch'}`)
   }
 }
 

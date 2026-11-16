@@ -131,7 +131,7 @@ export interface PullRequestBaseInput {
   readonly base: string
   readonly developBranch: string
   /**
-  下の段のブランチを head に持つ PR（pickBasePullRequest で選んだもの）。積んだ記録のときだけ見る
+  下の段のブランチを head に持つ PR（pickLowerPullRequest で選んだもの）。積んだ記録のときだけ見る
   */
   readonly lowerPullRequest?: Readonly<PullRequestReadout> | undefined
 }

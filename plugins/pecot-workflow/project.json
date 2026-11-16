@@ -169,7 +169,6 @@
         "{projectRoot}/bin/pecot",
         "{projectRoot}/bin/_lib.sh",
         "{projectRoot}/skills/w-help/references/issue-flow-rules.md",
-        "{projectRoot}/skills/w-merge/scripts/**/*",
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{projectRoot}/project.json",
         "{workspaceRoot}/plugins/pecot-visual/scripts/ci/run-lint.sh",
@@ -184,7 +183,7 @@
       "dependsOn": ["install", "build-cli"],
       "outputs": ["{projectRoot}/cli/test-results/junit-hooks.xml"],
       "metadata": {
-        "description": "hooks テスト（cli/tests/hooks/）の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回流して結果を比べる。テストが読む hooks・agents・SKILL.md・plugin.json・bin/pecot・各 project.json と run-*.sh を宣言する。state-directory-resolution は build 済みの CLI を起動するので、build-cli を dependsOn に、cli/src を入力に置く。skills/w-merge/scripts/ は merge-wait.sh で、merge-wait.test.ts が読む。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "hooks テスト（cli/tests/hooks/）の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回流して結果を比べる。テストが読む hooks・agents・SKILL.md・plugin.json・bin/pecot・各 project.json と run-*.sh を宣言する。state-directory-resolution は build 済みの CLI を起動するので、build-cli を dependsOn に、cli/src を入力に置く。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",

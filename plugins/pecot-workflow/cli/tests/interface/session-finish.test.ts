@@ -485,7 +485,7 @@ describe('session finish', () => {
         'count: Issues to close: 1',
         'closed: Issue #12',
         'moved: #13 Blocked -> Ready (startable)',
-        `warning: #14 is stacked on #12; restack ${UPPER} onto the new base in its working directory`,
+        `warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}`,
       ])
       const writes = workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
       expect(writes).toMatchObject([{ variables: { itemId: 'PVTI_13', optionId: 'o3' } }])
@@ -511,7 +511,7 @@ describe('session finish', () => {
       await verifies(context, 'PW-SESSION-FINISH-35')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)] })
       const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-      expect(result.stderr).toContain(`warning: #14 is stacked on #12; restack ${UPPER} onto the new base in its working directory\n`)
+      expect(result.stderr).toContain(`warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}\n`)
       expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }, { path: `/repos/acme/demo/git/refs/heads/wip/${BRANCH}` }])
     })
 
@@ -603,7 +603,7 @@ describe('session finish', () => {
         deletedBranches: [],
         readinessChanges: [{ issue: '#13', from: 'stackable on #12', to: 'startable' }, { issue: '#14', from: 'stackable on #12', to: 'startable' }],
         restack: [{ issue: '#14', branch: UPPER }],
-        warnings: [`#14 is stacked on #12; restack ${UPPER} onto the new base in its working directory`],
+        warnings: [`#14 is stacked on #12; run pr_restack in the working directory of ${UPPER}`],
       })
     })
 

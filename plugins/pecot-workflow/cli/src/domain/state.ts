@@ -12,6 +12,8 @@ export const FLAG_PECOT_ACTIVE = '.pecot-active'
 export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
 // 着手のときに選んだ base（ブランチ・位置・積んだ先の Issue）。session start が書き、session finish が消す
 export const FLAG_PECOT_BASE = '.pecot-base'
+// 衝突で止まった載せ直しの途中の記録。pr restack が書き、続行か取りやめで消す
+export const FLAG_PECOT_RESTACK = '.pecot-restack'
 export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
 export const FLAG_WIP_BRANCH_LINKED = '.wip-branch-linked'
 
@@ -117,4 +119,55 @@ export function interpretBaseRecord(content: string | undefined): BaseReading {
   if (issue === undefined) return { kind: 'development', record: { branch, sha, stackedOn: undefined } }
   const stackedOn = parseStackedOn(issue)
   return stackedOn === undefined ? { kind: 'malformed', content } : { kind: 'stacked', record: { branch, sha, stackedOn }, stackedOn }
+}
+
+export interface RestackProgress {
+  readonly remote: string
+  /**
+  載せ直しているブランチ。rebase の途中は HEAD が detached なので、ここから読む
+  */
+  readonly branch: string
+  /**
+  載せ直す前のブランチの先頭。remote にだけある変更が見つかったときに、ここへ戻す
+  */
+  readonly originalSha: string
+  readonly ontoBranch: string
+  readonly ontoSha: string
+  /**
+  push の `--force-with-lease` に渡す、fetch した時点の remote の SHA。remote にブランチが無ければ undefined
+  */
+  readonly leaseSha: string | undefined
+  /**
+  載せ直した後も積んだ記録を保つなら、積んだ先の Issue。開発ブランチへ載せ直すなら undefined
+  */
+  readonly stackedOn: IssueReference | undefined
+}
+
+export type RestackProgressReading
+  = | { readonly kind: 'none' }
+    | { readonly kind: 'progress', readonly progress: RestackProgress }
+    | { readonly kind: 'malformed', readonly content: string }
+
+const ABSENT = '-'
+
+/**
+.pecot-restack の 1 行。`<remote> <branch> <originalSha> <ontoBranch> <ontoSha> <leaseSha> <owner/repo#N>` で、無い項目は `-`
+*/
+export function formatRestackProgress(progress: Readonly<RestackProgress>): string {
+  const stackedOn = progress.stackedOn === undefined ? ABSENT : issueReferenceToString(progress.stackedOn)
+  return [progress.remote, progress.branch, progress.originalSha, progress.ontoBranch, progress.ontoSha, progress.leaseSha ?? ABSENT, stackedOn].join(' ')
+}
+
+/**
+.pecot-restack の内容を読む。ファイルが無ければ none、形が誤っていれば malformed
+*/
+export function interpretRestackProgress(content: string | undefined): RestackProgressReading {
+  if (content === undefined) return { kind: 'none' }
+  const malformed: RestackProgressReading = { kind: 'malformed', content }
+  const [remote, branch, originalSha, ontoBranch, ontoSha, lease, issue, ...rest] = content.split(' ')
+  if (remote === undefined || branch === undefined || originalSha === undefined || ontoBranch === undefined || ontoSha === undefined || lease === undefined || issue === undefined || rest.length > 0 || [remote, branch, ontoBranch].includes('') || !BASE_SHA_PATTERN.test(ontoSha) || !BASE_SHA_PATTERN.test(originalSha)) return malformed
+  if (lease !== ABSENT && !BASE_SHA_PATTERN.test(lease)) return malformed
+  const stackedOn = issue === ABSENT ? undefined : parseStackedOn(issue)
+  if (issue !== ABSENT && stackedOn === undefined) return malformed
+  return { kind: 'progress', progress: { remote, branch, originalSha, ontoBranch, ontoSha, leaseSha: lease === ABSENT ? undefined : lease, stackedOn } }
 }

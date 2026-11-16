@@ -44,6 +44,7 @@ the Issue reference and the readiness checks, which breaks the consistency of th
 Use these instead:
   the MCP tool pr_create of the workflow server  (open a PR, stacked when needed)
   the MCP tool pr_merge of the workflow server   (merge a PR)
+  the MCP tool pr_restack of the workflow server (restack a stacked branch)
 EOF
 }
 

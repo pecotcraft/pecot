@@ -1013,6 +1013,27 @@ export const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: 
 
 ${PULL_REQUEST_FIELDS}`
 
+// base のブランチ名で開いている PR を引く（古い順）
+export const QUERY_LIST_PULL_REQUESTS_BY_BASE = `query ($owner: String!, $repo: String!, $baseRefName: String!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(
+      baseRefName: $baseRefName
+      states: [OPEN]
+      first: 20
+      orderBy: { field: CREATED_AT, direction: ASC }
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      nodes {
+        ...PullRequestFields
+      }
+    }
+  }
+}
+
+${PULL_REQUEST_FIELDS}`
+
 const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
   id
   number

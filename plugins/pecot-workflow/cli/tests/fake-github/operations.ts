@@ -47,6 +47,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
   ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,parent,blockedBy}|blockedByFirst,columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
   ['repository.pullRequests{pageInfo,nodes}|headRefName,owner,repo', 'ListPullRequestsByHead'],
+  ['repository.pullRequests{pageInfo,nodes}|baseRefName,owner,repo', 'ListPullRequestsByBase'],
   ['repository.issue{id,body,blockedBy}|blockedByFirst,number,owner,repo', 'GetIssueBlockedByReferences'],
   ['nodes{id,blockedBy}|blockedByFirst,ids', 'GetBlockedByOfNodes'],
   ['repository.issue.blocking{totalCount,nodes}|blockingFirst,number,owner,repo', 'GetIssueBlockingReferences'],

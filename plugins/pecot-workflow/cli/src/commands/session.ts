@@ -3,15 +3,21 @@ import { z } from 'zod'
 
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { ConfigError } from '../domain/config.js'
+import type { RemoteLocation } from '../domain/git-url.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { PecotError } from '../domain/errors.js'
+import type { PullRequestReadout } from '../domain/issue-readout.js'
+import { pickLowerPullRequest } from '../domain/pull-request.js'
 import { describeReadiness } from '../domain/readiness.js'
+import { decideRestack, describeNeedsRestack, needsRestack } from '../domain/restack.js'
+import type { RestackDecision } from '../domain/restack.js'
 import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
-import { describeStackBase, pickBasePullRequest } from '../domain/work-start.js'
+import type { BaseReading } from '../domain/state.js'
+import { describeStackBase } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
-import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
+import { gitCurrentBranch, primaryRemoteName, primaryRemoteRepository, remoteBranchHead } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { hasFlag, readBaseRecord, readFlag } from '../infra/state-store.js'
@@ -67,7 +73,13 @@ const STACK_DATA = z.strictObject({
   branch: z.string().describe('Base branch the work branch is stacked on'),
   stackedOn: z.string().describe('Issue stacked on (owner/repo/N)'),
   pullRequest: BASE_PULL_REQUEST_DATA.optional().describe('PR of the base branch (omitted when there is none or it cannot be read)'),
+  needsRestack: z.boolean().optional().describe('Whether the branch needs pr restack: the base branch moved or its PR is merged (omitted when it cannot be decided)'),
   readiness: z.string().optional().describe('Readiness of the active Issue (only when blocked)'),
+})
+
+const STACKED_ABOVE_DATA = z.strictObject({
+  number: z.int().describe('PR number'),
+  branch: z.string().describe('Head branch of the PR'),
 })
 
 const SESSION_SHOW_OUTPUT = z.strictObject({
@@ -77,6 +89,7 @@ const SESSION_SHOW_OUTPUT = z.strictObject({
   flags: z.array(FLAG_DATA).describe('Session flags'),
   activeIssue: ACTIVE_ISSUE_DATA.optional().describe('Issue in .pecot-active as read from GitHub (omitted when unset or unreadable)'),
   stack: STACK_DATA.optional().describe('Base the work was stacked on (omitted when not stacked)'),
+  stackedAbove: z.array(STACKED_ABOVE_DATA).optional().describe('Open PRs whose base is the current branch (omitted when there are none or they cannot be read)'),
 })
 
 type SessionShowData = z.input<typeof SESSION_SHOW_OUTPUT>
@@ -134,16 +147,19 @@ interface StackSection {
 }
 
 // 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
-async function stackSection(active: Readonly<ActiveIssue>, output: Output): Promise<StackSection> {
+async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation> | undefined, directory: string, output: Output): Promise<StackSection> {
   const reading = readBaseRecord()
   if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
   if (reading.kind !== 'stacked') return { lines: [] }
   const { record, stackedOn } = reading
-  const { owner, repository } = stackedOn.repository
-  let pullRequest: ReturnType<typeof pickBasePullRequest> | 'unknown'
+  // ブランチは作業ディレクトリのリポにあるので、PR もそこで探す（pr restack と同じ）
+  const { owner, repository } = origin ?? stackedOn.repository
+  let pullRequest: ReturnType<typeof pickLowerPullRequest> | 'unknown'
+  let restack: RestackDecision | undefined
   try {
     const found = await active.client.listPullRequestsByHead(owner, repository, record.branch)
-    pullRequest = pickBasePullRequest(found.pullRequests)
+    pullRequest = pickLowerPullRequest(found.pullRequests)
+    restack = restackDecision(reading, pullRequest, directory)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
@@ -151,15 +167,48 @@ async function stackSection(active: Readonly<ActiveIssue>, output: Output): Prom
     pullRequest = 'unknown'
   }
   const readiness = await blockedReadiness(active, output)
+  const needsLine = restack === undefined ? undefined : describeNeedsRestack(restack)
+  const needed = restack === undefined ? undefined : needsRestack(restack)
   return {
-    lines: ['', '## Stack', describeStackBase(record.branch, stackedOn, pullRequest), ...readiness === undefined ? [] : [`- readiness: ${readiness}`]],
+    lines: ['', '## Stack', describeStackBase(record.branch, stackedOn, pullRequest), ...needsLine === undefined ? [] : [needsLine], ...readiness === undefined ? [] : [`- readiness: ${readiness}`]],
     data: {
       branch: record.branch,
       stackedOn: issueReferenceToCliReference(stackedOn),
       ...pullRequest !== 'unknown' && pullRequest !== undefined && { pullRequest: { number: pullRequest.number, state: pullRequest.state } },
+      ...needed !== undefined && { needsRestack: needed },
       ...readiness !== undefined && { readiness },
     },
   }
+}
+
+// 載せ直す先の判断。fetch せずに、下の段の remote の先頭を尋ねて記録と比べる。remote に届かなければ undefined
+function restackDecision(reading: Extract<BaseReading, { kind: 'stacked' }>, lowerPullRequest: Readonly<PullRequestReadout> | undefined, directory: string): RestackDecision | undefined {
+  const remote = primaryRemoteName(directory)
+  if (remote === undefined) return undefined
+  const lowerHead = remoteBranchHead(directory, remote, reading.record.branch)
+  return lowerHead.isReachable ? decideRestack({ reading, developBranch: '', lowerPullRequest, lowerHead: lowerHead.sha }) : undefined
+}
+
+type StackedAbove = NonNullable<SessionShowData['stackedAbove']>
+
+// 今のブランチを base にした、同じリポの開いている PR。読めなければ warning を出して undefined にする
+async function readStackedAbove(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation>, branch: string, output: Output): Promise<StackedAbove | undefined> {
+  try {
+    const found = await active.client.listPullRequestsByBase(origin.owner, origin.repository, branch)
+    return found.pullRequests.map(pullRequest => ({ number: pullRequest.number, branch: pullRequest.headRefName }))
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.warning(`cannot read the PRs stacked above: ${error.message}`)
+    return undefined
+  }
+}
+
+// 積んだ記録の節に上の段の行を足す。積んだ記録が無くても、上の段があれば節を出す
+function withStackedAbove(stackLines: readonly string[], above: readonly Readonly<StackedAbove[number]>[] | undefined): readonly string[] {
+  if (above === undefined || above.length === 0) return stackLines
+  const lines = above.map(pullRequest => `- stacked above: PR #${String(pullRequest.number)} (${pullRequest.branch})`)
+  return stackLines.length === 0 ? ['', '## Stack', ...lines] : [...stackLines, ...lines]
 }
 
 // 着手中の Issue の判定が blocked のときだけ、判定の文を返す
@@ -189,7 +238,8 @@ const SESSION_SHOW = defineCommand({
     const issueNumber = branch === undefined ? undefined : extractIssueNumberFromBranch(branch)
     const statuses = collectFlagStatuses()
     const active = await readActiveIssue(statuses, output)
-    const stack = active === undefined ? { lines: [] } : await stackSection(active, output)
+    const stack = active === undefined ? { lines: [] } : await stackSection(active, origin, input.directory, output)
+    const above = active === undefined || origin === undefined || branch === undefined ? undefined : await readStackedAbove(active, origin, branch, output)
     output.result({
       ...branch !== undefined && { branch },
       ...origin !== undefined && { repository: `${origin.owner}/${origin.repository}` },
@@ -197,6 +247,7 @@ const SESSION_SHOW = defineCommand({
       flags: statuses.map(status => ({ ...status })),
       ...active !== undefined && { activeIssue: active.data },
       ...stack.data !== undefined && { stack: stack.data },
+      ...above !== undefined && above.length > 0 && { stackedAbove: above },
     })
 
     const lines = [
@@ -210,7 +261,7 @@ const SESSION_SHOW = defineCommand({
       '|------|-------|---------|',
       ...statuses.map(status => `| ${status.name} | ${status.isSet ? 'set' : 'unset'} | ${status.content} |`),
       ...active?.lines ?? [],
-      ...stack.lines,
+      ...withStackedAbove(stack.lines, above),
     ]
     output.data(lines.join('\n'))
     return 0

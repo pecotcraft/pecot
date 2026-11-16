@@ -350,6 +350,42 @@ describe('listPullRequestsByHead', () => {
   })
 })
 
+function pageByBase(hasNextPage: boolean, ...nodes: readonly Readonly<Record<string, unknown>>[]): Readonly<Record<string, unknown>> {
+  return { repository: { pullRequests: { pageInfo: { hasNextPage }, nodes } } }
+}
+
+describe('listPullRequestsByBase', () => {
+  const variables = { owner: 'owner', repo: 'repo', baseRefName: 'feat/issue-9' }
+
+  it('base のブランチ名で開いている PR を引き、fork でない PR の番号と head のブランチ名を返す', async () => {
+    const above = node(10, 'OPEN', { headRefName: 'feat/issue-10', baseRefName: 'feat/issue-9' })
+    const fork = node(11, 'OPEN', { headRefName: 'feat/issue-11', baseRefName: 'feat/issue-9', isCrossRepository: true })
+    const later = node(12, 'OPEN', { headRefName: 'feat/issue-12', baseRefName: 'feat/issue-9' })
+    const { client, server } = await startClient([graphqlData('ListPullRequestsByBase', pageByBase(false, above, fork, later))])
+    expect(await client.listPullRequestsByBase('owner', 'repo', 'feat/issue-9')).toEqual({
+      pullRequests: [{ number: 10, headRefName: 'feat/issue-10' }, { number: 12, headRefName: 'feat/issue-12' }],
+      hasNextPage: false,
+    })
+    expect(graphqlRequests(server)).toEqual([{ operation: 'ListPullRequestsByBase', variables }])
+  })
+
+  it('PR が無ければ空', async () => {
+    const { client } = await startClient([graphqlData('ListPullRequestsByBase', pageByBase(false))])
+    expect(await client.listPullRequestsByBase('owner', 'repo', 'feat/issue-9')).toEqual({ pullRequests: [], hasNextPage: false })
+  })
+
+  it('先頭の 20 件に収まらないときは、hasNextPage が真', async () => {
+    const first = node(10, 'OPEN')
+    const { client } = await startClient([graphqlData('ListPullRequestsByBase', pageByBase(true, first))])
+    expect(await client.listPullRequestsByBase('owner', 'repo', 'feat/issue-9')).toEqual({ pullRequests: [{ number: 10, headRefName: 'feat/issue-9' }], hasNextPage: true })
+  })
+
+  it('リポが無ければ GitHubNotFoundError', async () => {
+    const { client } = await startClient([graphqlData('ListPullRequestsByBase', { repository: JSON_NULL })])
+    expect(await rejection(client.listPullRequestsByBase('owner', 'repo', 'feat/issue-9'))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/repo'))
+  })
+})
+
 const STACK_VERSION = '2026-03-10'
 
 function stackOf(number: number, pullRequests: readonly number[]): Readonly<Record<string, unknown>> {
