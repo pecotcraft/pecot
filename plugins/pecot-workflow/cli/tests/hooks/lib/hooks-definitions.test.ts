@@ -299,8 +299,8 @@ describe('Copilot CLI の matcher', () => {
 
 // 残すフックの一覧（spec 025 の research.md R1）。#466 で exit-plan-remind を置き換えたら一覧も直す。
 const REGISTERED_SCRIPTS = new Map([
-  ['hooks.json', ['post-tool-use-exit-plan-mode.sh', 'pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit-title.sh', 'user-prompt-submit.sh']],
-  [COPILOT_HOOKS, ['post-tool-use-exit-plan-mode.sh', 'pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit.sh']],
+  ['hooks.json', ['pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit-title.sh', 'user-prompt-submit.sh']],
+  [COPILOT_HOOKS, ['pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit.sh']],
 ])
 const CONFIG_KEYS = [
   'claude-bash-guards',
@@ -330,7 +330,7 @@ describe('残すフックの一覧', () => {
   })
 
   it('Copilot 定義の Bash の PreToolUse は、Claude と同じエントリを指す', () => {
-    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-bash.sh')).toEqual(['Bash'])
+    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'pre-tool-use-bash.sh')).toEqual(['Bash'])
   })
 })
 
