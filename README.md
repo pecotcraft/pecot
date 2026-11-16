@@ -5,47 +5,54 @@
   </picture>
 </p>
 
+<h3 align="center">Claude Code を、手を抜かない開発チームに。</h3>
+
 <p align="center">
-  <b>GitHub での開発の手順と、構成図やスライドの作成を、Claude Code のスキルで進めるプラグイン集です。</b>
+  計画を立て、レビューを受け、動作を確かめてから PR を出す。<br>
+  チーム開発の手順を、Claude Code のスキルとして提供します。
 </p>
 
-## Issue からリリースまでを自動化する
+## 承認するまで、実装は始まらない
 
-pecot-w は、GitHub Projects のボードと連携して開発の流れを進める Claude Code のプラグインです。
+`/pecot-w:w-active` でボードのタスクに着手すると、Claude Code はまずコードを読み、実装計画を書きます。
+計画はレビュー用のエージェントが確認したうえで Issue に投稿され、あなたが承認するまで実装は始まりません。
 
-**Issue や PR の本文を書く必要はありません。**
-作業の内容から、Claude Code が Issue、実装計画、PR の説明文を作成します。
-
-**ボードは自動で更新されます。**
-着手すると Active へ、PR を作成すると In Review へ、マージすると Archived へ、タスクが移動します。
-pecot の開発もこの仕組みで進めています。実際のボードは [pecot-project](https://github.com/orgs/pecotcraft/projects/1) で公開しています。
-
-**複数のタスクを並行して進められます。**
-git worktree を使用して、タスクごとに作業ディレクトリを分けられます。
-
-たとえば次のように実行すると、Issue とブランチを作成し、実装計画を立てるところまでを Claude Code が行います。
+小さな修正なら、内容を添えて `/pecot-w:w-quick` を実行するだけで、Issue とブランチの作成から計画までを進められます。
 
 ```text
 /pecot-w:w-quick ログイン画面のエラーメッセージが英語のまま表示される問題を修正する
 ```
 
-主なスキルは次のとおりです。
+## 確かめた結果が、PR に載る
 
-| スキル | 用途 |
-|:------|:----|
-| `/pecot-w:w-quick` | 小さな修正の Issue、ブランチ、実装計画を作成する |
-| `/pecot-w:w-active` | ボードの Ready から次のタスクを選んで着手する |
-| `/pecot-w:w-pr` | PR を作成する |
-| `/pecot-w:w-revise` | PR をセルフレビューして修正する |
-| `/pecot-w:w-merge` | PR をマージして後処理をする |
-| `/pecot-w:w-release` | リリースする |
+`/pecot-w:w-pr` で作成する PR には、変更点に加えて、利用者の操作で動作を確かめた手順と結果、画面のスクリーンショットが載ります。
+どれかが欠けていると、PR は作成されません。
+
+PR の作成後は CI の結果を待ち、PR が原因で失敗したものは Claude Code が修正します。
+
+## マージの前に、レビューを受ける
+
+`/pecot-w:w-revise` を実行すると、計画を確認したのと同じレビュー用のエージェントが、PR の差分を確認します。
+観点は、標準への適合と技術的な正確さ、動作確認とテストの質、コードの質の 3 つです。
+指摘は番号付きで PR にコメントされ、採用した指摘を Claude Code が修正します。
+
+## ボードは、作業に合わせて動く
+
+GitHub Projects のボードの列は、着手・PR の作成・マージに合わせて自動で移ります。
+前提となる Issue が片づくと、それを待っていたタスクは Blocked から Ready に移ります。
+
+大きな機能は Epic として登録し、`/pecot-w:w-breakdown` で speckit を使って分解すると、前提の関係を持ったタスクとして一括で起票できます。
+
+pecot 自身も、この仕組みで開発しています。実際のボードは [pecot-project](https://github.com/orgs/pecotcraft/projects/1) で公開しています。
 
 すべてのスキルは [pecot-w の README](plugins/pecot-workflow/README.md) を参照してください。
 
-## 構成図やスライドを作成する
+## 崩れない構成図とスライド
 
 pecot-v を使用すると、Claude Code との会話から draw.io の構成図や Slidev のプレゼンテーションを作成できます。
-プレゼンテーションは PPTX に変換できます。また、スクリーンショットをまとめて、作業エビデンスの xlsx を作成できます。
+
+作成した図やスライドは、そのたびに自動でチェックされます。
+図ではラベルの折り返しとフォントの指定を、スライドでは PPTX に変換したときの崩れや文字のはみ出しを確認し、問題があれば Claude Code が直します。
 
 <p align="center">
   <img src=".github/assets/readme-drawio.png" alt="pecot-v で作成した AWS の構成図" width="760">
@@ -55,6 +62,7 @@ pecot-v を使用すると、Claude Code との会話から draw.io の構成図
 /pecot-v:v-drawio CloudFront、ALB、ECS、Aurora で構成した Web アプリの構成図を描く
 ```
 
+また、スクリーンショットをまとめて、作業エビデンスの xlsx を作成できます。
 詳しくは [pecot-v の README](plugins/pecot-visual/README.md) を参照してください。
 
 ## インストール
