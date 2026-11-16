@@ -36,8 +36,7 @@
       { "env": "PLUGIN_ROOT" },
       { "env": "COPILOT_PLUGIN_ROOT" },
       { "env": "CLAUDE_PROJECT_DIR" },
-      { "env": "COPILOT_SESSION_CWD" },
-      { "env": "CLAUDE_CONFIG_DIR" }
+      { "env": "COPILOT_SESSION_CWD" }
     ],
     "pecotvPluginEnv": [
       { "env": "PLAYWRIGHT_BROWSERS_PATH" },
