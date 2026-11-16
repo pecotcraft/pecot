@@ -5369,7 +5369,7 @@ entries:
       fields:
         branch: '今のブランチです。読めないときは入りません。'
         repository: 'git remote のリポジトリです。`owner/repo` の形です。読めないときは入りません。'
-        activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo#N`）を持ちます。`title` と `state`（`OPEN` か `CLOSED`）は、GitHub から読めたときだけ入ります。本文は入りません。'
+        activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo/N`。`issue_ref` にそのまま渡せる形）を持ちます。`title` と `state`（`OPEN` か `CLOSED`）は、GitHub から読めたときだけ入ります。本文は入りません。'
         stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、載せ直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
         stackedAbove: '今のブランチを base にした、同じリポジトリの open の PR の一覧です。`number` と `branch`（head のブランチ）を持ちます。無いときと読めないときは入りません。'
     diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'

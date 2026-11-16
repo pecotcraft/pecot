@@ -21,9 +21,9 @@ pecot_active_issue_number() {
     [ -n "$remote" ] || return 1
     url=$(git -C "$dir" remote get-url "$remote" 2>/dev/null) || return 1
 
-    local https_re='^https?://[^/]+/[^/]+/[^/]+$'
-    local scp_re='^git@[^:]+:[^/]+/[^/]+$'
-    local ssh_re='^ssh://([^@/]+@)?[^/:@]+(:[0-9]+)?/[^/]+/[^/]+/?$'
+    local https_re='^https?://[^/]+/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+    local scp_re='^git@[^:]+:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+    local ssh_re='^ssh://([^@/]+@)?[^/:@]+(:[0-9]+)?/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$'
     [[ "$url" =~ $https_re || "$url" =~ $scp_re || "$url" =~ $ssh_re ]] || return 1
     printf '%s\n' "$number"
 }

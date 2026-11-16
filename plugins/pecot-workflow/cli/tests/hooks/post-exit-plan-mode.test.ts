@@ -80,9 +80,10 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('pecot を使っていないリポジトリ（.pecot が無い）では、何も書かず .pecot も作らない', () => {
+  it('pecot を使っていないリポジトリ（.pecot が無い）では、作業中の Issue のブランチでも、何も出さず .pecot も作らない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
+    checkoutWorkBranch(hookCase, context.project, 'x/1')
     rmSync(path.join(context.project, '.pecot'), { recursive: true })
     const result = runHook(hookCase, EXIT_PLAN)
     expect(result.exitCode).toBe(0)

@@ -12,7 +12,7 @@ import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
-import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
+import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, REPOSITORY, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
@@ -284,10 +284,12 @@ describe('pr create', () => {
     await verifies(context, 'PW-PR-CREATE-05')
     await verifies(context, 'PW-PR-CREATE-66')
     const workspace = await openWorkspace({
-      branch: 'feat/demo/34',
+      worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: 'main\n' } }],
       github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
     })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
+    const worktree = path.join(workspace.root, 'wt1', REPOSITORY)
+    expect(readdirSync(path.join(worktree, '.pecot/state'))).toEqual(['.pecot-base'])
+    const result = await workspace.run(['pr', 'create', '--prepare'], worktree)
     expect(result.code).toBe(0)
     expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
     expect(result.stderr).toContain('set: Closes to #34\n')
@@ -296,11 +298,13 @@ describe('pr create', () => {
   it('.pecot/state/ の無い clone で紐づいたブランチにいるとき --prepare を付けて打つと、Closes にブランチの番号を入れる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-68')
     const workspace = await openWorkspace({
-      branch: 'feat/demo/34',
+      branches: [{ name: 'feat/demo/34' }],
       github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
     })
-    expect(existsSync(path.join(workspace.directory, '.pecot/state'))).toBe(false)
-    const result = await workspace.run(['pr', 'create', '--prepare'])
+    const clone = path.join(workspace.root, 'clone', REPOSITORY)
+    workspace.git(['clone', '-q', '-b', 'feat/demo/34', workspace.git(['remote', 'get-url', 'origin']).trim(), clone])
+    expect(existsSync(path.join(clone, '.pecot/state'))).toBe(false)
+    const result = await workspace.run(['pr', 'create', '--prepare'], clone)
     expect(result.code).toBe(0)
     expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
     expect(result.stderr).toContain('set: Closes to #34\n')

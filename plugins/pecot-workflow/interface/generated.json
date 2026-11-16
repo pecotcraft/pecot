@@ -5132,7 +5132,7 @@
               "properties": {
                 "reference": {
                   "type": "string",
-                  "description": "Work Issue found from the git remote and the number that ends the branch name (owner/repo#N)"
+                  "description": "Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)"
                 },
                 "title": {
                   "description": "Title of the Issue (omitted when it cannot be read from GitHub)",

@@ -514,7 +514,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo#7', title: 't', state: 'OPEN' },
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
         stackedAbove: [{ number: 40, branch: 'feat/demo/8' }, { number: 42, branch: 'feat/demo/10' }],
       })
     })
@@ -548,7 +548,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo#7' },
+        activeIssue: { reference: 'acme/demo/7' },
         warnings: ['cannot read the active Issue: no active project'],
       })
     })
@@ -563,7 +563,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo#7', title: 't', state: 'OPEN' },
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
         stack: { branch: 'feat/3', stackedOn: 'acme/demo/3', pullRequest: { number: 30, state: 'CLOSED' }, readiness: 'blocked by #3 (not in review: #3 (not started))' },
       })
     })
@@ -578,7 +578,7 @@ describe('session show', () => {
       const outcome = await showTool(repository)
 
       expect(outcome.isError).toBe(false)
-      expect(outcome.structured['activeIssue']).toEqual({ reference: 'acme/demo#7' })
+      expect(outcome.structured['activeIssue']).toEqual({ reference: 'acme/demo/7' })
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(row.warning)])
     })
 
@@ -591,7 +591,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo#7', title: '閉じた Issue', state: 'CLOSED' },
+        activeIssue: { reference: 'acme/demo/7', title: '閉じた Issue', state: 'CLOSED' },
       })
     })
   })

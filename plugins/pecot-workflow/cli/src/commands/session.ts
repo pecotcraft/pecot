@@ -31,7 +31,7 @@ import { SESSION_FINISH_COMMANDS } from './session-finish.js'
 import { SESSION_START_COMMANDS } from './session-start.js'
 
 const ACTIVE_ISSUE_DATA = z.strictObject({
-  reference: z.string().describe('Work Issue found from the git remote and the number that ends the branch name (owner/repo#N)'),
+  reference: z.string().describe('Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)'),
   title: z.string().optional().describe('Title of the Issue (omitted when it cannot be read from GitHub)'),
   state: z.string().optional().describe('State of the Issue, OPEN or CLOSED (omitted when it cannot be read from GitHub)'),
 })
@@ -75,6 +75,10 @@ interface ActiveIssue {
 }
 
 interface ActiveIssueReading {
+  /**
+  Markdown の Active Issue の行に出す owner/repo#N
+  */
+  readonly label: string
   readonly data: Readonly<z.input<typeof ACTIVE_ISSUE_DATA>>
   readonly read?: ActiveIssue
 }
@@ -84,7 +88,8 @@ interface ActiveIssueReading {
 async function readActiveIssue(directory: string, output: Output): Promise<ActiveIssueReading | undefined> {
   const reference = activeIssueOf(directory)
   if (reference === undefined) return undefined
-  const data = { reference: issueReferenceToString(reference) }
+  const label = issueReferenceToString(reference)
+  const data = { reference: issueReferenceToCliReference(reference) }
 
   let issue
   let config
@@ -93,7 +98,7 @@ async function readActiveIssue(directory: string, output: Output): Promise<Activ
     config = loadActiveConfig()
     if (config === undefined) {
       output.warning('cannot read the active Issue: no active project')
-      return { data }
+      return { label, data }
     }
     client = createGitHubClient(output, config.host)
     issue = await client.getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
@@ -101,14 +106,14 @@ async function readActiveIssue(directory: string, output: Output): Promise<Activ
   catch (error: unknown) {
     if (error instanceof ConfigError || error instanceof GitHubAPIError) {
       output.warning(`cannot read the active Issue: ${error.message}`)
-      return { data }
+      return { label, data }
     }
     throw error
   }
 
   const lines = ['', '## Active Issue', '', `#${String(issue.number)} ${issue.title} (${issue.state})`]
   if (issue.body !== '') lines.push('', issue.body)
-  return { data: { ...data, title: issue.title, state: issue.state }, read: { reference, config, client, lines } }
+  return { label, data: { ...data, title: issue.title, state: issue.state }, read: { reference, config, client, lines } }
 }
 
 // -D の directory がプロジェクトルートの worktree か。積んだ記録（.pecot-base）はプロジェクトルートの状態にあるので、
@@ -236,7 +241,7 @@ const SESSION_SHOW = defineCommand({
       '',
       `- Branch: ${branch ?? 'unknown'}`,
       `- Repository: ${origin === undefined ? 'unknown' : `${origin.owner}/${origin.repository}`}`,
-      `- Active Issue: ${reading === undefined ? 'none' : reading.data.reference}`,
+      `- Active Issue: ${reading === undefined ? 'none' : reading.label}`,
       ...active?.lines ?? [],
       ...withStackedAbove(stack.lines, above),
     ]

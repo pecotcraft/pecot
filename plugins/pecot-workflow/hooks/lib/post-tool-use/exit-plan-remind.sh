@@ -27,7 +27,8 @@ IS_QUICK=0
 [ -f "$STATE_DIR/.pecot-quick-mode" ] && IS_QUICK=1
 rm -f "$STATE_DIR/.pecot-quick-mode"
 
-# 作業中の Issue が無いセッションでは案内しない。
+# pecot を使っていないリポと、作業中の Issue が無いセッションでは案内しない。
+[ -d "${CLAUDE_PROJECT_DIR}/.pecot" ] || exit 0
 pecot_active_issue_number "$CLAUDE_PROJECT_DIR" >/dev/null || exit 0
 
 MESSAGE=$(cat "${PLUGIN_HOOKS}/templates/exit-plan-comment-update.md" 2>/dev/null)

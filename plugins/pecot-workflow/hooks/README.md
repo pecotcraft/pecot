@@ -188,7 +188,7 @@ MCPツールやdraw.io等の外部ツールとの連携。
 | `merge-slash-flag` | プロンプトの先頭行が `/pecot-w:w-merge`（短縮形 `/w-merge` を含む）のとき `merge-slash-pending` フラグを作成し、`gh pr merge` と `pr_merge` の ask を免除する。削除は MCP ツール `session_finish` の成功時で、`gh pr merge` の時点では消さない（マージ待ちのあとに cleanup を呼ぶため）。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を共用） | UserPromptSubmit | `true` |
 | `pecot-issue-pending-reminder` | `issue-pending` フラグ存在中の Edit/Write/MultiEdit/NotebookEdit/EnterPlanMode（`pre-tool-use.sh`）と Bash の `git checkout`/`git switch`（`pre-tool-use-bash.sh`）に `additionalContext` で起票リマインドを注入する（非ブロック）。`*/.pecot/tmp/output/*` 宛の編集は除外。Copilot の Read / Edit は `tool_input.path` で届く | PreToolUse | `true` |
 | `commit-info-display` | `git commit` 成功後にコミットメッセージとdiff統計を表示する。成功の判定は `bash-post-match.sh`（Claude の `tool_response.stdout` / Copilot の `tool_result.text_result_for_llm`）が 1 回だけ行う | PostToolUse (Bash) | `true` |
-| `auto-push` | `git commit` 成功後にWIPブランチへ自動pushし、IssueのDevelopment欄にリンクする。対象は、作業中の Issue の番号（ブランチ名の末尾の `/<番号>`）で終わり、`origin` が同じ owner/repo のブランチだけ。push の後で `origin/wip/` の追跡 ref を消し、`remote.origin.fetch` に `^refs/heads/wip/*` を足す | PostToolUse (Bash) | **`false`** |
+| `auto-push` | `git commit` 成功後にWIPブランチへ自動pushし、IssueのDevelopment欄にリンクする。対象は、ブランチ名の末尾が `/<番号>` で、`origin` の URL が https・scp 形の ssh・`ssh://` の形のブランチだけ。セッションのリポとは比べない。push の後で `origin/wip/` の追跡 ref を消し、`remote.origin.fetch` に `^refs/heads/wip/*` を足す | PostToolUse (Bash) | **`false`** |
 | `branch-guard` | featureブランチ判定ロジックの制御。`false` にすると全ブランチでauto-push等が動作する | ライブラリ | `true` |
 
 ### アダプター

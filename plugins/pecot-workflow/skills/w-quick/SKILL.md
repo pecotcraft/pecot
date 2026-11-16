@@ -30,7 +30,7 @@ pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る�
 
 **リポジトリの特定方法:**
 
-- `repo` は、pecot-workflow の MCP ツール `session_show` の結果の repository（セッションの remote のリポ）にする
+- pecot-workflow の MCP ツール `session_show` を使って、セッションの remote のリポを確かめ、それを `repo` にする
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 2: ブランチ作成（session_start）とブランチ切り替え

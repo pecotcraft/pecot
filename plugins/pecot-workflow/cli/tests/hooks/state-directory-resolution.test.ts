@@ -1,12 +1,11 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// hooks と pecot CLI が同じ .pecot/state を指すことの結合テスト。
-// hooks には CLAUDE_PROJECT_DIR と入力 JSON の cwd が渡り、CLI には渡らず cwd の git toplevel を使う。
+// hooks が入力 JSON の cwd の git toplevel の .pecot/state を指すことのテスト。
+// CLI の状態の置き場の解決は、session-show.test.ts の「--directory の toplevel がプロジェクトのルートと違う」ケースが受け持つ。
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { builtCliProblem, cliEntry } from '../parity/built-cli.js'
 import { createHookCase, hooksConfig } from './_helpers/environment.js'
 import { checkoutWorkBranch, gitRepository } from './_helpers/git.js'
 import { hooksDirectory } from './_helpers/paths.js'
@@ -15,10 +14,8 @@ import { jsonDumps } from './_helpers/text.js'
 
 const EXIT_PLAN_MODE_ENTRY = path.join(hooksDirectory, 'post-tool-use-exit-plan-mode.sh')
 
-describe('post-tool-use-exit-plan-mode.sh と pecot session show', () => {
-  it('hook と CLI が、ツールの cwd の git toplevel を指す', () => {
-    // build 済みの Node の CLI（dist/cli.js）を使う
-    expect(builtCliProblem()).toBeUndefined()
+describe('post-tool-use-exit-plan-mode.sh の状態の置き場', () => {
+  it('CLAUDE_PROJECT_DIR でなく、ツールの cwd の git toplevel の .pecot/state を指す', () => {
     const hookCase = createHookCase()
     hooksConfig(hookCase).write({})
     // .pecot と Issue の番号付きのブランチを持つ git リポジトリと、そのサブディレクトリ
@@ -43,15 +40,5 @@ describe('post-tool-use-exit-plan-mode.sh と pecot session show', () => {
 
     expect(existsSync(path.join(stateDirectory, '.pecot-quick-mode'))).toBe(false)
     expect(existsSync(path.join(sessionDirectory, '.pecot', 'state', '.pecot-quick-mode'))).toBe(true)
-
-    // Bash ツールから呼ぶ CLI と同じ条件。CLAUDE_PROJECT_DIR なし、cwd はサブディレクトリ。
-    const home = path.join(hookCase.temporaryPath, 'home')
-    mkdirSync(home)
-    const status = run(hookCase, process.execPath, [cliEntry, 'session', 'show', '-D', subdirectory], {
-      cwd: subdirectory,
-      env: { CLAUDE_PROJECT_DIR: undefined, HOME: home },
-    })
-    expect(status).toMatchObject({ exitCode: 0 })
-    expect(status.stdout).toContain('- Active Issue: org/repo#123')
   })
 })

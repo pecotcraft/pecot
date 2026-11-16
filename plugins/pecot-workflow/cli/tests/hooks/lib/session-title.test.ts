@@ -133,6 +133,9 @@ describe('session-title.sh', () => {
     { label: 'ローカルのパス', url: '/srv/git/repo.git' },
     { label: 'https で区切りが足りない', url: 'https://github.com/repo' },
     { label: 'https で末尾に /', url: 'https://github.com/owner/repo/' },
+    { label: 'owner に % を含む https', url: 'https://github.com/own%20er/repo.git' },
+    { label: 'repo に空白を含む scp 形の ssh', url: 'git@github.com:owner/re po.git' },
+    { label: 'owner に @ を含む ssh://', url: 'ssh://git@github.com/own@er/repo.git' },
   ])('$label とき、作業中の Issue は無いとして、出力せず記録を残さない', (row) => {
     const hookCase = createHookCase()
     const project = setUpState(hookCase)

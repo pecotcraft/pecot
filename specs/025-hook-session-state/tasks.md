@@ -292,7 +292,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - ガードの表から、上書きガードと `allow_cross_repo` を除く
 - [x] T064 [P] [US6] `p-w/agents/w-implementer.md` を直す。編集してよいリポを、作業中の worktree の remote のリポとする
   - `tests/hooks/lib/agent-definitions.test.ts` の期待を合わせる
-- [x] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
+- [ ] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
 
 ---
 

@@ -16,7 +16,7 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 
 | フラグ | 内容 | 書き手 | 読み手 | 消し手 |
 |--------|------|--------|--------|--------|
-| `.pecot-session-title` | Claude Code のセッション名（`#<番号> <Issue タイトル>`。種別接頭辞なし・全体 40 文字） | `session_start`（`write_work_target`） | `session-title.sh`（SessionStart / UserPromptSubmit。ブランチ名の末尾の番号と一致するときだけ採用） | `session_finish` |
+| `.pecot-session-title` | Claude Code のセッション名（`#<番号> <Issue タイトル>`。種別接頭辞なし・全体 40 文字） | `session_start` | `session-title.sh`（SessionStart / UserPromptSubmit。ブランチ名の末尾の番号と一致するときだけ採用） | `session_finish` |
 | `.pecot-base` | 着手時に選んだ base（`<branch> <sha> [<owner/repo#N>]`。積んだときだけ末尾に積んだ先の Issue） | `session_start` | `session_show` | `session_finish` |
 | `.wip-branch-linked` | Issue に紐づけ済みの WIP ブランチ名（`wip/<ブランチ名>`） | `auto-push.sh`（post-tool-use） | `auto-push.sh`（同じ名前なら紐づけを飛ばす） | `session_finish`（`skip_local_cleanup` なし） |
 | `.pecot-quick-mode` | 空（存在のみ） | `issue_create`（`freeform: true`・Epic 以外） | `exit-plan-remind.sh` | `session_finish`、`exit-plan-remind.sh` |
