@@ -47,6 +47,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 **Independent Test**: `spec/research.md` の R11 の表の R11-1〜4 と R11-7 の行に、結果・版・日付が書かれている
 
 - [x] T001 [P] #454 で `/reload-plugins` の後に古い版が動いた訳を調べる。w-help の本文に 1 行足し、`--plugin-dir` の 3 つの始め方で、再読み込みの前と後の中身を比べる。始め方は、base で相対パス・worktree で相対パス・絶対パスだ。結果を `spec/research.md` の R11-1 に書く
+  - base を書き換えないため、「base で相対パス」は「worktree から base の絶対パスを渡す形」で代えた（R11-1）
 - [x] T002 [P] `copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow` で始め、スキル・フック・エージェント・MCP サーバが読まれるかを確かめる。同じ名前の入れてある版との優先も見る。`/env` と `copilot plugin list --json` の出力と結果を `spec/research.md` の R11-2 に書く
 - [x] T003 [P] `pecotcraft/pecot-sandbox` の `.github/workflows/ci.yml` を読む。`ci-result`・`version-plan` の名前のチェックを出すか、`merge_group` の契機で動くかを確かめる。結果を `spec/research.md` の R11-3 に書く
 - [x] T004 [P] `p-w/cli/templates/workflow/pecot-board-sync.yml` を読み、workflow の中で動く pecot をどこから取るかを確かめる。直した中身で動かす手段（取る先の指定など）があるかを見る。結果を `spec/research.md` の R11-4 に書く
@@ -76,9 +77,10 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 - [ ] T012 [US1] `.githooks/scripts/sandbox-diff.sh` を足す。`gh api` で 2 つのリポのマージ方式・ruleset・ボードの項目と値・自動化の有無を読み、`ignore` のキーを読み飛ばして比べる。読み方と終了コード（0・1・2）は contracts/sandbox-scripts.md に従う。T009 を通す
 - [ ] T013 [US1] `.githooks/scripts/sandbox-sweep.sh` を足す。data-model.md の名前の形に合うブランチと開いた PR・Issue を検証用から片付け、カードをアーカイブする。引数と決まりは contracts/sandbox-scripts.md に従う。T010 を通す
   - Issue の題は `[Task] [cuj …] …` の形になるので、`[cuj …]` を題の先頭ではなく題の中から探す（R4・R11-7）
+  - R6 の tgz を添えた検証用のリリースと、タグ `cuj/<Issue番号>-<乱数>-tgz` も消す。contracts/sandbox-scripts.md の対象と、T010 のテストの場合に足す
 - [ ] T014 [US1] `.githooks/README.md` の、スクリプトの一覧に 2 本を足す。nx の入力の宣言（`.githooks` の project の設定）に、足したファイルが入っているかを確かめ、足りなければ足す
-- [ ] T015 [US1] T003 の結果で、検証用の `ci.yml` が必須のチェックを出していないと分かったときに行う。検証用のリポの `ci.yml` を、`ci-result`・`version-plan` の名前のチェックを出す形に直す。`pull_request` と `merge_group` の契機で動かす。直しは、検証用の PR と merge queue を通す
-  - T003 の結果、必須のチェックを出し、`merge_group` でも動くと分かった（R11-3）。直すものは無いので、`[x]` だけを付ける
+- [x] T015 [US1] T003 の結果で、検証用の `ci.yml` が必須のチェックを出していないと分かったときに行う。検証用のリポの `ci.yml` を、`ci-result`・`version-plan` の名前のチェックを出す形に直す。`pull_request` と `merge_group` の契機で動かす。直しは、検証用の PR と merge queue を通す
+  - T003 の結果、必須のチェックを出し、`merge_group` でも動くと分かった（R11-3）。直すものは無いので、#474 の PR で `[x]` にした
 - [ ] T016 [US1] `.githooks/scripts/sandbox-diff.sh` を実物で動かす。出たずれは 1 件ずつ、検証用を直すか、`sandbox-diff-items.json` で比べない項目にするかを決める。比べない項目にするときは、ユーザーの承認を得て、spec.md の「同じにしなくてよいもの」の表にも足す。「ずれは 0 件」になるまで続ける
 - [ ] T017 [US1] `p-w/CONTRIBUTING.md` に「試験環境」の節を足す。書くのは、試験環境の一覧・検証用の clone の作り方・確かめの前の `sandbox-diff.sh`・作るものの名前の形・`sandbox-sweep.sh` での片付けの 5 つ
 - [ ] T049 [US1] pecot-workflow の、GitHub に書き込む処理の一覧を作る。MCP ツールと CLI のコマンドを、定義書（`p-w/interface/`）から漏れなく拾う。利用者へ配るリリースの処理も含める。一覧を、T017 の節に表で書く
@@ -102,6 +104,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
   - T002 で、4 種とも読まれると分かった（R11-2）。同じ名前の版を入れていると、フックが両方の版で登録されて動くので、確かめの間は入れてある pecot-w を外す手順を書く
 - [ ] T021 [US2] `CLAUDE.md` に 2 つを足す。検証用の場所（`pecotcraft/pecot-sandbox` とボード `pecot sandbox`）と、`p-w/CONTRIBUTING.md` の「試験環境」の節への案内だ。足すのは 3 行までにする
 - [ ] T052 [US2] pecot-workflow のスキル・フック・MCP ツール・エージェントの一覧を作る。2 つのクライアントで、全件が作業ツリーから読み込まれることを確かめる。読み込まれないものは、訳とともに同じ節に書く
+  - GitHub Copilot CLI で同じ名前の版を入れているとき、エージェントがどちらの版で動くかを、エージェントの本文に目印を足して見る（R11-2）
 - [ ] T022 [US2] quickstart.md の 3 を、Claude Code と GitHub Copilot CLI のそれぞれで流す。スキル・フック・MCP ツール・エージェントの 4 つを、1 つずつ直して確かめる。文書を読み始めてから、直した中身で動かし始めるまでの時間を測り、5 分以内であることを見る。結果を PR の説明に書く
 
 ---
@@ -116,7 +119,8 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 - [ ] T023 [US3] `p-w/CONTRIBUTING.md` の「試験環境」の節に、配る自動化の手順（quickstart.md の 6）を書く。workflow の中の pecot を直した中身にする手段も書く
   - T004 で、テンプレートは公開したパッケージを取ると分かった（R11-4）。手段は R6 のとおりだ
-  - `publish-mcp-dist.sh --dry-run --out-dir` で tgz を作り、検証用のリリースに添える。検証用の写しでは、`npx` に渡す名前をその URL に替える
+  - `plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --out-dir=<空のディレクトリ>` で配布ツリーを作る
+  - そのディレクトリで `npm pack` を打って tgz を作り、検証用のリリースに添える。検証用の写しでは、`npx` に渡す名前をその URL に替える
   - `npx` が URL から取れることを、検証用で動かして確かめる
 - [ ] T053 [US3] 同じ節に 2 つを書く。配る自動化の確かめは、1 度に 1 人が行うこと。確かめの後に、検証用の workflow をこのリポの main のテンプレートへ戻し、`sandbox-diff.sh` で 0 件を見ること
 - [ ] T024 [US3] 同じ節に、このリポだけの運用（リリース、依存の更新と脆弱性の通知、workflow を外から起こす仕組み）の扱いを書く。確かめる場所は無いこと、今の確かめ方、場所を作る条件（プラグインのほかにも配るようになったとき）を書く
@@ -146,6 +150,8 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 - [ ] T030 [US4] `p-w/agents/w-e2e-planner.md` を直す。流す先が検証用の CUJ は、検証用の clone を作業ディレクトリにして実投稿まで行う。流す先が検証用でない CUJ は、今のとおり外へ出ない入力まで実行し、実投稿を main に委ねる。結果に、できたものの URL を載せる。CUJ の定義の文に、T029 と同じ決まりの文を足す
   - T048 の結果（R11-7）で、手段は Bash での `pecot` と、同じ clone で起こす `claude -p`（`--allowedTools=<ツール>` の形）に決まった
   - MCP ツールに `repo` を渡す形は止まるので使わない。clone の後に `pecot project activate` を打つことも書く
+  - w-e2e-planner.md の「起点が `pecot` の CLI の CUJ: 実行しない」も、流す先が検証用の CUJ では、検証用の clone で打つ形に直す
+  - R11-7 は auto mode で確かめた。既定のモードで `claude -p` に許可の設定が要るかを確かめ、要るなら手順に書く
 - [ ] T031 [US4] `p-w/agents/w-reviewer.md` の `[cuj]` の視点に、contracts/cuj-destination.md の 2 つの見る点を足す。検証用の場所が無いリポでの扱いも足す。CUJ の定義の文に、T029 と同じ決まりの文を足す。T028 を通す
 - [ ] T032 [US4] `p-w/com.github.copilot/agents/` の w-e2e-planner と w-reviewer の写しを、T030・T031 と同じに直す。既存の同期のテストを通す
 - [ ] T033 [US4] `CLAUDE.md` に、外へ書き込む CUJ は検証用を流す先にし、このリポを流す先にしない、の 1 行を足す

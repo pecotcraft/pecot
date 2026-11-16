@@ -36,7 +36,7 @@
   - `copilot plugin install ./path`。写しを使うので、直すたびに入れ直しが要る。退ける
 - 残る点:
   - `/reload-plugins` は、`--plugin-dir` で渡したディレクトリの直しを読み込む。#454 の古い版は、直した checkout と別の checkout を読み込んだときと同じ現れ方だ（R11-1）。手順には、直した作業ツリーの絶対パスを渡すことを書く
-  - GitHub Copilot CLI の `--plugin-dir` は、スキル・フック・エージェント・MCP サーバを読む。同じ名前の版を入れて有効にしていると、フックだけは両方の版が登録される（R11-2）。手順には、確かめの間は入れてある版を外すことを書く
+  - GitHub Copilot CLI の `--plugin-dir` は、スキル・フック・エージェント・MCP サーバを読む。同じ名前の版を入れて有効にしていると、フックだけは両方の版が登録される（R11-2）。エージェントがどちらの版で動くかは、確かめていない（T052 で見る）。手順には、確かめの間は入れてある版を外すことを書く
 
 ## R3. そろえる設定の比べ方（FR-017、FR-001〜008）
 
@@ -89,13 +89,19 @@
 - Decision: 直した `cli/templates/workflow/pecot-board-sync.yml` を、検証用のリポの `.github/workflows/` に入れてから起こす。入れるときは、検証用の PR と merge queue を通す
 - Rationale:
   - 公式の文書のとおり、`workflow_dispatch` と `pull_request_target` は、既定のブランチの定義で動く。検証用の既定のブランチに置かないと、直した定義では動かない
-  - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag だけが違う。検証用にも同じファイルがある
+  - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag だけが違う
   - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
+  - 検証用の写しは `@pecot/workflow-mcp@6` を取り、どちらとも違う（2026-11-16）。T016 で `sandbox-diff.sh` が出すずれの 1 件になる見込み
   - 検証用の workflow は、定期の起動（`schedule`）を持たない。このリポの定期の起動は、Lambda の Scheduler が起こしていて、検証用を向いていない。確かめていない間に検証用を書き換え続けるものは、今は無い
-- Decision: workflow の中の pecot は、直した中身から作った tgz を取る。手元で `scripts/release/publish-mcp-dist.sh --dry-run --out-dir <dir>` を打って tgz を作り、検証用のリリースに添える。検証用に置く写しは、`npx` に渡す名前だけを、その tgz の URL に替える
+- Decision: workflow の中の pecot は、直した中身から作った tgz を取る。tgz は次の 2 つの手順で作り、検証用のリリースに添える。検証用に置く写しは、`npx` に渡す名前だけを、その tgz の URL に替える
+  1. `plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --out-dir=<dir>` で、配布ツリーを作る
+     - `<dir>` には新しい空のディレクトリを渡す。渡したディレクトリは、最初に `rm -rf` で消される
+  2. そのディレクトリで `npm pack --pack-destination <置き場>` を打つ
+- Decision: リリースのタグは `cuj/<Issue番号>-<乱数>-tgz` にする。片付けの対象に入れる（R4・data-model.md）
 - Rationale:
   - workflow の中の pecot は、npx が npm から取る（#499）。`@latest` は最新の正式版、`@next` は main に入った後の開発版で、どちらもマージ前の直した中身ではない（R11-4）
-  - `publish-mcp-dist.sh` は、dry-run ではタグの確かめを飛ばし、`npm pack` までを行う。リリースと同じ手順で、マージ前の中身の tgz を作れる
+  - `publish-mcp-dist.sh` は、dry-run ではタグの確かめを飛ばし、配布ツリーを作って `npm pack` までを行う。ただし、その tgz は使い捨ての置き場に作られ、終わるときに消える。`--out-dir=` に残るのは配布ツリーだけなので、`npm pack` を打ち直す
+  - 引数は `--out-dir=<dir>` の形で渡す。空白で区切ると、未対応の引数として止まる
   - 写しと配る YAML の差は、`run` の 1 行だけになる。利用者と同じく `npx` で取って動かす形も保てる
 - Alternatives considered:
   - マージ前の中身を npm に出す。`@next` は main に入った後の版に使っていて、マージ前の版を出すと利用者にも届く。退ける
@@ -174,7 +180,7 @@ R11-5 と R11-6 は、人のいないセッションのフェーズで確かめ�
 | R11-1 | #454 で、`/reload-plugins` の後に古い版が動いた訳 | 同じ誤りを避ける 1 行を、手順に書くため | R2 | 渡したディレクトリの直しは、再読み込みで反映される。別の checkout を渡すと、直しは出ない。#454 はこの形と同じ現れ方 | Claude Code 2.1.325 | 2026-11-16 |
 | R11-2 | GitHub Copilot CLI の `--plugin-dir` が、スキル・フック・エージェント・MCP サーバを読むか。同じ名前の入れてある版より先に使われるか | 文書に明記が無い。読まれないものは、できない範囲として文書に残す | R2 | 4 種とも読む。入れた版と並ぶと、スキルと MCP サーバは `--plugin-dir` の版が使われ、フックは両方の版が登録される | GitHub Copilot CLI 1.0.112 | 2026-11-16 |
 | R11-3 | `pecot-sandbox` の `ci.yml` が、`ci-result`・`version-plan` の名前のチェックを出すか。merge queue の契機（`merge_group`）で動くか | 必須のチェックが出ないと、検証用の PR はマージできない | R1 | 出す。`merge_group` でも動く | ― | 2026-11-16 |
-| R11-4 | `pecot-board-sync.yml` の中で動く pecot を、どこから取るか。直した中身にできるか | 配る自動化を、直した中身で確かめるため | R6 | 公開したパッケージを取る。取る先を、直した中身の tgz に替えれば直した中身になる（R6） | `@pecot/workflow-mcp@7` | 2026-11-16 |
+| R11-4 | `pecot-board-sync.yml` の中で動く pecot を、どこから取るか。直した中身にできるか | 配る自動化を、直した中身で確かめるため | R6 | 公開したパッケージを取る。取る先を、直した中身の tgz に替えれば直した中身になる（R6） | `@pecot/workflow-mcp@7`（確かめた時点） | 2026-11-16 |
 | R11-5 | 検証用のリポにだけ入れた App の token で、ボード `pecot-project` に書けるか | 権限で絞れるかどうかで、受け入れる危険が変わる | R7 | | | |
 | R11-7 | サブエージェントが、作業中のリポで始めたセッションの中から、検証用へ書き込む手段。MCP ツールの引数、Bash での `pecot`、検証用の clone で起こす `claude -p` を比べる | w-e2e-planner が、流す先が検証用の CUJ を実投稿まで行うため | R5 | MCP ツールの引数は止まる。Bash での `pecot` と `claude -p` は書ける | Claude Code 2.1.325 | 2026-11-16 |
 | R11-6 | クラウドのセッションの 5 点。`claude` をセッションの中から起こせるか。`CLAUDE_CODE_PLUGIN_DIRS` を環境変数で渡すと読まれるか。自前の token で、付けていないリポへ REST で書けるか。Projects の REST が proxy を通るか。自前の環境で GraphQL が通るか | 動かし方（R8 の案 A・B・C）を選ぶため | R8 | | | |
@@ -212,7 +218,8 @@ R11-5 と R11-6 は、人のいないセッションのフェーズで確かめ�
 - スキル: 作業ツリーの目印が出る。`--plugin-dir` の版が使われる
 - MCP サーバ: pecot-workflow のプロセスは 1 つで、`~/.copilot/plugin-data/_direct/<ハッシュ>/runtime/…` から動く。`--plugin-dir` の版が使われる
 - フック: 5 つの契機すべてで 2 つずつ登録される（sources は `pecot-w` と `pecot-w@pecot`）。入れてある版のフックも動く
-- エージェント: 一覧は 4 つで、どちらの版かは見分けていない
+- エージェント: 一覧は 4 つで、どちらの版かは見分けていない。T052 で、エージェントの本文にも目印を足して見る
+- 出力の写しは `.pecot/work/474/` の `cuj2-*` に置いた。MCP サーバのプロセスとスキルの目印の応答は `cuj2-precedence.txt` にある
 
 確かめの間は、入れてある pecot-w を外す。確かめの後に外し、`~/.copilot/settings.json` が始める前の写しと同じことを確かめた。
 
@@ -225,14 +232,16 @@ R11-5 と R11-6 は、人のいないセッションのフェーズで確かめ�
 
 ### R11-4 の結果
 
-- テンプレートは `npx -y --prefix=/ @pecot/workflow-mcp@7 board sync` で、npm に公開したパッケージを取る。このリポの `.github/workflows/pecot-board-sync.yml` も同じ中身
+- 確かめた時点のテンプレートは `npx -y --prefix=/ @pecot/workflow-mcp@7 board sync` で、npm に公開したパッケージを取る。このリポの `.github/workflows/pecot-board-sync.yml` も、その時点では同じ中身だった
 - 版の指定（`@7`）を替えても、取れるのは公開した版だけで、直した中身にはならない
 - 確かめた後、#499 で版の指定が dist-tag に変わった。テンプレートは `@latest`、このリポの写しは `@next`（main に入った後の開発版）を取る。どちらもマージ前の中身ではないので、結果は変わらない
-- `scripts/release/publish-mcp-dist.sh --dry-run` は、タグの確かめを飛ばし、配布ツリーを作って `npm pack` までを行う。この tgz を取らせれば、直した中身で動く。採る手段は R6 に書いた
+- pecot-workflow の `scripts/release/publish-mcp-dist.sh --dry-run` は、タグの確かめを飛ばす。配布ツリーを作り、`npm pack` までを行う。その tgz は終わるときに消えるので、`--out-dir=` に残した配布ツリーで `npm pack` を打ち直す。採る手段は R6 に書いた
 
 ### R11-7 の結果
 
 このリポで始めた Claude Code のセッションから、general-purpose のサブエージェント（opus）に 3 つの手段を試させた。題には `cuj 474-7c3a` を入れた。
+
+セッションは auto mode で動かした。表の「拒否・承認の確認」は、auto mode での結果だ。このリポの `.claude/settings.json` は `pecot` を許すが、`claude --plugin-dir …` は許さない。既定のモードでは、`claude -p` に承認の確認が出る見込みで、サブエージェントはそれに答えられない。
 
 | 手段 | 結果 | 拒否・承認の確認 | 作られたもの |
 |---|---|---|---|
@@ -244,6 +253,7 @@ R11-5 と R11-6 は、人のいないセッションのフェーズで確かめ�
 - MCP ツールは、セッションのリポの設定（`pecot-project`）でボードを決める。引数で検証用を指しても、検証用のリポはそのボードに入っていないので止まる
 - `--allowedTools X "<指示>"` と分けて書くと、指示まで許すツールの名前として読まれる。`--print` に指示が無いという error で止まる。`--allowedTools=X` と書く
 - Issue の題は `[Task] cuj 474-7c3a B: …` になった。pecot は題の先頭に種類の接頭辞を付ける（R4）
+- 確かめた題には角括弧が無い。`[cuj …]` の形は通していないが、ソースの上では、freeform は角括弧を消さない（`cli/src/commands/issue-create.ts` の `buildIssueTitle`）
 - このリポの開いた Issue は 32 → 32、ボード `pecot-project` のカードは 56 → 56 で、何も増えていない
 - #206・#207 は閉じ、ボードからアーカイブした
 
