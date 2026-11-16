@@ -27,7 +27,9 @@ FAKE_HOME="$BASE/fake-home"
 mkdir -p "$OTHER" "$FAKE_HOME"
 
 built_in() { find "$1" -mindepth 2 -maxdepth 2 -name .complete 2>/dev/null | wc -l | tr -d ' '; }
-tree_of_base() { (cd "$BASE" && find . -mindepth 1 ! -name stdout ! -name stderr ! -name calls | LC_ALL=C sort); }
+tree_of_base() { (cd "$BASE" && find . -mindepth 1 ! -name stdout ! -name stderr ! -name calls ! -name pnpm-xdg | LC_ALL=C sort); }
+# stub pnpm の install / build の呼び出しが受け取った XDG_DATA_HOME（重複を除く。呼び出しが無ければ空）
+pnpm_xdg() { sed -n "s/^$1|//p" "$PNPM_XDG" | LC_ALL=C sort -u; }
 reported() { node -e 'const v = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))[process.argv[2]]; console.log(v === undefined ? "undefined" : v)' "$OUT" "$1"; }
 
 # --- 解決順 ---
@@ -84,11 +86,24 @@ default_run() { stub_run CLAUDE_PLUGIN_DATA= PLUGIN_DATA= "$@" -- mcp; }
 default_run XDG_DATA_HOME="$XDG" HOME="$FAKE_HOME"
 assert_eq "XDG_DATA_HOME が有効: \${XDG_DATA_HOME}/pecot/$PROJECT に作る" 1 "$(built_in "$XDG/pecot/$PROJECT/runtime")"
 assert_eq "XDG_DATA_HOME が有効: HOME 側には作らない" no "$([ -e "$FAKE_HOME/.local" ] && echo yes || echo no)"
+for kind in install build; do
+  assert_eq "XDG_DATA_HOME が有効: pnpm の $kind に値をそのまま渡す" "$XDG" "$(pnpm_xdg "$kind")"
+done
+rm -rf "$XDG"
+
+default_run XDG_DATA_HOME="$XDG"$'\r\n' HOME="$FAKE_HOME"
+assert_eq "XDG_DATA_HOME が CRLF 付き: \${XDG_DATA_HOME}/pecot/$PROJECT に作る" 1 "$(built_in "$XDG/pecot/$PROJECT/runtime")"
+for kind in install build; do
+  assert_eq "XDG_DATA_HOME が CRLF 付き: pnpm の $kind に正規化した値を渡す" "$XDG" "$(pnpm_xdg "$kind")"
+done
 rm -rf "$XDG"
 
 for invalid in '' 'relative/share' '${XDG_DATA_HOME}'; do
   default_run XDG_DATA_HOME="$invalid" HOME="$FAKE_HOME"
   assert_eq "XDG_DATA_HOME が無効（${invalid:-空}）: \${HOME}/.local/share/pecot/$PROJECT に作る" 1 "$(built_in "$FAKE_HOME/.local/share/pecot/$PROJECT/runtime")"
+  for kind in install build; do
+    assert_eq "XDG_DATA_HOME が無効（${invalid:-空}）: pnpm の $kind に渡さない" "<unset>" "$(pnpm_xdg "$kind")"
+  done
   rm -rf "$FAKE_HOME/.local"
 done
 
