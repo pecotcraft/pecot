@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Spec_Kit-181717?style=flat-square&logo=github&logoColor=white" alt="Spec Kit">
 </p>
 
-## 概要
+## pecot でできること
 
 現在準備中です。
 
