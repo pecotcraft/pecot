@@ -18,7 +18,7 @@
   - 確かめのたびにリポを作って消す（gh CLI の `isolated`）。ruleset・merge queue・ボードを毎回作る手間が大きい。退ける
   - 別の org に分ける。ユーザーが、同じ org のままと決めた
 - 残る点:
-  - `pecot-sandbox` の `ci.yml` が、このリポの必須チェック（`ci-result`・`version-plan`）と同じ名前のチェックを出しているかは読んでいない（R11-3）
+  - 検証用の `ci.yml` は、必須チェックと同じ名前のチェックを出し、`merge_group` でも動く（R11-3）。直すものは無い
   - `pecot-sandbox-b` は空で、ruleset が無い。複数のリポをまたぐ確かめを tasks で扱うときだけ整える
 
 ## R2. 直した pecot-workflow の読み込み（FR-014、FR-015、FR-019）
@@ -35,8 +35,8 @@
   - 手元のパスをマーケットプレイスとして足す。入れる・外す操作が要り、ふだんのセッションに残る。退ける
   - `copilot plugin install ./path`。写しを使うので、直すたびに入れ直しが要る。退ける
 - 残る点:
-  - #454 で、`/reload-plugins` の後に古い版が動いた訳は分かっていない。このリポに入れてある版は無いので、写しが動いたのではない（R11-1）
-  - GitHub Copilot CLI の `--plugin-dir` が、スキルとフックを読むかは文書に無い。エージェントと MCP サーバは明記がある（R11-2）
+  - `/reload-plugins` は、`--plugin-dir` で渡したディレクトリの直しを読み込む。#454 の古い版は、直した checkout と別の checkout を読み込んだときと同じ現れ方だ（R11-1）。手順には、直した作業ツリーの絶対パスを渡すことを書く
+  - GitHub Copilot CLI の `--plugin-dir` は、スキル・フック・エージェント・MCP サーバを読む。同じ名前の版を入れて有効にしていると、フックだけは両方の版が登録される（R11-2）。エージェントがどちらの版で動くかは、確かめていない（T052 で見る）。手順には、確かめの間は入れてある版を外すことを書く
 
 ## R3. そろえる設定の比べ方（FR-017、FR-001〜008）
 
@@ -63,7 +63,7 @@
 
 ## R4. 確かめで作ったものの名前と片付け（FR-010、FR-011）
 
-- Decision: 確かめが検証用に作るブランチは `cuj/<Issue番号>-<乱数>` の形にする。Issue と PR の題は `[cuj <Issue番号>-<乱数>]` で始める
+- Decision: 確かめが検証用に作るブランチは `cuj/<Issue番号>-<乱数>` の形にする。Issue と PR の題に `[cuj <Issue番号>-<乱数>]` を入れる。pecot は Issue の題の先頭に種類の接頭辞（`[Task]` など）を付けるので、題の先頭には置けない（R11-7 で確かめた）
 - Decision: 片付けるスクリプトを `.githooks/scripts/` に 1 本置く。この形の名前を持つ、開いた PR・ブランチ・Issue を閉じて消し、ボードからアーカイブする
 - Rationale:
   - terraform の GitHub provider は、作るものに目印の接頭辞を付け、残りをまとめて消す。gh CLI は、名前に乱数を入れて重なりを避ける
@@ -76,6 +76,7 @@
 - Decision: 外へ書き込む CUJ は、検証用の場所を書く。外へ書き込まない CUJ は「手元」と書く
 - Decision: 検証用の場所は、プロジェクトの指示（`CLAUDE.md` など）に書く。設定のキーは足さない
 - Decision: w-e2e-planner は、流す先が検証用の CUJ を、実投稿まで自分で行う。今の「実投稿はしない。main に委ねる」は、流す先が検証用でない CUJ にだけ残す
+- Decision: w-e2e-planner は、検証用の clone を作業ディレクトリにして、Bash で `pecot` を打って書き込む。スキルの振る舞いまで確かめる CUJ は、同じ clone で `claude -p` を起こす。MCP ツールに `repo` を渡す形は使えない（R11-7）
 - Decision: w-reviewer は、流す先の欠けを挙げる。プロジェクトの指示に検証用の場所があるのに、作業中のリポを流す先にした CUJ も挙げる
 - Rationale:
   - CUJ の定義は、plan テンプレ・w-e2e-planner・w-reviewer の 3 か所に同じ文で書いてある。項目を足すときは、3 か所を同じ変更で直す
@@ -88,10 +89,24 @@
 - Decision: 直した `cli/templates/workflow/pecot-board-sync.yml` を、検証用のリポの `.github/workflows/` に入れてから起こす。入れるときは、検証用の PR と merge queue を通す
 - Rationale:
   - 公式の文書のとおり、`workflow_dispatch` と `pull_request_target` は、既定のブランチの定義で動く。検証用の既定のブランチに置かないと、直した定義では動かない
-  - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag だけが違う。検証用にも同じファイルがある
+  - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag だけが違う
   - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
+  - 検証用の写しは `@pecot/workflow-mcp@6` を取り、どちらとも違う（2026-11-16）。T016 で `sandbox-diff.sh` が出すずれの 1 件になる見込み
   - 検証用の workflow は、定期の起動（`schedule`）を持たない。このリポの定期の起動は、Lambda の Scheduler が起こしていて、検証用を向いていない。確かめていない間に検証用を書き換え続けるものは、今は無い
-- 残る点: workflow の中の pecot は、npx が npm から取る（#499）。`@latest` は最新の正式版、`@next` は main に入った後の開発版で、どちらもマージ前の直した中身ではない。直した中身で動かす手段は R11-4 で確かめる
+- Decision: workflow の中の pecot は、直した中身から作った tgz を取る。tgz は次の 2 つの手順で作り、検証用のリリースに添える。検証用に置く写しは、`npx` に渡す名前だけを、その tgz の URL に替える
+  1. `plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --out-dir=<dir>` で、配布ツリーを作る
+     - `<dir>` には新しい空のディレクトリを渡す。渡したディレクトリは、最初に `rm -rf` で消される
+  2. そのディレクトリで `npm pack --pack-destination <置き場>` を打つ
+- Decision: リリースのタグは `cuj/<Issue番号>-<乱数>-tgz` にする。片付けの対象に入れる（R4・data-model.md）
+- Rationale:
+  - workflow の中の pecot は、npx が npm から取る（#499）。`@latest` は最新の正式版、`@next` は main に入った後の開発版で、どちらもマージ前の直した中身ではない（R11-4）
+  - `publish-mcp-dist.sh` は、dry-run ではタグの確かめを飛ばし、配布ツリーを作って `npm pack` までを行う。ただし、その tgz は使い捨ての置き場に作られ、終わるときに消える。`--out-dir=` に残るのは配布ツリーだけなので、`npm pack` を打ち直す
+  - 引数は `--out-dir=<dir>` の形で渡す。空白で区切ると、未対応の引数として止まる
+  - 写しと配る YAML の差は、`run` の 1 行だけになる。利用者と同じく `npx` で取って動かす形も保てる
+- Alternatives considered:
+  - マージ前の中身を npm に出す。`@next` は main に入った後の版に使っていて、マージ前の版を出すと利用者にも届く。退ける
+  - 写しで、このリポのブランチを checkout して build する step に差し替える。checkout・依存の導入・build の step が増え、配る YAML との差が大きい。退ける
+- 残る点: 検証用のリリースに添えた tgz を、`npx` が URL から取れるかは、Phase 4 で動かして確かめる
 
 ## R7. 検証用の権限（FR-016、FR-027）
 
@@ -160,15 +175,87 @@
 
 R11-5 と R11-6 は、人のいないセッションのフェーズで確かめる。ほかは、tasks の最初のフェーズで確かめる。結果は、この表に足す。
 
-| 番号 | 確かめること | 訳 | 使う先 |
+| 番号 | 確かめること | 訳 | 使う先 | 結果 | 版 | 確かめた日 |
+|---|---|---|---|---|---|---|
+| R11-1 | #454 で、`/reload-plugins` の後に古い版が動いた訳 | 同じ誤りを避ける 1 行を、手順に書くため | R2 | 渡したディレクトリの直しは、再読み込みで反映される。別の checkout を渡すと、直しは出ない。#454 はこの形と同じ現れ方 | Claude Code 2.1.325 | 2026-11-16 |
+| R11-2 | GitHub Copilot CLI の `--plugin-dir` が、スキル・フック・エージェント・MCP サーバを読むか。同じ名前の入れてある版より先に使われるか | 文書に明記が無い。読まれないものは、できない範囲として文書に残す | R2 | 4 種とも読む。入れた版と並ぶと、スキルと MCP サーバは `--plugin-dir` の版が使われ、フックは両方の版が登録される | GitHub Copilot CLI 1.0.112 | 2026-11-16 |
+| R11-3 | `pecot-sandbox` の `ci.yml` が、`ci-result`・`version-plan` の名前のチェックを出すか。merge queue の契機（`merge_group`）で動くか | 必須のチェックが出ないと、検証用の PR はマージできない | R1 | 出す。`merge_group` でも動く | ― | 2026-11-16 |
+| R11-4 | `pecot-board-sync.yml` の中で動く pecot を、どこから取るか。直した中身にできるか | 配る自動化を、直した中身で確かめるため | R6 | 公開したパッケージを取る。取る先を、直した中身の tgz に替えれば直した中身になる（R6） | `@pecot/workflow-mcp@7`（確かめた時点） | 2026-11-16 |
+| R11-5 | 検証用のリポにだけ入れた App の token で、ボード `pecot-project` に書けるか | 権限で絞れるかどうかで、受け入れる危険が変わる | R7 | | | |
+| R11-7 | サブエージェントが、作業中のリポで始めたセッションの中から、検証用へ書き込む手段。MCP ツールの引数、Bash での `pecot`、検証用の clone で起こす `claude -p` を比べる | w-e2e-planner が、流す先が検証用の CUJ を実投稿まで行うため | R5 | MCP ツールの引数は止まる。Bash での `pecot` と `claude -p` は書ける | Claude Code 2.1.325 | 2026-11-16 |
+| R11-6 | クラウドのセッションの 5 点。`claude` をセッションの中から起こせるか。`CLAUDE_CODE_PLUGIN_DIRS` を環境変数で渡すと読まれるか。自前の token で、付けていないリポへ REST で書けるか。Projects の REST が proxy を通るか。自前の環境で GraphQL が通るか | 動かし方（R8 の案 A・B・C）を選ぶため | R8 | | | |
+
+### R11-1 の結果
+
+`claude --plugin-dir` で始め、w-help の `SKILL.md` に目印の 1 行を足してから、再読み込みの前と後で、本文の目印を引用させた。目印は、起動した worktree（wt8）の `SKILL.md` にだけ足した。
+
+| 始め方 | 再読み込みの前 | `/reload-plugins` の出力 | 再読み込みの後 |
 |---|---|---|---|
-| R11-1 | #454 で、`/reload-plugins` の後に古い版が動いた訳 | 同じ誤りを避ける 1 行を、手順に書くため | R2 |
-| R11-2 | GitHub Copilot CLI の `--plugin-dir` が、スキル・フック・エージェント・MCP サーバを読むか。同じ名前の入れてある版より先に使われるか | 文書に明記が無い。読まれないものは、できない範囲として文書に残す | R2 |
-| R11-3 | `pecot-sandbox` の `ci.yml` が、`ci-result`・`version-plan` の名前のチェックを出すか。merge queue の契機（`merge_group`）で動くか | 必須のチェックが出ないと、検証用の PR はマージできない | R1 |
-| R11-4 | `pecot-board-sync.yml` の中で動く pecot を、どこから取るか。直した中身にできるか | 配る自動化を、直した中身で確かめるため | R6 |
-| R11-5 | 検証用のリポにだけ入れた App の token で、ボード `pecot-project` に書けるか | 権限で絞れるかどうかで、受け入れる危険が変わる | R7 |
-| R11-7 | サブエージェントが、作業中のリポで始めたセッションの中から、検証用へ書き込む手段。MCP ツールの引数、Bash での `pecot`、検証用の clone で起こす `claude -p` を比べる | w-e2e-planner が、流す先が検証用の CUJ を実投稿まで行うため | R5 |
-| R11-6 | クラウドのセッションの 5 点。`claude` をセッションの中から起こせるか。`CLAUDE_CODE_PLUGIN_DIRS` を環境変数で渡すと読まれるか。自前の token で、付けていないリポへ REST で書けるか。Projects の REST が proxy を通るか。自前の環境で GraphQL が通るか | 動かし方（R8 の案 A・B・C）を選ぶため | R8 |
+| worktree で相対パス（`./plugins/pecot-workflow/`） | 目印なし | `Reloaded: 2 plugins · 40 skills · 10 agents · 14 hooks · 4 plugin MCP servers · 0 plugin LSP servers` | 目印あり |
+| worktree で絶対パス | 目印なし | 同上 | 目印あり |
+| worktree から base の絶対パス | 目印なし | 同上。ただし `15 hooks` | 目印なし |
+
+- `--plugin-dir` で読んだスキルの本文の直しは、再読み込みまで反映されない。再読み込みの後は反映される
+- 別の checkout（base。この日は `46b726f1` で、フックの数も違う）を渡すと、直しは出ない。読み込み元が直した checkout でないと、古い版が動く
+- #454 の記録には始め方が残っていないので、訳を 1 つには決められない。上の 3 つのうち、#454 と同じ現れ方になるのは、直した checkout と別の checkout を読み込んだときだけだ
+- 避け方: `--plugin-dir` には、直した作業ツリーの絶対パスを渡す。base で始めた開発のセッションのまま worktree の直しを確かめない
+
+### R11-2 の結果
+
+`copilot --plugin-dir /workspaces/wt8/pecot/plugins/pecot-workflow` で始めた。
+
+- `copilot --plugin-dir <パス> plugin list --json` に、`"name": "pecot-w"`・`"source": "external"` の行が出る
+- `/env` に、次が出る
+  - スキル: `w-help (Plugin) - plugins/pecot-workflow/skills/w-help/SKILL.md` など 15 個
+  - エージェント: w-e2e-planner・w-implementer・w-tech-advisor・w-reviewer
+  - フック: sessionStart 1・userPromptSubmitted 1・preToolUse 3・postToolUse 3・agentStop 1（sources は `pecot-w`）
+- `/mcp` に、pecot-workflow・pecot-workflow-playwright・context7 が出る。どれも `Plugin-contributed` の印が付く
+- w-help を起こすと、作業ツリーに足した目印が出る
+
+マーケットプレイスから pecot-w を入れて有効にし、同じ起動をした。
+
+- `plugin list --json` に、`"source": "installed"` と `"source": "external"` の 2 行が出る。起動の表示は `2 plugins, 18 hooks, 35 skills`
+- スキル: 作業ツリーの目印が出る。`--plugin-dir` の版が使われる
+- MCP サーバ: pecot-workflow のプロセスは 1 つで、`~/.copilot/plugin-data/_direct/<ハッシュ>/runtime/…` から動く。`--plugin-dir` の版が使われる
+- フック: 5 つの契機すべてで 2 つずつ登録される（sources は `pecot-w` と `pecot-w@pecot`）。入れてある版のフックも動く
+- エージェント: 一覧は 4 つで、どちらの版かは見分けていない。T052 で、エージェントの本文にも目印を足して見る
+- 出力の写しは `.pecot/work/474/` の `cuj2-*` に置いた。MCP サーバのプロセスとスキルの目印の応答は `cuj2-precedence.txt` にある
+
+確かめの間は、入れてある pecot-w を外す。確かめの後に外し、`~/.copilot/settings.json` が始める前の写しと同じことを確かめた。
+
+### R11-3 の結果
+
+- 検証用の `ci.yml` は、`ci-result`・`version-plan` のジョブを持つ。契機は `pull_request`・`push`（main）・`merge_group`
+- 検証用の ruleset 27130266 の必須チェックは `ci-result`・`version-plan` で、どちらも `integration_id: 15368`（GitHub Actions）。このリポと同じ
+- `merge_group` の実行の記録が 18 件あり、最新は 2026-11-16T06:53:59Z の success
+- T015 は、何もしない
+
+### R11-4 の結果
+
+- 確かめた時点のテンプレートは `npx -y --prefix=/ @pecot/workflow-mcp@7 board sync` で、npm に公開したパッケージを取る。このリポの `.github/workflows/pecot-board-sync.yml` も、その時点では同じ中身だった
+- 版の指定（`@7`）を替えても、取れるのは公開した版だけで、直した中身にはならない
+- 確かめた後、#499 で版の指定が dist-tag に変わった。テンプレートは `@latest`、このリポの写しは `@next`（main に入った後の開発版）を取る。どちらもマージ前の中身ではないので、結果は変わらない
+- pecot-workflow の `scripts/release/publish-mcp-dist.sh --dry-run` は、タグの確かめを飛ばす。配布ツリーを作り、`npm pack` までを行う。その tgz は終わるときに消えるので、`--out-dir=` に残した配布ツリーで `npm pack` を打ち直す。採る手段は R6 に書いた
+
+### R11-7 の結果
+
+このリポで始めた Claude Code のセッションから、general-purpose のサブエージェント（opus）に 3 つの手段を試させた。題には `cuj 474-7c3a` を入れた。
+
+セッションは auto mode で動かした。表の「拒否・承認の確認」は、auto mode での結果だ。このリポの `.claude/settings.json` は `pecot` を許すが、`claude --plugin-dir …` は許さない。既定のモードでは、`claude -p` に承認の確認が出る見込みで、サブエージェントはそれに答えられない。
+
+| 手段 | 結果 | 拒否・承認の確認 | 作られたもの |
+|---|---|---|---|
+| MCP ツール `issue_create` に `repo: pecotcraft/pecot-sandbox` | `{"kind":"repo-not-in-project","detail":"pecotcraft/pecot-sandbox is not linked to the project"}` | なし | なし |
+| 検証用の clone で、Bash から `pecot issue create --freeform -r pecotcraft/pecot-sandbox --type task -m …` | 終了コード 0。`created: Issue pecotcraft/pecot-sandbox/206` | なし | #206。ボード `pecot sandbox` の Ready |
+| 検証用の clone で、`claude --plugin-dir <絶対パス>/plugins/pecot-workflow -p --allowedTools=mcp__plugin_pecot-w_pecot-workflow__issue_create "<指示>"` | 終了コード 0。ツールの結果に `pecot-sandbox`・`207`・`ready` | なし | #207。ボード `pecot sandbox` の Ready |
+
+- 前提: 検証用のリポは `.pecot/config/projects/.active` を追跡していない。clone の後に `pecot project activate github.com_pecotcraft_pecot-sandbox_sandbox.json` を打つ
+- MCP ツールは、セッションのリポの設定（`pecot-project`）でボードを決める。引数で検証用を指しても、検証用のリポはそのボードに入っていないので止まる
+- `--allowedTools X "<指示>"` と分けて書くと、指示まで許すツールの名前として読まれる。`--print` に指示が無いという error で止まる。`--allowedTools=X` と書く
+- Issue の題は `[Task] cuj 474-7c3a B: …` になった。pecot は題の先頭に種類の接頭辞を付ける（R4）
+- 確かめた題には角括弧が無い。`[cuj …]` の形は通していないが、ソースの上では、freeform は角括弧を消さない（`cli/src/commands/issue-create.ts` の `buildIssueTitle`）
+- このリポの開いた Issue は 32 → 32、ボード `pecot-project` のカードは 56 → 56 で、何も増えていない
+- #206・#207 は閉じ、ボードからアーカイブした
 
 ## 出典
 
