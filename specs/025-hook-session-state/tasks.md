@@ -57,19 +57,19 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **Independent Test**: research.md の R2・R8 の表のすべての行に、結果・版・日付が書かれている
 
-- [ ] T001 検証用のスキルを手元のプラグインに足し、frontmatter の `hooks` が登録されるかを確かめる。結果を `SPEC/research.md` の R2 に書く
+- [x] T001 検証用のスキルを手元のプラグインに足し、frontmatter の `hooks` が登録されるかを確かめる。結果を `SPEC/research.md` の R2 に書く
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`
-- [ ] T002 同じスキルで、残りの 3 点を確かめる。結果を `SPEC/research.md` の R2 に書く
+- [x] T002 同じスキルで、残りの 3 点を確かめる。結果を `SPEC/research.md` の R2 に書く
   - `command` の `${CLAUDE_PLUGIN_ROOT}` が展開されるか
   - `once: true` で 1 回で外れるか
   - resume の後に登録し直されるか
-- [ ] T003 [P] GitHub Copilot CLI で、frontmatter に `hooks` のあるスキルを起動する。結果を `SPEC/research.md` の R2 と R5 に書く
+- [x] T003 [P] GitHub Copilot CLI で、frontmatter に `hooks` のあるスキルを起動する。結果を `SPEC/research.md` の R2 と R5 に書く
   - エラーにならないか
   - フックを読むか
-- [ ] T004 [P] speckit の git 拡張が、新しいブランチを作らずに通るかを確かめる。結果を `SPEC/research.md` の R8 に書く
+- [x] T004 [P] speckit の git 拡張が、新しいブランチを作らずに通るかを確かめる。結果を `SPEC/research.md` の R8 に書く
   - `GIT_BRANCH_NAME` に今のブランチ名を渡し、`--allow-existing-branch` を付ける
   - 動かすのは `.specify/extensions/git/scripts/bash/create-new-feature-branch.sh`
-- [ ] T005 結果が見込みと違うときは、`SPEC/plan.md` と、この tasks.md の Phase 6・Phase 7 を直す。直した点をユーザーに知らせる
+- [x] T005 結果が見込みと違うときは、`SPEC/plan.md` と、この tasks.md の Phase 6・Phase 7 を直す。直した点をユーザーに知らせる
 
 ---
 
@@ -311,8 +311,9 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `--mode=quick` は、計画の更新だけを出す
   - `.pecot-quick-mode` があっても読まない
 - [ ] T067 [US4] `lib/post-tool-use/exit-plan-remind.sh` に `--mode=active|quick` を足す。`.pecot-quick-mode` の読み取りと削除を除く
-- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。パスの書き方は T002 の結果に従う
+- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。スクリプトのパスは `${CLAUDE_PLUGIN_ROOT}` で書く（T002）
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`、引数 `--mode=active`
+  - matcher に `|` で `exit_plan_mode` を足さない。足すと `once` で外れない（T001）。Copilot CLI は frontmatter のフックを読まないので、足しても Copilot CLI では動かない（T003）
 - [ ] T069 [US4] `p-w/skills/w-quick/SKILL.md` の frontmatter に、同じ形で `--mode=quick` のフックを足す
 - [ ] T070 [US4] 2 つの定義ファイルから、ExitPlanMode のエントリを外す。`p-w/hooks/post-tool-use-exit-plan-mode.sh` を消す
 - [ ] T071 [US4] `.pecot-quick-mode` を消す。`tests/interface/issue-quick.test.ts` を先に直す
@@ -321,8 +322,11 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `src/commands/pr.ts` の片付け
   - `p-w/interface/authored.yaml` の記述
 - [ ] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
+  - matcher が `ExitPlanMode` に一致し、`|` を含まない
+  - `once: true`、引数は `--mode=active`（w-active）・`--mode=quick`（w-quick）
+  - スクリプトのパスが `${CLAUDE_PLUGIN_ROOT}` で始まる
 - [ ] T073 [US4] スキルの frontmatter を検証するテストや lint が `hooks` を弾かないかを確かめる。弾くなら許す
-- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならないことも確かめる
+- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならず、案内が出ないことも確かめる
 
 ---
 
@@ -365,6 +369,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 - [ ] T083 [US5] `p-w/hooks/README.md` の状態の表を、`SPEC/data-model.md` の「状態の置き場」に合わせる
 - [ ] T084 [US5] `SPEC/research.md` の R6 で「使っていないことを確かめる」とした項目を、grep で確かめる。使っていれば直す（FR-051）
 - [ ] T085 [US5] 現行の両クライアントで、残ったフックを 1 つずつ動かす。`p-w/hooks/README.md` の実機の記録の表を書き直す
+  - 表に「`|` を含む matcher での `once`」の行を入れ、外れるかを記録する（`SPEC/research.md` の R2 で不具合として避けた点）
   - 版・日付・結果を書く
   - `SPEC/quickstart.md` の 6 の表の行を、すべて含める
 - [ ] T086 [US5] `p-w/hooks/README.md` の対応バージョンを直す。最低対応版を、frontmatter のフックを確かめた版に上げ、根拠を書く
