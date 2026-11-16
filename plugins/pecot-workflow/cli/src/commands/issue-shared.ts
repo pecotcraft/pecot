@@ -32,11 +32,12 @@ import {
 } from '../domain/sections.js'
 import type { JsonObject } from '../domain/json.js'
 import { gitRunnerFor } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
+import { GitHubAPIError, GitHubAuthError, GitHubRateLimitError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
-import { commandHint, hinted, inputHint, inputNameHint } from './command-hint.js'
+import { getActiveConfigPath, projectsDirectory } from '../infra/config-store.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -411,8 +412,24 @@ export interface IssueField {
   readonly label: string
 }
 
+function rereadOptionsHint(): HintedText {
+  const configPath = getActiveConfigPath()
+  // projects/ の外の config は、ファイル名では project activate が見つけられない
+  const project = configPath === undefined
+    ? placeholder('PROJECT')
+    : (path.dirname(configPath) === projectsDirectory() ? path.basename(configPath, '.json') : configPath)
+  return hinted`hint: if the board options were recreated, run ${commandHint(['project', 'activate'], { project })} to read their IDs again`
+}
+
 /**
-カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。失敗したフィールドは、何も出さずに飛ばす。設定できたフィールドの名前を返す
+選択肢の ID を読み直す案内を 1 回の実行で 1 回だけ出すための印
+*/
+export interface FieldHintState {
+  hasHinted: boolean
+}
+
+/**
+カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。書き込みに失敗したフィールドは warning にして飛ばす。設定できたフィールドの名前を返す
 */
 export async function setIssueFields(
   output: Output,
@@ -421,6 +438,7 @@ export async function setIssueFields(
   itemId: string,
   target: string,
   fields: readonly IssueField[],
+  hintState: FieldHintState,
 ): Promise<readonly string[]> {
   const labels: string[] = []
   const written: string[] = []
@@ -433,6 +451,15 @@ export async function setIssueFields(
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
+      const message = `could not set ${label} of ${target}: ${error.message}`
+      // 選択肢を作り直すと config の ID が古くなり、書き込みが落ちる。認証とレート制限の失敗は、読み直しても直らない
+      const canReread = !(error instanceof GitHubAuthError || error instanceof GitHubRateLimitError)
+      if (!canReread || hintState.hasHinted) {
+        output.warning(message)
+        continue
+      }
+      output.warning(joinHinted([message, rereadOptionsHint()]))
+      hintState.hasHinted = true
     }
   }
   if (labels.length > 0) output.done({ verb: 'set', target: `${target} ${labels.join(', ')}` })
