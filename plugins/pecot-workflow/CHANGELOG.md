@@ -1,3 +1,48 @@
+# 7.0.0 (2026-11-16)
+
+### 🚀 Features
+
+- w-ready が、先に終える Issue を前提に付けてサブタスクを作り、前提に応じて `Ready` か `Blocked` に置く。 ([#459](https://github.com/pecotcraft/pecot/pull/459), [#385](https://github.com/pecotcraft/pecot/issues/385))
+  w-help に、前提の PR の上に積んで着手し、下の段からマージして載せ直す流れを足した。
+
+- w-pr が PR を作った後に `gh pr checks --watch` で CI を待ち、落ちたら直すようになった。 ([#454](https://github.com/pecotcraft/pecot/pull/454), [#453](https://github.com/pecotcraft/pecot/issues/453))
+  w-merge も同じ待ち方にそろえ、`merge-wait.sh` を削除した。
+
+- `pecot pr merge`（`pr_merge`）で、**単独の PR とスタックの最下段の PR をマージできる**。 ([#450](https://github.com/pecotcraft/pecot/pull/450), [#383](https://github.com/pecotcraft/pecot/issues/383))
+  `session finish` は、待っていた Issue の判定の変化と、上の段の載せ直しの案内を出す。
+  hook は `gh stack` を止め、`pr_merge` を確認にかける。
+
+- `pr restack`（MCP ツール `pr_restack`）を足した。積んだブランチを、base の新しい位置へ載せ直す。 ([#451](https://github.com/pecotcraft/pecot/pull/451), [#384](https://github.com/pecotcraft/pecot/issues/384))
+  `session show` は、`needs restack` と `stacked above` の行を出す。
+  w-revise は、レビューの前に載せ直しを確かめ、上の段の載せ直しを報告する。
+
+
+### 🩹 Fixes
+
+- w-reviewer・w-tech-advisor・w-implementer が、**標準や公式の仕様とのズレを不適合として扱う**。 ([#438](https://github.com/pecotcraft/pecot/pull/438), [#437](https://github.com/pecotcraft/pecot/issues/437))
+  計画のレビューは仕様と項目ごとに比べ、標準と違う計画は実装せずに返す。
+
+- `eslint` を 10.14.0 から 10.15.0 に更新。 ([#448](https://github.com/pecotcraft/pecot/pull/448), [#446](https://github.com/pecotcraft/pecot/issues/446))
+- `XDG_DATA_HOME` が空か相対パスの環境で、**初回の起動が止まる**不具合を修正。 ([#455](https://github.com/pecotcraft/pecot/pull/455), [#452](https://github.com/pecotcraft/pecot/issues/452))
+- 前提の Issue への言及が 20 件を超えると、**判定が `unknown` になり Blocked のまま動かない**不具合を修正。 ([#458](https://github.com/pecotcraft/pecot/pull/458), [#457](https://github.com/pecotcraft/pecot/issues/457))
+- w-revise が**計画の CUJ を初めて実行する場所と読めた**のを直し、修正後の再実行だけを持つようにした。 ([#458](https://github.com/pecotcraft/pecot/pull/458), [#457](https://github.com/pecotcraft/pecot/issues/457))
+
+### ⚠️  Breaking Changes
+
+- 計画と PR のレビューを、エージェント `w-reviewer` の 1 体が 3 つの視点で行う。 ([#445](https://github.com/pecotcraft/pecot/pull/445), [#444](https://github.com/pecotcraft/pecot/issues/444))
+  w-tech-advisor は実装中の技術の質問だけ、w-e2e-planner は CUJ の実行だけを担う。
+  w-revise の小さな修正は main が直し、指摘には視点の印が付く。
+
+- MCP ツールの結果を、MCP の仕様の形にした。`ok`・`exitCode`・`data`・`artifacts`・`message` が無くなった。 ([#441](https://github.com/pecotcraft/pecot/pull/441), [#436](https://github.com/pecotcraft/pecot/issues/436))
+  ツールごとの項目は `structuredContent` の最上位、成否は `isError`、失敗は `kind` と `detail` で読む。
+
+- MCP ツールの結果から `stdout` と `stderr` が無くなった。成功の中身は、ツールごとの項目で返す。 ([#435](https://github.com/pecotcraft/pecot/pull/435), [#433](https://github.com/pecotcraft/pecot/issues/433))
+  作ったファイルの絶対パスは `file` などの項目、警告は `warnings`、失敗の文は `detail` に入る。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 6.0.0 (2026-11-15)
 
 ### 🚀 Features

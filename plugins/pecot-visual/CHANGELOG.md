@@ -1,3 +1,26 @@
+# 3.0.0 (2026-11-16)
+
+### 🩹 Fixes
+
+- `eslint` を 10.14.0 から 10.15.0 に更新。 ([#448](https://github.com/pecotcraft/pecot/pull/448), [#446](https://github.com/pecotcraft/pecot/issues/446))
+- `XDG_DATA_HOME` が空か相対パスの環境で、**初回の起動が止まる**不具合を修正。 ([#455](https://github.com/pecotcraft/pecot/pull/455), [#452](https://github.com/pecotcraft/pecot/issues/452))
+
+### ⚠️  Breaking Changes
+
+- エージェント `v-slide-creator` を廃止した。v-slidev は、main が全ページを 1 枚ずつ順に作る。 ([#445](https://github.com/pecotcraft/pecot/pull/445), [#444](https://github.com/pecotcraft/pecot/issues/444))
+  図は今までどおり `v-diagram-creator` が作る。
+
+- MCP ツールの結果を、MCP の仕様の形にした。`ok`・`exitCode`・`data`・`artifacts`・`message` が無くなった。 ([#441](https://github.com/pecotcraft/pecot/pull/441), [#436](https://github.com/pecotcraft/pecot/issues/436))
+  ツールごとの項目は `structuredContent` の最上位、成否は `isError`、失敗は `kind` と `detail` で読む。
+
+- MCP ツールの結果から `stdout` と `stderr` が無くなった。警告は `warnings` に文の配列で入る。 ([#435](https://github.com/pecotcraft/pecot/pull/435), [#433](https://github.com/pecotcraft/pecot/issues/433))
+  `drawio_create` と `drawio_export` の `warnings` も、件数ではなく文の配列になった。
+  失敗のときの子プロセスの出力は `log` に入る。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 2.0.0 (2026-11-15)
 
 ### 🚀 Features

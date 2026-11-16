@@ -1,3 +1,13 @@
+## 0.2.8 (2026-11-16)
+
+### 🩹 Fixes
+
+- `eslint` を 10.14.0 から 10.15.0 に更新。 ([#448](https://github.com/pecotcraft/pecot/pull/448), [#446](https://github.com/pecotcraft/pecot/issues/446))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.7 (2026-11-13)
 
 ### 🩹 Fixes

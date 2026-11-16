@@ -1,3 +1,22 @@
+# 3.0.0 (2026-11-16)
+
+### 🩹 Fixes
+
+- `eslint` を 10.14.0 から 10.15.0 に更新。 ([#448](https://github.com/pecotcraft/pecot/pull/448), [#446](https://github.com/pecotcraft/pecot/issues/446))
+- `XDG_DATA_HOME` が空か相対パスの環境で、**初回の起動が止まる**不具合を修正。 ([#455](https://github.com/pecotcraft/pecot/pull/455), [#452](https://github.com/pecotcraft/pecot/issues/452))
+
+### ⚠️  Breaking Changes
+
+- MCP ツールの結果を、MCP の仕様の形にした。`ok`・`exitCode`・`data`・`artifacts`・`message` が無くなった。 ([#441](https://github.com/pecotcraft/pecot/pull/441), [#436](https://github.com/pecotcraft/pecot/issues/436))
+  ツールごとの項目は `structuredContent` の最上位、成否は `isError`、失敗は `kind` と `detail` で読む。
+
+- MCP ツールの結果から `stderr` が無くなった。失敗のときの秘匿化した awscli の出力は `log` に入る。 ([#435](https://github.com/pecotcraft/pecot/pull/435), [#433](https://github.com/pecotcraft/pecot/issues/433))
+  失敗の結果は、失敗の文を `detail` に持つ。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 2.0.0 (2026-11-15)
 
 ### 🩹 Fixes
