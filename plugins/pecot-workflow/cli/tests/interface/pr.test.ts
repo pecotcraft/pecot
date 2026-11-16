@@ -960,7 +960,7 @@ describe('pr create', () => {
       expect(postedBody(workspace)).toMatchObject({ base: LOWER, head: BRANCH })
     })
 
-    it('記録のコミットが今のブランチの履歴に無いと、PR を作らずに終了コード 1 で終わる', async (context) => {
+    it('記録のコミットが今のブランチの履歴に無く、載せ直し済みとも決まらないと、pr restack を案内せずに、PR を作らずに終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-PR-CREATE-65')
       const workspace = await pushedBranch({ github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
       const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
@@ -971,9 +971,25 @@ describe('pr create', () => {
       expect(result).toStrictEqual({
         code: 1,
         stdout: '',
-        stderr: `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  if ${BRANCH} is already restacked, rewrite the record with: pecot pr restack\n  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record\n`,
+        stderr: `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record\n`,
       })
-      expect(operationsOf(workspace)).toStrictEqual([])
+      expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
+    })
+
+    it('記録が別のブランチのもので、その下の段が今のブランチの履歴に無い位置へ動いていると、pr restack を案内しない', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-65')
+      await verifies(context, 'PW-PR-CREATE-70')
+      const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES])
+      const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
+      const foreign = workspace.git(['commit-tree', tree, '-m', 'elsewhere']).trim()
+      writeFileSync(path.join(workspace.directory, stateFile('.pecot-base')), `${LOWER} ${foreign} acme/demo#11\n`)
+      pushTo(workspace, `origin/${LOWER}`, LOWER, 'lower-fix.txt', 'fix\n')
+      const result = await workspace.run(stackedArguments())
+      expect(result.code).toBe(1)
+      expect(lines(result.stderr)).toStrictEqual([
+        `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}`,
+        `  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record`,
+      ])
     })
 
     it('下の段がマージされた後に手で載せ直すと、PR を作らずに、pr restack で記録を書き直す案内を出す', async (context) => {
@@ -988,10 +1004,10 @@ describe('pr create', () => {
       expect(result.code).toBe(1)
       expect(lines(result.stderr)).toStrictEqual([
         `error: .pecot-base records ${LOWER} at ${recorded.slice(0, 7)}, which is not in the history of ${BRANCH}`,
-        `  if ${BRANCH} is already restacked, rewrite the record with: pecot pr restack`,
+        `  ${BRANCH} is already restacked; rewrite the record with: pecot pr restack`,
         `  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record`,
       ])
-      expect(operationsOf(workspace)).toStrictEqual([])
+      expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
     })
 
     it('下の段に、マージ済みの PR と後から作って閉じた PR があると、マージ済みの方で base を決める', async () => {

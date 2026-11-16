@@ -25,6 +25,11 @@ import type { RepositoryReference, ResolvedRepository } from './repository-resol
 
 export type PolicyMode = 'reject' | 'warn'
 
+/**
+今の git remote からリポジトリを決められないときの 1 行目。branch delete の remote の確認も同じ行を出す
+*/
+export const AMBIGUOUS_REPOSITORY_LINE = 'error: the repository is ambiguous'
+
 export interface PolicyInput {
   /**
   グローバル `--repo` の値。無ければ undefined
@@ -73,7 +78,7 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
 
   if (explicit === undefined) {
     return resolved === undefined
-      ? exitWith('git-unresolved', 'error: the repository is ambiguous', hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`)
+      ? exitWith('git-unresolved', AMBIGUOUS_REPOSITORY_LINE, hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`)
       : { kind: 'proceed', adopted: undefined, stderr: [] }
   }
 

@@ -90,6 +90,12 @@ function remoteOnlyCommits(cwd: string, progress: Readonly<RestackProgress>, rem
   return before.filter(sha => after.has(sha))
 }
 
+// remote のブランチが新しい base の上にあり、木が手元と同じか。木が同じでも、remote が新しい base の上に無ければ古い履歴のままなので合わせない
+function isSyncedWithRemote(cwd: string, progress: Readonly<RestackProgress>): boolean {
+  const remoteBranch = `${progress.remote}/${progress.branch}`
+  return progress.leaseSha !== undefined && mergeBase(cwd, progress.ontoSha, remoteBranch) === progress.ontoSha && hasSameTree(cwd, 'HEAD', remoteBranch)
+}
+
 // rebase が終わった後。remote が載せ直し済みで木が同じなら合わせ、違えば push し、base の記録を書き直す
 function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<RestackProgress>): void {
   const { remote, branch, ontoBranch, leaseSha } = progress
@@ -99,8 +105,7 @@ function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<Resta
     removeFlag(FLAG_PECOT_RESTACK)
     stopWith(out, hinted`${remoteBranch} has commits that are not in ${branch}\n${branch} is back at the position before the restack\nrebase or merge them into ${branch} first, then run again: ${commandHint(RESTACK_PATH)}`, 'git-unresolved')
   }
-  // 木が同じでも、remote が新しい base の上に無ければ、古い履歴のままなので合わせない
-  const isSynced = leaseSha !== undefined && mergeBase(cwd, progress.ontoSha, remoteBranch) === progress.ontoSha && hasSameTree(cwd, 'HEAD', remoteBranch)
+  const isSynced = isSyncedWithRemote(cwd, progress)
   if (isSynced) resetHardTo(cwd, remoteBranch)
   else if (leaseSha !== undefined) {
     const push = pushWithLease(cwd, remote, branch, leaseSha)
@@ -192,12 +197,12 @@ function progressOf(out: RestackOutput, cwd: string, branch: string, target: Rea
 }
 
 // rebase の起点。記録の位置が HEAD に無いとき（push が拒まれた後に base が進んだときなど）は、別の点から求める。
-// 開発ブランチへは merge-base、下の段へは fork-point を先に使い、base にあるコミットを積み直さない
-function rebaseStartOf(out: RestackOutput, cwd: string, target: Readonly<StackedTarget>, decision: Extract<RestackDecision, { kind: 'moved' | 'merged' }>, ontoSha: string): string {
-  const { sha } = target.reading.record
+// 下の段の追跡参照からの fork-point を先に使い、求まらなければ新しい base との merge-base にする。古い下の段のコミットを積み直さない
+function rebaseStartOf(out: RestackOutput, cwd: string, target: Readonly<StackedTarget>, ontoSha: string): string {
+  const { sha, branch } = target.reading.record
   if (isAncestor(cwd, sha, 'HEAD')) return sha
-  const start = (decision.kind === 'moved' ? forkPoint(cwd, `${target.remote}/${decision.base}`, 'HEAD') : undefined) ?? mergeBase(cwd, 'HEAD', ontoSha)
-  return start ?? stopWith(out, `cannot find where the branch left ${target.remote}/${decision.base}`, 'git-unresolved')
+  const start = forkPoint(cwd, `${target.remote}/${branch}`, 'HEAD') ?? mergeBase(cwd, 'HEAD', ontoSha)
+  return start ?? stopWith(out, `cannot find where HEAD forked from ${branch}`, 'git-unresolved')
 }
 
 async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
@@ -243,8 +248,9 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     // 載せ直し済みなので rebase をせず、push と記録の書き直しだけを行う
     const progress = progressOf(out, cwd, branch, target, decision)
     if (input.dry_run) {
-      out.result({ branch, base: decision.base, outcome: 'restacked' })
-      out.planned({ verb: 'update', target: `${branch} restacked on ${decision.base}` })
+      const isSynced = isSyncedWithRemote(cwd, progress)
+      out.result({ branch, base: decision.base, outcome: isSynced ? 'synced' : 'restacked' })
+      out.planned({ verb: 'update', target: isSynced ? `${branch} synced with ${remote}/${branch}` : `${branch} restacked on ${decision.base}` })
       return
     }
     finishRestack(out, cwd, progress)
@@ -262,7 +268,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     out.planned({ verb: 'update', target: `${branch} restacked on ${decision.base}` })
     return
   }
-  if (rebaseOnto(cwd, progress.ontoSha, rebaseStartOf(out, cwd, target, decision, progress.ontoSha)) === 'conflict') {
+  if (rebaseOnto(cwd, progress.ontoSha, rebaseStartOf(out, cwd, target, progress.ontoSha)) === 'conflict') {
     writeFlag(FLAG_PECOT_RESTACK, formatRestackProgress(progress))
     stopOnConflict(out, cwd, progress)
   }

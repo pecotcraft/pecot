@@ -1,7 +1,8 @@
 // グローバルの `--repo` と、今の git remote のリポジトリの食い違いを扱う（Python の `require_repo_match`）。
 // 判定は domain/repository-policy.ts の applyRepositoryPolicy に任せ、ここは git の解決と行の出力、止めるときの終了コードだけを行う。
 import { formatHinted } from '../domain/command-hint.js'
-import { applyRepositoryPolicy } from '../domain/repository-policy.js'
+import type { HintedText } from '../domain/command-hint.js'
+import { AMBIGUOUS_REPOSITORY_LINE, applyRepositoryPolicy } from '../domain/repository-policy.js'
 import type { PolicyMode } from '../domain/repository-policy.js'
 import { AmbiguousRepositoryError, resolveRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference, ResolvedRepository } from '../domain/repository-resolver.js'
@@ -35,11 +36,7 @@ export function requireRepositoryMatch(
   cwd: string,
 ): RepositoryReference | undefined {
   const outcome = applyRepositoryPolicy({ explicit, resolved: resolveCurrentRepository(cwd), mode })
-  for (const line of outcome.stderr) {
-    const text = formatHinted(line, io.surface ?? 'cli')
-    io.stderr(`${text}\n`)
-    if (text.startsWith(WARNING_PREFIX)) io.warning?.(text.slice(WARNING_PREFIX.length))
-  }
+  writeLines(io, outcome.stderr)
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted
 }
@@ -51,6 +48,14 @@ git の外・remote 無しなら、stderr に行を書いて CommandExit(1) を�
 */
 export function requireGitRemote(io: Readonly<CommandIo>, cwd: string): void {
   if ((listRemotes(cwd) ?? []).length > 0) return
-  io.stderr('error: the repository is ambiguous\n  run inside a git repository that has a remote\n')
+  writeLines(io, [AMBIGUOUS_REPOSITORY_LINE, '  run inside a git repository that has a remote'])
   throw new CommandExit(1, 'git-unresolved')
+}
+
+function writeLines(io: Readonly<CommandIo>, lines: readonly (string | HintedText)[]): void {
+  for (const line of lines) {
+    const text = formatHinted(line, io.surface ?? 'cli')
+    io.stderr(`${text}\n`)
+    if (text.startsWith(WARNING_PREFIX)) io.warning?.(text.slice(WARNING_PREFIX.length))
+  }
 }
