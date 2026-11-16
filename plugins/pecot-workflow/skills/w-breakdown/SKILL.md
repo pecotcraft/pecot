@@ -10,8 +10,8 @@ when_to_use: "Epic をサブタスクに分解したい、speckit で計画を�
 # Epic分解：speckit 工程の逐次実行
 
 Epic の内容を読み取り、main が speckit コマンド（specify → clarify → plan → tasks）を
-逐次実行して分解する。speckit の成果物（ブランチ・`.specify/` 配下のファイル）は
-**w-breakdown を実行したリポジトリ** に作成する。ただしプロジェクトの集約リポ（`aggregation_repo`）に
+逐次実行して分解する。分解の作業は、Epic の下のタスクとして起票し、そのタスクに紐づいたブランチで進める。
+speckit の成果物（`specs/` 配下のファイル）は、**w-breakdown を実行したリポジトリ** のそのブランチに作る。ただしプロジェクトの集約リポ（`aggregation_repo`）に
 **ロードマップリポ** が設定されている場合、そのロードマップリポでのみ実行を許可
 する。ロードマップリポ設定があるのに別リポで起動された場合は中止し、ロードマップリポでの
 再実行を案内する。
@@ -51,7 +51,56 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 
 `owner/repo` は Epic Issue が置かれているリポ。speckit 成果物の作成先は Step 2 で確定済。
 
-### Step 4: speckit 工程の準備
+### Step 4: 分解のタスクを起票する
+
+Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを探す。
+分解のタスクは、紐づいたブランチの名前が `feat/breakdown-` で始まるか、題に「speckit で分解する:」を含む Issue だ。
+紐づいたブランチは、pecot-workflow の MCP ツール `issue_show` でそのタスクを読んで確かめる。
+
+| 見つかったもの | すること |
+|---|---|
+| タスクと、紐づいたブランチ | 起票しない。そのブランチを checkout する。Step 5 で再開として扱う |
+| タスクだけ（ブランチが無い） | 起票しない。そのタスクで `session_start` を呼ぶ |
+| どちらも無い | 起票し、`session_start` を呼ぶ |
+
+起票は、pecot-workflow の MCP ツール `issue_create` で、次の入力を渡す。
+
+- `freeform: true`
+- `parent_epic`: Step 3 で読んだ Epic の `owner/repo/N`。整数は `aggregation_repo` の Issue と読まれるので使わない
+- `repo`: Step 2 で決めたリポ
+- `message`: 1 行目を `speckit で分解する: <Epic の題>` にする。題は先頭の 50 文字から付くので、目印を先頭に置く。2 行目からは、分解する範囲を 1〜2 行で書く
+
+ブランチは、pecot-workflow の MCP ツール `session_start` で作る。`issue_ref` はタスクの `owner/repo/N`、`branch` は `feat/breakdown-<英語の短い名前>` にする。
+`base` は渡さない。`session_start` が、タスクを Active に移す。
+ツールが止まったら、エラーの案内を利用者に示して止まる。
+
+checkout の前に、`git status --porcelain` が空であることを確かめる。空でなければ、commit・stash・破棄のどれにするかを利用者に確かめる。
+
+```bash
+git fetch origin
+git checkout <ブランチ名>
+```
+
+### Step 5: speckit 工程の準備
+
+Step 4 で既存のタスクを使ったときは、再開として次を行う。新しく起票したときは、この段落を飛ばす。
+
+1. 対象の spec のディレクトリを、次のコマンドで求める。`<開発ブランチ>` は Step 1 で確かめた `develop_branch` だ
+
+   ```bash
+   git diff --name-only origin/<開発ブランチ>...HEAD -- specs/
+   ```
+
+2. 出たファイルの `specs/<NNN-名前>/` を対象にする。1 つも無ければ、新しく始める。2 つ以上あれば、AskUserQuestion で選ばせる
+3. `.specify/feature.json` が無いか、別のディレクトリを指すときは、次の形に書き直す。speckit 本体は、このファイルで対象のディレクトリを求める
+
+   ```json
+   {
+     "feature_directory": "specs/<NNN-名前>"
+   }
+   ```
+
+4. 続ける工程を、対象のディレクトリにあるファイルで決める。tasks.md があれば Step 9、plan.md があれば Step 8、spec.md だけなら Step 7 から続ける
 
 Epic の番号・タイトル・本文・背景を読み取り、specify への入力として main 自身が整理する。
 工程ごとの責任者（spec / plan / tasks）は担当工程の概念として存在するが、本 single フローでは
@@ -64,17 +113,30 @@ main がそれぞれの責任者役を担って各コマンドを実行する。
 - 要件（Issue 本文から抽出）
 - 背景情報（親 Epic や関連 Issue の内容）
 
-### Step 5: specify 実行
+### Step 6: specify 実行
 
 main が `/speckit.specify` を実行する。Epic の内容から目的・スコープ・要件・背景情報・
 Epic 番号を抽出し、`/speckit.specify` の引数として渡す。
 
-実行後、AskUserQuestion でユーザー承認を取る（「次に進む」「修正を指示する」「やり直す」）。
+speckit の git 拡張は、`before_specify` の hook でブランチを作る。今のブランチのまま進めるため、次の指示を足す。
 
-### Step 6: clarify → plan を逐次実行
+- 足す条件: `.specify/extensions.yml` の `hooks.before_specify` に `speckit.git.feature` の項目がある。その `enabled` は `false` でない
+- 足す場所: `/speckit.specify` の引数の末尾
+- `<ブランチ名>` は、`git branch --show-current` の値に置き換える
+- 条件に当たらないリポでは、何も足さない
+
+```text
+before_specify の hook（speckit.git.feature）では、新しいブランチを作らない。GIT_BRANCH_NAME に <ブランチ名> を渡し、--allow-existing-branch を付けて create-new-feature-branch.sh --json を打つ。bash の例: GIT_BRANCH_NAME="<ブランチ名>" .specify/extensions/git/scripts/bash/create-new-feature-branch.sh --json --allow-existing-branch --short-name "<短い名前>" "<機能の説明>"。PowerShell では $env:GIT_BRANCH_NAME と -AllowExistingBranch を使う。
+```
+
+実行後、AskUserQuestion でユーザー承認を取る（「次に進む」「修正を指示する」「やり直す」）。
+承認を得たら、`specs/<NNN-名前>/` を commit し、タスクのブランチへ push する。別の clone でも、Step 5 の再開で続けられるようにする。
+
+### Step 7: clarify → plan を逐次実行
 
 main が各工程を順に実行する。各工程完了後に AskUserQuestion で以下の承認 3 択を提示し、
 承認を得たら次工程へ進む。前工程の承認を得るまでは、次工程へ進まない。
+承認を得るたびに、`specs/<NNN-名前>/` を commit し、タスクのブランチへ push する。
 
 | 選択 | 意味 |
 |------|------|
@@ -84,9 +146,9 @@ main が各工程を順に実行する。各工程完了後に AskUserQuestion �
 
 工程の順序: `/speckit.clarify` → `/speckit.plan`
 
-plan の承認を得たら、Step 7 へ進む。
+plan の承認を得たら、Step 8 へ進む。
 
-### Step 7: tasks 実行
+### Step 8: tasks 実行
 
 main が `/speckit.tasks` を実行する。引数には、次のコードブロックの中身をそのまま貼る。言い換えない。要約もしない。
 spec-kit のテンプレートは変えない。前提の表の形は、この引数で渡す。
@@ -126,7 +188,7 @@ tasks.md の `## Dependencies & Execution Order` の下にある `### Phase Depe
 - 前提を持つフェーズが 1 つも無いときは、見出しの行と区切りの行だけの表を書く
 ```
 
-### Step 8: 前提の表を確かめる
+### Step 9: 前提の表を確かめる
 
 main が、できた tasks.md の `### Phase Dependencies` を読み、次の 4 つを確かめる。
 
@@ -139,13 +201,21 @@ main が、できた tasks.md の `### Phase Dependencies` を読み、次の 4 
 
 通らないときの扱いは、確かめで分かれる。tasks の工程をやり直すものと、ユーザーに確かめるものがある。
 
-1〜3 が通らないときと、積める行の理由が空のときは、tasks の工程（Step 7）をやり直す。やり直すときは、Step 7 のコードブロックをもう一度そのまま貼り、その後ろに、通らなかった確かめと箇所を 1 行足して `/speckit.tasks` を実行する。やり直しは 1 回まで。やり直しても通らないときは、外れた箇所をユーザーに示して判断を仰ぐ。
+1〜3 が通らないときと、積める行の理由が空のときは、tasks の工程（Step 8）をやり直す。やり直すときは、Step 8 のコードブロックをもう一度そのまま貼り、その後ろに、通らなかった確かめと箇所を 1 行足して `/speckit.tasks` を実行する。やり直しは 1 回まで。やり直しても通らないときは、外れた箇所をユーザーに示して判断を仰ぐ。
 
 「マージを待つ」の行の理由が空のときは、開発ブランチに入っていないと進められない訳をユーザーに確かめる。エージェントが理由を作らない。ユーザーが答えた文を、main がその行の `理由` のセルにそのまま書く。tasks の工程はやり直さない。やり直しの回数に数えない。tasks の工程をやり直したときは、やり直した後の表でこの確かめをする。
 
-確かめが通ったら、AskUserQuestion で Step 6 と同じ承認 3 択（次に進む・修正を指示する・やり直す）を提示する。
-「修正を指示する」「やり直す」で tasks の工程をもう一度実行するときも、Step 7 のコードブロックをもう一度そのまま貼る。「修正を指示する」なら、その後ろに直す点を足す。実行した後は、この Step の確かめからやり直す。
+確かめが通ったら、AskUserQuestion で Step 7 と同じ承認 3 択（次に進む・修正を指示する・やり直す）を提示する。
+「修正を指示する」「やり直す」で tasks の工程をもう一度実行するときも、Step 8 のコードブロックをもう一度そのまま貼る。「修正を指示する」なら、その後ろに直す点を足す。実行した後は、この Step の確かめからやり直す。
+承認を得たら、`specs/<NNN-名前>/` を commit し、タスクのブランチへ push する。
 
 analyze（`/speckit.analyze`）は読み取り専用工程のため任意。成果物の確認・検証が要るときに実行する。
 
-tasks.md 完成後は `/pecot-w:w-issueize` で各フェーズを Issue として一括登録できる。
+### Step 10: PR と Issue 化
+
+w-breakdown はここで終える。利用者に、次の 2 つを順に案内する。
+
+1. `/pecot-w:w-pr` で、分解のタスクを閉じる PR を出す。PR が `specs/<NNN-名前>/` を開発ブランチに入れる
+2. PR のマージの後に、`/pecot-w:w-issueize` で各フェーズを Issue として一括登録する。フェーズの Issue の実装で w-active が tasks.md に `[x]` を付けるには、spec の一式が開発ブランチに要る
+
+w-pr は、このスキルから起動しない。PR を出すかは利用者が決める。

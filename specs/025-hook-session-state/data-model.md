@@ -78,10 +78,10 @@ matcher に `|` で別の名前を足すと、`once` で外れない（research.
 
 | 項目 | 値 |
 |---|---|
-| 作り方 | `issue_quick` を `parent_epic` 付きで呼ぶ |
+| 作り方 | `issue_create` を `freeform`・`parent_epic` 付きで呼び、`session_start` でブランチを作る |
 | 親 | 分解する Epic |
 | ボードの列 | Active |
-| ブランチ | `feat/<日時>/<タスクの番号>`。タスクに紐づく |
+| ブランチ | `feat/breakdown-<名前>/<タスクの番号>`。タスクに紐づく |
 | speckit のディレクトリ | `specs/<連番>-<名前>/`。ブランチ名とは揃えない |
 
 ## フックの判定（research の表の 1 行）

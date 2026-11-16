@@ -50,7 +50,7 @@ pnpm -C plugins/pecot-workflow/cli vitest run tests/interface/create-branch.test
 ## 5. w-breakdown を確かめる
 
 1. 検証用の Epic で `/pecot-w:w-breakdown` を起動する。期待: Epic の下にタスクができ、Active に載る
-2. ブランチを確かめる。期待: `feat/<日時>/<タスクの番号>` にいる。`NNN-<名前>` のブランチはできていない
+2. ブランチを確かめる。期待: `feat/breakdown-<名前>/<タスクの番号>` にいる。`NNN-<名前>` のブランチはできていない
 3. specify まで進める。期待: `specs/<連番>-<名前>/` に spec ができる
 
 ## 6. 実機の記録

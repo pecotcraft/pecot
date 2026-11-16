@@ -341,16 +341,16 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: Phase 1（T004 の結果）、Phase 5
 
-- [ ] T075 [US6] `p-w/skills/w-breakdown/SKILL.md` に、タスクを起票する手順を足す
-  - 対象の Epic を決めた後、`issue_quick` を `parent_epic` 付きで呼ぶ
+- [x] T075 [US6] `p-w/skills/w-breakdown/SKILL.md` に、タスクを起票する手順を足す
+  - 対象の Epic を決めた後、`issue_create` を `freeform`・`parent_epic` 付きで呼び、`session_start` でブランチを作る
   - 結果のブランチを checkout する
-- [ ] T076 [US6] 同じ SKILL.md に、speckit の git 拡張の扱いを書く
+- [x] T076 [US6] 同じ SKILL.md に、speckit の git 拡張の扱いを書く
   - ブランチを作る場面では、`GIT_BRANCH_NAME` に今のブランチ名を渡し、`--allow-existing-branch` を付ける
   - 拡張が無いリポでは、何もしない
-- [ ] T077 [US6] 同じ SKILL.md に、再開の手順を書く。`.specify/feature.json` が無いときは、`specs/` の該当のディレクトリを指す形で書き直す
-- [ ] T078 [US6] 同じ SKILL.md の終わりを直す。成果物を w-pr でタスクを閉じる PR にし、その後に w-issueize へ進む
-- [ ] T079 [US6] スキルの文を確かめる既存のテスト（`tests/skills/`）を通す。ツールの名前と入力の書き方を、ほかのスキルに合わせる
-- [ ] T080 [US6] `SPEC/quickstart.md` の 5 を実機で確かめ、結果を PR に貼る
+- [x] T077 [US6] 同じ SKILL.md に、再開の手順を書く。`.specify/feature.json` が無いときは、`specs/` の該当のディレクトリを指す形で書き直す
+- [x] T078 [US6] 同じ SKILL.md の終わりを直す。成果物を w-pr でタスクを閉じる PR にし、その後に w-issueize へ進む
+- [x] T079 [US6] スキルの文を確かめる既存のテスト（`tests/skills/`）を通す。ツールの名前と入力の書き方を、ほかのスキルに合わせる
+- [x] T080 [US6] `SPEC/quickstart.md` の 5 を実機で確かめ、結果を PR に貼る
 
 ---
 

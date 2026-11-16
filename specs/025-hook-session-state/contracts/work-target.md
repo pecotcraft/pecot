@@ -82,7 +82,7 @@ MCP ツールとフックが、作業中の Issue をどう求め、どう使う
 
 | 手順 | 期待 |
 |---|---|
-| 対象の Epic を決めた | `issue_quick` を `parent_epic` 付きで呼ぶ。タスクが Epic の下にでき、Active に載る |
+| 対象の Epic を決めた | `issue_create` を `freeform`・`parent_epic` 付きで呼び、`session_start` でブランチを作る。タスクが Epic の下にでき、Active に載る |
 | タスクができた | 結果のブランチを checkout する |
 | specify を始める | git 拡張は、今のブランチ名を受けて新しいブランチを作らない |
 | 工程を終えた | 成果物を、タスクを閉じる PR にする |

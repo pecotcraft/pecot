@@ -409,6 +409,7 @@ describe('w-breakdown の手順', () => {
   const tasksStep = (): number => titleIndex(headings, 'tasks 実行')
   const checkStep = (): number => titleIndex(headings, '前提の表を確かめる')
   const clarifyStep = (): number => titleIndex(headings, 'clarify')
+  const fileStep = (): number => titleIndex(headings, '分解のタスクを起票')
   const tasksBlock = (): string => firstCodeBlock(sectionBody(text, tasksStep()))
   const stepNumber = (position: number): number | undefined => headings.find((_, index) => index === position)?.number
 
@@ -510,12 +511,58 @@ describe('w-breakdown の手順', () => {
     expect(sectionBody(text, checkStep())).toContain('積める行の理由が空のとき')
   })
 
-  it('analyze と w-issueize の案内は、確かめの Step の承認の文より後ろにある', () => {
+  it('analyze の案内は、確かめの Step の承認の文より後ろにある', () => {
     const body = sectionBody(text, checkStep())
     const approval = body.indexOf('AskUserQuestion')
     expect(approval).toBeGreaterThanOrEqual(0)
     expect(body.indexOf('/speckit.analyze')).toBeGreaterThan(approval)
-    expect(body.indexOf('/pecot-w:w-issueize')).toBeGreaterThan(approval)
+  })
+
+  it('起票の Step は、Epic の特定の後、specify の前にある', () => {
+    expect(titleIndex(headings, '対象Epic')).toBeLessThan(fileStep())
+    expect(fileStep()).toBeLessThan(titleIndex(headings, 'specify'))
+  })
+
+  it('起票の Step は、issue_create を freeform と owner/repo/N の parent_epic で呼び、session_start に base を渡さない', () => {
+    const body = sectionBody(text, fileStep())
+    for (const word of ['`issue_create`', '`freeform: true`', '`parent_epic`: Step 3 で読んだ Epic の `owner/repo/N`', '`session_start`', '`base` は渡さない']) expect(body).toContain(word)
+  })
+
+  it('起票の Step は、既存の分解のタスクを 3 通りに分けて扱い、2 重に起票しない', () => {
+    const body = sectionBody(text, fileStep())
+    for (const row of ['| タスクと、紐づいたブランチ | 起票しない。', '| タスクだけ（ブランチが無い） | 起票しない。', '| どちらも無い | 起票し、']) expect(body).toContain(row)
+    expect(body).toContain('`feat/breakdown-`')
+    expect(body).toContain('`speckit で分解する: <Epic の題>`')
+  })
+
+  it('specify の Step は、/speckit.specify に足す 1 行で、今のブランチ名と --allow-existing-branch を hook に渡す', () => {
+    const block = firstCodeBlock(sectionBody(text, titleIndex(headings, 'specify')))
+    for (const word of ['GIT_BRANCH_NAME', '--allow-existing-branch', 'create-new-feature-branch.sh --json']) expect(block).toContain(word)
+  })
+
+  it('specify の Step は、git 拡張の hook が無いか切れているリポでは何も足さない', () => {
+    const body = sectionBody(text, titleIndex(headings, 'specify'))
+    expect(body).toContain('`enabled` は `false` でない')
+    expect(body).toContain('条件に当たらないリポでは、何も足さない')
+  })
+
+  it('準備の Step は、再開のときに spec のディレクトリを求め、.specify/feature.json を書き直す', () => {
+    const body = sectionBody(text, titleIndex(headings, '準備'))
+    expect(body).toContain('git diff --name-only origin/<開発ブランチ>...HEAD -- specs/')
+    expect(body).toContain('"feature_directory": "specs/<NNN-名前>"')
+  })
+
+  it('specify・clarify・確かめの Step は、承認の後に spec のディレクトリを commit して push させる', () => {
+    for (const position of [titleIndex(headings, 'specify'), clarifyStep(), checkStep()]) {
+      expect(sectionBody(text, position)).toContain('を commit し、タスクのブランチへ push する')
+    }
+  })
+
+  it('最後の Step は、w-pr を案内し、w-issueize はマージの後に案内する', () => {
+    const body = sectionBody(text, headings.length - 1)
+    expect(body).toContain('`/pecot-w:w-pr`')
+    expect(body.indexOf('PR のマージの後')).toBeLessThan(body.indexOf('`/pecot-w:w-issueize`'))
+    expect(body).toContain('w-pr は、このスキルから起動しない')
   })
 
   it('表の列の名前は、w-issueize の Step 2 が読む列と同じ', () => {
