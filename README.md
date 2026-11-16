@@ -22,14 +22,21 @@
 
 ### 動作環境
 
-以下のソフトウェアがインストール・設定されている必要があります。
+以下のソフトウェアがインストールされている必要があります。
 
 - [Claude Code](https://claude.ai/code)
 - [Node.js](https://nodejs.org/ja)
 - [Git](https://git-scm.com/)
-- [GitHub CLI](https://cli.github.com/)（`gh auth refresh -s project` で `project` スコープを追加済み）
+- [GitHub CLI](https://cli.github.com/)
 
 ### インストール手順
+
+GitHub CLI でログインし、GitHub Projects の操作に必要な `project` スコープを追加します。
+
+```bash
+gh auth login
+gh auth refresh -s project
+```
 
 マーケットプレイスを追加してから、使用するプラグインをインストールします。
 
