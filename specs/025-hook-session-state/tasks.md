@@ -194,7 +194,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `p-w/skills/w-help/` の SKILL.md と参照
   - `p-w/README.md` と `p-w/hooks/README.md`
 - [x] T032 [US2] `p-w/interface/authored.yaml` から、`issue-pending`・`.wip-branch-linked` を消す記述を除く。`generated.json` を書き出し直す
-- [ ] T033 [US2] `SPEC/quickstart.md` の 2 の 3 番を実機で確かめ、結果を PR に貼る
+- [x] T033 [US2] `SPEC/quickstart.md` の 2 の 3 番を実機で確かめ、結果を PR に貼る
 
 ---
 
