@@ -131,6 +131,7 @@
         "{projectRoot}/scripts/run-pnpm.sh",
         "{projectRoot}/scripts/release-land.sh",
         "{projectRoot}/scripts/dev-version.mjs",
+        "{projectRoot}/scripts/dev-superseded.mjs",
         {
           "input": "production",
           "projects": [

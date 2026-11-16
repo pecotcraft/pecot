@@ -17,6 +17,7 @@ on:
       - ".githooks/scripts/attach-mcp-tgz.sh"
       - ".githooks/scripts/origin-slug.mjs"
       - ".githooks/scripts/dev-version.mjs"
+      - ".githooks/scripts/dev-superseded.mjs"
       - ".devcontainer/**"
       - ".github/workflows/publish-npm.yml"
   workflow_dispatch:
@@ -34,7 +35,8 @@ on:
 permissions: {}
 
 concurrency:
-  group: publish-npm-${{ inputs.tag || 'dev' }}
+  # ブランチの dry-run は別のグループにし、待っている main の開発版の run を取り消さない。
+  group: publish-npm-${{ inputs.tag || (github.ref == 'refs/heads/main' && 'dev') || format('dev-{0}', github.ref) }}
   cancel-in-progress: false
 
 jobs:
@@ -194,6 +196,7 @@ jobs:
 
       # out-dir はリポの外に置く決まりで、ホストから見えない。tgz だけを共有のディレクトリへ書く。
       # npm はリポの中だと devEngines で止まるので、out-dir に移ってから pack する。
+      # --dry-run の attach-mcp-tgz.sh は gh の案を表示するだけだ。Release への添付と dispatch は行わない。
       - name: Build dev package
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
@@ -223,7 +226,9 @@ jobs:
   publish-dev:
     needs: build-dev
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
+      contents: read
       id-token: write
     env:
       PACKAGE: "@pecot/workflow-mcp"
@@ -240,6 +245,14 @@ jobs:
             echo "::error::$MSG_PRIVATE"
             exit 1
           fi
+
+      # 判定のスクリプトだけを取る。ルートの package.json を置かないので、npm が devEngines で止まらない。
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .githooks/scripts/dev-superseded.mjs
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -274,7 +287,8 @@ jobs:
             exit 1
           fi
           next="$(npm view "$PACKAGE" dist-tags.next)"
-          if [[ "$next" =~ -dev\.([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" -ge "$RUN_NUMBER" ]; then
+          superseded="$(node .githooks/scripts/dev-superseded.mjs "$next" "$RUN_NUMBER")"
+          if [ "$superseded" = "true" ]; then
             echo "$MSG_STALE (next: $next)"
             echo "done=true" >> "$GITHUB_OUTPUT"
             exit 0

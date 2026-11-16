@@ -48,14 +48,20 @@ def test_release_and_dev_jobs_are_split_by_trigger() -> None:
 def test_push_runs_only_on_main_for_files_that_change_the_package() -> None:
     push = _workflow()[True]["push"]
     assert push["branches"] == ["main"]
-    for path in (
+    assert set(push["paths"]) == {
         "plugins/pecot-workflow/**",
         "pnpm-lock.yaml",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "LICENSE",
         ".githooks/lib/mcp-publish-common.sh",
+        ".githooks/scripts/attach-mcp-tgz.sh",
+        ".githooks/scripts/origin-slug.mjs",
         ".githooks/scripts/dev-version.mjs",
+        ".githooks/scripts/dev-superseded.mjs",
+        ".devcontainer/**",
         ".github/workflows/publish-npm.yml",
-    ):
-        assert path in push["paths"], path
+    }
 
 
 def test_dispatch_tag_is_optional_and_dry_run_defaults_to_false() -> None:
@@ -69,13 +75,21 @@ def test_permissions_are_granted_per_job() -> None:
     assert _workflow()["permissions"] == {}
     assert _job("publish")["permissions"] == {"contents": "read", "id-token": "write"}
     assert _job("build-dev")["permissions"] == {"contents": "read", "packages": "read"}
-    assert _job("publish-dev")["permissions"] == {"id-token": "write"}
+    assert _job("publish-dev")["permissions"] == {"contents": "read", "id-token": "write"}
 
 
-def test_release_and_dev_runs_queue_in_separate_groups() -> None:
+def test_release_main_dev_and_branch_runs_queue_in_separate_groups() -> None:
     concurrency = _workflow()["concurrency"]
-    assert concurrency["group"] == "publish-npm-${{ inputs.tag || 'dev' }}"
+    assert concurrency["group"] == (
+        "publish-npm-${{ inputs.tag || (github.ref == 'refs/heads/main' && 'dev')"
+        " || format('dev-{0}', github.ref) }}"
+    )
     assert concurrency["cancel-in-progress"] is False
+
+
+def test_dev_jobs_have_timeouts() -> None:
+    assert _job("build-dev")["timeout-minutes"] == 30
+    assert _job("publish-dev")["timeout-minutes"] == 10
 
 
 def test_release_job_rejects_dry_run_first() -> None:
@@ -103,8 +117,12 @@ def test_dev_publish_uses_next_tag_and_honors_dry_run() -> None:
 def test_dev_publish_skips_runs_older_than_next() -> None:
     step = _step("publish-dev", "Check if already superseded")
     assert "dist-tags.next" in step["run"]
+    assert 'node .githooks/scripts/dev-superseded.mjs "$next" "$RUN_NUMBER"' in step["run"]
     assert step["env"]["RUN_NUMBER"] == "${{ github.run_number }}"
     assert _step("publish-dev", "Publish to npm")["if"] == "steps.published.outputs.done == 'false'"
+    checkout = _step("publish-dev", "Checkout")["with"]
+    assert checkout["sparse-checkout"] == ".githooks/scripts/dev-superseded.mjs"
+    assert checkout["sparse-checkout-cone-mode"] is False
 
 
 def test_dev_publish_fails_on_a_private_repository_before_publishing() -> None:
@@ -163,6 +181,45 @@ def test_dev_version_rejects_malformed_input(
     tmp_path: Path, version: object, run_number: str
 ) -> None:
     result = _dev_version(tmp_path, version, run_number)
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr.startswith("ERROR: ")
+
+
+_DEV_SUPERSEDED = _REPO_ROOT / ".githooks/scripts/dev-superseded.mjs"
+
+
+def _dev_superseded(next_version: str, run_number: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [_NODE, str(_DEV_SUPERSEDED), next_version, run_number],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("next_version", "run_number", "expected"),
+    [
+        ("", "5", "false"),
+        ("7.0.1-dev.5", "4", "true"),
+        ("7.0.1-dev.5", "5", "true"),
+        ("7.0.1-dev.5", "6", "false"),
+        ("8.0.0", "6", "false"),
+        ("7.0.1-dev.12\n", "9", "true"),
+    ],
+)
+def test_dev_superseded_skips_runs_not_newer_than_next(
+    next_version: str, run_number: str, expected: str
+) -> None:
+    result = _dev_superseded(next_version, run_number)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == f"{expected}\n"
+
+
+@pytest.mark.parametrize("run_number", ["", "0", "12a"])
+def test_dev_superseded_rejects_malformed_run_number(run_number: str) -> None:
+    result = _dev_superseded("7.0.1-dev.5", run_number)
     assert result.returncode == 1
     assert result.stdout == ""
     assert result.stderr.startswith("ERROR: ")

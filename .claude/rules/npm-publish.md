@@ -4,6 +4,8 @@ paths:
   - "plugins/*/scripts/release/publish-mcp-dist.sh"
   - "plugins/*/scripts/release/finalize-dist.mjs"
   - ".githooks/lib/mcp-publish-common.sh"
+  - ".githooks/scripts/dev-version.mjs"
+  - ".githooks/scripts/dev-superseded.mjs"
 ---
 
 # 新しい @pecot/<name>-mcp を初めて npm に出す

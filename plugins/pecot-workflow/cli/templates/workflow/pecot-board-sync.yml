@@ -76,8 +76,8 @@ jobs:
           permission-pull-requests: read
           permission-contents: read
 
-      # @latest takes the newest release, including breaking changes in a new major version.
-      # To stay on a version, replace @latest with @<major> or @<version>.
+      # The dist-tag after the package name decides the version. @latest is the newest release,
+      # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.
       # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Sync the board
         env:
