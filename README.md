@@ -1,52 +1,84 @@
-<h1 align="center">
+<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-wordmark-dark.svg">
-    <img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" width="240">
+    <img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" width="260">
   </picture>
-</h1>
+</p>
 
-<p align="center">Claude Code のためのプラグインマーケットプレイス</p>
+<p align="center">
+  <b>Claude Code のためのプラグインマーケットプレイス</b><br>
+  Issue から PR・リリースまでの開発の流れと、図・スライド作り、AWS の調べものを、スキルで任せる
+</p>
 
-Agent Plugins 1.0 に対応したエージェントにも、今後対応していく予定です。
-以下の 3 プラグインを配布しています。
+<p align="center">
+  <a href="#はじめる">はじめる</a> ·
+  <a href="#プラグイン">プラグイン</a> ·
+  <a href="#開発の流れ">開発の流れ</a> ·
+  <a href="#更新">更新</a>
+</p>
 
-- [**pecot-w**](plugins/pecot-workflow/README.md) — GitHub Projects V2 と連携した開発ワークフローの自動化。
-  Issue 起票・実装・PR・リリースの各段階をスキルとして提供し、git worktree による並行開発に対応する
-- [**pecot-v**](plugins/pecot-visual/README.md) — 図表・スライドの作成。
-  draw.io 構成図の生成、Slidev プレゼンテーションの作成と PPTX 変換、スクリーンショットからの作業エビデンス xlsx 生成
-- [**pecot-t**](plugins/pecot-tools/README.md) — 許可リストで限定した awscli コマンドを MCP ツールとして提供する。
-  MCP サーバ `pecot-tools` として、SSO 認証・参照系・Athena・S3 取得の 26 ツールを公開する。
-  参照系は Lambda / CloudWatch Logs / CloudWatch メトリクス / RDS / EC2 / ECR / EventBridge Scheduler
-
-スキルとエージェントの一覧は各プラグインの README に記載しています。
-
----
-
-## インストール
-
-### 前提条件
-
-- [Claude Code](https://claude.ai/code) 2.1.141 以上
-- [gh CLI](https://cli.github.com/) — `gh auth login` で認証後、`gh auth refresh -s project` を実行する。
-  GitHub Projects V2 アクセス用の `project` スコープを追加する
-- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上 — pecot-w・pecot-v・pecot-t の実行に使う。脆弱性の修正を含まないバージョンでは起動しない
-
-### Claude Code
+## はじめる
 
 ```bash
 claude plugin marketplace add https://github.com/pecotcraft/pecot.git
-claude plugin install pecot-w@pecot
-claude plugin install pecot-v@pecot
-claude plugin install pecot-t@pecot
+claude plugin install pecot-w@pecot   # 開発の流れ
+claude plugin install pecot-v@pecot   # 図・スライド
+claude plugin install pecot-t@pecot   # AWS の調べもの
 ```
 
----
+要るものは、入れるプラグインで変わります。
+
+| 要るもの | 入れるプラグイン |
+|:--------|:--------------|
+| [Claude Code](https://claude.ai/code) 2.1.141 以上 | すべて |
+| Node.js 24.22.1 以上（24 系）か 26.12.1 以上 | すべて。これより古い版では起動しない |
+| [gh CLI](https://cli.github.com/)。`gh auth refresh -s project` で `project` スコープを足す | pecot-w |
+| [AWS CLI](https://aws.amazon.com/cli/) v2（2.22 以上） | pecot-t |
+
+## プラグイン
+
+<table>
+  <tr>
+    <th width="33%"><a href="plugins/pecot-workflow/README.md">pecot-w</a></th>
+    <th width="33%"><a href="plugins/pecot-visual/README.md">pecot-v</a></th>
+    <th width="33%"><a href="plugins/pecot-tools/README.md">pecot-t</a></th>
+  </tr>
+  <tr>
+    <td valign="top">GitHub Projects のボードと連動して、Issue の起票から実装・PR・マージ・リリースまでを進める。git worktree での並行作業に対応する</td>
+    <td valign="top">draw.io の構成図、Slidev のスライドと PPTX、スクリーンショットをまとめた作業エビデンスの xlsx を作る</td>
+    <td valign="top">許可リストで絞った awscli のコマンドを MCP ツールにする。Lambda・CloudWatch Logs・RDS・Athena・S3 などの参照と取得だけで、変更系は拒否する</td>
+  </tr>
+  <tr>
+    <td valign="top"><code>/pecot-w:w-quick</code><br><code>/pecot-w:w-pr</code><br><code>/pecot-w:w-merge</code></td>
+    <td valign="top"><code>/pecot-v:v-drawio</code><br><code>/pecot-v:v-slidev</code><br><code>/pecot-v:v-evidence</code></td>
+    <td valign="top"><code>aws_logs_filter_log_events</code><br><code>aws_athena_start_query_execution</code><br>ほか 26 ツール</td>
+  </tr>
+</table>
+
+スキル・エージェント・ツールの一覧は、各プラグインの README にあります。
+
+## 開発の流れ
+
+pecot-w では、ボードの列に沿ってスキルを呼ぶだけで、1 つのタスクが Issue からリリースまで進みます。
+
+```mermaid
+flowchart LR
+  quick["/pecot-w:w-quick<br>Issue・ブランチ・計画"] --> pr["/pecot-w:w-pr<br>PR を作る"]
+  active["/pecot-w:w-active<br>Ready から着手"] --> pr
+  pr --> revise["/pecot-w:w-revise<br>自己レビューと修正"]
+  revise --> merge["/pecot-w:w-merge<br>マージと後片付け"]
+  merge --> release["/pecot-w:w-release<br>リリース"]
+  classDef step fill:#2F8F83,stroke:#2F8F83,color:#ffffff
+  class quick,active,pr,revise,merge,release step
+```
+
+小さな修正なら、やりたいことを書いて呼ぶところから始めます。
+
+```text
+/pecot-w:w-quick ログイン画面で、エラーの文が英語のまま出るのを直す
+```
 
 ## 更新
-
-新しいバージョンを取り込むには、次のコマンドで更新してください。
-
-### Claude Code
 
 ```bash
 claude plugin update pecot-w@pecot
@@ -54,9 +86,7 @@ claude plugin update pecot-v@pecot
 claude plugin update pecot-t@pecot
 ```
 
-project スコープでインストールしている場合は `-s project` を付けてください。
-
----
+project スコープで入れている場合は `-s project` を付けてください。
 
 ## ライセンス
 
