@@ -20,7 +20,7 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 |:----|:------|:----|
 | 起票・計画 | `/pecot-w:w-backlog` | Epic を作成し Backlog に配置する |
 | 起票・計画 | `/pecot-w:w-breakdown` | Epic を speckit フロー（specify → clarify → plan → tasks）でサブタスクに分解する |
-| 起票・計画 | `/pecot-w:w-ready` | Epic 配下のサブタスクを 1 件作成し Ready に配置する |
+| 起票・計画 | `/pecot-w:w-ready` | Epic 配下のサブタスクを 1 件作成し、前提に応じて Ready か Blocked に配置する |
 | 起票・計画 | `/pecot-w:w-issueize` | 実装計画の各フェーズを Issue として一括登録する |
 | 実装 | `/pecot-w:w-active` | Ready のタスクを選択し、ブランチ作成から実装計画の作成まで進める |
 | 実装 | `/pecot-w:w-quick` | 小タスクの Issue 起票・ブランチ作成・実装計画の作成を一度に行う |
@@ -50,6 +50,17 @@ MCP サーバ `pecot-workflow` が、`pecot` CLI の 37 個のコマンドを MC
 ツール名は、`<対象> <動詞>` の空白を `_` に置き換えた形です（`issue create` は `issue_create`、`session start` は `session_start`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
 GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。
+
+Issue の前提（blocked by）と、前提の PR の上に積んだ PR は、次の 4 つのツールで扱います。スキルの手順からも呼ばれます。
+
+| ツール | 使う場面 |
+|:------|:--------|
+| `issue_block` / `issue_unblock` | 投稿した後の Issue の前提を付け外しする。前提の種類（積める・マージを待つ）を変える |
+| `pr_merge` | PR をマージする。積んだ PR は、下の段から順にだけマージできる |
+| `pr_restack` | 下の段が変わったとき、積んだブランチを新しい位置へ載せ直す |
+
+ボードの列（`Blocked`・`Ready` など）の読み方と、列を動かすものは、`/pecot-w:w-help` の「ボードステータス」にあります。
+積んで進める流れは、同じく「spec 駆動ワークフロー」にあります。
 
 ブラウザ操作用に Playwright の MCP サーバ `pecot-workflow-playwright` と、ライブラリのドキュメントを引く `context7` も登録します。
 ブラウザは、端末に入っている Google Chrome を使います。

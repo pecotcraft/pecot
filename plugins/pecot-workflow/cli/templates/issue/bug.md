@@ -2,12 +2,11 @@
 title: ""
 type: bug
 repository: ""
-status: ready
 priority: ""
 size: ""
 labels: []
 parent_epic: ""
-order: ""
+blocked_by: []
 ---
 
 <!--
@@ -20,8 +19,18 @@ order: ""
 フィールド:
 - repository: 起票先 `owner/repo` 必須
 - parent_epic: `owner/repo/number` 推奨。番号のみは aggregation_repo 解釈なので別リポの Epic を指すなら full path 必須
-- order: 親 Epic 内の通し番号。タイトル先頭が `#{epic}-NN`（`NN` は `order` を 2 桁に 0 で埋めたもの）で自動生成
-- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / order の判定基準）
+- blocked_by: この Issue の着手を止める前提の一覧。前提が無ければ `[]` のまま
+  - `issue` は、前提の Issue を指す `owner/repo/N`
+  - マージを待つ前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す
+  ```yaml
+  blocked_by:
+    - issue: acme/mytool/12
+    - issue: acme/mytool/13
+      wait: merge
+      reason: "action は、既定のブランチのプラグインを入れる。main に入るまで、確認ができない"
+  ```
+- order・status: 書かない。通し番号（タイトル先頭の `#{epic}-NN`）と置く列（前提があれば `Blocked`、無ければ `Ready`）は CLI が決める
+- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / blocked_by の判定基準）
 
 例:
 

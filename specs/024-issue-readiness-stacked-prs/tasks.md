@@ -402,22 +402,21 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ---
 
-## Phase 12: 文書と、このリポでの通し
+## Phase 12: 文書と、検証用のリポでの通し
 
-**Goal**: 利用者が、前提・着手の判定・積む運用を、配布する文書だけで使える。spec 023 の文書が、人の判断を待つ値の名前を `Needs Attention` と書いている。このリポで、スキルだけで Issue 化からマージまでが通る
+**Goal**: 利用者が、前提・着手の判定・積む運用を、配布する文書だけで使える。spec 023 の文書が、人の判断を待つ値の名前を `Needs Attention` と書いている。w-ready が、前提を付けてサブタスクを作れる
 
-**Independent Test**: quickstart.md の 11 を、このリポの Epic で通す。エージェントが base を選ばず、`gh stack` を打たず、マージの後に次に着手できる Issue を報告する
+**Independent Test**: quickstart.md の 1〜10 を、検証用のリポで通す。SC-001〜SC-016 の合否が PR に貼られている
 
 - [ ] T095 [P] `p-w/skills/w-help/references/spec-driven-workflow.md` に、積んで着手・PR・マージ・載せ直しの流れを足す（FR-045）
 - [ ] T096 [P] `p-w/skills/w-help/SKILL.md` と `p-w/README.md` に、新しい 4 つのコマンドと、列の読み方への案内を足す
 - [ ] T097 [P] `specs/023-label-triggered-autofix/` の文書の `Waiting` を `Needs Attention` に直す（FR-071）。直すのは値の名前だけで、ほかの文は変えない
-- [ ] T098 このリポの Epic を 1 つ選び、quickstart.md の 11 の 5 つの手順を、スキルだけで通す。対象の Epic は、前提の表に「マージを待つ」の行を 1 つ以上持つものにする
-- [ ] T099 T098 の通しで、エージェントが判断に迷った箇所を記録する。スキルの文か CLI の出力で直せるものは、このフェーズで直す
-- [ ] T100 quickstart.md の 1〜10 を検証用のリポで通し、spec.md の SC-001〜SC-016 に結果を付ける。結果は PR に貼る
+- [ ] T110 [P] `p-w/skills/w-ready/SKILL.md` が、先に終える Issue を `blocked_by` に書き、`dry_run: true` で確かめてから投稿する。`p-w/cli/templates/issue/task.md`・`bug.md` から `status`・`order` を外し、`blocked_by` を足す
+- [ ] T100 quickstart.md の 1〜10 を検証用のリポで通し、SC-001〜SC-016 の合否の表を PR に貼る。SC-003・SC-011 はスキルの通しが要るので、未判定と書く
 - [ ] T101 検証用のリポとボードを消すかを利用者に確かめ、同意があれば消す
 - [ ] T102 version plan を `.nx/version-plans/` に足す
 
-**Checkpoint**: この機能を、このリポの運用に使い始められる
+**Checkpoint**: 利用者が、配布する文書を読んで、この機能を使い始められる
 
 ---
 
@@ -468,7 +467,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 | 9 | 8 | 積める | マージが、スタックの読み取りを使う |
 | 10 | 8 | 積める | 載せ直しが、base の記録と下の段の PR を読む |
 | 11 | 5 | 積める | 前提の表を読む w-issueize と、表の形をそろえる |
-| 12 | 6 | マージを待つ | このリポでの通しは、main から読み込まれるプラグインで動かす |
+| 12 | 6 | マージを待つ | quickstart の 1〜10 を、全フェーズの入った main の CLI で通す |
 | 12 | 9 | マージを待つ | 同上 |
 | 12 | 10 | マージを待つ | 同上 |
 | 12 | 11 | マージを待つ | 同上 |
@@ -540,7 +539,7 @@ Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue
 | 5 | Phase 10 | 下の段が変わっても、上の段を保てる |
 | 6 | Phase 6 | 計画が変わったときに、前提を直せる |
 | 7 | Phase 11 | 前提の読み違いが、表の形で防がれる |
-| 8 | Phase 12 | このリポの運用に使い始められる |
+| 8 | Phase 12 | 文書を読んで使い始められる。w-ready でも前提を付けられる |
 | 9 | Phase 13 | 拾えなかったずれの列と札が、`pecot board sync` で直る |
 
 ### 人の作業が要るところ
@@ -549,7 +548,6 @@ Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue
 |---|---|
 | T001 | 検証用のリポとボードを作ることへの同意 |
 | T027 | このリポのボードに値を足した後の、画面での確認 |
-| T098 | 通しに使う Epic の選択 |
 | T101 | 検証用のリポとボードを消すことへの同意 |
 
 ### ほかの Epic との順番

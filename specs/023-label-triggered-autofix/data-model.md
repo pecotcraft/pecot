@@ -98,16 +98,16 @@ Todo ──(PR の連携: 既定の自動化)──> In Progress ──(クロ�
  │  ▲                                  │  ▲
  │  └──(start: PR が無い)              │  └──(start: PR がある)
  ▼                                     ▼
-Waiting <──(finish: question・failed・limit)──
+Needs Attention <──(finish: question・failed・limit)──
 ```
 
 | 書く時点 | 書くコマンド | 前の値 | 後の値 |
 |---|---|---|---|
-| 人の対応を待って終わる | `pecot auto finish` | Todo または In Progress | Waiting |
-| 起動し直す。PR が無い | `pecot auto start` | Waiting | Todo |
-| 起動し直す。PR がある | `pecot auto start` | Waiting | In Progress |
+| 人の対応を待って終わる | `pecot auto finish` | Todo または In Progress | Needs Attention |
+| 起動し直す。PR が無い | `pecot auto start` | Needs Attention | Todo |
+| 起動し直す。PR がある | `pecot auto start` | Needs Attention | In Progress |
 
-前の値が Waiting でなければ、`start` は何も書かない。
+前の値が Needs Attention でなければ、`start` は何も書かない。
 
 ## 結果のコメント
 

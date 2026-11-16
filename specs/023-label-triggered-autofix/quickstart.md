@@ -16,7 +16,7 @@
 ## 導入（US5）
 
 ```bash
-pecot project init                       # 既定の Status に Waiting を足す
+pecot project init                       # 既定の Status に Needs Attention を足す
 pecot auto install --ci-workflow "ci"    # 雛形を書き出し、起動ラベルを作る
 pecot auto doctor                        # 設定がそろっているかを確かめる
 ```
@@ -24,7 +24,7 @@ pecot auto doctor                        # 設定がそろっているかを確�
 | 操作 | 期待 |
 |---|---|
 | `pecot project init` を 2 回打つ | 2 回目は何も足さない。カードに入っている Todo・In Progress・Done の値が消えていない |
-| ボードを開く | 既定の Status の選択肢に、赤の Waiting がある |
+| ボードを開く | 既定の Status の選択肢に、赤の Needs Attention がある |
 | `pecot auto install` を `--ci-workflow` なしで打つ | 終了コード 2。`.github/workflows/` にある CI の名前の候補が出る |
 | `pecot auto install --ci-workflow "ci"` を打つ | `.github/workflows/pecot-auto.yml` ができる。次にすることが順に出る |
 | secret を登録する前に `pecot auto doctor` を打つ | 終了コード 1。足りない secret の名前が出る |
@@ -79,15 +79,15 @@ pecot auto doctor                        # 設定がそろっているかを確�
 |---|---|---|
 | 起動ラベルを付ける前 | Ready | Todo |
 | 着手した後 | Active | Todo |
-| 質問で止まった後 | Active | Waiting。同じ列のほかのカードと色が違う |
+| 質問で止まった後 | Active | Needs Attention。同じ列のほかのカードと色が違う |
 | 起動し直した直後 | Active | Todo |
 | PR ができた後 | In Review | In Progress |
-| CI を直す上限で止まった後 | In Review | Waiting |
+| CI を直す上限で止まった後 | In Review | Needs Attention |
 
 | 操作 | 期待 |
 |---|---|
 | App の権限から Projects を外して起動する | 修正が始まらない。足りない設定の結果のコメントが Issue に付く |
-| 既定の Status から Waiting を消して、質問で止まる Issue を起動する | 結果のコメントに、足りない設定が書かれる。進行の欄は Active のままだ |
+| 既定の Status から Needs Attention を消して、質問で止まる Issue を起動する | 結果のコメントに、足りない設定が書かれる。進行の欄は Active のままだ |
 
 ## CI の修正（US1 の続き）
 
@@ -97,7 +97,7 @@ pecot auto doctor                        # 設定がそろっているかを確�
 |---|---|
 | 起動ラベルを付け、PR の CI が落ちるまで待つ | `workflow_run` で run が起き、同じブランチに直しのコミットが載る。Issue に、直して push したという結果のコメントが付く |
 | CI が通る | CI が通ったという結果のコメントが付く。エージェントは起きない |
-| `PECOT_AUTO_MAX_CI_ATTEMPTS` を 1 にして、直しても落ちる状況を作る | 2 回目は直さない。落ちているチェックを書いた上限の結果のコメントが付き、札が Waiting になる。PR は残る |
+| `PECOT_AUTO_MAX_CI_ATTEMPTS` を 1 にして、直しても落ちる状況を作る | 2 回目は直さない。落ちているチェックを書いた上限の結果のコメントが付き、札が Needs Attention になる。PR は残る |
 | 自動処理のブランチに、人がコミットを push して CI を落とす | 人のコミットが上書きされない |
 
 ## 手元で動かすテスト

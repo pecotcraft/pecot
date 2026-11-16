@@ -105,7 +105,7 @@ aggregation_repo が同じ場合のみ意図通り動く。
 | スキル | テンプレート | 用途 |
 |--------|-------------|------|
 | `/pecot-w:w-backlog` | `epic.md` | Epic を 1 件作成し Backlog 配置 |
-| `/pecot-w:w-ready` | `task.md` / `bug.md` | Epic または Tracker 配下のサブタスクを 1 件作成し Ready 配置 |
+| `/pecot-w:w-ready` | `task.md` / `bug.md` | Epic または Tracker 配下のサブタスクを 1 件作成し、前提に応じて Ready か Blocked に配置 |
 | `/pecot-w:w-issueize` | `task-implement.md`（または `task.md`） | 計画ファイル（speckit の tasks.md 等）の各フェーズを一括 Issue 化 |
 | `/pecot-w:w-quick` | `task.md` / `bug.md` | ユーザー指示が来た直後に小タスクを Issue 化 + ブランチ作成まで一気に進める |
 
@@ -130,6 +130,7 @@ CLI が生成した prepared file を見れば、AI は判定基準に辿り着�
 
 計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
 既定は task/bug=ready、epic=backlog、tracker=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
+task/bug のファイルに `blocked_by` があれば、既定は blocked になる。テンプレは `status` を持たず、置く列を CLI に任せる。
 これらは未着手の置き場であり、着手時に `session start` がボード Status を active に設定する。
 
 `issue create` の `freeform` も、task/bug を型の既定の status で起票する。

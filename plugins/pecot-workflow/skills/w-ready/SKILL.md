@@ -1,15 +1,16 @@
 ---
 name: w-ready
 description: |
-  EpicまたはTrackerのサブタスクを1件作成しReadyに配置します。
-  Use when the user wants to create a single subtask Issue under an existing Epic or Tracker in Ready status. Planning-only — no code, no branches. Picked up later with w-active.
+  EpicまたはTrackerのサブタスクを1件作成し、前提に応じてReadyかBlockedに配置します。
+  Use when the user wants to create a single subtask Issue under an existing Epic or Tracker, with its prerequisites (placed in Ready, or in Blocked while a prerequisite is pending). Planning-only — no code, no branches. Picked up later with w-active.
   Do NOT use for batch creation (use w-issueize), Epics (use w-backlog), or immediate implementation (use w-quick).
-when_to_use: "Epic または Tracker の次のサブタスクを 1 件作りたい、Ready に積みたい"
+when_to_use: "Epic または Tracker の次のサブタスクを 1 件作りたい、前提を付けてボードに積みたい"
 ---
 
-# 作業準備：サブタスクIssueを作成してReadyに配置
+# 作業準備：サブタスクIssueを作成して、Ready か Blocked に配置
 
-Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録してReadyに置く。
+Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録する。
+先に終える Issue があれば前提（`blocked_by`）に書く。置く列は CLI が決め、前提が済んでいなければ `Blocked`、そのほかは `Ready` に入る。
 親が Tracker（security alert など）のときは、GAP の代わりに一覧の行から1件を選んで計画する。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
 
 ## 手順
@@ -39,11 +40,22 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 **計画の流れ:**
 
 1. Epic の AS-IS・TO-BE・GAP を読み取り、「次にやるべきこと」をAIが判断する
-2. 既存サブタスク一覧を確認してorder番号の続番を決める
-3. サブタスク1件分のタイトル・概要・ゴールを具体的に策定する
+2. サブタスク1件分のタイトル・概要・ゴールを具体的に策定する
+3. 前提を決める。Epic の開いたサブタスクとほかの Issue から、このサブタスクより先に終える Issue を選ぶ
 
->
-> **orderについて**: `order` は親Epicに紐づくサブタスクの段。枝つきの既存番号（`NNa`）は段 NN として数え、続番は最大の段 + 1 にする。w-ready は枝を付けない。タイトルに `[Task] #353-01: タスク名` 形式のプレフィックスが自動生成される。`parent_epic` を指定する場合は `order`（1以上の整数）が必須。
+前提は `blocked_by` に書く。1 つの前提が 1 要素で、`issue` に `owner/repo/N` を書く。
+種類は、[Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md) の「前提（`blocked_by`）と種類」で決める。
+
+| 種類 | 当たるとき | 書き方 |
+|---|---|---|
+| 積める | 前提の変更が手元のブランチの下にあれば、実装と確認ができる | `wait` を書かない |
+| マージを待つ | 前提の変更が開発ブランチに入っていないと、実装か確認ができない | `wait: merge` と、待つ理由の 1 文の `reason` |
+
+- 前提が無ければ、`blocked_by` は `[]` のままにする
+- 前提か種類を決められないときは、候補の Issue と迷う理由を地の文で示し、ユーザーに確かめる
+- 新しいサブタスクを、既存の Issue の前提にしたいときは、投稿の後に pecot-workflow の MCP ツール `issue_block` で付ける。既存の Issue のファイルを作り直さない
+
+タイトルの番号（`[Task] #353-03: タスク名`）は、CLI が既存のサブタスクの最大の次から振る。`order`・`status` は書かない。
 
 ### Step 4: サブタスクIssueを1件作成
 
@@ -61,12 +73,18 @@ pecot-workflow の MCP ツール `issue_create` を使って、テンプレー�
 - バグ修正: `template: "bug"`
 
 できたファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
-`title`（必須）と `parent_epic`（必須）を設定する。`repository` は `repo` で設定済み。
+`title`（必須）と `parent_epic`（必須）を設定し、Step 3 の前提を `blocked_by` に書く。`repository` は `repo` で設定済み。
 
 `parent_epic` は full path `owner/repo/N` を推奨。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。
 
-ファイルを編集したら、`issue_create` を使って投稿する。
+投稿の前に、`issue_create` を使って、投稿せずに番号・前提・置く列を確かめる（`dry_run: true`）。
+結果の番号・前提・置く列を、地の文でユーザーに示す。前提が Step 3 で決めたものと食い違えば、ファイルを直してもう一度確かめる。
+
+確かめたら、同じファイルで `issue_create` を使って投稿する（`dry_run` なし）。
 
 ### Step 5: 完了報告
 
-作成したIssue番号・タイトルと、タスクで何を実現するかを1段落で報告する。実装を始めるには `/pecot-w:w-active` を使うよう案内する。
+作成したIssue番号・タイトルと、タスクで何を実現するかを1段落で報告する。あわせて、置いた列を伝える。
+
+- `Ready` に置いたとき: 実装を始めるには `/pecot-w:w-active` を使うよう案内する
+- `Blocked` に置いたとき: 待つ前提の Issue と種類を伝える。積める前提は PR が出たとき、マージを待つ前提はマージされたときに、`Ready` に移る

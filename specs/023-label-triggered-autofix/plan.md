@@ -13,7 +13,7 @@ action は pecot-workflow のプラグインを入れ、新しいスキル `w-au
 PR の CI が落ちると、`workflow_run` で別の run が起き、上限の回数まで直す。
 「必ず起きること」は CLI に寄せる。新しい `pecot auto` の 5 つのコマンドが、判定・結果のコメント・待ちの値・起動ラベルを扱う。
 ボードの進行の欄は、今の CLI のとおりに動く。着手で Active、PR の作成で In Review になる。
-人の対応を待って止まった Issue は、既定の Status に足す待ちの値（`Waiting`）で示す。
+人の対応を待って止まった Issue は、既定の Status に足す待ちの値（`Needs Attention`）で示す。
 GitHub のトークンは、利用者が作る GitHub App の 1 本を使う。ボードの更新と、PR の CI の自動起動を満たす。
 導入は、w-onboarding の流れから `pecot auto install` と `pecot auto doctor` で進める。
 

@@ -53,7 +53,7 @@
 | secret `PECOT_AUTO_APP_PRIVATE_KEY` がある | `missing: secret PECOT_AUTO_APP_PRIVATE_KEY` |
 | secret `ANTHROPIC_API_KEY` がある | `missing: secret ANTHROPIC_API_KEY` |
 | 設定に `fields.status` がある | `missing: project config fields.status` |
-| 既定の Status に待ちの値がある | `missing: Status option Waiting` |
+| 既定の Status に待ちの値がある | `missing: Status option Needs Attention` |
 | 既定の自動化が有効 | `disabled: project workflow <名前>` |
 | 雛形の CI のワークフローの名前が実在する | `missing: workflow named <名前>` |
 
@@ -98,9 +98,9 @@ stdout に出すもの:
 | `pr` | 既にある PR |
 
 - Issue がボードに無ければ、進行の欄を Ready にしてボードに載せる。既存の `pecot add-to-project` と同じ処理を使う
-- 既定の Status が Waiting なら、PR の有無で Todo か In Progress に戻す
+- 既定の Status が Needs Attention なら、PR の有無で Todo か In Progress に戻す
 - 書き込み権限の無い人のコメントは、数だけを出し、本文を出さない
-- Issue がボードにあり、既定の Status が Waiting でなければ、何も書かない。この場合は冪等だ
+- Issue がボードにあり、既定の Status が Needs Attention でなければ、何も書かない。この場合は冪等だ
 
 ## `pecot auto finish`
 
@@ -117,7 +117,7 @@ stdout に出すもの:
 
 | 条件 | 振る舞い |
 |---|---|
-| 結果が `question`・`failed`・`limit` | 結果のコメントを書き、既定の Status を Waiting にし、起動ラベルを外す |
+| 結果が `question`・`failed`・`limit` | 結果のコメントを書き、既定の Status を Needs Attention にし、起動ラベルを外す |
 | 結果が `pr-created`・`out-of-scope`・`setup-missing` | 結果のコメントを書き、起動ラベルを外す。既定の Status は書かない |
 | 結果が `ci-passed`・`ci-fix-pushed` | 結果のコメントを書く |
 | `--ensure` で、同じ run の結果のコメントがある | 何も書かない。起動ラベルが残っていれば外す |
