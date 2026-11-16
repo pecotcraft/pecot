@@ -132,7 +132,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - 対象は、tasks の「`pr_merge` を確認にかける」項目を持つ Issue
   - この Epic で ask を撤廃したので、項目を外してほしいと書く
   - 済: 該当の #383 は閉じていたので、コメントは出さず、PR の本文に書いた
-- [ ] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
+- [x] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
 
 ---
 
