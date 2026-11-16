@@ -22,15 +22,12 @@
 
 ### 動作環境
 
-| ソフトウェア | 用途 |
-|:-----------|:----|
-| [Claude Code](https://claude.ai/code) | プラグインを読み込んで実行します |
-| [Node.js](https://nodejs.org/ja) | プラグインの実行に使用します。初回の実行時に、必要なパッケージを自動で取得します |
-| [Git](https://git-scm.com/) | ブランチと worktree の操作に使用します |
-| [GitHub CLI](https://cli.github.com/) | Issue、PR、GitHub Projects のボードの操作に使用します |
+以下のソフトウェアがインストール・設定されている必要があります。
 
-GitHub CLI は、`gh auth login` で認証したあと、`gh auth refresh -s project` を実行して `project` スコープを追加してください。
-ボードの操作にはこのスコープが必要です。
+- [Claude Code](https://claude.ai/code)
+- [Node.js](https://nodejs.org/ja)
+- [Git](https://git-scm.com/)
+- [GitHub CLI](https://cli.github.com/)（`gh auth refresh -s project` で `project` スコープを追加済み）
 
 ### インストール手順
 
