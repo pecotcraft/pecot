@@ -1,24 +1,21 @@
-<div align="center">
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-wordmark-dark.svg">
+    <img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" width="240">
+  </picture>
+</h1>
 
-# pecot
+<p align="center">Claude Code のためのプラグインマーケットプレイス</p>
 
-</div>
-
-<!-- markdownlint-disable MD013 -->
-![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
-<!-- markdownlint-enable MD013 -->
-
-Claude Code 向けのプラグインのマーケットプレイスです。
 Agent Plugins 1.0 に対応したエージェントにも、今後対応していく予定です。
 以下の 3 プラグインを配布しています。
 
-| プラグイン | 正式名 | 内容 | 詳細 |
-|:----------|:------|:----|:----|
-| **pecot-w** | pecot-workflow | GitHub Projects V2 と連携した開発ワークフローの自動化。Issue 起票・実装・PR・リリースの各段階をスキルとして提供し、git worktree による並行開発に対応する | [plugins/pecot-workflow/README.md](plugins/pecot-workflow/README.md) |
-| **pecot-v** | pecot-visual | 図表・スライドの作成。draw.io 構成図の生成、Slidev プレゼンテーションの作成と PPTX 変換、スクリーンショットからの作業エビデンス xlsx 生成 | [plugins/pecot-visual/README.md](plugins/pecot-visual/README.md) |
-| **pecot-t** | pecot-tools | 許可リストで限定した awscli コマンドを MCP ツールとして提供する。SSO 認証・参照系（Lambda / CloudWatch Logs / CloudWatch メトリクス / RDS / EC2 / ECR / EventBridge Scheduler）・Athena・S3 取得の 26 ツールを MCP サーバ `pecot-tools` として公開する | [plugins/pecot-tools/README.md](plugins/pecot-tools/README.md) |
+| プラグイン | 内容 |
+|:----------|:----|
+| [**pecot-w**](plugins/pecot-workflow/README.md) | GitHub Projects V2 と連携した開発ワークフローの自動化。Issue 起票・実装・PR・リリースの各段階をスキルとして提供し、git worktree による並行開発に対応する |
+| [**pecot-v**](plugins/pecot-visual/README.md) | 図表・スライドの作成。draw.io 構成図の生成、Slidev プレゼンテーションの作成と PPTX 変換、スクリーンショットからの作業エビデンス xlsx 生成 |
+| [**pecot-t**](plugins/pecot-tools/README.md) | 許可リストで限定した awscli コマンドを MCP ツールとして提供する。SSO 認証・参照系（Lambda / CloudWatch Logs / CloudWatch メトリクス / RDS / EC2 / ECR / EventBridge Scheduler）・Athena・S3 取得の 26 ツールを MCP サーバ `pecot-tools` として公開する |
 
-導入・更新・スキルの呼び出し（`/pecot-w:w-pr` など）には短い名前（pecot-w / pecot-v / pecot-t）を使います。
 スキルとエージェントの一覧は各プラグインの README に記載しています。
 
 ---
