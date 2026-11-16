@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "deleted: remote branch feat/7 in acme/demo\nwarning: could not delete remote branch wip/feat/7 in acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo/git/refs/heads/wip/feat/7 Not Found\n",
+  "stderr": "deleted: remote branch feat/7 in acme/demo\n",
   "exitCode": 0,
   "requests": [
     {
@@ -14,13 +14,6 @@
       "type": "rest",
       "method": "DELETE",
       "path": "/repos/acme/demo/git/refs/heads/feat/7",
-      "query": {},
-      "auth": "token"
-    },
-    {
-      "type": "rest",
-      "method": "DELETE",
-      "path": "/repos/acme/demo/git/refs/heads/wip/feat/7",
       "query": {},
       "auth": "token"
     }

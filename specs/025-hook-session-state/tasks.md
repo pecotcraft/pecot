@@ -146,54 +146,56 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: Phase 2（同じスクリプトを触る）
 
-- [ ] T020 [US2] 期待を書き換え、落ちることを確かめる。契約の「変更の後」を期待する
+- [x] T020 [US2] 期待を書き換え、落ちることを確かめる。契約の「変更の後」を期待する
   - `tests/hooks/lib/hooks-definitions.test.ts`
   - `tests/hooks/lib/session-start-features.test.ts`
   - `tests/hooks/lib/user-prompt-submit-features.test.ts`
   - `tests/hooks/lib/integration.test.ts`
-- [ ] T021 [US2] 2 つの定義ファイルから、エントリを外す
+- [x] T021 [US2] 2 つの定義ファイルから、エントリを外す
   - PreToolUse の Edit 系・WebSearch
   - PostToolUse の Skill・Bash
   - Stop と Notification
-- [ ] T022 [US2] `hooks.json` が直に呼ぶスクリプトを、`p-w/hooks/` から消す
+- [x] T022 [US2] `hooks.json` が直に呼ぶスクリプトを、`p-w/hooks/` から消す
   - `pre-tool-use.sh`・`pre-tool-use-websearch.sh`
   - `post-tool-use-skill.sh`・`post-tool-use-bash.sh`
   - `stop.sh`・`stop-copilot.sh`・`notification.sh`
-- [ ] T023 [US2] サブスクリプトを消す（1）
+- [x] T023 [US2] サブスクリプトを消す（1）
   - `lib/notification/` と `lib/stop/`
   - `lib/pre-tool-use/` の `pecot-issue-pending-reminder.sh`・`pecot-skill-compliance.sh`・`websearch-allow.sh`
   - `lib/post-tool-use/` の `auto-push.sh`・`bash-post-match.sh`・`commit-info-display.sh`・`pecot-skill-reminder.sh`
-- [ ] T024 [US2] サブスクリプトを消す（2）
+- [x] T024 [US2] サブスクリプトを消す（2）
   - `lib/user-prompt-submit/` の `pecot-issue-pending-state.sh`・`workflow-compliance-injector.sh`
   - `lib/session-start/` の `gitignore-track-notice.sh`・`issue-pending-cleanup.sh`・`plugin-update-notice.sh`
   - `lib/session-start/` の `session-project-dir.sh`・`vscode-workspace-detector.sh`
   - `lib/core/` の `branch-guard.sh`・`git-checkout-check.sh`
-- [ ] T025 [US2] 消したものの呼び出しを外す
+- [x] T025 [US2] 消したものの呼び出しを外す
   - `p-w/hooks/pre-tool-use-skill.sh`（`.pecot` の初期化だけを残す）
   - `p-w/hooks/user-prompt-submit.sh`（初期化の検出だけを残す）
   - `lib/session-start-common.sh`
   - `lib/adapters/claude-bash-guards.sh`（`git-checkout-check` の段）
-- [ ] T026 [US2] `lib/core/mcp-guidance.sh` から、リマインドの案内の関数を消す。使わなくなった `p-w/hooks/templates/` のファイルも消す
-- [ ] T027 [P] [US2] CLI から、消した状態の扱いを除く
+- [x] T026 [US2] `lib/core/mcp-guidance.sh` から、リマインドの案内の関数を消す。使わなくなった `p-w/hooks/templates/` のファイルも消す
+  - 2 ファイルとも `exit-plan-remind.sh` が読むので、消すものは無かった（#463）
+- [x] T027 [P] [US2] CLI から、消した状態の扱いを除く
   - `src/domain/state.ts` の `FLAG_ISSUE_PENDING`・`FLAG_WIP_BRANCH_LINKED`
   - `src/commands/issue-create.ts`・`issue-quick.ts` の `consumeFlag`
   - `src/commands/pr.ts` の片付けの対象
   - `src/commands/repository.ts` の `wip/` ブランチの連動の削除
-- [ ] T028 [US2] 消したもののテストを消す。`tests/hooks/` を、消したスクリプトの名前で洗う
+  - 実物は `issue-create.ts` と `state-store.ts` の `consumeFlag`、`branch.ts`・`session-finish.ts` の `wip/` の削除だった（#463）
+- [x] T028 [US2] 消したもののテストを消す。`tests/hooks/` を、消したスクリプトの名前で洗う
   - `pre-tool-use.test.ts`・`pre-tool-use-websearch.test.ts`
   - `post-tool-use-pecot-skill-reminder.test.ts`・`pre-tool-use-pecot-issue-pending-reminder.test.ts`
   - `stop-misplaced-pecot-notice.test.ts`・`session-start-issue-pending-cleanup.test.ts`
   - `user-prompt-submit-pecot-issue-pending-state.test.ts`
   - `lib/auto-push.test.ts`・`lib/branch-guard.test.ts`・`lib/bash-post-match.test.ts`
   - `lib/notification-entries.test.ts`・`lib/gitignore-track-notice.test.ts`・`lib/plugin-update-notice.test.ts`
-- [ ] T029 [US2] 残りの設定キーを、sample と `p-w/hooks/README.md` から除く。残るキーの数を PR に書く
+- [x] T029 [US2] 残りの設定キーを、sample と `p-w/hooks/README.md` から除く。残るキーの数を PR に書く
   - 対象は、`SPEC/research.md` の R1 で「消す」としたキーのうち、Phase 2 で消していないもの
-- [ ] T030 [US2] `tests/hooks/lib/hooks-config-disable.test.ts` にテストを足す。撤廃したキーが残る設定でも、エラーにならない（FR-023）
-- [ ] T031 [US2] 文書から、撤廃した注意と自動 push の記述を除く
+- [x] T030 [US2] `tests/hooks/lib/hooks-config-disable.test.ts` にテストを足す。撤廃したキーが残る設定でも、エラーにならない（FR-023）
+- [x] T031 [US2] 文書から、撤廃した注意と自動 push の記述を除く
   - `p-w/skills/w-help/` の SKILL.md と参照
   - `p-w/README.md` と `p-w/hooks/README.md`
-- [ ] T032 [US2] `p-w/interface/authored.yaml` から、`issue-pending`・`.wip-branch-linked` を消す記述を除く。`generated.json` を書き出し直す
-- [ ] T033 [US2] `SPEC/quickstart.md` の 2 の 3 番を実機で確かめ、結果を PR に貼る
+- [x] T032 [US2] `p-w/interface/authored.yaml` から、`issue-pending`・`.wip-branch-linked` を消す記述を除く。`generated.json` を書き出し直す
+- [x] T033 [US2] `SPEC/quickstart.md` の 2 の 3 番を実機で確かめ、結果を PR に貼る
 
 ---
 

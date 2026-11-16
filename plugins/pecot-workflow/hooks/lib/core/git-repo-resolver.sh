@@ -6,27 +6,19 @@
 # 使用方法は次のとおり。
 # core の 1 つ上のディレクトリからは、`source "${SCRIPT_DIR%/*}/core/git-repo-resolver.sh"` で読み込む。
 # core 内からは、`source "${SCRIPT_DIR}/git-repo-resolver.sh"` で読み込む。
-# 解決は `_resolve_repo_dir "$COMMAND"` で行う。
-# 続けて `_git log -1` のように書くと、REPO_DIR が設定されていれば -C を自動付与する。
 #
 # 解決優先順位は次のとおり。
 #   Priority 1: git -C <path>（コマンド内のどこにあっても検出）。
 #   Priority 2: cd <path> チェインコマンド（cd /path && git commit 等）。
 #   Priority 3: HOOK_TOOL_CWD（ツール呼び出し時点のCWD。アダプタが渡す）。
-#   Priority 4: 呼び出し側で異なる（下記 2 系統）。
-#
-# Priority 4 の 2 系統は次のとおり。
-#   _resolve_repo_dir は、P1〜P3 で解決できなければ pwd を使う。
-#   _resolve_repo_dir_with_session_default は、P1〜P3 の後に HOOK_WORKING_DIR、最後に pwd を使う。
-#   後者は、セッション起点を既定に持つガード用で、git-worktree-branch-check と git-checkout-check が使う。
+#   Priority 4: HOOK_WORKING_DIR、最後に pwd。
 #
 # 提供変数は REPO_DIR で、解決されたリポジトリパスを持つ（未解決時は空文字）。
 #
 # 提供関数は次のとおり。
-#   _resolve_repo_dir は、P1〜P3 → pwd の順で解決する。
 #   _resolve_repo_dir_with_session_default は、P1〜P3 → HOOK_WORKING_DIR → pwd の順で解決する。
+#   git-worktree-branch-check が使う。
 #   _resolve_repo_dir_explicit は、明示された指定のみで解決する（P1〜P3）。
-#   _git は、REPO_DIR を考慮した git ラッパー。
 
 REPO_DIR=""
 
@@ -79,23 +71,6 @@ _resolve_repo_dir_explicit() {
     fi
 }
 
-# git コマンドからリポジトリパスを解決し REPO_DIR を設定
-# （Priority 1〜3 → pwd）
-# @param $1 command  git コマンド文字列。
-_resolve_repo_dir() {
-    _resolve_repo_dir_explicit "$1"
-    if [ -n "$REPO_DIR" ]; then
-        return
-    fi
-
-    # Priority 4: pwd（フックプロセスのCWD）。
-    local current_pwd
-    current_pwd="$(pwd)"
-    if [ "$current_pwd" != "/" ] && git -C "$current_pwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        REPO_DIR="$current_pwd"
-    fi
-}
-
 # git コマンドからリポジトリパスを解決し、REPO_DIR を設定する。
 # 解決順は、Priority 1〜3 → HOOK_WORKING_DIR → pwd。
 # 対象が特定できないときの既定をセッション起点に置くガード向け。
@@ -110,14 +85,5 @@ _resolve_repo_dir_with_session_default() {
         REPO_DIR="${HOOK_WORKING_DIR}"
     else
         REPO_DIR="$(pwd)"
-    fi
-}
-
-# REPO_DIR が設定されていれば -C を付与して git を実行。
-_git() {
-    if [ -n "$REPO_DIR" ]; then
-        git -C "$REPO_DIR" "$@"
-    else
-        git "$@"
     fi
 }

@@ -79,20 +79,7 @@ export function runHookEntry(hookCase: HookCase, entry: string, payload: unknown
 
 const SOURCE_HOOK_INPUT_THEN_EXEC = 'source "$(dirname "$1")/../core/hook-input.sh" && pecot_hook_input_load "$2" && exec bash "$1"'
 
-// pecot_export_project_root を無効にして起動する。CLAUDE_PROJECT_DIR はテストが用意した値のままにするため。
-const SOURCE_POST_MATCH_THEN_EXEC = [
-  'PECOT_PROJECT_ROOT_LAZY=1; ',
-  'source "$(dirname "$1")/../core/project-root.sh" "$2" && ',
-  'pecot_export_project_root() { :; } && ',
-  'source "$(dirname "$1")/bash-post-match.sh" "$2" && exec bash "$1"',
-].join('')
-
 // サブスクリプトを hook-input.sh を source してから起動する。JSON は argv で渡す。
 export function runHookScript(hookCase: HookCase, script: string, json: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   return runShell(hookCase, SOURCE_HOOK_INPUT_THEN_EXEC, [script, json], options)
-}
-
-// PostToolUse(Bash) のサブスクリプトを、エントリと同じ前段で起動する。JSON は argv で渡す。
-export function runPostScript(hookCase: HookCase, script: string, json: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
-  return runShell(hookCase, SOURCE_POST_MATCH_THEN_EXEC, [script, json], options)
 }

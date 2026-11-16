@@ -140,12 +140,11 @@ describe('issue', () => {
     expect(result.stderr).toBe('dry-run: would create Issue in acme/demo: [Task] 一覧に 状態を 出す\n')
   })
 
-  it('issue create の freeform に dry_run を渡すと、.pecot-quick-mode を立てず、pending のフラグを残す', async (context) => {
+  it('issue create の freeform に dry_run を渡すと、.pecot-quick-mode を立てない', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-71')
-    const pending = { [`${STATE}/issue-pending`]: '' }
-    const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')], { files: pending })
+    const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')])
     expect(result.code).toBe(0)
-    expect(Object.keys(snapshot(result.directory, STATE))).toEqual(['issue-pending'])
+    expect(Object.keys(snapshot(result.directory, STATE))).toEqual([])
     expect(result.read(`${STATE}/.pecot-quick-mode`)).toBeUndefined()
   })
 

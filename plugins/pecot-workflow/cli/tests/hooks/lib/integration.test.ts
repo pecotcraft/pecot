@@ -1,17 +1,19 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // エントリ sh 経由の統合テスト。pre-tool-use-bash.sh を通して、コアスクリプトの deny・許可・警告の挙動を確かめる。
 // Copilot CLI も同じエントリを通る。
-import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createHookCase } from '../_helpers/environment.js'
+import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitRepository } from '../_helpers/git.js'
-import { coreDirectory } from '../_helpers/paths.js'
+import { toArray, toRecord } from '../_helpers/json.js'
+import { coreDirectory, pluginRoot } from '../_helpers/paths.js'
 import { run, runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
+import { parseJson } from '../_helpers/text.js'
 
 const ENTRY = 'pre-tool-use-bash.sh'
 
@@ -230,5 +232,99 @@ describe('統合: エントリ', () => {
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')
     expect(result.stdout).toContain('protected branch')
+  })
+})
+
+// 両方の hooks.json から、hook 入力の event と matcher で選んだエントリを流す（spec 025 US2 の Independent Test）。
+const DEFINITION_FILES = ['hooks/hooks.json', 'com.github.copilot/hooks/hooks.json']
+const ENTRY_FILE = /\/hooks\/(?<file>[\w.-]+\.sh)$/u
+// 撤廃の前の版が残した状態のファイル。読む側が無いので害が無い（FR-023 と同じ考え）。
+const LEGACY_STATE_FILES = ['issue-pending', '.wip-branch-linked', '.auto-push-urls']
+// .pecot の初期化（変えない振る舞い）が書く印。先に置き、新しいファイルの判定から外す。
+const SYNC_MARKER = '.plugin-sync-version'
+
+// key（ツール名・source・通知の種類）が matcher に入るエントリのファイル名を返す。
+function selectedEntries(definitionFile: string, event: string, key: string): string[] {
+  const text = readFileSync(path.join(pluginRoot, definitionFile), 'utf8')
+  const hooks = toRecord(toRecord(parseJson(text), definitionFile)['hooks'], 'hooks')
+  const entries = toArray(Reflect.get(hooks, event) ?? [], event)
+  return entries.flatMap((value) => {
+    const entry = toRecord(value, 'entry')
+    const matcher = entry['matcher']
+    if (typeof matcher === 'string' && !matcher.split('|').includes(key)) return []
+    return toArray(entry['hooks'], 'hooks').map((hook) => {
+      const file = ENTRY_FILE.exec(String(toRecord(hook, 'hook')['command']))?.groups?.['file']
+      if (file === undefined) throw new Error(`command が hooks/<file>.sh を指していない: ${definitionFile}`)
+      return file
+    })
+  })
+}
+
+interface HookInput {
+  readonly label: string
+  readonly event: string
+  readonly key: string
+  readonly payload: Readonly<Record<string, unknown>>
+  // エントリが残るイベントか。撤廃したものは、どちらの定義でも空になる
+  readonly hasEntries: boolean
+}
+
+const HOOK_INPUTS: readonly HookInput[] = [
+  { label: 'UserPromptSubmit（/pecot-w:w-quick）', event: 'UserPromptSubmit', key: '', payload: { prompt: '/pecot-w:w-quick README の誤字を直す' }, hasEntries: true },
+  { label: 'SessionStart', event: 'SessionStart', key: 'startup', payload: { source: 'startup' }, hasEntries: true },
+  { label: 'Stop', event: 'Stop', key: '', payload: { stop_hook_active: false }, hasEntries: false },
+  { label: 'Notification', event: 'Notification', key: 'permission_prompt', payload: { notification_type: 'permission_prompt', message: 'm' }, hasEntries: false },
+  { label: 'Pre の Skill', event: 'PreToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' } }, hasEntries: true },
+  { label: 'Pre の Edit', event: 'PreToolUse', key: 'Edit', payload: { tool_name: 'Edit', tool_input: { file_path: 'README.md', old_string: 'a', new_string: 'b' } }, hasEntries: false },
+  { label: 'Pre の Bash（git checkout）', event: 'PreToolUse', key: 'Bash', payload: { tool_name: 'Bash', tool_input: { command: 'git checkout -b feat/x' } }, hasEntries: true },
+  { label: 'Post の Skill', event: 'PostToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' }, tool_response: { success: true } }, hasEntries: false },
+  {
+    label: 'Post の Bash（commit）',
+    event: 'PostToolUse',
+    key: 'Bash',
+    payload: { tool_name: 'Bash', tool_input: { command: 'git commit -m x' }, tool_response: { stdout: '[feat/x abc1234] x\n 1 file changed', stderr: '', interrupted: false } },
+    hasEntries: false,
+  },
+]
+
+// 古い状態のファイルと、untracked のファイルを持つリポを作る。
+function setUpLegacyRepository(hookCase: HookCase): string {
+  const repository = gitRepository(hookCase, 'legacy')
+  const state = path.join(repository, '.pecot', 'state')
+  mkdirSync(state, { recursive: true })
+  for (const file of [...LEGACY_STATE_FILES, SYNC_MARKER]) writeFileSync(path.join(state, file), 'w-quick\n')
+  writeFileSync(path.join(repository, 'untracked.txt'), 'x\n')
+  hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
+  hookCase.setEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
+  hooksConfig(hookCase).write({})
+  return repository
+}
+
+// SessionStart はセッション名だけを返してよい。
+function allowedKeys(event: string): string[] {
+  return event === 'SessionStart' ? ['hookEventName', 'sessionTitle'] : []
+}
+
+describe('統合: 撤廃したリマインダーと自動 push', () => {
+  it.for(HOOK_INPUTS)('$label を両方の定義のエントリに流すとき、文脈を足さず、状態のファイルを作らない', (row) => {
+    const hookCase = createHookCase()
+    const repository = setUpLegacyRepository(hookCase)
+    const state = path.join(repository, '.pecot', 'state')
+    const before = new Set(readdirSync(state))
+    const payload = { hook_event_name: row.event, cwd: repository, session_id: 's', transcript_path: '/t/s.jsonl', ...row.payload }
+    for (const definitionFile of DEFINITION_FILES) {
+      const entries = selectedEntries(definitionFile, row.event, row.key)
+      expect(entries.length > 0, `${definitionFile} のエントリの有無`).toBe(row.hasEntries)
+      for (const entry of entries) {
+        const result = runHookEntry(hookCase, entry, payload, { cwd: repository })
+        expect(result.exitCode, `${definitionFile} ${entry}`).toBe(0)
+        expect(result.stdout, `${definitionFile} ${entry}`).not.toContain('additionalContext')
+        if (result.stdout.trim() === '') continue
+        const output = toRecord(parseJson(result.stdout), entry)
+        expect(Object.keys(output), `${definitionFile} ${entry}`).toEqual(allowedKeys(row.event).length > 0 ? ['hookSpecificOutput'] : [])
+        expect(Object.keys(toRecord(output['hookSpecificOutput'], 'hookSpecificOutput'))).toEqual(allowedKeys(row.event))
+      }
+    }
+    expect(readdirSync(state).filter(file => !before.has(file))).toEqual([])
   })
 })

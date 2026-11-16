@@ -22,10 +22,6 @@ const FALLBACK_PATTERN = /\$\{CLAUDE_PROJECT_DIR:?-[^}]/u
 
 const CWD_TOPLEVEL_PATTERN = /\bgit\b(?:(?!\s-C\b)[^|;&])+?\brev-parse\s+--show-toplevel\b/u
 
-const LAZY_VARIABLE = 'PECOT_PROJECT_ROOT_LAZY'
-// toplevel の解決を遅らせてよいエントリは PostToolUse(Bash) の 1 本だけ。
-const LAZY_ENTRIES: ReadonlySet<string> = new Set(['post-tool-use-bash.sh'])
-
 function readLines(relative: string): string[] {
   return splitLines(readFileSync(path.join(hooksDirectory, relative), 'utf8'))
 }
@@ -38,8 +34,8 @@ function offendingLines(relative: string, pattern: Readonly<RegExp>): string[] {
 
 describe('hooks の基準ディレクトリの規約', () => {
   it('エントリポイントと lib のスクリプトを下限以上の数で列挙できる', () => {
-    expect(entryPoints.length).toBeGreaterThanOrEqual(13)
-    expect(libraryScripts.length).toBeGreaterThanOrEqual(40)
+    expect(entryPoints.length).toBeGreaterThanOrEqual(6)
+    expect(libraryScripts.length).toBeGreaterThanOrEqual(20)
   })
 
   it.for(entryPoints.map(label => ({ label })))('$label は、INPUT=$(cat) の直後に入力 JSON を引数にして project-root.sh を source する', (row) => {
@@ -84,19 +80,5 @@ describe('hooks の基準ディレクトリの規約', () => {
     expect(CWD_TOPLEVEL_PATTERN.test('git -C "$dir" rev-parse --show-toplevel 2>/dev/null')).toBe(false)
     expect(CWD_TOPLEVEL_PATTERN.test('cd "$d" && git -C . rev-parse --show-toplevel')).toBe(false)
     expect(CWD_TOPLEVEL_PATTERN.test('git rev-parse --git-dir')).toBe(false)
-  })
-
-  it.for(entryPoints.map(label => ({ label })))('$label は、project-root の解決を遅らせてよいエントリである場合に限り、遅らせる', (row) => {
-    const isUsesLazy = readLines(row.label).some(line => line.trimStart().startsWith(`${LAZY_VARIABLE}=`))
-    expect(isUsesLazy, `${row.label}: ${LAZY_VARIABLE} で project-root の解決を遅らせてよいのは ${JSON.stringify([...LAZY_ENTRIES])} だけです`).toBe(LAZY_ENTRIES.has(row.label))
-  })
-
-  it('post-tool-use-bash.sh は、一致の判定の後で、一致しなければ exit する', () => {
-    const lines = readLines('post-tool-use-bash.sh').map(line => line.trim())
-    const match = lines.findIndex(line => line.includes('bash-post-match.sh') && line.includes('source'))
-    const guard = lines.indexOf('[ -z "$PECOT_POST_MATCHED" ] && exit 0')
-    expect(match).toBeGreaterThanOrEqual(0)
-    expect(guard).toBeGreaterThanOrEqual(0)
-    expect(match, '一致判定の後で、一致しなければ exit する形にしてください').toBeLessThan(guard)
   })
 })

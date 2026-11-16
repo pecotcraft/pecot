@@ -20,7 +20,7 @@ import type { IssueFrontmatter } from '../domain/frontmatter.js'
 import { findBatchDuplicate, planOrders } from '../domain/issue-order.js'
 import type { OrderRequest } from '../domain/issue-order.js'
 import { upsertWaitsForMerge } from '../domain/prerequisites.js'
-import { FLAG_ISSUE_PENDING, FLAG_PECOT_QUICK_MODE } from '../domain/state.js'
+import { FLAG_PECOT_QUICK_MODE } from '../domain/state.js'
 import { compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
 import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
@@ -31,7 +31,7 @@ import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/er
 import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { OutputPathReservationError, normalizePath, outputDirectory, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { consumeFlag, touchFlag } from '../infra/state-store.js'
+import { touchFlag } from '../infra/state-store.js'
 import { templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { CommandExit, defineCommand } from './command-definition.js'
@@ -305,7 +305,6 @@ async function postIssue(output: CreateOutput, client: GitHubClient, config: Pro
   recordIssue(output, session, entry, false)
   const target = `Issue ${issuePath(owner, repository, number)}`
   const reference = createIssueReference(createRepositoryReference(owner, repository), number)
-  consumeFlag(FLAG_ISSUE_PENDING)
 
   // 応答に node_id が無いときだけ、ボードへの追加の結果から取るので、先にボードへ足す
   let added: BoardItem | undefined

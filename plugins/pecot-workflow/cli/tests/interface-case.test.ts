@@ -44,7 +44,7 @@ const CREATED = (number: number): ReturnType<typeof restResponse> => restRespons
 
 describe('interface-case の準備', () => {
   it('設定・git・偽サーバ・偽のタイマーを組み合わせて、コマンドを runCli で動かせる', async () => {
-    const project = setUpProject({ files: { '.pecot/state/issue-pending': '1' } })
+    const project = setUpProject({ files: { '.pecot/state/.pecot-base': '1' } })
     const repository = enterGitRepository()
     const github = await startGithub([CREATED(11), CREATED(12)])
     useFakeDelays()
@@ -53,7 +53,7 @@ describe('interface-case の準備', () => {
 
     expect(result).toEqual({ code: 0, stdout: 'acme main 11 12\n', stderr: '' })
     expect(process.cwd()).toBe(repository)
-    expect(existsSync(path.join(project.root, '.pecot/state/issue-pending'))).toBe(true)
+    expect(existsSync(path.join(project.root, '.pecot/state/.pecot-base'))).toBe(true)
     expect(github.requests().map(request => request.type === 'rest' ? request.body : undefined)).toEqual([
       { title: 'one', body: '' },
       { title: 'two', body: '' },

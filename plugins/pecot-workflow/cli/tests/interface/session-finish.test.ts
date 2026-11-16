@@ -34,8 +34,8 @@ function closeRule(number: number, status = 200): ReturnType<typeof rest> {
   return rest('PATCH', `/repos/acme/demo/issues/${String(number)}`, status, status === 200 ? { number, state: 'closed' } : { message: 'Server Error' })
 }
 
-function deleteRule(branch: string, status = 204, message?: string): ReturnType<typeof rest> {
-  return rest('DELETE', `/repos/acme/demo/git/refs/heads/${branch}`, status, message === undefined ? undefined : { message })
+function deleteRule(status = 204, message?: string): ReturnType<typeof rest> {
+  return rest('DELETE', `/repos/acme/demo/git/refs/heads/${BRANCH}`, status, message === undefined ? undefined : { message })
 }
 
 // number の Issue を待つ Issue（blocking）の読み取り
@@ -53,7 +53,7 @@ function mergedRules(sample: Readonly<PullRequestSample> = {}, extra: ResponseRu
   return [graphql(MERGED, pullRequestData(sample)), ...extra]
 }
 
-const ALL_FLAGS = ['.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked']
+const ALL_FLAGS = ['.pecot-base', '.pecot-session-title', '.pecot-quick-mode']
 
 function flagFiles(): Record<string, string> {
   return Object.fromEntries(ALL_FLAGS.map(name => [stateFile(name), 'x\n']))
@@ -163,17 +163,10 @@ describe('session finish', () => {
 
   it('--delete-branch を付けて打つと、リモートの head ブランチを削除する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-04')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
     const result = await workspace.run([...CLEANUP, '--delete-branch', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
-    expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }, { path: `/repos/acme/demo/git/refs/heads/wip/${BRANCH}` }])
-  })
-
-  it('リモートの head ブランチを削除すると、続けて wip/<head> を削除する', async (context) => {
-    await verifies(context, 'PW-SESSION-FINISH-05')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(lines(result.stderr).slice(-2)).toStrictEqual([`deleted: remote branch ${BRANCH}`, `deleted: remote branch wip/${BRANCH}`])
+    expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }])
   })
 
   it('カレントのリポジトリが PR のリポジトリと同じで worktree の外だと、develop_branch のブランチに切り替える', async (context) => {
@@ -239,9 +232,9 @@ describe('session finish', () => {
   it('ローカルの片付けを終えると、フラグのファイルを消す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-09')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true])
     await workspace.run(CLEANUP)
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false])
   })
 
   it('--skip-local-cleanup を付けて打つと、ローカルの片付けをしない', async (context) => {
@@ -258,7 +251,7 @@ describe('session finish', () => {
     await verifies(context, 'PW-SESSION-FINISH-11')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true])
   })
 
   it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async (context) => {
@@ -296,14 +289,14 @@ describe('session finish', () => {
 
   it('ブランチを削除すると、deleted の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-15')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.stderr).toContain(`deleted: remote branch ${BRANCH}\n`)
   })
 
   it('リモートの head ブランチが既に無いと、unchanged の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-16')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH, 422, 'Reference does not exist'), deleteRule(`wip/${BRANCH}`)]) })
+    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(422, 'Reference does not exist')]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
     expect(result.stderr).toContain(`unchanged: remote branch ${BRANCH} (already deleted)\n`)
@@ -322,7 +315,7 @@ describe('session finish', () => {
     await verifies(context, 'PW-SESSION-FINISH-13')
     await verifies(context, 'PW-SESSION-FINISH-14')
     await verifies(context, 'PW-SESSION-FINISH-15')
-    const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+    const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
     const result = await workspace.run([...CLEANUP, '-d'])
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
@@ -330,7 +323,6 @@ describe('session finish', () => {
       'count: Issues to close: 1',
       'closed: Issue #12',
       `deleted: remote branch ${BRANCH}`,
-      `deleted: remote branch wip/${BRANCH}`,
       'set: current branch to main',
       'updated: main from origin/main',
       `deleted: local branch ${BRANCH}`,
@@ -382,7 +374,7 @@ describe('session finish', () => {
 
   it('Issue の close に失敗したなら、ほかの Issue と後の処理を続ける', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-21')
-    const github = mergedRules({ closing: [[10, 'a']] }, [kindRule(10), closeRule(10, 500), ...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)])
+    const github = mergedRules({ closing: [[10, 'a']] }, [kindRule(10), closeRule(10, 500), ...closedRules(12), deleteRule()])
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -390,9 +382,9 @@ describe('session finish', () => {
     expect(result.stderr).toContain(`deleted: remote branch ${BRANCH}\n`)
   })
 
-  it('リモートの head ブランチの削除に失敗したなら、wip/<head> の削除を飛ばす', async (context) => {
-    await verifies(context, 'PW-SESSION-FINISH-22')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH, 403, 'Forbidden'), deleteRule(`wip/${BRANCH}`)]) })
+  it('リモートの head ブランチの削除に失敗したなら、warning の行を標準エラーに出し、終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-39')
+    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(403, 'Forbidden')]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
     expect(result.stderr).toContain(`warning: deleting remote branch ${BRANCH} failed: `)
@@ -457,23 +449,6 @@ describe('session finish', () => {
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('wip/<head> のリモートブランチが無いなら、何も出さない', async (context) => {
-    await verifies(context, 'PW-SESSION-FINISH-29')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`, 422, 'Reference does not exist')]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(restRequests(workspace, 'DELETE')).toHaveLength(2)
-    expect(result.stderr).not.toContain('wip/')
-  })
-
-  it('wip/<head> があるのに削除できなかったなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-SESSION-FINISH-30')
-    const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`, 403, 'Forbidden')]) })
-    const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain(`warning: deleting remote branch wip/${BRANCH} failed: `)
-  })
-
   describe('待っている Issue', () => {
     it('片付けると、閉じた Issue を待つ Issue の列を動かし、着手の跡がある Issue は動かさない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-31')
@@ -509,15 +484,15 @@ describe('session finish', () => {
 
     it('上に積んだ段があると、載せ直しを案内し、上の段のブランチを消す要求を送らない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-35')
-      const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)] })
+      const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
       expect(result.stderr).toContain(`warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}\n`)
-      expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }, { path: `/repos/acme/demo/git/refs/heads/wip/${BRANCH}` }])
+      expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }])
     })
 
     it('Issue を閉じた後、ブランチを消す前に、待つ Issue を読んで動かす', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-31')
-      const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)] })
+      const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
       const operations = operationsOf(workspace)
       expect(operations.indexOf('GetIssueBlockingReferences')).toBeGreaterThan(operations.indexOf('PATCH /repos/acme/demo/issues/12'))
@@ -542,12 +517,12 @@ describe('session finish', () => {
 
     it('前提にされていない Issue の PR では、待つ Issue の読み取りを 1 回だけ足し、出力を変えない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-34')
-      const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+      const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
       const result = await workspace.run([...CLEANUP, '-d'])
       expect(result).toStrictEqual({
         code: 0,
         stdout: '',
-        stderr: `count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch ${BRANCH}\ndeleted: remote branch wip/${BRANCH}\nset: current branch to main\nupdated: main from origin/main\ndeleted: local branch ${BRANCH}\n`,
+        stderr: `count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch ${BRANCH}\nset: current branch to main\nupdated: main from origin/main\ndeleted: local branch ${BRANCH}\n`,
       })
       expect(operationsOf(workspace).filter(operation => operation === 'GetIssueBlockingReferences')).toHaveLength(1)
     })
@@ -608,7 +583,7 @@ describe('session finish', () => {
     })
 
     it('ブランチの削除とローカルの片付けまで通すと、close した Issue・消したブランチ・切り替えた先を data に返す', async () => {
-      const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+      const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
 
       const outcome = await finishTool(workspace, { delete_branch: true })
 
@@ -616,7 +591,7 @@ describe('session finish', () => {
       expect(outcome.structured).toEqual({
         closedIssues: [12],
         skippedIssues: [],
-        deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: `wip/${BRANCH}`, location: 'remote' }, { branch: BRANCH, location: 'local' }],
+        deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: BRANCH, location: 'local' }],
         readinessChanges: [],
         restack: [],
         currentBranch: 'main',
@@ -650,7 +625,7 @@ describe('session finish', () => {
 
     it('リモートのブランチの削除と checkout が失敗すると、済んだ分と warning を data に返して続ける', async (context) => {
       await verifies(context, 'PW-COMMON-19')
-      const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules({}, [...closedRules(12), deleteRule(BRANCH, 403, 'Forbidden')]) })
+      const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules({}, [...closedRules(12), deleteRule(403, 'Forbidden')]) })
 
       const outcome = await finishTool(workspace, { delete_branch: true })
 

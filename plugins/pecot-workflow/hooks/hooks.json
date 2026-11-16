@@ -1,17 +1,7 @@
 {
-  "description": "pecot workflow automation hooks - session management, tool use guards, and notifications",
+  "description": "pecot workflow automation hooks - session management and tool use guards",
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use.sh",
-            "timeout": 10
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -31,39 +21,9 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "WebSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-websearch.sh",
-            "timeout": 10
-          }
-        ]
       }
     ],
     "PostToolUse": [
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-skill.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-bash.sh",
-            "timeout": 30
-          }
-        ]
-      },
       {
         "matcher": "ExitPlanMode",
         "hooks": [
@@ -102,29 +62,6 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/user-prompt-submit-title.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "permission_prompt|idle_prompt|elicitation_dialog",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/notification.sh",
             "timeout": 10
           }
         ]

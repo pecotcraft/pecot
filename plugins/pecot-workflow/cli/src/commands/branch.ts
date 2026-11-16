@@ -1,11 +1,10 @@
 // branch delete。Python の cli/commands/repo.py の delete_branch の移植。
 import { z } from 'zod'
 
-import { describeApiError } from '../domain/api-error-detail.js'
 import { findRepository } from '../domain/config.js'
 import { compareStrings } from '../domain/python-format.js'
 import { ReferenceParseError, parseRepositoryReference } from '../domain/reference-parser.js'
-import { GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
@@ -20,7 +19,6 @@ const BRANCH_DELETE_OUTPUT = z.strictObject({
   branch: z.string().describe('Name of the remote branch'),
   repository: z.string().describe('Repository of the branch (owner/repo)'),
   deleted: z.boolean().describe('Whether the remote branch was deleted (false on dry_run)'),
-  wipBranch: z.string().optional().describe('Name of the wip branch that was deleted along with it (omitted when there was none or it could not be deleted)'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -96,20 +94,6 @@ const branchDeleteCommand = defineCommand({
     }
     out.done(operation)
     out.result({ branch: input.branch, repository: `${owner}/${repository}`, deleted: true })
-
-    // wip ブランチも連動削除
-    const wipBranch = `wip/${input.branch}`
-    try {
-      await client.deleteBranch(owner, repository, wipBranch)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      // wip ブランチの削除の失敗だけは、API の応答の本文の詳細も見せる（Python の describe_api_error と同じ）。存在しない場合は何も出さない
-      if (!isMissingReferenceError(error)) out.warning(`could not delete remote branch ${wipBranch} in ${owner}/${repository}: ${describeApiError(error)}`)
-      return 0
-    }
-    out.done({ verb: 'delete', target: `remote branch ${wipBranch} in ${owner}/${repository}` })
-    out.result({ wipBranch })
     return 0
   },
 })

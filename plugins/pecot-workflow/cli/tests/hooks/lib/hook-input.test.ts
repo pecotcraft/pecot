@@ -20,7 +20,6 @@ const VARIABLES = [
   'PECOT_HOOK_CWD',
   'PECOT_HOOK_SESSION_ID',
   'PECOT_HOOK_TRANSCRIPT_PATH',
-  'PECOT_HOOK_FILE_PATH',
   'PECOT_HOOK_PLAN_PATH',
   'PECOT_HOOK_SKILL_NAME',
   'PECOT_HOOK_SOURCE',
@@ -61,20 +60,6 @@ describe('hook-input.sh', () => {
     expect(got.get('PECOT_HOOK_CWD')).toBe('/work/repo')
     expect(got.get('PECOT_HOOK_SESSION_ID')).toBe('s-1')
     expect(got.get('PECOT_HOOK_TRANSCRIPT_PATH')).toBe('/t/s-1.jsonl')
-    expect(got.get('PECOT_HOOK_FILE_PATH')).toBe('')
-  })
-
-  it.for([
-    // Claude の Read / Write / Edit
-    { label: 'file_path', toolInput: { file_path: '/a/b.py' }, expected: '/a/b.py' },
-    // NotebookEdit
-    { label: 'notebook_path', toolInput: { notebook_path: '/a/n.ipynb' }, expected: '/a/n.ipynb' },
-    // Copilot の Read / Edit
-    { label: 'path', toolInput: { path: '/a/c.py', old_str: 'x', new_str: 'y' }, expected: '/a/c.py' },
-  ])('tool_input の $label から、ファイルのパスを読む', (row) => {
-    const hookCase = createHookCase()
-    const got = load(hookCase, jsonDumps({ tool_name: 'Edit', tool_input: row.toolInput }))
-    expect(got.get('PECOT_HOOK_FILE_PATH')).toBe(row.expected)
   })
 
   it('Copilot の apply_patch のように tool_input がパッチ文字列でも、受け入れる', () => {
@@ -82,7 +67,6 @@ describe('hook-input.sh', () => {
     const got = load(hookCase, jsonDumps({ tool_name: 'Edit', tool_input: '*** Begin Patch\n*** End Patch', cwd: '/w' }))
     expect(got.get('PECOT_HOOK_TOOL_NAME')).toBe('Edit')
     expect(got.get('PECOT_HOOK_COMMAND')).toBe('')
-    expect(got.get('PECOT_HOOK_FILE_PATH')).toBe('')
     expect(got.get('PECOT_HOOK_CWD')).toBe('/w')
   })
 
@@ -131,7 +115,6 @@ describe('hook-input.sh', () => {
     expect(got.get('PECOT_HOOK_COMMAND')).toBe('')
     expect(got.get('PECOT_HOOK_CWD')).toBe('')
     expect(got.get('PECOT_HOOK_SESSION_ID')).toBe('')
-    expect(got.get('PECOT_HOOK_FILE_PATH')).toBe('/x')
     expect(got.get('PECOT_HOOK_SOURCE')).toBe('')
     expect(got.get('PECOT_HOOK_SESSION_TITLE')).toBe('')
   })

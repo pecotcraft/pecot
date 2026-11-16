@@ -26,14 +26,6 @@
 # この例外の判定が外れるのは、別リポの .pecot/work 配下・link 切れ・入れ子のリポのとき。
 # このとき、セッションの toplevel の解決と候補ループで、--show-toplevel が 2 回になる。
 #
-# 上書きする前の CLAUDE_PROJECT_DIR は、PECOT_ORIGINAL_CLAUDE_PROJECT_DIR に export する。
-# この値は Claude Code が渡す、セッション開始時から不変の値。
-# session-project-dir.sh が Bash から呼ぶ CLI 用に、この値の toplevel を書く。
-#
-# PECOT_PROJECT_ROOT_LAZY が空でなければ、source 時には入力の読み込みだけを行う。
-# toplevel の解決（git の呼び出し）は、呼び出し側が pecot_export_project_root を呼ぶまで遅らせる。
-# 条件に一致しない大半の入力で git を呼ばないための例外で、PostToolUse(Bash) のエントリだけが使う。
-# lib/post-tool-use/bash-post-match.sh が一致を判定してから解決する。
 # Usage: source "$SCRIPT_DIR/lib/core/project-root.sh" "$INPUT"
 
 _PECOT_PROJECT_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -93,7 +85,4 @@ pecot_export_project_root() {
 }
 
 pecot_hook_input_load "${1:-}"
-export PECOT_ORIGINAL_CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
-if [ -z "${PECOT_PROJECT_ROOT_LAZY:-}" ]; then
-    pecot_export_project_root
-fi
+pecot_export_project_root

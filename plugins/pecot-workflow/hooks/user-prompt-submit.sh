@@ -1,11 +1,8 @@
 #!/bin/bash
-# UserPromptSubmit hook: ユーザープロンプト送信時の注入
+# UserPromptSubmit hook: pecot のコマンドのプロンプトなら .pecot を初期化する。
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LIB_DIR="$SCRIPT_DIR/lib/user-prompt-submit"
 CORE_DIR="$SCRIPT_DIR/lib/core"
 INPUT=$(cat)
 source "$CORE_DIR/project-root.sh" "$INPUT"
 echo "$INPUT" | "$CORE_DIR/pecot-dir-init-detect.sh"
-echo "$INPUT" | "$LIB_DIR/workflow-compliance-injector.sh"
-echo "$INPUT" | "$LIB_DIR/pecot-issue-pending-state.sh"
 exit 0

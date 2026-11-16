@@ -12,13 +12,9 @@ import { codeLines } from './_helpers/script-references.js'
 // テストが名指しできない lib スクリプトは、別のスクリプトから呼ばれて動く。
 // キーは hooks.scripts の相対パス、値はそれを呼ぶスクリプト。呼ぶ側もテストが名指しするか、この表の別の行にある。
 const INDIRECT_SCRIPTS: Readonly<Record<string, readonly string[]>> = {
-  'hooks/lib/core/git-repo-resolver.sh': ['hooks/lib/core/git-checkout-check.sh', 'hooks/lib/core/git-worktree-branch-check.sh'],
+  'hooks/lib/core/git-repo-resolver.sh': ['hooks/lib/core/git-worktree-branch-check.sh'],
   'hooks/lib/core/pecot-dir-init-detect.sh': ['hooks/pre-tool-use-skill.sh', 'hooks/user-prompt-submit.sh'],
-  'hooks/lib/core/skill-name.sh': ['hooks/lib/core/pecot-dir-init-detect.sh', 'hooks/lib/post-tool-use/pecot-skill-reminder.sh', 'hooks/lib/pre-tool-use/pecot-skill-compliance.sh'],
-  'hooks/lib/notification/pty-bell-sender.sh': ['hooks/stop-copilot.sh'],
-  'hooks/lib/notification/terminal-bell.sh': ['hooks/notification.sh', 'hooks/stop.sh'],
-  'hooks/lib/pre-tool-use/pecot-skill-compliance.sh': ['hooks/pre-tool-use-skill.sh'],
-  'hooks/lib/pre-tool-use/websearch-allow.sh': ['hooks/pre-tool-use-websearch.sh'],
+  'hooks/lib/core/skill-name.sh': ['hooks/lib/core/pecot-dir-init-detect.sh'],
 }
 
 // hooks のスクリプトを起動せず、ファイルの中身を読むだけのテスト。名指しの走査から外す。

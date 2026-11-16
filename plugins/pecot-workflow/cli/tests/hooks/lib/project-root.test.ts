@@ -235,16 +235,3 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(other))
   })
 })
-
-describe('project-root.sh の元の値の退避', () => {
-  it('上書き前の CLAUDE_PROJECT_DIR を PECOT_ORIGINAL_CLAUDE_PROJECT_DIR に残す', () => {
-    const hookCase = createHookCase()
-    const origin = gitRepository(hookCase, 'origin-repo')
-    const other = gitRepository(hookCase, 'other-repo')
-    const result = runShell(hookCase, 'source "$1" "$2"; printf "%s|%s" "$CLAUDE_PROJECT_DIR" "$PECOT_ORIGINAL_CLAUDE_PROJECT_DIR"', [
-      PROJECT_ROOT_SH,
-      jsonDumps({ cwd: other }),
-    ], { cwd: other, env: { CLAUDE_PROJECT_DIR: origin } })
-    expect(result.stdout).toBe(`${real(other)}|${origin}`)
-  })
-})

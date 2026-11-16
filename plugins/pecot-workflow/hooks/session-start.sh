@@ -1,6 +1,6 @@
 #!/bin/bash
 # SessionStart: セッション開始時の処理。
-# - Git同期 + VSCodeワークスペース情報。
+# - .gitignore の補完・Git同期・セッション名。
 # Claude Code は startup|clear|resume|fork、Copilot CLI は matcher なしで new|resume のとき起動する。
 # 出力（素のテキスト）は、merge-hook-outputs.sh で JSON にする。
 # Copilot CLI は SessionStart で、トップレベルの additionalContext だけをモデルに渡す。

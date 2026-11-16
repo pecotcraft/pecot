@@ -8,7 +8,7 @@ import { ProjectRootNotFoundError } from '../domain/errors.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, workDirectoryName } from '../domain/state.js'
 import type { BaseReading, BaseRecord } from '../domain/state.js'
-import { OsError, hasErrorCode, isFileNotFound, isSystemCallError } from './os-error.js'
+import { OsError, hasErrorCode, isFileNotFound } from './os-error.js'
 import { projectRoot, STATE_DIR, WORK_DIR } from './paths.js'
 import { readTextFile } from './text-file.js'
 
@@ -66,22 +66,6 @@ export function removeFlag(flagName: string): void {
   }
   catch (error: unknown) {
     if (!isFileNotFound(error)) throw error
-  }
-}
-
-/**
-実投稿成功時に、起票未完了のフラグなど、投稿の完了で要らなくなるフラグを消費（削除）する。
-投稿自体は成功しているため、フラグ解決の失敗（git リポ外等）でコマンドを失敗させない
-*/
-export function consumeFlag(flagName: string): void {
-  try {
-    removeFlag(flagName)
-  }
-  catch (error: unknown) {
-    // 握るのは OS の失敗とプロジェクトルート不明だけ。投稿は成功しているので、後始末の失敗でコマンドを失敗させない。
-    // プログラムの誤り（TypeError など）は握らない
-    if (error instanceof ProjectRootNotFoundError || isSystemCallError(error)) return
-    throw error
   }
 }
 

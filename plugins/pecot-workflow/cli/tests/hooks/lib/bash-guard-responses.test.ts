@@ -2,7 +2,7 @@
 // PreToolUse の応答形式のテスト。
 // 拒否は permissionDecision の deny と permissionDecisionReason で返し、トップレベルの decision は使わない。
 // 承認を求める ask は返さない（spec 025 FR-001〜FR-008）。
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -56,10 +56,6 @@ function setUpProject(hookCase: HookCase): string {
   return repository
 }
 
-function setUpIssuePending(project: string): void {
-  writeFileSync(path.join(project, '.pecot', 'state', 'issue-pending'), 'w-quick\n')
-}
-
 function runBashEntry(hookCase: HookCase, client: string, command: string, project: string): RunResult {
   return runHookEntry(hookCase, 'pre-tool-use-bash.sh', bashPayload(client, command, project))
 }
@@ -92,7 +88,6 @@ function assertDecision(result: RunResult, decision: string, reasonContains: str
 
 function assertReminders(output: unknown): void {
   const context = getPath(output, ['hookSpecificOutput', 'additionalContext'])
-  expect(context).toEqual(containing('warning: Issue filing is not complete'))
   expect(context).toEqual(containing('/tmp/'))
 }
 
@@ -157,11 +152,10 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   })
 
   // 統合後のエントリは、リマインダーと判定が同時に当たっても判定が落ちない。判定の無いコマンドにはリマインダーだけを載せる。
-  // git switch は issue-pending のリマインダーの対象で、/tmp/... は tmp-path-warner の対象になる。
+  // リマインダーは、/tmp/... に当たる tmp-path-warner だけになる。
   it.for(CLIENTS)('$clientName の入力でリマインダーと gh pr merge が同時に当たるとき、判定を付けずにリマインダーだけを載せる', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
-    setUpIssuePending(project)
     const command = 'git switch feat/other; gh pr merge 999999 --body-file /tmp/note-1229'
     const result = runBashEntry(hookCase, row.client, command, project)
     const output = assertHookOutput(result)
@@ -172,7 +166,6 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   it.for(CLIENTS)('$clientName の入力でリマインダーと deny が同時に当たるとき、deny を落とさず両方を載せる', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
-    setUpIssuePending(project)
     const command = 'git switch feat/other; git commit --no-verify -F /tmp/note-1229'
     const result = runBashEntry(hookCase, row.client, command, project)
     expect(result.exitCode).toBe(0)
@@ -187,15 +180,6 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     expect(getPath(output, ['hookSpecificOutput', 'hookEventName'])).toBe('PreToolUse')
     expect(getPath(output, ['hookSpecificOutput', 'additionalContext'])).toEqual(containing('/tmp/'))
     expect(getPath(output, ['hookSpecificOutput', 'permissionDecision'])).toBeUndefined()
-  })
-
-  it.for(CLIENTS)('$clientName の入力で Issue 起票が済んでいないとき、Bash のエントリ経由でもリマインダーを届ける', (row) => {
-    const hookCase = createHookCase()
-    const project = setUpProject(hookCase)
-    setUpIssuePending(project)
-    const result = runBashEntry(hookCase, row.client, 'git switch feat/other', project)
-    const output = assertHookOutput(result)
-    expect(getPath(output, ['hookSpecificOutput', 'additionalContext'])).toEqual(containing('warning: Issue filing is not complete'))
   })
 
   it.for(CLIENTS)('$clientName の入力で判定とリマインダーのどちらにも当たらないとき、何も出力しない', (row) => {

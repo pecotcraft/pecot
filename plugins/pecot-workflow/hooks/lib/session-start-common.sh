@@ -34,11 +34,4 @@ if [ -n "$PROJECT_DIR" ] && [ -d "$PECOT_DIR" ]; then
     "${SCRIPT_DIR}/core/pecot-gitignore-ensure.sh" || true
 fi
 
-LIB_DIR="$SCRIPT_DIR/session-start"
-"$LIB_DIR/issue-pending-cleanup.sh"
-"$LIB_DIR/session-project-dir.sh"
-"$LIB_DIR/git-sync.sh"
-"$LIB_DIR/vscode-workspace-detector.sh"
-# gitignore-track-notice は ensure の後に追跡の有無を見るため、列の末尾側に置く。
-"$LIB_DIR/gitignore-track-notice.sh"
-"$LIB_DIR/plugin-update-notice.sh"
+"$SCRIPT_DIR/session-start/git-sync.sh"

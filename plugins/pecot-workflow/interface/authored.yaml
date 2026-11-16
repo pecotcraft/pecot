@@ -4,10 +4,8 @@ prose: ja
 environment:
   - name: PECOT_GITHUB_API_URL
     effect: 'GitHub API のリクエストを、本物のホストではなくこの URL に送ります。受け付けるのは `http://127.0.0.1` か `http://localhost` の URL だけです。ほかの値では、サブコマンドが動く前に終了コード 1 で止まります。`--version` と最上位の `--help` は例外で、先に終了コード 0 で終わります。空の値は無視します。'
-  - name: PECOT_SESSION_PROJECT_DIR
-    effect: '作業ディレクトリが `<値>/.pecot/work` の中にあると、git の toplevel ではなく `<値>` をプロジェクトのルートにします。途中に別の git リポジトリが挟まるときは使いません。`CLAUDE_PROJECT_DIR` があれば、そちらを先に使います。'
   - name: CLAUDE_PROJECT_DIR
-    effect: 'あれば、プロジェクトのルートにします。`PECOT_SESSION_PROJECT_DIR` と git の toplevel より先に使います。設定ファイル・アクティブなプロジェクトの設定・作業ディレクトリは、この下で探します。`pecot mcp` は、次の 3 つがそろうとこのディレクトリへ移ります。サーバがプラグインのディレクトリの中で起動されたこと、`COPILOT_SESSION_CWD` が無いこと、`COPILOT_PLUGIN_ROOT` が無いことです。`COPILOT_PLUGIN_ROOT` があるときは、この値を使いません。GitHub Copilot CLI を起動したシェルから引き継いだ値だからです。'
+    effect: 'あれば、プロジェクトのルートにします。git の toplevel より先に使います。設定ファイル・アクティブなプロジェクトの設定・作業ディレクトリは、この下で探します。`pecot mcp` は、次の 3 つがそろうとこのディレクトリへ移ります。サーバがプラグインのディレクトリの中で起動されたこと、`COPILOT_SESSION_CWD` が無いこと、`COPILOT_PLUGIN_ROOT` が無いことです。`COPILOT_PLUGIN_ROOT` があるときは、この値を使いません。GitHub Copilot CLI を起動したシェルから引き継いだ値だからです。'
   - name: CLAUDE_PLUGIN_ROOT
     effect: 'プラグインのディレクトリの場所です。`--version` が出す版は、この下の `.claude-plugin/plugin.json` から読みます。worktree のコマンドが動かすスクリプトも、この下で探します。`pecot mcp` では、作業ディレクトリがこのディレクトリか `PLUGIN_ROOT` のディレクトリの中にあるかどうかを見ます。中にあれば、ホストがサーバをセッションのディレクトリではなくプラグインのディレクトリで起動したとみなします。'
   - name: PLUGIN_ROOT
@@ -747,14 +745,10 @@ entries:
         - The repository to delete from is the repo argument (owner/repo).
         - The global pecot --repo is not used. The command only needs the working directory to be inside a git repository with a remote.
         - The default branch of the repository and the develop_branch and release_branch in the config file are protected and are never deleted.
-        - Also deletes the remote branch wip/<branch> when it exists.
-        - A wip/<branch> that does not exist is skipped without a message.
-        - A wip/<branch> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
         - --dry-run reads the default branch and checks the protected branches, then writes the plan line for the branch and deletes nothing.
-        - --dry-run does not plan the deletion of wip/<branch>.
       examples:
         - run: pecot branch delete example-org/my-repo feat/my-change/123
-          note: Delete the remote branch and its wip branch.
+          note: Delete the remote branch.
         - run: pecot branch delete example-org/my-repo feat/my-change/123 --dry-run
           note: Show the plan without deleting.
       default_notes: {}
@@ -769,11 +763,7 @@ entries:
       - '削除する先のリポジトリは、引数 `repo`（`owner/repo`）です。'
       - 'pecot 全体のオプション `--repo` は使いません。作業ディレクトリが、remote を持つ git のリポジトリの中にあれば足ります。'
       - 'リポジトリの既定ブランチと、設定ファイルの `develop_branch`・`release_branch` は保護していて、削除しません。'
-      - 'リモートブランチ `wip/<branch>` があれば、それも削除します。'
-      - '`wip/<branch>` が無いときは、何も出さずに飛ばします。'
-      - '`wip/<branch>` があるのに削除できないときは、`warning` を出し、終了コード 0 で終わります。'
       - '`--dry-run` を付けると、既定ブランチを読んで保護するブランチを確かめた後、ブランチの予定の行を書きます。何も削除しません。'
-      - '`--dry-run` は、`wip/<branch>` の削除を予定に入れません。'
     stdin: none
     output:
       format: none
@@ -782,9 +772,8 @@ entries:
         branch: '削除対象のリモートブランチの名前です。'
         repository: 'ブランチがあるリポジトリです。`owner/repo` の形です。'
         deleted: 'リモートブランチを削除したかどうかです。`dry_run` のときは、いつも `false` です。'
-        wipBranch: '一緒に削除した wip ブランチの名前です。wip ブランチが無いときと、削除できなかったときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も削除していません。'
-    diagnostics: '標準エラーに、削除したブランチごとの結果の行（`deleted`）を出します。`--dry-run` のときは、予定の行（`dry-run`）を出します。`wip/<branch>` を、無い以外の理由で削除できないときは、`warning` の行を出します。ブランチが保護されているときは、保護するブランチを並べた `error` の行を出します。ほかの失敗でも `error` の行を出します。'
+    diagnostics: '標準エラーに、削除したブランチごとの結果の行（`deleted`）を出します。`--dry-run` のときは、予定の行（`dry-run`）を出します。ブランチが保護されているときは、保護するブランチを並べた `error` の行を出します。ほかの失敗でも `error` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -820,14 +809,14 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '`wip/<branch>` の削除に失敗しても、ブランチそのものは削除されたままです。`wip/<branch>` が無い場合を除いて `warning` を書き、終了コード 0 で終わります。'
+    on_error: default
     effects:
       - target: github
         kind: read
         what: 'リポジトリの既定ブランチを読みます。'
       - target: github
         kind: destructive
-        what: 'リモートブランチを削除します。`wip/<branch>` があれば、それも削除します。'
+        what: 'リモートブランチを削除します。'
       - target: file
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
@@ -837,7 +826,7 @@ entries:
     idempotent: false
     examples:
       - run: pecot branch delete example-org/my-repo feat/my-change/123
-        note: 'リモートブランチと、その wip ブランチを削除します。'
+        note: 'リモートブランチを削除します。'
       - run: pecot branch delete example-org/my-repo feat/my-change/123 --dry-run
         note: '削除せずに、予定を出します。'
     default_notes: {}
@@ -845,30 +834,15 @@ entries:
       - id: PW-BRANCH-DELETE-01
         pattern: event
         statement: 'リポジトリとブランチ名を渡して打つと、そのリポジトリのリモートブランチを削除します'
-      - id: PW-BRANCH-DELETE-02
-        pattern: event
-        statement: '`wip/ブランチ名` のリモートブランチがあると、それも削除します'
       - id: PW-BRANCH-DELETE-03
         pattern: event
         statement: '`--dry-run` を付けて打つと、何も削除しません'
       - id: PW-BRANCH-DELETE-04
         pattern: event
         statement: 'ブランチを削除すると、`deleted` の行を標準エラーに出します'
-      - id: PW-BRANCH-DELETE-05
-        pattern: event
-        statement: '`wip/ブランチ名` を削除すると、`deleted` の行を標準エラーに出します'
       - id: PW-BRANCH-DELETE-06
         pattern: event
         statement: '`--dry-run` を付けて打つと、`dry-run` の行を標準エラーに出します'
-      - id: PW-BRANCH-DELETE-07
-        pattern: unwanted
-        statement: 'もし `wip/ブランチ名` のリモートブランチが無いなら、何も出しません'
-      - id: PW-BRANCH-DELETE-08
-        pattern: unwanted
-        statement: 'もし `wip/ブランチ名` があるのに削除できなかったなら、`warning` の行を標準エラーに出します'
-      - id: PW-BRANCH-DELETE-09
-        pattern: unwanted
-        statement: 'もし `wip/ブランチ名` を削除できなかったなら、終了コード 0 で終わります'
       - id: PW-BRANCH-DELETE-10
         pattern: unwanted
         statement: 'もし削除するブランチが既定ブランチ・`develop_branch`・`release_branch` のどれかなら、保護するブランチを並べた `error` の行を標準エラーに出します'
@@ -1502,7 +1476,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。`issue-pending` は、Issue を作るたびに消します。blocked-by を足せなかったときは、`warning` を書き、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、失敗した blocked-by を付け直すコマンドを書き、終了コード 1 で終わります。プロジェクトのボードに足せなかったときは、`warning` を書きます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`error` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、`error` を書き、何も作りません。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。失敗がボードへの追加だけのときは、終了コード 0 で終わります。'
+    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。blocked-by を足せなかったときは、`warning` を書き、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、失敗した blocked-by を付け直すコマンドを書き、終了コード 1 で終わります。プロジェクトのボードに足せなかったときは、`warning` を書きます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`error` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、`error` を書き、何も作りません。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。失敗がボードへの追加だけのときは、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: write
@@ -1512,7 +1486,7 @@ entries:
         what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。`--dry-run` のときは、読むだけです。'
       - target: file
         kind: write
-        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`.pecot/state/` の下のフラグ `issue-pending` を消します。`--freeform` で `epic` と `tracker` 以外をボードに入れると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
+        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`--freeform` で `epic` と `tracker` 以外をボードに入れると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -1724,7 +1698,7 @@ entries:
         statement: '`--freeform` に `--parent-epic` を付けて打つと、その Epic の sub-issue につなぎます。Epic に付けたときは、`warning` の行を標準エラーに出します'
       - id: PW-ISSUE-CREATE-64
         pattern: event
-        statement: '`--freeform` で `epic` と `tracker` 以外をボードに入れると、`.pecot/state/.pecot-quick-mode` を作ります。フラグ `issue-pending` は消します'
+        statement: '`--freeform` で `epic` と `tracker` 以外をボードに入れると、`.pecot/state/.pecot-quick-mode` を作ります'
       - id: PW-ISSUE-CREATE-65
         pattern: unwanted
         statement: 'もし `--freeform` でボードへの追加に失敗したなら、`warning` の行と作った Issue の URL を出し、欄の設定をせず、終了コード 0 で終わります'
@@ -1755,9 +1729,6 @@ entries:
       - id: PW-ISSUE-CREATE-74
         pattern: unwanted
         statement: 'もし `--freeform` でボードへの追加に失敗したなら、`.pecot/state/.pecot-quick-mode` を作りません'
-      - id: PW-ISSUE-CREATE-75
-        pattern: event
-        statement: '`--freeform` で Issue を作ると、その直後にフラグ `issue-pending` を消します。後の手順が失敗しても、フラグは残りません'
   PW-ISSUE-REOPEN:
     help:
       details:
@@ -5090,12 +5061,10 @@ entries:
         - "Prints the Issues whose readiness changed to standard output under the line Readiness changed:, one line per Issue such as - #13 stackable on #12 -> startable. The readiness before the merge is judged by treating the closed Issues and the PR as still open. Nothing is printed when no readiness changed."
         - When a waiting Issue of the stack kind has a branch or a PR, it is a layer stacked on this PR. Prints a warning that tells to restack its branch in its working directory, and never deletes that branch.
         - An Issue that is not on the board of the active project, or that is outside the columns Ready, Blocked, Active and In Review, is neither moved nor listed.
-        - With --delete-branch, deletes the remote head branch and then wip/<head>.
-        - A wip/<head> that does not exist is skipped without a message.
-        - A wip/<head> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
+        - With --delete-branch, deletes the remote head branch.
         - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
         - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
-        - After the local cleanup, removes the flags .pecot-base, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked under .pecot/state/. A leftover .pecot-active is not touched.
+        - After the local cleanup, removes the flags .pecot-base, .pecot-session-title and .pecot-quick-mode under .pecot/state/. A leftover .pecot-active is not touched.
         - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
         - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
         - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
@@ -5122,12 +5091,10 @@ entries:
       - '判定が変わった Issue を、標準出力の `Readiness changed:` の行の下に、1 件 1 行で出します。行は `- #13 stackable on #12 -> startable` の形です。マージ前の判定は、閉じた Issue と PR がまだ開いていたものとして出します。変わった Issue が無ければ、何も出しません。'
       - '待っている Issue のうち、種類が `stack` でブランチか PR を持つものは、この PR の上に積んだ段です。その作業ディレクトリでブランチを載せ直すよう `warning` で知らせます。そのブランチは削除しません。'
       - 'アクティブなプロジェクトのボードに無い Issue と、`Ready`・`Blocked`・`Active`・`In Review` の外の列の Issue は、動かさず、一覧にも出しません。'
-      - '`--delete-branch` を付けると、リモートの head ブランチを削除し、続けて `wip/<head>` を削除します。'
-      - '`wip/<head>` が無いときは、何も出さずに飛ばします。'
-      - '`wip/<head>` があるのに削除できないときは、`warning` を出し、終了コード 0 で終わります。'
+      - '`--delete-branch` を付けると、リモートの head ブランチを削除します。'
       - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`pecot worktree add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
-      - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title`・`.pecot-quick-mode`・`.wip-branch-linked` です。古い版の `.pecot-active` が残っていても触れません。'
+      - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title`・`.pecot-quick-mode` です。古い版の `.pecot-active` が残っていても触れません。'
       - '`--skip-local-cleanup` を付けると、ローカルを片付けず、これらのフラグも残します。'
       - '`--dry-run` を付けると、結果の行の代わりに `dry-run: would` の行を書き、何も変えません。'
       - '2 回目の実行の後の状態は 1 回目と同じですが、書く行は違います。リモートブランチは `unchanged` として知らせ、ローカルのブランチへの `git branch -D` は `warning` になります。'
@@ -5145,7 +5112,7 @@ entries:
         restack: 'この PR の上に積んだ段の配列です。要素は `issue` と、Issue につながるブランチがあれば `branch` を持ちます。その作業ディレクトリで載せ直しが要ります。無ければ空の配列です。'
         currentBranch: 'ローカルの後片付けのあとのブランチです。後片付けを飛ばしたときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`moved`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。`wip/<head>` があるのに削除できないときも含みます。ローカルの片付けを飛ばしたときも、`warning` の行を出します。上に積んだ段があるときと、待っている Issue の判定を確かめられないときも、`warning` の行を出します。'
+    diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`moved`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。ローカルの片付けを飛ばしたときも、`warning` の行を出します。上に積んだ段があるときと、待っている Issue の判定を確かめられないときも、`warning` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -5181,7 +5148,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'マージされていない PR はそのまま残し、何も変えません。Issue を閉じられなかったときは `warning` として扱い、ほかの Issue と後の手順を続けます。巻き戻しはしません。リモートの head ブランチの削除に失敗したときは、`wip/<head>` の削除を飛ばします。`wip/<head>` があるのに削除できないときは、`warning` を書いて後の手順を続けます。checkout に失敗したときは、pull とブランチの削除を飛ばし、フラグは消します。`warning` を出して飛ばした手順があっても、終了コード 0 で終わります。'
+    on_error: 'マージされていない PR はそのまま残し、何も変えません。Issue を閉じられなかったときは `warning` として扱い、ほかの Issue と後の手順を続けます。巻き戻しはしません。リモートの head ブランチの削除に失敗したときは、`warning` を書いて後の手順を続けます。checkout に失敗したときは、pull とブランチの削除を飛ばし、フラグは消します。`warning` を出して飛ばした手順があっても、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: read
@@ -5191,7 +5158,7 @@ entries:
         what: '関連する Issue を閉じます。'
       - target: github
         kind: destructive
-        what: 'リモートの head ブランチと `wip/<head>` を削除します。'
+        what: 'リモートの head ブランチを削除します。'
       - target: git
         kind: destructive
         what: '開発ブランチか、記録した `wtN`（記録が無ければ親ディレクトリの名前）のブランチを checkout して pull します。ローカルの head ブランチを `git branch -D` で削除します。'
@@ -5226,9 +5193,6 @@ entries:
       - id: PW-SESSION-FINISH-04
         pattern: event
         statement: '`--delete-branch` を付けて打つと、リモートの head ブランチを削除します'
-      - id: PW-SESSION-FINISH-05
-        pattern: event
-        statement: 'リモートの head ブランチを削除すると、続けて `wip/<head>` を削除します'
       - id: PW-SESSION-FINISH-06
         pattern: event
         statement: 'カレントのリポジトリが PR のリポジトリと同じだと、worktree の中なら worktree の `wtN` の、そうでなければ `develop_branch` のブランチに切り替えます。`wtN` は `worktree add` の記録で決め、記録が無ければ置き場所の親ディレクトリの名前で決めます'
@@ -5277,9 +5241,6 @@ entries:
       - id: PW-SESSION-FINISH-21
         pattern: unwanted
         statement: 'もし Issue の close に失敗したなら、ほかの Issue と後の処理を続けます'
-      - id: PW-SESSION-FINISH-22
-        pattern: unwanted
-        statement: 'もしリモートの head ブランチの削除に失敗したなら、`wip/<head>` の削除を飛ばします'
       - id: PW-SESSION-FINISH-23
         pattern: unwanted
         statement: 'もし checkout に失敗したなら、pull と `git branch -D` を飛ばします'
@@ -5298,12 +5259,6 @@ entries:
       - id: PW-SESSION-FINISH-28
         pattern: unwanted
         statement: 'もし PR の参照の形が誤っているなら、終了コード 2 で終わります'
-      - id: PW-SESSION-FINISH-29
-        pattern: unwanted
-        statement: 'もし `wip/<head>` のリモートブランチが無いなら、何も出しません'
-      - id: PW-SESSION-FINISH-30
-        pattern: unwanted
-        statement: 'もし `wip/<head>` があるのに削除できなかったなら、`warning` の行を標準エラーに出します'
       - id: PW-SESSION-FINISH-31
         pattern: event
         statement: 'Issue を閉じると、ブランチを消す前に、その Issue を待っている Issue の列と札を判定どおりに動かします'
@@ -5328,6 +5283,9 @@ entries:
       - id: PW-SESSION-FINISH-38
         pattern: event
         statement: 'base が開発ブランチでない PR を片付けると、その PR の Issue を閉じます'
+      - id: PW-SESSION-FINISH-39
+        pattern: unwanted
+        statement: 'もしリモートの head ブランチの削除に失敗したなら、`warning` の行を標準エラーに出し、終了コード 0 で終わります'
   PW-SESSION-SHOW:
     help:
       details:

@@ -976,10 +976,6 @@
               "type": "boolean",
               "description": "Whether the remote branch was deleted (false on dry_run)"
             },
-            "wipBranch": {
-              "description": "Name of the wip branch that was deleted along with it (omitted when there was none or it could not be deleted)",
-              "type": "string"
-            },
             "dryRun": {
               "description": "true on dry_run (nothing was changed)",
               "type": "boolean",

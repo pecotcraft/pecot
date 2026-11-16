@@ -30,10 +30,6 @@ function checkout(hookCase: HookCase, repository: string, branch: string): void 
   gitOrThrow(hookCase, repository, ['checkout', '-b', branch, '--quiet'])
 }
 
-function touch(file: string): void {
-  writeFileSync(file, '')
-}
-
 describe('git-no-verify-check.sh', () => {
   it.for(commandRows([
     'git commit --no-verify',
@@ -99,97 +95,6 @@ describe('git-no-verify-check.sh', () => {
   it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: undefined } })
-    expect(result.exitCode).toBe(2)
-  })
-})
-
-describe('git-checkout-check.sh', () => {
-  it('untracked ファイルがあるとき、警告を出す', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    touch(path.join(repository, 'untracked-file.txt'))
-    const result = runCore(hookCase, 'git-checkout-check.sh', {
-      cwd: repository,
-      env: { HOOK_COMMAND: 'git checkout main', HOOK_WORKING_DIR: repository },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('untracked')
-  })
-
-  it.for(commandRows(['git switch\tmain', 'git  checkout main', 'git\tcheckout\tmain', 'git switch  main']))(
-    'コマンドが $label のとき、タブや連続空白の区切りでも untracked を警告する',
-    (row) => {
-      const hookCase = createHookCase()
-      const repository = gitRepository(hookCase)
-      touch(path.join(repository, 'untracked-file.txt'))
-      const result = runCore(hookCase, 'git-checkout-check.sh', {
-        cwd: repository,
-        env: { HOOK_COMMAND: row.command, HOOK_WORKING_DIR: repository },
-      })
-      expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain('untracked')
-    },
-  )
-
-  it('untracked ファイルが無いとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    const result = runCore(hookCase, 'git-checkout-check.sh', {
-      cwd: repository,
-      env: { HOOK_COMMAND: 'git checkout main', HOOK_WORKING_DIR: repository },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
-
-  it('git checkout -b で新しいブランチを作るときも、untracked があれば警告を出す', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    touch(path.join(repository, 'untracked-file.txt'))
-    const result = runCore(hookCase, 'git-checkout-check.sh', {
-      cwd: repository,
-      env: { HOOK_COMMAND: 'git checkout -b new-branch', HOOK_WORKING_DIR: repository },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('untracked')
-  })
-
-  it('cd で別リポへ移ってから checkout するとき、cd 先の untracked を見る', () => {
-    const hookCase = createHookCase()
-    const primary = gitRepository(hookCase, 'primary')
-    const secondary = gitRepository(hookCase, 'secondary')
-    touch(path.join(secondary, 'untracked-file.txt'))
-    const result = runCore(hookCase, 'git-checkout-check.sh', {
-      cwd: primary,
-      env: { HOOK_COMMAND: `cd ${secondary} && git checkout main`, HOOK_WORKING_DIR: primary },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('untracked-file.txt')
-  })
-
-  it('HOOK_TOOL_CWD があるとき、HOOK_WORKING_DIR より優先して別リポの untracked を拾う', () => {
-    const hookCase = createHookCase()
-    const primary = gitRepository(hookCase, 'primary')
-    const secondary = gitRepository(hookCase, 'secondary')
-    touch(path.join(secondary, 'untracked-file.txt'))
-    const result = runCore(hookCase, 'git-checkout-check.sh', {
-      cwd: primary,
-      env: { HOOK_COMMAND: 'git checkout main', HOOK_TOOL_CWD: secondary, HOOK_WORKING_DIR: primary },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('untracked-file.txt')
-  })
-
-  it('checkout 以外のコマンドのとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const result = runCore(hookCase, 'git-checkout-check.sh', { env: { HOOK_COMMAND: 'git status' } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
-
-  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
-    const hookCase = createHookCase()
-    const result = runCore(hookCase, 'git-checkout-check.sh', { env: { HOOK_COMMAND: undefined } })
     expect(result.exitCode).toBe(2)
   })
 })
@@ -442,7 +347,6 @@ describe('git-worktree-branch-check.sh', () => {
     const pluginCore = path.join(pluginRoot, 'hooks', 'lib', 'core')
     mkdirSync(pluginCore, { recursive: true })
     for (const name of [
-      'git-checkout-check.sh',
       'gh-command-check.sh',
       'git-worktree-branch-check.sh',
       'git-no-verify-check.sh',

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Bash の pecot から MCP ツールへ移った後の案内文（source して使う）。
 # 各関数は文を stdout に出すだけ。hook_message の kind は呼ぶ側が付ける。
-# 読むのは gh-command-check.sh・git-worktree-branch-check.sh・pecot-issue-pending-reminder.sh。
+# 読むのは gh-command-check.sh・git-worktree-branch-check.sh。
 
 # gh-command-check.sh: gh pr create の阻止。
 mcp_guidance_gh_pr_create() {
@@ -50,40 +50,5 @@ EOF
 mcp_guidance_branch_delete() {
     cat <<'EOF'
 To delete a remote branch, use the MCP tool branch_delete of the workflow server with repo (owner/repo) and branch.
-EOF
-}
-
-# pecot-issue-pending-reminder.sh: w-quick 起点の起票リマインド。
-mcp_guidance_reminder_quick() {
-    cat <<'EOF'
-Issue filing is not complete.
-
-Complete Step 1 of w-quick before moving on.
-  Call the MCP tool issue_create with freeform: true, repo (owner/repo) and message (summary of the user instruction).
-
-This reminder disappears automatically once filing succeeds.
-EOF
-}
-
-# pecot-issue-pending-reminder.sh: w-ready 起点の起票リマインド。
-mcp_guidance_reminder_ready() {
-    cat <<'EOF'
-Subtask Issue filing is not complete.
-
-Complete Step 4 of w-ready before moving on.
-  1. Call the MCP tool issue_create with prepare: true, template: task, and repo (owner/repo)
-
-  2. Edit the file at the path in file of the result (set title / parent_epic; repository is already set by repo)
-
-  3. Call the MCP tool issue_create with files (the file path)
-
-This reminder disappears automatically once filing succeeds.
-EOF
-}
-
-# pecot-issue-pending-reminder.sh: 起点が分からないときの起票リマインド。
-mcp_guidance_reminder_other() {
-    cat <<'EOF'
-Issue filing is not complete. Call the MCP tool issue_create first.
 EOF
 }

@@ -13,7 +13,6 @@ import { makeTemporaryDirectory } from './temporary.js'
 // nx の入力を確かめる pytest が代入と数えるのは、変数名を文字列で書いた stubEnv の呼び出しだけ。
 const OUTSIDE_NAMES = [
   'CLAUDE_PROJECT_DIR',
-  'PECOT_SESSION_PROJECT_DIR',
   'CLAUDE_PLUGIN_DATA',
   'PLUGIN_DATA',
   'XDG_DATA_HOME',
@@ -32,7 +31,6 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.stubEnv('CLAUDE_PROJECT_DIR', '/outside/project')
-  vi.stubEnv('PECOT_SESSION_PROJECT_DIR', '/outside/session')
   vi.stubEnv('CLAUDE_PLUGIN_DATA', '/outside/data')
   vi.stubEnv('PLUGIN_DATA', '/outside/plugin-data')
   vi.stubEnv('XDG_DATA_HOME', '/outside/xdg')

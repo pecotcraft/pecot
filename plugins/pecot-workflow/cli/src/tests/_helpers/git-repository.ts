@@ -4,13 +4,10 @@
 // 使い方は次のとおり。
 // - createGitRepository(files) は、一時ディレクトリで init し、コミットまで済ませて、そのパスを返す。
 // - gitForTest(directory, arguments) は、そのディレクトリで git を実行して標準出力を返す。
-// - createSessionWorkLayout() は、base（git リポ）とその worktree を作る。
-//   worktree の .pecot/work は、base の .pecot/work への symlink になる。
 //
 // 呼ぶ git は GIT_* を外す。global と system の設定は読まない。作者は固定する。
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, symlinkSync } from 'node:fs'
-import path from 'node:path'
+import { mkdirSync } from 'node:fs'
 
 import { makeTemporaryDirectory, writeTree } from './temporary.js'
 
@@ -49,26 +46,4 @@ export function createGitRepository(files: Readonly<Record<string, string>> = DE
   gitForTest(target, ['add', '-A'])
   gitForTest(target, ['commit', '-q', '-m', 'init'])
   return target
-}
-
-export interface SessionWorkLayout {
-  readonly base: string
-  readonly worktree: string
-}
-
-/**
-base（git リポ）と、その worktree。worktree の .pecot/work は base の .pecot/work への相対 symlink。
-base には .pecot/work/1244 と .pecot/work2 がある
-*/
-export function createSessionWorkLayout(): SessionWorkLayout {
-  const root = makeTemporaryDirectory('pecot-layout-')
-  const base = path.join(root, 'base')
-  const worktree = path.join(root, 'wt')
-  createGitRepository({ 'README.md': 'x' }, base)
-  gitForTest(base, ['worktree', 'add', '-q', '-b', 'feat/x', worktree])
-  mkdirSync(path.join(base, '.pecot', 'work', '1244'), { recursive: true })
-  mkdirSync(path.join(base, '.pecot', 'work2'), { recursive: true })
-  mkdirSync(path.join(worktree, '.pecot'), { recursive: true })
-  symlinkSync(path.relative(path.join(worktree, '.pecot'), path.join(base, '.pecot', 'work')), path.join(worktree, '.pecot', 'work'))
-  return { base, worktree }
 }

@@ -24,7 +24,6 @@ import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n' }
 const MESSAGE = '一覧の状態列を直す'
 const FOOTER = 'issue create の freeform で起票（テンプレ検証スキップ）'
 
@@ -32,8 +31,8 @@ async function freeform(...argv: readonly string[]): Promise<CliResult> {
   return await runInProcess(['issue', 'create', '--freeform', ...argv], ISSUE_CREATE_COMMANDS)
 }
 
-function hasFile(root: string, relative: string): boolean {
-  return existsSync(path.join(root, relative))
+function hasQuickMode(root: string): boolean {
+  return existsSync(path.join(root, '.pecot/state/.pecot-quick-mode'))
 }
 
 describe('issue create', () => {
@@ -41,7 +40,7 @@ describe('issue create', () => {
     await verifies(context, 'PW-ISSUE-CREATE-60')
     await verifies(context, 'PW-ISSUE-CREATE-62')
     await verifies(context, 'PW-ISSUE-CREATE-64')
-    const project = setUpIssueProject({ files: PENDING_FLAGS })
+    const project = setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo')
@@ -52,9 +51,8 @@ describe('issue create', () => {
     const post = github.requests().find(request => request.type === 'rest')
     expect(post).toMatchObject({ body: { title: `[Task] ${MESSAGE}` } })
     expect(post?.type === 'rest' ? JSON.stringify(post.body) : '').toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
-    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(true)
-    expect(hasFile(project.root, '.pecot/state/issue-pending')).toBe(false)
-    expect(hasFile(project.root, '.pecot/state/.pecot-active')).toBe(false)
+    expect(hasQuickMode(project.root)).toBe(true)
+    expect(existsSync(path.join(project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 
   it('長いメッセージを渡すと、先頭 50 文字の連続する空白を 1 つにしたものを type の接頭辞つきの題にする', async (context) => {
@@ -88,7 +86,7 @@ describe('issue create', () => {
       'warning: giving a parent Epic to an Epic is not recommended\ncreated: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status backlog, priority medium\n'
       + 'added: Issue acme/demo/12 as sub-issue of acme/demo/3\n',
     )
-    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
+    expect(hasQuickMode(project.root)).toBe(false)
   })
 
   it('--priority と --size を渡すと、既定の medium・s の代わりにその値を設定する', async (context) => {
@@ -113,13 +111,12 @@ describe('issue create', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12\nwarning: could not add Issue acme\/demo\/12 to project: .+\n$/u)
-    expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
+    expect(hasQuickMode(project.root)).toBe(false)
   })
 
-  it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わり、作成の直後に pending のフラグを消している', async (context) => {
+  it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-66')
-    await verifies(context, 'PW-ISSUE-CREATE-75')
-    const project = setUpIssueProject({ files: PENDING_FLAGS })
+    setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--parent-epic', '3')
@@ -127,7 +124,6 @@ describe('issue create', () => {
     expect(result.code).toBe(1)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
-    expect(hasFile(project.root, '.pecot/state/issue-pending')).toBe(false)
   })
 
   it.for([

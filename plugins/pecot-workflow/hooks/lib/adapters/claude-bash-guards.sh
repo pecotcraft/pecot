@@ -8,13 +8,11 @@
 # camelCase の toolName / toolArgs は届かない。
 #
 # 実行順序は次のとおり。
-#   1. git-checkout-check.sh         → 警告のみ（exit 0）
-#   2. gh-command-check.sh           → exit 1ならdeny JSON出力して終了
-#   3. git-worktree-branch-check.sh  → exit 1ならdeny JSON出力して終了
-#   4. git-no-verify-check.sh        → exit 1ならdeny JSON出力して終了
-#   5. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
+#   1. gh-command-check.sh           → exit 1ならdeny JSON出力して終了
+#   2. git-worktree-branch-check.sh  → exit 1ならdeny JSON出力して終了
+#   3. git-no-verify-check.sh        → exit 1ならdeny JSON出力して終了
+#   4. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
 #      （全denyガード通過後のみ実行。deny > allow の不変条件を維持）。
-#   6. 保持していた警告があれば出力
 #
 # deny は hookSpecificOutput.permissionDecision で返す。
 # トップレベルの decision:block は使わない。
@@ -60,10 +58,7 @@ export HOOK_WORKING_DIR="${CLAUDE_PROJECT_DIR}"
 # 自身に含まれる `cd` は反映されない（そちらは core がコマンド文字列から解釈する）。
 export HOOK_TOOL_CWD="${PECOT_HOOK_CWD:-}"
 
-# --- 1. git-checkout-check（警告のみ、ブロックしない）---
-CHECKOUT_WARNING=$("$CORE_DIR/git-checkout-check.sh" 2>/dev/null)
-
-# --- 2. gh-command-check（exit 1 = ブロック）---
+# --- 1. gh-command-check（exit 1 = ブロック）---
 GH_OUTPUT=$("$CORE_DIR/gh-command-check.sh" 2>/dev/null)
 GH_EXIT=$?
 
@@ -72,7 +67,7 @@ if [ "$GH_EXIT" -eq 1 ]; then
     exit 0
 fi
 
-# --- 3. git-worktree-branch-check（exit 1 = ブロック）---
+# --- 2. git-worktree-branch-check（exit 1 = ブロック）---
 WT_OUTPUT=$("$CORE_DIR/git-worktree-branch-check.sh" 2>/dev/null)
 WT_EXIT=$?
 if [ "$WT_EXIT" -eq 1 ]; then
@@ -80,7 +75,7 @@ if [ "$WT_EXIT" -eq 1 ]; then
     exit 0
 fi
 
-# --- 4. git-no-verify-check（exit 1 = ブロック）---
+# --- 3. git-no-verify-check（exit 1 = ブロック）---
 NOVERIFY_OUTPUT=$("$CORE_DIR/git-no-verify-check.sh" 2>/dev/null)
 NOVERIFY_EXIT=$?
 
@@ -89,18 +84,13 @@ if [ "$NOVERIFY_EXIT" -eq 1 ]; then
     exit 0
 fi
 
-# --- 5. tech-advisor-clone-allow（exit 10 = 自動許可）---
+# --- 4. tech-advisor-clone-allow（exit 10 = 自動許可）---
 ALLOW_OUTPUT=$("$CORE_DIR/tech-advisor-clone-allow.sh" 2>/dev/null)
 ALLOW_EXIT=$?
 
 if [ "$ALLOW_EXIT" -eq 10 ]; then
     jq -n --arg reason "$ALLOW_OUTPUT" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "permissionDecisionReason": $reason}}'
     exit 0
-fi
-
-# --- 6. 警告出力（ブロックなし）---
-if [ -n "$CHECKOUT_WARNING" ]; then
-    echo "$CHECKOUT_WARNING"
 fi
 
 exit 0

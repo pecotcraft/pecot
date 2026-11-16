@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// session-start-common.sh のテスト。CLAUDE_ENV_FILE への環境変数の追記、flock の排他制御、.pecot/.gitignore の生成を確かめる。
+// session-start-common.sh のテスト。flock の排他制御と .pecot/.gitignore の生成を確かめる。
 // flock のケースは、ロックを持つ子プロセス（holder）を spawn で保持し、終了時に必ず止める。
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
@@ -37,7 +37,7 @@ function makeGitProject(hookCase: HookCase, hasPecot = false): string {
 // git-sync は pull に失敗しても `|| true` で exit 0 を保つので、副作用（CLAUDE_ENV_FILE への追記など）だけを見る。
 function runCommon(hookCase: HookCase, projectDirectory: string): RunResult {
   return run(hookCase, 'bash', [COMMON_SCRIPT], {
-    env: { CLAUDE_PROJECT_DIR: projectDirectory, PECOT_ORIGINAL_CLAUDE_PROJECT_DIR: projectDirectory },
+    env: { CLAUDE_PROJECT_DIR: projectDirectory },
   })
 }
 
@@ -92,23 +92,12 @@ function lockFileFor(hookCase: HookCase, temporaryDirectory: string, projectDire
 }
 
 describe('session-start-common.sh', () => {
-  // CLAUDE_ENV_FILE
+  // CLAUDE_ENV_FILE（spec 025 で session-project-dir を撤廃した）
 
-  it('ディスパッチャ経由で、セッションのプロジェクトディレクトリを CLAUDE_ENV_FILE に追記する', () => {
+  it('CLAUDE_ENV_FILE があっても、何も書き込まない', () => {
     const hookCase = createHookCase()
     const environmentFile = setUpEnvironmentFile(hookCase)
-    const projectDirectory = makeGitProject(hookCase)
-
-    runCommon(hookCase, projectDirectory)
-
-    expect(readFileSync(environmentFile, 'utf8')).toContain(`export PECOT_SESSION_PROJECT_DIR=${projectDirectory}\n`)
-  })
-
-  it('CLAUDE_ENV_FILE が未設定のとき、何も書き込まない', () => {
-    const hookCase = createHookCase()
-    const environmentFile = setUpEnvironmentFile(hookCase)
-    hookCase.setEnv('CLAUDE_ENV_FILE', undefined)
-    const projectDirectory = makeGitProject(hookCase)
+    const projectDirectory = makeGitProject(hookCase, true)
 
     runCommon(hookCase, projectDirectory)
 
@@ -199,22 +188,17 @@ describe('session-start-common.sh', () => {
     const projectDirectory = makeGitProject(hookCase, true)
     const temporaryDirectory = path.join(hookCase.temporaryPath, 'tmpdir')
     mkdirSync(temporaryDirectory)
-    const environmentFile = path.join(hookCase.temporaryPath, 'claude_env')
-    writeFileSync(environmentFile, '')
 
     const result = run(hookCase, 'bash', [COMMON_SCRIPT], {
       env: {
         PATH: binDirectory,
         CLAUDE_PROJECT_DIR: projectDirectory,
         TMPDIR: temporaryDirectory,
-        CLAUDE_ENV_FILE: environmentFile,
-        PECOT_ORIGINAL_CLAUDE_PROJECT_DIR: projectDirectory,
       },
     })
 
     expect(result.exitCode).toBe(0)
     expect(isFile(path.join(projectDirectory, '.pecot', '.gitignore'))).toBe(true)
-    expect(readFileSync(environmentFile, 'utf8')).toContain('export PECOT_SESSION_PROJECT_DIR=')
     // flock が無いときは、ロックを掛けない
     expect(readdirSync(temporaryDirectory)).toEqual([])
   })
