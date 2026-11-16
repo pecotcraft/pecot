@@ -36,7 +36,7 @@ git branch
 2. `wt1`、`wt2`などの`wtX`形式のブランチが存在する
 
 > **ブランチモードについて**: 以下で「開発ブランチ」と表記する箇所は config 由来で
-> 決まる。2ブランチモードでは `develop-aist`、単一ブランチモード（`develop` == `release` /
+> 決まる。2ブランチモードでは config の `develop_branch`（例: `develop`）、単一ブランチモード（`develop` == `release` /
 > trunk-based）では `main`。pecot-workflow の MCP ツール `pr_check` の結果の `baseBranch` から
 > 先頭の remote の名前と `/` を除いたブランチ（`origin/main` なら `main`）を使えば、
 > どちらのモードでも正しい開発ブランチに揃う。
@@ -83,7 +83,7 @@ git branch -D <マージしたブランチ>
 
 **理由**:
 
-- ワークツリーでは開発ブランチ（単一ブランチモードなら`main`、2ブランチモードなら`develop-aist`）に
+- ワークツリーでは開発ブランチ（単一ブランチモードなら`main`、2ブランチモードなら`develop_branch` の値）に
   切り替えると他のワークツリーと競合する
 - ワークツリー専用ブランチ（wt1, wt2等）をベースとして使い、`git pull`で最新を維持する
 - mainワークツリーを更新したいときは、個別に更新すればよい

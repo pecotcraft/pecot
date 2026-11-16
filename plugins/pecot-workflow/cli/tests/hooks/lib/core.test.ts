@@ -75,6 +75,8 @@ describe('git-no-verify-check.sh', () => {
     // フックを飛ばす環境変数
     'SKIP=lint git commit -m x',
     'HUSKY=0 git push',
+    // ヒアドキュメントの後ろのコマンド
+    'cat <<\'EOF\' > note.txt\nbody\nEOF\ngit commit -n',
   ]))('有効にしてコマンドが $label のとき、終了コード 1 で止める', (row) => {
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: row.command } })
@@ -111,6 +113,13 @@ describe('git-no-verify-check.sh', () => {
     'git config core.hooksPath',
     'git config user.name x',
     'git -c user.name=x commit -m x',
+    // フックを呼ばないサブコマンドの前の SKIP= / HUSKY=0
+    'SKIP=x git status',
+    'HUSKY=0 git log',
+    // ヒアドキュメントの本文
+    'cat <<\'EOF\' > note.txt\ngit commit -n\nEOF',
+    'cat <<EOF > note.txt\ngit commit --no-verify\nEOF',
+    'cat <<-EOF > note.txt\n\tgit commit -n\n\tEOF',
   ]))('有効にしてコマンドが $label のとき、何も出力せず通す', (row) => {
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: row.command } })

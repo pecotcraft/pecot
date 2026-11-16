@@ -11,13 +11,15 @@
 # ブロックするパターンは次のとおり。
 #   - --no-verify（全サブコマンド）、git commit -n・-anm x、引用符で囲んだ "--no-verify"・'-n'
 #   - git -c core.hooksPath=...、git config で core.hooksPath を書く・消す形（set・unset・--unset を含む）
-#   - SKIP=... / HUSKY=0 を前に置いた git のコマンド
+#   - SKIP=... / HUSKY=0 を前に置いた、フックを呼ぶ git のサブコマンド（commit・push など）
 #
 # 検出しないパターンは次のとおり。
 #   - git log --no-merges、echo "--no-verify"、git status | head -n 5
 #   - 値を取るオプションの値（git commit -m "-n"・-mn・-Fnote）、引用符の中の区切り
 #   - commit 以外の -n（git log -n 5・git push -n。push -n は --dry-run）
 #   - 読む形（git config --get core.hooksPath・get・値の無い形）、git -c user.name=x
+#   - SKIP=x git status など、フックを呼ばないサブコマンド
+#   - ヒアドキュメントの本文
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/config-dispatcher.sh"
@@ -33,72 +35,95 @@ to_lower() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
-# 引用符の中の区切りで分けないよう、先にトークンへ分け、引用符の外の && || ; | & 改行を sep にする。
+# 引用符を考えてトークンに分け、引用符の外の && || ; | & 改行を区切りにする。ヒアドキュメントの本文は飛ばす。
+# 長いコマンドでも線形の時間で済むよう、awk で 1 回だけ読み通す。出力は 1 行 1 トークン（S = 区切り、W/Q = 先頭が引用符でない/引用符の語）。
+# shellcheck disable=SC2016
+TOKENIZE_AWK='
+function flush() {
+  if (kind != "") { gsub(/\n/, " ", cur); print kind cur }
+  cur = ""; kind = ""
+}
+function piece(text, quoted) {
+  if (kind == "") kind = quoted ? "Q" : "W"
+  cur = cur text
+}
+function separator() { flush(); print "S" }
+function special(c) {
+  return c == " " || c == "\t" || c == "\n" || c == ";" || c == "&" || c == "|" || c == "<" || c == ">" || c == sq || c == "\"" || c == "\\"
+}
+function heredoc(   dash, delim, c) {
+  i += 2
+  if (substr(s, i, 1) == "-") { dash = 1; i++ }
+  while (substr(s, i, 1) == " " || substr(s, i, 1) == "\t") i++
+  delim = ""
+  while (i <= n) {
+    c = substr(s, i, 1)
+    if (c != sq && c != "\"" && c != "\\" && special(c)) break
+    if (c != sq && c != "\"" && c != "\\") delim = delim c
+    i++
+  }
+  if (delim != "") { hcount++; hdelim[hcount] = delim; hdash[hcount] = dash }
+}
+function skip_bodies(   k, start, line) {
+  for (k = 1; k <= hcount; k++) {
+    while (i <= n) {
+      start = i
+      while (i <= n && substr(s, i, 1) != "\n") i++
+      line = substr(s, start, i - start)
+      i++
+      if (hdash[k]) sub(/^\t+/, "", line)
+      if (line == hdelim[k]) break
+    }
+  }
+  hcount = 0
+}
+{ s = (NR > 1) ? s "\n" $0 : $0 }
+END {
+  sq = sprintf("%c", 39); n = length(s); i = 1
+  while (i <= n) {
+    c = substr(s, i, 1)
+    if (c == " " || c == "\t") { flush(); i++ }
+    else if (c == "\n") { separator(); i++; if (hcount) skip_bodies() }
+    else if (c == ";") { separator(); i++ }
+    else if (c == "&" || c == "|") { separator(); i++; if (substr(s, i, 1) == c) i++ }
+    else if (c == "#" && kind == "") { while (i <= n && substr(s, i, 1) != "\n") i++ }
+    else if (substr(s, i, 2) == "<<" && substr(s, i + 2, 1) != "<") { flush(); heredoc() }
+    else if (c == sq) {
+      start = ++i
+      while (i <= n && substr(s, i, 1) != sq) i++
+      piece(substr(s, start, i - start), 1); i++
+    }
+    else if (c == "\"") {
+      start = ++i
+      while (i <= n && substr(s, i, 1) != "\"") { if (substr(s, i, 1) == "\\") i++; i++ }
+      text = substr(s, start, i - start); gsub(/\\"/, "\"", text)
+      piece(text, 1); i++
+    }
+    else if (c == "\\") {
+      if (substr(s, i + 1, 1) != "\n") piece(substr(s, i + 1, 1), 0)
+      i += 2
+    }
+    else if (special(c)) { piece(c, 0); i++ }
+    else {
+      start = i
+      while (i <= n && !special(substr(s, i, 1))) i++
+      piece(substr(s, start, i - start), 0)
+    }
+  }
+  flush()
+}
+'
+
 # KINDS: sep / word / qword（先頭が引用符の語。環境変数の代入と見なさない）。
 TOKENS=()
 KINDS=()
-
-RE_BLANK='^[[:blank:]]+'
-RE_NEWLINE=$'^\n'
-RE_SEP='^(&&|\|\||;|\||&)'
-RE_COMMENT=$'^#[^\n]*'
-RE_PLAIN='^[^[:space:]"'"'"'\;&|]+'
-RE_SQUOTE="^'([^']*)'"
-RE_DQUOTE='^"(([^"\\]|\\.)*)"'
-RE_ESCAPE='^\\(.)'
-
-rest=$HOOK_COMMAND
-current=""
-current_kind=""
-
-flush_word() {
-  if [[ -n "$current_kind" ]]; then
-    TOKENS+=("$current")
-    KINDS+=("$current_kind")
-  fi
-  current=""
-  current_kind=""
-}
-
-add_piece() {
-  # $1 = 中身、$2 = 引用符で囲んだ片なら q
-  if [[ -z "$current_kind" ]]; then
-    if [[ "$2" == q ]]; then current_kind=qword; else current_kind=word; fi
-  fi
-  current+="$1"
-}
-
-while [[ -n "$rest" ]]; do
-  if [[ "$rest" =~ $RE_BLANK ]]; then
-    flush_word
-  elif [[ "$rest" =~ $RE_NEWLINE ]] || [[ "$rest" =~ $RE_SEP ]]; then
-    flush_word
-    TOKENS+=("")
-    KINDS+=(sep)
-  elif [[ -z "$current_kind" ]] && [[ "$rest" =~ $RE_COMMENT ]]; then
-    :
-  elif [[ "$rest" =~ $RE_PLAIN ]]; then
-    add_piece "${BASH_REMATCH[0]}"
-  elif [[ "$rest" =~ $RE_SQUOTE ]]; then
-    add_piece "${BASH_REMATCH[1]}" q
-  elif [[ "$rest" =~ $RE_DQUOTE ]]; then
-    add_piece "${BASH_REMATCH[1]}" q
-  elif [[ "$rest" =~ $RE_ESCAPE ]]; then
-    # 行の継続（\ + 改行）は何も足さない。
-    [[ "${BASH_REMATCH[1]}" == $'\n' ]] || add_piece "${BASH_REMATCH[1]}"
-  else
-    # 閉じていない引用符・末尾の \ は、残りを 1 つの片として扱う。
-    if [[ "${rest:0:1}" == "'" || "${rest:0:1}" == '"' ]]; then
-      add_piece "${rest:1}" q
-    else
-      add_piece "${rest:1}"
-    fi
-    rest=""
-    break
-  fi
-  rest=${rest:${#BASH_REMATCH[0]}}
-done
-flush_word
+while IFS= read -r line; do
+  case "$line" in
+    S) TOKENS+=(""); KINDS+=(sep) ;;
+    W*) TOKENS+=("${line#W}"); KINDS+=(word) ;;
+    Q*) TOKENS+=("${line#Q}"); KINDS+=(qword) ;;
+  esac
+done < <(printf '%s\n' "$HOOK_COMMAND" | LC_ALL=C awk "$TOKENIZE_AWK")
 
 RE_ASSIGNMENT='^([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
 # commit の短いオプションのうち、値を取るもの（m F C c t）と値を省けるもの（u S）。
@@ -107,6 +132,14 @@ COMMIT_OPTIONAL_SHORT='uS'
 
 is_hooks_path_key() {
   [[ "$(to_lower "$1")" == "core.hookspath" ]]
+}
+
+# git が client hook を呼ぶサブコマンド（SKIP= / HUSKY=0 で飛ばせるもの）か。
+runs_hooks() {
+  case "$1" in
+    am|checkout|cherry-pick|clone|commit|merge|pull|push|rebase|revert|switch|worktree) return 0 ;;
+  esac
+  return 1
 }
 
 # 値を次のトークンで取るオプションか。$1 = サブコマンド、$2 = トークン。
@@ -204,7 +237,6 @@ segment_blocked() {
 
   (( i < count )) || return 1
   [[ "${words[i]}" == git ]] || return 1
-  [[ "$env_skip" == true ]] && return 0
   (( i++ ))
 
   # git のグローバルオプション。
@@ -230,6 +262,8 @@ segment_blocked() {
   local subcommand
   subcommand=$(to_lower "${words[i]}")
   (( i++ ))
+
+  [[ "$env_skip" == true ]] && runs_hooks "$subcommand" && return 0
 
   if [[ "$subcommand" == config ]]; then
     config_writes_hooks_path "${words[@]:i}"

@@ -238,6 +238,7 @@ describe('session-start-common.sh', () => {
   it('設定が無いとき、git pull を呼ばない', () => {
     const hookCase = createHookCase()
     const projectDirectory = makeGitProject(hookCase)
+    hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'missing.json'))
     const gitCallLog = installGitCallLog(hookCase)
 
     const result = runCommon(hookCase, projectDirectory)

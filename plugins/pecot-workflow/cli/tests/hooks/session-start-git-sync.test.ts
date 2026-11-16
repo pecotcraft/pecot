@@ -45,6 +45,7 @@ describe('git-sync.sh', () => {
   it('設定が無いとき、pull しない', () => {
     const hookCase = createHookCase()
     setUpProject(hookCase)
+    hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'missing.json'))
     const gitCallLog = installGitCallLog(hookCase)
 
     const result = run(hookCase, 'bash', [HOOK_SCRIPT], { stdin: '' })
