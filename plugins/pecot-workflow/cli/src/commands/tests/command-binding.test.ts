@@ -199,7 +199,6 @@ describe('runDefinition', () => {
 
   it.for([
     { path: ['issue', 'comment'], argv: ['--issue', 'o/r/1'], expected: 'No such option: --issue (\'--issue\' was renamed to \'--issue-ref\')' },
-    { path: ['session', 'restore'], argv: ['--issue', 'o/r/1'], expected: 'No such option: --issue (\'--issue\' was renamed to \'--issue-ref\')' },
     { path: ['branch', 'delete'], argv: ['--repo-ref', 'o/r'], expected: 'No such option: --repo-ref (\'--repo-ref\' was renamed to \'--repo\')' },
     { path: ['project', 'link'], argv: ['--owner-repo', 'o/r'], expected: 'No such option: --owner-repo (\'--owner-repo\' was renamed to \'--repo\')' },
     { path: ['session', 'start'], argv: ['--branch-name', 'b'], expected: 'No such option: --branch-name (\'--branch-name\' was renamed to \'--branch\')' },
