@@ -57,7 +57,6 @@ dom-to-pptx 1.1.7 の Fractional Font Precision 修正で sz が +5〜13.3% 増�
   - 複数入れると CHANGELOG が commit から抜ける（nrwl/nx#35559）
 - version-plan の frontmatter のキーは group 名だけにする
 - config の `develop_branch` と `release_branch` が同じなら単一ブランチ
-- shared hook の `develop-aist` のハードコードは、他リポが使うので残す
 
 ## MCP サーバの npm への初回公開
 
