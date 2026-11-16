@@ -40,7 +40,6 @@ const ROLE_EXCEPTIONS: Readonly<Record<string, string>> = {
   by: '待たせる相手の Issue。操作の対象の issue_ref とは別の役割',
   parent_epic: '親の Epic。操作の対象の Issue ではない',
   no_issue_ref: '関連 Issue の自動設定を止める印で、Issue を指さない',
-  allow_cross_repo: 'CWD のリポが Issue と違ってよいという印で、リポを指さない',
   allow_existing_branch: '既存のブランチの再利用を許す印で、ブランチを指さない',
   delete_branch: 'ブランチを消すかの印で、ブランチを指さない',
   keep_branch: 'ブランチを残すかの印で、ブランチを指さない',

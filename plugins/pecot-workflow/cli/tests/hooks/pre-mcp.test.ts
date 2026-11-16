@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pre-tool-use-mcp.sh のテスト。PR 作成の MCP ツールを常にブロックし、context7 の読み取りを許可する。
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -28,9 +28,9 @@ function runHook(hookCase: HookCase, stdin: string): RunResult {
 }
 
 describe('pre-tool-use-mcp.sh', () => {
-  // PR 作成: pecot-active フラグなしでもブロックする（常時ブロック）。
+  // PR 作成: 常にブロックする。
 
-  it('PR 作成の MCP ツールが pecot-active なしで呼ばれるとき、拒否する', () => {
+  it('PR 作成の MCP ツールが呼ばれるとき、拒否する', () => {
     const hookCase = createHookCase()
     setUpStateDirectory(hookCase)
     const result = runHook(hookCase, '{"tool_name":"mcp__github__create_pull_request","tool_input":{}}')
@@ -38,7 +38,7 @@ describe('pre-tool-use-mcp.sh', () => {
     expect(result.stdout).toContain('"permissionDecision": "deny"')
   })
 
-  it('Enterprise の PR 作成の MCP ツールが pecot-active なしで呼ばれるとき、拒否する', () => {
+  it('Enterprise の PR 作成の MCP ツールが呼ばれるとき、拒否する', () => {
     const hookCase = createHookCase()
     setUpStateDirectory(hookCase)
     const result = runHook(hookCase, '{"tool_name":"mcp__githubEnterprise__create_pull_request","tool_input":{}}')
@@ -46,19 +46,9 @@ describe('pre-tool-use-mcp.sh', () => {
     expect(result.stdout).toContain('"permissionDecision": "deny"')
   })
 
-  // PR 作成: pecot-active フラグありでもブロックする。
-
-  it('PR 作成の MCP ツールが pecot-active ありで呼ばれても、拒否する', () => {
-    const hookCase = createHookCase()
-    writeFileSync(path.join(setUpStateDirectory(hookCase), '.pecot-active'), 'org/repo/123\n')
-    const result = runHook(hookCase, '{"tool_name":"mcp__github__create_pull_request","tool_input":{}}')
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
-  })
-
   it('拒否の理由に、w-pr スキルへの案内を含める', () => {
     const hookCase = createHookCase()
-    writeFileSync(path.join(setUpStateDirectory(hookCase), '.pecot-active'), 'org/repo/123\n')
+    setUpStateDirectory(hookCase)
     const result = runHook(hookCase, '{"tool_name":"mcp__githubEnterprise__create_pull_request","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('pecot-w:w-pr')
@@ -68,7 +58,7 @@ describe('pre-tool-use-mcp.sh', () => {
 
   it('PR 作成以外の MCP ツールのとき、何も出力しない', () => {
     const hookCase = createHookCase()
-    writeFileSync(path.join(setUpStateDirectory(hookCase), '.pecot-active'), 'org/repo/123\n')
+    setUpStateDirectory(hookCase)
     const result = runHook(hookCase, '{"tool_name":"mcp__drawio__open_drawio_mermaid","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')

@@ -235,64 +235,64 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: 無い。Phase 2〜4 と並べて進められる。重なるファイル（Parallel Example の一覧）では、先に main へ入った変更を取り込む
 
-- [ ] T042 [US6] `src/domain/tests/branch-name.test.ts` に、契約の「求め方」の表の 6 行を入れる。落ちることを確かめる
-- [ ] T043 [US6] `src/domain/branch-name.ts` に、作業中の Issue を返す規則を足す。入力は remote の owner/repo とブランチ名で、I/O を持たせない
-- [ ] T044 [US6] `src/infra/git.ts` に、ディレクトリを受けて作業中の Issue を返す関数を足す。`gitCurrentBranch` と `primaryRemoteRepository` を使う
-- [ ] T045 [US6] `tests/interface/create-branch.test.ts` の期待を先に直す
+- [x] T042 [US6] `src/domain/tests/branch-name.test.ts` に、契約の「求め方」の表の 6 行を入れる。落ちることを確かめる
+- [x] T043 [US6] `src/domain/branch-name.ts` に、作業中の Issue を返す規則を足す。入力は remote の owner/repo とブランチ名で、I/O を持たせない
+- [x] T044 [US6] `src/infra/git.ts` に、ディレクトリを受けて作業中の Issue を返す関数を足す。`gitCurrentBranch` と `primaryRemoteRepository` を使う
+- [x] T045 [US6] `tests/interface/create-branch.test.ts` の期待を先に直す
   - `.pecot-active` ができない
   - リポが違えば、いつも終了コード 2 になる
   - `allow_cross_repo`・`force_overwrite_active` を渡すと弾かれる
-- [ ] T046 [US6] `src/commands/repository.ts` を直す
+- [x] T046 [US6] `src/commands/repository.ts` を直す
   - `guardActiveOverwrite` と入力 2 つを除く
   - `rejectCwdRepositoryMismatch` をいつも呼ぶ
   - 案内の文から `--allow-cross-repo` を除く
-- [ ] T047 [US6] 作業対象の記録を直す。`src/commands/tests/work-target.test.ts` を先に直す
+- [x] T047 [US6] 作業対象の記録を直す。`src/commands/tests/work-target.test.ts` を先に直す
   - `src/commands/work-target.ts` と `src/infra/state-store.ts` で、`.pecot-active` を書かない
   - 題名のキャッシュと作業ディレクトリだけを作る
   - 結果の行を、作業ディレクトリを作った行に変える
-- [ ] T048 [US6] `tests/interface/issue-quick.test.ts` の期待を先に直す。契約の `issue_quick` の表の行を期待する
+- [x] T048 [US6] `tests/interface/issue-quick.test.ts` の期待を先に直す。契約の `issue_quick` の表の行を期待する
   - `repo` がセッションのリポと違い、ブランチを作るときは、起票の前に終了コード 2 で止まる
   - `no_branch` のときは、リポが違っても起票する
-- [ ] T049 [US6] `src/commands/issue-quick.ts` を直し、T048 を通す。`no_branch` のときは、作業ディレクトリだけを作る
-- [ ] T050 [US6] `src/commands/pr.ts` を直す。`tests/interface/pr.test.ts` を先に直す
+- [x] T049 [US6] `src/commands/issue-quick.ts` を直し、T048 を通す。`no_branch` のときは、作業ディレクトリだけを作る
+- [x] T050 [US6] `src/commands/pr.ts` を直す。`tests/interface/pr.test.ts` を先に直す
   - `Closes` の補完を、T044 の関数に変える
   - 片付けの対象を `.pecot-session-title` だけにする
-- [ ] T051 [US6] `src/commands/session.ts` の `session_status` を直す。`tests/interface/session-status.test.ts` を先に直す
+- [x] T051 [US6] `src/commands/session.ts` の `session_status` を直す。`tests/interface/session-status.test.ts` を先に直す
   - フラグの表をやめる
   - 作業中の Issue と、その題名・状態・本文を出す
-- [ ] T052 [US6] `session_restore` を除く
+- [x] T052 [US6] `session_restore` を除く
   - `src/commands/session.ts` の `RESTORE`
   - `tests/interface/session-restore.test.ts`
   - parity の `session-restore-*` のシナリオと golden
-- [ ] T053 [US6] コマンドの数を固定しているテストを直す（`tests/hook-tool-names.test.ts` は、T014 で残したときだけ直す）
+- [x] T053 [US6] コマンドの数を固定しているテストを直す（`tests/hook-tool-names.test.ts` は、T014 で残したときだけ直す）
   - `src/commands/tests/registry.test.ts`
   - `tests/parity/commands.ts`
-- [ ] T054 [US6] `src/domain/state.ts` から、`FLAG_PECOT_ACTIVE` と `planWorkTarget` の `active` を除く。使わなくなった関数を、knip で洗って消す
-- [ ] T055 [P] [US6] `session-title` の期待を先に直す。fixture に git のリポを作り、ブランチ名の末尾の番号でセッション名が決まることを期待する
+- [x] T054 [US6] `src/domain/state.ts` から、`FLAG_PECOT_ACTIVE` と `planWorkTarget` の `active` を除く。使わなくなった関数を、knip で洗って消す
+- [x] T055 [P] [US6] `session-title` の期待を先に直す。fixture に git のリポを作り、ブランチ名の末尾の番号でセッション名が決まることを期待する
   - `tests/hooks/lib/session-title.test.ts`
   - `tests/hooks/user-prompt-submit-title.test.ts`
-- [ ] T056 [US6] `lib/core/session-title.sh` を直す。番号を `git -C "$CLAUDE_PROJECT_DIR"` のブランチ名から求める。ほかの出す条件は変えない
-- [ ] T057 [US6] `lib/post-tool-use/exit-plan-remind.sh` を直す。`tests/hooks/post-exit-plan-mode.test.ts` を先に直す
+- [x] T056 [US6] `lib/core/session-title.sh` を直す。番号を `git -C "$CLAUDE_PROJECT_DIR"` のブランチ名から求める。ほかの出す条件は変えない
+- [x] T057 [US6] `lib/post-tool-use/exit-plan-remind.sh` を直す。`tests/hooks/post-exit-plan-mode.test.ts` を先に直す
   - 「作業中の Issue が無ければ出さない」を、ブランチ名からの判定に変える
-- [ ] T058 [US6] `.pecot-active` を fixture に置くだけのテストを洗い、置くのをやめる
+- [x] T058 [US6] `.pecot-active` を fixture に置くだけのテストを洗い、置くのをやめる
   - `tests/hooks/lib/cross-repository.test.ts`・`plan-mode-tool-guard.test.ts`
   - `tests/hooks/state-directory-resolution.test.ts`・`pre-tool-use-permission-mode.test.ts`
   - Phase 3 が先に入り、テストごと消えていれば飛ばす
-- [ ] T059 [US6] `p-w/interface/authored.yaml` を、契約に合わせて直す
+- [x] T059 [US6] `p-w/interface/authored.yaml` を、契約に合わせて直す
   - `create_branch`・`issue_quick`・`pr_create`・`pr_cleanup`・`session_status` の項目を直す
   - `session_restore` を除く
   - `generated.json` と `p-w/skills/w-help/references/commands.md` を作り直す
-- [ ] T060 [P] [US6] `p-w/skills/w-active/SKILL.md` から、次の記述を除く
+- [x] T060 [P] [US6] `p-w/skills/w-active/SKILL.md` から、次の記述を除く
   - `.pecot-active` の確認
   - `force_overwrite_active` と `allow_cross_repo`
-- [ ] T061 [P] [US6] `p-w/skills/w-quick/SKILL.md` から、別のリポの worktree で checkout する手順を除く。起票先は、セッションのリポにする
-- [ ] T062 [P] [US6] `p-w/skills/w-help/references/flags.md` を、残る状態のファイルだけの表に書き直す
-- [ ] T063 [P] [US6] `p-w/skills/w-help/references/issue-flow-rules.md` の §5・§6 を書き直す
+- [x] T061 [P] [US6] `p-w/skills/w-quick/SKILL.md` から、別のリポの worktree で checkout する手順を除く。起票先は、セッションのリポにする
+- [x] T062 [P] [US6] `p-w/skills/w-help/references/flags.md` を、残る状態のファイルだけの表に書き直す
+- [x] T063 [P] [US6] `p-w/skills/w-help/references/issue-flow-rules.md` の §5・§6 を書き直す
   - 作業中の Issue を、remote とブランチ名で説明する
   - ガードの表から、上書きガードと `allow_cross_repo` を除く
-- [ ] T064 [P] [US6] `p-w/agents/w-implementer.md` を直す。編集してよいリポを、作業中の worktree の remote のリポとする
+- [x] T064 [P] [US6] `p-w/agents/w-implementer.md` を直す。編集してよいリポを、作業中の worktree の remote のリポとする
   - `tests/hooks/lib/agent-definitions.test.ts` の期待を合わせる
-- [ ] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
+- [x] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
 
 ---
 

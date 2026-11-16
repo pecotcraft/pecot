@@ -222,18 +222,10 @@ describe('統合: アダプターとエントリ', () => {
     expect(result.stdout).toBe('')
   })
 
-  it.for([
-    { label: '.pecot-active があるとき', withPecotFlag: true },
-    { label: '.pecot-active が無いとき', withPecotFlag: false },
-  ])('Copilot CLI のエントリで gh pr create を送るとき、$label でも deny を返す', (row) => {
+  it('Copilot CLI のエントリで gh pr create を送るとき、deny を返す', () => {
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
-    if (row.withPecotFlag) {
-      const state = path.join(repository, '.pecot', 'state')
-      mkdirSync(state, { recursive: true })
-      writeFileSync(path.join(state, '.pecot-active'), '')
-    }
     const result = runEntry(hookCase, copilotToolPayload('gh pr create'), repository)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')

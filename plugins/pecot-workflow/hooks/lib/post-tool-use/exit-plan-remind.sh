@@ -8,10 +8,10 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
+source "${SCRIPT_DIR%/*}/core/active-issue.sh"
 pecot_hook_enabled "exit-plan-remind" true || exit 0
 
 STATE_DIR="${CLAUDE_PROJECT_DIR}/.pecot/state"
-PECOT_FLAG="$STATE_DIR/.pecot-active"
 
 INPUT=$(cat)
 
@@ -27,10 +27,8 @@ IS_QUICK=0
 [ -f "$STATE_DIR/.pecot-quick-mode" ] && IS_QUICK=1
 rm -f "$STATE_DIR/.pecot-quick-mode"
 
-# pecot の作業対象が無いセッションでは案内しない。
-ISSUE_REF=""
-[ -f "$PECOT_FLAG" ] && ISSUE_REF=$(tr -d '[:space:]' < "$PECOT_FLAG")
-[ -n "$ISSUE_REF" ] || exit 0
+# 作業中の Issue が無いセッションでは案内しない。
+pecot_active_issue_number "$CLAUDE_PROJECT_DIR" >/dev/null || exit 0
 
 MESSAGE=$(cat "${PLUGIN_HOOKS}/templates/exit-plan-comment-update.md" 2>/dev/null)
 

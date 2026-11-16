@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n  to issue the command on purpose from outside the CWD (for example in a script), give --allow-cross-repo\n",
+  "stderr": "error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n",
   "exitCode": 2,
   "requests": [],
   "files": {

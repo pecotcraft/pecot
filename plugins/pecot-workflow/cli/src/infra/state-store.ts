@@ -6,7 +6,7 @@ import path from 'node:path'
 
 import { ProjectRootNotFoundError } from '../domain/errors.js'
 import { pythonStrip } from '../domain/python-format.js'
-import { FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, workDirectoryName } from '../domain/state.js'
+import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, workDirectoryName } from '../domain/state.js'
 import type { BaseReading, BaseRecord } from '../domain/state.js'
 import { OsError, hasErrorCode, isFileNotFound, isSystemCallError } from './os-error.js'
 import { projectRoot, STATE_DIR, WORK_DIR } from './paths.js'
@@ -30,7 +30,7 @@ export function getStateDirectory(options: Readonly<StateDirectoryOptions> = {})
 
 /**
 作業ディレクトリ `.pecot/work/<Issue番号>/` を作って返す。
-.pecot-active へ作業対象を記録するタイミング（session start / session restore）で呼ぶ。
+ブランチを作るとき（session start）に呼ぶ。
 作れないとき（プロジェクトルート不明・OS のエラー）は undefined。作業フロー自体は止めない
 */
 export function ensureWorkDirectory(issueReference: string): string | undefined {
@@ -133,11 +133,9 @@ export function readBaseRecord(): BaseReading {
 }
 
 /**
-作業対象を記録する（.pecot-active と .pecot-session-title を同時に書く）。
+セッション名のキャッシュ（.pecot-session-title）を書く。
 issueReference の末尾が整数でなければ InvalidValueError で、何も書かない
 */
-export function writeWorkTarget(issueReference: string, title: string): void {
-  const target = planWorkTarget(issueReference, title)
-  writeFlag(FLAG_PECOT_ACTIVE, target.active)
-  writeFlag(FLAG_PECOT_SESSION_TITLE, target.sessionTitle)
+export function writeSessionTitle(issueReference: string, title: string): void {
+  writeFlag(FLAG_PECOT_SESSION_TITLE, planWorkTarget(issueReference, title))
 }

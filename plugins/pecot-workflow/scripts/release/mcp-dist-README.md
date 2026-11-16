@@ -104,7 +104,6 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `issue_reopen` | 閉じた Issue を開き直す（ボードのステータスも戻す） |
 | `session_start` | Issue の作業を始める（ブランチを作り、ボードを Active にし、作業対象を記録する） |
 | `session_show` | セッションのフラグ、ブランチ、推定した Issue を表示する |
-| `session_restore` | 失われたセッションのフラグをブランチから復元する |
 | `session_finish` | 作業を終える（マージ後の後処理として、Issue のクローズ、ブランチ削除、ローカルの整理をする） |
 | `pr_create` | PR を作る |
 | `pr_show` | PR の詳細を必要な項目だけ取得する |

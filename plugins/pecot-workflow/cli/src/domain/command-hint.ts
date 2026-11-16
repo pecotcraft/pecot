@@ -25,7 +25,7 @@ export interface CommandHint {
 }
 
 /**
-入力 1 つだけの案内（`--allow-cross-repo` の形）
+入力 1 つだけの案内（`--dry-run` の形）
 */
 export interface InputHint {
   readonly kind: 'input'

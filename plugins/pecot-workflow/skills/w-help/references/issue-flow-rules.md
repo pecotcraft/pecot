@@ -141,25 +141,23 @@ active を設定する担い手は、どの起票でも `session start` だけ�
 
 pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態を持つ。並行作業は別 WT で行う。
 
-`.pecot-active` の役割:
+作業中の Issue の求め方:
 
-- 配置: `.pecot/state/.pecot-active`（`CLAUDE_PROJECT_DIR` 単位 = WT ごとに独立）
-- 書き手: pecot-workflow の MCP ツール `session_start` / pecot-workflow の MCP ツール `session_restore`（実行時に上書き）
-- pecot-workflow の MCP ツール `session_finish` が消す。`session_finish` を通さずに片付けた場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
+- git の remote（origin、無ければ最初）のリポと、ブランチ名の末尾の `/<番号>` から求める。ファイルには記録しない
+- ブランチ名は、pecot-workflow の MCP ツール `session_start` が `<名前>/<Issue番号>` の形で作る
+- remote が無い、または末尾が番号でない（`main` など）ときは、作業中の Issue は無い。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
 
 ツールのガード（この表が最終の基準）は次のとおり。
 
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
-| CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | 止まり、対象リポの worktree でセッションを始め直すよう案内する | `allow_cross_repo` |
-| `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | 止まり、WT を分けるよう案内する | `force_overwrite_active` |
-| `.pecot-active` の Issue が CLOSED | 同上 | stale の警告を出して続行する | （バイパス不要） |
+| CWD の remote と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | 止まり、対象リポの worktree でセッションを始め直すよう案内する | なし（対象リポの worktree で始め直す） |
 | Issue の判定が blocked | 同上 | 止まり、前提ごとの状態と直し方の行（`issue unblock ...`）を示す | なし（前提を見直す） |
 | 前提を読めない・判定できない | 同上 | 止まり、読めなかった理由を示す（開発ブランチが原因なら設定の直し方の行も） | なし（エラーの文を利用者に示す） |
 | 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | 止まり、無くなったブランチを示す | なし（判定をやり直す） |
 | `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | 止まり、食い違いを示す | `--base` を外す |
 
-状況を着手前に把握したいときは、pecot-workflow の MCP ツール `session_show` を使う。残っている Issue と、その OPEN/CLOSED が分かる。
+状況を着手前に把握したいときは、pecot-workflow の MCP ツール `session_show` を使う。作業中の Issue と、その OPEN/CLOSED が分かる。
 
 未コミット差分の扱いはツールのガード対象外（git status の判断は AI / 人間に委ねられる）。`git status` で前 Issue 由来の差分が残っていれば commit / stash / 破棄で clean にしてから着手する。
 
@@ -167,13 +165,13 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 
 ## 6. 変更対象のリポジトリ限定（越境ガード）
 
-計画・実装で変更するファイルは、active Issue の owner/repo が指すリポ内に限定する。
+計画・実装で変更するファイルは、作業中の worktree の remote のリポ内に限定する。
 §5 が「着手してよい状態か」を扱うのに対し、本節は着手後に「どこまで触ってよいか」を扱う。
 
 判定手段:
 
-- `.pecot/state/.pecot-active` に記録された owner/repo を見る
-- `session_show` を使って、残っている Issue と状態を確認する
+- git の remote（origin、無ければ最初）の owner/repo を見る
+- `session_show` を使って、作業中の Issue と状態を確認する
 
 他リポの変更が必要になった場合の手順:
 

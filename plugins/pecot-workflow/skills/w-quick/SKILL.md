@@ -30,8 +30,7 @@ pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る�
 
 **リポジトリの特定方法:**
 
-- ユーザーが明示的に指定している場合はその値を使用
-- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または pecot-workflow の MCP ツール `project_get` を使って、集約リポの設定を根拠に決める（推測で `repo` を埋めない）
+- `repo` は、pecot-workflow の MCP ツール `session_show` の結果の repository（セッションの remote のリポ）にする
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 2: ブランチ作成（session_start）とブランチ切り替え
@@ -52,13 +51,6 @@ git fetch origin
 git checkout feat/description
 ```
 
-**ワークツリー環境の場合:**
-
-ブランチを作ったリポのワークツリーのうち、今のワークツリーと同じ WT 名のもので `git checkout` を実行する。
-
-同じ WT 名のワークツリーがそのリポに存在しない場合は、
-`/pecot-w:w-worktree-add` コマンドでWT作成を案内するか、作業を中止する。
-
 ### Step 3: 調査
 
 変更対象のファイルと周辺の既存パターンを読む。
@@ -68,7 +60,7 @@ git checkout feat/description
 pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
 できたファイルに、テンプレの見出しと規則のとおりに計画を書く。
 
-変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
+変更対象は作業中の worktree の remote のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 
 ### Step 5: 計画の投稿
 

@@ -2,14 +2,14 @@
 // Copilot CLI の Skill 入力（名前空間なしのスキル名）のテスト。
 // 名前空間なしの名前は、自プラグインの skills/<名前>/SKILL.md が実在するときだけ自プラグインのスキルとして扱う。
 // 接頭辞だけで判定すると、他のプラグインの同名スキルを取り違えるため。
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
+import { checkoutWorkBranch, gitRepository } from '../_helpers/git.js'
 import { toRecord } from '../_helpers/json.js'
 import { pluginRoot } from '../_helpers/paths.js'
 import { runHookEntry } from '../_helpers/run.js'
@@ -127,7 +127,7 @@ describe('post-tool-use-skill.sh', () => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
-    writeFileSync(path.join(project, '.pecot', 'state', '.pecot-active'), 'org/repo/1\n')
+    checkoutWorkBranch(hookCase, project, 'x/1')
     const result = runEntry(hookCase, 'post-tool-use-exit-plan-mode.sh', 'PostToolUse', 'x', project, { tool_name: toolName })
     expect(result.exitCode).toBe(0)
     const out = toRecord(parseJson(result.stdout), '出力')

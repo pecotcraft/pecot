@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pr-create-block.sh のテスト。MCP の PR 作成ツールを常時ブロックし、非 PR ツールと tool_name の欠落ではすり抜けさせる。
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -20,7 +20,7 @@ function setUpState(hookCase: HookCase): string {
 }
 
 describe('pr-create-block.sh', () => {
-  it('フラグが無くても、GitHub の PR 作成ツールをブロックする', () => {
+  it('GitHub の PR 作成ツールをブロックする', () => {
     const hookCase = createHookCase()
     setUpState(hookCase)
     const result = runHookScript(hookCase, HANDLER, '{"tool_name":"mcp__github__create_pull_request"}')
@@ -28,21 +28,13 @@ describe('pr-create-block.sh', () => {
     expect(result.stdout).toContain('"permissionDecision": "deny"')
   })
 
-  it('フラグがあるとき、githubEnterprise の PR 作成ツールをブロックし、w-pr を案内する', () => {
+  it('githubEnterprise の PR 作成ツールをブロックし、w-pr を案内する', () => {
     const hookCase = createHookCase()
-    writeFileSync(path.join(setUpState(hookCase), '.pecot-active'), '')
+    setUpState(hookCase)
     const result = runHookScript(hookCase, HANDLER, '{"tool_name":"mcp__githubEnterprise__create_pull_request"}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')
     expect(result.stdout).toContain('pecot-w:w-pr')
-  })
-
-  it('フラグがあるとき、GitHub の PR 作成ツールをブロックする', () => {
-    const hookCase = createHookCase()
-    writeFileSync(path.join(setUpState(hookCase), '.pecot-active'), '')
-    const result = runHookScript(hookCase, HANDLER, '{"tool_name":"mcp__github__create_pull_request"}')
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
   })
 
   it('PR 作成でない MCP ツールのとき、何も出力しない', () => {

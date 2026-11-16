@@ -53,7 +53,7 @@ function mergedRules(sample: Readonly<PullRequestSample> = {}, extra: ResponseRu
   return [graphql(MERGED, pullRequestData(sample)), ...extra]
 }
 
-const ALL_FLAGS = ['.pecot-active', '.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked', 'merge-slash-pending']
+const ALL_FLAGS = ['.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked', 'merge-slash-pending']
 
 function flagFiles(): Record<string, string> {
   return Object.fromEntries(ALL_FLAGS.map(name => [stateFile(name), 'x\n']))
@@ -239,9 +239,9 @@ describe('session finish', () => {
   it('ローカルの片付けを終えると、フラグのファイルと merge-slash-pending を消す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-09')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true])
     await workspace.run(CLEANUP)
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false, false])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false])
   })
 
   it('--skip-local-cleanup を付けて打つと、ローカルの片付けをしない', async (context) => {
@@ -258,7 +258,7 @@ describe('session finish', () => {
     await verifies(context, 'PW-SESSION-FINISH-11')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true])
   })
 
   it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async (context) => {
@@ -532,12 +532,12 @@ describe('session finish', () => {
       expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
     })
 
-    it('ローカルの片付けを終えると、base の記録のファイルを .pecot-active と一緒に消す', async (context) => {
+    it('ローカルの片付けを終えると、base の記録のファイルを消し、古い版の .pecot-active には触れない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-09')
-      const files = { [stateFile('.pecot-active')]: 'acme/demo\n', [stateFile('.pecot-base')]: `feat/demo/11 ${'0'.repeat(40)} acme/demo#11\n` }
+      const files = { [stateFile('.pecot-active')]: 'acme/demo/12\n', [stateFile('.pecot-base')]: `feat/demo/11 ${'0'.repeat(40)} acme/demo#11\n` }
       const workspace = await cleanupBranch({ github: mergedRules(), files })
       await workspace.run(CLEANUP)
-      expect([workspace.exists(stateFile('.pecot-active')), workspace.exists(stateFile('.pecot-base'))]).toStrictEqual([false, false])
+      expect([workspace.exists(stateFile('.pecot-active')), workspace.exists(stateFile('.pecot-base'))]).toStrictEqual([true, false])
     })
 
     it('前提にされていない Issue の PR では、待つ Issue の読み取りを 1 回だけ足し、出力を変えない', async (context) => {

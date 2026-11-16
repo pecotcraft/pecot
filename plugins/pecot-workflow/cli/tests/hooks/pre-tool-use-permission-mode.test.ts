@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pre-tool-use-bash.sh の permission_mode 非依存性のテスト。実 JSON をエントリに流し、通常モードと plan mode で同じ判定を返すことを固定する。
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -32,13 +32,12 @@ describe('pre-tool-use-bash.sh', () => {
     OPERATIONS.flatMap(operation => ['default', 'plan'].map(mode => ({ ...operation, mode, label: operation.command }))),
   )('permission_mode が $mode のとき、$label に対するガードは $expected を返す', (row) => {
     const hookCase = createHookCase()
-    // 環境は、feature ブランチの git リポジトリと .pecot-active
+    // 環境は、feature ブランチの git リポジトリ
     const repository = gitRepository(hookCase)
     const checkout = run(hookCase, 'git', ['-C', repository, 'checkout', '-b', 'feat/regression/820', '--quiet'])
     expect(checkout.exitCode).toBe(0)
     const state = path.join(repository, '.pecot', 'state')
     mkdirSync(state, { recursive: true })
-    writeFileSync(path.join(state, '.pecot-active'), 'org/repo/820\n')
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
 
     const payload = jsonDumps({

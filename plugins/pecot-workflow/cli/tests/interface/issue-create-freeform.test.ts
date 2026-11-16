@@ -55,6 +55,7 @@ describe('issue create', () => {
     expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(true)
     expect(hasFile(project.root, '.pecot/state/issue-pending')).toBe(false)
     expect(hasFile(project.root, '.pecot/state/issue-create-slash-pending')).toBe(false)
+    expect(hasFile(project.root, '.pecot/state/.pecot-active')).toBe(false)
   })
 
   it('長いメッセージを渡すと、先頭 50 文字の連続する空白を 1 つにしたものを type の接頭辞つきの題にする', async (context) => {

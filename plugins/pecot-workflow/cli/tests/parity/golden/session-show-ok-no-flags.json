@@ -1,7 +1,0 @@
-{
-  "stdout": "# Session status\n\n- Branch: main\n- Repository: acme/demo\n- Inferred Issue: none\n\n| Flag | State | Content |\n|------|-------|---------|\n| .pecot-active | unset |  |\n",
-  "stderr": "",
-  "exitCode": 0,
-  "requests": [],
-  "files": {}
-}

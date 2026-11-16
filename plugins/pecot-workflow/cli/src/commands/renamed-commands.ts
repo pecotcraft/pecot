@@ -43,7 +43,6 @@ export interface RenamedInput {
 
 export const RENAMED_INPUTS: readonly RenamedInput[] = [
   { command: 'issue comment', oldName: 'issue', newName: 'issue_ref' },
-  { command: 'session restore', oldName: 'issue', newName: 'issue_ref' },
   { command: 'branch delete', oldName: 'repo_ref', newName: 'repo' },
   { command: 'project link', oldName: 'owner_repo', newName: 'repo' },
   { command: 'session start', oldName: 'branch_name', newName: 'branch' },

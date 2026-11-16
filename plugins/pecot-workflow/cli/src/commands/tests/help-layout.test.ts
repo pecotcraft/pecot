@@ -84,12 +84,12 @@ describe('bulletSection', () => {
 
 describe('examplesSection', () => {
   it('打つ形は折り返さず、説明を字下げ 6 で折り返す', () => {
-    const run = 'pecot session start example-org/my-repo/123 feat/my-change --allow-cross-repo'
-    expect(examplesSection([{ run, note: 'Create the branch from a directory that is not a checkout.' }], 40)).toBe([
+    const run = 'pecot session start example-org/my-repo/123 feat/my-change --dry-run'
+    expect(examplesSection([{ run, note: 'Show what would be created without writing anything.' }], 40)).toBe([
       'Examples:',
       `  ${run}`,
-      '      Create the branch from a directory',
-      '      that is not a checkout.',
+      '      Show what would be created without',
+      '      writing anything.',
     ].join('\n'))
   })
 })

@@ -1,11 +1,12 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { installFakeExecutable } from '../../src/tests/_helpers/fake-executables.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
@@ -16,14 +17,13 @@ import type { RunningGithub } from '../_helpers/interface-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
-import { CONFIG_FILE, issueFailure, issueResponse, prepareSession } from '../_helpers/session-case.js'
+import { CONFIG_FILE, issueFailure, issueResponse, prepareSession, separateRepository } from '../_helpers/session-case.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-const ACTIVE = { '.pecot/state/.pecot-active': 'acme/demo/7\n' }
 const HEADER = '# Session status\n\n'
-const TABLE_HEAD = '| Flag | State | Content |\n|------|-------|---------|\n'
+const SUMMARY = `${HEADER}- Branch: feat/demo/7\n- Repository: acme/demo\n- Active Issue: acme/demo#7\n`
 
 async function status(directory: string): Promise<Awaited<ReturnType<typeof runInProcess>>> {
   return await runInProcess(['session', 'show', '-D', directory], SESSION_COMMANDS)
@@ -54,49 +54,48 @@ function operationsOf(github: Readonly<RunningGithub>): readonly string[] {
   return github.requests().map(request => request.type === 'graphql' ? request.operation : request.path)
 }
 
+/**
+origin の `git@ghes.example.com:acme/demo.git` を、偽の ssh で一時の bare リポにつなぐ。bare のパスを返す
+*/
+function sshOrigin(): string {
+  const remotes = makeTemporaryDirectory('pecot-remotes-')
+  const bare = path.join(remotes, 'acme', 'demo.git')
+  mkdirSync(bare, { recursive: true })
+  gitForTest(bare, ['init', '-q', '--bare'])
+  const bin = makeTemporaryDirectory('pecot-ssh-')
+  // git が ssh として呼ぶ形は `fake-ssh <host> <git-upload-pack 'acme/demo.git'>`。host は見ず、bare に向ける
+  const body = `cmd="$(eval "printf '%s\\n' $(printf '%s' "$2" | sed 's/^[^ ]* //')")"\nprog="\${2%% *}"\nexec git "\${prog#git-}" '${remotes}'/"$cmd"\n`
+  setEnvironment({ GIT_SSH: installFakeExecutable(bin, 'fake-ssh', body), GIT_SSH_VARIANT: 'simple' })
+  return bare
+}
+
 async function showTool(directory: string): Promise<ToolOutcome> {
   return await callToolOnce(SESSION_COMMANDS, 'session_show', { directory })
 }
 
 describe('session show', () => {
-  it('--directory を渡すと、ブランチ・リポジトリ・推定した Issue・フラグの表を標準出力に出す', async (context) => {
+  it('--directory を渡すと、ブランチ・リポジトリ・remote とブランチ名から求めた作業中の Issue を標準出力に出し、フラグの表を出さない', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-01')
     await verifies(context, 'PW-SESSION-SHOW-02')
-    await verifies(context, 'PW-SESSION-SHOW-04')
     const { repository } = prepareSession()
-
-    const result = await status(repository)
-
-    expect(result).toEqual({
-      code: 0,
-      stdout: `${HEADER}- Branch: feat/demo/7\n- Repository: acme/demo\n- Inferred Issue: #7\n\n${TABLE_HEAD}| .pecot-active | unset |  |\n`,
-      stderr: '',
-    })
-  })
-
-  it('.pecot-active があるとき、表にその行を set と内容で出す', async (context) => {
-    await verifies(context, 'PW-SESSION-SHOW-03')
-    const { repository } = prepareSession({ files: ACTIVE })
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
+
     const result = await status(repository)
 
-    expect(result.stdout).toContain('| .pecot-active | set | acme/demo/7 |\n')
+    expect(result).toEqual({ code: 0, stdout: `${SUMMARY}\n## Active Issue\n\n#7 t (OPEN)\n`, stderr: '' })
   })
 
-  it('.pecot-active に参照があると、読んだ Issue の番号・題名・状態と本文を Active Issue の節に出す', async (context) => {
+  it('作業中の Issue を、読んだ Issue の番号・題名・状態と本文で Active Issue の節に出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-05')
     await verifies(context, 'PW-SESSION-SHOW-06')
-    const { repository } = prepareSession({ files: ACTIVE })
+    const { repository } = prepareSession()
     const github = await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n本文の 2 行目\n' }), stackedAbove()])
 
     const result = await status(repository)
 
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('')
-    expect(result.stdout).toBe(
-      `${HEADER}- Branch: feat/demo/7\n- Repository: acme/demo\n- Inferred Issue: #7\n\n${TABLE_HEAD}| .pecot-active | set | acme/demo/7 |\n`
-      + '\n## Active Issue\n\n#7 見本の Issue (OPEN)\n\n本文の 1 行目\n本文の 2 行目\n',
-    )
+    expect(result.stdout).toBe(`${SUMMARY}\n## Active Issue\n\n#7 見本の Issue (OPEN)\n\n本文の 1 行目\n本文の 2 行目\n`)
     expect(github.requests()).toMatchObject([
       { type: 'graphql', operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'demo', number: 7, commentLimit: 0 } },
       { type: 'graphql', operation: 'ListPullRequestsByBase', variables: { owner: 'acme', repo: 'demo', baseRefName: 'feat/demo/7' } },
@@ -105,12 +104,23 @@ describe('session show', () => {
 
   it('本文が空の Issue は、題名の行までで Active Issue の節を終える', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-05')
-    const { repository } = prepareSession({ files: ACTIVE })
+    const { repository } = prepareSession()
     await startGithub([issueResponse({ number: 7, title: '題名だけ', state: 'CLOSED' }), stackedAbove()])
 
     const result = await status(repository)
 
     expect(result.stdout.endsWith('\n## Active Issue\n\n#7 題名だけ (CLOSED)\n')).toBe(true)
+  })
+
+  it('別の番号の古い .pecot-active が残っていても読まず、ブランチ名の番号の Issue を出す', async (context) => {
+    await verifies(context, 'PW-SESSION-SHOW-31')
+    const { repository } = prepareSession({ files: { '.pecot/state/.pecot-active': 'acme/demo/99\n' } })
+    const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
+
+    const result = await status(repository)
+
+    expect(result.stdout).toBe(`${SUMMARY}\n## Active Issue\n\n#7 t (OPEN)\n`)
+    expect(github.requests()).toMatchObject([{ operation: 'GetIssueSlim', variables: { number: 7 } }, { operation: 'ListPullRequestsByBase' }])
   })
 
   it('ブランチ名を読めないとき、Branch の行に unknown を出して続ける', async (context) => {
@@ -122,77 +132,82 @@ describe('session show', () => {
     const result = await status(outsideGit)
 
     expect(result.code).toBe(0)
-    expect(result.stdout).toContain('- Branch: unknown\n')
+    expect(result.stdout).toBe(`${HEADER}- Branch: unknown\n- Repository: unknown\n- Active Issue: none\n`)
   })
 
-  it('origin も他の remote も無いとき、Repository の行に unknown を出して続ける', async (context) => {
+  it('origin も他の remote も無いとき、Repository の行に unknown を、Active Issue の行に none を出して続ける', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-09')
     await verifies(context, 'PW-SESSION-SHOW-10')
+    await verifies(context, 'PW-SESSION-SHOW-33')
     const { repository } = prepareSession({ remotes: {} })
 
     const result = await status(repository)
 
-    expect(result.code).toBe(0)
-    expect(result.stdout).toContain('- Repository: unknown\n')
-    expect(result.stdout).toContain('- Branch: feat/demo/7\n')
+    expect(result).toEqual({ code: 0, stdout: `${HEADER}- Branch: feat/demo/7\n- Repository: unknown\n- Active Issue: none\n`, stderr: '' })
   })
 
-  it('origin が無くても、最初の remote のリポジトリを出す', async (context) => {
-    await verifies(context, 'PW-SESSION-SHOW-01')
-    const { repository } = prepareSession({ remotes: { upstream: 'https://ghes.example.com/acme/other.git' } })
+  it('remote の URL の形が合わないとき、Active Issue の行に none を出す', async (context) => {
+    await verifies(context, 'PW-SESSION-SHOW-33')
+    const { repository } = prepareSession({ remotes: { origin: 'not-a-url' } })
 
     const result = await status(repository)
 
-    expect(result.stdout).toContain('- Repository: acme/other\n')
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('- Active Issue: none\n')
   })
 
-  it('ブランチ名の末尾が番号でないとき、Inferred Issue の行に none を出して続ける', async (context) => {
+  it('origin が無くても、最初の remote のリポジトリを出し、そのリポジトリの Issue を作業中の Issue にする', async (context) => {
+    await verifies(context, 'PW-SESSION-SHOW-01')
+    await verifies(context, 'PW-SESSION-SHOW-02')
+    const { repository } = prepareSession({ remotes: { upstream: 'https://ghes.example.com/acme/other.git' } })
+    const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
+
+    const result = await status(repository)
+
+    expect(result.stdout).toContain('- Repository: acme/other\n- Active Issue: acme/other#7\n')
+    expect(github.requests()).toMatchObject([{ operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'other', number: 7 } }, { operation: 'ListPullRequestsByBase' }])
+  })
+
+  it.for([
+    { branch: 'feat/no-number' },
+    { branch: 'feat/demo/7a' },
+    { branch: 'feat/demo/0' },
+    { branch: 'wt4' },
+  ])('ブランチ名 $branch の末尾が番号でないとき、Active Issue の行に none を出して続ける', async ({ branch }, context) => {
     await verifies(context, 'PW-SESSION-SHOW-11')
     await verifies(context, 'PW-SESSION-SHOW-12')
-    const { repository } = prepareSession({ branch: 'feat/no-number' })
+    const { repository } = prepareSession({ branch })
 
     const result = await status(repository)
 
     expect(result.code).toBe(0)
-    expect(result.stdout).toContain('- Inferred Issue: none\n')
-  })
-
-  it('.pecot-active が Issue の参照として読めないとき、Active Issue の節を出さずに続ける', async (context) => {
-    await verifies(context, 'PW-SESSION-SHOW-13')
-    await verifies(context, 'PW-SESSION-SHOW-14')
-    const { repository } = prepareSession({ files: { '.pecot/state/.pecot-active': 'not a reference\n' } })
-
-    const result = await status(repository)
-
-    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('- Active Issue: none\n')
     expect(result.stdout).not.toContain('## Active Issue')
-    expect(result.stdout).toContain('| .pecot-active | set | not a reference |\n')
-    expect(result.stderr).toBe('')
   })
 
-  it('参照があるのにアクティブなプロジェクトが無いとき、節を出さずに warning を標準エラーに出す', async (context) => {
+  it('作業中の Issue があるのにアクティブなプロジェクトが無いとき、節を出さずに warning を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-15')
     await verifies(context, 'PW-SESSION-SHOW-16')
-    const { project, repository } = prepareSession({ files: ACTIVE })
+    const { project, repository } = prepareSession()
     rmSync(path.join(project.root, '.pecot/config/projects/.active'))
 
     const result = await status(repository)
 
     expect(result.code).toBe(0)
-    expect(result.stdout).not.toContain('## Active Issue')
+    expect(result.stdout).toBe(SUMMARY)
     expect(result.stderr).toBe('warning: cannot read the active Issue: no active project\n')
   })
 
-  it('参照があるのに Issue を GitHub から読めないとき、節を出さずに warning を標準エラーに出す', async (context) => {
+  it('作業中の Issue があるのに Issue を GitHub から読めないとき、節を出さずに warning を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-17')
     await verifies(context, 'PW-SESSION-SHOW-18')
-    const { repository } = prepareSession({ files: ACTIVE })
+    const { repository } = prepareSession()
     await startGithub([issueFailure(502)])
 
     const result = await status(repository)
 
     expect(result.code).toBe(0)
-    expect(result.stdout).not.toContain('## Active Issue')
+    expect(result.stdout).toBe(SUMMARY)
     expect(result.stderr).toMatch(/^warning: cannot read the active Issue: .*502/u)
   })
 
@@ -225,6 +240,7 @@ describe('session show', () => {
 
   it('--directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
     prepareSession()
+    await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
     const result = await status('')
 
@@ -247,7 +263,7 @@ describe('session show', () => {
   it('アクティブな設定ファイルの形式が不正なとき、warning を標準エラーに出して終了コード 0 で終わる', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-21')
     await verifies(context, 'PW-SESSION-SHOW-22')
-    const { repository } = prepareSession({ files: { ...ACTIVE, [`.pecot/config/projects/${CONFIG_FILE}`]: '{"host":"github.com"}' } })
+    const { repository } = prepareSession({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: '{"host":"github.com"}' } })
 
     const result = await status(repository)
 
@@ -258,7 +274,7 @@ describe('session show', () => {
 
   describe('Stack の節', () => {
     const SHA = '0123456789abcdef0123456789abcdef01234567'
-    const STACKED = { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
+    const STACKED = { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
     const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
     it('積んで着手した作業ディレクトリでは、積んだ先の Issue と PR を Stack の節に出す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-23')
@@ -279,13 +295,13 @@ describe('session show', () => {
       { name: '下の段の PR がマージ済み', isMoved: false, state: 'MERGED', expected: 'yes' },
     ])('$name と、Stack の節に needs restack: $expected の行を出す', async (row, context) => {
       await verifies(context, 'PW-SESSION-SHOW-28')
-      const bare = makeTemporaryDirectory('pecot-bare-')
-      gitForTest(bare, ['init', '-q', '--bare'])
-      const { project, repository } = prepareSession({ remotes: { origin: bare }, files: ACTIVE })
-      gitForTest(repository, ['push', '-q', 'origin', 'HEAD:refs/heads/feat/3'])
+      const bare = sshOrigin()
+      const { project, repository } = prepareSession({ remotes: { origin: 'git@ghes.example.com:acme/demo.git' } })
+      gitForTest(repository, ['push', '-q', bare, 'HEAD:refs/heads/feat/3'])
       const recorded = row.isMoved ? SHA : gitForTest(repository, ['rev-parse', 'HEAD']).trim()
+      mkdirSync(path.join(project.root, '.pecot/state'), { recursive: true })
       writeFileSync(path.join(project.root, '.pecot/state/.pecot-base'), `feat/3 ${recorded} acme/demo#3\n`)
-      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, row.state)), prerequisitesRule({ number: 7, blockedBy: [inReview] })])
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, row.state)), prerequisitesRule({ number: 7, blockedBy: [inReview] }), stackedAbove()])
 
       const result = await status(repository)
 
@@ -330,7 +346,7 @@ describe('session show', () => {
 
     it('.pecot-base の形が誤っていると、warning を出し、Stack の節を出さない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-26')
-      const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': 'garbage\n' } })
+      const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': 'garbage\n' } })
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
       const result = await status(repository)
@@ -367,9 +383,9 @@ describe('session show', () => {
     })
 
     it.for([
-      { name: '.pecot-base が無い', files: ACTIVE },
-      { name: '開発ブランチから着手した', files: { ...ACTIVE, '.pecot/state/.pecot-base': `main ${SHA}\n` } },
-      { name: '.pecot-base の形が誤っている', files: { ...ACTIVE, '.pecot/state/.pecot-base': 'garbage\n' } },
+      { name: '.pecot-base が無い', files: {} },
+      { name: '開発ブランチから着手した', files: { '.pecot/state/.pecot-base': `main ${SHA}\n` } },
+      { name: '.pecot-base の形が誤っている', files: { '.pecot/state/.pecot-base': 'garbage\n' } },
     ])('$name ときは、Stack の節を出さず、判定も読まない', async ({ files }, context) => {
       await verifies(context, 'PW-SESSION-SHOW-23')
       const { repository } = prepareSession({ files })
@@ -381,23 +397,36 @@ describe('session show', () => {
       expect(operationsOf(github)).toEqual(['GetIssueSlim', 'ListPullRequestsByBase'])
     })
 
-    it('.pecot-active が無ければ、.pecot-base があっても Stack の節を出さない', async (context) => {
+    it('作業中の Issue が無ければ、.pecot-base があっても Stack の節を出さない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-23')
-      const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
+      const { repository } = prepareSession({ branch: 'feat/no-number', files: STACKED })
 
       const result = await status(repository)
 
       expect(result.stdout).not.toContain('## Stack')
     })
+
+    it('--directory の toplevel がプロジェクトのルートと違うと、.pecot-base の積んだ記録を Stack の節に出さず、上の段は出す', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-32')
+      prepareSession({ files: STACKED })
+      const clone = separateRepository()
+      const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'))])
+
+      const result = await status(clone)
+
+      expect(result.code).toBe(0)
+      expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- stacked above: PR #40 (feat/demo/8)\n')).toBe(true)
+      expect(operationsOf(github)).toEqual(['GetIssueSlim', 'ListPullRequestsByBase'])
+    })
   })
 
   describe('上に積んだ段', () => {
     const SHA = '0123456789abcdef0123456789abcdef01234567'
-    const STACKED = { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
+    const STACKED = { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
 
     it('今のブランチを base にした開いている PR があれば、積んだ記録が無くても Stack の節に PR ごとの stacked above の行を出す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-29')
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'), above(41, 'feat/other/9', true), above(42, 'feat/demo/10'))])
 
       const result = await status(repository)
@@ -419,7 +448,7 @@ describe('session show', () => {
     })
 
     it('fork の PR しか無ければ、上の段が無いものとして Stack の節を出さない', async () => {
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(41, 'feat/other/9', true))])
 
       const result = await status(repository)
@@ -444,7 +473,7 @@ describe('session show', () => {
 
     it('積んだ記録が無く上の段を読めなければ、warning を出し、Stack の節を出さない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-30')
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
       const result = await status(repository)
@@ -454,19 +483,19 @@ describe('session show', () => {
       expect(result.stderr).toMatch(/^warning: cannot read the PRs stacked above: .+500/u)
     })
 
-    it('remote が無いとき、上の段を読まない', async () => {
-      const { repository } = prepareSession({ files: ACTIVE, remotes: {} })
-      const github = await startGithub([issueResponse({ number: 7, title: 't' })])
+    it('remote が無いとき、作業中の Issue も上の段も読まない', async () => {
+      const { repository } = prepareSession({ remotes: {}, files: STACKED })
+      const github = await startGithub([])
 
       const result = await status(repository)
 
       expect(result.stdout).not.toContain('## Stack')
       expect(result.stderr).toBe('')
-      expect(operationsOf(github)).toEqual(['GetIssueSlim'])
+      expect(operationsOf(github)).toEqual([])
     })
 
     it('アクティブな Issue を読めないとき、上の段を読まない', async () => {
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       const github = await startGithub([issueFailure(502)])
 
       await status(repository)
@@ -477,7 +506,7 @@ describe('session show', () => {
 
   describe('MCP の data', () => {
     it('上の段があれば、stackedAbove に PR の番号とブランチを返す', async () => {
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'), above(42, 'feat/demo/10'))])
 
       const outcome = await showTool(repository)
@@ -485,15 +514,13 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        inferredIssue: 7,
-        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
-        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        activeIssue: { reference: 'acme/demo#7', title: 't', state: 'OPEN' },
         stackedAbove: [{ number: 40, branch: 'feat/demo/8' }, { number: 42, branch: 'feat/demo/10' }],
       })
     })
 
     it('上の段を読めなければ、stackedAbove を省いて warning を返す', async () => {
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
       const outcome = await showTool(repository)
@@ -502,8 +529,18 @@ describe('session show', () => {
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^cannot read the PRs stacked above: .+500/u)])
     })
 
-    it('.pecot-active が無いとき、ブランチ・リポジトリ・推定した Issue・フラグを data に返す', async () => {
-      const { repository } = prepareSession()
+    it('作業中の Issue が無いとき、ブランチとリポジトリだけを data に返し、activeIssue を省く', async () => {
+      const { repository } = prepareSession({ branch: 'feat/no-number', files: { '.pecot/state/.pecot-active': 'acme/demo/7\n' } })
+
+      const outcome = await showTool(repository)
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ branch: 'feat/no-number', repository: 'acme/demo' })
+    })
+
+    it('アクティブなプロジェクトが無いとき、activeIssue に reference だけを返して warning を返す', async () => {
+      const { project, repository } = prepareSession()
+      rmSync(path.join(project.root, '.pecot/config/projects/.active'))
 
       const outcome = await showTool(repository)
 
@@ -511,14 +548,14 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        inferredIssue: 7,
-        flags: [{ name: '.pecot-active', isSet: false, content: '' }],
+        activeIssue: { reference: 'acme/demo#7' },
+        warnings: ['cannot read the active Issue: no active project'],
       })
     })
 
     it('積んで着手した作業ディレクトリでは、アクティブな Issue と積んだ先を data に返す', async () => {
       const SHA = '0123456789abcdef0123456789abcdef01234567'
-      const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
+      const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
       await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
 
       const outcome = await showTool(repository)
@@ -526,9 +563,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        inferredIssue: 7,
-        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
-        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        activeIssue: { reference: 'acme/demo#7', title: 't', state: 'OPEN' },
         stack: { branch: 'feat/3', stackedOn: 'acme/demo/3', pullRequest: { number: 30, state: 'CLOSED' }, readiness: 'blocked by #3 (not in review: #3 (not started))' },
       })
     })
@@ -536,20 +571,19 @@ describe('session show', () => {
     it.for([
       { name: '404', status: 404, warning: /^cannot read the active Issue: .*404/u },
       { name: 'API エラー', status: 502, warning: /^cannot read the active Issue: .*502/u },
-    ])('Issue の取得が $name で失敗すると、activeIssue を返さず、flags の content に参照を残す', async (row) => {
-      const { repository } = prepareSession({ files: ACTIVE })
+    ])('Issue の取得が $name で失敗すると、activeIssue の title と state を省いて reference を返し、warning を返す', async (row) => {
+      const { repository } = prepareSession()
       await startGithub([issueFailure(row.status)])
 
       const outcome = await showTool(repository)
 
       expect(outcome.isError).toBe(false)
-      expect(outcome.structured).not.toHaveProperty('activeIssue')
-      expect(outcome.structured).toMatchObject({ flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }] })
+      expect(outcome.structured['activeIssue']).toEqual({ reference: 'acme/demo#7' })
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(row.warning)])
     })
 
     it('Issue が閉じていると、activeIssue の state を CLOSED で返す', async () => {
-      const { repository } = prepareSession({ files: ACTIVE })
+      const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' }), stackedAbove()])
 
       const outcome = await showTool(repository)
@@ -557,9 +591,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        inferredIssue: 7,
-        flags: [{ name: '.pecot-active', isSet: true, content: 'acme/demo/7' }],
-        activeIssue: { reference: 'acme/demo/7', title: '閉じた Issue', state: 'CLOSED' },
+        activeIssue: { reference: 'acme/demo#7', title: '閉じた Issue', state: 'CLOSED' },
       })
     })
   })
