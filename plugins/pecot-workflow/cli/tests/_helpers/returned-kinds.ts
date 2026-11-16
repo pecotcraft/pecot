@@ -94,12 +94,14 @@ class Collector {
     return kinds.map(kind => ({ kind, code, at }))
   }
 
-  // path に定数を渡したときは、その宣言の配列のリテラルを読む
+  // path に定数を渡したときは、その宣言（import した定数は元の宣言）の配列のリテラルを読む
   private arrayLiteralOf(expression: ts.Expression): ts.ArrayLiteralExpression | undefined {
     const node = unwrap(expression)
     if (ts.isArrayLiteralExpression(node)) return node
     if (!ts.isIdentifier(node)) return undefined
-    const declaration = this.checker.getSymbolAtLocation(node)?.declarations?.at(0)
+    const symbol = this.checker.getSymbolAtLocation(node)
+    const resolved = symbol === undefined || (symbol.flags & ts.SymbolFlags.Alias) === 0 ? symbol : this.checker.getAliasedSymbol(symbol)
+    const declaration = resolved?.declarations?.at(0)
     return declaration !== undefined && ts.isVariableDeclaration(declaration) && declaration.initializer !== undefined
       ? this.arrayLiteralOf(declaration.initializer)
       : undefined
