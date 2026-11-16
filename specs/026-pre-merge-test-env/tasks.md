@@ -20,6 +20,8 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 | `[P]` | 並べて進められる。別のファイルで、終わっていないタスクに依存しない |
 | `[Story]` | spec.md のユーザーストーリー（US1〜US6） |
 
+T048 から後の番号は、analyze の後に足したタスクだ。進める順は、番号ではなく並びに従う。
+
 パスはリポ root 起点で書く。次の略し方を使う。
 
 | 略 | 指す場所 |
@@ -31,7 +33,7 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 ## 全フェーズに共通の完了条件
 
 - 確かめは、検証用（`pecotcraft/pecot-sandbox` とボード `pecot sandbox`）で流す。このリポの Issue・PR・ボードを、確かめの書き込む先にしない
-- 配布物（`p-w/` の下）を直す PR には、`.nx/version-plans/` に version plan を 1 つ足す
+- 配布物を直す PR には、`.nx/version-plans/` に version plan を 1 つ足す。要るかどうかは、pre-push の hook が知らせる
 - 文面の規則と lint は、pre-commit で通す。`--no-verify` を使わない
 - 実機で確かめた結果は、確かめた版と日付を付けて書く
 - 見込みと違う結果が出たら、後のフェーズのタスクを直してから進む。標準から外れる点は、その場でユーザーに伝える
@@ -40,18 +42,16 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 
 ## Phase 1: 設計を左右する点を、実機で先に確かめる
 
-**Goal**: research.md の R11 の 6 つの点に、結果と確かめた日が付いている。見込みと違った点は、後のフェーズを直してある
+**Goal**: research.md の R11-1〜4 と R11-7 に、結果と確かめた日が付いている。見込みと違った点は、後のフェーズを直してある
 
-**Independent Test**: `spec/research.md` の R11 の表のすべての行に、結果・版・日付が書かれている
+**Independent Test**: `spec/research.md` の R11 の表の R11-1〜4 と R11-7 の行に、結果・版・日付が書かれている
 
 - [ ] T001 [P] #454 で `/reload-plugins` の後に古い版が動いた訳を調べる。w-help の本文に 1 行足し、`--plugin-dir` の 3 つの始め方で、再読み込みの前と後の中身を比べる。始め方は、base で相対パス・worktree で相対パス・絶対パスだ。結果を `spec/research.md` の R11-1 に書く
 - [ ] T002 [P] `copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow` で始め、スキル・フック・エージェント・MCP サーバが読まれるかを確かめる。同じ名前の入れてある版との優先も見る。`/env` と `copilot plugin list --json` の出力と結果を `spec/research.md` の R11-2 に書く
 - [ ] T003 [P] `pecotcraft/pecot-sandbox` の `.github/workflows/ci.yml` を読む。`ci-result`・`version-plan` の名前のチェックを出すか、`merge_group` の契機で動くかを確かめる。結果を `spec/research.md` の R11-3 に書く
 - [ ] T004 [P] `p-w/cli/templates/workflow/pecot-board-sync.yml` を読み、workflow の中で動く pecot をどこから取るかを確かめる。直した中身で動かす手段（取る先の指定など）があるかを見る。結果を `spec/research.md` の R11-4 に書く
-- [ ] T005 `pecotcraft/pecot-sandbox` にだけ入れた GitHub App の token を使う。ボード `pecot-project`を読めるか・書けるかを確かめる。書き込みは、下書きのカードを 1 枚足して消す形にする。先にユーザーの承認を得る。App はユーザーが作る。結果を `spec/research.md` の R11-5 に書く
-- [ ] T006 クラウドのセッションで、research.md の R11-6 の 5 点を確かめる。`claude` の起動、`CLAUDE_CODE_PLUGIN_DIRS`、付けていないリポへの REST、Projects の REST、自前の環境の GraphQL だ。結果を `spec/research.md` の R11-6 に書く
-- [ ] T007 T006 の結果を、R8 の 3 つの案（Anthropic のクラウド・自前の環境・GitHub Actions）の表に足し、動かし方をユーザーに選んでもらう。選んだ案と訳を `spec/research.md` の R8 と `spec/plan.md` の「標準との対照」に書く。Phase 7 のタスクを、選んだ案に合わせて直す
-- [ ] T008 T001〜T005 の結果で見込みと違った点を、`spec/research.md` の各 R の「残る点」と、後のフェーズのタスクに反映する
+- [ ] T048 [P] サブエージェントが、このリポで始めたセッションの中から検証用へ書き込む手段を比べる。MCP ツールの引数、Bash での `pecot`、検証用の clone で起こす `claude -p` の 3 つだ。結果を `spec/research.md` の R11-7 に書く
+- [ ] T008 T001〜T004 と T048 の結果で見込みと違った点を、`spec/research.md` の各 R の「残る点」と、後のフェーズのタスクに反映する
 
 ---
 
@@ -67,7 +67,7 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] `.githooks/tests/test_sandbox_diff.py` を足す。偽の `gh` を PATH に置き、contracts/sandbox-scripts.md の `sandbox-diff.sh` の 7 つの場合を、出力の行と終了コードで比べる。実装の前は失敗することを確かめる
+- [ ] T009 [P] [US1] `.githooks/tests/test_sandbox_diff.py` を足す。偽の `gh` を PATH に置き、contracts/sandbox-scripts.md の `sandbox-diff.sh` の 8 つの場合を、出力の行と終了コードで比べる。実装の前は失敗することを確かめる
 - [ ] T010 [P] [US1] `.githooks/tests/test_sandbox_sweep.py` を足す。偽の `gh` を PATH に置く。contracts/sandbox-scripts.md の `sandbox-sweep.sh` の 6 つの場合を、出力の行・終了コード・`gh` の呼び出しの記録で比べる。実装の前は失敗することを確かめる
 
 ### Implementation for User Story 1
@@ -79,7 +79,10 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 - [ ] T015 [US1] T003 の結果で、検証用の `ci.yml` が必須のチェックを出していないと分かったときに行う。検証用のリポの `ci.yml` を、`ci-result`・`version-plan` の名前のチェックを出す形に直す。`pull_request` と `merge_group` の契機で動かす。直しは、検証用の PR と merge queue を通す
 - [ ] T016 [US1] `.githooks/scripts/sandbox-diff.sh` を実物で動かす。出たずれは 1 件ずつ、検証用を直すか、`sandbox-diff-items.json` で比べない項目にするかを決める。比べない項目にするときは、ユーザーの承認を得て、spec.md の「同じにしなくてよいもの」の表にも足す。「ずれは 0 件」になるまで続ける
 - [ ] T017 [US1] `p-w/CONTRIBUTING.md` に「試験環境」の節を足す。書くのは、試験環境の一覧・検証用の clone の作り方・確かめの前の `sandbox-diff.sh`・作るものの名前の形・`sandbox-sweep.sh` での片付けの 5 つ
+- [ ] T049 [US1] pecot-workflow の、GitHub に書き込む処理の一覧を作る。MCP ツールと CLI のコマンドを、定義書（`p-w/interface/`）から漏れなく拾う。利用者へ配るリリースの処理も含める。一覧を、T017 の節に表で書く
+- [ ] T050 [US1] 同じ節に 3 つを書く。検証用の clone に置く `.pecot/config/.env` の作り方。書き込む前に `board_show` で書き込む先を見ること。このリポの決まりを変えるときは、検証用を先に変えること
 - [ ] T018 [US1] quickstart.md の 2・4・5 を検証用で流す。失敗する場合（CI が落ちる PR が queue から外される）も流す。結果を PR の説明に書く。このリポの Issue・PR・ボードに何も増えていないことを、流す前と後の件数で比べる
+- [ ] T051 [US1] T049 の一覧の処理を、1 つずつ検証用で最後まで流す。流せない処理は、訳を一覧に書く。2 つのセッションで同時に流し、互いを変えないことを見る。確かめと片付けを 3 回くり返し、残りが 0 件であることを見る
 
 ---
 
@@ -94,6 +97,7 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 - [ ] T019 [US2] `p-w/CONTRIBUTING.md` の「試験環境」の節に、Claude Code での手順を書く。中身は quickstart.md の 3 の始め方と、`installPath` での読み込み元の見方、MCP サーバの起こし直しだ。T001 で分かった訳と、避け方の 1 行も書く
 - [ ] T020 [US2] 同じ節に、GitHub Copilot CLI での手順を書く。`copilot --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow` で始め、`/env` で読み込み元を見る。T002 で読まれないと分かったものは、できない範囲として、訳と代わりの確かめ方を書く
 - [ ] T021 [US2] `CLAUDE.md` に 2 つを足す。検証用の場所（`pecotcraft/pecot-sandbox` とボード `pecot sandbox`）と、`p-w/CONTRIBUTING.md` の「試験環境」の節への案内だ。足すのは 3 行までにする
+- [ ] T052 [US2] pecot-workflow のスキル・フック・MCP ツール・エージェントの一覧を作る。2 つのクライアントで、全件が作業ツリーから読み込まれることを確かめる。読み込まれないものは、訳とともに同じ節に書く
 - [ ] T022 [US2] quickstart.md の 3 を、Claude Code と GitHub Copilot CLI のそれぞれで流す。スキル・フック・MCP ツール・エージェントの 4 つを、1 つずつ直して確かめる。文書を読み始めてから、直した中身で動かし始めるまでの時間を測り、5 分以内であることを見る。結果を PR の説明に書く
 
 ---
@@ -107,6 +111,7 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 **前提**: Phase 3（直した中身で動かす手順を使い、同じ節に書き足す）
 
 - [ ] T023 [US3] `p-w/CONTRIBUTING.md` の「試験環境」の節に、配る自動化の手順（quickstart.md の 6）を書く。T004 で分かった、workflow の中の pecot を直した中身にする手段も書く。手段が無いと分かったときは、できない範囲として書く
+- [ ] T053 [US3] 同じ節に 2 つを書く。配る自動化の確かめは、1 度に 1 人が行うこと。確かめの後に、検証用の workflow をこのリポの main のテンプレートへ戻し、`sandbox-diff.sh` で 0 件を見ること
 - [ ] T024 [US3] 同じ節に、このリポだけの運用（リリース、依存の更新と脆弱性の通知、workflow を外から起こす仕組み）の扱いを書く。確かめる場所は無いこと、今の確かめ方、場所を作る条件（プラグインのほかにも配るようになったとき）を書く
 - [ ] T025 [US3] 検証用の workflow に定期の起動（`schedule`）が無いことと、このリポの Scheduler が検証用を向いていないことを確かめる。確かめた結果を、同じ節に 1 行で書く
 - [ ] T026 [US3] quickstart.md の 6 を検証用で流す。1 時間おいて、検証用の実行の一覧に定期の起動が増えていないことを見る。このリポの workflow の実行の一覧とボードが変わっていないことを見る。結果を PR の説明に書く
@@ -168,8 +173,11 @@ description: "main に入れる前の変更を、このリポを乱さずに確�
 
 **前提**: Phase 3（手元で確かめられる手順がある）
 
-このフェーズのタスクは、T007 でユーザーが選んだ動かし方に合わせて直す。下は、3 つの案に共通の部分だ。
+最初に、T005・T006 で実機を確かめ、T007 でユーザーが動かし方を選ぶ。T043 から後のタスクは、選んだ動かし方に合わせて直す。
 
+- [ ] T005 [US5] `pecotcraft/pecot-sandbox` にだけ入れた GitHub App の token を使う。ボード `pecot-project`を読めるか・書けるかを確かめる。書き込みは、下書きのカードを 1 枚足して消す形にする。先にユーザーの承認を得る。App はユーザーが作る。結果を `spec/research.md` の R11-5 に書く
+- [ ] T006 [US5] クラウドのセッションで、research.md の R11-6 の 5 点を確かめる。`claude` の起動、`CLAUDE_CODE_PLUGIN_DIRS`、付けていないリポへの REST、Projects の REST、自前の環境の GraphQL だ。結果を `spec/research.md` の R11-6 に書く
+- [ ] T007 [US5] T006 の結果を、R8 の 3 つの案（Anthropic のクラウド・自前の環境・GitHub Actions）の表に足し、動かし方をユーザーに選んでもらう。選んだ案と訳を `spec/research.md` の R8 と `spec/plan.md` の「標準との対照」に書く。Phase 7 のタスクを、選んだ案に合わせて直す
 - [ ] T043 [US5] 検証用のリポだけに入れた GitHub App を、人のいないセッションへ渡す形にする。App の作成・権限の設定・入れる先の設定は、ユーザーに頼む。秘密の値の置き場と渡し方は、T007 で選んだ案の公式の手段を使う。渡し方・期限・取り消し方を、`p-w/CONTRIBUTING.md` の「試験環境」の節に書く
 - [ ] T044 [US5] 人のいないセッションが、作業ツリーの pecot-workflow を読み込む手順を、T007 で選んだ案の公式の手段で作る。手順を、同じ節に書く
 - [ ] T045 [US5] T005 で、App の token がボード `pecot-project` に書けると分かったときに行う。受け入れる危険として `spec/plan.md` の「標準との対照」に書き、ユーザーの承認を得る。承認が得られないときは、ボードを使う確かめを人のいないセッションの対象から外し、できない範囲として同じ節に書く
@@ -219,6 +227,7 @@ Phase 4・5・6・7 は、Phase 3 の後なら、互いを待たずに進めら�
 | T020 | T002 の結果 |
 | T023 | T004 の結果 |
 | T043〜T047 | T007 でのユーザーの選択 |
+| T030 | T048 の結果 |
 | T045 | T005 の結果 |
 
 ### Parallel Opportunities

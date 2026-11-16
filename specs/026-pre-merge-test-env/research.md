@@ -3,7 +3,7 @@
 **Date**: 2026-11-16
 
 調べ方は 3 つある。公式の文書、このリポのコードと設定の読み取り、GitHub の API での読み取りだ。
-書き込まないと確かめられない点と、実機でしか分からない点は、R11 にまとめた。tasks の最初のフェーズで確かめる。
+書き込まないと確かめられない点と、実機でしか分からない点は、R11 にまとめた。tasks で確かめる。
 
 ## R1. 検証用の場所（FR-009、FR-001〜003）
 
@@ -54,7 +54,7 @@
 | マージ方式 | `GET /repos/{owner}/{repo}` の `allow_squash_merge`・`allow_merge_commit`・`allow_rebase_merge`・`allow_auto_merge`・`delete_branch_on_merge` | `id`・名前・URL・日時・件数 |
 | ruleset | `GET /repos/{owner}/{repo}/rulesets/{id}` の `rules`・`conditions`・`enforcement` | `id`・`node_id`・`source`・`_links`・日時・`bypass_actors[].actor_id`・`integration_id` |
 | ボードの項目と値 | Projects の項目の名前・型・選択肢の名前と並び | 項目と選択肢の `id`・色・説明・日時 |
-| 置いてある自動化 | `.github/workflows/` の `ci.yml`・`pecot-board-sync.yml` の有無 | 中身 |
+| 置いてある自動化 | `.github/workflows/` の `ci.yml` の有無と、`pecot-board-sync.yml` の有無と中身 | `ci.yml` の中身 |
 
 - Alternatives considered:
   - org の ruleset を 1 つ作って両方のリポに当てる。ずれが起きなくなるが、Team 以上のプランが要る。`pecotcraft` のプランは確かめていない。退ける
@@ -148,7 +148,7 @@
 | リリースの後の実物で確かめる | リリースを確かめる場所は、この Epic で作らない（spec の「しないもの」） |
 | 開発ブランチの CI やリリースのワークフローが、前提の変更を使う | このリポだけの運用を確かめる場所は、要るときが来たら作る |
 
-- spec とのずれ: SC-010 は「確かめる場所が無いことを訳にした『マージを待つ』が 0 件」と書いている。上の 3 つは、場所を作らないと決めたものなので残る。SC-010 を「この Epic で試験環境を作ったもの（GitHub への書き込み・pecot-workflow・配る自動化）について 0 件」と読む。spec の文は、tasks の前に直す
+- spec との関係: 上の 3 つは、場所を作らないと決めたものなので残る。spec の SC-010 は、試験環境で確かめられるものに限って 0 件、と書いてある
 
 ## R10. 文書の置き場（FR-029、FR-030）
 
@@ -157,7 +157,7 @@
 
 ## R11. 実機で確かめる点
 
-tasks の最初のフェーズで確かめ、結果をこの表に足す。
+R11-5 と R11-6 は、人のいないセッションのフェーズで確かめる。ほかは、tasks の最初のフェーズで確かめる。結果は、この表に足す。
 
 | 番号 | 確かめること | 訳 | 使う先 |
 |---|---|---|---|
@@ -166,6 +166,7 @@ tasks の最初のフェーズで確かめ、結果をこの表に足す。
 | R11-3 | `pecot-sandbox` の `ci.yml` が、`ci-result`・`version-plan` の名前のチェックを出すか。merge queue の契機（`merge_group`）で動くか | 必須のチェックが出ないと、検証用の PR はマージできない | R1 |
 | R11-4 | `pecot-board-sync.yml` の中で動く pecot を、どこから取るか。直した中身にできるか | 配る自動化を、直した中身で確かめるため | R6 |
 | R11-5 | 検証用のリポにだけ入れた App の token で、ボード `pecot-project` に書けるか | 権限で絞れるかどうかで、受け入れる危険が変わる | R7 |
+| R11-7 | サブエージェントが、作業中のリポで始めたセッションの中から、検証用へ書き込む手段。MCP ツールの引数、Bash での `pecot`、検証用の clone で起こす `claude -p` を比べる | w-e2e-planner が、流す先が検証用の CUJ を実投稿まで行うため | R5 |
 | R11-6 | クラウドのセッションの 5 点。`claude` をセッションの中から起こせるか。`CLAUDE_CODE_PLUGIN_DIRS` を環境変数で渡すと読まれるか。自前の token で、付けていないリポへ REST で書けるか。Projects の REST が proxy を通るか。自前の環境で GraphQL が通るか | 動かし方（R8 の案 A・B・C）を選ぶため | R8 |
 
 ## 出典

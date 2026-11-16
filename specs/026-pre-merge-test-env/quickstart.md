@@ -45,7 +45,7 @@ claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 |---|---|
 | `plugin list --json` の `pecot-w@inline` の行 | `installPath` が作業ツリーを指す |
 | セッションで w-help を起動する | 本文に「試験 456」がある |
-| MCP ツール `board_show` を呼ぶ | ボード `pecot sandbox` が出る |
+| MCP ツール `board_show` を呼ぶ | ボード `pecot sandbox` が出る。書き込む前に、毎回これを見る（FR-031） |
 | ふだんの起動のしかたで w-help を起動する | 「試験 456」が無い |
 
 GitHub Copilot CLI でも、同じことを確かめる。
@@ -71,6 +71,8 @@ copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 | ブランチを作って 1 行直し、PR を作る | 検証用のリポに PR ができる |
 | CI を待ってマージする | PR が検証用の merge queue を通り、squash でマージされる。カードが動く |
 | CI が落ちる PR を queue に入れる | queue から外され、外されたときの手順が動く |
+| 2 つのセッションで、同じ手順を同時に流す | どちらも最後まで進み、互いの Issue・PR・カードを動かさない |
+| CONTRIBUTING の節にある、書き込む処理の一覧を順に流す | どれも検証用で最後まで進む。流せないものは、訳が一覧に書いてある |
 | このリポの Issue・PR・ボードを見る | 何も増えておらず、動いてもいない |
 
 ## 5. 片付ける（US1、SC-007）
@@ -86,6 +88,7 @@ copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 | `--dry-run` | 片付けるものが並ぶ。何も消えない |
 | 1 回目 | 開いた PR・ブランチ・Issue が片付き、カードがアーカイブされる |
 | 2 回目 | 「片付けるものは 0 件」 |
+| 4 と 5 を、合わせて 3 回くり返す | 3 回目の片付けの後、検証用に確かめで作ったものが残っていない |
 
 ## 6. 配る自動化を、検証用で起こす（US3、SC-004）
 
@@ -97,6 +100,7 @@ copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 | 検証用で workflow を起こす | 実行のログに「試験 456」がある。ボード `pecot sandbox` に結果が出る |
 | このリポの workflow の実行の一覧とボードを見る | 変わっていない |
 | 1 時間おいて、検証用の実行の一覧を見る | 定期の起動による実行は増えていない |
+| 検証用の workflow を、このリポの main のテンプレートに戻す PR を入れる | `sandbox-diff.sh` が「ずれは 0 件」に戻る |
 
 ## 7. 計画の「流す先」（US4、SC-001、SC-011）
 
