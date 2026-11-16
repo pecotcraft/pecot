@@ -1129,6 +1129,40 @@
               ],
               "description": "added (new blocked-by), updated (wait kind or reason changed), or unchanged"
             },
+            "moves": {
+              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written; omitted on dry_run)",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "issue": {
+                    "type": "string",
+                    "description": "Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)"
+                  },
+                  "from": {
+                    "description": "Column before the move (omitted when only the Status changed)",
+                    "type": "string"
+                  },
+                  "to": {
+                    "description": "Column after the move (omitted when only the Status changed)",
+                    "type": "string"
+                  },
+                  "label": {
+                    "description": "Status value set (omitted when the Status did not change)",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Readiness that decided the move"
+                  }
+                },
+                "required": [
+                  "issue",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
             "dryRun": {
               "description": "true on dry_run (nothing was changed)",
               "type": "boolean",
@@ -2288,6 +2322,40 @@
                 "unchanged"
               ],
               "description": "removed, or unchanged when it was not a blocked-by"
+            },
+            "moves": {
+              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written; omitted on dry_run)",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "issue": {
+                    "type": "string",
+                    "description": "Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)"
+                  },
+                  "from": {
+                    "description": "Column before the move (omitted when only the Status changed)",
+                    "type": "string"
+                  },
+                  "to": {
+                    "description": "Column after the move (omitted when only the Status changed)",
+                    "type": "string"
+                  },
+                  "label": {
+                    "description": "Status value set (omitted when the Status did not change)",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Readiness that decided the move"
+                  }
+                },
+                "required": [
+                  "issue",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
             },
             "dryRun": {
               "description": "true on dry_run (nothing was changed)",

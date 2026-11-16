@@ -254,7 +254,8 @@ describe('issue unblock', () => {
   })
 
   describe('MCP の data', () => {
-    it('前提を外すと、Issue と前提の参照と removed を data に返す', async () => {
+    it('前提を外すと、Issue と前提の参照と removed と、動かした列を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
       prepareDependencyProject()
       await startGithub([
         bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
@@ -264,16 +265,49 @@ describe('issue unblock', () => {
       const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
       expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'removed' })
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        change: 'removed',
+        moves: [{ issue: '#7', from: 'Blocked', to: 'Ready', reason: 'startable' }],
+      })
     })
 
-    it('付いていない前提を外すと、unchanged を data に返す', async () => {
+    it('札を Todo に戻すと、moves の要素に label を入れて data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
+      prepareDependencyProject()
+      await startGithub([
+        bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
+        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'), labelUpdated('s2'),
+      ])
+
+      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        change: 'removed',
+        moves: [{ issue: '#7', from: 'Blocked', to: 'Ready', label: 'Todo', reason: 'startable' }],
+      })
+    })
+
+    it('付いていない前提を外すと、unchanged と空の moves を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
       prepareDependencyProject()
       await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
 
       const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged' })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged', moves: [] })
+    })
+
+    it('dry_run で付いていない前提を外すと、moves を入れずに unchanged と dryRun を data に返す', async () => {
+      prepareDependencyProject()
+      await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
+
+      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', dry_run: true })
+
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged', dryRun: true })
     })
 
     it('dry_run で打つと、外す予定の removed と dryRun を data に返す', async () => {
