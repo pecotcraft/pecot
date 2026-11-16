@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff. Triggers: "create PR", "submit for review".
   Does not merge PRs (use w-merge).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*), Monitor
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい"
 ---
 
@@ -124,5 +124,32 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 - テンプレの `Closes #` には、作業中のタスクの番号が入っている
 - この番号を書き換えない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
 - ブランチ名末尾の `<num>` も sub-issue 番号にする
+
+### Step 4: CI を待って直す
+
+PR のチェックが終わるまで待つ。Claude Code では Monitor ツールで動かし、期限（timeout_ms）は 30 分（1800000）で渡す。GitHub Copilot CLI では非同期の実行で動かす。
+
+```bash
+gh pr checks <PR番号> --watch --fail-fast
+```
+
+`--required` は付けない。gh は報告済みのチェックのうち必須のものだけを見るので、必須のチェックがまだ報告されていない間に抜けることがある。
+
+抜けた後は、終了コードと出力で次の手順を選ぶ。
+
+| 結果 | 次の手順 |
+|---|---|
+| 終了コード 0 | チェックがすべて通ったことを利用者に伝えて終わる |
+| `no checks reported on the '<branch>' branch` | push の直後でチェックがまだ報告されていない。30 秒ほどおいて打ち直す。2 回続いたら、CI の無いリポとみなして待つのをやめ、利用者に伝える |
+| 落ちたチェックがある | 下の手順で直す |
+| 期限で止まった | 同じコマンドで起動し直す |
+
+落ちたチェックは、次の手順で直す。
+
+1. 出力の落ちたチェックの URL から run の id を取り、`gh run view <run-id> --log-failed` で落ちた箇所を読む
+2. PR の変更が原因なら、直して commit・push し、Step 4 の初めからやり直す
+3. flaky・基盤の障害・PR の変更に関係ない失敗は直さない。ログの要点を利用者に伝えて止まる
+
+直して待つのは 3 回までにする。3 回直しても落ちるなら、落ちたチェックと読んだ原因を利用者に伝えて止まる。
 
 PR作成後、レビュー対応は `/pecot-w:w-revise`、マージは `/pecot-w:w-merge` を使用する。
