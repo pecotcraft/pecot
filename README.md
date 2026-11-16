@@ -39,8 +39,7 @@ gh auth refresh -s project
 ```
 
 pecot は、[Claude Code のプラグイン](https://code.claude.com/docs/ja/plugins)として配布しています。
-このリポジトリは、pecot のプラグインを収録したプラグインマーケットプレイスです。
-次のコマンドで、このマーケットプレイスを Claude Code に追加し、プラグインをインストールします。
+次のコマンドで、このリポジトリをマーケットプレイスとして Claude Code に追加し、プラグインをインストールします。
 
 ```bash
 claude plugin marketplace add https://github.com/pecotcraft/pecot.git
