@@ -264,6 +264,6 @@ Phase 1〜3 で、GitHub に書き込む変更と、直した pecot-workflow を
 
 ## Notes
 
-- Phase 7 は、Phase 1 の T006・T007 の結果で中身が変わる。公式の文書は、Anthropic が動かすクラウドで GitHub の GraphQL が拒まれると書いている
+- Phase 7 は、最初の T006・T007 の結果で、後のタスクの中身が変わる。公式の文書は、Anthropic が動かすクラウドで GitHub の GraphQL が拒まれると書いている
 - このリポだけの運用を確かめる場所と、pecot-visual・pecot-tools の手順は作らない（spec.md の「この Epic でしないもの」）
-- CLI と MCP ツールのコードは直さない。書き込む先は、作業ディレクトリで決まる
+- CLI と MCP ツールのコードは直さない。書き込む先は、作業ディレクトリで決まる。T048 でコードの直しが要ると分かったら、ユーザーに伝えて計画を直す
