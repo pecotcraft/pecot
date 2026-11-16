@@ -4,9 +4,7 @@ import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
 import { getDevelopBranch } from '../domain/config.js'
-import type { PullRequestReadout } from '../domain/issue-readout.js'
-import { pickLowerPullRequest } from '../domain/pull-request.js'
-import { decideRestack, describeGone, describeRestackCheck } from '../domain/restack.js'
+import { describeGone, describeRestackCheck, RESTACK_PATH } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '../domain/state.js'
 import type { BaseReading, BaseRecord, RestackProgress } from '../domain/state.js'
@@ -21,12 +19,10 @@ import {
   mergeBase,
   pushWithLease,
   rebaseOnto,
-  remoteBranchHead,
   remoteOnlyChanges,
   resetHardTo,
   resolveCommit,
 } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
@@ -37,9 +33,9 @@ import { createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { stopOnMalformedRecord, validatePullRequestContext } from './pr.js'
+import { readRestackDecision } from './restack-reading.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
-const RESTACK_PATH = ['pr', 'restack']
 const CONFLICT_EXIT_CODE = 3
 const UNCOMMITTED_EXIT_CODE = 2
 // 文の中にロングオプションを書けない（lint）ので、git の引数から組む
@@ -165,19 +161,20 @@ interface StackedTarget {
 
 // 下の段の PR と、remote の先頭を読んで、載せ直す先を決める
 async function decideFor(out: RestackOutput, cwd: string, host: string, target: Readonly<StackedTarget>): Promise<RestackDecision> {
-  const { remote, owner, repository, developBranch } = target
-  const { record } = target.reading
-  let lowerPullRequest: PullRequestReadout | undefined
-  try {
-    const found = await createGitHubClient(out, host).listPullRequestsByHead(owner, repository, record.branch)
-    lowerPullRequest = pickLowerPullRequest(found.pullRequests)
+  const { remote, owner, repository, developBranch, reading } = target
+  const { branch } = reading.record
+  const read = await readRestackDecision({ client: () => createGitHubClient(out, host), owner, repository, cwd, remote, reading, developBranch })
+  switch (read.kind) {
+    case 'pull-request-unreadable': {
+      return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(read.error)}`, kindOfFailure(read.error))
+    }
+    case 'remote-unreachable': {
+      return stopWith(out, `cannot reach ${remote} to read the base branch ${branch}`, 'git-unresolved')
+    }
+    case 'decided': {
+      return read.decision
+    }
   }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, `cannot read the PR of the base branch ${record.branch}: ${describeApiError(error)}`, kindOfFailure(error))
-    throw error
-  }
-  const lowerHead = remoteBranchHead(cwd, remote, record.branch)
-  return lowerHead.isReachable ? decideRestack({ reading: target.reading, developBranch, lowerPullRequest, lowerHead: lowerHead.sha }) : stopWith(out, `cannot reach ${remote} to read the base branch ${record.branch}`, 'git-unresolved')
 }
 
 // 載せ直す先の ref と SHA。開発ブランチへ載せ直すときは、積んだ先を記録から外す

@@ -5,17 +5,15 @@ import { ConfigError } from '../domain/config.js'
 import type { RemoteLocation } from '../domain/git-url.js'
 import type { ProjectConfig } from '../domain/config.js'
 import type { PullRequestReadout } from '../domain/issue-readout.js'
-import { pickLowerPullRequest } from '../domain/pull-request.js'
 import { describeReadiness } from '../domain/readiness.js'
-import { decideRestack, describeNeedsRestack, needsRestack } from '../domain/restack.js'
+import { describeNeedsRestack, needsRestack } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import { issueReferenceToCliReference, issueReferenceToString } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { ProjectRootNotFoundError } from '../domain/errors.js'
-import type { BaseReading } from '../domain/state.js'
 import { describeStackBase } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
-import { activeIssueOf, gitCurrentBranch, gitToplevel, primaryRemoteName, primaryRemoteRepository, remoteBranchHead } from '../infra/git.js'
+import { activeIssueOf, gitCurrentBranch, gitToplevel, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { projectRoot, resolveRealPath } from '../infra/paths.js'
@@ -27,6 +25,7 @@ import { createGitHubClient } from './github-client.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
+import { readRestackDecision } from './restack-reading.js'
 import { SESSION_FINISH_COMMANDS } from './session-finish.js'
 import { SESSION_START_COMMANDS } from './session-start.js'
 
@@ -143,18 +142,11 @@ async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<Remo
   const { record, stackedOn } = reading
   // ブランチは作業ディレクトリのリポにあるので、PR もそこで探す（pr restack と同じ）
   const { owner, repository } = origin ?? stackedOn.repository
-  let pullRequest: ReturnType<typeof pickLowerPullRequest> | 'unknown'
-  let restack: RestackDecision | undefined
-  try {
-    const found = await active.client.listPullRequestsByHead(owner, repository, record.branch)
-    pullRequest = pickLowerPullRequest(found.pullRequests)
-    restack = restackDecision(reading, pullRequest, directory)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.warning(`cannot read the PR of the base branch: ${error.message}`)
-    pullRequest = 'unknown'
-  }
+  // 載せ直す先は、fetch せずに、下の段の remote の先頭を尋ねて記録と比べる
+  const read = await readRestackDecision({ client: () => active.client, owner, repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch: '' })
+  if (read.kind === 'pull-request-unreadable') output.warning(`cannot read the PR of the base branch: ${read.error.message}`)
+  const pullRequest: PullRequestReadout | undefined | 'unknown' = read.kind === 'pull-request-unreadable' ? 'unknown' : read.lowerPullRequest
+  const restack: RestackDecision | undefined = read.kind === 'decided' ? read.decision : undefined
   const readiness = await blockedReadiness(active, output)
   const needsLine = restack === undefined ? undefined : describeNeedsRestack(restack)
   const needed = restack === undefined ? undefined : needsRestack(restack)
@@ -168,14 +160,6 @@ async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<Remo
       ...readiness !== undefined && { readiness },
     },
   }
-}
-
-// 載せ直す先の判断。fetch せずに、下の段の remote の先頭を尋ねて記録と比べる。remote に届かなければ undefined
-function restackDecision(reading: Extract<BaseReading, { kind: 'stacked' }>, lowerPullRequest: Readonly<PullRequestReadout> | undefined, directory: string): RestackDecision | undefined {
-  const remote = primaryRemoteName(directory)
-  if (remote === undefined) return undefined
-  const lowerHead = remoteBranchHead(directory, remote, reading.record.branch)
-  return lowerHead.isReachable ? decideRestack({ reading, developBranch: '', lowerPullRequest, lowerHead: lowerHead.sha }) : undefined
 }
 
 type StackedAbove = NonNullable<SessionShowData['stackedAbove']>

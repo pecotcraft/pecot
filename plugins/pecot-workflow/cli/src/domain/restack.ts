@@ -3,6 +3,11 @@
 import type { PullRequestReadout } from './issue-readout.js'
 import type { BaseReading } from './state.js'
 
+/**
+pr restack のコマンドの path。案内（commandHint）とコマンドの定義が共有する
+*/
+export const RESTACK_PATH: readonly string[] = ['pr', 'restack']
+
 export interface RestackInput {
   /**
   base の記録。形の誤りは呼び出し側が先に止める

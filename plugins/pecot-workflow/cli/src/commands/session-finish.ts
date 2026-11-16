@@ -13,6 +13,7 @@ import { assumePullRequestState, describeReadinessChange, displayReference, hasR
 import type { IssuePullRequest } from '../domain/readiness.js'
 import { createIssueReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
+import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
 import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
@@ -224,7 +225,7 @@ async function updateWaitingIssues(context: Readonly<FinishContext>, source: Rea
     const lower = heads.filter(head => prerequisiteOf(result, head)?.wait === 'stack').map(head => displayReference(head, home)).join(', ')
     const [branch] = result.target.branches
     record.restack.push({ issue: name, ...branch !== undefined && { branch } })
-    out.warning(hinted`${name} is stacked on ${lower}; run ${commandHint(['pr', 'restack'])} in the working directory of ${branch ?? 'its branch'}`)
+    out.warning(hinted`${name} is stacked on ${lower}; run ${commandHint(RESTACK_PATH)} in the working directory of ${branch ?? 'its branch'}`)
   }
 }
 

@@ -15,6 +15,7 @@ import {
   hasIssueReference,
   isReleasePullRequest,
   pickLowerPullRequest,
+  pushFixHintOf,
   SCREENSHOT_MISSING_ERROR,
   hasStashEntries,
   hasStatusChanges,
@@ -28,6 +29,7 @@ import { JSON_NULL } from '../json-null.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
 import type { BaseReading } from '../state.js'
+import type { RestackDecision } from '../restack.js'
 import type { SectionHeading } from '../sections.js'
 
 describe('extractClosingIssueNumbers', () => {
@@ -325,12 +327,30 @@ describe('hasStatusChanges と hasStashEntries', () => {
 
 describe('describePushStatus', () => {
   it.each([
-    [0, 0, true, 'in sync with origin/feat'],
-    [3, 0, false, '3 unpushed commits'],
-    [0, 2, true, 'origin/feat is 2 commits ahead (pull recommended)'],
-    [3, 2, false, 'diverged: local is 3 commits ahead, origin/feat is 2 ahead'],
-  ])('手元が %i 先・%i 後ろ', (ahead, behind, isPushed, message) => {
-    expect(describePushStatus('origin', 'feat', ahead, behind)).toEqual({ isPushed, message })
+    [0, 0, true, 'in sync with origin/feat', false],
+    [3, 0, false, '3 unpushed commits', false],
+    [0, 2, true, 'origin/feat is 2 commits ahead (pull recommended)', false],
+    [3, 2, false, 'diverged: local is 3 commits ahead, origin/feat is 2 ahead', true],
+  ])('手元が %i 先・%i 後ろ', (ahead, behind, isPushed, message, isDiverged) => {
+    expect(describePushStatus('origin', 'feat', ahead, behind)).toEqual({ isPushed, message, isDiverged })
+  })
+})
+
+describe('pushFixHintOf', () => {
+  const rows: readonly { readonly name: string, readonly decision: RestackDecision | undefined, readonly expected: string }[] = [
+    { name: '下の段が動いた', decision: { kind: 'moved', base: 'feat/1' }, expected: 'pecot pr restack' },
+    { name: '下の段がマージ済み', decision: { kind: 'merged', base: 'main', pullRequest: 1 }, expected: 'pecot pr restack' },
+    { name: '下の段が動いていない', decision: { kind: 'up-to-date', base: 'feat/1' }, expected: `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits` },
+    { name: '下の段が消えた', decision: { kind: 'gone', base: 'feat/1', pullRequest: undefined }, expected: 'pecot pr restack --check' },
+    { name: '判断を読めない', decision: undefined, expected: 'pecot pr restack --check' },
+  ]
+
+  it.for(rows)('$name とき、$expected を案内する', (row) => {
+    expect(formatHinted(pushFixHintOf(row.decision), 'cli')).toBe(row.expected)
+  })
+
+  it('MCP の出し先では、ツールの名前で案内する', () => {
+    expect(formatHinted(pushFixHintOf({ kind: 'moved', base: 'feat/1' }), 'mcp')).toBe('pr_restack')
   })
 })
 
@@ -343,15 +363,20 @@ describe('collectPreflightWarnings', () => {
 
   it('push・status・stash の順に警告を返し、stash は空行を数えない', () => {
     const warnings = collectPreflightWarnings({ gitStatus: ' M a.ts', stashList: 'stash@{0}: a\n\nstash@{1}: b\r\nstash@{2}: c', isPushed: false, pushMessage: '2 unpushed commits' })
-    expect(warnings).toEqual([
+    expect(warnings.map(warning => ({ ...warning, fixHint: formatHinted(warning.fixHint, 'cli') }))).toEqual([
       { label: 'Push Status', message: '2 unpushed commits', fixHint: 'git push' },
       { label: 'Git Status', message: 'modified or untracked files', fixHint: 'commit' },
       { label: 'Stash List', message: '3 stash entries', fixHint: 'check them' },
     ])
   })
 
+  it('Push Status の直し方を渡すと、その直し方を使う', () => {
+    const [warning] = collectPreflightWarnings({ ...clean, isPushed: false, pushMessage: 'diverged', pushFixHint: pushFixHintOf({ kind: 'moved', base: 'feat/1' }) })
+    expect(warning === undefined ? undefined : formatHinted(warning.fixHint, 'cli')).toBe('pecot pr restack')
+  })
+
   it('警告 1 行の文を作る', () => {
-    expect(formatPreflightWarning({ label: 'Push Status', message: 'm', fixHint: 'git push' })).toBe('Push Status: m (fix: git push)')
+    expect(formatHinted(formatPreflightWarning({ label: 'Push Status', message: 'm', fixHint: ['git push'] }), 'cli')).toBe('Push Status: m (fix: git push)')
   })
 })
 
