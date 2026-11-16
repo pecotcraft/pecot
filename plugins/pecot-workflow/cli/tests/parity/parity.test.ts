@@ -65,7 +65,7 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
 const TABLE_SUMMARIES: readonly { readonly id: string, readonly summary: string }[] = [
   { id: 'issue-create-ok-dry-run-files', summary: 'dry-run: would create Issue in acme/demo from first.md' },
   { id: 'session-show-ok', summary: '# Session status' },
-  { id: 'session-show-ok-no-flags', summary: '# Session status' },
+  { id: 'session-show-ok-no-issue', summary: '# Session status' },
   { id: 'session-show-ok-python-state', summary: '# Session status' },
 ]
 
