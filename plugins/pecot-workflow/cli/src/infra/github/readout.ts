@@ -84,42 +84,6 @@ function readProjectFieldValues(issue: JsonValue, projectId: string, fieldNames:
     .filter(value => value !== undefined)
 }
 
-interface TimelineEntry {
-  readonly key: string
-  readonly pullRequest: PullRequestReadout
-  readonly isConnection: boolean
-}
-
-function pullRequestKey(pullRequest: Readonly<PullRequestReadout>): string {
-  return `${pullRequest.repository.owner}/${pullRequest.repository.repository}#${String(pullRequest.number)}`
-}
-
-function applyTimelineEvent(entries: readonly TimelineEntry[], event: JsonValue, issueNumber: number): readonly TimelineEntry[] {
-  const type = jsonField(event, '__typename')
-  if (type === 'CrossReferencedEvent') {
-    const pullRequest = readPullRequest(jsonField(event, 'source'))
-    if (pullRequest === undefined) return entries
-    const isRelated = jsonField(event, 'willCloseTarget') === true || pullRequest.headRefName.endsWith(`/${String(issueNumber)}`)
-    return isRelated ? [...entries, { key: pullRequestKey(pullRequest), pullRequest, isConnection: false }] : entries
-  }
-  if (type !== 'ConnectedEvent' && type !== 'DisconnectedEvent') return entries
-  const pullRequest = readPullRequest(jsonField(event, 'subject'))
-  if (pullRequest === undefined) return entries
-  const key = pullRequestKey(pullRequest)
-  return type === 'ConnectedEvent'
-    ? [...entries, { key, pullRequest, isConnection: true }]
-    : entries.filter(entry => !(entry.isConnection && entry.key === key))
-}
-
-// ConnectedEvent は、後で同じ PR の DisconnectedEvent が無いものだけ採る。
-// CrossReferencedEvent は、本文やコメントで触れただけの PR を除くため、閉じる参照か head が `/<Issue 番号>` で終わるものだけ採る
-function readTimelinePullRequests(issue: JsonValue, issueNumber: number): readonly PullRequestReadout[] {
-  const events = truthyNodes(jsonField(issue, 'timelineItems'))
-  let entries: readonly TimelineEntry[] = []
-  for (const event of events) entries = applyTimelineEvent(entries, event, issueNumber)
-  return entries.map(entry => entry.pullRequest)
-}
-
 export function readIssue(issue: JsonValue, projectId: string, fieldNames: Readonly<PrerequisiteFieldNames>): IssueReadout {
   const issueType = jsonField(jsonField(issue, 'issueType'), 'name')
   const number = requireNumber(jsonField(issue, 'number'), 'issue.number')
@@ -134,7 +98,6 @@ export function readIssue(issue: JsonValue, projectId: string, fieldNames: Reado
     projectFieldValues: readProjectFieldValues(issue, projectId, fieldNames),
     linkedBranches: readLinkedBranches(issue),
     closingPullRequests: readPullRequests(truthyNodes(jsonField(issue, 'closedByPullRequestsReferences'))),
-    timelinePullRequests: readTimelinePullRequests(issue, number),
   }
 }
 
@@ -155,7 +118,6 @@ function connectionShortfalls(issue: JsonValue): readonly string[] {
     shortfall(linkedBranches, 'linkedBranches', where),
     ...truthyNodes(linkedBranches).map(branch => shortfall(jsonField(jsonField(branch, 'ref'), 'associatedPullRequests'), 'associatedPullRequests', where)),
     shortfall(jsonField(issue, 'closedByPullRequestsReferences'), 'closedByPullRequestsReferences', where),
-    shortfall(jsonField(issue, 'timelineItems'), 'timelineItems', where),
   ].filter(reason => reason !== undefined)
 }
 

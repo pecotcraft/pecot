@@ -199,13 +199,9 @@ describe('w-revise の手順', () => {
     for (const word of ['単発 spawn', '残っていれば', 'w-tech-advisor', 'w-implementer']) expect(body).not.toContain(word)
   })
 
-  it('Step 2 は、CUJ があるときだけ w-e2e-planner を起こし、実行者が main の CUJ は渡さない', () => {
+  it('Step 2 は、計画の CUJ を実行しない（初回の実行は実装の後に済ませる）', () => {
     const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).toContain('PR の計画に CUJ があるときだけ、w-e2e-planner も `Agent` ツールで起こし')
-    expect(body).toContain('実行者が main の CUJ は main が実行し、w-e2e-planner には渡さない。')
-    expect(body).toContain('w-reviewer への依頼と w-e2e-planner の spawn は、並列を既定とする')
-    expect(body).toContain(SERIAL_REASON_MARKER)
-    expect(body).toContain('1 メッセージ内の複数の呼び出し（`SendMessage` か `Agent`）で依頼する。別メッセージで順に呼ぶと直列になる。')
+    expect(body).not.toContain('w-e2e-planner')
   })
 
   it('Step 6 の CUJ の再実行は、w-e2e-planner を Agent ツールで起こし、実行者が main の CUJ は渡さない', () => {
@@ -223,7 +219,6 @@ describe('w-revise の手順', () => {
     const body = sectionBody(text, numberIndex(headings, 3))
     expect(body).toContain('`**F-NN** [視点の印]` で始める')
     for (const mark of ['`[tech]`', '`[cuj]`', '`[quality]`']) expect(body).toContain(mark)
-    expect(body).toContain('w-e2e-planner が返した CUJ の不合格は `[cuj]` にする')
     expect(body).toContain('外部のレビュアーの指摘には印を付けない')
   })
 

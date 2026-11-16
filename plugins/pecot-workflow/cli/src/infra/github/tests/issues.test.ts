@@ -7,6 +7,7 @@ import { JSON_NULL } from '../../../domain/json-null.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError } from '../errors.js'
 import type { ResponseRule } from '../../../../tests/fake-github/server.js'
 import type { GitHubClient } from '../index.js'
+import { QUERY_GET_ISSUE_PREREQUISITES } from '../queries.js'
 import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
@@ -512,7 +513,6 @@ function prerequisiteIssue(number: number, overrides: Readonly<Record<string, un
     projectItems: connection([]),
     linkedBranches: connection([]),
     closedByPullRequestsReferences: connection([]),
-    timelineItems: connection([]),
     ...overrides,
   }
 }
@@ -574,18 +574,6 @@ async function readError(client: Readonly<GitHubClient>): Promise<unknown> {
   return rejection(client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS))
 }
 
-function connectedEvent(number: number): Readonly<Record<string, unknown>> {
-  return { __typename: 'ConnectedEvent', subject: prNode(number) }
-}
-
-function disconnectedEvent(number: number): Readonly<Record<string, unknown>> {
-  return { __typename: 'DisconnectedEvent', subject: prNode(number) }
-}
-
-function referencedEvent(number: number, willCloseTarget: boolean, head?: string): Readonly<Record<string, unknown>> {
-  return { __typename: 'CrossReferencedEvent', willCloseTarget, source: prNode(number, head === undefined ? {} : { headRefName: head }) }
-}
-
 function partialResponse(errors: readonly unknown[], issue: Readonly<Record<string, unknown>>): ResponseRule {
   return {
     match: { operation: 'GetIssuePrerequisites' },
@@ -593,16 +581,6 @@ function partialResponse(errors: readonly unknown[], issue: Readonly<Record<stri
     times: 1,
   }
 }
-
-const timelineCases: readonly Readonly<{ name: string, events: readonly unknown[], expected: readonly number[] }>[] = [
-  { name: '本文やコメントで触れただけの PR（閉じる参照でなく、head が /10 で終わらない）は読まない', events: [referencedEvent(30, false, 'feat/readiness/11')], expected: [] },
-  { name: '閉じる参照でなくても、head が /10 で終わる PR は読む', events: [referencedEvent(31, false, 'feat/readiness/10')], expected: [31] },
-  { name: 'head が /10 で終わらなくても、閉じる参照なら読む', events: [referencedEvent(32, true, 'fix/something')], expected: [32] },
-  { name: '後で DisconnectedEvent が外した ConnectedEvent の PR は読まない', events: [connectedEvent(33), connectedEvent(34), disconnectedEvent(33)], expected: [34] },
-  { name: '外した後に繋ぎ直した PR は読む', events: [connectedEvent(35), disconnectedEvent(35), connectedEvent(35)], expected: [35] },
-  { name: 'DisconnectedEvent は、別の PR や、閉じる参照で読んだ PR を消さない', events: [referencedEvent(36, true), disconnectedEvent(36), disconnectedEvent(37)], expected: [36] },
-  { name: 'PR が空の node は読まない', events: [{ __typename: 'ConnectedEvent', subject: {} }, { __typename: 'DisconnectedEvent', subject: {} }, { __typename: 'CrossReferencedEvent', willCloseTarget: true, source: {} }], expected: [] },
-]
 
 describe('getIssuePrerequisites', () => {
   it('親の Issue があれば、親のリポジトリと番号を読む', async () => {
@@ -639,7 +617,6 @@ describe('getIssuePrerequisites', () => {
       projectFieldValues: [],
       linkedBranches: [],
       closingPullRequests: [],
-      timelinePullRequests: [],
     })
     expect(result.blockedBy).toEqual({
       kind: 'ok',
@@ -657,7 +634,6 @@ describe('getIssuePrerequisites', () => {
         ],
         linkedBranches: [],
         closingPullRequests: [],
-        timelinePullRequests: [],
       }],
     })
   })
@@ -670,20 +646,12 @@ describe('getIssuePrerequisites', () => {
     expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssuePrerequisites', variables: { ...prerequisitesVariables, blockedByFirst: 3 } }])
   })
 
-  it('PR を 3 つの読み口から読む', async () => {
+  it('PR を 2 つの読み口から読む', async () => {
     const fromBranch = prNode(21, { headRefName: 'feat/issue-9' })
     const fromClosing = prNode(22, { state: 'MERGED' })
-    const fork = prNode(23, { isCrossRepository: true, isDraft: true, headRefName: 'feat/issue-10', repository: { owner: { login: 'upstream' }, name: 'other' } })
     const issue = target({
       linkedBranches: connection([JSON_NULL, { ref: JSON_NULL }, { ref: { name: 'feat/issue-9', associatedPullRequests: connection([fromBranch]) } }]),
       closedByPullRequestsReferences: connection([fromClosing]),
-      timelineItems: connection([
-        { __typename: 'ConnectedEvent', subject: fork },
-        { __typename: 'CrossReferencedEvent', willCloseTarget: true, source: prNode(24) },
-        { __typename: 'CrossReferencedEvent', willCloseTarget: false, source: JSON_NULL },
-        { __typename: 'ConnectedEvent', subject: {} },
-        {},
-      ]),
     })
     const { issue: read } = await readWith(issue)
     expect(read.linkedBranches).toEqual([{
@@ -691,16 +659,6 @@ describe('getIssuePrerequisites', () => {
       pullRequests: [{ repository: { owner: 'owner', repository: 'repo' }, number: 21, state: 'OPEN', headRefName: 'feat/issue-9', baseRefName: 'main', isDraft: false, isCrossRepository: false }],
     }])
     expect(read.closingPullRequests.map(({ number, state }) => ({ number, state }))).toEqual([{ number: 22, state: 'MERGED' }])
-    expect(read.timelinePullRequests).toEqual([
-      { repository: { owner: 'upstream', repository: 'other' }, number: 23, state: 'OPEN', headRefName: 'feat/issue-10', baseRefName: 'main', isDraft: true, isCrossRepository: true },
-      { repository: { owner: 'owner', repository: 'repo' }, number: 24, state: 'OPEN', headRefName: 'feat/issue-24', baseRefName: 'main', isDraft: false, isCrossRepository: false },
-    ])
-  })
-
-  it.for(timelineCases)('タイムライン: $name', async ({ events, expected }) => {
-    const timelineItems = connection(events)
-    const { issue } = await readWith(target({ timelineItems }))
-    expect(issue.timelinePullRequests.map(({ number }) => number)).toEqual(expected)
   })
 
   it('number の無い PR の node は GitHubAPIError', async () => {
@@ -745,7 +703,6 @@ describe('getIssuePrerequisites', () => {
       { name: 'linkedBranches', overrides: { linkedBranches: cut }, reason: 'linkedBranches of owner/repo#9 returned 0 of 3' },
       { name: 'associatedPullRequests', overrides: { linkedBranches: connection([nested]) }, reason: 'associatedPullRequests of owner/repo#9 returned 1 of 2' },
       { name: 'closedByPullRequestsReferences', overrides: { closedByPullRequestsReferences: cut }, reason: 'closedByPullRequestsReferences of owner/repo#9 returned 0 of 3' },
-      { name: 'timelineItems', overrides: { timelineItems: cut }, reason: 'timelineItems of owner/repo#9 returned 0 of 3' },
     ]
 
     it.for(cases)('前提の Issue の $name が足りなければ read-failed', async ({ overrides, reason }) => {
@@ -753,15 +710,12 @@ describe('getIssuePrerequisites', () => {
       expect(blockedBy).toEqual({ kind: 'read-failed', reason })
     })
 
-    it('対象の Issue の timelineItems が足りなくても read-failed', async () => {
-      const { blockedBy } = await readWith(target({ timelineItems: cut, blockedBy: { totalCount: 1, nodes: [prerequisiteIssue(9)] } }))
-      expect(blockedBy).toEqual({ kind: 'read-failed', reason: 'timelineItems of owner/repo#10 returned 0 of 3' })
-    })
-
-    it('上限に届いていても、totalCount と同じなら ok', async () => {
-      const full = connection([{ __typename: 'ConnectedEvent', subject: prNode(21) }])
-      const { blockedBy } = await readWith(target({ blockedBy: { totalCount: 1, nodes: [prerequisiteIssue(9, { timelineItems: full })] } }))
-      expect(blockedBy).toMatchObject({ kind: 'ok' })
+    it('タイムラインを読まないので、言及が何件あっても ok', async () => {
+      expect(QUERY_GET_ISSUE_PREREQUISITES).not.toContain('timelineItems')
+      const mentions = { timelineItems: connection([], 29) }
+      const merged = { state: 'CLOSED', closedByPullRequestsReferences: connection([prNode(21, { state: 'MERGED' })]), ...mentions }
+      const { blockedBy } = await readWith(target({ ...mentions, blockedBy: { totalCount: 1, nodes: [prerequisiteIssue(9, merged)] } }))
+      expect(blockedBy).toMatchObject({ kind: 'ok', issues: [{ number: 9, closingPullRequests: [{ number: 21, state: 'MERGED' }] }] })
     })
   })
 
@@ -785,7 +739,7 @@ describe('getIssuePrerequisites', () => {
     it('blockedBy の外の errors がひとつでもあれば、今までどおり例外にする', async () => {
       const errors = [
         { message: 'ok to tolerate', path: ['repository', 'issue', 'blockedBy', 'nodes', 0] },
-        { message: 'broken elsewhere', path: ['repository', 'issue', 'timelineItems'] },
+        { message: 'broken elsewhere', path: ['repository', 'issue', 'linkedBranches'] },
       ]
       const { client } = await startClient([partialResponse(errors, target())])
       const error = await readError(client)

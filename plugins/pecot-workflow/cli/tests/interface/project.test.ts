@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
@@ -861,6 +861,15 @@ describe('board show', () => {
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
       expect(result.stdout).not.toContain('## Stackable chains')
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
+    })
+
+    it('前提の Issue への言及を読まず、Development 欄のマージ済みの PR で、済んだ前提と判定する', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-35')
+      const done: IssueSpec = { number: 9, state: 'CLOSED', pullRequests: [{ number: 90, state: 'MERGED' }] }
+      const result = await info([board(item('PVTI_1', 1, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [done] })])
+      expectClean(result)
+      expect(requestLabels(result.requests)).toContain('GetIssuePrerequisites')
+      expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
     })
 
     it('PR のカードと Tracker は、前提を読まない', async (context) => {

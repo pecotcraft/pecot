@@ -514,7 +514,6 @@ function issueReadout(number: number, over: Partial<IssueReadout> = {}): IssueRe
     projectFieldValues: [],
     linkedBranches: [],
     closingPullRequests: [],
-    timelinePullRequests: [],
     ...over,
   }
 }
@@ -570,12 +569,10 @@ describe('toIssueFacts', () => {
     expect(kindOf({ title: 'about [Tracker]' })).toBe('task')
   })
 
-  it('3 つの読み口で同じ PR を 1 本に数える', () => {
-    const same = prReadout(11, 'b1')
+  it('2 つの読み口で同じ PR を 1 本に数える', () => {
     const blocker = issueReadout(1, {
-      linkedBranches: [{ name: 'b1', pullRequests: [same] }],
+      linkedBranches: [{ name: 'b1', pullRequests: [prReadout(11, 'b1')] }],
       closingPullRequests: [prReadout(11, 'b1', { repository: createRepositoryReference('ACME', 'App') })],
-      timelinePullRequests: [same],
     })
     const { prerequisites } = toIssueFacts(readout({ kind: 'ok', issues: [blocker] }), absent, options)
     expect(prerequisites === 'read-failed' ? [] : prerequisites[0]?.issue.pullRequests).toHaveLength(1)
@@ -584,7 +581,7 @@ describe('toIssueFacts', () => {
   it('別のリポの同じ番号の PR は分ける', () => {
     const blocker = issueReadout(1, {
       closingPullRequests: [prReadout(11, 'b1')],
-      timelinePullRequests: [prReadout(11, 'b1', {}, otherRepository)],
+      linkedBranches: [{ name: 'b1', pullRequests: [prReadout(11, 'b1', {}, otherRepository)] }],
     })
     const { prerequisites } = toIssueFacts(readout({ kind: 'ok', issues: [blocker] }), absent, options)
     expect(prerequisites === 'read-failed' ? [] : prerequisites[0]?.issue.pullRequests).toHaveLength(2)

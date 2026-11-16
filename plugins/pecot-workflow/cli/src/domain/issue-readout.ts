@@ -67,10 +67,6 @@ export interface IssueReadout {
   closedByPullRequestsReferences(includeClosedPrs: true) の PR
   */
   readonly closingPullRequests: readonly PullRequestReadout[]
-  /**
-  timelineItems の PR。ConnectedEvent のうち後で外されていないものと、CrossReferencedEvent のうち閉じる参照か、head が `/<Issue 番号>` で終わるもの
-  */
-  readonly timelinePullRequests: readonly PullRequestReadout[]
 }
 
 export interface TargetIssueReadout extends IssueReadout {

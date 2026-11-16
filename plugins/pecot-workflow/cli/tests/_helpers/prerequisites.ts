@@ -71,7 +71,6 @@ function issueNode(spec: IssueSpec): Record<string, unknown> {
       : [{ project: { id: PROJECT_ID }, column: spec.column === undefined ? null : select('FIELD_column', spec.column), label: spec.label === undefined ? null : select('FIELD_status', spec.label) }]),
     linkedBranches: connection(hasBranch ? [{ ref: { name: spec.branch, associatedPullRequests: connection(nodes) } }] : []),
     closedByPullRequestsReferences: connection(hasBranch ? [] : nodes),
-    timelineItems: connection([]),
   }
 }
 

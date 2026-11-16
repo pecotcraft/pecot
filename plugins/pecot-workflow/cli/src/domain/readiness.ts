@@ -521,12 +521,12 @@ function toPullRequest(readout: PullRequestReadout): IssuePullRequest {
   }
 }
 
-// 3 つの読み口で同じ PR を 1 本に数える。fork からの PR は、リンクしたブランチの読み口だけ捨てる
+// 積んだ PR は開いている間 Development 欄に載らず、マージ済みの PR はブランチが消えるので、2 つの読み口を合わせる。
+// 同じ PR は 1 本に数え、fork からの PR は、リンクしたブランチの読み口だけ捨てる
 function collectPullRequests(readout: IssueReadout): readonly IssuePullRequest[] {
   const sources = [
     ...readout.linkedBranches.flatMap(branch => branch.pullRequests).filter(pullRequest => !pullRequest.isCrossRepository),
     ...readout.closingPullRequests,
-    ...readout.timelinePullRequests,
   ]
   const seen = new Set<string>()
   return sources
