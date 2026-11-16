@@ -1084,7 +1084,7 @@ entries:
         statement: '`--by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を付けます'
       - id: PW-ISSUE-BLOCK-24
         pattern: event
-        statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します'
+        statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
   PW-ISSUE-COMMENT:
     help:
       details:
@@ -2261,7 +2261,7 @@ entries:
         statement: '`--by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を外します'
       - id: PW-ISSUE-UNBLOCK-18
         pattern: event
-        statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します'
+        statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
   PW-PR-CHECK:
     help:
       details:

@@ -446,6 +446,44 @@ describe('issue block', () => {
       })
     })
 
+    it('読み直した前提が書いた内容と合わないとき、空の moves と理由の warning を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-24')
+      prepareDependencyProject()
+      const stale = prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [] })
+      await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), stale, stale])
+
+      const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        wait: 'stack',
+        change: 'added',
+        moves: [],
+        warnings: ['could not confirm that GitHub reflects the blocked-by change of #7; the column and label of #7 were not moved'],
+      })
+    })
+
+    it('動かす先の列がボードに無いとき、空の moves と理由の warning を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-24')
+      prepareDependencyProject({ omit: ['blocked'] })
+      await startGithub([
+        bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
+        prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }),
+      ])
+
+      const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        wait: 'stack',
+        change: 'added',
+        moves: [],
+        warnings: [expect.stringMatching(/^the Blocked option is not on the board, so #7 was not moved/u)],
+      })
+    })
+
     it('既に付いている前提の理由を変えると、updated を data に返す', async () => {
       prepareDependencyProject()
       const changed = `${BODY}\n${WAITS_SECTION(['#5: 検証の手順が main にある'])}`
@@ -468,7 +506,8 @@ describe('issue block', () => {
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'unchanged', moves: [] })
     })
 
-    it('dry_run で既に付いている前提を打つと、moves を入れずに unchanged と dryRun を data に返す', async () => {
+    it('dry_run で既に付いている前提を打つと、moves を入れずに unchanged と dryRun を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-24')
       prepareDependencyProject()
       await startGithub([bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }])])
 
@@ -477,7 +516,8 @@ describe('issue block', () => {
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'unchanged', dryRun: true })
     })
 
-    it('dry_run で打つと、付ける予定の added と dryRun を data に返す', async () => {
+    it('dry_run で打つと、付ける予定の added と dryRun を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-24')
       prepareDependencyProject()
       await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {})])
 

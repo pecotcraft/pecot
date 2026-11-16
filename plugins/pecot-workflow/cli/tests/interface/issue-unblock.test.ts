@@ -291,6 +291,23 @@ describe('issue unblock', () => {
       })
     })
 
+    it('読み直した前提が書いた内容と合わないとき、空の moves と理由の warning を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
+      prepareDependencyProject()
+      const stale = prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [{ number: 5 }] })
+      await startGithub([bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5), stale, stale])
+
+      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        change: 'removed',
+        moves: [],
+        warnings: ['could not confirm that GitHub reflects the blocked-by change of #7; the column and label of #7 were not moved'],
+      })
+    })
+
     it('付いていない前提を外すと、unchanged と空の moves を data に返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-18')
       prepareDependencyProject()
@@ -301,7 +318,8 @@ describe('issue unblock', () => {
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged', moves: [] })
     })
 
-    it('dry_run で付いていない前提を外すと、moves を入れずに unchanged と dryRun を data に返す', async () => {
+    it('dry_run で付いていない前提を外すと、moves を入れずに unchanged と dryRun を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
       prepareDependencyProject()
       await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
 
@@ -310,7 +328,8 @@ describe('issue unblock', () => {
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged', dryRun: true })
     })
 
-    it('dry_run で打つと、外す予定の removed と dryRun を data に返す', async () => {
+    it('dry_run で打つと、外す予定の removed と dryRun を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
       prepareDependencyProject()
       await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }])])
 
