@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <b>やりたいことを Claude Code に伝えるだけで、Issue の作成からリリースまでが GitHub 上で進みます。</b>
+  <b>GitHub での開発の手順と、構成図やスライドの作成を、Claude Code のスキルで進めるプラグイン集です。</b>
 </p>
 
 ## Issue からリリースまでを自動化する
