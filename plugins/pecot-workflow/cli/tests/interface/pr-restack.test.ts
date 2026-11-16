@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // pr restack（PW-PR-RESTACK-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）で、実際の git を動かす。
-import { chmodSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -24,10 +24,10 @@ const UPPER = 'feat/demo/12'
 const BASE_FILE = stateFile('.pecot-base')
 const PROGRESS_FILE = stateFile('.pecot-restack')
 
-function lowerPullRequests(state: 'OPEN' | 'MERGED' | 'CLOSED' | undefined): ResponseRule {
+function lowerPullRequests(state: 'OPEN' | 'MERGED' | 'CLOSED' | undefined, times = 1): ResponseRule {
   const node = { number: 20, state, headRefName: LOWER, baseRefName: 'main', isDraft: false, isCrossRepository: false, repository: { owner: { login: 'acme' }, name: 'demo' } }
   const data = { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes: state === undefined ? [] : [node] } } }
-  return graphql('ListPullRequestsByHead', data, { variables: { headRefName: LOWER } })
+  return graphql('ListPullRequestsByHead', data, { variables: { headRefName: LOWER }, times })
 }
 
 function commitFile(workspace: Readonly<Workspace>, file: string, content: string, message: string): void {
@@ -99,12 +99,45 @@ function rewriteUpperOnRemote(workspace: Readonly<Workspace>): void {
   workspace.git(['checkout', UPPER])
 }
 
+function preReceiveHook(workspace: Readonly<Workspace>): string {
+  return path.join(workspace.remoteGit(['rev-parse', '--absolute-git-dir']).trim(), 'hooks', 'pre-receive')
+}
+
 // origin への push を、すべて拒む
 function rejectPushes(workspace: Readonly<Workspace>): void {
-  const hook = path.join(workspace.remoteGit(['rev-parse', '--absolute-git-dir']).trim(), 'hooks', 'pre-receive')
+  const hook = preReceiveHook(workspace)
   mkdirSync(path.dirname(hook), { recursive: true })
   writeFileSync(hook, '#!/bin/sh\nexit 1\n')
   chmodSync(hook, 0o755)
+}
+
+function allowPushes(workspace: Readonly<Workspace>): void {
+  rmSync(preReceiveHook(workspace))
+}
+
+// origin/main の上で lower.txt を content にしたコミットを作り、origin の target へ force push する
+function pushLowerFileOnMain(workspace: Readonly<Workspace>, target: string, content: string): void {
+  workspace.git(['checkout', '--detach', 'origin/main'])
+  commitFile(workspace, 'lower.txt', content, `lower ${content.trim()}`)
+  workspace.git(['push', '--force', 'origin', `HEAD:refs/heads/${target}`])
+  workspace.git(['checkout', UPPER])
+}
+
+// 下の段を、main の上の別のコミットに書き換える
+function rewriteLower(workspace: Readonly<Workspace>, content: string): void {
+  pushLowerFileOnMain(workspace, LOWER, content)
+}
+
+// push を拒ませて打ち、手元だけが載せ直された形にしてから、push を許す
+async function restackLocallyOnly(workspace: Readonly<Workspace>): Promise<void> {
+  rejectPushes(workspace)
+  const rejected = await workspace.run(['pr', 'restack'])
+  expect(lines(rejected.stderr)[0]).toMatch(/^error: push was rejected: /u)
+  allowPushes(workspace)
+}
+
+function subjectsBetween(workspace: Readonly<Workspace>, from: string, to: string): readonly string[] {
+  return lines(workspace.git(['log', '--format=%s', `${from}..${to}`]))
 }
 
 // 下の段と上の段が同じファイルを足して、載せ直しが衝突する形にする
@@ -428,6 +461,108 @@ describe('pr restack', () => {
     const workspace = await openStacked({ config: false })
     const result = await workspace.run(['pr', 'restack'])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+  })
+
+  describe('載せ直し済みの判断', () => {
+    it('下の段がマージ済みで push が拒まれた後に打ち直すと、rebase をせずに push し、記録を開発ブランチに書き直す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-23')
+      await verifies(context, 'PW-PR-RESTACK-19')
+      const workspace = await openStacked({ github: [lowerPullRequests('MERGED', 2)] })
+      mergeLower(workspace)
+      await restackLocallyOnly(workspace)
+      const restacked = head(workspace)
+      const result = await workspace.run(['pr', 'restack'])
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on main\n` })
+      expect(head(workspace)).toBe(restacked)
+      expect(subjectsBetween(workspace, 'origin/main', `origin/${UPPER}`)).toStrictEqual(['upper'])
+      expect(workspace.remoteGit(['rev-parse', UPPER]).trim()).toBe(restacked)
+      expect(workspace.read(BASE_FILE)).toBe(`main ${head(workspace, 'origin/main')}`)
+    })
+
+    it('push が拒まれた後に打ち直すとき、--dry-run を付けると、rebase と push をせずに restacked の予定を出す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-22')
+      const workspace = await openStacked({ github: [lowerPullRequests('MERGED', 2)] })
+      mergeLower(workspace)
+      await restackLocallyOnly(workspace)
+      const restacked = head(workspace)
+      const record = workspace.read(BASE_FILE)
+      const remote = workspace.remoteGit(['rev-parse', UPPER]).trim()
+      const result = await workspace.run(['pr', 'restack', '--dry-run'])
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would update ${UPPER} restacked on main\n` })
+      expect(head(workspace)).toBe(restacked)
+      expect(workspace.read(BASE_FILE)).toBe(record)
+      expect(workspace.remoteGit(['rev-parse', UPPER]).trim()).toBe(remote)
+    })
+
+    it('push が拒まれた後に開発ブランチが進んでから打ち直すと、開発ブランチのコミットを積み直さずに載せ直す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-25')
+      const workspace = await openStacked({ github: [lowerPullRequests('MERGED', 2)] })
+      mergeLower(workspace)
+      await restackLocallyOnly(workspace)
+      // squash で入ったファイルを main が変えるので、main のコミットを積み直すと衝突する
+      pushLowerFileOnMain(workspace, 'main', 'changed\n')
+      const result = await workspace.run(['pr', 'restack'])
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on main\n` })
+      expect(head(workspace, 'HEAD~1')).toBe(head(workspace, 'origin/main'))
+      expect(subjectsBetween(workspace, 'origin/main', `origin/${UPPER}`)).toStrictEqual(['upper'])
+      expect(workspace.read(BASE_FILE)).toBe(`main ${head(workspace, 'origin/main')}`)
+    })
+
+    it('push が拒まれた後に下の段が書き換えられてから打ち直すと、古い下の段のコミットを積み直さずに載せ直す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-25')
+      const workspace = await openStacked({ github: [lowerPullRequests('OPEN', 2)] })
+      rewriteLower(workspace, 'first\n')
+      await restackLocallyOnly(workspace)
+      rewriteLower(workspace, 'second\n')
+      const result = await workspace.run(['pr', 'restack'])
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on ${LOWER}\n` })
+      expect(head(workspace, 'HEAD~1')).toBe(head(workspace, `origin/${LOWER}`))
+      expect(subjectsBetween(workspace, `origin/${LOWER}`, `origin/${UPPER}`)).toStrictEqual(['upper'])
+      expect(workspace.read(BASE_FILE)).toBe(`${LOWER} ${head(workspace, `origin/${LOWER}`)} acme/demo#11`)
+    })
+
+    it('手で載せ直して push した後に --check を付けると、up to date の行を出し、記録を書き換えない', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-24')
+      const workspace = await openStacked({ github: [lowerPullRequests('MERGED')] })
+      mergeLower(workspace)
+      const record = workspace.read(BASE_FILE)
+      workspace.git(['fetch', 'origin'])
+      workspace.git(['rebase', '--onto', 'origin/main', record.split(' ', 2)[1] ?? ''])
+      workspace.git(['push', '--force', 'origin', UPPER])
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on main\n`, stderr: '' })
+      expect(workspace.read(BASE_FILE)).toBe(record)
+    })
+
+    it('手で載せ直した後に check を付けると、MCP の outcome が up-to-date になる', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-24')
+      const workspace = await openStacked({ github: [lowerPullRequests('OPEN')] })
+      rewriteLower(workspace, 'rewritten\n')
+      const record = workspace.read(BASE_FILE)
+      workspace.git(['fetch', 'origin'])
+      workspace.git(['rebase', '--onto', `origin/${LOWER}`, record.split(' ', 2)[1] ?? ''])
+      const outcome = await callTool(workspace, { check: true })
+      expect(outcome.structured).toStrictEqual({ branch: UPPER, base: LOWER, outcome: 'up-to-date' })
+      expect(workspace.read(BASE_FILE)).toBe(record)
+    })
+
+    it('開発ブランチを merge で取り込んだ後に --check を付けると、needs restack の行を出す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-26')
+      const workspace = await openStacked({ github: [lowerPullRequests('MERGED')] })
+      mergeLower(workspace)
+      workspace.git(['fetch', 'origin'])
+      workspace.git(['merge', '--no-edit', 'origin/main'])
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result).toStrictEqual({ code: 0, stdout: `needs restack: ${UPPER} onto main (base #20 merged)\n`, stderr: '' })
+    })
+
+    it('下の段が古い位置へ戻された後に --check を付けると、needs restack の行を出す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-26')
+      const workspace = await openStacked({ github: [lowerPullRequests('OPEN')] })
+      workspace.remoteGit(['update-ref', `refs/heads/${LOWER}`, workspace.remoteGit(['rev-parse', 'main']).trim()])
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result).toStrictEqual({ code: 0, stdout: `needs restack: ${UPPER} on ${LOWER} (base moved)\n`, stderr: '' })
+    })
   })
 
   describe('MCP の data', () => {

@@ -47,6 +47,7 @@ describe('describeRestackCheck', () => {
     { decision: { kind: 'up-to-date', base: 'feat/lower/3' }, expected: 'up to date: feat/upper/4 on feat/lower/3' },
     { decision: { kind: 'moved', base: 'feat/lower/3' }, expected: 'needs restack: feat/upper/4 on feat/lower/3 (base moved)' },
     { decision: { kind: 'merged', base: 'main', pullRequest: 21 }, expected: 'needs restack: feat/upper/4 onto main (base #21 merged)' },
+    { decision: { kind: 'rebased', base: 'main' }, expected: 'up to date: feat/upper/4 on main' },
   ])('$decision.kind の判断を、$expected と出す', ({ decision, expected }) => {
     expect(describeRestackCheck('feat/upper/4', decision)).toBe(expected)
   })
@@ -68,6 +69,7 @@ describe('describeNeedsRestack', () => {
     { decision: { kind: 'not-stacked', base: 'main' }, expected: '- needs restack: no' },
     { decision: { kind: 'moved', base: 'feat/lower/3' }, expected: '- needs restack: yes' },
     { decision: { kind: 'merged', base: 'main', pullRequest: 21 }, expected: '- needs restack: yes' },
+    { decision: { kind: 'rebased', base: 'feat/lower/3' }, expected: '- needs restack: no' },
     { decision: { kind: 'gone', base: 'feat/lower/3', pullRequest: 21 }, expected: undefined },
   ])('$decision.kind の判断では、$expected を返す', ({ decision, expected }) => {
     expect(describeNeedsRestack(decision)).toBe(expected)

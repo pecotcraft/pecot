@@ -4,7 +4,7 @@ import { pickLowerPullRequest } from '../domain/pull-request.js'
 import { decideRestack } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import type { BaseReading } from '../domain/state.js'
-import { remoteBranchHead } from '../infra/git.js'
+import { isAncestor, remoteBranchHead, resolveCommit } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 
@@ -55,7 +55,19 @@ export async function readRestackDecision(target: Readonly<RestackTarget>): Prom
   }
   if (remote === undefined) return { kind: 'remote-unreachable', lowerPullRequest }
   const lowerHead = remoteBranchHead(target.cwd, remote, reading.record.branch)
-  return lowerHead.isReachable
-    ? { kind: 'decided', decision: decideRestack({ reading, developBranch: target.developBranch, lowerPullRequest, lowerHead: lowerHead.sha }), lowerPullRequest }
-    : { kind: 'remote-unreachable', lowerPullRequest }
+  if (!lowerHead.isReachable) return { kind: 'remote-unreachable', lowerPullRequest }
+  const decision = decideRestack({ reading, developBranch: target.developBranch, lowerPullRequest, lowerHead: lowerHead.sha })
+  return { kind: 'decided', decision: withRebased(target.cwd, remote, reading, decision, lowerHead.sha), lowerPullRequest }
+}
+
+// 新しい base の上に載り終えていれば rebased に替える。記録の位置が HEAD にあれば、それが新しい base の祖先であることも求める。
+// merge で base を取り込んだブランチと、下の段が古い位置へ戻されたブランチを、載せ直し済みと見ないため
+function withRebased(cwd: string, remote: string, reading: Readonly<Extract<BaseReading, { kind: 'stacked' }>>, decision: RestackDecision, lowerHead: string | undefined): RestackDecision {
+  if (decision.kind !== 'moved' && decision.kind !== 'merged') return decision
+  // moved は ls-remote の先頭を使う。fetch しない呼び出し元では、追跡参照が古い位置を指しうるため
+  const newBase = decision.kind === 'moved' ? lowerHead : resolveCommit(cwd, `${remote}/${decision.base}`)
+  if (newBase === undefined || !isAncestor(cwd, newBase, 'HEAD')) return decision
+  const { sha } = reading.record
+  const isRecordLeftBehind = isAncestor(cwd, sha, 'HEAD') && !isAncestor(cwd, sha, newBase)
+  return isRecordLeftBehind ? decision : { kind: 'rebased', base: decision.base }
 }

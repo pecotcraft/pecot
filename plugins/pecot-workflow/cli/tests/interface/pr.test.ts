@@ -971,8 +971,26 @@ describe('pr create', () => {
       expect(result).toStrictEqual({
         code: 1,
         stdout: '',
-        stderr: `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record\n`,
+        stderr: `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  if ${BRANCH} is already restacked, rewrite the record with: pecot pr restack\n  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record\n`,
       })
+      expect(operationsOf(workspace)).toStrictEqual([])
+    })
+
+    it('下の段がマージされた後に手で載せ直すと、PR を作らずに、pr restack で記録を書き直す案内を出す', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-65')
+      await verifies(context, 'PW-PR-CREATE-70')
+      const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES])
+      const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
+      pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
+      workspace.git(['rebase', '-q', '--onto', 'origin/main', recorded])
+      workspace.git(['push', '-q', '--force', 'origin', BRANCH])
+      const result = await workspace.run(stackedArguments())
+      expect(result.code).toBe(1)
+      expect(lines(result.stderr)).toStrictEqual([
+        `error: .pecot-base records ${LOWER} at ${recorded.slice(0, 7)}, which is not in the history of ${BRANCH}`,
+        `  if ${BRANCH} is already restacked, rewrite the record with: pecot pr restack`,
+        `  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record`,
+      ])
       expect(operationsOf(workspace)).toStrictEqual([])
     })
 
@@ -1769,6 +1787,18 @@ describe('pr check', () => {
     await verifies(context, 'PW-PR-CHECK-21')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest(row.state)])])
     divergeStacked(workspace, row.scene)
+    const result = await preflight(workspace)
+    expect(result.code).toBe(2)
+    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
+  })
+
+  it('積んだ記録があり、下の段のマージの後に手元だけを載せ直して remote とずれると、Push Status の直し方に pr restack を出す', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-24')
+    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')])])
+    const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
+    pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
+    workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+    workspace.git(['rebase', '-q', '--onto', 'origin/main', recorded])
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
     expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])

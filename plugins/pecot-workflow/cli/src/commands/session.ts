@@ -1,7 +1,7 @@
 // session show。cli/commands/session.py の移植。
 import { z } from 'zod'
 
-import { ConfigError } from '../domain/config.js'
+import { ConfigError, getDevelopBranch } from '../domain/config.js'
 import type { RemoteLocation } from '../domain/git-url.js'
 import type { ProjectConfig } from '../domain/config.js'
 import type { PullRequestReadout } from '../domain/issue-readout.js'
@@ -143,7 +143,7 @@ async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<Remo
   // ブランチは作業ディレクトリのリポにあるので、PR もそこで探す（pr restack と同じ）
   const { owner, repository } = origin ?? stackedOn.repository
   // 載せ直す先は、fetch せずに、下の段の remote の先頭を尋ねて記録と比べる
-  const read = await readRestackDecision({ client: () => active.client, owner, repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch: '' })
+  const read = await readRestackDecision({ client: () => active.client, owner, repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch: getDevelopBranch(active.config, owner, repository) ?? '' })
   if (read.kind === 'pull-request-unreadable') output.warning(`cannot read the PR of the base branch: ${read.error.message}`)
   const pullRequest: PullRequestReadout | undefined | 'unknown' = read.kind === 'pull-request-unreadable' ? 'unknown' : read.lowerPullRequest
   const restack: RestackDecision | undefined = read.kind === 'decided' ? read.decision : undefined

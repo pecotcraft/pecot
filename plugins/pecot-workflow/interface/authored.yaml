@@ -784,7 +784,7 @@ entries:
         when: 'ブランチが保護されています。'
       - kind: git-unresolved
         code: 1
-        when: 'git の外で打ったので、リポジトリが決まりません。'
+        when: 'git の外か、remote の無い git のリポジトリで打ちました。'
       - kind: invalid-input
         code: 2
         when: '`repo` が `owner/repo` の形でないか、ほかのコマンドラインの誤りがあります。'
@@ -863,10 +863,13 @@ entries:
         statement: 'もしブランチの削除で GitHub API がエラーを返したなら、終了コード 1 で終わります'
       - id: PW-BRANCH-DELETE-17
         pattern: unwanted
-        statement: 'もし git の外で打ったなら、`the repository is ambiguous` の行を標準エラーに出します'
+        statement: 'もし remote を持つ git のリポジトリの外で打ったなら、`the repository is ambiguous` の行と、打つ場所の案内の行を標準エラーに出します'
       - id: PW-BRANCH-DELETE-18
         pattern: unwanted
-        statement: 'もし git の外で打ったなら、終了コード 1 で終わります'
+        statement: 'もし git の外か remote の無い git のリポジトリで打ったなら、終了コード 1 で終わります'
+      - id: PW-BRANCH-DELETE-19
+        pattern: event
+        statement: '`origin` の URL が GitHub の形でない作業ディレクトリで打つと、引数のリポジトリのリモートブランチを削除します'
   PW-ISSUE-BLOCK:
     help:
       details:
@@ -2246,7 +2249,8 @@ entries:
         - Prints every section even when there are warnings.
         - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
         - "When the base record of a stacked start exists and the branch has diverged from the remote, reads the PR of the layer below and the head of that branch on the remote, and decides whether a restack is needed in the same way as pr restack. This is the only case that reads GitHub. The fix of the Push Status warning is pr restack when a restack is needed, and pr restack --check when it cannot be decided, which includes the case where the branch of the layer below is gone from the remote and its PR is not merged."
-        - "When the branch has diverged and needs no restack, including a branch that is not stacked, the fix of the Push Status warning is git pull --rebase, or git push --force-with-lease after rewriting pushed commits, because git rejects a push that is not a fast-forward."
+        - "When the branch is already on the new base and only the base record is old, the fix of the Push Status warning is pr restack, which pushes the branch and rewrites the record."
+        - "When the branch has diverged and needs no restack otherwise, including a branch that is not stacked, the fix of the Push Status warning is git pull --rebase, or git push --force-with-lease after rewriting pushed commits, because git rejects a push that is not a fast-forward."
         - Exits with status 2 when there is at least one warning.
         - Reads the repository and the config and changes nothing.
       examples:
@@ -2269,7 +2273,8 @@ entries:
       - '`warning` として数えるのは、push していないか remote とずれたブランチ、変更したファイルか追跡していないファイル、stash の項目です。'
       - '積んで着手した記録があり、ブランチが remote とずれているときは、下の段の PR と remote の先頭を読み、`pr restack` と同じに載せ直しの要否を決めます。GitHub を読むのは、このときだけです。'
       - 'Push Status の直し方は、載せ直しが要れば `pr restack`、決められなければ `pr restack --check` です。下の段のブランチが remote から消え、PR がマージされていないときも、決められないに入ります。'
-      - 'ブランチが remote とずれて載せ直しが要らないときは、Push Status の直し方は `git pull --rebase` です。push 済みのコミットを書き換えたなら `git push --force-with-lease` です。積んでいないブランチも同じです。git は fast-forward でない push を拒むためです。'
+      - 'ブランチが新しい base の上に載り終えていて記録だけが古いときも、Push Status の直し方は `pr restack` です。push と記録の書き直しを `pr restack` が行うためです。'
+      - 'ほかに、ブランチが remote とずれて載せ直しが要らないときは、Push Status の直し方は `git pull --rebase` です。push 済みのコミットを書き換えたなら `git push --force-with-lease` です。積んでいないブランチも同じです。git は fast-forward でない push を拒むためです。'
       - '`warning` が 1 件以上あると、終了コード 2 で終わります。'
       - 'リポジトリと設定を読むだけで、何も変えません。'
     stdin: none
@@ -2403,10 +2408,13 @@ entries:
         statement: 'もし積んだ記録があってブランチが remote とずれ、下の段が動いたかマージされているなら、Push Status の直し方に `pr restack` を出します'
       - id: PW-PR-CHECK-22
         pattern: unwanted
-        statement: 'もしブランチが remote とずれて載せ直しが要らないなら、直し方に `git pull --rebase` と `git push --force-with-lease` を出します'
+        statement: 'もしブランチが remote とずれて、載せ直しも記録の書き直しも要らないなら、直し方に `git pull --rebase` と `git push --force-with-lease` を出します'
       - id: PW-PR-CHECK-23
         pattern: unwanted
         statement: 'もし積んだブランチが remote とずれ、載せ直しが要るかを決められないなら、Push Status の直し方に `pr restack --check` を出します。下の段の PR か remote の先頭を読めないときと、下の段のブランチが消えて PR が未マージのときです'
+      - id: PW-PR-CHECK-24
+        pattern: unwanted
+        statement: 'もし積んだブランチが remote とずれ、新しい base の上に載り終えていて記録だけが古いなら、Push Status の直し方に `pr restack` を出します'
   PW-PR-CREATE:
     help:
       details:
@@ -2421,7 +2429,7 @@ entries:
         - "When the PR of the layer below is merged, creates the PR on develop_branch."
         - "The PR of the layer below is chosen in the order open, merged, closed. When the layer below has no open PR and is not merged, creates nothing and stops with exit status 2 with an error line that says the base branch has no open PR."
         - "When the record is malformed, stops with exit status 1 because the base cannot be decided."
-        - "When the commit of the base record is not in the history of the head, a file or -m creates nothing and stops with exit status 1. The second error line tells to run the command on the branch that wrote the record, or to pass --head to create the PR without the record. --prepare does not check this."
+        - "When the commit of the base record is not in the history of the head, a file or -m creates nothing and stops with exit status 1. The second error line tells to rewrite the record with pr restack when the branch is already restacked. The third line tells to run the command on the branch that wrote the record, or to pass --head to create the PR without the record. --prepare does not check this."
         - After the PR on a stacked base is created, registers it in the stack of the layer below, or starts a stack of the two PRs when none exists. When the PR of the layer below is not the top of its stack, does not call the add API and prints a warning that says so. When the repository has no stack API or the connection fails, prints a warning with the URL and keeps the PR.
         - "After the PR is created, reads the Issues that wait for the Issue named by the head branch, and moves their board column by the readiness judgement. Only the board items of the active project are read, and an Issue that is not on the board is skipped. When the judgement does not show the created PR, reads once more after about 1.5 seconds. Issues with a trace of work are not moved. A failure of this step, including a connection failure, only prints a warning and does not change the exit status. When the state cannot be confirmed, the warning reads: warning: could not confirm that GitHub reflects PR #<N> in the readiness of <Issue>; its column was not moved; run pecot board sync later to move it. When the Issue of the head number is not in the repository of the PR, the step prints nothing and is skipped. Dry runs and release PRs skip it."
         - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
@@ -2478,7 +2486,7 @@ entries:
       - '下の段の PR は、開いている・マージ済み・閉じた、の順に選びます。'
       - '下の段の PR が無く、マージもされていないときは、PR を作りません。base ブランチに開いた PR が無いと書いた `error` の行を出し、終了コード 2 で止まります。'
       - '記録の形が誤っているときは、base を決められないので、終了コード 1 で止まります。'
-      - '記録のコミットが head の履歴に無いときは、ファイルと `-m` の投稿では PR を作らず、終了コード 1 で止まります。`error` の 2 行目で、記録を書いたブランチで打つか、`--head` を渡して記録なしで作るかを案内します。`--prepare` では確かめません。'
+      - '記録のコミットが head の履歴に無いときは、ファイルと `-m` の投稿では PR を作らず、終了コード 1 で止まります。`error` の 2 行目で、載せ直し済みなら `pr restack` で記録を書き直すことを案内します。3 行目で、記録を書いたブランチで打つか、`--head` を渡して記録なしで作るかを案内します。`--prepare` では確かめません。'
       - '積んだ base の PR を作った後、下の段のスタックに登録します。スタックが無ければ、2 つの PR で新しく作ります。下の段の PR がスタックの一番上に無いときは、追加を呼ばず、そのことを書いた `warning` の行を出します。スタックの API が無いリポジトリと接続の失敗では、URL を添えた `warning` の行を出し、PR は残します。'
       - 'PR を作った後、head ブランチが指す Issue を待っている Issue を読み、判定に従って列を動かします。読むのは、アクティブなプロジェクトのボードの項目だけで、ボードに載っていない Issue は飛ばします。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します。着手の跡がある Issue は動かしません。接続の失敗を含め、この処理の失敗は `warning` の行にとどめ、終了コードを変えません。状態を確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。後から `pecot board sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も出さずに飛ばします。`--dry-run` とリリースの PR では行いません。'
       - 'nx のリポジトリの `--prepare` では、期待する題の scope を、題の行にコメントとして足します。'
@@ -2814,6 +2822,9 @@ entries:
       - id: PW-PR-CREATE-69
         pattern: unwanted
         statement: 'もし積んだ記録があり、事前の確認がブランチと remote のずれを見つけたなら、Push Status の直し方を `pr check` と同じに決めます'
+      - id: PW-PR-CREATE-70
+        pattern: unwanted
+        statement: 'もし積んだ base の記録のコミットが head の履歴に無いなら、止まる文で、載せ直し済みなら `pr restack` で記録を書き直すことを案内します'
   PW-PR-MERGE:
     help:
       details:
@@ -2983,8 +2994,9 @@ entries:
         - "With --check, only reports whether a restack is needed and changes nothing except the remote-tracking refs updated by git fetch."
         - "A branch that is not stacked (no base record, or a record of a start from the develop branch) is never restacked."
         - "A restack is needed when the head of the layer below on the remote differs from the recorded position, or when the PR of the layer below is merged. After a merge, the branch is restacked onto the develop branch and the base record becomes a start from the develop branch."
+        - "A branch that is already on the new base needs no rebase, even when its base record is old. It counts as on the new base when the new base is in its history and, if the recorded position is in its history too, the recorded position is in the history of the new base. pr restack without --check then pushes the branch and rewrites the base record."
         - "After the rebase, stops when the remote branch has commits whose change is in the local branch neither before nor after the rebase, because the push would drop them. The branch goes back to the position before the restack."
-        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position. A branch that is not on the remote is not pushed."
+        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the recorded position is not in the history of the branch, the rebase starts from the merge base with the develop branch, or from the fork point with the layer below (the merge base when there is none). When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position. A branch that is not on the remote is not pushed."
         - "After the restack, rewrites the base record with the merge base of the branch and the new base."
         - "On conflicts, prints the conflicted files, leaves the rebase in progress, writes a progress record and exits with status 3. --continue goes on after the conflicts are resolved and staged. --abort goes back to the position before the restack. Both read only the progress record and refuse to touch a rebase that pecot did not start."
         - Only one of --check, --continue and --abort can be given.
@@ -3012,9 +3024,11 @@ entries:
       - '`--check` を付けると、載せ直しが要るかだけを出します。変わるのは、`git fetch` が進める手元の追跡参照だけです。'
       - '積んでいないブランチ（base の記録が無いか、開発ブランチからの着手の記録）は、載せ直しません。'
       - '載せ直しが要るのは、下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときです。マージ済みなら開発ブランチへ載せ直し、base の記録を開発ブランチからの着手に変えます。'
+      - 'ブランチが新しい base の上に載り終えていれば、記録が古くても rebase をしません。載り終えているとは、新しい base がブランチの履歴にあり、記録の位置もブランチの履歴にあるなら、それが新しい base の履歴にもあることです。push と記録の書き直しは、`--check` なしの `pr restack` が行います。'
       - 'rebase の後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。ブランチは載せ直しの前の位置へ戻します。'
       - '同じ変更かは、載せ直しの前と後のブランチの両方と比べます。GitHub が書き換えたコミットを、別の変更と見ないためです。'
       - '`git rebase --no-update-refs --onto <新しい base> <記録の位置>` を打ちます。'
+      - '記録の位置がブランチの履歴に無いときは、別の点から rebase を始めます。開発ブランチへ載せ直すなら開発ブランチとの merge-base、下の段へ載せ直すなら下の段からの fork-point（求まらなければ merge-base）です。'
       - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
       - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。remote に無いブランチは push しません。'
       - '載せ直しの後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
@@ -3180,6 +3194,18 @@ entries:
       - id: PW-PR-RESTACK-22
         pattern: event
         statement: '`--dry-run` を付けて打つと、載せ直し・push・記録の書き込みをせずに、する予定を `dry-run` の行で標準エラーに出します'
+      - id: PW-PR-RESTACK-23
+        pattern: state
+        statement: '新しい base の上に載り終えていて記録だけが古い間、rebase をせずに push と記録の書き直しを行います。出す行は `updated: <branch> restacked on <base>` です'
+      - id: PW-PR-RESTACK-24
+        pattern: state
+        statement: 'ブランチが新しい base の上に載り終えている間、`--check` は `up to date: <branch> on <base>` を出し、base の記録を書き換えません'
+      - id: PW-PR-RESTACK-25
+        pattern: event
+        statement: '記録の位置が履歴に無いブランチを載せ直すと、開発ブランチへは merge-base、下の段へは fork-point か merge-base を起点とします。base のコミットは積み直しません'
+      - id: PW-PR-RESTACK-26
+        pattern: unwanted
+        statement: 'もし新しい base を merge で取り込んだか、下の段が記録より古い位置へ戻されたなら、載せ直し済みと見ずに、載せ直しが要ると判断します'
   PW-PR-SHOW:
     help:
       details:
@@ -5298,7 +5324,7 @@ entries:
         - The body of the Issue follows in the section when it is not empty; the body is shown only in this text, not in the MCP result.
         - When the Issue cannot be read from GitHub, a warning line is written and the section is left out.
         - When the Active Issue section is shown and .pecot/state/.pecot-base of the project root names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
-        - "The Stack section has a needs restack line (yes or no) after the base line: yes when the head of the base branch on the remote differs from the recorded position or when its PR is merged. The line is decided without git fetch, by asking the remote, and is left out when the remote cannot be reached or the base branch is gone without a merged PR."
+        - "The Stack section has a needs restack line (yes or no) after the base line: yes when the head of the base branch on the remote differs from the recorded position or when its PR is merged, unless the branch is already on the new base (decided in the same way as pr restack). The line is decided without git fetch, by asking the remote, and is left out when the remote cannot be reached or the base branch is gone without a merged PR."
         - When the readiness of the active Issue is blocked, the Stack section also has a readiness line.
         - "When open PRs of the same repository have the current branch as their base, the Stack section lists each as a stacked above line, even in a working directory that is not stacked."
         - The record in .pecot/state/.pecot-base is shown only when the top level of the git repository of --directory is the project root; it belongs to the work of the project root and is not shown for another worktree or clone.
@@ -5323,7 +5349,7 @@ entries:
       - 'Issue の本文が空でなければ、その節に本文が続きます。本文は、この Markdown の出力にだけ出し、MCP の結果には入れません。'
       - 'Issue を GitHub から読めないときは、`warning` の行を出し、節を出しません。'
       - 'Active Issue の節を出し、プロジェクトのルートの `.pecot/state/.pecot-base` が積んだ先の Issue を指すときは、Stack の節が続きます。節には、ブランチ・Issue・その PR を書いた base の行を載せます。PR は、fork からではない open の PR です。それが無ければ最新の PR、それも無ければ `no PR` で、読めないときは `PR unknown` です。'
-      - 'Stack の節の base の行の次に、needs restack の行（`yes` か `no`）を載せます。下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときが `yes` です。'
+      - 'Stack の節の base の行の次に、needs restack の行（`yes` か `no`）を載せます。下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときが `yes` です。ただし、ブランチが新しい base の上に載り終えていれば `no` です（`pr restack` と同じ判断です）。'
       - 'needs restack の行は、`git fetch` をせずに remote へ尋ねて決めます。remote に届かないときは、行を出しません。下の段のブランチが消えていて PR がマージされていないときも、行を出しません。'
       - 'アクティブな Issue の着手の判定が `blocked` のときは、Stack の節に readiness の行も載せます。'
       - '今のブランチを base にした、同じリポジトリの open の PR があれば、Stack の節に PR ごとの stacked above の行を載せます。積んで着手していない作業ディレクトリでも載せます。'
@@ -5462,6 +5488,9 @@ entries:
       - id: PW-SESSION-SHOW-33
         pattern: unwanted
         statement: 'もし remote のリポジトリを読めないか URL の形が合わないなら、ブランチ名の末尾が番号でも Active Issue の行に `none` を出します'
+      - id: PW-SESSION-SHOW-34
+        pattern: state
+        statement: 'ブランチが新しい base の上に載り終えていて、base の記録だけが古い間、Stack の節に `needs restack: no` を出します'
   PW-SESSION-START:
     help:
       details:

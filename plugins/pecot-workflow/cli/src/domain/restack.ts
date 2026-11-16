@@ -30,6 +30,10 @@ export type RestackDecision
     | { readonly kind: 'moved', readonly base: string }
     | { readonly kind: 'merged', readonly base: string, readonly pullRequest: number }
     | { readonly kind: 'gone', readonly base: string, readonly pullRequest: number | undefined }
+    /**
+    ブランチは新しい base の上に載り終えていて、記録だけが古い。rebase は要らず、push と記録の書き直しだけが残る
+    */
+    | { readonly kind: 'rebased', readonly base: string }
 
 /**
 載せ直す先を決める。base は、載せ直した後の base のブランチ（merged なら開発ブランチ）
@@ -49,7 +53,8 @@ export function decideRestack(input: Readonly<RestackInput>): RestackDecision {
 export function describeRestackCheck(branch: string, decision: Exclude<RestackDecision, { kind: 'gone' }>): string {
   switch (decision.kind) {
     case 'not-stacked':
-    case 'up-to-date': {
+    case 'up-to-date':
+    case 'rebased': {
       return `up to date: ${branch} on ${decision.base}`
     }
     case 'moved': {

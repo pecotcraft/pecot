@@ -234,6 +234,20 @@ export function mergeBase(cwd: string, a: string, b: string): string | undefined
   return runForValue(['merge-base', a, b], { cwd })
 }
 
+/**
+ancestor が descendant の祖先（同じコミットを含む）か。どちらかのコミットを手元が知らなければ false
+*/
+export function isAncestor(cwd: string, ancestor: string, descendant: string): boolean {
+  return runGit(['merge-base', '--is-ancestor', ancestor, descendant], { cwd }).exitCode === 0
+}
+
+/**
+`git merge-base --fork-point <upstream> <head>`。upstream の reflog から、head が分かれた点を求める。求まらなければ undefined
+*/
+export function forkPoint(cwd: string, upstream: string, head: string): string | undefined {
+  return runForValue(['merge-base', '--fork-point', upstream, head], { cwd })
+}
+
 // 失敗の後に rebase の途中なら衝突、ほかの失敗は GitCommandError
 function rebaseOutcome(cwd: string, arguments_: readonly string[], environment?: Readonly<Record<string, string>>): RebaseOutcome {
   const result = runGit(arguments_, { cwd, env: environment })

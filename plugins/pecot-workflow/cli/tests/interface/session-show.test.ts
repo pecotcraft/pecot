@@ -290,15 +290,27 @@ describe('session show', () => {
     })
 
     it.for([
-      { name: '下の段の remote の先頭が記録と同じ', isMoved: false, state: 'OPEN', expected: 'no' },
-      { name: '下の段の remote の先頭が記録と違う', isMoved: true, state: 'OPEN', expected: 'yes' },
-      { name: '下の段の PR がマージ済み', isMoved: false, state: 'MERGED', expected: 'yes' },
+      { name: '下の段の remote の先頭が記録と同じ', scene: 'same', state: 'OPEN', expected: 'no', id: 'PW-SESSION-SHOW-28' },
+      { name: '下の段の remote の先頭が記録と違い、追跡参照が古いまま', scene: 'moved', state: 'OPEN', expected: 'yes', id: 'PW-SESSION-SHOW-28' },
+      { name: '下の段の PR がマージ済み', scene: 'same', state: 'MERGED', expected: 'yes', id: 'PW-SESSION-SHOW-28' },
+      { name: '下の段の PR がマージ済みで、ブランチが開発ブランチの上に載り終えていて記録だけが古い', scene: 'rebased', state: 'MERGED', expected: 'no', id: 'PW-SESSION-SHOW-34' },
     ])('$name と、Stack の節に needs restack: $expected の行を出す', async (row, context) => {
-      await verifies(context, 'PW-SESSION-SHOW-28')
+      await verifies(context, row.id)
       const bare = sshOrigin()
       const { project, repository } = prepareSession({ remotes: { origin: 'git@ghes.example.com:acme/demo.git' } })
       gitForTest(repository, ['push', '-q', bare, 'HEAD:refs/heads/feat/3'])
-      const recorded = row.isMoved ? SHA : gitForTest(repository, ['rev-parse', 'HEAD']).trim()
+      const head = gitForTest(repository, ['rev-parse', 'HEAD']).trim()
+      let recorded = head
+      if (row.scene === 'moved') {
+        gitForTest(repository, ['update-ref', 'refs/remotes/origin/feat/3', head])
+        const tree = gitForTest(bare, ['rev-parse', 'feat/3^{tree}']).trim()
+        gitForTest(bare, ['update-ref', 'refs/heads/feat/3', gitForTest(bare, ['commit-tree', tree, '-p', 'feat/3', '-m', 'advance']).trim()])
+      }
+      else if (row.scene === 'rebased') {
+        // 記録は、手元が知っていて HEAD の履歴に無い古い下の段。開発ブランチの追跡参照は HEAD を指す
+        recorded = gitForTest(repository, ['commit-tree', [head, '^{tree}'].join(''), '-p', head, '-m', 'old lower']).trim()
+        gitForTest(repository, ['update-ref', 'refs/remotes/origin/main', head])
+      }
       mkdirSync(path.join(project.root, '.pecot/state'), { recursive: true })
       writeFileSync(path.join(project.root, '.pecot/state/.pecot-base'), `feat/3 ${recorded} acme/demo#3\n`)
       await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, row.state)), prerequisitesRule({ number: 7, blockedBy: [inReview] }), stackedAbove()])

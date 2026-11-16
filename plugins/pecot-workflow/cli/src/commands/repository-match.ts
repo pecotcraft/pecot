@@ -5,7 +5,7 @@ import { applyRepositoryPolicy } from '../domain/repository-policy.js'
 import type { PolicyMode } from '../domain/repository-policy.js'
 import { AmbiguousRepositoryError, resolveRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference, ResolvedRepository } from '../domain/repository-resolver.js'
-import { gitRunnerFor } from '../infra/git.js'
+import { gitRunnerFor, listRemotes } from '../infra/git.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
 import { WARNING_PREFIX } from './output.js'
@@ -42,4 +42,15 @@ export function requireRepositoryMatch(
   }
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted
+}
+
+/**
+作業ディレクトリが remote を持つ git のリポジトリの中かだけを確かめる。remote の URL は読まない。
+削除の先を引数で決めるコマンド（branch delete）が、`--repo` を使わずに使う。
+git の外・remote 無しなら、stderr に行を書いて CommandExit(1) を投げる
+*/
+export function requireGitRemote(io: Readonly<CommandIo>, cwd: string): void {
+  if ((listRemotes(cwd) ?? []).length > 0) return
+  io.stderr('error: the repository is ambiguous\n  run inside a git repository that has a remote\n')
+  throw new CommandExit(1, 'git-unresolved')
 }

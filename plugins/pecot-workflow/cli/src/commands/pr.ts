@@ -23,11 +23,12 @@ import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBa
 import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
+import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { BaseReading } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, primaryRemoteName, remoteBranchHead, runGit } from '../infra/git.js'
+import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, isAncestor, primaryRemoteName, remoteBranchHead, resolveCommit, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { PullRequestSlim, PullRequestWithReviews } from '../infra/github/pulls.js'
 import { TransportFailure } from '../infra/github/client.js'
@@ -505,21 +506,18 @@ export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output
   if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'), 'content-invalid')
 }
 
-// merge-base --is-ancestor は、祖先でなければ 1、コミットを知らなければ 128 を返す
-const NOT_ANCESTOR = 1
-
 // 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
-// 記録のコミットが head の履歴に無ければ、別のブランチの記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため
+// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手で載せ直した後の古い記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため
 function readBaseRecordFor(head: string, template: string, directory: string, out: Readonly<Output>): BaseReading | undefined {
   if (template === 'release' || head !== gitCurrentBranch(directory)) return undefined
   const reading = readBaseRecord()
   stopOnMalformedRecord(reading, out)
   if (reading.kind !== 'stacked') return reading
   const { branch, sha } = reading.record
-  const isForeign = runGit(['merge-base', '--is-ancestor', sha, head], { cwd: directory }).exitCode === NOT_ANCESTOR
-  return isForeign
-    ? stopWith(out, hinted`.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}\nrun pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`, 'git-unresolved')
-    : reading
+  // 手元が知らないコミットは、履歴に無いと決められないので止めない
+  return resolveCommit(directory, sha) === undefined || isAncestor(directory, sha, head)
+    ? reading
+    : stopWith(out, hinted`.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}\nif ${head} is already restacked, rewrite the record with: ${commandHint(RESTACK_PATH)}\nrun pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`, 'git-unresolved')
 }
 
 interface BaseDecided {
