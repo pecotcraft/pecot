@@ -11,9 +11,20 @@ import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { IssuesApi } from './issues.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
-import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
+import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_BASE, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
 import { readPullRequests } from './readout.js'
 import { repositoryPath } from './rest-path.js'
+
+/**
+base のブランチ名で引いた、同じリポの開いている PR
+*/
+export interface PullRequestsByBase {
+  readonly pullRequests: readonly { readonly number: number, readonly headRefName: string }[]
+  /**
+  先頭の件数に収まらず、続きがあるか
+  */
+  readonly hasNextPage: boolean
+}
 
 export interface ClosingIssue {
   readonly number: number
@@ -164,6 +175,23 @@ export class PullsApi extends IssuesApi {
     const connection = jsonField(repositoryNode, 'pullRequests')
     return {
       pullRequests: readPullRequests(truthyNodes(connection)),
+      hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
+    }
+  }
+
+  /**
+  base のブランチ名で開いている PR を引き、同じリポの PR だけを返す（古い順に先頭 20 件）。
+  20 件に収まらないときは hasNextPage が真。リポが無ければ GitHubNotFoundError
+  */
+  async listPullRequestsByBase(owner: string, repository: string, baseReferenceName: string): Promise<PullRequestsByBase> {
+    const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_BASE, { owner, repo: repository, baseRefName: baseReferenceName })
+    const repositoryNode = jsonField(result, 'repository')
+    if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`)
+    const connection = jsonField(repositoryNode, 'pullRequests')
+    return {
+      pullRequests: readPullRequests(truthyNodes(connection))
+        .filter(pullRequest => !pullRequest.isCrossRepository)
+        .map(pullRequest => ({ number: pullRequest.number, headRefName: pullRequest.headRefName })),
       hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
     }
   }

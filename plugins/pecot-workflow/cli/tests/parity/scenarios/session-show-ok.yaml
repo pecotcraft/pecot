@@ -70,3 +70,8 @@ github:
     respond:
       status: 200
       body: {"data": {"repository": {"issue": {"number": 7, "state": "OPEN", "title": "見本の Issue", "body": "本文の 1 行目\n本文の 2 行目\n", "comments": {"totalCount": 0, "nodes": []}, "parent": null, "subIssues": {"nodes": []}, "linkedBranches": {"nodes": []}, "timelineItems": {"nodes": []}}}}}
+  - match:
+      operation: "ListPullRequestsByBase"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"pullRequests": {"nodes": []}}}}

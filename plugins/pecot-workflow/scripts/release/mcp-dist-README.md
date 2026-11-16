@@ -109,6 +109,7 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `pr_create` | PR を作る |
 | `pr_show` | PR の詳細を必要な項目だけ取得する |
 | `pr_check` | PR を作る前に確かめる情報をまとめて表示する |
+| `pr_restack` | 積んだブランチを、base にしたブランチの新しい位置へ載せ直す |
 | `release_check` | リリース前の確認をする |
 | `release_create` | GitHub のリリースとタグを作る（ノートは CHANGELOG から取る） |
 | `release_merge` | リリースの PR を通常のマージで取り込む |

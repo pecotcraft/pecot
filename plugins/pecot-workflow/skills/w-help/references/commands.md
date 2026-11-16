@@ -36,6 +36,7 @@
 | --- | --- |
 | `pr check` | Show all the information to check before creating a PR |
 | `pr create` | Create a PR (pull request) |
+| `pr restack` | Restack the current branch onto the new position of its base branch |
 | `pr show` | Get PR details efficiently (GraphQL, only the needed fields) |
 
 ## project

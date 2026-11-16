@@ -130,6 +130,10 @@
           "meaning": "PR をマージする"
         },
         {
+          "word": "restack",
+          "meaning": "積んだブランチを、base の新しい位置へ載せ直す"
+        },
+        {
           "word": "comment",
           "meaning": "コメントを書く"
         },
@@ -2727,6 +2731,161 @@
       }
     },
     {
+      "id": "PW-PR-RESTACK",
+      "name": "pr restack",
+      "description": "Restack the current branch onto the new position of its base branch",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "restack"
+          ]
+        },
+        "mcp": {
+          "tool": "pr_restack"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "abort": {
+            "type": "boolean",
+            "default": false,
+            "description": "Abort a restack that stopped on conflicts and go back to the position before it"
+          },
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only report whether a restack is needed"
+          },
+          "continue": {
+            "type": "boolean",
+            "default": false,
+            "description": "Continue a restack that stopped on conflicts, after resolving them"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be done without rebasing, pushing or writing records"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "abort": [
+            "--abort"
+          ],
+          "check": [
+            "--check"
+          ],
+          "continue": [
+            "--continue"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Branch that is restacked"
+            },
+            "base": {
+              "type": "string",
+              "description": "Base branch after the restack (the develop branch when the lower PR is merged)"
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "up-to-date",
+                "needs-restack",
+                "restacked",
+                "synced",
+                "conflict",
+                "aborted"
+              ],
+              "description": "What happened, or with check, what a restack would do"
+            },
+            "cause": {
+              "description": "Why a restack is needed (only with check or dry_run, when one is needed)",
+              "type": "string",
+              "enum": [
+                "base-moved",
+                "base-merged"
+              ]
+            },
+            "pullRequest": {
+              "description": "Merged PR of the lower branch (only when the cause is base-merged)",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "pushed": {
+              "description": "Whether the branch was pushed (only when restacked)",
+              "type": "boolean"
+            },
+            "conflicts": {
+              "description": "Files with conflicts (only on conflict)",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "dryRun": {
+              "description": "true on dry_run (nothing was changed)",
+              "type": "boolean",
+              "const": true
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "branch",
+                "base",
+                "outcome"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "PW-PR-SHOW",
       "name": "pr show",
       "description": "Get PR details efficiently (GraphQL, only the needed fields)",
@@ -4989,6 +5148,10 @@
                   ],
                   "additionalProperties": false
                 },
+                "needsRestack": {
+                  "description": "Whether the branch needs pr restack: the base branch moved or its PR is merged (omitted when it cannot be decided)",
+                  "type": "boolean"
+                },
                 "readiness": {
                   "description": "Readiness of the active Issue (only when blocked)",
                   "type": "string"
@@ -4999,6 +5162,30 @@
                 "stackedOn"
               ],
               "additionalProperties": false
+            },
+            "stackedAbove": {
+              "description": "Open PRs whose base is the current branch (omitted when there are none or they cannot be read)",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "number": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "PR number"
+                  },
+                  "branch": {
+                    "type": "string",
+                    "description": "Head branch of the PR"
+                  }
+                },
+                "required": [
+                  "number",
+                  "branch"
+                ],
+                "additionalProperties": false
+              }
             },
             "kind": {
               "type": "string",

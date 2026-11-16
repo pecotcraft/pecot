@@ -138,8 +138,26 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | 衝突した | `error: conflict in <files>`、続けて `--continue` と `--abort` の案内 | 3 |
 | 未コミットの変更がある | `error: working tree has uncommitted changes` | 2 |
 | base のブランチが消えていて、マージもされていない | `error: base branch <base> is gone and PR #N was not merged` | 1 |
+| 積んでいないブランチ | `--check` は `up to date: <branch> on <develop>`、載せ直しは `unchanged: <branch> is up to date` | 0 |
+| remote にブランチが無い（push の前） | `updated: <branch> restacked on <base>`（push しない） | 0 |
+| `--abort` で取りやめた | `unchanged: <branch> restack aborted` | 0 |
+| 途中の記録が無いのに `--continue`・`--abort` を付けた | `error: no restack in progress` | 2 |
+| `--check`・`--continue`・`--abort` を 2 つ以上付けた | 使い方の誤りの `error:` | 2 |
+| remote のブランチにだけある変更がある | `error: <remote>/<branch> has commits that are not in <branch>`、続けて、載せ直しの前へ戻した旨と取り込む案内 | 1 |
+| push が `--force-with-lease` で拒まれた | `error: push was rejected`、続けて打ち直しの案内 | 1 |
+| `git fetch` が失敗した | `error: cannot fetch <remote>` | 1 |
 
 - 書き換えるのは、今の作業ディレクトリのブランチだけだ
+- 積んでいないブランチ（記録が無いか、開発ブランチからの着手）は載せ直さない。開発ブランチが進むたびに PR を force push しないためだ
+- 載せ直しが要るかは、下の段の remote の先頭と、記録の位置を比べて決める
+- 未コミットの変更の確かめは、`--continue` と `--abort` では行わない
+- rebase の後に、remote のブランチにだけある変更を探す。`--force-with-lease` は、fetch で取り込んだのに rebase に入っていないコミットを守らないためだ
+  - 同じ変更かは、載せ直しの前と後のブランチの両方と比べる。GitHub が書き換えたコミットは、前後の行が載せ直しの後と同じになるためだ
+  - 見つけたら、ブランチを載せ直しの前の位置へ戻して止まる
+- rebase は `--no-update-refs` で打つ。利用者の `rebase.updateRefs` の設定で、ほかのブランチを書き換えないためだ
+- 衝突で止まるときに、途中の記録を書く（data-model.md の 8）。`--continue` と `--abort` は、この記録だけを読む
+  - `--continue` がまた衝突したら、前と同じく終了コード 3 で止まる
+- push が拒まれたときは、base の位置の記録を書き直さない
 - base の PR がマージ済みなら、開発ブランチへ載せ直し、記録の base を開発ブランチに変える
   - `git fetch` の後、まず記録した古い base の位置から `rebase --onto <新しい base>` を打つ（research.md の R6）
   - 結果が `git diff --quiet HEAD origin/<branch>` で同じ木なら、GitHub が先に載せ直している。`origin/<branch>` に合わせ、push しない
@@ -334,4 +352,11 @@ Readiness changed:
 ```
 
 - `readiness` の行は、着手中の Issue の判定が `blocked` のときだけ出す。文は `describeReadiness` の文だ
-- `needs restack` の行は、T087（US6）で足す
+- `needs restack` の行は、fetch せずに決める。下の段の remote の先頭を `ls-remote` で読み、記録の位置と比べる。読めなければ行を出さない
+
+今のブランチを base にした開いている PR（上に積んだ段）があれば、積んで着手していない作業ディレクトリでも、節に次の行を足す。
+
+```text
+## Stack
+- stacked above: PR #362 (feat/upper/349)
+```

@@ -71,6 +71,7 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'sync', meaning: '判定や一覧に合わせて書き直す' },
   { name: 'move', meaning: 'ボードの列を移す' },
   { name: 'merge', meaning: 'PR をマージする' },
+  { name: 'restack', meaning: '積んだブランチを、base の新しい位置へ載せ直す' },
   { name: 'comment', meaning: 'コメントを書く' },
   { name: 'reopen', meaning: '閉じたものを開き直す' },
   { name: 'block', meaning: '前提を付ける' },

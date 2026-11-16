@@ -227,6 +227,24 @@ describe('w-revise の手順', () => {
     expect(body).toContain('外部のレビュアーの指摘には印を付けない')
   })
 
+  it('Step 1 は、レビューの前に pr_restack で載せ直しが要るかを確かめ、要るなら載せ直す', () => {
+    const body = sectionBody(text, numberIndex(headings, 1))
+    expect(body).toContain('`pr_restack`')
+    expect(body).toContain('`check: true`')
+    expect(body).not.toContain('`stack`')
+    expect(body).not.toContain('git rebase')
+    expect(body).not.toContain('pecot pr restack')
+  })
+
+  it('Step 6 は、session_show で上の段の PR を確かめ、あれば pr_restack が要る旨を報告に入れる', () => {
+    const body = sectionBody(text, numberIndex(headings, 6))
+    expect(body).toContain('`session_show`')
+    expect(body).toContain('`pr_restack`')
+    expect(body).not.toContain('`stackedAbove`')
+    expect(body.indexOf('`session_show`')).toBeGreaterThan(body.indexOf('`review-resolution` を投稿'))
+    expect(body).not.toContain('git rebase')
+  })
+
   it('Step 6 の一括 resolve は、別名を使う', () => {
     const body = sectionBody(text, numberIndex(headings, 6))
     expect(body.match(/\bt\d+:\s*resolveReviewThread/gu)?.length ?? 0).toBeGreaterThanOrEqual(2)

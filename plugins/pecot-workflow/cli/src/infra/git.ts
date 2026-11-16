@@ -2,6 +2,8 @@
 // 値を返す helper（gitToplevel 等）は、失敗時に undefined を返す。
 
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 
 import type { GitResult, GitRunner } from '../domain/git-runner.js'
 import { parseRemoteUrl } from '../domain/git-url.js'
@@ -182,4 +184,135 @@ export function remoteRepository(cwd: string | undefined, remote: string): Remot
     if (error instanceof InvalidValueError) return undefined
     throw error
   }
+}
+
+// 端末で尋ねさせない。ssh は GIT_SSH_COMMAND で BatchMode にすると利用者の GIT_SSH と core.sshCommand を上書きするので、askpass を失敗させる
+export const NON_INTERACTIVE_GIT: Readonly<Record<string, string>> = { GIT_TERMINAL_PROMPT: '0', SSH_ASKPASS: 'false', SSH_ASKPASS_REQUIRE: 'force' }
+
+// fetch・push は、認証の入力を待たずに、この時間で諦める
+const REMOTE_TIMEOUT_MILLISECONDS = 60_000
+
+export interface FetchResult {
+  readonly succeeded: boolean
+  readonly stderr: string
+}
+
+export type PushResult = { readonly pushed: true } | { readonly pushed: false, readonly stderr: string }
+
+export type RebaseOutcome = 'done' | 'conflict'
+
+const PEEL_TO_COMMIT = '^{commit}'
+
+/**
+`git fetch <remote>`。失敗・時間切れは succeeded が false
+*/
+export function fetchRemote(cwd: string, remote: string): FetchResult {
+  const result = runGit(['fetch', remote], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS })
+  return { succeeded: result.exitCode === 0, stderr: result.stderr }
+}
+
+/**
+ref の指すコミットの SHA。無ければ undefined
+*/
+export function resolveCommit(cwd: string, reference: string): string | undefined {
+  return runForValue(['rev-parse', '--verify', '--quiet', `${reference}${PEEL_TO_COMMIT}`], { cwd })
+}
+
+/**
+2 つの ref の merge-base の SHA。共通の祖先が無ければ undefined
+*/
+export function mergeBase(cwd: string, a: string, b: string): string | undefined {
+  return runForValue(['merge-base', a, b], { cwd })
+}
+
+// 失敗の後に rebase の途中なら衝突、ほかの失敗は GitCommandError
+function rebaseOutcome(cwd: string, arguments_: readonly string[], environment?: Readonly<Record<string, string>>): RebaseOutcome {
+  const result = runGit(arguments_, { cwd, env: environment })
+  if (result.exitCode === 0) return 'done'
+  if (isRebaseInProgress(cwd)) return 'conflict'
+  throw new GitCommandError(arguments_, result)
+}
+
+/**
+`git rebase --onto <newBase> <oldBase>`。利用者の rebase.updateRefs に関わらず、ほかのブランチは書き換えない
+*/
+export function rebaseOnto(cwd: string, newBase: string, oldBase: string): RebaseOutcome {
+  const arguments_ = ['rebase', '--no-update-refs', '--onto', newBase, oldBase]
+  // 既に途中なら git は始めずに失敗する。その失敗を衝突と読まない
+  if (isRebaseInProgress(cwd)) throw new GitCommandError(arguments_, runGit(arguments_, { cwd }))
+  return rebaseOutcome(cwd, arguments_)
+}
+
+/**
+衝突を解いた後の `git rebase --continue`。コミットの文の編集は開かない
+*/
+export function continueRebase(cwd: string): RebaseOutcome {
+  return rebaseOutcome(cwd, ['rebase', '--continue'], { ...NON_INTERACTIVE_GIT, GIT_EDITOR: 'true' })
+}
+
+export function abortRebase(cwd: string): void {
+  runGit(['rebase', '--abort'], { cwd, check: true })
+}
+
+/**
+rebase の途中か。worktree では .git がファイルなので、git に場所を尋ねる
+*/
+export function isRebaseInProgress(cwd: string): boolean {
+  const output = runGit(['rev-parse', '--git-path', 'rebase-merge', '--git-path', 'rebase-apply'], { cwd, check: true }).stdout
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- git が返した git ディレクトリの中のパス
+  return output.split('\n').filter(line => line !== '').some(line => existsSync(path.resolve(cwd, line)))
+}
+
+/**
+衝突が残っているファイルの一覧
+*/
+export function conflictedFiles(cwd: string): readonly string[] {
+  return runGit(['diff', '--name-only', '--diff-filter=U'], { cwd, check: true }).stdout.split('\n').filter(line => line !== '')
+}
+
+/**
+remoteBranch にあり、local に同じ変更（patch-id）の無いコミットの SHA。excluded から届くコミットは除く
+*/
+export function remoteOnlyChanges(cwd: string, local: string, remoteBranch: string, excluded: readonly string[]): readonly string[] {
+  const arguments_ = ['rev-list', '--right-only', '--cherry-pick', '--no-merges', `${local}...${remoteBranch}`, ...excluded.map(reference => `^${reference}`), '--']
+  return runGit(arguments_, { cwd, check: true }).stdout.split('\n').filter(line => line !== '')
+}
+
+/**
+2 つの ref の木が同じか
+*/
+export function hasSameTree(cwd: string, a: string, b: string): boolean {
+  const arguments_ = ['diff', '--quiet', a, b, '--']
+  const result = runGit(arguments_, { cwd })
+  if (result.exitCode === 0) return true
+  if (result.exitCode === 1) return false
+  throw new GitCommandError(arguments_, result)
+}
+
+export function resetHardTo(cwd: string, reference: string): void {
+  runGit(['reset', '--quiet', '--hard', reference], { cwd, check: true })
+}
+
+/**
+remote の branch が expectedSha のときだけ、手元の branch で置き換える。拒まれたか失敗したら stderr を返す
+*/
+export function pushWithLease(cwd: string, remote: string, branch: string, expectedSha: string): PushResult {
+  const result = runGit(['push', `--force-with-lease=${branch}:${expectedSha}`, remote, branch], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS })
+  return result.exitCode === 0 ? { pushed: true } : { pushed: false, stderr: result.stderr }
+}
+
+// ls-remote は、ref が無いと終了コード 2 を返す
+const LS_REMOTE_NOT_FOUND = 2
+const LS_REMOTE_TIMEOUT_MILLISECONDS = 10_000
+
+export type RemoteHead = { readonly isReachable: true, readonly sha: string | undefined } | { readonly isReachable: false }
+
+/**
+remote の branch の先頭の SHA を、追跡参照を更新せずに尋ねる。無ければ sha が undefined。届かないか時間切れなら isReachable が false
+*/
+export function remoteBranchHead(cwd: string, remote: string, branch: string): RemoteHead {
+  const listed = runGit(['ls-remote', '--exit-code', remote, `refs/heads/${branch}`], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: LS_REMOTE_TIMEOUT_MILLISECONDS })
+  if (listed.exitCode === LS_REMOTE_NOT_FOUND) return { isReachable: true, sha: undefined }
+  const [sha] = listed.exitCode === 0 ? listed.stdout.split(/\s/u, 1) : []
+  return sha === undefined || sha === '' ? { isReachable: false } : { isReachable: true, sha }
 }
