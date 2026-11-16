@@ -537,6 +537,30 @@ test("Scheduler の起動は 1 本が失敗しても、ほかの 2 本を起こ�
   }
 });
 
+test("Scheduler は workflow の環境変数が無い行を起こさず、失敗として残す", async () => {
+  const { deps, calls, logs } = makeDeps();
+  const { BOARD_SYNC_WORKFLOW_FILE: _unset, ...env } = ENV;
+  deps.env = env;
+  await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
+  assert.equal(dispatchCalls(calls).length, 2);
+  assert.deepEqual(
+    new Set(logs.filter((l) => l.result === "dispatched").map((l) => l.workflow)),
+    new Set(["security-alerts.yml", "dependabot-prs.yml"]),
+  );
+  assert.deepEqual(
+    logs.filter((l) => l.result === "dispatch-error"),
+    [
+      {
+        via: "scheduler",
+        app: "security",
+        workflowEnv: "BOARD_SYNC_WORKFLOW_FILE",
+        result: "dispatch-error",
+        stage: "config",
+      },
+    ],
+  );
+});
+
 test("Scheduler の起動で片方の App の SSM が未設定でも、もう片方は起こす", async () => {
   const expected = {
     security: [DEPENDABOT_WORKFLOW_URL],

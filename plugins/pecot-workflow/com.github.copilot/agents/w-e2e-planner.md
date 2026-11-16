@@ -48,7 +48,7 @@ CUJ ごとに「誰が・起点・観測結果」の 3 要素を必須とし、�
 
 - EnterPlanMode / ExitPlanMode / AskUserQuestion を含む CUJ: 手順と合格基準を添えて main に委ねる
 - 外部への反映（Issue 投稿・PR 作成など）: 実投稿はしない。`prepare: true` / `dry_run: true` など外へ出ない入力まで実行し、実投稿と結果の確認は main に委ねる。例: MCP ツール `issue_create` を `prepare: true`・`template: "task"`・`repo: "owner/repo"` で呼ぶ
-- 起点が `pecot` の CLI の CUJ: 実行しない（Bash の `pecot` は hooks が deny する）。手順と合格基準を添えて main に委ね、main は利用者に端末か `!` で打ってもらう。スクリプトに包むなどの形で deny を避けない
+- 起点が `pecot` の CLI の CUJ: 実行しない（CLI は利用者が打つ起点）。手順と合格基準を添えて main に委ね、main は利用者に端末か `!` で打ってもらう
 - 承認プロンプト（ask）が出たかは tool result に現れず、判定できない。書けるのは「コマンドが実行された（承認の有無は判別不能）」まで。拒否のはずが通ったときは、結論を出さずに main へ返す
 
 ## 範囲と報告

@@ -9,13 +9,14 @@ source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
 source "${SCRIPT_DIR%/*}/core/branch-guard.sh"
 source "${SCRIPT_DIR%/*}/core/git-repo-resolver.sh"
 source "${SCRIPT_DIR%/*}/core/pecot-state-guard.sh"
+source "${SCRIPT_DIR%/*}/core/active-issue.sh"
 pecot_hook_enabled "auto-push" false || exit 0
 
 # WIPブランチをIssueのDevelopment欄にリンクする（ベストエフォート）。
-# 呼び出し元で、HOST・WIP_BRANCH・ACTIVE_OWNER・ACTIVE_REPO・ACTIVE_NUMBER を定義しておく。
+# 呼び出し元で、HOST・WIP_BRANCH・OWNER・REPO・ACTIVE_NUMBER を定義しておく。
 _link_wip_branch_to_issue() {
     local state_dir="${CLAUDE_PROJECT_DIR}/.pecot/state"
-    local owner="$ACTIVE_OWNER" repo="$ACTIVE_REPO" number="$ACTIVE_NUMBER"
+    local owner="$OWNER" repo="$REPO" number="$ACTIVE_NUMBER"
 
     # .wip-branch-linked フラグ確認（同一WIPブランチ名が記録済みならスキップ）。
     local linked_file="${state_dir}/.wip-branch-linked"
@@ -126,18 +127,12 @@ if [ "${PECOT_POST_COMMIT:-}" = "1" ]; then
 
     CURRENT_BRANCH=$(_git symbolic-ref --short HEAD 2>/dev/null)
 
-    # active な Issue のブランチだけ対象にする（.pecot-active は、ここで 1 回だけ読む）。
-    ACTIVE_CONTENT=$(cat "${CLAUDE_PROJECT_DIR}/.pecot/state/.pecot-active" 2>/dev/null)
-    IFS='/' read -r ACTIVE_OWNER ACTIVE_REPO ACTIVE_NUMBER <<< "$ACTIVE_CONTENT"
-    [ -n "$ACTIVE_OWNER" ] && [ -n "$ACTIVE_REPO" ] || exit 0
-    [[ "$ACTIVE_NUMBER" =~ ^[0-9]+$ ]] || exit 0
-    [[ "$CURRENT_BRANCH" =~ /([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" = "$ACTIVE_NUMBER" ] || exit 0
+    # 作業中の Issue のブランチだけ対象にする。Issue はコミットしたリポのブランチ名と remote から求める。
+    ACTIVE_NUMBER=$(pecot_active_issue_number "${REPO_DIR:-.}") || exit 0
 
-    # リモートURL解析（owner/repo が .pecot-active と一致しなければ対象外）。
     REMOTE_URL=$(_git remote get-url origin 2>/dev/null)
     _parse_remote_url "$REMOTE_URL" || exit 0
     OWNER_REPO="${OWNER}/${REPO}"
-    [ "${OWNER_REPO,,}" = "${ACTIVE_OWNER,,}/${ACTIVE_REPO,,}" ] || exit 0
 
     # WIPブランチ名構築: wip/<current-branch>。
     WIP_BRANCH="wip/${CURRENT_BRANCH}"

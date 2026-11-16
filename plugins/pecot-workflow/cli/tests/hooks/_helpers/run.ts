@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { scratchDirectory } from './environment.js'
 import type { EnvironmentOverrides, HookCase } from './environment.js'
-import { adapterDirectory, hooksDirectory } from './paths.js'
+import { hooksDirectory } from './paths.js'
 import { jsonDumps } from './text.js'
 
 const TIMEOUT_MS = 25_000
@@ -75,12 +75,6 @@ export function runShell(hookCase: HookCase, snippet: string, argv: readonly str
 // hooks/ 直下のエントリを JSON 入力で起動する。
 export function runHookEntry(hookCase: HookCase, entry: string, payload: unknown, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   return runScript(hookCase, path.join(hooksDirectory, entry), [], { ...options, stdin: jsonDumps(payload) })
-}
-
-// claude-adapter.sh 経由でコアスクリプトを起動する。
-export function runClaudeAdapter(hookCase: HookCase, command: string, coreScript: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
-  const stdin = jsonDumps({ tool_input: { command } })
-  return runScript(hookCase, path.join(adapterDirectory, 'claude-adapter.sh'), [coreScript], { ...options, stdin })
 }
 
 const SOURCE_HOOK_INPUT_THEN_EXEC = 'source "$(dirname "$1")/../core/hook-input.sh" && pecot_hook_input_load "$2" && exec bash "$1"'

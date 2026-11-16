@@ -7,9 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { createGitRepository } from '../../tests/_helpers/git-repository.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { writeTree } from '../../tests/_helpers/temporary.js'
-import { CommandExit } from '../command-definition.js'
 import { createOutput } from '../output.js'
-import { recordWorkTarget } from '../work-target.js'
+import { planWorkTarget, recordWorkTarget } from '../work-target.js'
 import { capture } from './support.js'
 
 useIsolatedEnvironment()
@@ -22,36 +21,38 @@ function projectDirectory(files?: Readonly<Record<string, string>>): string {
 }
 
 describe('recordWorkTarget', () => {
-  it('作業対象を書き、set の行を出す', () => {
+  it('セッション名のキャッシュと作業ディレクトリを作り、作業ディレクトリを作った行を出す。.pecot-active は書かない', () => {
     const directory = projectDirectory()
     const io = capture()
-    recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, '見本の Issue')
-    expect(io.err.join('')).toBe('set: work target acme/demo/7 (work directory .pecot/work/7/)\n')
-    expect(readFileSync(path.join(directory, '.pecot/state/.pecot-active'), 'utf8')).toBe('acme/demo/7')
+    const recorded = recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, '見本の Issue')
+    expect(io.err.join('')).toBe('created: work directory .pecot/work/7/\n')
     expect(readFileSync(path.join(directory, '.pecot/state/.pecot-session-title'), 'utf8')).toBe('#7 見本の Issue')
-    expect(existsSync(path.join(directory, '.pecot/work/7'))).toBe(true)
+    expect(existsSync(path.join(directory, '.pecot/state/.pecot-active'))).toBe(false)
+    expect(recorded).toEqual({ status: 'recorded', issue: 'acme/demo/7', workDirectory: path.join(directory, '.pecot/work/7') })
   })
 
-  it('書けないと、failWithExit が無ければ warning の行を出して戻る', () => {
-    projectDirectory({ '.pecot/state': 'file' })
+  it('作業ディレクトリがすでにあっても、同じ行を出す', () => {
+    projectDirectory({ '.pecot/work/7/keep': 'x' })
     const io = capture()
     recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't')
-    expect(io.err.join('')).toMatch(/^warning: could not record the work target: .+\n$/u)
+    expect(io.err.join('')).toBe('created: work directory .pecot/work/7/\n')
   })
 
-  it('failWithExit なら、error の行を出して CommandExit(1) を投げる', () => {
+  it('作業ディレクトリを作れないと、warning の行を出して戻る', () => {
+    const directory = projectDirectory({ '.pecot/work': 'file' })
+    const io = capture()
+    const recorded = recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't')
+    expect(io.err.join('')).toBe('warning: could not create work directory .pecot/work/7/\n')
+    expect(readFileSync(path.join(directory, '.pecot/state/.pecot-session-title'), 'utf8')).toBe('#7 t')
+    expect(recorded).toEqual({ status: 'recorded', issue: 'acme/demo/7', workDirectory: undefined })
+  })
+
+  it('書けないと、warning の行を出して戻る', () => {
     projectDirectory({ '.pecot/state': 'file' })
     const io = capture()
-    let thrown: unknown
-    try {
-      recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't', { failWithExit: true })
-    }
-    catch (error: unknown) {
-      thrown = error
-    }
-    expect(thrown).toBeInstanceOf(CommandExit)
-    expect(thrown).toMatchObject({ exitCode: 1 })
-    expect(io.err.join('')).toMatch(/^error: could not record the work target: .+\n$/u)
+    const recorded = recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't')
+    expect(io.err.join('')).toMatch(/^warning: could not record the work target: .+\n$/u)
+    expect(recorded).toEqual({ status: 'failed', issue: 'acme/demo/7' })
   })
 
   it('前の .pecot-base を消し、options.base があれば新しく書く', () => {
@@ -68,5 +69,15 @@ describe('recordWorkTarget', () => {
     const io = capture()
     recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't')
     expect(io.err.join('')).toMatch(/^warning: could not record the base: .+\n/u)
+  })
+})
+
+describe('planWorkTarget', () => {
+  it('作業ディレクトリを作る予行の行を出し、何も書かない', () => {
+    const directory = projectDirectory()
+    const io = capture()
+    planWorkTarget(createOutput(true, io), 7)
+    expect(io.err.join('')).toBe('dry-run: would create work directory .pecot/work/7/\n')
+    expect(existsSync(path.join(directory, '.pecot'))).toBe(false)
   })
 })

@@ -169,7 +169,7 @@ describe('model フィールド', () => {
 describe('本文の規則', () => {
   it('w-implementer の本文に、越境ガードの判定手段・パッチ退避・定義元参照が残る', () => {
     const body = readFileSync(path.join(agentsDirectory, 'w-implementer.md'), 'utf8')
-    expect(body).toContain('.pecot/state/.pecot-active')
+    expect(body).toContain('作業中の worktree の remote のリポジトリ')
     expect(body).toContain('越境')
     expect(body).toContain('.pecot/work/<Issue番号>/<slug>.patch')
     expect(body).toContain('issue-flow-rules.md §6')

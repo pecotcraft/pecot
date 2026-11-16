@@ -17,7 +17,7 @@ import { runScript } from '../_helpers/run.js'
 import { extractReferences, resolveDirectoryVariables } from '../_helpers/script-references.js'
 import { splitLines } from '../_helpers/text.js'
 
-const MOCK_LIB_SCRIPTS = ['workflow-compliance-injector.sh', 'pecot-issue-pending-state.sh', 'create-slash-flag.sh']
+const MOCK_LIB_SCRIPTS = ['workflow-compliance-injector.sh', 'pecot-issue-pending-state.sh']
 
 // 検知スクリプトを呼ぶエントリ × 参照変数 → lib サブディレクトリ。
 // モック突合・生パス禁止ガードと変数解決先の突合が共有する対象表。

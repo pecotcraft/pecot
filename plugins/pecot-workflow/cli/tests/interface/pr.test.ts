@@ -12,7 +12,7 @@ import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
-import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
+import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, REPOSITORY, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
@@ -357,16 +357,61 @@ describe('pr create', () => {
     expect(result.stderr).toContain('set: title scope hint to p-w\n')
   })
 
-  it('default のテンプレで --prepare を付けて打つと、末尾の Closes に着手中の Issue の番号を入れる', async (context) => {
+  it('default のテンプレで --prepare を付けて打つと、末尾の Closes に、remote とブランチ名から求めた作業中の Issue の番号を入れる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-05')
+    await verifies(context, 'PW-PR-CREATE-66')
     const workspace = await openWorkspace({
-      branch: 'feat/demo/other',
-      files: { [stateFile('.pecot-active')]: 'acme/demo/34\n' },
+      worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: 'main\n' } }],
+      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
+    })
+    const worktree = path.join(workspace.root, 'wt1', REPOSITORY)
+    expect(readdirSync(path.join(worktree, '.pecot/state'))).toEqual(['.pecot-base'])
+    const result = await workspace.run(['pr', 'create', '--prepare'], worktree)
+    expect(result.code).toBe(0)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
+    expect(result.stderr).toContain('set: Closes to #34\n')
+  })
+
+  it('.pecot/state/ の無い clone で紐づいたブランチにいるとき --prepare を付けて打つと、Closes にブランチの番号を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-68')
+    const workspace = await openWorkspace({
+      branches: [{ name: 'feat/demo/34' }],
+      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
+    })
+    const clone = path.join(workspace.root, 'clone', REPOSITORY)
+    workspace.git(['clone', '-q', '-b', 'feat/demo/34', workspace.git(['remote', 'get-url', 'origin']).trim(), clone])
+    expect(existsSync(path.join(clone, '.pecot/state'))).toBe(false)
+    const result = await workspace.run(['pr', 'create', '--prepare'], clone)
+    expect(result.code).toBe(0)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
+    expect(result.stderr).toContain('set: Closes to #34\n')
+  })
+
+  it('別の番号の古い .pecot-active が残っていても読まず、Closes にブランチの番号を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-67')
+    const workspace = await openWorkspace({
+      branch: 'feat/demo/34',
+      files: { [stateFile('.pecot-active')]: 'acme/demo/99\n' },
       github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
     })
     const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
     expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
     expect(result.stderr).toContain('set: Closes to #34\n')
+    expect(operationsOf(workspace)).toEqual(['GetIssueKind'])
+  })
+
+  it('ブランチ名の末尾が番号でなければ、古い .pecot-active があっても Closes を空のままにする', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-67')
+    const workspace = await openWorkspace({
+      branch: 'feat/demo/other',
+      files: { [stateFile('.pecot-active')]: 'acme/demo/34\n' },
+    })
+    const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #\s*$/mu)
+    expect(result.stderr).not.toContain('set: Closes')
+    expect(workspace.requests()).toEqual([])
   })
 
   it('着手中の Issue が Epic のときに --prepare を付けて打つと、Closes を空のままにする', async (context) => {
@@ -562,14 +607,6 @@ describe('pr create', () => {
     ])
   })
 
-  it('PR を作ると、pr-create-slash-pending を消す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-24')
-    const workspace = await pushedBranch({ github: SUBMIT_RULES, files: { [stateFile('pr-create-slash-pending')]: '1\n' } })
-    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(true)
-    await workspace.run(messageArguments())
-    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(false)
-  })
-
   it('PR を作ると、その URL を標準出力に出す', async (context) => {
     await verifies(context, 'PW-PR-CREATE-25')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
@@ -668,7 +705,7 @@ describe('pr create', () => {
   })
 
   it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-66')
+    await verifies(context, 'PW-PR-CREATE-69')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), NOT_EPIC_RULE])
     divergeStacked(workspace, row.scene)
     const result = await workspace.run(stackedArguments())
@@ -725,11 +762,10 @@ describe('pr create', () => {
 
   it('PR の作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-40')
-    const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })], files: { [stateFile('pr-create-slash-pending')]: '1\n' } })
+    const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })] })
     const result = await workspace.run(messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR creation failed: GitHub API error: 422\n' })
     expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls'])
-    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(true)
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
@@ -959,10 +995,10 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'GET', STACKS_PATH)).toStrictEqual([])
     })
 
-    it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、pr-create-slash-pending を消して URL を出す', async (context) => {
+    it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、URL を出す', async (context) => {
       await verifies(context, 'PW-PR-CREATE-60')
       const dropped = rule({ method: 'GET', path: STACKS_PATH }, { status: 200, disconnect: true })
-      const workspace = await pushedBranch({ files: { ...STACKED_RECORD, [stateFile('pr-create-slash-pending')]: '1\n' }, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, dropped] })
+      const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, dropped] })
       const result = await workspace.run(stackedArguments())
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${PULL_URL}\n`)
@@ -971,7 +1007,6 @@ describe('pr create', () => {
         'set: Issue #12 status to In Review',
         expect.stringMatching(/^warning: could not register stack: \S/u),
       ])
-      expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(false)
       expect(operationsOf(workspace)).toContain('GetIssueBlockingReferences')
     })
 
@@ -1697,7 +1732,7 @@ describe('pr check', () => {
 
   it('常に、リポジトリとファイルを書き換えない', async (context) => {
     await verifies(context, 'PW-PR-CHECK-06')
-    const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n', [stateFile('pr-create-slash-pending')]: '1\n' } })
+    const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const snapshot = (): unknown => ({
       files: filesOf(workspace.directory),
       head: workspace.git(['rev-parse', 'HEAD']),

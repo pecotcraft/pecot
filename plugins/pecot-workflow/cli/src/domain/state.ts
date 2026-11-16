@@ -7,8 +7,7 @@ import type { IssueReference } from './reference-parser.js'
 import { createRepositoryReference } from './repository-resolver.js'
 
 // フラグファイル名
-export const FLAG_PECOT_ACTIVE = '.pecot-active'
-// セッション名（hooks の session-title.sh が Claude Code の sessionTitle に流す）。.pecot-active と同じタイミングで書く
+// セッション名のキャッシュ（hooks の session-title.sh が Claude Code の sessionTitle に流す）。session start がブランチを作るときに書く
 export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
 // 着手のときに選んだ base（ブランチ・位置・積んだ先の Issue）。session start が書き、session finish が消す
 export const FLAG_PECOT_BASE = '.pecot-base'
@@ -16,14 +15,6 @@ export const FLAG_PECOT_BASE = '.pecot-base'
 export const FLAG_PECOT_RESTACK = '.pecot-restack'
 export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
 export const FLAG_WIP_BRANCH_LINKED = '.wip-branch-linked'
-
-// スラッシュコマンド起点の外部反映免除フラグ。
-// 設置は hooks の create-slash-flag.sh が行う。
-// 確認は mcp-handlers/pecot-post-ask.sh（merge は pr_merge も。gh pr merge は core/external-post-check.sh）が行う。
-// MCP ツールが実投稿成功時に削除する。
-export const FLAG_PR_CREATE_SLASH_PENDING = 'pr-create-slash-pending'
-export const FLAG_ISSUE_CREATE_SLASH_PENDING = 'issue-create-slash-pending'
-export const FLAG_MERGE_SLASH_PENDING = 'merge-slash-pending'
 
 // 起票未完了のリマインド用フラグ。設置は hooks、確認は pecot-issue-pending-reminder.sh。MCP ツールが起票成功時に削除する
 export const FLAG_ISSUE_PENDING = 'issue-pending'
@@ -58,19 +49,14 @@ export function workDirectoryName(issueReference: string): string | undefined {
   return /^\d+$/u.test(number) ? number : undefined
 }
 
-export interface WorkTarget {
-  readonly active: string
-  readonly sessionTitle: string
-}
-
 /**
-作業対象として書く内容（.pecot-active と .pecot-session-title）を決める。参照の末尾が整数でなければ InvalidValueError
+作業対象のセッション名（.pecot-session-title に書く内容）を決める。参照の末尾が整数でなければ InvalidValueError
 */
-export function planWorkTarget(issueReference: string, title: string): WorkTarget {
+export function planWorkTarget(issueReference: string, title: string): string {
   const text = lastSegment(issueReference)
   const number = parsePythonInteger(text)
   if (number === undefined) throw new InvalidValueError(`invalid literal for int() with base 10: ${pythonStringRepr(text)}`)
-  return { active: issueReference, sessionTitle: formatSessionTitle(number, title) }
+  return formatSessionTitle(number, title)
 }
 
 export interface BaseRecord {

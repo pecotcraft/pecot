@@ -58,8 +58,6 @@ pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づ�
 
 - 前提を外さない。前提を見直すかどうかは利用者が決める
 - `base` を渡さない
-- `force_overwrite_active` は、残っている Issue が stale だと確信できるときだけ付ける
-- `allow_cross_repo` は、セッションを始め直せないときだけ付ける
 
 ### Step 5: ブランチ切り替え
 
@@ -70,14 +68,6 @@ pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づ�
 git fetch origin
 git checkout feat/description/XXX
 ```
-
-**CWDと対象リポジトリが異なる場合:**
-
-CWDが別リポジトリであっても、ブランチを作ったリポジトリのワークツリーで `git checkout` を実行する。
-ワークスペース内に該当リポジトリのワークツリーがあれば、そのディレクトリで実行すればよい。
-
-今のワークツリーと同じ WT 名のワークツリーが作業対象リポジトリに存在しない場合は、
-`/pecot-w:w-worktree-add` コマンドでWT作成を案内するか、作業を中止する。
 
 ### Step 6: 調査
 

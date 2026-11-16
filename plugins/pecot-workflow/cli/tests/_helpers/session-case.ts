@@ -1,7 +1,10 @@
-// session show・session restore のテストが共有する準備。
+/* eslint-disable security/detect-non-literal-fs-filename -- パスは一時ディレクトリの中だけ */
+// session show のテストが共有する準備。
+import { realpathSync } from 'node:fs'
+
 import type { ResponseRule } from '../fake-github/server.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import { enterGitRepository, setUpProject } from './interface-case.js'
+import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'
+import { setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 
 export const CONFIG_FILE = 'ghes.example.com_acme_board_acme.json'
@@ -28,15 +31,26 @@ export interface SessionCase {
 }
 
 /**
-一時のプロジェクトルートと、そのルートで cwd が動く一時 git リポを用意する
+一時のプロジェクトルートを git リポにして、cwd をそこへ移す。ブランチと remote で作業中の Issue が決まる
 */
 export function prepareSession(options: Readonly<SessionCaseOptions> = {}): SessionCase {
   const { branch = 'feat/demo/7', remotes = { origin: ORIGIN_URL }, files = {} } = options
   const project = setUpProject({ files })
-  const repository = enterGitRepository()
+  const repository = realpathSync(createGitRepository(undefined, project.root))
+  process.chdir(repository)
   gitForTest(repository, ['checkout', '-q', '-b', branch])
   for (const [name, url] of Object.entries(remotes)) gitForTest(repository, ['remote', 'add', name, url])
   return { project, repository }
+}
+
+/**
+プロジェクトルートとは別の git リポ（clone した場所など）を、ブランチ feat/demo/7 と origin で用意する。cwd は変えない
+*/
+export function separateRepository(): string {
+  const repository = realpathSync(createGitRepository())
+  gitForTest(repository, ['checkout', '-q', '-b', 'feat/demo/7'])
+  gitForTest(repository, ['remote', 'add', 'origin', ORIGIN_URL])
+  return repository
 }
 
 /**

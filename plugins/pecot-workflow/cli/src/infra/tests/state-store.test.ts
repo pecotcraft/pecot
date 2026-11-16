@@ -20,7 +20,7 @@ import {
   touchFlag,
   writeBaseRecord,
   writeFlag,
-  writeWorkTarget,
+  writeSessionTitle,
 } from '../state-store.js'
 
 useIsolatedEnvironment()
@@ -87,9 +87,9 @@ describe('removeFlag', () => {
 describe('consumeFlag', () => {
   it('フラグを消す', () => {
     useProject()
-    touchFlag('pr-create-slash-pending')
-    consumeFlag('pr-create-slash-pending')
-    expect(hasFlag('pr-create-slash-pending')).toBe(false)
+    touchFlag('issue-pending')
+    consumeFlag('issue-pending')
+    expect(hasFlag('issue-pending')).toBe(false)
   })
 
   it('プロジェクトルートが解決できなくても例外にしない（投稿は成功している）', () => {
@@ -168,8 +168,8 @@ describe('consumeFlag が握る例外', () => {
 describe('writeFlag / readFlag', () => {
   it('内容を書き、前後の空白を除いて読む', () => {
     useProject()
-    writeFlag('.pecot-active', '  owner/repo/1 \n')
-    expect(readFlag('.pecot-active')).toBe('owner/repo/1')
+    writeFlag('.pecot-session-title', '  #1 題名 \n')
+    expect(readFlag('.pecot-session-title')).toBe('#1 題名')
   })
 
   it('無ければ undefined', () => {
@@ -236,25 +236,25 @@ describe('ensureWorkDirectory', () => {
   })
 })
 
-describe('writeWorkTarget', () => {
-  it('.pecot-active と .pecot-session-title を同時に書く', () => {
+describe('writeSessionTitle', () => {
+  it('.pecot-session-title だけを書く', () => {
     const root = useProject()
-    writeWorkTarget('acme-labs/aist-plugin/1253', '[Task] 題名')
+    writeSessionTitle('acme-labs/aist-plugin/1253', '[Task] 題名')
     const stateDirectory = path.join(root, '.pecot', 'state')
-    expect(readFileSync(path.join(stateDirectory, '.pecot-active'), 'utf8')).toBe('acme-labs/aist-plugin/1253')
+    expect(readdirSync(stateDirectory)).toEqual(['.pecot-session-title'])
     expect(readFileSync(path.join(stateDirectory, '.pecot-session-title'), 'utf8')).toBe('#1253 題名')
   })
 
   it('タイトルが取れなかったときは番号だけのセッション名', () => {
     const root = useProject()
-    writeWorkTarget('owner/repo/5', '')
+    writeSessionTitle('owner/repo/5', '')
     expect(readFileSync(path.join(root, '.pecot', 'state', '.pecot-session-title'), 'utf8')).toBe('#5')
   })
 
   it('番号が数字でなければ値の不正で止まり、何も書かない', () => {
     const root = useProject()
     expect(() => {
-      writeWorkTarget('owner/repo/abc', '題名')
+      writeSessionTitle('owner/repo/abc', '題名')
     }).toThrow(InvalidValueError)
     const stateDirectory = path.join(root, '.pecot', 'state')
     expect(!existsSync(stateDirectory) || readdirSync(stateDirectory).length === 0).toBe(true)
@@ -266,7 +266,7 @@ describe('writeWorkTarget', () => {
     process.chdir(outside)
     try {
       expect(() => {
-        writeWorkTarget('o/r/1', 't')
+        writeSessionTitle('o/r/1', 't')
       }).toThrow(ProjectRootNotFoundError)
     }
     finally {

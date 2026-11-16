@@ -15,13 +15,13 @@ import { createIssueReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { FLAG_MERGE_SLASH_PENDING, FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
+import { FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
 import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestSlim } from '../infra/github/pulls.js'
 import { isFileNotFound } from '../infra/os-error.js'
-import { consumeFlag, removeFlag } from '../infra/state-store.js'
+import { removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
 import type { BoardContext } from './board-judgment.js'
 import { commandHint, hinted } from './command-hint.js'
@@ -353,7 +353,7 @@ function localCleanupAfterMerge(context: Readonly<FinishContext>, headBranch: st
 
 function removeActiveFlags(out: Readonly<Output>): void {
   try {
-    for (const flag of [FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE, FLAG_WIP_BRANCH_LINKED]) removeFlag(flag)
+    for (const flag of [FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE, FLAG_WIP_BRANCH_LINKED]) removeFlag(flag)
   }
   catch (error: unknown) {
     out.warning(`removing flag files failed: ${reasonOf(error)}`)
@@ -404,7 +404,6 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   }
 
   removeActiveFlags(out)
-  consumeFlag(FLAG_MERGE_SLASH_PENDING)
 }
 
 const sessionFinishCommand = defineCommand({

@@ -287,6 +287,10 @@ export function createHandler(deps = {}) {
   const handleScheduler = async () => {
     const results = await Promise.allSettled(
       SCHEDULED.map(async ({ app, workflowEnv }) => {
+        // 空のまま進めると、dispatchFor が App の既定の workflow を起こす。
+        if (!env[workflowEnv]) {
+          throw Object.assign(new Error(`${workflowEnv} is not set`), { stage: "config" });
+        }
         const secrets = await withStage("secrets", () => getSecrets(app));
         const runId = await dispatchFor(app, secrets, env[workflowEnv]);
         log({ via: "scheduler", app, workflow: env[workflowEnv], run: runId, result: "dispatched" });
@@ -301,7 +305,7 @@ export function createHandler(deps = {}) {
       log({
         via: "scheduler",
         app,
-        workflow: env[workflowEnv],
+        ...(env[workflowEnv] ? { workflow: env[workflowEnv] } : { workflowEnv }),
         result: "dispatch-error",
         ...failureFields(reason?.stage ?? "dispatch", reason),
       });

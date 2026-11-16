@@ -1,4 +1,4 @@
-# アクティブな Issue があり、GetIssueSlim が 200 を返す。フラグの表と Issue の本文を出す。
+# ブランチ feat/demo/7 と origin から作業中の Issue を求め、GetIssueSlim が 200 を返す。Issue の本文を出す。
 id: session-show-ok
 command:
   path: [session, show]
@@ -59,8 +59,6 @@ setup:
         }
       .pecot/config/projects/.active: |
         ghes.example.com_acme_board_acme.json
-      .pecot/state/.pecot-active: |
-        acme/demo/7
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:

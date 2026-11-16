@@ -5,11 +5,13 @@ import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
+import { activeIssueFromBranch } from '../domain/branch-name.js'
 import type { GitResult, GitRunner } from '../domain/git-runner.js'
 import { parseRemoteUrl } from '../domain/git-url.js'
 import type { RemoteLocation } from '../domain/git-url.js'
 import { BaseError, InvalidValueError } from '../domain/errors.js'
 import { normalizeNewlines, pythonRepr, pythonStrip } from '../domain/python-format.js'
+import type { IssueReference } from '../domain/reference-parser.js'
 import { childStdin } from './child-stdin.js'
 import { isFileNotFound, toOsError } from './os-error.js'
 
@@ -169,6 +171,13 @@ export function primaryRemoteRepository(cwd?: string): RemoteLocation | undefine
 */
 export function gitCurrentBranch(cwd?: string): string | undefined {
   return runForValue(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd })
+}
+
+/**
+作業中の Issue。主の remote のリポと現在のブランチ名の末尾の番号から決める。どちらかが読めなければ undefined
+*/
+export function activeIssueOf(directory?: string): IssueReference | undefined {
+  return activeIssueFromBranch(primaryRemoteRepository(directory), gitCurrentBranch(directory))
 }
 
 /**

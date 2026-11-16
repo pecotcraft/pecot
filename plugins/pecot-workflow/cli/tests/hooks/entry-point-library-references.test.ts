@@ -27,7 +27,7 @@ const libraryScripts = globSync('lib/**/*.sh', { cwd: hooksDirectory })
 const guardedScripts: readonly string[] = [...entryPoints, ...libraryScripts]
 
 // 列挙が空振りして全件通るのを防ぐ下限。
-const MIN_GUARDED_SCRIPTS = 60
+const MIN_GUARDED_SCRIPTS = 50
 const MIN_RESOLVED_REFERENCES = 90
 const MIN_RESOLVED_TEMPLATE_REFERENCES = 2
 

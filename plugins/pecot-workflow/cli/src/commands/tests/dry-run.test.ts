@@ -16,20 +16,18 @@ import { commentFileContent, MERGE_DIFF_BODY } from '../../../tests/_helpers/iss
 import { TASK_BODY } from '../../../tests/_helpers/issue-create-case.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { prerequisitesRule } from '../../../tests/_helpers/prerequisites.js'
-import { issueResponse } from '../../../tests/_helpers/session-case.js'
 import type { ResponseRule } from '../../../tests/fake-github/server.js'
 
 useIsolatedEnvironment()
 
 type Json = Record<string, unknown>
 
-const ACTIVE = '.pecot/state/.pecot-active'
+const SESSION_TITLE = '.pecot/state/.pecot-session-title'
 const OUTPUT_DIRECTORY = '.pecot/tmp/output'
 const BOARD_URL = `https://${DEFAULT_HOST}/users/acme/projects/1`
 
 const STATE = '.pecot/state'
 const SEEDED_STATE: Readonly<Record<string, string>> = {
-  [`${STATE}/.pecot-active`]: 'acme/demo/1\n',
   [`${STATE}/.pecot-base`]: 'develop\n',
   [`${STATE}/.pecot-session-title`]: '前の作業\n',
 }
@@ -144,10 +142,10 @@ describe('issue', () => {
 
   it('issue create の freeform に dry_run を渡すと、.pecot-quick-mode を立てず、pending のフラグを残す', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-71')
-    const pending = { [`${STATE}/issue-create-slash-pending`]: 'w-quick\n', [`${STATE}/issue-pending`]: '' }
+    const pending = { [`${STATE}/issue-pending`]: '' }
     const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')], { files: pending })
     expect(result.code).toBe(0)
-    expect(Object.keys(snapshot(result.directory, STATE))).toEqual(['issue-create-slash-pending', 'issue-pending'])
+    expect(Object.keys(snapshot(result.directory, STATE))).toEqual(['issue-pending'])
     expect(result.read(`${STATE}/.pecot-quick-mode`)).toBeUndefined()
   })
 
@@ -266,22 +264,6 @@ describe('project', () => {
 })
 
 describe('session', () => {
-  it('session restore に dry_run を渡すと、作業対象を記録せずに予行の行を出す', async (context) => {
-    await verifies(context, 'PW-SESSION-RESTORE-23')
-    const result = await dryRun(['session', 'restore', '-i', 'acme/demo/7', '-D', '.', '-n'], [issueResponse({ number: 7, title: '見本' })])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe('dry-run: would set work target acme/demo/7\n')
-    expect(result.read(ACTIVE)).toBeUndefined()
-  })
-
-  it('session restore に dry_run を渡すと、前の作業対象のファイルと作業ディレクトリが変わらない', async (context) => {
-    await verifies(context, 'PW-SESSION-RESTORE-23')
-    const result = await dryRun(['session', 'restore', '-i', 'acme/demo/7', '-D', '.', '-n'], [issueResponse({ number: 7, title: '見本' })], { files: SEEDED_STATE })
-    expect(result.code).toBe(0)
-    expect(snapshot(result.directory, STATE)).toEqual({ '.pecot-active': 'acme/demo/1\n', '.pecot-base': 'develop\n', '.pecot-session-title': '前の作業\n' })
-    expect(existsSync(path.join(result.directory, '.pecot/work/7'))).toBe(false)
-  })
-
   it('session start に dry_run を渡すと、作業対象のファイルと作業ディレクトリができない', async (context) => {
     await verifies(context, 'PW-SESSION-START-36')
     const github = [linked('demo'), prerequisitesRule({ number: 7 }), issueNode(), restRule('GET', '/repos/acme/demo/git/ref/heads/main', 200, { object: { sha: '0123456789abcdef0123456789abcdef01234567' } })]
@@ -289,6 +271,14 @@ describe('session', () => {
     expect(result.code).toBe(0)
     expect(snapshot(result.directory, STATE)).toEqual({})
     expect(existsSync(path.join(result.directory, '.pecot/work/7'))).toBe(false)
+  })
+
+  it('session start に dry_run を渡すと、前の作業対象のファイルが変わらない', async (context) => {
+    await verifies(context, 'PW-SESSION-START-36')
+    const github = [linked('demo'), prerequisitesRule({ number: 7 }), issueNode(), restRule('GET', '/repos/acme/demo/git/ref/heads/main', 200, { object: { sha: '0123456789abcdef0123456789abcdef01234567' } })]
+    const result = await dryRun(['session', 'start', 'acme/demo/7', 'feat', '-n'], github, { files: SEEDED_STATE })
+    expect(result.code).toBe(0)
+    expect(snapshot(result.directory, STATE)).toEqual({ '.pecot-base': 'develop\n', '.pecot-session-title': '前の作業\n' })
   })
 
   it('session start に dry_run を渡すと、ベースの SHA まで読み、ブランチ・Status・作業対象を予行の行に出す', async (context) => {
@@ -300,10 +290,10 @@ describe('session', () => {
     expect(result.stderr).toBe([
       'dry-run: would create branch feat/7 in acme/demo from main',
       'dry-run: would set Issue acme/demo/7 status active',
-      'dry-run: would set work target acme/demo/7',
+      'dry-run: would create work directory .pecot/work/7/',
       '',
     ].join('\n'))
-    expect(result.read(ACTIVE)).toBeUndefined()
+    expect(result.read(SESSION_TITLE)).toBeUndefined()
   })
 })
 

@@ -34,7 +34,6 @@ function setUpSandbox(hookCase: HookCase): Sandbox {
   gitOrThrow(hookCase, repository, ['config', `url.${bare}.pushInsteadOf`, ORIGIN_URL])
   gitOrThrow(hookCase, repository, ['checkout', '-q', '-b', BRANCH])
   mkdirSync(path.join(repository, '.pecot', 'state'), { recursive: true })
-  writeFileSync(path.join(repository, '.pecot', 'state', '.pecot-active'), 'testowner/testrepo/1229\n')
   config.write({ 'auto-push': true })
   mockBin(hookCase).install('gh', 'exit 1\n')
   hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
@@ -258,13 +257,13 @@ function bigCommand(head: string): string {
 }
 
 describe('上限を超えるコマンド', () => {
-  it('Pre では、そのまま通さず、確認を求める', () => {
+  it('Pre では、ガードを通さずに素通しし、何も返さない', () => {
     const hookCase = createHookCase()
     const { repo } = setUpSandbox(hookCase)
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(bigCommand('git commit --no-verify -m x'), repo))
     expect(result).toMatchObject({ exitCode: 0 })
     expect(result.stderr).not.toContain('Argument list too long')
-    expect(hookSpecificOutput(result)).toMatchObject({ permissionDecision: 'ask', permissionDecisionReason: containing('exceeds') })
+    expect(result.stdout.trim()).toBe('')
   })
 
   it('/tmp のリマインダーは、上限を超えても出す', () => {
@@ -272,7 +271,8 @@ describe('上限を超えるコマンド', () => {
     const { repo } = setUpSandbox(hookCase)
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(bigCommand('cat /tmp/x-1229'), repo))
     expect(result).toMatchObject({ exitCode: 0 })
-    expect(hookSpecificOutput(result)).toMatchObject({ permissionDecision: 'ask', additionalContext: containing('/tmp/') })
+    expect(hookSpecificOutput(result)).toMatchObject({ additionalContext: containing('/tmp/') })
+    expect(hookSpecificOutput(result)).not.toHaveProperty('permissionDecision')
   })
 
   it('Issue 起票のリマインダーは、上限を超えても出す', () => {

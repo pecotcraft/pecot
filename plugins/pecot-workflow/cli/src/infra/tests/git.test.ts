@@ -12,6 +12,7 @@ import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import {
   GIT_TIMED_OUT,
   GitCommandError,
+  activeIssueOf,
   gitCurrentBranch,
   gitRemoteUrl,
   gitRunnerFor,
@@ -259,6 +260,41 @@ describe('primaryRemoteRepository', () => {
 
   it('remote が無ければ undefined', () => {
     expect(primaryRemoteRepository(createGitRepository())).toBeUndefined()
+  })
+})
+
+describe('activeIssueOf', () => {
+  it('origin のリポとブランチの末尾の番号から作業中の Issue を返す', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'origin', 'https://github.com/owner/repo.git'])
+    gitForTest(directory, ['checkout', '-q', '-b', 'feat/x/387'])
+    expect(activeIssueOf(directory)).toEqual({ repository: { owner: 'owner', repository: 'repo' }, number: 387 })
+  })
+
+  it('remote の URL の形が合わなければ undefined', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'origin', 'invalid'])
+    gitForTest(directory, ['checkout', '-q', '-b', 'feat/x/387'])
+    expect(activeIssueOf(directory)).toBeUndefined()
+  })
+
+  it('remote が無ければ undefined', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['checkout', '-q', '-b', 'feat/x/387'])
+    expect(activeIssueOf(directory)).toBeUndefined()
+  })
+
+  it('detached HEAD では undefined', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'origin', 'https://github.com/owner/repo.git'])
+    gitForTest(directory, ['checkout', '-q', '--detach'])
+    expect(activeIssueOf(directory)).toBeUndefined()
+  })
+
+  it('git の外では undefined', () => {
+    const directory = makeTemporaryDirectory('pecot-nogit-')
+    setEnvironment({ GIT_CEILING_DIRECTORIES: path.dirname(directory) })
+    expect(activeIssueOf(directory)).toBeUndefined()
   })
 })
 

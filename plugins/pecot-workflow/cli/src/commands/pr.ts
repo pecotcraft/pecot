@@ -8,7 +8,7 @@ import path from 'node:path'
 import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
-import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
+import { activeIssueFromBranch, extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { InvalidValueError } from '../domain/errors.js'
@@ -24,7 +24,6 @@ import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, Pus
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { FLAG_PECOT_ACTIVE, FLAG_PR_CREATE_SLASH_PENDING } from '../domain/state.js'
 import type { BaseReading } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
@@ -36,7 +35,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { consumeFlag, readBaseRecord, readFlag } from '../infra/state-store.js'
+import { readBaseRecord } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
@@ -479,7 +478,6 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   finally {
     out.result({ moves: moves.map(move => moveJson(move)) })
   }
-  consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub', 'other')
   out.data(url)
 }
@@ -722,19 +720,10 @@ function addScopeHint(content: string, config: Readonly<ProjectConfig>, location
 }
 
 async function fillClosesInTemplate(content: string, config: Readonly<ProjectConfig> | undefined, directory: string, location: RemoteLocation | undefined, out: Readonly<Output>): Promise<string> {
-  let target: { readonly owner: string, readonly repository: string, readonly number: number } | undefined
-  const segments = readFlag(FLAG_PECOT_ACTIVE)?.split('/')
-  if (segments?.length === 3) {
-    const [activeOwner, activeRepository, digits] = segments
-    const activeNumber = digits !== undefined && /^\p{Nd}+$/u.test(digits) ? parsePythonInteger(digits) : undefined
-    if (activeOwner !== undefined && activeRepository !== undefined && activeNumber !== undefined) target = { owner: activeOwner, repository: activeRepository, number: activeNumber }
-  }
-  if (target === undefined && location !== undefined) {
-    const branch = gitCurrentBranch(directory)
-    const branchNumber = branch === undefined || branch === '' ? undefined : extractIssueNumberFromBranch(branch)
-    if (isPositive(branchNumber)) target = { owner: location.owner, repository: location.repository, number: branchNumber }
-  }
-  if (target === undefined || target.owner === '' || target.repository === '') return content
+  // 作業中の Issue は remote とブランチ名から決める。古い .pecot-active は読まない
+  const active = activeIssueFromBranch(location, gitCurrentBranch(directory))
+  if (active === undefined) return content
+  const target = { owner: active.repository.owner, repository: active.repository.repository, number: active.number }
 
   const label = `Issue #${String(target.number)}`
   try {

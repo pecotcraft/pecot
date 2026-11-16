@@ -142,7 +142,7 @@ export interface BoardMoveLine {
 }
 
 /**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync と pr create の data が使う
+列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
 */
 export const BOARD_MOVE_JSON = z.strictObject({
   issue: z.string().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),

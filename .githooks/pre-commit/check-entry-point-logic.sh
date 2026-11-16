@@ -18,7 +18,6 @@ set -euo pipefail
 CLAUDE_ENTRY_POINTS=(
     "plugins/pecot-workflow/hooks/pre-tool-use.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-bash.sh"
-    "plugins/pecot-workflow/hooks/pre-tool-use-mcp.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-skill.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-websearch.sh"
     "plugins/pecot-workflow/hooks/post-tool-use-bash.sh"

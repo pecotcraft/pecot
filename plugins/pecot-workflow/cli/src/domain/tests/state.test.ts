@@ -5,7 +5,6 @@ import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
 import { splitCodePoints } from '../python-format.js'
 import {
-  FLAG_PECOT_ACTIVE,
   FLAG_PECOT_BASE,
   FLAG_PECOT_RESTACK,
   formatBaseRecord,
@@ -14,10 +13,7 @@ import {
   interpretBaseRecord,
   FLAG_PECOT_QUICK_MODE,
   FLAG_PECOT_SESSION_TITLE,
-  FLAG_ISSUE_CREATE_SLASH_PENDING,
   FLAG_ISSUE_PENDING,
-  FLAG_MERGE_SLASH_PENDING,
-  FLAG_PR_CREATE_SLASH_PENDING,
   FLAG_WIP_BRANCH_LINKED,
   formatSessionTitle,
   planWorkTarget,
@@ -27,9 +23,9 @@ import {
 
 describe('フラグ名', () => {
   it('hooks が読み書きするファイル名と同じ', () => {
-    expect([FLAG_PECOT_ACTIVE, FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE]).toEqual(['.pecot-active', '.pecot-session-title', '.pecot-quick-mode'])
-    expect([FLAG_PR_CREATE_SLASH_PENDING, FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING]).toEqual(['pr-create-slash-pending', 'issue-create-slash-pending', 'issue-pending'])
-    expect([FLAG_WIP_BRANCH_LINKED, FLAG_MERGE_SLASH_PENDING]).toEqual(['.wip-branch-linked', 'merge-slash-pending'])
+    expect([FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE]).toEqual(['.pecot-session-title', '.pecot-quick-mode'])
+    expect(FLAG_ISSUE_PENDING).toBe('issue-pending')
+    expect(FLAG_WIP_BRANCH_LINKED).toBe('.wip-branch-linked')
   })
 })
 
@@ -93,12 +89,12 @@ describe('workDirectoryName', () => {
 })
 
 describe('planWorkTarget', () => {
-  it('active と session-title の内容を返す', () => {
-    expect(planWorkTarget('acme-labs/aist-plugin/1253', '[Task] 題名')).toEqual({ active: 'acme-labs/aist-plugin/1253', sessionTitle: '#1253 題名' })
+  it('セッション名を返す', () => {
+    expect(planWorkTarget('acme-labs/aist-plugin/1253', '[Task] 題名')).toBe('#1253 題名')
   })
 
   it('タイトルが空なら番号だけのセッション名', () => {
-    expect(planWorkTarget('owner/repo/5', '').sessionTitle).toBe('#5')
+    expect(planWorkTarget('owner/repo/5', '')).toBe('#5')
   })
 
   it('番号が数字でなければ値の不正。文は int() と同じ', () => {

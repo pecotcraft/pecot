@@ -1,0 +1,9 @@
+# main ブランチで、作業中の Issue が無い。Active Issue は none で、GitHub を呼ばない。
+id: session-show-ok-no-issue
+command:
+  path: [session, show]
+  args:
+    - "-D"
+    - "."
+setup: {}
+github: []

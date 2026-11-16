@@ -16,7 +16,7 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 
 # workflow の一覧
 
-- `ci.yml`: PR・merge queue・main への push で、変更が届いたレーンを devcontainer で検証する。`checks (lint)` とレーンごとの `tests` を `ci-result` にまとめ、PR・merge queue では `version-plan` も動かす
+- `ci.yml`: PR・merge queue で、変更が届いたレーンを devcontainer で検証する。`checks (lint)` とレーンごとの `tests` を `ci-result` にまとめ、`version-plan` も動かす
   - tests の job は job 内に nx リモートキャッシュのサーバを持ち、同じ PR の前の run で成功したレーンの結果だけを取り込む
 - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる（`.claude/rules/devcontainer.md`）
 - `release.yml`: 人が手で起動する。入力 `dry-run`（既定 `true`）では案だけを出す。本番は一時ブランチへ push してタグと Release を出し、その後で `main` を取り込んで push する

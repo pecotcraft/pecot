@@ -57,19 +57,19 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **Independent Test**: research.md の R2・R8 の表のすべての行に、結果・版・日付が書かれている
 
-- [ ] T001 検証用のスキルを手元のプラグインに足し、frontmatter の `hooks` が登録されるかを確かめる。結果を `SPEC/research.md` の R2 に書く
+- [x] T001 検証用のスキルを手元のプラグインに足し、frontmatter の `hooks` が登録されるかを確かめる。結果を `SPEC/research.md` の R2 に書く
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`
-- [ ] T002 同じスキルで、残りの 3 点を確かめる。結果を `SPEC/research.md` の R2 に書く
+- [x] T002 同じスキルで、残りの 3 点を確かめる。結果を `SPEC/research.md` の R2 に書く
   - `command` の `${CLAUDE_PLUGIN_ROOT}` が展開されるか
   - `once: true` で 1 回で外れるか
   - resume の後に登録し直されるか
-- [ ] T003 [P] GitHub Copilot CLI で、frontmatter に `hooks` のあるスキルを起動する。結果を `SPEC/research.md` の R2 と R5 に書く
+- [x] T003 [P] GitHub Copilot CLI で、frontmatter に `hooks` のあるスキルを起動する。結果を `SPEC/research.md` の R2 と R5 に書く
   - エラーにならないか
   - フックを読むか
-- [ ] T004 [P] speckit の git 拡張が、新しいブランチを作らずに通るかを確かめる。結果を `SPEC/research.md` の R8 に書く
+- [x] T004 [P] speckit の git 拡張が、新しいブランチを作らずに通るかを確かめる。結果を `SPEC/research.md` の R8 に書く
   - `GIT_BRANCH_NAME` に今のブランチ名を渡し、`--allow-existing-branch` を付ける
   - 動かすのは `.specify/extensions/git/scripts/bash/create-new-feature-branch.sh`
-- [ ] T005 結果が見込みと違うときは、`SPEC/plan.md` と、この tasks.md の Phase 6・Phase 7 を直す。直した点をユーザーに知らせる
+- [x] T005 結果が見込みと違うときは、`SPEC/plan.md` と、この tasks.md の Phase 6・Phase 7 を直す。直した点をユーザーに知らせる
 
 ---
 
@@ -81,33 +81,33 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **契約**: contracts/hook-behavior.md の「止める・承認を求める」
 
-- [ ] T006 [US1] 期待を書き換え、落ちることを確かめる。`gh pr merge`・`pecot …`・大きすぎるコマンドに、何も返らないことを期待する
+- [x] T006 [US1] 期待を書き換え、落ちることを確かめる。`gh pr merge`・`pecot …`・大きすぎるコマンドに、何も返らないことを期待する
   - `tests/hooks/lib/bash-guard-responses.test.ts`
   - `tests/hooks/lib/integration.test.ts`
   - 古い版の免除のフラグを置いた状態の入力を 1 つ足し、結果が変わらないことを期待する（FR-004）
-- [ ] T007 [US1] `lib/adapters/claude-bash-guards.sh` から、3 つの段を外す
+- [x] T007 [US1] `lib/adapters/claude-bash-guards.sh` から、3 つの段を外す
   - `pecot-cli-deny`
   - `external-post-check`（`gh pr merge` の ask）
   - 大きすぎるコマンドの ask
-- [ ] T008 [US1] MCP の PreToolUse を外す
+- [x] T008 [US1] MCP の PreToolUse を外す
   - 2 つの定義ファイルのエントリを外す
   - `p-w/hooks/pre-tool-use-mcp.sh` を消す
   - `lib/mcp-handlers/` を消す（`context7-allow.sh` も一緒に消える）
-- [ ] T009 [US1] 呼ばれなくなるスクリプトを消す
+- [x] T009 [US1] 呼ばれなくなるスクリプトを消す
   - `lib/core/pecot-cli-deny.sh`
   - `lib/core/external-post-check.sh`
   - `lib/core/pecot-tool-names.sh`
   - `lib/core/command-segments.sh`
   - `lib/adapters/claude-adapter.sh`
-- [ ] T010 [US1] 免除のフラグを作る側と掃除を消す
+- [x] T010 [US1] 免除のフラグを作る側と掃除を消す
   - `lib/user-prompt-submit/create-slash-flag.sh` を消す
   - `lib/session-start/create-slash-cleanup.sh` を消す
   - `p-w/hooks/user-prompt-submit.sh` と `lib/session-start-common.sh` の呼び出しを外す
-- [ ] T011 [US1] `lib/core/mcp-guidance.sh` から、ask の案内の関数を消す
-- [ ] T012 [P] [US1] CLI から、免除のフラグの消費を消す
+- [x] T011 [US1] `lib/core/mcp-guidance.sh` から、ask の案内の関数を消す
+- [x] T012 [P] [US1] CLI から、免除のフラグの消費を消す
   - `src/domain/state.ts` の定数 3 つ
   - `src/commands/pr.ts`・`issue-create.ts`・`issue-quick.ts` の `consumeFlag` の呼び出し
-- [ ] T013 [US1] 消したもののテストを消す
+- [x] T013 [US1] 消したもののテストを消す
   - `tests/hooks/pecot-cli-deny.test.ts`
   - `tests/hooks/pecot-post-ask.test.ts`
   - `tests/hooks/pre-mcp.test.ts`
@@ -115,23 +115,24 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `tests/hooks/user-prompt-submit-create-slash-flag.test.ts`
   - `tests/hooks/lib/mcp-handlers.test.ts`
   - `tests/hooks/lib/mcp-definitions.test.ts`
-- [ ] T014 [US1] `tests/hook-tool-names.test.ts` を直す。`pecot-tool-names.sh` を読むので、テストごと消すか、読む先を定義書に変える
+- [x] T014 [US1] `tests/hook-tool-names.test.ts` を直す。`pecot-tool-names.sh` を読むので、テストごと消すか、読む先を定義書に変える
   - `p-w/project.json` の `test-cli` の inputs から、`pecot-tool-names.sh` を外す
-- [ ] T015 [US1] 設定キーを、sample と `p-w/hooks/README.md` から除く
+- [x] T015 [US1] 設定キーを、sample と `p-w/hooks/README.md` から除く
   - `pecot-cli-deny`・`pr-create-block`・`context7-allow`・`claude-adapter`
   - `pecot-pr-create-ask`・`pecot-issue-create-ask`・`gh-pr-merge-ask`
   - `pr-create-slash-flag`・`issue-create-slash-flag`・`merge-slash-flag`・`create-slash-cleanup`
-- [ ] T016 [US1] 文書から、承認と免除の記述を除く。grep で洗う
+- [x] T016 [US1] 文書から、承認と免除の記述を除く。grep で洗う
   - `p-w/skills/w-help/references/flags.md`
   - `p-w/skills/` の w-pr・w-merge・w-quick・w-ready・w-backlog・w-issueize の SKILL.md
   - `p-w/agents/`
   - `p-w/skills/w-onboarding/` の SKILL.md と参照（FR-006）
-- [ ] T017 [US1] `p-w/interface/authored.yaml` から、免除のフラグを消す記述を除く。`generated.json` を書き出し直す
+- [x] T017 [US1] `p-w/interface/authored.yaml` から、免除のフラグを消す記述を除く。`generated.json` を書き出し直す
   - 対象は `pr_create`・`issue_create`・`issue_quick`・`pr_cleanup`
-- [ ] T018 [US1] spec 024 の該当の Issue に、コメントで知らせる
+- [x] T018 [US1] spec 024 の該当の Issue に、コメントで知らせる
   - 対象は、tasks の「`pr_merge` を確認にかける」項目を持つ Issue
   - この Epic で ask を撤廃したので、項目を外してほしいと書く
-- [ ] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
+  - 済: 該当の #383 は閉じていたので、コメントは出さず、PR の本文に書いた
+- [x] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
 
 ---
 
@@ -235,62 +236,62 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: 無い。Phase 2〜4 と並べて進められる。重なるファイル（Parallel Example の一覧）では、先に main へ入った変更を取り込む
 
-- [ ] T042 [US6] `src/domain/tests/branch-name.test.ts` に、契約の「求め方」の表の 6 行を入れる。落ちることを確かめる
-- [ ] T043 [US6] `src/domain/branch-name.ts` に、作業中の Issue を返す規則を足す。入力は remote の owner/repo とブランチ名で、I/O を持たせない
-- [ ] T044 [US6] `src/infra/git.ts` に、ディレクトリを受けて作業中の Issue を返す関数を足す。`gitCurrentBranch` と `primaryRemoteRepository` を使う
-- [ ] T045 [US6] `tests/interface/create-branch.test.ts` の期待を先に直す
+- [x] T042 [US6] `src/domain/tests/branch-name.test.ts` に、契約の「求め方」の表の 6 行を入れる。落ちることを確かめる
+- [x] T043 [US6] `src/domain/branch-name.ts` に、作業中の Issue を返す規則を足す。入力は remote の owner/repo とブランチ名で、I/O を持たせない
+- [x] T044 [US6] `src/infra/git.ts` に、ディレクトリを受けて作業中の Issue を返す関数を足す。`gitCurrentBranch` と `primaryRemoteRepository` を使う
+- [x] T045 [US6] `tests/interface/create-branch.test.ts` の期待を先に直す
   - `.pecot-active` ができない
   - リポが違えば、いつも終了コード 2 になる
   - `allow_cross_repo`・`force_overwrite_active` を渡すと弾かれる
-- [ ] T046 [US6] `src/commands/repository.ts` を直す
+- [x] T046 [US6] `src/commands/repository.ts` を直す
   - `guardActiveOverwrite` と入力 2 つを除く
   - `rejectCwdRepositoryMismatch` をいつも呼ぶ
   - 案内の文から `--allow-cross-repo` を除く
-- [ ] T047 [US6] 作業対象の記録を直す。`src/commands/tests/work-target.test.ts` を先に直す
+- [x] T047 [US6] 作業対象の記録を直す。`src/commands/tests/work-target.test.ts` を先に直す
   - `src/commands/work-target.ts` と `src/infra/state-store.ts` で、`.pecot-active` を書かない
   - 題名のキャッシュと作業ディレクトリだけを作る
   - 結果の行を、作業ディレクトリを作った行に変える
-- [ ] T048 [US6] `tests/interface/issue-quick.test.ts` の期待を先に直す。契約の `issue_quick` の表の行を期待する
+- [x] T048 [US6] `tests/interface/issue-quick.test.ts` の期待を先に直す。契約の `issue_quick` の表の行を期待する
   - `repo` がセッションのリポと違い、ブランチを作るときは、起票の前に終了コード 2 で止まる
   - `no_branch` のときは、リポが違っても起票する
-- [ ] T049 [US6] `src/commands/issue-quick.ts` を直し、T048 を通す。`no_branch` のときは、作業ディレクトリだけを作る
-- [ ] T050 [US6] `src/commands/pr.ts` を直す。`tests/interface/pr.test.ts` を先に直す
+- [x] T049 [US6] `src/commands/issue-quick.ts` を直し、T048 を通す。`no_branch` のときは、作業ディレクトリだけを作る
+- [x] T050 [US6] `src/commands/pr.ts` を直す。`tests/interface/pr.test.ts` を先に直す
   - `Closes` の補完を、T044 の関数に変える
   - 片付けの対象を `.pecot-session-title` だけにする
-- [ ] T051 [US6] `src/commands/session.ts` の `session_status` を直す。`tests/interface/session-status.test.ts` を先に直す
+- [x] T051 [US6] `src/commands/session.ts` の `session_status` を直す。`tests/interface/session-status.test.ts` を先に直す
   - フラグの表をやめる
   - 作業中の Issue と、その題名・状態・本文を出す
-- [ ] T052 [US6] `session_restore` を除く
+- [x] T052 [US6] `session_restore` を除く
   - `src/commands/session.ts` の `RESTORE`
   - `tests/interface/session-restore.test.ts`
   - parity の `session-restore-*` のシナリオと golden
-- [ ] T053 [US6] コマンドの数を固定しているテストを直す（`tests/hook-tool-names.test.ts` は、T014 で残したときだけ直す）
+- [x] T053 [US6] コマンドの数を固定しているテストを直す（`tests/hook-tool-names.test.ts` は、T014 で残したときだけ直す）
   - `src/commands/tests/registry.test.ts`
   - `tests/parity/commands.ts`
-- [ ] T054 [US6] `src/domain/state.ts` から、`FLAG_PECOT_ACTIVE` と `planWorkTarget` の `active` を除く。使わなくなった関数を、knip で洗って消す
-- [ ] T055 [P] [US6] `session-title` の期待を先に直す。fixture に git のリポを作り、ブランチ名の末尾の番号でセッション名が決まることを期待する
+- [x] T054 [US6] `src/domain/state.ts` から、`FLAG_PECOT_ACTIVE` と `planWorkTarget` の `active` を除く。使わなくなった関数を、knip で洗って消す
+- [x] T055 [P] [US6] `session-title` の期待を先に直す。fixture に git のリポを作り、ブランチ名の末尾の番号でセッション名が決まることを期待する
   - `tests/hooks/lib/session-title.test.ts`
   - `tests/hooks/user-prompt-submit-title.test.ts`
-- [ ] T056 [US6] `lib/core/session-title.sh` を直す。番号を `git -C "$CLAUDE_PROJECT_DIR"` のブランチ名から求める。ほかの出す条件は変えない
-- [ ] T057 [US6] `lib/post-tool-use/exit-plan-remind.sh` を直す。`tests/hooks/post-exit-plan-mode.test.ts` を先に直す
+- [x] T056 [US6] `lib/core/session-title.sh` を直す。番号を `git -C "$CLAUDE_PROJECT_DIR"` のブランチ名から求める。ほかの出す条件は変えない
+- [x] T057 [US6] `lib/post-tool-use/exit-plan-remind.sh` を直す。`tests/hooks/post-exit-plan-mode.test.ts` を先に直す
   - 「作業中の Issue が無ければ出さない」を、ブランチ名からの判定に変える
-- [ ] T058 [US6] `.pecot-active` を fixture に置くだけのテストを洗い、置くのをやめる
+- [x] T058 [US6] `.pecot-active` を fixture に置くだけのテストを洗い、置くのをやめる
   - `tests/hooks/lib/cross-repository.test.ts`・`plan-mode-tool-guard.test.ts`
   - `tests/hooks/state-directory-resolution.test.ts`・`pre-tool-use-permission-mode.test.ts`
   - Phase 3 が先に入り、テストごと消えていれば飛ばす
-- [ ] T059 [US6] `p-w/interface/authored.yaml` を、契約に合わせて直す
+- [x] T059 [US6] `p-w/interface/authored.yaml` を、契約に合わせて直す
   - `create_branch`・`issue_quick`・`pr_create`・`pr_cleanup`・`session_status` の項目を直す
   - `session_restore` を除く
   - `generated.json` と `p-w/skills/w-help/references/commands.md` を作り直す
-- [ ] T060 [P] [US6] `p-w/skills/w-active/SKILL.md` から、次の記述を除く
+- [x] T060 [P] [US6] `p-w/skills/w-active/SKILL.md` から、次の記述を除く
   - `.pecot-active` の確認
   - `force_overwrite_active` と `allow_cross_repo`
-- [ ] T061 [P] [US6] `p-w/skills/w-quick/SKILL.md` から、別のリポの worktree で checkout する手順を除く。起票先は、セッションのリポにする
-- [ ] T062 [P] [US6] `p-w/skills/w-help/references/flags.md` を、残る状態のファイルだけの表に書き直す
-- [ ] T063 [P] [US6] `p-w/skills/w-help/references/issue-flow-rules.md` の §5・§6 を書き直す
+- [x] T061 [P] [US6] `p-w/skills/w-quick/SKILL.md` から、別のリポの worktree で checkout する手順を除く。起票先は、セッションのリポにする
+- [x] T062 [P] [US6] `p-w/skills/w-help/references/flags.md` を、残る状態のファイルだけの表に書き直す
+- [x] T063 [P] [US6] `p-w/skills/w-help/references/issue-flow-rules.md` の §5・§6 を書き直す
   - 作業中の Issue を、remote とブランチ名で説明する
   - ガードの表から、上書きガードと `allow_cross_repo` を除く
-- [ ] T064 [P] [US6] `p-w/agents/w-implementer.md` を直す。編集してよいリポを、作業中の worktree の remote のリポとする
+- [x] T064 [P] [US6] `p-w/agents/w-implementer.md` を直す。編集してよいリポを、作業中の worktree の remote のリポとする
   - `tests/hooks/lib/agent-definitions.test.ts` の期待を合わせる
 - [ ] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
 
@@ -311,8 +312,9 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `--mode=quick` は、計画の更新だけを出す
   - `.pecot-quick-mode` があっても読まない
 - [ ] T067 [US4] `lib/post-tool-use/exit-plan-remind.sh` に `--mode=active|quick` を足す。`.pecot-quick-mode` の読み取りと削除を除く
-- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。パスの書き方は T002 の結果に従う
+- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。スクリプトのパスは `${CLAUDE_PLUGIN_ROOT}` で書く（T002）
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`、引数 `--mode=active`
+  - matcher に `|` で `exit_plan_mode` を足さない。足すと `once` で外れない（T001）。Copilot CLI は frontmatter のフックを読まないので、足しても Copilot CLI では動かない（T003）
 - [ ] T069 [US4] `p-w/skills/w-quick/SKILL.md` の frontmatter に、同じ形で `--mode=quick` のフックを足す
 - [ ] T070 [US4] 2 つの定義ファイルから、ExitPlanMode のエントリを外す。`p-w/hooks/post-tool-use-exit-plan-mode.sh` を消す
 - [ ] T071 [US4] `.pecot-quick-mode` を消す。`tests/interface/issue-quick.test.ts` を先に直す
@@ -321,8 +323,11 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `src/commands/pr.ts` の片付け
   - `p-w/interface/authored.yaml` の記述
 - [ ] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
+  - matcher が `ExitPlanMode` に一致し、`|` を含まない
+  - `once: true`、引数は `--mode=active`（w-active）・`--mode=quick`（w-quick）
+  - スクリプトのパスが `${CLAUDE_PLUGIN_ROOT}` で始まる
 - [ ] T073 [US4] スキルの frontmatter を検証するテストや lint が `hooks` を弾かないかを確かめる。弾くなら許す
-- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならないことも確かめる
+- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならず、案内が出ないことも確かめる
 
 ---
 
@@ -365,6 +370,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 - [ ] T083 [US5] `p-w/hooks/README.md` の状態の表を、`SPEC/data-model.md` の「状態の置き場」に合わせる
 - [ ] T084 [US5] `SPEC/research.md` の R6 で「使っていないことを確かめる」とした項目を、grep で確かめる。使っていれば直す（FR-051）
 - [ ] T085 [US5] 現行の両クライアントで、残ったフックを 1 つずつ動かす。`p-w/hooks/README.md` の実機の記録の表を書き直す
+  - 表に「`|` を含む matcher での `once`」の行を入れ、外れるかを記録する（`SPEC/research.md` の R2 で不具合として避けた点）
   - 版・日付・結果を書く
   - `SPEC/quickstart.md` の 6 の表の行を、すべて含める
 - [ ] T086 [US5] `p-w/hooks/README.md` の対応バージョンを直す。最低対応版を、frontmatter のフックを確かめた版に上げ、根拠を書く

@@ -61,6 +61,14 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
   ['worktree-remove-usage', 'rejected'],
 ])
 
+// 表を stdout に出すシナリオの、MCP の要約の文（content の 1 つ目の text）
+const TABLE_SUMMARIES: readonly { readonly id: string, readonly summary: string }[] = [
+  { id: 'issue-create-ok-dry-run-files', summary: 'dry-run: would create Issue in acme/demo from first.md' },
+  { id: 'session-show-ok', summary: '# Session status' },
+  { id: 'session-show-ok-no-issue', summary: '# Session status' },
+  { id: 'session-show-ok-python-state', summary: '# Session status' },
+]
+
 // global-*: --help・--version・--show-repo・未知のコマンド・引数なしは、ツールの呼び出しに写せない。
 // 標準入力を使う 3 件: MCP のツールは標準入力を持たない
 function isMcpMappable(id: string): boolean {
@@ -134,6 +142,18 @@ describe('前後比較', () => {
     const { outcome, actual, expected } = await compareWithGolden(id, nodeMcp, false)
     expect(outcome).toMatchObject(COMPLETED)
     expect(actual).toEqual(expected)
+    // 要約の文が表の行（見出しなど）にならない
+    expect(outcome.text?.startsWith('|') ?? false).toBe(false)
+  })
+
+  it.for(TABLE_SUMMARIES)('表を出すシナリオ $id を MCP 経由で動かすと、要約の文が結果の行になる', { timeout: TEST_TIMEOUT_MS }, async ({ id, summary }) => {
+    const outcome = await runScenario(readScenario(id), nodeMcp)
+    expect(outcome).toMatchObject(COMPLETED)
+    expect(outcome.text).toBe(summary)
+  })
+
+  it('要約の期待値を持つシナリオは、MCP へ写せる実在のシナリオだけ', () => {
+    expect(TABLE_SUMMARIES.map(({ id }) => id).filter(id => !scenarioIds().includes(id) || !isMcpMappable(id))).toEqual([])
   })
 
   it('MCP 経由で除く usage の一覧は、実在する usage のシナリオだけで、残りの usage は流す', () => {

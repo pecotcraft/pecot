@@ -7,7 +7,7 @@
 # UserPromptSubmit の .prompt にはユーザーの生入力がそのまま渡る。
 # Claude Code が受け付ける短縮形入力では、名前空間が付かない（#939）。
 #
-# 判定は先頭行のみを対象にする（create-slash-flag.sh と同じ方式）。地の文の 2 行目以降で
+# 判定は先頭行のみを対象にする。地の文の 2 行目以降で
 # コマンド名に言及しただけの入力でフラグを立てないため。
 #
 # stdin: UserPromptSubmit JSON (.prompt)

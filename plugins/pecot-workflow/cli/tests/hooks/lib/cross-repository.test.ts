@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // PROJECT_ROOT とは別パスのリポジトリで、フックが正しく動くことのテスト。
 // -C フラグ・cd チェイン・pwd フォールバックの各手段で、WIP push と比較 URL の書き込み先を見る。
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -108,7 +108,6 @@ function setUpCrossRepository(hookCase: HookCase): CrossRepositoryEnvironment {
   gitOrThrow(hookCase, crossRepository, ['remote', 'add', 'origin', SSH_REMOTE])
   const stateDirectory = path.join(project, '.pecot', 'state')
   mkdirSync(stateDirectory, { recursive: true })
-  writeFileSync(path.join(stateDirectory, '.pecot-active'), 'otherorg/otherrepo/999\n')
 
   bin.install('git', mockGitBody(realGit, pushLog))
   bin.install('gh', mockGhBody())

@@ -1027,6 +1027,19 @@ describe('project activate', () => {
     expectClean(byPath)
   })
 
+  it('suffix の違う進行の欄が複数あるボードでも、渡した設定ファイルの workflow_suffix の欄で同期する', async (context) => {
+    await verifies(context, 'PW-PROJECT-ACTIVATE-24')
+    const other = { id: 'PVTSSF_other', name: 'pecot-workflow-other', options: options(WORKFLOW_NAMES) }
+    const [title, ...rest] = standardFields()
+    const fields = [title ?? {}, other, ...rest]
+    const result = await run(arguments_('activate', NAME), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(savedConfig(result)).toMatchObject({ workflow_suffix: 'acme', project: { fields: { workflow: { id: 'PVTSSF_workflow' } } } })
+    expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
+    expect(result.read(`${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_board_other.json`)).toBeUndefined()
+  })
+
   it('--owner を省くと、認証したユーザーのプロジェクトを対象にする', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-07')
     const result = await run(arguments_('activate', '--host', DEFAULT_HOST), [restRule('GET', '/user', 200, { login: 'acme' }), listProjects(projectNode(1, 'board')), projectFields()], { config: false })

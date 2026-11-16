@@ -5,21 +5,18 @@ import { findRepository, getFieldId, getOptionId, isRepositoryInProject } from '
 import type { ProjectConfig } from '../domain/config.js'
 import { ReferenceParseError, parseIssueReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { pythonStringRepr } from '../domain/python-format.js'
 import { repositoryFullName } from '../domain/repository-resolver.js'
 import { displayReference } from '../domain/readiness.js'
-import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
 import { decideStart, describeBaseMismatch } from '../domain/work-start.js'
 import type { StartDecision } from '../domain/work-start.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
-import { readFlag } from '../infra/state-store.js'
 import { issuePath } from './issue-shared.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
+import { commandHint, hinted, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -41,15 +38,11 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
   if (current.owner === owner && current.repository === repository) return
   stopWith(
     out,
-    joinHinted([
-      `the repository of the work Issue (${owner}/${repository}) differs from `
-      + `the CWD git remote (${repositoryFullName(current)})\n`
-      + 'move to the worktree of the target repository and run again:\n'
-      + `<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\n`
-      + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree\n'
-      + 'to issue the command on purpose from outside the CWD (for example in a script), ',
-      hinted`give ${inputHint(START_PATH, 'allow_cross_repo')}`,
-    ], ''),
+    `the repository of the work Issue (${owner}/${repository}) differs from `
+    + `the CWD git remote (${repositoryFullName(current)})\n`
+    + 'move to the worktree of the target repository and run again:\n'
+    + `<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\n`
+    + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree',
     'repo-mismatch',
     USAGE_EXIT_CODE,
   )
@@ -106,42 +99,6 @@ async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubCli
 }
 
 /**
-A-2. .pecot-active が別の OPEN な Issue を指していれば、終了コード 2 で止める
-*/
-async function guardActiveOverwrite(out: Readonly<Output>, client: Readonly<GitHubClient>, issueReference: string): Promise<void> {
-  const existing = readFlag(FLAG_PECOT_ACTIVE) ?? ''
-  if (existing === '' || existing === issueReference) return
-  let existingReference
-  try {
-    existingReference = parseIssueReference(existing)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof ReferenceParseError)) throw error
-    out.warning(`the content of .pecot-active (${pythonStringRepr(existing)}) is malformed; overwriting it`)
-    return
-  }
-  const { repository, number } = existingReference
-  const { state } = await client.getIssueSlim(repository.owner, repository.repository, number)
-  if (state === 'OPEN') {
-    stopWith(
-      out,
-      joinHinted([
-        `this worktree is already working on another Issue (${existing}, OPEN)\n`
-        + 'overwriting .pecot-active could mix up the tasks\n'
-        + 'finish the other Issue first, or create another worktree with '
-        + '/pecot-w:w-worktree-add and run /pecot-w:w-active again in its session',
-        hinted`if it is stale and you want to overwrite it on purpose, give ${inputHint(START_PATH, 'force_overwrite_active')}`,
-      ]),
-      'guard-blocked',
-      USAGE_EXIT_CODE,
-    )
-  }
-  out.warning(state === 'CLOSED'
-    ? `.pecot-active points to closed Issue ${existing}; overwriting it`
-    : `the state of ${existing} in .pecot-active is unexpected (${pythonStringRepr(state)}); overwriting it`)
-}
-
-/**
 7.5. プロジェクトアイテムのステータスを active にする（失敗は warning にとどめる）
 */
 async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<{ owner: string, repository: string, number: number }>): Promise<void> {
@@ -187,13 +144,11 @@ const sessionStartCommand = defineCommand({
     branch: z.string().describe('Name of the branch to create'),
     base: z.string().optional().describe('Base branch (default: chosen by readiness, else develop_branch from the config)'),
     checkout: z.boolean().default(true).describe('Kept for compatibility; has no effect'),
-    allow_cross_repo: z.boolean().default(false).describe('Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)'),
-    force_overwrite_active: z.boolean().default(false).describe('Disable the .pecot-active overwrite guard (when sure it is stale)'),
     dry_run: z.boolean().default(false).describe('Show what would be created and recorded without writing anything'),
   }),
   output: SESSION_START_OUTPUT,
   positional: ['issue_ref', 'branch'],
-  shortFlags: { base: '-b', allow_cross_repo: '-X', force_overwrite_active: '-F', dry_run: '-n' },
+  shortFlags: { base: '-b', dry_run: '-n' },
   negations: { checkout: '--no-checkout' },
   interactive: false,
   run: async (input, io) => {
@@ -215,14 +170,11 @@ const sessionStartCommand = defineCommand({
     const issueNumber = issue.number
 
     // A-1. 作業ディレクトリと Issue ref のリポジトリの整合チェック
-    if (!input.allow_cross_repo) rejectCwdRepositoryMismatch(out, owner, repository)
+    rejectCwdRepositoryMismatch(out, owner, repository)
 
     const finalBranchName = `${input.branch}/${String(issueNumber)}`
     try {
       const client = createGitHubClient(out, config.host)
-
-      // A-2. .pecot-active 上書きガード
-      if (!input.force_overwrite_active) await guardActiveOverwrite(out, client, issuePath(owner, repository, issueNumber))
 
       // 4. リポジトリがプロジェクトに含まれているか確認
       if (!await isRepositoryInProject(config, owner, repository, client)) {
@@ -257,7 +209,7 @@ const sessionStartCommand = defineCommand({
         out.result({ ...started, branch: finalBranchName })
         out.planned({ verb: 'create', target: `branch ${finalBranchName} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
         out.planned({ verb: 'set', target: `Issue ${issuePath(owner, repository, issueNumber)} status active` })
-        planWorkTarget(out, owner, repository, issueNumber)
+        planWorkTarget(out, issueNumber)
         return 0
       }
       // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
@@ -268,7 +220,7 @@ const sessionStartCommand = defineCommand({
       // 7.5. プロジェクトアイテムのステータスを active に更新
       await setIssueStatusActive(out, client, config, { owner, repository, number: issueNumber })
 
-      // 9. 作業対象を .pecot-active と .pecot-session-title に保存（hook の自動投稿とセッション名用）
+      // 9. セッション名のキャッシュ（.pecot-session-title）と作業ディレクトリを作る
       const recorded = recordWorkTarget(out, owner, repository, issueNumber, issueTitle, {
         base: { branch: baseBranch, sha: baseSha, stackedOn: decision.kind === 'stack' ? decision.issue : undefined },
       })
