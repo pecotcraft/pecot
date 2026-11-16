@@ -2,7 +2,7 @@
 // pecot リポジトリ基準のパス解決。`.pecot/` 配下のパス定義の唯一の置き場。
 // projectRoot() でプロジェクトルートを解決し、一時ファイルの出力先を固定する。
 
-import { closeSync, existsSync, mkdirSync, openSync, realpathSync, unlinkSync } from 'node:fs'
+import { closeSync, mkdirSync, openSync, realpathSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
 
 import { PecotError, ProjectRootNotFoundError } from '../domain/errors.js'
@@ -62,36 +62,6 @@ export function resolveRealPath(target: string): string {
   }
 }
 
-/**
-cwd がセッションの worktree の .pecot/work の実体配下なら、その worktree を返す。
-セッション開始時の SessionStart hook が PECOT_SESSION_PROJECT_DIR に書いた値を起点にする。git は呼ばない。
-hooks の project-root.sh と同じ判定を使う。cwd の文字列が `.pecot/work` で終わるか `.pecot/work/` を含み、実体が起点の .pecot/work の実体配下にある。
-かつ途中に `.git` を持つディレクトリ（入れ子の git リポ）が無いときだけ対象にする
-*/
-function sessionWorkOwner(cwd: string): string | undefined {
-  const sessionDirectory = process.env['PECOT_SESSION_PROJECT_DIR']
-  if (sessionDirectory === undefined || sessionDirectory === '') return undefined
-  // 安価な文字列の判定を、realpath の解決より先に行う
-  if (!(cwd.endsWith(`/${WORK_DIR}`) || cwd.includes(`/${WORK_DIR}/`))) return undefined
-  let workReal: string
-  let cwdReal: string
-  try {
-    workReal = resolveRealPath(path.join(sessionDirectory, WORK_DIR))
-    cwdReal = resolveRealPath(cwd)
-  }
-  catch (error: unknown) {
-    if (hasErrorCode(error)) return undefined
-    throw error
-  }
-  if (cwdReal !== workReal && !cwdReal.startsWith(`${workReal}/`)) return undefined
-  for (let directory = cwdReal; ; directory = path.dirname(directory)) {
-    if (directory === workReal) break
-    if (existsSync(path.join(directory, '.git'))) return undefined
-    if (path.dirname(directory) === directory) break
-  }
-  return resolveRealPath(sessionDirectory)
-}
-
 export interface ProjectRootOptions {
   /**
   起点のディレクトリ。省略すると呼び出し元の作業ディレクトリ
@@ -113,9 +83,7 @@ function currentDirectory(options: Readonly<ProjectRootOptions>): string | undef
 /**
 プロジェクトルートを取得する。
 1. CLAUDE_PROJECT_DIR があれば使う（テスト上書き用）。
-2. cwd が PECOT_SESSION_PROJECT_DIR の .pecot/work 配下（入れ子の git リポを除く）なら、その実体パス。
-   worktree の .pecot/work は base への symlink で、そこでは git toplevel が base になる。
-3. なければ git rev-parse --show-toplevel で解決する（GIT_* を除いて実行する）。
+2. なければ git rev-parse --show-toplevel で解決する（GIT_* を除いて実行する）。
 
 どれも得られなければ ProjectRootNotFoundError
 */
@@ -124,10 +92,6 @@ export function projectRoot(options: Readonly<ProjectRootOptions> = {}): string 
   if (fromEnvironment !== undefined && fromEnvironment !== '') return normalizePath(fromEnvironment)
 
   const cwd = currentDirectory(options)
-  if (cwd !== undefined) {
-    const sessionRoot = sessionWorkOwner(cwd)
-    if (sessionRoot !== undefined) return sessionRoot
-  }
 
   // git push 等のフック内では GIT_DIR 等が設定され、作業ディレクトリの代わりに参照される。
   // そのため GIT_* を除いて作業ディレクトリ基準で解決する

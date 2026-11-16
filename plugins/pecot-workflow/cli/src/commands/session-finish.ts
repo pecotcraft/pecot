@@ -14,7 +14,7 @@ import type { IssuePullRequest } from '../domain/readiness.js'
 import { createIssueReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
+import { FLAG_PECOT_BASE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE } from '../domain/state.js'
 import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
@@ -250,16 +250,6 @@ async function deleteMergedBranch(context: Readonly<FinishContext>, client: GitH
     }
     out.done({ verb: 'unchanged', target: `remote branch ${headBranch} (already deleted)` })
   }
-  const wipBranch = `wip/${headBranch}`
-  try {
-    await client.deleteBranch(location.owner, location.repository, wipBranch)
-    out.done({ verb: 'delete', target: `remote branch ${wipBranch}` })
-    record.deletedBranches.push({ branch: wipBranch, location: 'remote' })
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    if (!isMissingReferenceError(error)) out.warning(`deleting remote branch ${wipBranch} failed: ${describeApiError(error)}`)
-  }
 }
 
 // 手元と PR の repository が同じなら主の remote 名。違えば警告を出して undefined
@@ -352,7 +342,7 @@ function localCleanupAfterMerge(context: Readonly<FinishContext>, headBranch: st
 
 function removeActiveFlags(out: Readonly<Output>): void {
   try {
-    for (const flag of [FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE, FLAG_WIP_BRANCH_LINKED]) removeFlag(flag)
+    for (const flag of [FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE]) removeFlag(flag)
   }
   catch (error: unknown) {
     out.warning(`removing flag files failed: ${reasonOf(error)}`)

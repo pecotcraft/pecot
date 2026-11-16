@@ -13,8 +13,6 @@ import {
   interpretBaseRecord,
   FLAG_PECOT_QUICK_MODE,
   FLAG_PECOT_SESSION_TITLE,
-  FLAG_ISSUE_PENDING,
-  FLAG_WIP_BRANCH_LINKED,
   formatSessionTitle,
   planWorkTarget,
   SESSION_TITLE_MAX_CHARS,
@@ -24,8 +22,6 @@ import {
 describe('フラグ名', () => {
   it('hooks が読み書きするファイル名と同じ', () => {
     expect([FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE]).toEqual(['.pecot-session-title', '.pecot-quick-mode'])
-    expect(FLAG_ISSUE_PENDING).toBe('issue-pending')
-    expect(FLAG_WIP_BRANCH_LINKED).toBe('.wip-branch-linked')
   })
 })
 

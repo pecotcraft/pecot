@@ -93,7 +93,6 @@ plugins/pecot-workflow/cli/tests/output/cases.json
 plugins/pecot-workflow/cli/tests/parity/baseline.json
 plugins/pecot-workflow/com.github.copilot/hooks/hooks.json
 plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh
-plugins/pecot-workflow/hooks/lib/session-start/plugin-update-notice.sh
 plugins/pecot-workflow/interface/authored.yaml
 plugins/pecot-workflow/interface/generated.json
 plugins/pecot-workflow/mcp.json

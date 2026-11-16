@@ -10,7 +10,6 @@ import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import {
-  consumeFlag,
   ensureWorkDirectory,
   hasFlag,
   getStateDirectory,
@@ -84,29 +83,6 @@ describe('removeFlag', () => {
   })
 })
 
-describe('consumeFlag', () => {
-  it('フラグを消す', () => {
-    useProject()
-    touchFlag('issue-pending')
-    consumeFlag('issue-pending')
-    expect(hasFlag('issue-pending')).toBe(false)
-  })
-
-  it('プロジェクトルートが解決できなくても例外にしない（投稿は成功している）', () => {
-    const outside = makeTemporaryDirectory()
-    const previous = process.cwd()
-    process.chdir(outside)
-    try {
-      expect(() => {
-        consumeFlag('x')
-      }).not.toThrow()
-    }
-    finally {
-      process.chdir(previous)
-    }
-  })
-})
-
 describe('hasFlag', () => {
   it('ファイルがあれば true', () => {
     const root = useProject()
@@ -145,23 +121,6 @@ describe('readFlag（存在の確認と読み取りの間に消えた場合）',
     mkdirSync(path.join(root, '.pecot', 'state'), { recursive: true })
     symlinkSync(path.join(root, 'nowhere'), path.join(root, '.pecot', 'state', '.dangling'))
     expect(readFlag('.dangling')).toBeUndefined()
-  })
-})
-
-describe('consumeFlag が握る例外', () => {
-  it('OS の失敗は握る（フラグがディレクトリで消せない）', () => {
-    const root = useProject()
-    mkdirSync(path.join(root, '.pecot', 'state', 'stuck', 'child'), { recursive: true })
-    expect(() => {
-      consumeFlag('stuck')
-    }).not.toThrow()
-  })
-
-  it('プログラムの誤り（TypeError）は握らない', () => {
-    useProject()
-    expect(() => {
-      Reflect.apply(consumeFlag, undefined, [123])
-    }).toThrow(TypeError)
   })
 })
 

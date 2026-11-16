@@ -1,4 +1,4 @@
-# ブランチを削除する。wip/ の連動削除が 404 の Not Found だと、warning の行を出して続ける。
+# ブランチを削除する。
 id: branch-delete-ok
 command:
   path: [branch, delete]
@@ -71,9 +71,3 @@ github:
     respond:
       status: 204
       text: ""
-  - match:
-      method: DELETE
-      path: /repos/acme/demo/git/refs/heads/wip/feat/7
-    respond:
-      status: 404
-      body: {message: Not Found}

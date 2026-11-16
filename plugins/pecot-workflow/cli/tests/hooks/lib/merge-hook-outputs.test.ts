@@ -172,7 +172,7 @@ describe('merge-hook-outputs.sh', () => {
     expect(data).not.toHaveProperty('hookSpecificOutput')
   })
 
-  // pre-tool-use.sh / post-tool-use-bash.sh 等は、HSO 実フィールドを出す。
+  // pre-tool-use-bash.sh / post-tool-use-exit-plan-mode.sh 等は、HSO 実フィールドを出す。
   // そのため、入力 JSON の hook_event_name が hookEventName として付与され続けること（F-06 回帰）。
   it('additionalContext があるとき、入力由来の hookEventName を添える', () => {
     const hookCase = createHookCase()

@@ -2,7 +2,7 @@
 // Copilot CLI の Skill 入力（名前空間なしのスキル名）のテスト。
 // 名前空間なしの名前は、自プラグインの skills/<名前>/SKILL.md が実在するときだけ自プラグインのスキルとして扱う。
 // 接頭辞だけで判定すると、他のプラグインの同名スキルを取り違えるため。
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -40,26 +40,18 @@ function isDirectory(target: string): boolean {
   return existsSync(target) && statSync(target).isDirectory()
 }
 
-// PreToolUse: pecot-skill-compliance / pecot-dir-init-detect
+// PreToolUse: pecot-dir-init-detect
 describe('pre-tool-use-skill.sh', () => {
   it.for([
     { label: '名前空間なし', skill: 'w-help' },
     { label: '名前空間付き', skill: 'pecot-w:w-help' },
-  ])('自プラグインのスキル（$label）のとき、ワークフローの注意を注入する', (row) => {
-    const hookCase = createHookCase()
-    const project = setUpProject(hookCase)
-    const result = runEntry(hookCase, 'pre-tool-use-skill.sh', 'PreToolUse', row.skill, project)
-    expect(result.exitCode).toBe(0)
-    const specific = toRecord(toRecord(parseJson(result.stdout), '出力')['hookSpecificOutput'], 'hookSpecificOutput')
-    expect(specific['hookEventName']).toBe('PreToolUse')
-    expect(specific).toMatchObject({ additionalContext: containing('note: notes for the pecot-workflow skills') })
-  })
-
-  it('名前空間なしの自プラグインのスキルのとき、.pecot を初期化する', () => {
+  ])('自プラグインのスキル（$label）のとき、何も出力せず、.pecot を初期化する', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     expect(existsSync(path.join(project, '.pecot'))).toBe(false)
-    runEntry(hookCase, 'pre-tool-use-skill.sh', 'PreToolUse', 'w-help', project)
+    const result = runEntry(hookCase, 'pre-tool-use-skill.sh', 'PreToolUse', row.skill, project)
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
     expect(isDirectory(path.join(project, '.pecot'))).toBe(true)
   })
 
@@ -83,44 +75,8 @@ describe('pre-tool-use-skill.sh', () => {
   })
 })
 
-// PostToolUse: pecot-skill-reminder
-describe('post-tool-use-skill.sh', () => {
-  it('名前空間なしの w-quick のとき、issue-pending を立てて注意を出す', () => {
-    const hookCase = createHookCase()
-    const project = setUpProject(hookCase)
-    mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
-    const result = runEntry(hookCase, 'post-tool-use-skill.sh', 'PostToolUse', 'w-quick', project, {
-      tool_result: { result_type: 'success', text_result_for_llm: 'Skill "w-quick" loaded' },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(readFileSync(path.join(project, '.pecot', 'state', 'issue-pending'), 'utf8').trim()).toBe('w-quick')
-    const out = toRecord(parseJson(result.stdout), '出力')
-    const specific = toRecord(out['hookSpecificOutput'], 'hookSpecificOutput')
-    expect(specific).toMatchObject({ additionalContext: containing('note: pecot-workflow skill started') })
-    // Copilot CLI の PostToolUse はトップレベルの additionalContext だけをモデルに渡す。
-    expect(out['additionalContext']).toBe(specific['additionalContext'])
-    expect(out).toMatchObject({ additionalContext: containing('note: pecot-workflow skill started') })
-  })
-
-  it('名前空間なしの w-help のとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const project = setUpProject(hookCase)
-    mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
-    const result = runEntry(hookCase, 'post-tool-use-skill.sh', 'PostToolUse', 'w-help', project)
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(existsSync(path.join(project, '.pecot', 'state', 'issue-pending'))).toBe(false)
-  })
-
-  it('同じ接頭辞の他プラグインのスキルは、自プラグインのものとして扱わない', () => {
-    const hookCase = createHookCase()
-    const project = setUpProject(hookCase)
-    mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
-    const result = runEntry(hookCase, 'post-tool-use-skill.sh', 'PostToolUse', 'w-quick-clone', project)
-    expect(result.stdout).toBe('')
-    expect(existsSync(path.join(project, '.pecot', 'state', 'issue-pending'))).toBe(false)
-  })
-
+// PostToolUse: exit-plan-remind
+describe('post-tool-use-exit-plan-mode.sh', () => {
   // 案内は ExitPlanMode（Claude）でも exit_plan_mode（Copilot）でも merge を通る。
   // Copilot CLI が読むトップレベルの additionalContext に出る。
   it.for(['ExitPlanMode', 'exit_plan_mode'])('%s の案内を、トップレベルの additionalContext に出す', (toolName) => {

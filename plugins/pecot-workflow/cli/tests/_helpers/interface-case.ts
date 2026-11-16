@@ -60,7 +60,7 @@ export interface ProjectFixtureOptions {
   */
   readonly repositories?: readonly string[]
   /**
-  プロジェクトルートに足すファイル（相対パス → 内容）。例は `.pecot/state/issue-pending`
+  プロジェクトルートに足すファイル（相対パス → 内容）。例は `.pecot/state/.pecot-active`
   */
   readonly files?: Readonly<Record<string, string>>
   /**

@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは一時ディレクトリの中だけ */
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -43,14 +43,8 @@ import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n' }
-
 async function create(...argv: readonly string[]): Promise<CliResult> {
   return await runInProcess(['issue', 'create', ...argv], ISSUE_CREATE_COMMANDS)
-}
-
-function hasIssuePending(root: string): boolean {
-  return existsSync(path.join(root, '.pecot/state', 'issue-pending'))
 }
 
 // 親 Epic を持たない 1 件の投稿で、ファイル入力が通る応答（node_id はボードへの追加の側で取る）
@@ -168,7 +162,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-18')
       await verifies(context, 'PW-ISSUE-CREATE-19')
       await verifies(context, 'PW-ISSUE-CREATE-20')
-      const project = setUpIssueProject({ files: PENDING_FLAGS })
+      const project = setUpIssueProject()
       const secondBody = TASK_BODY.replace('実現したい状態', '{{issue:first}} が終わってから進める。')
       writeTree(project.root, {
         'first.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '先に作る Issue', parent_epic: 'acme/demo/3', order: '2' }),
@@ -203,7 +197,6 @@ describe('issue create', () => {
         { method: 'POST', path: '/repos/acme/demo/issues', body: { title: '[Task] #3-03: 後に作る Issue' } },
       ])
       expect(JSON.stringify(posts.at(1)?.body)).toContain('#12 が終わってから進める。')
-      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから作る', async (context) => {
@@ -339,7 +332,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-27')
       await verifies(context, 'PW-ISSUE-CREATE-28')
       await verifies(context, 'PW-ISSUE-CREATE-39')
-      const project = setUpIssueProject({ files: PENDING_FLAGS })
+      const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
         'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
@@ -354,7 +347,6 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not create an Issue in acme\/demo: .+\n$/u)
       const posts = github.requests().filter(request => request.type === 'rest' && request.method === 'POST' && request.path === '/repos/acme/demo/issues')
       expect(posts).toHaveLength(2)
-      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('ファイルの本文がテンプレに合わないとき、テンプレのパスを 1 行目にした error を出して終了コード 1 で終わる', async (context) => {
@@ -460,10 +452,10 @@ describe('issue create', () => {
   })
 
   describe('-m で直接作る', () => {
-    it('--title と --repo を付けて打つと、status を省けば型の既定の status を設定して Issue を 1 件作り、フラグを消す', async (context) => {
+    it('--title と --repo を付けて打つと、status を省けば型の既定の status を設定して Issue を 1 件作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-05')
       await verifies(context, 'PW-ISSUE-CREATE-12')
-      const project = setUpIssueProject({ files: PENDING_FLAGS })
+      setUpIssueProject()
       const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
       const result = await create('-t', '一覧に状態を出す', '-r', 'acme/demo', '-m', TASK_BODY)
@@ -474,7 +466,6 @@ describe('issue create', () => {
       const requests = github.requests()
       expect(requests.at(-1)).toMatchObject({ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', fieldId: 'PVTSSF_workflow', optionId: 'o3' } })
       expect(requests.find(request => request.type === 'rest')).toMatchObject({ body: { title: '[Task] 一覧に状態を出す', body: TASK_BODY } })
-      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('--priority・--size・--label・--parent-epic・--order を付けると、欄を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async (context) => {
@@ -806,7 +797,7 @@ describe('issue create', () => {
 
     it('前提を付けるのに失敗したとき、warning と付け直すコマンドを出し、Issue は残して全件を作り終え、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-51')
-      const project = setUpIssueProject({ files: PENDING_FLAGS })
+      const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
         'b.md': taskFile('次', 'blocked_by:', '  - issue: a', '    wait: merge', '    reason: 配られる'),
@@ -971,9 +962,9 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12\n$/u)
     })
 
-    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付け、issue-pending を消す', async (context) => {
+    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付け', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-59')
-      const project = setUpIssueProject({ files: PENDING_FLAGS })
+      const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
         'b.md': taskFile('次', ...blockedBy('a')),
@@ -998,7 +989,6 @@ describe('issue create', () => {
       expect(result.stderr).toContain('added: blocked-by #12 to #13\n')
       expect(result.stderr).not.toContain('to #14')
       expect(variablesOf(github, 'AddBlockedBy')).toHaveLength(1)
-      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('列を書けなかったとき、前提の判定を読まず、列を動かさない', async (context) => {

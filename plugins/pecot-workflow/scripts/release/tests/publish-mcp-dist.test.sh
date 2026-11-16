@@ -530,7 +530,7 @@ EXPECTED_FIRST_TOOL="project_list"
 # smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
 smoke_node() {
     env -u CLAUDE_PLUGIN_ROOT -u PLUGIN_ROOT -u COPILOT_PLUGIN_ROOT \
-        -u COPILOT_SESSION_CWD -u CLAUDE_PROJECT_DIR -u PECOT_SESSION_PROJECT_DIR \
+        -u COPILOT_SESSION_CWD -u CLAUDE_PROJECT_DIR \
         node "$TMP/smoke.mjs" "$@"
 }
 

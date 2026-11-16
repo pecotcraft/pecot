@@ -918,10 +918,6 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         (".github/plugin/marketplace.json", _GITHOOKS_CHECKS),
         (".claude-plugin/marketplace.json", _GITHOOKS_CHECKS),
         (".claude/rules/repo-root-layout.md", _GITHOOKS_CHECKS),
-        (
-            "plugins/pecot-workflow/hooks/lib/session-start/plugin-update-notice.sh",
-            _GITHOOKS_CHECKS,
-        ),
         ("libs/text-rules/index.ts", _GITHOOKS_CHECKS),
         (
             ".githooks/ci/run-affected-tests.sh",

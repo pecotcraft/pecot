@@ -28,7 +28,7 @@ function offending(lines: readonly string[]): string[] {
 
 describe('hooks の ERE の記法の規約', () => {
   it('走査するスクリプトを下限以上の数で列挙できる', () => {
-    expect(scripts.length).toBeGreaterThanOrEqual(55)
+    expect(scripts.length).toBeGreaterThanOrEqual(25)
   })
 
   it.for(scripts.map(label => ({ label })))('$label のコード行に glibc 拡張の \\s・\\S は無い', (row) => {

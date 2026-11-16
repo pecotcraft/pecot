@@ -21,12 +21,6 @@ const guidances = [
       'gh-stack-check: gh stack is not allowed (only gh stack view (use --json) and --help are).\n\nReason: running gh stack directly changes the stack without the workflow\'s records,\nthe Issue reference and the readiness checks, which breaks the consistency of the workflow.\n\nUse these instead:\n  the MCP tool pr_create of the workflow server  (open a PR, stacked when needed)\n  the MCP tool pr_merge of the workflow server   (merge a PR)\n  the MCP tool pr_restack of the workflow server (restack a stacked branch)\n' },
   { shellFunction: 'mcp_guidance_branch_delete', start: 'To delete a remote branch', tools: ['branch_delete', 'repo', 'branch'], text:
       'To delete a remote branch, use the MCP tool branch_delete of the workflow server with repo (owner/repo) and branch.\n' },
-  { shellFunction: 'mcp_guidance_reminder_quick', start: 'Issue filing is not complete.', tools: ['issue_create', 'freeform: true'], text:
-      'Issue filing is not complete.\n\nComplete Step 1 of w-quick before moving on.\n  Call the MCP tool issue_create with freeform: true, repo (owner/repo) and message (summary of the user instruction).\n\nThis reminder disappears automatically once filing succeeds.\n' },
-  { shellFunction: 'mcp_guidance_reminder_ready', start: 'Subtask Issue filing is not complete.', tools: ['issue_create', 'prepare: true'], text:
-      'Subtask Issue filing is not complete.\n\nComplete Step 4 of w-ready before moving on.\n  1. Call the MCP tool issue_create with prepare: true, template: task, and repo (owner/repo)\n\n  2. Edit the file at the path in file of the result (set title / parent_epic; repository is already set by repo)\n\n  3. Call the MCP tool issue_create with files (the file path)\n\nThis reminder disappears automatically once filing succeeds.\n' },
-  { shellFunction: 'mcp_guidance_reminder_other', start: 'Issue filing is not complete.', tools: ['issue_create'], text:
-      'Issue filing is not complete. Call the MCP tool issue_create first.\n' },
 ]
 
 function guidanceOf(shellFunction: string): string {

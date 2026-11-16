@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ProjectRootNotFoundError } from '../../domain/errors.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { createGitRepository, createSessionWorkLayout } from '../../tests/_helpers/git-repository.js'
+import { createGitRepository } from '../../tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { pluginRoot } from '../../version.js'
 import {
@@ -112,91 +112,9 @@ describe('projectRoot', () => {
   })
 })
 
-function useLayout(): ReturnType<typeof createSessionWorkLayout> {
-  const layout = createSessionWorkLayout()
-  setEnvironment({ PECOT_SESSION_PROJECT_DIR: layout.worktree })
-  return layout
-}
-
-describe('projectRoot（セッションの worktree の .pecot/work）', () => {
-  it('base の .pecot/work/N から起動すると worktree を返す', () => {
-    const layout = useLayout()
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work', '1244') })).toBe(layout.worktree)
-  })
-
-  it('worktree 側の symlink 経由でも worktree を返す', () => {
-    const layout = useLayout()
-    expect(projectRoot({ cwd: path.join(layout.worktree, '.pecot', 'work', '1244') })).toBe(layout.worktree)
-  })
-
-  it('.pecot/work 自身でも worktree を返す', () => {
-    const layout = useLayout()
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work') })).toBe(layout.worktree)
-  })
-
-  it('.pecot/work の深い下でも worktree を返す', () => {
-    const layout = useLayout()
-    const deep = path.join(layout.base, '.pecot', 'work', '1244', 'sub', 'deep')
-    mkdirSync(deep, { recursive: true })
-    expect(projectRoot({ cwd: deep })).toBe(layout.worktree)
-  })
-
-  it('.pecot/work2 は work ではない', () => {
-    const layout = useLayout()
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work2') })).toBe(layout.base)
-  })
-
-  it('work の外は git のルート', () => {
-    const layout = useLayout()
-    expect(projectRoot({ cwd: layout.base })).toBe(layout.base)
-  })
-
-  it('別のリポジトリの .pecot/work はそのリポジトリ', () => {
-    useLayout()
-    const other = createGitRepository()
-    const task = path.join(other, '.pecot', 'work', '9')
-    mkdirSync(task, { recursive: true })
-    expect(projectRoot({ cwd: task })).toBe(other)
-  })
-
-  it('work の中の入れ子の git リポジトリは、その toplevel', () => {
-    const layout = useLayout()
-    const clone = path.join(layout.base, '.pecot', 'work', '1244', 'clone')
-    createGitRepository({ 'README.md': 'x', 'src/a.txt': 'y' }, clone)
-    expect(projectRoot({ cwd: path.join(clone, 'src') })).toBe(clone)
-  })
-
-  it('セッションの値は末尾のスラッシュを落として解決する', () => {
-    const layout = createSessionWorkLayout()
-    setEnvironment({ PECOT_SESSION_PROJECT_DIR: `${layout.worktree}/` })
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work', '1244') })).toBe(layout.worktree)
-  })
-
+describe('projectRoot（cwd が無くなっているとき）', () => {
   it('cwd が無くなっていたら git にフォールバックし、そこも失敗すれば ProjectRootNotFoundError', () => {
-    useLayout()
     expect(() => projectRoot({ cwd: path.join(makeTemporaryDirectory(), 'removed') })).toThrow(ProjectRootNotFoundError)
-  })
-
-  it('セッションの値がシンボリックリンクの循環で解決できなければ、セッションの判定は見送って git のルート', () => {
-    const layout = createSessionWorkLayout()
-    const loopRoot = makeTemporaryDirectory()
-    symlinkSync(path.join(loopRoot, 'b'), path.join(loopRoot, 'a'))
-    symlinkSync(path.join(loopRoot, 'a'), path.join(loopRoot, 'b'))
-    setEnvironment({ PECOT_SESSION_PROJECT_DIR: path.join(loopRoot, 'a') })
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work', '1244') })).toBe(layout.base)
-  })
-
-  it('セッションの値が無ければ git のルート', () => {
-    const layout = useLayout()
-    setEnvironment({ PECOT_SESSION_PROJECT_DIR: undefined })
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work', '1244') })).toBe(layout.base)
-  })
-
-  it('CLAUDE_PROJECT_DIR が最優先', () => {
-    const layout = useLayout()
-    const directory = makeTemporaryDirectory()
-    setEnvironment({ CLAUDE_PROJECT_DIR: directory })
-    expect(projectRoot({ cwd: path.join(layout.base, '.pecot', 'work', '1244') })).toBe(directory)
   })
 })
 

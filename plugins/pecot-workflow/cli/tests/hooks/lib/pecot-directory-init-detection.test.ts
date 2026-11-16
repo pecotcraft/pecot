@@ -1,11 +1,8 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pecot-dir-init 起動の検知レイヤのテスト。
 // user-prompt-submit.sh と pre-tool-use-skill.sh が `/pecot:` プレフィックスを正しく検知するかを確かめる。
-// 判定は、.pecot ディレクトリを生成するか（= init 発火）で行う。
-//
-// user-prompt-submit.sh は、LIB_DIR を何もしないモックへ、CORE_DIR を実体の絶対パスへ差し替えたコピーで実行する。
-// pre-tool-use-skill.sh は、副作用が .pecot 生成に限られるため、実体をそのまま実行する。
-import { chmodSync, mkdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs'
+// 判定は、.pecot ディレクトリを生成するか（= init 発火）で行う。どちらのエントリも、副作用は .pecot の生成だけなので実体を実行する。
+import { mkdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -17,24 +14,16 @@ import { runScript } from '../_helpers/run.js'
 import { extractReferences, resolveDirectoryVariables } from '../_helpers/script-references.js'
 import { splitLines } from '../_helpers/text.js'
 
-const MOCK_LIB_SCRIPTS = ['workflow-compliance-injector.sh', 'pecot-issue-pending-state.sh']
-
 // 検知スクリプトを呼ぶエントリ × 参照変数 → lib サブディレクトリ。
-// モック突合・生パス禁止ガードと変数解決先の突合が共有する対象表。
 const DIRECTORY_REFERENCE_ROWS = [
-  { label: 'user-prompt-submit.sh の LIB_DIR', entry: 'user-prompt-submit.sh', directoryVariable: 'LIB_DIR', librarySubdirectory: 'lib/user-prompt-submit' },
   { label: 'user-prompt-submit.sh の CORE_DIR', entry: 'user-prompt-submit.sh', directoryVariable: 'CORE_DIR', librarySubdirectory: 'lib/core' },
-  { label: 'pre-tool-use-skill.sh の LIB_DIR', entry: 'pre-tool-use-skill.sh', directoryVariable: 'LIB_DIR', librarySubdirectory: 'lib/pre-tool-use' },
   { label: 'pre-tool-use-skill.sh の CORE_DIR', entry: 'pre-tool-use-skill.sh', directoryVariable: 'CORE_DIR', librarySubdirectory: 'lib/core' },
 ]
 
-// LIB_DIR / CORE_DIR 自体の定義行のみ生パスを許す。
-const DIRECTORY_ASSIGN = /^\s*(?:LIB_DIR|CORE_DIR)=/u
-// SCRIPT_DIR は標準形（$(cd ... && pwd)）なので、差し替え対象から除く。
-const UPS_DIRECTORY_ASSIGN_ANY = /^(?<name>[A-Z][A-Z_0-9]*_DIR)=/gmu
+// CORE_DIR 自体の定義行のみ生パスを許す。
+const DIRECTORY_ASSIGN = /^\s*CORE_DIR=/u
 
 // <entry> が呼ぶ <librarySubdirectory> 配下のスクリプト名を返す。
-// 抽出は共有の抽出器（実在ガードと同一）を使う。
 function extractSubdirectoryReferences(entry: string, librarySubdirectory: string): string[] {
   const source = readFileSync(path.join(hooksDirectory, entry), 'utf8')
   const targetDirectory = path.join(hooksDirectory, librarySubdirectory)
@@ -51,40 +40,18 @@ interface DetectionEnvironment {
   readonly ptusScript: string
 }
 
-// CLAUDE_PROJECT_DIR / PLUGIN 環境変数を設定し、user-prompt-submit.sh の LIB_DIR をモックへ差し替えたコピーを用意する。
+// CLAUDE_PROJECT_DIR / PLUGIN 環境変数を設定する。
 function setUpDetection(hookCase: HookCase): DetectionEnvironment {
   const project = path.join(hookCase.temporaryPath, 'project')
   mkdirSync(project, { recursive: true })
   hookCase.setEnv('CLAUDE_PROJECT_DIR', project)
   hookCase.setEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
   hookCase.setEnv('PLUGIN_HOOKS', hooksDirectory)
-
-  const mockLibrary = path.join(hookCase.temporaryPath, 'mock-ups-lib')
-  mkdirSync(mockLibrary, { recursive: true })
-  for (const name of MOCK_LIB_SCRIPTS) {
-    const script = path.join(mockLibrary, name)
-    writeFileSync(script, '#!/bin/bash\ncat >/dev/null 2>&1 || true\nexit 0\n')
-    chmodSync(script, 0o755)
+  return {
+    project,
+    upsScript: path.join(hooksDirectory, 'user-prompt-submit.sh'),
+    ptusScript: path.join(hooksDirectory, 'pre-tool-use-skill.sh'),
   }
-
-  const upsSource = readFileSync(path.join(hooksDirectory, 'user-prompt-submit.sh'), 'utf8')
-
-  // コピーでは SCRIPT_DIR が tmp を指すため、SCRIPT_DIR 相対の *_DIR 代入はすべて絶対パスへ差し替える。
-  // 新しい *_DIR が増えて差し替え忘れになると、rc 127 で空振りするので、網羅をここで固定する。
-  const libraryDirectory = mockLibrary
-  const coreDirectoryPath = path.join(hooksDirectory, 'lib', 'core')
-  const names = Array.from(upsSource.matchAll(UPS_DIRECTORY_ASSIGN_ANY), match => match.groups?.['name'] ?? '')
-  const assigned = new Set(names.filter(name => name !== 'SCRIPT_DIR'))
-  expect(assigned, 'user-prompt-submit.sh の *_DIR 代入と差し替え対象が一致しません').toEqual(new Set(['LIB_DIR', 'CORE_DIR']))
-
-  const patched = upsSource
-    .replaceAll(/^LIB_DIR=.*$/gmu, () => `LIB_DIR="${libraryDirectory}"`)
-    .replaceAll(/^CORE_DIR=.*$/gmu, () => `CORE_DIR="${coreDirectoryPath}"`)
-  const upsScript = path.join(hookCase.temporaryPath, 'user-prompt-submit.sh')
-  writeFileSync(upsScript, patched)
-  chmodSync(upsScript, 0o755)
-
-  return { project, upsScript, ptusScript: path.join(hooksDirectory, 'pre-tool-use-skill.sh') }
 }
 
 function isPecotDirectoryCreated(project: string): boolean {
@@ -92,7 +59,7 @@ function isPecotDirectoryCreated(project: string): boolean {
   return existsSync(pecot) && statSync(pecot).isDirectory()
 }
 
-// 静的ガード（モック突合・生パス禁止・変数解決先の突合）。
+// 静的ガード（生パス禁止・変数解決先の確認）。
 // どちらのエントリもチェーン途中の rc を見ないため、参照先が崩れても実行時には表面化しない。
 describe('検知スクリプトを呼ぶエントリの静的ガード', () => {
   // 解決先が別ディレクトリへ移ると、下のガードは何にもマッチせず常に通る。literal と実態をここで繋ぐ。
@@ -102,13 +69,6 @@ describe('検知スクリプトを呼ぶエントリの静的ガード', () => {
     const directoryVariables = resolveDirectoryVariables(source, hooksDirectory, pluginRoot)
     expect(directoryVariables.get(row.directoryVariable)).toBe(path.join(hooksDirectory, row.librarySubdirectory))
     expect(extractSubdirectoryReferences(row.entry, row.librarySubdirectory).length).toBeGreaterThan(0)
-  })
-
-  // 未登録の injector は rc 127 で終わるが、エントリの `exit 0` が握り潰す。表面化しないので、参照集合との一致を固定する。
-  // pre-tool-use-skill.sh は実体を実行するため、対象は user-prompt-submit.sh のみ。
-  it('モックの一覧は、user-prompt-submit.sh の実参照と一致する', () => {
-    const referenced = new Set(extractSubdirectoryReferences('user-prompt-submit.sh', 'lib/user-prompt-submit'))
-    expect(referenced, 'user-prompt-submit.sh の $LIB_DIR 参照とモックの一覧が一致しません').toEqual(new Set(MOCK_LIB_SCRIPTS))
   })
 
   // `$SCRIPT_DIR/lib/core/foo.sh` のような生パスは、参照抽出と *_DIR の差し替えのどちらにも掛からない。変数経由に固定し、定義行だけ生パスを許す。
@@ -214,12 +174,13 @@ describe('PreToolUse(Skill)', () => {
     expect(isPecotDirectoryCreated(detection.project)).toBe(false)
   })
 
-  it('pecot の skill のとき、additionalContext を出力する', () => {
+  // 決まりの注入は撤廃した（spec 025 FR-010）。
+  it('pecot の skill のとき、何も出力しない', () => {
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.ptusScript, [], { stdin: '{"tool_input": {"skill": "pecot-w:w-help"}}' })
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"additionalContext"')
+    expect(result.stdout).toBe('')
     expect(isPecotDirectoryCreated(detection.project)).toBe(true)
   })
 

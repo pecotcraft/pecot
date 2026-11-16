@@ -11,12 +11,12 @@ useIsolatedEnvironment()
 
 const REPO_PATH = '/repos/acme/demo'
 const repository = (): ResponseRule => restRule('GET', REPO_PATH, 200, { default_branch: 'main' })
-const removal = (branch: string, status = 204, body?: unknown): ResponseRule => restRule('DELETE', `${REPO_PATH}/git/refs/heads/${branch}`, status, body)
+const removal = (status = 204, body?: unknown): ResponseRule => restRule('DELETE', `${REPO_PATH}/git/refs/heads/feat/7`, status, body)
 
 const DELETED = 'deleted: remote branch feat/7 in acme/demo\n'
 
 async function remove(extra: Partial<CommandRun> = {}, argv: readonly string[] = ['branch', 'delete', 'acme/demo', 'feat/7']): Promise<CommandResult> {
-  return await runCommand({ argv, github: [repository(), removal('feat/7'), removal('wip/feat/7')], ...extra })
+  return await runCommand({ argv, github: [repository(), removal()], ...extra })
 }
 
 describe('branch delete', () => {
@@ -27,16 +27,6 @@ describe('branch delete', () => {
     expect(result.problems).toEqual([])
     expect(result.unused).toEqual([])
     expect(requestLabels(result.requests)).toContain('DELETE /repos/acme/demo/git/refs/heads/feat/7')
-  })
-
-  it('wip/ブランチ名 のリモートブランチがあると、それも削除する', async (context) => {
-    await verifies(context, 'PW-BRANCH-DELETE-02')
-    const result = await remove()
-    expect(requestLabels(result.requests)).toEqual([
-      'GET /repos/acme/demo',
-      'DELETE /repos/acme/demo/git/refs/heads/feat/7',
-      'DELETE /repos/acme/demo/git/refs/heads/wip/feat/7',
-    ])
   })
 
   it('--dry-run を付けて打つと、何も削除しない', async (context) => {
@@ -54,40 +44,10 @@ describe('branch delete', () => {
     expect(result.stderr).toContain(DELETED)
   })
 
-  it('wip/ブランチ名 を削除すると、deleted の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-BRANCH-DELETE-05')
-    const result = await remove()
-    expect(result.stderr).toBe(`${DELETED}deleted: remote branch wip/feat/7 in acme/demo\n`)
-  })
-
   it('--dry-run を付けて打つと、dry-run の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-BRANCH-DELETE-06')
     const result = await remove({ github: [repository()] }, ['branch', 'delete', 'acme/demo', 'feat/7', '-n'])
     expect(result.stderr).toBe('dry-run: would delete remote branch feat/7 in acme/demo\n')
-  })
-
-  it('wip/ブランチ名 のリモートブランチが無いと、何も出さない', async (context) => {
-    await verifies(context, 'PW-BRANCH-DELETE-07')
-    const result = await remove({ github: [repository(), removal('feat/7'), removal('wip/feat/7', 422, { message: 'Reference does not exist' })] })
-    expect(result.code).toBe(0)
-    expect(result.problems).toEqual([])
-    expect(result.stderr).toBe(DELETED)
-  })
-
-  it('wip/ブランチ名 があるのに削除できないと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-BRANCH-DELETE-08')
-    await verifies(context, 'PW-BRANCH-DELETE-09')
-    const result = await remove({ github: [repository(), removal('feat/7'), removal('wip/feat/7', 403, { message: 'Forbidden' })] })
-    expect(result.code).toBe(0)
-    expect(result.problems).toEqual([])
-    expect(result.stderr).toBe(`${DELETED}warning: could not delete remote branch wip/feat/7 in acme/demo: access denied Forbidden\n`)
-  })
-
-  it('wip/ブランチ名 の削除が 404 だと、本文の message を足した warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-BRANCH-DELETE-08')
-    const result = await remove({ github: [repository(), removal('feat/7'), removal('wip/feat/7', 404, { message: 'Not Found' })] })
-    expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(/^deleted: remote branch feat\/7 in acme\/demo\nwarning: could not delete remote branch wip\/feat\/7 in acme\/demo: resource not found: http:\/\/127\.0\.0\.1:\d+\/repos\/acme\/demo\/git\/refs\/heads\/wip\/feat\/7 Not Found\n$/u)
   })
 
   it('削除するブランチが既定ブランチ・develop_branch・release_branch のどれかなら、保護するブランチを並べた error の行を標準エラーに出して終了コード 1 で終わる', async (context) => {
@@ -129,11 +89,10 @@ describe('branch delete', () => {
 
   it('ブランチの削除で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-BRANCH-DELETE-15')
-    const result = await remove({ github: [repository(), removal('feat/7', 422, { message: 'Validation Failed' })] })
+    const result = await remove({ github: [repository(), removal(422, { message: 'Validation Failed' })] })
     expect(result.code).toBe(1)
     expect(result.problems).toEqual([])
     expect(result.stderr).toBe('error: could not delete remote branch feat/7 in acme/demo: GitHub API error: 422\n')
-    expect(requestLabels(result.requests)).not.toContain('DELETE /repos/acme/demo/git/refs/heads/wip/feat/7')
   })
 
   it('git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async (context) => {
@@ -148,24 +107,9 @@ describe('branch delete', () => {
   describe('MCP の data', () => {
     const ARGUMENTS = { repo: 'acme/demo', branch: 'feat/7' }
 
-    it('ブランチを削除すると、ブランチ・リポジトリ・deleted・削除した wip ブランチを data に返す', async () => {
-      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7')] })
-      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true, wipBranch: 'wip/feat/7' })
-    })
-
-    it('wip ブランチが無いと、wipBranch を返さない', async () => {
-      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7', 422, { message: 'Reference does not exist' })] })
+    it('ブランチを削除すると、ブランチ・リポジトリ・deleted を data に返す', async () => {
+      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal()] })
       expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true })
-    })
-
-    it('wip ブランチを削除できないと、wipBranch を返さず、warning を data.warnings に返す', async () => {
-      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7'), removal('wip/feat/7', 403, { message: 'Forbidden' })] })
-      expect(result.structured).toEqual({
-        branch: 'feat/7',
-        repository: 'acme/demo',
-        deleted: true,
-        warnings: ['could not delete remote branch wip/feat/7 in acme/demo: access denied Forbidden'],
-      })
     })
 
     it('dry_run で打つと、deleted を false にして dryRun を返す', async () => {
@@ -174,7 +118,7 @@ describe('branch delete', () => {
     })
 
     it('本流のブランチの削除で失敗すると、deleted を返さない', async () => {
-      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal('feat/7', 422, { message: 'Validation Failed' })] })
+      const result = await runTool({ tool: 'branch_delete', arguments: ARGUMENTS, github: [repository(), removal(422, { message: 'Validation Failed' })] })
       expect(result.isError).toBe(true)
       expect(result.structured).not.toHaveProperty('deleted')
     })

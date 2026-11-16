@@ -35,8 +35,9 @@ const DEFINITIONS = [
 const CLAUDE_DEFINITIONS = [definition(WORKFLOW, 'hooks.json'), definition(VISUAL, 'hooks.json')]
 const COPILOT_DEFINITIONS = [definition(WORKFLOW, COPILOT_HOOKS), definition(VISUAL, COPILOT_VISUAL)]
 
-const EDIT_MATCHER = 'Edit|Write|MultiEdit|NotebookEdit|EnterPlanMode'
-const NOTIFICATION_MATCHER = 'permission_prompt|idle_prompt|elicitation_dialog'
+// 撤廃したエントリの matcher に入っていたツール名（spec 025 FR-010〜FR-014）。
+const REMOVED_PRE_TOOLS: ReadonlySet<string> = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'EnterPlanMode', 'WebSearch'])
+const REMOVED_POST_TOOLS: ReadonlySet<string> = new Set(['Skill', 'skill', 'Bash'])
 const QUOTED_COMMAND = /^"\$\{CLAUDE_PLUGIN_ROOT\}"\/hooks\/(?<file>[\w.-]+\.sh)$/u
 // ファイル名の抽出用。クォートの有無は問わない。
 const FILE = /\/hooks\/(?<file>[\w.-]+\.sh)$/u
@@ -120,15 +121,9 @@ function fileOf(hook: Hook): string {
 const EXPECTED_TIMEOUTS = new Map([
   ['pecot-workflow|SessionStart|', 120],
   ['pecot-workflow|PreToolUse|', 10],
-  ['pecot-workflow|PostToolUse|Bash', 30],
-  ['pecot-workflow|PostToolUse|Skill', 10],
-  ['pecot-workflow|PostToolUse|Skill|skill', 10],
-  ['pecot-workflow|PostToolUse|EnterPlanMode', 10],
   ['pecot-workflow|PostToolUse|ExitPlanMode', 90],
   ['pecot-workflow|PostToolUse|ExitPlanMode|exit_plan_mode', 90],
-  ['pecot-workflow|Stop|', 10],
   ['pecot-workflow|UserPromptSubmit|', 10],
-  ['pecot-workflow|Notification|', 10],
   ['pecot-visual|SessionStart|', 120],
   ['pecot-visual|UserPromptSubmit|', 10],
   ['pecot-visual|PreToolUse|', 10],
@@ -198,15 +193,44 @@ describe('全定義共通', () => {
   })
 })
 
-// PreToolUse の matcher（pecot-workflow）。
-describe('PreToolUse の matcher', () => {
+// matcher を `|` で分けたツール名。
+function toolsOf(matcher = ''): string[] {
+  return matcher.split('|')
+}
+
+// 撤廃したエントリ（pecot-workflow）。
+describe('撤廃したエントリ', () => {
   it.for([
-    { label: 'Claude', plugin: WORKFLOW, name: 'hooks.json' },
-    { label: 'Copilot', plugin: WORKFLOW, name: COPILOT_HOOKS },
-  ])('$label の編集系エントリの matcher は、絞り込まれている', (row) => {
-    const entries = entriesOf(load(row.plugin, row.name), 'PreToolUse').filter(entry => entry.hooks.some(hook => fileOf(hook) === 'pre-tool-use.sh'))
-    expect(entries).toHaveLength(1)
-    expect(entries.at(0)?.matcher).toBe(EDIT_MATCHER)
+    { label: 'Claude', name: 'hooks.json' },
+    { label: 'Copilot', name: COPILOT_HOOKS },
+  ])('$label の PreToolUse の matcher に、Edit 系と WebSearch が無い', (row) => {
+    const tools = entriesOf(load(WORKFLOW, row.name), 'PreToolUse').flatMap(entry => toolsOf(entry.matcher))
+    expect(tools.filter(tool => REMOVED_PRE_TOOLS.has(tool))).toEqual([])
+  })
+
+  it.for([
+    { label: 'Claude', name: 'hooks.json' },
+    { label: 'Copilot', name: COPILOT_HOOKS },
+  ])('$label の PostToolUse の matcher に、Skill と Bash が無い', (row) => {
+    const tools = entriesOf(load(WORKFLOW, row.name), 'PostToolUse').flatMap(entry => toolsOf(entry.matcher))
+    expect(tools.filter(tool => REMOVED_POST_TOOLS.has(tool))).toEqual([])
+  })
+
+  it.for([
+    { label: 'Claude', name: 'hooks.json' },
+    { label: 'Copilot', name: COPILOT_HOOKS },
+  ])('$label の定義に、Stop と Notification のエントリが無い', (row) => {
+    const events = eventsOf(load(WORKFLOW, row.name))
+    expect(events.filter(event => event === 'Stop' || event === 'Notification')).toEqual([])
+  })
+
+  it.for([
+    { label: 'Claude', name: 'hooks.json' },
+    { label: 'Copilot', name: COPILOT_HOOKS },
+  ])('$label の定義の description に、通知の言及が無い', (row) => {
+    const text = readFileSync(definitionPath(WORKFLOW, row.name), 'utf8')
+    const root = toRecord(parseJson(text), '定義')
+    expect(String(root['description'])).not.toMatch(/notification/iu)
   })
 })
 
@@ -247,34 +271,14 @@ describe('SessionStart', () => {
   })
 })
 
-// Stop / Notification（pecot-workflow）
-describe('Stop と Notification', () => {
-  it('Claude の Notification は matcher を絞り、Stop は stop.sh だけを呼ぶ', () => {
-    const hooks = load(WORKFLOW, 'hooks.json')
-    const notification = entriesOf(hooks, 'Notification')
-    expect(notification).toHaveLength(1)
-    expect(notification.at(0)?.matcher).toBe(NOTIFICATION_MATCHER)
-    const stopFiles = entriesOf(hooks, 'Stop').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
-    expect(stopFiles).toEqual(['stop.sh'])
-  })
-
-  it('Copilot の Stop は、Copilot 用のエントリを指す', () => {
-    const stopFiles = entriesOf(load(WORKFLOW, COPILOT_HOOKS), 'Stop').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
-    expect(stopFiles).toEqual(['stop-copilot.sh'])
-  })
-})
-
 // Copilot CLI の matcher は全体一致 `^(?:PATTERN)$` で、skill と MCP に Claude の名前が無い。
 function matchersOf(hooks: Hooks, event: string, entryFile: string): (string | undefined)[] {
   return entriesOf(hooks, event).filter(entry => entry.hooks.some(hook => fileOf(hook) === entryFile)).map(entry => entry.matcher)
 }
 
 describe('Copilot CLI の matcher', () => {
-  it.for([
-    { label: 'PreToolUse', event: 'PreToolUse', entry: 'pre-tool-use-skill.sh' },
-    { label: 'PostToolUse', event: 'PostToolUse', entry: 'post-tool-use-skill.sh' },
-  ])('pecot-workflow の $label の skill の matcher は、生の tool 名を含む', (row) => {
-    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), row.event, row.entry)).toEqual(['Skill|skill'])
+  it('pecot-workflow の PreToolUse の skill の matcher は、生の tool 名を含む', () => {
+    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill|skill'])
   })
 
   it('pecot-workflow の ExitPlanMode の matcher は、Copilot の exit_plan_mode を含む', () => {

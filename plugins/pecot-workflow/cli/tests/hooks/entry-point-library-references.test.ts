@@ -27,8 +27,8 @@ const libraryScripts = globSync('lib/**/*.sh', { cwd: hooksDirectory })
 const guardedScripts: readonly string[] = [...entryPoints, ...libraryScripts]
 
 // 列挙が空振りして全件通るのを防ぐ下限。
-const MIN_GUARDED_SCRIPTS = 50
-const MIN_RESOLVED_REFERENCES = 90
+const MIN_GUARDED_SCRIPTS = 25
+const MIN_RESOLVED_REFERENCES = 40
 const MIN_RESOLVED_TEMPLATE_REFERENCES = 2
 
 const CONFIG_FILES: readonly string[] = ['hooks.json', '../com.github.copilot/hooks/hooks.json']
@@ -284,32 +284,32 @@ describe('hooks のスクリプトの参照先', () => {
     })
 
     it('${VAR%/*} の親ディレクトリ剥がしは 1 段上を起点に解決する', () => {
-      const text = `${SYNTHETIC_LIBRARY_HEADER}source "\${SCRIPT_DIR%/*}/core/branch-guard.sh"\n`
+      const text = `${SYNTHETIC_LIBRARY_HEADER}source "\${SCRIPT_DIR%/*}/core/git-no-verify-check.sh"\n`
       const references = extractReferences(text, adaptersDirectory, pluginRoot)
       expect(references.map(reference => reference.path)).toEqual([
         path.join(hooksDirectory, 'lib', 'core', 'config-dispatcher.sh'),
-        path.join(hooksDirectory, 'lib', 'core', 'branch-guard.sh'),
+        path.join(hooksDirectory, 'lib', 'core', 'git-no-verify-check.sh'),
       ])
       expect(missingReferencePaths(references)).toEqual([])
     })
 
     it('%/* 以外の % 修飾は解決せずエラーにする', () => {
-      const text = `${SYNTHETIC_LIBRARY_HEADER}source "\${SCRIPT_DIR%/lib/*}/core/branch-guard.sh"\n`
+      const text = `${SYNTHETIC_LIBRARY_HEADER}source "\${SCRIPT_DIR%/lib/*}/core/git-no-verify-check.sh"\n`
       expect(() => extractReferences(text, adaptersDirectory, pluginRoot)).toThrow('SCRIPT_DIR%/lib/*')
     })
 
     it('config-dispatcher.sh を source していれば ${PLUGIN_HOOKS} 起点を解決する', () => {
-      const text = `${SYNTHETIC_LIBRARY_HEADER}CORE_DIR="\${PLUGIN_HOOKS}/lib/core"\n"$CORE_DIR/branch-guard.sh"\n`
+      const text = `${SYNTHETIC_LIBRARY_HEADER}CORE_DIR="\${PLUGIN_HOOKS}/lib/core"\n"$CORE_DIR/git-no-verify-check.sh"\n`
       const references = extractReferences(text, adaptersDirectory, pluginRoot)
       expect(references.map(reference => reference.path)).toEqual([
         path.join(hooksDirectory, 'lib', 'core', 'config-dispatcher.sh'),
-        path.join(hooksDirectory, 'lib', 'core', 'branch-guard.sh'),
+        path.join(hooksDirectory, 'lib', 'core', 'git-no-verify-check.sh'),
       ])
       expect(missingReferencePaths(references)).toEqual([])
     })
 
     it('config-dispatcher.sh を source しないスクリプトの ${PLUGIN_HOOKS} は未解決にする', () => {
-      const text = `${SYNTHETIC_HEADER}"\${PLUGIN_HOOKS}/lib/core/branch-guard.sh"\n`
+      const text = `${SYNTHETIC_HEADER}"\${PLUGIN_HOOKS}/lib/core/git-no-verify-check.sh"\n`
       expect(() => extractReferences(text, hooksDirectory, pluginRoot)).toThrow('PLUGIN_HOOKS')
     })
 
@@ -318,7 +318,7 @@ describe('hooks のスクリプトの参照先', () => {
         = '#!/bin/bash\n'
           + 'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\n'
           + 'source "${SCRIPT_DIR%/*}/core/my-config-dispatcher.sh"\n'
-          + '"${PLUGIN_HOOKS}/lib/core/branch-guard.sh"\n'
+          + '"${PLUGIN_HOOKS}/lib/core/git-no-verify-check.sh"\n'
       expect(resolveDirectoryVariables(text, adaptersDirectory, pluginRoot).has('PLUGIN_HOOKS')).toBe(false)
       expect(() => extractReferences(text, adaptersDirectory, pluginRoot)).toThrow('PLUGIN_HOOKS')
     })

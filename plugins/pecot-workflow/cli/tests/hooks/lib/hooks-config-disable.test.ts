@@ -1,6 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// hooks-config.json 個別無効化のテスト（SC-004）。
-// 各フック機能を hooks-config.json で false に設定すると動作しないことを検証する。
+// hooks-config.json 個別無効化のテスト（SC-004）と、撤廃したキーが残る設定のテスト（spec 025 FR-023）。
 import { mkdirSync, symlinkSync } from 'node:fs'
 import path from 'node:path'
 
@@ -8,42 +7,37 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase, HooksConfig } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
 import { adapterDirectory, coreDirectory, hooksDirectory } from '../_helpers/paths.js'
-import { run, runShell } from '../_helpers/run.js'
+import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
 
-const COMMIT_SUCCESS_JSON = jsonDumps({
-  tool_input: { command: 'git commit -m "feat: add auth"' },
-  tool_response: {
-    stdout: '[feat/test abc1234] feat: add auth\n 1 file changed, 1 insertion(+)',
-    interrupted: false,
-  },
-})
-
 const GH_PR_CREATE_JSON = jsonDumps({ tool_input: { command: 'gh pr create --title "feat: test" --body "test"' } })
 
-function pecotSkillJson(skill: string): string {
-  return jsonDumps({ tool_input: { skill } })
-}
+// spec 025 で撤廃した設定キー。利用者の hooks-config.json に残っていても無視する。
+const RETIRED_KEYS = [
+  'pecot-skill-compliance',
+  'pecot-skill-reminder',
+  'workflow-compliance-injector',
+  'pecot-issue-pending-state',
+  'pecot-issue-pending-reminder',
+  'issue-pending-cleanup',
+  'git-checkout-check',
+  'commit-info-display',
+  'auto-push',
+  'branch-guard',
+  'misplaced-pecot-notice',
+  'vscode-workspace-detector',
+  'gitignore-track-notice',
+  'plugin-update-notice',
+  'session-project-dir',
+  'websearch-allow',
+  'terminal-bell',
+  'pty-bell-sender',
+]
 
-// サブスクリプトは stdin ではなく PECOT_HOOK_* / PECOT_POST_* を読むので、エントリと同じ前段を source してから起動する。
-const SOURCE_HOOK_INPUT = 'source "$(dirname "$1")/../core/hook-input.sh" && pecot_hook_input_load "$2" && exec bash "$1"'
-const SOURCE_POST_MATCH = [
-  'PECOT_PROJECT_ROOT_LAZY=1; ',
-  'source "$(dirname "$1")/../core/project-root.sh" "$2" && ',
-  'source "$(dirname "$1")/bash-post-match.sh" "$2" && exec bash "$1"',
-].join('')
-
-function runWithFront(hookCase: HookCase, script: string, stdin: string, cwd?: string): RunResult {
-  const parent = path.dirname(script)
-  const where = cwd === undefined ? {} : { cwd }
-  if (path.basename(parent) === 'post-tool-use') return runShell(hookCase, SOURCE_POST_MATCH, [script, stdin], where)
-  if (path.basename(parent) === 'lib' || path.basename(path.dirname(parent)) === 'lib') {
-    return runShell(hookCase, SOURCE_HOOK_INPUT, [script, stdin], where)
-  }
-  return run(hookCase, 'bash', [script], { stdin, ...where })
+function runEntry(hookCase: HookCase, entry: string, stdin: string): RunResult {
+  return run(hookCase, 'bash', [path.join(hooksDirectory, entry)], { stdin })
 }
 
 // PECOT_HOOKS_CONFIG_PATH / CLAUDE_PROJECT_DIR を設定する。hooks-config の内容は各テストが書く。
@@ -64,33 +58,6 @@ function setUpPluginRoot(hookCase: HookCase): void {
   hookCase.setEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
 }
 
-const POST_TOOL_USE = path.join(hooksDirectory, 'lib', 'post-tool-use')
-const PRE_TOOL_USE_BASH = path.join(hooksDirectory, 'pre-tool-use-bash.sh')
-
-describe('commit-info-display', () => {
-  it('false のとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const config = setUpDisable(hookCase)
-    config.write({ 'commit-info-display': false })
-    const repository = gitRepository(hookCase)
-
-    const result = runWithFront(hookCase, path.join(POST_TOOL_USE, 'commit-info-display.sh'), COMMIT_SUCCESS_JSON, repository)
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
-
-  it('true のとき、出力する', () => {
-    const hookCase = createHookCase()
-    const config = setUpDisable(hookCase)
-    config.write({ 'commit-info-display': true })
-    const repository = gitRepository(hookCase)
-
-    const result = runWithFront(hookCase, path.join(POST_TOOL_USE, 'commit-info-display.sh'), COMMIT_SUCCESS_JSON, repository)
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('note: commit complete')
-  })
-})
-
 describe('claude-bash-guards', () => {
   it('false のとき、gh pr create をブロックしない', () => {
     const hookCase = createHookCase()
@@ -98,7 +65,7 @@ describe('claude-bash-guards', () => {
     config.write({ 'claude-bash-guards': false })
     setUpPluginRoot(hookCase)
 
-    const result = runWithFront(hookCase, PRE_TOOL_USE_BASH, GH_PR_CREATE_JSON)
+    const result = runEntry(hookCase, 'pre-tool-use-bash.sh', GH_PR_CREATE_JSON)
     expect(result.exitCode).toBe(0)
     // ブロック JSON が出力されないことを確認
     expect(result.stdout).not.toContain('"permissionDecision": "deny"')
@@ -111,40 +78,34 @@ describe('claude-bash-guards', () => {
     config.write({ 'claude-bash-guards': true })
     setUpPluginRoot(hookCase)
 
-    const result = runWithFront(hookCase, PRE_TOOL_USE_BASH, GH_PR_CREATE_JSON)
+    const result = runEntry(hookCase, 'pre-tool-use-bash.sh', GH_PR_CREATE_JSON)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')
   })
 })
 
-describe('pecot-skill-reminder', () => {
-  it('false のとき、警告を出さない', () => {
+describe('撤廃したキー', () => {
+  it.for([{ value: false }, { value: true }])('撤廃した 18 キーを $value で残しても、gh pr create の deny は今どおり返り、エラーと警告を出さない', (row) => {
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
-    config.write({ 'pecot-skill-reminder': false })
+    config.write(Object.fromEntries(RETIRED_KEYS.map(key => [key, row.value])))
+    setUpPluginRoot(hookCase)
 
-    const result = runWithFront(hookCase, path.join(POST_TOOL_USE, 'pecot-skill-reminder.sh'), pecotSkillJson('pecot-w'))
+    const result = runEntry(hookCase, 'pre-tool-use-bash.sh', GH_PR_CREATE_JSON)
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
+    expect(result.stdout).toContain('"permissionDecision": "deny"')
+    expect(result.stderr).toBe('')
   })
 
-  it('true のとき、警告を出す', () => {
+  it.for([{ value: false }, { value: true }])('撤廃した 18 キーを $value で残しても、SessionStart はエラーと警告を出さない', (row) => {
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
-    config.write({ 'pecot-skill-reminder': true })
+    // git-sync は git の外で警告を出すので止める。撤廃したキーと関わらない。
+    config.write({ ...Object.fromEntries(RETIRED_KEYS.map(key => [key, row.value])), 'git-sync': false })
 
-    const result = runWithFront(hookCase, path.join(POST_TOOL_USE, 'pecot-skill-reminder.sh'), pecotSkillJson('pecot-w'))
+    const result = runEntry(hookCase, 'session-start.sh', jsonDumps({ hook_event_name: 'SessionStart', source: 'startup', session_id: 's' }))
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('note: pecot-workflow skill started')
-  })
-
-  it('false で w-quick を起動したときも、警告を出さない', () => {
-    const hookCase = createHookCase()
-    const config = setUpDisable(hookCase)
-    config.write({ 'pecot-skill-reminder': false })
-
-    const result = runWithFront(hookCase, path.join(POST_TOOL_USE, 'pecot-skill-reminder.sh'), pecotSkillJson('pecot-w:w-quick'))
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('')
+    expect(result.stdout).not.toContain('additionalContext')
   })
 })

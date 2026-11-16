@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下のみ */
 // README「フック実行フロー」の表と hooks.json とエントリスクリプト実体の、三者の突合の静的な確認。
-// 突合相手は Claude 側の hooks.json で、com.github.copilot/hooks/hooks.json からは Copilot 専用のエントリだけを補う。
+// 突合相手は Claude 側の hooks.json。Copilot の hooks.json はその部分集合なので見ない。
 // lib は basename でしか一致を見ず、コアガード群の内訳と中継先の呼び出し順は対象外。
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -27,9 +27,6 @@ const EXCLUDED_LIBS: ReadonlySet<string> = new Set([
 
 // 列 3 の「→」を、別ディスパッチャへの中継と読む lib。新しい中継ディスパッチャの明示登録を強制する。
 const RELAY_DISPATCHERS: ReadonlySet<string> = new Set(['session-start-common'])
-
-// com.github.copilot/hooks/hooks.json にだけ配線され、表に Copilot 用の行として載るエントリ。
-const COPILOT_ONLY_SCRIPTS: ReadonlySet<string> = new Set(['stop-copilot.sh'])
 
 // 表の第 1 列で、matcher の指定なし（全ツールが対象）を表すラベル。
 const NO_MATCHER_LABEL = '全ツール'
@@ -205,12 +202,9 @@ function configEntries(filename: string): ConfigEntry[] {
   }))
 }
 
-// hooks.json の全エントリと、com.github.copilot/hooks/hooks.json の Copilot 専用のエントリ。
+// hooks.json の全エントリ。
 function hooksJsonEntries(): ConfigEntry[] {
-  return [
-    ...configEntries('hooks.json'),
-    ...configEntries('../com.github.copilot/hooks/hooks.json').filter(entry => COPILOT_ONLY_SCRIPTS.has(entry.name)),
-  ]
+  return configEntries('hooks.json')
 }
 
 // basename が表の glob に合うものを、そのパターンの表記に寄せる。
@@ -337,12 +331,5 @@ describe('README のフロー表', () => {
         expect(difference(actual, row.relayLibs), `\`${relayVia}\` から呼ばれているが README フロー表に無い中継先（表への追記抜け）`).toEqual([])
       }
     }
-  })
-
-  it('Copilot 専用のエントリは com.github.copilot/hooks/hooks.json にだけ配線され、hooks.json には無い', () => {
-    const copilotNames = new Set(configEntries('../com.github.copilot/hooks/hooks.json').map(entry => entry.name))
-    const claudeNames = new Set(configEntries('hooks.json').map(entry => entry.name))
-    expect(difference(COPILOT_ONLY_SCRIPTS, copilotNames)).toEqual([])
-    expect([...claudeNames].filter(name => COPILOT_ONLY_SCRIPTS.has(name))).toEqual([])
   })
 })

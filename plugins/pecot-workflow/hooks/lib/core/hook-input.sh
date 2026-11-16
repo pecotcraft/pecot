@@ -22,8 +22,6 @@
 #       PECOT_HOOK_CWD              cwd。
 #       PECOT_HOOK_SESSION_ID       session_id。
 #       PECOT_HOOK_TRANSCRIPT_PATH  transcript_path。
-#       PECOT_HOOK_FILE_PATH        tool_input.file_path // notebook_path // path。
-#                                  Copilot CLI の Read / Edit は path で、apply_patch は tool_input が文字列なので空。
 #       PECOT_HOOK_PLAN_PATH        tool_input.planFilePath（ExitPlanMode の計画ファイル）。
 #       PECOT_HOOK_SKILL_NAME       tool_input.skill（Skill ツール）。
 #                                  Claude Code は pecot-w:w-help のような接頭辞付きで届く。
@@ -41,8 +39,7 @@
 # コマンドも同じ扱いにする。
 # PECOT_HOOK_COMMAND_MAX_BYTES を超えるときは、PECOT_HOOK_COMMAND を export しない。
 # この値は、コアのガードが deny 理由にコマンドを 2 回まで載せても 128KiB に収まる大きさ。
-# コマンドは同じプロセスのシェル変数としてだけ残す。PostToolUse の bash-post-match.sh が読む。
-# 代わりに PECOT_HOOK_COMMAND_OVERSIZE=1 を export する。
+# コマンドは同じプロセスのシェル変数としてだけ残し、代わりに PECOT_HOOK_COMMAND_OVERSIZE=1 を export する。
 # ガードはコマンドが空になって素通しする。リマインダーは pecot_hook_command_reload で読み直す。
 #
 # source されるため、このファイル自体は何も実行しない。
@@ -60,7 +57,7 @@ export PECOT_HOOK_COMMAND_MAX_BYTES
 pecot_hook_input_load() {
     local input="${1:-}" parsed="" size=0
     PECOT_HOOK_EVENT="" PECOT_HOOK_TOOL_NAME="" PECOT_HOOK_COMMAND="" PECOT_HOOK_CWD=""
-    PECOT_HOOK_SESSION_ID="" PECOT_HOOK_TRANSCRIPT_PATH="" PECOT_HOOK_FILE_PATH="" PECOT_HOOK_PLAN_PATH="" PECOT_HOOK_SKILL_NAME=""
+    PECOT_HOOK_SESSION_ID="" PECOT_HOOK_TRANSCRIPT_PATH="" PECOT_HOOK_PLAN_PATH="" PECOT_HOOK_SKILL_NAME=""
     PECOT_HOOK_SOURCE="" PECOT_HOOK_SESSION_TITLE=""
     if [ -n "$input" ]; then
         parsed=$(printf '%s' "$input" | jq -r '
@@ -68,15 +65,15 @@ pecot_hook_input_load() {
             (.tool_input | if type == "object" then . else {} end) as $ti
             | [ (.hook_event_name | s), (.tool_name | s), ($ti.command | s), (.cwd | s),
                 (.session_id | s), (.transcript_path | s),
-                (($ti.file_path // $ti.notebook_path // $ti.path) | s), ($ti.planFilePath | s), ($ti.skill | s),
+                ($ti.planFilePath | s), ($ti.skill | s),
                 (.source | s), (.session_title | s) ]
             | @sh' 2>/dev/null) || parsed=""
     fi
     if [ -n "$parsed" ]; then
         eval "set -- $parsed"
         PECOT_HOOK_EVENT="$1" PECOT_HOOK_TOOL_NAME="$2" PECOT_HOOK_COMMAND="$3" PECOT_HOOK_CWD="$4"
-        PECOT_HOOK_SESSION_ID="$5" PECOT_HOOK_TRANSCRIPT_PATH="$6" PECOT_HOOK_FILE_PATH="$7" PECOT_HOOK_PLAN_PATH="$8" PECOT_HOOK_SKILL_NAME="$9"
-        PECOT_HOOK_SOURCE="${10}" PECOT_HOOK_SESSION_TITLE="${11}"
+        PECOT_HOOK_SESSION_ID="$5" PECOT_HOOK_TRANSCRIPT_PATH="$6" PECOT_HOOK_PLAN_PATH="$7" PECOT_HOOK_SKILL_NAME="$8"
+        PECOT_HOOK_SOURCE="$9" PECOT_HOOK_SESSION_TITLE="${10}"
     fi
     PECOT_HOOK_COMMAND_OVERSIZE=""
     # バイト数で測る（日本語は 1 文字 3 バイト）
@@ -90,6 +87,6 @@ pecot_hook_input_load() {
     fi
     export PECOT_HOOK_COMMAND_OVERSIZE
     export PECOT_HOOK_EVENT PECOT_HOOK_TOOL_NAME PECOT_HOOK_CWD
-    export PECOT_HOOK_SESSION_ID PECOT_HOOK_TRANSCRIPT_PATH PECOT_HOOK_FILE_PATH PECOT_HOOK_PLAN_PATH PECOT_HOOK_SKILL_NAME
+    export PECOT_HOOK_SESSION_ID PECOT_HOOK_TRANSCRIPT_PATH PECOT_HOOK_PLAN_PATH PECOT_HOOK_SKILL_NAME
     export PECOT_HOOK_SOURCE PECOT_HOOK_SESSION_TITLE
 }
