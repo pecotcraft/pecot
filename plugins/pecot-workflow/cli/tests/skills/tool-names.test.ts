@@ -45,9 +45,6 @@ const CLI_FORM = new RegExp(
 const OLD_INPUT_NAMES = /\b(?:repo_ref|owner_repo|branch_name|issue_quick)\b|`plan: (?:true|false)`|`issue: "/u
 const PREFIXED = /mcp__plugin_pecot-w_pecot-workflow__([a-z_]+)/gu
 
-// 消したツール名・古い入力名の移行の案内。古い名前を出すのが役目なので、対象から外す
-const MIGRATION_NOTES: ReadonlySet<string> = new Set(['README.md', 'scripts/release/mcp-dist-README.md'])
-
 function lineNumberAt(text: string, index: number): number {
   return text.slice(0, index).split('\n').length
 }
@@ -99,7 +96,6 @@ describe('本文のツール名', () => {
 
   it('本文以外の文書（hooks/README.md など）にも、古い入力名と古いツール名を書かない。バッククォートが付くかは問わない', () => {
     const files = globSync('**/*.md', { cwd: pluginRoot, exclude: name => ['node_modules', 'CHANGELOG.md', 'test-results'].includes(name) })
-      .filter(file => !MIGRATION_NOTES.has(file))
     expect(files).toContain('hooks/README.md')
     const offenders: string[] = []
     for (const file of files) {
