@@ -47,7 +47,8 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 
 - 読み込みは、各クライアントの公式の `--plugin-dir` を使う。独自の読み込み方と、独自の表示を作らない（原則 VI）
 - CUJ の定義は、plan テンプレ・w-e2e-planner・w-reviewer の 3 か所で同じ文にする。`cuj-definition-single-source.test.ts` が止める
-- 配る workflow のテンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は同じ中身に保つ。`test_board_sync_workflow_copy.py` が止める
+- 配る workflow のテンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag のほかは同じ中身に保つ。`test_board_sync_workflow_copy.py` が止める
+  - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
 - 配布物を直す PR には、version plan が要る
 - ルート直下にディレクトリを足さない。スクリプトは `.githooks/scripts/`、テストは `.githooks/tests/` に置く
 - 検証用での確かめは、PR ごとの CI に入れない
