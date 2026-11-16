@@ -5,7 +5,7 @@
 調べ方は 3 つある。公式の文書、このリポのコードと設定の読み取り、GitHub の API での読み取りだ。
 書き込まないと確かめられない点と、実機でしか分からない点は、R11 にまとめた。tasks の最初のフェーズで確かめる。
 
-## R1. 検証用の場所（FR-010、FR-001〜003）
+## R1. 検証用の場所（FR-009、FR-001〜003）
 
 - Decision: 今ある `pecotcraft/pecot-sandbox` と、ボード `pecot sandbox`（Projects の 3 番）を引き継ぐ。作り直さない
 - Decision: 検証用のリポは、`.pecot/work/<Issue番号>/pecot-sandbox/` に clone して使う
@@ -61,7 +61,7 @@
   - safe-settings。App を動かし続ける必要がある。2 つのリポのために足すには重い。退ける
   - 自動で直す。spec が、検出までと決めている
 
-## R4. 確かめで作ったものの名前と片付け（FR-011、FR-012）
+## R4. 確かめで作ったものの名前と片付け（FR-010、FR-011）
 
 - Decision: 確かめが検証用に作るブランチは `cuj/<Issue番号>-<乱数>` の形にする。Issue と PR の題は `[cuj <Issue番号>-<乱数>]` で始める
 - Decision: 片付けるスクリプトを `.githooks/scripts/` に 1 本置く。この形の名前を持つ、開いた PR・ブランチ・Issue を閉じて消し、ボードからアーカイブする
@@ -92,7 +92,7 @@
   - 検証用の workflow は、定期の起動（`schedule`）を持たない。このリポの定期の起動は、Lambda の Scheduler が起こしていて、検証用を向いていない。確かめていない間に検証用を書き換え続けるものは、今は無い
 - 残る点: workflow の中で動く pecot が、直した中身になるかは読んでいない。workflow が pecot をどこから取るかで決まる（R11-4）
 
-## R7. 検証用の権限（FR-018、FR-027）
+## R7. 検証用の権限（FR-016、FR-027）
 
 - Decision: 手元のセッションは、今の人の認証（`gh` と `.pecot/config/.env`）のまま使う。絞らない
 - Decision: 人のいないセッションには、検証用のリポにだけ入れた GitHub App の installation token を渡す
