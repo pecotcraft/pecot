@@ -36,7 +36,7 @@ EOF
 # gh-command-check.sh: gh stack の阻止。
 mcp_guidance_gh_stack() {
     cat <<'EOF'
-gh-stack-check: gh stack is not allowed (only gh stack view and --help are).
+gh-stack-check: gh stack is not allowed (only gh stack view (use --json) and --help are).
 
 Reason: running gh stack directly changes the stack without the workflow's records,
 the Issue reference and the readiness checks, which breaks the consistency of the workflow.

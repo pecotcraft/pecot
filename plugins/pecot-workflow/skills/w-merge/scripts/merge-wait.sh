@@ -3,24 +3,20 @@
 #
 # 使い方: merge-wait.sh <owner>/<repo>/<PR番号> [--interval <秒>] [--settle-seconds <秒>] [--stall-minutes <分>]
 #
-# 待つのは「merge queue の中」と「auto-merge の予約があり、チェックが終わっていない」の 2 つだけ。
+# 待つのは次の 3 つだけ。
+# - merge queue の中
+# - auto-merge の予約があり、チェックが終わっていない
+# - 予約が無く、queue の外で、必須チェックが終わっていない（通ったら required-passed で抜ける）
 # ほかの状態は、理由を stdout に出して抜ける。終了コードは、merged が 0、ほかの理由が 1、引数の誤りが 2。
 # gh と gh --jq だけを使う。pecot と単体の jq は呼ばない。
 #
 # source したテスト側のシェルの設定を変えないよう、set は末尾のガードの中に置く。
 
-# 判定。語を引数で受け、wait:<理由> か exit:<理由> を stdout に返す。
-# 引数は 7 つ。
-# $1 は state。
-# $2 は isInMergeQueue。
-# $3 は auto-merge の予約の有無。
-# $4 は mergeable。
-# $5 は必須チェックの失敗の有無。
-# $6 はチェックが終わっていないか。
-# $7 は mergeStateStatus（判定には使わない）。
-# 待つのは in-queue と checks-running だけで、上のどれでもない状態（未知の値を含む）は blocked。
+# 引数は state・isInMergeQueue・auto-merge・mergeable・必須の失敗・未完了・mergeStateStatus（未使用）。
+# 8 つ目は必須の未完了で、省くと false。
+# wait:<理由> か exit:<理由> を返す。どの行にも当たらない状態（未知の値を含む）は blocked。
 merge_wait_decide() {
-  local state="$1" in_queue="$2" auto_merge="$3" mergeable="$4" failed="$5" running="$6"
+  local state="$1" in_queue="$2" auto_merge="$3" mergeable="$4" failed="$5" running="$6" required_running="${8:-false}"
   if [[ "$state" == "MERGED" ]]; then
     echo "exit:merged"
   elif [[ "$state" == "CLOSED" ]]; then
@@ -33,6 +29,8 @@ merge_wait_decide() {
     echo "wait:in-queue"
   elif [[ "$auto_merge" == "true" && "$running" == "true" ]]; then
     echo "wait:checks-running"
+  elif [[ "$auto_merge" != "true" && "$required_running" == "true" ]]; then
+    echo "wait:required-running"
   elif [[ "$auto_merge" != "true" ]]; then
     echo "exit:not-queued"
   else
@@ -164,7 +162,7 @@ main() {
   MW_RULES_TYPES="" MW_RULES_REQUIRED="" MW_RULES_ERROR=""
 
   local fails=0 rules_loaded=false rules_tries=0 base="" out
-  local last_line="" same_since=0 settle_since=0 now
+  local last_line="" same_since=0 settle_since=0 now required_waited=false
   local state queue auto mergeable mss failed rpend pend total names
   local missing running required state_line decision kind reason n
   local -a req_names
@@ -210,10 +208,19 @@ main() {
     fi
     state_line="${state} queue=${queue} auto-merge=${auto} mergeable=${mergeable} mergeStateStatus=${mss} required=${required} checks-pending=$((pend + missing))"
 
-    decision=$(merge_wait_decide "$state" "$queue" "$auto" "$mergeable" "$([[ "$failed" -gt 0 ]] && echo true || echo false)" "$running" "$mss")
+    decision=$(merge_wait_decide "$state" "$queue" "$auto" "$mergeable" "$([[ "$failed" -gt 0 ]] && echo true || echo false)" "$running" "$mss" \
+      "$([[ "$required" == "pending" ]] && echo true || echo false)")
     kind="${decision%%:*}"
     reason="${decision#*:}"
     now=$(date +%s)
+
+    # 予約の無い PR で必須チェックを待ち、通り終えたら required-passed にする。
+    # queue や予約の待ちを挟んだら、その後の not-queued は queue を出た意味なので、そのまま返す。
+    if [[ "$kind" == "wait" ]]; then
+      if [[ "$reason" == "required-running" ]]; then required_waited=true; else required_waited=false; fi
+    elif [[ "$reason" == "not-queued" && "$required_waited" == "true" ]]; then
+      reason="required-passed"
+    fi
 
     if [[ "$kind" == "exit" ]]; then
       case "$reason" in

@@ -9,10 +9,10 @@ import { extractReferencesIssueNumbers } from '../../domain/reference-parser.js'
 import { isJsonArray } from '../../domain/python-format.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { RestResponse } from './client.js'
-import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
+import { GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { IssuesApi } from './issues.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
-import { QUERY_GET_PULL_REQUEST_FOR_MERGE, QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
+import { QUERY_GET_PULL_REQUEST_FOR_MERGE, QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
 import { readPullRequests } from './readout.js'
 import { repositoryPath } from './rest-path.js'
 
@@ -87,6 +87,8 @@ export interface PullRequestForMerge {
   readonly isMergeQueueEnabled: boolean
   readonly isInMergeQueue: boolean
 }
+
+const MERGE_QUEUE_FIELD_ERROR = /(?:Field '|field ")(?:isMergeQueueEnabled|isInMergeQueue)['"]/u
 
 // eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
 const ASYNC_MERGE_STATUSES = ['pending', 'merged', 'enqueued', 'failed'] as const
@@ -297,27 +299,38 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
-  PR をマージする。mergeMethod は merge・squash・rebase。既定は squash
+  PR をマージする。mergeMethod は merge・squash・rebase。既定は squash。
+  sha を渡すと、head がその SHA でなければ GitHub が 409 で拒む
   */
-  async mergePullRequest(owner: string, repository: string, number: number, mergeMethod = 'squash'): Promise<JsonObject> {
+  async mergePullRequest(owner: string, repository: string, number: number, mergeMethod = 'squash', sha?: string): Promise<JsonObject> {
     return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
-      json: { merge_method: mergeMethod },
+      json: sha === undefined ? { merge_method: mergeMethod } : { merge_method: mergeMethod, sha },
     })
   }
 
   /**
-  pr merge の判断に使う PR の状態を読む（GraphQL）
+  pr merge の判断に使う PR の状態を読む（GraphQL）。
+  merge queue の項目を持たない GHES は、項目なしのクエリで読み直し、どちらも false にする
   */
   async getPullRequestForMerge(owner: string, repository: string, number: number): Promise<PullRequestForMerge> {
-    const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE, owner, repository, number)
+    let pullRequest: JsonValue
+    let hasQueueFields = true
+    try {
+      pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE, owner, repository, number)
+    }
+    catch (error: unknown) {
+      if (!isSchemaError(error) || !MERGE_QUEUE_FIELD_ERROR.test(error.message)) throw error
+      pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, owner, repository, number)
+      hasQueueFields = false
+    }
     return {
       number: requireNumber(jsonField(pullRequest, 'number'), 'pullRequest.number'),
       state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
       isDraft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
       baseRefName: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
       headRefOid: requireString(jsonField(pullRequest, 'headRefOid'), 'pullRequest.headRefOid'),
-      isMergeQueueEnabled: requiresBoolean(jsonField(pullRequest, 'isMergeQueueEnabled'), 'pullRequest.isMergeQueueEnabled'),
-      isInMergeQueue: requiresBoolean(jsonField(pullRequest, 'isInMergeQueue'), 'pullRequest.isInMergeQueue'),
+      isMergeQueueEnabled: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isMergeQueueEnabled'), 'pullRequest.isMergeQueueEnabled'),
+      isInMergeQueue: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isInMergeQueue'), 'pullRequest.isInMergeQueue'),
     }
   }
 

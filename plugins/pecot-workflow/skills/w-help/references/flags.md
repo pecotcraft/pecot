@@ -23,7 +23,7 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 | `.pecot-quick-mode` | 空（存在のみ） | `issue_create`（`freeform: true`・Epic 以外） | `exit-plan-remind.sh` | `session_finish`、`exit-plan-remind.sh` |
 | `pr-create-slash-pending` | 空（存在のみ） | `create-slash-flag.sh`（`/pecot-w:w-pr` 起動時） | `pecot-post-ask.sh` | `pr_create`（実投稿成功時）、`create-slash-cleanup.sh` |
 | `issue-create-slash-pending` | 起点のスキル名 | `create-slash-flag.sh`（`/pecot-w:w-quick`・`w-ready`・`w-backlog`・`w-issueize` 起動時） | `pecot-post-ask.sh` | `issue_create`（実投稿成功時）、`create-slash-cleanup.sh` |
-| `merge-slash-pending` | 空（存在のみ） | `create-slash-flag.sh`（`/pecot-w:w-merge` 起動時） | `pecot-post-ask.sh`、`external-post-check.sh` | `session_finish`（片付けの成功時）、`create-slash-cleanup.sh` |
+| `merge-slash-pending` | 空（存在のみ） | `create-slash-flag.sh`（`/pecot-w:w-merge` 起動時） | `pecot-post-ask.sh`、`external-post-check.sh` | `session_finish`（片付けの成功時）、`pr_merge`（マージを頼まずに止まったとき）、`create-slash-cleanup.sh` |
 | `issue-pending` | 起点のスキル名（`w-quick` / `w-ready`） | `pecot-issue-pending-state.sh`、`pecot-skill-reminder.sh` | `pecot-issue-pending-reminder.sh` | `issue_create`（実投稿成功時）、`issue-pending-cleanup.sh` |
 
 - `.pecot-active` は pecot-workflow の MCP ツール `session_finish` を通さずに片付けた場合などに残り、CLOSED の Issue を指すことがある。

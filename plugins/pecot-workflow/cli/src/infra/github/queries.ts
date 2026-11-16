@@ -675,6 +675,19 @@ export const QUERY_GET_PULL_REQUEST_FOR_MERGE = `query ($owner: String!, $repo: 
   }
 }`
 
+// 上のクエリから merge queue の項目を除いたもの。その項目を持たない GHES で読み直すのに使う
+export const QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      number
+      state
+      isDraft
+      baseRefName
+      headRefOid
+    }
+  }
+}`
+
 // PR詳細取得（レビュー詳細付き - --reviews オプション用）
 export const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {

@@ -203,6 +203,13 @@ describe('merge-wait.sh の判定の表', () => {
     // 未知の値は列挙に無いので抜ける
     { name: 'unknown-mss', words: ['OPEN', 'false', 'true', 'MERGEABLE', 'false', 'false', 'SOME_FUTURE_VALUE'], expected: 'exit:blocked' },
     { name: 'unknown-mergeable', words: ['OPEN', 'false', 'true', 'SOME_FUTURE_VALUE', 'false', 'false', 'BLOCKED'], expected: 'exit:blocked' },
+    // 8 つ目の語（必須の未完了）
+    { name: '9-required-running', words: ['OPEN', 'false', 'false', 'MERGEABLE', 'false', 'true', 'BLOCKED', 'true'], expected: 'wait:required-running' },
+    { name: 'no-auto-only-non-required-running', words: ['OPEN', 'false', 'false', 'MERGEABLE', 'false', 'true', 'CLEAN', 'false'], expected: 'exit:not-queued' },
+    { name: 'in-queue-required-running', words: ['OPEN', 'true', 'false', 'MERGEABLE', 'false', 'true', 'BLOCKED', 'true'], expected: 'wait:in-queue' },
+    { name: 'auto-merge-required-running', words: ['OPEN', 'false', 'true', 'MERGEABLE', 'false', 'true', 'BLOCKED', 'true'], expected: 'wait:checks-running' },
+    { name: 'no-auto-required-failed-and-running', words: ['OPEN', 'false', 'false', 'MERGEABLE', 'true', 'true', 'BLOCKED', 'true'], expected: 'exit:required-failed' },
+    { name: 'no-auto-conflicting-required-running', words: ['OPEN', 'false', 'false', 'CONFLICTING', 'false', 'true', 'DIRTY', 'true'], expected: 'exit:conflicting' },
   ]
 
   it.for(rows)('$name の語を与えると、$expected を返す', ({ words, expected }) => {
@@ -285,6 +292,75 @@ describe('待つ状態', () => {
     const result = runner.exec([response, MERGED])
     expect(result.exitCode).toBe(0)
     expect(splitLines(result.stdout)[0]).toBe('merge-wait: merged')
+    expect(countOf(runner.calls(), 'graphql')).toBe(2)
+  })
+})
+
+describe('予約の無い PR の必須チェックの待ち', () => {
+  const requiredRunning = variant('262', { contexts: [runPending('ci-result'), runCheck('version-plan')] })
+  const requiredUnreported = variant('262', { contexts: [runCheck('version-plan')] })
+
+  it('必須チェックが進行中のあと全部通るとき、required-passed で抜ける', () => {
+    const runner = setup()
+    const result = runner.exec([requiredRunning, load('262'), MERGED])
+    expect(result.exitCode).toBe(1)
+    expect(splitLines(result.stdout)).toEqual([
+      'merge-wait: required-passed',
+      'state: OPEN queue=false auto-merge=false mergeable=MERGEABLE mergeStateStatus=CLEAN required=passed checks-pending=0',
+    ])
+    expect(countOf(runner.calls(), 'graphql')).toBe(2)
+  })
+
+  it('settle が既定のときも、通ったらすぐ抜ける', () => {
+    const runner = setup()
+    const result = runner.exec([requiredRunning, load('262'), load('262')], [], { defaultArguments: ['--interval', '0'] })
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: required-passed')
+    expect(countOf(runner.calls(), 'graphql')).toBe(2)
+  })
+
+  it('ruleset の必須が未報告の間も待ち、通ったら required-passed で抜ける', () => {
+    const runner = setup()
+    const result = runner.exec([requiredUnreported, requiredRunning, load('262')])
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: required-passed')
+    expect(countOf(runner.calls(), 'graphql')).toBe(3)
+  })
+
+  it('待つ間に必須チェックが落ちるとき、required-failed で抜ける', () => {
+    const result = setup().exec([requiredRunning, load('263')])
+    expect(result.exitCode).toBe(1)
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: required-failed')
+  })
+
+  it('待つ間に queue へ入るとき、queue の中を待ち、MERGED で抜ける', () => {
+    const result = setup().exec([requiredRunning, variant('262', { queue: true }), MERGED])
+    expect(result.exitCode).toBe(0)
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: merged')
+  })
+
+  it('必須でないチェックだけが進行中のとき、待たず not-queued で抜ける', () => {
+    const runner = setup()
+    const result = runner.exec([variant('262', { contexts: [...PASSED, runPending('tests (slow)', false)] }), MERGED])
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: not-queued')
+    expect(countOf(runner.calls(), 'graphql')).toBe(1)
+  })
+
+  it('queue の中を待ったあと queue を出るとき、required-passed にせず not-queued で抜ける', () => {
+    const result = setup().exec([variant('262', { queue: true }), load('262')])
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: not-queued')
+  })
+
+  it('必須チェックを待ったあと queue を挟んで出るとき、not-queued で抜ける', () => {
+    const result = setup().exec([requiredRunning, variant('262', { queue: true }), load('262')])
+    expect(splitLines(result.stdout)[0]).toBe('merge-wait: not-queued')
+  })
+
+  it('同じ状態が続くとき、stalled で抜ける', () => {
+    const runner = setup()
+    const result = runner.exec([requiredRunning, requiredRunning, requiredRunning, load('262')], ['--stall-minutes', '0'])
+    expect(result.exitCode).toBe(1)
+    const lines = splitLines(result.stdout)
+    expect(lines[0]).toBe('merge-wait: stalled')
+    expect(lines[1]).toBe('state: OPEN queue=false auto-merge=false mergeable=MERGEABLE mergeStateStatus=CLEAN required=pending checks-pending=1')
     expect(countOf(runner.calls(), 'graphql')).toBe(2)
   })
 })
@@ -550,7 +626,7 @@ function step22(): string {
 }
 
 describe('SKILL.md', () => {
-  const REASONS = ['merged', 'closed', 'conflicting', 'required-failed', 'not-queued', 'blocked', 'stalled', 'query-failed']
+  const REASONS = ['merged', 'required-passed', 'closed', 'conflicting', 'required-failed', 'not-queued', 'blocked', 'stalled', 'query-failed']
 
   it('2.2 の bash ブロックは、until ループ無しでスクリプトを呼ぶ', () => {
     const block = /```bash\n(.*?)\n```/su.exec(step22())?.[1]
@@ -559,7 +635,7 @@ describe('SKILL.md', () => {
     expect(isAccessible(constants.F_OK)).toBe(true)
   })
 
-  it('2.2 の表は、8 つの理由を 1 行ずつ持つ', () => {
+  it('2.2 の表は、9 つの理由を 1 行ずつ持つ', () => {
     const rows = new Set(Array.from(step22().matchAll(/^\| `([a-z-]+)` \|/gmu), m => m[1]))
     expect(rows).toEqual(new Set(REASONS))
   })

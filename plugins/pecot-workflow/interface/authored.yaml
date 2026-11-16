@@ -2815,14 +2815,16 @@ entries:
     help:
       details:
         - Merges a PR with the asynchronous merge API of GitHub, for a PR in a stack and for a PR outside a stack alike.
-        - A draft PR is not merged, and the command stops with exit status 2 without sending the request.
+        - A draft PR, a closed PR and a merged PR are not merged, and the command stops with exit status 2 without sending the request.
+        - On a GitHub without the asynchronous merge API, a PR outside a stack is merged with the synchronous merge API and squash.
+        - When the command stops without sending the request, it removes the flag merge-slash-pending under .pecot/state/. With --dry-run it does not.
         - A PR in a stack is merged only when no PR below it in the stack is open. Otherwise the command stops with exit status 2 without sending the request, and the error line names the lowest open PR to merge first.
         - A repository without the stack API is handled as a PR outside a stack.
         - The request carries the head commit that was read, so a PR that was pushed after the read is not merged.
         - When the base branch has no merge queue, the merge method is squash. When it has a merge queue, no merge method is sent and the PR is added to the queue.
         - "After the request is accepted, reads the result every 2 seconds until it is merged, enqueued or failed, and stops with exit status 1 after 60 seconds."
         - When the same PR already has a merge request, keeps reading the result of that request.
-        - When the result can no longer be read, decides from the state of the PR whether it is merged or in the merge queue.
+        - When the result cannot be read, decides from the state of the PR whether it is merged or in the merge queue, and keeps reading until the 60 seconds pass.
         - Does not clean up after the merge. Run pecot session finish next.
         - "With --dry-run, reads the PR and its stack and writes a dry-run: would merge line without sending the request."
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
@@ -2840,14 +2842,16 @@ entries:
     constraints: []
     details:
       - 'GitHub の非同期のマージ API で PR をマージします。スタックの中の PR も、スタックの外の PR も同じです。'
-      - 'ドラフトの PR はマージしません。要求を送らずに、終了コード 2 で終わります。'
+      - 'ドラフトの PR、閉じている PR、マージ済みの PR はマージしません。要求を送らずに、終了コード 2 で終わります。'
+      - '非同期のマージ API が無い GitHub では、スタックの外の PR を、同期のマージ API で squash でマージします。'
+      - '要求を送らずに終わるときは、`.pecot/state/` の下のフラグ `merge-slash-pending` を消します。`--dry-run` のときは消しません。'
       - 'スタックの中の PR は、それより下に開いている PR が無いときだけマージします。あるときは、要求を送らずに終了コード 2 で終わり、先にマージするいちばん下の開いている PR を `error` の行に出します。'
       - 'スタックの API が無いリポジトリでは、スタックの外の PR として扱います。'
       - '要求には、読んだ head のコミットを添えます。読んだ後に push された PR は、マージしません。'
       - 'base ブランチに merge queue が無いときは、squash でマージします。あるときは、マージの方法を送らず、PR は merge queue に入ります。'
       - '要求が受け付けられた後は、結果を 2 秒おきに読みます。`merged`・`enqueued`・`failed` のどれかになるまで読み、60 秒で終わらなければ終了コード 1 で終わります。'
       - '同じ PR のマージの要求が既にあるときは、その要求の結果を読み続けます。'
-      - '結果を読めなくなったときは、PR の状態から、マージ済みか merge queue の中かを決めます。'
+      - '結果を読めないときは、PR の状態から、マージ済みか merge queue の中かを決めます。どちらでもなければ、60 秒が過ぎるまで読み直します。'
       - 'マージの後の片付けはしません。続けて `pecot session finish` を打ちます。'
       - '`--dry-run` を付けると、PR とスタックを読み、要求を送らずに `dry-run: would merge` の行を出します。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
@@ -2869,7 +2873,7 @@ entries:
         when: 'アクティブなプロジェクトがありません。'
       - kind: pr-state
         code: 2
-        when: 'PR がドラフトか、スタックの最下段ではありません。要求は送っていません。'
+        when: 'PR がドラフトか、閉じているか、マージ済みか、スタックの最下段ではありません。要求は送っていません。'
       - kind: pr-state
         code: 1
         when: 'GitHub がマージを拒みました。または、結果を読めず、PR がマージ済みでも merge queue の中でもありません。'
@@ -2908,6 +2912,9 @@ entries:
       - target: file
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
+      - target: file
+        kind: write
+        what: '要求を送らずに終わると、`.pecot/state/` の下のフラグ `merge-slash-pending` を消します。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
       - 'ホストの GitHub トークンが要ります。'
@@ -2952,7 +2959,7 @@ entries:
         statement: '結果を読めなくなると、PR の状態を読み直し、マージ済みなら `merged`、merge queue の中なら `added` の行を標準エラーに出します'
       - id: PW-PR-MERGE-11
         pattern: unwanted
-        statement: 'もし結果を読めず、PR がマージ済みでも merge queue の中でもないなら、終了コード 1 で終わります'
+        statement: 'もし結果を読めないまま 60 秒が過ぎ、PR がマージ済みでも merge queue の中でもないなら、終了コード 1 で終わります'
       - id: PW-PR-MERGE-12
         pattern: state
         statement: 'リポジトリにスタックの API が無い間、スタックの外の PR として扱います'
@@ -2962,6 +2969,21 @@ entries:
       - id: PW-PR-MERGE-14
         pattern: event
         statement: '`--dry-run` を付けて打つと、PR とスタックを読み、要求を送らずに `dry-run` の行を標準エラーに出します'
+      - id: PW-PR-MERGE-15
+        pattern: unwanted
+        statement: 'もし PR が閉じているかマージ済みなら、要求を送らずに終了コード 2 で終わります'
+      - id: PW-PR-MERGE-16
+        pattern: state
+        statement: 'GitHub に非同期のマージ API が無い間、スタックの外の PR を、読んだ head のコミットを添えた同期のマージ API で squash でマージします'
+      - id: PW-PR-MERGE-17
+        pattern: unwanted
+        statement: 'もしスタックの中の PR で非同期のマージ API が無いなら、同期のマージ API を呼ばずに終了コード 1 で終わります'
+      - id: PW-PR-MERGE-18
+        pattern: unwanted
+        statement: 'もし要求を送らずに終了コード 2 で終わるなら、フラグ `merge-slash-pending` を消します'
+      - id: PW-PR-MERGE-19
+        pattern: unwanted
+        statement: 'もし `--dry-run` を付けているか、GitHub がマージを拒んだなら、フラグ `merge-slash-pending` を消しません'
   PW-PR-SHOW:
     help:
       details:

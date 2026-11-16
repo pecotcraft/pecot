@@ -7,7 +7,7 @@ import { jsonField } from '../../../domain/json.js'
 import { JSON_NULL } from '../../../domain/json-null.js'
 import type { JsonValue } from '../../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
-import { failure, graphqlData, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
+import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
 
@@ -224,6 +224,12 @@ describe('mergePullRequest', () => {
     const { client, server } = await startClient([restResponse('PUT', '/repos/owner/repo/pulls/42/merge', { status: 200, body: merged })])
     expect(await client.mergePullRequest('owner', 'repo', 42, method)).toEqual(merged)
     expect(restRequests(server).map(({ method: requestMethod, body }) => ({ method: requestMethod, body }))).toEqual([{ method: 'PUT', body: { merge_method: expected } }])
+  })
+
+  it('sha を渡すと、merge_method と sha を PUT する', async () => {
+    const { client, server } = await startClient([restResponse('PUT', '/repos/owner/repo/pulls/42/merge', { status: 200, body: { merged: true } })])
+    expect(await client.mergePullRequest('owner', 'repo', 42, 'squash', 'abc123')).toEqual({ merged: true })
+    expect(restRequests(server).map(({ body }) => body)).toEqual([{ merge_method: 'squash', sha: 'abc123' }])
   })
 
   it('404 は GitHubNotFoundError', async () => {
@@ -475,6 +481,29 @@ describe('getPullRequestForMerge', () => {
   it('isMergeQueueEnabled が真偽値でなければ GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestForMerge', { repository: { pullRequest: mergeNode({ isMergeQueueEnabled: 'yes' }) } })])
     expect(await rejection(client.getPullRequestForMerge('owner', 'repo', 11))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.isMergeQueueEnabled'))
+  })
+
+  it.for([
+    'Field \'isMergeQueueEnabled\' doesn\'t exist on type \'PullRequest\'',
+    'Cannot query field "isInMergeQueue" on type "PullRequest"',
+  ])('merge queue の項目のスキーマの失敗（%s）は、項目なしのクエリで読み直し、どちらも false にする', async (message) => {
+    const withoutQueue = { number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123' }
+    const { client, server } = await startClient([
+      graphqlError('GetPullRequestForMerge', message),
+      graphqlData('GetPullRequestForMergeWithoutQueue', { repository: { pullRequest: withoutQueue } }),
+    ])
+    expect(await client.getPullRequestForMerge('owner', 'repo', 11)).toEqual({
+      number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123', isMergeQueueEnabled: false, isInMergeQueue: false,
+    })
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetPullRequestForMerge', 'GetPullRequestForMergeWithoutQueue'])
+  })
+
+  it('merge queue の項目でないスキーマの失敗は、読み直さずにそのまま投げる', async () => {
+    const { client, server } = await startClient([graphqlError('GetPullRequestForMerge', 'Cannot query field "headRefOid" on type "PullRequest"')])
+    const error = await rejection(client.getPullRequestForMerge('owner', 'repo', 11))
+    expect(error).toBeInstanceOf(GitHubAPIError)
+    expect(error).toHaveProperty('message', expect.stringContaining('Cannot query field "headRefOid" on type "PullRequest"'))
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetPullRequestForMerge'])
   })
 })
 

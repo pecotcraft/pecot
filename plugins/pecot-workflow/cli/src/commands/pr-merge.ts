@@ -5,9 +5,12 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
+import { jsonField, tryParseJsonText } from '../domain/json.js'
+import { FLAG_MERGE_SLASH_PENDING } from '../domain/state.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import type { AsyncMergeResult, PullRequestForMerge } from '../infra/github/pulls.js'
+import { consumeFlag } from '../infra/state-store.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -17,12 +20,14 @@ import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 
-// 要求を送らずに止める（ドラフト、スタックの最下段でない）
+// 要求を送らずに止める（ドラフト、閉じている、スタックの最下段でない）
 const NOT_MERGEABLE_EXIT_CODE = 2
 const POLL_INTERVAL_MILLISECONDS = 2000
 // R14 では 3〜8 秒で終わった。時刻でなく回数で数え、偽のタイマーでも同じに動かす
 const POLL_LIMIT = 30
 const POLL_LIMIT_SECONDS = (POLL_INTERVAL_MILLISECONDS * POLL_LIMIT) / 1000
+// 同期のマージ API が、マージできない（405）・head が sha と違う（409）ときに返す状態コード
+const SYNC_MERGE_REJECTED_STATUSES: ReadonlySet<number> = new Set([405, 409])
 
 const MergeInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
@@ -55,10 +60,22 @@ interface MergeContext {
   readonly name: string
   readonly base: string
   readonly suffix: string
+  readonly isInStack: boolean
 }
 
 function pathOf(target: Readonly<Target>): string {
   return `${target.owner}/${target.repository}/${String(target.number)}`
+}
+
+// マージまで進まずに止まるので、/pecot-w:w-merge が立てた確認の免除を残さない。dry-run は状態を変えない
+function stopNotMergeable(out: Readonly<Output<PrMergeData>>, message: string, isDryRun: boolean): never {
+  if (!isDryRun) consumeFlag(FLAG_MERGE_SLASH_PENDING)
+  return stopWith(out, message, 'pr-state', NOT_MERGEABLE_EXIT_CODE)
+}
+
+// 印は残す。w-merge は必須チェックを待って同じ PR に pr_merge を呼び直す
+function stopRejected(out: Readonly<Output<PrMergeData>>, reason: string): never {
+  return stopWith(out, `merge was rejected: ${reason}`, 'pr-state')
 }
 
 async function readPullRequest(out: Readonly<Output<PrMergeData>>, client: GitHubClient, target: Readonly<Target>): Promise<PullRequestForMerge> {
@@ -72,8 +89,14 @@ async function readPullRequest(out: Readonly<Output<PrMergeData>>, client: GitHu
   }
 }
 
+function checkState(out: Readonly<Output<PrMergeData>>, name: string, pullRequest: Readonly<PullRequestForMerge>, isDryRun: boolean): void {
+  if (pullRequest.state === 'MERGED') stopNotMergeable(out, `${name} is already merged`, isDryRun)
+  if (pullRequest.state !== 'OPEN') stopNotMergeable(out, `${name} is closed`, isDryRun)
+  if (pullRequest.isDraft) stopNotMergeable(out, `${name} is a draft`, isDryRun)
+}
+
 // 下の段に open の PR があれば止める。マージ済みで並びに残る PR は飛ばす。スタックの機能が無いリポは単独の PR として扱う
-async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubClient, target: Readonly<Target>): Promise<PrMergeData['stack']> {
+async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubClient, target: Readonly<Target>, isDryRun: boolean): Promise<PrMergeData['stack']> {
   let stack
   try {
     stack = await client.getStackOfPullRequest(target.owner, target.repository, target.number)
@@ -88,7 +111,7 @@ async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubC
   for (const lower of stack.pullRequests.slice(0, index)) {
     const pullRequest = await readPullRequest(out, client, { ...target, number: lower })
     if (pullRequest.state === 'OPEN') {
-      stopWith(out, `PR #${String(target.number)} is not the bottom of stack #${String(stack.number)}. Merge PR #${String(lower)} first`, 'pr-state', NOT_MERGEABLE_EXIT_CODE)
+      stopNotMergeable(out, `PR #${String(target.number)} is not the bottom of stack #${String(stack.number)}. Merge PR #${String(lower)} first`, isDryRun)
     }
   }
   return { number: stack.number, size: stack.pullRequests.length - index }
@@ -109,19 +132,29 @@ function finishEnqueued(context: Readonly<MergeContext>): 0 {
 function finishResult(context: Readonly<MergeContext>, result: Readonly<AsyncMergeResult>): 0 {
   if (result.status === 'merged') return finishMerged(context)
   if (result.status === 'enqueued') return finishEnqueued(context)
-  return stopWith(context.out, `merge was rejected: ${result.message ?? 'GitHub gave no reason'}`, 'pr-state')
+  return stopRejected(context.out, result.message ?? 'GitHub gave no reason')
 }
 
-// 結果を読めないときは、PR の状態から決める
-async function finishFromState(context: Readonly<MergeContext>): Promise<0> {
+// PR の状態から決める。マージ済みでもキューの中でもなければ undefined
+async function finishIfSettled(context: Readonly<MergeContext>): Promise<0 | undefined> {
   const pullRequest = await readPullRequest(context.out, context.client, context.target)
   if (pullRequest.state === 'MERGED') return finishMerged(context)
   if (pullRequest.isInMergeQueue) return finishEnqueued(context)
+  return undefined
+}
+
+function stopUnconfirmed(context: Readonly<MergeContext>): never {
   return stopWith(context.out, `could not confirm the merge of ${context.name}: it is neither merged nor in the merge queue`, 'pr-state')
 }
 
+async function finishFromState(context: Readonly<MergeContext>): Promise<0> {
+  return await finishIfSettled(context) ?? stopUnconfirmed(context)
+}
+
+// 結果の 404 は、消えた結果のほか、書いた直後の読み取りの遅れでも返る。そのときは期限まで読み直す
 async function pollResult(context: Readonly<MergeContext>, uuid: string): Promise<0> {
   const { owner, repository, number } = context.target
+  let isResultMissing = false
   for (let attempt = 0; attempt < POLL_LIMIT; attempt += 1) {
     await delay(POLL_INTERVAL_MILLISECONDS)
     let result
@@ -132,10 +165,38 @@ async function pollResult(context: Readonly<MergeContext>, uuid: string): Promis
       if (!(error instanceof GitHubAPIError)) throw error
       return stopWith(context.out, `could not read the merge result of PR ${pathOf(context.target)}: ${describeApiError(error)}`, kindOfFailure(error))
     }
-    if (result === undefined) return finishFromState(context)
+    if (result === undefined) {
+      isResultMissing = true
+      const settled = await finishIfSettled(context)
+      if (settled !== undefined) return settled
+      continue
+    }
+    isResultMissing = false
     if (result.status !== 'pending') return finishResult(context, result)
   }
-  return stopWith(context.out, `merge did not finish in ${String(POLL_LIMIT_SECONDS)}s. Check ${context.name}`, 'github-api')
+  return isResultMissing
+    ? stopUnconfirmed(context)
+    : stopWith(context.out, `merge did not finish in ${String(POLL_LIMIT_SECONDS)}s. Check ${context.name}`, 'github-api')
+}
+
+function reasonOf(error: Readonly<GitHubAPIError>): string {
+  const message = jsonField(tryParseJsonText(error.responseBody ?? ''), 'message')
+  return typeof message === 'string' && message !== '' ? message : describeApiError(error)
+}
+
+// merge-async の無い GHES 向け。sha を渡し、読んだ後に push された PR をマージしない
+async function mergeSynchronously(context: Readonly<MergeContext>, pullRequest: Readonly<PullRequestForMerge>): Promise<0> {
+  const { owner, repository, number } = context.target
+  try {
+    await context.client.mergePullRequest(owner, repository, number, 'squash', pullRequest.headRefOid)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    return error.statusCode !== undefined && SYNC_MERGE_REJECTED_STATUSES.has(error.statusCode)
+      ? stopRejected(context.out, reasonOf(error))
+      : stopWith(context.out, `could not merge PR ${pathOf(context.target)}: ${describeApiError(error)}`, kindOfFailure(error))
+  }
+  return finishMerged(context)
 }
 
 async function requestMerge(context: Readonly<MergeContext>, pullRequest: Readonly<PullRequestForMerge>): Promise<0> {
@@ -146,10 +207,13 @@ async function requestMerge(context: Readonly<MergeContext>, pullRequest: Readon
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    return stopWith(context.out, `could not merge PR ${pathOf(context.target)}: ${describeApiError(error)}`, kindOfFailure(error))
+    // 同期の API はスタックの PR を 403 で拒むので、スタックの中では戻さない
+    return error instanceof GitHubNotFoundError && !context.isInStack
+      ? mergeSynchronously(context, pullRequest)
+      : stopWith(context.out, `could not merge PR ${pathOf(context.target)}: ${describeApiError(error)}`, kindOfFailure(error))
   }
   switch (requested.outcome) {
-    case 'rejected': { return stopWith(context.out, `merge was rejected: ${requested.message}`, 'pr-state') }
+    case 'rejected': { return stopRejected(context.out, requested.message) }
     // 文書は 409 の本文の形を示していない。uuid が無ければ PR の状態から決める
     case 'conflict': { return requested.uuid === undefined ? finishFromState(context) : pollResult(context, requested.uuid) }
     case 'accepted': {
@@ -175,8 +239,8 @@ export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
     const name = `PR #${String(target.number)}`
 
     const pullRequest = await readPullRequest(out, client, target)
-    if (pullRequest.isDraft) stopWith(out, `${name} is a draft`, 'pr-state', NOT_MERGEABLE_EXIT_CODE)
-    const stack = await bottomOfStack(out, client, target)
+    checkState(out, name, pullRequest, input.dry_run)
+    const stack = await bottomOfStack(out, client, target, input.dry_run)
     out.result({ pullRequest: pathOf(target), base: pullRequest.baseRefName, ...stack !== undefined && { stack } })
 
     const suffix = stack === undefined ? '' : ` (stack #${String(stack.number)}, 1 of ${String(stack.size)})`
@@ -184,6 +248,6 @@ export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
       out.planned({ verb: 'merge', target: `${name} into ${pullRequest.baseRefName}${suffix}` })
       return 0
     }
-    return requestMerge({ out, client, target, name, base: pullRequest.baseRefName, suffix }, pullRequest)
+    return requestMerge({ out, client, target, name, base: pullRequest.baseRefName, suffix, isInStack: stack !== undefined }, pullRequest)
   },
 })
