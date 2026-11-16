@@ -19,9 +19,9 @@
   <img src="https://img.shields.io/badge/Spec_Kit-181717?style=flat-square&logo=github&logoColor=white" alt="Spec Kit">
 </p>
 
-## ドキュメント
+## 概要
 
-使い方のガイドと定義書は、GitHub Pages で公開する予定です。現在準備中です。
+現在準備中です。
 
 ## セットアップ
 
