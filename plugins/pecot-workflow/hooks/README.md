@@ -201,9 +201,10 @@ UserPromptSubmit                → user-prompt-submit-title.sh       → sessio
   git-sync が 3 回から 1 回になる。git-sync の pull は失敗時も 1 回だけ
 - Copilot の Skill は `Skill|skill` の matcher で判定する。
   スキル名は名前空間なしでも、自プラグインの `skills/<名前>/SKILL.md` が実在すれば自プラグインのスキルとして扱う
-- Copilot は SessionStart で、トップレベルの `additionalContext` だけをモデルに渡す。
+- Copilot は SessionStart / PostToolUse で、トップレベルの `additionalContext` だけをモデルに渡す。
   `hookSpecificOutput.additionalContext` と素のテキストは届かない。PreToolUse の `hookSpecificOutput` は届く。
-  `merge-hook-outputs.sh` が SessionStart でトップレベルにも同じ内容を出し、SessionStart も merge 経由の JSON にした。
+  `merge-hook-outputs.sh` がこの 2 イベントでトップレベルにも同じ内容を出し、SessionStart も merge 経由の JSON にした。
+  #466 で Copilot 向けの定義から PostToolUse が無くなり、トップレベルに出すのは SessionStart だけになった。
   Claude はトップレベルを読まないので、二重に入らない
 
 ### 変更後の記録

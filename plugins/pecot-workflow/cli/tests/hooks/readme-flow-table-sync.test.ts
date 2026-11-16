@@ -8,8 +8,9 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { compareStrings } from '../parity/baseline.js'
+import { frontmatter } from '../skills/_helpers/frontmatter.js'
 import { toArray, toRecord } from './_helpers/json.js'
-import { hooksDirectory } from './_helpers/paths.js'
+import { hooksDirectory, pluginRoot } from './_helpers/paths.js'
 import { parseJson, splitLines } from './_helpers/text.js'
 
 // 表の「lib ディスパッチ」列に現れる総称表記。lib 名の突合の対象から外す。ここに無い非 lib 名のトークンは落とす。
@@ -207,6 +208,26 @@ function hooksJsonEntries(): ConfigEntry[] {
   return configEntries('hooks.json')
 }
 
+// スキルの frontmatter の hooks の command が指す、hooks/ 直下のエントリの名前。
+function skillHookEntryNames(): Set<string> {
+  const names = new Set<string>()
+  const collect = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) collect(item)
+    }
+    else if (typeof value === 'object' && value !== null) {
+      for (const [key, child] of Object.entries(value)) {
+        const name = key === 'command' && typeof child === 'string' ? /\/hooks\/(?<name>[\w-]+\.sh)\b/u.exec(child)?.groups?.['name'] : undefined
+        if (name === undefined) collect(child)
+        else names.add(name)
+      }
+    }
+  }
+  const skillFiles = globSync('skills/*/SKILL.md', { cwd: pluginRoot })
+  for (const file of skillFiles) collect(frontmatter(path.join(pluginRoot, file))['hooks'])
+  return names
+}
+
 // basename が表の glob に合うものを、そのパターンの表記に寄せる。
 function normalizeToPatterns(entries: readonly ConfigEntry[], patterns: readonly string[]): Set<string> {
   const globs = patterns.filter(pattern => pattern.includes('*'))
@@ -296,9 +317,10 @@ describe('README のフロー表', () => {
     for (const row of flowRows()) {
       for (const name of expandPattern(row.scriptPattern)) expected.set(name, row.libs)
     }
-    // hooks.json に登録しないエントリ（スキルの frontmatter から呼ぶもの）は、図に載せない。
-    const configured = new Set(hooksJsonEntries().map(entry => entry.name))
-    const actual = new Map(globSync('*.sh', { cwd: hooksDirectory }).filter(name => configured.has(name)).toSorted(compareStrings).map(name => [name, dispatchedLibs(path.join(hooksDirectory, name))]))
+    // スキルの frontmatter から呼ぶエントリは、hooks.json に無いので図に載せない。
+    const fromSkills = skillHookEntryNames()
+    expect(fromSkills.size, 'スキルの frontmatter から呼ぶエントリ').toBeGreaterThan(0)
+    const actual = new Map(globSync('*.sh', { cwd: hooksDirectory }).filter(name => !fromSkills.has(name)).toSorted(compareStrings).map(name => [name, dispatchedLibs(path.join(hooksDirectory, name))]))
 
     const expectedNames = new Set(expected.keys())
     const actualNames = new Set(actual.keys())

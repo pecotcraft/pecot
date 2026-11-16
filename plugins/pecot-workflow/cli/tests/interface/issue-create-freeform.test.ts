@@ -50,7 +50,7 @@ describe('issue create', () => {
     const post = github.requests().find(request => request.type === 'rest')
     expect(post).toMatchObject({ body: { title: `[Task] ${MESSAGE}` } })
     expect(post?.type === 'rest' ? JSON.stringify(post.body) : '').toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
-    expect(hasQuickMode(project.root)).toBe(false) // 起票してボードに入れても、古い版のフラグは作らない
+    expect(hasQuickMode(project.root)).toBe(false)
     expect(existsSync(path.join(project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 

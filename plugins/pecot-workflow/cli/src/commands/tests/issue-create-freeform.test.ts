@@ -31,7 +31,7 @@ function hasFile(root: string, relative: string): boolean {
 }
 
 describe('issue create --freeform', () => {
-  it('メッセージとリポジトリで起票し、priority medium・size s と型の既定の status を付け', async () => {
+  it('メッセージとリポジトリで起票し、priority medium・size s と型の既定の status を付け、.pecot-quick-mode を作らない', async () => {
     const project = setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
 
