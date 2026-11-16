@@ -98,4 +98,6 @@ claude plugin update pecot-v@pecot
 
 プロジェクトスコープでインストールした場合は、`-s project` を付けて実行してください。
 
+## ライセンス
+
 MIT License で公開しています。詳しくは [LICENSE](LICENSE) を参照してください。
