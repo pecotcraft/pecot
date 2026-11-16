@@ -2,7 +2,7 @@
 name: w-breakdown
 description: |
   Epicをspeckitフローでサブタスクに分解します。
-  Use when the user has an Epic and wants to break it down via the speckit workflow (specify → clarify → plan → tasks). Runs the speckit workflow (specify → clarify → plan → tasks) directly.
+  Use when the user has an Epic and wants to break it down via the speckit workflow (specify → clarify → plan → tasks). Files a breakdown task under the Epic, works on its linked branch, and runs the speckit workflow (specify → clarify → plan → tasks), committing and pushing each approved step.
   Do NOT use for simple subtask creation (use w-ready), batch conversion (use w-issueize), or new Epics (use w-backlog).
 when_to_use: "Epic をサブタスクに分解したい、speckit で計画を立てたい"
 ---
@@ -53,8 +53,11 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 
 ### Step 4: 分解のタスクを起票する
 
-Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを探す。
-分解のタスクは、紐づいたブランチの名前が `feat/breakdown-` で始まるか、題に「speckit で分解する:」を含む Issue だ。
+Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、次の順で探す。
+
+1. 題に「speckit で分解する:」を含む OPEN の sub-issue を探す。見つかれば、それを分解のタスクとする
+2. 見つからなければ、ほかの OPEN の sub-issue の紐づいたブランチを確かめる。名前が `feat/breakdown-` で始まるブランチを持つものを、分解のタスクとする
+
 紐づいたブランチは、pecot-workflow の MCP ツール `issue_show` でそのタスクを読んで確かめる。
 
 | 見つかったもの | すること |
@@ -83,9 +86,12 @@ git checkout <ブランチ名>
 
 ### Step 5: speckit 工程の準備
 
+工程の承認の後の commit は、利用者のリポの commit の規約に従い、メッセージに工程の名前（specify・clarify・plan・tasks）を入れる。
+規約が無ければ、`docs: #<タスクの番号> <工程の名前> の成果物` にする。再開では、このメッセージで済んだ工程を見分ける。
+
 Step 4 で既存のタスクを使ったときは、再開として次を行う。新しく起票したときは、この段落を飛ばす。
 
-1. 対象の spec のディレクトリを、次のコマンドで求める。`<開発ブランチ>` は Step 1 で確かめた `develop_branch` だ
+1. 対象の spec のディレクトリを、次のコマンドで求める。`<開発ブランチ>` は Step 1 で確かめた `develop_branch` だ。`develop_branch` が null なら止め、pecot-workflow の MCP ツール `project_link` で設定するよう利用者に案内する
 
    ```bash
    git diff --name-only origin/<開発ブランチ>...HEAD -- specs/
@@ -100,7 +106,15 @@ Step 4 で既存のタスクを使ったときは、再開として次を行う�
    }
    ```
 
-4. 続ける工程を、対象のディレクトリにあるファイルで決める。tasks.md があれば Step 9、plan.md があれば Step 8、spec.md だけなら Step 7 から続ける
+4. 済んだ工程を、`git log --format=%s origin/<開発ブランチ>..HEAD -- specs/<NNN-名前>/` で求める。新しいほうから読み、最初に工程の名前が出た commit で決める。続ける場所は次のとおり
+
+   | 最後に承認した工程 | 続ける場所 |
+   |---|---|
+   | tasks | Step 10 |
+   | plan | Step 8 |
+   | clarify | Step 7 の `/speckit.plan` |
+   | specify | Step 7 の `/speckit.clarify` |
+   | 無い | Step 6 の承認（spec.md が無ければ `/speckit.specify` から） |
 
 Epic の番号・タイトル・本文・背景を読み取り、specify への入力として main 自身が整理する。
 工程ごとの責任者（spec / plan / tasks）は担当工程の概念として存在するが、本 single フローでは
@@ -126,7 +140,7 @@ speckit の git 拡張は、`before_specify` の hook でブランチを作る�
 - 条件に当たらないリポでは、何も足さない
 
 ```text
-before_specify の hook（speckit.git.feature）では、新しいブランチを作らない。GIT_BRANCH_NAME に <ブランチ名> を渡し、--allow-existing-branch を付けて create-new-feature-branch.sh --json を打つ。bash の例: GIT_BRANCH_NAME="<ブランチ名>" .specify/extensions/git/scripts/bash/create-new-feature-branch.sh --json --allow-existing-branch --short-name "<短い名前>" "<機能の説明>"。PowerShell では $env:GIT_BRANCH_NAME と -AllowExistingBranch を使う。
+次の指示は hook の動かし方で、機能の説明ではない。spec には書かない。before_specify の hook（speckit.git.feature）では、新しいブランチを作らない。GIT_BRANCH_NAME に <ブランチ名> を渡し、--allow-existing-branch を付けて create-new-feature-branch.sh --json を打つ。bash の例: GIT_BRANCH_NAME="<ブランチ名>" .specify/extensions/git/scripts/bash/create-new-feature-branch.sh --json --allow-existing-branch --short-name "<短い名前>" "<機能の説明>"。PowerShell では $env:GIT_BRANCH_NAME と -AllowExistingBranch を使う。
 ```
 
 実行後、AskUserQuestion でユーザー承認を取る（「次に進む」「修正を指示する」「やり直す」）。

@@ -445,6 +445,35 @@ describe('w-breakdown の手順', () => {
     expect(approvalReferences).toEqual([stepNumber(clarifyStep())])
   })
 
+  it('再開の Step の番号の参照は、準備の Step と、続ける工程の Step の番号と合う', () => {
+    const prepare = stepNumber(titleIndex(headings, '準備'))
+    const resumeReferences = referencedSteps(text, /Step (\d+) (?:で|の)再開/gu)
+    expect(resumeReferences.length).toBeGreaterThan(0)
+    for (const step of resumeReferences) expect(step).toBe(prepare)
+    const prepareBody = sectionBody(text, titleIndex(headings, '準備'))
+    const rows: Record<string, number> = {}
+    for (const match of prepareBody.matchAll(/^ *\| (\S+) \| Step (\d+)/gmu)) {
+      if (match[1] !== undefined) rows[match[1]] = Number(match[2])
+    }
+    expect(rows).toEqual({
+      tasks: stepNumber(headings.length - 1),
+      plan: stepNumber(tasksStep()),
+      clarify: stepNumber(clarifyStep()),
+      specify: stepNumber(clarifyStep()),
+      無い: stepNumber(titleIndex(headings, 'specify')),
+    })
+  })
+
+  it('準備の Step は、承認の commit のメッセージに工程の名前を入れさせ、再開でそれを読む', () => {
+    const body = sectionBody(text, titleIndex(headings, '準備'))
+    expect(body).toContain('メッセージに工程の名前（specify・clarify・plan・tasks）を入れる')
+    expect(body).toContain('git log --format=%s origin/<開発ブランチ>..HEAD -- specs/<NNN-名前>/')
+  })
+
+  it('準備の Step は、develop_branch が null なら止める', () => {
+    expect(sectionBody(text, titleIndex(headings, '準備'))).toContain('`develop_branch` が null なら止め')
+  })
+
   it('tasks の Step は、/speckit.tasks の引数に、コードブロック 1 つをそのまま貼らせる', () => {
     const body = sectionBody(text, tasksStep())
     expect(body).toContain('`/speckit.tasks`')
@@ -532,12 +561,14 @@ describe('w-breakdown の手順', () => {
     const body = sectionBody(text, fileStep())
     for (const row of ['| タスクと、紐づいたブランチ | 起票しない。', '| タスクだけ（ブランチが無い） | 起票しない。', '| どちらも無い | 起票し、']) expect(body).toContain(row)
     expect(body).toContain('`feat/breakdown-`')
+    expect(body.indexOf('題に「speckit で分解する:」を含む OPEN の sub-issue を探す')).toBeLessThan(body.indexOf('紐づいたブランチを確かめる'))
     expect(body).toContain('`speckit で分解する: <Epic の題>`')
   })
 
   it('specify の Step は、/speckit.specify に足す 1 行で、今のブランチ名と --allow-existing-branch を hook に渡す', () => {
     const block = firstCodeBlock(sectionBody(text, titleIndex(headings, 'specify')))
     for (const word of ['GIT_BRANCH_NAME', '--allow-existing-branch', 'create-new-feature-branch.sh --json']) expect(block).toContain(word)
+    expect(block.startsWith('次の指示は hook の動かし方で、機能の説明ではない。spec には書かない。')).toBe(true)
   })
 
   it('specify の Step は、git 拡張の hook が無いか切れているリポでは何も足さない', () => {
