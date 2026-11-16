@@ -61,7 +61,7 @@ describe('workflow-compliance-injector.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  // 地の文でコマンド名に言及しただけの入力に指示テキストを混ぜないため、先頭行のみを判定対象にする（create-slash-flag.sh と同じ判定スコープ）。
+  // 地の文でコマンド名に言及しただけの入力に指示テキストを混ぜないため、先頭行のみを判定対象にする。
   // 改行を含むため stdin は jsonDumps で組み立てる。
   it.for([
     { label: '短縮形', prompt: '手順:\n/w-pr を使う' },

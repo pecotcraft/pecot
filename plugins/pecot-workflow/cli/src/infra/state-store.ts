@@ -70,7 +70,7 @@ export function removeFlag(flagName: string): void {
 }
 
 /**
-実投稿成功時にスラッシュコマンド免除フラグを消費（削除）する。
+実投稿成功時に、起票未完了のフラグなど、投稿の完了で要らなくなるフラグを消費（削除）する。
 投稿自体は成功しているため、フラグ解決の失敗（git リポ外等）でコマンドを失敗させない
 */
 export function consumeFlag(flagName: string): void {

@@ -1498,7 +1498,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。フラグ `issue-create-slash-pending` を消すのは、一括のすべてのファイルを処理した後だけです。blocked-by を足せなかったときも消します。一括が途中で止まったときは残ります。`issue-pending` は、Issue を作るたびに消します。blocked-by を足せなかったときは、`warning` を書き、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、失敗した blocked-by を付け直すコマンドを書き、終了コード 1 で終わります。プロジェクトのボードに足せなかったときは、`warning` を書きます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`error` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、`error` を書き、何も作りません。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。失敗がボードへの追加だけのときは、終了コード 0 で終わります。'
+    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。`issue-pending` は、Issue を作るたびに消します。blocked-by を足せなかったときは、`warning` を書き、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、失敗した blocked-by を付け直すコマンドを書き、終了コード 1 で終わります。プロジェクトのボードに足せなかったときは、`warning` を書きます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`error` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、`error` を書き、何も作りません。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。失敗がボードへの追加だけのときは、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: write
@@ -1508,7 +1508,7 @@ entries:
         what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。`--dry-run` のときは、読むだけです。'
       - target: file
         kind: write
-        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`.pecot/state/` の下のフラグ `issue-pending` と `issue-create-slash-pending` を消します。`--freeform` で `epic` と `tracker` 以外をボードに入れると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
+        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`.pecot/state/` の下のフラグ `issue-pending` を消します。`--freeform` で `epic` と `tracker` 以外をボードに入れると、フラグ `.pecot-quick-mode` を作ります。`--dry-run` のときは、どれも書きません。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -1720,7 +1720,7 @@ entries:
         statement: '`--freeform` に `--parent-epic` を付けて打つと、その Epic の sub-issue につなぎます。Epic に付けたときは、`warning` の行を標準エラーに出します'
       - id: PW-ISSUE-CREATE-64
         pattern: event
-        statement: '`--freeform` で `epic` と `tracker` 以外をボードに入れると、`.pecot/state/.pecot-quick-mode` を作ります。フラグ `issue-pending` と `issue-create-slash-pending` は消します'
+        statement: '`--freeform` で `epic` と `tracker` 以外をボードに入れると、`.pecot/state/.pecot-quick-mode` を作ります。フラグ `issue-pending` は消します'
       - id: PW-ISSUE-CREATE-65
         pattern: unwanted
         statement: 'もし `--freeform` でボードへの追加に失敗したなら、`warning` の行と作った Issue の URL を出し、欄の設定をせず、終了コード 0 で終わります'
@@ -1753,7 +1753,7 @@ entries:
         statement: 'もし `--freeform` でボードへの追加に失敗したなら、`.pecot/state/.pecot-quick-mode` を作りません'
       - id: PW-ISSUE-CREATE-75
         pattern: event
-        statement: '`--freeform` で Issue を作ると、その直後にフラグ `issue-pending` と `issue-create-slash-pending` を消します。後の手順が失敗しても、フラグは残りません'
+        statement: '`--freeform` で Issue を作ると、その直後にフラグ `issue-pending` を消します。後の手順が失敗しても、フラグは残りません'
   PW-ISSUE-REOPEN:
     help:
       details:
@@ -2445,7 +2445,6 @@ entries:
         - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
         - "With --dry-run and an open PR of the layer below, also writes the line dry-run: would add the new PR to the stack of PR #<below>."
         - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
-        - Removes the flag pr-create-slash-pending after the PR is created.
       examples:
         - run: pecot pr create --prepare
           note: Write a PR template and print its path.
@@ -2503,7 +2502,6 @@ entries:
       - '`--dry-run` を付けると、検証して `dry-run: would` の行を書き、PR は作りません。'
       - '`--dry-run` で下の段の PR が開いているときは、スタックへの登録の予定も書きます。行は `dry-run: would add the new PR to the stack of PR #<下>` です。'
       - 'PR を作った後、head ブランチが指す Issue を In Review にします。テンプレートが `release` のときは行いません。'
-      - 'PR を作った後、フラグ `pr-create-slash-pending` を消します。'
     stdin: none
     output:
       format: text
@@ -2602,7 +2600,7 @@ entries:
         what: 'リリースの種類が nx のリポジトリでは、`nx graph` を動かしてプロジェクトの一覧を取ります。'
       - target: file
         kind: write
-        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。`.pecot/state/` の下のフラグ `pr-create-slash-pending` を消します。'
+        what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。'
       - target: file
         kind: read
         what: 'PR のファイル、テンプレート、アクティブな設定ファイル、`.pecot/state/.pecot-active` を読みます。'
@@ -2691,9 +2689,6 @@ entries:
       - id: PW-PR-CREATE-23
         pattern: event
         statement: 'PR を作ると、関連 Issue のボードの status を In Review にします'
-      - id: PW-PR-CREATE-24
-        pattern: event
-        statement: 'PR を作ると、`pr-create-slash-pending` を消します'
       - id: PW-PR-CREATE-25
         pattern: event
         statement: 'PR を作ると、その URL を標準出力に出します'
@@ -2820,7 +2815,6 @@ entries:
         - Merges a PR with the asynchronous merge API of GitHub, for a PR in a stack and for a PR outside a stack alike.
         - A draft PR, a closed PR and a merged PR are not merged, and the command stops with exit status 2 without sending the request.
         - On a GitHub without the asynchronous merge API, a PR outside a stack is merged with the synchronous merge API and squash.
-        - When the command stops without sending the request, it removes the flag merge-slash-pending under .pecot/state/. With --dry-run it does not.
         - A PR in a stack is merged only when no PR below it in the stack is open. Otherwise the command stops with exit status 2 without sending the request, and the error line names the lowest open PR to merge first.
         - A repository without the stack API is handled as a PR outside a stack.
         - The request carries the head commit that was read, so a PR that was pushed after the read is not merged.
@@ -2847,7 +2841,6 @@ entries:
       - 'GitHub の非同期のマージ API で PR をマージします。スタックの中の PR も、スタックの外の PR も同じです。'
       - 'ドラフトの PR、閉じている PR、マージ済みの PR はマージしません。要求を送らずに、終了コード 2 で終わります。'
       - '非同期のマージ API が無い GitHub では、スタックの外の PR を、同期のマージ API で squash でマージします。'
-      - '要求を送らずに終わるときは、`.pecot/state/` の下のフラグ `merge-slash-pending` を消します。`--dry-run` のときは消しません。'
       - 'スタックの中の PR は、それより下に開いている PR が無いときだけマージします。あるときは、要求を送らずに終了コード 2 で終わり、先にマージするいちばん下の開いている PR を `error` の行に出します。'
       - 'スタックの API が無いリポジトリでは、スタックの外の PR として扱います。'
       - '要求には、読んだ head のコミットを添えます。読んだ後に push された PR は、マージしません。'
@@ -2915,9 +2908,6 @@ entries:
       - target: file
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
-      - target: file
-        kind: write
-        what: '要求を送らずに終わると、`.pecot/state/` の下のフラグ `merge-slash-pending` を消します。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
       - 'ホストの GitHub トークンが要ります。'
@@ -2981,12 +2971,6 @@ entries:
       - id: PW-PR-MERGE-17
         pattern: unwanted
         statement: 'もしスタックの中の PR で非同期のマージ API が無いなら、同期のマージ API を呼ばずに終了コード 1 で終わります'
-      - id: PW-PR-MERGE-18
-        pattern: unwanted
-        statement: 'もし要求を送らずに終了コード 2 で終わるなら、フラグ `merge-slash-pending` を消します'
-      - id: PW-PR-MERGE-19
-        pattern: unwanted
-        statement: 'もし `--dry-run` を付けているか、GitHub がマージを拒んだなら、フラグ `merge-slash-pending` を消しません'
   PW-PR-RESTACK:
     help:
       details:
@@ -5074,7 +5058,7 @@ entries:
         - A wip/<head> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
         - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
         - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
-        - After the local cleanup, removes the flags .pecot-active, .pecot-base, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked and the flag merge-slash-pending under .pecot/state/.
+        - After the local cleanup, removes the flags .pecot-active, .pecot-base, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked under .pecot/state/.
         - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
         - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
         - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
@@ -5106,7 +5090,7 @@ entries:
       - '`wip/<head>` があるのに削除できないときは、`warning` を出し、終了コード 0 で終わります。'
       - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`pecot worktree add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
-      - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-active`・`.pecot-base`・`.pecot-session-title`・`.pecot-quick-mode`・`.wip-branch-linked` です。フラグ `merge-slash-pending` も消します。'
+      - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-active`・`.pecot-base`・`.pecot-session-title`・`.pecot-quick-mode`・`.wip-branch-linked` です。'
       - '`--skip-local-cleanup` を付けると、ローカルを片付けず、これらのフラグも残します。'
       - '`--dry-run` を付けると、結果の行の代わりに `dry-run: would` の行を書き、何も変えません。'
       - '2 回目の実行の後の状態は 1 回目と同じですが、書く行は違います。リモートブランチは `unchanged` として知らせ、ローカルのブランチへの `git branch -D` は `warning` になります。'
@@ -5219,13 +5203,13 @@ entries:
         statement: 'pull すると、ローカルの head ブランチを `git branch -D` で削除します'
       - id: PW-SESSION-FINISH-09
         pattern: event
-        statement: 'ローカルの片付けを終えると、フラグのファイルと `merge-slash-pending` を消します'
+        statement: 'ローカルの片付けを終えると、フラグのファイルを消します'
       - id: PW-SESSION-FINISH-10
         pattern: event
         statement: '`--skip-local-cleanup` を付けて打つと、ローカルの片付けをしません'
       - id: PW-SESSION-FINISH-11
         pattern: event
-        statement: '`--skip-local-cleanup` を付けて打つと、フラグのファイルと `merge-slash-pending` を消しません'
+        statement: '`--skip-local-cleanup` を付けて打つと、フラグのファイルを消しません'
       - id: PW-SESSION-FINISH-12
         pattern: event
         statement: '`--dry-run` を付けて打つと、何も変えずに `dry-run: would` の行を標準エラーに出します'

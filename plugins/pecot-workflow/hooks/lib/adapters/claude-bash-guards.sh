@@ -12,11 +12,9 @@
 #   2. gh-command-check.sh           → exit 1ならdeny JSON出力して終了
 #   3. git-worktree-branch-check.sh  → exit 1ならdeny JSON出力して終了
 #   4. git-no-verify-check.sh        → exit 1ならdeny JSON出力して終了
-#   5. pecot-cli-deny.sh             → exit 1ならdeny JSON出力して終了（Bash の pecot 起動を MCP ツールへ誘導）
-#   6. external-post-check.sh       → exit 11ならask JSON出力して終了（gh pr merge のみ）
-#   7. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
-#      （全deny/askガード通過後のみ実行。deny/ask > allow の不変条件を維持）。
-#   8. 保持していた警告があれば出力
+#   5. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
+#      （全denyガード通過後のみ実行。deny > allow の不変条件を維持）。
+#   6. 保持していた警告があれば出力
 #
 # deny は hookSpecificOutput.permissionDecision で返す。
 # トップレベルの decision:block は使わない。
@@ -32,19 +30,10 @@ output_block_json() {
     jq -n --arg reason "$1" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": $reason}}'
 }
 
-# 大きすぎるコマンドは、PECOT_HOOK_COMMAND が export されず、内容を確認できない。
-# 環境変数 1 個が 128KiB を超えると、子プロセスの execve が失敗し、コアのガードが動かないまま素通しになるため。
-# 素通しにせず、利用者の確認に回す（fail-closed）。
-if [ "${PECOT_HOOK_COMMAND_OVERSIZE:-}" = "1" ]; then
-    OVERSIZE_MSG=$(hook_message warning "the Bash command exceeds ${PECOT_HOOK_COMMAND_MAX_BYTES} bytes, so the guards cannot inspect it. Review the command before allowing it.")
-    jq -n --arg reason "$OVERSIZE_MSG" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": $reason}}'
-    exit 0
-fi
-
 # Bashツールのcommand（hook-input.sh が export 済み）。
 COMMAND="${PECOT_HOOK_COMMAND:-}"
 
-# コマンドが空なら何もしない。
+# コマンドが空なら何もしない。大きすぎるコマンドも export されず空になり、ガードを通さずに素通しする。
 if [ -z "$COMMAND" ]; then
     exit 0
 fi
@@ -100,28 +89,7 @@ if [ "$NOVERIFY_EXIT" -eq 1 ]; then
     exit 0
 fi
 
-# --- 5. pecot-cli-deny（exit 1 = ブロック）---
-# 設定キー pecot-cli-deny は、コアスクリプトの中で見る。
-CLI_DENY_OUTPUT=$("$CORE_DIR/pecot-cli-deny.sh" 2>/dev/null)
-CLI_DENY_EXIT=$?
-
-if [ "$CLI_DENY_EXIT" -eq 1 ]; then
-    output_block_json "$CLI_DENY_OUTPUT"
-    exit 0
-fi
-
-# --- 6. external-post-check（exit 11 = ask）---
-# 11 以外の非ゼロ終了（コアスクリプトの内部エラー等）は素通しになる（fail-open）。
-# ガードの誤動作で正当な操作を止め続けるより素通しを選ぶ意図的な設計。
-EXTERNAL_POST_OUTPUT=$("$CORE_DIR/external-post-check.sh" 2>/dev/null)
-EXTERNAL_POST_EXIT=$?
-
-if [ "$EXTERNAL_POST_EXIT" -eq 11 ]; then
-    jq -n --arg reason "$EXTERNAL_POST_OUTPUT" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": $reason}}'
-    exit 0
-fi
-
-# --- 7. tech-advisor-clone-allow（exit 10 = 自動許可）---
+# --- 5. tech-advisor-clone-allow（exit 10 = 自動許可）---
 ALLOW_OUTPUT=$("$CORE_DIR/tech-advisor-clone-allow.sh" 2>/dev/null)
 ALLOW_EXIT=$?
 
@@ -130,7 +98,7 @@ if [ "$ALLOW_EXIT" -eq 10 ]; then
     exit 0
 fi
 
-# --- 8. 警告出力（ブロックなし）---
+# --- 6. 警告出力（ブロックなし）---
 if [ -n "$CHECKOUT_WARNING" ]; then
     echo "$CHECKOUT_WARNING"
 fi

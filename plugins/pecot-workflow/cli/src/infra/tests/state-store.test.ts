@@ -87,9 +87,9 @@ describe('removeFlag', () => {
 describe('consumeFlag', () => {
   it('フラグを消す', () => {
     useProject()
-    touchFlag('pr-create-slash-pending')
-    consumeFlag('pr-create-slash-pending')
-    expect(hasFlag('pr-create-slash-pending')).toBe(false)
+    touchFlag('issue-pending')
+    consumeFlag('issue-pending')
+    expect(hasFlag('issue-pending')).toBe(false)
   })
 
   it('プロジェクトルートが解決できなくても例外にしない（投稿は成功している）', () => {

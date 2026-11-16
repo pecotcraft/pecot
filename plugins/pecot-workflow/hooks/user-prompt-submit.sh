@@ -8,5 +8,4 @@ source "$CORE_DIR/project-root.sh" "$INPUT"
 echo "$INPUT" | "$CORE_DIR/pecot-dir-init-detect.sh"
 echo "$INPUT" | "$LIB_DIR/workflow-compliance-injector.sh"
 echo "$INPUT" | "$LIB_DIR/pecot-issue-pending-state.sh"
-echo "$INPUT" | "$LIB_DIR/create-slash-flag.sh"
 exit 0

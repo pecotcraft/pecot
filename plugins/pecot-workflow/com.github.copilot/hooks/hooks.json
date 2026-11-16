@@ -23,16 +23,6 @@
         ]
       },
       {
-        "matcher": "mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-mcp.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "Skill|skill",
         "hooks": [
           {

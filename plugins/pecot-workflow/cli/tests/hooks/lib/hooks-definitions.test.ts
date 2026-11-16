@@ -281,21 +281,27 @@ describe('Copilot CLI の matcher', () => {
     expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PostToolUse', 'post-tool-use-exit-plan-mode.sh')).toEqual(['ExitPlanMode|exit_plan_mode'])
   })
 
-  it('pecot-workflow の MCP の matcher は、GitHub MCP の PR 作成を含む', () => {
-    const matchers = matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-mcp.sh')
-    expect(matchers).toEqual(['mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*'])
-  })
-
   it('pecot-visual の skill の matcher は、生の tool 名を含む', () => {
     const matchers = matchersOf(load(VISUAL, COPILOT_VISUAL), 'PreToolUse', 'pre-tool-use-skill.sh')
     expect(matchers).toEqual(['Skill|skill'])
   })
 
-  it('Claude の skill と MCP の matcher は、変えない', () => {
+  it('Claude の skill の matcher は、変えない', () => {
     const workflow = load(WORKFLOW, 'hooks.json')
     expect(matchersOf(workflow, 'PostToolUse', 'post-tool-use-exit-plan-mode.sh')).toEqual(['ExitPlanMode'])
     expect(matchersOf(workflow, 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill'])
-    expect(matchersOf(workflow, 'PreToolUse', 'pre-tool-use-mcp.sh')).toEqual(['mcp__.*'])
     expect(matchersOf(load(VISUAL, 'hooks.json'), 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill'])
+  })
+})
+
+// MCP ツールの呼び出しにはフックを付けない（spec 025 FR-001〜FR-008）。
+describe('MCP の PreToolUse', () => {
+  it.for([
+    { label: 'Claude Code', file: 'hooks.json' },
+    { label: 'Copilot CLI', file: COPILOT_HOOKS },
+  ])('$label の pecot-workflow の定義に、MCP ツールに当たる PreToolUse のエントリが無い', (row) => {
+    const matchers = entriesOf(load(WORKFLOW, row.file), 'PreToolUse').map(entry => entry.matcher ?? '')
+    expect(matchers.filter(matcher => /mcp__|create_pull_request|pecot-workflow-/u.test(matcher))).toEqual([])
+    expect(matchersOf(load(WORKFLOW, row.file), 'PreToolUse', 'pre-tool-use-mcp.sh')).toEqual([])
   })
 })

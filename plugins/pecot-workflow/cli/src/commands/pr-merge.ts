@@ -6,11 +6,9 @@ import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
 import { jsonField, tryParseJsonText } from '../domain/json.js'
-import { FLAG_MERGE_SLASH_PENDING } from '../domain/state.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import type { AsyncMergeResult, PullRequestForMerge } from '../infra/github/pulls.js'
-import { consumeFlag } from '../infra/state-store.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -67,9 +65,7 @@ function pathOf(target: Readonly<Target>): string {
   return `${target.owner}/${target.repository}/${String(target.number)}`
 }
 
-// マージまで進まずに止まるので、/pecot-w:w-merge が立てた確認の免除を残さない。dry-run は状態を変えない
-function stopNotMergeable(out: Readonly<Output<PrMergeData>>, message: string, isDryRun: boolean): never {
-  if (!isDryRun) consumeFlag(FLAG_MERGE_SLASH_PENDING)
+function stopNotMergeable(out: Readonly<Output<PrMergeData>>, message: string): never {
   return stopWith(out, message, 'pr-state', NOT_MERGEABLE_EXIT_CODE)
 }
 
@@ -89,14 +85,14 @@ async function readPullRequest(out: Readonly<Output<PrMergeData>>, client: GitHu
   }
 }
 
-function checkState(out: Readonly<Output<PrMergeData>>, name: string, pullRequest: Readonly<PullRequestForMerge>, isDryRun: boolean): void {
-  if (pullRequest.state === 'MERGED') stopNotMergeable(out, `${name} is already merged`, isDryRun)
-  if (pullRequest.state !== 'OPEN') stopNotMergeable(out, `${name} is closed`, isDryRun)
-  if (pullRequest.isDraft) stopNotMergeable(out, `${name} is a draft`, isDryRun)
+function checkState(out: Readonly<Output<PrMergeData>>, name: string, pullRequest: Readonly<PullRequestForMerge>): void {
+  if (pullRequest.state === 'MERGED') stopNotMergeable(out, `${name} is already merged`)
+  if (pullRequest.state !== 'OPEN') stopNotMergeable(out, `${name} is closed`)
+  if (pullRequest.isDraft) stopNotMergeable(out, `${name} is a draft`)
 }
 
 // 下の段に open の PR があれば止める。マージ済みで並びに残る PR は飛ばす。スタックの機能が無いリポは単独の PR として扱う
-async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubClient, target: Readonly<Target>, isDryRun: boolean): Promise<PrMergeData['stack']> {
+async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubClient, target: Readonly<Target>): Promise<PrMergeData['stack']> {
   let stack
   try {
     stack = await client.getStackOfPullRequest(target.owner, target.repository, target.number)
@@ -111,7 +107,7 @@ async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubC
   for (const lower of stack.pullRequests.slice(0, index)) {
     const pullRequest = await readPullRequest(out, client, { ...target, number: lower })
     if (pullRequest.state === 'OPEN') {
-      stopNotMergeable(out, `PR #${String(target.number)} is not the bottom of stack #${String(stack.number)}. Merge PR #${String(lower)} first`, isDryRun)
+      stopNotMergeable(out, `PR #${String(target.number)} is not the bottom of stack #${String(stack.number)}. Merge PR #${String(lower)} first`)
     }
   }
   return { number: stack.number, size: stack.pullRequests.length - index }
@@ -239,8 +235,8 @@ export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
     const name = `PR #${String(target.number)}`
 
     const pullRequest = await readPullRequest(out, client, target)
-    checkState(out, name, pullRequest, input.dry_run)
-    const stack = await bottomOfStack(out, client, target, input.dry_run)
+    checkState(out, name, pullRequest)
+    const stack = await bottomOfStack(out, client, target)
     out.result({ pullRequest: pathOf(target), base: pullRequest.baseRefName, ...stack !== undefined && { stack } })
 
     const suffix = stack === undefined ? '' : ` (stack #${String(stack.number)}, 1 of ${String(stack.size)})`

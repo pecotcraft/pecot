@@ -15,8 +15,6 @@ const INDIRECT_SCRIPTS: Readonly<Record<string, readonly string[]>> = {
   'hooks/lib/core/git-repo-resolver.sh': ['hooks/lib/core/git-checkout-check.sh', 'hooks/lib/core/git-worktree-branch-check.sh'],
   'hooks/lib/core/pecot-dir-init-detect.sh': ['hooks/pre-tool-use-skill.sh', 'hooks/user-prompt-submit.sh'],
   'hooks/lib/core/skill-name.sh': ['hooks/lib/core/pecot-dir-init-detect.sh', 'hooks/lib/post-tool-use/pecot-skill-reminder.sh', 'hooks/lib/pre-tool-use/pecot-skill-compliance.sh'],
-  'hooks/lib/mcp-handlers/context7-allow.sh': ['hooks/lib/mcp-handlers/mcp-dispatcher.sh'],
-  'hooks/lib/mcp-handlers/mcp-dispatcher.sh': ['hooks/pre-tool-use-mcp.sh'],
   'hooks/lib/notification/pty-bell-sender.sh': ['hooks/stop-copilot.sh'],
   'hooks/lib/notification/terminal-bell.sh': ['hooks/notification.sh', 'hooks/stop.sh'],
   'hooks/lib/pre-tool-use/pecot-skill-compliance.sh': ['hooks/pre-tool-use-skill.sh'],

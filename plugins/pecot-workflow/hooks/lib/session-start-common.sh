@@ -36,7 +36,6 @@ fi
 
 LIB_DIR="$SCRIPT_DIR/session-start"
 "$LIB_DIR/issue-pending-cleanup.sh"
-"$LIB_DIR/create-slash-cleanup.sh"
 "$LIB_DIR/session-project-dir.sh"
 "$LIB_DIR/git-sync.sh"
 "$LIB_DIR/vscode-workspace-detector.sh"

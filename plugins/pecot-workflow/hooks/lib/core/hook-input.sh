@@ -43,7 +43,7 @@
 # この値は、コアのガードが deny 理由にコマンドを 2 回まで載せても 128KiB に収まる大きさ。
 # コマンドは同じプロセスのシェル変数としてだけ残す。PostToolUse の bash-post-match.sh が読む。
 # 代わりに PECOT_HOOK_COMMAND_OVERSIZE=1 を export する。
-# 子プロセスで動く PreToolUse のガードは、これを見て fail-closed（ask）にする。
+# 子プロセスで動く PreToolUse のガードは、これを見て素通しにする。
 #
 # source されるため、このファイル自体は何も実行しない。
 

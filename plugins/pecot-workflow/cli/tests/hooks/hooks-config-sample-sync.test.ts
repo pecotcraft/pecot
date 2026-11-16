@@ -17,11 +17,6 @@ const ALLOWED_VALUE_DIVERGENCE: ReadonlySet<string> = new Set()
 // 既定の値は省略を許し、省略は別のケースで落とす。必須にすると、呼び出しごとキーが脱落してすり抜ける。
 // eslint-disable-next-line security/detect-unsafe-regex -- 入力は hooks の 1 行。量指定子は固定の区切りで終わり、バックトラックは増えない
 const HOOK_ENABLED = /pecot_hook_enabled\s+(?<quote>["'])(?<key>[^"']+)\k<quote>(?:\s+(?<default>true|false)\b)?/gu
-// `_external_post_check "<key>" ...` は第 1 引数のキーを受け取る。既定の値は定義側から読む。
-const EXTERNAL_POST_CHECK = /_external_post_check\s+(?<quote>["'])(?<key>[^"']+)\k<quote>/gu
-const EXTERNAL_POST_CHECK_DEFINITION = /_external_post_check\s*\(\s*\)/u
-const HOOK_ENABLED_VARIABLE = /pecot_hook_enabled\s+["']\$\{?\w+\}?["']\s+(?<default>true|false)\b/u
-
 const README_SECTION_START = '## 設定キー一覧'
 const README_SECTION_END = '## フック実行フロー'
 // 見出しは行単位の完全一致で探す。部分一致だと、接頭辞を保った改名を取り逃がす。
@@ -64,37 +59,9 @@ function hookEnabledCalls(): GateCall[] {
   return calls
 }
 
-function externalPostCheckCalls(): { key: string, location: string }[] {
-  const calls: { key: string, location: string }[] = []
-  for (const relative of gateScriptPaths()) {
-    for (const [offset, line] of readLines(relative).entries()) {
-      for (const match of stripComment(line).matchAll(EXTERNAL_POST_CHECK)) {
-        calls.push({ key: match.groups?.['key'] ?? '', location: `${relative}:${String(offset + 1)}` })
-      }
-    }
-  }
-  return calls
-}
-
-// `_external_post_check` の定義側の、変数キーの pecot_hook_enabled の呼び出しから既定の値を読む。
-function externalPostCheckDefault(): string {
-  const found: { default: string, location: string }[] = []
-  for (const relative of gateScriptPaths()) {
-    const stripped = readLines(relative).map(line => stripComment(line))
-    if (stripped.every(line => !EXTERNAL_POST_CHECK_DEFINITION.test(line))) continue
-    for (const [offset, line] of stripped.entries()) {
-      const value = HOOK_ENABLED_VARIABLE.exec(line)?.groups?.['default']
-      if (value !== undefined) found.push({ default: value, location: `${relative}:${String(offset + 1)}` })
-    }
-  }
-  expect(found, '`_external_post_check` 定義側の変数キー `pecot_hook_enabled` 呼び出しが 1 箇所に特定できません').toHaveLength(1)
-  return found[0]?.default ?? ''
-}
-
-// スクリプト実体が gate しているキーの集合。変数キーの形は、ヘルパー経由のキーで解決する。
+// スクリプト実体が gate しているキーの集合。
 function scriptKeys(): Set<string> {
-  const direct = hookEnabledCalls().map(call => call.key).filter(key => !key.startsWith('$'))
-  return new Set([...direct, ...externalPostCheckCalls().map(call => call.key)])
+  return new Set(hookEnabledCalls().map(call => call.key).filter(key => !key.startsWith('$')))
 }
 
 // キーから既定の値への写像。同じキーが異なる既定の値で呼ばれていたら落とす。
@@ -107,8 +74,6 @@ function scriptDefaults(): Map<string, string> {
     if (call.key.startsWith('$') || call.default === undefined) continue
     add(call.key, call.default, call.location)
   }
-  const askDefault = externalPostCheckDefault()
-  for (const call of externalPostCheckCalls()) add(call.key, askDefault, call.location)
 
   const defaults = new Map<string, string>()
   for (const [key, occurrences] of found) {

@@ -1,9 +1,7 @@
 #!/bin/bash
 # Bash の pecot から MCP ツールへ移った後の案内文（source して使う）。
 # 各関数は文を stdout に出すだけ。hook_message の kind は呼ぶ側が付ける。
-# 読むのは次の 5 つ。
-# core の gh-command-check.sh・git-worktree-branch-check.sh・external-post-check.sh。
-# mcp-handlers/pecot-post-ask.sh と pre-tool-use/pecot-issue-pending-reminder.sh。
+# 読むのは gh-command-check.sh・git-worktree-branch-check.sh・pecot-issue-pending-reminder.sh。
 
 # gh-command-check.sh: gh pr create の阻止。
 mcp_guidance_gh_pr_create() {
@@ -88,49 +86,4 @@ mcp_guidance_reminder_other() {
     cat <<'EOF'
 Issue filing is not complete. Call the MCP tool issue_create first.
 EOF
-}
-
-# external-post-check.sh: gh pr merge の ask の文。
-mcp_guidance_pr_merge() {
-    cat <<'EOF'
-external-post-check: gh pr merge publishes a PR merge externally.
-
-Do not run it until the user has explicitly approved.
-The canonical route for merging is /pecot-w:w-merge.
-Merge with the MCP tool pr_merge, then clean up with the MCP tool session_finish.
-EOF
-}
-
-# pecot-post-ask.sh: PR マージの ask の文を、MCP の入力名で書いた版。
-mcp_guidance_post_ask_pr_merge() {
-    cat <<'EOT'
-external-post-check: the MCP tool pr_merge (a real merge) merges a PR externally.
-
-Do not call it until the user has explicitly approved.
-The canonical route for merging is /pecot-w:w-merge.
-To only see what would be merged, call pr_merge with dry_run: true.
-EOT
-}
-
-# pecot-post-ask.sh: Issue 投稿の ask の文を、MCP の入力名で書いた版。
-mcp_guidance_post_ask_issue() {
-    cat <<'EOT'
-external-post-check: the MCP tool issue_create (a real post) publishes an Issue externally.
-
-Do not call it until the user has explicitly approved.
-The canonical routes for filing are these skills:
-/pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.
-To only generate a template, call issue_create with prepare: true.
-To only see the plan (nothing is posted), call issue_create with dry_run: true (any form posts nothing; with files it shows the plan table).
-EOT
-}
-
-# pecot-post-ask.sh: PR 投稿の ask の文を、MCP の入力名で書いた版。
-mcp_guidance_post_ask_pr() {
-    cat <<'EOT'
-external-post-check: the MCP tool pr_create (a real post) publishes a PR externally.
-
-Do not call it until the user has explicitly approved.
-To only review the content, call pr_create with prepare: true (template generation) or dry_run: true.
-EOT
 }

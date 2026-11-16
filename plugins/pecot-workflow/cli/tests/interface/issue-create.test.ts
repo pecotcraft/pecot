@@ -43,14 +43,14 @@ import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n', '.pecot/state/issue-create-slash-pending': '1\n' }
+const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n' }
 
 async function create(...argv: readonly string[]): Promise<CliResult> {
   return await runInProcess(['issue', 'create', ...argv], ISSUE_CREATE_COMMANDS)
 }
 
-function hasFlag(root: string, name: string): boolean {
-  return existsSync(path.join(root, '.pecot/state', name))
+function hasIssuePending(root: string): boolean {
+  return existsSync(path.join(root, '.pecot/state', 'issue-pending'))
 }
 
 // 親 Epic を持たない 1 件の投稿で、ファイル入力が通る応答（node_id はボードへの追加の側で取る）
@@ -203,8 +203,7 @@ describe('issue create', () => {
         { method: 'POST', path: '/repos/acme/demo/issues', body: { title: '[Task] #3-03: 後に作る Issue' } },
       ])
       expect(JSON.stringify(posts.at(1)?.body)).toContain('#12 が終わってから進める。')
-      expect(hasFlag(project.root, 'issue-pending')).toBe(false)
-      expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(false)
+      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから作る', async (context) => {
@@ -295,7 +294,7 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
     })
 
-    it('途中のファイルで作成に失敗したとき、後のファイルを処理せず、終了コード 1 で終わり、免除のフラグを残す', async (context) => {
+    it('途中のファイルで作成に失敗したとき、後のファイルを処理せず、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-27')
       await verifies(context, 'PW-ISSUE-CREATE-28')
       await verifies(context, 'PW-ISSUE-CREATE-39')
@@ -314,7 +313,7 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not create an Issue in acme\/demo: .+\n$/u)
       const posts = github.requests().filter(request => request.type === 'rest' && request.method === 'POST' && request.path === '/repos/acme/demo/issues')
       expect(posts).toHaveLength(2)
-      expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(true)
+      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('ファイルの本文がテンプレに合わないとき、テンプレのパスを 1 行目にした error を出して終了コード 1 で終わる', async (context) => {
@@ -434,8 +433,7 @@ describe('issue create', () => {
       const requests = github.requests()
       expect(requests.at(-1)).toMatchObject({ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', fieldId: 'PVTSSF_workflow', optionId: 'o3' } })
       expect(requests.find(request => request.type === 'rest')).toMatchObject({ body: { title: '[Task] 一覧に状態を出す', body: TASK_BODY } })
-      expect(hasFlag(project.root, 'issue-pending')).toBe(false)
-      expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(false)
+      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('--priority・--size・--label・--parent-epic・--order を付けると、欄を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async (context) => {
@@ -765,7 +763,7 @@ describe('issue create', () => {
       expect(operations.indexOf('AddBlockedBy')).toBeGreaterThan(operations.lastIndexOf('AddToProject'))
     })
 
-    it('前提を付けるのに失敗したとき、warning と付け直すコマンドを出し、Issue は残して全件を作り終え、免除のフラグを消して終了コード 1 で終わる', async (context) => {
+    it('前提を付けるのに失敗したとき、warning と付け直すコマンドを出し、Issue は残して全件を作り終え、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-51')
       const project = setUpIssueProject({ files: PENDING_FLAGS })
       writeTree(project.root, {
@@ -790,7 +788,6 @@ describe('issue create', () => {
       expect(result.stdout).toBe(`${BASE}/12\n${BASE}/13\n`)
       expect(result.stderr).toMatch(/\nwarning: could not add blocked-by #12 to #13: .+\nadded: Issue acme\/demo\/13 to project\n/u)
       expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12 --wait merge --reason '配られる'\n$/u)
-      expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(false)
     })
 
     it('ボードに Blocked の列が無いとき、前提のある Issue を Ready で作り、warning を 1 回だけ出す', async (context) => {
@@ -930,7 +927,7 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12\n$/u)
     })
 
-    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付け、免除のフラグを残す', async (context) => {
+    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付け', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-59')
       const project = setUpIssueProject({ files: PENDING_FLAGS })
       writeTree(project.root, {
@@ -957,7 +954,7 @@ describe('issue create', () => {
       expect(result.stderr).toContain('added: blocked-by #12 to #13\n')
       expect(result.stderr).not.toContain('to #14')
       expect(variablesOf(github, 'AddBlockedBy')).toHaveLength(1)
-      expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(true)
+      expect(hasIssuePending(project.root)).toBe(false)
     })
 
     it('列を書けなかったとき、前提の判定を読まず、列を動かさない', async (context) => {
