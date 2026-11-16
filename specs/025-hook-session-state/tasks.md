@@ -57,19 +57,19 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **Independent Test**: research.md の R2・R8 の表のすべての行に、結果・版・日付が書かれている
 
-- [ ] T001 検証用のスキルを手元のプラグインに足し、frontmatter の `hooks` が登録されるかを確かめる。結果を `SPEC/research.md` の R2 に書く
+- [x] T001 検証用のスキルを手元のプラグインに足し、frontmatter の `hooks` が登録されるかを確かめる。結果を `SPEC/research.md` の R2 に書く
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`
-- [ ] T002 同じスキルで、残りの 3 点を確かめる。結果を `SPEC/research.md` の R2 に書く
+- [x] T002 同じスキルで、残りの 3 点を確かめる。結果を `SPEC/research.md` の R2 に書く
   - `command` の `${CLAUDE_PLUGIN_ROOT}` が展開されるか
   - `once: true` で 1 回で外れるか
   - resume の後に登録し直されるか
-- [ ] T003 [P] GitHub Copilot CLI で、frontmatter に `hooks` のあるスキルを起動する。結果を `SPEC/research.md` の R2 と R5 に書く
+- [x] T003 [P] GitHub Copilot CLI で、frontmatter に `hooks` のあるスキルを起動する。結果を `SPEC/research.md` の R2 と R5 に書く
   - エラーにならないか
   - フックを読むか
-- [ ] T004 [P] speckit の git 拡張が、新しいブランチを作らずに通るかを確かめる。結果を `SPEC/research.md` の R8 に書く
+- [x] T004 [P] speckit の git 拡張が、新しいブランチを作らずに通るかを確かめる。結果を `SPEC/research.md` の R8 に書く
   - `GIT_BRANCH_NAME` に今のブランチ名を渡し、`--allow-existing-branch` を付ける
   - 動かすのは `.specify/extensions/git/scripts/bash/create-new-feature-branch.sh`
-- [ ] T005 結果が見込みと違うときは、`SPEC/plan.md` と、この tasks.md の Phase 6・Phase 7 を直す。直した点をユーザーに知らせる
+- [x] T005 結果が見込みと違うときは、`SPEC/plan.md` と、この tasks.md の Phase 6・Phase 7 を直す。直した点をユーザーに知らせる
 
 ---
 
@@ -81,33 +81,33 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **契約**: contracts/hook-behavior.md の「止める・承認を求める」
 
-- [ ] T006 [US1] 期待を書き換え、落ちることを確かめる。`gh pr merge`・`pecot …`・大きすぎるコマンドに、何も返らないことを期待する
+- [x] T006 [US1] 期待を書き換え、落ちることを確かめる。`gh pr merge`・`pecot …`・大きすぎるコマンドに、何も返らないことを期待する
   - `tests/hooks/lib/bash-guard-responses.test.ts`
   - `tests/hooks/lib/integration.test.ts`
   - 古い版の免除のフラグを置いた状態の入力を 1 つ足し、結果が変わらないことを期待する（FR-004）
-- [ ] T007 [US1] `lib/adapters/claude-bash-guards.sh` から、3 つの段を外す
+- [x] T007 [US1] `lib/adapters/claude-bash-guards.sh` から、3 つの段を外す
   - `pecot-cli-deny`
   - `external-post-check`（`gh pr merge` の ask）
   - 大きすぎるコマンドの ask
-- [ ] T008 [US1] MCP の PreToolUse を外す
+- [x] T008 [US1] MCP の PreToolUse を外す
   - 2 つの定義ファイルのエントリを外す
   - `p-w/hooks/pre-tool-use-mcp.sh` を消す
   - `lib/mcp-handlers/` を消す（`context7-allow.sh` も一緒に消える）
-- [ ] T009 [US1] 呼ばれなくなるスクリプトを消す
+- [x] T009 [US1] 呼ばれなくなるスクリプトを消す
   - `lib/core/pecot-cli-deny.sh`
   - `lib/core/external-post-check.sh`
   - `lib/core/pecot-tool-names.sh`
   - `lib/core/command-segments.sh`
   - `lib/adapters/claude-adapter.sh`
-- [ ] T010 [US1] 免除のフラグを作る側と掃除を消す
+- [x] T010 [US1] 免除のフラグを作る側と掃除を消す
   - `lib/user-prompt-submit/create-slash-flag.sh` を消す
   - `lib/session-start/create-slash-cleanup.sh` を消す
   - `p-w/hooks/user-prompt-submit.sh` と `lib/session-start-common.sh` の呼び出しを外す
-- [ ] T011 [US1] `lib/core/mcp-guidance.sh` から、ask の案内の関数を消す
-- [ ] T012 [P] [US1] CLI から、免除のフラグの消費を消す
+- [x] T011 [US1] `lib/core/mcp-guidance.sh` から、ask の案内の関数を消す
+- [x] T012 [P] [US1] CLI から、免除のフラグの消費を消す
   - `src/domain/state.ts` の定数 3 つ
   - `src/commands/pr.ts`・`issue-create.ts`・`issue-quick.ts` の `consumeFlag` の呼び出し
-- [ ] T013 [US1] 消したもののテストを消す
+- [x] T013 [US1] 消したもののテストを消す
   - `tests/hooks/pecot-cli-deny.test.ts`
   - `tests/hooks/pecot-post-ask.test.ts`
   - `tests/hooks/pre-mcp.test.ts`
@@ -115,23 +115,24 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `tests/hooks/user-prompt-submit-create-slash-flag.test.ts`
   - `tests/hooks/lib/mcp-handlers.test.ts`
   - `tests/hooks/lib/mcp-definitions.test.ts`
-- [ ] T014 [US1] `tests/hook-tool-names.test.ts` を直す。`pecot-tool-names.sh` を読むので、テストごと消すか、読む先を定義書に変える
+- [x] T014 [US1] `tests/hook-tool-names.test.ts` を直す。`pecot-tool-names.sh` を読むので、テストごと消すか、読む先を定義書に変える
   - `p-w/project.json` の `test-cli` の inputs から、`pecot-tool-names.sh` を外す
-- [ ] T015 [US1] 設定キーを、sample と `p-w/hooks/README.md` から除く
+- [x] T015 [US1] 設定キーを、sample と `p-w/hooks/README.md` から除く
   - `pecot-cli-deny`・`pr-create-block`・`context7-allow`・`claude-adapter`
   - `pecot-pr-create-ask`・`pecot-issue-create-ask`・`gh-pr-merge-ask`
   - `pr-create-slash-flag`・`issue-create-slash-flag`・`merge-slash-flag`・`create-slash-cleanup`
-- [ ] T016 [US1] 文書から、承認と免除の記述を除く。grep で洗う
+- [x] T016 [US1] 文書から、承認と免除の記述を除く。grep で洗う
   - `p-w/skills/w-help/references/flags.md`
   - `p-w/skills/` の w-pr・w-merge・w-quick・w-ready・w-backlog・w-issueize の SKILL.md
   - `p-w/agents/`
   - `p-w/skills/w-onboarding/` の SKILL.md と参照（FR-006）
-- [ ] T017 [US1] `p-w/interface/authored.yaml` から、免除のフラグを消す記述を除く。`generated.json` を書き出し直す
+- [x] T017 [US1] `p-w/interface/authored.yaml` から、免除のフラグを消す記述を除く。`generated.json` を書き出し直す
   - 対象は `pr_create`・`issue_create`・`issue_quick`・`pr_cleanup`
-- [ ] T018 [US1] spec 024 の該当の Issue に、コメントで知らせる
+- [x] T018 [US1] spec 024 の該当の Issue に、コメントで知らせる
   - 対象は、tasks の「`pr_merge` を確認にかける」項目を持つ Issue
   - この Epic で ask を撤廃したので、項目を外してほしいと書く
-- [ ] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
+  - 済: 該当の #383 は閉じていたので、コメントは出さず、PR の本文に書いた
+- [x] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
 
 ---
 
@@ -311,8 +312,9 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `--mode=quick` は、計画の更新だけを出す
   - `.pecot-quick-mode` があっても読まない
 - [ ] T067 [US4] `lib/post-tool-use/exit-plan-remind.sh` に `--mode=active|quick` を足す。`.pecot-quick-mode` の読み取りと削除を除く
-- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。パスの書き方は T002 の結果に従う
+- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。スクリプトのパスは `${CLAUDE_PLUGIN_ROOT}` で書く（T002）
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`、引数 `--mode=active`
+  - matcher に `|` で `exit_plan_mode` を足さない。足すと `once` で外れない（T001）。Copilot CLI は frontmatter のフックを読まないので、足しても Copilot CLI では動かない（T003）
 - [ ] T069 [US4] `p-w/skills/w-quick/SKILL.md` の frontmatter に、同じ形で `--mode=quick` のフックを足す
 - [ ] T070 [US4] 2 つの定義ファイルから、ExitPlanMode のエントリを外す。`p-w/hooks/post-tool-use-exit-plan-mode.sh` を消す
 - [ ] T071 [US4] `.pecot-quick-mode` を消す。`tests/interface/issue-quick.test.ts` を先に直す
@@ -321,8 +323,11 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `src/commands/pr.ts` の片付け
   - `p-w/interface/authored.yaml` の記述
 - [ ] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
+  - matcher が `ExitPlanMode` に一致し、`|` を含まない
+  - `once: true`、引数は `--mode=active`（w-active）・`--mode=quick`（w-quick）
+  - スクリプトのパスが `${CLAUDE_PLUGIN_ROOT}` で始まる
 - [ ] T073 [US4] スキルの frontmatter を検証するテストや lint が `hooks` を弾かないかを確かめる。弾くなら許す
-- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならないことも確かめる
+- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならず、案内が出ないことも確かめる
 
 ---
 
@@ -365,6 +370,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 - [ ] T083 [US5] `p-w/hooks/README.md` の状態の表を、`SPEC/data-model.md` の「状態の置き場」に合わせる
 - [ ] T084 [US5] `SPEC/research.md` の R6 で「使っていないことを確かめる」とした項目を、grep で確かめる。使っていれば直す（FR-051）
 - [ ] T085 [US5] 現行の両クライアントで、残ったフックを 1 つずつ動かす。`p-w/hooks/README.md` の実機の記録の表を書き直す
+  - 表に「`|` を含む matcher での `once`」の行を入れ、外れるかを記録する（`SPEC/research.md` の R2 で不具合として避けた点）
   - 版・日付・結果を書く
   - `SPEC/quickstart.md` の 6 の表の行を、すべて含める
 - [ ] T086 [US5] `p-w/hooks/README.md` の対応バージョンを直す。最低対応版を、frontmatter のフックを確かめた版に上げ、根拠を書く

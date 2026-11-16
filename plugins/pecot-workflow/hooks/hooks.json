@@ -23,16 +23,6 @@
         ]
       },
       {
-        "matcher": "mcp__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-mcp.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "Skill",
         "hooks": [
           {

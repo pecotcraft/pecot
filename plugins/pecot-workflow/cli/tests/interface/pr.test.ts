@@ -530,14 +530,6 @@ describe('pr create', () => {
     ])
   })
 
-  it('PR を作ると、pr-create-slash-pending を消す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-24')
-    const workspace = await pushedBranch({ github: SUBMIT_RULES, files: { [stateFile('pr-create-slash-pending')]: '1\n' } })
-    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(true)
-    await workspace.run(messageArguments())
-    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(false)
-  })
-
   it('PR を作ると、その URL を標準出力に出す', async (context) => {
     await verifies(context, 'PW-PR-CREATE-25')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
@@ -683,11 +675,10 @@ describe('pr create', () => {
 
   it('PR の作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-40')
-    const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })], files: { [stateFile('pr-create-slash-pending')]: '1\n' } })
+    const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })] })
     const result = await workspace.run(messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR creation failed: GitHub API error: 422\n' })
     expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls'])
-    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(true)
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
@@ -917,10 +908,10 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'GET', STACKS_PATH)).toStrictEqual([])
     })
 
-    it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、pr-create-slash-pending を消して URL を出す', async (context) => {
+    it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、URL を出す', async (context) => {
       await verifies(context, 'PW-PR-CREATE-60')
       const dropped = rule({ method: 'GET', path: STACKS_PATH }, { status: 200, disconnect: true })
-      const workspace = await pushedBranch({ files: { ...STACKED_RECORD, [stateFile('pr-create-slash-pending')]: '1\n' }, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, dropped] })
+      const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, dropped] })
       const result = await workspace.run(stackedArguments())
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${PULL_URL}\n`)
@@ -929,7 +920,6 @@ describe('pr create', () => {
         'set: Issue #12 status to In Review',
         expect.stringMatching(/^warning: could not register stack: \S/u),
       ])
-      expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(false)
       expect(operationsOf(workspace)).toContain('GetIssueBlockingReferences')
     })
 
@@ -1655,7 +1645,7 @@ describe('pr check', () => {
 
   it('常に、リポジトリとファイルを書き換えない', async (context) => {
     await verifies(context, 'PW-PR-CHECK-06')
-    const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n', [stateFile('pr-create-slash-pending')]: '1\n' } })
+    const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const snapshot = (): unknown => ({
       files: filesOf(workspace.directory),
       head: workspace.git(['rev-parse', 'HEAD']),

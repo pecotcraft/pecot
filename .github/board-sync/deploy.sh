@@ -154,6 +154,25 @@ fi
     --no-fail-on-empty-changeset \
     --parameter-overrides "${OVERRIDES[@]}"
 
+# kms:Decrypt を拒否された権限では、スタックが成功しても Lambda が環境変数を書き換えない。
+ENV_JSON="$("${AWS[@]}" lambda get-function-configuration --function-name "$FUNCTION" \
+    --query 'Environment' --output json)"
+ENV_ERROR="$(jq -r '.Error.ErrorCode // empty' <<<"$ENV_JSON")"
+if [ -n "$ENV_ERROR" ]; then
+    die "関数の環境変数を読めず、反映を確かめられません: $ENV_ERROR。README の「エージェントの権限」のポリシーを入れ直してください"
+fi
+EXPECTED_KEYS="$(sed -n '/^        Variables:$/,/^      [^ ]/p' "$HERE/template.yaml" |
+    sed -n 's/^          \([A-Z_][A-Z0-9_]*\):$/\1/p')"
+[ -n "$EXPECTED_KEYS" ] || die "template.yaml から環境変数の名前を読めません"
+MISSING="$(comm -23 <(sort <<<"$EXPECTED_KEYS") <(jq -r '.Variables // {} | keys[]' <<<"$ENV_JSON" | sort) | tr '\n' ' ')"
+[ -z "$MISSING" ] || die "関数に環境変数が反映されていません: $MISSING"
+if [ "$ROTATE" = true ]; then
+    WANT="$(printf '%s\n' "${OVERRIDES[@]}" | sed -n 's/^ConfigVersion=//p')"
+    GOT="$(jq -r '.Variables.CONFIG_VERSION // empty' <<<"$ENV_JSON")"
+    [ "$GOT" = "$WANT" ] || die "CONFIG_VERSION が反映されていません（期待 $WANT、実際 ${GOT:-なし}）"
+fi
+echo "関数の環境変数の反映を確かめました"
+
 # 3. handler.mjs だけを zip にして載せる。
 (cd "$HERE" && zip -q -j "$SCRATCH/function.zip" handler.mjs)
 "${AWS[@]}" lambda update-function-code --function-name "$FUNCTION" \

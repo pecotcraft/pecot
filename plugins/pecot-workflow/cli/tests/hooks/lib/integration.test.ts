@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// アダプター経由とエントリ sh 経由の統合テスト。claude-adapter.sh と pre-tool-use-bash.sh を通して、
-// コアスクリプトの deny・許可・警告の挙動を確かめる。Copilot CLI も同じエントリを通る。
+// エントリ sh 経由の統合テスト。pre-tool-use-bash.sh を通して、コアスクリプトの deny・許可・警告の挙動を確かめる。
+// Copilot CLI も同じエントリを通る。
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -10,7 +10,7 @@ import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitRepository } from '../_helpers/git.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run, runClaudeAdapter, runHookEntry } from '../_helpers/run.js'
+import { run, runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 
 const ENTRY = 'pre-tool-use-bash.sh'
@@ -46,39 +46,7 @@ function rowsOf(commands: readonly string[]): { readonly label: string }[] {
   return commands.map(label => ({ label }))
 }
 
-describe('統合: アダプターとエントリ', () => {
-  it('Claude Code のアダプターで gh pr create を送るとき、deny の JSON を返す', () => {
-    const hookCase = createHookCase()
-    const result = runClaudeAdapter(hookCase, 'gh pr create', path.join(coreDirectory, 'gh-command-check.sh'))
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
-    expect(result.stdout).not.toContain('"decision"')
-  })
-
-  it('Claude Code のアダプターで許可されるコマンドを送るとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const result = runClaudeAdapter(hookCase, 'git status', path.join(coreDirectory, 'gh-command-check.sh'))
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
-
-  it('Claude Code のアダプターで untracked があるまま checkout するとき、警告を出す', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    writeFileSync(path.join(repository, 'untracked-file.txt'), '')
-    hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
-    const result = runClaudeAdapter(hookCase, 'git checkout main', path.join(coreDirectory, 'git-checkout-check.sh'), { cwd: repository })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('untracked')
-  })
-
-  it('Claude Code のアダプターで空のコマンドを送るとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const result = runClaudeAdapter(hookCase, '', path.join(coreDirectory, 'gh-command-check.sh'))
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
-
+describe('統合: エントリ', () => {
   it('Claude Code のエントリで gh pr create を送るとき、deny を返す', () => {
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
@@ -132,74 +100,55 @@ describe('統合: アダプターとエントリ', () => {
     expect(result.stdout).toBe('')
   })
 
-  // external-post-check は終了コード 11 で ask の JSON になる。
-  it.for(rowsOf(['gh pr merge 810']))(
-    'Claude Code のエントリでコマンドが $label のとき、ask を返す',
+  // PR のマージ・Bash の pecot・大きすぎるコマンドは止めず、何も返さない（spec 025 FR-001〜FR-008）。
+  it.for(rowsOf([
+    'gh pr merge 810',
+    'pecot pr create ./x.md',
+    'pecot issue quick -m x -r owner/repo',
+    'pecot issue create x.md',
+    'pecot pr create x.md --dry-run',
+    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue show 1',
+  ]))(
+    'Claude Code のエントリでコマンドが $label のとき、何も出力しない',
     (row) => {
       const hookCase = createHookCase()
       setUpEmptyProject(hookCase)
       const result = runEntry(hookCase, { tool_input: { command: row.label } })
       expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain('"permissionDecision"')
-      expect(result.stdout).toContain('"ask"')
-      expect(result.stdout).toContain('external-post-check')
+      expect(result.stdout).toBe('')
     },
   )
 
-  it.for(rowsOf(['pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot issue create x.md', 'pecot pr create x.md --dry-run', '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue show 1']))(
-    'Claude Code のエントリでコマンドが $label のとき、pecot-cli-deny の deny を返す',
-    (row) => {
-      const hookCase = createHookCase()
-      setUpEmptyProject(hookCase)
-      const result = runEntry(hookCase, { tool_input: { command: row.label } })
-      expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain('"permissionDecision": "deny"')
-      expect(result.stdout).toContain('pecot-cli-deny')
-      expect(result.stdout).toContain('MCP tool')
-      expect(result.stdout).not.toContain('"ask"')
-    },
-  )
-
-  it('issue-create-slash-pending があっても、Claude Code のエントリは pecot issue quick を deny する', () => {
-    const hookCase = createHookCase()
-    const project = path.join(hookCase.temporaryPath, 'project')
-    const state = path.join(project, '.pecot', 'state')
-    mkdirSync(state, { recursive: true })
-    writeFileSync(path.join(state, 'issue-create-slash-pending'), 'w-quick\n')
-    hookCase.setEnv('CLAUDE_PROJECT_DIR', project)
-    const result = runEntry(hookCase, { tool_input: { command: 'pecot issue quick -m x -r owner/repo' } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
-  })
-
-  // pecot-cli-deny は external-post-check より先に動くため、deny が勝つ。
-  it('pecot の起動と gh pr merge が同じコマンドにあるとき、deny が勝つ', () => {
+  // ガードを通さずに素通しする。/tmp を含めると tmp-path-warner がコマンドを読み直して警告するので含めない。
+  it('Claude Code のエントリでコマンドが上限のバイト数を超えるとき、何も出力しない', () => {
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
-    const result = runEntry(hookCase, { tool_input: { command: 'pecot issue show 1 && gh pr merge 1' } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
-    expect(result.stdout).not.toContain('"ask"')
-  })
-
-  it('行末の \\ で続く行の先頭が …/pecot で終わる語のとき、pecot の起動と誤らず何も出力しない', () => {
-    const hookCase = createHookCase()
-    setUpEmptyProject(hookCase)
-    const result = runEntry(hookCase, { tool_input: { command: 'git worktree list \\\n/workspaces/wt3/pecot' } })
+    const command = `echo ${'x'.repeat(70_000)}`
+    const result = runEntry(hookCase, { tool_input: { command } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
   })
 
-  // ガードの実行順で gh-command-check が external-post-check より先に動くため、deny が勝つ。
-  it('deny の対象と ask の対象が同じコマンドにあるとき、deny が勝つ', () => {
-    const hookCase = createHookCase()
-    setUpEmptyProject(hookCase)
-    const result = runEntry(hookCase, { tool_input: { command: 'gh pr create && gh pr merge 1' } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
-    expect(result.stdout).not.toContain('"decision"')
-    expect(result.stdout).not.toContain('"ask"')
-  })
+  // 撤廃の前の版が作った免除のフラグは、どの判定にも使われない（FR-004）。
+  it.for(rowsOf(['gh pr merge 810', 'pecot issue quick -m x -r owner/repo', 'gh pr create']))(
+    '免除のフラグを残したまま $label を送っても、結果は変わらない',
+    (row) => {
+      const withoutFlags = createHookCase()
+      setUpEmptyProject(withoutFlags)
+      const expected = runEntry(withoutFlags, { tool_input: { command: row.label } })
+
+      const hookCase = createHookCase()
+      const project = setUpEmptyProject(hookCase)
+      const state = path.join(project, '.pecot', 'state')
+      mkdirSync(state, { recursive: true })
+      for (const flag of ['pr-create-slash-pending', 'issue-create-slash-pending', 'merge-slash-pending']) {
+        writeFileSync(path.join(state, flag), 'w-quick\n')
+      }
+      const result = runEntry(hookCase, { tool_input: { command: row.label } })
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toBe(expected.stdout)
+    },
+  )
 
   it('Copilot CLI のエントリで --no-verify を送るとき、トップレベルの decision を使わず deny を返す', () => {
     const hookCase = createHookCase()
@@ -245,55 +194,17 @@ describe('統合: アダプターとエントリ', () => {
     expect(result.stdout).toBe('')
   })
 
-  // ask は deny に置き換えない。Copilot CLI は -p / autopilot で自前で deny 扱いにするが、hook 側では変換しない。
-  it.for(rowsOf(['gh pr merge 810']))(
-    'Copilot CLI のエントリでコマンドが $label のとき、deny に置き換えず ask を返す',
+  it.for(rowsOf(['gh pr merge 810', 'pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot pr create x.md --dry-run']))(
+    'Copilot CLI のエントリでコマンドが $label のとき、何も出力しない',
     (row) => {
       const hookCase = createHookCase()
       const repository = gitRepository(hookCase)
       hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
       const result = runEntry(hookCase, copilotToolPayload(row.label), repository)
       expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain('"permissionDecision": "ask"')
-      expect(result.stdout).toContain('external-post-check')
-      expect(result.stdout).not.toContain('"permissionDecision": "deny"')
+      expect(result.stdout).toBe('')
     },
   )
-
-  it.for(rowsOf(['pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot pr create x.md --dry-run']))(
-    'Copilot CLI のエントリでコマンドが $label のとき、ask に置き換えず deny を返す',
-    (row) => {
-      const hookCase = createHookCase()
-      const repository = gitRepository(hookCase)
-      hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
-      const result = runEntry(hookCase, copilotToolPayload(row.label), repository)
-      expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain('"permissionDecision": "deny"')
-      expect(result.stdout).toContain('pecot-cli-deny')
-      expect(result.stdout).not.toContain('"permissionDecision": "ask"')
-    },
-  )
-
-  it('Claude Code のアダプターで wt ブランチから commit するとき、deny の JSON を返す', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    checkout(hookCase, repository, 'wt1')
-    hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
-    const result = runClaudeAdapter(hookCase, 'git commit -m test', path.join(coreDirectory, 'git-worktree-branch-check.sh'), { cwd: repository })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('"permissionDecision": "deny"')
-    expect(result.stdout).not.toContain('"decision"')
-  })
-
-  it('Claude Code のアダプターで feature ブランチから commit するとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    checkout(hookCase, repository, 'feat/test-feature')
-    hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
-    const result = runClaudeAdapter(hookCase, 'git commit -m test', path.join(coreDirectory, 'git-worktree-branch-check.sh'))
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
 
   it('Claude Code のエントリで wt ブランチから commit するとき、deny を返す', () => {
     const hookCase = createHookCase()

@@ -69,8 +69,6 @@ setup:
           }
       .pecot/config/projects/.active: |
         ghes.example.com_acme_board_acme.json
-      .pecot/state/pr-create-slash-pending: |
-        1
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:

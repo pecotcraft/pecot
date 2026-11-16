@@ -32,7 +32,7 @@ function hasFile(root: string, relative: string): boolean {
 
 describe('issue create --freeform', () => {
   it('メッセージとリポジトリで起票し、priority medium・size s と型の既定の status を付け、quick のフラグを作る', async () => {
-    const project = setUpIssueProject({ files: { '.pecot/state/issue-create-slash-pending': '1\n' } })
+    const project = setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
 
     const result = await freeform('-m', MESSAGE, '--repo', 'acme/demo')
@@ -45,7 +45,6 @@ describe('issue create --freeform', () => {
     expect(body).toContain('<!-- issue create の freeform で起票（テンプレ検証スキップ）')
     expect(body).toContain(`"title":"[Task] ${MESSAGE}"`)
     expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(true)
-    expect(hasFile(project.root, '.pecot/state/issue-create-slash-pending')).toBe(false)
     expect(github.requests().some(request => request.type === 'graphql' && request.operation === 'CreateLinkedBranch')).toBe(false)
     expect(hasFile(project.root, '.pecot/state/.pecot-active')).toBe(false)
   })

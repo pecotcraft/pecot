@@ -20,7 +20,7 @@ import type { IssueFrontmatter } from '../domain/frontmatter.js'
 import { findBatchDuplicate, planOrders } from '../domain/issue-order.js'
 import type { OrderRequest } from '../domain/issue-order.js'
 import { upsertWaitsForMerge } from '../domain/prerequisites.js'
-import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING, FLAG_PECOT_QUICK_MODE } from '../domain/state.js'
+import { FLAG_ISSUE_PENDING, FLAG_PECOT_QUICK_MODE } from '../domain/state.js'
 import { compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
 import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
@@ -182,10 +182,6 @@ interface Posting {
   真なら、前提をすべて付けた後に判定を読み、Blocked の列を直す。既存の Issue を前提に持ち、Blocked で作った Issue だけが真
   */
   readonly settleColumn: boolean
-  /**
-  真なら、Issue を作った直後に issue-create-slash-pending を消す（後の例外でフラグを残さない）
-  */
-  readonly consumeSlashPending?: boolean | undefined
 }
 
 /**
@@ -309,7 +305,6 @@ async function postIssue(output: CreateOutput, client: GitHubClient, config: Pro
   const target = `Issue ${issuePath(owner, repository, number)}`
   const reference = createIssueReference(createRepositoryReference(owner, repository), number)
   consumeFlag(FLAG_ISSUE_PENDING)
-  if (posting.consumeSlashPending === true) consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
 
   // 応答に node_id が無いときだけ、ボードへの追加の結果から取るので、先にボードへ足す
   let added: BoardItem | undefined
@@ -815,7 +810,6 @@ async function postFiles(output: CreateOutput, context: Readonly<BatchContext>):
   finally {
     if (session.failures.length > 0) output.error(joinHinted(['could not add some blocked-by; add them again with:', ...session.failures.map(hint => [hint])]))
   }
-  consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
   if (session.failures.length > 0) throw new CommandExit(1, 'partial-failure')
   output.result(chainsData(progressions, labels))
   const chains = chainsText(progressions, labels)
@@ -998,7 +992,6 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
     parentReference,
     prerequisites: [],
     settleColumn: false,
-    consumeSlashPending: true,
   })
   if (posted.isOnBoard && !BACKLOG_TYPES.has(issueType)) touchFlag(FLAG_PECOT_QUICK_MODE)
 }
@@ -1033,7 +1026,6 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
     labels: input.label,
     order: input.order,
   }, target.config, isDryRun)
-  if (!isDryRun) consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
 }
 
 const ISSUE_CREATE = defineCommand({
