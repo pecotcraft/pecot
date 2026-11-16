@@ -309,29 +309,29 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: Phase 1（T001・T002 の結果）、Phase 3、Phase 5（T057）
 
-- [ ] T066 [US4] `tests/hooks/post-exit-plan-mode.test.ts` の期待を先に書く
+- [x] T066 [US4] `tests/hooks/post-exit-plan-mode.test.ts` の期待を先に書く
   - `--mode=active` は、計画の更新と実装の引き継ぎを出す
   - `--mode=quick` は、計画の更新だけを出す
   - `.pecot-quick-mode` があっても読まない
-- [ ] T067 [US4] `lib/post-tool-use/exit-plan-remind.sh` に `--mode=active|quick` を足す。`.pecot-quick-mode` の読み取りと削除を除く
-- [ ] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。スクリプトのパスは `${CLAUDE_PLUGIN_ROOT}` で書く（T002）
+- [x] T067 [US4] `lib/post-tool-use/exit-plan-remind.sh` に `--mode=active|quick` を足す。`.pecot-quick-mode` の読み取りと削除を除く
+- [x] T068 [US4] `p-w/skills/w-active/SKILL.md` の frontmatter に `hooks` を足す。スクリプトのパスは `${CLAUDE_PLUGIN_ROOT}` で書く（T002）
   - フックの形: PostToolUse、matcher `ExitPlanMode`、`once: true`、引数 `--mode=active`
   - matcher に `|` で `exit_plan_mode` を足さない。足すと `once` で外れない（T001）。Copilot CLI は frontmatter のフックを読まないので、足しても Copilot CLI では動かない（T003）
-- [ ] T069 [US4] `p-w/skills/w-quick/SKILL.md` の frontmatter に、同じ形で `--mode=quick` のフックを足す
-- [ ] T070 [US4] 2 つの定義ファイルから、ExitPlanMode のエントリを外す。`p-w/hooks/post-tool-use-exit-plan-mode.sh` を消す
+- [x] T069 [US4] `p-w/skills/w-quick/SKILL.md` の frontmatter に、同じ形で `--mode=quick` のフックを足す
+- [x] T070 [US4] 2 つの定義ファイルから、ExitPlanMode のエントリを外す。`p-w/hooks/post-tool-use-exit-plan-mode.sh` を消す
   - エントリは消さず、frontmatter のフックから `--mode` 付きで呼んだ。エントリがルートを解決してから設定を読むためで、merge は通さない（#466）
-- [ ] T071 [US4] `.pecot-quick-mode` を消す。`tests/interface/issue-quick.test.ts` を先に直す
+- [x] T071 [US4] `.pecot-quick-mode` を消す。`tests/interface/issue-quick.test.ts` を先に直す
   - `src/domain/state.ts` の定数
   - `src/commands/issue-quick.ts` の `touchFlag`
   - `src/commands/pr.ts` の片付け
   - `p-w/interface/authored.yaml` の記述
   - 実物は `issue-create.ts` の `touchFlag` と、`session-finish.ts` の片付けだった（#466）
-- [ ] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
+- [x] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
   - matcher が `ExitPlanMode` に一致し、`|` を含まない
   - `once: true`、引数は `--mode=active`（w-active）・`--mode=quick`（w-quick）
   - スクリプトのパスが `${CLAUDE_PLUGIN_ROOT}` で始まる
-- [ ] T073 [US4] スキルの frontmatter を検証するテストや lint が `hooks` を弾かないかを確かめる。弾くなら許す
-- [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならず、案内が出ないことも確かめる
+- [x] T073 [US4] スキルの frontmatter を検証するテストや lint が `hooks` を弾かないかを確かめる。弾くなら許す
+- [x] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならず、案内が出ないことも確かめる
 
 ---
 
