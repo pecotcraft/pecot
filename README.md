@@ -60,14 +60,15 @@ claude plugin install pecot-t@pecot   # AWS の調べもの
 ## 開発の流れ
 
 pecot-w では、ボードの列に沿ってスキルを呼ぶだけで、1 つのタスクが Issue からリリースまで進みます。
+図の名前は、`/pecot-w:w-quick` のように `/pecot-w:` を付けて呼びます。
 
 ```mermaid
 flowchart LR
-  quick["/pecot-w:w-quick<br>Issue・ブランチ・計画"] --> pr["/pecot-w:w-pr<br>PR を作る"]
-  active["/pecot-w:w-active<br>Ready から着手"] --> pr
-  pr --> revise["/pecot-w:w-revise<br>自己レビューと修正"]
-  revise --> merge["/pecot-w:w-merge<br>マージと後片付け"]
-  merge --> release["/pecot-w:w-release<br>リリース"]
+  quick["<b>w-quick</b><br>起票と計画"] --> pr["<b>w-pr</b><br>PR を作る"]
+  active["<b>w-active</b><br>Ready から着手"] --> pr
+  pr --> revise["<b>w-revise</b><br>見直しと修正"]
+  revise --> merge["<b>w-merge</b><br>マージ"]
+  merge --> release["<b>w-release</b><br>リリース"]
   classDef step fill:#2F8F83,stroke:#2F8F83,color:#ffffff
   class quick,active,pr,revise,merge,release step
 ```
