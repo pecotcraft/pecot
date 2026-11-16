@@ -47,13 +47,11 @@
     - 下の段の PR（base が既定のブランチ）では作られた
   - `pr cleanup` は、head のブランチの番号からも Issue を見つけている。同じ決まりにそろう
   - 済んだ前提は、Issue が閉じていて、その PR がマージ済みのもの。PR 中は、Issue が開いていて、その PR が開いているもの
-  - #375 で、Issue の PR を 3 つの読み口から集めることにした
+  - Issue の PR は、2 つの読み口から集める
     - リンクしたブランチの `ref.associatedPullRequests`
-    - `closedByPullRequestsReferences(includeClosedPrs: true)`。引数を省くと open の PR しか返さない
-    - `timelineItems` の `ConnectedEvent` の PR。後の `DisconnectedEvent` で外したものは除く
-    - `timelineItems` の `CrossReferencedEvent` のうち、閉じる意図のある PR
-    - `CrossReferencedEvent` は、本文やコメントで触れただけの PR も返す。`willCloseTarget` が真か、head のブランチ名が `/<Issue番号>` で終わるものだけ採る（#394 の F-02）
-  - 積んだ上の段の PR は閉じる参照を持たず、マージの後はブランチが消える。リンクしたブランチだけでは、済んだ前提の PR を見失う
+    - `closedByPullRequestsReferences(includeClosedPrs: true)`（Development 欄）。引数を省くと open の PR しか返さない
+  - 積んだ上の段の PR は、開いている間は Development 欄に載らず、リンクしたブランチから読む。マージの後はブランチが消え、Development 欄から読む
+  - #375 で足したタイムライン（`timelineItems`）の読み口は、#457 で外した。言及が先頭の件数を超えると判定が止まり、2 つの読み口で足りるため
 - Alternatives considered:
   - 閉じる参照だけで見分ける案。積んだ PR で空になるおそれがあるので採らない
   - Issue のタイムラインの `ClosedEvent.closer` を読む案。`pr cleanup` は API で Issue を閉じるので、closer が PR にならない
@@ -249,6 +247,7 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 | 下の段のマージの後、手元の載せ直しが R6 の手順で通る | 通る | 記録する位置を、GitHub が載せ直した後の位置に変える | 見込みどおり。差分は上の段の変更だけで、木はリモートの上の段と同じだった。GitHub がリモートを先に載せ直すので、R6 に手元をリモートに合わせる形を足した（R6） | 2026-11-12 |
 | 非同期のマージ API が、merge queue のあるブランチでキューに入れる | 入れる | キューに入れる操作を別に呼ぶ | 見込みどおり。ただし `merge_method` を渡さないときだけで、渡すと `failed` になる（R5） | 2026-11-12 |
 | マージでブランチが消えた後も、Issue の PR を読める | 分からない | 閉じる参照とタイムラインからも PR を集める（R3） | 見込みなし。リンクしたブランチは一覧から消えた（#7 の `linkedBranches` が空）。PR #9（merged）は、閉じる参照とタイムラインの両方から読めた（#375） | 2026-11-12 |
+| リンクしたブランチから、base が既定でない PR を作ると、Development 欄に載る | 載る。文書は「自動でリンクされる」とし、base の条件を書いていない | リンクしたブランチの読み口で拾う（R3） | 見込みなし。載らず、ブランチのリンクが残った（#171・PR #173）。base が `main` なら載り、ブランチのリンクは外れた（#172・PR #174）。github/docs#45948 に同じ報告があり、GitHub が再現を認めた（#457） | 2026-11-16 |
 
 検証用のリポの設定は、本体の `main` の ruleset を写した。違いは次のとおり。
 

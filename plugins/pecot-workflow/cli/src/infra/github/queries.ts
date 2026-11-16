@@ -916,37 +916,6 @@ const PREREQUISITE_ISSUE_FIELDS = `fragment PrerequisiteIssueFields on Issue {
       ...PullRequestFields
     }
   }
-  timelineItems(
-    itemTypes: [CONNECTED_EVENT, DISCONNECTED_EVENT, CROSS_REFERENCED_EVENT]
-    first: 20
-  ) {
-    totalCount
-    nodes {
-      __typename
-      ... on ConnectedEvent {
-        subject {
-          ... on PullRequest {
-            ...PullRequestFields
-          }
-        }
-      }
-      ... on DisconnectedEvent {
-        subject {
-          ... on PullRequest {
-            ...PullRequestFields
-          }
-        }
-      }
-      ... on CrossReferencedEvent {
-        willCloseTarget
-        source {
-          ... on PullRequest {
-            ...PullRequestFields
-          }
-        }
-      }
-    }
-  }
 }`
 
 const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV2ItemFieldValue {
@@ -961,7 +930,7 @@ const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV
   }
 }`
 
-// Issue と、その前提（blockedBy）を 1 回で読む。PR は 3 つの読み口から集める
+// Issue と、その前提（blockedBy）を 1 回で読む。PR は 2 つの読み口（リンクしたブランチと Development 欄）から集める
 export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $columnFieldName: String!, $labelFieldName: String!, $blockedByFirst: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {

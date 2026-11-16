@@ -535,6 +535,9 @@ entries:
       - id: PW-BOARD-SHOW-34
         pattern: ubiquitous
         statement: '常に、ボードに Archived の項目がどれだけあっても、ボードの項目を削除せず、読むだけにします'
+      - id: PW-BOARD-SHOW-35
+        pattern: ubiquitous
+        statement: '常に、前提の Issue が PR やほかの Issue から何件言及されていても、言及の件数で判定を変えません'
   PW-BOARD-SYNC:
     help:
       details:
