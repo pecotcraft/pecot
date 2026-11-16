@@ -2,5 +2,6 @@
 pecot-workflow: minor
 ---
 
-フックの `git-no-verify-check` と `git-sync` を初期値で無効にしました。使うときは hooks-config.json で `true` にします。
-compact の後も `.pecot/.gitignore` を補います。`develop-aist` への commit は止めなくなりました。
+`git-no-verify-check` と `git-sync` を初期値で無効にしました。hooks-config.json の `true` で有効になります。
+compact の後も `.pecot/.gitignore` を補い、`develop-aist` への commit を止めなくなりました。
+w-pr・w-revise は、CI を待つ前にコンフリクトを確かめます。
