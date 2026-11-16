@@ -43,6 +43,10 @@ export interface Outcome {
   */
   readonly data?: Readonly<Record<string, unknown>>
   /**
+  MCP 経由で呼んだときの content の文の text（要約）。golden には入れない
+  */
+  readonly text?: string
+  /**
   偽サーバが見つけた誤り
   */
   readonly problems: readonly string[]
@@ -136,6 +140,10 @@ export interface ChildResult {
   MCP 経由で呼んだときの structuredContent。CLI 経由と呼べなかったときは undefined
   */
   readonly data?: Readonly<Record<string, unknown>>
+  /**
+  MCP 経由で呼んだときの content の文の text（要約）。無ければ undefined
+  */
+  readonly text?: string
 }
 
 function runChild(
@@ -237,6 +245,7 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
       signal: child.signal,
       timedOut: child.timedOut,
       ...child.data !== undefined && { data: child.data },
+      ...child.text !== undefined && { text: child.text },
       problems: server.problems(),
       unused: server.unused(),
     }
