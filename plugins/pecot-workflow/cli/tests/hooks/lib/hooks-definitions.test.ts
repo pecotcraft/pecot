@@ -121,8 +121,6 @@ function fileOf(hook: Hook): string {
 const EXPECTED_TIMEOUTS = new Map([
   ['pecot-workflow|SessionStart|', 120],
   ['pecot-workflow|PreToolUse|', 10],
-  ['pecot-workflow|PostToolUse|ExitPlanMode', 90],
-  ['pecot-workflow|PostToolUse|ExitPlanMode|exit_plan_mode', 90],
   ['pecot-workflow|UserPromptSubmit|', 10],
   ['pecot-visual|SessionStart|', 120],
   ['pecot-visual|UserPromptSubmit|', 10],
@@ -272,29 +270,29 @@ describe('SessionStart', () => {
 })
 
 // Copilot CLI の matcher は全体一致 `^(?:PATTERN)$` で、skill と MCP に Claude の名前が無い。
-function matchersOf(hooks: Hooks, event: string, entryFile: string): (string | undefined)[] {
-  return entriesOf(hooks, event).filter(entry => entry.hooks.some(hook => fileOf(hook) === entryFile)).map(entry => entry.matcher)
+function matchersOf(hooks: Hooks, entryFile: string): (string | undefined)[] {
+  return entriesOf(hooks, 'PreToolUse').filter(entry => entry.hooks.some(hook => fileOf(hook) === entryFile)).map(entry => entry.matcher)
 }
 
 describe('Copilot CLI の matcher', () => {
   it('pecot-workflow の PreToolUse の skill の matcher は、生の tool 名を含む', () => {
-    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill|skill'])
+    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'pre-tool-use-skill.sh')).toEqual(['Skill|skill'])
   })
 
-  it('pecot-workflow の ExitPlanMode の matcher は、Copilot の exit_plan_mode を含む', () => {
-    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PostToolUse', 'post-tool-use-exit-plan-mode.sh')).toEqual(['ExitPlanMode|exit_plan_mode'])
+  it('pecot-workflow の 2 つの定義は、PostToolUse のキーを持たない', () => {
+    expect(eventsOf(load(WORKFLOW, COPILOT_HOOKS))).not.toContain('PostToolUse')
+    expect(eventsOf(load(WORKFLOW, 'hooks.json'))).not.toContain('PostToolUse')
   })
 
   it('pecot-visual の skill の matcher は、生の tool 名を含む', () => {
-    const matchers = matchersOf(load(VISUAL, COPILOT_VISUAL), 'PreToolUse', 'pre-tool-use-skill.sh')
+    const matchers = matchersOf(load(VISUAL, COPILOT_VISUAL), 'pre-tool-use-skill.sh')
     expect(matchers).toEqual(['Skill|skill'])
   })
 
   it('Claude の skill の matcher は、変えない', () => {
     const workflow = load(WORKFLOW, 'hooks.json')
-    expect(matchersOf(workflow, 'PostToolUse', 'post-tool-use-exit-plan-mode.sh')).toEqual(['ExitPlanMode'])
-    expect(matchersOf(workflow, 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill'])
-    expect(matchersOf(load(VISUAL, 'hooks.json'), 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill'])
+    expect(matchersOf(workflow, 'pre-tool-use-skill.sh')).toEqual(['Skill'])
+    expect(matchersOf(load(VISUAL, 'hooks.json'), 'pre-tool-use-skill.sh')).toEqual(['Skill'])
   })
 })
 
@@ -306,6 +304,6 @@ describe('MCP の PreToolUse', () => {
   ])('$label の pecot-workflow の定義に、MCP ツールに当たる PreToolUse のエントリが無い', (row) => {
     const matchers = entriesOf(load(WORKFLOW, row.file), 'PreToolUse').map(entry => entry.matcher ?? '')
     expect(matchers.filter(matcher => /mcp__|create_pull_request|pecot-workflow-/u.test(matcher))).toEqual([])
-    expect(matchersOf(load(WORKFLOW, row.file), 'PreToolUse', 'pre-tool-use-mcp.sh')).toEqual([])
+    expect(matchersOf(load(WORKFLOW, row.file), 'pre-tool-use-mcp.sh')).toEqual([])
   })
 })

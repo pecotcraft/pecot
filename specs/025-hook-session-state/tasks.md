@@ -319,11 +319,13 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - matcher に `|` で `exit_plan_mode` を足さない。足すと `once` で外れない（T001）。Copilot CLI は frontmatter のフックを読まないので、足しても Copilot CLI では動かない（T003）
 - [ ] T069 [US4] `p-w/skills/w-quick/SKILL.md` の frontmatter に、同じ形で `--mode=quick` のフックを足す
 - [ ] T070 [US4] 2 つの定義ファイルから、ExitPlanMode のエントリを外す。`p-w/hooks/post-tool-use-exit-plan-mode.sh` を消す
+  - エントリは消さず、frontmatter のフックから `--mode` 付きで呼んだ。エントリがルートを解決してから設定を読むためで、merge は通さない（#466）
 - [ ] T071 [US4] `.pecot-quick-mode` を消す。`tests/interface/issue-quick.test.ts` を先に直す
   - `src/domain/state.ts` の定数
   - `src/commands/issue-quick.ts` の `touchFlag`
   - `src/commands/pr.ts` の片付け
   - `p-w/interface/authored.yaml` の記述
+  - 実物は `issue-create.ts` の `touchFlag` と、`session-finish.ts` の片付けだった（#466）
 - [ ] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
   - matcher が `ExitPlanMode` に一致し、`|` を含まない
   - `once: true`、引数は `--mode=active`（w-active）・`--mode=quick`（w-quick）

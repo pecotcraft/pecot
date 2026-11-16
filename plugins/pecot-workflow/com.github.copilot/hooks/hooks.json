@@ -23,18 +23,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "ExitPlanMode|exit_plan_mode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-exit-plan-mode.sh",
-            "timeout": 90
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "hooks": [

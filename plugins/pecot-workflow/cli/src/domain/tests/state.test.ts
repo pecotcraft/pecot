@@ -11,7 +11,6 @@ import {
   formatRestackProgress,
   interpretRestackProgress,
   interpretBaseRecord,
-  FLAG_PECOT_QUICK_MODE,
   FLAG_PECOT_SESSION_TITLE,
   formatSessionTitle,
   planWorkTarget,
@@ -21,7 +20,7 @@ import {
 
 describe('フラグ名', () => {
   it('hooks が読み書きするファイル名と同じ', () => {
-    expect([FLAG_PECOT_SESSION_TITLE, FLAG_PECOT_QUICK_MODE]).toEqual(['.pecot-session-title', '.pecot-quick-mode'])
+    expect([FLAG_PECOT_SESSION_TITLE]).toEqual(['.pecot-session-title'])
   })
 })
 

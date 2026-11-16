@@ -84,7 +84,7 @@ const TYPE_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
 export const TYPE_DEFAULT_STATUS: Readonly<Record<IssueType, string>> = { epic: 'backlog', tracker: 'backlog', task: 'ready', bug: 'ready' }
 
 /**
-Backlog に置く型（freeform の size と quick-mode フラグの扱いが Epic と同じ）
+Backlog に置く型（freeform の size の扱いが Epic と同じ）
 */
 export const BACKLOG_TYPES: ReadonlySet<string> = new Set(['epic', 'tracker'])
 

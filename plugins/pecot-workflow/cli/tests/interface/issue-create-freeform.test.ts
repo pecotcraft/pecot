@@ -39,7 +39,6 @@ describe('issue create', () => {
   it('メッセージとリポジトリを渡すと、テンプレートに照らさず Issue を 1 件作り、ボードに足して欄を設定し、URL を出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-60')
     await verifies(context, 'PW-ISSUE-CREATE-62')
-    await verifies(context, 'PW-ISSUE-CREATE-64')
     const project = setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
 
@@ -51,7 +50,7 @@ describe('issue create', () => {
     const post = github.requests().find(request => request.type === 'rest')
     expect(post).toMatchObject({ body: { title: `[Task] ${MESSAGE}` } })
     expect(post?.type === 'rest' ? JSON.stringify(post.body) : '').toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
-    expect(hasQuickMode(project.root)).toBe(true)
+    expect(hasQuickMode(project.root)).toBe(false) // 起票してボードに入れても、古い版のフラグは作らない
     expect(existsSync(path.join(project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 
@@ -71,11 +70,10 @@ describe('issue create', () => {
     expect(sent).toContain(String.raw`先頭の   行\n次の行 ${'あ'.repeat(60)}\n\n<!-- ${FOOTER}`)
   })
 
-  it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は backlog と medium だけで size を付けず、quick のフラグを作らない', async (context) => {
+  it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は backlog と medium だけで size を付けない', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-62')
     await verifies(context, 'PW-ISSUE-CREATE-63')
-    await verifies(context, 'PW-ISSUE-CREATE-64')
-    const project = setUpIssueProject()
+    setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(2), issueNodeId(3), subIssueAdded()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--type', 'epic', '--parent-epic', '3')
@@ -86,7 +84,6 @@ describe('issue create', () => {
       'warning: giving a parent Epic to an Epic is not recommended\ncreated: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status backlog, priority medium\n'
       + 'added: Issue acme/demo/12 as sub-issue of acme/demo/3\n',
     )
-    expect(hasQuickMode(project.root)).toBe(false)
   })
 
   it('--priority と --size を渡すと、既定の medium・s の代わりにその値を設定する', async (context) => {
@@ -100,10 +97,9 @@ describe('issue create', () => {
     expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size m\n')
   })
 
-  it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定をせず、quick のフラグを作らずに終了コード 0 で終わる', async (context) => {
+  it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定をせず、終了コード 0 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-65')
-    await verifies(context, 'PW-ISSUE-CREATE-74')
-    const project = setUpIssueProject()
+    setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), failedAddToProject()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo')
@@ -111,7 +107,6 @@ describe('issue create', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12\nwarning: could not add Issue acme\/demo\/12 to project: .+\n$/u)
-    expect(hasQuickMode(project.root)).toBe(false)
   })
 
   it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async (context) => {

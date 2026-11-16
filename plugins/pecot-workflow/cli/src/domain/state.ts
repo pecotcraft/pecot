@@ -13,7 +13,6 @@ export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
 export const FLAG_PECOT_BASE = '.pecot-base'
 // 衝突で止まった載せ直しの途中の記録。pr restack が書き、続行か取りやめで消す
 export const FLAG_PECOT_RESTACK = '.pecot-restack'
-export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
 
 export const SESSION_TITLE_MAX_CHARS = 40
 const ISSUE_TYPE_PREFIX_PATTERN = /^\[(?:Task|Bug|Epic)\]\s*/u

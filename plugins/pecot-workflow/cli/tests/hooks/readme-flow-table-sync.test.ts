@@ -296,7 +296,9 @@ describe('README のフロー表', () => {
     for (const row of flowRows()) {
       for (const name of expandPattern(row.scriptPattern)) expected.set(name, row.libs)
     }
-    const actual = new Map(globSync('*.sh', { cwd: hooksDirectory }).toSorted(compareStrings).map(name => [name, dispatchedLibs(path.join(hooksDirectory, name))]))
+    // hooks.json に登録しないエントリ（スキルの frontmatter から呼ぶもの）は、図に載せない。
+    const configured = new Set(hooksJsonEntries().map(entry => entry.name))
+    const actual = new Map(globSync('*.sh', { cwd: hooksDirectory }).filter(name => configured.has(name)).toSorted(compareStrings).map(name => [name, dispatchedLibs(path.join(hooksDirectory, name))]))
 
     const expectedNames = new Set(expected.keys())
     const actualNames = new Set(actual.keys())

@@ -53,8 +53,8 @@ function activate(hookCase: HookCase, context: Context): void {
   checkoutWorkBranch(hookCase, context.project, 'feat/x/123')
 }
 
-function runHook(hookCase: HookCase, stdin: string): RunResult {
-  return run(hookCase, 'bash', [HOOK_SCRIPT], { stdin })
+function runHook(hookCase: HookCase, stdin: string, mode = 'active'): RunResult {
+  return run(hookCase, 'bash', [HOOK_SCRIPT, ...(mode === '' ? [] : [mode.startsWith('--') ? mode : `--mode=${mode}`])], { stdin })
 }
 
 function property(value: unknown, name: string): unknown {
@@ -126,15 +126,13 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).toContain('Do not spawn an agent for such a unit.')
   })
 
-  it('Copilot の tool 名 exit_plan_mode でも、コメントの更新と引き継ぎを案内する', () => {
+  it('Copilot の tool 名 exit_plan_mode では、何も出力しない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
     const result = runHook(hookCase, jsonDumps({ tool_name: 'exit_plan_mode' }))
     expect(result.exitCode).toBe(0)
-    const text = additionalContext(result)
-    expect(text).toContain('Plan comment update')
-    expect(text).toContain('Implementation handoff')
+    expect(result.stdout).toBe('')
   })
 
   it('exit_plan のような別の tool 名では、何も出力しない', () => {
@@ -148,17 +146,63 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(existsSync(context.quickMode)).toBe(true)
   })
 
-  it.for(['ExitPlanMode', 'exit_plan_mode'])('quick モードでは、%s でも、コメントの更新だけを案内し、quick モードのフラグを消す', (toolName) => {
+  it('--mode=quick では、コメントの更新だけを案内し、実装の引き継ぎを足さない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
-    writeFileSync(context.quickMode, '')
-    const result = runHook(hookCase, jsonDumps({ tool_name: toolName }))
+    const result = runHook(hookCase, EXIT_PLAN, 'quick')
     expect(result.exitCode).toBe(0)
     const text = additionalContext(result)
     expect(text).toContain('Plan comment update')
     expect(text).not.toContain('Implementation handoff')
-    expect(existsSync(context.quickMode)).toBe(false)
+  })
+
+  it('.pecot-quick-mode があっても、--mode=active では引き継ぎを案内し、ファイルを読まず消さない', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    activate(hookCase, context)
+    writeFileSync(context.quickMode, '')
+    const result = runHook(hookCase, EXIT_PLAN, 'active')
+    expect(result.exitCode).toBe(0)
+    expect(additionalContext(result)).toContain('Implementation handoff')
+    expect(existsSync(context.quickMode)).toBe(true)
+  })
+
+  it.for([{ label: '無い', mode: '' }, { label: '不正', mode: 'both' }])('--mode が $label とき、終了コード 1 で stdout は空', ({ mode }) => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    activate(hookCase, context)
+    const result = runHook(hookCase, EXIT_PLAN, mode)
+    expect(result.exitCode).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('exit-plan-remind: --mode must be active or quick')
+  })
+
+  it('出力のトップレベルに additionalContext が無い（merge を通さない）', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    activate(hookCase, context)
+    const parsed = parseJson(runHook(hookCase, EXIT_PLAN).stdout)
+    expect(property(parsed, 'additionalContext')).toBeUndefined()
+    expect(property(property(parsed, 'hookSpecificOutput'), 'hookEventName')).toBe('PostToolUse')
+  })
+
+  it('解決したルートの hooks-config.json で exit-plan-remind が false なら、何も出力しない', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    activate(hookCase, context)
+    // PECOT_HOOKS_CONFIG_PATH は渡さず、CLAUDE_PROJECT_DIR は別のディレクトリにする。
+    hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', undefined)
+    const sessionDirectory = path.join(hookCase.temporaryPath, 'session')
+    mkdirSync(sessionDirectory, { recursive: true })
+    hookCase.setEnv('CLAUDE_PROJECT_DIR', sessionDirectory)
+    const configDirectory = path.join(context.project, '.pecot', 'config')
+    mkdirSync(configDirectory, { recursive: true })
+    writeFileSync(path.join(configDirectory, 'hooks-config.json'), jsonDumps({ 'exit-plan-remind': false }))
+    const payload = jsonDumps({ tool_name: 'ExitPlanMode', cwd: context.project })
+    const result = runHook(hookCase, payload)
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
   })
 
   it('bin/pecot があっても、ExitPlanMode の後に Issue へ投稿しない', () => {
