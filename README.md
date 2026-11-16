@@ -8,8 +8,8 @@
 <h3 align="center">Claude Code の課題管理を、GitHub Projects で。</h3>
 
 <p align="center">
-  AI 駆動で回す、高速なアジャイル開発。<br>
-  Epic を Spec Kit でタスクに分けてボードに積み、Claude Code が 1 つずつ消化していきます。
+  AI 駆動の高速なアジャイル開発を可能にする、Claude Code 向けのエージェントプラグインです。<br>
+  GitHub Projects を中心とした課題管理をサポートし、快適な開発体験を提供します。
 </p>
 
 <p align="center">
