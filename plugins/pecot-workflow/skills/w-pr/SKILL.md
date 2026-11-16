@@ -127,13 +127,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Step 4: CI を待って直す
 
-待つ前に、pecot-workflow の MCP ツール `pr_show` を使って、PR の `mergeable` を確かめる。base とコンフリクトした PR では、pull_request の CI が起動しない。`gh pr checks` はコンフリクトを示さず、CI が一覧に出ないだけになる。
-
-- `MERGEABLE` なら待つ
-- `UNKNOWN` なら、少しおいて読み直す
-- `CONFLICTING` なら、載せ直してから待つ
-  - 積んだ PR は `pr_restack` で載せ直す
-  - 積んでいない PR は、`git fetch` の後に base へ `git rebase` し、衝突を直して `git push --force-with-lease` する。変えたファイルのテストを動かしてから push する
+待つ前に、pecot-workflow の MCP ツール `pr_show` を使って、PR が base とコンフリクトしていないかを確かめる。コンフリクトしていたら、base に載せ直してから待つ。
 
 次のコマンドで CI を待ち、終わった後の結果だけを 1 回出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
 
