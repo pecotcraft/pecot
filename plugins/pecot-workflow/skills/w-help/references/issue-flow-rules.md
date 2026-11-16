@@ -128,9 +128,9 @@ CLI が生成した prepared file を見れば、AI は判定基準に辿り着�
 
 本節は §4「テンプレート選択」の一部で、各テンプレで起票したときの既定 status を扱う。
 
-計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
-既定は task/bug=ready、epic=backlog、tracker=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
-task/bug のファイルに `blocked_by` があれば、既定は blocked になる。テンプレは `status` を持たず、置く列を CLI に任せる。
+計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、型の既定の status で起票する。task/bug のテンプレは `status` を持たず、置く列を CLI に任せる。
+既定は task/bug=ready（ファイルに `blocked_by` があれば blocked）、epic=backlog、tracker=backlog。
+CLI は、#669 から型既定以外の status を拒否する。
 これらは未着手の置き場であり、着手時に `session start` がボード Status を active に設定する。
 
 `issue create` の `freeform` も、task/bug を型の既定の status で起票する。

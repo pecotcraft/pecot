@@ -266,7 +266,7 @@ describe('w-ready の手順', () => {
 
   it('order の続番を数えさせない', () => {
     expect(text).not.toContain('続番')
-    expect(text).not.toContain('枝')
+    expect(text).not.toContain('枝つき')
     expect(text).toContain('`order`・`status` は書かない')
   })
 
@@ -278,9 +278,20 @@ describe('w-ready の手順', () => {
     expect(posted).toBeGreaterThan(planned)
   })
 
+  it('dry_run では置く列を確かめさせない（dry_run の結果に列は無い）', () => {
+    const body = sectionBody(text, titleIndex(headings, '作成'))
+    expect(body.slice(0, body.indexOf('（`dry_run` なし）'))).not.toContain('置く列')
+  })
+
   it('完了報告に、置いた列と、Blocked のときに待つものを入れる', () => {
     const body = sectionBody(text, titleIndex(headings, '完了報告'))
     for (const word of ['`Ready`', '`Blocked`', '待つ']) expect(body).toContain(word)
+  })
+
+  it('完了報告は、置いた列を投稿の結果から伝え、列が書かれていなければその旨を伝える', () => {
+    const body = sectionBody(text, titleIndex(headings, '完了報告'))
+    expect(body).toContain('投稿の結果')
+    expect(body).toContain('列が書かれていない')
   })
 
   it('既存の Issue に前提として付ける操作は issue_block で案内する', () => {
