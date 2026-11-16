@@ -945,6 +945,7 @@ entries:
         by: '前提の Issue です。`owner/repo/N` の形です。'
         wait: '実行後の blocked-by の待ち方です。`stack`（前提のブランチに積む）か `merge`（前提のマージを待つ）です。'
         change: 'blocked-by がどうなったかです。`added`（新しく足した）・`updated`（待ち方か理由を変えた）・`unchanged`（変更なし）のどれかです。'
+        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。`dry_run` のときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
     environment: []
@@ -1081,6 +1082,9 @@ entries:
       - id: PW-ISSUE-BLOCK-23
         pattern: event
         statement: '`--by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を付けます'
+      - id: PW-ISSUE-BLOCK-24
+        pattern: event
+        statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
   PW-ISSUE-COMMENT:
     help:
       details:
@@ -2142,6 +2146,7 @@ entries:
         issue: '待たせていた側の Issue です。`owner/repo/N` の形です。'
         by: '前提の Issue です。`owner/repo/N` の形です。'
         change: 'blocked-by がどうなったかです。`removed`（外した）か `unchanged`（もともと blocked-by ではなかった）です。'
+        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。`dry_run` のときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `removed` か `unchanged` を出し、列か札を変えたときは続けて `moved` と `set` を出します。`warning` の行は、次のときに出します。`Waits for merge` の節を読めないとき。判定を出せないか、確かめられないとき。ボードに Todo の選択肢が無いとき。ボードに書けなかったとき。Todo が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。'
     environment: []
@@ -2254,6 +2259,9 @@ entries:
       - id: PW-ISSUE-UNBLOCK-17
         pattern: event
         statement: '`--by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を外します'
+      - id: PW-ISSUE-UNBLOCK-18
+        pattern: event
+        statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
   PW-PR-CHECK:
     help:
       details:
