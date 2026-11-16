@@ -24,7 +24,8 @@ import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { apiFailureMessage, createGitHubClient } from './github-client.js'
-import { applyBoardMove } from './issue-board.js'
+import { applyBoardMove, BOARD_MOVE_JSON, moveJson } from './issue-board.js'
+import type { BoardMoveLine } from './issue-board.js'
 import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import type { JudgedIssue } from './issue-readiness.js'
 import { ensureRepositoryInProject, ISSUE_REF_DESCRIPTION, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
@@ -40,12 +41,14 @@ const BLOCK_PATH = ['issue', 'block']
 
 const ISSUE_FIELD = z.string().describe('The waiting Issue (owner/repo/N)')
 const BY_FIELD = z.string().describe('The prerequisite Issue (owner/repo/N)')
+const MOVES_FIELD = z.array(BOARD_MOVE_JSON).optional().describe('The waiting Issue when its column or Status was written (at most one; empty when nothing was written; omitted on dry_run)')
 
 const ISSUE_BLOCK_OUTPUT = z.strictObject({
   issue: ISSUE_FIELD,
   by: BY_FIELD,
   wait: z.enum(['stack', 'merge']).describe('Wait kind of the blocked-by after the command'),
   change: z.enum(['added', 'updated', 'unchanged']).describe('added (new blocked-by), updated (wait kind or reason changed), or unchanged'),
+  moves: MOVES_FIELD,
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -53,6 +56,7 @@ const ISSUE_UNBLOCK_OUTPUT = z.strictObject({
   issue: ISSUE_FIELD,
   by: BY_FIELD,
   change: z.enum(['removed', 'unchanged']).describe('removed, or unchanged when it was not a blocked-by'),
+  moves: MOVES_FIELD,
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -124,19 +128,19 @@ async function readConfirmed(context: Context, expected: ExpectedPrerequisites):
   return { failure: `could not confirm that GitHub reflects the blocked-by change of ${name}` }
 }
 
-// 書いた後の判定で、列と札を動かす。読めない・確かめられないときは動かさず warning にする（前提の変更は済んでいる）
-async function moveBoard(context: Context, expected: ExpectedPrerequisites, hasPrerequisites: boolean): Promise<void> {
+// 書いた後の判定で、列と札を動かし、書けた列と札を返す。読めない・確かめられないときは動かさず warning にする（前提の変更は済んでいる）
+async function moveBoard(context: Context, expected: ExpectedPrerequisites, hasPrerequisites: boolean): Promise<BoardMoveLine | undefined> {
   const { out, client, config, home, target } = context
   const name = displayReference(target, home)
   const read = await readConfirmed(context, expected)
   if ('failure' in read) {
     out.warning(`${read.failure}; the column and label of ${name} were not moved`)
-    return
+    return undefined
   }
   const { judged } = read
-  if (judged.readiness === undefined) return
+  if (judged.readiness === undefined) return undefined
   const move = decideBoardMove(boardMoveInput(judged, config, hasPrerequisites))
-  if (move === undefined) return
+  if (move === undefined) return undefined
   const hasWrite = move.column !== undefined || move.label !== undefined
   let itemId = ''
   try {
@@ -144,13 +148,18 @@ async function moveBoard(context: Context, expected: ExpectedPrerequisites, hasP
   }
   catch (error: unknown) {
     out.warning(`could not move ${name}: ${apiFailureMessage(error)}`)
-    return
+    return undefined
   }
-  if (hasWrite && itemId === '') return
-  const { missing } = await applyBoardMove(out, client, config, itemId, { ref: target, home }, move, describeReadiness(judged.readiness, judged.prerequisites, home))
+  if (hasWrite && itemId === '') return undefined
+  const { missing, written } = await applyBoardMove(out, client, config, itemId, { ref: target, home }, move, describeReadiness(judged.readiness, judged.prerequisites, home))
   for (const value of missing) {
     out.warning(joinHinted([`the ${value} option is not on the board, so ${name} was not moved`, hintFor(value)]))
   }
+  return written
+}
+
+function movesOf(written: BoardMoveLine | undefined): z.input<typeof BOARD_MOVE_JSON>[] {
+  return written === undefined ? [] : [moveJson(written)]
 }
 
 function keysOf(issues: readonly BlockedByReference[]): ReadonlySet<string> {
@@ -220,7 +229,7 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
     stopWith(out, `Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and run the command again`, 'content-invalid', CONTENT_EXIT_CODE)
   }
   else if (decision.kind === 'unchanged') {
-    out.result({ ...result, change: 'unchanged' })
+    out.result({ ...result, change: 'unchanged', ...!input.dry_run && { moves: [] } })
     out.planned({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
     out.done({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
     return
@@ -258,7 +267,8 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
   out.result({ ...result, change })
 
   const keys = new Set([...keysOf(issues), issueReferenceKey(by)])
-  await moveBoard(context, { keys, by, wait: { wait: input.wait, reason } }, true)
+  const written = await moveBoard(context, { keys, by, wait: { wait: input.wait, reason } }, true)
+  out.result({ moves: movesOf(written) })
 }
 
 interface UnblockInput {
@@ -291,7 +301,7 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
   const decision = decideUnblock({ body: read.body, home, by, isLinked: linked !== undefined })
   const result: Omit<z.input<typeof ISSUE_UNBLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by) }
   if (linked === undefined || decision.kind === 'unchanged') {
-    out.result({ ...result, change: 'unchanged' })
+    out.result({ ...result, change: 'unchanged', ...!input.dry_run && { moves: [] } })
     out.planned({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })
     out.done({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })
     return
@@ -320,7 +330,8 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
   const remaining = issues.filter(issue => issue.id !== linked.id)
   // 人が別の理由で付けた札を、最後の前提を外しただけで戻さない
   const hasPrerequisites = remaining.length > 0 || linked.state === 'CLOSED'
-  await moveBoard(context, { keys: keysOf(remaining), by, wait: undefined }, hasPrerequisites)
+  const written = await moveBoard(context, { keys: keysOf(remaining), by, wait: undefined }, hasPrerequisites)
+  out.result({ moves: movesOf(written) })
 }
 
 const ISSUE_BLOCK = defineCommand({

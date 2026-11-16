@@ -81,7 +81,7 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
     // toolDefinition を渡すと、client が成功の structuredContent を定義書の outputSchema で検証し、合わなければ例外にする
     const definition = toolDefinitionOf(name)
     const result = await client.callTool({ name, arguments: { ...input } }, { timeout: CHILD_TIMEOUT_MS, toolDefinition: definition })
-    const { isError, structured } = toolOutcomeOf(result)
+    const { isError, structured, text } = toolOutcomeOf(result)
     // client は失敗の結果を検証しないので、同じ outputSchema でここで確かめる
     const issues = isError ? await outputSchemaIssues(definition.outputSchema, structured) : []
     if (issues.length > 0) throw new Error(`失敗の structuredContent が定義書の outputSchema に合いません: ${issues.join('; ')}`)
@@ -92,7 +92,7 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
     }
     const warnings = Array.isArray(structured['warnings']) ? structured['warnings'].map(String) : []
     // MCP の結果は終了コードを持たないので、成否を 0 と 1 にする。golden の側も同じく写して比べる（parity.test.ts）
-    return { stdout: '', stderr: renderMcpView({ warnings, detail: isError ? String(detail) : undefined }), code: isError ? 1 : 0, signal: undefined, spawnError: undefined, timedOut: false, data: structured }
+    return { stdout: '', stderr: renderMcpView({ warnings, detail: isError ? String(detail) : undefined }), code: isError ? 1 : 0, signal: undefined, spawnError: undefined, timedOut: false, data: structured, ...text !== undefined && { text } }
   }
   catch (error: unknown) {
     return failed(error)

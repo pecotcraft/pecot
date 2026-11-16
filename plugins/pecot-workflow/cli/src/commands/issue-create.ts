@@ -824,6 +824,8 @@ function isBatchReference(reference: IssueReference, posted: readonly (PostedFil
 async function createFromFiles(output: CreateOutput, files: readonly string[], isDryRun: boolean): Promise<void> {
   const context = await prepareBatch(output, files)
   if (isDryRun) {
+    // 番号は投稿まで決まらないので、本番の created の行から番号を除いた対象にする
+    for (const local of context.locals) output.planned({ verb: 'create', target: `Issue in ${local.owner}/${local.repository} from ${local.name}` })
     printPlan(output, context)
     return
   }
