@@ -1,64 +1,75 @@
-<div align="center">
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-badge-dark.svg">
+    <img src=".github/assets/pecot-badge-light.svg" alt="pecot" width="440">
+  </picture>
+</p>
 
-# pecot
+<h3 align="center">Claude Code の課題管理を、GitHub Projects で。</h3>
 
-</div>
+<p align="center">
+  AI 駆動の高速なアジャイル開発を可能にする、Claude Code 向けのエージェントプラグインです。<br>
+  GitHub Projects を中心とした課題管理をサポートし、快適な開発体験を提供します。
+</p>
 
-<!-- markdownlint-disable MD013 -->
-![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
-<!-- markdownlint-enable MD013 -->
+<p align="center">
+  <img src="https://img.shields.io/badge/Claude_Code-6B4FBB?style=flat-square&logo=anthropic&logoColor=white" alt="Claude Code">
+  <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/GitHub_Projects-0969DA?style=flat-square&logo=github&logoColor=white" alt="GitHub Projects">
+  <img src="https://img.shields.io/badge/Spec_Kit-57606A?style=flat-square&logo=github&logoColor=white" alt="Spec Kit">
+</p>
 
-Claude Code 向けのプラグインのマーケットプレイスです。
-Agent Plugins 1.0 に対応したエージェントにも、今後対応していく予定です。
-以下の 3 プラグインを配布しています。
+<h2>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-heading-dark.svg">
+    <img src=".github/assets/pecot-heading-light.svg" alt="pecot とは" height="38">
+  </picture>
+</h2>
 
-| プラグイン | 正式名 | 内容 | 詳細 |
-|:----------|:------|:----|:----|
-| **pecot-w** | pecot-workflow | GitHub Projects V2 と連携した開発ワークフローの自動化。Issue 起票・実装・PR・リリースの各段階をスキルとして提供し、git worktree による並行開発に対応する | [plugins/pecot-workflow/README.md](plugins/pecot-workflow/README.md) |
-| **pecot-v** | pecot-visual | 図表・スライドの作成。draw.io 構成図の生成、Slidev プレゼンテーションの作成と PPTX 変換、スクリーンショットからの作業エビデンス xlsx 生成 | [plugins/pecot-visual/README.md](plugins/pecot-visual/README.md) |
-| **pecot-t** | pecot-tools | 許可リストで限定した awscli コマンドを MCP ツールとして提供する。SSO 認証・参照系（Lambda / CloudWatch Logs / CloudWatch メトリクス / RDS / EC2 / ECR / EventBridge Scheduler）・Athena・S3 取得の 26 ツールを MCP サーバ `pecot-tools` として公開する | [plugins/pecot-tools/README.md](plugins/pecot-tools/README.md) |
+現在準備中です。
 
-導入・更新・スキルの呼び出し（`/pecot-w:w-pr` など）には短い名前（pecot-w / pecot-v / pecot-t）を使います。
-スキルとエージェントの一覧は各プラグインの README に記載しています。
+## セットアップ
 
----
+### システム要件
 
-## インストール
+以下のソフトウェアがインストールされている必要があります。
 
-### 前提条件
+- [Claude Code](https://claude.ai/code)
+- [Node.js](https://nodejs.org/ja)
+- [Git](https://git-scm.com/)
+- [GitHub CLI](https://cli.github.com/)
 
-- [Claude Code](https://claude.ai/code) 2.1.141 以上
-- [gh CLI](https://cli.github.com/) — `gh auth login` で認証後、`gh auth refresh -s project` を実行する。
-  GitHub Projects V2 アクセス用の `project` スコープを追加する
-- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上 — pecot-w・pecot-v・pecot-t の実行に使う。脆弱性の修正を含まないバージョンでは起動しない
+### インストール
 
-### Claude Code
+GitHub CLI でログインし、GitHub Projects の操作に必要な `project` スコープを追加します。
+
+```bash
+gh auth login
+gh auth refresh -s project
+```
+
+pecot は、[Claude Code のプラグイン](https://code.claude.com/docs/ja/plugins)として配布しています。
+次のコマンドで、このリポジトリをマーケットプレイスとして Claude Code に追加し、プラグインをインストールします。
 
 ```bash
 claude plugin marketplace add https://github.com/pecotcraft/pecot.git
 claude plugin install pecot-w@pecot
 claude plugin install pecot-v@pecot
-claude plugin install pecot-t@pecot
 ```
 
----
+pecot-w を初めて使用するときは、作業するリポジトリで `/pecot-w:w-onboarding` を実行して、GitHub Projects のボードを作成してください。
 
-## 更新
+### 更新
 
-新しいバージョンを取り込むには、次のコマンドで更新してください。
-
-### Claude Code
+最新のバージョンに更新するには、次のコマンドを実行します。
 
 ```bash
 claude plugin update pecot-w@pecot
 claude plugin update pecot-v@pecot
-claude plugin update pecot-t@pecot
 ```
 
-project スコープでインストールしている場合は `-s project` を付けてください。
-
----
+プロジェクトスコープでインストールした場合は、`-s project` を付けて実行してください。
 
 ## ライセンス
 
-MIT License です。全文は [LICENSE](LICENSE) にあります。
+MIT License で公開しています。詳しくは [LICENSE](LICENSE) を参照してください。
