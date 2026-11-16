@@ -21,10 +21,9 @@
 
 <h2>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-wordmark-dark.svg">
-    <img src=".github/assets/pecot-wordmark-light.svg" alt="pecot" height="38" align="middle">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/pecot-heading-dark.svg">
+    <img src=".github/assets/pecot-heading-light.svg" alt="pecot とは" height="38">
   </picture>
-  とは
 </h2>
 
 現在準備中です。
