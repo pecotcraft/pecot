@@ -9,10 +9,6 @@
   <b>やりたいことを Claude Code に伝えるだけで、Issue の作成からリリースまでが GitHub 上で進みます。</b>
 </p>
 
-<p align="center">
-  <img src=".github/assets/readme-board.png" alt="GitHub Projects のボード。タスクが Ready、Active、In Review、Archived の列を進んでいる" width="900">
-</p>
-
 ## Issue からリリースまでを自動化する
 
 pecot-w は、GitHub Projects のボードと連携して開発の流れを進める Claude Code のプラグインです。
@@ -22,6 +18,7 @@ pecot-w は、GitHub Projects のボードと連携して開発の流れを進�
 
 **ボードは自動で更新されます。**
 着手すると Active へ、PR を作成すると In Review へ、マージすると Archived へ、タスクが移動します。
+pecot の開発もこの仕組みで進めています。実際のボードは [pecot-project](https://github.com/orgs/pecotcraft/projects/1) で公開しています。
 
 **複数のタスクを並行して進められます。**
 git worktree を使用して、タスクごとに作業ディレクトリを分けられます。
