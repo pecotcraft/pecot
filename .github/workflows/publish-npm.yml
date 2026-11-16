@@ -208,7 +208,7 @@ jobs:
           runCmd: |
             cd /workspaces/base/pecot &&
             out="$(mktemp -d)" &&
-            plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version="$DEV_VERSION" --out-dir="$out" &&
+            bash plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version="$DEV_VERSION" --out-dir="$out" &&
             cd "$out" &&
             npm pack --ignore-scripts --pack-destination /workspaces/base/pecot/.pecot/tmp/dev-publish
 
