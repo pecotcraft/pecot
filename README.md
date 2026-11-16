@@ -10,11 +10,13 @@
 Agent Plugins 1.0 に対応したエージェントにも、今後対応していく予定です。
 以下の 3 プラグインを配布しています。
 
-| プラグイン | 内容 |
-|:----------|:----|
-| [**pecot-w**](plugins/pecot-workflow/README.md) | GitHub Projects V2 と連携した開発ワークフローの自動化。Issue 起票・実装・PR・リリースの各段階をスキルとして提供し、git worktree による並行開発に対応する |
-| [**pecot-v**](plugins/pecot-visual/README.md) | 図表・スライドの作成。draw.io 構成図の生成、Slidev プレゼンテーションの作成と PPTX 変換、スクリーンショットからの作業エビデンス xlsx 生成 |
-| [**pecot-t**](plugins/pecot-tools/README.md) | 許可リストで限定した awscli コマンドを MCP ツールとして提供する。SSO 認証・参照系（Lambda / CloudWatch Logs / CloudWatch メトリクス / RDS / EC2 / ECR / EventBridge Scheduler）・Athena・S3 取得の 26 ツールを MCP サーバ `pecot-tools` として公開する |
+- [**pecot-w**](plugins/pecot-workflow/README.md) — GitHub Projects V2 と連携した開発ワークフローの自動化。
+  Issue 起票・実装・PR・リリースの各段階をスキルとして提供し、git worktree による並行開発に対応する
+- [**pecot-v**](plugins/pecot-visual/README.md) — 図表・スライドの作成。
+  draw.io 構成図の生成、Slidev プレゼンテーションの作成と PPTX 変換、スクリーンショットからの作業エビデンス xlsx 生成
+- [**pecot-t**](plugins/pecot-tools/README.md) — 許可リストで限定した awscli コマンドを MCP ツールとして提供する。
+  MCP サーバ `pecot-tools` として、SSO 認証・参照系・Athena・S3 取得の 26 ツールを公開する。
+  参照系は Lambda / CloudWatch Logs / CloudWatch メトリクス / RDS / EC2 / ECR / EventBridge Scheduler
 
 スキルとエージェントの一覧は各プラグインの README に記載しています。
 
