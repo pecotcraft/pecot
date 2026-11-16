@@ -261,24 +261,39 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\nadded: Issue acme\/demo\/12 as sub-issue of acme\/demo\/3\n$/u)
     })
 
-    it('欄の設定に失敗したとき、失敗を出さずに残りの欄を設定して続ける', async (context) => {
+    it('欄の設定に失敗したとき、欄ごとに warning を出し、project init の案内を 1 回だけ添えて、残りの欄を設定して続ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
-      await startGithub([
-        linkedRepositories(),
-        createdIssue(12),
-        issueNodeId(12),
-        addedToProject(),
-        { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'cannot set' }] } } },
-        updatedFields(2),
-      ])
+      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), failedFieldUpdate(2, 'cannot set'), updatedFields(1)])
 
       const result = await create(path.join(project.root, 'draft.md'))
 
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
-      expect(result.stderr).toBe('created: Issue acme/demo/12 from draft.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 priority high, size s\n')
+      expect(result.stderr).toBe([
+        'created: Issue acme/demo/12 from draft.md',
+        'added: Issue acme/demo/12 to project',
+        'warning: could not set status ready of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot set\'}',
+        '  hint: if the board options were recreated, run pecot project init to read their IDs again',
+        'warning: could not set priority high of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot set\'}',
+        'set: Issue acme/demo/12 size s',
+        '',
+      ].join('\n'))
+    })
+
+    it('複数のファイルで欄の設定に失敗しても、project init の案内は 1 回だけ出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-24')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次') })
+      await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), failedFieldUpdate(2)])
+
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toContain('warning: could not set status ready of Issue acme/demo/12: ')
+      expect(result.stderr).toContain('warning: could not set status ready of Issue acme/demo/13: ')
+      expect(result.stderr.match(/hint: if the board options were recreated/gu)).toHaveLength(1)
     })
 
     it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に、error の行を標準エラーに出して終了コード 1 で終わる', async (context) => {
@@ -969,7 +984,14 @@ describe('issue create', () => {
       const result = await create(path.join(project.root, 'a.md'))
 
       expect(result.code).toBe(0)
-      expect(result.stderr).toBe('created: Issue acme/demo/13 from a.md\nadded: blocked-by #12 to #13\nadded: Issue acme/demo/13 to project\n')
+      expect(result.stderr).toBe([
+        'created: Issue acme/demo/13 from a.md',
+        'added: blocked-by #12 to #13',
+        'added: Issue acme/demo/13 to project',
+        'warning: could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'cannot write\'}',
+        '  hint: if the board options were recreated, run pecot project init to read their IDs again',
+        '',
+      ].join('\n'))
       expect(result.stdout).toBe(`${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
     })
 
@@ -1102,6 +1124,31 @@ describe('issue create', () => {
       const outcome = await createTool({ files: inRoot(project.root, 'a.md') })
 
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' }])
+    })
+
+    it('config の Blocked の ID が古くて列を書けないと、warnings に書けなかった列と project_init の案内を返し、data.issues に status を返さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-24')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
+      const github = await startGithub([
+        linkedRepositories(),
+        blockedBySupported(),
+        issueNodeId(12),
+        createdIssue(13),
+        blockedByAdded(),
+        issueNodeId(13),
+        addedToProject(),
+        failedFieldUpdate(1, 'The single select option Id does not belong to the field'),
+      ])
+
+      const outcome = await createTool({ files: inRoot(project.root, 'a.md') })
+
+      expect(workflowWrites(github)).toEqual([expect.objectContaining({ optionId: 'o7' })])
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured['warnings']).toEqual([
+        'could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'The single select option Id does not belong to the field\'}\nhint: if the board options were recreated, run project_init to read their IDs again',
+      ])
+      expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13` }])
     })
 
     it('途中のファイルで作成に失敗すると、作り終えた Issue を失敗の data.issues に残す', async () => {

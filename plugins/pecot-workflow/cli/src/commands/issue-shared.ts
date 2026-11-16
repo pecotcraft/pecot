@@ -36,7 +36,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
-import { commandHint, hinted, inputHint, inputNameHint } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -412,7 +412,14 @@ export interface IssueField {
 }
 
 /**
-カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。失敗したフィールドは、何も出さずに飛ばす。設定できたフィールドの名前を返す
+project init の案内を 1 回の実行で 1 回だけ出すための印
+*/
+export interface FieldHintState {
+  hasHinted: boolean
+}
+
+/**
+カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。書き込みに失敗したフィールドは warning にして飛ばす。設定できたフィールドの名前を返す
 */
 export async function setIssueFields(
   output: Output,
@@ -421,6 +428,7 @@ export async function setIssueFields(
   itemId: string,
   target: string,
   fields: readonly IssueField[],
+  hintState: FieldHintState,
 ): Promise<readonly string[]> {
   const labels: string[] = []
   const written: string[] = []
@@ -433,6 +441,10 @@ export async function setIssueFields(
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
+      const message = `could not set ${label} of ${target}: ${error.message}`
+      // 選択肢を作り直すと config の ID が古くなり、書き込みが落ちる
+      output.warning(hintState.hasHinted ? message : joinHinted([message, hinted`hint: if the board options were recreated, run ${commandHint(['project', 'init'])} to read their IDs again`]))
+      hintState.hasHinted = true
     }
   }
   if (labels.length > 0) output.done({ verb: 'set', target: `${target} ${labels.join(', ')}` })
