@@ -114,7 +114,7 @@ describe('issue create', () => {
     expect(hasQuickMode(project.root)).toBe(false)
   })
 
-  it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わり', async (context) => {
+  it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-66')
     setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])

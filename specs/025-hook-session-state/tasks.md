@@ -180,6 +180,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `src/commands/issue-create.ts`・`issue-quick.ts` の `consumeFlag`
   - `src/commands/pr.ts` の片付けの対象
   - `src/commands/repository.ts` の `wip/` ブランチの連動の削除
+  - 実物は `issue-create.ts` と `state-store.ts` の `consumeFlag`、`branch.ts`・`session-finish.ts` の `wip/` の削除だった（#463）
 - [x] T028 [US2] 消したもののテストを消す。`tests/hooks/` を、消したスクリプトの名前で洗う
   - `pre-tool-use.test.ts`・`pre-tool-use-websearch.test.ts`
   - `post-tool-use-pecot-skill-reminder.test.ts`・`pre-tool-use-pecot-issue-pending-reminder.test.ts`

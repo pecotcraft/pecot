@@ -37,7 +37,7 @@ disallowedTools:
    git clone --depth 1 <repo-url> .pecot/work/<Issue番号>/tech-advisor/<lib-name>
    ```
 
-3. それでも足りなければ WebSearch で補う
+3. それでも足りなければ WebSearch で補う。WebSearch が拒まれたら試し直さず、確かめられなかった点を明記して答える
 
 ## 答え方
 

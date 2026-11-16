@@ -962,7 +962,7 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12\n$/u)
     })
 
-    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付け', async (context) => {
+    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-59')
       const project = setUpIssueProject()
       writeTree(project.root, {

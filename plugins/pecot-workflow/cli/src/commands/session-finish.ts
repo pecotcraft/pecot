@@ -228,7 +228,7 @@ async function updateWaitingIssues(context: Readonly<FinishContext>, source: Rea
   }
 }
 
-// head ブランチを消し、続けて wip ブランチを消す。head が無くても wip は試す
+// head ブランチを消す。無ければ unchanged、ほかの失敗は warning にして続ける
 async function deleteMergedBranch(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, headBranch: string): Promise<void> {
   const { out, isDryRun, record } = context
   const operation: Operation = { verb: 'delete', target: `remote branch ${headBranch}` }

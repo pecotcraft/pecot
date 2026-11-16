@@ -382,7 +382,8 @@ describe('session finish', () => {
     expect(result.stderr).toContain(`deleted: remote branch ${BRANCH}\n`)
   })
 
-  it('リモートの head ブランチの削除に失敗したなら、warning の行を標準エラーに出し、終了コード 0 で終わる', async () => {
+  it('リモートの head ブランチの削除に失敗したなら、warning の行を標準エラーに出し、終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-39')
     const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(403, 'Forbidden')]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)

@@ -265,22 +265,25 @@ interface HookInput {
   readonly event: string
   readonly key: string
   readonly payload: Readonly<Record<string, unknown>>
+  // エントリが残るイベントか。撤廃したものは、どちらの定義でも空になる
+  readonly hasEntries: boolean
 }
 
 const HOOK_INPUTS: readonly HookInput[] = [
-  { label: 'UserPromptSubmit（/pecot-w:w-quick）', event: 'UserPromptSubmit', key: '', payload: { prompt: '/pecot-w:w-quick README の誤字を直す' } },
-  { label: 'SessionStart', event: 'SessionStart', key: 'startup', payload: { source: 'startup' } },
-  { label: 'Stop', event: 'Stop', key: '', payload: { stop_hook_active: false } },
-  { label: 'Notification', event: 'Notification', key: 'permission_prompt', payload: { notification_type: 'permission_prompt', message: 'm' } },
-  { label: 'Pre の Skill', event: 'PreToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' } } },
-  { label: 'Pre の Edit', event: 'PreToolUse', key: 'Edit', payload: { tool_name: 'Edit', tool_input: { file_path: 'README.md', old_string: 'a', new_string: 'b' } } },
-  { label: 'Pre の Bash（git checkout）', event: 'PreToolUse', key: 'Bash', payload: { tool_name: 'Bash', tool_input: { command: 'git checkout -b feat/x' } } },
-  { label: 'Post の Skill', event: 'PostToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' }, tool_response: { success: true } } },
+  { label: 'UserPromptSubmit（/pecot-w:w-quick）', event: 'UserPromptSubmit', key: '', payload: { prompt: '/pecot-w:w-quick README の誤字を直す' }, hasEntries: true },
+  { label: 'SessionStart', event: 'SessionStart', key: 'startup', payload: { source: 'startup' }, hasEntries: true },
+  { label: 'Stop', event: 'Stop', key: '', payload: { stop_hook_active: false }, hasEntries: false },
+  { label: 'Notification', event: 'Notification', key: 'permission_prompt', payload: { notification_type: 'permission_prompt', message: 'm' }, hasEntries: false },
+  { label: 'Pre の Skill', event: 'PreToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' } }, hasEntries: true },
+  { label: 'Pre の Edit', event: 'PreToolUse', key: 'Edit', payload: { tool_name: 'Edit', tool_input: { file_path: 'README.md', old_string: 'a', new_string: 'b' } }, hasEntries: false },
+  { label: 'Pre の Bash（git checkout）', event: 'PreToolUse', key: 'Bash', payload: { tool_name: 'Bash', tool_input: { command: 'git checkout -b feat/x' } }, hasEntries: true },
+  { label: 'Post の Skill', event: 'PostToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' }, tool_response: { success: true } }, hasEntries: false },
   {
     label: 'Post の Bash（commit）',
     event: 'PostToolUse',
     key: 'Bash',
     payload: { tool_name: 'Bash', tool_input: { command: 'git commit -m x' }, tool_response: { stdout: '[feat/x abc1234] x\n 1 file changed', stderr: '', interrupted: false } },
+    hasEntries: false,
   },
 ]
 
@@ -310,7 +313,9 @@ describe('統合: 撤廃したリマインダーと自動 push', () => {
     const before = new Set(readdirSync(state))
     const payload = { hook_event_name: row.event, cwd: repository, session_id: 's', transcript_path: '/t/s.jsonl', ...row.payload }
     for (const definitionFile of DEFINITION_FILES) {
-      for (const entry of selectedEntries(definitionFile, row.event, row.key)) {
+      const entries = selectedEntries(definitionFile, row.event, row.key)
+      expect(entries.length > 0, `${definitionFile} のエントリの有無`).toBe(row.hasEntries)
+      for (const entry of entries) {
         const result = runHookEntry(hookCase, entry, payload, { cwd: repository })
         expect(result.exitCode, `${definitionFile} ${entry}`).toBe(0)
         expect(result.stdout, `${definitionFile} ${entry}`).not.toContain('additionalContext')

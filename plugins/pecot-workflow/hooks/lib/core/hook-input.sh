@@ -39,8 +39,8 @@
 # コマンドも同じ扱いにする。
 # PECOT_HOOK_COMMAND_MAX_BYTES を超えるときは、PECOT_HOOK_COMMAND を export しない。
 # この値は、コアのガードが deny 理由にコマンドを 2 回まで載せても 128KiB に収まる大きさ。
-# コマンドは同じプロセスのシェル変数としてだけ残し、代わりに PECOT_HOOK_COMMAND_OVERSIZE=1 を export する。
-# ガードはコマンドが空になって素通しする。リマインダーは pecot_hook_command_reload で読み直す。
+# 代わりに PECOT_HOOK_COMMAND_OVERSIZE=1 を export する。
+# ガードはコマンドが空になって素通しする。`/tmp` の促しは pecot_hook_command_reload で読み直す。
 #
 # source されるため、このファイル自体は何も実行しない。
 

@@ -699,7 +699,7 @@ async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repo
     return await createGitHubClient(out, config.host).linkRepositoryToProject(config.owner, config.project.number, repositoryOwner, repositoryName)
   }
   catch (error: unknown) {
-    // API の失敗の文は、Python と同じく message をそのまま使う（応答の本文の詳細は、wip ブランチの削除の警告だけが足す）
+    // API の失敗の文は、Python と同じく message をそのまま使う
     if (error instanceof GitHubAPIError) return { status: 'failed', detail: error.message }
     throw error
   }

@@ -6,9 +6,10 @@ Claude Code / GitHub Copilot CLI 向けのフックシステム。
 
 | クライアント | 最低対応版 | 根拠 |
 |---|---|---|
-| Claude Code | 2.1.141 | PreToolUse の `hookSpecificOutput.permissionDecision`（deny / allow と理由）、`hookSpecificOutput.sessionTitle` |
+| Claude Code | 2.1.141 | PreToolUse の `hookSpecificOutput.permissionDecision`（deny / allow と理由）。根拠だった `terminalSequence` を撤廃したので、版は Phase 8（#468）で見直す |
 | GitHub Copilot CLI | 1.0.97 | PascalCase の定義で snake_case の入力が届くこと（1.0.21）、matcher の全体一致（1.0.36 / 1.0.62）、`permissionDecision` の `allow` で承認プロンプトを省くこと（1.0.18）、autopilot が `ask` を deny 扱いにすること（1.0.97） |
 
+セッション名の `sessionTitle` は、UserPromptSubmit が 2.1.94、SessionStart が 2.1.152 から読まれる。
 実機で確認した版は Claude Code 2.1.310 / Copilot CLI 1.0.103（[クライアント差分](#クライアント差分)）。
 定義ファイルはクライアントごとに別。
 Claude Code は `hooks/hooks.json`、Copilot CLI は `com.github.copilot/hooks/hooks.json` を読む。

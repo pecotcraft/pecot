@@ -5266,6 +5266,9 @@ entries:
       - id: PW-SESSION-FINISH-38
         pattern: event
         statement: 'base が開発ブランチでない PR を片付けると、その PR の Issue を閉じます'
+      - id: PW-SESSION-FINISH-39
+        pattern: unwanted
+        statement: 'もしリモートの head ブランチの削除に失敗したなら、`warning` の行を標準エラーに出し、終了コード 0 で終わります'
   PW-SESSION-SHOW:
     help:
       details:

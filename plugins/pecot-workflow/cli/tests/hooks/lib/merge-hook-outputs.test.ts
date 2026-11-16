@@ -125,15 +125,6 @@ describe('merge-hook-outputs.sh', () => {
     expect(parseRecord(result.stdout)['continue']).toBe(false)
   })
 
-  it('systemMessage が複数のとき、改行でつなぐ', () => {
-    const hookCase = createHookCase()
-    const scripts = setUpScripts(hookCase)
-    const first = makeScript(scripts, 'sys1.sh', `echo '{"systemMessage":"system msg 1"}'`)
-    const second = makeScript(scripts, 'sys2.sh', `echo '{"systemMessage":"system msg 2"}'`)
-    const result = runMerge(hookCase, [first, second])
-    expect(parseRecord(result.stdout)['systemMessage']).toBe('system msg 1\nsystem msg 2')
-  })
-
   it('suppressOutput が true のものがあるとき、true を優先する', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
@@ -162,13 +153,13 @@ describe('merge-hook-outputs.sh', () => {
   })
 
   // hookEventName 以外の hookSpecificOutput のフィールドが無いときは、空の hookSpecificOutput を作らない。
-  it('systemMessage だけのとき、hookSpecificOutput を出さない', () => {
+  it('suppressOutput だけのとき、hookSpecificOutput を出さない', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
-    const script = makeScript(scripts, 'sys.sh', `echo '{"systemMessage":"sys only"}'`)
-    const result = runMerge(hookCase, [script], '{"hook_event_name":"Stop"}')
+    const script = makeScript(scripts, 'suppress.sh', `echo '{"suppressOutput":true}'`)
+    const result = runMerge(hookCase, [script], '{"hook_event_name":"PreToolUse"}')
     const data = parseRecord(result.stdout)
-    expect(data['systemMessage']).toBe('sys only')
+    expect(data['suppressOutput']).toBe(true)
     expect(data).not.toHaveProperty('hookSpecificOutput')
   })
 
@@ -188,29 +179,9 @@ describe('merge-hook-outputs.sh', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const empty = makeRawScript(scripts, 'empty.sh', '#!/bin/bash\ncat > /dev/null\n')
-    const result = runMerge(hookCase, [empty], '{"hook_event_name":"Stop"}')
+    const result = runMerge(hookCase, [empty], '{"hook_event_name":"PreToolUse"}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
-  })
-
-  it('Claude Code の Stop / Notification の terminalSequence を、トップレベルに引き継ぐ', () => {
-    const hookCase = createHookCase()
-    const scripts = setUpScripts(hookCase)
-    const script = makeScript(scripts, 'bell.sh', String.raw`echo '{"terminalSequence":"\u0007"}'`)
-    const result = runMerge(hookCase, [script], '{"hook_event_name":"Stop"}')
-    expect(result.exitCode).toBe(0)
-    expect(parseJson(result.stdout)).toEqual({ terminalSequence: '\u{7}' })
-  })
-
-  it('terminalSequence は、systemMessage と合わせて出す', () => {
-    const hookCase = createHookCase()
-    const scripts = setUpScripts(hookCase)
-    const bell = makeScript(scripts, 'bell.sh', String.raw`echo '{"terminalSequence":"\u0007"}'`)
-    const message = makeScript(scripts, 'msg.sh', `echo '{"systemMessage":"pushed"}'`)
-    const result = runMerge(hookCase, [bell, message], '{"hook_event_name":"Stop"}')
-    const data = parseRecord(result.stdout)
-    expect(data['terminalSequence']).toBe('\u{7}')
-    expect(data['systemMessage']).toBe('pushed')
   })
 
   // トップレベルの additionalContext（Copilot CLI 1.0.103 は SessionStart / PostToolUse でこれだけを読む）。
@@ -232,7 +203,6 @@ describe('merge-hook-outputs.sh', () => {
   it.for([
     { label: 'PreToolUse', event: 'PreToolUse' },
     { label: 'UserPromptSubmit', event: 'UserPromptSubmit' },
-    { label: 'Stop', event: 'Stop' },
   ])('$label のとき、additionalContext をトップレベルには出さない', (row) => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
@@ -257,7 +227,7 @@ describe('merge-hook-outputs.sh', () => {
   it('additionalContext が無いとき、トップレベルにも出さない', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
-    const message = makeScript(scripts, 'msg.sh', `echo '{"systemMessage":"m"}'`)
+    const message = makeScript(scripts, 'suppress.sh', `echo '{"suppressOutput":true}'`)
     const result = runMerge(hookCase, [message], '{"hook_event_name":"PostToolUse"}')
     expect(parseRecord(result.stdout)).not.toHaveProperty('additionalContext')
   })
