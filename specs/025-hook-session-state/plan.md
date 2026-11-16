@@ -43,7 +43,7 @@
 
 - #351（`cli-node/` を `cli/` に移す）は main に入った。パスとテストは、移した後の形で書く。pytest は無い
 - Copilot CLI の動作は、撤廃と判定によるもの以外を変えない
-- スキルの frontmatter に `hooks` を足すと、Copilot CLI も同じ SKILL.md を読む。1.0.112 は `hooks` を無視し、エラーも出さない（research.md の R2）。Copilot CLI では計画の承認の後の案内を出さない
+- スキルの frontmatter に `hooks` を足すと、Copilot CLI も同じ SKILL.md を読む。Copilot CLI では計画の承認の後の案内を出さない（research.md の R2）
 - スキルの frontmatter のフックの matcher は `ExitPlanMode` だけにする。`|` を含むと `once` で外れない（research.md の R2）
 - spec 024 の tasks の「`pr_merge` を確認にかける」項目とぶつかる。この Epic の撤廃を先に入れ、024 の該当 Issue に知らせる
 - MCP ツールの入力と出力が変わる（`create_branch`・`issue_quick`・`session_status`・`session_restore`）。定義書と生成物を同じ変更で直す

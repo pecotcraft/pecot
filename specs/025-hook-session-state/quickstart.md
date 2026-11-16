@@ -61,9 +61,10 @@ pnpm -C plugins/pecot-workflow/cli vitest run tests/interface/create-branch.test
 |---|---|
 | プラグインのスキルの frontmatter のフックが登録されるか | 登録される |
 | `command` の `${CLAUDE_PLUGIN_ROOT}` が展開されるか | 展開される |
-| `once: true` で PostToolUse（ExitPlanMode）のフックが外れるか | 1 回で外れる |
+| `once: true` で PostToolUse（ExitPlanMode）のフックが外れるか | matcher が `ExitPlanMode` だけなら 1 回で外れる。`\|` を含むと外れない |
+| `\|` を含む matcher で `once: true` が外れるか | 結果を記録する。外れるようになっても、matcher は `ExitPlanMode` だけのままにする |
 | resume の後に登録し直されるか | 結果を記録する |
 | SessionStart が compact で起動するか | 起動し、セッション名は返さない |
-| Copilot CLI が frontmatter のフックを読むか | 結果を記録し、対応を決める |
+| Copilot CLI が frontmatter のフックを読むか | 読まない。エラーは出ず、計画の承認の後の案内は出ない |
 | Copilot CLI の `beep: true` がターンの完了で鳴るか | 結果を記録し、README の推奨設定の書き方を決める |
 | `speckit.git.feature` が、今のブランチ名を受けて新しいブランチを作らないか | 作らない |

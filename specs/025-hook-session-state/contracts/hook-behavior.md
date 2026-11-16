@@ -46,7 +46,7 @@
 ## 計画の承認の後の案内（Copilot CLI）
 
 `hooks.json` のエントリは、Copilot CLI 向けの定義からも外す。
-Copilot CLI（1.0.112）は frontmatter のフックを読まないので、案内は出ない。エラーも出ない（research.md の R2）。
+Copilot CLI では案内を出さない（research.md の R2）。
 
 ## 設定
 

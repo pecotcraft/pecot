@@ -59,10 +59,12 @@
 
 セッションに結びつく状態は、ファイルではなく、スキルの起動で登録されるフックが持つ。
 
-| スキル | イベント | 引数 | `once` | 出す案内 |
-|---|---|---|---|---|
-| w-active | PostToolUse（ExitPlanMode） | `--mode=active` | true | 計画の更新、実装の引き継ぎ |
-| w-quick | PostToolUse（ExitPlanMode） | `--mode=quick` | true | 計画の更新 |
+| スキル | イベント | matcher | 引数 | `once` | 出す案内 |
+|---|---|---|---|---|---|
+| w-active | PostToolUse | `ExitPlanMode`（`\|` を付けない） | `--mode=active` | true | 計画の更新、実装の引き継ぎ |
+| w-quick | PostToolUse | `ExitPlanMode`（`\|` を付けない） | `--mode=quick` | true | 計画の更新 |
+
+matcher に `|` で別の名前を足すと、`once` で外れない（research.md の R2）。Copilot CLI は frontmatter のフックを読まないので、`exit_plan_mode` は足さない。
 
 | 遷移 | きっかけ |
 |---|---|

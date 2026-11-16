@@ -322,6 +322,9 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `src/commands/pr.ts` の片付け
   - `p-w/interface/authored.yaml` の記述
 - [ ] T072 [US4] `tests/skills/` にテストを足す。w-active と w-quick の `hooks` が決めた形で、呼ぶスクリプトがある
+  - matcher が `ExitPlanMode` に一致し、`|` を含まない
+  - `once: true`、引数は `--mode=active`（w-active）・`--mode=quick`（w-quick）
+  - スクリプトのパスが `${CLAUDE_PLUGIN_ROOT}` で始まる
 - [ ] T073 [US4] スキルの frontmatter を検証するテストや lint が `hooks` を弾かないかを確かめる。弾くなら許す
 - [ ] T074 [US4] `SPEC/quickstart.md` の 3 を実機で確かめ、結果を PR に貼る。Copilot CLI で w-quick がエラーにならず、案内が出ないことも確かめる
 
@@ -366,6 +369,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 - [ ] T083 [US5] `p-w/hooks/README.md` の状態の表を、`SPEC/data-model.md` の「状態の置き場」に合わせる
 - [ ] T084 [US5] `SPEC/research.md` の R6 で「使っていないことを確かめる」とした項目を、grep で確かめる。使っていれば直す（FR-051）
 - [ ] T085 [US5] 現行の両クライアントで、残ったフックを 1 つずつ動かす。`p-w/hooks/README.md` の実機の記録の表を書き直す
+  - 表に「`|` を含む matcher での `once`」の行を入れ、外れるかを記録する（`SPEC/research.md` の R2 で不具合として避けた点）
   - 版・日付・結果を書く
   - `SPEC/quickstart.md` の 6 の表の行を、すべて含める
 - [ ] T086 [US5] `p-w/hooks/README.md` の対応バージョンを直す。最低対応版を、frontmatter のフックを確かめた版に上げ、根拠を書く

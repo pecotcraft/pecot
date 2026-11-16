@@ -94,7 +94,7 @@
 - w-active と w-quick の frontmatter に、PostToolUse（ExitPlanMode）のフックを `once: true` で書く
   - matcher は `ExitPlanMode` だけにする。`|` で `exit_plan_mode` を足すと、`once` で外れない（実機で確かめる点の表）
   - `command` のスクリプトのパスは `${CLAUDE_PLUGIN_ROOT}` で書く
-- Copilot CLI は frontmatter のフックを読まないので、Copilot CLI では案内を出さない。Copilot CLI 向けの定義にも残さない（ユーザーの判断、2026-11-16）
+- Copilot CLI では案内を出さない。Copilot CLI 向けの定義にも残さない（実機で確かめる点の表。ユーザーの判断、2026-11-16）
 - 2 つは同じスクリプトを呼び、引数で出し分ける。w-active は計画の更新と実装の引き継ぎ、w-quick は計画の更新だけを出す
 - 同じセッションで両方を起動しても、起動のたびに 1 回ずつ出る
 - 作業中の Issue の有無は、ブランチ名から求める（R7）。両スキルとも、checkout はプランモードより前にある
@@ -107,7 +107,7 @@
 |---|---|---|---|---|
 | プラグインのスキルの frontmatter のフックが登録されるか | 登録されなければ、今の `hooks.json` の `exit-plan-remind` を残す | 登録される。`/hooks` に出どころ `[Session]` で並ぶ | Claude Code 2.1.325 | 2026-11-16 |
 | `command` で `${CLAUDE_PLUGIN_ROOT}` が展開されるか | 展開されなければ、絶対パスを組み立てる別の手段を探す（相対のパスは、フックの `cwd` がセッションの作業ディレクトリなので使えない） | 展開される。環境変数 `CLAUDE_PLUGIN_ROOT` も渡る | Claude Code 2.1.325 | 2026-11-16 |
-| `command` で `${CLAUDE_SKILL_DIR}` が展開されるか | 使わない | 展開されない（空になり、`/../../scripts/…` を探して失敗する） | Claude Code 2.1.325 | 2026-11-16 |
+| `command` で `${CLAUDE_SKILL_DIR}` が展開されるか | 使わない | 動かない（probe.log に行が残らない。同じ組の `${CLAUDE_PLUGIN_ROOT}` と絶対パスのフックは動く） | Claude Code 2.1.325 | 2026-11-16 |
 | `once: true` で PostToolUse（ExitPlanMode）のフックが外れるか | 外れなければ、引数の出し分けだけにし、重なりは許す | **matcher による**。`ExitPlanMode` だけの組なら、最初の成功で外れる。同じ組に `once` の無いフックがあっても外れる。`ExitPlanMode\|exit_plan_mode` の組では外れず、承認のたびに動く（debug ログに `Removing one-shot hook` が出ない） | Claude Code 2.1.325 | 2026-11-16 |
 | 外れた後に同じスキルを起動し直したとき | — | 登録し直され、次の承認で 1 回動く | Claude Code 2.1.325 | 2026-11-16 |
 | 承認の前に同じスキルを 2 回起動したとき | — | 承認で動くのは 1 回。その後に残らない | Claude Code 2.1.325 | 2026-11-16 |
@@ -119,7 +119,7 @@
 
 確かめ方: 検証用のプラグインを `--plugin-dir` で読み込み、tmux の対話のセッションで計画を承認した。承認の選択肢は「Yes, manually approve edits」。フックの発火は、絶対パスのログのファイルと `--debug-file` のログで見た。`once` の結果は、matcher と組の作りを 1 つずつ変えた版で比べた。
 
-`once` が `|` を含む matcher で外れないのは、公式文書（hooks の Common fields の `once`）の記述と合わない。Claude Code の不具合として扱い、Decision では matcher を `ExitPlanMode` だけにして避ける。
+`once` が `|` を含む matcher で外れないのは、公式文書（hooks の Common fields の `once`）の記述と合わない。Claude Code の不具合として扱い、Decision では matcher を `ExitPlanMode` だけにして避ける。直ったかは、Phase 8 の実機の記録（T085）で版ごとに確かめる。
 
 **クイックモードのフラグ**: `.pecot-quick-mode` は消す。`issue_quick` は書かず、`pr_cleanup` の片付けからも外す。
 
@@ -152,7 +152,7 @@
 |---|---|
 | 撤廃したフック | Copilot CLI 向けの定義からも外す |
 | `exit-plan-remind` | Copilot CLI 向けの定義からも外す |
-| スキルの frontmatter のフック | 1.0.112 は読まない。エラーも警告も出ない（2026-11-16 に実機で確認）。Copilot CLI では計画の承認の後の案内を出さない（ユーザーの判断） |
+| スキルの frontmatter のフック | Copilot CLI では計画の承認の後の案内を出さない（R2） |
 | `session-title` | 今も Copilot CLI 向けの定義に無い。変えない |
 | 作業中の Issue | MCP ツールの求め方は、クライアントによらず同じになる |
 
@@ -275,7 +275,7 @@ README の最低対応版は、frontmatter のフックを実機で確かめた�
 
 | 点 | 結果 | 版 | 確かめた日 |
 |---|---|---|---|
-| スクリプトを直に打つ（`GIT_BRANCH_NAME` に今のブランチ名、`--json --allow-existing-branch`） | 終了コード 0。`BRANCH_NAME` は今のブランチ名で、ブランチは増えず、切り替わらない。`--allow-existing-branch` を外すと「already exists」で終了コード 1 | speckit の git 拡張（このリポの `.specify/extensions/git/`） | 2026-11-16 |
+| スクリプトを直に打つ（`GIT_BRANCH_NAME` に今のブランチ名、`--json --allow-existing-branch`） | 終了コード 0。`BRANCH_NAME` は今のブランチ名で、ブランチは増えず、切り替わらない。`--allow-existing-branch` を外すと「already exists」で終了コード 1 | speckit の git 拡張 1.0.1（`.specify/extensions/git/extension.yml`） | 2026-11-16 |
 | エージェントが `/speckit-git-feature` から動かす（同じ指示を添える） | 指示どおりに `GIT_BRANCH_NAME` と `--allow-existing-branch` を付け、終了コード 0。ブランチは増えず、切り替わらない | Claude Code 2.1.325 | 2026-11-16 |
 
 `speckit-git-feature` の本文のコマンド例には `--allow-existing-branch` が無い。指示が無ければ、既存のブランチで終了コード 1 になり、必須の `before_specify` で止まる。w-breakdown の本文に、渡す値とフラグを明示する（T076）。

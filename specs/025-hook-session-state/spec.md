@@ -28,6 +28,7 @@
 - Q: `--no-verify` の deny（`git-no-verify-check`）をどうするか → A: 残すが、初期値を無効にする。`-n` のまとめ書き・`core.hooksPath`・`SKIP=` などの抜けがあり、フックでは守り切れない。守りは CI に任せる。止める形は増やす（FR-009）
 - Q: context7 と WebSearch を確認なしで通す allow のフック（`context7-allow`・`websearch-allow`）をどうするか → A: 撤廃する。組み込みの確認で、利用者が許可を残せる（FR-010）
 - Q: Bash から起動した CLI の起点の変数を書くフック（`session-project-dir`）をどうするか → A: 撤廃する。スキルは MCP ツールを使い、使われる場面が狭い（FR-010）
+- Q: Copilot CLI がスキルの frontmatter のフックを読まないとき、計画の承認の後の案内をどうするか → A: Copilot CLI では出さない。`hooks.json` に残すと、スキルの起動を知る手段が無く出し分けられない（FR-060、research.md の R2）
 - Q: 待機用のブランチ（`wt<数字>`）への直接の commit・push を止める `git-worktree-branch-check` をどうするか → A: 残して直す（FR-024）
 - Q: 作業中の Issue をセッション名にする `session-title` をどうするか → A: 残す
 - Q: 通知音のフック（`terminal-bell`・`pty-bell-sender`）をどうするか → A: 撤廃し、組み込みの通知の設定を README の推奨設定に書く（FR-010、FR-011）。対象は、Claude Code の通知・プッシュ通知・端末の状態の表示と、Copilot CLI の `beep`・`notifications`
@@ -207,7 +208,7 @@ w-quick では、実装の引き継ぎの案内を出さない。
 ### Edge Cases
 
 - スキルの frontmatter のフックは、スキルが終わっても外れない。同じセッションで w-quick と w-active の両方を起動すると、両方のフックが残る。そのときの案内の出し方は plan で決める
-- GitHub Copilot CLI がスキルの frontmatter のフックを読まないと分かったときは、そのとき対応を決める。クイックモードのフラグは残さない
+- GitHub Copilot CLI（1.0.112）は、スキルの frontmatter のフックを読まない。Copilot CLI では計画の承認の後の案内を出さない（ユーザーの判断、2026-11-16、research.md の R2）。クイックモードのフラグは残さない
 - resume の後にスキルの frontmatter のフックが登録し直されないときは、resume の後の計画の承認に案内が出ない。これは許す
 - 撤廃の前の版で作られたフラグ（免除の 3 つと `issue-pending`）が残っていても、読む者がいないので動作に使われない
 - 利用者の `hooks-config.json` に撤廃したキーが残っていても、無視する
@@ -304,7 +305,7 @@ FR-010 の内訳は次のとおり。
 
 | ID | 要件 |
 |---|---|
-| FR-060 | Copilot CLI での利用者から見た動作は、撤廃したものと棚卸しの判定によるもの以外、変えてはならない |
+| FR-060 | Copilot CLI での利用者から見た動作は、撤廃したものと棚卸しの判定によるもの以外、変えてはならない。例外として、計画の承認の後の案内は Copilot CLI では出さない（Edge Cases） |
 | FR-061 | 撤廃と棚卸しの判定は、Copilot CLI 向けの定義ファイルにも同じく反映しなければならない |
 
 ### Key Entities
