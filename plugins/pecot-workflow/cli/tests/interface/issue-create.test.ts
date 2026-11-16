@@ -291,9 +291,35 @@ describe('issue create', () => {
       const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
 
       expect(result.code).toBe(0)
-      expect(result.stderr).toContain('warning: could not set status ready of Issue acme/demo/12: ')
-      expect(result.stderr).toContain('warning: could not set status ready of Issue acme/demo/13: ')
-      expect(result.stderr.match(/hint: if the board options were recreated/gu)).toHaveLength(1)
+      expect(result.stderr).toBe([
+        'created: Issue acme/demo/12 from a.md',
+        'added: Issue acme/demo/12 to project',
+        'warning: could not set status ready of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot write\'}',
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        'created: Issue acme/demo/13 from b.md',
+        'added: Issue acme/demo/13 to project',
+        'warning: could not set status ready of Issue acme/demo/13: GraphQL query error: {\'message\': \'cannot write\'}',
+        '',
+      ].join('\n'))
+    })
+
+    it('認証かレート制限で欄の設定に失敗したときは、warning だけを出し、ID を読み直す案内を添えない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-24')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭') })
+      await startGithub([
+        linkedRepositories(),
+        createdIssue(12),
+        issueNodeId(12),
+        addedToProject(),
+        { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: { status: 200, body: { errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] } } },
+      ])
+
+      const result = await create(path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toContain('warning: could not set status ready of Issue acme/demo/12: GraphQL rate limit error: ')
+      expect(result.stderr).not.toContain('hint:')
     })
 
     it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に、error の行を標準エラーに出して終了コード 1 で終わる', async (context) => {

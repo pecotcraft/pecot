@@ -32,11 +32,11 @@ import {
 } from '../domain/sections.js'
 import type { JsonObject } from '../domain/json.js'
 import { gitRunnerFor } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
+import { GitHubAPIError, GitHubAuthError, GitHubRateLimitError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
-import { getActiveConfigPath } from '../infra/config-store.js'
+import { getActiveConfigPath, projectsDirectory } from '../infra/config-store.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
@@ -414,7 +414,10 @@ export interface IssueField {
 
 function rereadOptionsHint(): HintedText {
   const configPath = getActiveConfigPath()
-  const project = configPath === undefined ? placeholder('PROJECT') : path.basename(configPath, '.json')
+  // projects/ の外の config は、ファイル名では project activate が見つけられない
+  const project = configPath === undefined
+    ? placeholder('PROJECT')
+    : (path.dirname(configPath) === projectsDirectory() ? path.basename(configPath, '.json') : configPath)
   return hinted`hint: if the board options were recreated, run ${commandHint(['project', 'activate'], { project })} to read their IDs again`
 }
 
@@ -449,8 +452,13 @@ export async function setIssueFields(
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
       const message = `could not set ${label} of ${target}: ${error.message}`
-      // 選択肢を作り直すと config の ID が古くなり、書き込みが落ちる。project activate がボードから読み直す
-      output.warning(hintState.hasHinted ? message : joinHinted([message, rereadOptionsHint()]))
+      // 選択肢を作り直すと config の ID が古くなり、書き込みが落ちる。認証とレート制限の失敗は、読み直しても直らない
+      const canReread = !(error instanceof GitHubAuthError || error instanceof GitHubRateLimitError)
+      if (!canReread || hintState.hasHinted) {
+        output.warning(message)
+        continue
+      }
+      output.warning(joinHinted([message, rereadOptionsHint()]))
       hintState.hasHinted = true
     }
   }

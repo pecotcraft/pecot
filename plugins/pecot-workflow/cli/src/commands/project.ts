@@ -479,7 +479,7 @@ async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, confi
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun }))
+    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, suffix: config.workflow_suffix, isDryRun }))
   })
 }
 
