@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { compareStrings } from '../../parity/baseline.js'
 import { isFile } from '../_helpers/files.js'
 import { toArray, toRecord } from '../_helpers/json.js'
 import { projectRoot } from '../_helpers/paths.js'
@@ -234,10 +235,10 @@ describe('撤廃したエントリ', () => {
 
 // SessionStart
 describe('SessionStart', () => {
-  it.for(CLAUDE_DEFINITIONS)('$label の Claude 定義は、pull の SessionStart を 1 エントリにまとめる', (row) => {
+  it.for(CLAUDE_DEFINITIONS)('$label の Claude 定義は、SessionStart を 1 エントリにまとめる', (row) => {
     const entries = entriesOf(load(row.plugin, row.name), 'SessionStart')
     expect(entries).toHaveLength(1)
-    const expected = row.plugin === WORKFLOW ? 'startup|clear|resume|fork' : 'startup|clear|resume'
+    const expected = row.plugin === WORKFLOW ? 'startup|clear|resume|fork|compact' : 'startup|clear|resume'
     expect(entries.at(0)?.matcher).toBe(expected)
     expect(entries.at(0)?.hooks).toHaveLength(1)
   })
@@ -293,6 +294,43 @@ describe('Copilot CLI の matcher', () => {
     const workflow = load(WORKFLOW, 'hooks.json')
     expect(matchersOf(workflow, 'pre-tool-use-skill.sh')).toEqual(['Skill'])
     expect(matchersOf(load(VISUAL, 'hooks.json'), 'pre-tool-use-skill.sh')).toEqual(['Skill'])
+  })
+})
+
+// 残すフックの一覧（spec 025 の research.md R1）。#466 で exit-plan-remind を置き換えたら一覧も直す。
+const REGISTERED_SCRIPTS = new Map([
+  ['hooks.json', ['post-tool-use-exit-plan-mode.sh', 'pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit-title.sh', 'user-prompt-submit.sh']],
+  [COPILOT_HOOKS, ['post-tool-use-exit-plan-mode.sh', 'pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit.sh']],
+])
+const CONFIG_KEYS = [
+  'claude-bash-guards',
+  'exit-plan-remind',
+  'gh-issue-create-check',
+  'gh-pr-create-check',
+  'gh-stack-check',
+  'git-no-verify-check',
+  'git-sync',
+  'git-worktree-branch-check',
+  'session-start-common',
+  'session-title',
+  'tech-advisor-clone-allow',
+  'tmp-path-warner',
+]
+
+describe('残すフックの一覧', () => {
+  it.for([...REGISTERED_SCRIPTS].map(([name, scripts]) => ({ name, scripts })))('$name に登録したスクリプトは、一覧と同じ集合になる', (row) => {
+    const files = new Set(allHooks(load(WORKFLOW, row.name)).map(({ hook }) => fileOf(hook)))
+    expect([...files].toSorted(compareStrings)).toEqual(row.scripts)
+  })
+
+  it('sample の設定キーは、一覧と同じ集合になる', () => {
+    const text = readFileSync(path.join(pluginsDirectory, WORKFLOW, 'hooks', 'hooks-config.json.sample'), 'utf8')
+    const sample = toRecord(parseJson(text), 'sample')
+    expect(Object.keys(sample).toSorted(compareStrings)).toEqual(CONFIG_KEYS)
+  })
+
+  it('Copilot 定義の Bash の PreToolUse は、Claude と同じエントリを指す', () => {
+    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-bash.sh')).toEqual(['Bash'])
   })
 })
 

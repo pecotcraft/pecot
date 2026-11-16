@@ -83,8 +83,7 @@ describe('merge-hook-outputs.sh', () => {
     const scripts = setUpScripts(hookCase)
     const allow = makeScript(scripts, 'allow.sh', `echo '{"hookSpecificOutput":{"permissionDecision":"allow","permissionDecisionReason":"allow reason"}}'`)
     const deny = makeScript(scripts, 'deny.sh', `echo '{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"deny reason"}}'`)
-    const ask = makeScript(scripts, 'ask.sh', `echo '{"hookSpecificOutput":{"permissionDecision":"ask","permissionDecisionReason":"ask reason"}}'`)
-    const result = runMerge(hookCase, [allow, ask, deny])
+    const result = runMerge(hookCase, [allow, deny])
     const specific = hookSpecificOutput(parseRecord(result.stdout))
     expect(specific['permissionDecision']).toBe('deny')
     expect(specific['permissionDecisionReason']).toBe('deny reason')
@@ -116,33 +115,6 @@ describe('merge-hook-outputs.sh', () => {
     expect(result.stderr.trim()).toBe('stderr msg')
   })
 
-  it('continue が false のものがあるとき、false を優先する', () => {
-    const hookCase = createHookCase()
-    const scripts = setUpScripts(hookCase)
-    const continueTrue = makeScript(scripts, 'continue-true.sh', `echo '{"continue":true,"hookSpecificOutput":{"additionalContext":"a"}}'`)
-    const continueFalse = makeScript(scripts, 'continue-false.sh', `echo '{"continue":false}'`)
-    const result = runMerge(hookCase, [continueTrue, continueFalse])
-    expect(parseRecord(result.stdout)['continue']).toBe(false)
-  })
-
-  it('suppressOutput が true のものがあるとき、true を優先する', () => {
-    const hookCase = createHookCase()
-    const scripts = setUpScripts(hookCase)
-    const suppressFalse = makeScript(scripts, 'suppress-false.sh', `echo '{"suppressOutput":false,"hookSpecificOutput":{"additionalContext":"a"}}'`)
-    const suppressTrue = makeScript(scripts, 'suppress-true.sh', `echo '{"suppressOutput":true}'`)
-    const result = runMerge(hookCase, [suppressFalse, suppressTrue])
-    expect(parseRecord(result.stdout)['suppressOutput']).toBe(true)
-  })
-
-  it('updatedInput が複数のとき、最後のものを使う', () => {
-    const hookCase = createHookCase()
-    const scripts = setUpScripts(hookCase)
-    const first = makeScript(scripts, 'ui1.sh', `echo '{"hookSpecificOutput":{"updatedInput":"first input"}}'`)
-    const last = makeScript(scripts, 'ui2.sh', `echo '{"hookSpecificOutput":{"updatedInput":"last input"}}'`)
-    const result = runMerge(hookCase, [first, last])
-    expect(hookSpecificOutput(parseRecord(result.stdout))['updatedInput']).toBe('last input')
-  })
-
   it('hookEventName を保つ', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
@@ -152,15 +124,17 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(parseRecord(result.stdout))['hookEventName']).toBe('PostToolUse')
   })
 
-  // hookEventName 以外の hookSpecificOutput のフィールドが無いときは、空の hookSpecificOutput を作らない。
-  it('suppressOutput だけのとき、hookSpecificOutput を出さない', () => {
+  // 出すフックが無くなった項目は結合しない。
+  it.for([
+    { name: 'continue', output: '{"continue":false}' },
+    { name: 'suppressOutput', output: '{"suppressOutput":true}' },
+    { name: 'updatedInput', output: '{"hookSpecificOutput":{"updatedInput":"x"}}' },
+  ])('$name だけの出力のとき、何も出さない', (row) => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
-    const script = makeScript(scripts, 'suppress.sh', `echo '{"suppressOutput":true}'`)
+    const script = makeScript(scripts, 'only.sh', `echo '${row.output}'`)
     const result = runMerge(hookCase, [script], '{"hook_event_name":"PreToolUse"}')
-    const data = parseRecord(result.stdout)
-    expect(data['suppressOutput']).toBe(true)
-    expect(data).not.toHaveProperty('hookSpecificOutput')
+    expect(result.stdout).toBe('')
   })
 
   // pre-tool-use-bash.sh / post-tool-use-exit-plan-mode.sh 等は、HSO 実フィールドを出す。
@@ -225,8 +199,8 @@ describe('merge-hook-outputs.sh', () => {
   it('additionalContext が無いとき、トップレベルにも出さない', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
-    const message = makeScript(scripts, 'suppress.sh', `echo '{"suppressOutput":true}'`)
-    const result = runMerge(hookCase, [message], '{"hook_event_name":"PostToolUse"}')
+    const message = makeScript(scripts, 'title.sh', `echo '{"hookSpecificOutput":{"sessionTitle":"#1"}}'`)
+    const result = runMerge(hookCase, [message], '{"hook_event_name":"SessionStart"}')
     expect(parseRecord(result.stdout)).not.toHaveProperty('additionalContext')
   })
 

@@ -12,7 +12,6 @@
 #
 # ブロックするブランチは次のとおり。
 #   - wt[0-9]+    : ワークツリー管理用（wt1, wt2, wt3, ...）
-#   - develop-aist: 開発統合用（PR経由のみ）
 #
 # ブロックするコマンドは次のとおり。
 #   - git commit / git push（チェイニング、git -C 付きも検出）
@@ -68,7 +67,7 @@ if [ -z "$CURRENT_BRANCH" ]; then
 fi
 
 # 保護ブランチパターン。
-PROTECTED_BRANCH_PATTERN='^(wt[0-9]+|develop-aist)$'
+PROTECTED_BRANCH_PATTERN='^wt[0-9]+$'
 
 if [[ "$CURRENT_BRANCH" =~ $PROTECTED_BRANCH_PATTERN ]]; then
     MSG="git-worktree-branch-check: direct ${OPERATION} to the protected branch '${CURRENT_BRANCH}' is not allowed.

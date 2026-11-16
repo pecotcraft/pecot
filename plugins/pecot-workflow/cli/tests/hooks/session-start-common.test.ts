@@ -8,9 +8,10 @@ import { setTimeout as sleep } from 'node:timers/promises'
 
 import { describe, expect, it } from 'vitest'
 
-import { createHookCase } from './_helpers/environment.js'
+import { createHookCase, hooksConfig } from './_helpers/environment.js'
 import type { HookCase } from './_helpers/environment.js'
 import { isFile } from './_helpers/files.js'
+import { installGitCallLog } from './_helpers/git.js'
 import { pathWithoutCommand } from './_helpers/mock-bin.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { run, runShell, shellFile } from './_helpers/run.js'
@@ -34,7 +35,7 @@ function makeGitProject(hookCase: HookCase, hasPecot = false): string {
   return projectDirectory
 }
 
-// git-sync は pull に失敗しても `|| true` で exit 0 を保つので、副作用（CLAUDE_ENV_FILE への追記など）だけを見る。
+// git-sync は初期値が無効なので pull しない。副作用（CLAUDE_ENV_FILE への追記など）だけを見る。
 function runCommon(hookCase: HookCase, projectDirectory: string): RunResult {
   return run(hookCase, 'bash', [COMMON_SCRIPT], {
     env: { CLAUDE_PROJECT_DIR: projectDirectory },
@@ -212,7 +213,7 @@ describe('session-start-common.sh', () => {
 
     const result = run(hookCase, 'bash', [COMMON_SCRIPT])
 
-    // git-sync は pull に失敗しても || true で exit 0 を保つので、exit 0 は安定する。
+    // git-sync は初期値が無効なので pull せず、exit 0 は安定する。
     expect(result.exitCode).toBe(0)
     // 新規作成は利用検知側（pecot-dir-init.sh）に一本化している。session-start は .pecot を作らない。
     expect(existsSync(path.join(projectDirectory, '.pecot'))).toBe(false)
@@ -223,7 +224,7 @@ describe('session-start-common.sh', () => {
     const projectDirectory = makeGitProject(hookCase, true)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', projectDirectory)
 
-    // git pull の失敗などで出力や exit code は問わない。.gitignore 生成の配線だけを確かめる。
+    // 出力や exit code は問わない。.gitignore 生成の配線だけを確かめる。
     run(hookCase, 'bash', [COMMON_SCRIPT])
 
     const gitignore = path.join(projectDirectory, '.pecot', '.gitignore')
@@ -232,5 +233,30 @@ describe('session-start-common.sh', () => {
     expect(lines).toContain('*')
     expect(lines.at(lines.indexOf('*') + 1)).toBe('!/config/')
     expect(lines).toContain('!/config/projects/*.json')
+  })
+
+  it('設定が無いとき、git pull を呼ばない', () => {
+    const hookCase = createHookCase()
+    const projectDirectory = makeGitProject(hookCase)
+    const gitCallLog = installGitCallLog(hookCase)
+
+    const result = runCommon(hookCase, projectDirectory)
+
+    expect(result.exitCode).toBe(0)
+    expect(gitCallLog.count('pull')).toBe(0)
+  })
+
+  it('git-sync を有効にしても、source が compact のときは pull せず、.gitignore は作る', () => {
+    const hookCase = createHookCase()
+    const projectDirectory = makeGitProject(hookCase, true)
+    hooksConfig(hookCase).write({ 'git-sync': true })
+    hookCase.setEnv('PECOT_HOOK_SOURCE', 'compact')
+    const gitCallLog = installGitCallLog(hookCase)
+
+    const result = runCommon(hookCase, projectDirectory)
+
+    expect(result.exitCode).toBe(0)
+    expect(gitCallLog.count('pull')).toBe(0)
+    expect(isFile(path.join(projectDirectory, '.pecot', '.gitignore'))).toBe(true)
   })
 })

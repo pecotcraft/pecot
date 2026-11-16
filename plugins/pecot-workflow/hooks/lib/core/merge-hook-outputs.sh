@@ -6,21 +6,17 @@ INPUT=$(cat)
 
 # マージ結果の初期値。
 MERGED_ADDITIONAL_CONTEXT=""
-MERGED_CONTINUE="true"
-MERGED_SUPPRESS="false"
-MERGED_DECISION=""        # allow/ask/deny
+MERGED_DECISION=""        # allow/deny
 MERGED_REASON=""
-MERGED_UPDATED_INPUT=""
 # Claude Code は additionalContext に hookEventName を求める。初期値は入力の hook_event_name
 MERGED_HOOK_EVENT_NAME="${PECOT_HOOK_EVENT:-}"
 # SessionStart / UserPromptSubmit のセッション名（Claude Code）
 MERGED_SESSION_TITLE=""
 
-# decision 優先順位: deny(3) > ask(2) > allow(1)。
+# decision 優先順位: deny(2) > allow(1)。
 decision_priority() {
     case "$1" in
-        deny) echo 3 ;;
-        ask)  echo 2 ;;
+        deny) echo 2 ;;
         allow) echo 1 ;;
         *) echo 0 ;;
     esac
@@ -50,14 +46,6 @@ ${AC}"
             [ -n "$HEN" ] && MERGED_HOOK_EVENT_NAME="$HEN"
         fi
 
-        # continue: いずれかが false なら false。
-        CONT=$(echo "$RESULT" | jq -r 'if has("continue") then .continue | tostring else empty end')
-        [ "$CONT" = "false" ] && MERGED_CONTINUE="false"
-
-        # suppressOutput: いずれかが true なら true。
-        SUPP=$(echo "$RESULT" | jq -r 'if has("suppressOutput") then .suppressOutput | tostring else empty end')
-        [ "$SUPP" = "true" ] && MERGED_SUPPRESS="true"
-
         # permissionDecision: 最も厳しいものを採用。
         DEC=$(echo "$RESULT" | jq -r '.hookSpecificOutput.permissionDecision // empty')
         if [ -n "$DEC" ]; then
@@ -69,10 +57,6 @@ ${AC}"
                 MERGED_REASON="$RSN"
             fi
         fi
-
-        # updatedInput: 最後のものを採用。
-        UI=$(echo "$RESULT" | jq -r '.hookSpecificOutput.updatedInput // empty')
-        [ -n "$UI" ] && MERGED_UPDATED_INPUT="$UI"
 
         # sessionTitle: 最後のものを採用。
         ST=$(echo "$RESULT" | jq -r '.hookSpecificOutput.sessionTitle // empty')
@@ -89,16 +73,14 @@ ${RESULT}"
 done
 
 # マージ結果がなければ何も出力しない。
-if [ -z "$MERGED_ADDITIONAL_CONTEXT" ] \
-   && [ "$MERGED_CONTINUE" = "true" ] && [ "$MERGED_SUPPRESS" = "false" ] \
-   && [ -z "$MERGED_DECISION" ] && [ -z "$MERGED_UPDATED_INPUT" ] \
+if [ -z "$MERGED_ADDITIONAL_CONTEXT" ] && [ -z "$MERGED_DECISION" ] \
    && [ -z "$MERGED_SESSION_TITLE" ]; then
     exit 0
 fi
 
 # hookSpecificOutput を構築する。
 # hookEventName 以外の実フィールドを先に積む。
-# 対象は、additionalContext / permissionDecision / reason / updatedInput / sessionTitle。
+# 対象は、additionalContext / permissionDecision / reason / sessionTitle。
 HSO=$(jq -n '{}')
 [ -n "$MERGED_ADDITIONAL_CONTEXT" ] && \
     HSO=$(echo "$HSO" | jq --arg v "$MERGED_ADDITIONAL_CONTEXT" '.additionalContext = $v')
@@ -106,8 +88,6 @@ HSO=$(jq -n '{}')
     HSO=$(echo "$HSO" | jq --arg v "$MERGED_DECISION" '.permissionDecision = $v')
 [ -n "$MERGED_REASON" ] && \
     HSO=$(echo "$HSO" | jq --arg v "$MERGED_REASON" '.permissionDecisionReason = $v')
-[ -n "$MERGED_UPDATED_INPUT" ] && \
-    HSO=$(echo "$HSO" | jq --arg v "$MERGED_UPDATED_INPUT" '.updatedInput = $v')
 [ -n "$MERGED_SESSION_TITLE" ] && \
     HSO=$(echo "$HSO" | jq --arg v "$MERGED_SESSION_TITLE" '.sessionTitle = $v')
 # hookEventName は、ほかのフィールドがあるときだけ付ける（hookEventName だけの HSO を作らない）。
@@ -128,9 +108,5 @@ case "$MERGED_HOOK_EVENT_NAME" in
             FINAL=$(echo "$FINAL" | jq --arg v "$MERGED_ADDITIONAL_CONTEXT" '.additionalContext = $v')
         ;;
 esac
-[ "$MERGED_CONTINUE" = "false" ] && \
-    FINAL=$(echo "$FINAL" | jq '.continue = false')
-[ "$MERGED_SUPPRESS" = "true" ] && \
-    FINAL=$(echo "$FINAL" | jq '.suppressOutput = true')
 
 echo "$FINAL"

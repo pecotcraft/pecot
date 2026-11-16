@@ -1,7 +1,8 @@
 #!/bin/bash
 # SessionStart: セッション開始時の処理。
 # - .gitignore の補完・Git同期・セッション名。
-# Claude Code は startup|clear|resume|fork、Copilot CLI は matcher なしで new|resume のとき起動する。
+# Claude Code は startup|clear|resume|fork|compact、Copilot CLI は matcher なしで new|resume のとき起動する。
+# compact では .gitignore の補完だけが動く（git-sync は compact で抜け、セッション名は startup・resume・fork だけ）。
 # 出力（素のテキスト）は、merge-hook-outputs.sh で JSON にする。
 # Copilot CLI は SessionStart で、トップレベルの additionalContext だけをモデルに渡す。
 # 素のテキストは届かない。

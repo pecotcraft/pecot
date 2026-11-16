@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createHookCase } from '../_helpers/environment.js'
+import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
 import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { adapterDirectory, coreDirectory } from '../_helpers/paths.js'
@@ -30,14 +30,28 @@ function checkout(hookCase: HookCase, repository: string, branch: string): void 
   gitOrThrow(hookCase, repository, ['checkout', '-b', branch, '--quiet'])
 }
 
+// 初期値は無効。止める・通すケースは設定で有効にして流す。
+function enabledNoVerifyCase(): HookCase {
+  const hookCase = createHookCase()
+  hooksConfig(hookCase).write({ 'git-no-verify-check': true })
+  return hookCase
+}
+
 describe('git-no-verify-check.sh', () => {
+  it('設定が無いとき、--no-verify でも何も出力せず通す', () => {
+    const hookCase = createHookCase()
+    hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'missing.json'))
+    const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: 'git commit --no-verify' } })
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
+  })
+
   it.for(commandRows([
     'git commit --no-verify',
     'git push --no-verify',
     'git commit -n',
     'echo test && git commit --no-verify -m "msg"',
     'echo ok && git commit -n',
-    'git push -n',
     'git -C /repo commit -n',
     'echo ng || git commit -n',
     'git commit -m \'my message\' -n',
@@ -47,8 +61,22 @@ describe('git-no-verify-check.sh', () => {
     'echo x & git commit --no-verify -m x',
     'echo x&git commit -n',
     'echo x & git push --no-verify',
-  ]))('コマンドが $label のとき、終了コード 1 で止める', (row) => {
-    const hookCase = createHookCase()
+    // -n のまとめ書きと、引用符で囲んだオプション
+    'git commit -anm x',
+    'git commit "--no-verify"',
+    'git commit \'-n\'',
+    // core.hooksPath を差し替える形
+    'git -c core.hooksPath=/dev/null commit -m x',
+    'git config core.hooksPath x',
+    'git config --global core.hooksPath x',
+    'git config set core.hooksPath x',
+    'git config --unset core.hooksPath',
+    'git config unset core.hooksPath',
+    // フックを飛ばす環境変数
+    'SKIP=lint git commit -m x',
+    'HUSKY=0 git push',
+  ]))('有効にしてコマンドが $label のとき、終了コード 1 で止める', (row) => {
+    const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(1)
   })
@@ -69,22 +97,36 @@ describe('git-no-verify-check.sh', () => {
     // & で分けた後のセグメントが commit / push でなければ通す
     'sleep 1 & git log -n 5',
     'git push 2>&1',
-  ]))('コマンドが $label のとき、何も出力せず通す', (row) => {
-    const hookCase = createHookCase()
+    // push の -n は --dry-run
+    'git push -n',
+    // 値を取るオプションの値と、それより後ろの n
+    'git commit -mn',
+    'git commit -Fnote',
+    'git commit -m "-n"',
+    'git commit -m \'--no-verify\'',
+    'git commit -m "a; b" && git status',
+    // core.hooksPath を読む形と、ほかの設定
+    'git config --get core.hooksPath',
+    'git config get core.hooksPath',
+    'git config core.hooksPath',
+    'git config user.name x',
+    'git -c user.name=x commit -m x',
+  ]))('有効にしてコマンドが $label のとき、何も出力せず通す', (row) => {
+    const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
   })
 
   it('--no-verify を使うとき、止めるメッセージにそのフラグを含める', () => {
-    const hookCase = createHookCase()
+    const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: 'git commit --no-verify' } })
     expect(result.exitCode).toBe(1)
     expect(result.stdout).toContain('--no-verify')
   })
 
   it('--no-verify を使うとき、止めるメッセージにエラー見出しと修正の案内を含める', () => {
-    const hookCase = createHookCase()
+    const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: 'git commit --no-verify' } })
     expect(result.exitCode).toBe(1)
     expect(result.stdout).toContain('error: git-no-verify-check:')
@@ -93,7 +135,7 @@ describe('git-no-verify-check.sh', () => {
   })
 
   it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
-    const hookCase = createHookCase()
+    const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: undefined } })
     expect(result.exitCode).toBe(2)
   })
@@ -297,13 +339,13 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('develop-aist ブランチで commit するとき、ブランチ名を示して止める', () => {
+  it('develop-aist ブランチで commit するとき、何も出力せず通す', () => {
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'develop-aist')
     const result = runWorktreeCheck(hookCase, repository, 'git commit -m "test"', repository)
-    expect(result.exitCode).toBe(1)
-    expect(result.stdout).toContain('\'develop-aist\'')
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
   })
 
   it('main ブランチで commit するとき、何も出力せず通す', () => {
@@ -360,7 +402,7 @@ describe('git-worktree-branch-check.sh', () => {
     const project = path.join(hookCase.temporaryPath, 'project')
     mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
     const config = path.join(hookCase.temporaryPath, 'hooks-config.json')
-    writeFileSync(config, '{"claude-bash-guards": true}')
+    writeFileSync(config, '{"claude-bash-guards": true, "git-no-verify-check": true}')
 
     const result = runHookScript(
       hookCase,

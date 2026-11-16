@@ -6,7 +6,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createHookCase } from '../_helpers/environment.js'
+import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitOrThrow, gitRepository, installGitCallLog, workLayout } from '../_helpers/git.js'
 import { runHookEntry } from '../_helpers/run.js'
@@ -115,6 +115,7 @@ describe('上限を超えるコマンド', () => {
   it('Pre では、ガードを通さずに素通しし、何も返さない', () => {
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(bigCommand('git commit --no-verify -m x'), repository))
     expect(result).toMatchObject({ exitCode: 0 })
     expect(result.stderr).not.toContain('Argument list too long')
@@ -133,6 +134,7 @@ describe('上限を超えるコマンド', () => {
   it('上限ぎりぎりのコマンドは、コアのガードが止める', () => {
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const command = `# ${'x'.repeat(50_000)}\ngit commit --no-verify -m x`
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(command, repository))
     expect(hookSpecificOutput(result)).toMatchObject({ permissionDecision: 'deny' })
