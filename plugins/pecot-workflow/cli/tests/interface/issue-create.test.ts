@@ -581,7 +581,7 @@ describe('issue create', () => {
       const result = await create('--dry-run', ...files)
 
       expect(result.code).toBe(0)
-      expect(result.stderr).toBe('')
+      expect(result.stderr).toBe(['a.md', 'b.md', 'c.md', 'd.md'].map(name => `dry-run: would create Issue in acme/demo from ${name}\n`).join(''))
       expect(result.stdout).toBe([
         '| File | Number | Blocked by | Approach |',
         '|---|---|---|---|',
@@ -832,7 +832,10 @@ describe('issue create', () => {
       const result = await create('--dry-run', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
 
       expect(result.code).toBe(0)
-      expect(result.stderr).toBe('warning: the board has no Blocked column; Issues with blocked-by will be created in Ready\n')
+      expect(result.stderr).toBe([
+        'warning: the board has no Blocked column; Issues with blocked-by will be created in Ready\n',
+        ...['a.md', 'b.md', 'c.md'].map(name => `dry-run: would create Issue in acme/demo from ${name}\n`),
+      ].join(''))
     })
 
     it.for([
@@ -1059,7 +1062,7 @@ describe('issue create', () => {
       expect(outcome.structured).toEqual({ plannedIssue: { owner: 'acme', repository: 'demo', title: '[Task] 一覧に状態を出す' }, dryRun: true })
     })
 
-    it('ファイルを dry_run で打つと、進め方の表の行と積める並びを data に返す', async () => {
+    it('ファイルを dry_run で打つと、進め方の表の行と積める並びを data に返し、最初のファイルの dry-run の行を文にする', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', PARENT),
@@ -1079,6 +1082,7 @@ describe('issue create', () => {
         stackableChains: [['a', 'b']],
         dryRun: true,
       })
+      expect(outcome.text).toBe('dry-run: would create Issue in acme/demo from a.md')
     })
 
     it('前提の済んだ Issue を Blocked で作って Ready へ動かすと、data.issues の status を ready にする', async () => {
