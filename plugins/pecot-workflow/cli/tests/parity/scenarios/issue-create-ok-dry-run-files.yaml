@@ -1,4 +1,4 @@
-# 2 ファイルを --dry-run で打つ。何も作らずに、ファイルごとの dry-run の行と、進め方の表を出す。
+# 前提の付いた 2 ファイルを --dry-run で打つ。何も作らずに、ファイルごとの dry-run の行と、進め方の表と積める並びを出す。
 id: issue-create-ok-dry-run-files
 command:
   path: [issue, create]
@@ -24,7 +24,8 @@ setup:
                   "ready": "o3",
                   "active": "o4",
                   "in_review": "o5",
-                  "archived": "o6"
+                  "archived": "o6",
+                  "blocked": "o7"
                 }
               },
               "priority": {
@@ -80,11 +81,12 @@ setup:
         title: 後に作る Issue
         type: task
         repository: acme/demo
-        status: ready
         priority: high
         size: s
         parent_epic: acme/demo/3
         order: 3
+        blocked_by:
+          - issue: first
         ---
 
         ## Goal — 後の Issue が作られる
@@ -110,6 +112,13 @@ github:
               repositories:
                 nodes:
                   - {name: demo, owner: {login: acme}}
+  - match:
+      operation: HasAddBlockedByInput
+    respond:
+      status: 200
+      body:
+        data:
+          __type: {name: AddBlockedByInput}
   - match:
       operation: GetIssueSlim
       variables: {owner: acme, repo: demo, number: 3}
