@@ -4,7 +4,7 @@ pecot-workflow の MCP ツール `board_sync` を GitHub Actions で打つ雛形
 
 ## 前提
 
-- `board_sync` は `@pecot/workflow-mcp` の 6.0.0 から入っている。雛形は、実行の行に書いた major の最新に追従する
+- `board_sync` は `@pecot/workflow-mcp` の 6.0.0 から入っている。雛形は、npm の最新の正式版を取る
 - 利用者のリポが GHES にあるときは、次の 2 つも前提になる
   - SHA で固定した版の action（`actions/checkout`・`actions/setup-node`・`actions/create-github-app-token`）を使える
   - Actions の実行環境から npm の registry に届く
@@ -127,7 +127,11 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 
 ## 版を固定する
 
-雛形は `npx -y --prefix=/ @pecot/workflow-mcp@8 board sync` を打ち、major の最新に追従します。`@8.0.0` のように書くと、版を固定できます。
+雛形は `npx -y --prefix=/ @pecot/workflow-mcp@latest board sync` を打ち、npm の最新の正式版を取ります。major が上がると、互換の無い変更も次の実行から入ります。`@latest` を次のどれかに替えると、取る版を変えられます。
+
+- `@<major>`: その major の最新に留まる
+- `@<版>`: 版を固定する
+- `@next`: pecot の main の開発版を取る
 
 ## 試す
 

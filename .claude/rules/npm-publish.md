@@ -57,6 +57,11 @@ trusted publisher は、レジストリにあるパッケージにしか登録�
    既存のパッケージ（`@pecot/visual-mcp`・`@pecot/tools-mcp` など）も、この設定を済ませたか確かめる。
 8. 公開が済んだら out-dir を消す。
 
+## 開発版
+
+- `@pecot/workflow-mcp` の開発版（dist-tag `next`）も、同じ trusted publisher で `publish-npm.yml` の `publish-dev` が出す
+- trusted publisher に environment を付けるときは、`publish` と `publish-dev` の両方の job に同じ environment を置く。片方だけだと、置かない方の publish が止まる
+
 ## 失敗したとき
 
 trusted publisher の設定は、作ってから 2 日以内に最初の publish が成功しないと失効する。失効した設定は、使えず編集できない。

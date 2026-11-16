@@ -21,12 +21,14 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる（`.claude/rules/devcontainer.md`）
 - `release.yml`: 人が手で起動する。入力 `dry-run`（既定 `true`）では案だけを出す。本番は一時ブランチへ push してタグと Release を出し、その後で `main` を取り込んで push する
 - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する。初回の公開は `.claude/rules/npm-publish.md`
+  - 正式版は、tag を渡した dispatch で Release の tgz を出す
+  - 開発版は、pecot-workflow に関わる main への push で devcontainer で作り、`@pecot/workflow-mcp` の dist-tag `next` で出す
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる
 - `security-alerts.yml`: main の security alert を Tracker 1 件にそろえる
 - 上の 2 本は App の webhook と Scheduler で起動し、cron は補助
   - 変数 `DEPENDABOT_PRS_APP_CLIENT_ID`・`SECURITY_APP_CLIENT_ID` が空の間は動かない
-- `pecot-board-sync.yml`: ボードの列と札を判定どおりに直す。pecot-workflow の雛形の写しで、書き換えない
+- `pecot-board-sync.yml`: ボードの列と札を判定どおりに直す。pecot-workflow の雛形の写しで、npx の dist-tag だけ `@next`（main の開発版）にする
   - PR と Issue のイベントと、Scheduler（毎時）で起動する。変数 `PECOT_BOARD_SYNC_APP_CLIENT_ID` が空の間は動かない
 - `dependabot-*`・`release.yml` の push と auto-merge は、リリースの App のトークンで行う
