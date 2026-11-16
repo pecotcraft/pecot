@@ -261,7 +261,7 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\nadded: Issue acme\/demo\/12 as sub-issue of acme\/demo\/3\n$/u)
     })
 
-    it('欄の設定に失敗したとき、欄ごとに warning を出し、project init の案内を 1 回だけ添えて、残りの欄を設定して続ける', async (context) => {
+    it('欄の設定に失敗したとき、欄ごとに warning を出し、project activate の案内を 1 回だけ添えて、残りの欄を設定して続ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
@@ -275,14 +275,14 @@ describe('issue create', () => {
         'created: Issue acme/demo/12 from draft.md',
         'added: Issue acme/demo/12 to project',
         'warning: could not set status ready of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot set\'}',
-        '  hint: if the board options were recreated, run pecot project init to read their IDs again',
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
         'warning: could not set priority high of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot set\'}',
         'set: Issue acme/demo/12 size s',
         '',
       ].join('\n'))
     })
 
-    it('複数のファイルで欄の設定に失敗しても、project init の案内は 1 回だけ出す', async (context) => {
+    it('複数のファイルで欄の設定に失敗しても、project activate の案内は 1 回だけ出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次') })
@@ -989,7 +989,7 @@ describe('issue create', () => {
         'added: blocked-by #12 to #13',
         'added: Issue acme/demo/13 to project',
         'warning: could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'cannot write\'}',
-        '  hint: if the board options were recreated, run pecot project init to read their IDs again',
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
         '',
       ].join('\n'))
       expect(result.stdout).toBe(`${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
@@ -1126,7 +1126,7 @@ describe('issue create', () => {
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' }])
     })
 
-    it('config の Blocked の ID が古くて列を書けないと、warnings に書けなかった列と project_init の案内を返し、data.issues に status を返さない', async (context) => {
+    it('Blocked の ID が古くて列を書けないと、書けなかった列と案内を warnings に返し、data.issues に status を返さない', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
@@ -1146,7 +1146,7 @@ describe('issue create', () => {
       expect(workflowWrites(github)).toEqual([expect.objectContaining({ optionId: 'o7' })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toEqual([
-        'could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'The single select option Id does not belong to the field\'}\nhint: if the board options were recreated, run project_init to read their IDs again',
+        'could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'The single select option Id does not belong to the field\'}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
       ])
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13` }])
     })

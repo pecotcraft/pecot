@@ -36,7 +36,8 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
+import { getActiveConfigPath } from '../infra/config-store.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -411,8 +412,14 @@ export interface IssueField {
   readonly label: string
 }
 
+function rereadOptionsHint(): HintedText {
+  const configPath = getActiveConfigPath()
+  const project = configPath === undefined ? placeholder('PROJECT') : path.basename(configPath, '.json')
+  return hinted`hint: if the board options were recreated, run ${commandHint(['project', 'activate'], { project })} to read their IDs again`
+}
+
 /**
-project init の案内を 1 回の実行で 1 回だけ出すための印
+選択肢の ID を読み直す案内を 1 回の実行で 1 回だけ出すための印
 */
 export interface FieldHintState {
   hasHinted: boolean
@@ -442,8 +449,8 @@ export async function setIssueFields(
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
       const message = `could not set ${label} of ${target}: ${error.message}`
-      // 選択肢を作り直すと config の ID が古くなり、書き込みが落ちる
-      output.warning(hintState.hasHinted ? message : joinHinted([message, hinted`hint: if the board options were recreated, run ${commandHint(['project', 'init'])} to read their IDs again`]))
+      // 選択肢を作り直すと config の ID が古くなり、書き込みが落ちる。project activate がボードから読み直す
+      output.warning(hintState.hasHinted ? message : joinHinted([message, rereadOptionsHint()]))
       hintState.hasHinted = true
     }
   }

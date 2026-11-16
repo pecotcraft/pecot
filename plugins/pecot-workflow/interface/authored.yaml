@@ -1603,7 +1603,7 @@ entries:
         statement: 'もしボードへの追加に失敗したなら、次のファイルへ進みます'
       - id: PW-ISSUE-CREATE-24
         pattern: unwanted
-        statement: 'もし欄の設定に失敗したなら、設定できなかった欄と値を `warning` で標準エラーに出し、残りの欄の設定を続けます。選択肢の ID を読み直す `pecot project init` の案内は、1 回の実行で 1 回だけ出します'
+        statement: 'もし欄の設定に失敗したなら、設定できなかった欄と値を `warning` で標準エラーに出し、残りの欄の設定を続けます。選択肢の ID を読み直す `pecot project activate` の案内は、1 回の実行で 1 回だけ出します'
       - id: PW-ISSUE-CREATE-25
         pattern: unwanted
         statement: 'もし親 Epic へのつなぎに失敗したなら、作った Issue の URL を標準出力に出します'
