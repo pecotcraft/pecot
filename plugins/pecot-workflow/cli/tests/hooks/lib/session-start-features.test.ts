@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // git-sync.sh と、session-start.sh の出力の形のテスト。
-// git・uvx・code を stub にして PATH の先頭に置く。git の stub は、-C の値が FAKE_REPO_ROOT と違えば exit 99 で落とす。
+// git・code を stub にして PATH の先頭に置く。git の stub は、-C の値が FAKE_REPO_ROOT と違えば exit 99 で落とす。
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
-import { gitRepository, installGitCallLog } from '../_helpers/git.js'
+import { checkoutWorkBranch, gitRepository, installGitCallLog } from '../_helpers/git.js'
 import type { GitCallLog } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import { hooksDirectory } from '../_helpers/paths.js'
@@ -50,8 +50,6 @@ const GIT_SYNC_ENV_STUB = [
   '',
 ].join('\n')
 
-const UVX_STUB = '#!/bin/bash\nexit 0\n'
-
 // 撤廃の前は、VS Code のワークスペースの情報が出た `code --status` の出力。
 const CODE_WORKSPACE_STUB = [
   '#!/bin/bash',
@@ -65,8 +63,8 @@ const CODE_WORKSPACE_STUB = [
   '',
 ].join('\n')
 
-function makeStub(stubDirectory: string, name: string, body: string): void {
-  const file = path.join(stubDirectory, name)
+function makeGitStub(stubDirectory: string, body: string): void {
+  const file = path.join(stubDirectory, 'git')
   writeFileSync(file, body)
   chmodSync(file, 0o755)
 }
@@ -127,7 +125,7 @@ function setUpUnreachableRepository(hookCase: HookCase, name: string): { reposit
   gitIn(hookCase, repository, ['remote', 'add', 'origin', unreachable])
   gitIn(hookCase, repository, ['config', `branch.${branch}.remote`, 'origin'])
   gitIn(hookCase, repository, ['config', `branch.${branch}.merge`, `refs/heads/${branch}`])
-  mockBin(hookCase).install('uvx', 'exit 0\n')
+  hooksConfig(hookCase).write({ 'git-sync': true })
   hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
   gitCallLog.reset()
   return { repository, unreachable, gitCallLog }
@@ -136,7 +134,7 @@ function setUpUnreachableRepository(hookCase: HookCase, name: string): { reposit
 // 同じリポを origin にした上流を設定し、pull が成功するようにする。
 function setUpReachableRepository(hookCase: HookCase, name: string): string {
   const repository = gitRepository(hookCase, name)
-  mockBin(hookCase).install('uvx', 'exit 0\n')
+  hooksConfig(hookCase).write({ 'git-sync': true })
   mockBin(hookCase).install('code', 'exit 1\n')
   hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
   const branch = gitIn(hookCase, repository, ['branch', '--show-current']).trim()
@@ -176,8 +174,8 @@ describe('session-start のロジックスクリプト', () => {
     it('作業ツリーが clean で pull に成功したとき、同期した旨とブランチ名を出す', () => {
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
-      makeStub(stubDirectory, 'git', GIT_SYNC_STUB)
-      makeStub(stubDirectory, 'uvx', UVX_STUB)
+      makeGitStub(stubDirectory, GIT_SYNC_STUB)
+      hooksConfig(hookCase).write({ 'git-sync': true })
       const environment = gitSyncEnvironment(hookCase, { FAKE_BRANCH: 'feature/test' })
       const result = runWithPath(hookCase, stubDirectory, environment)
       expect(result.exitCode).toBe(0)
@@ -193,8 +191,8 @@ describe('session-start のロジックスクリプト', () => {
       // GIT_TERMINAL_PROMPT=0 では SSH の認証プロンプトを止められない。BatchMode=yes を足し、既存値は残す
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
-      makeStub(stubDirectory, 'git', GIT_SYNC_ENV_STUB)
-      makeStub(stubDirectory, 'uvx', UVX_STUB)
+      makeGitStub(stubDirectory, GIT_SYNC_ENV_STUB)
+      hooksConfig(hookCase).write({ 'git-sync': true })
       const log = path.join(hookCase.temporaryPath, 'pull-env.log')
       const environment = gitSyncEnvironment(hookCase, { FAKE_PULL_ENV_LOG: log })
       hookCase.setEnv('GIT_SSH_COMMAND', row.preset)
@@ -206,8 +204,8 @@ describe('session-start のロジックスクリプト', () => {
     it('未コミットの変更があるとき、何も出力しない', () => {
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
-      makeStub(stubDirectory, 'git', GIT_SYNC_STUB)
-      makeStub(stubDirectory, 'uvx', UVX_STUB)
+      makeGitStub(stubDirectory, GIT_SYNC_STUB)
+      hooksConfig(hookCase).write({ 'git-sync': true })
       const environment = gitSyncEnvironment(hookCase, { FAKE_GIT_DIFF_EXIT: '1' })
       const result = runWithPath(hookCase, stubDirectory, environment)
       expect(result.exitCode).toBe(0)
@@ -217,8 +215,8 @@ describe('session-start のロジックスクリプト', () => {
     it('pull に失敗しても exit 0 で、同期した旨は出さない', () => {
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
-      makeStub(stubDirectory, 'git', GIT_SYNC_STUB)
-      makeStub(stubDirectory, 'uvx', UVX_STUB)
+      makeGitStub(stubDirectory, GIT_SYNC_STUB)
+      hooksConfig(hookCase).write({ 'git-sync': true })
       const environment = gitSyncEnvironment(hookCase, { FAKE_GIT_PULL_EXIT: '1' })
       const result = runWithPath(hookCase, stubDirectory, environment)
       expect(result.exitCode).toBe(0)
@@ -236,30 +234,54 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stderr).toContain(unreachable)
     })
 
-    it('uv が入っていないとき、何も出力しない', () => {
-      // bashrc で PATH が復元されないよう、env -i 相当の環境で動かす
+    it('uvx が PATH に無くても、pull して同期した旨を出す', () => {
+      // bashrc で PATH が復元されないよう、env -i 相当の環境で動かす。PATH は stub と /usr/bin・/bin だけにし、uvx を置かない
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
-      makeStub(stubDirectory, 'git', GIT_SYNC_STUB)
-      // uvx の stub は置かない。command -v uv が失敗する
+      makeGitStub(stubDirectory, GIT_SYNC_STUB)
+      const config = hooksConfig(hookCase)
+      config.write({ 'git-sync': true })
       const environment = gitSyncEnvironment(hookCase)
       const home = hookCase.getEnv('HOME') ?? '/root'
       const assignments = [
         `PATH=${stubDirectory}:/usr/bin:/bin`,
         `HOME=${home}`,
+        `PECOT_HOOKS_CONFIG_PATH=${config.path}`,
         ...Object.entries(environment).map(([name, value]) => `${name}=${value}`),
       ]
       const result = run(hookCase, 'env', ['-i', ...assignments, 'bash', '--norc', '--noprofile', GIT_SYNC_SCRIPT])
       expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('synced the branch with the remote (branch: main)')
+    })
+
+    it('設定が無いとき、pull せず何も出力しない', () => {
+      const hookCase = createHookCase()
+      const { gitCallLog } = setUpUnreachableRepository(hookCase, 'sync-default')
+      hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'no-such-config.json'))
+      const result = run(hookCase, GIT_SYNC_SCRIPT)
+      expect(result.exitCode).toBe(0)
+      expect(gitCallLog.count('pull')).toBe(0)
       expect(result.stdout).toBe('')
+      expect(result.stderr).toBe('')
+    })
+
+    it('有効にしていても、source が compact のときは pull しない', () => {
+      const hookCase = createHookCase()
+      const { gitCallLog } = setUpUnreachableRepository(hookCase, 'sync-compact')
+      hookCase.setEnv('PECOT_HOOK_SOURCE', 'compact')
+      const result = run(hookCase, GIT_SYNC_SCRIPT)
+      expect(result.exitCode).toBe(0)
+      expect(gitCallLog.count('pull')).toBe(0)
+      expect(result.stdout).toBe('')
+      expect(result.stderr).toBe('')
     })
 
     it('CLAUDE_PROJECT_DIR が未設定のとき、何もせず、空パスの警告も出さない', () => {
       // git の外で起動した場合
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
-      makeStub(stubDirectory, 'git', GIT_SYNC_STUB)
-      makeStub(stubDirectory, 'uvx', UVX_STUB)
+      makeGitStub(stubDirectory, GIT_SYNC_STUB)
+      hooksConfig(hookCase).write({ 'git-sync': true })
       const environment = gitSyncEnvironment(hookCase)
       Reflect.deleteProperty(environment, 'CLAUDE_PROJECT_DIR')
       const result = runWithPath(hookCase, stubDirectory, environment)
@@ -319,6 +341,28 @@ describe('session-start のロジックスクリプト', () => {
       expect(hookContext).not.toEqual(containing('sessionTitle'))
       expect(typeof topContext).toBe('string')
       expect(topContext).not.toEqual(containing('sessionTitle'))
+    })
+
+    it('compact では、git-sync を有効にしても pull せず、.gitignore を補完し、sessionTitle を出さない', () => {
+      const hookCase = createHookCase()
+      const config = hooksConfig(hookCase)
+      config.write({ 'git-sync': true })
+      const repository = gitRepository(hookCase, 'compact')
+      // セッション名が出る条件（末尾が Issue 番号のブランチと、URL の形に合う origin）をそろえる
+      checkoutWorkBranch(hookCase, repository, 'feat/x/1253')
+      mkdirSync(path.join(repository, '.pecot'))
+      const gitCallLog = installGitCallLog(hookCase)
+      const result = runSessionStartEntry(hookCase, repository, { source: 'compact', transcript_path: '/t/c.jsonl' })
+      expect(result.exitCode).toBe(0)
+      expect(gitCallLog.count('pull')).toBe(0)
+      expect(readFileSync(path.join(repository, '.pecot', '.gitignore'), 'utf8')).toContain('!/config/')
+      expect(result.stdout).not.toContain('sessionTitle')
+
+      // 同じ条件の startup では sessionTitle が出る
+      config.write({ 'git-sync': false })
+      const startup = runSessionStartEntry(hookCase, repository, { source: 'startup', transcript_path: '/t/c.jsonl' })
+      expect(startup.exitCode).toBe(0)
+      expect(valueAt(parseJson(startup.stdout), 'hookSpecificOutput', 'sessionTitle')).toBe('#1253')
     })
 
     // 撤廃の前は、VS Code の情報・.gitignore の案内・更新の通知が出た条件をそろえる（spec 025 FR-012）。

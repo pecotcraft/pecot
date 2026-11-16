@@ -197,10 +197,10 @@ describe('tech-advisor-clone-allow.sh', () => {
       expect(result.stdout).toContain('"hookEventName": "PreToolUse"')
     })
 
-    it('--no-verify つきの commit のとき、deny が優先され allow は出ない', () => {
+    it('git-no-verify-check を有効にして --no-verify つきの commit のとき、deny が優先され allow は出ない', () => {
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
-      setUpCore(hookCase)
+      hooksConfig(hookCase).write({ 'git-no-verify-check': true })
       const result = runAdapter(hookCase, jsonDumps({ tool_input: { command: 'git commit --no-verify -m x' } }))
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('"permissionDecision": "deny"')
@@ -236,10 +236,10 @@ describe('tech-advisor-clone-allow.sh', () => {
       expect(result.stdout).toContain('"permissionDecision": "allow"')
     })
 
-    it('--no-verify つきの commit のとき、deny が優先される', () => {
+    it('git-no-verify-check を有効にして --no-verify つきの commit のとき、deny が優先される', () => {
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
-      setUpCore(hookCase)
+      hooksConfig(hookCase).write({ 'git-no-verify-check': true })
       const result = runAdapter(hookCase, copilotStdin('git commit --no-verify -m x'))
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('"permissionDecision": "deny"')

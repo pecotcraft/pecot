@@ -6,7 +6,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createHookCase } from '../_helpers/environment.js'
+import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitOrThrow, gitRepository, installGitCallLog, workLayout } from '../_helpers/git.js'
 import { runHookEntry } from '../_helpers/run.js'
@@ -115,6 +115,7 @@ describe('上限を超えるコマンド', () => {
   it('Pre では、ガードを通さずに素通しし、何も返さない', () => {
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(bigCommand('git commit --no-verify -m x'), repository))
     expect(result).toMatchObject({ exitCode: 0 })
     expect(result.stderr).not.toContain('Argument list too long')
@@ -133,8 +134,22 @@ describe('上限を超えるコマンド', () => {
   it('上限ぎりぎりのコマンドは、コアのガードが止める', () => {
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const command = `# ${'x'.repeat(50_000)}\ngit commit --no-verify -m x`
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(command, repository))
+    expect(hookSpecificOutput(result)).toMatchObject({ permissionDecision: 'deny' })
+  })
+
+  // トークンごとに残りを複製すると、長さの 2 乗で遅くなり PreToolUse の 10 秒を超える。
+  it('上限未満で単語の多いコマンドも、コアのガードが数秒以内に止める', () => {
+    const hookCase = createHookCase()
+    const repository = setUpRepository(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
+    const command = `cat <<'EOF' > .pecot/work/1229/words.txt\n${'word '.repeat(10_000)}\nEOF\ngit commit --no-verify -m x`
+    expect(Buffer.byteLength(command)).toBeLessThan(60_000)
+    const started = performance.now()
+    const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(command, repository))
+    expect(performance.now() - started).toBeLessThan(5000)
     expect(hookSpecificOutput(result)).toMatchObject({ permissionDecision: 'deny' })
   })
 })

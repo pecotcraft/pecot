@@ -207,22 +207,22 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: Phase 3
 
-- [ ] T034 [US3] `tests/hooks/lib/hooks-definitions.test.ts` にテストを足す。登録したスクリプトと設定キーが、決めた一覧と同じ集合になる
-- [ ] T035 [P] [US3] `git-no-verify-check` の期待を先に書く。初期値では何も返さず、有効にすると次の形を止める
+- [x] T034 [US3] `tests/hooks/lib/hooks-definitions.test.ts` にテストを足す。登録したスクリプトと設定キーが、決めた一覧と同じ集合になる
+- [x] T035 [P] [US3] `git-no-verify-check` の期待を先に書く。初期値では何も返さず、有効にすると次の形を止める
   - `--no-verify`、`-n` のまとめ書き、引用符で囲んだ形
   - `-c core.hooksPath=`、`git config core.hooksPath`
   - `SKIP=`、`HUSKY=0`
-- [ ] T036 [US3] `lib/core/git-no-verify-check.sh` を直し、T035 を通す。初期値を無効にする（スクリプトの既定と sample の両方）
-- [ ] T037 [P] [US3] `lib/core/git-worktree-branch-check.sh` の対象から `develop-aist` を外す。テストを先に直す
-- [ ] T038 [P] [US3] `git-sync` の初期値を無効にする。期待を先に直す
+- [x] T036 [US3] `lib/core/git-no-verify-check.sh` を直し、T035 を通す。初期値を無効にする（スクリプトの既定と sample の両方）
+- [x] T037 [P] [US3] `lib/core/git-worktree-branch-check.sh` の対象から `develop-aist` を外す。テストを先に直す
+- [x] T038 [P] [US3] `git-sync` の初期値を無効にする。期待を先に直す
   - `lib/session-start/git-sync.sh` の既定と sample
   - `tests/hooks/session-start-git-sync.test.ts`
-- [ ] T039 [US3] `p-w/hooks/hooks.json` の SessionStart の matcher に `compact` を足す。テストで 2 点を確かめる
+- [x] T039 [US3] `p-w/hooks/hooks.json` の SessionStart の matcher に `compact` を足す。テストで 2 点を確かめる
   - compact では `.gitignore` の補完だけが動く
   - compact ではセッション名を返さない
-- [ ] T040 [US3] `lib/` の関数とスクリプトを grep し、どこからも呼ばれないものを消す。knip と shellcheck を通す
-- [ ] T041 [US3] `p-w/hooks/README.md` の設定キーの表で、`git-sync` と `git-no-verify-check` の初期値を直す
-- [ ] T041a [US3] Copilot CLI 向けの定義で残る deny と allow の期待を、テストで固定する（SC-007）
+- [x] T040 [US3] `lib/` の関数とスクリプトを grep し、どこからも呼ばれないものを消す。knip と shellcheck を通す
+- [x] T041 [US3] `p-w/hooks/README.md` の設定キーの表で、`git-sync` と `git-no-verify-check` の初期値を直す
+- [x] T041a [US3] Copilot CLI 向けの定義で残る deny と allow の期待を、テストで固定する（SC-007）
   - `tests/hooks/lib/hooks-definitions.test.ts` と `integration.test.ts` に、Copilot CLI の形の hook 入力を足す
   - 対象は `gh pr create`・`gh issue create`・待機用のブランチへの commit・`tech-advisor-clone-allow`
 

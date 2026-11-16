@@ -13,7 +13,7 @@
 
 ## R1. フックの判定（FR-010、FR-020）
 
-設定キーは、README の表と `hooks-config.json.sample` で同じ 40 個ある。
+この表を書いた時点の設定キーは、README の表と `hooks-config.json.sample` で同じ 40 個だった。今の sample と README は、「残す」とした 11 個と、R2 で置き換える `exit-plan-remind` の 12 個になっている。
 
 ### hooks.json に登録したスクリプト
 
@@ -56,6 +56,7 @@
 | `exit-plan-remind` | 置き換える | R2 |
 | `tmp-path-warner` | 残す（変えない） | 本文だけでは守られにくい習慣で、出す条件も狭い |
 | `gh-pr-create-check`・`gh-issue-create-check` | 残す | pecot 以外の方法での PR・Issue の作成を止める。フックの目的そのもの |
+| `gh-stack-check` | 残す | `gh stack` での PR の作成・マージを止める。上と同じ目的で、この表の後に #450 で入った |
 | `pr-create-block` | 消す | GitHub MCP の PR 作成を止めるもの。不要とした |
 | `git-worktree-branch-check` | 残して直す | 待機用のブランチへの直接の commit・push を止める。昔の名残の `develop-aist` が対象に残っている |
 | `git-no-verify-check` | 残す（初期値を無効に変える） | 抜け道が多く、フックでは守り切れない。守りは CI に任せる。有効にしたときに止める形を増やす |
@@ -63,6 +64,7 @@
 | `tech-advisor-clone-allow` | 残す | 決まった形の clone だけを確認なしで通す |
 | `claude-bash-guards` | 残す | 大きすぎるコマンドの ask は消し、素通しにする |
 | `session-title` | 残して直す | 作業中の Issue をセッション名にする。番号をブランチ名から求める（R7） |
+| `session-start-common` | 残す | SessionStart で `.gitignore` の補完と `git-sync` を呼ぶ |
 | `session-project-dir` | 消す | 使われる場面が狭い。スキルは MCP ツールを使う |
 | `terminal-bell`・`pty-bell-sender` | 消す | 組み込みの設定で同じことができる（R6） |
 | `pecot-dir-init*`・`pecot-gitignore-ensure`・`pecot-state-guard` | 残す | `.pecot` の初期化。`pecot-gitignore-ensure` は CLI も呼ぶ |

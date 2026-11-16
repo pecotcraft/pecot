@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createHookCase } from './_helpers/environment.js'
+import { createHookCase, hooksConfig } from './_helpers/environment.js'
 import { gitRepository } from './_helpers/git.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
@@ -38,6 +38,7 @@ describe('pre-tool-use-bash.sh', () => {
     const state = path.join(repository, '.pecot', 'state')
     mkdirSync(state, { recursive: true })
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
 
     const payload = jsonDumps({
       tool_name: 'Bash',

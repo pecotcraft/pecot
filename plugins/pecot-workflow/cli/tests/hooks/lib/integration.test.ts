@@ -58,9 +58,18 @@ describe('統合: エントリ', () => {
     expect(result.stdout).not.toContain('"decision"')
   })
 
-  it('Claude Code のエントリで --no-verify を送るとき、deny を返す', () => {
+  it('Claude Code のエントリで設定の無いまま --no-verify を送るとき、何も出力しない', () => {
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
+    const result = runEntry(hookCase, { tool_input: { command: 'git commit --no-verify' } })
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
+  })
+
+  it('Claude Code のエントリで git-no-verify-check を有効にして --no-verify を送るとき、deny を返す', () => {
+    const hookCase = createHookCase()
+    setUpEmptyProject(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const result = runEntry(hookCase, { tool_input: { command: 'git commit --no-verify' } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')
@@ -152,10 +161,11 @@ describe('統合: エントリ', () => {
     },
   )
 
-  it('Copilot CLI のエントリで --no-verify を送るとき、トップレベルの decision を使わず deny を返す', () => {
+  it('Copilot CLI のエントリで git-no-verify-check を有効にして --no-verify を送るとき、トップレベルの decision を使わず deny を返す', () => {
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const result = runEntry(hookCase, copilotToolPayload('git commit --no-verify'), repository)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('"permissionDecision": "deny"')
@@ -272,6 +282,7 @@ interface HookInput {
 const HOOK_INPUTS: readonly HookInput[] = [
   { label: 'UserPromptSubmit（/pecot-w:w-quick）', event: 'UserPromptSubmit', key: '', payload: { prompt: '/pecot-w:w-quick README の誤字を直す' }, hasEntries: true },
   { label: 'SessionStart', event: 'SessionStart', key: 'startup', payload: { source: 'startup' }, hasEntries: true },
+  { label: 'SessionStart（compact）', event: 'SessionStart', key: 'compact', payload: { source: 'compact' }, hasEntries: true },
   { label: 'Stop', event: 'Stop', key: '', payload: { stop_hook_active: false }, hasEntries: false },
   { label: 'Notification', event: 'Notification', key: 'permission_prompt', payload: { notification_type: 'permission_prompt', message: 'm' }, hasEntries: false },
   { label: 'Pre の Skill', event: 'PreToolUse', key: 'Skill', payload: { tool_name: 'Skill', tool_input: { skill: 'pecot-w:w-quick' } }, hasEntries: true },
@@ -326,5 +337,41 @@ describe('統合: 撤廃したリマインダーと自動 push', () => {
       }
     }
     expect(readdirSync(state).filter(file => !before.has(file))).toEqual([])
+  })
+})
+
+// Copilot CLI の定義から選んだエントリに、Copilot CLI の形の入力を流す（spec 025 SC-007）。
+const COPILOT_DEFINITION = 'com.github.copilot/hooks/hooks.json'
+
+interface CopilotGuardRow {
+  readonly label: string
+  readonly command: string
+  readonly branch: string
+  readonly decision: string
+  readonly reason: string
+}
+
+const COPILOT_GUARD_ROWS: readonly CopilotGuardRow[] = [
+  { label: 'gh pr create', command: 'gh pr create', branch: 'feat/x/1', decision: 'deny', reason: 'gh-pr-create-check' },
+  { label: 'gh issue create', command: 'gh issue create -t x -b y', branch: 'feat/x/1', decision: 'deny', reason: 'gh-issue-create-check' },
+  { label: '待機用のブランチへの commit', command: 'git commit -m x', branch: 'wt5', decision: 'deny', reason: 'protected branch' },
+  { label: 'w-tech-advisor の定型 clone', command: 'git clone --depth 1 https://github.com/foo/bar .pecot/work/788/tech-advisor/bar', branch: 'feat/x/1', decision: 'allow', reason: 'tech-advisor' },
+]
+
+describe('統合: Copilot CLI の定義', () => {
+  it.for(COPILOT_GUARD_ROWS)('Copilot CLI の定義のエントリに $label を流すとき、残る判定を返す', (row) => {
+    const hookCase = createHookCase()
+    const repository = gitRepository(hookCase)
+    checkout(hookCase, repository, row.branch)
+    hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
+    const entries = selectedEntries(COPILOT_DEFINITION, 'PreToolUse', 'Bash')
+    expect(entries).toEqual([ENTRY])
+    for (const entry of entries) {
+      const result = runHookEntry(hookCase, entry, copilotToolPayload(row.command), { cwd: repository })
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain(`"permissionDecision": "${row.decision}"`)
+      expect(result.stdout).not.toContain('"decision"')
+      expect(result.stdout).toContain(row.reason)
+    }
   })
 })

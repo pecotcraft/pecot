@@ -112,12 +112,21 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   })
 
   // deny（禁止操作）は hookSpecificOutput.permissionDecision で出す。
-  it.for(CLIENTS)('$clientName の入力で git commit に --no-verify が付くとき、deny を返す', (row) => {
+  it.for(CLIENTS)('$clientName の入力で git-no-verify-check を有効にして git commit に --no-verify が付くとき、deny を返す', (row) => {
+    const hookCase = createHookCase()
+    const project = setUpProject(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
+    const result = runBashEntry(hookCase, row.client, 'git commit --no-verify -m x', project)
+    expect(result.exitCode).toBe(0)
+    assertDecision(result, 'deny', 'git-no-verify-check')
+  })
+
+  it.for(CLIENTS)('$clientName の入力で git-no-verify-check が初期値のまま git commit に --no-verify が付くとき、何も返さない', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runBashEntry(hookCase, row.client, 'git commit --no-verify -m x', project)
     expect(result.exitCode).toBe(0)
-    assertDecision(result, 'deny', 'git-no-verify-check')
+    expect(result.stdout.trim()).toBe('')
   })
 
   it.for(clientRows([
@@ -166,6 +175,7 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   it.for(CLIENTS)('$clientName の入力でリマインダーと deny が同時に当たるとき、deny を落とさず両方を載せる', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
+    hooksConfig(hookCase).write({ 'git-no-verify-check': true })
     const command = 'git switch feat/other; git commit --no-verify -F /tmp/note-1229'
     const result = runBashEntry(hookCase, row.client, command, project)
     expect(result.exitCode).toBe(0)
