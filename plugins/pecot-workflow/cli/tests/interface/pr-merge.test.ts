@@ -3,8 +3,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { PR_COMMANDS } from '../../src/commands/pr.js'
-import { FLAG_MERGE_SLASH_PENDING } from '../../src/domain/state.js'
-import { hasFlag, touchFlag } from '../../src/infra/state-store.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { prepareProject } from '../_helpers/board-issue-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -62,10 +60,6 @@ function syncMerged(status = 200, body: unknown = SYNC_MERGED): ResponseRule {
 }
 
 const ASYNC_MISSING = requested(404, { message: 'Not Found' })
-
-function isSlashPending(): boolean {
-  return hasFlag(FLAG_MERGE_SLASH_PENDING)
-}
 
 function stacks(body: unknown, status = 200): ResponseRule {
   return { match: { method: 'GET', path: '/repos/acme/demo/stacks', query: { pull_request: '11' }, apiVersion: VERSION }, respond: { status, body }, times: 1 }
@@ -332,61 +326,6 @@ describe('pr merge', () => {
 
     expect(outcome).toEqual({ code: 2, stdout: '', stderr: 'error: PR #11 is closed\n' })
   })
-
-  it.for([
-    { name: 'ドラフト', rules: (): ResponseRule[] => [pullRequest({ isDraft: true })] },
-    { name: '閉じている', rules: (): ResponseRule[] => [pullRequest({ state: 'CLOSED' })] },
-    { name: '最下段でない', rules: (): ResponseRule[] => [pullRequest(), stacks([stackOf([10, 11])]), pullRequest({ number: 10 })] },
-  ])('$name ため要求を送らずに止まると、merge-slash-pending を消す', async ({ rules }, context) => {
-    await verifies(context, 'PW-PR-MERGE-18')
-    prepareProject()
-    touchFlag(FLAG_MERGE_SLASH_PENDING)
-    await startGithub(rules())
-
-    const outcome = await merge(['acme/demo/11'])
-
-    expect(outcome.code).toBe(2)
-    expect(isSlashPending()).toBe(false)
-  })
-
-  it.for([
-    { name: '規則で拒まれた（failed）', rules: (): ResponseRule[] => [pullRequest(), NO_STACK, requested(202, pending()), result({ status: 'failed', details: { message: 'Repository rule violations found' } })] },
-    { name: '要求が拒まれた（400）', rules: (): ResponseRule[] => [pullRequest(), NO_STACK, requested(400, { message: 'Pull request is closed' })] },
-  ])('$name ときは、呼び直しに備えて merge-slash-pending を残す', async ({ rules }, context) => {
-    await verifies(context, 'PW-PR-MERGE-19')
-    prepareProject()
-    touchFlag(FLAG_MERGE_SLASH_PENDING)
-    await startGithub(rules())
-
-    const outcome = await merge(['acme/demo/11'])
-
-    expect(outcome.stderr).toMatch(/^error: merge was rejected: /u)
-    expect(isSlashPending()).toBe(true)
-  })
-
-  it('--dry-run で止まったときは、merge-slash-pending を残す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-19')
-    prepareProject()
-    touchFlag(FLAG_MERGE_SLASH_PENDING)
-    await startGithub([pullRequest({ isDraft: true })])
-
-    const outcome = await merge(['acme/demo/11', '--dry-run'])
-
-    expect(outcome.code).toBe(2)
-    expect(isSlashPending()).toBe(true)
-  })
-
-  it('要求の失敗（403）で止まったときは、merge-slash-pending を残す', async () => {
-    prepareProject()
-    touchFlag(FLAG_MERGE_SLASH_PENDING)
-    await startGithub([pullRequest(), NO_STACK, requested(403, { message: 'Forbidden' })])
-
-    const outcome = await merge(['acme/demo/11'])
-
-    expect(outcome.code).toBe(1)
-    expect(isSlashPending()).toBe(true)
-  })
-
   it('スタックの機能が無いリポ（404）では、単独の PR として扱う', async (context) => {
     await verifies(context, 'PW-PR-MERGE-12')
     prepareProject()

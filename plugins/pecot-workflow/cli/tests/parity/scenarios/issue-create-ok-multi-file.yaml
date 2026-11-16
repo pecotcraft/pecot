@@ -94,8 +94,6 @@ setup:
         ## Acceptance — 後の作業が終わる
 
         - 後の作業の成果が出る — 確認: 画面を開く
-      .pecot/state/issue-create-slash-pending: |
-        1
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:

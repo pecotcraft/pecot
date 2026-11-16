@@ -24,7 +24,7 @@ import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, Pus
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { FLAG_PECOT_ACTIVE, FLAG_PR_CREATE_SLASH_PENDING } from '../domain/state.js'
+import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
 import type { BaseReading } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
@@ -36,7 +36,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { consumeFlag, readBaseRecord, readFlag } from '../infra/state-store.js'
+import { readBaseRecord, readFlag } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
@@ -443,7 +443,6 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   finally {
     out.result({ moves: moves.map(move => moveJson(move)) })
   }
-  consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub', 'other')
   out.data(url)
 }

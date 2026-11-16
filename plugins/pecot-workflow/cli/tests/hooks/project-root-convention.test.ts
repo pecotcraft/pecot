@@ -38,7 +38,7 @@ function offendingLines(relative: string, pattern: Readonly<RegExp>): string[] {
 
 describe('hooks の基準ディレクトリの規約', () => {
   it('エントリポイントと lib のスクリプトを下限以上の数で列挙できる', () => {
-    expect(entryPoints.length).toBeGreaterThanOrEqual(14)
+    expect(entryPoints.length).toBeGreaterThanOrEqual(13)
     expect(libraryScripts.length).toBeGreaterThanOrEqual(40)
   })
 

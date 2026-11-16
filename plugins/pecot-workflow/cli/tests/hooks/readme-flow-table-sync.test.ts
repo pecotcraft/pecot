@@ -26,7 +26,7 @@ const EXCLUDED_LIBS: ReadonlySet<string> = new Set([
 ])
 
 // 列 3 の「→」を、別ディスパッチャへの中継と読む lib。新しい中継ディスパッチャの明示登録を強制する。
-const RELAY_DISPATCHERS: ReadonlySet<string> = new Set(['session-start-common', 'mcp-dispatcher'])
+const RELAY_DISPATCHERS: ReadonlySet<string> = new Set(['session-start-common'])
 
 // com.github.copilot/hooks/hooks.json にだけ配線され、表に Copilot 用の行として載るエントリ。
 const COPILOT_ONLY_SCRIPTS: ReadonlySet<string> = new Set(['stop-copilot.sh'])

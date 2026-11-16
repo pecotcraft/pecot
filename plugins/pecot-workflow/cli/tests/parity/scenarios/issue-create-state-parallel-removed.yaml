@@ -76,8 +76,6 @@ setup:
         ## Acceptance — 一覧に状態の列が出る
 
         - 状態の列が一覧に出る — 確認: 一覧画面を開く
-      .pecot/state/issue-create-slash-pending: |
-        1
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github: []

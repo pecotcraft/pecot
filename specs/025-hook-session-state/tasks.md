@@ -81,33 +81,33 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **契約**: contracts/hook-behavior.md の「止める・承認を求める」
 
-- [ ] T006 [US1] 期待を書き換え、落ちることを確かめる。`gh pr merge`・`pecot …`・大きすぎるコマンドに、何も返らないことを期待する
+- [x] T006 [US1] 期待を書き換え、落ちることを確かめる。`gh pr merge`・`pecot …`・大きすぎるコマンドに、何も返らないことを期待する
   - `tests/hooks/lib/bash-guard-responses.test.ts`
   - `tests/hooks/lib/integration.test.ts`
   - 古い版の免除のフラグを置いた状態の入力を 1 つ足し、結果が変わらないことを期待する（FR-004）
-- [ ] T007 [US1] `lib/adapters/claude-bash-guards.sh` から、3 つの段を外す
+- [x] T007 [US1] `lib/adapters/claude-bash-guards.sh` から、3 つの段を外す
   - `pecot-cli-deny`
   - `external-post-check`（`gh pr merge` の ask）
   - 大きすぎるコマンドの ask
-- [ ] T008 [US1] MCP の PreToolUse を外す
+- [x] T008 [US1] MCP の PreToolUse を外す
   - 2 つの定義ファイルのエントリを外す
   - `p-w/hooks/pre-tool-use-mcp.sh` を消す
   - `lib/mcp-handlers/` を消す（`context7-allow.sh` も一緒に消える）
-- [ ] T009 [US1] 呼ばれなくなるスクリプトを消す
+- [x] T009 [US1] 呼ばれなくなるスクリプトを消す
   - `lib/core/pecot-cli-deny.sh`
   - `lib/core/external-post-check.sh`
   - `lib/core/pecot-tool-names.sh`
   - `lib/core/command-segments.sh`
   - `lib/adapters/claude-adapter.sh`
-- [ ] T010 [US1] 免除のフラグを作る側と掃除を消す
+- [x] T010 [US1] 免除のフラグを作る側と掃除を消す
   - `lib/user-prompt-submit/create-slash-flag.sh` を消す
   - `lib/session-start/create-slash-cleanup.sh` を消す
   - `p-w/hooks/user-prompt-submit.sh` と `lib/session-start-common.sh` の呼び出しを外す
-- [ ] T011 [US1] `lib/core/mcp-guidance.sh` から、ask の案内の関数を消す
-- [ ] T012 [P] [US1] CLI から、免除のフラグの消費を消す
+- [x] T011 [US1] `lib/core/mcp-guidance.sh` から、ask の案内の関数を消す
+- [x] T012 [P] [US1] CLI から、免除のフラグの消費を消す
   - `src/domain/state.ts` の定数 3 つ
   - `src/commands/pr.ts`・`issue-create.ts`・`issue-quick.ts` の `consumeFlag` の呼び出し
-- [ ] T013 [US1] 消したもののテストを消す
+- [x] T013 [US1] 消したもののテストを消す
   - `tests/hooks/pecot-cli-deny.test.ts`
   - `tests/hooks/pecot-post-ask.test.ts`
   - `tests/hooks/pre-mcp.test.ts`
@@ -115,23 +115,24 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - `tests/hooks/user-prompt-submit-create-slash-flag.test.ts`
   - `tests/hooks/lib/mcp-handlers.test.ts`
   - `tests/hooks/lib/mcp-definitions.test.ts`
-- [ ] T014 [US1] `tests/hook-tool-names.test.ts` を直す。`pecot-tool-names.sh` を読むので、テストごと消すか、読む先を定義書に変える
+- [x] T014 [US1] `tests/hook-tool-names.test.ts` を直す。`pecot-tool-names.sh` を読むので、テストごと消すか、読む先を定義書に変える
   - `p-w/project.json` の `test-cli` の inputs から、`pecot-tool-names.sh` を外す
-- [ ] T015 [US1] 設定キーを、sample と `p-w/hooks/README.md` から除く
+- [x] T015 [US1] 設定キーを、sample と `p-w/hooks/README.md` から除く
   - `pecot-cli-deny`・`pr-create-block`・`context7-allow`・`claude-adapter`
   - `pecot-pr-create-ask`・`pecot-issue-create-ask`・`gh-pr-merge-ask`
   - `pr-create-slash-flag`・`issue-create-slash-flag`・`merge-slash-flag`・`create-slash-cleanup`
-- [ ] T016 [US1] 文書から、承認と免除の記述を除く。grep で洗う
+- [x] T016 [US1] 文書から、承認と免除の記述を除く。grep で洗う
   - `p-w/skills/w-help/references/flags.md`
   - `p-w/skills/` の w-pr・w-merge・w-quick・w-ready・w-backlog・w-issueize の SKILL.md
   - `p-w/agents/`
   - `p-w/skills/w-onboarding/` の SKILL.md と参照（FR-006）
-- [ ] T017 [US1] `p-w/interface/authored.yaml` から、免除のフラグを消す記述を除く。`generated.json` を書き出し直す
+- [x] T017 [US1] `p-w/interface/authored.yaml` から、免除のフラグを消す記述を除く。`generated.json` を書き出し直す
   - 対象は `pr_create`・`issue_create`・`issue_quick`・`pr_cleanup`
-- [ ] T018 [US1] spec 024 の該当の Issue に、コメントで知らせる
+- [x] T018 [US1] spec 024 の該当の Issue に、コメントで知らせる
   - 対象は、tasks の「`pr_merge` を確認にかける」項目を持つ Issue
   - この Epic で ask を撤廃したので、項目を外してほしいと書く
-- [ ] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
+  - 済: 該当の #383 は閉じていたので、コメントは出さず、PR の本文に書いた
+- [x] T019 [US1] `SPEC/quickstart.md` の 2 を実機で確かめ、結果を PR に貼る
 
 ---
 

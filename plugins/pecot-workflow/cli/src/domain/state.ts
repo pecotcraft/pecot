@@ -17,14 +17,6 @@ export const FLAG_PECOT_RESTACK = '.pecot-restack'
 export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
 export const FLAG_WIP_BRANCH_LINKED = '.wip-branch-linked'
 
-// スラッシュコマンド起点の外部反映免除フラグ。
-// 設置は hooks の create-slash-flag.sh が行う。
-// 確認は mcp-handlers/pecot-post-ask.sh（merge は pr_merge も。gh pr merge は core/external-post-check.sh）が行う。
-// MCP ツールが実投稿成功時に削除する。
-export const FLAG_PR_CREATE_SLASH_PENDING = 'pr-create-slash-pending'
-export const FLAG_ISSUE_CREATE_SLASH_PENDING = 'issue-create-slash-pending'
-export const FLAG_MERGE_SLASH_PENDING = 'merge-slash-pending'
-
 // 起票未完了のリマインド用フラグ。設置は hooks、確認は pecot-issue-pending-reminder.sh。MCP ツールが起票成功時に削除する
 export const FLAG_ISSUE_PENDING = 'issue-pending'
 

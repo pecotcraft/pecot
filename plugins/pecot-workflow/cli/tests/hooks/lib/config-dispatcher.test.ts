@@ -1,14 +1,14 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // config-dispatcher.sh のテスト。pecot_hook_enabled の判定、hooks-config.json による無効化、PLUGIN_HOOKS 解決を検証する。
 // pecot_hook_enabled は source が要る関数なので、bash -c で source してから呼ぶ。
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
-import { adapterDirectory, coreDirectory } from '../_helpers/paths.js'
+import { coreDirectory } from '../_helpers/paths.js'
 import { run, runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 
@@ -136,20 +136,6 @@ describe('hooks-config.json によるスクリプトの無効化', () => {
     const issue = runGhCheck(hookCase, 'gh issue create --title test', config)
     expect(issue.exitCode).toBe(0)
     expect(issue.stdout).toBe('')
-  })
-
-  // bats 版は claude-adapter.sh を source し run_claude_guard を呼ぶ。同じ手段を bash -c で再現する。
-  it('claude-adapter.sh（Pattern B）を設定で false にすると、無効化される', () => {
-    const hookCase = createHookCase()
-    const config = hooksConfig(hookCase).path
-    writeFileSync(config, '{"claude-adapter": false}')
-    const project = path.join(hookCase.temporaryPath, 'adapter-project')
-    mkdirSync(project, { recursive: true })
-    const result = runShell(hookCase, 'source "$1"; echo \'{"tool_input":{"command":"gh pr create"}}\' | run_claude_guard "$2"', [
-      path.join(adapterDirectory, 'claude-adapter.sh'),
-      path.join(coreDirectory, 'gh-command-check.sh'),
-    ], { env: { PECOT_HOOKS_CONFIG_PATH: config, CLAUDE_PROJECT_DIR: project } })
-    expect(result.stdout).toBe('')
   })
 })
 

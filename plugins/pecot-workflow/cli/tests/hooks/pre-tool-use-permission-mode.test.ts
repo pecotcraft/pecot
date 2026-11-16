@@ -14,23 +14,22 @@ import { jsonDumps } from './_helpers/text.js'
 const ENTRY = path.join(hooksDirectory, 'pre-tool-use-bash.sh')
 
 // 判定ごとに stdout が含むべき断片と、含んではいけない断片
-const NO_FRAGMENTS: readonly string[] = []
-const ASK = { contains: ['"permissionDecision"', '"ask"'], absent: NO_FRAGMENTS }
+const NONE = { contains: [], absent: ['"permissionDecision"'] }
 const DENY = { contains: ['"permissionDecision": "deny"'], absent: ['"decision"'] }
 
-// 操作ごとに、発火するガードの期待判定を置く。ask になるのは gh pr merge。deny になるのは pecot の起動（pr create・issue quick）、--no-verify、gh pr create。
+// 操作ごとに、発火するガードの期待判定を置く。deny になるのは --no-verify と gh pr create。gh pr merge と pecot の起動は判定を返さない。
 const OPERATIONS = [
-  { command: 'pecot pr create x.md', expected: 'deny', decision: DENY },
-  { command: 'gh pr merge 1', expected: 'ask', decision: ASK },
+  { command: 'pecot pr create x.md', expected: 'なし', decision: NONE },
+  { command: 'gh pr merge 1', expected: 'なし', decision: NONE },
   { command: 'git commit --no-verify -m x', expected: 'deny', decision: DENY },
   { command: 'gh pr create', expected: 'deny', decision: DENY },
-  { command: 'pecot issue quick -m x -r owner/repo', expected: 'deny', decision: DENY },
+  { command: 'pecot issue quick -m x -r owner/repo', expected: 'なし', decision: NONE },
 ]
 
 describe('pre-tool-use-bash.sh', () => {
   it.for(
     OPERATIONS.flatMap(operation => ['default', 'plan'].map(mode => ({ ...operation, mode, label: operation.command }))),
-  )('permission_mode が $mode のとき、$label に対するガードは $expected を返す', (row) => {
+  )('permission_mode が $mode のとき、$label に対するガードの判定は $expected になる', (row) => {
     const hookCase = createHookCase()
     // 環境は、feature ブランチの git リポジトリと .pecot-active
     const repository = gitRepository(hookCase)

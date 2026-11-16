@@ -53,7 +53,7 @@ function mergedRules(sample: Readonly<PullRequestSample> = {}, extra: ResponseRu
   return [graphql(MERGED, pullRequestData(sample)), ...extra]
 }
 
-const ALL_FLAGS = ['.pecot-active', '.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked', 'merge-slash-pending']
+const ALL_FLAGS = ['.pecot-active', '.pecot-base', '.pecot-session-title', '.pecot-quick-mode', '.wip-branch-linked']
 
 function flagFiles(): Record<string, string> {
   return Object.fromEntries(ALL_FLAGS.map(name => [stateFile(name), 'x\n']))
@@ -236,12 +236,12 @@ describe('session finish', () => {
     expect(hasBranch(workspace)).toBe(false)
   })
 
-  it('ローカルの片付けを終えると、フラグのファイルと merge-slash-pending を消す', async (context) => {
+  it('ローカルの片付けを終えると、フラグのファイルを消す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-09')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true])
     await workspace.run(CLEANUP)
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false, false])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false, false, false, false])
   })
 
   it('--skip-local-cleanup を付けて打つと、ローカルの片付けをしない', async (context) => {
@@ -254,11 +254,11 @@ describe('session finish', () => {
     expect(result.stderr).not.toContain('current branch')
   })
 
-  it('--skip-local-cleanup を付けて打つと、フラグのファイルと merge-slash-pending を消さない', async (context) => {
+  it('--skip-local-cleanup を付けて打つと、フラグのファイルを消さない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-11')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     await workspace.run([...CLEANUP, '--skip-local-cleanup'])
-    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true, true])
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true, true, true, true])
   })
 
   it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async (context) => {

@@ -24,7 +24,7 @@ import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n', '.pecot/state/issue-create-slash-pending': '1\n' }
+const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n' }
 const MESSAGE = '一覧の状態列を直す'
 const FOOTER = 'issue create の freeform で起票（テンプレ検証スキップ）'
 
@@ -54,7 +54,6 @@ describe('issue create', () => {
     expect(post?.type === 'rest' ? JSON.stringify(post.body) : '').toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
     expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(true)
     expect(hasFile(project.root, '.pecot/state/issue-pending')).toBe(false)
-    expect(hasFile(project.root, '.pecot/state/issue-create-slash-pending')).toBe(false)
   })
 
   it('長いメッセージを渡すと、先頭 50 文字の連続する空白を 1 つにしたものを type の接頭辞つきの題にする', async (context) => {
@@ -128,7 +127,6 @@ describe('issue create', () => {
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
     expect(hasFile(project.root, '.pecot/state/issue-pending')).toBe(false)
-    expect(hasFile(project.root, '.pecot/state/issue-create-slash-pending')).toBe(false)
   })
 
   it.for([
