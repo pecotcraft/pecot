@@ -76,9 +76,10 @@ jobs:
           permission-pull-requests: read
           permission-contents: read
 
-      # Pin the major version here. Raise it when the plugin's major version is raised.
+      # The dist-tag after the package name decides the version. @latest is the newest release,
+      # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.
       # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Sync the board
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}
-        run: npx -y --prefix=/ @pecot/workflow-mcp@8 board sync
+        run: npx -y --prefix=/ @pecot/workflow-mcp@next board sync

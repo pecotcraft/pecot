@@ -1,32 +1,65 @@
-# MCP サーバの tgz を npm へ publish する。
-# tgz は nx release の publish phase（publish-mcp-dist.sh）が Release に添える。
-# 認証は trusted publishing（OIDC）で行い、秘密は使わない。
-# ビルドは手元で済んでいるので checkout しない。
+# MCP サーバの tgz を npm へ publish する。認証は trusted publishing（OIDC）で、npm はこのファイル名で publish を許す。
+# 正式版（publish）: tag を渡した dispatch。nx release が Release に添えた tgz を落とすので checkout しない。
+# 開発版（build-dev・publish-dev）: main への push か、tag なしの dispatch。@pecot/workflow-mcp を devcontainer で作り、dist-tag next で出す。
 # 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
 name: publish-npm
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "plugins/pecot-workflow/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "LICENSE"
+      - ".githooks/lib/mcp-publish-common.sh"
+      - ".githooks/scripts/attach-mcp-tgz.sh"
+      - ".githooks/scripts/origin-slug.mjs"
+      - ".githooks/scripts/dev-version.mjs"
+      - ".githooks/scripts/dev-superseded.mjs"
+      - ".devcontainer/**"
+      - ".github/workflows/publish-npm.yml"
   workflow_dispatch:
     inputs:
       tag:
-        description: "リリースのタグ（pecot-visual-v<version>・pecot-tools-v<version>・pecot-workflow-v<version> のどれか）"
-        required: true
+        description: "正式版のタグ（pecot-visual-v<version>・pecot-tools-v<version>・pecot-workflow-v<version> のどれか）。空なら開発版を出す"
+        required: false
         type: string
+        default: ""
+      dry-run:
+        description: "開発版だけで使う。true は npm publish --dry-run にする（ブランチから試すとき）"
+        type: boolean
+        default: false
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
 
 concurrency:
-  group: publish-npm-${{ inputs.tag }}
+  # ブランチの dry-run は別のグループにし、待っている main の開発版の run を取り消さない。
+  group: publish-npm-${{ inputs.tag || (github.ref == 'refs/heads/main' && 'dev') || format('dev-{0}', github.ref) }}
   cancel-in-progress: false
 
 jobs:
   publish:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.tag != '' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       TAG: ${{ inputs.tag }}
     steps:
+      # dry-run は開発版だけが読む。正式版を dry-run のつもりで出さないよう止める。
+      - name: Reject dry-run for a release tag
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          MSG_DRY_RUN: "dry-run は開発版（tag なし）だけで使えます。正式版の案は release.yml の dry-run で見てください。"
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::error::$MSG_DRY_RUN"
+            exit 1
+          fi
+
       - name: Resolve package and version from tag
         id: resolve
         env:
@@ -115,3 +148,174 @@ jobs:
             exit 1
           fi
           npm publish "${files[0]}" --access public --provenance
+
+  # 開発版は正式版と同じ devcontainer で作る。id-token はこの job に渡さない。
+  build-dev:
+    if: ${{ github.event_name == 'push' || inputs.tag == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Reject a real publish outside main
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          REF: ${{ github.ref }}
+          MSG_NOT_MAIN: "開発版の本番の publish は main からだけ起動できます。ブランチから試すときは dry-run=true を付けてください。"
+        run: |
+          if [ "$DRY_RUN" != "true" ] && [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::$MSG_NOT_MAIN ($REF)"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Resolve dev version
+        id: version
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          version="$(node .githooks/scripts/dev-version.mjs plugins/pecot-workflow/.claude-plugin/plugin.json "$RUN_NUMBER")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # コンテナより先にホストで作り、持ち主をホストにそろえる。
+      - name: Prepare output directory
+        run: mkdir -p .pecot/tmp/dev-publish
+
+      # out-dir はリポの外に置く決まりで、ホストから見えない。tgz だけを共有のディレクトリへ書く。
+      # npm はリポの中だと devEngines で止まるので、out-dir に移ってから pack する。
+      # --dry-run の attach-mcp-tgz.sh は gh の案を表示するだけだ。Release への添付と dispatch は行わない。
+      - name: Build dev package
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          CI: "true"
+          DEV_VERSION: ${{ steps.version.outputs.version }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          env: |
+            CI
+            DEV_VERSION
+          runCmd: |
+            cd /workspaces/base/pecot &&
+            out="$(mktemp -d)" &&
+            bash plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version="$DEV_VERSION" --out-dir="$out" &&
+            cd "$out" &&
+            npm pack --ignore-scripts --pack-destination /workspaces/base/pecot/.pecot/tmp/dev-publish
+
+      - name: Upload package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: workflow-mcp-dev
+          path: .pecot/tmp/dev-publish/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-dev:
+    needs: build-dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PACKAGE: "@pecot/workflow-mcp"
+      VERSION: ${{ needs.build-dev.outputs.version }}
+      DRY_RUN: ${{ inputs.dry-run }}
+    steps:
+      # trusted publishing は provenance を自動で付ける。private のリポは拒まれる前に透明性ログへリポ名が残る。
+      - name: Fail if repository is private
+        env:
+          PRIVATE: ${{ github.event.repository.private }}
+          MSG_PRIVATE: "リポが private のため止めます。公開してから再実行してください。"
+        run: |
+          if [ "$PRIVATE" = "true" ]; then
+            echo "::error::$MSG_PRIVATE"
+            exit 1
+          fi
+
+      # 判定のスクリプトだけを取る。ルートの package.json を置かないので、npm が devEngines で止まらない。
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .githooks/scripts/dev-superseded.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Download package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: workflow-mcp-dev
+
+      # re-run は run_number を変えない。古い run の re-run で next を戻さない。
+      - name: Check if already superseded
+        id: published
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          MSG_DONE: "公開済みの版です。何もせずに終えます。"
+          MSG_STALE: "next がこの run より新しい開発版を指しています。何もせずに終えます。"
+          MSG_FAIL: "npm view が E404 以外の理由で失敗しました。"
+        run: |
+          rc=0
+          out="$(npm view "$PACKAGE@$VERSION" version --json 2>/dev/null)" || rc=$?
+          if [ "$rc" -eq 0 ] && [ -n "$out" ]; then
+            echo "$MSG_DONE ($PACKAGE@$VERSION)"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          elif [ "$rc" -ne 0 ] && [ "$(jq -r '.error.code // empty' <<< "$out" 2>/dev/null)" != "E404" ]; then
+            echo "$out"
+            echo "::error::$MSG_FAIL"
+            exit 1
+          fi
+          next="$(npm view "$PACKAGE" dist-tags.next)"
+          superseded="$(node .githooks/scripts/dev-superseded.mjs "$next" "$RUN_NUMBER")"
+          if [ "$superseded" = "true" ]; then
+            echo "$MSG_STALE (next: $next)"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "done=false" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm
+        if: steps.published.outputs.done == 'false'
+        env:
+          MSG_COUNT: "artifact の tgz が 1 つではありません。"
+          MSG_MISMATCH: "tgz の package.json の name か version が、build-dev で決めた値と違います。"
+        run: |
+          shopt -s nullglob
+          files=(./*.tgz)
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "::error::$MSG_COUNT (${files[*]})"
+            exit 1
+          fi
+          meta="$(tar -xOzf "${files[0]}" package/package.json)"
+          name="$(jq -r '.name' <<< "$meta")"
+          ver="$(jq -r '.version' <<< "$meta")"
+          if [ "$name" != "$PACKAGE" ] || [ "$ver" != "$VERSION" ]; then
+            echo "::error::$MSG_MISMATCH (tgz: $name@$ver, expected: $PACKAGE@$VERSION)"
+            exit 1
+          fi
+          args=("${files[0]}" --access public --provenance --tag next)
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          npm publish "${args[@]}"

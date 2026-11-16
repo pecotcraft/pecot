@@ -4,6 +4,8 @@ paths:
   - "plugins/*/scripts/release/publish-mcp-dist.sh"
   - "plugins/*/scripts/release/finalize-dist.mjs"
   - ".githooks/lib/mcp-publish-common.sh"
+  - ".githooks/scripts/dev-version.mjs"
+  - ".githooks/scripts/dev-superseded.mjs"
 ---
 
 # 新しい @pecot/<name>-mcp を初めて npm に出す
@@ -56,6 +58,11 @@ trusted publisher は、レジストリにあるパッケージにしか登録�
 7. npmjs.com のパッケージの Settings → Publishing access で、次を選ぶ。「Require two-factor authentication and disallow tokens」。trusted publisher は影響を受けない。
    既存のパッケージ（`@pecot/visual-mcp`・`@pecot/tools-mcp` など）も、この設定を済ませたか確かめる。
 8. 公開が済んだら out-dir を消す。
+
+## 開発版
+
+- `@pecot/workflow-mcp` の開発版（dist-tag `next`）も、同じ trusted publisher で `publish-npm.yml` の `publish-dev` が出す
+- trusted publisher に environment を付けるときは、`publish` と `publish-dev` の両方の job に同じ environment を置く。片方だけだと、置かない方の publish が止まる
 
 ## 失敗したとき
 

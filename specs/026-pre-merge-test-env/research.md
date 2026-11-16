@@ -88,9 +88,10 @@
 - Decision: 直した `cli/templates/workflow/pecot-board-sync.yml` を、検証用のリポの `.github/workflows/` に入れてから起こす。入れるときは、検証用の PR と merge queue を通す
 - Rationale:
   - 公式の文書のとおり、`workflow_dispatch` と `pull_request_target` は、既定のブランチの定義で動く。検証用の既定のブランチに置かないと、直した定義では動かない
-  - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、今は同じ中身だ。検証用にも同じファイルがある
+  - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag だけが違う。検証用にも同じファイルがある
+  - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
   - 検証用の workflow は、定期の起動（`schedule`）を持たない。このリポの定期の起動は、Lambda の Scheduler が起こしていて、検証用を向いていない。確かめていない間に検証用を書き換え続けるものは、今は無い
-- 残る点: workflow の中で動く pecot が、直した中身になるかは読んでいない。workflow が pecot をどこから取るかで決まる（R11-4）
+- 残る点: workflow の中の pecot は、npx が npm から取る（#499）。`@latest` は最新の正式版、`@next` は main に入った後の開発版で、どちらもマージ前の直した中身ではない。直した中身で動かす手段は R11-4 で確かめる
 
 ## R7. 検証用の権限（FR-016、FR-027）
 
