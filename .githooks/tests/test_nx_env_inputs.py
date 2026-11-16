@@ -156,6 +156,7 @@ _EXEMPT: dict[str, str] = {
     "ROOT": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "DATA": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "CALLS": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
+    "PNPM_XDG": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "OUT": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "ERR": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "REV": "source した stub-root.sh が設定するシェル変数。環境変数ではない",

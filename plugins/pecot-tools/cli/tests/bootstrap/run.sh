@@ -42,8 +42,14 @@ DATA_DIR="$WORK_DIR/data"
 mkdir -p "$DATA_DIR"
 export CLAUDE_PLUGIN_DATA="$DATA_DIR"
 
+LAST_STDERR=""
 cleanup() {
   local exit_code=$?
+  # $WORK_DIR を消すと CI から読めなくなるため、失敗時は最後に書いた stderr を先に出す。
+  if [ "$exit_code" -ne 0 ] && [ -f "$LAST_STDERR" ]; then
+    echo "--- $LAST_STDERR (末尾 40 行) ---" >&2
+    tail -n 40 "$LAST_STDERR" >&2
+  fi
   rm -rf "$WORK_DIR" >/dev/null 2>&1 || true
   exit "$exit_code"
 }
@@ -78,6 +84,7 @@ run_mcp_exchange() {
   local pid deadline
 
   rm -f "$fifo" "$stdout_file" "$stderr_file"
+  LAST_STDERR="$stderr_file"
   mkfifo "$fifo"
 
   set +e
@@ -245,6 +252,7 @@ PNPM_CMD="$(resolve_pnpm "$PLUGIN_ROOT")"
 PNPM_STORE="$(cd "$PLUGIN_ROOT" && $PNPM_CMD store path)" || fail "CUJ 5 pnpm の store を調べられない"
 XDG_DIR="$WORK_DIR/xdg-share"
 STDERR5="$WORK_DIR/cuj5.stderr"
+LAST_STDERR="$STDERR5"
 set +e
 env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA XDG_DATA_HOME="$XDG_DIR" npm_config_store_dir="$PNPM_STORE" \
   CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" "$PLUGIN_ROOT/bin/pecot-tools" --help >/dev/null 2>"$STDERR5"
@@ -274,6 +282,7 @@ else
   ln -s "$NPM_PATH" "$ISO_BIN_NODE_NPX/npm"
   ln -s "$NPX_PATH" "$ISO_BIN_NODE_NPX/npx"
   STDERR6="$WORK_DIR/cuj6.stderr"
+  LAST_STDERR="$STDERR6"
   set +e
   env -i CLAUDE_PLUGIN_DATA="$DATA_DIR_6" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_NPX:/usr/bin:/bin" \
     "$PLUGIN_ROOT/bin/pecot-tools" --help >/dev/null 2>"$STDERR6"

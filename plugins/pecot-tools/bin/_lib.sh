@@ -410,6 +410,13 @@ plugin_runtime_ensure() {
     return "$rc"
 }
 
+# pnpm を起動するサブシェルの中で呼ぶ。pnpm 12.21 は空・相対の XDG_DATA_HOME を相対パスとして使うため、データ置き場の解決と同じ判定で正す。
+plugin_runtime_pnpm_env() {
+    local xdg
+    [ -n "${XDG_DATA_HOME+x}" ] || return 0
+    if xdg="$(plugin_data_dir_normalize "$XDG_DATA_HOME")"; then XDG_DATA_HOME="$xdg"; else unset XDG_DATA_HOME; fi
+}
+
 # plugin_runtime_ensure の本体（bootstrap ロックを持って呼ぶ）。
 plugin_runtime_ensure_locked() {
     local root="$1" base="$2" name="$3" target="$4" deps donor pnpm start rc
@@ -456,7 +463,7 @@ plugin_runtime_ensure_locked() {
         plugin_runtime_note "the first run can take several minutes because it fetches dependencies and builds; it takes longer when the pnpm store is empty"
         # `$pnpm` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
         # shellcheck disable=SC2086
-        ( cd "$target" && $pnpm install --frozen-lockfile ) || { rc=$?; plugin_runtime_diagnose_failure "$root"; return "$rc"; }
+        ( cd "$target" && plugin_runtime_pnpm_env && $pnpm install --frozen-lockfile ) || { rc=$?; plugin_runtime_diagnose_failure "$root"; return "$rc"; }
     fi
 
     plugin_runtime_event "building"
@@ -515,7 +522,7 @@ plugin_runtime_build() {
     local dir="$1" pnpm="$2"
     # `$pnpm` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
     # shellcheck disable=SC2086
-    ( cd "$dir" && $pnpm --config.verify-deps-before-run=false --filter @pecot/pecot-tools-cli run build )
+    ( cd "$dir" && plugin_runtime_pnpm_env && $pnpm --config.verify-deps-before-run=false --filter @pecot/pecot-tools-cli run build )
 }
 
 # install / build が失敗した後の診断。古い node では pnpm が engines.node の不一致で先に止まり英語のエラーしか出ないため、
