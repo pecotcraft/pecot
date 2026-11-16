@@ -34,11 +34,6 @@ Step 1 の情報を渡し、w-reviewer に diff をレビューさせる。視�
 - 送信が拒否されたら（宛先が無いなど）、または ID と名前のどちらも控えていなければ、`Agent` ツールで w-reviewer を新しく起こす。agent teams が有効なら `name: w-reviewer` を付け、返った agent ID を控える
 - GitHub Copilot CLI では、`SendMessage` を送らずに新しく起こす
 
-PR の計画に CUJ があるときだけ、w-e2e-planner も `Agent` ツールで起こし、CUJ を実行させる。レビューではなく、検証として起こす。prompt には CUJ の 3 要素（誰が・起点・合格基準）を貼る。実行者が main の CUJ は main が実行し、w-e2e-planner には渡さない。
-
-- w-reviewer への依頼と w-e2e-planner の spawn は、並列を既定とする。直列にする場合のみ、理由を `w-reviewer` への依頼の Goal（冒頭行）末尾に括弧書きで添える（例: `(直列の理由: ...)`）
-- 1 メッセージ内の複数の呼び出し（`SendMessage` か `Agent`）で依頼する。別メッセージで順に呼ぶと直列になる。
-
 Resolved 済みの既存スレッドは対象に含めない。
 
 ### Step 3: 指摘を採番し、インラインコメントと `review-findings` に振り分けて投稿
@@ -53,7 +48,7 @@ Resolved 済みの既存スレッドは対象に含めない。
 | ファイル単位でしか言えない | ファイルコメント |
 | それ以外（PR 本文・欠落・diff 外・横断的な設計） | `review-findings` の General 節 |
 
-w-reviewer の指摘のインラインコメントは、本文を `**F-NN** [視点の印]` で始める。印は w-reviewer が返した `[tech]`・`[cuj]`・`[quality]` のどれかにする。w-e2e-planner が返した CUJ の不合格は `[cuj]` にする。外部のレビュアーの指摘には印を付けない。`<...>` のプレースホルダ・チェックボックス記法を書かず、型や比較の記法はバッククォートで囲む。
+w-reviewer の指摘のインラインコメントは、本文を `**F-NN** [視点の印]` で始める。印は w-reviewer が返した `[tech]`・`[cuj]`・`[quality]` のどれかにする。外部のレビュアーの指摘には印を付けない。`<...>` のプレースホルダ・チェックボックス記法を書かず、型や比較の記法はバッククォートで囲む。
 
 #### ホストと head sha
 
@@ -178,7 +173,7 @@ Step 3 で投稿したコメントの URL を示し、AskUserQuestion で次の 
 
 #### CUJ 再実行
 
-Step 2 で w-e2e-planner が実行した CUJ が、直したファイルを読むなら、w-e2e-planner を `Agent` ツールで起こして再実行させる。prompt には CUJ の 3 要素（誰が・起点・合格基準）と修正の要約を貼る。
+計画の CUJ（実装の後に実行したもの）が、直したファイルを読むなら、w-e2e-planner を `Agent` ツールで起こして再実行させる。prompt には CUJ の 3 要素（誰が・起点・合格基準）と修正の要約を貼る。
 実行者が main の CUJ と、実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。不合格なら Step 5 の修正に戻る。
 
 #### スレッドを一括 resolve
