@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -121,6 +122,48 @@ def test_deploy_ssm_paths_match_template_defaults() -> None:
         for leaf in leaves
     }
     assert defaults == expected
+
+
+def _agent_denies() -> dict[str, dict[str, Any]]:
+    policy = json.loads((_BOARD_SYNC / "agent-role-policy.json").read_text(encoding="utf-8"))
+    return {s["Sid"]: s for s in policy["Statement"] if s["Effect"] == "Deny"}
+
+
+def test_agent_decrypt_deny_exempts_only_lambda() -> None:
+    """Deny が Lambda 経由の復号まで拒むと、デプロイが環境変数を書き換えない (#487)。"""
+    deny = _agent_denies()["NoDecryptOutsideLambda"]
+    assert deny["Action"] == "kms:Decrypt"
+    assert deny["Resource"] == "*"
+    assert deny["Condition"] == {
+        "StringNotEquals": {"kms:ViaService": "lambda.<REGION>.amazonaws.com"}
+    }
+
+
+def test_agent_secret_reads_stay_denied_unconditionally() -> None:
+    deny = _agent_denies()["NoSecretReads"]
+    assert "Condition" not in deny
+    assert deny["Resource"] == "*"
+    assert {"ssm:GetParameter", "ssm:GetParameters", "secretsmanager:GetSecretValue"} <= set(
+        deny["Action"]
+    )
+
+
+def test_deploy_env_keys_parse_from_template() -> None:
+    """deploy.sh が反映を確かめる名前の取り出しが、template の環境変数と一致する (#487)。"""
+    script = (
+        "sed -n '/^        Variables:$/,/^      [^ ]/p' \"$1\" | "
+        "sed -n 's/^          \\([A-Z_][A-Z0-9_]*\\):$/\\1/p'"
+    )
+    deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
+    assert "sed -n '/^        Variables:$/,/^      [^ ]/p'" in deploy
+    out = subprocess.run(
+        ["bash", "-c", script, "_", str(_BOARD_SYNC / "template.yaml")],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    variables = _template()["Resources"]["Function"]["Properties"]["Environment"]["Variables"]
+    assert out == list(variables)
 
 
 def test_both_roles_carry_the_permissions_boundary() -> None:
