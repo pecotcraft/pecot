@@ -19,7 +19,7 @@ import type { RemoteLocation } from '../domain/git-url.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
 import { jsonField } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
-import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBase, describeBaseStop, describePushStatus, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, pickLowerPullRequest, pushFixHintOf, validatePullRequestContent } from '../domain/pull-request.js'
+import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBase, describeBaseStop, describePushStatus, DIVERGED_FIX_HINT, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, pickLowerPullRequest, pushFixHintOf, validatePullRequestContent } from '../domain/pull-request.js'
 import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
@@ -54,6 +54,7 @@ import type { BoardMoveLine } from './issue-board.js'
 import { PR_MERGE_COMMAND } from './pr-merge.js'
 import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 import { readRestackDecision } from './restack-reading.js'
+import type { KnownLowerPullRequest } from './restack-reading.js'
 import { moveWaitingIssues } from './pr-waiting.js'
 
 export { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
@@ -354,15 +355,20 @@ interface PushFixTarget {
   readonly directory: string
   readonly remote: string
   readonly client: () => GitHubClient
+  /**
+  呼び出し側が既に読んだ下の段の PR。あれば読み直さない
+  */
+  readonly lowerPullRequest?: KnownLowerPullRequest | undefined
 }
 
-// 積んだブランチが diverged のときだけ、載せ直しが要るかを読んで Push Status の直し方を決める。それ以外は undefined（git push）
+// diverged のときの Push Status の直し方。積んでいれば載せ直しが要るかを読んで決める。diverged でなければ undefined（git push）
 async function pushFixHintFor(push: PushStatus, reading: BaseReading | undefined, target: Readonly<PushFixTarget>): Promise<HintedText | undefined> {
-  if (!push.isDiverged || reading?.kind !== 'stacked') return undefined
-  const { config, location, directory, remote, client } = target
+  if (!push.isDiverged) return undefined
+  if (reading?.kind !== 'stacked') return DIVERGED_FIX_HINT
+  const { config, location, directory, remote, client, lowerPullRequest } = target
   const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
   try {
-    const read = await readRestackDecision({ client, owner: location.owner, repository: location.repository, cwd: directory, remote, reading, developBranch })
+    const read = await readRestackDecision({ client, owner: location.owner, repository: location.repository, cwd: directory, remote, reading, developBranch, lowerPullRequest })
     return pushFixHintOf(read.kind === 'decided' ? read.decision : undefined)
   }
   catch (error: unknown) {
@@ -371,10 +377,15 @@ async function pushFixHintFor(push: PushStatus, reading: BaseReading | undefined
   }
 }
 
-async function runPreflightChecksOrExit(directory: string, reading: BaseReading | undefined, config: Readonly<ProjectConfig>, client: () => GitHubClient, out: Readonly<Output>): Promise<void> {
+interface PreflightBase {
+  readonly reading: BaseReading | undefined
+  readonly lowerPullRequest: KnownLowerPullRequest | undefined
+}
+
+async function runPreflightChecksOrExit(directory: string, base: Readonly<PreflightBase>, config: Readonly<ProjectConfig>, client: () => GitHubClient, out: Readonly<Output>): Promise<void> {
   const context = validatePullRequestContext(directory, out)
   const push = getPushStatus(context.currentBranch, directory, context.remoteName)
-  const pushFixHint = await pushFixHintFor(push, reading, { config, location: context.location, directory, remote: context.remoteName, client })
+  const pushFixHint = await pushFixHintFor(push, base.reading, { config, location: context.location, directory, remote: context.remoteName, client, lowerPullRequest: base.lowerPullRequest })
   const warnings = collectPreflightWarnings({ gitStatus: getGitStatus(directory), stashList: getStashList(directory), isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
   if (warnings.length === 0) return
   out.error('preflight found warnings; fix them before creating a PR')
@@ -441,8 +452,8 @@ async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<Pr
   }
 }
 
-async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => GitHubClient, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, reading: BaseReading | undefined, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  await runPreflightChecksOrExit(directory, reading, config, client, out)
+async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => GitHubClient, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, base: Readonly<PreflightBase>, out: Readonly<Output<PrCreateData>>): Promise<void> {
+  await runPreflightChecksOrExit(directory, base, config, client, out)
   let created: JsonObject
   try {
     created = await client().createPullRequest(draft.location.owner, draft.location.repository, draft.title, draft.body, draft.head, draft.base, draft.isDraft)
@@ -513,15 +524,24 @@ function readBaseRecordFor(head: string, template: string, directory: string, ou
     : reading
 }
 
+interface BaseDecided {
+  readonly decision: PullRequestBaseDecision
+  /**
+  読んだ下の段の PR。積んだ記録でなければ読まず undefined
+  */
+  readonly lowerPullRequest: KnownLowerPullRequest | undefined
+}
+
 // 積んだ記録なら、PR を作るリポで下の段の PR を読み、base を決める
-async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubClient, developBranch: string, out: Readonly<Output>): Promise<PullRequestBaseDecision> {
+async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubClient, developBranch: string, out: Readonly<Output>): Promise<BaseDecided> {
   const { reading, base, location } = input
-  if (reading === undefined) return { kind: 'use', base, stackOn: undefined, stackedBase: undefined, isLowerMerged: false }
-  if (reading.kind !== 'stacked') return decidePullRequestBase({ reading, base, developBranch })
+  if (reading === undefined) return { decision: { kind: 'use', base, stackOn: undefined, stackedBase: undefined, isLowerMerged: false }, lowerPullRequest: undefined }
+  if (reading.kind !== 'stacked') return { decision: decidePullRequestBase({ reading, base, developBranch }), lowerPullRequest: undefined }
   const { branch } = reading.record
   try {
     const found = await client().listPullRequestsByHead(location.owner, location.repository, branch)
-    return decidePullRequestBase({ reading, base, developBranch, lowerPullRequest: pickLowerPullRequest(found.pullRequests) })
+    const lower = pickLowerPullRequest(found.pullRequests)
+    return { decision: decidePullRequestBase({ reading, base, developBranch, lowerPullRequest: lower }), lowerPullRequest: { pullRequest: lower } }
   }
   catch (error: unknown) {
     if (error instanceof GitHubAPIError) return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(error)}`, kindOfFailure(error))
@@ -552,7 +572,8 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   const releaseBranch = getReleaseBranch(config, location.owner, location.repository)
   exitOnUnsetBranch(template, input.base, head, developBranch, releaseBranch, out)
-  const { use, errors: baseErrors } = useOrStop(await decideBase(input, client, developBranch ?? '', out), out)
+  const decided = await decideBase(input, client, developBranch ?? '', out)
+  const { use, errors: baseErrors } = useOrStop(decided.decision, out)
   const base = use?.base ?? input.base
   const stacked = stackedScopeOf(input.reading, use)
   const requiredSections = readTemplateSections(templateFile('pr', templateKindOf(template)))
@@ -577,7 +598,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
   const isRelease = template === 'release'
   const draft: PullRequestDraft = { location, title, body: input.body, head, base, isDraft: input.isDraft, isRelease }
   if (!input.dryRun) {
-    await submitPullRequest(config, client, directory, draft, use?.stackOn, input.reading, out)
+    await submitPullRequest(config, client, directory, draft, use?.stackOn, { reading: input.reading, lowerPullRequest: decided.lowerPullRequest }, out)
     return
   }
   out.planned(createOperation(draft))

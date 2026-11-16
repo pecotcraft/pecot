@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
 import { getDevelopBranch } from '../domain/config.js'
-import { describeGone, describeRestackCheck } from '../domain/restack.js'
+import { describeGone, describeRestackCheck, RESTACK_PATH } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '../domain/state.js'
 import type { BaseReading, BaseRecord, RestackProgress } from '../domain/state.js'
@@ -36,7 +36,6 @@ import { stopOnMalformedRecord, validatePullRequestContext } from './pr.js'
 import { readRestackDecision } from './restack-reading.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
-const RESTACK_PATH = ['pr', 'restack']
 const CONFLICT_EXIT_CODE = 3
 const UNCOMMITTED_EXIT_CODE = 2
 // 文の中にロングオプションを書けない（lint）ので、git の引数から組む

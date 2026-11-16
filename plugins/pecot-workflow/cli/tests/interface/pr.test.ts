@@ -177,9 +177,18 @@ const STACKED_CHECK_ROWS: readonly { readonly name: string, readonly scene: Dive
   { name: '下の段がマージされ、remote の上の段が開発ブランチの上に載せ直された', scene: 'merged', state: 'MERGED' },
 ]
 
+// diverged で載せ直しが要らないときの直し方。文の中にロングオプションを書けない（lint）ので、git の引数から組む
+const DIVERGED_FIX = `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits`
+
 const STACKED_CREATE_ROWS: readonly { readonly name: string, readonly scene: DivergeScene, readonly expected: string }[] = [
   { name: '下の段が動き、remote の上の段がその上に載せ直された', scene: 'moved', expected: 'pecot pr restack' },
-  { name: '下の段が動かないまま手元だけを書き換えた', scene: 'amended', expected: 'git push' },
+  { name: '下の段が動かないまま手元だけを書き換えた', scene: 'amended', expected: DIVERGED_FIX },
+]
+
+const UNDECIDED_ROWS: readonly { readonly name: string, readonly cause: 'pull-request-unreadable' | 'gone' | 'unreachable' }[] = [
+  { name: '下の段の PR を読めない', cause: 'pull-request-unreadable' },
+  { name: '下の段のブランチが remote から消え、PR がマージされていない', cause: 'gone' },
+  { name: '下の段のブランチを尋ねる remote に届かない', cause: 'unreachable' },
 ]
 
 // diverged の Push Status の warning の行ごとの、直し方
@@ -660,7 +669,7 @@ describe('pr create', () => {
 
   it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row, context) => {
     await verifies(context, 'PW-PR-CREATE-66')
-    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')], 2), NOT_EPIC_RULE])
+    const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), NOT_EPIC_RULE])
     divergeStacked(workspace, row.scene)
     const result = await workspace.run(stackedArguments())
     expect(result.code).toBe(2)
@@ -1709,6 +1718,7 @@ describe('pr check', () => {
     { title: 'remote とずれた', kind: 'diverged', expected: `diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead` },
   ])('ブランチが次の状態だと（$title）、Push Status の warning を数える', async (row, context) => {
     await verifies(context, 'PW-PR-CHECK-07')
+    if (row.kind === 'diverged') await verifies(context, 'PW-PR-CHECK-22')
     const workspace = row.kind === 'unpushed' ? await openWorkspace({ branch: BRANCH }) : await pushedBranch()
     if (row.kind !== 'unpushed') workspace.git(['commit', '--allow-empty', '-q', '-m', 'local'])
     if (row.kind === 'diverged') {
@@ -1716,7 +1726,8 @@ describe('pr check', () => {
       workspace.git(['fetch', '-q', 'origin'])
     }
     const result = await preflight(workspace)
-    expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: ${row.expected} (fix: git push)`])
+    const fix = row.kind === 'diverged' ? DIVERGED_FIX : 'git push'
+    expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: ${row.expected} (fix: ${fix})`])
   })
 
   it.for(STACKED_CHECK_ROWS)('積んだ記録があり、$name ときに打つと、Push Status の直し方に pr restack を出す', async (row, context) => {
@@ -1728,18 +1739,23 @@ describe('pr check', () => {
     expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
   })
 
-  it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に git push を出す', async (context) => {
+  it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に取り込みか lease 付きの上書きを出す', async (context) => {
     await verifies(context, 'PW-PR-CHECK-22')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'amended')
     const result = await preflight(workspace)
-    expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: git push)`])
+    expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: ${DIVERGED_FIX})`])
   })
 
-  it('積んだ記録があって remote とずれ、下の段の PR を読めないと、Push Status の直し方に pr restack --check を出す', async (context) => {
+  it.for(UNDECIDED_ROWS)('積んだ記録があって remote とずれ、$name と、Push Status の直し方に pr restack --check を出す', async (row, context) => {
     await verifies(context, 'PW-PR-CHECK-23')
-    const workspace = await openStackedUpper([UNREADABLE_LOWER_RULE])
+    const workspace = await openStackedUpper([row.cause === 'pull-request-unreadable' ? UNREADABLE_LOWER_RULE : lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'moved')
+    if (row.cause === 'gone') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+    else if (row.cause === 'unreachable') {
+      const bare = workspace.remoteGit(['rev-parse', '--absolute-git-dir']).trim()
+      renameSync(bare, `${bare}.moved`)
+    }
     const result = await preflight(workspace)
     expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack --check'])
   })
@@ -1749,7 +1765,7 @@ describe('pr check', () => {
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'moved')
     const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
-    expect(JSON.stringify(result.structured)).toMatch(/Push Status: diverged: [^"]+ \(fix: pr_restack\)/u)
+    expect(result.structured['warnings']).toStrictEqual([`Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 2 ahead (fix: pr_restack)`])
   })
 
   it('未コミットの変更があると、Git Status の warning を数える', async (context) => {

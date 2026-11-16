@@ -8,6 +8,7 @@ import { parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, tru
 import { hasSummaryImage, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
 import type { BaseReading } from './state.js'
+import { RESTACK_PATH } from './restack.js'
 import type { RestackDecision } from './restack.js'
 
 // Issue 参照（`#N`、URL 内のフラグメントは除く）。`owner/repo#N` の形も受ける
@@ -397,14 +398,21 @@ export function describePushStatus(remote: string, branch: string, ahead: number
   return { isPushed: false, message: `diverged: local is ${String(ahead)} commits ahead, ${remote}/${branch} is ${String(behind)} ahead`, isDiverged: true }
 }
 
-const RESTACK_PATH = ['pr', 'restack']
+// 文の中にロングオプションを書けない（lint）ので、git の引数から組む
+const PULL_REBASE_COMMAND = ['git', 'pull', '--rebase'].join(' ')
+const FORCE_PUSH_COMMAND = ['git', 'push', '--force-with-lease'].join(' ')
 
 /**
-積んだブランチが diverged のときの直し方。載せ直しが要れば pr restack、要らなければ git push、決められなければ pr restack --check
+diverged の直し方。fast-forward でない push は拒まれるので、取り込むか、書き換えたなら lease 付きで上書きする
+*/
+export const DIVERGED_FIX_HINT: HintedText = hinted`${PULL_REBASE_COMMAND}, or ${FORCE_PUSH_COMMAND} if you rewrote pushed commits`
+
+/**
+積んだブランチが diverged のときの直し方。載せ直しが要れば pr restack、要らなければ diverged の直し方、決められなければ pr restack --check
 */
 export function pushFixHintOf(decision: Readonly<RestackDecision> | undefined): HintedText {
   if (decision === undefined || decision.kind === 'gone') return hinted`${commandHint(RESTACK_PATH, { check: true })}`
-  return decision.kind === 'moved' || decision.kind === 'merged' ? hinted`${commandHint(RESTACK_PATH)}` : hinted`git push`
+  return decision.kind === 'moved' || decision.kind === 'merged' ? hinted`${commandHint(RESTACK_PATH)}` : DIVERGED_FIX_HINT
 }
 
 export interface PreflightFacts {

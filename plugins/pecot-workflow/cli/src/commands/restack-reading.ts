@@ -8,6 +8,13 @@ import { remoteBranchHead } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 
+/**
+既に読んだ下の段の PR。PR が無かったことも示せるよう、包んで渡す
+*/
+export interface KnownLowerPullRequest {
+  readonly pullRequest: PullRequestReadout | undefined
+}
+
 export interface RestackTarget {
   readonly client: () => Readonly<GitHubClient>
   readonly owner: string
@@ -19,6 +26,10 @@ export interface RestackTarget {
   readonly remote: string | undefined
   readonly reading: Extract<BaseReading, { kind: 'stacked' }>
   readonly developBranch: string
+  /**
+  渡されたら、下の段の PR を読み直さない
+  */
+  readonly lowerPullRequest?: KnownLowerPullRequest | undefined
 }
 
 export type RestackReading
@@ -31,14 +42,16 @@ export type RestackReading
 */
 export async function readRestackDecision(target: Readonly<RestackTarget>): Promise<RestackReading> {
   const { reading, remote } = target
-  let lowerPullRequest: PullRequestReadout | undefined
-  try {
-    const found = await target.client().listPullRequestsByHead(target.owner, target.repository, reading.record.branch)
-    lowerPullRequest = pickLowerPullRequest(found.pullRequests)
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return { kind: 'pull-request-unreadable', error }
-    throw error
+  let lowerPullRequest = target.lowerPullRequest?.pullRequest
+  if (target.lowerPullRequest === undefined) {
+    try {
+      const found = await target.client().listPullRequestsByHead(target.owner, target.repository, reading.record.branch)
+      lowerPullRequest = pickLowerPullRequest(found.pullRequests)
+    }
+    catch (error: unknown) {
+      if (error instanceof GitHubAPIError) return { kind: 'pull-request-unreadable', error }
+      throw error
+    }
   }
   if (remote === undefined) return { kind: 'remote-unreachable', lowerPullRequest }
   const lowerHead = remoteBranchHead(target.cwd, remote, reading.record.branch)
