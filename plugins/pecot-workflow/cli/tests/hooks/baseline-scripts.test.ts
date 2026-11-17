@@ -109,7 +109,3 @@ describe('baseline.json の hooks.scripts', () => {
     expect(broken).toEqual([])
   })
 })
-
-it.for([{ name: 'a' }, { name: 'a' }])('CUJ 2 の $name を重ねる', ({ name }) => {
-  expect(name).toBe('a')
-})

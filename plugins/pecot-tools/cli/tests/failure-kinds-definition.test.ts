@@ -65,7 +65,3 @@ describe('定義書の exit_status と実装', () => {
     expect(sorted(kindsOf('PT-AWS-SSO-LOGIN-STATUS'))).toEqual(sorted(expected))
   })
 })
-
-it.for([{ name: 'a' }, { name: 'a' }])('CUJ 2 の $name を重ねる', ({ name }) => {
-  expect(name).toBe('a')
-})
