@@ -304,7 +304,7 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
 8. `sandbox-diff.sh` で「ずれは 0 件」を見てから、`sandbox-sweep.sh` でリリースを消す
    - 順を逆にすると、検証用の main の workflow が消えた URL を取りに行き、間の実行が落ちる
 
-定期の起動は、検証用に届かない。検証用の写しは `schedule` を持たず、このリポの Lambda（`.github/board-sync/`）は `pecotcraft/pecot` だけを起こす。
+定期の起動は、検証用に届かない。検証用の写しは `schedule` を持たず、このリポの Lambda（`.github/board-sync/`）は `pecotcraft/pecot` だけを起こす。2026-11-17 に、デプロイ済みの設定で確かめた。
 
 ### このリポだけの運用
 
