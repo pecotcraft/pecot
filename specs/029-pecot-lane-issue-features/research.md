@@ -40,9 +40,15 @@
   - `project_create`・`project_init`・`project_sync` に入力 `lanes`（文字列の配列）を足す
   - フィールドが無ければ `createProjectV2Field`（`SINGLE_SELECT`）で作る。あれば、既存の選択肢を ID ごと読み、足りない値を足した全体を `updateProjectV2Field` に渡す。選択肢は消さない
   - `lanes` を渡さず、フィールドも無いときは作らず、値を決めるよう案内する（US1 の 4）
-  - 設定には、ほかの単一選択と同じく、選択肢の名前と ID を `fields.lane` に持つ。値の変更は `project_sync` で取り込む
-- **Rationale**: 選択肢の更新は全部の置き換えなので、既存の ID を必ず付ける（R1 と同じ）。設定に選択肢の ID を持つのは、今の `pecot-status` と同じ形で、起票のたびにボードを読まずに済む
-- **Alternatives considered**: Issue fields に置く。clarify で、ボードのフィールドに置くと決めた
+  - 設定には `pecot-lane` の選択肢を写さない。起票・同期・一覧は、使うたびにボードの `pecot-lane` の選択肢を読む
+- **Rationale**:
+  - 選択肢の更新は全部の置き換えなので、既存の ID を必ず付ける（R1 と同じ）
+  - B は、`attributes` の値を書くたびにボードから読んだ定義で照らす（R7）。設定にも選択肢を写すと、同じ選択肢を 2 か所で持つ。
+    利用者が画面で選択肢を足すと、`project_sync` まで 2 つが食い違い、`attributes` では書けるのに `lane` では止まる。
+    憲章の VIII（同じものを表すモデルは 1 つ）に合わせ、ボードだけを正にする
+- **Alternatives considered**:
+  - Issue fields に置く。clarify で、ボードのフィールドに置くと決めた
+  - 今の `pecot-status` と同じく、設定に選択肢の ID を写す（`fields.lane`）。起票のたびにボードを読まずに済むが、上の食い違いが起きる
 
 ## R5. 領域のレーンのビュー
 
@@ -57,7 +63,8 @@
 ## R6. 起票・同期・一覧での `pecot-lane`
 
 - **Decision**:
-  - `issue_create` に入力 `lane` を足す。値は設定の `fields.lane` と照らし、無い値なら Issue を作る前に止める（US2 の 4）
+  - `issue_create` に入力 `lane` を足す。値はボードの `pecot-lane` の選択肢と照らし、無い値なら Issue を作る前に止める（US2 の 4）
+  - 名前から選択肢を引く関数は 1 つにし、B の single select の照らし合わせ（R7）と共有する
   - `parent_epic` があり `lane` が無ければ、CLI が親の値を読んで同じ値にする（US2 の 2）
   - スキル（w-quick・w-ready・w-issueize・w-backlog）は、起票の内容から `lane` を決めて渡す。決められなければ利用者に確かめる
   - `board_sync` の結果に `missing_lane`（`pecot-lane` の無い開いた Issue の一覧）を足し、警告も出す。同期は止めない
@@ -77,6 +84,8 @@
   - `issue_show` は、値の入っている機能をすべて返す。ボードの `fieldValues` を全部の種類で読み、Issue fields・担当者・マイルストーン・ラベル・Issue type も読む
   - 書く前に、すべての値を、そのときにボードと持ち主から読んだ定義と照らす。1 つでも合わなければ何も書かず、合わない機能・値と取りうる値を返す
   - 照らす中身は、種類の合わない値・無い名前・書き込めない機能・同じ名前の曖昧さ
+  - `pecot-status` と組み込みの Status（札）は、書き込めない機能として返す。列の移動は `board_move` が、移動の決まり（Blocked の判定など）と共に行う。
+    `attributes` からも書けると、同じことをする道が 2 つになる（憲章の VIII）
 - **書き方**:
   - Issue の作成は今の REST `POST /issues` のまま。`type`・`assignees`・`milestone`・`labels`・`issue_field_values` を同じ要求に入れる
   - ボードのフィールドは `updateProjectV2ItemFieldValue` で書く。種類は text・number・date・single select・multi select・iteration
@@ -97,7 +106,10 @@
     - `ProjectV2FieldValue` の項目
     - Issue を対象にする mutation（`addSubIssue`・`addBlockedBy` など）の名前
     - REST の `POST /repos/{o}/{r}/issues` の本文の項目
-  - 抜き出しは `plugins/pecot-workflow/cli/scripts/github-surface/extract.ts` で行う。写しを作り直すのも、定期の比べも、このスクリプトを使う
+  - 抜き出しと差の計算は、domain の `plugins/pecot-workflow/cli/src/domain/issue-surface.ts` に置く。
+    SDL と OpenAPI の取得と、差の Issue の作成は infra に置く（憲章の I と VI）
+  - `plugins/pecot-workflow/cli/scripts/github-surface/` の `extract.ts`（写しを作り直す）と `drift.ts`（定期の比べ）は、引数を読んで上を呼ぶだけにする。
+    今の `export-interface.ts` が、比べる処理を `libs/interface-spec` の domain から呼ぶのと同じ形
   - 担保の一覧 `plugins/pecot-workflow/interface/issue-coverage.yaml` に、写しの各項目を `supported`（扱うコードの名前）か `excluded`（理由）として書く
   - PR の CI のテスト（vitest）は、次の 2 つを確かめる
     - 写しの各項目が一覧にあること
@@ -123,7 +135,7 @@
   - 独自の仕組みで GitHub に同じ役割のものがあれば、不適合として起票する（FR-027）
   - 「使う」としたものは、準備の操作か w-onboarding の案内に入れる
 - **Rationale**: 保守者が読む文書で、配布物の動きは決めない。CONTRIBUTING からリンクする
-- **Alternatives considered**: spec の research に置く。spec は実装の後に更新しない（原則 V）ので、保守の一覧に向かない
+- **Alternatives considered**: spec の research に置く。spec は機能の計画の記録で、実装の後に保守しないので、保守の一覧に向かない
 
 ## R10. 標準との適合
 

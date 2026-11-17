@@ -32,7 +32,7 @@
 | 入力 | 変更 | 内容 |
 |---|---|---|
 | `priority`・`size` | 削除 | 渡されたら、無い入力として止める |
-| `lane` | 追加 | `pecot-lane` の値。省略できる。`parent_epic` があり省略したら、親の値。`attributes` にも `pecot-lane` を入れると、どちらを使うか決まらないので、Issue を作らずに止める（`ambiguous_attribute`） |
+| `lane` | 追加 | `pecot-lane` の値。省略できる。そのときボードから読んだ選択肢と照らす。`parent_epic` があり省略したら、親の値。`attributes` にも `pecot-lane` を入れると、どちらを使うか決まらないので、Issue を作らずに止める（`ambiguous_attribute`） |
 | `attributes` | 追加 | B を参照 |
 
 frontmatter: `priority`・`size` は読み捨てる。`lane` と `attributes` を受ける。
@@ -71,7 +71,7 @@ run: pecot project sync   (then: pecot project sync --confirm-delete)
 
 | 出力 | 内容 |
 |---|---|
-| `attributes` | AttributeDefinition の配列（data-model.md） |
+| `attributes` | AttributeDefinition の配列（data-model.md）。`pecot-status` と組み込みの Status は `writable: false` で、列は `board_move` で動かす |
 | `unsupported` | `kind` が `unsupported` のものの名前と GitHub の種類 |
 
 ### `issue_create` の `attributes`
