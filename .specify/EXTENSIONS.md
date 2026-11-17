@@ -7,15 +7,15 @@
 
 <!-- 次回アップグレード時はこの「現在の状態」節のバージョン番号を書き換える -->
 
-- spec-kit template: `1.2.3`（`.specify/init-options.json` の `speckit_version`。
+- spec-kit template: `1.4.1`（`.specify/init-options.json` の `speckit_version`。
   `.specify/integration.json` と `.specify/integrations/*.manifest.json` の `version` も同じ値）
 - 採番方式: `sequential`（`.specify/extensions/git/git-config.yml` の `branch_numbering`。
   v0.10.0 でスキーマが変わり `init-options.json` 側は `feature_numbering: "sequential"`、
   実際の採番制御は git-config.yml が真値）
 - 統合先 AI: `claude`（skills 形式。`--integration claude` 単独でよい。追加フラグ不要）
 - インストール済み extension（`.specify/extensions/.registry`）:
-  - `git` v1.0.1（Enabled）
-  - `agent-context` v1.0.2（bundled。**disabled 運用** — CLAUDE.md 自動更新は不要との判断で
+  - `git` v1.0.5（Enabled）
+  - `agent-context` v1.0.3（bundled。**disabled 運用** — CLAUDE.md 自動更新は不要との判断で
     `extension disable` 済み）
 - `.specify/feature.json` は **Git 管理外**（v1.0.4 以降が生成する `.specify/.gitignore` で除外。
   現在フィーチャーの pointer は checkout / worktree ごとのローカル状態）
@@ -25,10 +25,10 @@
 公式 GitHub リポジトリのリリースタグ経由で `uvx` を使う。
 
 ```sh
-uvx --from "git+https://github.com/github/spec-kit.git@v1.2.3" specify <subcommand>
+uvx --from "git+https://github.com/github/spec-kit.git@v1.4.1" specify <subcommand>
 ```
 
-タグ部分（`@v1.2.3`）はアップグレード時に書き換える。最新タグは
+タグ部分（`@v1.4.1`）はアップグレード時に書き換える。最新タグは
 <https://github.com/github/spec-kit/releases> で確認する。persistent な `specify` を
 `uv tool install` している場合は `specify self check` / `specify self upgrade` が使える（v1.0.x）。
 
@@ -66,6 +66,9 @@ uvx --from "git+https://github.com/github/spec-kit.git@<tag>" \
   差分はエラーメッセージ中のコマンド名をハードコード（`/speckit-plan`）するか
   `format_speckit_command` で生成するかだけで、claude では出力が同じなので許容している。
   templates の差分は `__SPECKIT_COMMAND_*__` プレースホルダの展開結果で、内容は同等。
+- 1.4.1 化の時点では、`--force` を付けないと警告に挙がった scripts / templates が更新されなかった。
+  手順 1 で Modified 0 を確かめたうえで `--force` を付けて打つ。手順 3b でも `--force` を打つので、
+  手順 2 は省いて手順 3 → 3b の順にしてもよい。
 - `.specify/memory/constitution.md`、`specs/**`、`CLAUDE.md` はこの経路では触られない。
 
 ### 3. extension の更新
@@ -76,14 +79,14 @@ uvx --from "git+https://github.com/github/spec-kit.git@<tag>" specify extension 
 
 bundled の `git` / `agent-context` が新版なら更新される。`.registry` の `enabled` は維持される
 （agent-context は disabled のまま）。実行後に `.specify/extensions/.cache/`（catalog キャッシュ）が
-生成されるが、ルート `.gitignore` で除外済み。コミット前に削除してよい。
+生成される。`.gitignore` では除外されていないので、コミット前に削除する。
 
-v1.2.x では更新前に `Update these extensions? [y/N]` の確認が出る（非対話実行では `Aborted.`）。
+v1.2.x〜v1.4.x では更新前に `Update these extensions? [y/N]` の確認が出る（非対話実行では `Aborted.`）。
 非対話で実行する場合は `echo y | uvx ... specify extension update` とする。
 
-### 3b. extension update 後の skills 再描画（v1.2.x で必要）
+### 3b. extension update 後の skills 再描画（v1.2.x〜v1.4.x で必要）
 
-1.2.3 化の際、`extension update` 後に `.registry` の git の `registered_skills` が空になり、
+1.2.3 化と 1.4.1 化の際、`extension update` 後に `.registry` の git の `registered_skills` が空になり、
 `.claude/skills/speckit-git-*/SKILL.md` の frontmatter から `user-invocable` /
 `disable-model-invocation` が消えた。続けて次を実行すると、skills 登録と frontmatter が
 従来（1.0.4 時）と同じ形に戻る:
@@ -261,14 +264,17 @@ manifest 外に配置されたファイルは残る。再生成された場合�
   配下へ移設済み。0.10.1 化の際に撤去）
 - `.specify/templates/agent-file-template.md`（v1.0.x の core テンプレには存在しない。
   agent-context extension 側に実体がある。1.0.4 化の際に撤去）
-- `.specify/extensions/.cache/`（catalog キャッシュ。`.gitignore` 済みだが削除してよい）
+- `.specify/extensions/.cache/`（catalog キャッシュ。`.gitignore` で除外されていないので削除する）
 - `.specify/extensions/.backup/`（`extension update` が作る退避先。空なら削除してよい）
 
-## 採用していない上流機能（1.1〜1.2 系）
+## 採用していない上流機能（1.1〜1.4 系）
 
-- core `/speckit-taskstoissues` は v1.1.0 で非推奨になり、bundled の `github` extension
-  （`/speckit-github-taskstoissues`）へ移行予定。pecot では Issue 化に `pecot-w:w-issueize` を使うため
-  `github` extension は導入しない。core 版が将来のマイナー版で削除されたら、そのまま消えてよい
+- core `/speckit-taskstoissues` は v1.1.0 で非推奨になり、v1.3.0 で core から削除された
+  （bundled の `github` extension の `/speckit-github-taskstoissues` へ移った）。pecot では Issue 化に
+  `pecot-w:w-issueize` を使うため、`github` extension は導入しない。1.4.1 化で
+  `.claude/skills/speckit-taskstoissues/` は消えた。git extension 1.0.5 は
+  `before_taskstoissues` / `after_taskstoissues` の hook を今も宣言しているので、
+  `.specify/extensions.yml` の同名の hook は残す
 - claude integration の `--no-model-invocation`（v1.2.0）は使わない。speckit スキルの
   モデル起動可否は従来どおり（`disable-model-invocation: false`）
 - git extension の `branch_template` / `branch_prefix`（`git-config.yml` の任意キー）は未設定。
