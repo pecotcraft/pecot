@@ -189,7 +189,7 @@ describe('review のワークフローの雛形', () => {
 
   it('prompt は、PR の本文・タイトル・ブランチ名・コメントを埋め込まない', () => {
     const prompt = text(reviewInputs['prompt'])
-    expect(prompt).toContain('/pecot-w:w-revise --unattended')
+    expect(prompt).toContain('/pecot-w:w-review ')
     for (const field of ['pull_request.body', 'pull_request.title', 'head.ref', 'comment.body', 'issue.title', 'issue.body']) {
       expect(prompt).not.toContain(field)
     }
@@ -235,7 +235,7 @@ describe('review のワークフローの雛形', () => {
     const allowed = toolList('--allowedTools')
     const disallowed = toolList('--disallowedTools')
     for (const tool of ['Bash', 'Edit', 'Write']) {
-      expect(allowed).not.toContain(tool)
+      expect(allowed.filter(entry => entry.startsWith(tool))).toEqual([])
       expect(disallowed).toContain(tool)
     }
     expect(disallowed).toEqual(['Bash', 'Edit', 'Write', 'NotebookEdit', 'AskUserQuestion', 'Agent', 'WebFetch', 'WebSearch'])
@@ -250,9 +250,7 @@ describe('review のワークフローの雛形', () => {
       'Grep',
       `${pecot}pr_show`,
       `${pecot}issue_show`,
-      `${pecot}pr_restack`,
       `${pecot}issue_comment`,
-      `${pecot}review_finish`,
       'mcp__github_inline_comment__create_inline_comment',
     ])
     for (const tool of allowed) expect(tool).not.toMatch(/merge|close|release|session_finish|branch_delete/)

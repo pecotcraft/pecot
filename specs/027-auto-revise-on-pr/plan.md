@@ -6,11 +6,11 @@
 
 ## Summary
 
-pecot-workflow に、PR の作成で w-revise のレビューを始める仕組みを足す。pecot の最初のクラウドのエージェントだ。
+pecot-workflow に、PR の作成で w-review のレビューを始める仕組みを足す。pecot の最初のクラウドのエージェントだ。
 利用者のリポに置くワークフローの雛形が、`pull_request` を契機に claude-code-action を動かす。
-action は pecot-workflow のプラグインを入れ、`/pecot-w:w-revise --unattended <PR>` を起動する。
-w-revise は、w-reviewer の定義を読んで自分で diff を見て、指摘をインラインコメントと `review-findings` で投稿して終わる。
-採否・修正・resolve は行わない。続きは、人が端末の w-revise を起こすと、自動レビューの指摘を引き継いで進む。
+action は pecot-workflow のプラグインを入れ、`/pecot-w:w-review <PR>` を起動する。w-review を起こすのはこのワークフローだけで、分岐は無い。
+w-review は、main が視点の参照に従って diff を見て、指摘をインラインコメントと `review-findings` で投稿して終わる。
+採否・修正・resolve は行わない。続きは、PR を出した開発者の w-pr が、CI を待った後の Step 5 で進める。
 GitHub のトークンは、既定では Claude の App のものだ。書き込みを持つので、エージェントに書き換えのツールを渡さないことで、リポの内容を守る。権限を絞りたい利用者は、自前の App を置ける。
 「必ず起きること」は CLI に寄せる。新しい `pecot review finish` が、止まったときのコメントを書く。
 導入は、w-onboarding の流れから `pecot workflow install review` と `pecot workflow doctor review` で進める。
@@ -24,13 +24,13 @@ GitHub のトークンは、既定では Claude の App のものだ。書き込
 | Primary Dependencies | 既存の CLI の依存。雛形が使う action は、claude-code-action v1、`actions/checkout`、`actions/setup-node`、`actions/create-github-app-token` |
 | Storage | 利用者のリポのファイル（`.github/workflows/pecot-review.yml`）と、GitHub の PR のコメント・スレッド |
 | Testing | vitest（CLI と雛形）、スキルの文書のテスト（`cli/tests/skills/`）、定義書の lint、検証用のリポでの CUJ |
-| Target Platform | GitHub Actions の ubuntu の runner（自動レビュー）と、利用者の端末（導入と引き継ぎ） |
+| Target Platform | GitHub Actions の ubuntu の runner（自動レビュー）と、利用者の PC（導入と、w-pr での対応） |
 | Project Type | 配布するプラグイン（CLI・スキル・テンプレート） |
 | Performance Goals | 対象外の PR は、job の `if` で落ち、runner を使わない。1 回の自動レビューは、上限の既定値（30 分・60 ターン）に収まる。上限は、リポの変数で変えられる |
 
 **Constraints**:
 
-- w-revise の手で回す流れ（Step 1〜6 の順と、人に採否を聞くこと）を変えない
+- 指摘への対応（採否を聞き、直し、報告する）は w-pr の Step 5 が持つ（2026-11-17 に w-revise から移した）
 - 自動レビューは、リポの内容を変えない。エージェントに `Bash`・`Edit`・`Write` を渡さない。自前の App を置いたときは、発行するトークンに Contents の write を渡さない
 - 指摘の採番・投稿先・コメントの形を、手で回すときと変えない。テンプレートの検証を迂回しない
 - 雛形は、このリポ固有の名前を持たない
@@ -41,7 +41,7 @@ GitHub のトークンは、既定では Claude の App のものだ。書き込
 **Scale/Scope**:
 
 - CLI のコマンド 3 つ（`workflow install`・`workflow doctor`・`review finish`）と、定義書の項目
-- スキルの変更 2 本（w-revise・w-onboarding）、コメントのテンプレート 1 つ、ワークフローの雛形 1 つ
+- スキルの変更 3 本（w-review・w-pr・w-onboarding）、コメントのテンプレート 1 つ、ワークフローの雛形 1 つ
 - 文書 3 か所（w-help の `review-workflow.md` の新規、`auth-config.md`・スキルの表の修正）
 - spec 023 の成果物の修正（FR-033）
 
@@ -79,7 +79,7 @@ Phase 1 の設計の後も、同じ判定になる。
 | インラインコメントの投稿 | 公式の PR レビューの例は、action に同梱の MCP ツール `mcp__github_inline_comment__create_inline_comment` を使う | 雛形の許可リストに同じツールを入れる。`gh api` は許可しない。スキルは、投稿の手段を書かない | 適合 |
 | 同時実行 | 公式の PR 向けの例は `cancel-in-progress: true` | `false` | 例と違う。仕様の範囲の中の選択 |
 
-インラインコメントの投稿は、ユーザーの判断（2026-11-16）で、スキルに手段を書かない形にした。スキルは、何をどの形で投稿するかだけを決める。端末では今の `gh api` の手順で、人のいない実行では action のツールで投稿する（research の R4）。
+w-review は自動レビューのワークフローの中だけで動くので、インラインコメントは action のツールだけで投稿する（research の R4、2026-11-17）。
 
 `cancel-in-progress` は、どちらの値も GitHub の仕様が認める。途中で取り消すと、インラインコメントだけが残るので `false` にする（research の R6）。
 
@@ -123,14 +123,15 @@ plugins/pecot-workflow/
 │   ├── generated.json                   # 書き出し直す
 │   └── authored.yaml                    # 3 つの項目と振る舞いの項目
 ├── skills/
-│   ├── w-revise/SKILL.md                # --unattended の分岐と、引き継ぎの分岐
+│   ├── w-review/SKILL.md                # 旧 w-revise。PR の情報・レビュー・投稿だけ
+│   ├── w-pr/SKILL.md                    # Step 5 で指摘に対応する
 │   ├── w-onboarding/SKILL.md            # 自動レビューを入れるかを選ぶ Step
 │   └── w-help/
 │       ├── SKILL.md                     # 参照の表
 │       └── references/
 │           ├── review-workflow.md       # 新規。導入の説明と、自動処理に共通の決まり
 │           └── auth-config.md           # エージェント用の認証の名前
-├── cli/tests/skills/                    # w-revise の文書のテスト
+├── cli/tests/skills/                    # w-review・w-pr の文書のテスト
 └── README.md
 
 .github/workflows/pecot-review.yml       # このリポへの導入。雛形から書き出したもの
@@ -148,14 +149,14 @@ specs/023-label-triggered-autofix/       # FR-033 の整合の修正
 | 2 | ワークフローの雛形と、そのテスト | US2、FR-001〜FR-004・FR-016・FR-017・FR-020〜FR-027 |
 | 3 | `pecot workflow install`・`doctor` と、雛形の一覧。認証の名前と、雛形の書き方の決まり | US5、FR-019・FR-028・FR-030・FR-031 |
 | 4 | `pecot review finish` と、止まったことを知らせるコメントのテンプレート | FR-012・FR-018 |
-| 5 | w-revise の Step 3 を「何を投稿するか」と「端末での投稿の手順」に分け、`--unattended` の分岐を足す | US1、FR-005〜FR-011・FR-013・FR-015 |
-| 6 | w-revise の引き継ぎの分岐 | US3、FR-014 |
+| 5 | w-revise を w-review に改め、Step 1〜3 だけにする。指摘への対応を w-pr の Step 5 に移す | US1、FR-005〜FR-011・FR-013・FR-015 |
+| 6 | （Phase 5 に含めた） | US3、FR-014 |
 | 7 | w-onboarding の Step と、w-help の導入の説明 | US4、FR-029・FR-032 |
 | 8 | 検証用のリポで quickstart を通し、ターンと時間の既定値を直す。その後、このリポへ導入する | SC-001〜SC-009 |
 | 9 | spec 023 の成果物を、共通の部分を使う形に直す | FR-033 |
 
 段階の番号は、tasks.md のフェーズの番号と同じだ。
-段階 1・2・4・5 で、PR の作成から指摘の投稿までが通る。雛形は手で写して置く。段階 6 は、その上に端末での続きを足す。段階 3 と 7 は、導入のコマンドと手順を足す。
+段階 1・2・4・5 で、PR の作成から指摘の投稿までが通る。雛形は手で写して置く。段階 6 は、その上に w-pr での続きを足す。段階 3 と 7 は、導入のコマンドと手順を足す。
 段階 1 の結果で設計が変わるときは、research と contracts を直してから、次の段階へ進む。
 
 ほかの Epic との関係:

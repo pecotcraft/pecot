@@ -1,5 +1,5 @@
 // reviewer-clone-allow コアスクリプトと claude-bash-guards 経由の自動許可のテスト。
-// w-reviewer の定型 clone だけが、自動許可（core は exit 10、adapters は allow JSON）になる。
+// レビューの定型 clone だけが、自動許可（core は exit 10、adapters は allow JSON）になる。
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'

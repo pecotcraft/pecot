@@ -34,7 +34,7 @@ spec 023 の research（2026-11-11、`v1.0.271`）で確かめた事実は繰り
 | 項目 | 値 |
 |---|---|
 | 契機 | `pull_request` と `issue_comment`。`pull_request_target` は使わない |
-| `prompt` | `/pecot-w:w-revise --unattended <owner>/<repo>/<PR番号>`。PR の本文とタイトルを式で埋め込まない |
+| `prompt` | `/pecot-w:w-review <owner>/<repo>/<PR番号>`。PR の本文とタイトルを式で埋め込まない |
 | プラグイン | `plugin_marketplaces` に `https://github.com/pecotcraft/pecot.git`、`plugins` に `pecot-w@pecot`。spec 023 の R1 と同じ |
 | checkout | `actions/checkout` を `fetch-depth: 1`・`persist-credentials: false` で使う。`pull_request` では `ref` を書かず、merge commit が入る。`issue_comment` では既定のブランチが入るので、PR の確かめの step が読んだ head の SHA を `ref` に渡す |
 | 前準備 | `actions/setup-node`。`bin/pecot` が Node と pnpm で実行用の写しを作るため |
@@ -150,8 +150,9 @@ Claude の App のトークンで確かめたこと:
 
 ## R4. 指摘の投稿の手段
 
-- Decision: w-revise の文は、何をどの形で投稿するかだけを決める。投稿の手段は決めない。人のいない実行では、雛形の許可リストに、公式の PR レビューの例と同じ MCP ツール `mcp__github_inline_comment__create_inline_comment` を入れる。`gh api` は許可しない
-- Rationale: ユーザーの判断だ（2026-11-16）。スキルが手段を書かなければ、端末と自動レビューが同じ文を読める（FR-005）。実行の場所ごとに、そこにある手段で投稿する。雛形は公式の例と同じ形になり、広い `Bash(gh api *)` の許可が要らない
+- Decision（2026-11-17 に改めた）: w-review（旧 w-revise）は、自動レビューのワークフローの中だけで動く。インラインコメントは、action に同梱の MCP ツール `mcp__github_inline_comment__create_inline_comment` で投稿する。`gh api` と `Bash` は許可しない
+- Rationale: ユーザーの判断だ。開発者が PC から w-review を打つ場面は無い。手段は 1 つになり、雛形は公式の例と同じ形になる
+- このツールは、行を指すコメントだけを投稿できる（`anthropics/claude-code-action` の `src/mcp/github-inline-comment-server.ts`、cc98b3a）。ファイルコメントとスレッドへの返信はできないので、ファイル単位の指摘は General 節に回し、前の巡と同じ趣旨の指摘は Disposition の表でそのスレッドへのリンクにする
 
 スキルが決めるのは、次のことだ（FR-007）。
 
@@ -159,7 +160,7 @@ Claude の App のトークンで確かめたこと:
 - 投稿先の振り分け。行を指せる指摘はインライン、それ以外は指摘の一覧の General 節
 - 指摘の一覧（`review-findings`）の形。これは pecot の MCP ツール `issue_comment` で投稿する
 
-今の w-revise の Step 3 にある `gh api` の手順は、手で回すときの手順として分けて残す。人のいない実行は、その手順を読まない。
+下の表は、端末でも動かす前提だったときに比べたものだ。
 
 | 比べる点 | 端末 | 人のいない実行 |
 |---|---|---|
@@ -194,15 +195,15 @@ Claude の App のトークンで確かめたこと:
 
 | 項目 | 初期値 | 決め方 |
 |---|---|---|
-| ツール | `Read`・`Glob`・`Grep`、w-revise が使う pecot の MCP ツール、`mcp__github_inline_comment__create_inline_comment`。Bash は許可しない | w-revise の Step 1〜3 と w-reviewer の調べ方に出るものから |
+| ツール | `Read`・`Glob`・`Grep`、w-review が使う pecot の MCP ツール、`mcp__github_inline_comment__create_inline_comment` | w-review の Step 1〜3 とレビューの視点の調べ方に出るものから |
 | 許可しないもの | `Edit`・`Write`・`AskUserQuestion`・`WebFetch`・`WebSearch`、`git push`・`git commit` | コードを直さず、人に聞かず、外へ送らないため |
 | ターン | 60 | このリポの試行で直す |
 | 時間 | 30 分 | このリポの試行で直す |
 
-- Agent ツール（サブエージェントの起動）は、許可リストに書かなくても使える。人のいない実行では使わないので、`--disallowedTools` に書く（下の結果）。プラグインのサブエージェントの名前は `pecot-w:w-reviewer` になる
+- Agent ツール（サブエージェントの起動）は、許可リストに書かなくても使える。w-review は使わないので、`--disallowedTools` に書く（下の結果）
 - プラグインの MCP ツールは、許可リストに書かないと使えない。名前は `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` の形だ
 - `-p` の実行でも、サブエージェントは動き、`prompt` の `/スキル名` は展開される。公式の文書で確かめた
-- w-reviewer は Context7 と `git clone` で公式の文書を調べる。人のいない実行でこれを許すかは、試行で決める。初期値では許さない。根拠を調べきれない指摘は、その旨を付けて返させる
+- w-review の視点の参照は、Context7 と `git clone` で公式の文書を調べる形だ。人のいない実行でこれを許すかは、試行で決める。初期値では許さない。根拠を調べきれない指摘は、その旨を付けて返させる
 
 実装で確かめること:
 
@@ -253,10 +254,11 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 - 場面 2 は、PR を開いた 1 秒後に起動ラベルを付けた。`gh pr create --label` と同じ形だ（run 44039121603・44039125330）
 - 起動し直しを合言葉のコメントに変えたので、この重なりは起きなくなった（R15）。PR の作成で合言葉は書けない
 
-## R7. 人のいない実行の w-revise
+## R7. 人のいない実行の w-review（旧 w-revise）
 
-- Decision: w-revise に、引数 `--unattended` の分岐を足す。Step 1〜3 は同じ文を読む。Step 3 の後、採否を聞かずに終わる。新しいスキルは足さない
-- Rationale: Clarifications の答えだ。レビューと投稿の決まりが 1 か所に残る
+- Decision（2026-11-17 に改めた）: 分岐を足さない。w-revise を w-review に改め、Step 1〜3（PR の情報・main のレビュー・投稿）だけにする。w-review を起こすのは、自動レビューのワークフローだけだ。採否・修正・resolve・報告は、w-pr の Step 5 に移す
+- Rationale: ユーザーの判断だ。PR を出した開発者は、CI とレビューを待つ間も手を止めない。レビューのコメントが付いたら考える工程は、PR を出して CI を待つ w-pr の側にある
+- 前の決め: 引数 `--unattended` で分け、人のいない実行は Step 3 で終わる。続きは端末の w-revise が引き継ぐ。下の表と箇条は、前の決めのときのものだ
 
 人のいない実行で変わる点:
 
@@ -271,9 +273,10 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 - 端末から `--unattended` で試すこともできる。端末には action のツールが無いので、インラインコメントは「端末での投稿の手順」で投稿する。ワークフローの中と同じ手段での確かめは、検証用で行う
 - スキルの文には、Claude Code 固有のツールの名前を足さない
 
-## R8. 手で回す w-revise への引き継ぎ
+## R8. 自動レビューの指摘の続き
 
-- Decision: w-revise の Step 1 に、PR の未解決のスレッドを読む分岐を足す。自動レビューの指摘があれば、Step 2・3 を飛ばして Step 4 へ進む
+- Decision（2026-11-17 に改めた）: w-pr の Step 5 が、PR の未解決の F-NN のスレッドと、`review-resolution` の無い `review-findings` を読み、採否の確認から進む。w-review に引き継ぎの分岐は足さない
+- 前の決め: w-revise の Step 1 に、引き継ぎの分岐を足す。下の箇条のうち、見分け方と対応表の作り方は、w-pr の Step 5 が使う
 - Rationale: FR-014 だ。同じレビューを 2 度待たせない
 
 決まったこと:
@@ -285,7 +288,7 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 
 ## R9. 終わり方と、止まったときのコメント
 
-- Decision: CLI に `pecot review finish` を足す。ワークフローの最後の step が、`if: always()` で呼ぶ。スキルは、最後に同じ処理を MCP ツールから呼ぶ
+- Decision: CLI に `pecot review finish` を足す。ワークフローの最後の step が、`if: always()` で呼ぶ。w-review は呼ばない（2026-11-17 に、スキルに人のいない実行の分岐を置かないと決めたため）
 - Rationale: 失敗と上限を PR に残すこと（FR-012）は、エージェントがターンの上限で切られても起きなければならない。スキルの文だけで書くと、切られたときに何も残らない
 
 | 終わり方 | PR に残るもの |

@@ -135,7 +135,7 @@ export interface ReviewCommentReading {
   readonly createdAt: string
 }
 
-// w-revise の指摘のインラインコメントの先頭。`**F-NN**` か、2 巡目以降の `**R<巡>/F-NN**`
+// w-review の指摘のインラインコメントの先頭。`**F-NN**` か、2 巡目以降の `**R<巡>/F-NN**`
 const FINDING_HEAD = /^\*\*(?:R\d+\/F|F)-\d+\*\*/u
 
 /**
@@ -205,12 +205,12 @@ function code(text: string): string {
 }
 
 function nextLine(next: NextStep, triggerPhrase: string, detail: string | undefined): string {
-  const retry = `PR に ${code(triggerPhrase)} とコメントして起動し直すか、端末で ${code('/pecot-w:w-revise')} を回す`
+  const retry = `PR に ${code(triggerPhrase)} とコメントして起動し直す`
   switch (next) {
     case 'retry': { return `実行の記録で原因を確かめてから、${retry}` }
     case 'auth': { return `モデルの認証に失敗した。${code('claude setup-token')} でトークンを作り直し、secret ${code('CLAUDE_CODE_OAUTH_TOKEN')} に登録し直す。その後、${retry}` }
     case 'app-token': { return `リポに Claude の GitHub App を入れてから、${retry}` }
-    case 'limit': { return `大きな PR は、端末で ${code('/pecot-w:w-revise')} を回す。自動で回すなら、変数 ${code('PECOT_REVIEW_MAX_TURNS')}・${code('PECOT_REVIEW_TIMEOUT_MINUTES')} で上限を上げる。その後、PR に ${code(triggerPhrase)} とコメントして起動し直す` }
+    case 'limit': { return `変数 ${code('PECOT_REVIEW_MAX_TURNS')}・${code('PECOT_REVIEW_TIMEOUT_MINUTES')} で上限を上げる。その後、PR に ${code(triggerPhrase)} とコメントして起動し直す` }
     case 'setup-detail': {
       const missing = detail === undefined || detail.trim() === '' ? '' : `足りない設定は ${code(detail.trim())} だ。`
       return `${missing}設定を整えてから、${retry}`

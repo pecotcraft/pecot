@@ -2,7 +2,7 @@
 #
 # Place this file at .github/workflows/pecot-review.yml in your repository.
 #
-# This workflow runs the pecot w-revise skill on a pull request with claude-code-action.
+# This workflow runs the pecot w-review skill on a pull request with claude-code-action.
 # It posts inline comments and a list of findings. It never pushes, merges, or closes.
 # It starts when a PR is opened or marked ready for review.
 # To review again, comment "@pecotbot review" on the PR.
@@ -175,11 +175,11 @@ jobs:
           plugin_marketplaces: https://github.com/pecotcraft/pecot.git
           plugins: pecot-w@pecot
           allowed_bots: ${{ join(fromJSON(vars.PECOT_REVIEW_ALLOWED_BOTS || '[]'), ',') }}
-          prompt: /pecot-w:w-revise --unattended ${{ github.repository }}/${{ github.event.pull_request.number || github.event.issue.number }}
+          prompt: /pecot-w:w-review ${{ github.repository }}/${{ github.event.pull_request.number || github.event.issue.number }}
           claude_args: >-
             --permission-mode default
             --max-turns ${{ vars.PECOT_REVIEW_MAX_TURNS || '60' }}
-            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_show,mcp__plugin_pecot-w_pecot-workflow__pr_restack,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__plugin_pecot-w_pecot-workflow__review_finish,mcp__github_inline_comment__create_inline_comment${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__github_inline_comment__create_inline_comment${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
             --disallowedTools "Bash,Edit,Write,NotebookEdit,AskUserQuestion,Agent,WebFetch,WebSearch"
 
       # The dist-tag after the package name decides the version. @latest is the newest release,

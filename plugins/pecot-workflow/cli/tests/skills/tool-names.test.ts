@@ -137,10 +137,10 @@ describe('本文のツール名', () => {
     expect(outside).toEqual([])
   })
 
-  it('w-pr の allowed-tools は、pr_check と pr_create を許す', () => {
+  it('w-pr の allowed-tools は、pr_check・pr_create・pr_show・issue_comment を許す', () => {
     const skill = documents.find(({ file }) => file === 'skills/w-pr/SKILL.md')
     expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_check')
-    expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_create')
+    for (const tool of ['pr_create', 'pr_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
   })
 
   it('COMMANDS の全ツールの名前が、重ならない', () => {

@@ -113,7 +113,7 @@ action はすべて SHA で固定し、版をコメントに書く。
 | `github_token` | 自前の App のトークン。トークンの step を飛ばしたときは空になり、action が Claude の App のトークンを受け取る |
 | `plugin_marketplaces` | `https://github.com/pecotcraft/pecot.git` |
 | `plugins` | `pecot-w@pecot` |
-| `prompt` | `/pecot-w:w-revise --unattended <github.repository>/<PR番号>` |
+| `prompt` | `/pecot-w:w-review <github.repository>/<PR番号>` |
 | `allowed_bots` | 許す bot の一覧。`*` は使わない |
 | `claude_args` | `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` |
 
@@ -156,7 +156,7 @@ action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、actio
 | ツール | 使い道 |
 |---|---|
 | `Read`・`Glob`・`Grep` | コードを読む |
-| `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`pr_restack`・`issue_comment`・`review_finish` | w-revise の Step 1〜3 と終わり方 |
+| `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`issue_comment` | w-review の Step 1〜3 |
 | `mcp__github_inline_comment__create_inline_comment` | インラインコメントの投稿。action に同梱のツールで、公式の PR レビューの例と同じだ |
 | `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` | 利用者が足す許可。job の `env` に印のコメントで囲んで置き、`--allowedTools` の末尾に、空でないときだけ足す。初期は空 |
 
@@ -165,13 +165,13 @@ diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないの�
 `--allowedTools` は、確認なしに使えるツールの一覧として働く。一覧に無い MCP ツールは拒まれるが、確認の要らないツール（`Skill`、読み取りだけの `Bash` のコマンド）は、一覧に無くても使える（research の R5）。
 このため、使わせないツールは `--disallowedTools` に書く。ここに書いたツールは、サブエージェントでも使えない。
 
-- `Bash`
 - `Edit`・`Write`・`NotebookEdit`
 - `AskUserQuestion`
-- `Agent`。人のいない実行では、サブエージェントを起こさない（`contracts/skill-flow.md`）
+- `Agent`。w-review はサブエージェントを起こさない（`contracts/skill-flow.md`）
 - `WebFetch`・`WebSearch`
 
-許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で、書き換えのツールと `Bash` を渡さないことだ（FR-011）。自前の App のときは、トークンの権限も境界になる。
+許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で、書き換えのツールと `Bash` を渡さないことだ（FR-011）。
+自前の App のときは、トークンの権限も境界になる。
 
 pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、Phase 5 で `prompt` への渡し方と合わせて決める。
 

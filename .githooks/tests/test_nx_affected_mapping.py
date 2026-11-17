@@ -246,11 +246,11 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 "pecot-visual:test-bootstrap",
             },
         ),
-        # w-reviewer.md を読むテストは 2 つある。
+        # w-plan-reviewer.md を読むテストは 2 つある。
         # 1 つは CUJ 定義の単一化を確かめるテストで、test-hooks が持つ (#1091)。
         # 1 つは本文のツール名と入力名を COMMANDS の定義と比べるテスト（cli/tests/skills/）で、test-skills が持つ (#1185, #350)。
         (
-            "plugins/pecot-workflow/agents/w-reviewer.md",
+            "plugins/pecot-workflow/agents/w-plan-reviewer.md",
             {
                 "pecot-workflow:test-hooks",
                 "pecot-workflow:test-skills",
@@ -359,7 +359,7 @@ def test_skill_definition_change_runs_definition_check(
     "changed_file",
     [
         "plugins/pecot-workflow/skills/w-pr/SKILL.md",
-        "plugins/pecot-workflow/agents/w-reviewer.md",
+        "plugins/pecot-workflow/agents/w-plan-reviewer.md",
         "plugins/pecot-workflow/cli/src/cli.ts",
     ],
 )

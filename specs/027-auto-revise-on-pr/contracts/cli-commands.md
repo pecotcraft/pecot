@@ -68,7 +68,7 @@
 | 引数 | 型 | 意味 |
 |---|---|---|
 | `PR` | 文字列 | `owner/repo/N` |
-| `--result` | 文字列 | `reviewed`・`failed`・`limit`・`setup-missing` のどれか。スキルが MCP ツールから渡す |
+| `--result` | 文字列 | `reviewed`・`failed`・`limit`・`setup-missing` のどれか。後始末の step は渡さず、`--ensure` で結果を決める。w-review は呼ばない |
 | `--detail` | 文字列 | `--result setup-missing` のときの、足りない設定の名前 |
 | `--ensure` | 真偽値 | ワークフローの後始末から呼ぶ形。同じ実行の結果がまだ無いときだけ書く |
 | `--job-status` | 文字列 | `--ensure` のときの、job の終わり方（`success`・`failure`・`cancelled`） |
