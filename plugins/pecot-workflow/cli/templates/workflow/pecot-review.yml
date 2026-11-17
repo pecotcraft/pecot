@@ -185,6 +185,12 @@ jobs:
         env:
           PR: ${{ github.event.pull_request.number || github.event.issue.number }}
           JOB_STATUS: ${{ job.status }}
-          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          REVIEW_OUTCOME: ${{ steps.claude.outcome }}
+          REVIEW_CONCLUSION: ${{ steps.claude.outputs.conclusion }}
+          # Pass only whether the action got a token, never the token itself.
+          REVIEW_HAS_TOKEN: ${{ steps.claude.outputs.github_token != '' }}
           PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
-        run: npx -y --prefix=/ @pecot/workflow-mcp@latest pr review-finish "$GITHUB_REPOSITORY/$PR" --ensure --job-status "$JOB_STATUS"
+        run: >-
+          npx -y --prefix=/ @pecot/workflow-mcp@latest pr review-finish "$GITHUB_REPOSITORY/$PR" --ensure
+          --job-status "$JOB_STATUS" --review-outcome "$REVIEW_OUTCOME"
+          --review-conclusion "$REVIEW_CONCLUSION" --review-has-token "$REVIEW_HAS_TOKEN"

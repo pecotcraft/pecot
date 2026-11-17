@@ -272,7 +272,20 @@ describe('review のワークフローの雛形', () => {
   it('後始末の step は if: always() で動き、式を run に埋め込まない', () => {
     expect(finish.if).toBe('${{ always() }}')
     expect(finish.run).not.toContain('${{')
-    expect(finish.run).toContain('"$GITHUB_REPOSITORY/$PR" --ensure --job-status "$JOB_STATUS"')
+    expect(finish.run).toContain('"$GITHUB_REPOSITORY/$PR" --ensure --job-status "$JOB_STATUS" --review-outcome "$REVIEW_OUTCOME" --review-conclusion "$REVIEW_CONCLUSION" --review-has-token "$REVIEW_HAS_TOKEN"')
+  })
+
+  it('後始末の step は自動レビューの 4 つの値を env で受け、トークンの値そのものは受けない', () => {
+    expect(finish.env).toMatchObject({
+      JOB_STATUS: '${{ job.status }}',
+      REVIEW_OUTCOME: '${{ steps.claude.outcome }}',
+      REVIEW_CONCLUSION: '${{ steps.claude.outputs.conclusion }}',
+      REVIEW_HAS_TOKEN: '${{ steps.claude.outputs.github_token != \'\' }}',
+    })
+    const finishValues = Object.values(finish.env ?? {})
+    for (const value of finishValues) {
+      expect(value).not.toBe('${{ steps.claude.outputs.github_token }}')
+    }
   })
 
   it('すべての action を 40 桁の SHA で固定する', () => {
