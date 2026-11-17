@@ -1,0 +1,15 @@
+{
+  "stdout": "",
+  "stderr": "skipped: stopped-review comment on PR acme/demo#11 (the PR is closed)\n",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/pulls/11",
+      "query": {},
+      "auth": "Bearer"
+    }
+  ],
+  "files": {}
+}

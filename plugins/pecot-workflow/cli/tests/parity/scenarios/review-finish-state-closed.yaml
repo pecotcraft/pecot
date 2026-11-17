@@ -1,0 +1,15 @@
+# 閉じた PR には書かず、skipped の行を出して 0 で終わる。
+id: review-finish-state-closed
+command:
+  path: [review, finish]
+  args: [acme/demo/11, --result, failed]
+setup:
+  env:
+    PECOT_GITHUB_COM_TOKEN: dummy-token
+github:
+  - match:
+      method: GET
+      path: /repos/acme/demo/pulls/11
+    respond:
+      status: 200
+      body: {number: 11, state: closed}

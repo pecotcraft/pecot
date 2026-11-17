@@ -28,6 +28,7 @@ export const COMMAND_PATHS: readonly (readonly string[])[] = [
   ['pr', 'check'],
   ['pr', 'merge'],
   ['pr', 'restack'],
+  ['review', 'finish'],
   ['release', 'check'],
   ['release', 'create'],
   ['release', 'merge'],
