@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+import '../../commands/registry.js'
+import { formatHinted } from '../command-hint.js'
 import { describeReadiness } from '../readiness.js'
-import type { Readiness } from '../readiness.js'
+import type { Prerequisite, Readiness, ReadinessReason } from '../readiness.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
-import { inferStackedBase } from '../work-start.js'
+import { decideStart, inferStackedBase } from '../work-start.js'
 import type { LowerProbe } from '../work-start.js'
 
 const repository = createRepositoryReference('acme', 'demo')
@@ -54,5 +56,29 @@ describe('inferStackedBase', () => {
   it('判定が blocked のときは、判定の文を理由に返す', () => {
     const blocked = readiness('blocked', { reason: { code: 'unreadable' } })
     expect(inferStackedBase(blocked, [], target, probeOf({ kind: 'probed', isShared: true, sha: SHA }))).toEqual({ kind: 'unknown', reason: describeReadiness(blocked, [], repository) })
+  })
+})
+
+describe('decideStart', () => {
+  const mergedOpen: Prerequisite = {
+    issue: { ref: lower, state: 'open', column: undefined, label: undefined, kind: 'task', branches: [], pullRequests: [{ repository, number: 1003, state: 'merged', headRefName: 'feat/3', baseRefName: 'main', isDraft: false, isCrossRepository: false }] },
+    wait: 'stack',
+    reason: undefined,
+  }
+
+  function blockedText(prerequisite: Prerequisite, reason: ReadinessReason): string {
+    const decision = decideStart(readiness('blocked', { reason }), [prerequisite], target)
+    return decision.kind === 'blocked' ? formatHinted(decision.message, 'mcp') : ''
+  }
+
+  it('マージ済みの PR を持つ開いた前提で止めると、Issue を閉じるか打ち直す手当てを示す', () => {
+    const text = blockedText(mergedOpen, { code: 'not-in-review', issues: [{ issue: lower, state: 'merged-open' }] })
+    expect(text).toContain('#7 is blocked by #3 (not in review: #3 (PR merged, Issue open))\n- #3: PR merged, Issue open\n#3 has a merged PR: close #3, or retry once it closes\n')
+  })
+
+  it('マージを待つ前提でも PR がマージ済みなら、積むよう切り替える案内を出さない', () => {
+    const text = blockedText({ ...mergedOpen, wait: 'merge', reason: '理由' }, { code: 'waits-merge', issues: [{ issue: lower, reason: '理由' }] })
+    expect(text).toContain('- #3: PR merged, Issue open\n#3 has a merged PR')
+    expect(text).not.toContain('to stack on it instead of waiting for merge')
   })
 })

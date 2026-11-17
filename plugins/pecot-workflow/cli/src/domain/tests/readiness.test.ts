@@ -177,7 +177,10 @@ describe('judgeReadiness の順', () => {
 
   it.for([
     { name: '着手済みで PR が無い前提', facts: issue(1, { branches: ['x'] }), expected: 'started-without-pr' },
-    { name: 'merged の PR だけの open の前提', facts: issue(1, { pullRequests: [pullRequest(1, 'x', DEV, { state: 'merged' })] }), expected: 'started-without-pr' },
+    { name: 'merged の PR だけの open の前提', facts: issue(1, { pullRequests: [pullRequest(1, 'x', DEV, { state: 'merged' })] }), expected: 'merged-open' },
+    { name: 'merged の PR とブランチを持つ open の前提', facts: issue(1, { branches: ['x'], pullRequests: [pullRequest(1, 'x', DEV, { state: 'merged' })] }), expected: 'merged-open' },
+    { name: '列が Pending で merged の PR を持つ前提', facts: issue(1, { column: 'Pending', pullRequests: [pullRequest(1, 'x', DEV, { state: 'merged' })] }), expected: 'pending' },
+    { name: 'merged の PR と fork からの open の PR を持つ前提', facts: issue(1, { pullRequests: [pullRequest(1, 'x', DEV, { state: 'merged' }), pullRequest(2, 'y', DEV, { isCrossRepository: true })] }), expected: 'fork-pr' },
     { name: '未着手の前提', facts: issue(1), expected: 'not-started' },
     { name: 'PR が 2 本の前提', facts: issue(1, { pullRequests: [pullRequest(1, 'x'), pullRequest(2, 'y')] }), expected: 'multiple-prs' },
     { name: 'fork からの PR の前提', facts: issue(1, { pullRequests: [pullRequest(1, 'x', DEV, { isCrossRepository: true })] }), expected: 'fork-pr' },
@@ -192,6 +195,11 @@ describe('judgeReadiness の順', () => {
       code: 'not-in-review',
       issues: [{ issue: reference(1), state: 'not-started' }, { issue: reference(3), state: 'started-without-pr' }],
     })
+  })
+
+  it('merged の PR と open の PR を 1 本ずつ持つ前提は、open の PR に積む', () => {
+    const facts = inReview(1, DEV, { pullRequests: [pullRequest(1000, 'old', DEV, { state: 'merged' }), pullRequest(1001, 'b1')] })
+    expect(judge([need(facts)])).toMatchObject({ kind: 'stackable', stackOn: { branch: 'b1', issue: reference(1) } })
   })
 
   it('順 8: 前提が 1 件なら、その PR の head に積む', () => {
@@ -656,8 +664,9 @@ describe('describeReadiness', () => {
     const forked = need(issue(4, { pullRequests: [pullRequest(1004, 'b4', DEV, { isCrossRepository: true })] }))
     const multiple = need(issue(5, { pullRequests: [pullRequest(1005, 'a'), pullRequest(1006, 'b')] }))
     const pending = need(inReview(6, DEV, { column: 'Pending' }))
-    expect(describeFor([unstarted(1), startedOnly(2), forked, multiple, pending])).toBe(
-      'blocked by #1, #2, #4, #5, #6 (not in review: #1 (not started), #2 (no PR), #4 (PR from fork), #5 (multiple PRs), #6 (in Pending))',
+    const mergedOpen = need(issue(7, { pullRequests: [pullRequest(1007, 'b7', DEV, { state: 'merged' })] }))
+    expect(describeFor([unstarted(1), startedOnly(2), forked, multiple, pending, mergedOpen])).toBe(
+      'blocked by #1, #2, #4, #5, #6, #7 (not in review: #1 (not started), #2 (no PR), #4 (PR from fork), #5 (multiple PRs), #6 (in Pending), #7 (PR merged, Issue open))',
     )
   })
 
@@ -741,6 +750,12 @@ describe('describePrerequisiteState', () => {
     const notStarted = need(issue(3))
     expect(describePrerequisiteState(inReviewed)).toBe('in review')
     expect(describePrerequisiteState(notStarted)).toBe('not started')
+  })
+
+  it('merged の PR を持つ open の前提は、wait が stack でも merge でも PR merged, Issue open', () => {
+    const mergedOpen = issue(3, { pullRequests: [pullRequest(1003, 'b3', DEV, { state: 'merged' })] })
+    expect(describePrerequisiteState(need(mergedOpen))).toBe('PR merged, Issue open')
+    expect(describePrerequisiteState(need(mergedOpen, 'merge', '理由'))).toBe('PR merged, Issue open')
   })
 })
 

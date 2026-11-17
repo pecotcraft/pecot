@@ -3,9 +3,9 @@
 import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
-import { describePrerequisiteState, describeReadiness, displayReference, isDone } from './readiness.js'
+import { describePrerequisiteState, describeReadiness, displayReference, isDone, isMergedOpen } from './readiness.js'
 import type { Prerequisite, Readiness, StackTarget } from './readiness.js'
-import { issueReferenceToCliReference } from './reference-parser.js'
+import { issueReferenceKey, issueReferenceToCliReference } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'
 import type { BaseRecord } from './state.js'
 
@@ -18,10 +18,15 @@ function blockedMessage(target: IssueReference, readiness: Readiness, prerequisi
   const home = target.repository
   const unfinished = prerequisites.filter(({ issue }) => !isDone(issue))
   const subject = issueReferenceToCliReference(target)
-  const waitsMerge = readiness.reason?.code === 'waits-merge' ? readiness.reason.issues : []
+  const mergedOpen = unfinished.filter(({ issue }) => isMergedOpen(issue)).map(({ issue }) => issue.ref)
+  const mergedOpenKeys = new Set(mergedOpen.map(issue => issueReferenceKey(issue)))
+  // マージ済みの PR には積めないので、積むよう切り替える案内を出さない
+  const waitsMerge = (readiness.reason?.code === 'waits-merge' ? readiness.reason.issues : [])
+    .filter(({ issue }) => !mergedOpenKeys.has(issueReferenceKey(issue)))
   return joinHinted([
     `${displayReference(target, home)} is ${describeReadiness(readiness, prerequisites, home)}`,
     ...unfinished.map(prerequisite => `- ${displayReference(prerequisite.issue.ref, home)}: ${describePrerequisiteState(prerequisite)}`),
+    ...mergedOpen.map(issue => displayReference(issue, home)).map(shown => `${shown} has a merged PR: close ${shown}, or retry once it closes`),
     ...unfinished.map(({ issue }) => hinted`to remove the prerequisite: ${commandHint(['issue', 'unblock'], { issue_ref: subject, by: issueReferenceToCliReference(issue.ref) })}`),
     ...waitsMerge.map(({ issue }) => hinted`to stack on it instead of waiting for merge: ${commandHint(['issue', 'block'], { issue_ref: subject, by: issueReferenceToCliReference(issue), wait: 'stack' })}`),
   ])

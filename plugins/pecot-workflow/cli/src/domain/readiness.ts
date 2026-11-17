@@ -49,7 +49,7 @@ export interface Prerequisite {
 
 export type PrerequisiteList = readonly Prerequisite[] | 'read-failed'
 
-export type NotInReviewState = 'started-without-pr' | 'not-started' | 'multiple-prs' | 'fork-pr' | 'pending'
+export type NotInReviewState = 'merged-open' | 'started-without-pr' | 'not-started' | 'multiple-prs' | 'fork-pr' | 'pending'
 
 export type ReadinessReason
   = | { readonly code: 'unreadable' }
@@ -114,6 +114,13 @@ export function isInReview(issue: IssueFacts): boolean {
   return issue.state === 'open' && open.length === 1 && open[0]?.isCrossRepository === false
 }
 
+/**
+open で、open の PR が無く、merged の PR がある。マージから `Closes` で閉じるまでの間と、`Closes` の無いマージで起きる
+*/
+export function isMergedOpen(issue: IssueFacts): boolean {
+  return issue.state === 'open' && openPullRequests(issue).length === 0 && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged')
+}
+
 export function hasStarted(issue: IssueFacts): boolean {
   return issue.branches.length > 0 || issue.pullRequests.length > 0
 }
@@ -136,6 +143,7 @@ function notInReviewState(issue: IssueFacts): NotInReviewState {
   const open = openPullRequests(issue)
   if (open.length > 1) return 'multiple-prs'
   if (open.length === 1) return 'fork-pr'
+  if (isMergedOpen(issue)) return 'merged-open'
   return hasStarted(issue) ? 'started-without-pr' : 'not-started'
 }
 
@@ -375,6 +383,7 @@ export function displayReference(reference: IssueReference, home?: RepositoryRef
 
 const NOT_IN_REVIEW_TEXT: ReadonlyMap<NotInReviewState, string> = new Map([
   ['not-started', 'not started'],
+  ['merged-open', 'PR merged, Issue open'],
   ['started-without-pr', 'no PR'],
   ['multiple-prs', 'multiple PRs'],
   ['fork-pr', 'PR from fork'],
@@ -388,6 +397,7 @@ export function describePrerequisiteState(prerequisite: Readonly<Prerequisite>):
   const { issue, wait, reason } = prerequisite
   if (isDone(issue)) return 'done'
   if (issue.state === 'closed') return 'closed without merge'
+  if (isMergedOpen(issue)) return NOT_IN_REVIEW_TEXT.get('merged-open') ?? 'merged-open'
   if (wait === 'merge') return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`
   const state = notInReviewState(issue)
   return isStackable(issue) ? 'in review' : (NOT_IN_REVIEW_TEXT.get(state) ?? state)
