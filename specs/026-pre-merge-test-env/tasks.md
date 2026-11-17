@@ -68,25 +68,25 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] `.githooks/tests/test_sandbox_diff.py` を足す。偽の `gh` を PATH に置き、contracts/sandbox-scripts.md の `sandbox-diff.sh` の 8 つの場合を、出力の行と終了コードで比べる。実装の前は失敗することを確かめる
-- [ ] T010 [P] [US1] `.githooks/tests/test_sandbox_sweep.py` を足す。偽の `gh` を PATH に置く。contracts/sandbox-scripts.md の `sandbox-sweep.sh` の 6 つの場合を、出力の行・終了コード・`gh` の呼び出しの記録で比べる。実装の前は失敗することを確かめる
+- [x] T009 [P] [US1] `.githooks/tests/test_sandbox_diff.py` を足す。偽の `gh` を PATH に置き、contracts/sandbox-scripts.md の `sandbox-diff.sh` の 8 つの場合を、出力の行と終了コードで比べる。実装の前は失敗することを確かめる
+- [x] T010 [P] [US1] `.githooks/tests/test_sandbox_sweep.py` を足す。偽の `gh` を PATH に置く。contracts/sandbox-scripts.md の `sandbox-sweep.sh` の 6 つの場合を、出力の行・終了コード・`gh` の呼び出しの記録で比べる。実装の前は失敗することを確かめる
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] `.githooks/scripts/sandbox-diff-items.json` を足す。spec.md の FR-001〜003 を `compare: true`、FR-004〜008 を `compare: false` と `reason` 付きで書く。項目の形は data-model.md の「そろえる設定」に従う
-- [ ] T012 [US1] `.githooks/scripts/sandbox-diff.sh` を足す。`gh api` で 2 つのリポのマージ方式・ruleset・ボードの項目と値・自動化の有無を読み、`ignore` のキーを読み飛ばして比べる。読み方と終了コード（0・1・2）は contracts/sandbox-scripts.md に従う。T009 を通す
-- [ ] T013 [US1] `.githooks/scripts/sandbox-sweep.sh` を足す。data-model.md の名前の形に合うブランチと開いた PR・Issue を検証用から片付け、カードをアーカイブする。引数と決まりは contracts/sandbox-scripts.md に従う。T010 を通す
+- [x] T011 [P] [US1] `.githooks/scripts/sandbox-diff-items.json` を足す。spec.md の FR-001〜003 を `compare: true`、FR-004〜008 を `compare: false` と `reason` 付きで書く。項目の形は data-model.md の「そろえる設定」に従う
+- [x] T012 [US1] `.githooks/scripts/sandbox-diff.sh` を足す。`gh api` で 2 つのリポのマージ方式・ruleset・ボードの項目と値・自動化の有無を読み、`ignore` のキーを読み飛ばして比べる。読み方と終了コード（0・1・2）は contracts/sandbox-scripts.md に従う。T009 を通す
+- [x] T013 [US1] `.githooks/scripts/sandbox-sweep.sh` を足す。data-model.md の名前の形に合うブランチと開いた PR・Issue を検証用から片付け、カードをアーカイブする。引数と決まりは contracts/sandbox-scripts.md に従う。T010 を通す
   - Issue の題は `[Task] [cuj …] …` の形になるので、`[cuj …]` を題の先頭ではなく題の中から探す（R4・R11-7）
   - R6 の tgz を添えた検証用のリリースと、タグ `cuj/<Issue番号>-<乱数>-tgz` も消す。contracts/sandbox-scripts.md の対象と、T010 のテストの場合に足す
-- [ ] T014 [US1] `.githooks/README.md` の、スクリプトの一覧に 2 本を足す。nx の入力の宣言（`.githooks` の project の設定）に、足したファイルが入っているかを確かめ、足りなければ足す
+- [x] T014 [US1] `.githooks/README.md` の、スクリプトの一覧に 2 本を足す。nx の入力の宣言（`.githooks` の project の設定）に、足したファイルが入っているかを確かめ、足りなければ足す
 - [x] T015 [US1] T003 の結果で、検証用の `ci.yml` が必須のチェックを出していないと分かったときに行う。検証用のリポの `ci.yml` を、`ci-result`・`version-plan` の名前のチェックを出す形に直す。`pull_request` と `merge_group` の契機で動かす。直しは、検証用の PR と merge queue を通す
   - T003 の結果、必須のチェックを出し、`merge_group` でも動くと分かった（R11-3）。直すものは無いので、#474 の PR で `[x]` にした
-- [ ] T016 [US1] `.githooks/scripts/sandbox-diff.sh` を実物で動かす。出たずれは 1 件ずつ、検証用を直すか、`sandbox-diff-items.json` で比べない項目にするかを決める。比べない項目にするときは、ユーザーの承認を得て、spec.md の「同じにしなくてよいもの」の表にも足す。「ずれは 0 件」になるまで続ける
-- [ ] T017 [US1] `p-w/CONTRIBUTING.md` に「試験環境」の節を足す。書くのは、試験環境の一覧・検証用の clone の作り方・確かめの前の `sandbox-diff.sh`・作るものの名前の形・`sandbox-sweep.sh` での片付けの 5 つ
-- [ ] T049 [US1] pecot-workflow の、GitHub に書き込む処理の一覧を作る。MCP ツールと CLI のコマンドを、定義書（`p-w/interface/`）から漏れなく拾う。利用者へ配るリリースの処理も含める。一覧を、T017 の節に表で書く
-- [ ] T050 [US1] 同じ節に 3 つを書く。検証用の clone に置く `.pecot/config/.env` の作り方。書き込む前に `board_show` で書き込む先を見ること。このリポの決まりを変えるときは、検証用を先に変えること
-- [ ] T018 [US1] quickstart.md の 2・4・5 を検証用で流す。失敗する場合（CI が落ちる PR が queue から外される）も流す。結果を PR の説明に書く。このリポの Issue・PR・ボードに何も増えていないことを、流す前と後の件数で比べる
-- [ ] T051 [US1] T049 の一覧の処理を、1 つずつ検証用で最後まで流す。流せない処理は、訳を一覧に書く。2 つのセッションで同時に流し、互いを変えないことを見る。確かめと片付けを 3 回くり返し、残りが 0 件であることを見る
+- [x] T016 [US1] `.githooks/scripts/sandbox-diff.sh` を実物で動かす。出たずれは 1 件ずつ、検証用を直すか、`sandbox-diff-items.json` で比べない項目にするかを決める。比べない項目にするときは、ユーザーの承認を得て、spec.md の「同じにしなくてよいもの」の表にも足す。「ずれは 0 件」になるまで続ける
+- [x] T017 [US1] `p-w/CONTRIBUTING.md` に「試験環境」の節を足す。書くのは、試験環境の一覧・検証用の clone の作り方・確かめの前の `sandbox-diff.sh`・作るものの名前の形・`sandbox-sweep.sh` での片付けの 5 つ
+- [x] T049 [US1] pecot-workflow の、GitHub に書き込む処理の一覧を作る。MCP ツールと CLI のコマンドを、定義書（`p-w/interface/`）から漏れなく拾う。利用者へ配るリリースの処理も含める。一覧を、T017 の節に表で書く
+- [x] T050 [US1] 同じ節に 3 つを書く。検証用の clone に置く `.pecot/config/.env` の作り方。書き込む前に `board_show` で書き込む先を見ること。このリポの決まりを変えるときは、検証用を先に変えること
+- [x] T018 [US1] quickstart.md の 2・4・5 を検証用で流す。失敗する場合（CI が落ちる PR が queue から外される）も流す。結果を PR の説明に書く。このリポの Issue・PR・ボードに何も増えていないことを、流す前と後の件数で比べる
+- [x] T051 [US1] T049 の一覧の処理を、1 つずつ検証用で最後まで流す。流せない処理は、訳を一覧に書く。2 つのセッションで同時に流し、互いを変えないことを見る。確かめと片付けを 3 回くり返し、残りが 0 件であることを見る
 
 ---
 
