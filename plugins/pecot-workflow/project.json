@@ -248,7 +248,7 @@
       ],
       "dependsOn": ["install"],
       "metadata": {
-        "description": "cli の tsc / eslint / knip。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli の tsc / eslint / knip と、スキルの scripts/*.cjs の eslint。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-lint.sh --scope=cli",

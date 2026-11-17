@@ -33,7 +33,7 @@ describe('スキルの本文とスクリプトのファイル', () => {
 
   it('スキルとエージェントの本文に、node で動かすスクリプトを埋め込まない', () => {
     const embedded = readDocuments()
-      .filter(({ text }) => /node (?:--input-type|-e )/u.test(text))
+      .filter(({ text }) => /node (?:--input-type|--eval|-[ep] |- <<)/u.test(text))
       .map(({ file }) => file)
     expect(embedded).toStrictEqual([])
   })
@@ -204,6 +204,15 @@ describe('w-onboarding の兄弟リポの検出', () => {
       stdout: `ERROR: origin URL を解析できませんでした: ${origin}\n`,
     })
   })
+
+  it('origin が無いと、取得できない旨の ERROR の行を出して終了コード 1 で止まる', () => {
+    const current = makeTemporaryDirectory()
+    git(current, 'init', '-q')
+    expect(runScript(script, current)).toMatchObject({
+      status: 1,
+      stdout: 'ERROR: origin URL を取得できませんでした\n',
+    })
+  })
 })
 
 describe('w-pr のプレビューの配信', () => {
@@ -256,5 +265,13 @@ describe('w-pr のプレビューの配信', () => {
     if (server?.pid !== undefined) process.kill(-server.pid)
     await sleep(300)
     await expect(fetch(`http://127.0.0.1:${String(port)}/index.html`)).rejects.toThrow()
+  })
+
+  it.for(['70000', '-1', 'abc'])('port が %s だと、立てられない旨を出して終了コード 1 で止まる', (port) => {
+    const repository = makeTemporaryDirectory()
+    writeTree(repository, { '.pecot/work/399/index.html': '<p>x</p>\n' })
+    const result = spawnSync(process.execPath, [script, '.pecot/work/399', port], { cwd: repository, encoding: 'utf8' })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toBe(`配信を立てられません: port が 0〜65535 の整数ではありません（${port}）\n`)
   })
 })

@@ -38,7 +38,7 @@ node <このスキルの base directory>/scripts/detect-sibling-config.cjs
 | `MATCH: <パス>` | そのファイルをコピーする |
 | `複数見つかりました` と、パスの一覧 | AskUserQuestion でどれを使うかを選ばせ、選んだファイルをコピーする |
 | `兄弟リポに一致する設定ファイルが見つかりませんでした` | パターン 3 へ |
-| `ERROR:` で始まる行 | origin が無い、または解析できない旨を利用者に伝え、パターン 3 へ |
+| `ERROR:` で始まる行 | その行の理由を利用者に伝え、パターン 3 へ |
 
 コピーは次のとおり。コピーしたら `project_activate` を使い（`project: "<コピーしたファイル名（拡張子なし）>"`）、Step 3 へ進む。
 Step 3 の後、Step 4 の前に、pecot-workflow の MCP ツール `project_link` でカレントリポを登録する。

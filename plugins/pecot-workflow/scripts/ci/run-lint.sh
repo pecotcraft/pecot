@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PLUGIN_ROOT}"
 
-# --scope で実行範囲を絞る（nx のレーン pecot-workflow:lint-cli から呼ぶ）。cli は tsc / eslint / knip。引数なしは全部。
+# --scope で実行範囲を絞る（nx のレーン pecot-workflow:lint-cli から呼ぶ）。cli は tsc / eslint / knip と、スキルの scripts/*.cjs の eslint。引数なしは全部。
 # env PECOT_WORKFLOW_SKIP_INSTALL=1: install を飛ばす（nx 経由では pecot-workflow:install が 1 回だけ流す）。
 # 本ファイルや lock を足したら、nx.json の pecotPluginNodeInputs に足す。
 for arg in "$@"; do
@@ -51,6 +51,6 @@ echo "==> $PNPM --filter @pecot/pecot-workflow-cli run lint"
 # shellcheck disable=SC2086
 ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run lint )
 # スキルの scripts/*.cjs。ESLint は設定のディレクトリの外を見ないので、プラグインのルートから別の設定で打つ
-echo "==> $PNPM exec eslint --config eslint.skills.config.mjs skills/*/scripts/*.cjs"
+echo "==> $PNPM exec eslint --max-warnings=0 --config eslint.skills.config.mjs skills/*/scripts/*.cjs"
 # shellcheck disable=SC2086
 ( cd "$PLUGIN_ROOT" && $PNPM exec eslint --max-warnings=0 --config eslint.skills.config.mjs 'skills/*/scripts/*.cjs' )

@@ -9,7 +9,7 @@ const fail = (message) => {
 }
 const root = path.resolve(process.argv[2])
 const port = Number(process.argv[3])
-if (!Number.isSafeInteger(port)) fail(`port が整数ではありません（${process.argv[3]}）`)
+if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) fail(`port が 0〜65535 の整数ではありません（${process.argv[3]}）`)
 if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) fail(`起点がディレクトリではありません（${root}）`)
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml' }
 http.createServer((request, response) => {

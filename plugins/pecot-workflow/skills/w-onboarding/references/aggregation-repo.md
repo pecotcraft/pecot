@@ -1,12 +1,12 @@
 # Epic 集約リポ設定の詳細
 
-`/pecot-w:w-onboarding` Step 4 の補足。集約リポ (`aggregation_repo`) を設定すると pecot-workflow の MCP ツール `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
+`/pecot-w:w-onboarding` Step 3 の補足。集約リポ (`aggregation_repo`) を設定すると pecot-workflow の MCP ツール `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
 
 ## 4.0 現状確認
 
 pecot-workflow の MCP ツール `project_get` を使う（`key: "aggregation_repo"`）。
 
-- 未設定なら Step 4.1 Q1 は通常 3 択。
+- 未設定なら Step 3 の Q1 は通常 3 択。
 - 既設定なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。
   設定には pecot-workflow の MCP ツール `project_set` を使う（`key: "aggregation_repo"`・`value`・`yes: true`）。
 
@@ -22,7 +22,7 @@ pecot-workflow の MCP ツール `project_get` を使う（`key: "aggregation_re
 
 分岐:
 
-- 「使わない」「現状維持」→ Step 5 へ（追加の AskUserQuestion なし）
+- 「使わない」「現状維持」→ Step 4 へ（追加の AskUserQuestion なし）
 - 「既存リポを指定」→ 4.2a
 - 「新規リポを作成」→ 4.2b
 
@@ -93,4 +93,4 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
 
 `project_get` を使う（`key: "aggregation_repo"`）。
 
-意図した `owner/repo` が入っていれば Step 5 へ進む。
+意図した `owner/repo` が入っていれば Step 4 へ進む。
