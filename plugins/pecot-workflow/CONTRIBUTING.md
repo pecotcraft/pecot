@@ -1,115 +1,65 @@
-# pecot-workflow プラグイン コントリビューション ガイド
+# pecot-workflow コントリビューション ガイド
 
-このドキュメントは pecot-workflow プラグイン (`plugins/pecot-workflow/`) を改修する際の規約を記載します。
+このガイドでは、pecot-workflow プラグイン（`plugins/pecot-workflow/`）を改修するときの決まりと、変更を確かめる手順を説明します。
 
 ## 1. 成果物テンプレートは CLI 側に置く
 
-### ルール
+スキルが作る Issue・PR・コメントの本文の雛形は、`cli/templates/<種別>/<名前>.<ext>` に置きます。スキル（`skills/*/`）には置きません。
+スキルは `--prepare`（MCP ツールでは `prepare: true`）でテンプレートを作業ファイルに写し、そのパスを受け取って書き込みます。
 
-pecot スキルが生成する成果物 (Issue 本文 / PR 本文 / コメント本文) の雛形ファイルは、CLI 側に置いてください。
-置き場所は `plugins/pecot-workflow/cli/templates/<種別>/<名前>.<ext>` です。
-スキル本体 (`plugins/pecot-workflow/skills/*/`) には置かないでください。
+雛形の定義元を 1 か所にするための決まりです。対話（AskUserQuestion）を伴う雛形でも、雛形は CLI に置き、対話はスキルが受け持ちます。
 
-スキルは `pecot <command> --prepare` を呼び出して prepared file の絶対パスを取得し、それを Read して編集・書き出しを行います。
+| 置き場所 | 置くもの |
+|:---|:---|
+| `cli/templates/` | Issue・PR・コメントの本文の雛形。複数のスキルが使うテンプレート |
+| `skills/*/` | 手順書（`skills/w-release/references/release-single.md` など）、説明用の例、再利用しない素材 |
 
-### 理由
-
-- SKILL.md とテンプレ実体の二重管理を避け、テンプレ書式・プレースホルダの定義元を 1 箇所に保つため
-- `pecot <cmd> --prepare` が prepared file の path を stdout に返す I/O 規約が固定されているため、スキル側ロジックの再現性が上がる
-- レビュアー / AI が「テンプレを差し替えるなら CLI 側を触る」という単純規則で逸脱を検知できる
-- 対話ロジック (AskUserQuestion 等) を伴う雛形でも本ルールは適用する。CLI は AskUserQuestion を扱えないため、テンプレ実体は CLI に置き、対話処理はスキル側で行う責務分割となる
-
-### 境界条件 (skill 配下に置いてよいもの)
-
-- 手順書 / プロセス説明 (`skills/w-release/references/release-single.md` 等)
-- 特定シナリオの説明素材・scenario sample
-- テンプレ化に値しない一過性の素材 (再利用されない説明用 snippet 等)
-
-### 境界条件 (CLI 配下に置くべきもの)
-
-- 出力先が `.pecot/tmp/output/` を経由する性質のもの (Issue/PR/コメント body 雛形)
-- 複数のスキルから参照される共通テンプレ
-- バージョン管理で「定義元がどこか」を一意に定めたいテンプレ
-
-### 検証手順
-
-定期的に以下のコマンドで雛形候補を列挙し、各ファイルが「procedure documentation」か「artifact template」かをレビューしてください。
+スキルの下に雛形が紛れていないかは、次のコマンドで候補を一覧にして確かめます。
 
 ```bash
 find plugins/pecot-workflow/skills -type f \( -name "*.json" -o -name "*.yaml" -o -name "*.yml" \)
 ```
 
-artifact template が見つかったら本ルールに従って `plugins/pecot-workflow/cli/templates/` 配下へ移送することが望ましいです。
-
-### 直近の集約事例
-
-- #516 w-ready: SKILL.md からテンプレ本文記入ガイドを CLI テンプレ (`templates/issue/{task,bug}.md`) へ集約
-- #548 w-revise: `review-summary` を廃止し `review-findings` / `review-resolution` を新設、書式ガイドを CLI テンプレに集約
-- #549 w-merge: Epic 進捗報告フォーマットを CLI テンプレ実体 (`templates/comment/{merge-diff,precede-notify}.md`) に集約
-
 ## 2. コマンド名の決まり
 
-### ルール
+コマンドの名前（`path`）は、`<対象> <動詞>` の 2 語にします。MCP のツール名は 2 語を `_` でつないだ `<対象>_<動詞>` になり、前が対象、後ろが動詞と読めます。
 
-コマンドの名前（`path`）は `<対象> <動詞>` の 2 語にする。MCP のツール名は、2 語をつないだ `<対象>_<動詞>` になる。`_` が 1 個だけなので、前が対象、後ろが動詞と読める。
-
-- path は 2 語で、どちらの語も `^[a-z]+$` に合わせる。ハイフンと数字は使わない
-- 1 語目は、グループの一覧にある語。2 語目は、動詞の語彙にある語
+- どちらの語も `^[a-z]+$` に合わせる。ハイフンと数字は使わない
+- 1 語目は次のグループ、2 語目は次の動詞の語彙から選ぶ
 - 同じ対象を扱うコマンドは、同じ 1 語目に置く
-- `pecot mcp` は COMMANDS に無い起動の語なので、決まりの対象外
+- 起動の語である `pecot mcp` は対象外
 
 ### グループ
 
 | グループ | 扱うもの |
 |:---|:---|
-| `project` | プロジェクトとの接続と設定ファイル |
-| `board` | ボードの上の Issue の置き場所 |
+| `project` | プロジェクトへの接続と設定ファイル。ボードの上の Issue には触りません |
+| `board` | ボードの上の Issue の置き場所。設定ファイルは書きません |
 | `issue` | Issue そのもの |
-| `session` | 1 つの Issue の作業 |
+| `session` | 1 つの Issue の作業の始まりから終わりまで（`start`・`show`・`restore`・`finish`） |
 | `pr` | PR そのもの |
 | `release` | リリース |
 | `tracker` | Tracker の Issue の書き直し |
 | `worktree` | worktree |
 | `branch` | リモートのブランチ |
 
-境目は次のとおり。
-
-- `project` は、どのプロジェクトにどうつなぐかを扱う。ボードの上の Issue には触らない
-- `board` は、そのプロジェクトの上に何が載っているかを扱う。設定ファイルは書かない
-- `session` は、1 つの Issue の作業の始まりから終わりまでを扱う（`start`・`show`・`restore`・`finish`）
-
 ### 動詞の語彙
 
-- 読む
-  - `list`: 複数を並べる
-  - `search`: GitHub を探す
-  - `show`: 1 件を出す
-  - `get`: 設定の値を出す
-  - `check`: 次の操作の前に確かめる
-- 作る・消す
-  - `create`・`delete`: GitHub のものを作る・消す
-  - `add`・`remove`: 集まりへ出し入れする
-  - `init`: 既にあるものを pecot で使える状態にする
-- 設定
-  - `set`・`unset`: キーの値を設定・解除する
-  - `link`: リポをプロジェクトにつなぐ
-  - `activate`: 使うプロジェクトを切り替える
-- 作業の流れ
-  - `start`・`restore`・`finish`: 作業の始まり・復元・終わり
-  - `sync`: 判定や一覧に合わせて書き直す
-  - `move`・`merge`: 列を移す・PR を取り込む
-- Issue
-  - `comment`・`reopen`・`block`・`unblock`
+| 種類 | 動詞 |
+|:---|:---|
+| 読む | `list`（複数を並べる）・`search`（GitHub を探す）・`show`（1 件を出す）・`get`（設定の値を出す）・`check`（次の操作の前に確かめる） |
+| 作る・消す | `create`・`delete`（GitHub のもの）・`add`・`remove`（集まりへの出し入れ）・`init`（既存のものを pecot で使えるようにする） |
+| 設定 | `set`・`unset`（キーの値）・`link`（リポをプロジェクトにつなぐ）・`activate`（使うプロジェクトを切り替える） |
+| 作業の流れ | `start`・`restore`・`finish`・`sync`（判定や一覧に合わせて書き直す）・`move`（列を移す）・`merge`（PR を取り込む） |
+| Issue | `comment`・`reopen`・`block`・`unblock` |
 
-語彙に無い語を使うときは、先に `cli/src/commands/names.ts` の一覧に意味と一緒に足す。足さないと、テストが落ちる。
+読む動詞のコマンドは、何も書き換えません。書き込むコマンドは、ほかの種類の動詞に置きます。
+語彙に無い語を使うときは、先に `cli/src/commands/names.ts` の一覧へ意味と一緒に追加します。追加しないとテストが失敗します。
+Issue の作成と作業の開始を 1 つのコマンドで行う動詞（以前の `quick`）は置きません。作成は `issue create`（`freeform`）、開始は `session start` が行います。
 
-`quick` は語彙から外した。Issue の作成と作業の開始を 1 つのコマンドが行う動詞は置かない。作成は `issue create`（`freeform`）、作業の開始は `session start` が行う。
+### 入力名
 
-読む動詞（`list`・`search`・`show`・`get`・`check`）は、何も書き換えない。GitHub・ボード・ファイル・状態を書くコマンドは、読む動詞に置かず、作る・消す・設定・作業の流れの動詞に置く。
-
-### 入力名の決まり
-
-同じものを指す入力は、コマンドが違っても同じ名前にする。
+同じものを指す入力は、コマンドが違っても同じ名前にします。
 
 | 指すもの | 入力名 | 例 |
 |:---|:---|:---|
@@ -118,254 +68,202 @@ artifact template が見つかったら本ルールに従って `plugins/pecot-w
 | リポ | `repo` | `branch delete`・`project link` |
 | 操作するブランチ | `branch` | `session start`・`branch delete` |
 
-- `base`・`head` は PR の両端の役割の名前なので、`branch` にしない。真偽値の `delete_branch` も変えない
-- 古い名前で別名を作らない。改名したら、古い入力名の表（`cli/src/commands/renamed-commands.ts`）に足し、古い入力名は新しい名前を案内して止める
-- 書き込むコマンド（effects に write か destructive を持つもの）は、入力 `dry_run`（CLI は `--dry-run`・`-n`）を持つ。入力の検証と読み取りは予行でも行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
+- PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
+- 名前を変えても、古い名前の別名は作らない。`cli/src/commands/renamed-commands.ts` に追加し、古い名前で呼ばれたら新しい名前を案内して止める。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
+- 書き込むコマンド（effects に `write` か `destructive` を持つもの）には、入力 `dry_run`（CLI では `--dry-run`・`-n`）を付ける。予行でも入力の検証と読み取りは行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
 
 ### 次の操作の案内
 
-出力に次の操作を案内するときは、`pecot <グループ> <動詞>` の文字列を直に書かない。MCP で呼ぶエージェントは、`pecot` の行を打てない。
-案内は、コマンドの path と入力のデータで持つ。文にするのは案内の関数で、置き場は `cli/src/domain/command-hint.ts` と `cli/src/commands/command-hint.ts`。
+出力で次の操作を案内するときは、`pecot <グループ> <動詞>` の文字列を直接書きません。MCP で呼ぶエージェントは `pecot` のコマンドを打てないためです。
+案内は、コマンドの path と入力をデータで渡し、`cli/src/domain/command-hint.ts`・`cli/src/commands/command-hint.ts` の関数で文にします。
+CLI では `pecot project link o/r --develop-branch develop` の形で出ます。MCP では `project_link with repo: "o/r", develop_branch: "develop"` の形で出ます。
+`--help` の examples は CLI にだけ出るので、`pecot ...` のまま書いて構いません。
 
-- CLI では `pecot project link o/r --develop-branch develop` の形で出る
-- MCP では `project_link with repo: "o/r", develop_branch: "develop"` の形で出る
-- 定義に無い path や入力名を渡すと、例外になる
-- `cli/src/` の出力の文字列に `pecot <グループ>` の直書きが無いことは、`cli/tests/direct-hint-lint.test.ts` が確かめる
-- `--help` の examples は、CLI だけに出るので `pecot ...` のまま書いてよい
+### 決まりを確かめる場所
 
-### 確かめる場所
-
-- `libs/interface-spec` の検証が、定義書（`interface/generated.json`）の全項目の名前を、最上位の `names` と比べる
-  - `names` は、区切り・語の位置ごとの語彙・読むだけの動詞を持つ
-  - 語彙を変えたときは、書き出し（`cli/scripts/export-interface.ts`）を回して `generated.json` を直す。直さないと `diffGenerated` が落ちる
-  - pecot-visual と pecot-tools の定義書にも、同じ検証が掛かる
-- `cli/src/commands/names.ts` の関数が、path の一覧から決まりに合わないものを理由つきで返す
-- `cli/src/commands/tests/registry.test.ts` が、COMMANDS の全部を関数に当てて、違反が空であることを確かめる
-- `cli/tests/interface/` のテストが、次の 2 つを確かめる
-  - write か destructive の effects を持つ項目は `dry_run` を持つ
-  - 対象ごとに使える入力名は 1 つだけ
-- 名前を変えるときは、古い名前の案内の表（`cli/src/commands/renamed-commands.ts`）も直す。README には移行の手順を書かず、利用者が読む変更点は version plan に書く
+- `libs/interface-spec` の検証が、定義書（`interface/generated.json`）の全項目の名前を、最上位の `names` と比べる。pecot-visual と pecot-tools の定義書も対象
+  - 語彙を変えたら、`cli/scripts/export-interface.ts` で `generated.json` を書き出し直す。書き出し直さないと `diffGenerated` が失敗する
+- `cli/src/commands/tests/registry.test.ts` が、すべてのコマンドの path を `names.ts` の関数で確かめる
+- `cli/tests/interface/` が、書き込むコマンドの `dry_run` と、対象ごとの入力名を確かめる
+- `cli/tests/direct-hint-lint.test.ts` が、`cli/src/` の出力に `pecot <グループ>` の直書きが無いことを確かめる
 
 ## 3. 試験環境
 
-GitHub に書き込む pecot の変更は、マージの前に、検証用のリポとボードで確かめる。このリポ（`pecotcraft/pecot`）の Issue・PR・ボードには、確かめで何も作らない。
+GitHub に書き込む変更は、マージの前に検証用のリポとボードで確かめます。このリポ（`pecotcraft/pecot`）の Issue・PR・ボードには、確かめのために何も作りません。
 
 ### 試験環境の一覧
 
 | 名前 | 中身 |
 |:---|:---|
-| このリポ | `pecotcraft/pecot`。ボードは Projects の 1 番。確かめでは書き込まない |
-| 検証用のリポ | `pecotcraft/pecot-sandbox`。確かめで作る Issue・PR・ブランチを置く |
-| 検証用のボード | `pecot sandbox`（Projects の 3 番）。書き込むボードはこれだけ |
-| 検証用の clone | `.pecot/work/<Issue番号>/pecot-sandbox/`。MCP ツールや `pecot` を動かす作業ディレクトリ |
+| このリポ | `pecotcraft/pecot`。ボードは Projects の 1 番。確かめでは書き込みません |
+| 検証用のリポ | `pecotcraft/pecot-sandbox`。確かめで作る Issue・PR・ブランチを置きます |
+| 検証用のボード | `pecot sandbox`（Projects の 3 番）。確かめで書き込むボードはこれだけです |
+| 検証用の clone | `.pecot/work/<Issue番号>/pecot-sandbox/`。`pecot` を動かす作業ディレクトリです |
 
-### 検証用の clone の作り方
+### 基本の流れ
 
-検証用の clone は、作業ツリーとは別のディレクトリに作る。MCP ツールの引数でリポを切り替える形は使えないので、clone を作業ディレクトリにして動かす。
+検証用に Issue・PR を作るときは、PR を 1 本作るだけの場合も、次の手順で進めます。`<作業ツリー>` は、直している worktree の絶対パスです。
 
-```bash
-git clone https://github.com/pecotcraft/pecot-sandbox .pecot/work/<Issue番号>/pecot-sandbox
-cd .pecot/work/<Issue番号>/pecot-sandbox
-pecot project activate github.com_pecotcraft_pecot-sandbox_sandbox.json
-```
+1. 作業ツリーで、検証用の設定がこのリポとずれていないことを確かめる。ずれがあれば、検証用を直してから進める
 
-2 つのセッションで同時に確かめるときは、clone を 2 つ作る。1 つの clone を共有すると、`session_start` の checkout がぶつかる。
+   ```bash
+   plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh   # 0: ずれなし / 1: ずれあり / 2: 読めない
+   ```
 
-直した pecot-workflow は、この clone で、次の「直した pecot-workflow を動かす」の手順で起こす。
+2. 検証用の clone を作り、検証用のボードを選ぶ。ボードの設定ファイルは検証用のリポに含まれている
+
+   ```bash
+   git clone https://github.com/pecotcraft/pecot-sandbox .pecot/work/<Issue番号>/pecot-sandbox
+   cd .pecot/work/<Issue番号>/pecot-sandbox
+   <作業ツリー>/plugins/pecot-workflow/bin/pecot project activate github.com_pecotcraft_pecot-sandbox_sandbox.json
+   ```
+
+3. 書き込む前に、毎回 `pecot board show --json`（MCP では `board_show`）を実行し、`project.number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
+4. 作るものの名前を決める。`<乱数>` は `[0-9a-z]{4}` の 4 文字、`<Issue番号>` はこのリポで確かめている Issue の番号
+
+   | 作るもの | 名前の形 |
+   |:---|:---|
+   | ブランチ | `cuj/<Issue番号>-<乱数>`（`session start` が後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
+   | Issue・PR の題 | `[cuj <Issue番号>-<乱数>]` を含める。pecot が題の先頭に `[Task]` などを付けるので、先頭には置かない |
+   | リリースのタグ | `cuj/<Issue番号>-<乱数>-tgz`。`--latest=false` で作ります |
+
+5. clone の中で、作業ツリーの `bin/pecot` を使って作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
+
+   ```bash
+   <作業ツリー>/plugins/pecot-workflow/bin/pecot issue create ...
+   <作業ツリー>/plugins/pecot-workflow/bin/pecot session start ...   # リモートにブランチを作るだけで、checkout はしない
+   git fetch origin && git checkout <作ったブランチ>
+   # 変更を commit して push する
+   <作業ツリー>/plugins/pecot-workflow/bin/pecot pr create ...
+   ```
+
+   スキル・MCP ツールで作るときは、clone で「直した pecot-workflow を動かす」の手順でクライアントを起動する
+6. 確かめが終わったら片付ける。名前の形に合う開いた PR・ブランチ・Issue・カード・リリースが対象
+
+   ```bash
+   <作業ツリー>/plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
+   <作業ツリー>/plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
+   ```
+
+clone は、確かめるセッションごとに 1 つ作ります。手順 5 で clone の中のブランチを切り替えるため、共有するとぶつかります。
+環境に `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` が無く、`gh` に認証していれば、`gh auth token` を使うので `.env` は不要です。
+別のトークンで書き込むときは、clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` を書きます。そのうえで、環境変数 `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` を外します。
+`sandbox-sweep.sh` は、名前の形に合わないものと、検証用の `main`・設定ファイルには触りません。`--issue` を省くと、名前の形に合うものをすべて片付けます。
+`sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに実行できます。
+`sandbox-diff.sh` で比べない項目を足すときは、`sandbox-diff-items.json` と spec の表を同じ変更で直します。
+このリポの ruleset・ボード・`pecot-board-sync.yml` の決まりを変えるときは、検証用を先に変えます。逆にすると、確かめた結果がこのリポで再現しません。
 
 ### 直した pecot-workflow を動かす
 
-検証用の clone を作業ディレクトリにして、クライアントに作業ツリーのプラグインを読ませる。
+スキル・MCP ツール・フックの変更を確かめるときは、検証用の clone でクライアントを起動し、作業ツリーのプラグインを読み込ませます。
+`--plugin-dir` には、直した作業ツリーの絶対パスを渡します。base など別の checkout を渡すと、直していない版が動きます。
 
-- `--plugin-dir` には、直した作業ツリーの絶対パスを渡す。別の checkout（base など）を渡すと、直しの入っていない版が動く。#454 で古い版が動いたのは、この形と同じ現れ方だった
-- base で始めたセッションのまま、worktree の直しを確かめない
-- clone で初めて起こすと、フォルダを信頼するかを聞かれる
-  - Claude Code は `Yes, I trust this folder` を選ぶ。信頼は覚えられ、同じパスでは次から聞かれない
-  - GitHub Copilot CLI は `Yes` を選ぶ。`remember this folder` の方は選ばない。`~/.copilot/settings.json` が変わるため
+clone で初めて起動すると、フォルダーを信頼するかを聞かれます。Claude Code では `Yes, I trust this folder` を選びます。GitHub Copilot CLI では `Yes` を選びます。`remember this folder` は `~/.copilot/settings.json` を書き換えるので選びません。
 
 #### Claude Code
 
 ```bash
 cd .pecot/work/<Issue番号>/pecot-sandbox
-claude --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow plugin list --json
-claude --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow
+claude --plugin-dir <作業ツリー>/plugins/pecot-workflow plugin list --json   # pecot-w@inline の installPath が作業ツリーを指すこと
+claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 ```
 
-- 起こす前に、`plugin list --json` の `pecot-w@inline` の行を見る。`installPath` が作業ツリーを指すこと
-- 起こした後に、`/mcp` を開く。`plugin:pecot-w:pecot-workflow` が 1 つだけあること
-  - 2 つあるときは、入れてある pecot-w を `/plugin` で無効にしてから起こし直す。2 つ並ぶ場合は、手元では確かめていない（この環境の pecot-w はこのリポのスコープで入っており、clone では読まれない）
+起動後に `/mcp` を開き、`plugin:pecot-w:pecot-workflow` が 1 つだけであることを確かめます。2 つあるときは、インストール済みの pecot-w を `/plugin` で無効にしてから起動し直します。
 
 #### GitHub Copilot CLI
 
 ```bash
 cd .pecot/work/<Issue番号>/pecot-sandbox
-COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow
+COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 ```
 
-- `COPILOT_PLUGIN_DIR_ONLY=true` を付けると、入れてあるプラグインを読まず、`--plugin-dir` のものだけを読む
-  - 付けないと、入れてある pecot-w と並んだとき、フックが両方の版で登録されて動く
-  - pecot-v など、ほかのプラグインも読まれない
-- 起こした後に、`/env` を開いて 2 つを見る
-  - Skills の各行のパスが作業ツリーを指すこと
-  - Hooks の sources は `pecot-w` だけであること
-- エージェントに渡った本文は、応答では確かめにくい。本文を引用させても、モデルは断ることがある。`--log-level all --log-dir <ディレクトリ>` を付けて起こし、ログの `instructions` の中に、直した文を探す
+`COPILOT_PLUGIN_DIR_ONLY=true` を付けると、`--plugin-dir` のプラグインだけを読み込みます。pecot-v など、ほかのプラグインも読み込みません。付けないと、インストール済みの pecot-w のフックも一緒に動きます。
+起動後に `/env` を開き、Skills のパスが作業ツリーを指すこと、Hooks の sources が `pecot-w` だけであることを確かめます。
+エージェントに渡った本文を確かめるには、`--log-level all --log-dir <ディレクトリ>` を付けて起動し、ログの `instructions` から直した文を探します。
 
 #### 直しを反映させる
-
-セッションの中で直したときは、次の操作で反映させる。
 
 | 直したもの | Claude Code | GitHub Copilot CLI |
 |:---|:---|:---|
 | スキル | `/reload-plugins` | `/skills reload` |
-| エージェント | `/reload-plugins` | 要らない。呼ぶたびに読み直す |
-| フックのスクリプトの本文 | 要らない。次に起きたときから反映される | 要らない |
-| MCP サーバ（`cli/src`） | `/mcp` で `plugin:pecot-w:pecot-workflow` を選び、Reconnect を選ぶ。その後に `/clear` する | `/mcp reload pecot-workflow` |
-| `hooks.json` | `/reload-plugins` | セッションを終えて起こし直す。`/restart` では反映されない |
+| エージェント | `/reload-plugins` | 不要（呼ぶたびに読み直します） |
+| フックのスクリプト | 不要 | 不要 |
+| MCP サーバ（`cli/src`） | `/mcp` で `plugin:pecot-w:pecot-workflow` の Reconnect を選び、`/clear` します | `/mcp reload pecot-workflow` |
+| `hooks.json` | `/reload-plugins` | 起動し直します（`/restart` では反映されません） |
 | `.mcp.json`・`mcp.json` | `/reload-plugins` | `/mcp reload` |
 
-- MCP サーバを起こし直すと、`bin/pecot` が `cli/src` から build し直す
-- Claude Code の `/reload-plugins` は、設定の変わらない MCP サーバを起こし直さない
-- Claude Code の会話に読み込み済みのツール定義は、Reconnect の後も古いまま残る。そのため `/clear` で新しい会話にする
-- `/clear` は会話を捨てる。確かめの途中の会話を残したいときは、セッションを始め直す
-
-手元の版は、Claude Code 2.1.326・GitHub Copilot CLI 1.0.112。
-
-### 確かめの前に設定を比べる
-
-確かめの前に、このリポの作業ツリーで `plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh` を動かし、ずれが 0 件であることを見る。検証用の設定がこのリポとずれたままだと、確かめた結果がこのリポで再現しない。
-
-```bash
-plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh
-```
-
-- 比べるのは、ruleset・ボードの項目・`pecot-board-sync.yml` などである。何も書き換えない
-- 終了コードは、ずれなしが 0、ずれありが 1、読めなかったときが 2
-- ずれが出たら、検証用を直してから確かめる。比べない項目を足すときは、`sandbox-diff-items.json` と spec の表を同じ変更で直す
-
-### 作るものの名前の形
-
-確かめで作るものには、片付けの目印になる名前を付ける。`<乱数>` は `[0-9a-z]{4}` の 4 文字。
-
-| 作るもの | 名前の形 |
-|:---|:---|
-| ブランチ | `cuj/<Issue番号>-<乱数>`。`session_start` が後ろに `/<検証用の Issue 番号>` を付ける形も含む |
-| Issue・PR の題 | `[cuj <Issue番号>-<乱数>]` を含める。pecot が題の先頭に `[Task]` などを付けるので、先頭には置かない |
-| リリースのタグ | `cuj/<Issue番号>-<乱数>-tgz`。`--latest=false` で作り、Latest の印を付けない |
-
-`<Issue番号>` は、確かめを行っているこのリポの Issue の番号。
-
-### 確かめで作ったものの片付け
-
-確かめのあとは、`plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh` で片付ける。対象は、名前の形に合う開いた PR・ブランチ・Issue・ボードのカード・リリース。
-
-```bash
-plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
-plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
-```
-
-- `--issue <番号>` は、その Issue の番号を持つものだけを片付ける。省くと、名前の形に合うものをすべて片付ける
-- `--dry-run` は、片付けるものを出すだけで、何も書き換えない
-- 書き換える先は検証用のリポとボードに固定。名前の形に合わないものと、検証用の `main`・設定のファイルには触らない
-- 2 回続けて動かしても、2 回目は 0 件で終わる
-- `sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに打てる。既定のモードの `claude -p` から打っても止まらない
+MCP サーバを起動し直すと、`bin/pecot` が `cli/src` からビルドし直します。
+Claude Code では、Reconnect の後も、会話に読み込み済みのツール定義が古いまま残ります。`/clear` で新しい会話にします。会話を残したいときは、セッションを始め直します。
 
 ### 配る自動化を確かめる
 
-利用者へ配る `cli/templates/workflow/pecot-board-sync.yml` を直したときは、マージの前に、検証用の `.github/workflows/` に入れて起こす。
-テンプレートは、npm に公開した `@pecot/workflow-mcp` を `npx` で取る。直した中身で動かすには、作業ツリーから作った tgz を取らせる。
+利用者に配る `cli/templates/workflow/pecot-board-sync.yml` を直したときは、マージの前に検証用の `.github/workflows/` に入れて動かします。テンプレートは npm の `@pecot/workflow-mcp` を `npx` で取得するので、直した中身は作業ツリーから作った tgz で渡します。
+検証用の `main` の workflow を書き換えるので、この確かめは一度に 1 人で行います。
 
-検証用の main の workflow を書き換えるので、この確かめは 1 度に 1 人で行う。
-
-1. 作業ツリーで、配布ツリーを作る。`<版>` は `plugins/pecot-workflow/.claude-plugin/plugin.json` の版
+1. 作業ツリーで配布ツリーを作る。`<版>` は `.claude-plugin/plugin.json` の版
 
    ```bash
-   OUT=<リポの外の、不在か空のディレクトリ>
+   OUT=<リポの外にある、空か存在しないディレクトリ>
    bash plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version=<版>-cuj.<Issue番号>.r<乱数> --out-dir="$OUT"
    ```
 
-   - `--out-dir` は、実体のパスがリポの外になければ止まる
-     - worktree では `.pecot/work/<Issue番号>/dist` を使える。`.pecot/work` の実体が base にあり、リポの外になるため
-     - base とふつうの clone では、`.pecot/work` の実体がリポの中なので使えない。リポの外のディレクトリを渡す
-   - 版の `-cuj.<Issue番号>.r<乱数>` は、`npx` が取った版を手順 3 の `--version` で見分けるため
-     - `<乱数>` の前の `r` は、`0042` のような数字だけの `<乱数>` でも版を semver として有効にするため
-2. `$OUT` で `npm pack --pack-destination <置き場>` を打つ。リポの中で打つと、ルートの devEngines で止まる
-3. tgz を検証用のリリースに添え、URL を取る。その URL から `npx` が直した版を取れることを見る
+   worktree では `.pecot/work/<Issue番号>/dist` を使える（実体が base にあり、リポの外になるため）。base では使えない。版の `r` は、数字だけの `<乱数>` でも semver として有効にするためのもの
+2. `$OUT` で `npm pack --pack-destination <置き場>` を実行する。リポの中で実行すると、ルートの devEngines で止まる
+3. tgz を検証用のリリースに添付し、URL から直した版を取得できることを確かめる
 
    ```bash
    gh release create cuj/<Issue番号>-<乱数>-tgz <tgz> --latest=false --target main -R pecotcraft/pecot-sandbox
    gh api repos/pecotcraft/pecot-sandbox/releases/tags/cuj/<Issue番号>-<乱数>-tgz --jq '.assets[0].browser_download_url'
-   npx -y --prefix=/ <URL> --version    # pecot version <版>-cuj.<Issue番号>.r<乱数> が出る
+   npx -y --prefix=/ <URL> --version   # pecot version <版>-cuj.<Issue番号>.r<乱数> と出ること
    ```
 
-4. 作業ツリーのテンプレートを写し、`npx` に渡す `@pecot/workflow-mcp@latest` だけを、その URL に替える
-5. 検証用の clone で、写しを入れる PR を出し、merge queue で入れる
-   - `gh pr create` はフックが止めるので、`pecot issue create`・`pecot session start`・`pecot pr create`・`pecot pr merge` を使う
-   - 題とブランチは「作るものの名前の形」に合わせる
-   - `workflow_dispatch`・`pull_request_target`・`issues` は、既定のブランチの定義で動く。PR のブランチに置いただけでは、直した定義で動かない
-6. PR・Issue を変えるか `gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` を打って起こし、次の 2 つを見る
-   - 実行の `Sync the board` の step が、URL の `npx` の行で成功すること
-   - 検証用の clone で `pecot board show` を打ち、`project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
-7. 写しを、このリポの main の `.github/workflows/pecot-board-sync.yml` と同じ中身に戻す PR を入れる
-   - 戻す先はテンプレートではない。`sandbox-diff.sh` は、このリポの `.github/workflows/` の写しと比べる。テンプレートとは `npx` の 1 行が違う
-8. `sandbox-diff.sh` で「ずれは 0 件」を見てから、`sandbox-sweep.sh` でリリースを消す
-   - 順を逆にすると、検証用の main の workflow が消えた URL を取りに行き、間の実行が落ちる
+4. 作業ツリーのテンプレートを写し、`@pecot/workflow-mcp@latest` だけをその URL に置き換える
+5. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作り、`pecot pr merge` で merge queue に入れる。`workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
+6. PR・Issue を変えるか、`gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` で起動し、次の 2 つを確かめる
+   - 実行の `Sync the board` の step が、URL を使う `npx` の行で成功すること
+   - `pecot board show --json` の `project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
+7. 写しを、このリポの `main` の `.github/workflows/pecot-board-sync.yml` と同じ中身に戻す PR を入れる。`sandbox-diff.sh` はテンプレートではなく、この写しと比べる
+8. `sandbox-diff.sh` でずれが 0 件であることを確かめてから、`sandbox-sweep.sh` でリリースを消す。順が逆だと、消えた URL を取りに行く実行が失敗する
 
-定期の起動は、検証用に届かない。検証用の写しは `schedule` を持たず、このリポの Lambda（`.github/board-sync/`）は `pecotcraft/pecot` だけを起こす。
-検証用から Lambda に配送が届いても、このリポの workflow は起きない。`handler.mjs` がリポの ID を比べ、違う配送を捨てる。
-2026-11-17 に、デプロイ済みの設定で確かめた。
+定期の起動は検証用には届きません。検証用の写しは `schedule` を持ちません。このリポの Lambda（`.github/board-sync/`）は、`handler.mjs` がリポの ID を比べて、`pecotcraft/pecot` だけを起動します。
 
 ### このリポだけの運用
 
-次の運用は、このリポだけで動き、利用者へは配らない。検証用に、確かめる場所を作らない。
+次の運用はこのリポだけで動き、利用者へは配りません。検証用には確かめる場所を作りません。
 
-| 運用 | 今の確かめ方 |
+| 運用 | 確かめ方 |
 |:---|:---|
-| リリース（`release.yml`・`publish-npm.yml`） | `gh workflow run release.yml --ref main` の dry-run で案を見る。`publish-mcp-dist.sh --dry-run` で配布ツリーを作る。workflow の形は `.githooks/tests/test_release_workflow.py`・`test_publish_npm_workflow.py` |
-| 依存の更新と脆弱性の通知（`dependabot-*.yml`・`security-alerts.yml`） | `.githooks/tests/test_dependabot_commit_workflow.py`。Tracker を作る `pecot tracker sync` は、検証用で流せる（「GitHub に書き込む処理の一覧」） |
-| workflow を外から起こす仕組み（`.github/board-sync/` の Lambda と Scheduler） | `.github/board-sync/handler.test.mjs`（`.githooks/tests/test_board_sync.py` から動かす） |
+| リリース（`release.yml`・`publish-npm.yml`） | `gh workflow run release.yml --ref main` の dry-run で案を見ます。配布ツリーは `publish-mcp-dist.sh --dry-run` で作ります。workflow の形は `.githooks/tests/test_release_workflow.py`・`test_publish_npm_workflow.py` |
+| 依存の更新と脆弱性の通知（`dependabot-*.yml`・`security-alerts.yml`） | `.githooks/tests/test_dependabot_commit_workflow.py`。Tracker を作る `pecot tracker sync` は検証用で実行できます |
+| workflow を外から起動する仕組み（`.github/board-sync/` の Lambda と Scheduler） | `.github/board-sync/handler.test.mjs`（`.githooks/tests/test_board_sync.py` から実行） |
 
-プラグインのほかにも、利用者へ配るもの（workflow・Lambda など）ができたら、検証用に確かめる場所を作る。
+利用者へ配るもの（workflow・Lambda など）を新しく作ったときは、検証用に確かめる場所を作ります。
 
 ### GitHub に書き込む処理の一覧
 
-pecot-workflow の定義書（`interface/authored.yaml`）から、次の 2 つを漏れなく拾った表。
+定義書（`interface/authored.yaml`）の effects から、GitHub に書き込む処理を拾った一覧です。
+対象は、`target: github` で `kind` が `write` か `destructive` のものです。remote へ push する `target: git` のもの（`pr_restack` だけ）も含みます。
+MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形です。「sweep」は `sandbox-sweep.sh` で片付くことを表します。
 
-- `effects` の `target: github` で、`kind` が `write` か `destructive` の項目
-- remote へ push する `target: git` の項目。`pr_restack` だけが `git push --force-with-lease` で push する。ほかの `git` の項目は、手元のブランチ・worktree だけを変える
-
-MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形。「流した結果」は、2026-11-17 に pecot 7.0.0 を検証用に流した結果。括弧の中の番号は、検証用のリポの Issue・PR の番号。
-
-| MCP ツール | CLI のコマンド | 作るもの・変えるもの | 片付け方 | 流した結果 |
-|:---|:---|:---|:---|:---|
-| `board_add` | `pecot board add` | ボードのカードと Status | `sandbox-sweep.sh`（Issue のカードをアーカイブ） | 通った。外したカードを Ready に戻した（#215） |
-| `board_move` | `pecot board move` | カードの Status | `sandbox-sweep.sh`（カードをアーカイブ） | 通った。backlog と ready に移した（#214） |
-| `board_sync` | `pecot board sync` | カードの列と Status。新しい 20 件を超えた Archived のカードを削除 | 名前の形のものは `sandbox-sweep.sh`。削除は戻せない | 通った。動かすカードと消すカードは 0 件だった |
-| `branch_delete` | `pecot branch delete` | リモートブランチの削除 | 不要（消す処理） | 通った。消すと、その head の PR を GitHub が閉じた（#219） |
-| `issue_block` | `pecot issue block` | blocked-by・Issue の本文・カードの列 | `sandbox-sweep.sh`（Issue を閉じる） | 通った（#214、#225） |
-| `issue_unblock` | `pecot issue unblock` | blocked-by の解除・Issue の本文・カードの列 | `sandbox-sweep.sh` | 通った（#214、#225） |
-| `issue_comment` | `pecot issue comment` | Issue のコメント | Issue ごと `sandbox-sweep.sh` が閉じる。コメントは残る | 通った。`-m` で送るときは `-t` でテンプレートの種類を渡す（#214） |
-| `issue_create` | `pecot issue create` | Issue・blocked-by・カード・sub-issue | `sandbox-sweep.sh`（題に `[cuj …]` を含める） | 通った（#210 ほか） |
-| `issue_reopen` | `pecot issue reopen` | Issue を開き直す・カードのアーカイブを解く・`Status` の `Done` を消す | `sandbox-sweep.sh` | 通った。`Status` の `Done` を消し、後の `session start` でも Issue は開いたままだった（pecotcraft/pecot#536） |
-| `pr_create` | `pecot pr create` | PR・スタックへの登録・カードの Status | `sandbox-sweep.sh`（PR を閉じる） | 通った（#211 ほか） |
-| `pr_merge` | `pecot pr merge` | PR のマージか merge queue への投入 | マージ済みの PR は残り、commit は検証用の `main` に残る | 通った。merge queue で落ちた PR は queue から外れた（#211、#213） |
-| `pr_restack` | `pecot pr restack` | 手元のブランチの rebase と、remote のブランチの置き換え（`git push --force-with-lease`） | `sandbox-sweep.sh`（ブランチを消す） | 通った。積んだ PR だけが対象で、積んでいない PR は遅れていても「up to date」になる（#219） |
-| `project_create` | `pecot project create` | org のボードとフィールド | 手で片付ける。題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消す | 通った。作った後は、新しいボードが有効になるので、`project activate` で戻す |
-| `project_init` | `pecot project init` | ボードのフィールドと選択肢 | 手で片付ける。題に `[cuj <Issue番号>-<乱数>]` を入れたボードで流し、`gh project delete` で消す | 通った。フィールドの無いボードを `gh project create` で作って流した |
-| `project_link` | `pecot project link` | リポのプロジェクトへのつなぎ | 手で外す。`gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` | 通った。外す手順も、この形で動いた |
-| `release_create` | `pecot release create` | `v*` のリリースとタグ | 手で片付ける。作ったタグを `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox` で消す | 通った。版の節を書いた `CHANGELOG.md` を clone に一時に置いて流した |
-| `release_merge` | `pecot release merge` | release の PR のマージと、head ブランチの削除 | 流せない。このリポは bypass で通す操作だが、bypass はこのリポだけの運用（FR-008）なので、検証用には足さない | 流せない |
-| `session_start` | `pecot session start` | 紐づいたブランチ・カードの Status を `active` に | `sandbox-sweep.sh`（ブランチを消す） | 通った（#210 ほか） |
-| `session_finish` | `pecot session finish` | Issue を閉じる・リモートの head ブランチを削除 | 不要（閉じる・消す処理）。カードは `sandbox-sweep.sh` がアーカイブ | 通った（#214） |
-| `tracker_sync` | `pecot tracker sync` | Tracker の Issue（題に `[cuj …]` が付かない）・カード | 手で片付ける。作った Issue の番号を控え、`gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じる | 通った。対象が 0 件で、Tracker を作らずに終わった |
-| （MCP ツールなし） | `pecot-board-sync.yml`（利用者へ配る workflow） | PR・Issue の変化で `board_sync` を動かし、カードの列と Status を直す | 検証用の `.github/workflows/` に入れる。`sandbox-diff.sh` がこのリポの `main` と中身を比べる | 動いた。PR・Issue の変化で毎回起き、成功した（run 43999921365 ほか）。写しはこのリポの `main` にそろえた（#209）。直した中身の tgz（7.0.0-cuj.477.6dm3）を取る写しでは、前提を `gh issue close` で閉じると、待つ側の Status を Needs Attention にした（run 44014436472、#243） |
-
-名前の形に合わないものを作る処理は、`sandbox-sweep.sh` では片付かない。表の「手で片付ける」の手順で消す。
-
-### 書き込む前の 3 つの決まり
-
-1. 環境に `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` が無く、手元で `gh` に認証していれば、`.pecot/config/.env` は置かなくてよい。pecot は、この 2 つの変数が無いと `gh auth token` を使う
-   - 別のトークンで書き込むときは、検証用の clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` の 1 行を書く
-   - そのときは 2 つの変数を環境から外す。`.env` の行は、既にある環境変数を上書きしない
-2. 書き込む前に、毎回 `board_show` を呼ぶ。書き込む先がボード `pecot sandbox` であることを見てから、書き込む処理を動かす
-   - `board_show` はボードの題を出さない。`project` の `number` が、上の「試験環境の一覧」の検証用のボードの番号と同じことを見る
-3. このリポの ruleset・ボード・`pecot-board-sync.yml` の決まりを変えるときは、検証用を先に変える。順を逆にすると、検証用が古い決まりのままで、確かめた結果がこのリポで再現しない
+| MCP ツール | 作るもの・変えるもの | 片付け方・注意 |
+|:---|:---|:---|
+| `board_add` | カードと Status | sweep（カードをアーカイブ） |
+| `board_move` | カードの Status | sweep |
+| `board_sync` | カードの列と Status。新しい 20 件を超えた Archived のカードを削除 | 名前の形のものは sweep。削除は戻せません |
+| `branch_delete` | リモートブランチの削除 | 不要。その head の PR は GitHub が閉じます |
+| `issue_block`・`issue_unblock` | blocked-by・Issue の本文・カードの列 | sweep |
+| `issue_comment` | Issue のコメント | Issue ごと sweep が閉じます（コメントは残ります）。`-m` で送るときは `-t` で種類を渡します |
+| `issue_create` | Issue・blocked-by・カード・sub-issue | sweep |
+| `issue_reopen` | Issue の再オープン・カードのアーカイブ解除・Status の `Done` の削除 | sweep |
+| `pr_create` | PR・スタックへの登録・カードの Status | sweep（PR を閉じる） |
+| `pr_merge` | PR のマージか merge queue への投入 | マージした PR と commit は検証用の `main` に残ります |
+| `pr_restack` | 手元のブランチの rebase と `git push --force-with-lease` | sweep。対象は積んだ PR だけです |
+| `project_create` | org のボードとフィールド | 題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消します。作ると新しいボードが有効になるので、`project activate` で戻します |
+| `project_init` | ボードのフィールドと選択肢 | 題に `[cuj <Issue番号>-<乱数>]` を入れて `gh project create` で作った空のボードで実行し、`gh project delete` で消します |
+| `project_link` | リポとプロジェクトのつなぎ | `gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` |
+| `release_create` | `v*` のリリースとタグ | `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox`。版の節を書いた `CHANGELOG.md` を clone に一時的に置いて実行します |
+| `release_merge` | release の PR のマージと head ブランチの削除 | 検証用では実行できません。このリポだけの bypass で通す操作で、検証用には bypass を足しません |
+| `session_start` | 紐づいたブランチ・カードの Status を `active` に | sweep（ブランチを消す） |
+| `session_finish` | Issue のクローズ・リモートの head ブランチの削除 | カードは sweep がアーカイブします |
+| `tracker_sync` | Tracker の Issue（題に `[cuj …]` が付きません）・カード | 作った Issue を `gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じます |
+| （配る workflow の `pecot-board-sync.yml`） | PR・Issue の変化で `board_sync` を動かす | 「配る自動化を確かめる」の手順で入れて戻します |
