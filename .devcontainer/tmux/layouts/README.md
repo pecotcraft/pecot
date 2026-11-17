@@ -30,7 +30,7 @@ REPOS=(wt1:pecot wt2:pecot)
 例:
 
 ```bash
-# wt1-wt4 の pecot を 4 ペインで同時に開く（parallel-a。wt5-wt8 は parallel-b）
+# wt1-wt4 の pecot を 4 ペインで同時に開く（parallel-a。wt5-wt8 は parallel-b、wt9-wt12 は parallel-c）
 REPOS=(wt1:pecot wt2:pecot wt3:pecot wt4:pecot)
 ```
 
@@ -52,6 +52,7 @@ REPOS=(wt1:pecot wt2:pecot wt3:pecot wt4:pecot)
 | base    | default    | `pecot-base-default`    |
 | base    | parallel-a | `pecot-base-parallel-a` |
 | base    | parallel-b | `pecot-base-parallel-b` |
+| base    | parallel-c | `pecot-base-parallel-c` |
 | wt1     | default    | `pecot-wt1-default`     |
 | wt1     | parallel-a | `pecot-wt1-parallel-a`  |
 
@@ -79,6 +80,7 @@ layout 違いを並行起動できる。
 | base    | default    | `pecot-base-default:base-pecot`                                           |
 | base    | parallel-a | `pecot-base-parallel-a:wt1-pecot`, ..., `pecot-base-parallel-a:wt4-pecot` |
 | base    | parallel-b | `pecot-base-parallel-b:wt5-pecot`, ..., `pecot-base-parallel-b:wt8-pecot` |
+| base    | parallel-c | `pecot-base-parallel-c:wt9-pecot`, ..., `pecot-base-parallel-c:wt12-pecot` |
 
 ## 入力バリデーション
 

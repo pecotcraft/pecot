@@ -316,9 +316,9 @@ describe('getNextSetName', () => {
     expect(getNextSetName(projectOf(['wt1/myrepo', 'wt3/myrepo']), 'myrepo')).toBe('wt4')
   })
 
-  it('全セットに参加済みで max を超えるなら WorktreeRuntimeError', () => {
+  it('番号に上限は無い。wt1〜wt9 に参加済みなら wt10', () => {
     const directories = Array.from({ length: 9 }, (_unused, index) => `wt${String(index + 1)}/myrepo`)
-    expect(runtimeMessage(() => getNextSetName(projectOf(directories), 'myrepo'))).toBe('all of wt1 to wt9 are in use: no free set')
+    expect(getNextSetName(projectOf(directories), 'myrepo')).toBe('wt10')
   })
 
   it('base ディレクトリと wt でないディレクトリは無視する', () => {
@@ -349,10 +349,8 @@ describe('getNextSetName', () => {
     expect(getNextSetName(projectOf(['wt1/myrepo', 'wt2/myrepo']), 'myrepo', { claimed: ['wt3'] })).toBe('wt4')
   })
 
-  it('prefix と max を変えられる', () => {
-    const root = projectOf(['ws1/myrepo'])
-    expect(getNextSetName(root, 'myrepo', { prefix: 'ws' })).toBe('ws2')
-    expect(runtimeMessage(() => getNextSetName(root, 'myrepo', { prefix: 'ws', maxNumber: 1 }))).toBe('all of ws1 to ws1 are in use: no free set')
+  it('prefix を変えられる', () => {
+    expect(getNextSetName(projectOf(['ws1/myrepo']), 'myrepo', { prefix: 'ws' })).toBe('ws2')
   })
 })
 

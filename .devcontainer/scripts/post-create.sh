@@ -28,7 +28,7 @@ fi
 if [ "${CI:-}" != "true" ]; then
   cd "$root"
   git worktree prune
-  for _ in 1 2 3 4 5 6 7 8; do
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
     "$root/plugins/pecot-workflow/bin/pecot" worktree add -D "$root"
   done
 fi

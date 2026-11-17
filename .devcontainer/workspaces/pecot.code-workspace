@@ -8,7 +8,11 @@
     { "name": "pecot (wt5)", "path": "/workspaces/wt5/pecot" },
     { "name": "pecot (wt6)", "path": "/workspaces/wt6/pecot" },
     { "name": "pecot (wt7)", "path": "/workspaces/wt7/pecot" },
-    { "name": "pecot (wt8)", "path": "/workspaces/wt8/pecot" }
+    { "name": "pecot (wt8)", "path": "/workspaces/wt8/pecot" },
+    { "name": "pecot (wt9)", "path": "/workspaces/wt9/pecot" },
+    { "name": "pecot (wt10)", "path": "/workspaces/wt10/pecot" },
+    { "name": "pecot (wt11)", "path": "/workspaces/wt11/pecot" },
+    { "name": "pecot (wt12)", "path": "/workspaces/wt12/pecot" }
   ],
   "settings": {
     "files.exclude": {

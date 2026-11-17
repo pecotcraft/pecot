@@ -657,16 +657,13 @@ describe('worktree add', () => {
     expect(withBase.code).toBe(0)
   })
 
-  it('wt1 から wt9 までのセットがすべて使われていると、何も作らず、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-WORKTREE-ADD-43')
-    await verifies(context, 'PW-WORKTREE-ADD-44')
+  it('wt1 から wt9 までのセットがすべて使われているとき、wt10 のセットを始める', async (context) => {
+    await verifies(context, 'PW-WORKTREE-ADD-55')
     const { repository, root } = createProject()
     for (let number = 1; number <= 9; number += 1) gitForTest(repository, ['worktree', 'add', '-q', '-b', `wt${String(number)}`, path.join(root, 'used', String(number))])
-    const before = worktreePaths(repository)
     const result = await pecot(['worktree', 'add', '-D', repository])
-    expect(result.code).toBe(1)
-    expect(result.stderr).toContain('error: all of wt1 to wt9 are in use: no free set')
-    expect(worktreePaths(repository)).toEqual(before)
+    expect(result.code).toBe(0)
+    expect(worktreePaths(repository)).toContain(path.join(root, 'wt10', 'demo'))
   })
 
   it('同じ名前のブランチが別の upstream で既にあり --allow-existing-branch が無いと、何も作らず、終了コード 1 で終わる', async (context) => {
