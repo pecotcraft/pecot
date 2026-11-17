@@ -115,6 +115,15 @@ describe('エージェントファイルの存在', () => {
     expect(statSync(path.join(agentsDirectory, 'w-reviewer.md')).isFile()).toBe(true)
   })
 
+  it('w-reviewer の [cuj] は、流す先の欠け・作業中のリポで流す計画・-p で動かない CUJ を挙げる', () => {
+    const body = readFileSync(path.join(agentsDirectory, 'w-reviewer.md'), 'utf8')
+    for (const rule of [
+      '- 「流す先」の項目が無い CUJ は、欠けとして CUJ の番号を挙げる',
+      '作業中のリポで流す計画として CUJ の番号を挙げる。指示に検証用の場所が無いリポでは挙げない',
+      '「誰が」の項目が `-p` のものは、対話のセッションに書き直させる',
+    ]) expect(body).toContain(rule)
+  })
+
   it('pecot-visual の v-slide-creator.md は削除済みになっている', () => {
     expect(existsSync(path.join(projectRoot, 'plugins', 'pecot-visual', 'agents', 'v-slide-creator.md'))).toBe(false)
   })

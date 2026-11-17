@@ -21,7 +21,7 @@ CUJ ごとに「流す先」を書く。外へ書き込む CUJ は、プロジ�
 
 CUJ を順に流し、合格基準ごとに合否と根拠を、PR の Verified に書く。
 
-- 作業ツリーのプラグインで流す。`--plugin-dir` に作業ツリーのプラグインの絶対パスを渡して、新しいセッションを起こす。省くと、インストール版が動く
+- 変えたものが Claude Code・GitHub Copilot CLI のプラグイン（スキル・hook・MCP サーバ・エージェント）なら、作業ツリーのプラグインで流す。`--plugin-dir` に作業ツリーのプラグインの絶対パスを渡して、新しいセッションを起こす。省くと、インストール版が動く
 - hook: スクリプトを直接叩かない。新しいセッションでスキルを起動し、hook の発火と出力を記録で確かめる。依頼は自然文で書く。スラッシュコマンドでは Skill ツールを経ず、`PostToolUse:Skill` が発火しない
 
   ```bash
@@ -35,8 +35,8 @@ CUJ を順に流し、合格基準ごとに合否と根拠を、PR の Verified 
 
 - 子の CLI の `-p` は、承認の要る呼び出しを止まらずに拒否する。使うツールを、Claude Code は `--allowedTools=<ツール>`、GitHub Copilot CLI は `--allow-tool='<ツール>'` で許す
 
-- EnterPlanMode / ExitPlanMode / AskUserQuestion を含む CUJ: `-p` では動かない。対話のセッションを起こして流す
-- 流す先が検証用の CUJ: 検証用の clone を作業ディレクトリにして、子の CLI を起こして流す
+- EnterPlanMode / ExitPlanMode / AskUserQuestion を含む CUJ: `-p` では動かない。tmux の新しい session で対話のセッションを起こし、`send-keys` で依頼を送り、`capture-pane` で画面を読む。tmux が無ければ、手順と合格基準を利用者に示して流してもらう
+- 流す先が検証用の CUJ: 検証用の clone を作業ディレクトリにして流す。プラグインの CUJ は、その clone で子の CLI を起こす
   - clone の作り方・書き込む前の確かめ・作るものの名前の形・片付けは、プロジェクトの指示に従う。指示に片付けが無ければ、作ったものを Verified に並べる
   - 子の CLI の中の MCP ツールは、clone の設定で動く。clone でプロジェクトが有効でなければ、先に `project_activate` を呼ばせる
   - 今のセッションの MCP ツールに `repo` を渡して検証用を指す形は使わない。MCP ツールはセッションのリポの設定でボードを決めるので、検証用を指すと止まる

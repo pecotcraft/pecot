@@ -132,6 +132,12 @@ describe('w-active の手順', () => {
     expect(switching).toContain('別の Issue の上に積んで着手したときは、その旨を利用者に伝える')
   })
 
+  it('実装の Step は、計画の CUJ を main が cuj-run.md に従って流すと書き、リンク先が実在する', () => {
+    const body = sectionBody(text, titleIndex(headings, '実装'))
+    expect(body).toContain('計画の CUJ を main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流す。')
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-help', 'references', 'cuj-run.md'))).toBe(true)
+  })
+
   it('base の選び方を、スキルの文に書かない', () => {
     expect(text).not.toContain('--base')
     expect(text).not.toContain('develop_branch')

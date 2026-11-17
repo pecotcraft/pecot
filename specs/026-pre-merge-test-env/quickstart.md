@@ -111,7 +111,7 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/peco
 | 手元のファイルだけを書く CUJ を含む計画を作る | その CUJ は「流す先 — 手元」 |
 | 流す先の行を消した計画を w-reviewer に渡す | 欠けとして、CUJ の番号が挙がる |
 | 流す先をこのリポにした計画を w-reviewer に渡す | このリポで流す計画として挙がる |
-| CUJ を w-e2e-planner に流させる | 検証用に PR ができ、結果に URL が載る。このリポには PR ができない |
+| CUJ を main が cuj-run.md に従って流す | 検証用に PR ができ、結果に URL が載る。このリポには PR ができない |
 | プロジェクトの指示に検証用が無いリポで、同じ手順を踏む | 計画が作られ、CUJ が流れて、止まらない |
 
 ## 8. フェーズの前後の決まり（US6、SC-010）

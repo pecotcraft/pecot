@@ -12,7 +12,7 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 1. 検証用は、今ある `pecotcraft/pecot-sandbox` とボード `pecot sandbox` を引き継ぐ。clone を作業ディレクトリにすると、pecot の書き込む先が検証用になる
 2. 直した pecot-workflow は、公式の `--plugin-dir` で作業ツリーから読み込む。このリポの開発のセッションと同じ読み込み方だ
 3. このリポと検証用の設定を比べるスクリプトと、確かめで作ったものを片付けるスクリプトを足す。どちらも配布しない
-4. 配布物は 3 点を直す。計画の CUJ に「流す先」を足す。w-e2e-planner と w-reviewer の手順を合わせる。フェーズの前後の決まりから、確かめる場所の欠けを訳にした例を外す
+4. 配布物は 3 点を直す。計画の CUJ に「流す先」を足す。w-reviewer の手順を合わせ、CUJ は main が cuj-run.md に従って流す（w-e2e-planner は消す）。フェーズの前後の決まりから、確かめる場所の欠けを訳にした例を外す
 5. 人のいないセッションは、公式の文書に動かない点が書いてある。実機で確かめてから、動かし方を選ぶ
 
 判定と根拠は [research.md](research.md) に置く。
@@ -46,7 +46,7 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 **Constraints**:
 
 - 読み込みは、各クライアントの公式の `--plugin-dir` を使う。独自の読み込み方と、独自の表示を作らない（原則 VI）
-- CUJ の定義は、plan テンプレ・w-e2e-planner・w-reviewer の 3 か所で同じ文にする。`cuj-definition-single-source.test.ts` が止める
+- CUJ の定義は、plan テンプレ・cuj-run.md・w-reviewer の 3 か所で同じ文にする。`cuj-definition-single-source.test.ts` が止める
 - 配る workflow のテンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag のほかは同じ中身に保つ。`test_board_sync_workflow_copy.py` が止める
   - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
 - 配布物を直す PR には、version plan が要る
@@ -60,7 +60,7 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 |---|---|
 | 足すスクリプト | `.githooks/scripts/` に 2 本（設定を比べる・確かめで作ったものを片付ける）と、比べる項目を書いたファイル 1 つ |
 | 足すテスト | `.githooks/tests/` に 2 本 |
-| 直す配布物 | `cli/templates/comment/plan.md`、`agents/w-e2e-planner.md`、`agents/w-reviewer.md`、`skills/w-breakdown/SKILL.md`、`skills/w-ready/SKILL.md`、`skills/w-help/references/issue-flow-rules.md`、`skills/w-help/references/spec-driven-workflow.md`。GitHub Copilot CLI 向けの写し（`com.github.copilot/agents/`）も同じに直す |
+| 直す配布物 | `cli/templates/comment/plan.md`、`skills/w-help/references/cuj-run.md`（新規。`agents/w-e2e-planner.md` は消す）、`agents/w-reviewer.md`、`skills/w-breakdown/SKILL.md`、`skills/w-ready/SKILL.md`、`skills/w-help/references/issue-flow-rules.md`、`skills/w-help/references/spec-driven-workflow.md`。GitHub Copilot CLI 向けの写し（`com.github.copilot/agents/`）も同じに直す |
 | 直す文書 | `plugins/pecot-workflow/CONTRIBUTING.md`（試験環境の一覧と手順の節）、`CLAUDE.md`（検証用の場所と案内） |
 | 検証用の整え | `pecot-sandbox` の必須のチェックの確かめ、人のいないセッション向けの App |
 | 直さないもの | pecot の CLI と MCP ツールのコード。書き込む先の切り替えは、作業ディレクトリで足りる |
@@ -122,7 +122,7 @@ specs/026-pre-merge-test-env/
 plugins/pecot-workflow/
 ├── CONTRIBUTING.md                            # 試験環境の節を足す
 ├── agents/
-│   ├── w-e2e-planner.md                       # 流す先が検証用の CUJ を、実投稿まで行う
+│   ├── w-e2e-planner.md                       # 消す。CUJ は main が cuj-run.md に従って流す
 │   └── w-reviewer.md                          # 流す先の欠けを挙げる
 ├── com.github.copilot/agents/                 # 上の 2 つの写しを同じに直す
 ├── cli/templates/comment/plan.md              # CUJ に「流す先」を足す
