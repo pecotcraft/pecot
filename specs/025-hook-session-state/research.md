@@ -111,6 +111,7 @@
 | `command` で `${CLAUDE_PLUGIN_ROOT}` が展開されるか | 展開されなければ、絶対パスを組み立てる別の手段を探す（相対のパスは、フックの `cwd` がセッションの作業ディレクトリなので使えない） | 展開される。環境変数 `CLAUDE_PLUGIN_ROOT` も渡る | Claude Code 2.1.325 | 2026-11-16 |
 | `command` で `${CLAUDE_SKILL_DIR}` が展開されるか | 使わない | 動かない（probe.log に行が残らない。同じ組の `${CLAUDE_PLUGIN_ROOT}` と絶対パスのフックは動く） | Claude Code 2.1.325 | 2026-11-16 |
 | `once: true` で PostToolUse（ExitPlanMode）のフックが外れるか | 外れなければ、引数の出し分けだけにし、重なりは許す | **matcher による**。`ExitPlanMode` だけの組なら、最初の成功で外れる。同じ組に `once` の無いフックがあっても外れる。`ExitPlanMode\|exit_plan_mode` の組では外れず、承認のたびに動く（debug ログに `Removing one-shot hook` が出ない） | Claude Code 2.1.325 | 2026-11-16 |
+| 同上（取り直し） | — | 変わらない。`ExitPlanMode` だけの組は 1 回で外れ、`ExitPlanMode\|exit_plan_mode` の組は 2 回目の承認でも動く。compact の後も登録し直されない | Claude Code 2.1.326 | 2026-11-17 |
 | 外れた後に同じスキルを起動し直したとき | — | 登録し直され、次の承認で 1 回動く | Claude Code 2.1.325 | 2026-11-16 |
 | 承認の前に同じスキルを 2 回起動したとき | — | 承認で動くのは 1 回。その後に残らない | Claude Code 2.1.325 | 2026-11-16 |
 | Skill ツールから起動したとき | — | スラッシュコマンドと同じ | Claude Code 2.1.325 | 2026-11-16 |
@@ -121,7 +122,7 @@
 
 確かめ方: 検証用のプラグインを `--plugin-dir` で読み込み、tmux の対話のセッションで計画を承認した。承認の選択肢は「Yes, manually approve edits」。フックの発火は、絶対パスのログのファイルと `--debug-file` のログで見た。`once` の結果は、matcher と組の作りを 1 つずつ変えた版で比べた。
 
-`once` が `|` を含む matcher で外れないのは、公式文書（hooks の Common fields の `once`）の記述と合わない。Claude Code の不具合として扱い、Decision では matcher を `ExitPlanMode` だけにして避ける。直ったかは、Phase 8 の実機の記録（T085）で版ごとに確かめる。
+`once` が `|` を含む matcher で外れないのは、公式文書（hooks の Common fields の `once`）の記述と合わない。Claude Code の不具合として扱い、Decision では matcher を `ExitPlanMode` だけにして避ける。直ったかは、Phase 8 の実機の記録（T085）で版ごとに確かめる。2.1.326 でも直っていない。
 
 **クイックモードのフラグ**: `.pecot-quick-mode` は消す。`issue_quick` は書かず、`pr_cleanup` の片付けからも外す。
 
@@ -167,7 +168,7 @@
 | `sessionTitle` | 返せるのは SessionStart（startup・resume・fork）と UserPromptSubmit だけ | 同じ。PostToolUse では返せないので、着手の直後に 1 回だけ変える形は採れない |
 | `terminalSequence` | 許されるのは OSC の 0・1・2・9・99・777 と BEL | 使わなくなる（通知音のフックを撤廃） |
 | `permissionDecision` | allow・deny・ask に defer が増えた | 変わった。defer は使わない |
-| PreToolUse の上位の `decision` | 非推奨 | 使っていないことを確かめる |
+| PreToolUse の上位の `decision` | 非推奨 | 使っていない。grep で出すコードが無いことを確かめた（現れるのは `claude-bash-guards.sh` のコメントだけ。2026-11-17） |
 | `CLAUDE_ENV_FILE` | SessionStart などで使える | 使わなくなる（`session-project-dir` を撤廃） |
 | Notification の matcher | 14 の値 | 使わなくなる |
 | スキルの frontmatter の `hooks`・`once` | 使える | 使う（R2） |
@@ -177,8 +178,9 @@
 | プラグインの自動更新 | マーケットプレイスごとに有効にできる。公式以外は初期値が無効 | README に推奨設定として書き、`plugin-update-notice` を消す |
 | 通知（Claude Code） | `preferredNotifChannel` の初期値 `auto` が通知を出すのは iTerm2・Ghostty・Kitty だけ。`terminal_bell` でどの端末でも BEL を鳴らす | README に推奨設定として書き、`terminal-bell` を消す |
 | プッシュ通知（Claude Code） | `inputNeededNotifEnabled` と `agentPushNotifEnabled`。Remote Control の接続中だけ届く | README に推奨設定として書く |
-| 端末の状態の表示（Claude Code） | OSC 7501 で作業中・入力待ち・完了を端末に伝える（2.1.295 以降）。`terminalProgressBarEnabled` で進捗を出す | README に、対応する端末なら設定なしで出ることを書く |
-| 通知（Copilot CLI） | `beep`（初期値は無効）、`notifications`・`terminalNotifications`（初期値は無効） | README に推奨設定として書き、`pty-bell-sender` を消す。`beep` がターンの完了で鳴るかは実機で確かめる |
+| 端末の状態の表示（Claude Code） | OSC 7501 で作業中・入力待ち・完了を端末に伝える（2.1.295 以降）。設定は要らず、tmux の中では出ない | README に、対応する端末なら設定なしで出ることを書く |
+| 進捗バー（Claude Code） | `terminalProgressBarEnabled` は初期値が有効で、隠すための設定 | 推奨設定に載せない |
+| 通知（Copilot CLI） | `beep`・`notifications`・`terminalNotifications`。1.0.112 の `copilot help config` では 3 つとも初期値が `false`。公式文書の利用者の設定の表は `beep` の初期値を `true` とし、`notifications` を載せていない | README に推奨設定として書き、`pty-bell-sender` を消す。`beep: true` は、1.0.112 でターンの終わりに BEL を 1 回出す（`false` では 0 回。2026-11-17） |
 
 README の最低対応版は、frontmatter のフックを実機で確かめた版に上げる。
 

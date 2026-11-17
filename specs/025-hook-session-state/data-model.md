@@ -26,7 +26,7 @@
 
 | 場所 | ディレクトリ | 使う値 |
 |---|---|---|
-| MCP ツール（`pr_create`・`session_status`） | セッションを始めたリポ。`directory` を受けるツールはその値 | owner/repo と番号 |
+| MCP ツール（`pr_create`・`session_show`） | セッションを始めたリポ。`directory` を受けるツールはその値 | owner/repo と番号 |
 | フック（`session-title`・`exit-plan-remind`） | `CLAUDE_PROJECT_DIR` | 番号だけ |
 
 ## 状態の置き場（変更の後）
@@ -42,8 +42,9 @@
 
 | ファイル | 書き手 | 読み手 | 消し手 |
 |---|---|---|---|
-| `.pecot-session-title` | `create_branch`・`issue_quick`（ブランチを作ったとき） | `session-title` | `pr_cleanup` |
+| `.pecot-session-title` | `session_start` | `session-title` | `session_finish` |
 | `session-title-sent` | `session-title` | `session-title` | 上書き |
+| `.plugin-sync-version` | `pecot-dir-init` | `pecot-dir-init` | 無い |
 
 作らなくなるファイルは次のとおり。古い版のものが残っていても、読む者はいない。
 

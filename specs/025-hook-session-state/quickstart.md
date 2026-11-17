@@ -40,12 +40,12 @@ pnpm -C plugins/pecot-workflow/cli vitest run tests/interface/create-branch.test
 
 ## 4. 作業中の Issue を、手元のファイルなしで確かめる
 
-1. `create_branch` でブランチを作り、checkout する。期待: `.pecot/state/.pecot-active` ができない
-2. `session_status` を呼ぶ。期待: 作業中の Issue に、その Issue の番号・題名・状態が出る
+1. `session_start` でブランチを作り、checkout する。期待: `.pecot/state/.pecot-active` ができない
+2. `session_show` を呼ぶ。期待: 作業中の Issue に、その Issue の番号・題名・状態が出る
 3. 次のプロンプトを打つ。期待: セッション名が `#<番号> <題名>` になる
 4. 別の場所に clone し直し、同じブランチを checkout する。`.pecot/state/` が無いことを確かめる
 5. その clone で `pr_create` の下書きを作る。期待: `Closes #<番号>` が入る
-6. `main` に戻して `session_status` を呼ぶ。期待: 作業中の Issue は無いと出る
+6. `main` に戻して `session_show` を呼ぶ。期待: 作業中の Issue は無いと出る
 
 ## 5. w-breakdown を確かめる
 
