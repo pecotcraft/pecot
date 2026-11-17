@@ -1913,6 +1913,9 @@ entries:
       - id: PW-ISSUE-REOPEN-24
         pattern: unwanted
         statement: 'もし Status の書き込みに失敗したなら、書けなかった Status の `warning` の行を標準エラーに出し、reopen とコメントの投稿を続けます。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
+      - id: PW-ISSUE-REOPEN-25
+        pattern: unwanted
+        statement: 'もし `--comment` が空白だけなら、Issue を開き直さずボードにも書かずに、終了コード 1 で終わります'
   PW-ISSUE-SHOW:
     help:
       details:
