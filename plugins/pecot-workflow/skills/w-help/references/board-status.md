@@ -32,15 +32,9 @@
 | ステータス | 用途 |
 |-----------|------|
 | Todo | 作業が残っている |
-| In Progress | 着手済みで、既定のブランチに向いた PR がある |
+| In Progress | 着手済みで PR がある |
 | Done | 完了 |
 | Needs Attention | 人の対応か判断を待っている。pecot が置く |
-
-- In Progress と Done は、pecot でなく、ボードの組み込みの workflow（Pull request linked to issue など）が書く
-- 積んだ PR（base が既定のブランチでない）の Issue は、Status が Todo のまま残る
-  - GitHub は、既定のブランチに向いた PR の `Closes` だけをリンクにする。積んだ PR ではリンクができず、workflow が動かない
-  - 下の PR がマージされ、`pr_restack` で base が既定のブランチに移るまで、この状態が続く
-  - そのあいだも、進行の欄は In Review になる
 
 ## ボードに値が無いとき
 

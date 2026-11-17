@@ -303,6 +303,18 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
+  PR の本文を読み、同じ本文で保存し直す。base が既定のブランチへ移った後に、GitHub に Closes を読み直させる。
+  本文が空なら保存せず false
+  */
+  async resavePullRequestBody(owner: string, repository: string, number: number): Promise<boolean> {
+    const target = `${repositoryPath(owner, repository)}/pulls/${String(number)}`
+    const body = jsonField(await this.restObject('GET', target), 'body')
+    if (typeof body !== 'string' || body === '') return false
+    await this.restObject('PATCH', target, { json: { body } })
+    return true
+  }
+
+  /**
   PR の詳細を取る（GraphQL）。関連 Issue とレビューを 1 回のクエリで取る
   */
   async getPullRequestSlim(owner: string, repository: string, number: number): Promise<PullRequestSlim> {

@@ -3129,6 +3129,12 @@
                 "type": "string"
               }
             },
+            "relinked": {
+              "description": "Open PR whose body was saved again so that GitHub links its closing Issues (only after a restack onto the develop branch)",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
             "dryRun": {
               "description": "true on dry_run (nothing was changed)",
               "type": "boolean",
