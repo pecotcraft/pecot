@@ -113,7 +113,7 @@ describe('review のワークフローの雛形', () => {
     expect(checkPr.if).toContain('github.event_name == \'issue_comment\'')
     expect(checkPr.run).toContain('GITHUB_OUTPUT')
     const checkout = stepUsing('actions/checkout')
-    expect(checkout.with?.['ref']).toBe('${{ steps.pr.outputs.sha }}')
+    expect(checkout.with?.['ref']).toBe('${{ github.event.pull_request.head.sha || steps.pr.outputs.sha }}')
     expect(checkout.with?.['fetch-depth']).toBe(1)
     expect(checkout.with?.['persist-credentials']).toBe(false)
     const afterCheck = steps.slice(steps.indexOf(checkPr) + 1)
@@ -121,6 +121,18 @@ describe('review のワークフローの雛形', () => {
       if (step === finish) continue
       expect(step.if, `${step.name ?? ''} が PR の確かめの結果を見ない`).toContain('steps.pr.outputs.ok == \'true\'')
     }
+  })
+
+  it('PR の確かめは書いた人の権限を読み、admin・maintain・write のときだけ通す', () => {
+    expect(checkPr.env?.['COMMENTER']).toBe('${{ github.event.comment.user.login }}')
+    expect(checkPr.run).toContain('collaborators/$COMMENTER/permission')
+    expect(checkPr.run).toContain('admin|maintain|write) ok=true')
+  })
+
+  it('PR の確かめは、API の失敗をプロセス置換で握りつぶさない', () => {
+    expect(checkPr.run).not.toContain('< <(')
+    expect(checkPr.run).toContain('pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")')
+    expect(checkPr.run).not.toContain('${{')
   })
 
   it('job の if・timeout-minutes・concurrency は env を読まない', () => {

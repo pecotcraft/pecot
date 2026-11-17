@@ -7,7 +7,8 @@
 # It starts when a PR is opened or marked ready for review.
 # To review again, comment "@pecotbot review" on the PR.
 # The phrase must be the whole comment, or be followed by a space or a new line.
-# Only people with write access can start it. PRs from forks and drafts are skipped.
+# Only people with write access can start it, and the job checks their permission.
+# PRs from forks and drafts are skipped.
 #
 # Install the Claude GitHub App on the repository.
 # Then set one model credential in Settings > Secrets and variables > Actions.
@@ -100,18 +101,26 @@ jobs:
           permission-contents: read
 
       # issue_comment events carry neither the head repository nor the draft flag, so read the PR.
+      # author_association also passes read-only collaborators, so read the commenter's permission.
       - name: Check the PR
         id: pr
         if: ${{ github.event_name == 'issue_comment' }}
         env:
           GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
           PR: ${{ github.event.issue.number }}
+          COMMENTER: ${{ github.event.comment.user.login }}
         run: |
-          read -r head draft state sha < <(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq '[.head.repo.full_name, .draft, .state, .head.sha] | @tsv')
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")
+          role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENTER/permission" --jq .role_name)
+          head=$(jq -r '.head.repo.full_name // ""' <<< "$pr")
+          draft=$(jq -r .draft <<< "$pr")
+          state=$(jq -r .state <<< "$pr")
           ok=false
-          if [ "$head" = "$GITHUB_REPOSITORY" ] && [ "$draft" = false ] && [ "$state" = open ]; then ok=true; fi
+          if [ "$head" = "$GITHUB_REPOSITORY" ] && [ "$draft" = false ] && [ "$state" = open ]; then
+            case "$role" in admin|maintain|write) ok=true ;; esac
+          fi
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "sha=$(jq -r .head.sha <<< "$pr")" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge the request
         if: ${{ github.event_name == 'issue_comment' && steps.pr.outputs.ok == 'true' }}
@@ -121,12 +130,12 @@ jobs:
           COMMENT_ID: ${{ github.event.comment.id }}
         run: gh api -X POST "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID/reactions" -f content=eyes --silent
 
-      # An empty ref checks out the PR merge ref. For a comment, the head checked above is read.
+      # Read the PR head, not the merge ref, so that review lines match the diff.
       - name: Checkout
         if: ${{ github.event_name == 'pull_request' || steps.pr.outputs.ok == 'true' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.pr.outputs.sha }}
+          ref: ${{ github.event.pull_request.head.sha || steps.pr.outputs.sha }}
           fetch-depth: 1
           persist-credentials: false
 
