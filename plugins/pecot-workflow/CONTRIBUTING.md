@@ -288,7 +288,7 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `issue_unblock` | `pecot issue unblock` | blocked-by の解除・Issue の本文・カードの列 | `sandbox-sweep.sh` | 通った（#214、#225） |
 | `issue_comment` | `pecot issue comment` | Issue のコメント | Issue ごと `sandbox-sweep.sh` が閉じる。コメントは残る | 通った。`-m` で送るときは `-t` でテンプレートの種類を渡す（#214） |
 | `issue_create` | `pecot issue create` | Issue・blocked-by・カード・sub-issue | `sandbox-sweep.sh`（題に `[cuj …]` を含める） | 通った（#210 ほか） |
-| `issue_reopen` | `pecot issue reopen` | Issue を開き直す・カードのアーカイブを解く | `sandbox-sweep.sh` | 通った。ただし `Status` の `Done` が残り、後の `session start` で Issue が閉じる（pecotcraft/pecot#536） |
+| `issue_reopen` | `pecot issue reopen` | Issue を開き直す・カードのアーカイブを解く・`Status` の `Done` を消す | `sandbox-sweep.sh` | 通った。`Status` の `Done` を消し、後の `session start` でも Issue は開いたままだった（pecotcraft/pecot#536） |
 | `pr_create` | `pecot pr create` | PR・スタックへの登録・カードの Status | `sandbox-sweep.sh`（PR を閉じる） | 通った（#211 ほか） |
 | `pr_merge` | `pecot pr merge` | PR のマージか merge queue への投入 | マージ済みの PR は残り、commit は検証用の `main` に残る | 通った。merge queue で落ちた PR は queue から外れた（#211、#213） |
 | `pr_restack` | `pecot pr restack` | 手元のブランチの rebase と、remote のブランチの置き換え（`git push --force-with-lease`） | `sandbox-sweep.sh`（ブランチを消す） | 通った。積んだ PR だけが対象で、積んでいない PR は遅れていても「up to date」になる（#219） |

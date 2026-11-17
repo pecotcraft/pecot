@@ -13,6 +13,7 @@ import { asNotFoundError, GitHubAPIError, GitHubNotFoundError, isSchemaError } f
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_TO_PROJECT,
+  MUTATION_CLEAR_PROJECT_ITEM_FIELD,
   MUTATION_CREATE_PROJECT,
   MUTATION_CREATE_PROJECT_FIELD,
   MUTATION_DELETE_PROJECT_ITEM,
@@ -46,6 +47,17 @@ Issue のボードのアイテム。isArchived はアイテムのアーカイブ
 export interface IssueProjectItem {
   readonly id: string
   readonly isArchived: boolean
+  /**
+  組み込みの Status 欄の値。空なら undefined
+  */
+  readonly status?: { readonly fieldId: string, readonly name: string }
+}
+
+function statusOf(item: JsonValue): IssueProjectItem['status'] {
+  const value = jsonField(item, 'status')
+  const name = jsonField(value, 'name')
+  const fieldId = jsonField(jsonField(value, 'field'), 'id')
+  return typeof name === 'string' && typeof fieldId === 'string' ? { fieldId, name } : undefined
 }
 
 export interface ListProjectItemsOptions {
@@ -229,6 +241,14 @@ export class ProjectsApi extends ReposApi {
   }
 
   /**
+  プロジェクトアイテムのフィールドの値を消す
+  */
+  async clearProjectItemField(projectId: string, itemId: string, fieldId: string): Promise<void> {
+    const result = await this.executeGraphql(MUTATION_CLEAR_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId })
+    if (!isTruthy(jsonField(jsonField(result, 'clearProjectV2ItemFieldValue'), 'projectV2Item'))) throw new GitHubAPIError('failed to clear the field')
+  }
+
+  /**
   アーカイブ済みのアイテムをボードに戻す
   */
   async unarchiveProjectItem(projectId: string, itemId: string): Promise<void> {
@@ -317,7 +337,8 @@ export class ProjectsApi extends ReposApi {
     const projectItems = truthyNodes(jsonField(issue, 'projectItems'))
     for (const item of projectItems) {
       if (jsonField(jsonField(item, 'project'), 'id') !== projectId) continue
-      return { id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'), isArchived: jsonField(item, 'isArchived') === true }
+      const status = statusOf(item)
+      return { id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'), isArchived: jsonField(item, 'isArchived') === true, ...status !== undefined && { status } }
     }
     return undefined
   }

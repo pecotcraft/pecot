@@ -377,6 +377,72 @@ describe('issue reopen', () => {
     expect(github.requests()).toEqual([])
   })
 
+  describe('組み込みの Status の Done', () => {
+    function itemWithStatus(name: string): ResponseRule {
+      const nodes = [{ id: 'PVTI_7', isArchived: false, project: { id: 'PVT_1' }, status: { name, field: { id: 'PVTSSF_status' } } }]
+      return { match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number: 7 } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: { nodes } } } } } }, times: 1 }
+    }
+    const CLEARED: ResponseRule = {
+      match: { operation: 'ClearProjectItemField', variables: { projectId: 'PVT_1', itemId: 'PVTI_7', fieldId: 'PVTSSF_status' } },
+      respond: { status: 200, body: { data: { clearProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_7' } } } } },
+      times: 1,
+    }
+
+    it('Status が Done の項目の Issue を開き直すと、開き直す前に Status を消し、removed の行を標準エラーに出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-REOPEN-26')
+      prepareProject()
+      const github = await startGithub([linkedRepositories(), itemWithStatus('Done'), CLEARED, reopened(), fieldUpdated('o3'), reopened()])
+
+      const result = await reopen(['acme/demo/7'])
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('removed: Issue acme/demo/7 Status Done on the board\nset: Issue acme/demo/7 status ready\nreopened: Issue acme/demo/7\n')
+      const labels = github.requests().map(request => labelOf(request))
+      expect(labels.indexOf('ClearProjectItemField')).toBeLessThan(labels.indexOf(PATCH))
+    })
+
+    it('Status が Done でないとき、Status を消さない', async () => {
+      prepareProject()
+      const github = await startGithub([linkedRepositories(), itemWithStatus('Needs Attention'), reopened(), fieldUpdated('o3'), reopened()])
+
+      const result = await reopen(['acme/demo/7'])
+
+      expect(result.code).toBe(0)
+      expect(github.requests().map(request => labelOf(request))).not.toContain('ClearProjectItemField')
+    })
+
+    it('Status の Done を消せないとき、warning の行を出し、reopen とコメントの投稿を続ける', async (context) => {
+      await verifies(context, 'PW-ISSUE-REOPEN-27')
+      prepareProject()
+      await startGithub([linkedRepositories(), itemWithStatus('Done'), failing({ operation: 'ClearProjectItemField' }), reopened(), fieldUpdated('o3'), reopened(), commented()])
+
+      const result = await reopen(['acme/demo/7', '--comment', '再発した'])
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toMatch(/^warning: could not remove Issue acme\/demo\/7 Status Done on the board: [\s\S]*\. The board automation may close the Issue again; clear Status on the board\n/u)
+      expect(result.stderr).toContain('reopened: Issue acme/demo/7\ncreated: comment on acme/demo/7\n')
+    })
+
+    it('--dry-run で打つと、Status を消す予定を dry-run の行に出し、doneCleared を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-REOPEN-21')
+      prepareProject()
+      await startGithub([linkedRepositories(), itemWithStatus('Done')])
+
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', dry_run: true })
+
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, doneCleared: true, commented: false, dryRun: true })
+    })
+
+    it('Status の Done を消すと、doneCleared を true で data に返す', async () => {
+      prepareProject()
+      await startGithub([linkedRepositories(), itemWithStatus('Done'), CLEARED, reopened(), fieldUpdated('o3'), reopened()])
+
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, doneCleared: true, commented: false })
+    })
+  })
+
   describe('MCP の data', () => {
     it('アーカイブを解いて status を書きコメントを投稿すると、その結果を data に返す', async () => {
       prepareProject()
@@ -387,7 +453,7 @@ describe('issue reopen', () => {
       const outcome = await reopenTool({ issue_ref: 'acme/demo/7', status: 'active', comment: '再発したので開き直す' })
 
       expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'active', unarchived: true, commented: true })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'active', unarchived: true, doneCleared: false, commented: true })
     })
 
     it('コメントの投稿に失敗したとき、コメントの失敗と分かる detail を github-api の失敗で返す', async () => {
@@ -415,7 +481,7 @@ describe('issue reopen', () => {
 
       const outcome = await reopenTool({ issue_ref: 'acme/demo/7' })
 
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', unarchived: false, commented: false, warnings: ['Issue acme/demo/7 is not on the project board'] })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', unarchived: false, doneCleared: false, commented: false, warnings: ['Issue acme/demo/7 is not on the project board'] })
     })
 
     it('dry_run で打つと、書く予定の status と dryRun を data に返す', async () => {
@@ -424,7 +490,7 @@ describe('issue reopen', () => {
 
       const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: '理由', dry_run: true })
 
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, commented: true, dryRun: true })
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, doneCleared: false, commented: true, dryRun: true })
     })
   })
 })

@@ -1770,6 +1770,10 @@
               "type": "boolean",
               "description": "Whether the item was unarchived on the board"
             },
+            "doneCleared": {
+              "type": "boolean",
+              "description": "Whether the built-in Status Done was cleared on the board"
+            },
             "commented": {
               "type": "boolean",
               "description": "Whether the reason was posted as a comment"
@@ -1805,6 +1809,7 @@
               "required": [
                 "issue",
                 "unarchived",
+                "doneCleared",
                 "commented"
               ]
             },

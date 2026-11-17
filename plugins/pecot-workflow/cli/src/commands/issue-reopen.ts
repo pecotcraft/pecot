@@ -30,6 +30,9 @@ import type { Output } from './output.js'
 // Projects V2 の自動化が Issue をもう一度閉じることがあるため、status を設定した後に待つ
 const AUTOMATION_WAIT_MILLISECONDS = 3000
 
+// 組み込みの Auto-close issue が、初期の設定で Issue を閉じる Status の値
+const DONE_STATUS = 'Done'
+
 interface ReopenTarget {
   readonly owner: string
   readonly repository: string
@@ -40,6 +43,7 @@ const ISSUE_REOPEN_OUTPUT = z.strictObject({
   issue: z.string().describe('Issue reopened (owner/repo/N)'),
   status: z.string().optional().describe('Workflow status set on the board (omitted when the Issue is not on the board or the status is not configured)'),
   unarchived: z.boolean().describe('Whether the item was unarchived on the board'),
+  doneCleared: z.boolean().describe('Whether the built-in Status Done was cleared on the board'),
   commented: z.boolean().describe('Whether the reason was posted as a comment'),
   dryRun: DRY_RUN_FIELD,
 })
@@ -51,7 +55,7 @@ async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, co
   const { owner, repository, number } = issue
   const target = `Issue ${issuePath(owner, repository, number)}`
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
-  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), unarchived: false, commented: false })
+  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), unarchived: false, doneCleared: false, commented: false })
   // アーカイブ済みの項目はボードの列に出ないので戻す。失敗したら Issue を開かずに止める
   if (item?.isArchived === true) {
     try {
@@ -64,6 +68,7 @@ async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, co
     output.done({ verb: 'update', target: `${target} unarchived on the board` })
     output.result({ unarchived: true })
   }
+  if (item?.status?.name === DONE_STATUS) await clearDoneStatus(output, client, config, { target, itemId: item.id, fieldId: item.status.fieldId })
   await client.reopenIssue(owner, repository, number)
   const itemId = item?.id
   if (itemId === undefined) {
@@ -72,6 +77,21 @@ async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, co
   else {
     await setReopenedStatus(output, client, config, { target, itemId }, status)
   }
+}
+
+// Status の Done が残ると、後の書き換えで Auto-close issue が閉じ直す（#536）。消せなければ warning にとどめて続ける
+async function clearDoneStatus(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, item: Readonly<{ target: string, itemId: string, fieldId: string }>): Promise<void> {
+  const { target, itemId, fieldId } = item
+  try {
+    await client.clearProjectItemField(config.project.id, itemId, fieldId)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.warning(`could not remove ${target} Status ${DONE_STATUS} on the board: ${error.message}. The board automation may close the Issue again; clear Status on the board`)
+    return
+  }
+  output.done({ verb: 'remove', target: `${target} Status ${DONE_STATUS} on the board` })
+  output.result({ doneCleared: true })
 }
 
 // 列を書く。書けなければ warning にとどめ、2 回目の reopen とコメントの投稿へ進む。設定できたときだけ自動化を待つ
@@ -126,9 +146,11 @@ async function planReopen(output: ReopenOutput, client: GitHubClient, config: Pr
   const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
   const hasComment = comment !== undefined && comment !== ''
   const willSetStatus = item !== undefined && isStatusConfigured(config, status)
-  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), ...willSetStatus && { status }, unarchived: item?.isArchived === true, commented: hasComment })
+  const willClearDone = item?.status?.name === DONE_STATUS
+  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), ...willSetStatus && { status }, unarchived: item?.isArchived === true, doneCleared: willClearDone, commented: hasComment })
   output.planned({ verb: 'reopen', target })
   if (item?.isArchived === true) output.planned({ verb: 'update', target: `${target} unarchived on the board` })
+  if (willClearDone) output.planned({ verb: 'remove', target: `${target} Status ${DONE_STATUS} on the board` })
   if (item === undefined) output.warning(`${target} is not on the project board`)
   else if (willSetStatus) output.planned({ verb: 'set', target: `${target} status ${status}` })
   else output.warning(notConfiguredMessage(status))
