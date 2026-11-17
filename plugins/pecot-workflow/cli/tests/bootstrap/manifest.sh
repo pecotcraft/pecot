@@ -18,7 +18,7 @@
 #   - Copilot の hooks は com.github.copilot/hooks/hooks.json にある。
 #     旧 hooks-copilot.json と .github/plugin/plugin.json は無い。
 #   - エージェントの定義は、Claude Code が agents/、Copilot CLI が com.github.copilot/agents/ から読む。
-#     後者は agents/ の同名のファイルから frontmatter の model: の行だけを除いた実ファイル（#416）。
+#     後者は agents/ の同名のファイルと name・description・本文が同じ実ファイルで、model: を持たない（#416・#551）。
 #
 #   bash plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh
 set -euo pipefail
@@ -130,16 +130,23 @@ check('旧 hooks/hooks-copilot.json は無い', !exists('hooks/hooks-copilot.jso
 JSON.parse(fs.readFileSync(path.join(root, 'com.github.copilot/hooks/hooks.json'), 'utf8'))
 check('旧 .github/plugin/plugin.json は無い（1.0 形式では Copilot が読まない）', !exists('.github/plugin/plugin.json'))
 
-// --- エージェント: Copilot は com.github.copilot/agents から読む。model の行を除いた写しの実ファイル ---
-// GitHub Copilot CLI の auto は、定義に model があると 400 model_not_supported で失敗する（#416）。
+// --- エージェント: Copilot は com.github.copilot/agents から読む。agents/ と本文を同じにした実ファイル ---
+// auto は定義に model があると 400 model_not_supported で失敗する（#416）。frontmatter の残りは agent-definitions.test.ts が確かめる（#551）。
 const agentsDir = path.join(root, 'agents')
 const copilotAgentsDir = path.join(root, 'com.github.copilot/agents')
-const fix = '直し方: agents/ の定義から frontmatter の model: の行を除いて、com.github.copilot/agents/ に写す'
-const stripModel = (text) => {
+const fix = '直し方: agents/ の定義の name・description と本文を、com.github.copilot/agents/ の同名のファイルに写す'
+// frontmatter をトップレベルのキーごとの生の行に分け、本文と合わせて返す。pecot-visual の manifest.sh と同じ処理なので、直すときは両方を直す。
+const splitDefinition = (text) => {
   const m = text.match(/^---\n([\s\S]*?)\n---\n/)
-  if (!m) return text
-  const fm = m[1].split('\n').filter((l) => !/^model:/.test(l)).join('\n')
-  return `---\n${fm}\n---\n` + text.slice(m[0].length)
+  if (!m) return undefined
+  const keys = {}
+  let current
+  for (const line of m[1].split('\n')) {
+    const key = /^([A-Za-z][\w-]*):/.exec(line)
+    if (key) { current = key[1]; keys[current] = [] }
+    if (current !== undefined) keys[current].push(line)
+  }
+  return { keys: Object.fromEntries(Object.entries(keys).map(([k, v]) => [k, v.join('\n')])), body: text.slice(m[0].length) }
 }
 const agentFiles = fs.readdirSync(agentsDir).filter((f) => f.endsWith('.md')).sort()
 check('agents/*.md が 1 つ以上ある', agentFiles.length > 0)
@@ -149,13 +156,14 @@ check('com.github.copilot/agents が symlink でない実ディレクトリ', co
 const copilotFiles = copilotIsDir ? fs.readdirSync(copilotAgentsDir).filter((f) => f.endsWith('.md')).sort() : []
 check('com.github.copilot/agents のファイル名の集合が agents/*.md と同じ', agentFiles.join(',') === copilotFiles.join(','), `${copilotFiles.join(',')}。${fix}`)
 for (const f of copilotFiles) {
-  const copy = fs.readFileSync(path.join(copilotAgentsDir, f), 'utf8')
-  const fm = copy.match(/^---\n([\s\S]*?)\n---\n/)
-  check(`com.github.copilot/agents/${f}: frontmatter に model: の行が無い`, !!fm && !fm[1].split('\n').some((l) => /^model:/.test(l)), fix)
-  if (agentFiles.includes(f)) {
-    const orig = fs.readFileSync(path.join(agentsDir, f), 'utf8')
-    check(`com.github.copilot/agents/${f}: agents/${f} から model: の行を除いたものと一致する`, stripModel(orig) === copy, fix)
+  const copy = splitDefinition(fs.readFileSync(path.join(copilotAgentsDir, f), 'utf8'))
+  check(`com.github.copilot/agents/${f}: frontmatter に model: が無い`, copy !== undefined && !('model' in copy.keys), '直し方: model: の行を消す')
+  if (copy === undefined || !agentFiles.includes(f)) continue
+  const orig = splitDefinition(fs.readFileSync(path.join(agentsDir, f), 'utf8'))
+  for (const key of ['name', 'description']) {
+    check(`com.github.copilot/agents/${f}: ${key} が agents/${f} と同じ`, orig !== undefined && copy.keys[key] !== undefined && copy.keys[key] === orig.keys[key], fix)
   }
+  check(`com.github.copilot/agents/${f}: 本文が agents/${f} と同じ`, orig !== undefined && copy.body === orig.body, fix)
 }
 
 console.log(`pass=${pass} fail=${fail}`)

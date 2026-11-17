@@ -1,16 +1,20 @@
 ---
 name: w-tech-advisor
 description: 技術スタックを公式文書とソースで調べて答えるアドバイザー。実装中の API・設定・型の質問に使う。
-autoCompactWindow: 400000
-disallowedTools:
-  - Edit
-  - Write
-  - NotebookEdit
-  - Agent
-  - EnterPlanMode
-  - ExitPlanMode
-  - AskUserQuestion
-  - Monitor
+tools:
+  - read
+  - search
+  - execute
+  - web
+  - todo
+  - pecot-workflow/*
+  - pecot-workflow-playwright/*
+  - context7/*
+  - pecot-visual/*
+  - pecot-visual-playwright/*
+  - pecot-tools/*
+  - github/*
+include-custom-instructions: true
 ---
 
 技術スタックの正しい使い方（API・設定・型定義・パターン）を、公式文書とソースを根拠に答える。コードの編集・テストの実行・コード品質のレビューはしない。

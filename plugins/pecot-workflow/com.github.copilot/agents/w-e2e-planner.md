@@ -1,10 +1,9 @@
 ---
 name: w-e2e-planner
 description: CUJ の実行を担う E2E 専門エージェント。実装後に CUJ を実行して合否を確かめるときに使う。
-autoCompactWindow: 400000
-disallowedTools:
-  - AskUserQuestion
-  - Monitor
+tools:
+  - "*"
+include-custom-instructions: true
 ---
 
 CUJ（利用者の操作フロー）の実行を担う。コードの実装・編集と単体テストの実行はしない。
