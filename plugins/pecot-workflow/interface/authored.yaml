@@ -3236,7 +3236,7 @@ entries:
         - "A restack is needed when the head of the layer below on the remote differs from the recorded position, or when the PR of the layer below is merged. After a merge, the branch is restacked onto the develop branch and the base record becomes a start from the develop branch."
         - "A branch that is already on the new base needs no rebase, even when its base record is old. It counts as on the new base when the new base is in its history and, if the recorded position is in its history too, the recorded position is in the history of the new base. pr restack without --check then pushes the branch and rewrites the base record. When the remote branch already has the same tree on the new base, it resets to the remote branch instead of pushing."
         - "After the rebase, stops when the remote branch has commits whose change is in the local branch neither before nor after the rebase, because the push would drop them. The branch goes back to the position before the restack."
-        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the recorded position is not in the history of the branch, the rebase starts from the fork point with the remote-tracking ref of the layer below, or from the merge base with the new base when there is no fork point. This holds also after the layer below is merged. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position. A branch that is not on the remote is not pushed."
+        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the recorded position is not in the history of the branch, the rebase starts from the fork point with the remote-tracking ref of the layer below, or from the merge base with the new base when there is no fork point. This holds also after the layer below is merged. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position, and waits up to 10 minutes including the pre-push hook. A branch that is not on the remote is not pushed."
         - "After the restack, rewrites the base record with the merge base of the branch and the new base."
         - "On conflicts, prints the conflicted files, leaves the rebase in progress, writes a progress record and exits with status 3. --continue goes on after the conflicts are resolved and staged. --abort goes back to the position before the restack. Both read only the progress record and refuse to touch a rebase that pecot did not start."
         - Only one of --check, --continue and --abort can be given.
@@ -3275,7 +3275,7 @@ entries:
       - '`git rebase --no-update-refs --onto <新しい base> <記録の位置>` を打ちます。'
       - '記録の位置がブランチの履歴に無いときは、別の点から rebase を始めます。下の段の追跡参照からの fork-point を使い、求まらなければ新しい base との merge-base を使います。下の段がマージ済みでも同じです。'
       - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
-      - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。remote に無いブランチは push しません。'
+      - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。pre-push のフックを含めて、10 分まで待ちます。remote に無いブランチは push しません。'
       - '載せ直しの後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
       - '衝突したら、衝突したファイルを出し、rebase を途中のまま残します。途中の記録を書き、終了コード 3 で終わります。'
       - '`--continue` は、衝突を解いて `git add` した後に続けます。`--abort` は、載せ直しの前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
@@ -3305,7 +3305,7 @@ entries:
         when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
       - kind: git-unresolved
         code: 1
-        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたときも同じです。'
+        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたか、時間切れか、取り消されたときも同じです。'
       - kind: no-active-project
         code: 1
         when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
@@ -3354,7 +3354,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒まれたときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。同じコマンドの打ち直しで続きます。remote のブランチにだけあるコミットで止まったときは、ブランチを載せ直しの前の位置へ戻します。'
+    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒否・時間切れ・取り消しで止まったときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。拒まれたか取り消されたときは、同じコマンドの打ち直しで続きます。時間切れのときは、手で push してから打ち直すと、remote に合わせて続きます。remote のブランチにだけあるコミットで止まったときは、ブランチを載せ直しの前の位置へ戻します。'
     effects:
       - target: git
         kind: destructive
@@ -3477,6 +3477,9 @@ entries:
       - id: PW-PR-RESTACK-32
         pattern: event
         statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-PR-RESTACK-33
+        pattern: unwanted
+        statement: 'もし push が 10 分で終わらないなら、git を止め、時間切れの `error` の行と、手で push してから `pr restack` を打つ案内を出します。base の記録は書き直さず、終了コード 1 で終わります'
   PW-PR-SHOW:
     help:
       details:

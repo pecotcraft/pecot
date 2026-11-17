@@ -356,6 +356,35 @@ describe('入力の検証の誤り', () => {
     expect(calls).toEqual(['start first', 'end first'])
   })
 
+  it('動いている呼び出しがキャンセルされると、コマンドが受けた io の signal が中断される', async () => {
+    const started = Promise.withResolvers<boolean>()
+    const aborted = Promise.withResolvers<boolean>()
+    const waiting = defineCommand({
+      path: ['waiting'],
+      description: '取り消しを待つ',
+      input: z.object({}),
+      output: z.strictObject({}),
+      positional: [],
+      interactive: false,
+      run: async (_input, io) => {
+        io.signal?.addEventListener('abort', () => {
+          aborted.resolve(true)
+        }, { once: true })
+        started.resolve(true)
+        await aborted.promise
+        return await exitWith(0)
+      },
+    })
+    const { client } = await open([waiting])
+    const controller = new AbortController()
+    const settled = Promise.allSettled([client.callTool({ name: 'waiting', arguments: {} }, { signal: controller.signal })])
+    await started.promise
+    controller.abort()
+    expect(await aborted.promise).toBe(true)
+    const results = await settled
+    expect(results.map(entry => entry.status)).toEqual(['rejected'])
+  })
+
   it('プログラムの誤りのとき、それまでに集めた出力も伝える', async () => {
     const noisy = defineCommand({
       path: ['noisy'],

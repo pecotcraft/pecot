@@ -4,7 +4,7 @@
 import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -17,8 +17,19 @@ import type { ConfigOptions, Workspace } from '../_helpers/workspace.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { COMMANDS } from '../../src/commands/registry.js'
+import { PUSH_TIMEOUT_MILLISECONDS } from '../../src/infra/git.js'
 
 useIsolatedEnvironment()
+
+// 30 秒かかる pre-push のフックを置き、そのパスを返す。時間切れの後にすぐ返らないと、テストの時間切れで落ちる
+function installSlowPrePush(workspace: Readonly<Workspace>): string {
+  const hooks = path.resolve(workspace.directory, workspace.git(['rev-parse', '--git-path', 'hooks']).trim())
+  mkdirSync(hooks, { recursive: true })
+  const hook = path.join(hooks, 'pre-push')
+  writeFileSync(hook, '#!/bin/sh\nexec sleep 30\n')
+  chmodSync(hook, 0o755)
+  return hook
+}
 
 // 下の段は Issue #11 の feat/demo/11、上の段は Issue #12 の feat/demo/12
 const LOWER = 'feat/demo/11'
@@ -531,6 +542,38 @@ describe('pr restack', () => {
       '  run again: pecot pr restack',
     ])
     expect(workspace.read(BASE_FILE)).toBe(record)
+  })
+
+  it('push が時間切れになると、手で push する案内を出して記録を書き直さずに終わり、手で push した後に打つと remote へ合わせる', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-33')
+    const workspace = await openStacked({ github: [lowerPullRequests('OPEN', 2)] })
+    workspace.advanceRemote(LOWER)
+    const record = workspace.read(BASE_FILE)
+    const hook = installSlowPrePush(workspace)
+    // 10 分を待てないので、push の時間切れの時計だけを縮める。止め方と時間切れの変換は実物の runGitAsync を通る
+    const timeout = AbortSignal.timeout.bind(AbortSignal)
+    const shortened = vi.spyOn(AbortSignal, 'timeout').mockImplementation(milliseconds => timeout(milliseconds === PUSH_TIMEOUT_MILLISECONDS ? 1000 : milliseconds))
+    let result: Awaited<ReturnType<Workspace['run']>>
+    try {
+      result = await workspace.run(['pr', 'restack'])
+    }
+    finally {
+      shortened.mockRestore()
+    }
+    expect(result.code).toBe(1)
+    expect(lines(result.stderr)).toStrictEqual([
+      'error: push timed out after 600 seconds',
+      `  ${UPPER} is restacked locally and the base record is unchanged`,
+      `  push the branch yourself: git push --force-with-lease origin ${UPPER}`,
+      '  then run: pecot pr restack',
+    ])
+    expect(workspace.read(BASE_FILE)).toBe(record)
+
+    rmSync(hook)
+    workspace.git(['push', '--force-with-lease', 'origin', UPPER])
+    const resumed = await workspace.run(['pr', 'restack'])
+    expect(resumed).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} synced with origin/${UPPER}\n` })
+    expect(workspace.read(BASE_FILE)).toContain(head(workspace, `origin/${LOWER}`))
   })
 
   it('git fetch が失敗すると、終了コード 1 で終わる', async (context) => {
