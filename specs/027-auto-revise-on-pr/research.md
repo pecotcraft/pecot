@@ -56,7 +56,7 @@ spec 023 の research（2026-11-11、`v1.0.271`）で確かめた事実は繰り
 - Rationale: action は、`github.actor` の権限を確かめ、admin と write だけを通す。確かめは Claude の起動の前に済む。`if` で先に落とせば、対象外の PR では runner の時間もモデルの費用もかからない
 
 job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
-起動ラベルの名前と、許す bot の一覧は、リポの変数（`vars`）から読み、式の `||` で既定値を持つ。board sync の雛形も、`if` の判定に `vars` を使っている。
+合言葉と、許す bot の一覧は、リポの変数（`vars`）から読み、式の `||` で既定値を持つ。board sync の雛形も、`if` の判定に `vars` を使っている。
 `timeout-minutes` も `vars` を読めるので、時間の上限も変数で変えられる。spec 023 の contracts は「式を受け付けない」と書いているが、公式の表と合わない。
 ただし、変数の値は文字列で、`timeout-minutes` は数を求める。
 
