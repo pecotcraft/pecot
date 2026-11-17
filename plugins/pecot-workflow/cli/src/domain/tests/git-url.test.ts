@@ -47,6 +47,10 @@ describe('parseRemoteUrl', () => {
     'ssh://git@github.com/~user/repo.git',
     'github.com/o:r',
     'https://github.com/a/b/c',
+    'git@github.com:~user/repo.git',
+    'git://host/~user/repo',
+    'C:/o/r.git',
+    'ssh://git@github.com:２２/o/r.git',
   ])('%j は形式不正', (url) => {
     expect(() => parseRemoteUrl(url)).toThrow(RemoteUrlFormatError)
     expect(() => parseRemoteUrl(url)).toThrow(/^unexpected remote URL format: /u)

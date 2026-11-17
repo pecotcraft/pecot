@@ -197,11 +197,11 @@ describe('w-onboarding の兄弟リポの検出', () => {
     expect(runBash(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
-  it('origin を解析できないと、ERROR の行を出して終了コード 1 で止まる', () => {
-    const { current } = layout('foo', { a: mine })
+  it.for(['foo', 'git@github.com:~pecotcraft/cur.git', 'C:/pecotcraft/cur.git'])('origin が %s だと、解析できない旨の ERROR の行を出して終了コード 1 で止まる', (origin) => {
+    const { current } = layout(origin, { a: mine })
     expect(runBash(script, current)).toMatchObject({
       status: 1,
-      stdout: 'ERROR: origin URL を解析できませんでした: foo\n',
+      stdout: `ERROR: origin URL を解析できませんでした: ${origin}\n`,
     })
   })
 })

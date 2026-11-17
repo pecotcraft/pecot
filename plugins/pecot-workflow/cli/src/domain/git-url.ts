@@ -12,9 +12,10 @@ export interface RemoteLocation {
 }
 
 // eslint-disable-next-line security/detect-unsafe-regex -- 入力はリモート URL 1 本で、バックトラックの幅は URL の長さに収まる
-const SCHEME_URL_PATTERN = /^(?:https?|ssh|git|ftps?):\/\/(?:[^/@]+@)?([^/:@]+)(?::\p{Nd}+)?\/([^/~][^/]*)\/([^/]+?)(?:\.git)?\/?$/u
+const SCHEME_URL_PATTERN = /^(?:https?|ssh|git|ftps?):\/\/(?:[^/@]+@)?([^/:@]+)(?::\d+)?\/([^/~][^/]*)\/([^/]+?)(?:\.git)?\/?$/u
+// 先頭が `C:` のようなドライブ文字なら、git（Windows）と同じくローカルのパスとみなす。
 // eslint-disable-next-line security/detect-unsafe-regex -- 入力はリモート URL 1 本で、バックトラックの幅は URL の長さに収まる
-const SCP_LIKE_URL_PATTERN = /^(?:[^@/:]+@)?([^/:@]+):\/?([^/~][^/]*)\/([^/]+?)(?:\.git)?\/?$/u
+const SCP_LIKE_URL_PATTERN = /^(?![A-Za-z]:)(?:[^@/:]+@)?([^/:@]+):\/?([^/~][^/]*)\/([^/]+?)(?:\.git)?\/?$/u
 const USERINFO_PATTERN = /^([a-z][a-z0-9+.-]*:\/\/)[^/]*@/iu
 
 /**

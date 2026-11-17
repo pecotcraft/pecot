@@ -23,6 +23,8 @@ pecot_active_issue_number() {
 
     local scheme_re='^(https?|ssh|git|ftps?)://([^@/]+@)?[^/:@]+(:[0-9]+)?/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$'
     local scp_re='^([^@/:]+@)?[^/:@]+:/?[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$'
+    # 先頭がドライブ文字（`C:`）なら、git（Windows）と同じくローカルのパスとみなす
+    [[ "$url" =~ ^[A-Za-z]: ]] && return 1
     [[ "$url" =~ $scheme_re || "$url" =~ $scp_re ]] || return 1
     printf '%s\n' "$number"
 }
