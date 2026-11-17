@@ -383,6 +383,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 | 書き込み権限を持つ人の `/pecot-review` で起動し、PR の head を読めるか | 起動した。checkout の `ref` に `refs/pull/<N>/head` を渡すと、PR のブランチにだけあるファイルを読めた。action のログに `Actor has write access` と `Verified human actor` が出た | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
 | 文の途中に合言葉を書いたコメント | job が `skipped` になった | 同上 | 2026-11-17 |
 | Issue への `/pecot-review` のコメント | job が `skipped` になった | 同上 | 2026-11-17 |
+| App の名前を合言葉にしたとき、コメント欄の `@` の候補に出るか | 出ない。App が作った PR（検証用の #283）で、ユーザーが画面で確かめた。`@<App の名前>` にしても補完は効かないので、`/pecot-review` から変えない | GitHub の画面（github.com） | 2026-11-17 |
 | 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
 
 - 受け付けの印として、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。合言葉の run は PR の Checks の欄に出ず、結果が出るまで無言になるためだ。飛ばされた run は印を付けないので、受け付けられなかったことも分かる
