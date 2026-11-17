@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 確かめるのはプラグイン内のリンク先のみ */
-// w-active・w-quick・w-revise・w-issueize・w-breakdown の手順（Step の順序と見出し）が崩れていないことを確かめる。
+// w-active・w-quick・w-review・w-pr・w-issueize・w-breakdown の手順（Step の順序と見出し）が崩れていないことを確かめる。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
@@ -102,14 +102,14 @@ describe('w-active の手順', () => {
 
   it('レビューは一巡 1 回で、再レビューを求めない', () => {
     const body = sectionBody(text, titleIndex(headings, 'レビュー'))
-    for (const word of ['w-reviewer', '一巡 1 回', '再レビューは不要']) expect(body).toContain(word)
+    for (const word of ['w-plan-reviewer', '一巡 1 回', '再レビューは不要']) expect(body).toContain(word)
   })
 
-  it('レビューは、w-reviewer を 1 回起こして agent ID を控え、ほかのエージェントを起こさない', () => {
+  it('レビューは、w-plan-reviewer を 1 回起こし、ほかのエージェントを起こさない', () => {
     const body = sectionBody(text, titleIndex(headings, 'レビュー'))
-    expect(body).toContain('`Agent` ツールで w-reviewer を 1 回起こし')
-    expect(body).toContain('agent teams が有効なら `name: w-reviewer` を付ける')
-    expect(body).toContain('返った agent ID を控える。完了した w-reviewer は `SendMessage` で再開できる')
+    expect(body).toContain('`Agent` ツールで w-plan-reviewer を 1 回起こし')
+    expect(body).toContain('agent teams が有効なら `name: w-plan-reviewer` を付ける')
+    expect(body).not.toContain('agent ID を控える')
     for (const agent of ['w-e2e-planner', 'w-implementer']) expect(body).not.toContain(agent)
     for (const word of ['並列 spawn', '単発 spawn', '待機']) expect(body).not.toContain(word)
   })
@@ -166,9 +166,49 @@ describe('w-quick の手順', () => {
   })
 })
 
-describe('w-revise の手順', () => {
-  const text = readSkill('w-revise')
+describe('w-review の手順', () => {
+  const text = readSkill('w-review')
   const headings = stepHeadings(text)
+
+  it('Step は 1〜3 だけで、採否を聞く・直す・resolve する Step を持たない', () => {
+    expect(headings.map(heading => heading.number)).toEqual([1, 2, 3])
+    for (const word of ['AskUserQuestion', 'resolveReviewThread', 'review-resolution', 'w-implementer']) expect(text).not.toContain(word)
+  })
+
+  it('Step 1 は、載せ直しを行わない', () => {
+    expect(sectionBody(text, numberIndex(headings, 1))).not.toContain('pr_restack')
+  })
+
+  it('Step 2 は、main が視点の参照に従ってレビューし、サブエージェントを起こさない', () => {
+    const body = sectionBody(text, numberIndex(headings, 2))
+    expect(body).toContain('main が diff をレビューする')
+    const link = 'references/review-viewpoints.md'
+    expect(body).toContain(link)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-review', link))).toBe(true)
+    for (const word of ['`Agent`', '`SendMessage`', 'w-plan-reviewer', 'cuj-run.md']) expect(body).not.toContain(word)
+  })
+
+  it('Step 3 のインラインコメントは、レビューの指摘に視点の印を付け、外部のレビュアーの指摘には付けない', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('`**F-NN** [視点の印]` で始める')
+    for (const mark of ['`[tech]`', '`[cuj]`']) expect(body).toContain(mark)
+    expect(body).toContain('外部のレビュアーの指摘には印を付けない')
+  })
+
+  it('Step 3 は、投稿で終わり、対応を w-pr の Step 5 に任せる', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('投稿したら終わる。採否は聞かず、コードは直さない。')
+    expect(body).toContain('`/pecot-w:w-pr` の Step 5')
+  })
+})
+
+describe('w-pr の手順', () => {
+  const text = readSkill('w-pr')
+  const headings = stepHeadings(text)
+
+  it('Step 5 は、CI を待つ Step 4 の後で、レビューの指摘に対応する', () => {
+    expect(titleIndex(headings, 'CI を待って直す')).toBeLessThan(titleIndex(headings, 'レビューの指摘に対応'))
+  })
 
   it('Step 5 は、main が直すことを基本にし、委譲する条件を subagent-usage.md から読ませる', () => {
     const body = sectionBody(text, numberIndex(headings, 5))
@@ -176,7 +216,7 @@ describe('w-revise の手順', () => {
     expect(body).toContain('当たらなければ main が直し、w-implementer を起こさない')
     const link = '../w-help/references/subagent-usage.md'
     expect(body).toContain(link)
-    expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-pr', link))).toBe(true)
     expect(body.indexOf(link)).toBeLessThan(body.indexOf('複数 w-implementer の並列起動を既定とする'))
   })
 
@@ -193,61 +233,30 @@ describe('w-revise の手順', () => {
     expect(body).toContain('実装者名 / モデル / 担当 F-NN / 担当ファイル群')
     const link = '../w-help/references/agent-models.md'
     expect(body).toContain(link)
-    expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-pr', link))).toBe(true)
   })
 
-  it('Step 2 は、控えた w-reviewer に SendMessage を送り、拒否されたか控えが無ければ新しく起こす', () => {
-    const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).toContain('w-reviewer に diff をレビューさせる')
-    expect(body).toContain('w-active の Step 8 で控えた agent ID か名前があれば、それを宛先に `SendMessage` を送り、PR の diff のレビューを依頼する')
-    expect(body).toContain('送信が拒否されたら（宛先が無いなど）、または ID と名前のどちらも控えていなければ、`Agent` ツールで w-reviewer を新しく起こす')
-    expect(body).toContain('GitHub Copilot CLI では、`SendMessage` を送らずに新しく起こす')
-    for (const word of ['単発 spawn', '残っていれば', 'w-implementer']) expect(body).not.toContain(word)
-  })
-
-  it('Step 2 は、計画の CUJ を実行しない（初回の実行は実装の後に済ませる）', () => {
-    const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).not.toContain('cuj-run.md')
-  })
-
-  it('Step 6 の CUJ の再実行は、main が CUJ の流し方の参照に従って流し、サブエージェントに渡さない', () => {
-    const body = sectionBody(text, numberIndex(headings, 6))
+  it('Step 5 の CUJ の再実行は、main が CUJ の流し方の参照に従って流し、サブエージェントに渡さない', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
     expect(body).toContain('main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流し直す。サブエージェントには渡さない。')
-    expect(body).not.toContain('w-e2e-planner')
-    expect(body).not.toContain('単発 spawn')
   })
 
-  it('2 巡目以降のレビューも、Step 2 と同じ分岐で w-reviewer に頼む', () => {
-    expect(text).toContain('Step 6 より後の 2 巡目以降のレビューも、Step 2 と同じ分岐で頼む。控えた w-reviewer に `SendMessage` を送り、拒否されたら新しく起こす。')
+  it('Step 5 は、F-NN の表を w-review の Step 3 のクエリで作り、リンク先が実在する', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('](../w-review/SKILL.md#f-nn-とスレッド-id-の対応表)')
+    expect(readSkill('w-review')).toContain('#### F-NN とスレッド ID の対応表')
   })
 
-  it('Step 3 のインラインコメントは、w-reviewer の指摘に視点の印を付け、外部のレビュアーの指摘には付けない', () => {
-    const body = sectionBody(text, numberIndex(headings, 3))
-    expect(body).toContain('`**F-NN** [視点の印]` で始める')
-    for (const mark of ['`[tech]`', '`[cuj]`', '`[quality]`']) expect(body).toContain(mark)
-    expect(body).toContain('外部のレビュアーの指摘には印を付けない')
-  })
-
-  it('Step 1 は、レビューの前に pr_restack で載せ直しが要るかを確かめ、要るなら載せ直す', () => {
-    const body = sectionBody(text, numberIndex(headings, 1))
-    expect(body).toContain('`pr_restack`')
-    expect(body).toContain('`check: true`')
-    expect(body).not.toContain('`stack`')
-    expect(body).not.toContain('git rebase')
-    expect(body).not.toContain('pecot pr restack')
-  })
-
-  it('Step 6 は、session_show で上の段の PR を確かめ、あれば pr_restack が要る旨を報告に入れる', () => {
-    const body = sectionBody(text, numberIndex(headings, 6))
+  it('Step 5 は、session_show で上の段の PR を確かめ、あれば pr_restack が要る旨を報告に入れる', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
     expect(body).toContain('`session_show`')
     expect(body).toContain('`pr_restack`')
-    expect(body).not.toContain('`stackedAbove`')
     expect(body.indexOf('`session_show`')).toBeGreaterThan(body.indexOf('`review-resolution` を投稿'))
     expect(body).not.toContain('git rebase')
   })
 
-  it('Step 6 の一括 resolve は、別名を使う', () => {
-    const body = sectionBody(text, numberIndex(headings, 6))
+  it('Step 5 の一括 resolve は、別名を使う', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
     expect(body.match(/\bt\d+:\s*resolveReviewThread/gu)?.length ?? 0).toBeGreaterThanOrEqual(2)
     expect(body).not.toContain('$threadId')
   })

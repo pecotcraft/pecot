@@ -20,14 +20,15 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | 小さな作業をすぐ始めたい | `/pecot-w:w-quick` |
 | Ready のタスクに着手したい | `/pecot-w:w-active` |
 | PR を作りたい | `/pecot-w:w-pr` |
-| PR のレビュー指摘に対応したい | `/pecot-w:w-revise` |
+| PR のレビュー指摘に対応したい | `/pecot-w:w-pr` |
+| PR をレビューして指摘を付けたい | `/pecot-w:w-review` |
 | PR をマージしたい | `/pecot-w:w-merge` |
 | develop → main にリリースしたい | `/pecot-w:w-release` |
 | Epic をサブタスクに分解したい | `/pecot-w:w-breakdown` |
 | 実装計画ファイルから Issue を一括登録したい | `/pecot-w:w-issueize` |
 | Epic 配下に次のサブタスクを 1 件作りたい | `/pecot-w:w-ready` |
 | Issue の前提（blocked by）を付け外ししたい・種類を変えたい | MCP ツール `issue_block` / `issue_unblock` |
-| 積んだ PR を、下の段の新しい位置へ載せ直したい | `/pecot-w:w-revise`、または MCP ツール `pr_restack` |
+| 積んだ PR を、下の段の新しい位置へ載せ直したい | `/pecot-w:w-pr`、または MCP ツール `pr_restack` |
 | リポジトリをプロジェクトに追加したい | `/pecot-w:w-repo-add` |
 | ワークツリーを作成したい | `/pecot-w:w-worktree-add` |
 | ワークツリーを削除したい | `/pecot-w:w-worktree-remove` |

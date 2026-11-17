@@ -1,16 +1,16 @@
 ---
 name: w-pr
 description: |
-  PRを作成しタイトル・説明を自動生成します。
-  Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff. Triggers: "create PR", "submit for review".
+  PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
+  Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings the user adopts. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs (use w-merge).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh api markdown:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*)
-when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい"
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment, Bash(gh api:*), Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*)
+when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
 # プルリクエスト作成
 
-現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。
+現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。CI を待ち、PR に付いたレビューの指摘のうち、利用者が採ったものを直します。
 
 ## 手順
 
@@ -103,6 +103,8 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Step 4: CI を待って直す
 
+PR がもうあるブランチで起こされたときは、ここから進む。
+
 待つ前に、pecot-workflow の MCP ツール `pr_show` を使って、PR が base とコンフリクトしていないかを確かめる。コンフリクトしていたら、base に載せ直してから待つ。
 
 次のコマンドで CI を待ち、終わった後の結果だけを 1 回出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
@@ -115,4 +117,96 @@ gh pr checks <PR番号> --watch --fail-fast > /dev/null 2>&1; gh pr checks <PR�
 - 落ちたら、PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる
 - 直すのは 3 回まで。超えたら状況を利用者に伝えて止まる
 
-PR作成後、レビュー対応は `/pecot-w:w-revise`、マージは `/pecot-w:w-merge` を使用する。
+### Step 5: レビューの指摘に対応
+
+CI が通ったら、PR に付いたレビューの指摘に対応する。自動レビューのワークフローがあるリポでは、その job も Step 4 の checks の 1 つとして待ち終えている。
+
+対応する指摘は、次の 2 つから読む。
+
+- PR の未解決のスレッドのうち、先頭が `^\*\*(R\d+/)?F-\d+` に一致するもの
+- 後ろに `review-resolution` の無い `review-findings`
+
+pecot-workflow の MCP ツール `pr_show` で、PR のコメントを読む（`reviews: true`）。
+F-NN とスレッド ID の表は、w-review の [Step 3 のクエリ](../w-review/SKILL.md#f-nn-とスレッド-id-の対応表) で作る。`gh` に渡すホストは、同じ Step の「ホストと head sha」で求める。
+
+指摘が無ければ、自動レビューの無いリポでは `/pecot-w:w-review` で指摘を付けられることを伝えて終える。
+
+#### 対応可否をユーザーに一括確認
+
+`review-findings` のコメントの URL を示し、AskUserQuestion で次の 3 択（と Other）を出す。指摘ごとには聞かない。
+
+| label | description |
+|---|---|
+| すべて対応 | F-01 から F-NN まで全件を修正 |
+| 一部のみ対応 | Other 自由入力で採用する F-NN をカンマ区切り指定（例: `F-01, F-03`） |
+| 対応なし | すべての指摘を「ユーザー判断で対応不要」として report に記録 |
+
+指摘が 0 件の `review-findings` なら、`review-resolution` を 0 件の文言で投稿し、この後の修正と resolve を飛ばす。
+
+#### 採用分を直し、main がコミット
+
+まず、選択に関わらず次の 2 つを行う。
+
+1. `issue_comment` を使って、PR 宛てのテンプレのファイルを作る（`prepare: true`・`template: "review-resolution"`）。Decision 節と Declined 節を埋める。
+
+2. 対応不要の F-NN のスレッドに、理由を返信する（w-review の Step 3 の `in_reply_to`）。
+
+「対応なし」ならここで「スレッドを一括 resolve」へ進む。採用分があれば、main が直すことを基本にする。
+
+委譲するかは、w-help の [サブエージェントの使い方](../w-help/references/subagent-usage.md) の「実装と修正を委譲する条件」で決める。当たらなければ main が直し、w-implementer を起こさない。
+
+条件に当たって委譲するときは、次のとおりにする。
+
+- 複数 w-implementer の並列起動を既定とする。直列にする場合のみ、理由を `w-implementer-1` の Goal 末尾に括弧書きで添える（例: `(直列の理由: ...)`）
+- 採用した F-NN をファイル群で分け、1 群に 1 体を割り当てる。同じファイルを 2 体に渡さない。ファイルに紐づかない F-NN は main が直す
+- 群ごとに実装者のモデル（`sonnet` / `opus`）を選び、`Agent` の `model` に渡す。基準は w-help の [エージェントのモデル](../w-help/references/agent-models.md)。GitHub Copilot CLI では `model` を省く（auto で名前を渡すと `400 model_not_supported` で失敗する）
+- spawn の前に、割り当て表（実装者名 / モデル / 担当 F-NN / 担当ファイル群）をチャットに書く
+- 1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。
+- 全員の結果がそろったら、main が 1 コミットにまとめる
+
+コミットメッセージには、対応した F-NN を書く。
+
+採用した指摘は、この PR の中で直しきる。後の PR に回さない。
+
+#### CUJ 再実行
+
+計画の CUJ（実装の後に実行したもの）が、直したファイルを読むなら、main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流し直す。サブエージェントには渡さない。不合格なら修正に戻る。
+
+#### スレッドを一括 resolve
+
+対応表のクエリを引き直し、次をすべて満たすスレッドを、採用分・対応不要分とも 1 リクエストで resolve する。
+
+- 先頭コメントが `^\*\*(R\d+/)?F-\d+` に一致する
+- `isResolved` が false
+- 今回の対応表に載っている
+
+alias は F-NN 順に `t1` から振り、スレッド ID はそのまま書く。
+
+```bash
+gh api --hostname <対象ホスト> graphql -f query='
+  mutation {
+    t1: resolveReviewThread(input: {threadId: "<F-01 のスレッド id>"}) { thread { id isResolved } }
+    t2: resolveReviewThread(input: {threadId: "<F-02 のスレッド id>"}) { thread { id isResolved } }
+  }' \
+  | jq -r 'if .data then (.data | to_entries[] | "\(.key) \(.value.thread.isResolved // "FAILED")")
+           else "REQUEST FAILED: \(.errors // . | tostring)" end'
+```
+
+`FAILED` の alias だけを再送する。出力の行数が対象スレッド数と一致することを確かめる。
+
+#### `review-resolution` を投稿
+
+書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。投稿には `issue_comment` を使う。
+
+チャットには `review-resolution` の本文をそのまま示す。
+
+修正を push したら、Step 4 に戻って CI を待つ。
+
+修正を push したあと、pecot-workflow の MCP ツール `session_show` を使って、上の段の PR があるかを確かめる。あれば、その PR の作業ディレクトリで `pr_restack` が要る旨を、チャットの報告に入れる。上の段の作業ディレクトリには入らない。
+
+#### 注意
+
+- 採否はユーザーの判断で決める。指摘を盲目的に適用しない。
+- 返信と resolve は、`**F-NN**` で始まるスレッドに限る。
+
+マージは `/pecot-w:w-merge` を使用する。

@@ -136,44 +136,30 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ## Phase 5: PR を作ると、人が介さずにレビューの指摘が PR に載る (US1、P1)
 
-**Goal**: `/pecot-w:w-revise --unattended <PR>` が、Step 1〜3 を進め、指摘の投稿で終わる。採否を聞かず、コードを直さない
+**Goal**: `/pecot-w:w-review <PR>`（旧 w-revise）が、PR の情報・main のレビュー・指摘の投稿だけを行って終わる。人が起こしても、ワークフローが起こしても同じ文を読む。指摘への対応は w-pr の Step 5 が行う（2026-11-17 のユーザーの判断で、`--unattended` の分岐をやめた）
 
-**Independent Test**: 検証用の PR に対して、端末から `/pecot-w:w-revise --unattended <PR>` を起こす。インラインコメントと `review-findings` が付き、質問が出ず、ブランチにコミットが増えていない。端末では、インラインコメントは「端末での投稿の手順」で投稿される。action のツールでの投稿は、Phase 8 で確かめる
+**Independent Test**: 検証用の PR に対して、人のいない実行の許可リストで `/pecot-w:w-review <PR>` を起こす。インラインコメントと `review-findings` が付き、質問が出ず、ブランチにコミットが増えていない。続けて同じ PR で `/pecot-w:w-pr` を起こし、Step 5 で採否を聞かれる
 
-**前提**: Phase 4（スキルが、終わりに `review_finish` を呼ぶ）
+**前提**: Phase 4（`review finish` を、ワークフローの後始末の step が呼ぶ）
 
-### Tests for User Story 1（手順）
+### Tests for User Story 1・3（手順）
 
-- [ ] T033 [US1] `p-w/cli/tests/skills/skill-flow-structure.test.ts` に、w-revise の期待を足す。Step の番号と順が変わらないこと、Step 3 に「何を投稿するか」と「端末での投稿の手順」の 2 つの節があること、`--unattended` の節に「行わないこと」の一覧があることを確かめる。落ちることを確かめる
+- [x] T033 [US1] `p-w/cli/tests/skills/skill-flow-structure.test.ts` の w-revise の期待を、w-review と w-pr の期待に書き直す。w-review は Step 1〜3 だけで、Step 2 がサブエージェントを起こさないこと、w-pr の Step 5 が採否・修正・CUJ の再実行・resolve・報告を持つことを確かめる
 
-### Implementation for User Story 1（手順）
+### Implementation for User Story 1・3（手順）
 
-- [ ] T034 [US1] `p-w/skills/w-revise/SKILL.md` の Step 3 を、「何を投稿するか」と「端末での投稿の手順」に分ける。「何を投稿するか」には、採番・投稿先の振り分け・コメントの本文の形・`review-findings` の書き方だけを書き、投稿の手段を書かない。今の `gh api` の手順は、文を変えずに「端末での投稿の手順」へ移す
-- [ ] T035 [US1] 同じファイルに、`--unattended` の進み方を足す。中身は `spec/contracts/skill-flow.md` の「Step 3 の文の分け方」の最後の段落と、「人のいない実行」の節のとおりにする。行わないことの一覧には、マージ・クローズ・リリースを含める
+- [x] T034 [US1] `p-w/skills/w-revise/` を `p-w/skills/w-review/` に改め、Step 1〜3 だけにする。Step 2 は main が `references/review-viewpoints.md` に従ってレビューする。Step 1 の載せ直しは外す
+- [x] T035 [US3] `p-w/skills/w-pr/SKILL.md` に Step 5「レビューの指摘に対応」を足す。中身は旧 w-revise の Step 4〜6 で、対応する指摘は PR の未解決の F-NN のスレッドと、`review-resolution` の無い `review-findings` から読む
+- [x] T036 [US1] エージェント w-reviewer を w-plan-reviewer に改め、計画のレビューだけに使う。視点の印は `[tech]`・`[cuj]` の 2 つにする
+- [x] T037 [P] [US1] `p-w/skills/w-help/`・`p-w/README.md` の表と参照の、w-revise・w-reviewer の行を直す。`review-findings` の Disposition を表にし、F-NN をリンクにする
+- [ ] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。結果を PR の説明に書く
   - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く
-- [ ] T036 [US1] 同じファイルの frontmatter の `description` と、冒頭の説明に、人のいない実行があることを足す。Claude Code 固有のツールの名前は足さない
-- [ ] T037 [P] [US1] `p-w/skills/w-help/references/skills.md` と `p-w/README.md` のスキルの表の、w-revise の行を直す
-- [ ] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。手で回す w-revise を Step 3 まで進めた PR と、quickstart.md の「手で回す w-revise と比べる」の表で比べる。結果を PR の説明に書く
 
 ---
 
-## Phase 6: 自動レビューは指摘の投稿で終わり、人が手で回す w-revise で続きから進められる (US3、P2)
+## Phase 6: 自動レビューは指摘の投稿で終わり、開発者は w-pr で続きから進められる (US3、P2)
 
-**Goal**: 端末の w-revise が、自動レビューの未解決の指摘を見つけると、Step 2・3 を飛ばして採否の確認から進む
-
-**Independent Test**: Phase 5 の Independent Test で指摘の付いた PR に対して、端末から `/pecot-w:w-revise` を起こす。新しい指摘が投稿されず、採否を聞かれる
-
-**前提**: Phase 5（同じファイルの Step 1 と Step 3 に書き足す）
-
-### Tests for User Story 3
-
-- [ ] T039 [US3] `p-w/cli/tests/skills/skill-flow-structure.test.ts` に期待を足す。w-revise の Step 1 に、引き継ぎの分岐があることだ。落ちることを確かめる
-
-### Implementation for User Story 3
-
-- [ ] T040 [US3] `p-w/skills/w-revise/SKILL.md` の Step 1 に、引き継ぎの分岐を足す。中身は `spec/contracts/skill-flow.md` の「引き継ぎ」のとおりにする。候補の見分け方、コミットの比べ方、古い diff のときに利用者へ示して選ばせること、レビューからやり直す道を書く
-- [ ] T041 [US3] 同じファイルの「注意」の、返信と resolve の対象の文を直す。自動レビューが開いたスレッドも、w-revise が開いたスレッドに含める
-- [ ] T042 [US3] T039 のテストを通す。quickstart.md のシナリオ 3 と 4 を、検証用の PR で main が流す。結果を PR の説明に書く
+Phase 5 の T035 に含めた。w-revise の引き継ぎの分岐は足さない。
 
 ---
 
@@ -249,9 +235,9 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 | 3 | 2 | 積める | Phase 3 の `workflow install` が、Phase 2 で足す雛形のファイルを読んで書き出す |
 | 4 | 1 | 積める | Phase 4 の結果の決め方が、Phase 1 で research.md に書く失敗と上限の見分け方を読む |
 | 5 | 4 | 積める | Phase 5 のスキルの文が、Phase 4 で足す MCP ツール `review_finish` を呼ぶ |
-| 6 | 5 | 積める | Phase 6 の引き継ぎの分岐が、Phase 5 で分けた w-revise の Step 3 の節を指す |
+| 6 | 5 | 積める | Phase 6 は Phase 5 に含めた |
 | 7 | 3 | 積める | Phase 7 の w-onboarding の Step が、Phase 3 で足す MCP ツール `workflow_install`・`workflow_doctor` を使う |
-| 8 | 6 | マージを待つ | Phase 8 の確かめは、action が既定のブランチから入れるプラグインと、npm の `@next` の `@pecot/workflow-mcp` を使う。どちらも、w-revise の変更が main に入っていないと流せない |
+| 8 | 6 | マージを待つ | Phase 8 の確かめは、action が既定のブランチから入れるプラグインと、npm の `@next` の `@pecot/workflow-mcp` を使う。どちらも、w-review の変更が main に入っていないと流せない |
 | 8 | 7 | マージを待つ | Phase 8 の導入の確かめは、既定のブランチから入るプラグインの w-onboarding と `workflow install` を使う。main に入っていないと流せない |
 | 9 | 8 | 積める | Phase 9 の文書の直しが、Phase 8 で直す雛形の既定値と、research.md に書く試行の結果を読む |
 
@@ -282,7 +268,7 @@ Phase 2〜3 と Phase 4〜6 は、Phase 1 の後なら、互いを待たずに�
 | T011 | T002〜T006・T008 の結果 |
 | T029・T030 | T007 の結果 |
 | T035 | T005 の結果。返信の手段が無ければ、2 巡目は指摘の一覧に前のスレッドを並べる |
-| T038・T042 | 直した w-revise を端末で読み込む手順（spec 026 の Phase 3） |
+| T038 | 直した w-review・w-pr を端末で読み込む手順（spec 026 の Phase 3） |
 | T052 | ユーザーによる Claude の App のインストールと、secret の登録 |
 
 ### Parallel Opportunities
@@ -292,7 +278,7 @@ Phase 2〜3 と Phase 4〜6 は、Phase 1 の後なら、互いを待たずに�
 - Phase 4 の T025・T026・T027 は、別のテストのファイルなので並べて進められる
 - Phase 2〜3 の並びと、Phase 4〜6 の並びは、触るファイルが分かれているので並べて進められる
 
-`p-w/skills/w-revise/SKILL.md` は、Phase 5 と Phase 6 が直す。同じファイルなので、Phase 6 は Phase 5 の上に積む。
+`p-w/skills/w-review/SKILL.md` と `p-w/skills/w-pr/SKILL.md` は、Phase 5 が直す。Phase 6 は Phase 5 に含めた。
 `p-w/interface/authored.yaml` は、Phase 3 と Phase 4 が項目を足す。先に main へ入った変更を取り込んでから書く。
 
 ## Parallel Example: User Story 5
@@ -307,7 +293,7 @@ T017 pecot workflow doctor のテストを書く
 
 ### MVP First
 
-Phase 1・2・4・5 で、PR の作成から指摘の投稿までが通る。雛形は手で写して置く。ここまでで、w-revise の打ち忘れで指摘の無い PR が無くなる。
+Phase 1・2・4・5 で、PR の作成から指摘の投稿までが通る。雛形は手で写して置く。ここまでで、w-review の打ち忘れで指摘の無い PR が無くなる。
 
 ### Incremental Delivery
 

@@ -24,8 +24,8 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 | 起票・計画 | `/pecot-w:w-issueize` | 実装計画の各フェーズを Issue として一括登録する |
 | 実装 | `/pecot-w:w-active` | Ready のタスクを選択し、ブランチ作成から実装計画の作成まで進める |
 | 実装 | `/pecot-w:w-quick` | 小タスクの Issue 起票・ブランチ作成・実装計画の作成を一度に行う |
-| PR・リリース | `/pecot-w:w-pr` | PR を作成する。タイトルと説明はコミット内容から生成する |
-| PR・リリース | `/pecot-w:w-revise` | 自分の PR をエージェントがレビューし、採用した指摘を修正する |
+| PR・リリース | `/pecot-w:w-pr` | PR を作成する。タイトルと説明はコミット内容から生成する。CI を待ち、採用したレビューの指摘を修正する |
+| PR・リリース | `/pecot-w:w-review` | PR をエージェントがレビューし、指摘を PR に投稿する。人が起こしても、自動レビューのワークフローから起きても同じ動きになる |
 | PR・リリース | `/pecot-w:w-merge` | PR をマージし、ブランチ削除と後処理を行う |
 | PR・リリース | `/pecot-w:w-release` | CHANGELOG 更新・タグ作成・GitHub Release 公開までのリリースを実行する |
 | 運用 | `/pecot-w:w-onboarding` | GitHub Projects ボードの作成とリポジトリ登録を行い、プロジェクトを新規セットアップする |
@@ -40,7 +40,7 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 | エージェント | 役割 |
 |:-----------|:----|
 | w-implementer | コード実装。コード変更とテスト作成 |
-| w-reviewer | レビュー。計画と PR の diff を、技術・CUJ・コード品質の 3 つの視点で見る |
+| w-plan-reviewer | 計画のレビュー。実装の計画を、技術・CUJ の 2 つの視点で見る |
 
 ## MCP サーバ
 

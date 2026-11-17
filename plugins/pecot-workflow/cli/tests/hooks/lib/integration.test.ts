@@ -355,7 +355,7 @@ const COPILOT_GUARD_ROWS: readonly CopilotGuardRow[] = [
   { label: 'gh pr create', command: 'gh pr create', branch: 'feat/x/1', decision: 'deny', reason: 'gh-pr-create-check' },
   { label: 'gh issue create', command: 'gh issue create -t x -b y', branch: 'feat/x/1', decision: 'deny', reason: 'gh-issue-create-check' },
   { label: '待機用のブランチへの commit', command: 'git commit -m x', branch: 'wt5', decision: 'deny', reason: 'protected branch' },
-  { label: 'w-reviewer の定型 clone', command: 'git clone --depth 1 https://github.com/foo/bar .pecot/work/788/reviewer/bar', branch: 'feat/x/1', decision: 'allow', reason: 'reviewer-clone-allow' },
+  { label: 'レビューの定型 clone', command: 'git clone --depth 1 https://github.com/foo/bar .pecot/work/788/reviewer/bar', branch: 'feat/x/1', decision: 'allow', reason: 'reviewer-clone-allow' },
 ]
 
 describe('統合: Copilot CLI の定義', () => {

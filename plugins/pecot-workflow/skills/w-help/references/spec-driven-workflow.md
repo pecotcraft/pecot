@@ -207,7 +207,7 @@ PR は、下の段の PR とスタックとして並ぶ。下の段の PR が無
 
 ### 上の段を載せ直す
 
-上の段の作業ディレクトリで、次の作業の前に pecot-workflow の MCP ツール `pr_restack` を呼ぶ。`/pecot-w:w-revise` も、レビューの前に載せ直しが要るかを確かめる。
+上の段の作業ディレクトリで、次の作業の前に pecot-workflow の MCP ツール `pr_restack` を呼ぶ。`/pecot-w:w-pr` も、CI を待つ前にコンフリクトを確かめて載せ直す。
 
 - 下の段に直しを push したときも、上の段で `pr_restack` を呼ぶ。`check: true` で、載せ直しが要るかだけを確かめられる
 - 衝突で止まったら、衝突したファイルを直して `pr_restack` を `continue: true` で呼ぶ。取りやめるときは `abort: true` で、載せ直しの前の位置に戻る

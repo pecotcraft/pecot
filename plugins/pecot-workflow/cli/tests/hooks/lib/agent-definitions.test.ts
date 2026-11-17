@@ -35,10 +35,10 @@ const COPILOT_KEYS = ['name', 'description', 'tools', 'include-custom-instructio
 const AGENT_ROWS: readonly AgentRow[] = [
   { label: 'pecot-visual/v-diagram-creator', plugin: 'pecot-visual', agent: 'v-diagram-creator', tools: ['Agent', 'WebSearch', 'WebFetch', ...PLAN, ASK], window: 200_000, copilotTools: ['read', 'edit', 'search', 'execute', 'todo', ...MCP] },
   { label: 'pecot-workflow/w-implementer', plugin: 'pecot-workflow', agent: 'w-implementer', tools: ['Agent', ...PLAN, ASK, 'Monitor'], window: 300_000, copilotTools: ['read', 'edit', 'search', 'execute', 'web', 'todo', ...MCP] },
-  { label: 'pecot-workflow/w-reviewer', plugin: 'pecot-workflow', agent: 'w-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
+  { label: 'pecot-workflow/w-plan-reviewer', plugin: 'pecot-workflow', agent: 'w-plan-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
 ]
 
-const WORKFLOW_SKILLS = 'w-active w-backlog w-breakdown w-help w-issueize w-merge w-onboarding w-pr w-quick w-ready w-release w-repo-add w-revise w-worktree-add w-worktree-remove'.split(' ')
+const WORKFLOW_SKILLS = 'w-active w-backlog w-breakdown w-help w-issueize w-merge w-onboarding w-pr w-quick w-ready w-release w-repo-add w-review w-worktree-add w-worktree-remove'.split(' ')
 const EXPECTED_SKILLS = [
   ...WORKFLOW_SKILLS.map(name => `pecot-workflow/${name}`),
   ...['v-drawio', 'v-evidence', 'v-slidev'].map(name => `pecot-visual/${name}`),
@@ -110,12 +110,12 @@ describe('エージェントファイルの存在', () => {
     expect(existsSync(path.join(agentsDirectory, 'w-e2e-tester.md'))).toBe(false)
   })
 
-  it('w-reviewer.md が実在する', () => {
-    expect(statSync(path.join(agentsDirectory, 'w-reviewer.md')).isFile()).toBe(true)
+  it('w-plan-reviewer.md が実在する', () => {
+    expect(statSync(path.join(agentsDirectory, 'w-plan-reviewer.md')).isFile()).toBe(true)
   })
 
-  it('w-reviewer の [cuj] は、流す先の欠け・作業中のリポで流す計画・-p で動かない CUJ を挙げる', () => {
-    const body = readFileSync(path.join(agentsDirectory, 'w-reviewer.md'), 'utf8')
+  it('w-plan-reviewer の [cuj] は、流す先の欠け・作業中のリポで流す計画・-p で動かない CUJ を挙げる', () => {
+    const body = readFileSync(path.join(agentsDirectory, 'w-plan-reviewer.md'), 'utf8')
     for (const rule of [
       '- 「流す先」の項目が無い CUJ は、欠けとして CUJ の番号を挙げる',
       '作業中のリポで流す計画として CUJ の番号を挙げる。指示に検証用の場所が無いリポでは挙げない',
@@ -129,7 +129,7 @@ describe('エージェントファイルの存在', () => {
 })
 
 describe('model フィールド', () => {
-  it.for(['w-implementer', 'w-reviewer'])('%s は、空でない model を持つ', (agent) => {
+  it.for(['w-implementer', 'w-plan-reviewer'])('%s は、空でない model を持つ', (agent) => {
     const model = modelOf(path.join(agentsDirectory, `${agent}.md`))
     expect(model).toBeDefined()
     expect(model).not.toBe('')
@@ -137,12 +137,12 @@ describe('model フィールド', () => {
 
   it.for([
     { label: 'w-implementer', agent: 'w-implementer', expected: 'sonnet' },
-    { label: 'w-reviewer', agent: 'w-reviewer', expected: 'opus' },
+    { label: 'w-plan-reviewer', agent: 'w-plan-reviewer', expected: 'opus' },
   ])('$label の model は $expected になっている', (row) => {
     expect(modelOf(path.join(agentsDirectory, `${row.agent}.md`))).toBe(row.expected)
   })
 
-  it.for(['w-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
+  it.for(['w-plan-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
     const text = readFileSync(path.join(agentsDirectory, '..', 'skills', 'w-help', 'references', 'agent-models.md'), 'utf8')
     const lines = splitLines(text)
     const start = lines.indexOf('## 役ごとのモデル')

@@ -13,7 +13,7 @@ import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 
 // 利用者が端末で打つコマンドの説明として、本文に残してよい `pecot <サブコマンド>`。
 // 書式は `<プラグインからの相対パス>:<行>`。載せるのは、w-help の、利用者が端末か `!` で打つ説明だけ。
-const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:58', 'skills/w-help/SKILL.md:60']
+const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:59', 'skills/w-help/SKILL.md:61']
 
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id'])
@@ -137,10 +137,10 @@ describe('本文のツール名', () => {
     expect(outside).toEqual([])
   })
 
-  it('w-pr の allowed-tools は、pr_check と pr_create を許す', () => {
+  it('w-pr の allowed-tools は、pr_check・pr_create・pr_show・issue_comment を許す', () => {
     const skill = documents.find(({ file }) => file === 'skills/w-pr/SKILL.md')
     expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_check')
-    expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_create')
+    for (const tool of ['pr_create', 'pr_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
   })
 
   it('COMMANDS の全ツールの名前が、重ならない', () => {
