@@ -91,7 +91,7 @@
   - 公式の文書のとおり、`workflow_dispatch` と `pull_request_target` は、既定のブランチの定義で動く。検証用の既定のブランチに置かないと、直した定義では動かない
   - テンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag だけが違う
   - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
-  - 検証用の写しは `@pecot/workflow-mcp@6` を取り、どちらとも違う（2026-11-16）。T016 で `sandbox-diff.sh` が出すずれの 1 件になる見込み
+  - 検証用の写しは、#209 でこのリポの `.github/workflows/pecot-board-sync.yml`（`@next`）にそろえた。`sandbox-diff.sh` のずれは 0 件（2026-11-17）
   - 検証用の workflow は、定期の起動（`schedule`）を持たない。このリポの定期の起動は、Lambda の Scheduler が起こしていて、検証用を向いていない。確かめていない間に検証用を書き換え続けるものは、今は無い
 - Decision: workflow の中の pecot は、直した中身から作った tgz を取る。tgz は次の 2 つの手順で作り、検証用のリリースに添える。検証用に置く写しは、`npx` に渡す名前だけを、その tgz の URL に替える
   1. `plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --out-dir=<dir>` で、配布ツリーを作る
@@ -106,7 +106,9 @@
 - Alternatives considered:
   - マージ前の中身を npm に出す。`@next` は main に入った後の版に使っていて、マージ前の版を出すと利用者にも届く。退ける
   - 写しで、このリポのブランチを checkout して build する step に差し替える。checkout・依存の導入・build の step が増え、配る YAML との差が大きい。退ける
-- 残る点: 検証用のリリースに添えた tgz を、`npx` が URL から取れるかは、Phase 4 で動かして確かめる
+- 確かめた結果: 検証用のリリースに添えた tgz を、`npx` は URL から取れた（2026-11-17）
+  - 手元の `npx -y --prefix=/ <URL> --version` は `7.0.0-cuj.477.6dm3` を出した。手元は npm 11.19.1・Node.js 24.22.1
+  - 検証用の workflow も、URL の `npx` の行で成功した（run 44014436472）
 
 ## R7. 検証用の権限（FR-016、FR-027）
 
