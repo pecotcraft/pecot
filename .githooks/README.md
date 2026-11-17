@@ -11,7 +11,7 @@
     - CI だけが呼ぶもの : `run-pr-checks.sh`・`list-test-lanes.sh`・`check-ci-result.sh`・
       `finish-ci-summary.sh`・`dev-container.sh`・`find-pr-ci-base.sh`
   - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
-  - `.githooks/scripts/` : hook の stage に属さず、リポ全体で使うスクリプト。install・CI・リリース・hook の entry から呼ぶものと、開発者が手で打つものを置く
+  - `.githooks/scripts/` : hook の stage に属さず、複数のプロジェクトにまたがって install・CI・リリース・hook から呼ぶスクリプト。1 つのプラグインだけが使うものは、手で打つものも含めて `plugins/<name>/scripts/` に置く
     - `sandbox-diff.sh` : このリポと検証用（`pecotcraft/pecot-sandbox`）の設定を比べ、ずれを出す。比べる項目は `sandbox-diff-items.json`
     - `sandbox-sweep.sh` : 確かめで検証用に作ったブランチ・PR・Issue・カード・リリースを片付ける
   - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.test.sh` は `.githooks/scripts/tests/` に置く

@@ -24,7 +24,8 @@
 
 | 置くもの | 置き場所 |
 |:---|:---|
-| リポ全体で使うスクリプト（install・CI・リリース・hook の entry から呼ぶもの、開発者が手で打つもの） | `.githooks/scripts/` |
+| 1 つのプラグイン・ライブラリだけが使うスクリプト（手で打つものも含む） | `plugins/<name>/scripts/`・`libs/<name>/` |
+| 複数のプロジェクトにまたがり、install・CI・リリース・hook から呼ぶスクリプト | `.githooks/scripts/` |
 | hook | `.githooks/<stage>/`（`pre-commit` / `commit-msg` / `pre-push`） |
 | hook が共有する関数 | `.githooks/lib/` |
 | root 共通のテスト | `.githooks/tests/` |
