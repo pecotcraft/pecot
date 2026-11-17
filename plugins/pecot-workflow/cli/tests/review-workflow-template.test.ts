@@ -1,13 +1,16 @@
 // 配布する自動レビューのワークフローの雛形が、specs/027-auto-revise-on-pr/contracts/workflow-template.md の形を保つことを確かめる。
 // actionlint は pre-commit が掛ける（.pre-commit-config.yaml の actionlint-system が雛形も対象にする）。
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
+import { markdownSection } from './_helpers/markdown-section.js'
+
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
 const template = readFileSync(path.join(pluginRoot, 'cli/templates/workflow/pecot-review.yml'), 'utf8')
+const documentPath = path.join(pluginRoot, 'skills/w-help/references/review-workflow.md')
 
 interface Step {
   name?: string
@@ -307,5 +310,63 @@ describe('review のワークフローの雛形', () => {
 
   it('後始末の step は、最新の正式版の CLI を取る', () => {
     expect(finish.run).toMatch(/^npx -y --prefix=\/ @pecot\/workflow-mcp@latest review finish /)
+  })
+})
+
+describe('自動レビューの導入の説明', () => {
+  const document = existsSync(documentPath) ? readFileSync(documentPath, 'utf8') : ''
+  const active = template.split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n')
+
+  it('説明のファイルが w-help の参照にある', () => {
+    expect(existsSync(documentPath)).toBe(true)
+  })
+
+  it('雛形の変数と secret の名前が、すべて説明に出てくる', () => {
+    const names = new Set(Array.from(active.matchAll(/\b(?:vars|secrets)\.([A-Z][A-Z_]+)/g), match => match[1] ?? ''))
+    expect([...names].toSorted((a, b) => a.localeCompare(b))).toEqual([
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID',
+      'PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID',
+      'PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID',
+      'PECOT_AGENT_ANTHROPIC_WORKSPACE_ID',
+      'PECOT_AGENT_APP_CLIENT_ID',
+      'PECOT_AGENT_APP_PRIVATE_KEY',
+      'PECOT_REVIEW_ALLOWED_BOTS',
+      'PECOT_REVIEW_MAX_TURNS',
+      'PECOT_REVIEW_TIMEOUT_MINUTES',
+      'PECOT_REVIEW_TRIGGER_PHRASE',
+    ])
+    for (const name of names) expect(document).toContain(`\`${name}\``)
+  })
+
+  it('利用者が変える 4 つの変数の既定値が、説明の表の同じ行にある', () => {
+    const defaults = new Map(Array.from(active.matchAll(/vars\.(PECOT_REVIEW_[A-Z_]+) \|\| '([^']*)'/g), match => [match[1] ?? '', match[2] ?? '']))
+    expect(defaults.size).toBe(4)
+    const rows = document.split('\n').filter(line => line.startsWith('|'))
+    for (const [name, value] of defaults) {
+      const row = rows.find(line => line.startsWith(`| \`${name}\` |`))
+      expect(row, `${name} の行が説明の表に無い`).toBeDefined()
+      expect(row).toContain(`\`${value}\``)
+    }
+  })
+
+  it('利用者が足す行の印の名前が、説明に出てくる', () => {
+    for (const area of ['allowed-tools', 'prepare']) expect(document).toContain(`pecot-review:${area}`)
+  })
+
+  it('自前の App の権限が、説明の「自前の GitHub App」の節と食い違わない', () => {
+    const appToken = stepUsing('actions/create-github-app-token')
+    const labels = new Map([['pull-requests', 'Pull requests'], ['contents', 'Contents']])
+    const fromTemplate = Object.entries(appToken.with ?? {})
+      .filter(([key]) => key.startsWith('permission-'))
+      .map(([key, access]) => {
+        const name = key.slice('permission-'.length)
+        return `${labels.get(name) ?? name}: ${String(access) === 'write' ? 'read and write' : 'read'}`
+      })
+    const lines = markdownSection(document, '## 自前の GitHub App').split('\n')
+    const permissionLines = lines.slice(lines.findIndex(line => line.includes('App の権限')) + 1)
+      .filter(line => line.startsWith('  - '))
+      .map(line => line.slice('  - '.length))
+    expect(permissionLines).toEqual(fromTemplate)
   })
 })

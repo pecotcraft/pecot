@@ -39,6 +39,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | CLI コマンド一覧（MCP ツールは、コマンドの空白と `-` を `_` に替えた名前） | [コマンド一覧](references/commands.md) |
 | ボードの列の読み方（`Blocked` と `Ready` の違い、列を動かすもの） | [ボードステータス](references/board-status.md) |
 | 列を自動で直すワークフローを置きたい | [ボードを自動で直すワークフロー](references/board-sync-workflow.md) |
+| PR を作ると自動でレビューを回すワークフローを置きたい・運用したい | [自動レビューのワークフロー](references/review-workflow.md) |
 | マージ方法の使い分け | [マージ戦略](references/merge-strategy.md) |
 | スキル一覧・役割 | [スキル一覧](references/skills.md) |
 | 認証・設定ファイル | [認証・設定ファイル](references/auth-config.md) |

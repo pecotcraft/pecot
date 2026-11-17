@@ -6,6 +6,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
+import { markdownSection } from './_helpers/markdown-section.js'
+
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
 const template = readFileSync(path.join(pluginRoot, 'cli/templates/workflow/pecot-board-sync.yml'), 'utf8')
 const document = readFileSync(path.join(pluginRoot, 'skills/w-help/references/board-sync-workflow.md'), 'utf8')
@@ -32,14 +34,6 @@ interface Workflow {
 const workflow = parse(template) as Workflow
 const steps = workflow.jobs['sync']?.steps ?? []
 const runLine = 'npx -y --prefix=/ @pecot/workflow-mcp@latest board sync'
-
-function documentSection(heading: string): string {
-  const start = document.indexOf(`\n${heading}\n`)
-  expect(start, `${heading} が文書に無い`).toBeGreaterThanOrEqual(0)
-  const rest = document.slice(start + heading.length + 2)
-  const next = rest.search(/^#{2,3} /m)
-  return next === -1 ? rest : rest.slice(0, next)
-}
 
 describe('board sync のワークフローの雛形', () => {
   it('文書に、雛形の実行の行がそのまま書かれている', () => {
@@ -113,7 +107,7 @@ describe('board sync のワークフローの雛形', () => {
       ['pull-requests', 'Pull requests'],
       ['contents', 'Contents'],
     ])
-    const lines = documentSection('### GitHub App').split('\n')
+    const lines = markdownSection(document, '### GitHub App').split('\n')
     const permissionLines = lines.slice(lines.findIndex(line => line.includes('App の権限')) + 1).filter(line => line.startsWith('  - '))
 
     const fromTemplate = granted.map(([key, access]) => `${labels.get(key) ?? key}: ${access === 'write' ? 'read and write' : 'read'}`)

@@ -187,23 +187,23 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ### Tests for User Story 4
 
-- [ ] T043 [US4] `p-w/cli/tests/review-workflow-template.test.ts` に、導入の説明と雛形の一致の期待を足す。説明に書いた変数・secret の名前・合言葉の既定値と、自前の App の権限が、雛形と同じであることを確かめる。説明が無いので落ちることを確かめる
+- [x] T043 [US4] `p-w/cli/tests/review-workflow-template.test.ts` に、導入の説明と雛形の一致の期待を足す。説明に書いた変数・secret の名前・合言葉の既定値と、自前の App の権限が、雛形と同じであることを確かめる。説明が無いので落ちることを確かめる
 
 ### Implementation for User Story 4
 
-- [ ] T044 [US4] `p-w/skills/w-help/references/review-workflow.md` を書く。導入の節に、前提・置き方・Claude の App の入れ方・モデルの認証の secret・合言葉を書く。
+- [x] T044 [US4] `p-w/skills/w-help/references/review-workflow.md` を書く。導入の節に、前提・置き方・Claude の App の入れ方・モデルの認証の secret・合言葉を書く。
   - 権限を絞りたい利用者のために、自前の App の作り方と権限・変数と secret を別の節に書く。
   - 雛形を変えた PR では Claude の App の道でレビューが動かないことも書く。形は、同じ置き場の `board-sync-workflow.md` に合わせる。モデルの認証は `spec/research.md` の R14 のとおりにする
   - 既定はサブスクリプションのトークンだ。`claude setup-token` で作り、1 行で貼る
   - Workload Identity Federation は、subject の prefix を `sub_claim_prefix` から作る手順を書く
-- [ ] T058 [US4] 同じファイルに、運用の節を書く。次の項目だ
+- [x] T058 [US4] 同じファイルに、運用の節を書く。次の項目だ
   - 変えられる 4 つの変数、bot を許す設定、Dependabot の secret、止まったときの読み方
   - トークンが切れたときの作り直しと、払い方の切り替え。secret を消すと Workload Identity Federation で動く
   - 雛形の更新、Claude の App が入っているかの確かめ方、GHES で確かめていないこと
-- [ ] T059 [US4] 同じファイルに、「自動処理に共通の決まり」の節を書く。認証の名前・版の目印・利用者が足す行の印を書く
-- [ ] T045 [US4] `p-w/skills/w-onboarding/SKILL.md` に、自動レビューを入れるかを選ぶ Step を足す。中身は `spec/contracts/skill-flow.md` の「w-onboarding に足す Step」のとおりにする
-- [ ] T046 [P] [US4] `p-w/skills/w-help/SKILL.md` の参照の表に、`review-workflow.md` を足す
-- [ ] T047 [US4] T043 のテストを通す。quickstart.md のシナリオ 14 を、検証用で main が流す。結果を PR の説明に書く
+- [x] T059 [US4] 同じファイルに、「自動処理に共通の決まり」の節を書く。認証の名前・版の目印・利用者が足す行の印を書く
+- [x] T045 [US4] `p-w/skills/w-onboarding/SKILL.md` に、自動レビューを入れるかを選ぶ Step を足す。中身は `spec/contracts/skill-flow.md` の「w-onboarding に足す Step」のとおりにする
+- [x] T046 [P] [US4] `p-w/skills/w-help/SKILL.md` の参照の表に、`review-workflow.md` を足す
+- [x] T047 [US4] T043 のテストを通す。quickstart.md のシナリオ 14 を、検証用で main が流す。結果を PR の説明に書く。最初の自動レビューまでの 30 分の測定は T048 で行う
 
 ---
 
@@ -216,6 +216,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 **前提**: Phase 6 と Phase 7（どちらも main に入っている。CLI は、npm の `@next` に出た開発版を使う）
 
 - [ ] T048 検証用で、`pecot workflow install review` から quickstart.md の「導入を確かめる」を流す。雛形の後始末の step が、公開した `@pecot/workflow-mcp` の `review finish` を打てることを見る
+  - シナリオ 14 の、始めてから最初の自動レビューが起きるまでの時間を測り、30 分以内であることを見る。T047 では、配られたプラグインと CLI が自動レビューに届かないため測らない
 - [ ] T049 quickstart.md のシナリオ 1〜13 と 15〜18 を、検証用で流す。実際に投稿するシナリオ 1・3・6 は main が流す。結果を、シナリオごとに PR の説明に書く
 - [ ] T050 T049 の実行の記録から、かかったターンと時間を読む。`p-w/cli/templates/workflow/pecot-review.yml` の既定値を直し、版の目印を上げる。w-reviewer に公式の文書を調べる手段を許すかを決め、`spec/research.md` の「残した判断」に結果を書く
 - [ ] T051 quickstart.md の「実行の記録で見ること」の 4 つを、T049 の run で確かめる。トークンと secret の値が、ログとコメントに出ていないことを見る
