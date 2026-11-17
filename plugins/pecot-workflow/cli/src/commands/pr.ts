@@ -56,6 +56,8 @@ import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 import { readRestackDecision } from './restack-reading.js'
 import type { KnownLowerPullRequest } from './restack-reading.js'
 import { moveWaitingIssues } from './pr-waiting.js'
+import { fieldWriteFailure } from './field-write-failure.js'
+import type { FieldHintState } from './field-write-failure.js'
 
 export { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 
@@ -205,8 +207,8 @@ function inReviewOperation(issueNumber: number): Operation {
   return { verb: 'set', target: `Issue #${String(issueNumber)} status to In Review` }
 }
 
-// Status を In Review にした Issue の番号を返す。書かなかったら undefined
-async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, client: GitHubClient, location: RepositoryReference, headBranch: string, out: Readonly<Output>): Promise<number | undefined> {
+// Status を In Review にした Issue の番号を返す。書かなかったら undefined。hintState は待ちの Issue の書き込みと同じ印
+async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, client: GitHubClient, location: RepositoryReference, headBranch: string, out: Readonly<Output>, hintState: FieldHintState): Promise<number | undefined> {
   const issueNumber = extractIssueNumberFromBranch(headBranch)
   if (issueNumber === undefined) return undefined
   const label = `Issue #${String(issueNumber)}`
@@ -237,7 +239,8 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
     await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId)
   }
   catch (error: unknown) {
-    out.warning(`status update of ${label} failed: ${reasonOf(error)}`)
+    const message = `status update of ${label} failed: ${reasonOf(error)}`
+    out.warning(error instanceof GitHubAPIError ? fieldWriteFailure(message, error, hintState) : message)
     return
   }
   out.done(inReviewOperation(issueNumber))
@@ -442,9 +445,9 @@ async function registerStack(client: GitHubClient, location: RepositoryReference
 }
 
 // moves に、書けた列と札を足していく。例外で止まっても、それまでの分が残る
-async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>, moves: BoardMoveLine[]): Promise<void> {
+async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>, moves: BoardMoveLine[], hintState: FieldHintState): Promise<void> {
   try {
-    await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest }, moves)
+    await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest }, hintState, moves)
   }
   catch (error: unknown) {
     if (!isRequestFailure(error)) throw error
@@ -468,13 +471,15 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   const url = jsonField(created, 'html_url')
   // url は先に渡す。後の処理が例外で止まっても、作った PR を結果から読める
   out.result({ head: draft.head, base: draft.base, title: draft.title, ...pullRequest !== undefined && { number: pullRequest }, ...typeof url === 'string' && { url } })
-  const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.head, out)
+  // in_review と待ちの Issue の書き込みで、選択肢の ID を読み直す案内を 1 回だけ出す
+  const fieldHint: FieldHintState = { hasHinted: false }
+  const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.head, out, fieldHint)
   if (inReview !== undefined) out.result({ inReview })
   if (stackOn !== undefined) out.result({ stack: await registerStack(client(), draft.location, stackOn, pullRequest, out) })
   const issueNumber = extractIssueNumberFromBranch(draft.head)
   const moves: BoardMoveLine[] = []
   try {
-    if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out, moves)
+    if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out, moves, fieldHint)
   }
   finally {
     out.result({ moves: moves.map(move => moveJson(move)) })

@@ -11,6 +11,7 @@ import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -224,6 +225,55 @@ describe('issue reopen', () => {
       stderr: 'warning: status \'blocked\' is not configured in the project\n  hint: run pecot project init to add the Blocked option to the board\nreopened: Issue acme/demo/7\n',
     })
     expect(github.requests().map(request => labelOf(request))).not.toContain('UpdateProjectItemField')
+  })
+
+  it('選択肢の ID が古くて列を書けないと、書けなかった列の warning と project activate の案内を出し、reopen とコメントの投稿を続ける', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-24')
+    prepareProject()
+    const github = await startGithub([linkedRepositories(), reopened(), boardItems(), staleOptionUpdate(), reopened(), commented()])
+
+    const result = await reopen(['acme/demo/7', '--comment', '理由'])
+
+    expect(result).toEqual({
+      code: 0,
+      stdout: '',
+      stderr: [
+        `warning: could not set Issue acme/demo/7 status ready: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        'reopened: Issue acme/demo/7',
+        'created: comment on acme/demo/7',
+        '',
+      ].join('\n'),
+    })
+    expect(github.requests().map(request => labelOf(request)).slice(-2)).toEqual([PATCH, COMMENT])
+  })
+
+  it('列を書けなかったときは、3 秒待たずにもう一度 reopen する', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-24')
+    prepareProject()
+    const github = await startGithub([linkedRepositories(), reopened(), boardItems(), staleOptionUpdate(), reopened()])
+    useFakeDelays()
+
+    const pending = runInProcess(['issue', 'reopen', 'acme/demo/7'], ISSUE_REOPEN_COMMANDS)
+    // 偽のタイマーを進めないまま、2 回目の reopen が届く
+    await waitForRequests(() => github.requests().length, 5)
+    const result = await settleWithFakeDelays(pending)
+
+    expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems', PATCH, 'UpdateProjectItemField', PATCH])
+    expect(result.code).toBe(0)
+  })
+
+  it('500 で列を書けないときは、warning だけを出し、ID を読み直す案内を添えない', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-24')
+    prepareProject()
+    await startGithub([linkedRepositories(), reopened(), boardItems(), failing({ operation: 'UpdateProjectItemField' }, 500), reopened()])
+
+    const result = await reopen(['acme/demo/7'])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(/^warning: could not set Issue acme\/demo\/7 status ready: .+500/u)
+    expect(result.stderr).toContain('reopened: Issue acme/demo/7\n')
+    expect(result.stderr).not.toContain('hint:')
   })
 
   it('2 回目の reopen の後も Issue が open でないとき、error を出して終了コード 1 で終わる', async (context) => {

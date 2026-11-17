@@ -283,7 +283,7 @@ async function settleColumn(output: Output, client: GitHubClient, config: Projec
   const move = decideBoardMove(boardMoveInput(config, judged))
   if (move === undefined) return undefined
   // 起票の直後は、既定の自動化が札を書くので、札は書かない
-  const applied = await applyBoardMove(output, client, config, item.itemId, { ref: issue, home: issue.repository }, withoutLabel(move), describeReadiness(judged.readiness, judged.prerequisites, issue.repository))
+  const applied = await applyBoardMove(output, client, config, item.itemId, { ref: issue, home: issue.repository }, withoutLabel(move), describeReadiness(judged.readiness, judged.prerequisites, issue.repository), session.fieldHint)
   return applied.column
 }
 

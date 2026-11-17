@@ -8,6 +8,7 @@ import { isStatusConfigured, setIssueField } from './issue-board.js'
 import { commandHint, hinted } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
+import { fieldWriteFailure } from './field-write-failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -59,9 +60,15 @@ const BOARD_MOVE = defineCommand({
           output.result({ issue: issuePath(owner, repository, number), status })
           return
         }
-        if (!await setIssueField(client, config, itemId, 'workflow', status)) {
-          stopWith(output, notConfiguredMessage(status), 'status-not-configured')
+        let isSet: boolean
+        try {
+          isSet = await setIssueField(client, config, itemId, 'workflow', status)
         }
+        catch (error: unknown) {
+          if (!(error instanceof GitHubAPIError)) throw error
+          stopWith(output, fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error), kindOfFailure(error))
+        }
+        if (!isSet) stopWith(output, notConfiguredMessage(status), 'status-not-configured')
         output.done({ verb: 'set', target: `${target} status ${status}` })
         output.result({ issue: issuePath(owner, repository, number), status })
       }

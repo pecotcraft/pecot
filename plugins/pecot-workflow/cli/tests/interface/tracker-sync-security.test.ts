@@ -30,6 +30,7 @@ import {
 import type { AlertResponses } from '../_helpers/tracker-sync-security-case.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
 
@@ -230,6 +231,27 @@ describe('tracker sync', () => {
       const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
       const result = await sync()
       expect(result.stderr).toBe(`created: Tracker "${TODAY_TITLE}" with priority medium\nadded: dependabot #1 to new Tracker\nerror: Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}\n`)
+    })
+
+    it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-94')
+      freezeClock()
+      prepareSync()
+      const added = boardRules(12, { onlyIfEmpty: false, priority: 'medium' }).filter(rule => rule.match.operation !== UPDATE_FIELD)
+      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...added, staleOptionUpdate(2)])
+      const result = await sync()
+      expect(result).toEqual({
+        code: 1,
+        stdout: '',
+        stderr: [
+          `created: Tracker "${TODAY_TITLE}" with priority medium`,
+          'added: dependabot #1 to new Tracker',
+          `error: could not set status backlog of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
+          '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+          `error: could not set priority medium of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
+          '',
+        ].join('\n'),
+      })
     })
 
     it('Tracker の作成に失敗すると、終了コード 1 で終わる', async (context) => {

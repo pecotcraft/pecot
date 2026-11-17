@@ -22,6 +22,7 @@ import { commandHint, hinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { apiFailureMessage } from './github-client.js'
 import type { BoardMoveLine } from './issue-board.js'
+import type { FieldHintState } from './field-write-failure.js'
 import { createReadinessCache } from './issue-readiness.js'
 import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
 import type { Output } from './output.js'
@@ -65,6 +66,10 @@ export interface WaitingOptions {
   readonly check: WaitingCheck
   readonly isDryRun: boolean
   readonly cache: ReadinessCache
+  /**
+  選択肢の ID を読み直す案内を 1 回だけ出すための印。省くと applyJudgedMoves が 1 つ作る
+  */
+  readonly fieldHint?: FieldHintState
 }
 
 interface Waiting {
@@ -153,7 +158,7 @@ async function moveWaiting(waiting: Readonly<Waiting>, issues: readonly BlockedB
   if (judged === undefined) return []
   const { assume } = options.check
   const confirmed = assume === undefined ? judged.confirmed : await Promise.all(judged.confirmed.map(async target => await assume(target)))
-  await applyJudgedMoves(context, confirmed, options.isDryRun, moves)
+  await applyJudgedMoves(context, confirmed, options.isDryRun, moves, options.fieldHint)
   for (const { target } of judged.unconfirmed) context.out.warning(options.check.unconfirmed(displayReference(target.ref, context.home)))
   return confirmed
 }
@@ -196,15 +201,15 @@ export async function moveIssuesWaitingFor(context: Readonly<BoardContext>, opti
 
 /**
 pr create の後に、head の Issue を待つ Issue の列と札を動かす。作った PR が判定に出るまで 1 回だけ読み直す。
-動かした列と札（moved: と set: の行の値）を moves に足していき、それを返す
+動かした列と札（moved: と set: の行の値）を moves に足していき、それを返す。fieldHint は、in_review の書き込みと同じ印を渡す
 */
-export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest, moves: BoardMoveLine[] = []): Promise<readonly BoardMoveLine[]> {
+export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest, fieldHint: FieldHintState, moves: BoardMoveLine[] = []): Promise<readonly BoardMoveLine[]> {
   const context: BoardContext = { out, client, config, home: homeRepositoryOf(config) }
   const head = createIssueReference(created.repository, created.issueNumber)
   const check: WaitingCheck = {
     isReflected: judged => created.pullRequest === undefined || (prerequisiteOf(judged, head)?.issue.pullRequests.some(pullRequest => pullRequest.number === created.pullRequest) ?? false),
     unconfirmed: name => hinted`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${name}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`,
   }
-  await moveIssuesWaitingFor(context, { heads: [head], check, isDryRun: false, cache: createReadinessCache() }, moves)
+  await moveIssuesWaitingFor(context, { heads: [head], check, isDryRun: false, cache: createReadinessCache(), fieldHint }, moves)
   return moves
 }

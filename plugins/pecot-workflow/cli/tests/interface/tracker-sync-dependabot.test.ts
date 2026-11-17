@@ -26,6 +26,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
 
@@ -452,6 +453,21 @@ describe('tracker sync', () => {
     await verifies(context, 'PW-TRACKER-SYNC-46')
     const { result } = await syncWithFailedBoard()
     expect(result.code).toBe(FAILURE_CODE)
+  })
+
+  it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-TRACKER-SYNC-93')
+    const added = boardRules(100, { priority: 'medium', onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
+    const { result } = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate(2)])
+    expect(result.code).toBe(FAILURE_CODE)
+    expect(stderrAfterCounts(result)).toBe([
+      `created: Tracker "${TODAY_TITLE}"`,
+      'added: PR #2 to new Tracker (major)',
+      `error: could not set status backlog of Issue acme/demo/100: ${STALE_OPTION_TEXT}`,
+      '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+      `error: could not set priority medium of Issue acme/demo/100: ${STALE_OPTION_TEXT}`,
+      '',
+    ].join('\n'))
   })
 
   it('open の Tracker のボード登録に失敗すると、error の行を出して終了コード 1 で終わる', async (context) => {

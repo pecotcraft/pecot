@@ -21,6 +21,7 @@ import { commandHint, hinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { applyBoardMove, planBoardMove } from './issue-board.js'
 import type { BoardMoveLine } from './issue-board.js'
+import type { FieldHintState } from './field-write-failure.js'
 import type { Output } from './output.js'
 
 /**
@@ -136,10 +137,12 @@ export interface BoardContext {
 /**
 判定の結果に合わせて、列と札を動かす。読めない Issue は warning にし、ボードに無い値は最後に 1 行の warning にまとめる。
 isDryRun は同じ文を予定の行で出し、書かない。書き込みに失敗した Issue の数と、行に出した列と札（dry-run では予定）を返す。
-moves を渡すと、行に出した列と札をそこへ足していくので、途中で例外が出ても書けた分が残る
+moves を渡すと、行に出した列と札をそこへ足していくので、途中で例外が出ても書けた分が残る。
+hintState は、選択肢の ID を読み直す案内を 1 回だけ出すための印。省くと呼び出しごとに 1 つ作る
 */
-export async function applyJudgedMoves(context: Readonly<BoardContext>, judged: readonly JudgedTarget[], isDryRun = false, moves: BoardMoveLine[] = []): Promise<{ readonly failures: number, readonly moves: readonly BoardMoveLine[] }> {
+export async function applyJudgedMoves(context: Readonly<BoardContext>, judged: readonly JudgedTarget[], isDryRun = false, moves: BoardMoveLine[] = [], hintState?: FieldHintState): Promise<{ readonly failures: number, readonly moves: readonly BoardMoveLine[] }> {
   const { out, client, config, home } = context
+  const fieldHint = hintState ?? { hasHinted: false }
   const missing = new Set<MissingValue>()
   let failures = 0
   for (const { target, result } of judged) {
@@ -159,7 +162,7 @@ export async function applyJudgedMoves(context: Readonly<BoardContext>, judged: 
       if (planned !== undefined) moves.push(planned)
     }
     else if (typeof itemId === 'string') {
-      const applied = await applyBoardMove(out, client, config, itemId, destination, move, text)
+      const applied = await applyBoardMove(out, client, config, itemId, destination, move, text, fieldHint)
       if (applied.hasFailed) failures += 1
       if (applied.written !== undefined) moves.push(applied.written)
     }
