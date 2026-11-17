@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-_DEFAULT = Path(__file__).resolve().parents[3] / "libs/interface-spec/docs/junit-lanes.json"
+DEFAULT_LANES = Path(__file__).resolve().parents[3] / "libs/interface-spec/docs/junit-lanes.json"
 
 
 def slug_of(lane: str) -> str:
@@ -43,7 +43,7 @@ def matrix(lanes: object) -> list[dict[str, str]]:
 
 
 def main(argv: list[str]) -> int:
-    path = Path(argv[1]) if len(argv) > 1 else _DEFAULT
+    path = Path(argv[1]) if len(argv) > 1 else DEFAULT_LANES
     try:
         jobs = matrix(json.loads(path.read_text(encoding="utf-8")))
     except (OSError, ValueError) as error:

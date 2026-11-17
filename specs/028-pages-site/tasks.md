@@ -96,7 +96,7 @@ description: "Task list for 028-pages-site"
 
 ### Tests for User Story 1（作る run）
 
-- [ ] T020 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-build.yml` の形のテストを書く。
+- [x] T020 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-build.yml` の形のテストを書く。
   contracts/pages.md の「`pages-build.yml`」の表のとおり: 契機（`push` の `main`・`pull_request` の opened/synchronize/reopened/closed・`workflow_dispatch` の `side` と `sha`）、
   PR は `head.repo.full_name == github.repository` のときだけ作る、
   権限は `contents: read` だけ、
@@ -106,13 +106,13 @@ description: "Task list for 028-pages-site"
 
 ### Implementation for User Story 1（作る run）
 
-- [ ] T021 [US1] `.github/workflows/pages-build.yml` に、側と SHA を決める job を書く。closed の PR では、作らずに成功で終わる
-- [ ] T022 [US1] 同じファイルに、合否のレーンの matrix の job を書く。
+- [x] T021 [US1] `.github/workflows/pages-build.yml` に、側と SHA を決める job を書く。closed の PR では、作らずに成功で終わる
+- [x] T022 [US1] 同じファイルに、合否のレーンの matrix の job を書く。
   matrix は `.githooks/scripts/pages_site/lanes.py` の出力。
   ci.yml の `tests` の job と同じく `.githooks/ci/dev-container.sh` で `nx run <target>` を動かす。
   テストが落ちても job は続け、JUnit を `pages-junit-<slug>` に上げる。
   pecot-visual のレーンには `PECOT_CI_BROWSER=1` を渡す
-- [ ] T023 [US1] 同じファイルに、サイトを作る job を書く。
+- [x] T023 [US1] 同じファイルに、サイトを作る job を書く。
   JUnit を集め、`PECOT_SITE_STRICT=1` と `PECOT_SITE_*`（side・pr・sha・run の URL・run の開始時刻）を付けて `nx run interface-spec:docs` を動かし、`pages-side-<side>`（PR は `pages-side-pr-<番号>`）に上げる。
   job summary に側・コミット・レーンごとの数を書く
 
