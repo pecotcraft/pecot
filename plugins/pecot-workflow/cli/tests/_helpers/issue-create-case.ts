@@ -123,10 +123,6 @@ export function blockedByUnsupported(): ResponseRule {
   return { match: { operation: 'HasAddBlockedByInput' }, times: 1, respond: { status: 200, body: { data: { __type: JSON_NULL } } } }
 }
 
-export function failedFieldUpdate(times = 1, message = 'cannot write'): ResponseRule {
-  return { match: { operation: 'UpdateProjectItemField' }, times, respond: { status: 200, body: { errors: [{ message }] } } }
-}
-
 export interface SubIssue {
   readonly number: number
   readonly state: string
