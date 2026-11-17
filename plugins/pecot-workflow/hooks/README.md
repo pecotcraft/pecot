@@ -15,7 +15,7 @@ Claude Code / GitHub Copilot CLI 向けのフックシステム。
 実機で最後に確かめた版は Claude Code 2.1.326 / Copilot CLI 1.0.112（[実機の記録](#実機の記録)）。
 定義ファイルはクライアントごとに別。
 Claude Code は `hooks/hooks.json`、Copilot CLI は `com.github.copilot/hooks/hooks.json` を読む。
-Copilot CLI は、プラグインの `plugin.json` が指す定義だけを開く。
+Copilot CLI は Agent Plugins の vendor ディレクトリ（`com.github.copilot/`）の定義を読み、`hooks/hooks.json` は読まない。
 全エントリに `timeout`（秒）を付けている。
 
 ## hooks-config.json
@@ -173,20 +173,47 @@ UserPromptSubmit                → user-prompt-submit-title.sh       → sessio
 
 pecot のマーケットプレイスは公式のものではないので、自動更新が初期値で無効になっている。
 
-- Claude Code — `/plugin` の Marketplaces タブで pecot のマーケットプレイスを選び、「Enable auto-update」を選ぶ。`extraKnownMarketplaces.<名前>.autoUpdate: true` を設定ファイルに書いてもよい
-- GitHub Copilot CLI — `~/.copilot/settings.json` の `extraKnownMarketplaces.<名前>.autoUpdate` を `true` にする。リポジトリの設定に書いたものは読まれない。全体の `autoUpdate`（初期値は `true`、CI では `false`）も有効にしておく
+- Claude Code — `/plugin` の Marketplaces タブで `pecot` を選び、「Enable auto-update」を選ぶ。下の JSON を設定ファイルに書いてもよい。`.claude/settings.json` に書いたものは、フォルダを信頼するまで読まれない
+- GitHub Copilot CLI — 下の JSON を `~/.copilot/settings.json` に書く。リポジトリの設定に書いたものは読まれない。全体の `autoUpdate`（初期値は `true`、CI では `false`）も有効にしておく
+
+`source` は必須で、`autoUpdate` だけを書いたエントリは読まれない。
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "pecot": {
+      "source": { "source": "github", "repo": "pecotcraft/pecot" },
+      "autoUpdate": true
+    }
+  }
+}
+```
 
 ### 通知（Claude Code）
 
 | 目的 | 設定 |
 |---|---|
-| 作業の完了や確認の待ちを、どの端末でも音で知る | `~/.claude/settings.json` に `"preferredNotifChannel": "terminal_bell"`。初期値では、通知を出すのは Ghostty・Kitty・iTerm2 だけ |
+| 作業の完了や確認の待ちを、どの端末でも音で知る | `~/.claude/settings.json` に `"preferredNotifChannel": "terminal_bell"`。初期値（`auto`）では、Ghostty・Kitty・iTerm2 は通知を出し、Apple Terminal は音の出るベルが切ってあるときだけ音の無いベルを送り、そのほかの端末では何もしない |
 | Remote Control の接続中に、スマートフォンへ通知を受ける | `/config` で「Push when actions required」（`inputNeededNotifEnabled`）と「Push when Claude decides」（`agentPushNotifEnabled`）を有効にする |
 | 作業中・入力待ち・完了を、端末のタブで見る | 設定は要らない。OSC 7501 に対応した端末で、tmux の外で動かすと出る（2.1.295 以降） |
 
 w-active・w-quick は frontmatter にフックを持つ。
 そのため Claude Code 2.1.325 以降では、`/loop` や定期のタスクから起動すると、確認で止まる。
-止めずに起動させたいときは、`permissions.allow` に `Skill(pecot-w:w-active)`・`Skill(pecot-w:w-quick)` を足す。
+止めずに起動させたいときは、`permissions.allow` に次の 4 つを足す。
+`Skill(name)` は引数なしの起動に、`Skill(name *)` は引数つきの起動に当たる。
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Skill(pecot-w:w-active)",
+      "Skill(pecot-w:w-active *)",
+      "Skill(pecot-w:w-quick)",
+      "Skill(pecot-w:w-quick *)"
+    ]
+  }
+}
+```
 
 ### 通知（GitHub Copilot CLI）
 
@@ -225,13 +252,14 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 | 両方 | `wt1` ブランチでの `git commit` | 同上 | `git-worktree-branch-check` の deny | 2026-11-17 |
 | 両方 | 初期値のままの `git commit --no-verify` | 同上 | 止めずに実行される | 2026-11-17 |
 | 両方 | `git-no-verify-check` を有効にした `git commit --no-verify` | 同上 | `git-no-verify-check` の deny | 2026-11-17 |
-| Claude 2.1.326 | `git clone --depth 1 <url> .pecot/work/<番号>/tech-advisor/<名前>` | 同上 | `tech-advisor-clone-allow` の allow で、承認の確認が出ずに実行される | 2026-11-17 |
+| 両方（対話のセッション） | `git clone --depth 1 <url> .pecot/work/<番号>/tech-advisor/<名前>` | 同上 | `tech-advisor-clone-allow` の allow で、承認の確認が出ずに実行される。`tech-advisor/` の外への clone では確認が出る | 2026-11-17 |
 | 両方 | `cat /tmp/x-468` | 同上 | `tmp-path-warner` の案内が `additionalContext` でエージェントに届く | 2026-11-17 |
 | Copilot 1.0.112 | 起動（`-p`） | SessionStart: `session-start.sh` | 有効にした git-sync の結果が、トップレベルの `additionalContext` でモデルに届く | 2026-11-17 |
 | Copilot 1.0.112 | skill ツールで w-help | `pre-tool-use-skill.sh`（matcher `Skill\|skill`） | スキルは名前空間なしで起動できる。`.pecot` が初期化済みなので、何も出さない | 2026-11-17 |
 
 `git checkout wt1 && git commit …` のように 1 行でつなぐと、`git-worktree-branch-check` は止めない。
 フックが判定する時点では、まだ元のブランチにいるためだ。
+この抜け道はガードでは追わない。`wt*` に commit しても、PR と CI を経なければ `main` に入らない。フックで止めるのは、pecot の流れを外れるふつうの操作だけにする。
 
 ### スキルの frontmatter のフック
 
@@ -252,6 +280,7 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 
 - macOS 標準の awk と bash 3.2 での `git-no-verify-check` の判定
 - 画面に出る deny の理由の見え方
+- `/loop` や定期のタスクから起動したとき、`Skill(name *)` の許可で確認が出なくなること
 
 ### スキル・エージェント定義
 
