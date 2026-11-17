@@ -164,15 +164,18 @@ diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないの�
 `--allowedTools` は、確認なしに使えるツールの一覧として働く。一覧に無い MCP ツールは拒まれるが、確認の要らないツール（`Skill`、読み取りだけの `Bash` のコマンド）は、一覧に無くても使える（research の R5）。
 このため、使わせないツールは `--disallowedTools` に書く。ここに書いたツールは、サブエージェントでも使えない。
 
-- `Bash`（`Bash(gh api:*)` のほか）
 - `Edit`・`Write`・`NotebookEdit`
 - `AskUserQuestion`
 - `Agent`。w-review はサブエージェントを起こさない（`contracts/skill-flow.md`）
 - `WebFetch`・`WebSearch`
 
-許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で、書き換えのツールと `gh api` 以外の `Bash` を渡さないことだ（FR-011）。自前の App のときは、トークンの権限も境界になる。
+許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で書き換えのツールを渡さず、`Bash` は `gh api` だけを許すことだ。
+許可の無い `Bash` のコマンドは、人のいない実行では確認できずに拒まれる（FR-011）。
+自前の App のときは、トークンの権限も境界になる。
 
-`Bash(gh api:*)` は、w-review の Step 3 の投稿に要る（2026-11-17 に、スキルに分岐を置かないと決めたため）。`gh api` は、トークンの権限の範囲で Contents も書ける。FR-011 をトークンの権限で守るか、投稿を pecot の MCP ツールに移して `Bash` を閉じ直すかは、#574 の通しの前に決める。
+`Bash(gh api:*)` は、w-review の Step 3 の投稿に要る（2026-11-17 に、スキルに分岐を置かないと決めたため）。素の `Bash` を拒否に書くと、拒否が許可に勝ち、`gh api` も拒まれる。
+`gh api` は、トークンの権限の範囲で Contents も書ける。
+FR-011 をトークンの権限で守るか、投稿を pecot の MCP ツールに移して `Bash` を閉じ直すかは、#574 の通しの前に決める。
 
 pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、Phase 5 で `prompt` への渡し方と合わせて決める。
 
@@ -207,7 +210,7 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | `github_token` と `PECOT_GITHUB_COM_TOKEN` が、発行したトークンが無いときに Claude の App と `GITHUB_TOKEN` に落ちる式を持つ | 式の文字列を探す |
 | job に `timeout-minutes` と `concurrency` がある | キーの有無を見る |
 | `claude_args` に `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` がある | 文字列を探す |
-| 許可リストに `Bash`・`Edit`・`Write` が無く、`--disallowedTools` にある | 文字列を探す |
+| 許可リストに `Edit`・`Write`・素の `Bash` が無く、`Edit`・`Write` が `--disallowedTools` にある。`Bash` は `Bash(gh api:*)` だけを許す | 文字列を探す |
 | 許可リストに、マージ・クローズ・リリースのツール（`pr_merge`・`release_create` など）が無い | 文字列を探す |
 | 後始末の step が `if: always()` を持つ | キーの値を見る |
 | 後始末の step が、`JOB_STATUS`・`REVIEW_OUTCOME`・`REVIEW_CONCLUSION`・`REVIEW_HAS_TOKEN` を `env` で受け、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |

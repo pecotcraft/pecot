@@ -34,7 +34,7 @@ spec 023 の research（2026-11-11、`v1.0.271`）で確かめた事実は繰り
 | 項目 | 値 |
 |---|---|
 | 契機 | `pull_request` と `issue_comment`。`pull_request_target` は使わない |
-| `prompt` | `/pecot-w:w-revise --unattended <owner>/<repo>/<PR番号>`。PR の本文とタイトルを式で埋め込まない |
+| `prompt` | `/pecot-w:w-review <owner>/<repo>/<PR番号>`。PR の本文とタイトルを式で埋め込まない |
 | プラグイン | `plugin_marketplaces` に `https://github.com/pecotcraft/pecot.git`、`plugins` に `pecot-w@pecot`。spec 023 の R1 と同じ |
 | checkout | `actions/checkout` を `fetch-depth: 1`・`persist-credentials: false` で使う。`pull_request` では `ref` を書かず、merge commit が入る。`issue_comment` では既定のブランチが入るので、PR の確かめの step が読んだ head の SHA を `ref` に渡す |
 | 前準備 | `actions/setup-node`。`bin/pecot` が Node と pnpm で実行用の写しを作るため |
