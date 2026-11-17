@@ -186,7 +186,7 @@ function outsideGit(): string {
   return directory
 }
 
-const UNREADABLE_REMOTE = 'could not read the repository from the Git remote origin'
+const UNREADABLE_REMOTE = 'could not read the repository from the URL of the Git remote origin'
 const AMBIGUOUS_LINES = 'error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n'
 
 // origin を手元の bare リポのパスに付け替えて、URL から owner/repo を読めなくする
@@ -734,6 +734,7 @@ describe('worktree add', () => {
       expect(cli.stderr).toBe(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\nerror: cannot get the repository information: check that a git remote is set to a GitHub repository URL\n`)
       const result = await tool('worktree_add', { directory: project.repository, repo: 'acme/demo' })
       expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
     })
 
     it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {

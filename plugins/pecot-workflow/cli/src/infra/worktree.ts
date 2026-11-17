@@ -44,7 +44,7 @@ const WORKTREE_ADD_PATH = ['worktree', 'add']
 /**
 WorktreeRuntimeError の原因の名前。commands の FailureKind の一部
 */
-export type WorktreeFailure = 'config-invalid' | 'no-active-project' | 'not-initialized' | 'other' | 'repo-not-in-project' | 'repo-setting-missing'
+export type WorktreeFailure = 'config-invalid' | 'git-unresolved' | 'no-active-project' | 'not-initialized' | 'other' | 'repo-not-in-project' | 'repo-setting-missing'
 
 /**
 ワークツリー操作に失敗した（Python の RuntimeError に当たる）。メッセージは利用者に見せる文
@@ -425,7 +425,7 @@ function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnosti
 // リポジトリ登録チェック。remote は origin、無ければ登録済みのリポを指す最初の remote、どれも未登録なら最初の remote（未登録として止まる）
 function requireRegisteredRepository(cwd: string): { readonly repository: RepositoryReference, readonly config: ProjectConfig, readonly remote: string } {
   const candidates = readRemoteCandidates(cwd)
-  if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE)
+  if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
   const config = loadActiveConfig()
   if (config === undefined) {
     throw new WorktreeRuntimeError(hinted`project config not found\n  hint: run ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })} to set the project`, { failure: 'no-active-project' })
@@ -436,7 +436,7 @@ function requireRegisteredRepository(cwd: string): { readonly repository: Reposi
     }
   }
   const repository = candidates[0]?.repository
-  if (repository === undefined) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE)
+  if (repository === undefined) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
   const registered = config.repositories.length > 0
     ? config.repositories.map(item => `  - ${item.owner}/${item.name}`).join('\n')
     : '  (none registered)'

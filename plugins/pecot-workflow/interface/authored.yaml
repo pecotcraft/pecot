@@ -4473,7 +4473,7 @@ entries:
         commitCount: 'リリースブランチから develop ブランチまでのコミットの数です。リリースの種類が `nx` のときは入りません。'
         skipped: '機能が無効なので飛ばした確認の文の配列です。例は `Dependabot alerts (feature disabled)` です。飛ばした確認が無ければ空です。'
         dependabotAlerts: 'Dependabot アラートの状態です。読めなかったときは入りません。リリースは止めません。`enabled`・`openCount`・`alertsUrl` を必ず持ち、`maxSeverity` は、開いたアラートがあるときだけ入ります。'
-    diagnostics: 'alert の種類ごとに、`count` の行、`skipped` の行、`warning` の行のどれかを出します。code scanning と secret scanning には、`error` の行も出します。リリースするコミットの `count` の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。コミットの数を数えられなかったときは、`error: could not count the commits from <release> to <develop>: ...` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: 'alert の種類ごとに、`count` の行、`skipped` の行、`warning` の行のどれかを出します。code scanning と secret scanning には、`error` の行も出します。リリースするコミットの `count` の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。コミットの数を数えられなかったときは、`error: could not count the commits from <release> to <develop>: ...` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -4725,7 +4725,7 @@ entries:
         url: '作ったリリースの URL です。`dry_run` のときは入りません。'
         releaseNotes: 'CHANGELOG から取ったリリースノートです。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
-    diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -4936,7 +4936,7 @@ entries:
         base: 'PR の base ブランチです。リリースブランチです。'
         deletedBranch: 'リモートの head ブランチを削除したかどうかです。`delete_branch` を付けなかったとき、`dry_run` のとき、削除に失敗したときは `false` です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何もマージしていません。'
-    diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: repo-mismatch
@@ -5592,7 +5592,7 @@ entries:
         issue: '作業中の Issue です。`owner/repo/N` の形です。'
         workDirectory: '作業ディレクトリの絶対パスです。`dry_run` のときと、作れなかったときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も作らず、何も記録していません。'
-    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -5768,6 +5768,9 @@ entries:
       - id: PW-SESSION-START-39
         pattern: unwanted
         statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
+      - id: PW-SESSION-START-40
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、Issue のリポジトリと作業ディレクトリの remote を比べずにブランチを作ります'
   PW-TRACKER-SYNC:
     help:
       details:
@@ -6317,7 +6320,7 @@ entries:
         base: 'ブランチの起点にした base ブランチです。'
         setupFailed: 'setup のコマンドが失敗したか、時間切れになったかです。成功したときと、実行しなかったときは `false` です。`dry_run` のときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、`created` の行（`--dry-run` のときは `dry-run` の行）を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、`created` の行（`--dry-run` のときは `dry-run` の行）を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -6603,7 +6606,7 @@ entries:
         configFile: 'worktree の設定ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
         ignoreFile: 'worktree の ignore ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -6779,7 +6782,7 @@ entries:
       fields:
         links: '各対象 worktree にある、設定の link ごとの結果の配列です。サブ worktree が無ければ空です。要素は `path`（symlink の絶対パス）・`destination`（向き先の絶対パス）・`change` を持ちます。`change` は `create`（新しい symlink）・`update`（既存を置き換えた）・`skip`（そのまま）・`error`（作れなかった）のどれかです。`reason` は、`skip` と `error` のときだけ入ります。'
         dryRun: '`dry_run` のときだけ `true` で入ります。symlink は何も変えていません。'
-    diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`--all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。`--dry-run` のときは、`dry-run` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`--all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。`--dry-run` のときは、`dry-run` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -7017,7 +7020,7 @@ entries:
         name: '削除した worktree の名前です。渡したままの名前です。`dry_run` のときは、削除する予定の名前です。'
         deletedBranch: 'ローカルブランチを削除したかどうかです。残したとき、削除に失敗したとき、`dry_run` のときは `false` です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -7220,4 +7223,7 @@ common_behaviors:
     statement: 'MCP のツールがファイルやディレクトリを作ると、その絶対パスを、ツールごとの項目（`file`・`path`・`configPath` など）に入れて返します'
   - id: PW-COMMON-21
     pattern: unwanted
-    statement: 'もし `--show-repo` で git remote の URL から `owner/repo` を読めないなら、その理由の `error` の行を標準エラーに出します'
+    statement: 'もし `--show-repo` で git remote の URL から `owner/repo` を読めないなら、その理由の `error` の行を出し、終了コード 2 で終わります'
+  - id: PW-COMMON-22
+    pattern: unwanted
+    statement: 'もし `--repo` を省いて短い形 `N` を渡し、remote の URL から `owner/repo` を読めないなら、短い形の案内と理由を出し、終了コード 2 で終わります'

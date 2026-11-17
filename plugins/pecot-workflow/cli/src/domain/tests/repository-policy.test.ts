@@ -74,7 +74,7 @@ describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で remote の URL を読
     expect(policy({ explicit: 'acme-labs/aist-plugin', resolved: UNREADABLE, mode })).toStrictEqual({
       kind: 'proceed',
       adopted: { owner: 'acme-labs', repository: 'aist-plugin' },
-      stderr: ['warning: using --repo acme-labs/aist-plugin (could not read the repository from the Git remote origin)'],
+      stderr: ['warning: using --repo acme-labs/aist-plugin (could not read the repository from the URL of the Git remote origin)'],
     })
   })
 

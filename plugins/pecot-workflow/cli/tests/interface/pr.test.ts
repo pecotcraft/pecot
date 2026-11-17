@@ -1476,6 +1476,19 @@ describe('pr show', () => {
     expect(result.stdout).toContain(row.expected)
   })
 
+  it('短い形 N の参照を --repo なしで渡し、remote の URL から owner/repo を読めないと、短い形の案内と理由を出して終了コード 2 で終わる', async (context) => {
+    await verifies(context, 'PW-COMMON-22')
+    const workspace = await openWorkspace()
+    workspace.git(['remote', 'set-url', 'origin', '/srv/git/demo.git'])
+    const result = await workspace.run(['pr', 'show', '21'])
+    expect(result.code).toBe(2)
+    expect(result.stderr).toBe([
+      'error: the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'',
+      '  could not read the repository from the URL of the Git remote origin',
+      '',
+    ].join('\n'))
+  })
+
   it('レビューがある PR を読むと、レビューごとの author と状態を出す', async (context) => {
     await verifies(context, 'PW-PR-SHOW-03')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })

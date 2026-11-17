@@ -22,7 +22,7 @@ import { globalRepositoryHint, hinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { InvalidValueError } from './errors.js'
 import { pythonStringRepr } from './python-format.js'
-import { parseOwnerRepository, repositoryFullName } from './repository-resolver.js'
+import { parseOwnerRepository, repositoryFullName, unreadableRemoteReason } from './repository-resolver.js'
 import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from './repository-resolver.js'
 
 export type PolicyMode = 'reject' | 'warn'
@@ -31,13 +31,6 @@ export type PolicyMode = 'reject' | 'warn'
 今の git remote からリポジトリを決められないときの 1 行目。branch delete の remote の確認も同じ行を出す
 */
 export const AMBIGUOUS_REPOSITORY_LINE = 'error: the repository is ambiguous'
-
-/**
-remote の URL から owner/repo を読めない理由の文。`--show-repo` も同じ文を出す
-*/
-export function unreadableRemoteReason(remote: UnreadableRemote): string {
-  return `could not read the repository from the URL of the Git remote ${remote.remoteName}`
-}
 
 export interface PolicyInput {
   /**
@@ -101,7 +94,7 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
     return {
       kind: 'proceed',
       adopted: explicitReference,
-      stderr: [hinted`warning: using ${globalRepositoryHint()} ${repositoryFullName(explicitReference)} (could not read the repository from the Git remote ${resolved.remoteName})`],
+      stderr: [hinted`warning: using ${globalRepositoryHint()} ${repositoryFullName(explicitReference)} (${unreadableRemoteReason(resolved)})`],
     }
   }
 

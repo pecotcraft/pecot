@@ -595,7 +595,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
     gitForTest(repository, ['remote', 'remove', 'origin'])
     const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
     expect(error.message).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
-    expect(error.failure).toBe('other')
+    expect(error.failure).toBe('git-unresolved')
   })
 
   it('origin の owner が不正な名前でも WorktreeRuntimeError', () => {

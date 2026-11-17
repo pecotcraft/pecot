@@ -16,8 +16,7 @@ import { realpathSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 import { InvalidValueError } from './domain/errors.js'
-import { unreadableRemoteReason } from './domain/repository-policy.js'
-import { AmbiguousRepositoryError, parseOwnerRepository, readCurrentGitRemote, resolveRepository } from './domain/repository-resolver.js'
+import { AmbiguousRepositoryError, parseOwnerRepository, resolveRepository, UnreadableRemoteError } from './domain/repository-resolver.js'
 import { readAuthoredNotes } from './infra/authored-notes.js'
 import { gitRunnerFor } from './infra/git.js'
 import { resolveApiUrlOverride } from './infra/github/client.js'
@@ -107,20 +106,14 @@ function validateRepository(repository: string | undefined): void {
 function showRepository(repository: string | undefined, context: Readonly<CliContext>): number {
   try {
     // Python の resolve_repo も GIT_* を外さずに git を呼ぶ（git の hook の下では GIT_DIR が cwd より優先される）。同じ動作にそろえる
-    const git = gitRunnerFor(context.cwd)
-    const current = repository === undefined ? readCurrentGitRemote(git) : undefined
-    if (current?.source === 'unreadable-remote') {
-      context.io.stderr(`error: ${unreadableRemoteReason(current)}\n`)
-      return USAGE_EXIT_CODE
-    }
-    const resolved = resolveRepository(repository, git)
+    const resolved = resolveRepository(repository, gitRunnerFor(context.cwd))
     context.io.stdout(formatResolvedRepository(resolved))
     return 0
   }
   catch (error: unknown) {
     // eslint-disable-next-line no-restricted-syntax -- CLI の最上位でグローバルの --repo を読むときだけ出る
     if (error instanceof InvalidValueError) context.io.stderr(`error: --repo: ${error.message}\n`)
-    else if (error instanceof AmbiguousRepositoryError) context.io.stderr(`error: ${error.message}\n`)
+    else if (error instanceof AmbiguousRepositoryError || error instanceof UnreadableRemoteError) context.io.stderr(`error: ${error.message}\n`)
     else throw error
     return USAGE_EXIT_CODE
   }

@@ -50,7 +50,7 @@ function projectWithBrokenRemote(options: Readonly<ProjectOptions> = {}): Projec
   return created
 }
 
-const UNREADABLE_REMOTE = 'could not read the repository from the Git remote origin'
+const UNREADABLE_REMOTE = 'could not read the repository from the URL of the Git remote origin'
 const AMBIGUOUS_LINES = 'error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n'
 
 // origin を手元の bare リポのパスに付け替えて、URL から owner/repo を読めなくする

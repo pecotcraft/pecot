@@ -311,7 +311,7 @@ describe('session start', () => {
   describe('remote の URL から owner/repo を読めない', () => {
     // origin が手元のパス（bare リポ）で、URL から owner/repo を読めない
     const LOCAL_REMOTE = '/srv/git/demo.git'
-    const WARNING = 'could not read the repository from the Git remote origin'
+    const WARNING = 'could not read the repository from the URL of the Git remote origin'
 
     it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
       await verifies(context, 'PW-SESSION-START-38')
@@ -324,6 +324,15 @@ describe('session start', () => {
       expectClean(tool)
       expect(tool.isError).toBe(false)
       expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [`using repo acme/demo (${WARNING})`] })
+    })
+
+    it('--repo を渡すと、Issue のリポジトリと作業ディレクトリの remote を比べずにブランチを作る', async (context) => {
+      await verifies(context, 'PW-SESSION-START-40')
+      const cli = await create({ remoteUrl: LOCAL_REMOTE }, ['--repo', 'other/tree', 'session', 'start', 'acme/demo/7', 'feat'])
+      expectClean(cli)
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).not.toContain('differs from the CWD git remote')
+      expect(cli.stderr).toContain(CREATED)
     })
 
     it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {

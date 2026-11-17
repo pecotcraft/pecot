@@ -18,8 +18,7 @@ import type { UsedOrder } from '../domain/issue-order.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { createRepositoryReference, resolveRepositoryIfKnown } from '../domain/repository-resolver.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
+import { createRepositoryReference, resolveShortReferenceBase, withUnreadableReason } from '../domain/repository-resolver.js'
 import {
   CLOSED_HEADINGS_BY_TEMPLATE,
   FOLD_SUMMARY_BY_TEMPLATE,
@@ -133,21 +132,17 @@ export interface IssueTarget {
   readonly number: number
 }
 
-function resolveBaseRepository(repository: string | undefined): RepositoryReference | undefined {
-  return resolveRepositoryIfKnown(repository, gitRunnerFor())
-}
-
 /**
 Issue 参照（`owner/repo/N` または短縮形 `N`）を分ける。不正、または base が決まらない短縮形なら BadParameterError
 */
 function parseIssueReferenceFromContext(repository: string | undefined, raw: string): IssueTarget {
-  const base = resolveBaseRepository(repository)
+  const { base, unreadable } = resolveShortReferenceBase(repository, gitRunnerFor())
   try {
     const reference = parseIssueReference(raw, base, { repositoryFlag: true })
     return { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) throw new BadParameterError(error.hintedText ?? error.message)
+    if (error instanceof ReferenceParseError) throw new BadParameterError(withUnreadableReason(error.hintedText ?? error.message, unreadable))
     throw error
   }
 }
