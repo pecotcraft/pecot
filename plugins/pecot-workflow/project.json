@@ -231,6 +231,8 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli/**/*",
+        "{projectRoot}/skills/*/scripts/*.cjs",
+        "{projectRoot}/eslint.skills.config.mjs",
         "sharedGlobals",
         "runtime",
         "env",

@@ -50,3 +50,7 @@ fi
 echo "==> $PNPM --filter @pecot/pecot-workflow-cli run lint"
 # shellcheck disable=SC2086
 ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run lint )
+# スキルの scripts/*.cjs。ESLint は設定のディレクトリの外を見ないので、プラグインのルートから別の設定で打つ
+echo "==> $PNPM exec eslint --config eslint.skills.config.mjs skills/*/scripts/*.cjs"
+# shellcheck disable=SC2086
+( cd "$PLUGIN_ROOT" && $PNPM exec eslint --max-warnings=0 --config eslint.skills.config.mjs 'skills/*/scripts/*.cjs' )
