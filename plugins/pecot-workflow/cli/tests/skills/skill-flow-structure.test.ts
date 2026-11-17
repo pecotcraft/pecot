@@ -649,3 +649,25 @@ describe('w-issueize の前提の表の読み方', () => {
     expect(template).not.toContain('1 行の `reason` を足す')
   })
 })
+
+describe('前提の種類を決める文', () => {
+  const STACK_PHRASE = '前提の変更を、手元のブランチか試験環境で動かして'
+  const MERGE_PHRASE = '手元のブランチと試験環境のどちらでも'
+
+  it.for([
+    'skills/w-breakdown/SKILL.md',
+    'skills/w-ready/SKILL.md',
+    'skills/w-help/references/issue-flow-rules.md',
+    'skills/w-help/references/spec-driven-workflow.md',
+  ])('%s は、積める・マージを待つの文に、試験環境の句を持つ', (file) => {
+    const text = readPluginFile(file)
+    expect(text).toContain(STACK_PHRASE)
+    expect(text).toContain(MERGE_PHRASE)
+  })
+
+  it('issue-flow-rules の merge の説明は、プラグインをマージを待つ例に挙げない', () => {
+    const line = readPluginFile('skills/w-help/references/issue-flow-rules.md').split('\n').find(text => text.startsWith('- `merge`（マージを待つ）'))
+    expect(line).toBeDefined()
+    expect(line).not.toContain('プラグイン')
+  })
+})

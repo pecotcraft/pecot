@@ -173,7 +173,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 - [x] T036 [P] [US6] `p-w/skills/w-breakdown/SKILL.md` の Step 7 の引数のコードブロックを直す。種類を決める 2 つの問いを、contracts/prerequisite-rule.md の「直した後」の文にする。「マージを待つ」になる例から「プラグイン」を外し、action・公開したパッケージ・リリース・開発ブランチの CI の例を残す
 - [x] T037 [P] [US6] `p-w/skills/w-help/references/issue-flow-rules.md` の `merge` の説明を直す。問いを T036 と同じ文にし、例から「プラグイン」を外す
 - [x] T038 [P] [US6] `p-w/skills/w-help/references/spec-driven-workflow.md` の「マージを待つ」の説明の行を、T036 と同じ文にする。例の行（action）は残す
-- [x] T039 [P] [US6] `p-w/skills/w-issueize/SKILL.md` を読み、説明の文に試験環境の語が要る箇所を、T036 と同じ文にする。例の行（action）と、表の形・`wait: merge`・`reason` の扱いは変えない
+- [x] T039 [P] [US6] `p-w/skills/w-issueize/SKILL.md` を読み、説明の文に試験環境の語が要る箇所を、T036 と同じ文にする。例の行（action）と、表の形・`wait: merge`・`reason` の扱いは変えない（直す文が無く、変更なし。contracts/prerequisite-rule.md の「直す場所」）
 - [x] T040 [US6] 4 か所（w-breakdown・issue-flow-rules・spec-driven-workflow・w-ready）の文を読み比べる。問いの芯の 2 句が同じで、「プラグイン」を「マージを待つ」の例にした箇所が無いことを確かめる。GitHub Copilot CLI 向けの写しがあれば、同じに直す
 - [x] T041 [US6] `.nx/version-plans/` に、pecot-workflow の version plan を足す
 - [x] T042 [US6] contracts/prerequisite-rule.md の「確かめ」の 2 つの計画を用意する。作業ツリーの pecot-workflow を読み込んだセッションで、w-breakdown の tasks の工程を動かす。スキルを使う行が「積める」、action を使う行が「マージを待つ」になるのを見る。結果を PR の説明に書く

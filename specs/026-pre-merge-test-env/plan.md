@@ -60,7 +60,7 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 |---|---|
 | 足すスクリプト | `.githooks/scripts/` に 2 本（設定を比べる・確かめで作ったものを片付ける）と、比べる項目を書いたファイル 1 つ |
 | 足すテスト | `.githooks/tests/` に 2 本 |
-| 直す配布物 | `cli/templates/comment/plan.md`、`agents/w-e2e-planner.md`、`agents/w-reviewer.md`、`skills/w-breakdown/SKILL.md`、`skills/w-issueize/SKILL.md`、`skills/w-help/references/issue-flow-rules.md`、`skills/w-help/references/spec-driven-workflow.md`。GitHub Copilot CLI 向けの写し（`com.github.copilot/agents/`）も同じに直す |
+| 直す配布物 | `cli/templates/comment/plan.md`、`agents/w-e2e-planner.md`、`agents/w-reviewer.md`、`skills/w-breakdown/SKILL.md`、`skills/w-ready/SKILL.md`、`skills/w-help/references/issue-flow-rules.md`、`skills/w-help/references/spec-driven-workflow.md`。GitHub Copilot CLI 向けの写し（`com.github.copilot/agents/`）も同じに直す |
 | 直す文書 | `plugins/pecot-workflow/CONTRIBUTING.md`（試験環境の一覧と手順の節）、`CLAUDE.md`（検証用の場所と案内） |
 | 検証用の整え | `pecot-sandbox` の必須のチェックの確かめ、人のいないセッション向けの App |
 | 直さないもの | pecot の CLI と MCP ツールのコード。書き込む先の切り替えは、作業ディレクトリで足りる |
