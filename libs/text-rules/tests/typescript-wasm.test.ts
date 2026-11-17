@@ -2,6 +2,7 @@ import type * as NodeModule from 'node:module'
 import { describe, expect, it, vi } from 'vitest'
 import { buildDescriptor } from '../lib/descriptor.js'
 import { main } from '../lib/main.js'
+import type { IgnoreCheck, MainDependencies } from '../lib/main.js'
 import { typescriptStrings } from '../lib/plugins/typescript.js'
 
 // wasm の置き場を解決できない環境を、comments plugin の package.json の解決だけを失敗させて作る。
@@ -30,6 +31,7 @@ describe('typescript plugin: wasm の置き場の解決', () => {
     const code = await main(['a.ts'], {
       descriptor: buildDescriptor,
       readFile: () => Promise.resolve('const a = 1\n'),
+      ignoreCheck: vi.fn<MainDependencies['ignoreCheck']>().mockResolvedValue(vi.fn<IgnoreCheck>().mockResolvedValue(false)),
       stdout: vi.fn(),
       stderr: (text) => {
         stderr.push(text)

@@ -8,17 +8,16 @@
 # そこで lib/push-range.sh の base/head 解決を使います。
 # version plan ガードと同じ解決で、対象は merge-base(default, local)..local の変更だけです。
 #
-# 対象は、.pre-commit-config.yaml にある check-text の正規表現と同じ条件で絞ります。
-# 条件は files と exclude の 2 つです。
+# 対象は、.pre-commit-config.yaml にある check-text の files と同じ正規表現で絞ります。
+# .textlintignore で外したファイルは、bin が飛ばします。
 # 作業ツリーに存在するファイルだけを渡します。
 # 適用は check-text.sh に任せるため、dist と依存の確認もそちらが行う。
 # 範囲を解決できないときは WARN を出して通します（version plan ガードと同じ方針）。
 
 set -euo pipefail
 
-# 次の 2 行は .pre-commit-config.yaml の check-text と一致させる（テストが固定する）
+# 次の行は .pre-commit-config.yaml の check-text の files と一致させる（テストが固定する）
 TEXT_FILES_RE='\.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$'
-TEXT_EXCLUDE_RE='(^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-|^\.claude/rules/aws-agent-rules\.md$|^\.nx/nx-release/tests/_fixtures/|^specs/'
 
 here="$(dirname "${BASH_SOURCE[0]}")"
 # shellcheck source=../lib/push-range.sh
@@ -53,9 +52,6 @@ for tip in "${tips[@]}"; do
     while IFS= read -r -d '' path; do
         [ -f "$root/$path" ] || continue
         printf '%s\n' "$path" | grep -Eq "$TEXT_FILES_RE" || continue
-        if printf '%s\n' "$path" | grep -Eq "$TEXT_EXCLUDE_RE"; then
-            continue
-        fi
         targets+=("$path")
     done < <(git -C "$root" diff -z --name-only --diff-filter=ACMRTUXB --no-renames "${from_sha}..${to_sha}")
 done

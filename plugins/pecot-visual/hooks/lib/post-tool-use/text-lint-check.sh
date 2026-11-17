@@ -2,6 +2,7 @@
 # PostToolUse hook: 書き込んだファイルを pecot-text-lint で確認し、違反をモデルに返す。
 # bin は実行用ミラーの node_modules/.bin/pecot-text-lint を node で起動する（拡張子の判定は bin に任せる）。
 # talk-dir の pages/*.md と slides.md は飛ばす（eslint-check.sh の textlint-body が見るので、二重に報告しないため）。
+# リポのルートの .textlintignore で外したファイルは、bin が飛ばす。
 # 出力: stdout は additionalContext を持つ JSON か空だけ（merge-hook-outputs.sh が非 JSON を文脈に丸めるため）。診断は stderr に trace 1 行。
 # 違反は exit 1 で出力があるときだけ。ミラー・bin が無い、timeout、それ以外の非 0 は「未実施」にする。
 
@@ -73,6 +74,15 @@ if [ ! -e "$BIN" ]; then
     trace "not-checked: bin is missing from the mirror ($BIN)"
     notify_not_checked "pecot-text-lint is missing from the runtime mirror. Run the pecotv command once to set it up."
     exit 0
+fi
+
+# bin は作業ディレクトリの .textlintignore を読むので、pre-commit と同じくファイルの属するリポのルートで動かす。
+# git の外なら入力の cwd で動かす（Bash の cd で変わるので、リポのルートを先に使う）。
+RUN_DIR=""
+[ -n "$ORIG_DIR" ] && RUN_DIR=$(git -C "$ORIG_DIR" rev-parse --show-toplevel 2>/dev/null)
+[ -n "$RUN_DIR" ] || RUN_DIR=$(echo "$INPUT" | jq -r '.cwd // empty')
+if [ -n "$RUN_DIR" ] && ! cd "$RUN_DIR" 2>/dev/null; then
+    trace "note: cannot cd to $RUN_DIR; .textlintignore is read from $PWD"
 fi
 
 # stdout と stderr は別々に取る。stderr を混ぜると、node の警告が違反として報告される。

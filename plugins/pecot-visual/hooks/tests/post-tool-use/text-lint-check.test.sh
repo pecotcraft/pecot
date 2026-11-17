@@ -230,6 +230,32 @@ STUB=$(make_stub_bin "exit1empty" 1 "" "")
 MIRROR_TEXT_LINT_BIN="$STUB" run_hook "exit1empty" "$MD"
 expect_not_checked "bin が exit 1 で出力が空" "pecot-text-lint failed (exit 1):" "$MD"
 
+# --- ケース11: リポのルートの .textlintignore で外したファイル → 無出力（入力の cwd がサブディレクトリでも） ---
+REPO="$TMP/repo"
+mkdir -p "$REPO/specs/001" "$REPO/docs"
+git -C "$REPO" init -q
+printf 'specs/**\n' > "$REPO/.textlintignore"
+write_md "$REPO/specs/001/spec.md" "$VIOLATION_LINE"
+write_md "$REPO/docs/note.md" "$VIOLATION_LINE"
+for CWD in "$REPO" "$REPO/docs" ""; do
+    MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "ignored" "{\"cwd\":\"$CWD\",\"tool_input\":{\"file_path\":\"$REPO/specs/001/spec.md\"}}"
+    LABEL="cwd=${CWD#"$TMP"/}"
+    expect_silent ".textlintignore で外したファイル $LABEL" "[text-lint-check] pass"
+done
+# git の外では、入力の cwd の .textlintignore を読む
+PLAIN="$TMP/plain"
+mkdir -p "$PLAIN/specs"
+printf 'specs/**\n' > "$PLAIN/.textlintignore"
+write_md "$PLAIN/specs/spec.md" "$VIOLATION_LINE"
+MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "ignored-outside-git" "{\"cwd\":\"$PLAIN\",\"tool_input\":{\"file_path\":\"$PLAIN/specs/spec.md\"}}"
+expect_silent "git の外で、入力の cwd の .textlintignore で外したファイル" "[text-lint-check] pass"
+MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "not-ignored" "{\"cwd\":\"$REPO/docs\",\"tool_input\":{\"file_path\":\"$REPO/docs/note.md\"}}"
+if [ "$(ctx_of "$OUT" | head -n 1)" = "warning: text lint violations: $REPO/docs/note.md" ]; then
+    pass ".textlintignore に当たらないファイル: 違反を返す"
+else
+    fail ".textlintignore に当たらないファイル: stdout='$OUT' stderr='$ERR'"
+fi
+
 # --- 違反が多いとき: バイトの上限で切り、残りの件数を最後の行に書く ---
 MANY_MD="$TMP/many.md"
 { printf '# 見出し\n\n'; for _ in $(seq 1 120); do printf '%s\n\n' "$VIOLATION_LINE"; done; } > "$MANY_MD"

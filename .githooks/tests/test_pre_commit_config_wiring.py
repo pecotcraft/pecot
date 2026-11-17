@@ -9,6 +9,8 @@ yaml パーサに依存しない切り出しは test_check_release_group_changel
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -206,6 +208,7 @@ def test_plugin_validate_skips_unrelated_paths(script_dir: Path, changed_path: s
 
 
 _TEXT_FILES_HOOK = "check-text"
+_LONG_SENTENCE = "あ" * 101 + "。"
 
 
 @pytest.mark.parametrize(
@@ -230,44 +233,67 @@ def test_check_text_skips_other_files(script_dir: Path, changed_path: str) -> No
     assert not pattern.search(changed_path), f"check-text の files が {changed_path} に一致する"
 
 
-def _hook_exclude_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
-    block = _hook_entry_lines(_config_text(script_dir), hook_id)
-    patterns = [line.strip() for line in block if line.strip().startswith("exclude:")]
-    assert len(patterns) == 1, f"{hook_id} に exclude: が 1 つだけ必要"
-    return re.compile(patterns[0].removeprefix("exclude:").strip())
+# .textlintignore で外すファイルと、外さない手書きのファイル。
+_IGNORED_TEXT_PATHS = [
+    "plugins/pecot-visual/CHANGELOG.md",
+    "plugins/pecot-workflow/cli/tests/parity/golden/pr-create-ok.json",
+    "plugins/pecot-workflow/cli/tests/python-output/sections.json",
+    ".nx/nx-release/tests/_fixtures/dependabot-real.json",
+    ".specify/templates/spec-template.md",
+    ".claude/skills/speckit-plan/SKILL.md",
+    ".claude/skills/speckit-notes.md",
+    ".claude/rules/aws-agent-rules.md",
+    "specs/026-pre-merge-test-env/spec.md",
+]
+_KEPT_TEXT_PATHS = [
+    "README.md",
+    "plugins/pecot-workflow/docs-guide.md",
+    "plugins/pecot-workflow/cli/tests/parity/run.ts",
+    "plugins/pecot-workflow/cli/src/python-output/x.ts",
+    ".nx/nx-release/tests/dependabot-plans.test.js",
+    "plugins/pecot-workflow/specs/x.md",
+]
 
 
-@pytest.mark.parametrize(
-    "changed_path",
-    [
-        "plugins/pecot-visual/CHANGELOG.md",
-        "plugins/pecot-workflow/cli/tests/parity/golden/pr-create-ok.json",
-        "plugins/pecot-workflow/cli/tests/python-output/sections.json",
-        ".nx/nx-release/tests/_fixtures/dependabot-real.json",
-        ".specify/templates/spec-template.md",
-        ".claude/skills/speckit-plan/SKILL.md",
-        ".claude/rules/aws-agent-rules.md",
-        "specs/026-pre-merge-test-env/spec.md",
-    ],
-)
-def test_check_text_excludes_listed_paths(script_dir: Path, changed_path: str) -> None:
-    """生成物・逐語の記録・上流の文書の写し・spec-kit のテンプレートの形の成果物は、exclude で対象から外れる。"""
-    assert _hook_exclude_pattern(script_dir, _TEXT_FILES_HOOK).search(changed_path)
+def _lint_with_textlintignore(
+    script_dir: Path, tmp_path: Path, paths: list[str]
+) -> subprocess.CompletedProcess:
+    """実物の .textlintignore を置いた一時ディレクトリで、違反を書いた paths を bin に渡す。"""
+    root = script_dir.parents[1]
+    shutil.copyfile(root / ".textlintignore", tmp_path / ".textlintignore")
+    for rel in paths:
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        # .md 以外も、コメントと文字列を見る plugin が読む形にする
+        target.write_text(
+            f"# {_LONG_SENTENCE}\n" if target.suffix == ".md" else f'"{_LONG_SENTENCE}"\n'
+        )
+    return subprocess.run(
+        ["node", str(root / "libs/text-rules/dist/bin/pecot-text-lint.js"), *paths],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
-@pytest.mark.parametrize(
-    "changed_path",
-    [
-        "README.md",
-        "plugins/pecot-workflow/docs-guide.md",
-        "plugins/pecot-workflow/cli/tests/parity/run.ts",
-        "plugins/pecot-workflow/cli/src/python-output/x.ts",
-        ".nx/nx-release/tests/dependabot-plans.test.js",
-        "plugins/pecot-workflow/specs/x.md",
-    ],
-)
-def test_check_text_keeps_hand_written_files(script_dir: Path, changed_path: str) -> None:
-    assert not _hook_exclude_pattern(script_dir, _TEXT_FILES_HOOK).search(changed_path)
+def test_check_text_skips_textlintignore_paths(script_dir: Path, tmp_path: Path) -> None:
+    """生成物・逐語の記録・上流の文書の写し・spec-kit のテンプレートの形の成果物は、.textlintignore で外れる。"""
+    result = _lint_with_textlintignore(script_dir, tmp_path, _IGNORED_TEXT_PATHS)
+    assert (result.returncode, result.stdout) == (0, ""), result.stdout + result.stderr
+
+
+def test_check_text_keeps_hand_written_files(script_dir: Path, tmp_path: Path) -> None:
+    result = _lint_with_textlintignore(script_dir, tmp_path, _KEPT_TEXT_PATHS)
+    assert result.returncode == 1, result.stderr
+    reported = {line.split(":", 1)[0] for line in result.stdout.splitlines()}
+    assert reported == set(_KEPT_TEXT_PATHS)
+
+
+def test_check_text_has_no_exclude(script_dir: Path) -> None:
+    """除外の一覧は .textlintignore の 1 か所に置き、pre-commit の exclude と二重に持たない。"""
+    block = _hook_entry_lines(_config_text(script_dir), _TEXT_FILES_HOOK)
+    assert not [line for line in block if line.strip().startswith("exclude:")]
 
 
 def test_check_text_stages_and_flags(script_dir: Path) -> None:
@@ -297,11 +323,9 @@ def _script_regex(script_dir: Path, name: str) -> str:
 
 
 def test_check_text_push_regexes_match_config(script_dir: Path) -> None:
-    """check-text-push.sh の対象判定は、check-text の files および exclude と同一にする。"""
+    """check-text-push.sh の対象判定は、check-text の files と同一にする。"""
     files = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK).pattern
-    exclude = _hook_exclude_pattern(script_dir, _TEXT_FILES_HOOK).pattern
     assert _script_regex(script_dir, "TEXT_FILES_RE") == files
-    assert _script_regex(script_dir, "TEXT_EXCLUDE_RE") == exclude
 
 
 def test_check_commit_text_stage_and_always_run(script_dir: Path) -> None:
