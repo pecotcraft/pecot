@@ -224,13 +224,19 @@ describe('loadEnvironmentFile', () => {
   })
 })
 
+function createdEnvironmentFile(host: string): string {
+  const file = ensureEnvironmentFile(host)
+  if (file === undefined) throw new Error('ensureEnvironmentFile did not create .env')
+  return file
+}
+
 describe('ensureEnvironmentFile', () => {
   const HEADER = '# pecot-cli 認証設定\n# 各トークンの値を設定してください\n#\n# トークン作成時は必要なスコープを付与してください\n'
 
   // 期待値は Python の ensure_env_file の出力
   it('スコープ付きのホストでは、取得先とスコープを書いた .env を設定ディレクトリに新しく作る', () => {
     const { config } = useProject({ 'ghes.example.com': ENTERPRISE_HOST })
-    const file = ensureEnvironmentFile('ghes.example.com')
+    const file = createdEnvironmentFile('ghes.example.com')
     expect(file).toBe(path.join(config, '.env'))
     expect(readFileSync(file, 'utf8')).toBe(
       `${HEADER}\n# GitHub Enterprise Server\n# 取得先: https://ghes.example.com/settings/tokens\n# 必要なスコープ: repo, read:org, project\nPECOT_GITHUB_GHES_TOKEN=\n`,
@@ -239,14 +245,14 @@ describe('ensureEnvironmentFile', () => {
 
   it('新規作成: スコープが無ければスコープ行は空行になる', () => {
     useProject({ 'github.com': PUBLIC_HOST })
-    const content = readFileSync(ensureEnvironmentFile('github.com'), 'utf8')
+    const content = readFileSync(createdEnvironmentFile('github.com'), 'utf8')
     expect(content).toBe(`${HEADER}\n# GitHub.com\n# 取得先: https://github.com/settings/tokens\n\nPECOT_GITHUB_COM_TOKEN=\n`)
     expect(content).not.toContain('必要なスコープ:')
   })
 
   it('新規作成: 未定義ホストはフォールバックの命名で、description はホスト名', () => {
     useProject({})
-    expect(readFileSync(ensureEnvironmentFile('gitlab.example.com'), 'utf8')).toBe(
+    expect(readFileSync(createdEnvironmentFile('gitlab.example.com'), 'utf8')).toBe(
       `${HEADER}\n# gitlab.example.com\n# 取得先: https://gitlab.example.com/settings/tokens\n\nPECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN=\n`,
     )
   })
@@ -270,11 +276,10 @@ describe('ensureEnvironmentFile', () => {
     expect(readFileSync(file, 'utf8')).toBe('PECOT_GITHUB_COM_TOKEN=existing_token\n')
   })
 
-  it('設定ディレクトリが無いときは Python の OSError と同じ文', () => {
+  it('設定ディレクトリが無いときは、何も作らずに undefined を返す', () => {
     const root = makeTemporaryDirectory()
     setEnvironment({ CLAUDE_PROJECT_DIR: root })
-    const file = path.join(root, '.pecot', 'config', '.env')
-    expect(() => ensureEnvironmentFile('github.com')).toThrow(`[Errno 2] No such file or directory: '${file}'`)
-    expect(existsSync(file)).toBe(false)
+    expect(ensureEnvironmentFile('github.com')).toBeUndefined()
+    expect(existsSync(path.join(root, '.pecot'))).toBe(false)
   })
 })

@@ -2611,6 +2611,8 @@ entries:
         - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
         - "With --prepare and the default template, fills the trailing Closes # with the number of the work Issue, found from the git remote and the number that ends the current branch name. A leftover .pecot/state/.pecot-active is not read, so a clone without .pecot/state/ gets the same Closes."
         - "The Closes # of the copy is left empty when that Issue is an Epic."
+        - "With --prepare, when the kind of that Issue cannot be read from GitHub (including when no token is found), prints a warning, leaves Closes # empty and still writes the copy."
+        - "With --prepare, when no project config includes the target repository, prints a warning and still writes the copy with exit status 0."
         - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
         - With -m, the repository is --repo. When --repo is omitted, it is the repository of the git remote that points to a repository in a project config, checking origin first and then the others in git remote order.
         - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
@@ -3032,13 +3034,19 @@ entries:
         statement: 'もし記録が無く、積んだ先を求められないなら、`--dry-run` では warning の行を出し、`develop_branch` を base にします'
       - id: PW-PR-CREATE-75
         pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が無いなら、`--prepare` の無いときは `error` の行を出して、終了コード 1 で終わります'
       - id: PW-PR-CREATE-76
         pattern: event
         statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
       - id: PW-PR-CREATE-77
         pattern: event
         statement: '`-m` で `--repo` を省いて打つと、origin のリポが設定に無くても、設定にあるリポを指す別の remote のリポに PR を作ります'
+      - id: PW-PR-CREATE-78
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`--prepare` では `warning` の行を出し、テンプレのコピーを書いて終了コード 0 で終わります'
+      - id: PW-PR-CREATE-79
+        pattern: unwanted
+        statement: 'もし作業中の Issue の種類を GitHub から読めないなら、`--prepare` では `Closes` を空のままにし、`warning` の行を出して、テンプレのコピーを書きます'
   PW-PR-MERGE:
     help:
       details:
