@@ -49,6 +49,10 @@
       "Bash(plugins/pecot-tools/scripts/ci/run-tests.sh *)",
       "Bash(plugins/pecot-workflow/scripts/ci/run-lint.sh *)",
       "Bash(plugins/pecot-visual/scripts/ci/run-lint.sh *)",
+      "Bash(.githooks/scripts/sandbox-diff.sh)",
+      "Bash(*/.githooks/scripts/sandbox-diff.sh)",
+      "Bash(.githooks/scripts/sandbox-sweep.sh *)",
+      "Bash(*/.githooks/scripts/sandbox-sweep.sh *)",
       "Bash(unzip -l *)",
       "mcp__plugin_pecot-v_pecot-visual__slide_lint"
     ],

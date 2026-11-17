@@ -132,6 +132,12 @@ describe('w-active の手順', () => {
     expect(switching).toContain('別の Issue の上に積んで着手したときは、その旨を利用者に伝える')
   })
 
+  it('実装の Step は、計画の CUJ を main が cuj-run.md に従って流すと書き、リンク先が実在する', () => {
+    const body = sectionBody(text, titleIndex(headings, '実装'))
+    expect(body).toContain('計画の CUJ を main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流す。')
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-help', 'references', 'cuj-run.md'))).toBe(true)
+  })
+
   it('base の選び方を、スキルの文に書かない', () => {
     expect(text).not.toContain('--base')
     expect(text).not.toContain('develop_branch')
@@ -201,13 +207,13 @@ describe('w-revise の手順', () => {
 
   it('Step 2 は、計画の CUJ を実行しない（初回の実行は実装の後に済ませる）', () => {
     const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).not.toContain('w-e2e-planner')
+    expect(body).not.toContain('cuj-run.md')
   })
 
-  it('Step 6 の CUJ の再実行は、w-e2e-planner を Agent ツールで起こし、実行者が main の CUJ は渡さない', () => {
+  it('Step 6 の CUJ の再実行は、main が CUJ の流し方の参照に従って流し、サブエージェントに渡さない', () => {
     const body = sectionBody(text, numberIndex(headings, 6))
-    expect(body).toContain('w-e2e-planner を `Agent` ツールで起こして再実行させる')
-    expect(body).toContain('実行者が main の CUJ と、実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。')
+    expect(body).toContain('main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流し直す。サブエージェントには渡さない。')
+    expect(body).not.toContain('w-e2e-planner')
     expect(body).not.toContain('単発 spawn')
   })
 

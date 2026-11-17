@@ -168,6 +168,7 @@
         "{projectRoot}/bin/pecot",
         "{projectRoot}/bin/_lib.sh",
         "{projectRoot}/skills/w-help/references/issue-flow-rules.md",
+        "{projectRoot}/skills/w-help/references/cuj-run.md",
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{projectRoot}/project.json",
         "{workspaceRoot}/plugins/pecot-visual/scripts/ci/run-lint.sh",

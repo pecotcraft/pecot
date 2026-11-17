@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはリポ内の固定のパスのみ */
-// CUJ の定義段落が、plan テンプレ・w-e2e-planner.md・w-reviewer.md の 3 箇所で一致することの固定。
+// CUJ の定義段落が、plan テンプレ・CUJ の流し方の参照・w-reviewer.md の 3 箇所で一致することの固定。
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,7 +9,7 @@ import { projectRoot } from './_helpers/paths.js'
 
 const SOURCES: readonly string[] = [
   'plugins/pecot-workflow/cli/templates/comment/plan.md',
-  'plugins/pecot-workflow/agents/w-e2e-planner.md',
+  'plugins/pecot-workflow/skills/w-help/references/cuj-run.md',
   'plugins/pecot-workflow/agents/w-reviewer.md',
 ]
 
@@ -33,5 +33,11 @@ describe('CUJ の定義段落', () => {
     }
     const joined = [...definitions].map(([relative, text]) => `--- ${relative} ---\n${text}`).join('\n')
     expect(new Set(definitions.values()).size, `CUJ 定義段落が 3 箇所で一致していない:\n${joined}`).toBe(1)
+  })
+
+  it.each(SOURCES)('%s の定義段落は、「流す先」の決まりを含む', (relative) => {
+    const definition = extractDefinition(path.join(projectRoot, relative))
+    expect(definition).toContain('CUJ ごとに「流す先」を書く。')
+    expect(definition).toContain('外へ書き込むとは、')
   })
 })

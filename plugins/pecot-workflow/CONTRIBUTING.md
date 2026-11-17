@@ -267,6 +267,7 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
 - `--dry-run` は、片付けるものを出すだけで、何も書き換えない
 - 書き換える先は検証用のリポとボードに固定。名前の形に合わないものと、検証用の `main`・設定のファイルには触らない
 - 2 回続けて動かしても、2 回目は 0 件で終わる
+- `sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに打てる。既定のモードの `claude -p` から打っても止まらない
 
 ### 配る自動化を確かめる
 

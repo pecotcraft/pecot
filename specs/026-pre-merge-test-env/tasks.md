@@ -131,7 +131,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 ## Phase 5: どこで確かめるかを計画が示し、確かめがこのリポで流れない (US4、P2)
 
-**Goal**: 計画の CUJ に「流す先」がある。w-e2e-planner は、流す先が検証用の CUJ を実投稿まで行う。w-reviewer は、流す先の欠けを挙げる
+**Goal**: 計画の CUJ に「流す先」がある。CUJ は main が cuj-run.md に従って流し、流す先が検証用の CUJ を実投稿まで行う。w-reviewer は、流す先の欠けを挙げる
 
 **Independent Test**: quickstart.md の 7 が通る
 
@@ -141,22 +141,23 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 ### Tests for User Story 4
 
-- [ ] T027 [P] [US4] `p-w/cli/tests/skills/template-rules.test.ts` に期待を足す。plan テンプレの CUJ の例と雛形が「流す先」の行を持つ、という期待だ。実装の前は失敗することを確かめる
-- [ ] T028 [P] [US4] `p-w/cli/tests/hooks/cuj-definition-single-source.test.ts` に期待を足す。「流す先」の決まりの文が、plan テンプレ・w-e2e-planner・w-reviewer の 3 か所で同じ、という期待だ。実装の前は失敗することを確かめる
+- [x] T027 [P] [US4] `p-w/cli/tests/skills/template-rules.test.ts` に期待を足す。plan テンプレの CUJ の例と雛形が「流す先」の行を持つ、という期待だ。実装の前は失敗することを確かめる
+- [x] T028 [P] [US4] `p-w/cli/tests/hooks/cuj-definition-single-source.test.ts` に期待を足す。「流す先」の決まりの文が、plan テンプレ・cuj-run.md・w-reviewer の 3 か所で同じ、という期待だ。実装の前は失敗することを確かめる
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] `p-w/cli/templates/comment/plan.md` の CUJ に「流す先」を足す。並びは、誰が・起点・流す先・テスト手順・合格基準にする。CUJ の説明に、contracts/cuj-destination.md の書き方の決まり（3 つの場合）を足す。例の 3 つの CUJ に「流す先 — 手元」を足す。T027 を通す
-- [ ] T030 [US4] `p-w/agents/w-e2e-planner.md` を直す。流す先が検証用の CUJ は、検証用の clone を作業ディレクトリにして実投稿まで行う。流す先が検証用でない CUJ は、今のとおり外へ出ない入力まで実行し、実投稿を main に委ねる。結果に、できたものの URL を載せる。CUJ の定義の文に、T029 と同じ決まりの文を足す
-  - T048 の結果（R11-7）で、手段は Bash での `pecot` と、同じ clone で起こす `claude -p`（`--allowedTools=<ツール>` の形）に決まった
-  - MCP ツールに `repo` を渡す形は止まるので使わない。clone の後に `pecot project activate` を打つことも書く
-  - w-e2e-planner.md の「起点が `pecot` の CLI の CUJ: 実行しない」も、流す先が検証用の CUJ では、検証用の clone で打つ形に直す
+- [x] T029 [US4] `p-w/cli/templates/comment/plan.md` の CUJ に「流す先」を足す。並びは、誰が・起点・流す先・テスト手順・合格基準にする。CUJ の説明に、contracts/cuj-destination.md の書き方の決まり（3 つの場合）を足す。例の 3 つの CUJ に「流す先 — 手元」を足す。T027 を通す
+- [x] T030 [US4] `p-w/agents/w-e2e-planner.md` を消し、`p-w/skills/w-help/references/cuj-run.md` を足す。CUJ は main が流す
+  - 流す先が検証用の CUJ は、検証用の clone を作業ディレクトリにして、実投稿まで行う。Verified に、できたものの URL を載せる。cuj-run.md の CUJ の定義の文に、T029 と同じ決まりの文を書く
+  - 手段は、同じ clone で起こす子の CLI（`--allowedTools=<ツール>` の形）と、その MCP ツールにした（R11-7・R-19）
+  - MCP ツールに `repo` を渡す形は止まるので使わない。clone でプロジェクトが有効でなければ、子に `project_activate` を呼ばせることも書く
+  - w-e2e-planner を消した理由は research の R5 にある
   - R11-7 は auto mode で確かめた。既定のモードで `claude -p` に許可の設定が要るかを確かめ、要るなら手順に書く
-- [ ] T031 [US4] `p-w/agents/w-reviewer.md` の `[cuj]` の視点に、contracts/cuj-destination.md の 2 つの見る点を足す。検証用の場所が無いリポでの扱いも足す。CUJ の定義の文に、T029 と同じ決まりの文を足す。T028 を通す
-- [ ] T032 [US4] `p-w/com.github.copilot/agents/` の w-e2e-planner と w-reviewer の写しを、T030・T031 と同じに直す。既存の同期のテストを通す
-- [ ] T033 [US4] `CLAUDE.md` に、外へ書き込む CUJ は検証用を流す先にし、このリポを流す先にしない、の 1 行を足す
-- [ ] T034 [US4] `.nx/version-plans/` に、pecot-workflow の version plan を足す
-- [ ] T035 [US4] quickstart.md の 7 を流す。プロジェクトの指示に検証用が無い場合は、検証用の clone で、指示の無い状態を作って確かめる。結果を PR の説明に書く
+- [x] T031 [US4] `p-w/agents/w-reviewer.md` の `[cuj]` の視点に、contracts/cuj-destination.md の 2 つの見る点を足す。検証用の場所が無いリポでの扱いも足す。CUJ の定義の文に、T029 と同じ決まりの文を足す。T028 を通す
+- [x] T032 [US4] `p-w/com.github.copilot/agents/` の w-e2e-planner の写しを消し、w-reviewer の写しを T031 と同じに直す。既存の同期のテストを通す
+- [x] T033 [US4] `CLAUDE.md` に、外へ書き込む CUJ は検証用を流す先にし、このリポを流す先にしない、の 1 行を足す
+- [x] T034 [US4] `.nx/version-plans/` に、pecot-workflow の version plan を足す
+- [x] T035 [US4] quickstart.md の 7 を流す。プロジェクトの指示に検証用が無い場合は、検証用の clone で、指示の無い状態を作って確かめる。結果を PR の説明に書く
 
 ---
 

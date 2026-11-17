@@ -83,7 +83,7 @@ plugins/pecot-visual/scripts/ci/tests/references-path-existence.test.sh
 plugins/pecot-visual/scripts/release/audit-canary/package.json
 plugins/pecot-visual/setup.sh
 plugins/pecot-visual/skills/v-slidev/SKILL.md
-plugins/pecot-workflow/agents/w-e2e-planner.md
+plugins/pecot-workflow/agents/w-reviewer.md
 plugins/pecot-workflow/cli/src/cli.ts
 plugins/pecot-workflow/cli/templates/comment/plan.md
 plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml

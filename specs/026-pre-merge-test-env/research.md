@@ -77,9 +77,12 @@
 - Decision: 検証用の場所は、プロジェクトの指示（`CLAUDE.md` など）に書く。設定のキーは足さない
 - Decision: w-e2e-planner は、流す先が検証用の CUJ を、実投稿まで自分で行う。今の「実投稿はしない。main に委ねる」は、流す先が検証用でない CUJ にだけ残す
 - Decision: w-e2e-planner は、検証用の clone を作業ディレクトリにして、Bash で `pecot` を打って書き込む。スキルの振る舞いまで確かめる CUJ は、同じ clone で `claude -p` を起こす。MCP ツールに `repo` を渡す形は使えない（R11-7）
+- Decision（実装の後に変えた）: w-e2e-planner を消し、計画の CUJ は main が `w-help/references/cuj-run.md` に従って流す。上の w-e2e-planner の 2 つの Decision は、これで置き換える
+  - 手段は、検証用の clone で子の CLI を起こし、子の MCP ツールで書き込む形にする（R-19 で、スキルが Bash の `pecot` を案内しないため）
+  - 理由: CUJ 4 で、w-e2e-planner は渡した決まりを落とし、検証用でない流す先にも実投稿した。名前に反して計画も立てない。main への受け渡しを無くせば、決まりが落ちる箇所が無くなる
 - Decision: w-reviewer は、流す先の欠けを挙げる。プロジェクトの指示に検証用の場所があるのに、作業中のリポを流す先にした CUJ も挙げる
 - Rationale:
-  - CUJ の定義は、plan テンプレ・w-e2e-planner・w-reviewer の 3 か所に同じ文で書いてある。項目を足すときは、3 か所を同じ変更で直す
+  - CUJ の定義は、plan テンプレ・cuj-run.md・w-reviewer の 3 か所に同じ文で書いてある。項目を足すときは、3 か所を同じ変更で直す
   - 配布物は、検証用を持たない利用者にも配られる。検証用の場所を配布物に書き込むと、利用者のリポで意味を持たない。プロジェクトの指示に置けば、指示に無いリポでは「流す先」は利用者が決めた先か「手元」になり、スキルは止まらない
 - Alternatives considered:
   - pecot の設定に「検証用のリポ」のキーを足す。CLI・定義書・テストの変更が要る。計画に 1 行書くだけの用には重い。退ける

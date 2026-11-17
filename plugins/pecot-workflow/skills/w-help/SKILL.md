@@ -48,6 +48,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | Issue/PR 起票時のフロー基本ルール | [Issue/PR フロー基本ルール](references/issue-flow-rules.md) |
 | スキルが起こすエージェントのモデルの決め方 | [エージェントのモデル](references/agent-models.md) |
 | サブエージェントに委譲する条件と、起こす箇所ごとの理由 | [サブエージェントの使い方](references/subagent-usage.md) |
+| 計画の CUJ を流す（実装の後、PR のレビューで直した後） | [CUJ の流し方](references/cuj-run.md) |
 
 ## よくある操作
 

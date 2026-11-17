@@ -293,15 +293,13 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 | エージェントの `disallowedTools` | 指定したツールがエージェントから消える | 制限として働かない（`Bash` を除外したエージェントで Bash が実行された）。1.0.112 では `unknown fields ignored` の警告が出る（2026-11-17・Issue #551） |
 
 - Claude はサブエージェントから `AskUserQuestion` / `EnterPlanMode` / `ExitPlanMode` をもともと外すため、これらの
-  除外は効果が無い。w-e2e-planner の `disallowedTools`（`AskUserQuestion` だけ）は Claude では実質の除外が無い
+  除外は効果が無い
 - `Agent` を除外すると、`--agent` 起動の init の tools からは `Task` が消える。`Bash` を除外すると `Monitor` も消える
 - Windows では PowerShell ツールが自動で有効になるため、シェルを使わせないエージェントでは `Bash` と合わせて
   `PowerShell` も除外する
 - Copilot の custom agents は `disallowedTools` を持たず、許可型の `tools` でツールを絞る。
   Copilot 向けの写し（`com.github.copilot/agents/`）の `tools` には、Claude で禁じていないツールを Copilot の名前で書く（Issue #551）。
   Claude 向けの `agents/` は除外型のままにする。MCP ツール名の形がクライアントで違い、許可の書き忘れで作業が止まるため
-- w-e2e-planner だけ `tools` を `*` にする。task で起きたサブエージェントには `ask_user` が渡らないため（1.0.112 で確認）。
-  ただし `--agent` でセッションのエージェントとして起こすと、`ask_user` が渡る
-- `tools` には MCP のサーバ名を前もって書く。そのため、利用者のリポの MCP サーバは、w-e2e-planner 以外では使えない
+- `tools` には MCP のサーバ名を前もって書く。そのため、利用者のリポの MCP サーバは、エージェントからは使えない
 - `claude plugin validate --strict`（pre-commit の `plugin-validate`）は未知のキー、`argument-hint` の型、
   `disallowedTools` のツール名を確かめない。これらは `cli/tests/hooks/lib/agent-definitions.test.ts` が固定している
