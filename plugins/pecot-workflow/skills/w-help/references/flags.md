@@ -27,3 +27,4 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 | ファイル | 書き手 | 読み手 | 消し手 |
 |----------|--------|--------|--------|
 | `session-title-sent` | `session-title.sh`（`<session_id>:<題名>`。`sessionTitle` を出した直後） | `session-title.sh`（同じ題名を同じセッションに再送しない） | なし（次の題名で上書き） |
+| `.plugin-sync-version` | `pecot-dir-init.sh`（`.pecot` の初期化の後） | `pecot-dir-init.sh`（`plugin.json` より新しければ初期化を省く） | なし |

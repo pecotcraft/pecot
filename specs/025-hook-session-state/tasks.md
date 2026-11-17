@@ -295,7 +295,7 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
   - ガードの表から、上書きガードと `allow_cross_repo` を除く
 - [x] T064 [P] [US6] `p-w/agents/w-implementer.md` を直す。編集してよいリポを、作業中の worktree の remote のリポとする
   - `tests/hooks/lib/agent-definitions.test.ts` の期待を合わせる
-- [ ] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
+- [x] T065 [US6] `SPEC/quickstart.md` の 4 を実機で確かめ、結果を PR に貼る
 
 ---
 
@@ -366,20 +366,20 @@ description: "pecot-workflow のフックを棚卸しし、状態をファイル
 
 **前提**: Phase 2〜7
 
-- [ ] T081 [US5] `p-w/hooks/README.md` に、推奨設定の節を足す
+- [x] T081 [US5] `p-w/hooks/README.md` に、推奨設定の節を足す
   - pecot のマーケットプレイスの自動更新
   - Claude Code の通知（`preferredNotifChannel`・プッシュ通知・端末の状態の表示）
   - Copilot CLI の通知（`beep`・`notifications`）
-- [ ] T082 [US5] Copilot CLI の `beep: true` がターンの完了で鳴るかを実機で確かめ、T081 の書き方を決める
-- [ ] T083 [US5] `p-w/hooks/README.md` の状態の表を、`SPEC/data-model.md` の「状態の置き場」に合わせる
-- [ ] T084 [US5] `SPEC/research.md` の R6 で「使っていないことを確かめる」とした項目を、grep で確かめる。使っていれば直す（FR-051）
-- [ ] T085 [US5] 現行の両クライアントで、残ったフックを 1 つずつ動かす。`p-w/hooks/README.md` の実機の記録の表を書き直す
+- [x] T082 [US5] Copilot CLI の `beep: true` がターンの完了で鳴るかを実機で確かめ、T081 の書き方を決める
+- [x] T083 [US5] `p-w/hooks/README.md` の状態の表を、`SPEC/data-model.md` の「状態の置き場」に合わせる
+- [x] T084 [US5] `SPEC/research.md` の R6 で「使っていないことを確かめる」とした項目を、grep で確かめる。使っていれば直す（FR-051）
+- [x] T085 [US5] 現行の両クライアントで、残ったフックを 1 つずつ動かす。`p-w/hooks/README.md` の実機の記録の表を書き直す
   - 表に「`|` を含む matcher での `once`」の行を入れ、外れるかを記録する（`SPEC/research.md` の R2 で不具合として避けた点）
   - 版・日付・結果を書く
   - `SPEC/quickstart.md` の 6 の表の行を、すべて含める
-- [ ] T086 [US5] `p-w/hooks/README.md` の対応バージョンを直す。最低対応版を、frontmatter のフックを確かめた版に上げ、根拠を書く
-- [ ] T087 [US5] README と実物を比べるテスト（`tests/hooks/readme-flow-table-sync.test.ts` など）を通す
-- [ ] T088 `SPEC/research.md` の R1 の表を、最後に見直す。2 つの定義ファイル・sample・README と比べ、食い違いを直す（SC-005）
+- [x] T086 [US5] `p-w/hooks/README.md` の対応バージョンを直す。最低対応版を、frontmatter のフックを確かめた版に上げ、根拠を書く
+- [x] T087 [US5] README と実物を比べるテスト（`tests/hooks/readme-flow-table-sync.test.ts` など）を通す
+- [x] T088 `SPEC/research.md` の R1 の表を、最後に見直す。2 つの定義ファイル・sample・README と比べ、食い違いを直す（SC-005）
 
 ---
 
