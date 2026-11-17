@@ -3238,6 +3238,7 @@ entries:
         - "After the rebase, stops when the remote branch has commits whose change is in the local branch neither before nor after the rebase, because the push would drop them. The branch goes back to the position before the restack."
         - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the recorded position is not in the history of the branch, the rebase starts from the fork point with the remote-tracking ref of the layer below, or from the merge base with the new base when there is no fork point. This holds also after the layer below is merged. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position, and waits up to 10 minutes including the pre-push hook. A branch that is not on the remote is not pushed."
         - "After the restack, rewrites the base record with the merge base of the branch and the new base."
+        - "After a restack onto the develop branch, saves the body of the open PR of the branch again without changes, when the base of that PR is the default branch of the repository and its body names Issues with closing keywords that are not linked yet. GitHub links closing Issues only for PRs to the default branch, and does not read the body again when it moves the base of a stacked PR. A failure is a warning line with how to save the body by hand, and the exit status stays 0. Running pr restack again does not retry, because the base record is already rewritten."
         - "On conflicts, prints the conflicted files, leaves the rebase in progress, writes a progress record and exits with status 3. --continue goes on after the conflicts are resolved and staged. --abort goes back to the position before the restack. Both read only the progress record and refuse to touch a rebase that pecot did not start."
         - Only one of --check, --continue and --abort can be given.
         - "With --dry-run, fetches and decides like a restack, then prints a dry-run line of what would be done, without rebasing, pushing or writing records."
@@ -3277,6 +3278,9 @@ entries:
       - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
       - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。pre-push のフックを含めて、10 分まで待ちます。remote に無いブランチは push しません。'
       - '載せ直しの後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
+      - '開発ブランチへ載せ直した後、ブランチの開いている PR の本文を変えずに保存し直します。GitHub は、積んだ PR の `Closes` を Issue とリンクせず、base を付け替えても本文を読み直さないためです。'
+      - '保存し直すのは、PR の base がリポの既定のブランチで、本文の `Closes` などの Issue に、まだリンクになっていないものがあるときだけです。GitHub がリンクにするのは、既定のブランチに向いた PR だけです。'
+      - '保存し直しの失敗は warning の行にとどめ、終了コードは 0 のままです。base の記録は書き直し済みなので、打ち直しても保存し直しません。warning の行は、GitHub で本文を変えずに保存し直す案内を添えます。'
       - '衝突したら、衝突したファイルを出し、rebase を途中のまま残します。途中の記録を書き、終了コード 3 で終わります。'
       - '`--continue` は、衝突を解いて `git add` した後に続けます。`--abort` は、載せ直しの前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
       - '`--check`・`--continue`・`--abort` は、1 つだけ渡せます。'
@@ -3296,8 +3300,9 @@ entries:
         pullRequest: '下の段の、マージ済みの PR の番号です。`cause` が `base-merged` のときだけ入ります。'
         pushed: 'ブランチを push したかどうかです。`outcome` が `restacked` のときだけ入ります。'
         conflicts: '衝突したファイルの一覧です。`outcome` が `conflict` のときだけ入ります。'
+        relinked: '本文を保存し直した、開いている PR の番号です。開発ブランチへ載せ直すか合わせた後、まだリンクになっていない `Closes` があって保存し直したときだけ入ります。'
         dryRun: '`dry_run` のときだけ `true` で入ります。ブランチと記録は変えていません。'
-    diagnostics: '標準エラーに、結果の行を 1 つ出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。失敗は `error` の行で、続けて直し方の行を出します。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
+    diagnostics: '標準エラーに、結果の行を出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。開発ブランチへ載せ直した後に PR の本文を保存し直すと、`updated: PR #N relinked to its closing Issues` の行を足します。PR の本文を保存し直せないと、`warning: cannot relink PR #N to its closing Issues: <理由>` の行を出します。続けて、手で保存し直す案内の行を出し、終了コードは 0 のままです。載せ直しの失敗は `error` の行で、続けて直し方の行を出します。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -3362,6 +3367,9 @@ entries:
       - target: github
         kind: read
         what: '下の段のブランチを head に持つ PR を読みます。'
+      - target: github
+        kind: write
+        what: '開発ブランチへ載せ直した後、既定のブランチに向いたブランチの開いている PR を読み、本文を変えずに保存し直します。'
       - target: file
         kind: write
         what: '`.pecot/state/.pecot-base` を書き直します。衝突で止まる間は `.pecot/state/.pecot-restack` を置き、終わるか取りやめると消します。'
@@ -3480,6 +3488,12 @@ entries:
       - id: PW-PR-RESTACK-33
         pattern: unwanted
         statement: 'もし push が 10 分で終わらないなら、git を止め、時間切れの `error` の行と、手で push してから `pr restack` を打つ案内を出します。base の記録は書き直さず、終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-34
+        pattern: event
+        statement: '開発ブランチへ載せ直すか合わせると、開いている PR の base が既定のブランチで、リンクになっていない `Closes` があれば、本文を変えずに保存し直します'
+      - id: PW-PR-RESTACK-35
+        pattern: unwanted
+        statement: 'もし PR の本文の保存し直しに失敗したなら、手で保存し直す案内を添えた `warning` の行を出し、終了コード 0 で終わります'
   PW-PR-SHOW:
     help:
       details:

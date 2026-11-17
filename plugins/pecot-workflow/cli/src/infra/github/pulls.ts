@@ -305,6 +305,13 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
+  PR の本文を置き換える。同じ本文で保存すると、GitHub が Closes を読み直す
+  */
+  async updatePullRequestBody(owner: string, repository: string, number: number, body: string): Promise<JsonObject> {
+    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/pulls/${String(number)}`, { json: { body } })
+  }
+
+  /**
   PR の詳細を取る（GraphQL）。関連 Issue とレビューを 1 回のクエリで取る
   */
   async getPullRequestSlim(owner: string, repository: string, number: number): Promise<PullRequestSlim> {
