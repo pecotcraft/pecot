@@ -8,10 +8,19 @@ import { kindOfFailure } from './failure.js'
 import type { Output } from './output.js'
 
 /**
-host 向けのクライアントを作る。host が undefined なら既定のホスト。トークンが無いときは GitHubAuthError を投げる
+host 向けのクライアントを作る。host が undefined なら既定のホスト。環境にトークンが無いときは、最初の要求の前に gh auth token を読む
 */
 export function createGitHubClient(out: Readonly<Output>, host: string | undefined): GitHubClient {
-  return new GitHubClient({ host, diagnostics: out })
+  return new GitHubClient({ host, diagnostics: out, signal: out.signal })
+}
+
+/**
+createGitHubClient で作り、トークンまで読み終えたクライアントを返す。認証の失敗（GitHubAuthError）を、最初の要求の失敗と分けて出すときに使う
+*/
+export async function createAuthenticatedGitHubClient(out: Readonly<Output>, host: string | undefined): Promise<GitHubClient> {
+  const client = createGitHubClient(out, host)
+  await client.ensureToken()
+  return client
 }
 
 /**
@@ -25,9 +34,9 @@ export function apiFailureMessage(error: unknown): string {
 /**
 クライアントを作る。認証などの失敗は error の行にして終了コード 1 で止める
 */
-export function makeClient(out: Readonly<Output>, config: Readonly<ProjectConfig>): GitHubClient {
+export async function makeClient(out: Readonly<Output>, config: Readonly<ProjectConfig>): Promise<GitHubClient> {
   try {
-    return createGitHubClient(out, config.host)
+    return await createAuthenticatedGitHubClient(out, config.host)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error

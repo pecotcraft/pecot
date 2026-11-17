@@ -109,15 +109,15 @@ const worktreeAddCommand = defineCommand({
   shortFlags: { directory: '-D' },
   aliases: { allow_existing_branch: '--force' },
   interactive: false,
-  run: (input, io) => Promise.resolve(runAdd(input, io)),
+  run: async (input, io) => await runAdd(input, io),
 })
 
-function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>, io: CommandIo): 0 {
+async function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>, io: CommandIo): Promise<0> {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput<z.input<typeof ADD_OUTPUT>>(input.dry_run, io)
   try {
     ensureDevcontainerEnvironment()
-    const result = createWorktree(input.directory, out, {
+    const result = await createWorktree(input.directory, out, {
       baseBranch: input.base,
       path: input.path,
       shouldCopy: !input.no_copy,
@@ -126,6 +126,7 @@ function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>
       isDryRun: input.dry_run,
       isExistingBranchAllowed: input.allow_existing_branch,
       project: input.project,
+      signal: out.signal,
     })
     const operation: Operation = { verb: 'create', target: `worktree ${result.name} at ${result.path} (branch ${result.branch} from ${result.baseBranch})` }
     out.planned(operation)

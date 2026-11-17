@@ -55,9 +55,9 @@ export interface CollectedIo {
 }
 
 /**
-stdout・stderr に書かれた文字列と、失敗の原因の名前、最初の結果の行、項目、warning の文を集める io
+stdout・stderr に書かれた文字列と、失敗の原因の名前、最初の結果の行、項目、warning の文を集める io。signal は io にそのまま渡す
 */
-export function collectIo(): CollectedIo {
+export function collectIo(signal?: Readonly<AbortSignal>): CollectedIo {
   const out: string[] = []
   const error: string[] = []
   let failureKind: FailureKind | undefined
@@ -74,6 +74,7 @@ export function collectIo(): CollectedIo {
         error.push(text)
       },
       surface: 'mcp',
+      ...(signal !== undefined && { signal }),
       failureKind: (kind) => {
         failureKind ??= kind
       },
@@ -232,7 +233,7 @@ export function toRejectedResult(message: string): CallToolResult {
 }
 
 /**
-中断（notifications/cancelled か接続の切断）で本体を呼ばなかった結果。応答はクライアントに届かない
+中断（notifications/cancelled か接続の切断）で、本体を呼ばなかったか途中で止めた結果。応答はクライアントに届かない
 */
 export function toAbortedResult(): CallToolResult {
   return toToolResult({ exitCode: 1, stdout: '', stderr: '', kind: 'aborted', message: 'cancelled' })

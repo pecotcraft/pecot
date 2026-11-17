@@ -1,11 +1,8 @@
 // ワークツリー作成後の setup_command の実行。Python の subprocess.run（shell=True）と同じ結果にする。
 
-import { spawnSync } from 'node:child_process'
 import os from 'node:os'
 
-import { normalizeNewlines } from '../domain/python-format.js'
-import { MAX_OUTPUT_BYTES } from './git.js'
-import { hasErrorCode, toOsError } from './os-error.js'
+import { runProcess } from './process-run.js'
 
 export interface SetupResult {
   /**
@@ -32,27 +29,13 @@ function timeoutMilliseconds(timeoutSeconds: number | undefined): number | undef
 }
 
 /**
-setup_command を shell 経由で実行して、結果を構造化して返す。
-
-stdin は常に閉じて、対話プロンプトで stall しないようにする。
-timeoutSeconds を超えた場合は子プロセスを kill し、exitCode -1 の SetupResult を返す（例外は投げない）。-1 は timeout 起因の目印。
-timeoutSeconds が 0 なら、Python と同じくすぐ時間切れになる
+setup_command を shell 経由で実行して、結果を構造化して返す。stdin は閉じて、対話プロンプトで止まらないようにする。
+timeoutSeconds を超えたら止めて exitCode -1 を返す（0 ならすぐ時間切れ）。signal で取り消されたら、シェルの下のコマンドごと止めて CancelledError を投げる
 */
-export function runSetupCommand(command: string, cwd: string, timeoutSeconds?: number): SetupResult {
-  const result = spawnSync(command, {
-    cwd,
-    shell: true,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: timeoutMilliseconds(timeoutSeconds),
-    killSignal: 'SIGKILL',
-    maxBuffer: MAX_OUTPUT_BYTES,
-  })
-  const isTimedOut = hasErrorCode(result.error) && result.error.code === 'ETIMEDOUT'
-  if (!isTimedOut && result.error !== undefined) throw toOsError(result.error)
-  const stdout = normalizeNewlines(result.stdout)
-  const stderr = normalizeNewlines(result.stderr)
-  return isTimedOut
+export async function runSetupCommand(command: string, cwd: string, timeoutSeconds?: number, signal?: Readonly<AbortSignal>): Promise<SetupResult> {
+  const result = await runProcess(command, [], { cwd, shell: true, stdin: 'ignore', timeoutMilliseconds: timeoutMilliseconds(timeoutSeconds), signal })
+  const { stdout, stderr } = result
+  return result.isTimedOut
     ? { command, exitCode: -1, stdout, stderr: `${stderr}timeout after ${String(timeoutSeconds)} seconds`.trimStart() }
-    : { command, exitCode: result.status ?? signalNumber(result.signal), stdout, stderr }
+    : { command, exitCode: result.exitCode ?? signalNumber(result.signal), stdout, stderr }
 }

@@ -17,7 +17,7 @@ import { RESTACK_PATH } from '../domain/restack.js'
 import { isSameRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE } from '../domain/state.js'
-import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
+import { GIT_TIMED_OUT, gitCurrentBranch, GitCommandError, NON_INTERACTIVE_GIT, REMOTE_TIMEOUT_MILLISECONDS, runGit, runGitAsync } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestForFinish } from '../infra/github/pulls.js'
@@ -319,12 +319,22 @@ function resolveCheckoutTarget(cwd: string, config: Readonly<ProjectConfig>, loc
   }
 }
 
-function didRunLocalStep(context: Readonly<FinishContext>, operation: Operation, cwd: string, arguments_: readonly string[], failure: string): boolean {
+// isRemote の git（pull）は、認証の入力を待たず、取り消しと時間切れで止める
+async function didRunLocalStep(context: Readonly<FinishContext>, operation: Operation, cwd: string, arguments_: readonly string[], failure: string, isRemote = false): Promise<boolean> {
   const { out, isDryRun } = context
   out.planned(operation)
   if (isDryRun) return true
   try {
-    runGit(arguments_, { cwd, check: true })
+    if (isRemote) {
+      const result = await runGitAsync(arguments_, { cwd, check: true, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS, signal: out.signal })
+      if (result.exitCode === GIT_TIMED_OUT) {
+        out.warning(`${failure} failed: timed out after ${String(REMOTE_TIMEOUT_MILLISECONDS / 1000)} seconds`)
+        return false
+      }
+    }
+    else {
+      runGit(arguments_, { cwd, check: true })
+    }
   }
   catch (error: unknown) {
     if (!(error instanceof GitCommandError) && !isFileNotFound(error)) throw error
@@ -335,7 +345,7 @@ function didRunLocalStep(context: Readonly<FinishContext>, operation: Operation,
   return true
 }
 
-function localCleanupAfterMerge(context: Readonly<FinishContext>, headBranch: string, config: Readonly<ProjectConfig>, location: RepositoryReference): void {
+async function localCleanupAfterMerge(context: Readonly<FinishContext>, headBranch: string, config: Readonly<ProjectConfig>, location: RepositoryReference): Promise<void> {
   const { out } = context
   const cwd = process.cwd()
   const remote = sameRepositoryRemote(cwd, location, out)
@@ -352,17 +362,17 @@ function localCleanupAfterMerge(context: Readonly<FinishContext>, headBranch: st
   if (currentBranch === checkoutTarget) {
     settle(out, { verb: 'unchanged', target: `current branch ${checkoutTarget}` })
   }
-  else if (!didRunLocalStep(context, { verb: 'set', target: `current branch to ${checkoutTarget}` }, cwd, ['checkout', checkoutTarget], `checking out ${checkoutTarget}`)) {
+  else if (!await didRunLocalStep(context, { verb: 'set', target: `current branch to ${checkoutTarget}` }, cwd, ['checkout', checkoutTarget], `checking out ${checkoutTarget}`)) {
     // checkout が失敗したら、pull と branch -D は別のブランチに当たるので止める
     if (currentBranch !== undefined) context.record.currentBranch = currentBranch
     return
   }
   context.record.currentBranch = checkoutTarget
-  didRunLocalStep(context, { verb: 'update', target: `${checkoutTarget} from ${remote}/${developBranch}` }, cwd, ['pull', remote, developBranch], `pulling ${developBranch}`)
+  await didRunLocalStep(context, { verb: 'update', target: `${checkoutTarget} from ${remote}/${developBranch}` }, cwd, ['pull', remote, developBranch], `pulling ${developBranch}`, true)
   if (headBranch === checkoutTarget) {
     settle(out, { verb: 'skip', target: `deleting local branch ${headBranch} (it is the checkout target)` })
   }
-  else if (didRunLocalStep(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)) {
+  else if (await didRunLocalStep(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)) {
     context.record.deletedBranches.push({ branch: headBranch, location: 'local' })
   }
 }
@@ -412,7 +422,7 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   await updateWaitingIssues(context, { client, config, location, pullRequest: mergedPullRequestOf(location, reference.number, pr) })
   if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
   if (input.skip_local_cleanup) return
-  localCleanupAfterMerge(context, pr.head_ref, config, location)
+  await localCleanupAfterMerge(context, pr.head_ref, config, location)
   if (input.dry_run) {
     return
   }

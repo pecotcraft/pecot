@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { CancelledError } from '../../domain/errors.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { installFakeExecutable, prependToPath, readFakeCalls } from '../../tests/_helpers/fake-executables.js'
 import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
@@ -103,29 +104,29 @@ describe('resolveNx', () => {
 })
 
 describe('nxProjects', () => {
-  it('graph ファイルから root と scope の tag を読む。nx は toplevel を作業ディレクトリにして、デーモン無しで呼ぶ', () => {
+  it('graph ファイルから root と scope の tag を読む。nx は toplevel を作業ディレクトリにして、デーモン無しで呼ぶ', async () => {
     const toplevel = makeTemporaryDirectory()
     const info = path.join(makeTemporaryDirectory(), 'info')
     const nx = installLocalNx(toplevel, writeGraphBody(graphOf(GRAPH), info))
-    expect(nxProjects(toplevel)).toEqual(PROJECTS)
+    expect(await nxProjects(toplevel)).toEqual(PROJECTS)
     expect(readFileSync(info, 'utf8')).toBe(`${toplevel} false`)
     const [call] = readFakeCalls(path.dirname(nx), 'nx')
     expect(call?.[0]).toBe('graph')
     expect(call?.[1]?.startsWith(`--file=${path.join(toplevel, '.pecot', 'tmp')}${path.sep}nx-scope.`)).toBe(true)
   })
 
-  it('graph ファイルは .pecot/tmp の下に作り、終わったら消す', () => {
+  it('graph ファイルは .pecot/tmp の下に作り、終わったら消す', async () => {
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, graphOf(GRAPH))
-    nxProjects(toplevel)
+    await nxProjects(toplevel)
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
-  it('root が . のプロジェクトは . のまま。末尾の / は落とし、空になれば .', () => {
+  it('root が . のプロジェクトは . のまま。末尾の / は落とし、空になれば .', async () => {
     const toplevel = makeTemporaryDirectory()
     const graph = graphOf({ root: ['.', []], lib: ['packages/lib/', []], slash: ['/', []] })
     installGraphNx(toplevel, graph)
-    expect(nxProjects(toplevel)).toEqual(new Map([
+    expect(await nxProjects(toplevel)).toEqual(new Map([
       ['root', { root: '.', scope: 'root' }],
       ['lib', { root: 'packages/lib', scope: 'lib' }],
       ['slash', { root: '.', scope: 'slash' }],
@@ -138,52 +139,65 @@ describe('nxProjects', () => {
     ['値が空の scope: だけ', ['scope:']],
     ['tags が配列でない', 'scope:x'],
     ['scope: で始まらない tag だけ', ['type:lib', 'xscope:x']],
-  ])('scope の tag が使えなければ、プロジェクト名を scope にする（%s）', (_title, tags) => {
+  ])('scope の tag が使えなければ、プロジェクト名を scope にする（%s）', async (_title, tags) => {
     const toplevel = makeTemporaryDirectory()
     const data = tags === undefined ? { root: 'a' } : { root: 'a', tags }
     installGraphNx(toplevel, JSON.stringify({ graph: { nodes: { 'a-b': { name: 'a-b', data } } } }))
-    expect(nxProjects(toplevel)).toEqual(new Map([['a-b', { root: 'a', scope: 'a-b' }]]))
+    expect(await nxProjects(toplevel)).toEqual(new Map([['a-b', { root: 'a', scope: 'a-b' }]]))
   })
 
-  it('scope の tag が複数あれば、先頭のものを使う。文字列でない tag は飛ばす', () => {
+  it('scope の tag が複数あれば、先頭のものを使う。文字列でない tag は飛ばす', async () => {
     const toplevel = makeTemporaryDirectory()
     const data = { root: 'a', tags: [1, 'scope:first', 'scope:second'] }
     installGraphNx(toplevel, JSON.stringify({ graph: { nodes: { a: { data } } } }))
-    expect(nxProjects(toplevel)?.get('a')?.scope).toBe('first')
+    const projects = await nxProjects(toplevel)
+    expect(projects?.get('a')?.scope).toBe('first')
   })
 
-  it('nx が無ければ undefined', () => {
+  it('nx が無ければ undefined', async () => {
     setEnvironment({ PATH: makeTemporaryDirectory() })
-    expect(nxProjects(makeTemporaryDirectory())).toBeUndefined()
+    expect(await nxProjects(makeTemporaryDirectory())).toBeUndefined()
   })
 
-  it('PATH 上の偽の nx も使える', () => {
+  it('PATH 上の偽の nx も使える', async () => {
     const bin = makeTemporaryDirectory()
     installFakeExecutable(bin, 'nx', writeGraphBody(graphOf(GRAPH), path.join(bin, 'info')))
     prependToPath(bin)
-    expect(nxProjects(makeTemporaryDirectory())).toEqual(PROJECTS)
+    expect(await nxProjects(makeTemporaryDirectory())).toEqual(PROJECTS)
   })
 
-  it('終了コードが 0 でなければ undefined', () => {
+  it('終了コードが 0 でなければ undefined', async () => {
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, graphOf(GRAPH), { exitCode: 1 })
-    expect(nxProjects(toplevel)).toBeUndefined()
+    expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('部分 graph（stderr に Showing partial graph）なら undefined', () => {
+  it('部分 graph（stderr に Showing partial graph）なら undefined', async () => {
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, graphOf(GRAPH), { stderr: 'Showing partial graph (errors)' })
-    expect(nxProjects(toplevel)).toBeUndefined()
+    expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('timeout を超えたら undefined。graph ファイルは消す', () => {
+  it('timeout を超えたら undefined。graph ファイルは消す', async () => {
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'sleep 5\n')
-    expect(nxProjects(toplevel, { timeoutSeconds: 0.3 })).toBeUndefined()
+    expect(await nxProjects(toplevel, { timeoutSeconds: 0.3 })).toBeUndefined()
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
-  it.skipIf(process.getuid?.() === 0)('後始末の rm が失敗しても、読めた結果を返す', () => {
+  it('取り消すと、nx を止めて CancelledError を投げ、graph ファイルを消す', async () => {
+    const toplevel = makeTemporaryDirectory()
+    const pidFile = path.join(makeTemporaryDirectory(), 'nx.pid')
+    installLocalNx(toplevel, `echo $$ > '${pidFile}'\nexec sleep 30\n`)
+    const controller = new AbortController()
+    const reading = nxProjects(toplevel, { signal: controller.signal })
+    await expect.poll(() => existsSync(pidFile) && readFileSync(pidFile, 'utf8').trim() !== '', { timeout: 10_000, interval: 20 }).toBe(true)
+    controller.abort('stop')
+    await expect(reading).rejects.toThrow(new CancelledError('stop'))
+    expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
+  })
+
+  it.skipIf(process.getuid?.() === 0)('後始末の rm が失敗しても、読めた結果を返す', async () => {
     const toplevel = makeTemporaryDirectory()
     const info = path.join(makeTemporaryDirectory(), 'info')
     // graph を書いた後、作業ディレクトリを書き込み不可にして、中身を消せなくする
@@ -191,32 +205,32 @@ describe('nxProjects', () => {
     installLocalNx(toplevel, body)
     const temporary = path.join(toplevel, '.pecot', 'tmp')
     try {
-      expect(nxProjects(toplevel)).toEqual(PROJECTS)
+      expect(await nxProjects(toplevel)).toEqual(PROJECTS)
     }
     finally {
       for (const name of readdirSync(temporary)) chmodSync(path.join(temporary, name), 0o755)
     }
   })
 
-  it('nx が起動できなければ undefined', () => {
+  it('nx が起動できなければ undefined', async () => {
     const toplevel = makeTemporaryDirectory()
     const nx = installLocalNx(toplevel, 'exit 0\n')
     writeFileSync(nx, '\0\0 not executable format')
     chmodSync(nx, 0o755)
-    expect(nxProjects(toplevel)).toBeUndefined()
+    expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('graph ファイルが書かれなければ undefined', () => {
+  it('graph ファイルが書かれなければ undefined', async () => {
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'exit 0\n')
-    expect(nxProjects(toplevel)).toBeUndefined()
+    expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('.pecot/tmp を作れなければ undefined', () => {
+  it('.pecot/tmp を作れなければ undefined', async () => {
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'exit 0\n')
     writeFileSync(path.join(toplevel, '.pecot'), 'a file')
-    expect(nxProjects(toplevel)).toBeUndefined()
+    expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
   it.each([
@@ -229,17 +243,17 @@ describe('nxProjects', () => {
     ['nodes が空', '{"graph": {"nodes": {}}}'],
     ['data が文字列', '{"graph": {"nodes": {"a": {"data": "x"}}}}'],
     ['node が配列', '{"graph": {"nodes": {"a": []}}}'],
-  ])('graph が解釈できなければ undefined（%s）', (_title, text) => {
+  ])('graph が解釈できなければ undefined（%s）', async (_title, text) => {
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, text)
-    expect(nxProjects(toplevel)).toBeUndefined()
+    expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('root が文字列でなくても Python の str() と同じ文字列にする', () => {
+  it('root が文字列でなくても Python の str() と同じ文字列にする', async () => {
     const toplevel = makeTemporaryDirectory()
     const graph = '{"graph": {"nodes": {"n": {"data": {"root": 5}}, "b": {"data": {"root": true}}, "z": {"data": {"root": null}}}}}'
     installGraphNx(toplevel, graph)
-    expect(nxProjects(toplevel)).toEqual(new Map([
+    expect(await nxProjects(toplevel)).toEqual(new Map([
       ['n', { root: '5', scope: 'n' }],
       ['b', { root: 'True', scope: 'b' }],
       ['z', { root: 'None', scope: 'z' }],
@@ -407,8 +421,8 @@ describe('実 nx の契約（graph の出力形式）', () => {
   // plugin ルートの 2 つ上がリポジトリルート
   const repositoryRoot = path.resolve(pluginRoot(), '..', '..')
 
-  it.skipIf(!existsSync(path.join(repositoryRoot, 'node_modules', '.bin', 'nx')))('リポジトリ実体の nx の graph から plugin の root を読める', () => {
-    const projects = nxProjects(repositoryRoot)
+  it.skipIf(!existsSync(path.join(repositoryRoot, 'node_modules', '.bin', 'nx')))('リポジトリ実体の nx の graph から plugin の root を読める', async () => {
+    const projects = await nxProjects(repositoryRoot)
     expect(projects?.get('pecot-workflow')?.root).toBe('plugins/pecot-workflow')
     expect(projects?.get('pecot-visual')?.root).toBe('plugins/pecot-visual')
     expect(projects === undefined ? undefined : expectedScope(['plugins/pecot-workflow/cli/x.py'], projects)).toEqual(['p-w'])

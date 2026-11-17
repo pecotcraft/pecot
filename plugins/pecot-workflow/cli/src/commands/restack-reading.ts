@@ -30,6 +30,10 @@ export interface RestackTarget {
   渡されたら、下の段の PR を読み直さない
   */
   readonly lowerPullRequest?: KnownLowerPullRequest | undefined
+  /**
+  MCP の要求の取り消し。ls-remote に渡す
+  */
+  readonly signal: Readonly<AbortSignal> | undefined
 }
 
 export type RestackReading
@@ -54,7 +58,7 @@ export async function readRestackDecision(target: Readonly<RestackTarget>): Prom
     }
   }
   if (remote === undefined) return { kind: 'remote-unreachable', lowerPullRequest }
-  const lowerHead = remoteBranchHead(target.cwd, remote, reading.record.branch)
+  const lowerHead = await remoteBranchHead(target.cwd, remote, reading.record.branch, target.signal)
   if (!lowerHead.isReachable) return { kind: 'remote-unreachable', lowerPullRequest }
   const decision = decideRestack({ reading, developBranch: target.developBranch, lowerPullRequest, lowerHead: lowerHead.sha })
   return { kind: 'decided', decision: withRebased(target.cwd, remote, reading, decision, lowerHead.sha), lowerPullRequest }

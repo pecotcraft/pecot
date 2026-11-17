@@ -29,7 +29,7 @@ export interface BaseQuery {
   /**
   求める前に一度だけ呼ぶ。pr restack が追跡参照を新しくするのに使う
   */
-  readonly beforeInfer?: (() => void) | undefined
+  readonly beforeInfer?: (() => Promise<void> | void) | undefined
 }
 
 export interface BaseResult {
@@ -68,7 +68,7 @@ async function inferBase(query: Readonly<BaseQuery>): Promise<BaseResult> {
   const { config } = project
   const developBranch = getDevelopBranch(config, issue.repository.owner, issue.repository.repository)
   if (developBranch === undefined || developBranch === '') return notInferred(undefined, undefined)
-  query.beforeInfer?.()
+  await query.beforeInfer?.()
   let readiness: IssueReadiness | undefined
   try {
     readiness = await readIssueReadinessIfSupported(project.client(), config, issue, createReadinessCache())

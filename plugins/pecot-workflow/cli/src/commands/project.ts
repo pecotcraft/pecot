@@ -24,7 +24,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
-import { createGitHubClient } from './github-client.js'
+import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import type { OptionSpec, SyncedProjectConfig } from './project-sync.js'
@@ -370,7 +370,8 @@ const initCommand = defineCommand({
   run: async (input, io) => {
     const out = createOutput<z.input<typeof INIT_OUTPUT>>(input.dry_run, io)
     const { owner, name, host, suffix } = input
-    const client = createGitHubClient(out, host)
+    // 認証の失敗を、フィールドの初期化の失敗に包まないため
+    const client = await createAuthenticatedGitHubClient(out, host)
     if (input.dry_run) out.result({})
     const mark = fieldReporter((fields) => {
       out.result({ fields })
@@ -619,7 +620,8 @@ example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_e
           'invalid-input',
         )
       }
-      const client = createGitHubClient(out, host)
+      // 認証の失敗に、--owner を渡す案内を添えないため
+      const client = await createAuthenticatedGitHubClient(out, host)
       const owner = await resolveActivationOwner(out, client, input.owner)
       // 一覧は書き込まないので、dry_run でも data に dryRun を足さない
       if (project === undefined) await echoInitializedProjects(createOutput<ActivateData>(false, io), client, host, owner)

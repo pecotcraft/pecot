@@ -76,7 +76,7 @@ const boardSyncCommand = defineCommand({
   run: async (input, io) => {
     const out = createOutput<z.input<typeof BOARD_SYNC_OUTPUT>>(input.dry_run, io)
     const config = requireBoardConfig(out, input.project, ['board', 'sync'])
-    const client = makeClient(out, config)
+    const client = await makeClient(out, config)
     const before = await client.getGraphqlRateLimit()
     let read: BoardRead
     try {

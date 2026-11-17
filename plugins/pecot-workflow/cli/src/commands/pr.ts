@@ -146,8 +146,8 @@ function isRegularFile(file: string): boolean {
   }
 }
 
-function expectedTitleScope(target: Readonly<ScopeTarget>, head: string, out: Readonly<Output>): readonly string[] | undefined {
-  const projects = nxProjects(target.toplevel)
+async function expectedTitleScope(target: Readonly<ScopeTarget>, head: string, out: Readonly<Output>): Promise<readonly string[] | undefined> {
+  const projects = await nxProjects(target.toplevel, { signal: out.signal })
   const files = projects === undefined ? undefined : changedFiles(target.toplevel, target.from, head)
   if (projects === undefined || files === undefined) {
     out.warning('cannot read nx projects or the diff; skipped the PR title scope check')
@@ -170,12 +170,12 @@ interface TitleScopeQuery {
   readonly stacked: StackedScope | undefined
 }
 
-function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<Output>): readonly string[] {
+async function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<Output>): Promise<readonly string[]> {
   const { config, owner, repository, title, base, head, directory, template, developBranch, releaseBranch } = query
   if (isReleasePullRequest(template, base, head, developBranch, releaseBranch)) return []
   const target = nxScopeTarget(config, owner, repository, base, directory, query.stacked)
   if (target === undefined) return []
-  const expected = expectedTitleScope(target, head, out)
+  const expected = await expectedTitleScope(target, head, out)
   if (expected === undefined || expected.length === 0) return []
   const given = parseTitleScope(title)
   if (given !== undefined && new Set(given).size === new Set(expected).size && given.every(scope => expected.includes(scope))) return []
@@ -363,16 +363,17 @@ interface PushFixTarget {
   呼び出し側が既に読んだ下の段の PR。あれば読み直さない
   */
   readonly lowerPullRequest?: KnownLowerPullRequest | undefined
+  readonly signal: Readonly<AbortSignal> | undefined
 }
 
 // diverged のときの Push Status の直し方。積んでいれば載せ直しが要るかを読んで決める。diverged でなければ undefined（git push）
 async function pushFixHintFor(push: PushStatus, reading: BaseReading | undefined, target: Readonly<PushFixTarget>): Promise<HintedText | undefined> {
   if (!push.isDiverged) return undefined
   if (reading?.kind !== 'stacked') return DIVERGED_FIX_HINT
-  const { config, location, directory, remote, client, lowerPullRequest } = target
+  const { config, location, directory, remote, client, lowerPullRequest, signal } = target
   const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
   try {
-    const read = await readRestackDecision({ client, owner: location.owner, repository: location.repository, cwd: directory, remote, reading, developBranch, lowerPullRequest })
+    const read = await readRestackDecision({ client, owner: location.owner, repository: location.repository, cwd: directory, remote, reading, developBranch, lowerPullRequest, signal })
     return pushFixHintOf(read.kind === 'decided' ? read.decision : undefined)
   }
   catch (error: unknown) {
@@ -389,7 +390,7 @@ interface PreflightBase {
 async function runPreflightChecksOrExit(directory: string, base: Readonly<PreflightBase>, config: Readonly<ProjectConfig>, client: () => GitHubClient, out: Readonly<Output>): Promise<void> {
   const context = validatePullRequestContext(directory, out)
   const push = getPushStatus(context.currentBranch, directory, context.remoteName)
-  const pushFixHint = await pushFixHintFor(push, base.reading, { config, location: context.location, directory, remote: context.remoteName, client, lowerPullRequest: base.lowerPullRequest })
+  const pushFixHint = await pushFixHintFor(push, base.reading, { config, location: context.location, directory, remote: context.remoteName, client, lowerPullRequest: base.lowerPullRequest, signal: out.signal })
   const warnings = collectPreflightWarnings({ gitStatus: getGitStatus(directory), stashList: getStashList(directory), isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
   if (warnings.length === 0) return
   out.error('preflight found warnings; fix them before creating a PR')
@@ -550,7 +551,7 @@ async function isRestackedLocally(reading: Extract<BaseReading, { kind: 'stacked
   const { config, location } = target
   const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
   try {
-    const read = await readRestackDecision({ client: lazyClient(config, out), owner: location.owner, repository: location.repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch })
+    const read = await readRestackDecision({ client: lazyClient(config, out), owner: location.owner, repository: location.repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch, signal: out.signal })
     return read.kind === 'decided' && read.decision.kind === 'rebased'
   }
   catch (error: unknown) {
@@ -626,7 +627,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
       stackedBase: use?.stackedBase,
     }),
     ...baseErrors,
-    ...titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template, developBranch, releaseBranch, stacked }, out),
+    ...await titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template, developBranch, releaseBranch, stacked }, out),
   ]
   exitOnValidationErrors(errors, out)
 
@@ -749,11 +750,11 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
 
 // --prepare
 
-function addScopeHint(content: string, config: Readonly<ProjectConfig>, location: RepositoryReference, base: string, directory: string, stacked: StackedScope | undefined, out: Readonly<Output>): string {
+async function addScopeHint(content: string, config: Readonly<ProjectConfig>, location: RepositoryReference, base: string, directory: string, stacked: StackedScope | undefined, out: Readonly<Output>): Promise<string> {
   const target = nxScopeTarget(config, location.owner, location.repository, base, directory, stacked)
   if (target === undefined) return content
   const head = gitCurrentBranch(directory)
-  const expected = head === undefined || head === '' ? undefined : expectedTitleScope(target, head, out)
+  const expected = head === undefined || head === '' ? undefined : await expectedTitleScope(target, head, out)
   if (expected === undefined || expected.length === 0) return content
   const scope = expected.join(',')
   // コメントは閉じの引用符の後ろに置き、YAML の title を "" のままにする
@@ -818,7 +819,7 @@ async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateD
         content = content.replace(/^base:\s*"[^"]*"/mu, () => `base: "${base}"`)
         out.done({ verb: 'set', target: `base to ${base}` })
         out.result({ base })
-        content = addScopeHint(content, config, { owner: location.owner, repository: location.repository }, base, directory, record === undefined ? undefined : { sha: record.sha }, out)
+        content = await addScopeHint(content, config, { owner: location.owner, repository: location.repository }, base, directory, record === undefined ? undefined : { sha: record.sha }, out)
       }
     }
     content = await fillClosesInTemplate(content, config, directory, location, out)
@@ -994,16 +995,16 @@ function hasBranch(branch: string, cwd: string): boolean {
 
 // 下の段のブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので、
 // remote に尋ね、無いと答えたときだけ消えたとみなす。届かないか時間切れなら追跡参照で決める
-function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<Output>): boolean {
-  const head = remoteBranchHead(cwd, remote, branch)
+async function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<Output>): Promise<boolean> {
+  const head = await remoteBranchHead(cwd, remote, branch, out.signal)
   if (head.isReachable && head.sha === undefined) return false
   const isTracked = hasBranch(`${remote}/${branch}`, cwd)
   if (!isTracked && head.isReachable) out.warning(`base branch ${branch} is on ${remote}, but ${remote}/${branch} is not fetched; compared with the develop branch\nrun: git fetch ${remote} ${branch}`)
   return isTracked
 }
 
-function determineBaseBranch(config: Readonly<ProjectConfig>, reading: BaseReading, location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
-  if (reading.kind === 'stacked' && isOnRemote(reading.record.branch, cwd, remote, out)) return `${remote}/${reading.record.branch}`
+async function determineBaseBranch(config: Readonly<ProjectConfig>, reading: BaseReading, location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): Promise<string> {
+  if (reading.kind === 'stacked' && await isOnRemote(reading.record.branch, cwd, remote, out)) return `${remote}/${reading.record.branch}`
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
     return stopWith(out, hinted`develop_branch is not set for ${location.owner}/${location.repository}\nset it with: ${commandHint(LINK_PATH, { repo: `${location.owner}/${location.repository}`, develop_branch: 'develop' })}`, 'repo-setting-missing')
@@ -1086,7 +1087,7 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
   warnUnresolved(base, out)
   const { reading } = base
   stopOnMalformedRecord(reading, out)
-  const baseBranch = determineBaseBranch(config, reading, context.location, directory, context.remoteName, out)
+  const baseBranch = await determineBaseBranch(config, reading, context.location, directory, context.remoteName, out)
 
   const gitStatus = getGitStatus(directory)
   const commits = gitStdout(['log', '--oneline', `${baseBranch}..HEAD`], { cwd: directory })
@@ -1118,7 +1119,7 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
     out.data(`${content}\n`)
   }
 
-  const pushFixHint = await pushFixHintFor(push, reading, { config, location: context.location, directory, remote: context.remoteName, client: lazyClient(config, out) })
+  const pushFixHint = await pushFixHintFor(push, reading, { config, location: context.location, directory, remote: context.remoteName, client: lazyClient(config, out), signal: out.signal })
   const warnings = collectPreflightWarnings({ gitStatus, stashList, isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
   out.count('preflight warnings', warnings.length)
   printPreflightWarnings(out, warnings)
