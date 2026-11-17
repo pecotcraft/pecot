@@ -207,7 +207,9 @@ describe('w-revise の手順', () => {
   it('Step 6 の CUJ の再実行は、w-e2e-planner を Agent ツールで起こし、実行者が main の CUJ は渡さない', () => {
     const body = sectionBody(text, numberIndex(headings, 6))
     expect(body).toContain('w-e2e-planner を `Agent` ツールで起こして再実行させる')
-    expect(body).toContain('実行者が main の CUJ と、実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。')
+    expect(body).toContain('実行者が main の CUJ と、流す先が検証用でない実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。')
+    expect(body).toContain('流す先が検証用の CUJ は、実投稿を含んでも w-e2e-planner に渡す。')
+    expect(body).toContain('誰が・起点・流す先・合格基準')
     expect(body).not.toContain('単発 spawn')
   })
 

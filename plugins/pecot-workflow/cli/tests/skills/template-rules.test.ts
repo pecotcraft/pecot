@@ -152,14 +152,24 @@ describe('plan テンプレート', () => {
     expect(rules).toContain('CUJ = 利用者')
     expect(rules).toContain('「誰が・起点・観測結果」の 3 要素を必須とし')
     expect(rules).toContain('健全性確認のための dry-run は CUJ にしない')
+    expect(rules).toContain('CUJ ごとに「流す先」を書く。')
   })
 
-  it('E2E の詳細は、「CUJ 1」の行の下に 誰が・起点・テスト手順・合格基準 を並べる', () => {
+  it('E2E の詳細は、「CUJ 1」の行の下に 誰が・起点・流す先・テスト手順・合格基準 をこの順に並べる', () => {
     const lines = planSection('### E2E')
     const start = lines.indexOf('CUJ 1')
     expect(start).toBeGreaterThanOrEqual(0)
-    const missing = ['- 誰が — ', '- 起点 — ', '- テスト手順', '- 合格基準 — '].filter(label => lines.slice(start).every(line => !line.startsWith(label)))
-    expect(missing).toEqual([])
+    const labels = ['- 誰が — ', '- 起点 — ', '- 流す先 — ', '- テスト手順', '- 合格基準 — ']
+    const found = labels.map(label => ({ label, at: lines.slice(start).findIndex(line => line.startsWith(label)) }))
+    expect(found.filter(({ at }) => at === -1).map(({ label }) => label)).toEqual([])
+    expect(found.toSorted((a, b) => a.at - b.at).map(({ label }) => label)).toEqual(labels)
+  })
+
+  it('例の CUJ は、どれも流す先を「手元」と書く', () => {
+    const text = example(PLAN_TEMPLATE)
+    const cujCount = text.match(/^CUJ \d+$/gmu)?.length ?? 0
+    expect(cujCount).toBeGreaterThan(0)
+    expect(text.match(/^- 流す先 — 手元$/gmu)?.length ?? 0).toBe(cujCount)
   })
 })
 

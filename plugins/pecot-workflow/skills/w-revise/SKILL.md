@@ -173,8 +173,8 @@ Step 3 で投稿したコメントの URL を示し、AskUserQuestion で次の 
 
 #### CUJ 再実行
 
-計画の CUJ（実装の後に実行したもの）が、直したファイルを読むなら、w-e2e-planner を `Agent` ツールで起こして再実行させる。prompt には CUJ の 3 要素（誰が・起点・合格基準）と修正の要約を貼る。
-実行者が main の CUJ と、実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。不合格なら Step 5 の修正に戻る。
+計画の CUJ（実装の後に実行したもの）が、直したファイルを読むなら、w-e2e-planner を `Agent` ツールで起こして再実行させる。prompt には CUJ の誰が・起点・流す先・合格基準と、修正の要約を貼る。
+実行者が main の CUJ と、流す先が検証用でない実投稿を含む CUJ は main が実行し、w-e2e-planner には渡さない。流す先が検証用の CUJ は、実投稿を含んでも w-e2e-planner に渡す。不合格なら Step 5 の修正に戻る。
 
 #### スレッドを一括 resolve
 
