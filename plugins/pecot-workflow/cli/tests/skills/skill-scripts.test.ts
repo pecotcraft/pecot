@@ -168,6 +168,22 @@ describe('w-onboarding の兄弟リポの検出', () => {
     expect(runBash(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
+  it.for([
+    'user@github.com:pecotcraft/cur.git',
+    'ssh://git@github.com/pecotcraft/cur.git',
+    'https://user:tok@github.com:8443/pecotcraft/cur.git',
+    'git://github.com/pecotcraft/cur.git',
+    'https://github.com/pecotcraft/cur/',
+  ])('origin が %s だと、一致が 1 件と数える', (origin) => {
+    const { current } = layout(origin, { a: mine })
+    expect(runBash(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
+  })
+
+  it('別名の origin だと、host が別名になり一致が 0 件になる', () => {
+    const { current } = layout('gh-alias:pecotcraft/cur.git', { a: mine })
+    expect(runBash(script, current).stdout).toBe('兄弟リポに一致する設定ファイルが見つかりませんでした\n')
+  })
+
   it('シンボリックリンクの兄弟リポも、一致に数える', () => {
     const { parent, current } = layout(https, {})
     const outer = makeTemporaryDirectory()

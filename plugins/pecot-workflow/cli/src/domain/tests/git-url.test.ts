@@ -20,6 +20,15 @@ describe('parseRemoteUrl', () => {
     ['ssh://git@github.com/owner/repo.git/', 'github.com', 'owner', 'repo'],
     ['ssh://git@github.com/owner/repo/', 'github.com', 'owner', 'repo'],
     ['ssh://git@github.com/o/foo.github.io.git', 'github.com', 'o', 'foo.github.io'],
+    ['user@ghe.example:o/r.git', 'ghe.example', 'o', 'r'],
+    ['gh-alias:pecotcraft/pecot.git', 'gh-alias', 'pecotcraft', 'pecot'],
+    ['git@github.com:/o/r.git', 'github.com', 'o', 'r'],
+    ['gh-alias:/o/r', 'gh-alias', 'o', 'r'],
+    ['git://github.com/pecotcraft/pecot.git', 'github.com', 'pecotcraft', 'pecot'],
+    ['git://host:9418/o/r', 'host', 'o', 'r'],
+    ['https://github.com/pecotcraft/pecot/', 'github.com', 'pecotcraft', 'pecot'],
+    ['https://ghe.example:8443/o/r.git', 'ghe.example', 'o', 'r'],
+    ['ftp://host/o/r.git', 'host', 'o', 'r'],
   ])('%j を (host, owner, repository) に分ける', (url, host, owner, repository) => {
     expect(parseRemoteUrl(url)).toEqual({ host, owner, repository })
   })
@@ -32,6 +41,12 @@ describe('parseRemoteUrl', () => {
     'ssh://git@github.com/owner',
     'ssh://git@github.com/a/b/c',
     'ssh://git@github.com:abc/owner/repo.git',
+    'ftp://o/r',
+    'https://o/r',
+    'file:///srv/git/o/r.git',
+    'ssh://git@github.com/~user/repo.git',
+    'github.com/o:r',
+    'https://github.com/a/b/c',
   ])('%j は形式不正', (url) => {
     expect(() => parseRemoteUrl(url)).toThrow(RemoteUrlFormatError)
     expect(() => parseRemoteUrl(url)).toThrow(/^unexpected remote URL format: /u)
