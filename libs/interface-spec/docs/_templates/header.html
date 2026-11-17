@@ -24,7 +24,7 @@
       {%- if s.href %}
       <a href="{{ s.href|e }}">{{ s.label|e }}</a>
       {%- else %}
-      <span aria-current="page">{{ s.label|e }}</span>
+      <span aria-current="true">{{ s.label|e }}</span>
       {%- endif %}
       {%- endfor %}
     </nav>

@@ -56,6 +56,7 @@ JUNIT_VITEST = FIXTURES / "junit" / "vitest.xml"
 JUNIT_PYTEST = FIXTURES / "junit" / "pytest.xml"
 JUNIT_NOTES = FIXTURES / "junit" / "vitest-notes.xml"
 JUNIT_OVERLAP = FIXTURES / "junit" / "vitest-overlap.xml"
+JUNIT_OVERLAP_IDS = FIXTURES / "junit" / "vitest-overlap-ids.xml"
 # 合否のレーン（target）→ JUnit。conf.py の iface_junit のプラグインごとの値と同じ形。
 LANES = {"sample:test-vitest": JUNIT_VITEST, "sample:test-pytest": JUNIT_PYTEST}
 
@@ -415,6 +416,18 @@ def test_same_case_in_two_junits_counts_once_and_heavier_wins(
         "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
     ]
     assert "飛ばしたケース" not in html
+
+
+def test_same_case_with_different_ids_links_both_items(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    lanes = {**LANES, "sample:test-overlap-ids": JUNIT_OVERLAP_IDS}
+    built = build(tmp_path, lanes, capfd, files={"index.rst": DEFS_ONLY})
+    assert built.code == 0
+    got = outcomes_of(built)
+    # 同名のケースが SM-TWO-01 と SM-ONE-03 を別々に確かめる。どちらの項目にも結果がつながる。
+    assert got["SM-TWO-01"] == "passed"
+    assert got["SM-ONE-03"] == "passed"
 
 
 def test_pages_are_written_and_stale_ones_removed(

@@ -214,7 +214,10 @@ class Collected:
 
 
 def collect(lanes: dict[str, Path], known: frozenset[str]) -> Collected:
-    """レーン名 → JUnit を読んで絞る。同じケース（classname と name）が重なれば 1 件にし、重い結果を残す。"""
+    """レーン名 → JUnit を読んで絞る。同じケース（classname と name）が重なれば 1 件にし、重い結果と両方の ID を残す。
+
+    1 件にするのは項目とのつなぎだけで、files（テストの表の元）には重なったケースが両方とも残る。
+    """
     out = Collected()
     merged: dict[tuple[str, str], Case] = {}
     for lane, path in lanes.items():
@@ -235,8 +238,11 @@ def collect(lanes: dict[str, Path], known: frozenset[str]) -> Collected:
             for c in suite.cases:
                 key = (c.classname, c.name)
                 seen = merged.get(key)
-                if seen is None or _weight(c) > _weight(seen):
+                if seen is None:
                     merged[key] = c
+                    continue
+                ids = tuple(dict.fromkeys((*seen.ids, *c.ids)))
+                merged[key] = replace(c if _weight(c) > _weight(seen) else seen, ids=ids)
     for c in merged.values():
         for i in c.ids:
             out.by_id.setdefault(i, []).append(c)
@@ -742,9 +748,6 @@ class IfaceDefs(_Base):
                 only,
                 location=(self.env.docname, self.lineno),
             )
-        # 読めないレーンは欠けたレーンと同じく未実行にする。手元では止めない（FR-019）ので警告にしない。
-        for message in collected.unreadable:
-            logger.info("JUnit を読めませんでした: %s", message)
         # need の directive と同じく文書を登録する。登録が無いと、リンクのノードが解決されない。
         add_doc(self.env, self.env.docname)
         source = NeedItemSource.from_directive(self)
@@ -996,7 +999,8 @@ class IfaceOverview(_Base):
     def run(self) -> list[nodes.Node]:
         lines = [".. list-table::", "   :header-rows: 1", "   :widths: auto", ""]
         lines += ["   * - プラグイン", "     - 状態"]
-        for plugin in cast("dict[str, Any]", self.config.iface_junit):
+        # 版の帯と同じく、プラグインの名前の順に並べる。
+        for plugin in sorted(cast("dict[str, Any]", self.config.iface_junit)):
             plan = self._plan(plugin)
             collected = self._collect(plugin, plan.ids)
             summary = _summary([collected.outcome(b.id) for b in plan.behaviors])
@@ -1081,6 +1085,11 @@ class IfaceTests(_Base):
                 "iface-tests %s: 定義書に無い ID のケースを落としました: %s",
                 plugin,
                 ", ".join(sorted(collected.unknown)),
+            )
+        # 読めないレーンは欠けたレーンと同じく未実行にする。手元では止めない（FR-019）ので警告にしない。
+        for message in collected.unreadable:
+            logger.info(
+                "JUnit を読めませんでした: %s", message, location=(self.env.docname, self.lineno)
             )
         out: list[nodes.Node] = []
         if collected.missing:
