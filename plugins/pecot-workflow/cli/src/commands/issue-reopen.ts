@@ -106,7 +106,14 @@ async function confirmReopened(output: ReopenOutput, client: GitHubClient, issue
   output.done({ verb: 'reopen', target })
 
   if (comment === undefined || comment === '') return
-  await client.addIssueComment(owner, repository, number, comment)
+  // Issue は開いているので、投稿の失敗は reopen の失敗と分けて伝える
+  try {
+    await client.addIssueComment(owner, repository, number, comment)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    stopWith(output, `could not comment on ${target}: ${error.message}`, kindOfFailure(error))
+  }
   output.done({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
   output.result({ commented: true })
 }

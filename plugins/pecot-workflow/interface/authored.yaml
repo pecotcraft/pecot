@@ -1882,7 +1882,7 @@ entries:
         statement: 'もし 2 回目の reopen の後も Issue が open でないなら、終了コード 1 で終わります'
       - id: PW-ISSUE-REOPEN-14
         pattern: unwanted
-        statement: 'もしコメントの投稿に失敗したなら、終了コード 1 で終わります'
+        statement: 'もしコメントの投稿に失敗したなら、コメントを投稿できなかったと分かる error を出して、終了コード 1 で終わります'
       - id: PW-ISSUE-REOPEN-15
         pattern: unwanted
         statement: 'もし `--status` が有効な値でないなら、終了コード 1 で終わります'
