@@ -110,7 +110,15 @@
 
 ## 受け取った run の確かめ（RunProvenance）
 
-保管して公開する run が、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直して確かめる項目。側はこの項目から決める。artifact の名前や中身からは決めない。research R3。
+保管して公開する run が、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直して確かめる項目。research R3。
+
+側は 2 段で決める。
+
+1. API の項目で、信頼の境界を決める。PR 版の run か、main の祖先のコミットの定義で動いた run かを分ける。artifact の名前や中身は使わない
+2. main の祖先の定義で動いた `workflow_dispatch` の run に限り、`dev` か `release` かを、その run が上げた側の artifact の名前（`pages-side-dev`・`pages-side-release`）で決める。2 つとも有るか、どちらも無いときは捨てる
+   - run の API には、起動の入力（`side`）が無い。そのため、API の項目だけでは 2 つを分けられない
+   - その定義は main に入ったレビュー済みのものなので、名前を信じてよい
+   - `push` の run は開発版、`pull_request` の run は PR 版に決まり、名前は使わない
 
 | 側 | `path` | `event` | `head_repository` | `head_sha` | PR |
 |---|---|---|---|---|---|
@@ -135,7 +143,8 @@
 verify の job が、artifact を展開したツリーに対して確かめること。中身は実行しない。
 
 - 絶対パス・`..`・シンボリックリンク・通常のファイルとディレクトリ以外のものを含むときは、その側を捨てて run の summary に書く
-- 内部リンク（側の中と、`/pecot/`・`/pecot/dev/` への行き来）が切れていたら捨てる
+- 側の中の内部リンクが切れていたら捨てる
+- 側の間の行き来のリンク（`/pecot/`・`/pecot/dev/`）は、verify では確かめない。先は store が置く側か案内のページなので、store が組んだ `pages-store` の全体で確かめる
 
 ## 保管ブランチの形（StoreLayout）
 
@@ -151,7 +160,7 @@ verify の job が、artifact を展開したツリーに対して確かめる�
 決まり:
 
 - 書き換えるのは、受けた側のディレクトリと `.pecot-store.json` だけ。リリース版の `/` を書き換えるときは、`/dev/` と `/pr/` を残す
-- 保管のたびに、保管中の各 `pr/<番号>/` を API で見て、閉じた PR の側を消す
+- 保管のたびに、閉じた PR の側を消す。開いている PR の番号の一覧は、verify（`pull-requests: read` を持つ）が API から求めて出力にする。store は、その一覧に無い `pr/<番号>/` を消す。store は API を読まない
 - 案内のページは、ある方の側へのリンクを持つ
 - コミットは毎回 1 つの orphan のコミットにして、`--force-with-lease=<取ったときの SHA>` で push する。断られたら取り直してやり直す
 - 全体の大きさが 900 MB を超えたら、run の summary に警告を書く（上限は 1 GB）

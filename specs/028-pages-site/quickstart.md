@@ -68,7 +68,7 @@ gh workflow run pages-build.yml --ref main -f side=release
 期待:
 
 - `https://pecotcraft.github.io/pecot/` の帯が「リリース版」になる
-- 帯の各プラグインの版とコミットが、そのプラグインの最新のタグと、そのタグが指すコミットになる（`git tag --sort=-v:refname -l '<plugin>-v*'`）
+- 帯の各プラグインの版とコミットが、そのプラグインの最新のタグと、そのタグが指すコミットになる（`git tag -l '<plugin>-v*' | grep -Ev -- '-v[0-9]+\.[0-9]+\.[0-9]+-'` のうち、semver の最大値）
 - `/dev/` と `/pr/` は変わらない
 - 次の本番のリリースからは、release.yml が land の後に同じように起動する
 
@@ -91,6 +91,6 @@ gh workflow run pages-build.yml --ref main -f side=release
 | 起こすこと | 期待 |
 |---|---|
 | 合否のレーン 1 つの target を壊した PR を出し、JUnit が残らないようにする | 作る run が失敗し、PR 版は前のまま |
-| 同じリポのブランチの PR で、`pages-build.yml` を書き換え、`pages-side-dev` の名前で artifact を上げる | `pages-deploy.yml` の verify が、run の `event` が `pull_request` なので PR 版として扱う。`pages-store` の `dev/` は変わらず、summary に側の判定が出る |
-| `main` という名前のタグを main に無いコミットへ付け、そのタグで `pages-build.yml` を `side=dev` で起こした run | verify が、`head_sha` が main の祖先でないとして捨てる。このリポにタグは作らず、タグで動いた run の応答の形（`head_branch` にタグ名が入る）を入力にした `test_pages_provenance.py` で確かめる |
+| 同じリポのブランチの PR で、`pages-build.yml` を書き換え、`pages-side-dev` の名前で artifact を上げる | `pages-deploy.yml` の verify が、run の `event` が `pull_request` なので PR 版と判定し、`pages-side-pr-<番号>` が無いとして捨てる。`pages-store` の `dev/` と `pr/<番号>/` は変わらず、summary に判定と捨てた理由が出る |
+| `main` という名前のタグを main に無いコミットへ付け、そのタグで `pages-build.yml` を `side=dev` で起こした run | 作る run の side の job が、`github.ref` が `refs/heads/main` でないとして失敗する。verify も、`head_sha` が main の祖先でないとして捨てる。このリポにタグは作らず、タグで動いた run の応答の形（`head_branch` にタグ名が入る）を入力にした `test_pages_provenance.py` で確かめる |
 | 保管の job が 7 日より長く落ち続けた | その間の側の artifact は消える。開発版とリリース版は `gh workflow run pages-build.yml --ref main -f side=<dev か release>` で作り直す。PR 版は、その PR へ次に push したときに作り直される |

@@ -31,7 +31,10 @@
 | `push`（`main`） | — | `dev`（その push のコミット） |
 | `pull_request`（opened・synchronize・reopened）、head が同じリポ | — | `pr`（PR の番号。head のコミット） |
 | `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こすためだけに成功で終わる） |
-| `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は main の HEAD。`release` は ReleaseSources（data-model.md） |
+| `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は `github.sha`（起動した run のコミット）。`release` は ReleaseSources（data-model.md） |
+
+- `workflow_dispatch` では、side の job は `github.ref == 'refs/heads/main'` でなければ失敗する。main 以外のブランチや、`main` という名前のタグで起動された run は、側を作らない
+- 開発版は、起動の後に main の HEAD を求め直さない。帯のコミットと `.pecot-store.json` を、run の `head_sha` とそろえるため
 
 job:
 
@@ -42,9 +45,14 @@ job:
 
 リリース版の build:
 
-- 各プラグインのレーンは、そのプラグインのタグのコミットで動かす。レーンの一覧も、そのタグのコミットの `junit-lanes.json` から取る
-- サイトは `skeleton` のコミットで、各 `plugins/<name>/` をそのタグの中身に差し替えて作る
+開発版・PR 版と同じく 1 つの job で、次の順に作る。依存はコンテナを作ったときのコミットで 1 回だけ入るので、コミットを替えるたびに入れ直す。
+
+1. プラグインごとに、そのタグのコミットを取り出し、依存を入れ直す。そのタグの `junit-lanes.json` にある、そのプラグインのレーンを動かす。JUnit は作業ツリーの外へ移す
+2. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替えてから、1 の JUnit を元の場所に戻す
+3. サイトを作る。STRICT と `iface_junit` は、1 で各タグから集めたレーンの一覧で動かす。`conf.py` は、その一覧を受け取る口を持つ（`skeleton` の `junit-lanes.json` は使わない）
+
 - `PECOT_SITE_SHA` は `skeleton`、`PECOT_SITE_PLUGIN_COMMITS` は各タグのコミット
+- 依存の入れ直しの分だけ、開発版・PR 版より時間がかかる（research R6）
 
 出力:
 
@@ -75,12 +83,12 @@ job と権限:
 | job | 権限・environment | すること |
 |---|---|---|
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
-| store | `contents: read`。environment `pages-store` | deploy key で `pages-store` を取り、StoreLayout の決まりで差し替え、閉じた PR の側を消して push する |
+| store | `contents: read`。environment `pages-store` | deploy key で `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
 | deploy | `pages: write`・`id-token: write`。environment `github-pages` | `pages-store` を `configure-pages` → `upload-pages-artifact` → `deploy-pages` で公開する |
 | preview-status | `statuses: write` | PR 版を保管したとき、PR の head のコミットに commit status を付ける |
 
 - `actions: write` は、どの job にも持たせない
-- verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA）だけを使う
+- verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA・開いている PR の番号の一覧）だけを使う
 - 受けた run が RunProvenance に合わないときは、verify が理由を summary に書き、store に側を渡さない。closed の PR の run と、合わない run でも、store は閉じた PR の掃除をする
 
 concurrency:
@@ -90,7 +98,7 @@ concurrency:
 | store | `group: pages-store`・`cancel-in-progress: false`・`queue: max`（待っている保管を消さない） |
 | deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値） |
 
-- `queue` は actionlint 1.7.12 が知らない。publish-npm.yml と同じ除外（#529）を使う
+- `queue` は actionlint 1.7.12 が知らない。`.github/actionlint.yaml` の除外は path ごとなので、`paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ除外を付ける。#529（除外を消す Issue）の対象にも加える
 
 commit status:
 

@@ -50,7 +50,7 @@
   - REST の Create a GitHub Pages deployment は artifact を 1 つ受け取り、配置先の path を持たない。1 回の deploy はサイト全体を差し替える。全体の正を `pages-store` に置けば、ほかの側を消さずに 1 つの側だけ書き換えられる（FR-020）
   - concurrency の既定の queue では、待っている run が新しい run に置き換えられて消える（docs「workflow-syntax」の concurrency）。開発版の更新が PR 版の更新に押し出されるので、保管には `queue: max` を使う
   - 公開の job は starter と同じ `group: pages` で足りる。待っている公開が置き換えられても、最後の公開が `pages-store` の最新を出す
-  - actionlint 1.7.12 は `queue` を知らない。publish-npm.yml と同じ除外（#529）を使う
+  - actionlint 1.7.12 は `queue` を知らない。`.github/actionlint.yaml` の除外は path ごとなので、`pages-deploy.yml` の path を足して publish-npm.yml と同じ除外を付け、#529 の対象にも加える
 - **Alternatives considered**:
   - 毎回すべての側を作り直す: 側の数だけ合否のレーンを動かすことになり、PR が増えると 30 分（SC-001・SC-007）に収まらない
   - 公開中のサイトを URL から取り込んで差分だけ足す: 公開物を正にすることになり、壊れた公開が次へ引き継がれる
@@ -59,7 +59,8 @@
 
 - **Decision**:
   - PR 版は `pull_request`（同じリポのブランチだけ）の run で作り、artifact に上げるだけにする
-  - 保管して公開する run は、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直す。側は API の項目から決め、artifact の名前や中身からは決めない。項目は data-model.md の RunProvenance
+  - 保管して公開する run は、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直す。PR 版か、main の祖先の定義で動いた run かは API の項目から決め、artifact の名前や中身からは決めない。項目は data-model.md の RunProvenance
+  - run の API には起動の入力（`side`）が無いので、手での起動の開発版とリリース版は API の項目では分けられない。main の祖先の定義（レビュー済み）が上げた artifact の名前で分ける
   - job を 4 つに分け、各 job に要る権限だけを持たせる（contracts の `pages-deploy.yml`）。信頼できない tar を扱う job（verify）は書き込みの権限を持たない
   - `pages-store` に書けるのは、environment `pages-store` の secret の deploy key だけにする
 - **Rationale**:
@@ -109,7 +110,7 @@
   | 手での起動 | `workflow_dispatch`。入力は `side`（`release`・`dev`）だけ | 公開だけのやり直しは `pages-deploy.yml` の `workflow_dispatch` |
 
 - **Rationale**:
-  - `workflow_dispatch` は任意の SHA を受けない。開発版は main の HEAD、リリース版はタグ（R13）から決める。任意の SHA を受けると、既定のブランチの文脈で、レビューを経ていないコードが動く。キャッシュを使う段を足したときに、既定のブランチのキャッシュへ書ける（CodeQL の `actions/cache-poisoning/poisonable-step`）
+  - `workflow_dispatch` は任意の SHA を受けない。起動できるのは main からだけで、開発版は起動した run のコミット（`github.sha`）、リリース版はタグ（R13）から決める。任意の SHA を受けると、既定のブランチの文脈で、レビューを経ていないコードが動く。キャッシュを使う段を足したときに、既定のブランチのキャッシュへ書ける（CodeQL の `actions/cache-poisoning/poisonable-step`）
   - release.yml の App のトークンは、本番では既に `permission-actions: write` を持つ。release の job に新しい権限を足さない
   - land の後に起こすのは、main が進んでいると land が `--no-ff` で merge し、タグのコミットが main の祖先になるのが land の後だから（`.githooks/scripts/release-land.sh`）
   - `GITHUB_TOKEN` で起こした `workflow_dispatch` も run を作る（docs「GITHUB_TOKEN」）。App のトークンを使うのは、既に権限を持つからで、`GITHUB_TOKEN` では起きないからではない
@@ -127,9 +128,10 @@
 - **Rationale**:
   - PR の CI と同じ dev container（`.githooks/ci/dev-container.sh`）で動かせば、手元・CI・公開で合否がずれない
   - matrix にすると、レーンの数だけランナーを使い、コンテナの起動もその数だけ繰り返す
-  - 2026-11-17 の run の値（job ごと、コンテナの起動を含む）は、レーンが 1.2〜4.8 分、サイトが 1.9 分。1 つの job で順に動かしても 12 分前後で、30 分に収まる
+  - 2026-11-17 の run の値（job ごと、コンテナの起動を含む）は、レーンが 1.2〜4.8 分、サイトが 1.9 分。開発版・PR 版は 1 つの job で順に動かしても 12 分前後で、30 分に収まる
+  - リリース版は、タグのコミットと `skeleton` のコミットを替えるたびに依存を入れ直す（contracts の「リリース版の build」）。その分だけ 12 分より延びる。値は #589 の run で測る
 - **Alternatives considered**:
-  - レーンごとに matrix の job を立てる: #588 で入れた形。ランナーを 4 台使う
+  - レーンごとに matrix の job を立てる: #588 で入れた形。job は side・レーン 4 本・site の 6 つで、うちレーンの 4 台がそれぞれコンテナを立てる
   - PR の CI の JUnit を流用する: affected のレーンしかそろわないので、spec の FR-003 に反する
 
 ## R7. 合否のレーンの定め
@@ -167,7 +169,7 @@
 
 ## R11. リンク切れ
 
-- **Decision**: サイトは今の `sphinx-build -W`（警告を失敗にする）で作る。verify の job が、受けた側のツリーの内部リンクを確かめる。側の間の行き来のリンクは、案内のページ（R4）で切れない。外部リンクは確かめない
+- **Decision**: サイトは今の `sphinx-build -W`（警告を失敗にする）で作る。verify の job が、受けた側のツリーの中の内部リンクを確かめる。側の間の行き来のリンクは、store が組んだ `pages-store` の全体で確かめる。先が無い側には案内のページ（R4）を置くので切れない。外部リンクは確かめない
 - **Rationale**: FR-019・SC-006。Sphinx の参照切れは `-W` で止まる。側の行き来のリンクは Sphinx の外で決まるので、組み立ての後に確かめる
 - **Alternatives considered**: `sphinx-build -b linkcheck` で外部も確かめる。外部のサイトの都合で公開が止まる
 
@@ -175,7 +177,8 @@
 
 - **問い**: workflow が `GITHUB_TOKEN` で付けた commit status は、ソースを GitHub Actions（integration_id 15368）に固定した必須のチェックを満たすか
 - **調べ方**: pecotcraft/pecot-sandbox の PR（2026-11-17、Issue #361・PR #362。調べた後に閉じた）
-  - ruleset 27130266 は、`ci-result` と `version-plan` を integration_id 15368 で必須にし、承認は 0 件、merge queue は有効、bypass は無い。このリポの ruleset と同じ形
+  - ruleset 27130266 は、`ci-result` と `version-plan` を integration_id 15368 で必須にし、承認は 0 件、merge queue は有効、bypass は無い。
+    このリポの ruleset（26538811）とは、必須のチェック・承認・merge queue の形が同じ。このリポには App の bypass と `code_scanning` の規則があるが、PR の作者が必須のチェックを満たせるかには関わらない
   - sandbox の `version-plan` は `echo ok` で常に通るので、ほかの理由で `BLOCKED` にはならない
   - 飛ばした job は Success と報告され、必須のチェックを満たす（docs「Using conditions to control job execution」）。そのため、`ci-result` の job は `if: false` でなく、job ごと消して止めた
 

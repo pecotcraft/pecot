@@ -37,7 +37,7 @@ ci.yml と同じ形）
 
 **Project Type**: リポの運用の仕組み（workflow とスクリプト）と、配布しないライブラリ（`libs/interface-spec`）の文書サイト
 
-**Performance Goals**: push・リリース・PR の push から 30 分以内に該当の側が変わる（SC-001・SC-007）。合否のレーンは並べて動かし、今の値で 7 分前後
+**Performance Goals**: push・リリース・PR の push から 30 分以内に該当の側が変わる（SC-001・SC-007）。合否のレーンは 1 つの job で順に動かし、開発版・PR 版で 12 分前後。リリース版は依存を入れ直す分だけ延びる
 
 **Constraints**: 公開サイト全体で 1 GB 以内（今の 1 つの側は約 14 MB）。deploy は 10 分以内。fork の PR では作らない。`pull_request_target` を使わない。手での起動は任意の SHA を受けない。`actions: write` をどの job にも持たせない
 
@@ -52,7 +52,7 @@ ci.yml と同じ形）
 | I. DDD | 合格 | 状態の決め方（`outcome_of` など）は拡張の中の純粋な関数に置き、JUnit・JSON の読み込みと分ける。公開のスクリプトは、判定の部分（`provenance.py`・`release_sources.py`。API の応答を受けて決めるだけ）と、I/O の部分（`store.py`。artifact を取る・展開する・push する）を分ける |
 | II. TDD | 合格 | 5 つの状態・版の帯・`junit-lanes.json` の読み込みは pytest を先に書く。出どころの確かめ（RunProvenance）とリリース版の材料（ReleaseSources）は、GitHub の API の応答の実物の形を入力にしたテストで確かめる。モックは API を叩く境界だけ。workflow の形は `.githooks/tests` の pytest で確かめる。テストの通過とは別に、quickstart の手順を実物で動かす |
 | III. 品質ゲート | 合格 | Python は pyright strict と ruff、workflow は actionlint・yamllint（既存の pre-commit）。`.githooks/scripts` の JS には型検査が無いので、新しい処理は JS で書かない。`.githooks/scripts/pages_site/` の Python は、`githooks-lint`（pyright strict）の範囲を広げてかける |
-| IV. YAGNI | 合格 | 過去のリリースは残さない。外部リンクの確認・PR 版の数の上限・新しい保管場所は作らない。プラグインの紹介の文章は書かない |
+| IV. YAGNI | 合格 | 過去のリリースは残さない。外部リンクの確認・PR 版の数の上限は作らない。保管ブランチ `pages-store` は、artifact が 90 日で消えるため、research R1 の決め直しで足した。プラグインの紹介の文章は書かない |
 | V. 本体優先 | 合格 | speckit の成果物はこの一式の作成だけ |
 | VI. 標準準拠 | 合格 | 公開は docs が推奨する Actions 方式と公式の 3 つの action。environment `github-pages` に既定のブランチだけの保護、concurrency は starter workflow の値。PR の run からは deploy せず、保護を緩めない。`pull_request_target` を使わない。`workflow_run` で受ける run は API の項目で出どころを確かめ、artifact は untrusted として展開とパスの確かめだけにする（GitHub Security Lab の推奨）。公式の `preview` は alpha で非公開なので使わない。保管ブランチと公式の `deploy-pages` の組み合わせには公式の参照実装が無いが、どちらも公式の形で、組み合わせ方は research R1 に書いた。不適合として残すものは無い |
 
