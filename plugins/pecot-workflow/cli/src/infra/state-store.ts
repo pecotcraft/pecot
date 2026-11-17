@@ -91,7 +91,10 @@ export function writeFlag(flagName: string, content: string): void {
 存在の確認と読み取りの間に hooks が消しても、読んだ結果が無ければ undefined になる
 */
 export function readFlag(flagName: string): string | undefined {
-  const flagFile = path.join(getStateDirectory(), flagName)
+  return readFlagFile(path.join(getStateDirectory(), flagName))
+}
+
+function readFlagFile(flagFile: string): string | undefined {
   try {
     return pythonStrip(readTextFile(flagFile))
   }
@@ -114,6 +117,13 @@ export function writeBaseRecord(record: Readonly<BaseRecord>): void {
 */
 export function readBaseRecord(): BaseReading {
   return interpretBaseRecord(readFlag(FLAG_PECOT_BASE))
+}
+
+/**
+toplevel の worktree の .pecot-base を読む。無ければ開発ブランチから着手したものとして返す
+*/
+export function readBaseRecordAt(toplevel: string): BaseReading {
+  return interpretBaseRecord(readFlagFile(path.join(toplevel, STATE_DIR, FLAG_PECOT_BASE)))
 }
 
 /**

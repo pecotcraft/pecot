@@ -155,6 +155,19 @@ async function openStackedUpper(github: ResponseRuleList): Promise<Workspace> {
   return workspace
 }
 
+// #12 の判定。#11 の PR #20 が開いていれば stackable、前提が無ければ startable
+const STACKABLE_RULE = prerequisitesRule({ number: 12, blockedBy: [{ number: 11, branch: LOWER, pullRequests: [{ number: 20, head: LOWER }] }] })
+const STARTABLE_RULE = prerequisitesRule({ number: 12 })
+
+// 記録を置かずに、下の段の上に上の段（BRANCH）を積んで push する。別の worktree や clone で checkout したのと同じ形
+async function openInferredUpper(github: ResponseRuleList): Promise<Workspace> {
+  const workspace = await openWorkspace({ baseRecord: false, branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github })
+  workspace.git(['checkout', '-q', '-b', BRANCH, `origin/${LOWER}`])
+  commitFile(workspace, 'upper.txt', 'upper\n')
+  workspace.git(['push', '-q', '-u', 'origin', BRANCH])
+  return workspace
+}
+
 // from の上にコミットを作って origin の target へ push し、上の段に戻る
 function pushTo(workspace: Readonly<Workspace>, from: string, target: string, file: string, content: string): void {
   workspace.git(['checkout', '-q', '-b', `work-${target.replaceAll('/', '-')}`, from])
@@ -362,7 +375,7 @@ describe('pr create', () => {
     await verifies(context, 'PW-PR-CREATE-05')
     await verifies(context, 'PW-PR-CREATE-66')
     const workspace = await openWorkspace({
-      worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: 'main\n' } }],
+      worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n` } }],
       github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
     })
     const worktree = path.join(workspace.root, 'wt1', REPOSITORY)
@@ -1061,14 +1074,73 @@ describe('pr create', () => {
       expect(operationsOf(workspace).filter(operation => operation.includes('/stacks'))).toStrictEqual([])
     })
 
-    it('記録が開発ブランチからの着手のときに打つと、記録が無いときと同じ出力と要求になる', async (context) => {
+    it('開発ブランチから着手した記録で打つと、記録の無い startable の判定のときと同じ出力になり、判定を読まない', async (context) => {
       await verifies(context, 'PW-PR-CREATE-53')
-      const plain = await pushedBranch({ github: SUBMIT_RULES })
+      await verifies(context, 'PW-PR-CREATE-72')
+      const plain = await pushedBranch({ baseRecord: false, github: [STARTABLE_RULE, ...SUBMIT_RULES] })
       const expected = await plain.run(messageArguments())
       const recorded = await pushedBranch({ files: { [stateFile('.pecot-base')]: `main ${RECORD_SHA}\n` }, github: SUBMIT_RULES })
       const result = await recorded.run(messageArguments())
       expect(result).toStrictEqual(expected)
-      expect(operationsOf(recorded)).toStrictEqual(operationsOf(plain))
+      expect(operationsOf(plain)).toStrictEqual(['GetIssuePrerequisites', ...operationsOf(recorded)])
+    })
+
+    describe('記録が無い作業ディレクトリ', () => {
+      it('判定が stackable で下の段の上にあると、--dry-run で下の段を base にした PR とスタックへの登録を出す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-71')
+        const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
+        const result = await workspace.run(stackedArguments(['--dry-run']))
+        expect(result).toStrictEqual({
+          code: 0,
+          stdout: '',
+          stderr: `dry-run: would create PR acme/demo ${BRANCH} -> ${LOWER}: ${TITLE}\ndry-run: would set Issue #12 status to In Review\ndry-run: would add the new PR to the stack of PR #20\n`,
+        })
+      })
+
+      it('下の段を進めた main の上へ載せ直して force-push した後も、下の段を base にする', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-71')
+        const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
+        pushTo(workspace, 'origin/main', 'main', 'main.txt', 'main\n')
+        workspace.git(['checkout', '-q', '-b', 'rebased-lower', `origin/${LOWER}`])
+        workspace.git(['rebase', '-q', 'origin/main'])
+        workspace.git(['push', '-q', '--force', 'origin', `HEAD:refs/heads/${LOWER}`])
+        workspace.git(['checkout', '-q', BRANCH])
+        workspace.git(['fetch', '-q', 'origin'])
+        const result = await workspace.run(stackedArguments(['--dry-run']))
+        expect(result.code).toBe(0)
+        expect(lines(result.stderr)[0]).toBe(`dry-run: would create PR acme/demo ${BRANCH} -> ${LOWER}: ${TITLE}`)
+      })
+
+      it('判定が stackable でも、ブランチが開発ブランチから分かれて下の段の変更を持たないと、develop_branch を base にする', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-72')
+        const workspace = await pushedBranch({ baseRecord: false, branches: [{ name: BRANCH }, { name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github: [STACKABLE_RULE] })
+        const result = await workspace.run(messageArguments(['--dry-run']))
+        expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would create PR acme/demo ${BRANCH} -> main: ${TITLE}\ndry-run: would set Issue #12 status to In Review\n` })
+      })
+
+      it('判定が blocked なら、--dry-run では warning を出し、develop_branch を base にする', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-74')
+        const workspace = await pushedBranch({ baseRecord: false, github: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })] })
+        const result = await workspace.run(messageArguments(['--dry-run']))
+        expect(result.code).toBe(0)
+        expect(lines(result.stderr)).toStrictEqual([
+          expect.stringMatching(/^warning: cannot infer the stacked base: blocked by #11/u),
+          `dry-run: would create PR acme/demo ${BRANCH} -> main: ${TITLE}`,
+          'dry-run: would set Issue #12 status to In Review',
+        ])
+      })
+
+      it.for([
+        { name: '判定が blocked', rules: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })], expected: /^error: cannot infer the stacked base: blocked by #11/u },
+        { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], expected: /^error: cannot infer the stacked base: /u },
+      ])('$name とき、投稿では PR を作らずに error の行を出し、終了コード 1 で終わる', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-73')
+        const workspace = await pushedBranch({ baseRecord: false, github: row.rules })
+        const result = await workspace.run(messageArguments([]))
+        expect(result.code).toBe(1)
+        expect(result.stderr).toMatch(row.expected)
+        expect(operationsOf(workspace)).toStrictEqual(['GetIssuePrerequisites'])
+      })
     })
 
     it.for([
@@ -1850,6 +1922,39 @@ describe('pr check', () => {
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
     expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
+  })
+
+  it('記録が無く、判定が stackable で下の段の上にあると、下の段の追跡参照と比べ、Commits の節に上の段のコミットだけを出す', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-25')
+    const workspace = await openInferredUpper([STACKABLE_RULE])
+    const result = await preflight(workspace)
+    expect(result).toMatchObject({ code: 0, stderr: 'count: preflight warnings: 0\n' })
+    expect(result.stdout).toContain(`=== Base Branch ===\norigin/${LOWER}\n`)
+    expect(result.stdout).toMatch(/=== Commits \(vs origin\/feat\/demo\/11\) ===\n[\da-f]+ change upper\.txt\n\n/u)
+  })
+
+  it('記録が無く、判定が stackable で、下の段が自分のコミットを持たないまま上の段の祖先なら、下の段の追跡参照と比べる', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-25')
+    const workspace = await openWorkspace({ baseRecord: false, branches: [{ name: LOWER }], github: [STACKABLE_RULE] })
+    workspace.git(['checkout', '-q', '-b', BRANCH, `origin/${LOWER}`])
+    commitFile(workspace, 'upper.txt', 'upper\n')
+    workspace.git(['push', '-q', '-u', 'origin', BRANCH])
+    const result = await preflight(workspace)
+    expect(result.stdout).toContain(`=== Base Branch ===\norigin/${LOWER}\n`)
+  })
+
+  it.for([
+    { name: '判定を読む GitHub が失敗を返す', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 500, body: { message: 'boom' } })], isTracked: true, expected: /^warning: cannot infer the stacked base: /u },
+    { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], isTracked: true, expected: /^warning: cannot infer the stacked base: /u },
+    { name: '下の段の追跡参照が無い', rules: [STACKABLE_RULE], isTracked: false, expected: /^warning: cannot infer the stacked base: origin\/feat\/demo\/11 is not found; fetch it with: git fetch$/u },
+  ])('記録が無く、$name と、warning の行を出し、develop_branch の追跡参照と比べる', async (row, context) => {
+    await verifies(context, 'PW-PR-CHECK-26')
+    const workspace = await openInferredUpper(row.rules)
+    if (!row.isTracked) workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
+    const result = await preflight(workspace)
+    expect(result.code).toBe(0)
+    expect(lines(result.stderr)[0]).toMatch(row.expected)
+    expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
   })
 
   it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に取り込みか lease 付きの上書きを出す', async (context) => {

@@ -151,16 +151,23 @@ describe('.pecot-restack の 1 行', () => {
     expect(FLAG_PECOT_RESTACK).toBe('.pecot-restack')
   })
 
-  it('積んだ記録を保つときは、7 つの項目を空白で区切る', () => {
-    const progress = { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'feat/3', ontoSha: SHA, leaseSha: LEASE, stackedOn: issue }
-    expect(formatRestackProgress(progress)).toBe(`origin feat/4 ${SHA} feat/3 ${SHA} ${LEASE} Acme/Demo#3`)
+  it('積んだ記録を保つときは、8 つの項目を空白で区切る', () => {
+    const progress = { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'feat/3', ontoSha: SHA, leaseSha: LEASE, stackedOn: issue, recordSha: LEASE }
+    expect(formatRestackProgress(progress)).toBe(`origin feat/4 ${SHA} feat/3 ${SHA} ${LEASE} Acme/Demo#3 ${LEASE}`)
     expect(interpretRestackProgress(formatRestackProgress(progress))).toEqual({ kind: 'progress', progress })
   })
 
   it('remote にブランチが無く、開発ブランチへ載せ直すときは、無い項目を - にする', () => {
-    const progress = { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'main', ontoSha: SHA, leaseSha: undefined, stackedOn: undefined }
-    expect(formatRestackProgress(progress)).toBe(`origin feat/4 ${SHA} main ${SHA} - -`)
+    const progress = { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'main', ontoSha: SHA, leaseSha: undefined, stackedOn: undefined, recordSha: undefined }
+    expect(formatRestackProgress(progress)).toBe(`origin feat/4 ${SHA} main ${SHA} - - -`)
     expect(interpretRestackProgress(formatRestackProgress(progress))).toEqual({ kind: 'progress', progress })
+  })
+
+  it('古い版が書いた 7 項目の行は、記録の位置を無いものとして読む', () => {
+    expect(interpretRestackProgress(`origin feat/4 ${SHA} feat/3 ${SHA} ${LEASE} Acme/Demo#3`)).toEqual({
+      kind: 'progress',
+      progress: { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'feat/3', ontoSha: SHA, leaseSha: LEASE, stackedOn: issue, recordSha: undefined },
+    })
   })
 
   it('ファイルが無ければ none', () => {
@@ -170,7 +177,8 @@ describe('.pecot-restack の 1 行', () => {
   it.for([
     { name: '空', content: '' },
     { name: '項目が足りない', content: `origin feat/4 ${SHA} main ${SHA} -` },
-    { name: '項目が多い', content: `origin feat/4 ${SHA} main ${SHA} - - extra` },
+    { name: '項目が多い', content: `origin feat/4 ${SHA} main ${SHA} - - - extra` },
+    { name: '記録の位置の形が違う', content: `origin feat/4 ${SHA} main ${SHA} - - abc` },
     { name: 'SHA の形が違う', content: `origin feat/4 ${SHA} main abc - -` },
     { name: 'lease の形が違う', content: `origin feat/4 ${SHA} main ${SHA} abc -` },
     { name: '積んだ先の形が違う', content: `origin feat/4 ${SHA} main ${SHA} - #3` },

@@ -4,13 +4,15 @@ import { realpathSync } from 'node:fs'
 
 import type { ResponseRule } from '../fake-github/server.js'
 import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'
+import { developmentRecordOf } from './base-record.js'
+import type { BaseRecordOption } from './base-record.js'
 import { setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 
 export const CONFIG_FILE = 'ghes.example.com_acme_board_acme.json'
 export const ORIGIN_URL = 'https://ghes.example.com/acme/demo.git'
 
-export interface SessionCaseOptions {
+export interface SessionCaseOptions extends BaseRecordOption {
   /**
   既定は feat/demo/7
   */
@@ -35,7 +37,7 @@ export interface SessionCase {
 */
 export function prepareSession(options: Readonly<SessionCaseOptions> = {}): SessionCase {
   const { branch = 'feat/demo/7', remotes = { origin: ORIGIN_URL }, files = {} } = options
-  const project = setUpProject({ files })
+  const project = setUpProject({ files: { ...developmentRecordOf(options), ...files } })
   const repository = realpathSync(createGitRepository(undefined, project.root))
   process.chdir(repository)
   gitForTest(repository, ['checkout', '-q', '-b', branch])

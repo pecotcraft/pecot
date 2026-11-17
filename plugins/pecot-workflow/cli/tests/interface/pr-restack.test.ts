@@ -14,6 +14,7 @@ import { lines, operationsOf, stateFile } from '../_helpers/workspace-inspect.js
 import { graphql, openWorkspace } from '../_helpers/workspace.js'
 import type { ConfigOptions, Workspace } from '../_helpers/workspace.js'
 import type { ResponseRule } from '../fake-github/server.js'
+import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 
 useIsolatedEnvironment()
@@ -73,6 +74,29 @@ async function openStacked(options: Readonly<StackedOptions> = {}): Promise<Work
   if (options.isPushed !== false) workspace.git(['push', '-u', 'origin', UPPER])
   recordLowerBase(workspace)
   return workspace
+}
+
+// #12 の判定。#11 の PR #20 が開いていれば stackable、前提が無ければ startable
+const STACKABLE_RULE = prerequisitesRule({ number: 12, blockedBy: [{ number: 11, branch: LOWER, pullRequests: [{ number: 20, head: LOWER }] }] })
+const STARTABLE_RULE = prerequisitesRule({ number: 12 })
+
+// 記録を置かずに、main の上に下の段、その上に上の段を積んで push する。別の worktree や clone で checkout したのと同じ形
+async function openInferred(github: readonly ResponseRule[]): Promise<Workspace> {
+  const workspace = await openWorkspace({ baseRecord: false, branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github })
+  workspace.git(['checkout', '-b', UPPER, `origin/${LOWER}`])
+  commitFile(workspace, 'upper.txt', 'upper\n', 'upper')
+  workspace.git(['push', '-u', 'origin', UPPER])
+  return workspace
+}
+
+// 下の段を、進めた main の上へ載せ直して force-push する。上の段は古い下の段の上に残る
+function rebaseLowerOntoAdvancedMain(workspace: Readonly<Workspace>): void {
+  pushTo(workspace, 'origin/main', 'main', 'main.txt', 'main\n')
+  workspace.git(['checkout', '-b', 'rebased-lower', `origin/${LOWER}`])
+  workspace.git(['rebase', 'origin/main'])
+  workspace.git(['push', '--force', 'origin', `HEAD:refs/heads/${LOWER}`])
+  workspace.git(['checkout', UPPER])
+  workspace.git(['fetch', 'origin'])
 }
 
 // 別のブランチでコミットを作り、origin の target へ push して、上の段に戻る
@@ -313,17 +337,79 @@ describe('pr restack', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: row.expected })
   })
 
-  it.for([
-    { name: '記録が無い', record: undefined },
-    { name: '開発ブランチから着手した記録がある', record: `main ${'0'.repeat(40)}\n` },
-  ])('積んでいないブランチ（$name）では、fetch と載せ直しをせずに up to date と出す', async (row, context) => {
+  it('開発ブランチから着手した記録があると、fetch と載せ直しをせずに up to date と出す', async (context) => {
     await verifies(context, 'PW-PR-RESTACK-10')
-    const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER }], ...row.record !== undefined && { files: { [BASE_FILE]: row.record } } })
+    const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER }] })
     workspace.advanceRemote('main')
     const tracked = head(workspace, 'origin/main')
     expect(await workspace.run(['pr', 'restack', '--check'])).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on main\n`, stderr: '' })
     expect(await workspace.run(['pr', 'restack'])).toStrictEqual({ code: 0, stdout: '', stderr: `unchanged: ${UPPER} is up to date\n` })
     expect(head(workspace, 'origin/main')).toBe(tracked)
+  })
+
+  it('記録が無く、判定が startable なら、fetch してから判定を読み、載せ直さずに up to date と出す', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-10')
+    await verifies(context, 'PW-PR-RESTACK-30')
+    const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER }], baseRecord: false, github: [STARTABLE_RULE, STARTABLE_RULE] })
+    workspace.advanceRemote('main')
+    const tracked = head(workspace, 'origin/main')
+    expect(await workspace.run(['pr', 'restack', '--check'])).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on main\n`, stderr: '' })
+    expect(await workspace.run(['pr', 'restack'])).toStrictEqual({ code: 0, stdout: '', stderr: `unchanged: ${UPPER} is up to date\n` })
+    expect(head(workspace, 'origin/main')).not.toBe(tracked)
+  })
+
+  describe('記録が無い作業ディレクトリ', () => {
+    it('判定が stackable で下の段にコミットが足されていると、下の段の上に載せ直し、積んだ記録を書く', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-27')
+      const workspace = await openInferred([STACKABLE_RULE, lowerPullRequests('OPEN')])
+      workspace.advanceRemote(LOWER)
+      const result = await workspace.run(['pr', 'restack'])
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on ${LOWER}\n` })
+      const lowerHead = head(workspace, `origin/${LOWER}`)
+      expect(head(workspace, 'HEAD~1')).toBe(lowerHead)
+      expect(workspace.read(BASE_FILE)).toBe(`${LOWER} ${lowerHead} acme/demo#11`)
+    })
+
+    it('下の段を載せ直して force-push した後も、下の段に積んだものとして base moved を出す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-27')
+      const workspace = await openInferred([STACKABLE_RULE, lowerPullRequests('OPEN')])
+      rebaseLowerOntoAdvancedMain(workspace)
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result).toStrictEqual({ code: 0, stdout: `needs restack: ${UPPER} on ${LOWER} (base moved)\n`, stderr: '' })
+    })
+
+    it('下の段の追跡参照が手元に無くても、求める前に fetch して、下の段に積んだものとして扱う', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-30')
+      const workspace = await openInferred([STACKABLE_RULE, lowerPullRequests('OPEN')])
+      workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on ${LOWER}\n`, stderr: '' })
+    })
+
+    it('判定が blocked なら、warning を出し、積んでいないものとして up to date と出す', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-29')
+      const blocked = prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })
+      const workspace = await openInferred([blocked])
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result.code).toBe(0)
+      expect(result.stdout).toBe(`up to date: ${UPPER} on main\n`)
+      expect(result.stderr).toMatch(/^warning: cannot infer the stacked base: blocked by #11/u)
+    })
+
+    it('載せ直しが衝突すると、途中の記録に載せ直す前の記録の位置を書き、--continue で終える', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-28')
+      const workspace = await openInferred([STACKABLE_RULE, lowerPullRequests('OPEN')])
+      const recorded = head(workspace, `origin/${LOWER}`)
+      makeConflict(workspace)
+      const conflicted = await workspace.run(['pr', 'restack'])
+      expect(conflicted.code).toBe(3)
+      expect(workspace.read(PROGRESS_FILE).trim().split(' ').at(-1)).toBe(recorded)
+      writeFileSync(path.join(workspace.directory, 'upper.txt'), 'resolved\n')
+      workspace.git(['add', 'upper.txt'])
+      const result = await workspace.run(['pr', 'restack', '--continue'])
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on ${LOWER}\n` })
+      expect(workspace.read(BASE_FILE)).toBe(`${LOWER} ${head(workspace, `origin/${LOWER}`)} acme/demo#11`)
+    })
   })
 
   it('remote に上の段のブランチが無いと、載せ直すだけで push しない', async (context) => {

@@ -2250,12 +2250,13 @@ entries:
         - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
         - The base branch is <remote>/ followed by the develop_branch of the active project, where <remote> is the origin remote, or the first remote when there is no origin.
         - "When the base record of a stacked start exists, the base branch is <remote>/ followed by the branch of the layer below instead. When the remote reports that branch no longer exists, it is <remote>/ followed by the develop_branch, even if a stale remote-tracking ref remains. When the remote cannot be reached, the remote-tracking ref decides."
+        - "When .pecot/state/.pecot-base of the worktree of the working directory is missing, the stacked base is inferred. When the readiness of the work Issue is stackable and the branch has the changes of the branch it names (the same commits, or the same patches after that branch was rebased; when that branch has no commits of its own, its head being an ancestor of the branch), the branch counts as stacked on it. Otherwise it counts as started from the develop_branch. A warning line cannot infer the stacked base is printed when the readiness cannot be read or is blocked, when GitHub cannot be reached, or when the remote-tracking ref is missing. The inferred base is not written."
         - "The query to the remote about the branch of the layer below times out after 10 seconds and never asks for credentials (GIT_TERMINAL_PROMPT=0 and the askpass programs are disabled). A timeout is handled the same as a remote that cannot be reached."
         - "When the branch of the layer below is on the remote but has no remote-tracking ref, compares with the develop_branch and prints a warning that tells to run git fetch. This warning is not counted in the preflight warnings."
         - "When the base record is malformed, stops with exit status 1 because the base cannot be decided."
         - Prints every section even when there are warnings.
         - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
-        - "When the base record of a stacked start exists and the branch has diverged from the remote, reads the PR of the layer below and the head of that branch on the remote, and decides whether a restack is needed in the same way as pr restack. This is the only case that reads GitHub. The fix of the Push Status warning is pr restack when a restack is needed, and pr restack --check when it cannot be decided, which includes the case where the branch of the layer below is gone from the remote and its PR is not merged."
+        - "When the base record of a stacked start exists and the branch has diverged from the remote, reads the PR of the layer below and the head of that branch on the remote, and decides whether a restack is needed in the same way as pr restack. Besides inferring a missing base record, this is the only case that reads GitHub. The fix of the Push Status warning is pr restack when a restack is needed, and pr restack --check when it cannot be decided, which includes the case where the branch of the layer below is gone from the remote and its PR is not merged."
         - "When the branch is already on the new base and only the base record is old, the fix of the Push Status warning is pr restack, which pushes the branch and rewrites the record."
         - "When the branch has diverged and needs no restack otherwise, including a branch that is not stacked, the fix of the Push Status warning is git pull --rebase, or git push --force-with-lease after rewriting pushed commits, because git rejects a push that is not a fast-forward."
         - Exits with status 2 when there is at least one warning.
@@ -2273,12 +2274,14 @@ entries:
       - '11 の節を決まった順で出します。節は、Git Remote・Current Branch・Push Status・Base Branch・Git Status・.gitignore と続きます。その後は、Git Exclude・Commits・Diff Summary・Worktree Info・Stash List です。'
       - 'base ブランチは、`<remote>/` の後にアクティブなプロジェクトの `develop_branch` を続けたものです。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
       - '積んで着手した記録があるときは、base ブランチは、`<remote>/` の後に下の段のブランチを続けたものです。remote がそのブランチは無いと答えれば（マージで消えた後）、手元に追跡参照が残っていても `develop_branch` の方にします。remote に届かなければ、手元の追跡参照の有無で決めます。'
+      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
+      - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`warning: cannot infer the stacked base` の行を出します。求めた結果は書きません。'
       - '下の段のブランチについての remote への問い合わせには、10 秒の時間切れがあり、認証の入力は求めません（`GIT_TERMINAL_PROMPT=0` と askpass の無効化）。時間切れは、remote に届かないときと同じに扱います。'
       - '下の段のブランチが remote にあり、手元に追跡参照が無いときは、`develop_branch` と比べ、`git fetch` を案内する `warning` の行を出します。この行は `count: preflight warnings` の数に入りません。'
       - '積んだ base の記録の形が誤っているときは、base を決められないので、終了コード 1 で止まります。'
       - '`warning` があっても、すべての節を出します。'
       - '`warning` として数えるのは、push していないか remote とずれたブランチ、変更したファイルか追跡していないファイル、stash の項目です。'
-      - '積んで着手した記録があり、ブランチが remote とずれているときは、下の段の PR と remote の先頭を読み、`pr restack` と同じに載せ直しの要否を決めます。GitHub を読むのは、このときだけです。'
+      - '積んで着手した記録があり、ブランチが remote とずれているときは、下の段の PR と remote の先頭を読み、`pr restack` と同じに載せ直しの要否を決めます。GitHub を読むのは、このときと、記録が無く積んだ先を求めるときだけです。'
       - 'Push Status の直し方は、載せ直しが要れば `pr restack`、決められなければ `pr restack --check` です。下の段のブランチが remote から消え、PR がマージされていないときも、決められないに入ります。'
       - 'ブランチが新しい base の上に載り終えていて記録だけが古いときも、Push Status の直し方は `pr restack` です。push と記録の書き直しを `pr restack` が行うためです。'
       - 'ほかに、ブランチが remote とずれて載せ直しが要らないときは、Push Status の直し方は `git pull --rebase` です。push 済みのコミットを書き換えたなら `git push --force-with-lease` です。積んでいないブランチも同じです。git は fast-forward でない push を拒むためです。'
@@ -2300,7 +2303,7 @@ entries:
         diffSummary: 'ベースブランチとの差分の統計です。Diff Summary の節に出す文です。'
         worktree: 'worktree の情報です。`list`（`git worktree list` の出力）と `directoryName`（今のディレクトリの名前）を持ちます。リンクされた worktree かどうかを示す `isWorktree` は、判定できたときだけ入ります。'
         stashList: 'stash の一覧です。Stash List の節に出す文です。'
-    diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。下の段のブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。'
+    diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。下の段のブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -2422,6 +2425,12 @@ entries:
       - id: PW-PR-CHECK-24
         pattern: unwanted
         statement: 'もし積んだブランチが remote とずれ、新しい base の上に載り終えていて記録だけが古いなら、Push Status の直し方に `pr restack` を出します'
+      - id: PW-PR-CHECK-25
+        pattern: state
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、下の段の追跡参照と比べます'
+      - id: PW-PR-CHECK-26
+        pattern: unwanted
+        statement: 'もし記録が無く、積んだ先を求められないなら、`warning: cannot infer the stacked base: <理由>` の行を出し、`develop_branch` の追跡参照と比べます'
   PW-PR-CREATE:
     help:
       details:
@@ -2431,7 +2440,8 @@ entries:
         - With --prepare, copies the template to .pecot/tmp/output/ and prints its path.
         - With --prepare and the default template, sets base in the copy to the develop_branch of the repository.
         - "When the base record .pecot/state/.pecot-base of a stacked start exists, the default template of the current branch uses the base branch it names (the branch of the layer below) instead of develop_branch. The record is not read with --head, a head in the front matter, or the release template."
-        - With --prepare and such a record, sets base in the copy to the base of the record without any network call.
+        - "When .pecot/state/.pecot-base of the worktree of the working directory is missing, the stacked base is inferred. When the readiness of the work Issue is stackable and the branch has the changes of the branch it names (the same commits, or the same patches after that branch was rebased; when that branch has no commits of its own, its head being an ancestor of the branch), the branch counts as stacked on it. Otherwise it counts as started from the develop_branch. A warning line cannot infer the stacked base is printed when the readiness cannot be read or is blocked, when GitHub cannot be reached, or when the remote-tracking ref is missing. The inferred base is not written."
+        - With --prepare and such a record, sets base in the copy to the base of the record without any network call. Without a record, reads the readiness of the work Issue to infer the base. When the base cannot be inferred, posting stops with an error and no PR is created, since a PR to the develop_branch can include the changes of the layer below; --dry-run and --prepare print the warning and go on.
         - "When the PR of the layer below is open, creates the PR on that base, and stops with exit status 3 if the base given is develop_branch."
         - "When the PR of the layer below is merged, creates the PR on develop_branch."
         - "The PR of the layer below is chosen in the order open, merged, closed. When the layer below has no open PR and is not merged, creates nothing and stops with exit status 2 with an error line that says the base branch has no open PR."
@@ -2487,7 +2497,10 @@ entries:
       - '`--prepare` では、テンプレートを `.pecot/tmp/output/` にコピーし、そのパスを出します。'
       - '`--prepare` と `default` のテンプレートでは、コピーの base をリポジトリの `develop_branch` にします。'
       - '積んで着手した記録 `.pecot/state/.pecot-base` があると、base は `develop_branch` ではなく、記録の base（下の段のブランチ）です。今のブランチの `default` のテンプレートだけが対象です。`--head`・フロントマターの `head`・`release` のテンプレートでは、記録を読みません。'
-      - '記録があるときの `--prepare` は、通信せずに、コピーの base を記録の base にします。'
+      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
+      - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`warning: cannot infer the stacked base` の行を出します。求めた結果は書きません。'
+      - '記録があるときの `--prepare` は、通信せずに、コピーの base を記録の base にします。記録が無ければ、作業中の Issue の判定を読んで base を求めます。'
+      - '積んだ先を求められないとき、投稿は `error` の行を出して止まり、PR を作りません。開発ブランチ向けの PR に、下の段の差分が入りうるためです。`--dry-run` と `--prepare` は `warning` の行を出して続けます。'
       - '下の段の PR が開いているときは、その base で PR を作ります。渡した base が `develop_branch` なら、終了コード 3 で止まります。'
       - '下の段の PR がマージ済みのときは、`develop_branch` を base にして PR を作ります。'
       - '下の段の PR は、開いている・マージ済み・閉じた、の順に選びます。'
@@ -2526,7 +2539,7 @@ entries:
         moves: 'この PR を待っていた Issue のうち、列か Status を書いたものの配列です。`dry_run` のときと `prepare` のときは入りません。要素は `issue`・`reason` を必ず持ち、`from`・`to`・`label` は `board_sync` の `moves` と同じです。'
         file: '書き出した下書きのファイルの絶対パスです。`prepare` のときだけ入ります。'
         dryRun: '`dry_run` のときだけ `true` で入ります。PR は作っていません。'
-    diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--prepare` のときは、base・題の scope の目安・`Closes` の `set` の行を出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。'
+    diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--prepare` のときは、base・題の scope の目安・`Closes` の `set` の行を出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。記録が無く積んだ先を求められないとき、投稿では `error: cannot infer the stacked base: <理由>` の行と直し方の行を出します。`--dry-run` と `--prepare` では、同じ理由の `warning` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -2550,6 +2563,9 @@ entries:
       - kind: git-unresolved
         code: 1
         when: '積んだ base の記録のコミットが head の履歴にありません。ファイルと `-m` の投稿のときです。'
+      - kind: git-unresolved
+        code: 1
+        when: '記録が無く、積んだ先を求められません。ファイルと `-m` の投稿のときです。'
       - kind: repo-setting-missing
         code: 1
         when: '`develop_branch` か `release_branch` が未設定です。'
@@ -2832,6 +2848,18 @@ entries:
       - id: PW-PR-CREATE-70
         pattern: unwanted
         statement: 'もし積んだ base の記録のコミットが head の履歴に無く、`pr restack` と同じ判断で載せ直し済みと決まったなら、止まる文で `pr restack` で記録を書き直すことを案内します。決まらなければ案内しません'
+      - id: PW-PR-CREATE-71
+        pattern: state
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、下の段のブランチを base にします。下の段を載せ直して force-push した後も同じです'
+      - id: PW-PR-CREATE-72
+        pattern: state
+        statement: '記録が無く、作業中の Issue の判定が startable の間、`develop_branch` を base にします'
+      - id: PW-PR-CREATE-73
+        pattern: unwanted
+        statement: 'もし記録が無く、積んだ先を求められないなら、投稿では `error: cannot infer the stacked base` の行を出して終了コード 1 で止まり、PR を作りません'
+      - id: PW-PR-CREATE-74
+        pattern: unwanted
+        statement: 'もし記録が無く、積んだ先を求められないなら、`--dry-run` では warning の行を出し、`develop_branch` を base にします'
   PW-PR-MERGE:
     help:
       details:
@@ -2999,7 +3027,8 @@ entries:
       details:
         - Restacks the current branch onto the new position of the branch it was stacked on, using the base record written when the work started.
         - "With --check, only reports whether a restack is needed and changes nothing except the remote-tracking refs updated by git fetch."
-        - "A branch that is not stacked (no base record, or a record of a start from the develop branch) is never restacked."
+        - "A branch that is not stacked (a record of a start from the develop branch, or no record and no inferred base) is never restacked."
+        - "When .pecot/state/.pecot-base of the worktree of the working directory is missing, the stacked base is inferred. When the readiness of the work Issue is stackable and the branch has the changes of the branch it names (the same commits, or the same patches after that branch was rebased; when that branch has no commits of its own, its head being an ancestor of the branch), the branch counts as stacked on it. Otherwise it counts as started from the develop_branch. A warning line cannot infer the stacked base is printed when the readiness cannot be read or is blocked, when GitHub cannot be reached, or when the remote-tracking ref is missing. The inferred base is not written."
         - "A restack is needed when the head of the layer below on the remote differs from the recorded position, or when the PR of the layer below is merged. After a merge, the branch is restacked onto the develop branch and the base record becomes a start from the develop branch."
         - "A branch that is already on the new base needs no rebase, even when its base record is old. It counts as on the new base when the new base is in its history and, if the recorded position is in its history too, the recorded position is in the history of the new base. pr restack without --check then pushes the branch and rewrites the base record. When the remote branch already has the same tree on the new base, it resets to the remote branch instead of pushing."
         - "After the rebase, stops when the remote branch has commits whose change is in the local branch neither before nor after the rebase, because the push would drop them. The branch goes back to the position before the restack."
@@ -3029,7 +3058,9 @@ entries:
     details:
       - '今のブランチを、積んで着手したときの base の記録を使って、下の段のブランチの新しい位置へ載せ直します。'
       - '`--check` を付けると、載せ直しが要るかだけを出します。変わるのは、`git fetch` が進める手元の追跡参照だけです。'
-      - '積んでいないブランチ（base の記録が無いか、開発ブランチからの着手の記録）は、載せ直しません。'
+      - '積んでいないブランチ（開発ブランチからの着手の記録か、記録が無く積んだ先も求まらないもの）は、載せ直しません。'
+      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
+      - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`warning: cannot infer the stacked base` の行を出します。求めた結果は書きません。'
       - '載せ直しが要るのは、下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときです。マージ済みなら開発ブランチへ載せ直し、base の記録を開発ブランチからの着手に変えます。'
       - 'ブランチが新しい base の上に載り終えていれば、記録が古くても rebase をしません。載り終えているとは、新しい base がブランチの履歴にあり、記録の位置もブランチの履歴にあるなら、それが新しい base の履歴にもあることです。push と記録の書き直しは、`--check` なしの `pr restack` が行います。remote のブランチが同じ木で新しい base の上にあれば、push せずに remote のブランチに合わせます。'
       - 'rebase の後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。ブランチは載せ直しの前の位置へ戻します。'
@@ -3058,7 +3089,7 @@ entries:
         pushed: 'ブランチを push したかどうかです。`outcome` が `restacked` のときだけ入ります。'
         conflicts: '衝突したファイルの一覧です。`outcome` が `conflict` のときだけ入ります。'
         dryRun: '`dry_run` のときだけ `true` で入ります。ブランチと記録は変えていません。'
-    diagnostics: '標準エラーに、結果の行を 1 つ出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。失敗は `error` の行で、続けて直し方の行を出します。'
+    diagnostics: '標準エラーに、結果の行を 1 つ出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。失敗は `error` の行で、続けて直し方の行を出します。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -3164,7 +3195,7 @@ entries:
         statement: 'もし下の段のブランチが remote から消えていて、その PR がマージされていないなら、終了コード 1 で終わります'
       - id: PW-PR-RESTACK-10
         pattern: state
-        statement: '積んでいないブランチの間、fetch と載せ直しをしません。`--check` は `up to date: <branch> on <develop>` を、載せ直しは `unchanged: <branch> is up to date` を出します'
+        statement: '積んでいないブランチの間、載せ直しをしません。開発ブランチからの着手の記録があれば、fetch もしません。`--check` は `up to date: <branch> on <develop>` を、載せ直しは `unchanged: <branch> is up to date` を出します'
       - id: PW-PR-RESTACK-11
         pattern: state
         statement: 'remote に今のブランチが無い間、載せ直すだけで push しません'
@@ -3213,6 +3244,18 @@ entries:
       - id: PW-PR-RESTACK-26
         pattern: unwanted
         statement: 'もし新しい base を merge で取り込んだか、下の段が記録より古い位置へ戻されたなら、載せ直し済みと見ずに、載せ直しが要ると判断します'
+      - id: PW-PR-RESTACK-27
+        pattern: state
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、下の段に積んだものとして載せ直しの要否を決め、載せ直した後に base の記録を書きます'
+      - id: PW-PR-RESTACK-28
+        pattern: event
+        statement: '積んだ先を求めて始めた載せ直しが衝突で止まると、載せ直す前の記録の位置を途中の記録に書き、`--continue` はそれを使います'
+      - id: PW-PR-RESTACK-29
+        pattern: unwanted
+        statement: 'もし記録が無く、積んだ先を求められないなら、`warning: cannot infer the stacked base` の行を出し、積んでいないものとして扱います'
+      - id: PW-PR-RESTACK-30
+        pattern: event
+        statement: '記録の無い作業ディレクトリで打つと、積んだ先を求める前に remote を fetch し、手元に無い下の段のブランチも追跡参照で見ます'
   PW-PR-SHOW:
     help:
       details:
@@ -5357,11 +5400,11 @@ entries:
         - When there is a work Issue, an Active Issue section follows with the number, the title and the state of the Issue read from GitHub.
         - The body of the Issue follows in the section when it is not empty; the body is shown only in this text, not in the MCP result.
         - When the Issue cannot be read from GitHub, a warning line is written and the section is left out.
-        - When the Active Issue section is shown and .pecot/state/.pecot-base of the project root names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
+        - When the Active Issue section is shown and .pecot/state/.pecot-base of the worktree of --directory names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
         - "The Stack section has a needs restack line (yes or no) after the base line: yes when the head of the base branch on the remote differs from the recorded position or when its PR is merged, unless the branch is already on the new base (decided in the same way as pr restack). The line is decided without git fetch, by asking the remote, and is left out when the remote cannot be reached or the base branch is gone without a merged PR."
         - When the readiness of the active Issue is blocked, the Stack section also has a readiness line.
         - "When open PRs of the same repository have the current branch as their base, the Stack section lists each as a stacked above line, even in a working directory that is not stacked."
-        - The record in .pecot/state/.pecot-base is shown only when the top level of the git repository of --directory is the project root; it belongs to the work of the project root and is not shown for another worktree or clone.
+        - "The record in .pecot/state/.pecot-base of the top level of the git repository of --directory is read; the record of the project root is not used for another worktree or clone. When the record is missing, the stacked base is inferred: when the readiness of the work Issue is stackable and the branch has the changes of the branch it names (the same commits, or the same patches after that branch was rebased; when that branch has no commits of its own, its head being an ancestor of the branch), the Stack section shows that base. The readiness read for this is reused for the readiness line."
         - The Stack section uses the config and the client of the Active Issue section and is left out when that section is.
         - The command is a diagnostic, so a value that cannot be read is shown as unknown or none, or left out, and does not fail the command.
         - Nothing is written.
@@ -5387,7 +5430,8 @@ entries:
       - 'needs restack の行は、`git fetch` をせずに remote へ尋ねて決めます。remote に届かないときは、行を出しません。下の段のブランチが消えていて PR がマージされていないときも、行を出しません。'
       - 'アクティブな Issue の着手の判定が `blocked` のときは、Stack の節に readiness の行も載せます。'
       - '今のブランチを base にした、同じリポジトリの open の PR があれば、Stack の節に PR ごとの stacked above の行を載せます。積んで着手していない作業ディレクトリでも載せます。'
-      - '`.pecot/state/.pecot-base` の記録を出すのは、`--directory` の git リポジトリの toplevel がプロジェクトのルートのときだけです。記録はプロジェクトのルートの作業のもので、別の worktree や clone の作業には付けません。'
+      - '`.pecot/state/.pecot-base` の記録は、`--directory` の git リポジトリの toplevel のものを読みます。プロジェクトのルートの記録を、別の worktree や clone の作業には使いません。'
+      - '記録が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、Stack の節にその base を出します。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。求めるときに読んだ判定は、readiness の行にも使います。'
       - 'Stack の節は、Active Issue の節と同じ設定とクライアントを使います。Active Issue の節を出さないときは、Stack の節も出しません。'
       - 'このコマンドは診断用です。読めない値は、`unknown` か `none` と出すか省き、コマンドは失敗しません。'
       - '何も書き込みません。'
@@ -5402,7 +5446,7 @@ entries:
         activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo/N`。`issue_ref` にそのまま渡せる形）を持ちます。`title` と `state`（`OPEN` か `CLOSED`）は、GitHub から読めたときだけ入ります。本文は入りません。'
         stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、載せ直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
         stackedAbove: '今のブランチを base にした、同じリポジトリの open の PR の一覧です。`number` と `branch`（head のブランチ）を持ちます。無いときと読めないときは入りません。'
-    diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
+    diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。記録が無く積んだ先を求められないとき（`warning: cannot infer the stacked base`）。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -5424,7 +5468,7 @@ entries:
         what: 'ディレクトリの今のブランチと git リポジトリの toplevel、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。積んだ作業では、下の段のブランチの先頭を `git ls-remote` で remote に尋ねます。'
       - target: file
         kind: read
-        what: 'プロジェクトのルートの `.pecot/state/.pecot-base` と、アクティブな設定ファイルを読みます。`.pecot/state/.pecot-active` は読みません。'
+        what: '`--directory` の worktree の `.pecot/state/.pecot-base` と、アクティブな設定ファイルを読みます。記録が無ければ、git の追跡参照も読みます。`.pecot/state/.pecot-active` は読みません。'
       - target: github
         kind: read
         what: '作業中の Issue の題・状態・本文を読みます。積んだ作業では、base のブランチの PR と、Issue の前提も読みます。今のブランチを base にした open の PR も読みます。'
@@ -5525,6 +5569,18 @@ entries:
       - id: PW-SESSION-SHOW-34
         pattern: state
         statement: 'ブランチが新しい base の上に載り終えていて、base の記録だけが古い間、Stack の節に `needs restack: no` を出します'
+      - id: PW-SESSION-SHOW-35
+        pattern: state
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、Stack の節に求めた base を出します'
+      - id: PW-SESSION-SHOW-36
+        pattern: unwanted
+        statement: 'もし記録が無く、作業中の Issue の判定が blocked なら、`warning: cannot infer the stacked base` の行を標準エラーに出し、Stack の節を出しません'
+      - id: PW-SESSION-SHOW-37
+        pattern: unwanted
+        statement: 'もし記録が無く、判定は stackable でも、下の段の変更をブランチに持たないなら、Stack の節を出しません'
+      - id: PW-SESSION-SHOW-38
+        pattern: state
+        statement: '`--directory` の worktree に積んだ記録がある間、toplevel がプロジェクトのルートと違っても、判定から求めずに、その記録で Stack の節を出します'
   PW-SESSION-START:
     help:
       details:

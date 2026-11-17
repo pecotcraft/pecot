@@ -36,8 +36,8 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { readBaseRecord } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
+import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
@@ -512,10 +512,20 @@ export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output
 }
 
 // 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
-// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手で載せ直した後の古い記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため
-async function readBaseRecordFor(head: string, template: string, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
-  if (template === 'release' || head !== gitCurrentBranch(directory)) return undefined
-  const reading = readBaseRecord()
+// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手で載せ直した後の古い記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため。
+// 記録が無く積んだ先を求められないときも、同じ理由で投稿を止める
+async function readBaseRecordFor(head: string, input: Readonly<{ template: string, dryRun: boolean }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
+  if (input.template === 'release' || head !== gitCurrentBranch(directory)) return undefined
+  const base = await readBaseOrInfer({ directory, project: { config: target.config, client: lazyClient(target.config, out) } })
+  if (base.unresolved !== undefined && !input.dryRun) {
+    return stopWith(out, joinHinted([
+      `cannot infer the stacked base: ${base.unresolved}`,
+      'the PR is not created, since a PR to the develop branch can include the changes of the layer below',
+      'fix the cause and run again, or run pr create in the work directory where session start wrote .pecot/state/.pecot-base',
+    ]), 'git-unresolved')
+  }
+  warnUnresolved(base, out)
+  const { reading } = base
   stopOnMalformedRecord(reading, out)
   if (reading.kind !== 'stacked') return reading
   const { branch, sha } = reading.record
@@ -657,7 +667,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)', 'content-invalid')
   const location = requireRepository(frontmatter.repository, out)
   const head = resolveHeadBranch(frontmatter.head, directory, out)
-  const reading = await readBaseRecordFor(head, input.template, directory, { config, location }, out)
+  const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 
   let body = parsed.body
   const issueNumber = extractIssueNumberFromBranch(head)
@@ -706,7 +716,7 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
     location = requireRepository(input.repository, out)
   }
   const head = resolveHeadBranch(input.head, directory, out)
-  const reading = await readBaseRecordFor(head, input.template, directory, { config, location }, out)
+  const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 
   let body = input.message
   const issueNumber = extractIssueNumberFromBranch(head)
@@ -780,11 +790,13 @@ async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateD
   // release テンプレートは、base をテンプレートの既定（main）のままにする
   if (template !== 'release') {
     // 下の段の PR がマージ済みかは、準備と投稿の間に変わりうるので、ここでは読まずに投稿のときに見る
-    const reading = readBaseRecord()
+    const config = loadActiveConfig()
+    const base = await readBaseOrInfer({ directory, project: config === undefined ? undefined : { config, client: lazyClient(config, out) } })
+    warnUnresolved(base, out)
+    const { reading } = base
     stopOnMalformedRecord(reading, out)
     const record = reading.kind === 'stacked' ? reading.record : undefined
     const location = primaryRemote(directory)?.location
-    const config = loadActiveConfig()
     if (location !== undefined) {
       const developBranch = config === undefined ? undefined : getDevelopBranch(config, location.owner, location.repository)
       if (config !== undefined && developBranch !== undefined && developBranch !== '') {
@@ -1053,7 +1065,9 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
   const context = validatePullRequestContext(directory, out)
   const config = loadActiveConfig()
   if (config === undefined) return stopWith(out, hinted`project config not found\nactivate a project with: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`, 'no-active-project')
-  const reading = readBaseRecord()
+  const base = await readBaseOrInfer({ directory, project: { config, client: lazyClient(config, out) } })
+  warnUnresolved(base, out)
+  const { reading } = base
   stopOnMalformedRecord(reading, out)
   const baseBranch = determineBaseBranch(config, reading, context.location, directory, context.remoteName, out)
 

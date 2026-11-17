@@ -10,19 +10,18 @@ import { describeNeedsRestack, needsRestack } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import { issueReferenceToCliReference, issueReferenceToString } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { ProjectRootNotFoundError } from '../domain/errors.js'
 import { describeStackBase } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
-import { activeIssueOf, gitCurrentBranch, gitToplevel, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
+import { activeIssueOf, gitCurrentBranch, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { projectRoot, resolveRealPath } from '../infra/paths.js'
-import { readBaseRecord } from '../infra/state-store.js'
+import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
+import type { IssueReadiness } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { readRestackDecision } from './restack-reading.js'
@@ -115,20 +114,6 @@ async function readActiveIssue(directory: string, output: Output): Promise<Activ
   return { label, data: { ...data, title: issue.title, state: issue.state }, read: { reference, config, client, lines } }
 }
 
-// -D の directory がプロジェクトルートの worktree か。積んだ記録（.pecot-base）はプロジェクトルートの状態にあるので、
-// 別の worktree の作業には付けない
-function isProjectRootWorktree(directory: string): boolean {
-  const toplevel = gitToplevel({ cwd: directory })
-  if (toplevel === undefined) return false
-  try {
-    return resolveRealPath(toplevel) === resolveRealPath(projectRoot())
-  }
-  catch (error: unknown) {
-    if (error instanceof ProjectRootNotFoundError) return false
-    throw error
-  }
-}
-
 interface StackSection {
   readonly lines: readonly string[]
   readonly data?: SessionShowData['stack']
@@ -136,7 +121,9 @@ interface StackSection {
 
 // 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
 async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation> | undefined, directory: string, output: Output): Promise<StackSection> {
-  const reading = readBaseRecord()
+  const base = await readBaseOrInfer({ directory, project: { config: active.config, client: () => active.client } })
+  warnUnresolved(base, output)
+  const { reading, readiness: known } = base
   if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
   if (reading.kind !== 'stacked') return { lines: [] }
   const { record, stackedOn } = reading
@@ -147,7 +134,7 @@ async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<Remo
   if (read.kind === 'pull-request-unreadable') output.warning(`cannot read the PR of the base branch: ${read.error.message}`)
   const pullRequest: PullRequestReadout | undefined | 'unknown' = read.kind === 'pull-request-unreadable' ? 'unknown' : read.lowerPullRequest
   const restack: RestackDecision | undefined = read.kind === 'decided' ? read.decision : undefined
-  const readiness = await blockedReadiness(active, output)
+  const readiness = await blockedReadiness(active, known, output)
   const needsLine = restack === undefined ? undefined : describeNeedsRestack(restack)
   const needed = restack === undefined ? undefined : needsRestack(restack)
   return {
@@ -184,9 +171,9 @@ function withStackedAbove(stackLines: readonly string[], above: readonly Readonl
   return stackLines.length === 0 ? ['', '## Stack', ...lines] : [...stackLines, ...lines]
 }
 
-// 着手中の Issue の判定が blocked のときだけ、判定の文を返す
-async function blockedReadiness(active: Readonly<ActiveIssue>, output: Output): Promise<string | undefined> {
-  const result = await readIssueReadinessIfSupported(active.client, active.config, active.reference, createReadinessCache())
+// 着手中の Issue の判定が blocked のときだけ、判定の文を返す。積んだ先を求めるときに読んだ判定があれば、読み直さない
+async function blockedReadiness(active: Readonly<ActiveIssue>, known: IssueReadiness | undefined, output: Output): Promise<string | undefined> {
+  const result = known ?? await readIssueReadinessIfSupported(active.client, active.config, active.reference, createReadinessCache())
   if (result === undefined) return undefined
   if (result.kind === 'unreadable') {
     output.warning(`cannot judge readiness of the active Issue: ${result.reason}`)
@@ -210,7 +197,7 @@ const SESSION_SHOW = defineCommand({
     const origin = primaryRemoteRepository(input.directory)
     const reading = await readActiveIssue(input.directory, output)
     const active = reading?.read
-    const stack = active === undefined || !isProjectRootWorktree(input.directory) ? { lines: [] } : await stackSection(active, origin, input.directory, output)
+    const stack = active === undefined ? { lines: [] } : await stackSection(active, origin, input.directory, output)
     const above = active === undefined || origin === undefined || branch === undefined ? undefined : await readStackedAbove(active, origin, branch, output)
     output.result({
       ...branch !== undefined && { branch },

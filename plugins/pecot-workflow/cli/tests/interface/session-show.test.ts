@@ -54,6 +54,20 @@ function operationsOf(github: Readonly<RunningGithub>): readonly string[] {
   return github.requests().map(request => request.type === 'graphql' ? request.operation : request.path)
 }
 
+// main の上に下の段 feat/3 のコミットを置き、追跡参照を向ける。isStacked なら今のブランチをその上に載せる
+function prepareLower(isStacked: boolean): string {
+  const { repository } = prepareSession({ baseRecord: false })
+  gitForTest(repository, ['update-ref', 'refs/remotes/origin/main', 'HEAD'])
+  gitForTest(repository, ['checkout', '-q', '-b', 'lower', 'HEAD'])
+  writeFileSync(path.join(repository, 'lower.txt'), '1\n')
+  gitForTest(repository, ['add', 'lower.txt'])
+  gitForTest(repository, ['commit', '-q', '-m', 'lower'])
+  gitForTest(repository, ['update-ref', 'refs/remotes/origin/feat/3', 'HEAD'])
+  gitForTest(repository, ['checkout', '-q', 'feat/demo/7'])
+  if (isStacked) gitForTest(repository, ['reset', '-q', '--hard', 'lower'])
+  return repository
+}
+
 /**
 origin の `git@ghes.example.com:acme/demo.git` を、偽の ssh で一時の bare リポにつなぐ。bare のパスを返す
 */
@@ -395,7 +409,6 @@ describe('session show', () => {
     })
 
     it.for([
-      { name: '.pecot-base が無い', files: {} },
       { name: '開発ブランチから着手した', files: { '.pecot/state/.pecot-base': `main ${SHA}\n` } },
       { name: '.pecot-base の形が誤っている', files: { '.pecot/state/.pecot-base': 'garbage\n' } },
     ])('$name ときは、Stack の節を出さず、判定も読まない', async ({ files }, context) => {
@@ -418,17 +431,73 @@ describe('session show', () => {
       expect(result.stdout).not.toContain('## Stack')
     })
 
-    it('--directory の toplevel がプロジェクトのルートと違うと、.pecot-base の積んだ記録を Stack の節に出さず、上の段は出す', async (context) => {
+    it('--directory の toplevel がプロジェクトのルートと違うと、.pecot-base の積んだ記録を Stack の節に出さず、判定から求め、上の段は出す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-32')
       prepareSession({ files: STACKED })
       const clone = separateRepository()
-      const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'))])
+      const github = await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7 }), stackedAbove(above(40, 'feat/demo/8'))])
 
       const result = await status(clone)
 
       expect(result.code).toBe(0)
       expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- stacked above: PR #40 (feat/demo/8)\n')).toBe(true)
-      expect(operationsOf(github)).toEqual(['GetIssueSlim', 'ListPullRequestsByBase'])
+      expect(operationsOf(github)).toEqual(['GetIssueSlim', 'GetIssuePrerequisites', 'ListPullRequestsByBase'])
+    })
+
+    it('--directory の toplevel がプロジェクトのルートと違っても、その worktree に積んだ記録があれば、判定から求めずにその記録を Stack の節に出す', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-38')
+      prepareSession()
+      const clone = separateRepository()
+      mkdirSync(path.join(clone, '.pecot/state'), { recursive: true })
+      writeFileSync(path.join(clone, '.pecot/state/.pecot-base'), STACKED['.pecot/state/.pecot-base'])
+      await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
+
+      const result = await status(clone)
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('')
+      expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')).toBe(true)
+    })
+
+    describe('記録が無い作業ディレクトリ', () => {
+      it('判定が stackable で下の段の上にあると、Stack の節に求めた base を出し、判定を 1 回だけ読む', async (context) => {
+        await verifies(context, 'PW-SESSION-SHOW-35')
+        const repository = prepareLower(true)
+        const github = await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
+
+        const result = await status(repository)
+
+        expect(result.code).toBe(0)
+        expect(result.stderr).toBe('')
+        expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')).toBe(true)
+        expect(operationsOf(github).filter(operation => operation === 'GetIssuePrerequisites')).toEqual(['GetIssuePrerequisites'])
+      })
+
+      it('判定が blocked なら、warning を出し、Stack の節を出さない', async (context) => {
+        await verifies(context, 'PW-SESSION-SHOW-36')
+        const repository = prepareLower(true)
+        await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7, blockedBy: [{ number: 3 }] }), stackedAbove()])
+
+        const result = await status(repository)
+
+        expect(result.code).toBe(0)
+        expect(result.stderr).toMatch(/^warning: cannot infer the stacked base: blocked by #3/u)
+        expect(result.stdout).not.toContain('## Stack')
+      })
+
+      it.for([
+        { name: '判定が startable', isStackable: false },
+        { name: '判定が stackable でも、ブランチが下の段の変更を持たない', isStackable: true },
+      ])('$name ときは、Stack の節を出さない', async (row, context) => {
+        await verifies(context, 'PW-SESSION-SHOW-37')
+        const repository = prepareLower(false)
+        await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7, ...row.isStackable && { blockedBy: [inReview] } }), stackedAbove()])
+
+        const result = await status(repository)
+
+        expect(result).toMatchObject({ code: 0, stderr: '' })
+        expect(result.stdout).not.toContain('## Stack')
+      })
     })
   })
 

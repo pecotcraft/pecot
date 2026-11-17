@@ -21,6 +21,9 @@ import type { CommitSetup, Scenario, WorktreeSetup } from '../parity/scenario.js
 import { baseEnvironment, createSandbox, destroySandbox } from '../parity/setup.js'
 import type { Sandbox } from '../parity/setup.js'
 
+import { developmentRecordOf } from './base-record.js'
+import type { BaseRecordOption } from './base-record.js'
+
 export type ResponseRuleList = readonly ResponseRule[]
 
 export const OWNER = 'acme'
@@ -147,7 +150,7 @@ export function projectConfigFiles(options: Readonly<ConfigOptions> = {}): Reado
 
 // 作業場
 
-export interface WorkspaceOptions {
+export interface WorkspaceOptions extends BaseRecordOption {
   /**
   最後に checkout しているブランチ。origin に無ければ push しない（未 push）
   */
@@ -247,7 +250,7 @@ function scenarioOf(options: Readonly<WorkspaceOptions>): Scenario {
         branches: (options.branches ?? []).map(branch => ({ name: branch.name, commits: branch.commits ?? [] })),
         tags: [],
         worktrees: options.worktrees ?? [],
-        files: { ...configFiles, ...options.files },
+        files: { ...configFiles, ...developmentRecordOf(options), ...options.files },
       },
       cwd: '.',
       data: {},
