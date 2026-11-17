@@ -31,7 +31,6 @@
 | `push`（`main`） | — | `dev` |
 | `pull_request`（opened・synchronize・reopened）、head が同じリポ | — | `pr`（PR の番号） |
 | `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こすためだけに成功で終わる） |
-| `workflow_dispatch` | `side`（`release` / `dev`）、`sha`（必須） | 指定の側 |
 
 出力:
 
@@ -47,6 +46,8 @@
 - `sphinx-build -W` が警告を出した
 
 権限は `contents: read` だけ。
+
+手での起動（`workflow_dispatch`）とリリース版は置かない。外から起こせる契機の run は、既定のブランチのキャッシュに書けるためだ（CodeQL の `actions/cache-poisoning/poisonable-step`）。リリース版の作り方と、この節より後の公開の段の決まりは #616 で決め直す。
 
 concurrency は `pages-build-<side>-<PR の番号か ref>` で、`cancel-in-progress: true`（同じ側は後に起動したものだけを残す）。
 
@@ -79,12 +80,12 @@ environment は `github-pages`（既定のブランチだけが deploy できる
 1. 公開しない（job は失敗）
 2. 最新のリリースのコミット（GitHub の Latest のリリースのタグが指すコミット）について、`side=release` の作る run を探す
 3. その SHA の作る run が進行中か、最後のものが失敗なら、起こさずに summary に書いて終わる（作り直しのループを止める）
-4. どちらでもなければ、`pages-build.yml` を `side=release` とその SHA で起こす
+4. どちらでもなければ、`pages-build.yml` を `side=release` で起こす（作る run が、同じ Latest のリリースのコミットを選ぶ）
 5. その完了で、`pages-deploy.yml` がもう一度動く
 
 ## `release.yml` への追加
 
-本番（`dry-run=false`）が成功したら、最後の段で `gh workflow run pages-build.yml -f side=release -f sha=<本番の SHA>` を打つ。dry-run では打たない。この段の job には `actions: write` を付ける。
+本番（`dry-run=false`）が成功したら、最後の段で `gh workflow run pages-build.yml -f side=release` を打つ。dry-run では打たない。この段の job には `actions: write` を付ける。
 
 ## 手元の作り方（`interface-spec:docs`）
 

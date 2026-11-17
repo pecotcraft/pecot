@@ -1,0 +1,206 @@
+name: pages-build
+
+# 公開サイトの 1 つの側（dev / pr）を作り、artifact に上げる。公開は pages-deploy.yml が行う。
+# 契機と出力の決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
+
+# 手での起動とリリース版は #616 で決め直すまで置かない。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-build-${{ github.event_name == 'pull_request' && 'pr' || 'dev' }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PECOT_NX_CI: "1"
+  PECOTV_E2E_CEILING_SCALE: "3"
+  PECOT_NX_PARALLEL: "2"
+
+jobs:
+  side:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      side: ${{ steps.decide.outputs.side }}
+      pr: ${{ steps.decide.outputs.pr }}
+      sha: ${{ steps.decide.outputs.sha }}
+      artifact: ${{ steps.decide.outputs.artifact }}
+      built_at: ${{ steps.decide.outputs.built_at }}
+      lanes: ${{ steps.lanes.outputs.lanes }}
+    steps:
+      # closed の PR は pages-deploy.yml を起こすためだけに成功で終わる。fork の PR は作らない。
+      - name: Decide side and commit
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_ACTION: ${{ github.event.action }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          build=true
+          pr=""
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            side="pr"
+            pr=$PR_NUMBER
+            SHA=$PR_HEAD_SHA
+            if [ "$PR_ACTION" = "closed" ] || [ "$PR_HEAD_REPO" != "$REPO" ]; then
+              build=false
+            fi
+          else
+            side="dev"
+            SHA=$PUSH_SHA
+          fi
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha must be a full 40-character lowercase hex commit SHA: $SHA"
+            exit 1
+          fi
+          artifact="pages-side-$side"
+          [ "$side" != "pr" ] || artifact="pages-side-pr-$pr"
+          {
+            echo "build=$build"
+            echo "side=$side"
+            echo "pr=$pr"
+            echo "sha=$SHA"
+            echo "artifact=$artifact"
+            echo "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+          echo "side=$side pr=$pr sha=$SHA build=$build"
+
+      - name: Checkout
+        if: steps.decide.outputs.build == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.decide.outputs.sha }}
+          persist-credentials: false
+
+      - name: List lanes
+        id: lanes
+        if: steps.decide.outputs.build == 'true'
+        run: echo "lanes=$(python3 .githooks/scripts/pages_site/lanes.py)" >> "$GITHUB_OUTPUT"
+
+  lanes:
+    needs: side
+    if: ${{ needs.side.outputs.build == 'true' }}
+    name: lane (${{ matrix.lane }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PAGES_LANE: ${{ matrix.lane }}
+      # Chromium を使うテストは pecot-visual だけにある（ci.yml の tests と同じ式）。
+      PECOT_CI_BROWSER: ${{ startsWith(matrix.lane, 'pecot-visual:') && '1' || '0' }}
+      DEVCONTAINER_ENV: |
+        PAGES_LANE
+        PECOT_CI_BROWSER
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.side.outputs.lanes) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.side.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Start pulling dev container image
+        run: .githooks/ci/dev-container.sh prefetch
+
+      - name: Start dev container
+        run: .githooks/ci/dev-container.sh up
+
+      # テストが落ちても続ける。合否は JUnit に残り、JUnit が残らないときだけ次の upload が落ちる。
+      - name: Run lane
+        run: |
+          # shellcheck disable=SC2016
+          .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && rc=0 && pnpm exec nx run "$PAGES_LANE" --skip-nx-cache || rc=$?; [ "$rc" = 0 ] || echo "::warning::$PAGES_LANE exited with $rc"'
+
+      - name: Restore workspace owner
+        if: always()
+        run: .githooks/ci/dev-container.sh restore-owner
+
+      - name: Upload JUnit
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-junit-${{ matrix.slug }}
+          path: ${{ matrix.junit }}
+          retention-days: 90
+          if-no-files-found: error
+
+  site:
+    needs: [side, lanes]
+    if: ${{ !cancelled() && needs.side.outputs.build == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SIDE: ${{ needs.side.outputs.side }}
+      PR: ${{ needs.side.outputs.pr }}
+      SHA: ${{ needs.side.outputs.sha }}
+      PECOT_SITE_STRICT: "1"
+      PECOT_SITE_SIDE: ${{ needs.side.outputs.side }}
+      PECOT_SITE_PR: ${{ needs.side.outputs.pr }}
+      PECOT_SITE_SHA: ${{ needs.side.outputs.sha }}
+      PECOT_SITE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      PECOT_SITE_BUILT_AT: ${{ needs.side.outputs.built_at }}
+      DEVCONTAINER_ENV: |
+        PECOT_SITE_STRICT
+        PECOT_SITE_SIDE
+        PECOT_SITE_PR
+        PECOT_SITE_SHA
+        PECOT_SITE_RUN_URL
+        PECOT_SITE_BUILT_AT
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.side.outputs.sha }}
+          persist-credentials: false
+
+      - name: Start pulling dev container image
+        run: .githooks/ci/dev-container.sh prefetch
+
+      - name: Download JUnit
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: pages-junit-*
+          path: ${{ runner.temp }}/pages-junit
+
+      # 欠けたレーンがあれば名前を出して止まる。サイトの STRICT と同じ条件を、置く処理と一緒に確かめる。
+      - name: Collect JUnit
+        run: |
+          python3 .githooks/scripts/pages_site/collect.py --downloaded "$RUNNER_TEMP/pages-junit" \
+            --side "$SIDE" --pr "$PR" --sha "$SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Start dev container
+        run: .githooks/ci/dev-container.sh up
+
+      - name: Build site
+        run: |
+          # shellcheck disable=SC2016
+          .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && pnpm exec nx run interface-spec:docs --skip-nx-cache'
+
+      - name: Restore workspace owner
+        if: always()
+        run: .githooks/ci/dev-container.sh restore-owner
+
+      - name: Pack site
+        run: tar -C libs/interface-spec/docs/_build -cf "$RUNNER_TEMP/site.tar" .
+
+      - name: Upload site
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ needs.side.outputs.artifact }}
+          path: ${{ runner.temp }}/site.tar
+          retention-days: 90
+          if-no-files-found: error
