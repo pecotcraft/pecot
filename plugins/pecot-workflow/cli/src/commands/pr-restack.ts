@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
 import { getDevelopBranch } from '../domain/config.js'
-import { FORCE_PUSH_COMMAND } from '../domain/pull-request.js'
+import { extractClosingIssueNumbers, FORCE_PUSH_COMMAND } from '../domain/pull-request.js'
 import { describeGone, describeRestackCheck, RESTACK_PATH } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '../domain/state.js'
@@ -29,6 +29,7 @@ import {
 } from '../infra/git.js'
 import type { FetchResult, PushResult } from '../infra/git.js'
 import { findConfigFor } from '../infra/config-store.js'
+import type { PullRequestForFinish } from '../infra/github/pulls.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
@@ -158,20 +159,32 @@ interface RelinkTarget {
 
 const RELINK_TARGET = 'to its closing Issues'
 
+// 本文の Closes のうち、まだリンクになっていないものがあるか。GitHub がリンクにするのは、既定のブランチに向いた PR だけ
+function hasUnlinkedClosingIssues(pullRequest: Readonly<PullRequestForFinish>, target: Readonly<RelinkTarget>): boolean {
+  if (pullRequest.state !== 'OPEN' || pullRequest.base_ref !== pullRequest.default_branch) return false
+  const linked = new Set(pullRequest.closing_issues.filter(issue => issue.owner === target.owner && issue.repository === target.repository).map(issue => issue.number))
+  return extractClosingIssueNumbers(pullRequest.body, target).some(number => !linked.has(number))
+}
+
 // 開発ブランチへ載せ直した PR の本文を保存し直す。GitHub は base の付け替えでは Closes を読み直さず、Issue とリンクしない
 async function relinkClosingIssues(out: RestackOutput, target: Readonly<RelinkTarget>, progress: Readonly<RestackProgress>): Promise<void> {
   const { owner, repository, developBranch } = target
   if (progress.ontoBranch !== developBranch) return
+  let number: number | undefined
   try {
     const client = createGitHubClient(out, target.host)
     const { pullRequests } = await client.listPullRequestsByHead(owner, repository, progress.branch)
-    const pullRequest = pullRequests.find(found => found.state === 'OPEN' && !found.isCrossRepository && found.baseRefName === developBranch)
-    if (pullRequest === undefined || !await client.resavePullRequestBody(owner, repository, pullRequest.number)) return
-    out.result({ relinked: pullRequest.number })
-    out.done({ verb: 'update', target: `PR #${String(pullRequest.number)} relinked ${RELINK_TARGET}` })
+    number = pullRequests.find(found => found.state === 'OPEN' && !found.isCrossRepository)?.number
+    if (number === undefined) return
+    const pullRequest = await client.getPullRequestForFinish(owner, repository, number)
+    if (!hasUnlinkedClosingIssues(pullRequest, target)) return
+    await client.updatePullRequestBody(owner, repository, number, pullRequest.body)
+    out.result({ relinked: number })
+    out.done({ verb: 'update', target: `PR #${String(number)} relinked ${RELINK_TARGET}` })
   }
   catch (error: unknown) {
-    out.warning(`cannot relink the PR of ${progress.branch} ${RELINK_TARGET}: ${apiFailureMessage(error)}`)
+    const label = number === undefined ? `the PR of ${progress.branch}` : `PR #${String(number)}`
+    out.warning(`cannot relink ${label} ${RELINK_TARGET}: ${apiFailureMessage(error)}\nto link them, save the body of ${label} again on GitHub without changes`)
   }
 }
 
@@ -206,7 +219,7 @@ async function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' |
   if (isDryRun) {
     out.result({ branch: progress.branch, base: progress.ontoBranch, outcome: mode === 'abort' ? 'aborted' : 'restacked' })
     out.planned(mode === 'abort' ? { verb: 'unchanged', target: `${progress.branch} restack aborted` } : { verb: 'update', target: `${progress.branch} restacked on ${progress.ontoBranch}` })
-    return undefined
+    return mode === 'abort' ? undefined : progress
   }
   if (mode === 'abort') {
     abortRebase(cwd)
@@ -283,7 +296,9 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   if (input.continue || input.abort) {
     const finished = await resumeRestack(out, cwd, input.abort ? 'abort' : 'continue', input.dry_run, io.signal)
     const relinkTarget = finished === undefined ? undefined : relinkTargetOf(cwd, input.project)
-    if (finished !== undefined && relinkTarget !== undefined) await relinkClosingIssues(out, relinkTarget, finished)
+    if (finished === undefined || relinkTarget === undefined) return
+    if (input.dry_run) planRelink(out, finished.branch, relinkTarget, finished.ontoBranch)
+    else await relinkClosingIssues(out, relinkTarget, finished)
     return
   }
 

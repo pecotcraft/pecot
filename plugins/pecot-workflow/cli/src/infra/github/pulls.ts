@@ -303,15 +303,10 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
-  PR の本文を読み、同じ本文で保存し直す。base が既定のブランチへ移った後に、GitHub に Closes を読み直させる。
-  本文が空なら保存せず false
+  PR の本文を置き換える。同じ本文で保存すると、GitHub が Closes を読み直す
   */
-  async resavePullRequestBody(owner: string, repository: string, number: number): Promise<boolean> {
-    const target = `${repositoryPath(owner, repository)}/pulls/${String(number)}`
-    const body = jsonField(await this.restObject('GET', target), 'body')
-    if (typeof body !== 'string' || body === '') return false
-    await this.restObject('PATCH', target, { json: { body } })
-    return true
+  async updatePullRequestBody(owner: string, repository: string, number: number, body: string): Promise<JsonObject> {
+    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/pulls/${String(number)}`, { json: { body } })
   }
 
   /**

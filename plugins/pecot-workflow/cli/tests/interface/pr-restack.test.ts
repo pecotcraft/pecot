@@ -12,8 +12,8 @@ import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { lines, operationsOf, stateFile } from '../_helpers/workspace-inspect.js'
 import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/project-selection.js'
-import { graphql, openWorkspace, rest } from '../_helpers/workspace.js'
-import type { ConfigOptions, Workspace } from '../_helpers/workspace.js'
+import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
+import type { ConfigOptions, FinishPullRequestSample, Workspace } from '../_helpers/workspace.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { COMMANDS } from '../../src/commands/registry.js'
@@ -53,10 +53,15 @@ function upperPullRequests(state?: 'OPEN'): ResponseRule {
   return graphql('ListPullRequestsByHead', data, { variables: { headRefName: UPPER } })
 }
 
+// 上の段の PR #21 の本文・base・リンク済みの Issue。既定は、main に向き、Closes #12 がまだリンクになっていない
+function upperDetail(sample: Readonly<FinishPullRequestSample> = {}): ResponseRule {
+  return graphql('GetPullRequestForFinish', finishPullRequestData({ state: 'OPEN', body: UPPER_BODY, head: UPPER, closing: [], ...sample }), { variables: { number: 21 } })
+}
+
 // 上の段の PR の本文を読み、保存し直す応答
 const RESAVE_RULES: readonly ResponseRule[] = [
   upperPullRequests('OPEN'),
-  rest('GET', UPPER_PULL_REQUEST, 200, { number: 21, body: UPPER_BODY }),
+  upperDetail(),
   rest('PATCH', UPPER_PULL_REQUEST, 200, { number: 21, body: UPPER_BODY }),
 ]
 const RELINKED = 'updated: PR #21 relinked to its closing Issues\n'
@@ -348,15 +353,41 @@ describe('pr restack', () => {
     expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
   })
 
-  it('本文の保存し直しが失敗すると、warning を出して終了コード 0 で終わる', async (context) => {
+  it('本文の保存し直しが失敗すると、手で保存し直す案内を添えた warning を出して終了コード 0 で終わる', async (context) => {
     await verifies(context, 'PW-PR-RESTACK-35')
-    const failing = [upperPullRequests('OPEN'), rest('GET', UPPER_PULL_REQUEST, 200, { number: 21, body: UPPER_BODY }), rest('PATCH', UPPER_PULL_REQUEST, 500, { message: 'failure' })]
+    const failing = [upperPullRequests('OPEN'), upperDetail(), rest('PATCH', UPPER_PULL_REQUEST, 500, { message: 'failure' })]
     const workspace = await openStacked({ github: [lowerPullRequests('MERGED'), ...failing] })
     mergeLower(workspace)
     const result = await workspace.run(['pr', 'restack'])
     expect(result.code).toBe(0)
-    expect(lines(result.stderr)).toStrictEqual([`updated: ${UPPER} restacked on main`, expect.stringMatching(new RegExp(`^warning: cannot relink the PR of ${UPPER} to its closing Issues: `, 'u'))])
+    const stderr = lines(result.stderr)
+    expect(stderr[0]).toBe(`updated: ${UPPER} restacked on main`)
+    expect(stderr[1]).toMatch(/^warning: cannot relink PR #21 to its closing Issues: /u)
+    expect(stderr.at(-1)).toBe('  to link them, save the body of PR #21 again on GitHub without changes')
     expect(workspace.read(BASE_FILE)).toBe(`main ${head(workspace, 'origin/main')}`)
+  })
+
+  it.for([
+    { name: 'PR の base が既定のブランチでない', sample: { defaultBranch: 'trunk' } },
+    { name: '本文に閉じるキーワードが無い', sample: { body: 'upper' } },
+    { name: '本文の Issue が既にリンクされている', sample: { closing: [12] } },
+  ])('$name とき、PR の本文を保存し直さない', async ({ sample }, context) => {
+    await verifies(context, 'PW-PR-RESTACK-34')
+    const workspace = await openStacked({ github: [lowerPullRequests('MERGED'), upperPullRequests('OPEN'), upperDetail(sample)] })
+    mergeLower(workspace)
+    const result = await workspace.run(['pr', 'restack'])
+    expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on main\n` })
+    expect(operationsOf(workspace)).not.toContain(`PATCH ${UPPER_PULL_REQUEST}`)
+  })
+
+  it('下の段のマージの後に --dry-run を付けると、載せ直しと保存し直しの予定を出し、GitHub に書き込まない', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-34')
+    await verifies(context, 'PW-PR-RESTACK-22')
+    const workspace = await openStacked({ github: [lowerPullRequests('MERGED')] })
+    mergeLower(workspace)
+    const result = await workspace.run(['pr', 'restack', '--dry-run'])
+    expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would update ${UPPER} restacked on main\n${PLANNED_RELINK}` })
+    expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
   })
 
   it('下の段が動いていないと、何も変えずに unchanged の行を出す', async (context) => {
@@ -525,6 +556,8 @@ describe('pr restack', () => {
     expect(stopped.code).toBe(3)
     writeFileSync(path.join(workspace.directory, 'upper.txt'), 'resolved\n')
     workspace.git(['add', 'upper.txt'])
+    const planned = await workspace.run(['pr', 'restack', '--continue', '--dry-run'])
+    expect(planned).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would update ${UPPER} restacked on main\n${PLANNED_RELINK}` })
     const result = await workspace.run(['pr', 'restack', '--continue'])
     expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} restacked on main\n${RELINKED}` })
   })
