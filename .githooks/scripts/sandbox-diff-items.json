@@ -1,0 +1,58 @@
+[
+  {
+    "id": "FR-001",
+    "name": "merge-settings",
+    "compare": true,
+    "ignore": ["id", "node_id", "name", "full_name", "url", "html_url", "created_at", "updated_at", "pushed_at", "forks_count", "stargazers_count", "watchers_count", "open_issues_count"]
+  },
+  {
+    "id": "FR-001",
+    "name": "ruleset",
+    "compare": true,
+    "ignore": ["id", "node_id", "source", "source_type", "_links", "created_at", "updated_at", "actor_id", "integration_id"]
+  },
+  {
+    "id": "FR-002",
+    "name": "board-fields",
+    "compare": true,
+    "ignore": ["id", "color", "description", "createdAt", "updatedAt"]
+  },
+  {
+    "id": "FR-003",
+    "name": "workflows",
+    "compare": true,
+    "ignore": []
+  },
+  {
+    "id": "FR-004",
+    "name": "ruleset",
+    "compare": false,
+    "reason": "確かめるのは pecot の動きで、検証用のコードの安全ではない",
+    "match": { "ruleset_rule_type": "code_scanning" }
+  },
+  {
+    "id": "FR-005",
+    "name": "board-fields",
+    "compare": false,
+    "reason": "pecot の仕様で、名前はプロジェクトごとに変わる",
+    "match": { "board_field_name": "pecot-workflow-*" }
+  },
+  {
+    "id": "FR-006",
+    "name": "visibility",
+    "compare": false,
+    "reason": "試し用の Issue を広く見せる訳が無い。ただし、merge queue が使える範囲に置く"
+  },
+  {
+    "id": "FR-007",
+    "name": "contents",
+    "compare": false,
+    "reason": "確かめがそのつど作る"
+  },
+  {
+    "id": "FR-008",
+    "name": "repo-only-operations",
+    "compare": false,
+    "reason": "利用者へ配らない。確かめる場所は、要るときに作る"
+  }
+]
