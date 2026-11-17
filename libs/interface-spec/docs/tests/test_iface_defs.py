@@ -13,7 +13,14 @@ DOCS = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(DOCS / "_ext"))
 
-from iface_defs import MCP_FIELDS_EMPTY, MCP_FIELDS_OPEN, Case, outcome_of, render_sections  # noqa: E402
+from iface_defs import (  # noqa: E402
+    MCP_FIELDS_EMPTY,
+    MCP_FIELDS_OPEN,
+    Case,
+    load_junit_lanes,
+    outcome_of,
+    render_sections,
+)
 
 INDEX = """\
 Sample
@@ -470,3 +477,87 @@ def test_mcp_open_output_says_other_fields_are_returned() -> None:
     assert MCP_FIELDS_OPEN == "このほかの項目も返します（型を閉じていません）。"
     assert MCP_FIELDS_OPEN in text
     assert MCP_FIELDS_EMPTY not in text
+
+
+# ---------------------------------------------------------------- junit-lanes.json
+
+REPO = DOCS.parents[2]
+
+
+def test_real_junit_lanes_group_by_plugin() -> None:
+    table = load_junit_lanes(DOCS / "junit-lanes.json", REPO)
+    assert table == {
+        "pecot-workflow": [
+            str(REPO / "plugins/pecot-workflow/cli/test-results/junit.xml"),
+            str(REPO / "plugins/pecot-workflow/cli/test-results/junit-hooks.xml"),
+        ],
+        "pecot-tools": [str(REPO / "plugins/pecot-tools/cli/test-results/junit.xml")],
+        "pecot-visual": [str(REPO / "plugins/pecot-visual/cli/test-results/junit.xml")],
+    }
+
+
+def _lane(target: str, junit: str, plugin: str | None = None) -> dict[str, str]:
+    return {"plugin": plugin or target.split(":")[0], "target": target, "junit": junit}
+
+
+def _lanes_repo(tmp_path: Path, lanes: list[Any], outputs: list[str] | None = None) -> Path:
+    project = tmp_path / "plugins" / "p"
+    project.mkdir(parents=True)
+    targets = {
+        "test-a": {"outputs": outputs or ["{projectRoot}/a.xml"]},
+        "test-b": {"outputs": ["{projectRoot}/b.xml"]},
+    }
+    (project / "project.json").write_text(json.dumps({"targets": targets}), encoding="utf-8")
+    path = tmp_path / "junit-lanes.json"
+    path.write_text(json.dumps(lanes), encoding="utf-8")
+    return path
+
+
+def test_junit_lanes_resolve_paths_from_outputs(tmp_path: Path) -> None:
+    path = _lanes_repo(
+        tmp_path, [_lane("p:test-a", "plugins/p/a.xml"), _lane("p:test-b", "plugins/p/b.xml")]
+    )
+    assert load_junit_lanes(path, tmp_path) == {
+        "p": [str(tmp_path / "plugins/p/a.xml"), str(tmp_path / "plugins/p/b.xml")]
+    }
+
+
+@pytest.mark.parametrize(
+    ("lanes", "outputs", "message"),
+    [
+        ([{"plugin": "p", "target": "p:test-a"}], None, "#1"),
+        ([_lane("p-test-a", "plugins/p/a.xml", "p")], None, "p-test-a"),
+        ([_lane("p:test-a", "plugins/p/a.xml", "q")], None, "p:test-a"),
+        (
+            [_lane("p:test-a", "plugins/p/a.xml"), _lane("p:test-a", "plugins/p/b.xml")],
+            None,
+            "#2 p:test-a",
+        ),
+        (
+            [_lane("p:test-a", "plugins/p/a.xml"), _lane("p:test-b", "plugins/p/a.xml")],
+            ["{projectRoot}/a.xml"],
+            "#2 p:test-b",
+        ),
+        ([_lane("q:test-a", "plugins/q/a.xml")], None, "q:test-a"),
+        ([_lane("p:test-z", "plugins/p/a.xml")], None, "p:test-z"),
+        ([_lane("p:test-a", "plugins/p/a.xml")], ["{options.out}/a.xml"], "{options.out}"),
+        ([_lane("p:test-a", "plugins/p/x.xml")], None, "plugins/p/x.xml"),
+    ],
+    ids=[
+        "missing-key",
+        "target-form",
+        "plugin-mismatch",
+        "duplicate-target",
+        "duplicate-junit",
+        "no-project",
+        "no-target",
+        "unknown-token",
+        "not-in-outputs",
+    ],
+)
+def test_junit_lanes_reject_broken_lanes(
+    tmp_path: Path, lanes: list[Any], outputs: list[str] | None, message: str
+) -> None:
+    path = _lanes_repo(tmp_path, lanes, outputs)
+    with pytest.raises(ValueError, match=re.escape(message)):
+        load_junit_lanes(path, tmp_path)
