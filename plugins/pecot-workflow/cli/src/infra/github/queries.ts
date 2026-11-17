@@ -268,6 +268,17 @@ export const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId:
   }
 }`
 
+// プロジェクトアイテムのフィールドの値を消す
+export const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!) {
+  clearProjectV2ItemFieldValue(
+    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId }
+  ) {
+    projectV2Item {
+      id
+    }
+  }
+}`
+
 // プロジェクトアイテムのアーカイブを解く
 export const MUTATION_UNARCHIVE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
   unarchiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
@@ -319,6 +330,16 @@ export const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: Str
                   ... on ProjectV2SingleSelectField {
                     id
                   }
+                }
+              }
+            }
+          }
+          status: fieldValueByName(name: "Status") {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
+              field {
+                ... on ProjectV2SingleSelectField {
+                  id
                 }
               }
             }

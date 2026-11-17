@@ -1743,8 +1743,9 @@ entries:
         - Each run with --comment posts another comment.
         - An Issue that is not on the board is reopened with a warning and its status is not changed.
         - "When the board item is archived, unarchives it before setting the status, and writes the line updated: Issue <ref> unarchived on the board."
+        - "When the built-in Status of the board item is Done, clears it before reopening the Issue, so that the board automation does not close the Issue again, and writes the line removed: Issue <ref> Status Done on the board."
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
-        - With --dry-run, reads the Issue and the board item and prints dry-run lines for reopening, unarchiving, setting the Status and posting the comment, and writes nothing.
+        - With --dry-run, reads the Issue and the board item and prints dry-run lines for reopening, unarchiving, clearing the Status Done, setting the status and posting the comment, and writes nothing.
       examples:
         - run: pecot issue reopen example-org/my-repo/12 --status active --comment "The fix did not hold."
           note: Reopen an Issue as active and leave the reason.
@@ -1767,8 +1768,10 @@ entries:
       - '`--comment` を付けて実行するたびに、コメントが 1 件増えます。'
       - 'ボードに無い Issue は、`warning` を出して開き直し、status は変えません。'
       - 'ボードの項目がアーカイブ済みのときは、status を設定する前にアーカイブを解き、`updated: Issue <ref> unarchived on the board` の行を出します。'
+      - '組み込みの `Status` が `Done` の項目は、Issue を開き直す前に値を消し、`removed: Issue <ref> Status Done on the board` の行を出します。'
+      - '`Done` が残ると、ボードの自動化（Auto-close issue）が Issue を閉じ直すことがあります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
-      - '`--dry-run` を付けると、Issue とボードの項目を読み、開き直し・アーカイブの解除・Status の設定・コメントの投稿を `dry-run` の行に出して、何も書きません。'
+      - '`--dry-run` を付けると、Issue とボードの項目を読みます。開き直し・アーカイブの解除・`Done` の消去・status の設定・コメントの投稿を `dry-run` の行に出し、何も書きません。'
     stdin: none
     output:
       format: none
@@ -1777,9 +1780,10 @@ entries:
         issue: '再び開いた Issue です。`owner/repo/N` の形です。'
         status: 'ボードに設定した Status です。Issue がボードに無いときと、Status が設定されていないときは入りません。'
         unarchived: 'ボードの項目の Archived を解いたかどうかです。'
+        doneCleared: 'ボードの項目の組み込みの `Status` の `Done` を消したかどうかです。'
         commented: '理由をコメントに投稿したかどうかです。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
-    diagnostics: '標準エラーに、結果の行を出します。`updated`（アーカイブの解除）、`set`（status）、`reopened`（Issue）、`created`（コメント）です。Issue がボードに無いときと、status がプロジェクトに設定されていないときは、`warning` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。失敗ごとに `error` の行を出します。'
+    diagnostics: '標準エラーに、結果の行を出します。`updated`（アーカイブの解除）、`removed`（`Status` の `Done` の消去）、`set`（status）、`reopened`（Issue）、`created`（コメント）です。Issue がボードに無いときと、status がプロジェクトに設定されていないとき、`Status` の `Done` を消せないときは、`warning` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -1818,11 +1822,11 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'コメントの投稿に失敗したときは、Issue は新しい status で open のまま残り、終了コード 1 で終わります。2 回目に開き直した後も Issue が open でないときは、status は変わったまま残り、終了コード 1 で終わります。'
+    on_error: 'コメントの投稿に失敗したときは、Issue は新しい status で open のまま残り、終了コード 1 で終わります。2 回目に開き直した後も Issue が open でないときは、status は変わったまま残り、終了コード 1 で終わります。`Status` の `Done` を消した後で Issue を開き直せないときは、閉じた Issue と空の `Status` が残り、終了コード 1 で終わります。もう一度打てば開き直します。'
     effects:
       - target: github
         kind: write
-        what: 'Issue を開き直し、アーカイブ済みのボードの項目のアーカイブを解き、ボードの項目の status のフィールドを設定し、コメントを投稿します。`--dry-run` のときは書きません。'
+        what: 'Issue を開き直し、コメントを投稿します。ボードの項目は、アーカイブを解き、組み込みの `Status` の `Done` を消し、status のフィールドを設定します。`--dry-run` のときは書きません。'
       - target: github
         kind: read
         what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
@@ -1916,6 +1920,12 @@ entries:
       - id: PW-ISSUE-REOPEN-25
         pattern: unwanted
         statement: 'もし `--comment` が空白だけなら、Issue を開き直さずボードにも書かずに、終了コード 1 で終わります'
+      - id: PW-ISSUE-REOPEN-26
+        pattern: event
+        statement: 'ボードの項目の組み込みの `Status` が `Done` の Issue を開き直すと、開き直す前に `Status` の値を消します。`removed: Issue <ref> Status Done on the board` の行を標準エラーに出します'
+      - id: PW-ISSUE-REOPEN-27
+        pattern: unwanted
+        statement: 'もし `Status` の `Done` を消せないなら、ボードの自動化が閉じ直しうることを伝える `warning` の行を標準エラーに出し、reopen とコメントの投稿を続けます'
   PW-ISSUE-SHOW:
     help:
       details:
