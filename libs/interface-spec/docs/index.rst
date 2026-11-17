@@ -3,6 +3,10 @@ pecot
 
 Claude Code 向けのプラグインのマーケットプレイスです。
 
+プラグインごとの、機能要件の状態ごとの数です。
+
+.. iface-overview::
+
 - :doc:`introduction`
 - :doc:`installation`
 - :doc:`guides/index`

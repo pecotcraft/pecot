@@ -71,6 +71,9 @@ _EXEMPT: dict[str, str] = {
         "ミラーの bootstrap は渡さず、build.mjs が text-rules も build する"
     ),
     "PECOT_TOOLS_SKIP_INSTALL": "test target の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ",
+    "PECOT_SITE_STRICT": (
+        "interface-spec の docs だけが読み、docs は cache しない。test-unit のビルドは conf.py の値を上書きする"
+    ),
     "PECOT_WORKFLOW_SKIP_INSTALL": (
         "test-cli・test-hooks・lint-cli の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ。"
         "install を nx の別 target に分ける"
