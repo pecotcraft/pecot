@@ -343,6 +343,20 @@ describe('トークンの取得', () => {
     )
   })
 
+  it('設定ディレクトリが無いときは、.env を作らずに gh auth login と起動前の環境変数を案内する', () => {
+    const root = makeTemporaryDirectory()
+    setEnvironment({ CLAUDE_PROJECT_DIR: root })
+    useFakeGh()
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toThrow(new GitHubAuthError(
+      'authentication error: could not get a GitHub API token\n\n'
+      + 'authenticate with the GitHub CLI:\n   gh auth login -h github.com\n\n'
+      + 'or get a token and set it in PECOT_GITHUB_COM_TOKEN before starting pecot\n'
+      + '(for the MCP server, before starting the session):\n'
+      + '   get a token: https://github.com/settings/tokens',
+    ))
+    expect(existsSync(path.join(root, '.pecot'))).toBe(false)
+  })
+
   it('スコープが無いホストは、スコープ行が空行になる', () => {
     const { config } = useProject()
     useFakeGh()
@@ -743,7 +757,7 @@ describe('401 のときの gh auth token への切り替え', () => {
     expect(recorded.lines).toEqual([])
   })
 
-  it('gh が使えなければ再試行せず、.env を生成して 401 を返す', async () => {
+  it('gh が使えなければ再試行せず、.env を作らずに 401 を返す', async () => {
     const { config } = useProject()
     useFakeGh()
     const recorded = recordDiagnostics()
@@ -751,7 +765,7 @@ describe('401 のときの gh auth token への切り替え', () => {
     const response = await new GitHubClientBase({ diagnostics: recorded.diagnostics, token: 'old' }).restRequest('GET', '/user')
     expect(response.statusCode).toBe(401)
     expect(server.requests()).toHaveLength(1)
-    expect(existsSync(path.join(config, '.env'))).toBe(true)
+    expect(existsSync(path.join(config, '.env'))).toBe(false)
     expect(recorded.lines).toEqual([])
   })
 

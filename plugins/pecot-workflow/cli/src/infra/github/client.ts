@@ -435,7 +435,11 @@ export class GitHubClientBase {
 
   // config/.env → ルート .env → gh auth token の順
   private resolveToken(host: string): string {
-    return this.tokenFromEnvironment(host) ?? this.tokenFromGh(host)
+    return this.tokenFromEnvironment(host) ?? this.tokenFromGh(host) ?? this.failAuthentication(host)
+  }
+
+  private failAuthentication(host: string): never {
+    throw new GitHubAuthError(this.authErrorMessage(host))
   }
 
   private tokenFromEnvironment(host: string): string | undefined {
@@ -450,22 +454,35 @@ export class GitHubClientBase {
     return rootToken === undefined || rootToken === '' ? undefined : rootToken
   }
 
-  private tokenFromGh(host: string): string {
+  private tokenFromGh(host: string): string | undefined {
     const arguments_ = host === 'github.com' ? ['auth', 'token'] : ['auth', 'token', '-h', host]
     const result = spawnSync('gh', arguments_, { encoding: 'utf8', timeout: this.ghTimeoutMilliseconds })
     // gh が無い・時間切れ（error）、終了コードが 0 でない、または出力が空
     const token = result.error === undefined && result.status === 0 ? pythonStrip(result.stdout) : ''
-    if (token.length === 0) throw new GitHubAuthError(this.authErrorMessage(host))
-    return token
+    return token.length === 0 ? undefined : token
   }
 
   /**
-  認証エラーの文を作る。.env が無ければ生成し、あるときはホストの変数が無ければ追記する
+  認証エラーの文を作る。.env が無ければ生成し、あるときはホストの変数が無ければ追記する。
+  設定ディレクトリが無く .env を作れないときは、gh auth login と起動前の環境変数を案内する
   */
   private authErrorMessage(host: string): string {
     const file = ensureEnvironmentFile(host)
     const scopes = scopesFor(host)
     const scopesLine = scopes.length > 0 ? `   required scopes: ${scopes.join(', ')}` : ''
+    if (file === undefined) {
+      return [
+        'authentication error: could not get a GitHub API token',
+        '',
+        'authenticate with the GitHub CLI:',
+        `   gh auth login -h ${host}`,
+        '',
+        `or get a token and set it in ${getEnvironmentVariableName(host)} before starting pecot`,
+        '(for the MCP server, before starting the session):',
+        `   get a token: ${tokenUrlFor(host)}`,
+        ...(scopesLine === '' ? [] : [scopesLine]),
+      ].join('\n')
+    }
     return `authentication error: could not get a GitHub API token
 
 ${file} was generated. Set the token as follows:
@@ -494,15 +511,8 @@ or authenticate with the GitHub CLI:
   private retryWithFallbackToken(): boolean {
     if (this.usedFallback) return false
     this.usedFallback = true
-    let newToken: string
-    try {
-      newToken = this.tokenFromGh(this.host)
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubAuthError) return false
-      throw error
-    }
-    if (newToken === this.token) return false
+    const newToken = this.tokenFromGh(this.host)
+    if (newToken === undefined || newToken === this.token) return false
     this.diagnostics.warning(TOKEN_FALLBACK_WARNING)
     this.token = newToken
     return true
