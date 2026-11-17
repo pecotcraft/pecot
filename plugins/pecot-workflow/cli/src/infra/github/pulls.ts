@@ -16,6 +16,8 @@ import { QUERY_GET_PULL_REQUEST_FOR_FINISH, QUERY_GET_PULL_REQUEST_FOR_MERGE, QU
 import { readPullRequests } from './readout.js'
 import { repositoryPath } from './rest-path.js'
 
+const REVIEW_COMMENTS_PER_PAGE = 100
+
 /**
 base のブランチ名で引いた、同じリポの開いている PR
 */
@@ -468,6 +470,21 @@ export class PullsApi extends IssuesApi {
       json: { pull_requests: [...pullRequestNumbers] },
       apiVersion: STACKS_API_VERSION,
     }))
+  }
+
+  /**
+  PR の state（REST の `open`・`closed`）
+  */
+  async getPullRequestState(owner: string, repository: string, number: number): Promise<string> {
+    const pullRequest = await this.restObject('GET', `${repositoryPath(owner, repository)}/pulls/${String(number)}`)
+    return requireString(pullRequest['state'], 'state')
+  }
+
+  /**
+  PR のレビューのコメント（行に付いたインラインコメント）を全件取る（REST）
+  */
+  async listPullRequestReviewComments(owner: string, repository: string, number: number): Promise<readonly JsonValue[]> {
+    return this.listAll(`${repositoryPath(owner, repository)}/pulls/${String(number)}/comments`, { per_page: REVIEW_COMMENTS_PER_PAGE })
   }
 
   /**

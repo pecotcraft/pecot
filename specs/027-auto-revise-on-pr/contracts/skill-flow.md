@@ -31,7 +31,7 @@ Step 3 の文を、2 つに分ける。
 | 1 PR の情報 | PR は引数で決まる。会話から決めず、人に聞かない。載せ直しは確かめるだけにし、載せ直さない。要るときは、その旨を指摘の一覧の General に書く |
 | 2 レビュー | w-reviewer を起こさない。main が w-reviewer の定義のファイルを読み、その視点で diff を自分でレビューする。人のいない実行には分けるべき作業の文脈が無く、サブエージェントを裏で起こすと結果を待たずに実行が終わるためだ（research の R5） |
 | 3 投稿 | 採番・投稿先の振り分け・コメントの本文・`review-findings` の形は、手で回すときと同じ文を読む。インラインコメントは、実行の場所にある手段で投稿する。`gh api` の手順は読まない |
-| 終わり | pecot-workflow の MCP ツール `pr_review_finish` を、結果 `reviewed` で呼んで終わる |
+| 終わり | pecot-workflow の MCP ツール `review_finish` を、結果 `reviewed` で呼んで終わる |
 
 行わないこと:
 
@@ -46,11 +46,11 @@ Step 3 の文を、2 つに分ける。
 
 | 場面 | 振る舞い |
 |---|---|
-| PR を読めない、権限が足りない | `pr_review_finish` を、結果 `setup-missing` と、足りないものの名前で呼んで終わる |
-| w-reviewer の定義のファイルを読めない | `pr_review_finish` を、結果 `failed` で呼んで終わる。定義を読まずにレビューしない |
+| PR を読めない、権限が足りない | `review_finish` を、結果 `setup-missing` と、足りないものの名前で呼んで終わる |
+| w-reviewer の定義のファイルを読めない | `review_finish` を、結果 `failed` で呼んで終わる。定義を読まずにレビューしない |
 | インラインコメントの投稿が拒否された | その指摘を General へ回す |
 | ファイル単位の指摘を投稿する手段が無い | その指摘を General へ回す |
-| PR が閉じられていた | 何も投稿せず、`pr_review_finish` を、結果 `reviewed` で呼んで終わる |
+| PR が閉じられていた | 何も投稿せず、`review_finish` を、結果 `reviewed` で呼んで終わる |
 
 読み方は、次のとおりにする。
 

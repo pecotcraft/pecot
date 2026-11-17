@@ -112,24 +112,24 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ## Phase 4: 止まったことが PR に残る (US1、P1)
 
-**Goal**: `pecot pr review-finish` が、失敗と上限のときだけ、止まったことを知らせるコメントを 1 つ書く
+**Goal**: `pecot review finish` が、失敗と上限のときだけ、止まったことを知らせるコメントを 1 つ書く
 
-**Independent Test**: 検証用の PR に対して `pecot pr review-finish <PR> --ensure --job-status failure` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
+**Independent Test**: 検証用の PR に対して `pecot review finish <PR> --ensure --job-status failure` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
 
 **前提**: Phase 1（失敗と上限の見分け方が、実機の結果で決まる）
 
 ### Tests for User Story 1（終わり方）
 
-- [ ] T025 [P] [US1] 結果の決め方の単体テストを、`p-w/cli/src/domain/tests/` に書く。`--ensure` と job の終わり方から、`reviewed`・`failed`・`limit` を決める表を、1 行ずつ確かめる。`setup-missing` は、`--result` で渡されたときだけ使うことも入れる。止まった場所を、同じ実行のインラインコメントの有無から決めることも入れる
-- [ ] T026 [P] [US1] `pecot pr review-finish` のテストを、`p-w/cli/src/commands/tests/` に書く。`spec/contracts/cli-commands.md` の `review-finish` の条件の表を、1 行ずつテストにする。同じ実行の目印があるときに 2 度書かないこと、トークンの値が出力に出ないことも入れる
-- [ ] T027 [P] [US1] `p-w/cli/tests/interface/issue-comment.test.ts` に、テンプレート `review-stopped` の検証の期待を足す
+- [x] T025 [P] [US1] 結果の決め方の単体テストを、`p-w/cli/src/domain/tests/` に書く。`--ensure` と job の終わり方から、`reviewed`・`failed`・`limit` を決める表を、1 行ずつ確かめる。`setup-missing` は、`--result` か `--app-token-missing` で渡されたときだけ使うことも入れる。止まった場所を、同じ実行のインラインコメントの有無から決めることも入れる
+- [x] T026 [P] [US1] `pecot review finish` のテストを、`p-w/cli/tests/interface/` に書く。`spec/contracts/cli-commands.md` の `review finish` の条件の表を、1 行ずつテストにする。同じ実行の目印があるときに 2 度書かないこと、トークンの値が出力に出ないことも入れる
+- [x] T027 [P] [US1] T025・T026 に、CLI が埋めたテンプレート `review-stopped` の本文が、テンプレートの検証を通る期待を足す。`issue comment` のテンプレートの種類には足さない（本文は CLI だけが組み立てる）
 
 ### Implementation for User Story 1（終わり方）
 
-- [ ] T028 [US1] `p-w/cli/templates/comment/review-stopped.md` を書く。欄は `spec/data-model.md` の「止まったことを知らせるコメント」のとおりにする。冒頭のコメントに、読者と書き方を書く
-- [ ] T029 [US1] 結果の決め方を `p-w/cli/src/domain/` に書く。`p-w/cli/src/domain/frontmatter.ts` のテンプレートの種類に `review-stopped` を足す
-- [ ] T030 [US1] `p-w/cli/src/commands/pr-review-finish.ts` を書き、定義の配列を `p-w/cli/src/commands/registry.ts` に足す。MCP ツール `pr_review_finish` は、registry の定義から出る。w-help の `references/commands.md` に行を足す
-- [ ] T031 [US1] `p-w/interface/authored.yaml` に項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T025・T026 のテストに `verifies` を足す
+- [x] T028 [US1] `p-w/cli/templates/comment/review-stopped.md` を書く。欄は `spec/data-model.md` の「止まったことを知らせるコメント」のとおりにする。冒頭のコメントに、読者と書き方を書く
+- [x] T029 [US1] 結果の決め方と、テンプレートの本文の埋め方を `p-w/cli/src/domain/review-finish.ts` に書く。frontmatter のテンプレートの種類には足さない
+- [x] T030 [US1] `p-w/cli/src/commands/review-finish.ts` を書く。グループ `review` を `names.ts` に、定義の配列を `registry.ts` に足す。MCP ツール `review_finish` は、registry の定義から出る。w-help の `references/commands.md` に行を足す
+- [x] T031 [US1] `p-w/interface/authored.yaml` に項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T025・T026 のテストに `verifies` を足す
 - [ ] T032 [US1] T025〜T027 のテストを通す。検証用の PR で、このフェーズの Independent Test を流す。結果を PR の説明に書く
 
 ---
@@ -140,7 +140,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **Independent Test**: 検証用の PR に対して、端末から `/pecot-w:w-revise --unattended <PR>` を起こす。インラインコメントと `review-findings` が付き、質問が出ず、ブランチにコミットが増えていない。端末では、インラインコメントは「端末での投稿の手順」で投稿される。action のツールでの投稿は、Phase 8 で確かめる
 
-**前提**: Phase 4（スキルが、終わりに `pr_review_finish` を呼ぶ）
+**前提**: Phase 4（スキルが、終わりに `review_finish` を呼ぶ）
 
 ### Tests for User Story 1（手順）
 
@@ -214,7 +214,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **前提**: Phase 6 と Phase 7（どちらも main に入っている。CLI は、npm の `@next` に出た開発版を使う）
 
-- [ ] T048 検証用で、`pecot workflow install review` から quickstart.md の「導入を確かめる」を流す。雛形の後始末の step が、公開した `@pecot/workflow-mcp` の `pr review-finish` を打てることを見る
+- [ ] T048 検証用で、`pecot workflow install review` から quickstart.md の「導入を確かめる」を流す。雛形の後始末の step が、公開した `@pecot/workflow-mcp` の `review finish` を打てることを見る
 - [ ] T049 quickstart.md のシナリオ 1〜13 と 15〜18 を、検証用で流す。実際に投稿するシナリオ 1・3・6 は main が流す。結果を、シナリオごとに PR の説明に書く
 - [ ] T050 T049 の実行の記録から、かかったターンと時間を読む。`p-w/cli/templates/workflow/pecot-review.yml` の既定値を直し、版の目印を上げる。w-reviewer に公式の文書を調べる手段を許すかを決め、`spec/research.md` の「残した判断」に結果を書く
 - [ ] T051 quickstart.md の「実行の記録で見ること」の 4 つを、T049 の run で確かめる。トークンと secret の値が、ログとコメントに出ていないことを見る
@@ -247,7 +247,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 | 2 | 1 | 積める | Phase 2 の雛形の許可リスト・`if`・`concurrency` が、Phase 1 で research.md と contracts に書く実機の結果を読む |
 | 3 | 2 | 積める | Phase 3 の `workflow install` が、Phase 2 で足す雛形のファイルを読んで書き出す |
 | 4 | 1 | 積める | Phase 4 の結果の決め方が、Phase 1 で research.md に書く失敗と上限の見分け方を読む |
-| 5 | 4 | 積める | Phase 5 のスキルの文が、Phase 4 で足す MCP ツール `pr_review_finish` を呼ぶ |
+| 5 | 4 | 積める | Phase 5 のスキルの文が、Phase 4 で足す MCP ツール `review_finish` を呼ぶ |
 | 6 | 5 | 積める | Phase 6 の引き継ぎの分岐が、Phase 5 で分けた w-revise の Step 3 の節を指す |
 | 7 | 3 | 積める | Phase 7 の w-onboarding の Step が、Phase 3 で足す MCP ツール `workflow_install`・`workflow_doctor` を使う |
 | 8 | 6 | マージを待つ | Phase 8 の確かめは、action が既定のブランチから入れるプラグインと、npm の `@next` の `@pecot/workflow-mcp` を使う。どちらも、w-revise の変更が main に入っていないと流せない |

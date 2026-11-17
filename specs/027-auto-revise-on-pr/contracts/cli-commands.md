@@ -2,7 +2,7 @@
 
 設計の時点の契約だ。実装の後は、`plugins/pecot-workflow/interface/` の定義書を正とする。
 出力は、既存の共通の関数を通した英語の行にする。データは stdout に、予定・結果・警告・エラーは stderr に出す。
-3 つとも、既存のコマンドと同じ仕組みで、MCP ツールとしても出す。名前は `workflow_install`・`workflow_doctor`・`pr_review_finish` だ。
+3 つとも、既存のコマンドと同じ仕組みで、MCP ツールとしても出す。名前は `workflow_install`・`workflow_doctor`・`review_finish` だ。
 
 ## 共通
 
@@ -55,38 +55,50 @@
 
 - 全部そろっていれば成功、1 つでも足りなければ失敗
 - Claude の App が入っているかは、リポのトークンでは読めない。確かめず、`skipped: Claude GitHub App` の行で出す。入っていないときは、action が GitHub のトークンを受け取れずに止まり、後始末のコメントで知らせる
-- トークンの寿命は、名前の有無からは読めない。切れたことは、`review-finish` のコメントで知らせる
+- トークンの寿命は、名前の有無からは読めない。切れたことは、`review finish` のコメントで知らせる
 - secret と変数は、名前の有無だけを読む。値は読まない。リポの単位と organization の単位の両方を見る
 - 手元のトークンに権限が無く読めない項目は、`skipped:` の行で出し、足りないとは数えない
 - App にインストールで与えた権限は、手元のトークンでは読めない。確かめる方法を、導入の説明に書く
 
-## `pecot pr review-finish <PR>`
+## `pecot review finish <PR>`
 
 自動レビューの終わりの処理だ。止まったときに、PR にコメントを書く。
+コマンドの語は英小文字と数字だけに決まっている（定義書の形式）ので、グループ `review` と動詞 `finish` の 2 語にする。
 
 | 引数 | 型 | 意味 |
 |---|---|---|
 | `PR` | 文字列 | `owner/repo/N` |
-| `--result` | 文字列 | `reviewed`・`failed`・`limit`・`setup-missing` のどれか |
-| `--detail` | 文字列 | `setup-missing` のときの、足りない設定の名前 |
+| `--result` | 文字列 | `reviewed`・`failed`・`limit`・`setup-missing` のどれか。スキルが MCP ツールから渡す |
+| `--detail` | 文字列 | `--result setup-missing` のときの、足りない設定の名前 |
 | `--ensure` | 真偽値 | ワークフローの後始末から呼ぶ形。同じ実行の結果がまだ無いときだけ書く |
-| `--job-status` | 文字列 | `--ensure` のときに、job の終わり方から結果を決める |
+| `--job-status` | 文字列 | `--ensure` のときに必須。`success`・`failure`・`cancelled` のどれか |
+| `--execution-file` | パス | `--ensure` のときの、action の出力 `execution_file` |
+| `--since` | ISO 8601 | `--ensure` のときの、実行の開始時刻。止まった場所を決めるのに使う |
+| `--app-token-missing` | 真偽値 | `--ensure` のときに、action が Claude の App のトークンを受け取れなかったか |
+| `--dry-run` | 真偽値 | PR を読み、書くはずの本文を標準出力に出す。コメントは書かない。書き込むコマンドの決まり |
+
+- `--result` と `--ensure` は、どちらか 1 つを渡す。両方・どちらも無しは、入力の誤りで止める
+- `--execution-file`・`--since`・`--app-token-missing` は `--ensure` と組む
 
 | 条件 | 振る舞い |
 |---|---|
-| 結果が `reviewed` | コメントを書かない。実行の記録に、終えたことを 1 行出す |
+| 結果が `reviewed` | コメントを書かない。実行の記録に、`skipped` の行を 1 行出す |
 | 結果が `failed`・`limit`・`setup-missing` | 止まったことを知らせるコメントを書く |
 | `--ensure` で、job が成功 | 何もしない |
-| `--ensure` で、job が失敗し、同じ実行のコメントがある | 何も書かない |
-| `--ensure` で、job が失敗し、同じ実行のコメントが無い | job が `cancelled` なら `limit`、それ以外は `failed` として書く。`cancelled` は、時間の上限と手での取り消しを見分けない（research の R9） |
-| `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書き、認証の失敗なら、トークンを作り直す手順を添える。`subtype` だけで判定しない |
+| `--ensure` で、job が失敗し、同じ実行・同じ試行のコメントがある | 何も書かない |
+| `--ensure` で、job が `cancelled` | `limit` として書く。時間の上限と手での取り消しを見分けない（research の R9） |
+| `--ensure` で、job が `failure` で `--app-token-missing` | `setup-missing` として書き、Claude の App を入れる手順を添える |
 | `--ensure` で、`execution_file` の最後の `result` が `subtype: error_max_turns` | `limit` として書く |
-| `--ensure` で、action の出力 `skipped_due_to_workflow_validation_mismatch` が `true` | コメントを書かない。PR のブランチで雛形を変えたので、Claude の App がトークンを出さなかった。実行の記録に、合言葉で起こし直してもこの PR では動かないことを 1 行出す |
-| `--ensure` で、action が Claude の App のトークンを受け取れずに止めた | `setup-missing` として書き、Claude の App を入れる手順を添える |
-| `--ensure` で、action が書いた人の権限で止めた（ログに `Actor does not have write permissions`） | コメントを書かない。起動した人に知らせる理由が無く、誰でも bot のコメントを付けさせられるのを避ける。job の `if` が先に止めるので、ふつうは起きない |
+| `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書く。`result` の文か `errors` に `authentication_error` があれば、トークンを作り直す手順を添える。`subtype` だけで判定しない |
+| `--ensure` で、job が `failure` で、上のどれにも当たらない（`execution_file` が無い・読めない、`result` の行が無い、ほかの `subtype`） | `failed` として書く |
+| `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の権限が `admin` でも `write` でもない | コメントを書かない。action が書いた人の権限で止めた場合だ。誰でも bot のコメントを付けさせられるのを避ける |
 | PR が閉じている | コメントを書かない |
 
-- 止まったことを知らせるコメントは、`cli/templates/comment/` のテンプレートから作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
-- 止まった場所は、同じ実行が投稿したインラインコメントの有無から決める
-- 実行の ID は、環境変数 `GITHUB_RUN_ID` から読む。無ければ、目印を付けずに書く
+- 止まったことを知らせるコメントは、`cli/templates/comment/review-stopped.md` から作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
+- 止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントの有無から決める。`--since` が無ければ「分からない」と書く
+- 目印には、環境変数 `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` を入れる。re-run では run の ID が変わらないためだ。`GITHUB_RUN_ID` が無ければ、目印を付けずに書く
+- 目印を探すのは、bot のコメントだけだ。人が目印を書き込んで、記録を消せないようにする
+- 書いた人の権限は、job の `if` が見る `author_association` では決まらない。`MEMBER`・`COLLABORATOR` は write の権限を意味しないので、read だけの人のコメントも `if` を通る
+- 合言葉は、環境変数 `PECOT_REVIEW_TRIGGER_PHRASE` から読む。無ければ `@pecotbot review` だ
+- action の出力 `skipped_due_to_workflow_validation_mismatch` は、action の外から読めない。この値が `true` のとき、action は step を成功で終えるので、job も成功で、何もしない
 - トークンの値と secret の値を、コメントと出力に書かない

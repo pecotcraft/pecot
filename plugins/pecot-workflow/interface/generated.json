@@ -27,6 +27,10 @@
           "meaning": "PR そのもの"
         },
         {
+          "word": "review",
+          "meaning": "PR の自動レビューの実行"
+        },
+        {
           "word": "release",
           "meaning": "リリース"
         },
@@ -5021,6 +5025,196 @@
                 "head",
                 "base",
                 "deletedBranch"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-REVIEW-FINISH",
+      "name": "review finish",
+      "description": "Finish an automated review: post a comment on the PR only when the review stopped (failed, limit or setup-missing)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "review",
+            "finish"
+          ]
+        },
+        "mcp": {
+          "tool": "review_finish"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "app_token_missing": {
+            "type": "boolean",
+            "default": false,
+            "description": "The action could not get the token of the Claude GitHub App (only with ensure)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Name of the missing setting (only with result setup-missing)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Read the PR and show the comment that would be posted without posting it"
+          },
+          "ensure": {
+            "type": "boolean",
+            "default": false,
+            "description": "Called from the cleanup step of the workflow: decide the result from the job and write only if this run has not"
+          },
+          "execution_file": {
+            "type": "string",
+            "description": "Path of the execution_file output of claude-code-action (only with ensure)"
+          },
+          "job_status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "cancelled"
+            ],
+            "description": "Status of the job (required with ensure)"
+          },
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "reviewed",
+              "failed",
+              "limit",
+              "setup-missing"
+            ],
+            "description": "Result of the review, passed by the skill (reviewed/failed/limit/setup-missing)"
+          },
+          "since": {
+            "type": "string",
+            "description": "Start time of the run in ISO 8601, to find the inline comments it posted (only with ensure)"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "pr_ref"
+        ],
+        "flags": {
+          "app_token_missing": [
+            "--app-token-missing"
+          ],
+          "detail": [
+            "--detail"
+          ],
+          "dry_run": [
+            "--dry-run"
+          ],
+          "ensure": [
+            "--ensure"
+          ],
+          "execution_file": [
+            "--execution-file"
+          ],
+          "job_status": [
+            "--job-status"
+          ],
+          "result": [
+            "--result"
+          ],
+          "since": [
+            "--since"
+          ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "pullRequest": {
+              "type": "string",
+              "description": "PR (owner/repo/N)"
+            },
+            "result": {
+              "description": "Result written in the comment (absent when skipped)",
+              "type": "string",
+              "enum": [
+                "failed",
+                "limit",
+                "setup-missing"
+              ]
+            },
+            "location": {
+              "description": "Where the review stopped (absent when skipped)",
+              "type": "string",
+              "enum": [
+                "before-findings",
+                "after-inline",
+                "unknown"
+              ]
+            },
+            "skipped": {
+              "description": "Why no comment was written (absent when written)",
+              "type": "string",
+              "enum": [
+                "reviewed",
+                "job-succeeded",
+                "closed",
+                "already-written",
+                "actor-without-write"
+              ]
+            },
+            "commentUrl": {
+              "description": "URL of the comment written (absent when skipped or on dry_run)",
+              "type": "string"
+            },
+            "dryRun": {
+              "description": "true on dry_run (nothing was changed)",
+              "type": "boolean",
+              "const": true
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "pullRequest"
               ]
             },
             {

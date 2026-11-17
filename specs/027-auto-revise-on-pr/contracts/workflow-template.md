@@ -75,7 +75,22 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | Node | `actions/setup-node` |
 | 利用者の準備 | 印の付いた空の step。初期は空 |
 | 自動レビュー | claude-code-action。入力は下の表 |
-| 後始末 | `if: always()` で `pecot pr review-finish --ensure` を打つ |
+| 後始末 | `if: always()` で `pecot review finish --ensure` を打つ。渡すものは下の表 |
+
+開始時刻は、最初の step で `date -u +%Y-%m-%dT%H:%M:%SZ` を出力に置いて作る。
+
+後始末の step に渡すもの:
+
+| 渡すもの | 値 |
+|---|---|
+| `--job-status` | `${{ job.status }}` |
+| `--execution-file` | 自動レビューの step の出力 `execution_file` |
+| `--since` | 最初の step が出力した開始時刻 |
+| `--app-token-missing` | 自前の App が無く、自動レビューの step の `outcome` が `failure` で、出力 `github_token` が空のときだけ付ける。action は、App のトークンを受け取れなかったときも、空の `github_token` を出力する |
+| 環境変数 `PECOT_REVIEW_TRIGGER_PHRASE` | `${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}`。リポの変数は、step の環境変数に自動では入らない |
+
+- `--app-token-missing` は、run の step より前の composite の step で落ちたときも付く。そのときも、設定を見直す案内で足りる
+- 環境変数 `GITHUB_RUN_ID`・`GITHUB_RUN_ATTEMPT`・`GITHUB_ACTOR` は、GitHub Actions が入れる
 
 action はすべて SHA で固定し、版をコメントに書く。
 後始末の step は、`npx -y --prefix=/ @pecot/workflow-mcp@latest` で CLI を打つ。dist-tag の決め方は、board sync の雛形と同じだ。このリポと検証用に置くファイルは、`@next` にする。
@@ -124,7 +139,7 @@ ${{ steps.token.outputs.token || github.token }}
 
 Claude の App のトークンは、ワークフローのファイルが既定のブランチと同じ中身のときだけ受け取れる。
 PR のブランチで雛形を変えた PR では、action がレビューを飛ばし、step は成功で終わる。
-action の出力 `skipped_due_to_workflow_validation_mismatch` が `true` になる。後始末は、これを止まったこととして扱わない（`contracts/cli-commands.md`）。
+action の中の step の出力 `skipped_due_to_workflow_validation_mismatch` が `true` になるが、action の外からは読めない。step も job も成功で終わるので、後始末は何もしない（`contracts/cli-commands.md`）。
 自前の App のときは、この確かめは無い。
 
 ## 許可するツール
@@ -132,7 +147,7 @@ action の出力 `skipped_due_to_workflow_validation_mismatch` が `true` にな
 | ツール | 使い道 |
 |---|---|
 | `Read`・`Glob`・`Grep` | コードを読む |
-| `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`pr_restack`・`issue_comment`・`pr_review_finish` | w-revise の Step 1〜3 と終わり方 |
+| `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`pr_restack`・`issue_comment`・`review_finish` | w-revise の Step 1〜3 と終わり方 |
 | `mcp__github_inline_comment__create_inline_comment` | インラインコメントの投稿。action に同梱のツールで、公式の PR レビューの例と同じだ |
 | 印の付いた行 | 利用者が足す許可。初期は空 |
 

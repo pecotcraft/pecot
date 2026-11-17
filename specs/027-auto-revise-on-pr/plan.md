@@ -12,7 +12,7 @@ action は pecot-workflow のプラグインを入れ、`/pecot-w:w-revise --una
 w-revise は、w-reviewer の定義を読んで自分で diff を見て、指摘をインラインコメントと `review-findings` で投稿して終わる。
 採否・修正・resolve は行わない。続きは、人が端末の w-revise を起こすと、自動レビューの指摘を引き継いで進む。
 GitHub のトークンは、既定では Claude の App のものだ。書き込みを持つので、エージェントに書き換えのツールを渡さないことで、リポの内容を守る。権限を絞りたい利用者は、自前の App を置ける。
-「必ず起きること」は CLI に寄せる。新しい `pecot pr review-finish` が、止まったときのコメントを書く。
+「必ず起きること」は CLI に寄せる。新しい `pecot review finish` が、止まったときのコメントを書く。
 導入は、w-onboarding の流れから `pecot workflow install review` と `pecot workflow doctor review` で進める。
 認証の名前・雛形を置いて確かめるコマンド・雛形の書き方の決まりは、後に続く自動処理（spec 023）が使える共通の形で作る。
 
@@ -40,7 +40,7 @@ GitHub のトークンは、既定では Claude の App のものだ。書き込
 
 **Scale/Scope**:
 
-- CLI のコマンド 3 つ（`workflow install`・`workflow doctor`・`pr review-finish`）と、定義書の項目
+- CLI のコマンド 3 つ（`workflow install`・`workflow doctor`・`review finish`）と、定義書の項目
 - スキルの変更 2 本（w-revise・w-onboarding）、コメントのテンプレート 1 つ、ワークフローの雛形 1 つ
 - 文書 3 か所（w-help の `review-workflow.md` の新規、`auth-config.md`・スキルの表の修正）
 - spec 023 の成果物の修正（FR-033）
@@ -110,7 +110,7 @@ plugins/pecot-workflow/
 │   ├── src/
 │   │   ├── commands/
 │   │   │   ├── workflow.ts              # 新規。install・doctor
-│   │   │   ├── pr-review-finish.ts      # 新規
+│   │   │   ├── review-finish.ts      # 新規
 │   │   │   └── registry.ts              # 3 つのコマンドの登録。MCP ツールもここから出る
 │   │   ├── domain/                      # 雛形の一覧、版の比べ方、結果の決め方
 │   │   └── infra/                       # 雛形の読み書き、変数・secret の読み取り
@@ -147,7 +147,7 @@ specs/023-label-triggered-autofix/       # FR-033 の整合の修正
 | 1 | 設計を左右する点を、検証用のリポで先に確かめる。人のいない実行で w-reviewer が起きるか、プラグインの hooks が止めないか、絞ったトークンで MCP ツールが動くか、job の `concurrency` と `if` の関係 | research の「実装で確かめること」 |
 | 2 | ワークフローの雛形と、そのテスト | US2、FR-001〜FR-004・FR-016・FR-017・FR-020〜FR-027 |
 | 3 | `pecot workflow install`・`doctor` と、雛形の一覧。認証の名前と、雛形の書き方の決まり | US5、FR-019・FR-028・FR-030・FR-031 |
-| 4 | `pecot pr review-finish` と、止まったことを知らせるコメントのテンプレート | FR-012・FR-018 |
+| 4 | `pecot review finish` と、止まったことを知らせるコメントのテンプレート | FR-012・FR-018 |
 | 5 | w-revise の Step 3 を「何を投稿するか」と「端末での投稿の手順」に分け、`--unattended` の分岐を足す | US1、FR-005〜FR-011・FR-013・FR-015 |
 | 6 | w-revise の引き継ぎの分岐 | US3、FR-014 |
 | 7 | w-onboarding の Step と、w-help の導入の説明 | US4、FR-029・FR-032 |
@@ -170,6 +170,6 @@ specs/023-label-triggered-autofix/       # FR-033 の整合の修正
 
 | 足すもの | 要る理由 | より単純な案を採らない理由 |
 |---|---|---|
-| `pecot pr review-finish` | 止まったことを PR に残すことは、エージェントがターンの上限で切られても起きなければならない | スキルの文だけで書くと、切られたときに何も残らない。雛形に `gh` の行を直接書くと、置いた後にコメントの形を直せない |
+| `pecot review finish` | 止まったことを PR に残すことは、エージェントがターンの上限で切られても起きなければならない | スキルの文だけで書くと、切られたときに何も残らない。雛形に `gh` の行を直接書くと、置いた後にコメントの形を直せない |
 | `pecot workflow install`・`doctor` | 設定がそろっているかを確かめる手段（FR-030）と、置いた雛形が古いことを知る手段（FR-031）が要る。後に続く自動処理が、同じものを使う（FR-019） | board sync と同じく写して置くだけの形は、確かめる手段を持たない。自動レビュー専用のコマンドにすると、spec 023 が同じものをもう一度作る |
 | 自前の GitHub App の道 | 権限を絞りたい利用者のための任意の道。既定は Claude の App で、利用者は App を作らない（Clarifications の 2026-11-17） | 自前の App を必須にする形は、導入が重い。research の R3 に書いた |
