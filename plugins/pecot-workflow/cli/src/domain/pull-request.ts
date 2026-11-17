@@ -399,7 +399,7 @@ export function describePushStatus(remote: string, branch: string, ahead: number
 
 // 文の中にロングオプションを書けない（lint）ので、git の引数から組む
 const PULL_REBASE_COMMAND = ['git', 'pull', '--rebase'].join(' ')
-const FORCE_PUSH_COMMAND = ['git', 'push', '--force-with-lease'].join(' ')
+export const FORCE_PUSH_COMMAND = ['git', 'push', '--force-with-lease'].join(' ')
 
 /**
 diverged の直し方。fast-forward でない push は拒まれるので、取り込むか、書き換えたなら lease 付きで上書きする

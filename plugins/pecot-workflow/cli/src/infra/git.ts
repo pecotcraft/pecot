@@ -1,7 +1,7 @@
-// git コマンド実行の唯一の窓口。git の subprocess 呼び出しはすべて runGit を経由する。
+// git コマンド実行の唯一の窓口。git の subprocess 呼び出しはすべて runGit か runGitAsync を経由する。
 // 値を返す helper（gitToplevel 等）は、失敗時に undefined を返す。
 
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
@@ -70,6 +70,50 @@ export const MAX_OUTPUT_BYTES = 1024 * 1024 * 1024
 function withoutGitVariables(): Record<string, string> {
   // interface-env: none
   return Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined && !entry[0].startsWith('GIT_')))
+}
+
+/**
+取り消しで止めたときの exitCode
+*/
+export const GIT_CANCELLED = -3
+
+const KILL_SIGNAL = 'SIGKILL'
+
+/**
+runGit の非同期版。待つ間もイベントループを止めない。signal が中断されたら git を止め、exitCode が GIT_CANCELLED の結果を返す
+*/
+export async function runGitAsync(arguments_: readonly string[], options: Readonly<Omit<GitOptions, 'stripGitEnvironment' | 'check'>> & { readonly signal?: Readonly<AbortSignal> | undefined } = {}): Promise<GitResult> {
+  const child = spawn('git', [...arguments_], {
+    cwd: options.cwd,
+    // interface-env: none
+    env: options.env === undefined ? undefined : { ...process.env, ...options.env },
+    stdio: [childStdin(), 'pipe', 'pipe'],
+    killSignal: KILL_SIGNAL,
+    ...(options.timeoutMilliseconds !== undefined && { timeout: options.timeoutMilliseconds }),
+    ...(options.signal !== undefined && { signal: options.signal }),
+  })
+  const stdout: string[] = []
+  const stderr: string[] = []
+  child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
+    stdout.push(chunk)
+  })
+  child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
+    stderr.push(chunk)
+  })
+  const ended = await new Promise<{ readonly code: number | undefined, readonly signal: NodeJS.Signals | undefined, readonly error?: Error }>((resolve) => {
+    child.on('error', (error) => {
+      resolve({ code: undefined, signal: undefined, error })
+    })
+    child.on('close', (code, signal) => {
+      resolve({ code: code ?? undefined, signal: signal ?? undefined })
+    })
+  })
+  const output = { stdout: normalizeNewlines(stdout.join('')), stderr: normalizeNewlines(stderr.join('')) }
+  if (options.signal?.aborted === true) return { exitCode: GIT_CANCELLED, ...output }
+  if (ended.error !== undefined) throw toOsError(ended.error)
+  // timeout の後は Node が killSignal で止める。ほかに SIGKILL を送る者はいない前提で、時間切れと見る
+  const isTimedOut = ended.signal === KILL_SIGNAL && options.timeoutMilliseconds !== undefined
+  return { exitCode: isTimedOut ? GIT_TIMED_OUT : ended.code ?? -1, ...output }
 }
 
 /**
@@ -198,15 +242,20 @@ export function remoteRepository(cwd: string | undefined, remote: string): Remot
 // 端末で尋ねさせない。ssh は GIT_SSH_COMMAND で BatchMode にすると利用者の GIT_SSH と core.sshCommand を上書きするので、askpass を失敗させる
 export const NON_INTERACTIVE_GIT: Readonly<Record<string, string>> = { GIT_TERMINAL_PROMPT: '0', SSH_ASKPASS: 'false', SSH_ASKPASS_REQUIRE: 'force' }
 
-// fetch・push は、認証の入力を待たずに、この時間で諦める
+// fetch は、この時間で諦める
 const REMOTE_TIMEOUT_MILLISECONDS = 60_000
+
+/**
+push の時間切れ。pre-push のフックの時間を含める
+*/
+export const PUSH_TIMEOUT_MILLISECONDS = 600_000
 
 export interface FetchResult {
   readonly succeeded: boolean
   readonly stderr: string
 }
 
-export type PushResult = { readonly pushed: true } | { readonly pushed: false, readonly stderr: string }
+export type PushResult = { readonly pushed: true } | { readonly pushed: false, readonly reason: 'rejected' | 'timed-out' | 'cancelled', readonly stderr: string }
 
 export type RebaseOutcome = 'done' | 'conflict'
 
@@ -340,12 +389,22 @@ export function resetHardTo(cwd: string, reference: string): void {
   runGit(['reset', '--quiet', '--hard', reference], { cwd, check: true })
 }
 
+export interface PushOptions {
+  readonly signal?: Readonly<AbortSignal> | undefined
+  readonly timeoutMilliseconds?: number | undefined
+}
+
+function pushFailure(exitCode: number): 'rejected' | 'timed-out' | 'cancelled' {
+  if (exitCode === GIT_TIMED_OUT) return 'timed-out'
+  return exitCode === GIT_CANCELLED ? 'cancelled' : 'rejected'
+}
+
 /**
-remote の branch が expectedSha のときだけ、手元の branch で置き換える。拒まれたか失敗したら stderr を返す
+remote の branch が expectedSha のときだけ、手元の branch で置き換える。拒まれたか、時間切れか、取り消されたら、その理由と stderr を返す
 */
-export function pushWithLease(cwd: string, remote: string, branch: string, expectedSha: string): PushResult {
-  const result = runGit(['push', `--force-with-lease=${branch}:${expectedSha}`, remote, branch], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS })
-  return result.exitCode === 0 ? { pushed: true } : { pushed: false, stderr: result.stderr }
+export async function pushWithLease(cwd: string, remote: string, branch: string, expectedSha: string, options: Readonly<PushOptions> = {}): Promise<PushResult> {
+  const result = await runGitAsync(['push', `--force-with-lease=${branch}:${expectedSha}`, remote, branch], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: options.timeoutMilliseconds ?? PUSH_TIMEOUT_MILLISECONDS, signal: options.signal })
+  return result.exitCode === 0 ? { pushed: true } : { pushed: false, reason: pushFailure(result.exitCode), stderr: result.stderr }
 }
 
 // ls-remote は、ref が無いと終了コード 2 を返す

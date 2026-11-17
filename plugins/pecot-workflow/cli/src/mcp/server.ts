@@ -106,7 +106,7 @@ function unexpectedMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, options: Readonly<McpServerOptions>): Promise<CallToolResult> {
+async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, options: Readonly<McpServerOptions>, signal: Readonly<AbortSignal>): Promise<CallToolResult> {
   if (options.unavailableReason !== undefined) return unavailableResult(options.unavailableReason)
   const collected = collectIo()
   // interface-env: TERMINAL_WIDTH COLUMNS
@@ -118,7 +118,7 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     const preparation = prepare(definition, raw)
     if (preparation.kind === 'rejected') return toRejectedResult(preparation.message)
     try {
-      exitCode = await preparation.command.run(collected.io)
+      exitCode = await preparation.command.run({ ...collected.io, signal })
     }
     catch (error: unknown) {
       throw withUsage(error, usageOf(definition))
@@ -206,7 +206,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
     server.registerTool(
       definition.toolName,
       { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)) },
-      async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options)),
+      async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options, serverContext.mcpReq.signal)),
     )
   }
   return server

@@ -22,6 +22,10 @@ export interface CommandIo {
   */
   readonly surface?: 'cli' | 'mcp'
   /**
+  MCP の要求の取り消し。MCP だけが渡す
+  */
+  readonly signal?: Readonly<AbortSignal>
+  /**
   失敗の原因の名前を受け取る。MCP だけが渡す
   */
   readonly failureKind?: (kind: FailureKind) => void

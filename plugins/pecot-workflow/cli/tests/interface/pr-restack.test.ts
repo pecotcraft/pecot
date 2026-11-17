@@ -4,7 +4,9 @@
 import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import type ChildProcess from 'node:child_process'
+
+import { describe, expect, it, vi } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -18,7 +20,29 @@ import type { ResponseRule } from '../fake-github/server.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 
+// 10 分を待てないので、git push の時間切れだけを縮める。時間切れの変換は実物の runGitAsync を通る
+const pushTimeout: { milliseconds: number | undefined } = vi.hoisted(() => ({ milliseconds: undefined }))
+vi.mock('node:child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof ChildProcess>()
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- spawn の options の型
+  const spawn = (command: string, arguments_: readonly string[], options: Readonly<ChildProcess.SpawnOptions>): ChildProcess.ChildProcess => {
+    const isPush = command === 'git' && arguments_[0] === 'push' && pushTimeout.milliseconds !== undefined
+    return actual.spawn(command, arguments_, isPush ? { ...options, timeout: pushTimeout.milliseconds } : options)
+  }
+  return { ...actual, spawn }
+})
+
 useIsolatedEnvironment()
+
+// 2 秒かかる pre-push のフックを置き、そのパスを返す
+function installSlowPrePush(workspace: Readonly<Workspace>): string {
+  const hooks = path.resolve(workspace.directory, workspace.git(['rev-parse', '--git-path', 'hooks']).trim())
+  mkdirSync(hooks, { recursive: true })
+  const hook = path.join(hooks, 'pre-push')
+  writeFileSync(hook, '#!/bin/sh\nexec sleep 2\n')
+  chmodSync(hook, 0o755)
+  return hook
+}
 
 // 下の段は Issue #11 の feat/demo/11、上の段は Issue #12 の feat/demo/12
 const LOWER = 'feat/demo/11'
@@ -531,6 +555,36 @@ describe('pr restack', () => {
       '  run again: pecot pr restack',
     ])
     expect(workspace.read(BASE_FILE)).toBe(record)
+  })
+
+  it('push が時間切れになると、手で push する案内を出して記録を書き直さずに終わり、手で push した後に打つと remote へ合わせる', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-33')
+    const workspace = await openStacked({ github: [lowerPullRequests('OPEN', 2)] })
+    workspace.advanceRemote(LOWER)
+    const record = workspace.read(BASE_FILE)
+    const hook = installSlowPrePush(workspace)
+    pushTimeout.milliseconds = 500
+    let result: Awaited<ReturnType<Workspace['run']>>
+    try {
+      result = await workspace.run(['pr', 'restack'])
+    }
+    finally {
+      pushTimeout.milliseconds = undefined
+    }
+    expect(result.code).toBe(1)
+    expect(lines(result.stderr)).toStrictEqual([
+      'error: push timed out after 600 seconds',
+      `  ${UPPER} is restacked locally and the base record is unchanged`,
+      `  push the branch yourself: git push --force-with-lease origin ${UPPER}`,
+      '  then run: pecot pr restack',
+    ])
+    expect(workspace.read(BASE_FILE)).toBe(record)
+
+    rmSync(hook)
+    workspace.git(['push', '--force-with-lease', 'origin', UPPER])
+    const resumed = await workspace.run(['pr', 'restack'])
+    expect(resumed).toStrictEqual({ code: 0, stdout: '', stderr: `updated: ${UPPER} synced with origin/${UPPER}\n` })
+    expect(workspace.read(BASE_FILE)).toContain(head(workspace, `origin/${LOWER}`))
   })
 
   it('git fetch が失敗すると、終了コード 1 で終わる', async (context) => {
