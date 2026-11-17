@@ -488,8 +488,9 @@ describe('w-breakdown の手順', () => {
 
   it('渡す指示は、種類を決める 2 つの問いを、開発ブランチを基準に持つ', () => {
     const block = tasksBlock()
-    expect(block).toContain('前提の変更が手元のブランチの下にあれば、このフェーズの実装と確認ができる。このときは「積める」')
-    expect(block).toContain('前提の変更が開発ブランチに入っていないと、このフェーズの実装か確認ができない。このときは「マージを待つ」')
+    expect(block).toContain('前提の変更を、手元のブランチか試験環境で動かして、このフェーズの実装と確認ができる。このときは「積める」')
+    expect(block).toContain('前提の変更が開発ブランチに入っていないと、手元のブランチと試験環境のどちらでも、このフェーズの実装か確認ができない。このときは「マージを待つ」')
+    expect(block).toContain('試験環境は、開発ブランチに入れる前の変更を動かして確かめる場所だ。プロジェクトの文書に、その場所で動かす手順があるときだけ使う。無いときは、手元のブランチだけで判断する。')
     expect(block).not.toContain('main に入っていない')
   })
 
@@ -497,6 +498,7 @@ describe('w-breakdown の手順', () => {
     const examples = linesAfter(tasksBlock(), MERGE_EXAMPLES_HEADING)
     expect(examples).toHaveLength(3)
     expect(examples[0]).toContain('既定のブランチから配られるものを使う')
+    expect(examples[0]).not.toContain('プラグイン')
     expect(examples[1]).toContain('リリースの後の実物で確かめる')
     expect(examples[2]).toContain('開発ブランチの CI やリリースのワークフロー')
   })
@@ -645,5 +647,27 @@ describe('w-issueize の前提の表の読み方', () => {
     const template = readPluginFile('cli/templates/issue/task-implement.md')
     expect(template).toContain('表の `理由` の文をそのまま写した `reason`（改行しない）')
     expect(template).not.toContain('1 行の `reason` を足す')
+  })
+})
+
+describe('前提の種類を決める文', () => {
+  const STACK_PHRASE = '前提の変更を、手元のブランチか試験環境で動かして'
+  const MERGE_PHRASE = '手元のブランチと試験環境のどちらでも'
+
+  it.for([
+    'skills/w-breakdown/SKILL.md',
+    'skills/w-ready/SKILL.md',
+    'skills/w-help/references/issue-flow-rules.md',
+    'skills/w-help/references/spec-driven-workflow.md',
+  ])('%s は、積める・マージを待つの文に、試験環境の句を持つ', (file) => {
+    const text = readPluginFile(file)
+    expect(text).toContain(STACK_PHRASE)
+    expect(text).toContain(MERGE_PHRASE)
+  })
+
+  it('issue-flow-rules の merge の説明は、プラグインをマージを待つ例に挙げない', () => {
+    const line = readPluginFile('skills/w-help/references/issue-flow-rules.md').split('\n').find(text => text.startsWith('- `merge`（マージを待つ）'))
+    expect(line).toBeDefined()
+    expect(line).not.toContain('プラグイン')
   })
 })
