@@ -106,11 +106,10 @@ PR を作ると GitHub Actions の上で w-revise のレビューを回すワー
    2. モデルの認証の secret `CLAUDE_CODE_OAUTH_TOKEN` を登録する（`claude setup-token` で作り、1 行で貼る）
    3. 雛形をコミットし、既定のブランチへ入れる
 
-   権限を絞りたい利用者だけ、自前の GitHub App を足せることを 1 行で添える
-6. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない
-7. 足りないものが無ければ、既定のブランチへ入れるまで動かないことを添える
-
-詳しい手順と運用は [自動レビューのワークフロー](../w-help/references/review-workflow.md) を指す。
+   権限を絞りたい利用者だけ、自前の GitHub App を足せることを 1 行で添える。詳しい手順と運用は、[自動レビューのワークフロー](../w-help/references/review-workflow.md) にあることを示す
+6. 設定の順を示したら、このターンを終えて利用者の返事を待つ。Step 6 へは進まない
+7. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない
+8. 足りないものが無ければ、既定のブランチへ入れるまで動かないことを添えて、Step 6 へ進む
 
 ### Step 6: 次ステップ案内
 
