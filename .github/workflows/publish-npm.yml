@@ -1,6 +1,6 @@
 # MCP サーバの tgz を npm へ publish する。認証は trusted publishing（OIDC）で、npm はこのファイル名で publish を許す。
 # 正式版（publish）: tag を渡した dispatch。nx release が Release に添えた tgz を落とすので checkout しない。
-# 開発版（build-dev・publish-dev）: main への push か、tag なしの dispatch。@pecot/workflow-mcp を devcontainer で作り、dist-tag next で出す。
+# 開発版（dev-targets・build-dev・publish-dev）: main への push か、tag なしの dispatch。変わったプラグインの MCP を devcontainer で作り、dist-tag next で出す。
 # 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
 name: publish-npm
 
@@ -8,7 +8,10 @@ on:
   push:
     branches: [main]
     paths:
+      - "plugins/pecot-visual/**"
+      - "plugins/pecot-tools/**"
       - "plugins/pecot-workflow/**"
+      - "libs/text-rules/**"
       - "pnpm-lock.yaml"
       - "package.json"
       - "pnpm-workspace.yaml"
@@ -18,6 +21,7 @@ on:
       - ".githooks/scripts/origin-slug.mjs"
       - ".githooks/scripts/dev-version.mjs"
       - ".githooks/scripts/dev-superseded.mjs"
+      - ".githooks/scripts/dev-targets.mjs"
       - ".devcontainer/**"
       - ".github/workflows/publish-npm.yml"
   workflow_dispatch:
@@ -38,6 +42,8 @@ concurrency:
   # ブランチの dry-run は別のグループにし、待っている main の開発版の run を取り消さない。
   group: publish-npm-${{ inputs.tag || (github.ref == 'refs/heads/main' && 'dev') || format('dev-{0}', github.ref) }}
   cancel-in-progress: false
+  # 出すプラグインは run ごとに違う。既定の single は待っている run を取り消し、そのプラグインの開発版が出ない。
+  queue: max
 
 jobs:
   publish:
@@ -149,16 +155,60 @@ jobs:
           fi
           npm publish "${files[0]}" --access public --provenance
 
-  # 開発版は正式版と同じ devcontainer で作る。id-token はこの job に渡さない。
-  build-dev:
+  # push で変わったファイルから、開発版を出すプラグインを決める。辿れない before と dispatch は 3 つ全部。
+  dev-targets:
     if: ${{ github.event_name == 'push' || inputs.tag == '' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      plugins: ${{ steps.targets.outputs.plugins }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Resolve target plugins
+        id: targets
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "push" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            plugins="$(git diff --name-only --no-renames "$BEFORE" "$SHA" | node .githooks/scripts/dev-targets.mjs)"
+          else
+            plugins="$(node .githooks/scripts/dev-targets.mjs --all)"
+          fi
+          jq -e 'type == "array"' <<< "$plugins" > /dev/null
+          echo "$plugins"
+          echo "plugins=$plugins" >> "$GITHUB_OUTPUT"
+
+  # 開発版は正式版と同じ devcontainer で作る。id-token はこの job に渡さない。
+  # 1 つの脚の失敗で、ほかのプラグインの開発版を止めない。
+  build-dev:
+    needs: dev-targets
+    if: ${{ needs.dev-targets.outputs.plugins != '[]' }}
+    runs-on: ubuntu-latest
+    # visual の監査は npm を最大 5 回 × 180 秒呼ぶ。build と devcontainer の起動を足す。
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: read
-    outputs:
-      version: ${{ steps.version.outputs.version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.dev-targets.outputs.plugins) }}
     steps:
       - name: Reject a real publish outside main
         env:
@@ -185,9 +235,10 @@ jobs:
       - name: Resolve dev version
         id: version
         env:
+          PLUGIN: ${{ matrix.plugin }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
-          version="$(node .githooks/scripts/dev-version.mjs plugins/pecot-workflow/.claude-plugin/plugin.json "$RUN_NUMBER")"
+          version="$(node .githooks/scripts/dev-version.mjs "plugins/$PLUGIN/.claude-plugin/plugin.json" "$RUN_NUMBER")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       # コンテナより先にホストで作り、持ち主をホストにそろえる。
@@ -197,42 +248,52 @@ jobs:
       # out-dir はリポの外に置く決まりで、ホストから見えない。tgz だけを共有のディレクトリへ書く。
       # npm はリポの中だと devEngines で止まるので、out-dir に移ってから pack する。
       # --dry-run の attach-mcp-tgz.sh は gh の案を表示するだけだ。Release への添付と dispatch は行わない。
+      # visual の配布は監査記録を要る。--dev は version plan を見ずに監査する。
       - name: Build dev package
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           CI: "true"
           DEV_VERSION: ${{ steps.version.outputs.version }}
+          PLUGIN: ${{ matrix.plugin }}
         with:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
           env: |
             CI
             DEV_VERSION
+            PLUGIN
           runCmd: |
             cd /workspaces/base/pecot &&
+            if [ "$PLUGIN" = "pecot-visual" ]; then bash plugins/pecot-visual/scripts/release/audit-mcp-dist.sh --dev; fi &&
             out="$(mktemp -d)" &&
-            bash plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version="$DEV_VERSION" --out-dir="$out" &&
+            bash "plugins/$PLUGIN/scripts/release/publish-mcp-dist.sh" --dry-run --version="$DEV_VERSION" --out-dir="$out" &&
             cd "$out" &&
             npm pack --ignore-scripts --pack-destination /workspaces/base/pecot/.pecot/tmp/dev-publish
 
       - name: Upload package
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: workflow-mcp-dev
+          name: ${{ matrix.name }}-mcp-dev
           path: .pecot/tmp/dev-publish/*.tgz
           if-no-files-found: error
           retention-days: 7
 
+  # build-dev の 1 つの脚が落ちても、ほかの脚は出す。作れなかった脚は artifact が無く落ちる。
   publish-dev:
-    needs: build-dev
+    needs: [dev-targets, build-dev]
+    if: ${{ !cancelled() && needs.dev-targets.outputs.plugins != '[]' && needs.build-dev.result != 'skipped' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.dev-targets.outputs.plugins) }}
     env:
-      PACKAGE: "@pecot/workflow-mcp"
-      VERSION: ${{ needs.build-dev.outputs.version }}
+      PACKAGE: "@pecot/${{ matrix.name }}-mcp"
+      PLUGIN: ${{ matrix.plugin }}
       DRY_RUN: ${{ inputs.dry-run }}
     steps:
       # trusted publishing は provenance を自動で付ける。private のリポは拒まれる前に透明性ログへリポ名が残る。
@@ -246,12 +307,16 @@ jobs:
             exit 1
           fi
 
-      # 判定のスクリプトだけを取る。ルートの package.json を置かないので、npm が devEngines で止まらない。
+      # 判定のスクリプトと plugin.json だけを取る。ルートの package.json を置かないので、npm が devEngines で止まらない。
+      # matrix の job の outputs は脚どうしで上書きし合うので、版は build-dev から受けずに計算し直す。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: .githooks/scripts/dev-superseded.mjs
+          sparse-checkout: |
+            .githooks/scripts/dev-superseded.mjs
+            .githooks/scripts/dev-version.mjs
+            plugins/${{ matrix.plugin }}/.claude-plugin/plugin.json
           sparse-checkout-cone-mode: false
 
       - name: Set up Node.js
@@ -261,10 +326,17 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
+      - name: Resolve dev version
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          version="$(node .githooks/scripts/dev-version.mjs "plugins/$PLUGIN/.claude-plugin/plugin.json" "$RUN_NUMBER")"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Download package
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: workflow-mcp-dev
+          name: ${{ matrix.name }}-mcp-dev
 
       # re-run は run_number を変えない。古い run の re-run で next を戻さない。
       - name: Check if already superseded
@@ -299,7 +371,7 @@ jobs:
         if: steps.published.outputs.done == 'false'
         env:
           MSG_COUNT: "artifact の tgz が 1 つではありません。"
-          MSG_MISMATCH: "tgz の package.json の name か version が、build-dev で決めた値と違います。"
+          MSG_MISMATCH: "tgz の package.json の name か version が、plugin.json と run_number から決めた値と違います。"
         run: |
           shopt -s nullglob
           files=(./*.tgz)

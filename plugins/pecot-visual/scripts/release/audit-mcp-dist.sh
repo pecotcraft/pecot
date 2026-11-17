@@ -26,6 +26,8 @@
 #                      env PECOTV_AUDIT_TIMEOUT_SEC でも指定できる。
 #                      呼び出しは最大 5 回で、内訳はカナリア監査、2 ツリーの依存解決、2 ツリーの監査となる。
 #   --plans-dir=<dir>  version plan の探索先。既定は <repo>/.nx/version-plans。テスト用。
+#   --dev              version plan の有無とリリースタグを見ずに監査する（開発版の build 用）。
+#                      手順 1（探索先の確認・release group の解決・plan とタグの判定）を飛ばす。
 #   --audit-record=<path>
 #                      監査記録の書き出し先。既定は <repo>/.nx/release-audit/pecotv-audit.json で、
 #                      env PECOTV_AUDIT_RECORD でも指定できる。
@@ -65,6 +67,7 @@ RUNTIME_DIST=""
 REGISTRY="${PECOTV_AUDIT_REGISTRY:-https://registry.npmjs.org/}"
 TIMEOUT_SEC="${PECOTV_AUDIT_TIMEOUT_SEC:-180}"
 PLANS_DIR="$REPO_ROOT/.nx/version-plans"
+DEV=false
 AUDIT_RECORD="${PECOTV_AUDIT_RECORD:-$REPO_ROOT/.nx/release-audit/pecotv-audit.json}"
 
 # 例外リストが無いときの扱いは、明示指定と既定パスで違う。
@@ -92,11 +95,12 @@ for arg in "$@"; do
         --registry=*) REGISTRY="${arg#--registry=}" ;;
         --timeout=*) TIMEOUT_SEC="${arg#--timeout=}" ;;
         --plans-dir=*) PLANS_DIR="${arg#--plans-dir=}" ;;
+        --dev) DEV=true ;;
         --audit-record=*) AUDIT_RECORD="${arg#--audit-record=}" ;;
         *)
             echo "ERROR: 未対応の引数: $arg" >&2
             echo "       使用可能: --dist=<dir>|--runtime-dist=<dir>|--exceptions=<path>|--registry=<url>" >&2
-            echo "                 |--timeout=<sec>|--plans-dir=<dir>|--audit-record=<path>" >&2
+            echo "                 |--timeout=<sec>|--plans-dir=<dir>|--dev|--audit-record=<path>" >&2
             exit 1
             ;;
     esac
@@ -165,89 +169,94 @@ head_tags() {
 }
 
 # --- 1. 監査対象の判定 ---
-# nx の release group フィルタは --groups と --projects だけを持つ。
-# そのため pecot-workflow 単独のリリースでも、pecot-visual group の pre-version command は起動する。
-# pecot-visual の bump 宣言が無いリリースでは配布物が更新されないので、監査せずに抜ける。
-# frontmatter の bump 宣言の抽出は、.githooks/pre-push/check-version-plan-required.sh と同じ awk/sed 規則を使う。
-# 宣言として扱うのは、値が妥当な semver ReleaseType になっている行だけとする。
-#
-# 失敗したときはスキップせず、中止する側に倒す。次の 2 つの場合は exit 1 で止める。
-# 1 つ目は、探索先そのものが無い場合で、スクリプトの移設などで REPO_ROOT の解決がずれたときに起きる。
-# 2 つ目は、pecot-visual を key とする行はあるのに、宣言として抽出できない場合で、
-# たとえば `pecot-visual: "patch"` のような引用値が当たる。
-# どちらも、nx は実在の plan で bump するのに、監査だけが気付かれずに抜ける状態を生む。
-if [ ! -d "$PLANS_DIR" ]; then
-    echo "ERROR: 監査未実施のため中止: version plan の探索先がありません: $PLANS_DIR" >&2
-    exit 1
-fi
-
-# pecot-visual のリリースとみなす group は、pecot-visual 自身と、pecot-visual が依存する project の group。
-# text-rules の group は updateDependents: always を持つ。
-# そのため、text-rules だけの plan でも、nx は依存元の pecot-visual を上げる。
-# 判定を pecot-visual: の有無だけにすると、pecot-visual のリリースなのに監査を飛ばしてしまう。
-# 依存する project は、release-groups.mjs が pecot-visual の workspace: 依存から求める。
-RELEASE_GROUPS_OUTPUT="$(node "$SCRIPT_DIR/release-groups.mjs" "$REPO_ROOT")" || {
-    echo "ERROR: 監査未実施のため中止: release group を解決できません" >&2
-    exit 1
-}
-mapfile -t RELEASE_GROUPS <<< "$RELEASE_GROUPS_OUTPUT"
-# 空の group 名は、grep -qxF "" が空行に一致して、宣言なしの plan を宣言ありと誤判定させる。
-# 空の要素を含むなら、監査を始めずに止める。出力が空のときも、mapfile は空の要素を 1 つ作るのでここで止まる。
-for group in "${RELEASE_GROUPS[@]}"; do
-    if [ -z "$group" ]; then
-        echo "ERROR: 監査未実施のため中止: release group に空の名前が含まれています" >&2
+# 開発版は version plan の有無を問わず出るので、--dev は判定を飛ばして監査する。
+if [ "$DEV" = true ]; then
+    echo "==> 開発版: version plan とリリースタグを見ずに監査する"
+else
+    # nx の release group フィルタは --groups と --projects だけを持つ。
+    # そのため pecot-workflow 単独のリリースでも、pecot-visual group の pre-version command は起動する。
+    # pecot-visual の bump 宣言が無いリリースでは配布物が更新されないので、監査せずに抜ける。
+    # frontmatter の bump 宣言の抽出は、.githooks/pre-push/check-version-plan-required.sh と同じ awk/sed 規則を使う。
+    # 宣言として扱うのは、値が妥当な semver ReleaseType になっている行だけとする。
+    #
+    # 失敗したときはスキップせず、中止する側に倒す。次の 2 つの場合は exit 1 で止める。
+    # 1 つ目は、探索先そのものが無い場合で、スクリプトの移設などで REPO_ROOT の解決がずれたときに起きる。
+    # 2 つ目は、pecot-visual を key とする行はあるのに、宣言として抽出できない場合で、
+    # たとえば `pecot-visual: "patch"` のような引用値が当たる。
+    # どちらも、nx は実在の plan で bump するのに、監査だけが気付かれずに抜ける状態を生む。
+    if [ ! -d "$PLANS_DIR" ]; then
+        echo "ERROR: 監査未実施のため中止: version plan の探索先がありません: $PLANS_DIR" >&2
         exit 1
     fi
-done
 
-# 0=宣言あり / 1=対象 group の行なし（スキップ）/ 2=対象 group の行はあるが宣言として解釈できない
-UNPARSABLE_PLAN=""
-pecot_visual_plan_declared() {
-    local plan front keys group rc=1
-    for plan in "$PLANS_DIR"/*.md; do
-        [ -f "$plan" ] || continue
-        front="$(awk 'BEGIN{c=0} /^---[[:space:]]*$/{c++; next} c==1{print}' "$plan")"
-        # キーは、引用符なし・二重引用符・単一引用符の 3 通りを宣言として読む。
-        # YAML では "pecot-visual": patch も pecot-visual: patch と同じキーで、nx もそう読んで bump する。
-        keys="$(printf '%s\n' "$front" \
-            | sed -n \
-                -e 's/^\([A-Za-z0-9_][A-Za-z0-9_-]*\)[[:space:]]*:[[:space:]]*\(major\|premajor\|minor\|preminor\|patch\|prepatch\|prerelease\)[[:space:]]*$/\1/p' \
-                -e 's/^"\([A-Za-z0-9_][A-Za-z0-9_-]*\)"[[:space:]]*:[[:space:]]*\(major\|premajor\|minor\|preminor\|patch\|prepatch\|prerelease\)[[:space:]]*$/\1/p' \
-                -e "s/^'\\([A-Za-z0-9_][A-Za-z0-9_-]*\\)'[[:space:]]*:[[:space:]]*\\(major\\|premajor\\|minor\\|preminor\\|patch\\|prepatch\\|prerelease\\)[[:space:]]*\$/\\1/p")"
-        for group in "${RELEASE_GROUPS[@]}"; do
-            if printf '%s\n' "$keys" | grep -qxF "$group"; then
-                return 0
-            fi
-            if printf '%s\n' "$front" | grep -qE "^[\"']?${group}[\"']?[[:space:]]*:"; then
-                UNPARSABLE_PLAN="$plan"
-                rc=2
-            fi
-        done
-    done
-    return "$rc"
-}
-
-PLAN_RC=0
-pecot_visual_plan_declared || PLAN_RC=$?
-case "$PLAN_RC" in
-    0) ;;
-    2)
-        echo "ERROR: 監査未実施のため中止: version plan の pecot-visual 関連の宣言を解釈できません: $UNPARSABLE_PLAN" >&2
+    # pecot-visual のリリースとみなす group は、pecot-visual 自身と、pecot-visual が依存する project の group。
+    # text-rules の group は updateDependents: always を持つ。
+    # そのため、text-rules だけの plan でも、nx は依存元の pecot-visual を上げる。
+    # 判定を pecot-visual: の有無だけにすると、pecot-visual のリリースなのに監査を飛ばしてしまう。
+    # 依存する project は、release-groups.mjs が pecot-visual の workspace: 依存から求める。
+    RELEASE_GROUPS_OUTPUT="$(node "$SCRIPT_DIR/release-groups.mjs" "$REPO_ROOT")" || {
+        echo "ERROR: 監査未実施のため中止: release group を解決できません" >&2
         exit 1
-        ;;
-    *)
-        # version plan が無くても、HEAD にリリースタグがあれば再監査として実行する。
-        # publish が指紋の不一致で止まった後に、release commit を checkout して記録を作り直す場合が対象になる。
-        # plan は release commit で消費済みなので、この場合は存在しない。
-        if printf '%s\n' "$(head_tags)" | grep -Fxq "$RELEASE_TAG"; then
-            echo "==> 再監査: HEAD に $RELEASE_TAG があるため監査する"
-        else
-            echo "==> スキップ: pecot-visual の version plan が無いため pecot-visual のリリースではありません"
-            write_audit_record skipped "$HEAD_SHA"
-            exit 0
+    }
+    mapfile -t RELEASE_GROUPS <<< "$RELEASE_GROUPS_OUTPUT"
+    # 空の group 名は、grep -qxF "" が空行に一致して、宣言なしの plan を宣言ありと誤判定させる。
+    # 空の要素を含むなら、監査を始めずに止める。出力が空のときも、mapfile は空の要素を 1 つ作るのでここで止まる。
+    for group in "${RELEASE_GROUPS[@]}"; do
+        if [ -z "$group" ]; then
+            echo "ERROR: 監査未実施のため中止: release group に空の名前が含まれています" >&2
+            exit 1
         fi
-        ;;
-esac
+    done
+
+    # 0=宣言あり / 1=対象 group の行なし（スキップ）/ 2=対象 group の行はあるが宣言として解釈できない
+    UNPARSABLE_PLAN=""
+    pecot_visual_plan_declared() {
+        local plan front keys group rc=1
+        for plan in "$PLANS_DIR"/*.md; do
+            [ -f "$plan" ] || continue
+            front="$(awk 'BEGIN{c=0} /^---[[:space:]]*$/{c++; next} c==1{print}' "$plan")"
+            # キーは、引用符なし・二重引用符・単一引用符の 3 通りを宣言として読む。
+            # YAML では "pecot-visual": patch も pecot-visual: patch と同じキーで、nx もそう読んで bump する。
+            keys="$(printf '%s\n' "$front" \
+                | sed -n \
+                    -e 's/^\([A-Za-z0-9_][A-Za-z0-9_-]*\)[[:space:]]*:[[:space:]]*\(major\|premajor\|minor\|preminor\|patch\|prepatch\|prerelease\)[[:space:]]*$/\1/p' \
+                    -e 's/^"\([A-Za-z0-9_][A-Za-z0-9_-]*\)"[[:space:]]*:[[:space:]]*\(major\|premajor\|minor\|preminor\|patch\|prepatch\|prerelease\)[[:space:]]*$/\1/p' \
+                    -e "s/^'\\([A-Za-z0-9_][A-Za-z0-9_-]*\\)'[[:space:]]*:[[:space:]]*\\(major\\|premajor\\|minor\\|preminor\\|patch\\|prepatch\\|prerelease\\)[[:space:]]*\$/\\1/p")"
+            for group in "${RELEASE_GROUPS[@]}"; do
+                if printf '%s\n' "$keys" | grep -qxF "$group"; then
+                    return 0
+                fi
+                if printf '%s\n' "$front" | grep -qE "^[\"']?${group}[\"']?[[:space:]]*:"; then
+                    UNPARSABLE_PLAN="$plan"
+                    rc=2
+                fi
+            done
+        done
+        return "$rc"
+    }
+
+    PLAN_RC=0
+    pecot_visual_plan_declared || PLAN_RC=$?
+    case "$PLAN_RC" in
+        0) ;;
+        2)
+            echo "ERROR: 監査未実施のため中止: version plan の pecot-visual 関連の宣言を解釈できません: $UNPARSABLE_PLAN" >&2
+            exit 1
+            ;;
+        *)
+            # version plan が無くても、HEAD にリリースタグがあれば再監査として実行する。
+            # publish が指紋の不一致で止まった後に、release commit を checkout して記録を作り直す場合が対象になる。
+            # plan は release commit で消費済みなので、この場合は存在しない。
+            if printf '%s\n' "$(head_tags)" | grep -Fxq "$RELEASE_TAG"; then
+                echo "==> 再監査: HEAD に $RELEASE_TAG があるため監査する"
+            else
+                echo "==> スキップ: pecot-visual の version plan が無いため pecot-visual のリリースではありません"
+                write_audit_record skipped "$HEAD_SHA"
+                exit 0
+            fi
+            ;;
+    esac
+fi
 
 # --- 2. 作業ディレクトリと監査専用 npm キャッシュ ---
 CLEANUP_DIRS=()

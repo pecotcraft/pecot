@@ -70,6 +70,7 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 差し替え後は `"args": ["-e", "bash", "-lc", "npx -y --prefix=/ @pecot/tools-mcp"]` です。
 
 版を固定するときは、`@pecot/tools-mcp@1.2.3` のように版を付けます。
+`@pecot/tools-mcp@next` は、次の正式版より前の開発版を取ります。
 依存は `npm-shrinkwrap.json` で固定されているため、同じ版なら同じ依存が入ります。
 
 ## 初回の操作

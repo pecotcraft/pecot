@@ -132,6 +132,7 @@
         "{projectRoot}/scripts/release-land.sh",
         "{projectRoot}/scripts/dev-version.mjs",
         "{projectRoot}/scripts/dev-superseded.mjs",
+        "{projectRoot}/scripts/dev-targets.mjs",
         {
           "input": "production",
           "projects": [
