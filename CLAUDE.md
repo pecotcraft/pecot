@@ -29,7 +29,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 - 標準とのズレは不適合として扱う。見つけたら、その場でユーザーに伝え、Issue にして直す。直す手間は、残す理由にならない
 - 不適合を残せるのは、ユーザーが明示して承認したときだけ。計画に、残す項目と理由を書く
 - テストの通過を、標準に合っていることの根拠にしない
-- 決まりの正は `.specify/memory/constitution.md` の原則 VI
+- 決まりの正は `.specify/memory/constitution.md` の原則 IV
 
 ## テスト・lint
 

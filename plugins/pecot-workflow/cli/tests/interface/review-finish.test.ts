@@ -27,6 +27,17 @@ const COMMENTS = '/repos/acme/demo/issues/11/comments'
 const REVIEW_COMMENTS = '/repos/acme/demo/pulls/11/comments'
 const COMMENT_URL = 'https://github.com/acme/demo/pull/11#issuecomment-1'
 
+// 後始末の step が渡す値の組。conclusion は、Claude Code が動かなかった run では空
+function ensureArguments(job: string, outcome: string, conclusion: string, token: 'true' | 'false'): readonly string[] {
+  return ['--ensure', '--job-status', job, '--review-outcome', outcome, '--review-conclusion', conclusion, '--review-has-token', token]
+}
+
+const FAILED_RUN = ensureArguments('failure', 'failure', 'failure', 'true')
+const CANCELLED_RUN = ensureArguments('cancelled', 'cancelled', '', 'true')
+const NOT_STARTED_RUN = ensureArguments('failure', 'failure', '', 'true')
+const NO_TOKEN_RUN = ensureArguments('failure', 'failure', '', 'false')
+const SUCCEEDED_RUN = ensureArguments('success', 'success', 'success', 'true')
+
 async function finish(argv: readonly string[]): Promise<CliResult> {
   return await runInProcess(['review', 'finish', 'acme/demo/11', ...argv], REVIEW_COMMANDS)
 }
@@ -79,7 +90,7 @@ describe('review finish', () => {
     const file = executionFile([{ type: 'result', subtype: 'error_during_execution', is_error: true }])
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    const outcome = await finish(['--ensure', '--job-status', 'failure', '--execution-file', file])
+    const outcome = await finish([...FAILED_RUN, '--execution-file', file])
 
     expect(outcome).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: stopped-review comment (failed) on PR acme/demo#11\n' })
     const body = postedBody(github.requests())
@@ -94,7 +105,7 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([pullRequest(), comments([{ body: 'x\n<!-- pecot-review-stopped run=500 attempt=1 -->', user: { type: 'Bot' } }])])
 
-    const outcome = await finish(['--ensure', '--job-status', 'cancelled'])
+    const outcome = await finish([...CANCELLED_RUN])
 
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'skipped: stopped-review comment on PR acme/demo#11 (this run already posted one)\n' })
     expect(hasPosted(github.requests())).toBe(false)
@@ -105,7 +116,7 @@ describe('review finish', () => {
     prepare({ GITHUB_RUN_ATTEMPT: '2' })
     const github = await startGithub([pullRequest(), comments([{ body: '<!-- pecot-review-stopped run=500 attempt=1 -->', user: { type: 'Bot' } }]), POSTED])
 
-    const outcome = await finish(['--ensure', '--job-status', 'cancelled'])
+    const outcome = await finish([...CANCELLED_RUN])
 
     expect(outcome.code).toBe(0)
     expect(postedBody(github.requests())).toContain('<!-- pecot-review-stopped run=500 attempt=2 -->')
@@ -116,7 +127,7 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([pullRequest(), comments([{ body: '<!-- pecot-review-stopped run=500 attempt=1 -->', user: { type: 'User' } }]), POSTED])
 
-    await finish(['--ensure', '--job-status', 'cancelled'])
+    await finish([...CANCELLED_RUN])
 
     expect(hasPosted(github.requests())).toBe(true)
   })
@@ -126,7 +137,7 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    const outcome = await finish(['--ensure', '--job-status', 'cancelled'])
+    const outcome = await finish([...CANCELLED_RUN])
 
     expect(outcome.stderr).toBe('created: stopped-review comment (limit) on PR acme/demo#11\n')
     expect(postedBody(github.requests())).toContain('## Review stopped — 自動レビューがターンか時間の上限で止まった')
@@ -138,7 +149,7 @@ describe('review finish', () => {
     const file = executionFile([{ type: 'result', subtype: 'error_max_turns', is_error: true, terminal_reason: 'max_turns' }])
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    await finish(['--ensure', '--job-status', 'failure', '--execution-file', file])
+    await finish([...FAILED_RUN, '--execution-file', file])
 
     expect(postedBody(github.requests())).toContain('- 結果 — `limit`')
   })
@@ -149,44 +160,44 @@ describe('review finish', () => {
     const file = executionFile([{ type: 'result', subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'API Error: Token exchange failed with status 401: {"error":{"type":"authentication_error"}}' }])
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    await finish(['--ensure', '--job-status', 'failure', '--execution-file', file])
+    await finish([...FAILED_RUN, '--execution-file', file])
 
     const body = postedBody(github.requests())
     expect(body).toContain('- 結果 — `failed`')
     expect(body).toContain('`claude setup-token` でトークンを作り直し')
   })
 
-  it('--app-token-missing を付けて failure で打つと、App を入れる手順を添えた setup-missing のコメントを書く', async (context) => {
+  it('自動レビューの step が failure で github_token が無いと、App を入れる手順を添えた setup-missing のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-06')
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    await finish(['--ensure', '--job-status', 'failure', '--app-token-missing'])
+    await finish(NO_TOKEN_RUN)
 
     const body = postedBody(github.requests())
     expect(body).toContain('- 結果 — `setup-missing`')
     expect(body).toContain('リポに Claude の GitHub App を入れてから')
   })
 
-  it('実行のファイルが無い failure で、起動した人が write の権限を持たないと、書かずに skipped の行を出す', async (context) => {
+  it('Claude Code が動かずに step が落ち、起動した人が write の権限を持たないと、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-07')
     prepare()
     const github = await startGithub([pullRequest(), permission('read')])
 
-    const outcome = await finish(['--ensure', '--job-status', 'failure'])
+    const outcome = await finish(NOT_STARTED_RUN)
 
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'skipped: stopped-review comment on PR acme/demo#11 (the actor has no write permission)\n' })
     expect(hasPosted(github.requests())).toBe(false)
   })
 
-  it('実行のファイルが無い failure で、起動した人が write の権限を持つと、動く前に止まった案内を添えて書く', async (context) => {
+  it('Claude Code が動かずに step が落ち、起動した人が write の権限を持つと、failed のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-07')
     prepare()
     const github = await startGithub([pullRequest(), permission('write'), comments(), POSTED])
 
-    await finish(['--ensure', '--job-status', 'failure'])
+    await finish(NOT_STARTED_RUN)
 
-    expect(postedBody(github.requests())).toContain('Claude の App のトークンを受け取れずに止まったなら')
+    expect(postedBody(github.requests())).toContain('- 結果 — `failed`')
   })
 
   it('起動した人の権限を読めないと、warning の行を出して書く', async (context) => {
@@ -195,7 +206,7 @@ describe('review finish', () => {
     const denied: ResponseRule = { match: { method: 'GET', path: '/repos/acme/demo/collaborators/alice/permission' }, respond: { status: 403, body: { message: 'Resource not accessible by integration' } }, times: 1 }
     const github = await startGithub([pullRequest(), denied, comments(), POSTED])
 
-    const outcome = await finish(['--ensure', '--job-status', 'failure'])
+    const outcome = await finish(NOT_STARTED_RUN)
 
     expect(outcome.code).toBe(0)
     expect(outcome.stderr).toBe('warning: could not read the permission of alice: access denied\ncreated: stopped-review comment (failed) on PR acme/demo#11\n')
@@ -207,7 +218,7 @@ describe('review finish', () => {
     prepare({ GITHUB_ACTOR: 'renovate[bot]' })
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    const outcome = await finish(['--ensure', '--job-status', 'failure'])
+    const outcome = await finish(NOT_STARTED_RUN)
 
     expect(outcome.stderr).toBe('created: stopped-review comment (failed) on PR acme/demo#11\n')
     expect(github.requests().some(request => request.type === 'rest' && request.path.includes('/collaborators/'))).toBe(false)
@@ -229,9 +240,20 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([])
 
-    const outcome = await finish(['--ensure', '--job-status', 'success', '--app-token-missing'])
+    const outcome = await finish(SUCCEEDED_RUN)
 
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'skipped: stopped-review comment on PR acme/demo#11 (the job succeeded)\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('自動レビューの step が成功で conclusion が空だと、雛形の食い違いの理由を添えて、書かずに skipped の行を出す', async (context) => {
+    await verifies(context, 'PW-REVIEW-FINISH-19')
+    prepare()
+    const github = await startGithub([])
+
+    const outcome = await finish(ensureArguments('success', 'success', '', 'false'))
+
+    expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'skipped: stopped-review comment on PR acme/demo#11 (the workflow file differs from the default branch, so the action skipped the review; a review started by a comment does not run on this PR either)\n' })
     expect(github.requests()).toEqual([])
   })
 
@@ -251,7 +273,7 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([pullRequest(), comments(), reviewComments([{ body: '**F-01** [tech] 型が違う', created_at: '2026-11-17T10:05:00Z' }]), POSTED])
 
-    await finish(['--ensure', '--job-status', 'cancelled', '--since', '2026-11-17T10:00:00Z'])
+    await finish([...CANCELLED_RUN, '--since', '2026-11-17T10:00:00Z'])
 
     expect(postedBody(github.requests())).toContain('- 止まった場所 — インラインコメントを投稿した後（指摘の一覧はまだ無い）')
   })
@@ -261,7 +283,7 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([pullRequest(), comments(), reviewComments([{ body: '**F-01** [tech] 前の実行', created_at: '2026-11-17T09:00:00Z' }]), POSTED])
 
-    await finish(['--ensure', '--job-status', 'cancelled', '--since', '2026-11-17T10:00:00Z'])
+    await finish([...CANCELLED_RUN, '--since', '2026-11-17T10:00:00Z'])
 
     expect(postedBody(github.requests())).toContain('- 止まった場所 — 指摘を投稿する前')
   })
@@ -271,7 +293,7 @@ describe('review finish', () => {
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
-    const outcome = await finish(['--ensure', '--job-status', 'cancelled', '--since', ''])
+    const outcome = await finish([...CANCELLED_RUN, '--since', ''])
 
     expect(outcome.code).toBe(0)
     expect(postedBody(github.requests())).toContain('- 止まった場所 — 分からない')
@@ -314,9 +336,11 @@ describe('review finish', () => {
     { name: '--result と --ensure の両方', argv: ['--result', 'failed', '--ensure', '--job-status', 'failure'], message: 'error: specify exactly one of --result and --ensure\n' },
     { name: 'どちらも無し', argv: [], message: 'error: specify exactly one of --result and --ensure\n' },
     { name: '--ensure に --job-status が無い', argv: ['--ensure'], message: 'error: --job-status is required with --ensure\n' },
+    { name: '--ensure に自動レビューの step の値が無い', argv: ['--ensure', '--job-status', 'failure'], message: 'error: --review-outcome is required with --ensure\n' },
+    { name: '--result に --review-has-token', argv: ['--result', 'failed', '--review-has-token', 'true'], message: 'error: --review-has-token is only for --ensure\n' },
     { name: '--result に --since', argv: ['--result', 'failed', '--since', '2026-11-17T10:00:00Z'], message: 'error: --since is only for --ensure\n' },
     { name: 'setup-missing でない --detail', argv: ['--result', 'failed', '--detail', 'x'], message: 'error: --detail is only for --result setup-missing\n' },
-    { name: 'ISO 8601 でない --since', argv: ['--ensure', '--job-status', 'failure', '--since', 'yesterday'], message: 'error: --since is not an ISO 8601 time: yesterday\n' },
+    { name: 'ISO 8601 でない --since', argv: [...FAILED_RUN, '--since', 'yesterday'], message: 'error: --since is not an ISO 8601 time: yesterday\n' },
   ])('$name を渡すと、何も読まずに終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-REVIEW-FINISH-13')
     prepare()

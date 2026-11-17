@@ -71,14 +71,14 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ### Tests for User Story 2
 
-- [ ] T010 [US2] `p-w/cli/tests/review-workflow-template.test.ts` を書く。`spec/contracts/workflow-template.md` の「テストで確かめること」の表を、1 行ずつテストにする。落ちることを確かめる。形は、同じ置き場の board sync の雛形のテストに合わせる
+- [x] T010 [US2] `p-w/cli/tests/review-workflow-template.test.ts` を書く。`spec/contracts/workflow-template.md` の「テストで確かめること」の表を、1 行ずつテストにする。落ちることを確かめる。形は、同じ置き場の board sync の雛形のテストに合わせる
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] `p-w/cli/templates/workflow/pecot-review.yml` を書く。中身は `spec/contracts/workflow-template.md` のとおりにする。利用者が変える 4 つの値は `vars` から読み、job の `if` で `env` を読まない。action は SHA で固定する
-- [ ] T012 [US2] 雛形の先頭のコメントに、置き先・要る変数と secret・変えられる 4 つの変数と既定値・合言葉・Dependabot を許すときの secret の置き場を、英語で書く。`p-w/cli/templates/workflow/pecot-board-sync.yml` の先頭のコメントと同じ調子にする
-- [ ] T013 [US2] `.pre-commit-config.yaml` の actionlint が、新しい雛形も対象にしていることを確かめる。対象から外れていれば、対象の指定を直す
-- [ ] T014 [US2] T010 のテストを通す。雛形を検証用に手で写し、quickstart.md のシナリオ 7（fork）・9（draft）・12（許していない bot）で job が飛ばされることを見る。合言葉のコメントに 👀 が付くことと、`@pecotbot` と書いても誰にも通知が飛ばないことも見る（research の R15）。結果を PR の説明に書く
+- [x] T011 [US2] `p-w/cli/templates/workflow/pecot-review.yml` を書く。中身は `spec/contracts/workflow-template.md` のとおりにする。利用者が変える 4 つの値は `vars` から読み、job の `if` で `env` を読まない。action は SHA で固定する
+- [x] T012 [US2] 雛形の先頭のコメントに、置き先・要る変数と secret・変えられる 4 つの変数と既定値・合言葉・Dependabot を許すときの secret の置き場を、英語で書く。`p-w/cli/templates/workflow/pecot-board-sync.yml` の先頭のコメントと同じ調子にする
+- [x] T013 [US2] `.pre-commit-config.yaml` の actionlint が、新しい雛形も対象にしていることを確かめる。対象から外れていれば、対象の指定を直す
+- [x] T014 [US2] T010 のテストを通す。雛形を検証用に手で写し、quickstart.md のシナリオ 7（fork）・9（draft）・12（許していない bot）で job が飛ばされることを見る。合言葉のコメントに 👀 が付くことと、`@pecotbot` と書いても誰にも通知が飛ばないことも見る（research の R15）。結果を PR の説明に書く
 
 ---
 
@@ -114,13 +114,13 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **Goal**: `pecot review finish` が、失敗と上限のときだけ、止まったことを知らせるコメントを 1 つ書く
 
-**Independent Test**: 検証用の PR に対して `pecot review finish <PR> --ensure --job-status failure` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
+**Independent Test**: 検証用の PR に対して `pecot review finish <PR> --ensure --job-status failure --review-outcome failure --review-conclusion "" --review-has-token true` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
 
 **前提**: Phase 1（失敗と上限の見分け方が、実機の結果で決まる）
 
 ### Tests for User Story 1（終わり方）
 
-- [x] T025 [P] [US1] 結果の決め方の単体テストを、`p-w/cli/src/domain/tests/` に書く。`--ensure` と job の終わり方から、`reviewed`・`failed`・`limit` を決める表を、1 行ずつ確かめる。`setup-missing` は、`--result` か `--app-token-missing` で渡されたときだけ使うことも入れる。止まった場所を、同じ実行のインラインコメントの有無から決めることも入れる
+- [x] T025 [P] [US1] 結果の決め方の単体テストを、`p-w/cli/src/domain/tests/` に書く。`--ensure` と job の終わり方・自動レビューの step の値から結果を決める表を、`spec/contracts/cli-commands.md` の順に 1 行ずつ確かめる。止まった場所を、同じ実行のインラインコメントの有無から決めることも入れる
 - [x] T026 [P] [US1] `pecot review finish` のテストを、`p-w/cli/tests/interface/` に書く。`spec/contracts/cli-commands.md` の `review finish` の条件の表を、1 行ずつテストにする。同じ実行の目印があるときに 2 度書かないこと、トークンの値が出力に出ないことも入れる
 - [x] T027 [P] [US1] T025・T026 に、CLI が埋めたテンプレート `review-stopped` の本文が、テンプレートの検証を通る期待を足す。`issue comment` のテンプレートの種類には足さない（本文は CLI だけが組み立てる）
 
@@ -150,6 +150,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 - [ ] T034 [US1] `p-w/skills/w-revise/SKILL.md` の Step 3 を、「何を投稿するか」と「端末での投稿の手順」に分ける。「何を投稿するか」には、採番・投稿先の振り分け・コメントの本文の形・`review-findings` の書き方だけを書き、投稿の手段を書かない。今の `gh api` の手順は、文を変えずに「端末での投稿の手順」へ移す
 - [ ] T035 [US1] 同じファイルに、`--unattended` の進み方を足す。中身は `spec/contracts/skill-flow.md` の「Step 3 の文の分け方」の最後の段落と、「人のいない実行」の節のとおりにする。行わないことの一覧には、マージ・クローズ・リリースを含める
+  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く
 - [ ] T036 [US1] 同じファイルの frontmatter の `description` と、冒頭の説明に、人のいない実行があることを足す。Claude Code 固有のツールの名前は足さない
 - [ ] T037 [P] [US1] `p-w/skills/w-help/references/skills.md` と `p-w/README.md` のスキルの表の、w-revise の行を直す
 - [ ] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。手で回す w-revise を Step 3 まで進めた PR と、quickstart.md の「手で回す w-revise と比べる」の表で比べる。結果を PR の説明に書く

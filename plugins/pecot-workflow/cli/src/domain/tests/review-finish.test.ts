@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { stripFrontmatter, stripLeadingHtmlComment } from '../frontmatter.js'
 import { decideReviewFinish, hasStoppedMarker, readExecution, renderReviewStopped, REVIEW_STOPPED_PLACEHOLDERS, stopLocationOf, stoppedMarker } from '../review-finish.js'
-import type { ExecutionReading, FinishInput, NextStep, ReviewStoppedValues, StopLocation, StoppedResult } from '../review-finish.js'
+import type { ExecutionReading, FinishInput, JobStatus, NextStep, ReviewOutcome, ReviewStoppedValues, StopLocation, StoppedResult } from '../review-finish.js'
 import { extractSectionsFromTemplate, validateBodyStyle, validateHeadingSummaries, validateSections } from '../sections.js'
 
 const TEMPLATE_PATH = path.resolve(import.meta.dirname, '../../../templates/comment/review-stopped.md')
@@ -20,15 +20,33 @@ function resultLine(fields: Readonly<Record<string, unknown>>): string {
 
 const ABSENT: ExecutionReading = { kind: 'absent' }
 
-function ensure(jobStatus: 'success' | 'failure' | 'cancelled', execution: ExecutionReading = ABSENT, isAppTokenMissing = false): FinishInput {
-  return { kind: 'ensure', jobStatus, isAppTokenMissing, execution }
+interface EnsureValues {
+  readonly job?: JobStatus
+  readonly outcome?: ReviewOutcome
+  readonly conclusion?: string
+  readonly hasToken?: boolean
+  readonly execution?: ExecutionReading
 }
 
-const SUCCESS_WITH_API_ERROR = executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'error 4012 tokens' })
+// 既定は、Claude Code が動いて失敗した run（job と step が failure、conclusion が failure、トークンあり）
+function ensure(values: Readonly<EnsureValues> = {}): FinishInput {
+  return {
+    kind: 'ensure',
+    jobStatus: values.job ?? 'failure',
+    reviewOutcome: values.outcome ?? 'failure',
+    reviewConclusion: values.conclusion ?? 'failure',
+    hasToken: values.hasToken ?? true,
+    execution: values.execution ?? ABSENT,
+  }
+}
 
 function executionOf(fields: Readonly<Record<string, unknown>>): ExecutionReading {
   return readExecution(resultLine(fields))
 }
+
+const MAX_TURNS = executionOf({ subtype: 'error_max_turns', is_error: true, terminal_reason: 'max_turns' })
+const AUTH_FAILURE = executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'API Error: Token exchange failed with status 401: {"error":{"type":"authentication_error"}}' })
+const SUCCESS_WITH_API_ERROR = executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'error 4012 tokens' })
 
 describe('readExecution', () => {
   it('最後の type: result の行の subtype・is_error・terminal_reason・result・errors を読む', () => {
@@ -54,39 +72,56 @@ describe('decideReviewFinish', () => {
     ['--result failed', { kind: 'result', result: 'failed' }, 'failed', 'retry', false],
     ['--result limit', { kind: 'result', result: 'limit' }, 'limit', 'limit', false],
     ['--result setup-missing', { kind: 'result', result: 'setup-missing' }, 'setup-missing', 'setup-detail', false],
-    ['job が cancelled', ensure('cancelled'), 'limit', 'limit', false],
-    ['job が failure で、App のトークンを受け取れなかった', ensure('failure', { kind: 'absent' }, true), 'setup-missing', 'app-token', false],
-    ['job が failure で、execution_file が無い', ensure('failure'), 'failed', 'pre-start', true],
-    ['job が failure で、execution_file を読めない', ensure('failure', { kind: 'unreadable' }), 'failed', 'retry', false],
-    ['job が failure で、result の行が無い', ensure('failure', { kind: 'read', last: undefined }), 'failed', 'retry', false],
-    ['job が failure で、subtype が error_max_turns', ensure('failure', executionOf({ subtype: 'error_max_turns', is_error: true, terminal_reason: 'max_turns' })), 'limit', 'limit', false],
-    ['job が failure で、api_error（クレジット）', ensure('failure', executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'Credit balance is too low' })), 'failed', 'retry', false],
-    ['job が failure で、api_error（認証。result の文）', ensure('failure', executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'API Error: Token exchange failed with status 401: {"error":{"type":"authentication_error"}}' })), 'failed', 'auth', false],
-    ['job が failure で、api_error（認証。errors の配列）', ensure('failure', executionOf({ subtype: 'error_during_execution', is_error: true, terminal_reason: 'api_error', errors: ['authentication_error'] })), 'failed', 'auth', false],
-    ['job が failure で、subtype が success でも、api_error でない（上限を超えたターン数）', ensure('failure', executionOf({ subtype: 'success', is_error: false, num_turns: 99 })), 'failed', 'retry', false],
-    ['job が failure で、ほかの subtype', ensure('failure', executionOf({ subtype: 'error_during_execution', is_error: true })), 'failed', 'retry', false],
+    ['job が cancelled', ensure({ job: 'cancelled', outcome: 'cancelled' }), 'limit', 'limit', false],
+    ['api_error（クレジット）', ensure({ execution: executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'Credit balance is too low' }) }), 'failed', 'retry', false],
+    ['api_error（認証。result の文）', ensure({ execution: AUTH_FAILURE }), 'failed', 'auth', false],
+    ['api_error（認証。errors の配列）', ensure({ execution: executionOf({ subtype: 'error_during_execution', is_error: true, terminal_reason: 'api_error', errors: ['authentication_error'] }) }), 'failed', 'auth', false],
+    ['subtype が error_max_turns', ensure({ execution: MAX_TURNS }), 'limit', 'limit', false],
+    ['step が failure で、github_token が無い', ensure({ conclusion: '', hasToken: false }), 'setup-missing', 'app-token', false],
+    ['step が failure で、トークンはあるが Claude Code が動いていない', ensure({ conclusion: '' }), 'failed', 'retry', true],
+    ['step が failure で、Claude Code が動いた', ensure(), 'failed', 'retry', false],
+    ['自動レビューより前の step が落ちた', ensure({ outcome: 'skipped', conclusion: '', hasToken: false }), 'failed', 'retry', false],
+    ['execution_file を読めない', ensure({ execution: { kind: 'unreadable' } }), 'failed', 'retry', false],
+    ['result の行が無い', ensure({ execution: { kind: 'read', last: undefined } }), 'failed', 'retry', false],
+    ['subtype が success でも、api_error でない（上限を超えたターン数）', ensure({ execution: executionOf({ subtype: 'success', is_error: false, num_turns: 99 }) }), 'failed', 'retry', false],
+    ['ほかの subtype', ensure({ execution: executionOf({ subtype: 'error_during_execution', is_error: true }) }), 'failed', 'retry', false],
   ])('%s のとき、表の結果と次にすることを返す', (_name, input, result, next, shouldCheckActor) => {
     expect(decideReviewFinish(input)).toEqual({ action: 'write', result, next, shouldCheckActor })
   })
 
   it('subtype だけでは決めない。subtype が success でも is_error と api_error なら failed', () => {
-    expect(decideReviewFinish(ensure('failure', SUCCESS_WITH_API_ERROR))).toMatchObject({ result: 'failed', next: 'retry' })
+    expect(decideReviewFinish(ensure({ execution: SUCCESS_WITH_API_ERROR }))).toMatchObject({ result: 'failed', next: 'retry' })
+  })
+
+  it('上限と認証の失敗は、トークンの無さより先に見る', () => {
+    expect(decideReviewFinish(ensure({ hasToken: false, execution: MAX_TURNS }))).toMatchObject({ result: 'limit' })
+    expect(decideReviewFinish(ensure({ hasToken: false, execution: AUTH_FAILURE }))).toMatchObject({ result: 'failed', next: 'auth' })
   })
 
   it('--result reviewed は書かない', () => {
     expect(decideReviewFinish({ kind: 'result', result: 'reviewed' })).toEqual({ action: 'skip', reason: 'reviewed' })
   })
 
-  it('--ensure で job が success なら書かない。App のトークンの真偽値も見ない', () => {
-    expect(decideReviewFinish(ensure('success', { kind: 'absent' }, true))).toEqual({ action: 'skip', reason: 'job-succeeded' })
+  it.for<[string, FinishInput]>([
+    ['job も成功', ensure({ job: 'success', outcome: 'success', conclusion: '' })],
+    ['後の step で job が失敗', ensure({ job: 'failure', outcome: 'success', conclusion: '' })],
+  ])('自動レビューの step が成功で conclusion が空なら（%s）、雛形の食い違いとして書かない', ([, input]) => {
+    expect(decideReviewFinish(input)).toEqual({ action: 'skip', reason: 'workflow-mismatch' })
   })
 
-  it('setup-missing は、--result か --app-token-missing のときだけ出る', () => {
+  it.for<[string, FinishInput]>([
+    ['レビューを終えた', ensure({ job: 'success', outcome: 'success', conclusion: 'success' })],
+    ['PR の確かめで飛ばした', ensure({ job: 'success', outcome: 'skipped', conclusion: '', hasToken: false })],
+  ])('job が success なら（%s）書かない', ([, input]) => {
+    expect(decideReviewFinish(input)).toEqual({ action: 'skip', reason: 'job-succeeded' })
+  })
+
+  it('setup-missing は、--result か、step が failure でトークンが無いときだけ出る', () => {
     const results = [
-      ensure('failure'),
-      ensure('failure', { kind: 'unreadable' }),
-      ensure('cancelled', { kind: 'absent' }, true),
-      ensure('failure', executionOf({ subtype: 'error_max_turns' })),
+      ensure(),
+      ensure({ hasToken: false, outcome: 'skipped' }),
+      ensure({ job: 'cancelled', outcome: 'cancelled', hasToken: false }),
+      ensure({ execution: { kind: 'unreadable' } }),
     ].map(input => decideReviewFinish(input))
     expect(results.filter(decision => decision.action === 'write' && decision.result === 'setup-missing')).toEqual([])
   })
@@ -140,7 +175,6 @@ describe('renderReviewStopped', () => {
   it.each<ReviewStoppedValues>([
     { result: 'failed', next: 'retry', location: 'before-findings', triggerPhrase: '@pecotbot review' },
     { result: 'failed', next: 'auth', location: 'unknown', triggerPhrase: '@pecotbot review', run: { runId: '1', attempt: '1' } },
-    { result: 'failed', next: 'pre-start', location: 'before-findings', triggerPhrase: '@pecotbot review' },
     { result: 'limit', next: 'limit', location: 'after-inline', triggerPhrase: '@my-bot review', run: { runId: '2', attempt: '3' } },
     { result: 'setup-missing', next: 'app-token', location: 'before-findings', triggerPhrase: '@pecotbot review' },
     { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret <X> `Y`' },

@@ -71,36 +71,59 @@
 | `--result` | 文字列 | `reviewed`・`failed`・`limit`・`setup-missing` のどれか。スキルが MCP ツールから渡す |
 | `--detail` | 文字列 | `--result setup-missing` のときの、足りない設定の名前 |
 | `--ensure` | 真偽値 | ワークフローの後始末から呼ぶ形。同じ実行の結果がまだ無いときだけ書く |
-| `--job-status` | 文字列 | `--ensure` のときに必須。`success`・`failure`・`cancelled` のどれか |
-| `--execution-file` | パス | `--ensure` のときの、action の出力 `execution_file` |
-| `--since` | ISO 8601 | `--ensure` のときの、実行の開始時刻。止まった場所を決めるのに使う |
-| `--app-token-missing` | 真偽値 | `--ensure` のときに、action が Claude の App のトークンを受け取れなかったか |
+| `--job-status` | 文字列 | `--ensure` のときの、job の終わり方（`success`・`failure`・`cancelled`） |
+| `--review-outcome` | 文字列 | `--ensure` のときの、自動レビューの step の `outcome`（`success`・`failure`・`cancelled`・`skipped`） |
+| `--review-conclusion` | 文字列 | `--ensure` のときの、action の出力 `conclusion`。空の文字列を受け付ける。Claude Code を動かさなかった run では空になる |
+| `--review-has-token` | 文字列 | `--ensure` のときの、action の出力 `github_token` があるか（`true`・`false`）。トークンの値は受け取らない |
+| `--execution-file` | パス | `--ensure` のときの、action の出力 `execution_file`。省けて、空でもよい |
+| `--since` | ISO 8601 | `--ensure` のときの、実行の開始時刻。止まった場所を決めるのに使う。省けて、空でもよい |
 | `--dry-run` | 真偽値 | PR を読み、書くはずの本文を標準出力に出す。コメントは書かない。書き込むコマンドの決まり |
 
 - `--result` と `--ensure` は、どちらか 1 つを渡す。両方・どちらも無しは、入力の誤りで止める
-- `--execution-file`・`--since`・`--app-token-missing` は `--ensure` と組む
+- `--ensure` のときは、`--job-status`・`--review-outcome`・`--review-conclusion`・`--review-has-token` の 4 つが要る。1 つでも無ければ、入力の誤りとして止まる。`--review-conclusion` は、空の文字列を渡せば足りる
+- `--ensure` の補助の引数を、`--ensure` なしで渡すと、入力の誤りで止まる
+
+`--ensure` の判定は、action の公開の出力と step の `outcome` を元に決める。action の中の step の出力と、run の記録の文は読まない。後始末は同じ job の中で動くので、run の記録は読めない（research の R9）。
+`execution_file` は、runner の上のファイルなので読める。無いか読めなければ、その行を飛ばす。
+
+`--result` で呼んだとき:
 
 | 条件 | 振る舞い |
 |---|---|
 | 結果が `reviewed` | コメントを書かない。実行の記録に、`skipped` の行を 1 行出す |
-| 結果が `failed`・`limit`・`setup-missing` | 止まったことを知らせるコメントを書く |
-| `--ensure` で、job が成功 | 何もしない |
-| `--ensure` で、job が失敗し、同じ実行・同じ試行のコメントがある | 何も書かない |
-| `--ensure` で、job が `cancelled` | `limit` として書く。時間の上限と手での取り消しを見分けない（research の R9） |
-| `--ensure` で、job が `failure` で `--app-token-missing` | `setup-missing` として書き、Claude の App を入れる手順を添える |
-| `--ensure` で、`execution_file` の最後の `result` が `subtype: error_max_turns` | `limit` として書く |
-| `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書く。`result` の文か `errors` に `authentication_error` があれば、トークンを作り直す手順を添える。`subtype` だけで判定しない |
-| `--ensure` で、job が `failure` で、上のどれにも当たらない（`execution_file` が無い・読めない、`result` の行が無い、ほかの `subtype`） | `failed` として書く |
-| `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の権限が `admin` でも `write` でもない | コメントを書かない。action が書いた人の権限で止めた場合だ。誰でも bot のコメントを付けさせられるのを避ける |
-| `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の名前が `[bot]` で終わる | 権限を読まずに書く。action も、名前が `[bot]` で終わる起動者を書ける側とみなす |
-| `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の権限を読めない | `warning` の行を出して書く。止まったことが PR に残らないほうが困る |
 | PR が閉じている | コメントを書かない |
+| 結果が `failed`・`limit`・`setup-missing` | 止まったことを知らせるコメントを書く |
+
+`--ensure` で呼んだとき。上から順に見て、最初に当たった行で決める。
+
+| 条件 | 振る舞い |
+|---|---|
+| 自動レビューの `outcome` が `success` で、`conclusion` が空 | コメントを書かない。PR のブランチで雛形を変えたので、Claude の App がトークンを出さず、action がレビューを飛ばした。`skipped` の行に、合言葉で起こし直してもこの PR では動かないことを添える |
+| job が成功 | 何もしない |
+| job が `cancelled` | `limit` として書く。`cancelled` は、時間の上限と手での取り消しを見分けない（research の R9） |
+| `execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書く。`result` の文か `errors` に `authentication_error` があれば、トークンを作り直す手順を添える。`subtype` だけで判定しない |
+| `execution_file` の最後の `result` が `subtype: error_max_turns` | `limit` として書く |
+| 自動レビューの `outcome` が `failure` で、`github_token` が無い | `setup-missing` として書き、Claude の App を入れる手順を添える。action が Claude の App のトークンを受け取れずに止めた |
+| それ以外 | `failed` として書く |
+
+書くと決めた後に、次を順に見る。どれかに当たれば書かない。
+
+| 条件 | 振る舞い |
+|---|---|
+| PR が閉じている | コメントを書かない |
+| 自動レビューの `outcome` が `failure` で `conclusion` が空（Claude Code が動いていない）で、`GITHUB_ACTOR` の権限が `admin` でも `write` でもない | コメントを書かない。action が書いた人の権限で止めた場合だ。誰でも bot のコメントを付けさせられるのを避ける |
+| 同じ実行・同じ試行のコメントがある | 何も書かない |
+
+- PR の確かめの step が fork・draft・閉じた PR を弾いた run は、自動レビューの `outcome` が `skipped` で、job が成功する。「job が成功」の行が受ける
+- 自動レビューより前の step が失敗した run も、自動レビューの `outcome` は `skipped` になる。step の `if` に `always()` が無いためだ。job は失敗なので、`failed` として書く
+- 書いた人の権限は、job の `if` が見る `author_association` では決まらない。`MEMBER`・`COLLABORATOR` は write の権限を意味しないので、read だけの人のコメントも `if` を通る。このため、Claude Code が動かずに落ちた run では、CLI が `GITHUB_ACTOR` の権限を読む
+  - 名前が `[bot]` で終わる起動者は、権限を読まずに書く。action も、名前が `[bot]` で終わる起動者を書ける側とみなす
+  - 権限を読めないときは、`warning` の行を出して書く。止まったことが PR に残らないほうが困る
 
 - 止まったことを知らせるコメントは、`cli/templates/comment/review-stopped.md` から作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
 - 止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントの有無から決める。`--since` が無いか空なら「分からない」と書く
 - 目印には、環境変数 `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` を入れる。re-run では run の ID が変わらないためだ。`GITHUB_RUN_ID` が無ければ、目印を付けずに書く
 - 目印を探すのは、bot のコメントだけだ。人が目印を書き込んで、記録を消せないようにする
-- 書いた人の権限は、job の `if` が見る `author_association` では決まらない。`MEMBER`・`COLLABORATOR` は write の権限を意味しないので、read だけの人のコメントも `if` を通る
 - 合言葉は、環境変数 `PECOT_REVIEW_TRIGGER_PHRASE` から読む。無ければ `@pecotbot review` だ
-- action の出力 `skipped_due_to_workflow_validation_mismatch` は、action の外から読めない。この値が `true` のとき、action は step を成功で終えるので、job も成功で、何もしない
+- action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、action の `outputs` に無く、呼ぶ側から読めない
 - トークンの値と secret の値を、コメントと出力に書かない

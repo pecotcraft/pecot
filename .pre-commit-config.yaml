@@ -141,7 +141,7 @@ repos:
         entry: bash .githooks/scripts/run-lint.sh
         language: unsupported
         pass_filenames: false
-        files: ^\.githooks/gitlint/.*\.py$
+        files: ^\.githooks/(gitlint|scripts/pages_site)/.*\.(py|json)$
         stages: [pre-commit]
 
       - id: check-engines-node-drift

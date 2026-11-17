@@ -99,13 +99,15 @@
         "runtime",
         "{workspaceRoot}/plugins/pecot-workflow/cli/tests/interface-export/node-sample.json",
         "{workspaceRoot}/plugins/*/interface/generated.json",
+        "{workspaceRoot}/plugins/*/project.json",
+        "{workspaceRoot}/nx.json",
         "env"
       ],
       "dependsOn": [
         "install"
       ],
       "metadata": {
-        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli/tests/interface-export/）を形式の検証に読むので、inputs に足してある。 tests/names.test.ts は pecot-visual・pecot-tools の定義書を材料に借りるだけなので、inputs に足さない。定義書が names に合うかは lint-defs が確かめる。 docs/tests の pytest（iface_defs 拡張）も動かす。"
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli/tests/interface-export/）を形式の検証に読むので、inputs に足してある。 tests/names.test.ts は pecot-visual・pecot-tools の定義書を材料に借りるだけなので、inputs に足さない。定義書が names に合うかは lint-defs が確かめる。 docs/tests の pytest（iface_defs 拡張）も動かす。 pytest は docs/junit-lanes.json の junit が各プラグインの outputs にあるかを見る。 そのため plugins/*/project.json を inputs に足してある。 targetDefaults が outputs を足さないことも見るので、nx.json も足してある。"
       },
       "options": {
         "command": "pnpm exec vitest run --coverage && uv run --locked --project docs pytest docs/tests -q",
@@ -119,7 +121,7 @@
         "install"
       ],
       "metadata": {
-        "description": "定義書とテストの合否の HTML を docs/_build に作る。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。PR の必須のレーンではない。"
+        "description": "定義書とテストの合否の HTML を docs/_build に作る。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。PR の必須のレーンではない。 読む JUnit は docs/junit-lanes.json で決める。 PECOT_SITE_STRICT=1 を付けると、JUnit が無いか読めないレーンがあるとき、その名前を出して止まる。 全ページの版の帯の値は、PECOT_SITE_SIDE・PECOT_SITE_SHA などで渡せる。 渡さなければ、手元・HEAD・今の時刻で埋まる。"
       },
       "options": {
         "commands": [

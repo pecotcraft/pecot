@@ -4,6 +4,8 @@
 
 `.pecot/config/.env`に設定（`cat`で内容確認）。
 
+`.pecot/config/` の無い clone では `.env` を作らない。`gh auth login` でログインするか、pecot を起こす前（MCP ではセッションを起こす前）に環境変数を設定する。
+
 **必須スコープ**: `repo`, `read:org`, `project`
 
 **トークン取得優先順位:**

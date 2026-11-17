@@ -1,5 +1,5 @@
 // 図のセルが表示する文言を、文章規則に渡す形で取り出す純粋関数。
-// fs / process には触れない（憲法 II）。
+// fs / process には触れない（憲法の層の分離）。
 
 import { DOMParser, MIME_TYPE } from '@xmldom/xmldom'
 

@@ -28,13 +28,14 @@ const DEFAULT_TRIGGER_PHRASE = '@pecotbot review'
 // action の checkWritePermissions と同じ。collaborators の permission で maintain は write になる
 const WRITE_PERMISSIONS: ReadonlySet<string> = new Set(['admin', 'write'])
 
-const SKIP_REASON_SCHEMA = z.enum(['reviewed', 'job-succeeded', 'closed', 'already-written', 'actor-without-write'])
+const SKIP_REASON_SCHEMA = z.enum(['reviewed', 'job-succeeded', 'workflow-mismatch', 'closed', 'already-written', 'actor-without-write'])
 type SkipReason = z.infer<typeof SKIP_REASON_SCHEMA>
 
 function skipText(reason: SkipReason): string {
   switch (reason) {
     case 'reviewed': { return 'the review finished' }
     case 'job-succeeded': { return 'the job succeeded' }
+    case 'workflow-mismatch': { return 'the workflow file differs from the default branch, so the action skipped the review; a review started by a comment does not run on this PR either' }
     case 'closed': { return 'the PR is closed' }
     case 'already-written': { return 'this run already posted one' }
     case 'actor-without-write': { return 'the actor has no write permission' }
@@ -49,7 +50,9 @@ const InputSchema = z.object({
   job_status: z.enum(['success', 'failure', 'cancelled']).optional().describe('Status of the job (required with ensure)'),
   execution_file: z.string().optional().describe('Path of the execution_file output of claude-code-action (only with ensure)'),
   since: z.string().optional().describe('Start time of the run in ISO 8601, to find the inline comments it posted (only with ensure)'),
-  app_token_missing: z.boolean().default(false).describe('The action could not get the token of the Claude GitHub App (only with ensure)'),
+  review_outcome: z.enum(['success', 'failure', 'cancelled', 'skipped']).optional().describe('Outcome of the automated review step (required with ensure)'),
+  review_conclusion: z.string().optional().describe('The conclusion output of claude-code-action; empty when Claude Code did not run (required with ensure, may be empty)'),
+  review_has_token: z.enum(['true', 'false']).optional().describe('Whether claude-code-action output a github_token (required with ensure; never the token itself)'),
   dry_run: z.boolean().default(false).describe('Read the PR and show the comment that would be posted without posting it'),
 })
 
@@ -90,12 +93,14 @@ function validateCombination(out: FinishOutput, input: Readonly<Input>): void {
   if (input.ensure === (input.result !== undefined)) stopInvalid(out, hinted`specify exactly one of ${result} and ${ensure}`)
   if (input.detail !== undefined && input.result !== 'setup-missing') stopInvalid(out, hinted`${inputNameHint(PATH, 'detail')} is only for ${result} setup-missing`)
   if (!input.ensure) {
-    const given = { job_status: input.job_status !== undefined, execution_file: input.execution_file !== undefined, since: input.since !== undefined, app_token_missing: input.app_token_missing }
-    const ensureOnly = Object.entries(given).find(([, isGiven]) => isGiven)?.[0]
+    const given = { job_status: input.job_status, review_outcome: input.review_outcome, review_conclusion: input.review_conclusion, review_has_token: input.review_has_token, execution_file: input.execution_file, since: input.since }
+    const ensureOnly = Object.entries(given).find(([, value]) => value !== undefined)?.[0]
     if (ensureOnly !== undefined) stopInvalid(out, hinted`${inputNameHint(PATH, ensureOnly)} is only for ${ensure}`)
     return
   }
-  if (input.job_status === undefined) stopInvalid(out, hinted`${inputNameHint(PATH, 'job_status')} is required with ${ensure}`)
+  const required = { job_status: input.job_status, review_outcome: input.review_outcome, review_conclusion: input.review_conclusion, review_has_token: input.review_has_token }
+  const missing = Object.entries(required).find(([, value]) => value === undefined)?.[0]
+  if (missing !== undefined) stopInvalid(out, hinted`${inputNameHint(PATH, missing)} is required with ${ensure}`)
 }
 
 function parseSince(out: FinishOutput, since: string | undefined): Date | undefined {
@@ -123,7 +128,14 @@ function finishInputOf(input: Readonly<Input>): FinishInput {
   const jobStatus = input.job_status ?? 'failure'
   const absent: ExecutionReading = { kind: 'absent' }
   const execution = jobStatus === 'failure' ? readExecutionFile(input.execution_file) : absent
-  return { kind: 'ensure', jobStatus, isAppTokenMissing: input.app_token_missing, execution }
+  return {
+    kind: 'ensure',
+    jobStatus,
+    reviewOutcome: input.review_outcome ?? 'skipped',
+    reviewConclusion: input.review_conclusion?.trim() ?? '',
+    hasToken: input.review_has_token === 'true',
+    execution,
+  }
 }
 
 function runIdentity(): RunIdentity | undefined {

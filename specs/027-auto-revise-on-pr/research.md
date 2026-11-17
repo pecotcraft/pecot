@@ -70,7 +70,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 | draft の PR | `if` が `github.event.pull_request.draft` を見る |
 | 合言葉で始まらないコメント、Issue へのコメント | `if` が、コメントが PR に付いたことと、本文が合言葉で始まり、直後が空白か改行か本文の終わりであることを見る。`prompt` を渡した action は、合言葉を確かめないからだ（R15） |
 | 書き込み権限の無い人が、本文を編集する | 契機に無いので、起動しない |
-| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに飛ばす。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
+| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに絞る。この値は read の collaborator と権限の無い member も通すので、PR の確かめの step が書いた人の権限を読み、`admin`・`maintain`・`write` でなければ後の step を飛ばす（#602 のレビューで追加）。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
 | bot が作った PR | `if` が、PR の作者の名前を、許した bot の一覧と比べる。action の `allowed_bots` にも同じ一覧を渡す |
 
 - 書き込み権限のある人が合言葉を書いたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる
@@ -124,7 +124,7 @@ Claude の App のトークンで確かめたこと:
 
 | 確かめること | 結果 | 版 | 確かめた日 |
 |---|---|---|---|
-| Claude の App のトークンを受け取れるか | ワークフローのファイルが既定のブランチと同じ中身のときだけ受け取れる。PR のブランチで足した・変えたワークフローでは、action が `Workflow validation failed` でレビューを飛ばした | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
+| Claude の App のトークンを受け取れるか | ワークフローのファイルが既定のブランチと同じ中身のときだけ受け取れる。PR のブランチで足した・変えたワークフローでは、action が `Workflow validation failed` でレビューを飛ばした。後始末が飛ばされたことを見分ける値は R9 | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
 | プラグインと pecot の MCP サーバ | `connected`。`PECOT_GITHUB_COM_TOKEN` に `GITHUB_TOKEN` を渡すと、`pr_show` が動いた | 同上 | 2026-11-17 |
 | インラインコメントの投稿者 | `claude[bot]`。URL と `comment_id` が返った | 同上 | 2026-11-17 |
 
@@ -298,20 +298,54 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 - 同じ実行で 2 度書かないために、実行の ID を入れた目印の行を使う
 - 失敗と上限の見分けは、job の終わり方と、action の出力から決める
 
-| 終わり方 | job・step | action の `conclusion` | `execution_file` の最後の `result` |
-|---|---|---|---|
-| ターンの上限 | Review が `failure` | `failure` | `subtype: error_max_turns`・`terminal_reason: max_turns`・`is_error: true` |
-| 時間の上限 | job が `cancelled`。Review が `cancelled` | 空 | ファイルが残らない |
-| API の失敗（認証・クレジット） | Review が `failure` | `failure` | `subtype: success`・`terminal_reason: api_error`・`is_error: true`。`result` に API の文が入る |
-| 終えた | Review が `success` | `success` | `subtype: success`・`is_error: false` |
+| 終わり方 | job | Review の `outcome` | action の出力 `conclusion` | `execution_file` の最後の `result` |
+|---|---|---|---|---|
+| ターンの上限 | `failure` | `failure` | 空 | `subtype: error_max_turns`・`terminal_reason: max_turns`・`is_error: true` |
+| 時間の上限 | `cancelled` | `cancelled` | 空 | ファイルが残らない |
+| API の失敗（認証・クレジット） | `failure` | `failure` | 空 | `subtype: success`・`terminal_reason: api_error`・`is_error: true`。`result` に API の文が入る |
+| 終えた | `success` | `success` | `success` | `subtype: success`・`is_error: false` |
 
 確かめた版は action v1.0.278・Claude Code 2.1.326、日付は 2026-11-17 だ。分かったことは、次のとおりだ。
+
+- `conclusion` は、失敗のときに空になる（下の「後始末が読む値」）
 
 - `if: always()` の step は、時間の上限で切られた後も動いた（run 44040534751）。後始末の step を最後に置く形は成り立つ
 - 時間の上限の `cancelled` は、人が run を手で取り消したときと同じ値だ。job の中からは、2 つを見分けられない
 - `subtype` だけでは、API の失敗と終えた場合を見分けられない。`is_error` と `terminal_reason` も見る
 - `--max-turns` は main のターンだけを数える。サブエージェントの中のやり取りは数えない。w-reviewer が長いレビューを返した run も、2 ターンで終わった（run 44039505483）
 - ターンの上限の run は 44039760791、API の失敗の run は 44029781882（認証）・44030238020（クレジット）だ
+
+### 後始末が読む値
+
+- Decision: 後始末は、自動レビューの step の `outcome`、action の出力 `conclusion`、出力 `github_token` の有無と、`execution_file` で終わり方を決める。action の中の step の出力と、実行の記録の文は読まない（#594）
+- Rationale: 後始末は同じ job の中で動くので、記録は読めない。action の中の step が出す `skipped_due_to_workflow_validation_mismatch` は、action の `outputs` に無く、呼ぶ側からは常に空だ
+
+v1.0.278 の `src/entrypoints/run.ts`・`src/github/token.ts`・`base-action/src/run-claude-sdk.ts` から読んだことは、次のとおりだ。
+
+- 雛形を変えた PR では、トークンの引き換えが `WorkflowValidationSkipError` を投げ、`run.ts` はそれを受けて `return` する。`conclusion` を書かず、`setFailed` も呼ばない。`finally` の `github_token` は空になる
+- Claude の App のトークンを受け取れないときは、`token.ts` が `Error` を投げ、`run.ts` が `setFailed` を呼ぶ。トークンは空のままだ
+- Claude Code が失敗で終わると、`run-claude-sdk.ts` が例外を投げる。`conclusion` を書く前に抜けるので、出力は空になる。`execution_file` は `catch` の中で書かれる
+- 出力 `conclusion` が `success` になるのは、Claude Code が成功で終わったときだけだ
+- `prompt` を渡す形では、トークンの後の早い `return` は通らない。後ろの step は雛形の入力では飛ばされるか成功するので、Review の `outcome` は `run` の step の結果と同じになる
+
+| 終わり方 | Review の `outcome` | 出力 `conclusion` | 出力 `execution_file` | 出力 `github_token` | 確かめ方 |
+|---|---|---|---|---|---|
+| 雛形を変えた PR で飛ばした（Claude の App） | `success` | 空 | 空 | 空 | run 44100602207 |
+| 自動レビューより前の step が失敗した | `skipped` | 空 | 空 | 空 | step の `if` に `always()` が無いので、自動レビューの step は動かない |
+| 時間の上限 | `cancelled` | 空 | 空 | 読んでいない | run 44040534751 の job と step の終わり方。出力は判定に使わない |
+| ターンの上限（自前の App） | `failure` | 空 | 有る | 有る | run 44100285556 |
+| API の失敗 | `failure` | 空 | 有る | 有る | `run.ts` と `run-claude-sdk.ts` を読んだ |
+| Claude の App のトークンを受け取れない | `failure` | 空 | 空 | 空 | `token.ts` と `run.ts` を読んだ。検証用で Claude の App を外さないと起こせない |
+| 書いた人の権限で止めた・ほかの準備の失敗 | `failure` | 空 | 空 | 有る | `run.ts` を読んだ |
+| 終えた | `success` | `success` | 有る | 有る | `run.ts` を読んだ |
+
+- 2 つの run は、検証用の PR #310・#309 で、`pecot-review.yml` に出力を出す step を足して起こした。トークンの値は出さず、有無だけを出した
+- 雛形を変えた PR の run では、記録に `Workflow validation failed` が出て、job は `success` で終わった。`job.status` の `success` が後始末に渡った。PR にコメントは付かなかった
+- 出力 `skipped_due_to_workflow_validation_mismatch` は、どちらの run でも空だった
+- 書いた人の権限で止めた run は、準備のほかの失敗と、公開の値では見分けられない。後始末は `failed` として書く（`contracts/cli-commands.md`）
+- 判定の順は、`contracts/cli-commands.md` の `--ensure` の表のとおりだ。飛ばしたときは job が成功するので、job の成否より前に見る
+- `outcome` の `skipped` は、判定に使わない。PR の確かめで弾いた run（job が成功）と、前の step の失敗（job が失敗）の両方で出るからだ。job の成否で分ける
+- `setup-missing` は、`outcome` が `failure` のときだけにする。前の step の失敗でも `github_token` は空になるので、`conclusion` と `github_token` だけでは、Claude の App を入れる案内を誤って書く
 
 - Alternatives considered:
 
@@ -352,6 +386,7 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 - Rationale: GitHub の公式は、full-length の commit SHA で固定するよう書いている。claude-code-action の文書に、固定の勧めは無い。`@v1` は、何もしなくても新しい挙動が入ると書いている
 
 - 固定した版は、利用者のリポの Dependabot が上げられる。雛形の版の目印とは別に動く
+- 版を上げるときは、`src/entrypoints/run.ts` の、雛形を変えた PR で飛ばす分岐と `conclusion` を書く所、`src/github/token.ts` のトークンの引き換えの失敗を読み直す。R9 の見分け方は、action の文書でなく、この実装から読んだ振る舞いに依る
 
 ## R12. 確かめる場所
 
@@ -417,7 +452,8 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 - `@` の候補にも、GitHub の `/` の一覧にも、自前の名前は出ない（下の表）。補完はどの形でも得られないので、前例の多い形を採った
 - 本文の先頭だけを見る。`contains` で探すと、文の途中の言及でも起動するためだ
 - `prompt` を渡す形では、action は合言葉を確かめない（`src/entrypoints/prepare.ts` の `containsTrigger` は、tag のモードでだけ `checkContainsTrigger` を呼ぶ）。判定は job の `if` だけが持つ
-- 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く。このため、job の `if` で `author_association` を先に見る
+- 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く
+  - このため、job の `if` で `author_association` を先に見て、PR の確かめの step で書いた人の権限を読む。`author_association` だけでは、read の collaborator を止められない
 - 合言葉の後に区切りを求める。本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ通す。`@pecotbot reviewer` では起動しない
 
 | 確かめること | 結果 | 版 | 確かめた日 |
@@ -430,7 +466,7 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 | `@pecotbot reviewer` と `please @pecotbot review` | どちらも job が `skipped` になり、👀 も付かなかった | 同上 | 2026-11-17 |
 | 合言葉の直後で改行したコメント（`\n` と `\r\n`） | `\n` は前の式で起動した。`\r\n` も、`fromJSON` で改行を作った 4 つの比べ方の式で起動した | 同上 | 2026-11-17 |
 | `@pecotbot` と書いたとき、ユーザーに通知が飛ぶか | ユーザーの通知に `mention` の理由のものは無かった。ただし、書いたのが Organization の持ち主のユーザー自身なので、ほかの member に飛ばないことまでは確かめていない | GitHub（github.com） | 2026-11-17 |
-| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
+| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。権限を読む PR の確かめの step を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
 
 - 受け付けの印として、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。合言葉の run は PR の Checks の欄に出ず、結果が出るまで無言になるためだ。飛ばされた run は印を付けないので、受け付けられなかったことも分かる
 - 公式の表では、Issue のコメントへのリアクションは Issues か Pull requests の write で足りる。Pull requests の write に絞ったトークンで付けられた。既定の `GITHUB_TOKEN` は job の `permissions` の `pull-requests: write` で同じ権限を持つが、確かめていない

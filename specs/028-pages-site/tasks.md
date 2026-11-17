@@ -31,15 +31,16 @@ description: "Task list for 028-pages-site"
 
 **Purpose**: 合否のレーンと JUnit のパスを `junit-lanes.json` に移し、サイトと workflow の両方がそこから決まるようにする（FR-009、research R7）
 
-- [ ] T001 [P] `libs/interface-spec/docs/tests/test_iface_defs.py` に、`junit-lanes.json` の読み込みのテストを先に書く。
+- [x] T001 [P] `libs/interface-spec/docs/tests/test_iface_defs.py` に、`junit-lanes.json` の読み込みのテストを先に書く。
   確かめること: 4 本（`pecot-workflow:test-cli`・`pecot-workflow:test-hooks`・`pecot-tools:test-cli`・`pecot-visual:test-cli`）がプラグインごとにまとまる、「同じ `junit` を 2 回書かない」に反すると失敗する、`target` の `outputs` に `junit` が無いと失敗する
-- [ ] T002 [P] `.githooks/tests/test_pages_lanes.py` に、`.githooks/scripts/pages_site/lanes.py` が `junit-lanes.json` から GitHub Actions の matrix（`lane`・`slug`・`junit`）の JSON を出すテストを先に書く。
+- [x] T002 [P] `.githooks/tests/test_pages_lanes.py` に、`.githooks/scripts/pages_site/lanes.py` が `junit-lanes.json` から GitHub Actions の matrix（`lane`・`slug`・`junit`）の JSON を出すテストを先に書く。
   slug は ci.yml の `tests (<lane>)` と同じ作り方
-- [ ] T003 `libs/interface-spec/docs/junit-lanes.json` を作る。項目は data-model.md の JunitLane（`plugin`・`target`・`junit`）。今の `conf.py` の `iface_junit` の重なり（pecot-workflow の `junit.xml` が 2 回）を解く
-- [ ] T004 `libs/interface-spec/docs/conf.py` の `iface_junit` を、`junit-lanes.json` から作るように直す（T003 の後）
-- [ ] T005 `.githooks/scripts/pages_site/lanes.py` を作る（T003 の後）。
+- [x] T003 `libs/interface-spec/docs/junit-lanes.json` を作る。項目は data-model.md の JunitLane（`plugin`・`target`・`junit`）。今の `conf.py` の `iface_junit` の重なり（pecot-workflow の `junit.xml` が 2 回）を解く
+- [x] T004 `libs/interface-spec/docs/conf.py` の `iface_junit` を、`junit-lanes.json` から作るように直す（T003 の後）
+- [x] T005 `.githooks/scripts/pages_site/lanes.py` を作る（T003 の後）。
   `.githooks/scripts/pages_site/pyrightconfig.json` を置き、`.githooks/scripts/run-lint.sh` と `.pre-commit-config.yaml` の `githooks-lint` の `files` を広げて、`pages_site/` を pyright strict にかける（憲章 III）
-- [ ] T006 `libs/interface-spec/project.json` の `docs` の `inputs`・description と、`test-unit` の description に、`junit-lanes.json` を足す
+- [x] T006 `libs/interface-spec/project.json` の `docs` と `test-unit` の description に、`junit-lanes.json` を足す。`test-unit` の inputs に `plugins/*/project.json` を足す。
+  `docs` は `cache: false` で inputs が働かないので、inputs は足さない
 
 **Checkpoint**: `pnpm exec nx run interface-spec:docs` が今と同じ HTML を作る。`python3 .githooks/scripts/pages_site/lanes.py` が 4 本の matrix を出す。`bash .githooks/scripts/run-lint.sh` が通る
 
@@ -55,33 +56,33 @@ description: "Task list for 028-pages-site"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US2] `libs/interface-spec/docs/tests/test_iface_defs.py` に `outcome_of` の 5 つの状態のテストを書く。
+- [x] T007 [P] [US2] `libs/interface-spec/docs/tests/test_iface_defs.py` に `outcome_of` の 5 つの状態のテストを書く。
   data-model.md の表を上から順に当てる: 「そのプラグインの合否のレーンのうち、JUnit が無いものがある」→ `not-run`、
   「JUnit はそろっているが、項目につながるケースが 0 件」→ `no-test`、
   「failed か error が 1 つでもある」→ `failed`、
   「passed が 1 つ以上あり、ほかは passed か skipped」→ `passed`、
   「すべて skipped」→ `skipped`。
   入力は実物の vitest の JUnit の形（`tests/fixtures` に置く）
-- [ ] T008 [P] [US2] 同じファイルに、落ちたケースの要旨のテストを書く。`message` は `<failure>`・`<error>` の `message` 属性、無ければ本文の先頭の 1 行。`detail` は本文
-- [ ] T009 [P] [US2] 同じファイルに、状態ごとの数のテストを書く。0 件の状態は出さない。一覧表の行（コマンド・ツールごと）と、トップの全体の合否（プラグインごと）。
+- [x] T008 [P] [US2] 同じファイルに、落ちたケースの要旨のテストを書く。`message` は `<failure>`・`<error>` の `message` 属性、無ければ本文の先頭の 1 行。`detail` は本文
+- [x] T009 [P] [US2] 同じファイルに、状態ごとの数のテストを書く。0 件の状態は出さない。一覧表の行（コマンド・ツールごと）と、トップの全体の合否（プラグインごと）。
   spec の Edge Cases「同じテストが複数の結果のファイルに出る: 1 件として数える」も確かめる
-- [ ] T010 [P] [US4] 同じファイルに、SiteStamp のテストを書く。
+- [x] T010 [P] [US4] 同じファイルに、SiteStamp のテストを書く。
   `PECOT_SITE_*` が無いときは `side=local`・手元の HEAD・今の時刻・`run_url` 無し。
   `side=pr` で `PECOT_SITE_PR` が無いと失敗。
   `sha` が取れないと失敗。
-  プラグインの版は各 `plugins/<name>/package.json` の `version`
-- [ ] T011 [P] [US4] 同じファイルに、`PECOT_SITE_STRICT=1` で JUnit が欠けたレーンがあると、そのレーンの名前を出して build が失敗するテストを書く。STRICT が無ければ失敗しない
+  プラグインの版は各 `plugins/<name>/.claude-plugin/plugin.json` の `version`
+- [x] T011 [P] [US4] 同じファイルに、`PECOT_SITE_STRICT=1` で JUnit が欠けたレーンがあると、そのレーンの名前を出して build が失敗するテストを書く。STRICT が無ければ失敗しない
 
 ### Implementation for User Story 2 + 4
 
-- [ ] T012 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` の `outcome_of` を 5 つの状態にし、`OUTCOME_LABELS` に記号（`✓`・`✗`・`−`・`–`・`?`）と文字を持たせる。表示は記号と文字の両方を出す（FR-015）
-- [ ] T013 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` で、`failed` の項目のページに落ちたケースの名前と要旨を出し、本文（スタック）は折りたたむ。`passed` で一部が skipped の項目は、飛ばしたケースを示す
-- [ ] T014 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` の `_summary` と `IfaceIndex` を、5 つの状態ごとの数にする
-- [ ] T015 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` に、プラグインごとの状態ごとの数をまとめる directive を足し、`libs/interface-spec/docs/index.rst` に置く（FR-018）
-- [ ] T016 [US4] `libs/interface-spec/docs/conf.py` で SiteStamp を決めて `html_context` に渡す。`PECOT_SITE_STRICT` を拡張の設定に渡す
-- [ ] T017 [US2] `libs/interface-spec/docs/_templates/header.html` に版の帯を出す。中身は contracts/pages.md の「版の帯」の表のとおり。リリース版と開発版への行き来のリンクは、公開サイトの絶対パス（`/pecot/`・`/pecot/dev/`）で張る
-- [ ] T018 [P] [US2] `libs/interface-spec/docs/_static/pecot.css` に、帯と 5 つの状態の見た目を足す。色は補いにだけ使う
-- [ ] T019 [US4] `libs/interface-spec/docs/_ext/iface_defs.py` の `IfaceTests` の「JUnit のファイルが見つからないため…」の文言を、欠けたレーンの名前を出す形に直す
+- [x] T012 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` の `outcome_of` を 5 つの状態にし、`OUTCOME_LABELS` に記号（`✓`・`✗`・`−`・`–`・`?`）と文字を持たせる。表示は記号と文字の両方を出す（FR-015）
+- [x] T013 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` で、`failed` の項目のページに落ちたケースの名前と要旨を出し、本文（スタック）は折りたたむ。`passed` で一部が skipped の項目は、飛ばしたケースを示す
+- [x] T014 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` の `_summary` と `IfaceIndex` を、5 つの状態ごとの数にする
+- [x] T015 [US2] `libs/interface-spec/docs/_ext/iface_defs.py` に、プラグインごとの状態ごとの数をまとめる directive を足し、`libs/interface-spec/docs/index.rst` に置く（FR-018）
+- [x] T016 [US4] `libs/interface-spec/docs/conf.py` で SiteStamp を決めて `html_context` に渡す。`PECOT_SITE_STRICT` を拡張の設定に渡す
+- [x] T017 [US2] `libs/interface-spec/docs/_templates/header.html` に版の帯を出す。中身は contracts/pages.md の「版の帯」の表のとおり。リリース版と開発版への行き来のリンクは、公開サイトの絶対パス（`/pecot/`・`/pecot/dev/`）で張る
+- [x] T018 [P] [US2] `libs/interface-spec/docs/_static/pecot.css` に、帯と 5 つの状態の見た目を足す。色は補いにだけ使う
+- [x] T019 [US4] `libs/interface-spec/docs/_ext/iface_defs.py` の `IfaceTests` の「JUnit のファイルが見つからないため…」の文言を、欠けたレーンの名前を出す形に直す
 
 **Checkpoint**: quickstart.md の 1 が通る。一部のレーンだけ動かして作っても失敗せず、`PECOT_SITE_STRICT=1` では失敗する
 

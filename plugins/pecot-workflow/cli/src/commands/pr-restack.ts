@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
 import { getDevelopBranch } from '../domain/config.js'
+import { FORCE_PUSH_COMMAND } from '../domain/pull-request.js'
 import { describeGone, describeRestackCheck, RESTACK_PATH } from '../domain/restack.js'
 import type { RestackDecision } from '../domain/restack.js'
 import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '../domain/state.js'
@@ -19,17 +20,19 @@ import {
   isAncestor,
   isRebaseInProgress,
   mergeBase,
+  PUSH_TIMEOUT_MILLISECONDS,
   pushWithLease,
   rebaseOnto,
   remoteOnlyChanges,
   resetHardTo,
   resolveCommit,
 } from '../infra/git.js'
-import type { FetchResult } from '../infra/git.js'
+import type { FetchResult, PushResult } from '../infra/git.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { commandHint, hinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
@@ -42,6 +45,7 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const CONFLICT_EXIT_CODE = 3
 const UNCOMMITTED_EXIT_CODE = 2
+const MILLISECONDS_PER_SECOND = 1000
 // 文の中にロングオプションを書けない（lint）ので、git の引数から組む
 const SKIP_COMMAND = ['git', 'rebase', '--skip'].join(' ')
 
@@ -101,8 +105,25 @@ function isSyncedWithRemote(cwd: string, progress: Readonly<RestackProgress>): b
   return progress.leaseSha !== undefined && mergeBase(cwd, progress.ontoSha, remoteBranch) === progress.ontoSha && hasSameTree(cwd, 'HEAD', remoteBranch)
 }
 
+// 時間切れは打ち直しても同じところで止まるので、手で push してから打つ道を示す
+function describePushFailure(push: Readonly<Extract<PushResult, { pushed: false }>>, remote: string, branch: string): HintedText {
+  const unchanged = `${branch} is restacked locally and the base record is unchanged`
+  switch (push.reason) {
+    case 'timed-out': {
+      return hinted`push timed out after ${String(PUSH_TIMEOUT_MILLISECONDS / MILLISECONDS_PER_SECOND)} seconds\n${unchanged}\npush the branch yourself: ${FORCE_PUSH_COMMAND} ${remote} ${branch}\nthen run: ${commandHint(RESTACK_PATH)}`
+    }
+    case 'cancelled': {
+      // MCP の取り消しには応答が送られない。誰にも届かないが、記録を書かずに止める扱いとして持つ
+      return hinted`push was cancelled\n${unchanged}\nrun again: ${commandHint(RESTACK_PATH)}`
+    }
+    case 'rejected': {
+      return hinted`push was rejected: ${push.stderr.trim()}\n${unchanged}\nrun again: ${commandHint(RESTACK_PATH)}`
+    }
+  }
+}
+
 // rebase が終わった後。remote が載せ直し済みで木が同じなら合わせ、違えば push し、base の記録を書き直す
-function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<RestackProgress>): void {
+async function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<RestackProgress>, signal: Readonly<AbortSignal> | undefined): Promise<void> {
   const { remote, branch, ontoBranch, leaseSha } = progress
   const remoteBranch = `${remote}/${branch}`
   if (leaseSha !== undefined && remoteOnlyCommits(cwd, progress, remoteBranch).length > 0) {
@@ -113,10 +134,10 @@ function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<Resta
   const isSynced = isSyncedWithRemote(cwd, progress)
   if (isSynced) resetHardTo(cwd, remoteBranch)
   else if (leaseSha !== undefined) {
-    const push = pushWithLease(cwd, remote, branch, leaseSha)
+    const push = await pushWithLease(cwd, remote, branch, leaseSha, { signal })
     if (!push.pushed) {
       removeFlag(FLAG_PECOT_RESTACK)
-      stopWith(out, hinted`push was rejected: ${push.stderr.trim()}\n${branch} is restacked locally and the base record is unchanged\nrun again: ${commandHint(RESTACK_PATH)}`, 'git-unresolved')
+      stopWith(out, describePushFailure(push, remote, branch), 'git-unresolved')
     }
   }
   const record: BaseRecord = { branch: ontoBranch, sha: mergeBase(cwd, 'HEAD', `${remote}/${ontoBranch}`) ?? progress.ontoSha, stackedOn: progress.stackedOn }
@@ -127,7 +148,7 @@ function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<Resta
 }
 
 // --continue と --abort。途中の記録だけを読む。記録が無ければ、利用者が始めた rebase を動かさずに止まる
-function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abort', isDryRun: boolean): void {
+async function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abort', isDryRun: boolean, signal: Readonly<AbortSignal> | undefined): Promise<void> {
   const reading = interpretRestackProgress(readFlag(FLAG_PECOT_RESTACK))
   if (reading.kind === 'malformed') stopWith(out, `.pecot-restack is malformed: ${reading.content}`, 'content-invalid')
   const isRebasing = isRebaseInProgress(cwd)
@@ -152,7 +173,7 @@ function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abor
     return
   }
   if (isRebasing && continueRebase(cwd) === 'conflict') stopOnConflict(out, cwd, progress)
-  finishRestack(out, cwd, progress)
+  await finishRestack(out, cwd, progress, signal)
 }
 
 function currentBranch(cwd: string): string | undefined {
@@ -216,7 +237,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   if (modes > 1) stopWith(out, 'give only one of check, continue and abort', 'invalid-input', USAGE_EXIT_CODE)
   const cwd = '.'
   if (input.continue || input.abort) {
-    resumeRestack(out, cwd, input.abort ? 'abort' : 'continue', input.dry_run)
+    await resumeRestack(out, cwd, input.abort ? 'abort' : 'continue', input.dry_run, io.signal)
     return
   }
 
@@ -263,7 +284,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
       out.planned({ verb: 'update', target: isSynced ? `${branch} synced with ${remote}/${branch}` : `${branch} restacked on ${decision.base}` })
       return
     }
-    finishRestack(out, cwd, progress)
+    await finishRestack(out, cwd, progress, io.signal)
     return
   }
   if (decision.kind !== 'moved' && decision.kind !== 'merged') {
@@ -282,7 +303,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     writeFlag(FLAG_PECOT_RESTACK, formatRestackProgress(progress))
     stopOnConflict(out, cwd, progress)
   }
-  finishRestack(out, cwd, progress)
+  await finishRestack(out, cwd, progress, io.signal)
 }
 
 const prRestack = defineCommand({

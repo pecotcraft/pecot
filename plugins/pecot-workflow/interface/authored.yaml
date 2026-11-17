@@ -2611,6 +2611,8 @@ entries:
         - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
         - "With --prepare and the default template, fills the trailing Closes # with the number of the work Issue, found from the git remote and the number that ends the current branch name. A leftover .pecot/state/.pecot-active is not read, so a clone without .pecot/state/ gets the same Closes."
         - "The Closes # of the copy is left empty when that Issue is an Epic."
+        - "With --prepare, when the kind of that Issue cannot be read from GitHub (including when no token is found), prints a warning, leaves Closes # empty and still writes the copy."
+        - "With --prepare, when no project config includes the target repository, prints a warning and still writes the copy with exit status 0."
         - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
         - With -m, the repository is --repo. When --repo is omitted, it is the repository of the git remote that points to a repository in a project config, checking origin first and then the others in git remote order.
         - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
@@ -3032,13 +3034,19 @@ entries:
         statement: 'もし記録が無く、積んだ先を求められないなら、`--dry-run` では warning の行を出し、`develop_branch` を base にします'
       - id: PW-PR-CREATE-75
         pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が無いなら、`--prepare` の無いときは `error` の行を出して、終了コード 1 で終わります'
       - id: PW-PR-CREATE-76
         pattern: event
         statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
       - id: PW-PR-CREATE-77
         pattern: event
         statement: '`-m` で `--repo` を省いて打つと、origin のリポが設定に無くても、設定にあるリポを指す別の remote のリポに PR を作ります'
+      - id: PW-PR-CREATE-78
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`--prepare` では `warning` の行を出し、テンプレのコピーを書いて終了コード 0 で終わります'
+      - id: PW-PR-CREATE-79
+        pattern: unwanted
+        statement: 'もし作業中の Issue の種類を GitHub から読めないなら、`--prepare` では `Closes` を空のままにし、`warning` の行を出して、テンプレのコピーを書きます'
   PW-PR-MERGE:
     help:
       details:
@@ -3228,7 +3236,7 @@ entries:
         - "A restack is needed when the head of the layer below on the remote differs from the recorded position, or when the PR of the layer below is merged. After a merge, the branch is restacked onto the develop branch and the base record becomes a start from the develop branch."
         - "A branch that is already on the new base needs no rebase, even when its base record is old. It counts as on the new base when the new base is in its history and, if the recorded position is in its history too, the recorded position is in the history of the new base. pr restack without --check then pushes the branch and rewrites the base record. When the remote branch already has the same tree on the new base, it resets to the remote branch instead of pushing."
         - "After the rebase, stops when the remote branch has commits whose change is in the local branch neither before nor after the rebase, because the push would drop them. The branch goes back to the position before the restack."
-        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the recorded position is not in the history of the branch, the rebase starts from the fork point with the remote-tracking ref of the layer below, or from the merge base with the new base when there is no fork point. This holds also after the layer below is merged. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position. A branch that is not on the remote is not pushed."
+        - "Runs git rebase --no-update-refs --onto <new base> <recorded position>. When the recorded position is not in the history of the branch, the rebase starts from the fork point with the remote-tracking ref of the layer below, or from the merge base with the new base when there is no fork point. This holds also after the layer below is merged. When the result has the same tree as the remote branch and the remote branch is already on the new base, resets to the remote branch and does not push. Otherwise pushes with --force-with-lease, expecting the fetched position, and waits up to 10 minutes including the pre-push hook. A branch that is not on the remote is not pushed."
         - "After the restack, rewrites the base record with the merge base of the branch and the new base."
         - "On conflicts, prints the conflicted files, leaves the rebase in progress, writes a progress record and exits with status 3. --continue goes on after the conflicts are resolved and staged. --abort goes back to the position before the restack. Both read only the progress record and refuse to touch a rebase that pecot did not start."
         - Only one of --check, --continue and --abort can be given.
@@ -3267,7 +3275,7 @@ entries:
       - '`git rebase --no-update-refs --onto <新しい base> <記録の位置>` を打ちます。'
       - '記録の位置がブランチの履歴に無いときは、別の点から rebase を始めます。下の段の追跡参照からの fork-point を使い、求まらなければ新しい base との merge-base を使います。下の段がマージ済みでも同じです。'
       - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
-      - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。remote に無いブランチは push しません。'
+      - 'そうでなければ、fetch した位置を期待の値にした `--force-with-lease` で push します。pre-push のフックを含めて、10 分まで待ちます。remote に無いブランチは push しません。'
       - '載せ直しの後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
       - '衝突したら、衝突したファイルを出し、rebase を途中のまま残します。途中の記録を書き、終了コード 3 で終わります。'
       - '`--continue` は、衝突を解いて `git add` した後に続けます。`--abort` は、載せ直しの前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
@@ -3297,7 +3305,7 @@ entries:
         when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
       - kind: git-unresolved
         code: 1
-        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたときも同じです。'
+        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたか、時間切れか、取り消されたときも同じです。'
       - kind: no-active-project
         code: 1
         when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
@@ -3346,7 +3354,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒まれたときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。同じコマンドの打ち直しで続きます。remote のブランチにだけあるコミットで止まったときは、ブランチを載せ直しの前の位置へ戻します。'
+    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒否・時間切れ・取り消しで止まったときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。拒まれたか取り消されたときは、同じコマンドの打ち直しで続きます。時間切れのときは、手で push してから打ち直すと、remote に合わせて続きます。remote のブランチにだけあるコミットで止まったときは、ブランチを載せ直しの前の位置へ戻します。'
     effects:
       - target: git
         kind: destructive
@@ -3469,6 +3477,9 @@ entries:
       - id: PW-PR-RESTACK-32
         pattern: event
         statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-PR-RESTACK-33
+        pattern: unwanted
+        statement: 'もし push が 10 分で終わらないなら、git を止め、時間切れの `error` の行と、手で push してから `pr restack` を打つ案内を出します。base の記録は書き直さず、終了コード 1 で終わります'
   PW-PR-SHOW:
     help:
       details:
@@ -5428,15 +5439,16 @@ entries:
     help:
       details:
         - Finishes an automated review of a PR. Posts a comment on the PR only when the review stopped (failed, limit or setup-missing), and posts nothing when it finished.
-        - Pass either --result (from the skill) or --ensure with --job-status (from the cleanup step of the workflow), not both.
-        - With --ensure, a cancelled job is limit. A failed job is setup-missing with --app-token-missing, limit when the last result of --execution-file is error_max_turns, and failed otherwise.
-        - A failed job with no execution file reads the permission of GITHUB_ACTOR, and posts nothing when it is not admin or write.
+        - Pass either --result (from the skill) or --ensure (from the cleanup step of the workflow), not both. --ensure needs --job-status, --review-outcome, --review-conclusion (may be empty) and --review-has-token.
+        - With --ensure, the first matching rule decides. A review step that succeeded with an empty conclusion means the workflow file differs from the default branch, and nothing is posted. A succeeded job posts nothing, and a cancelled job is limit.
+        - A failed job is failed when the last result of --execution-file is an api_error, limit when it is error_max_turns, setup-missing when the review step failed without a token, and failed otherwise.
+        - When the review step failed before Claude Code ran (an empty conclusion), reads the permission of GITHUB_ACTOR, and posts nothing when it is not admin or write.
         - The comment names where the review stopped. With --since, an inline comment starting with **F-NN** made after that time means it stopped after posting inline comments.
         - The comment ends with a hidden marker of GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. When a comment by a bot already has the same marker, nothing is posted.
         - A closed PR gets no comment. The project config is not read; the host is github.com.
         - With --dry-run, reads the PR and writes the body that would be posted to stdout, and posts nothing.
       examples:
-        - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
+        - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --review-outcome failure --review-conclusion failure --review-has-token true --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
           note: Post a comment from the cleanup step when the review job failed.
         - run: pecot review finish example-org/my-repo/123 --result reviewed
           note: Finish a review that posted its findings. Nothing is posted.
@@ -5451,23 +5463,31 @@ entries:
       job_status: '`--ensure` のときの job の終わり方です。`success`・`failure`・`cancelled` のどれかです。'
       execution_file: '`--ensure` のときの、claude-code-action の出力 `execution_file` のパスです。'
       since: '`--ensure` のときの、実行の開始時刻です。ISO 8601 で渡します。この時刻より後のインラインコメントから、止まった場所を決めます。空なら渡さないのと同じです。'
-      app_token_missing: '`--ensure` のときに、action が Claude の GitHub App のトークンを受け取れなかったかどうかです。'
+      review_outcome: '`--ensure` のときの、自動レビューの step の `outcome` です。`success`・`failure`・`cancelled`・`skipped` のどれかです。'
+      review_conclusion: '`--ensure` のときの、claude-code-action の出力 `conclusion` です。Claude Code を動かさなかった run では空なので、空の文字列を受け付けます。'
+      review_has_token: '`--ensure` のときの、claude-code-action の出力 `github_token` があるかどうかです。`true` か `false` で渡し、トークンの値は受け取りません。'
       dry_run: 'PR を読み、書くはずの本文を標準出力に出します。コメントは書きません。'
     constraints:
       - conflicts: [result, ensure]
-      - requires: {ensure: [job_status]}
+      - requires: {ensure: [job_status, review_outcome, review_conclusion, review_has_token]}
       - requires: {detail: [result]}
       - requires: {execution_file: [ensure]}
       - requires: {since: [ensure]}
-      - requires: {app_token_missing: [ensure]}
+      - requires: {job_status: [ensure]}
+      - requires: {review_outcome: [ensure]}
+      - requires: {review_conclusion: [ensure]}
+      - requires: {review_has_token: [ensure]}
     details:
       - '`--result` か `--ensure` のどちらか 1 つを渡します。`--result` はスキルが、`--ensure` はワークフローの後始末の step が使います。'
+      - '`--ensure` の判定は、上から順に見て、最初に当たったもので決めます。'
+      - '`--ensure` で、自動レビューの step が `success` で `conclusion` が空なら、書きません。PR のブランチで雛形を変えたので、action がレビューを飛ばした run です。合言葉で起こし直してもこの PR では動かないことを、`skipped` の行に添えます。'
       - '結果が `reviewed` のときと、`--ensure` で job が `success` のときは、コメントを書かずに `skipped` の行を出します。'
       - '`--ensure` で job が `cancelled` のときは、`limit` として書きます。時間の上限と、人が run を取り消したときを見分けません。'
-      - '`--ensure` で job が `failure` で `--app-token-missing` のときは、`setup-missing` にします。Claude の GitHub App を入れる手順を添えます。'
+      - '`--ensure` で job が `failure` のときは、まず `--execution-file` の最後の `result` の行を見ます。'
       - '`--execution-file` の最後の `result` の行が `error_max_turns` なら、`limit` として書きます。'
       - '`is_error` が真で `terminal_reason` が `api_error` なら、`failed` として書きます。`result` の文か `errors` に `authentication_error` があれば、トークンを作り直す手順を添えます。'
-      - 'ほかの `failure` は `failed` として書きます。実行のファイルが無いときは、`GITHUB_ACTOR` の権限を読み、`admin` か `write` でなければ書きません。'
+      - '次に、自動レビューの step が `failure` で `github_token` が無ければ、`setup-missing` にします。Claude の GitHub App を入れる手順を添えます。'
+      - 'ほかの `failure` は `failed` として書きます。step が `failure` で `conclusion` が空なら、`GITHUB_ACTOR` の権限を読み、`admin` か `write` でなければ書きません。'
       - '止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントがあるかで決めます。`--since` が無ければ「分からない」と書きます。'
       - '本文の末尾に、`GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` を入れた、画面に出ない目印の行を付けます。同じ目印を持つ bot のコメントがあれば、書きません。'
       - '閉じている PR には書きません。プロジェクトの設定は読まず、ホストは `github.com` です。'
@@ -5481,7 +5501,7 @@ entries:
         pullRequest: '対象の PR です。`owner/repo/N` の形です。'
         result: 'コメントに書いた結果です。`failed`・`limit`・`setup-missing` のどれかです。書かなかったときは入りません。'
         location: '止まった場所です。`before-findings`（指摘を投稿する前）・`after-inline`（インラインコメントを投稿した後）・`unknown` のどれかです。書かなかったときは入りません。'
-        skipped: '書かなかった理由です。`reviewed`・`job-succeeded`・`closed`・`already-written`・`actor-without-write` のどれかです。書いたときは入りません。'
+        skipped: '書かなかった理由です。`reviewed`・`job-succeeded`・`workflow-mismatch`・`closed`・`already-written`・`actor-without-write` のどれかです。書いたときは入りません。'
         commentUrl: '書いたコメントの URL です。書かなかったとき、`dry_run` のとき、GitHub が URL を返さなかったときは入りません。'
         dryRun: '`dry_run` のときだけ `true` が入ります。'
     diagnostics: '標準エラーに、書いたときは `created` の行を、書かなかったときは理由を添えた `skipped` の行を出します。`--dry-run` のときは、代わりに `dry-run: would` の行を出します。権限を読めないときは `warning` の行を出して書きます。本文がテンプレートに合わないときは、`error` の行を出します。'
@@ -5491,13 +5511,13 @@ entries:
       - name: GITHUB_RUN_ATTEMPT
         effect: '目印に入れる試行の番号です。無いか空なら `1` にします。'
       - name: GITHUB_ACTOR
-        effect: '`--ensure` で実行のファイルが無い `failure` のときに、権限を読む利用者です。無いときと空のときは、権限を読まずに書きます。名前が `[bot]` で終わるときも同じです。'
+        effect: '`--ensure` で、自動レビューの step が `conclusion` の空の `failure` のときに、権限を読む利用者です。無いときと空のときは、権限を読まずに書きます。名前が `[bot]` で終わるときも同じです。'
       - name: PECOT_REVIEW_TRIGGER_PHRASE
         effect: '次にすることの文に書く合言葉です。無いか空なら `@pecotbot review` を書きます。'
     exit_status:
       - kind: invalid-input
         code: 1
-        when: '`--result` と `--ensure` の両方を渡したか、どちらも渡していません。`--ensure` に `--job-status` が無いときも含みます。`--ensure` の無い補助の引数、`setup-missing` でない `--detail`、ISO 8601 でない `--since` も同じです。'
+        when: '`--result` と `--ensure` の両方を渡したか、どちらも渡していません。`--ensure` に `--job-status` などの要る引数が無いときも含みます。`--ensure` の無い補助の引数、`setup-missing` でない `--detail`、ISO 8601 でない `--since` も同じです。'
       - kind: invalid-input
         code: 2
         when: 'PR の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
@@ -5537,7 +5557,7 @@ entries:
       - '`github.com` の GitHub トークンが要ります。'
     idempotent: true
     examples:
-      - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
+      - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --review-outcome failure --review-conclusion failure --review-has-token true --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
         note: 'ワークフローの後始末から、job が失敗したときにコメントを書きます。'
       - run: pecot review finish example-org/my-repo/123 --result reviewed
         note: '指摘を投稿し終えたレビューを終えます。コメントは書きません。'
@@ -5546,13 +5566,13 @@ entries:
     behaviors:
       - id: PW-REVIEW-FINISH-01
         pattern: event
-        statement: '`--ensure --job-status failure` で同じ実行のコメントが無いと、`failed` のコメントを PR に 1 つ書き、その URL を標準出力に出します'
+        statement: '`--ensure` で job と自動レビューの step が `failure` で、同じ実行のコメントが無いと、`failed` のコメントを PR に 1 つ書き、その URL を標準出力に出します'
       - id: PW-REVIEW-FINISH-02
         pattern: unwanted
         statement: 'もし同じ実行・同じ試行の目印を持つ bot のコメントがあるなら、書かずに `skipped` の行を出して終了コード 0 で終わります'
       - id: PW-REVIEW-FINISH-03
         pattern: event
-        statement: '`--ensure --job-status cancelled` で打つと、`limit` のコメントを書きます'
+        statement: '`--ensure` で job が `cancelled` だと、`limit` のコメントを書きます'
       - id: PW-REVIEW-FINISH-04
         pattern: event
         statement: '実行のファイルの最後の `result` が `error_max_turns` だと、`limit` のコメントを書きます'
@@ -5561,16 +5581,16 @@ entries:
         statement: '実行のファイルの最後の `result` が `api_error` の認証の失敗だと、トークンを作り直す手順を添えた `failed` のコメントを書きます'
       - id: PW-REVIEW-FINISH-06
         pattern: event
-        statement: '`--app-token-missing` を付けて `failure` で打つと、Claude の GitHub App を入れる手順を添えた `setup-missing` のコメントを書きます'
+        statement: '自動レビューの step が `failure` で `github_token` が無いと、Claude の GitHub App を入れる手順を添えた `setup-missing` のコメントを書きます'
       - id: PW-REVIEW-FINISH-07
         pattern: unwanted
-        statement: 'もし実行のファイルが無い `failure` で、起動した人が `admin` でも `write` でもないなら、書かずに `skipped` の行を出します'
+        statement: 'もし自動レビューの step が `conclusion` の空の `failure` で、起動した人が `admin` でも `write` でもないなら、書かずに `skipped` の行を出します'
       - id: PW-REVIEW-FINISH-08
         pattern: event
         statement: '`--result reviewed` で打つと、PR を読まずに、書かずに `skipped` の行を出します'
       - id: PW-REVIEW-FINISH-09
         pattern: event
-        statement: '`--ensure --job-status success` で打つと、PR を読まずに、書かずに `skipped` の行を出します'
+        statement: '`--ensure` で job が `success` だと、PR を読まずに、書かずに `skipped` の行を出します'
       - id: PW-REVIEW-FINISH-10
         pattern: unwanted
         statement: 'もし PR が閉じているなら、書かずに `skipped` の行を出します'
@@ -5598,6 +5618,9 @@ entries:
       - id: PW-REVIEW-FINISH-18
         pattern: event
         statement: '`--since` に空の値を渡すと、止まった場所を「分からない」と書きます'
+      - id: PW-REVIEW-FINISH-19
+        pattern: event
+        statement: '`--ensure` で自動レビューの step が `success` で `conclusion` が空だと、PR を読まずに、雛形の食い違いを添えた `skipped` の行を出します'
   PW-SESSION-FINISH:
     help:
       details:

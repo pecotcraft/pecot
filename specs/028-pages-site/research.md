@@ -86,7 +86,7 @@
 
 - **Decision**: サイトを作るときに、環境変数（`PECOT_SITE_SIDE`・`PECOT_SITE_SHA`・`PECOT_SITE_RUN_URL`・`PECOT_SITE_BUILT_AT`・`PECOT_SITE_PR`）を `conf.py` が読み、`html_context` に渡す。
   テンプレートの `header.html` が、すべてのページの上に版の帯を出す。
-  各プラグインの版は、各プラグインの `package.json` の `version` から読む。
+  各プラグインの版は、各プラグインの `.claude-plugin/plugin.json` の `version` から読む。`package.json` の `version` は pnpm の workspace のための `0.0.0` で、nx release は上げない。
   手元では、環境変数が無ければ `git rev-parse` と今の時刻で埋め、側を「手元」と出す
 - **Rationale**: FR-012・FR-013・FR-019・FR-021・FR-025。テーマの既存のテンプレート（`_templates/header.html`）を使えば、全ページに 1 か所で出せる
 - **Alternatives considered**: 版の情報をトップだけに出す。SC-004（どのページからも 1 クリック）を満たさない

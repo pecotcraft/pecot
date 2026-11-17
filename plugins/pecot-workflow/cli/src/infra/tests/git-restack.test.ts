@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
 import { execFileSync } from 'node:child_process'
-import { readFileSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -278,29 +278,91 @@ describe('hasSameTree と resetHardTo', () => {
 })
 
 describe('pushWithLease', () => {
-  it('期待の SHA が remote と同じなら push し、remote が手元の SHA になる', () => {
+  it('期待の SHA が remote と同じなら push し、remote が手元の SHA になる', async () => {
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     const expected = sha(stack.upper, 'origin/upper')
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('done')
 
-    expect(pushWithLease(stack.upper, 'origin', 'upper', expected)).toEqual({ pushed: true })
+    expect(await pushWithLease(stack.upper, 'origin', 'upper', expected)).toEqual({ pushed: true })
 
     expect(sha(stack.origin, 'upper')).toBe(sha(stack.upper, 'HEAD'))
   })
 
-  it('期待の SHA が remote の先頭に一致しなければ拒まれ、remote を変えない', () => {
+  it('期待の SHA が remote の先頭に一致しなければ拒まれ、remote を変えない', async () => {
     const stack = createStack()
     const remoteBefore = sha(stack.origin, 'upper')
     commitFile(stack.upper, 'local.txt', 'x\n', 'local')
 
-    const result = pushWithLease(stack.upper, 'origin', 'upper', stack.recordedBase)
+    const result = await pushWithLease(stack.upper, 'origin', 'upper', stack.recordedBase)
 
-    expect(result.pushed).toBe(false)
+    expect(result).toMatchObject({ pushed: false, reason: 'rejected' })
     expect(result.pushed ? '' : result.stderr).toContain('stale info')
     expect(sha(stack.origin, 'upper')).toBe(remoteBefore)
   })
+
+  it('pre-push のフックが時間切れを超えると、フックごと git を止めてすぐに timed-out を返し、remote を変えない', async () => {
+    const stack = createStack()
+    const remoteBefore = sha(stack.origin, 'upper')
+    commitFile(stack.upper, 'local.txt', 'x\n', 'local')
+    const hook = installSlowPrePush(stack.upper)
+    const started = Date.now()
+
+    const result = await pushWithLease(stack.upper, 'origin', 'upper', remoteBefore, { timeoutMilliseconds: 2000 })
+
+    expect(Date.now() - started).toBeLessThan(HOOK_SECONDS * 1000 / 2)
+    expect(result).toMatchObject({ pushed: false, reason: 'timed-out' })
+    expect(sha(stack.origin, 'upper')).toBe(remoteBefore)
+    await expect.poll(() => isRunning(hook.pid())).toBe(false)
+  })
+
+  it('push を待つ間に取り消されると、フックごと git を止めてすぐに cancelled を返し、remote を変えない', async () => {
+    const stack = createStack()
+    const remoteBefore = sha(stack.origin, 'upper')
+    commitFile(stack.upper, 'local.txt', 'x\n', 'local')
+    const hook = installSlowPrePush(stack.upper)
+    const controller = new AbortController()
+    const started = Date.now()
+
+    const pending = pushWithLease(stack.upper, 'origin', 'upper', remoteBefore, { signal: controller.signal })
+    await expect.poll(() => hook.pid()).toBeDefined()
+    controller.abort()
+
+    expect(await pending).toMatchObject({ pushed: false, reason: 'cancelled' })
+    expect(Date.now() - started).toBeLessThan(HOOK_SECONDS * 1000 / 2)
+    expect(sha(stack.origin, 'upper')).toBe(remoteBefore)
+    await expect.poll(() => isRunning(hook.pid())).toBe(false)
+  })
 })
+
+const HOOK_SECONDS = 30
+
+// 返らないフックの代わりに、30 秒かかる pre-push のフックを置く。フックは自分の pid を書く。linked worktree でも共通の hooks に置く
+function installSlowPrePush(cwd: string): { readonly pid: () => number | undefined } {
+  const hooks = path.resolve(cwd, gitForTest(cwd, ['rev-parse', '--git-path', 'hooks']).trim())
+  mkdirSync(hooks, { recursive: true })
+  const hook = path.join(hooks, 'pre-push')
+  const pidFile = path.join(hooks, 'pre-push.pid')
+  writeFileSync(hook, `#!/bin/sh\necho $$ > "${pidFile}"\nexec sleep ${String(HOOK_SECONDS)}\n`)
+  chmodSync(hook, 0o755)
+  return {
+    pid: () => {
+      const text = existsSync(pidFile) ? readFileSync(pidFile, 'utf8').trim() : ''
+      return text === '' ? undefined : Number(text)
+    },
+  }
+}
+
+function isRunning(pid: number | undefined): boolean {
+  if (pid === undefined) throw new Error('the hook did not start')
+  try {
+    process.kill(pid, 0)
+    return true
+  }
+  catch (error: unknown) {
+    return !(error instanceof Error && 'code' in error && error.code === 'ESRCH')
+  }
+}
 
 describe('remoteOnlyChanges', () => {
   it('GitHub が書き換えた上の段のコミットと、下の段・開発ブランチのコミットは一覧に入れない', () => {

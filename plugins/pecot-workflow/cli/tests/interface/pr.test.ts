@@ -1,12 +1,12 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // pr の 3 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { installFakeExecutable, prependToPath } from '../../src/tests/_helpers/fake-executables.js'
+import { installFakeExecutable, installFakeGh, prependToPath } from '../../src/tests/_helpers/fake-executables.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
@@ -22,6 +22,8 @@ import type { ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMANDS } from '../../src/commands/registry.js'
+import { PecotError } from '../../src/domain/errors.js'
+import { ProjectsApi } from '../../src/infra/github/projects.js'
 
 useIsolatedEnvironment()
 
@@ -332,10 +334,29 @@ describe('pr create', () => {
     expect(content).toContain('## Verified')
   })
 
-  it('--prepare で対象のリポを含む設定が無いと、止めずに warning を標準エラーに出す', async () => {
+  it('--prepare で対象のリポを含む設定が無いと、止めずに warning を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-78')
     const workspace = await pushedBranch({ config: false })
     const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
     expect(result.stderr).toMatch(/^warning: acme\/demo is not in any project config\n {2}available: \(none\)\n/u)
+    expect(existsSync(result.stdout.trim())).toBe(true)
+  })
+
+  it('設定とトークンの無い clone で --prepare を付けて打つと、Closes を空のままにして warning を出し、テンプレのコピーを書く', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-79')
+    const bin = makeTemporaryDirectory()
+    installFakeGh(bin)
+    prependToPath(bin)
+    // 設定が無いのでホストは github.com になる
+    const workspace = await pushedBranch({ config: false })
+    const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('warning: kind check of Issue #12 failed: authentication error: could not get a GitHub API token\n')
+    expect(result.stderr).toContain('gh auth login -h github.com')
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #$/mu)
+    expect(existsSync(path.join(workspace.directory, '.pecot/config'))).toBe(false)
+    expect(workspace.requests()).toEqual([])
   })
 
   it('--prepare を付けて打つと、書いたテンプレのパスを標準出力に出す', async (context) => {
@@ -450,7 +471,8 @@ describe('pr create', () => {
     expect(result.stderr).toContain('warning: Issue #12 is an Epic; Closes left empty\n')
   })
 
-  it('Issue の種別を読めないまま --prepare を付けて打つと、warning の行を出して Closes を空のままにする', async () => {
+  it('Issue の種別を読めないまま --prepare を付けて打つと、warning の行を出して Closes を空のままにする', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-79')
     const workspace = await pushedBranch({ github: [KIND_FAILURE] })
     const result = await workspace.run(['pr', 'create', '--prepare'])
     expect(result.code).toBe(0)
@@ -1486,18 +1508,22 @@ describe('pr create', () => {
 
     it('待つ Issue の 2 件目の移動で想定外の例外が出ると、作った PR と動かせた 1 件目を data に残して失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
-      // 401 で gh のトークンへ切り替えるのに失敗し、.env を書けないと、要求の失敗でない例外になる
-      const unauthorized = rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_14' } }, { status: 401, body: { message: 'Bad credentials' } })
-      const workspace = await pushedBranch({ github: [...TWO_WAITING_RULES, unauthorized] })
-      const bin = makeTemporaryDirectory('pecot-gh-')
-      installFakeExecutable(bin, 'gh', 'exit 1\n')
-      prependToPath(bin)
-      symlinkSync(path.join(workspace.directory, 'no-such-directory', '.env'), path.join(workspace.directory, '.pecot', 'config', '.env'))
+      // 偽サーバの応答では API 以外の例外を起こせない。#14 の書き込みだけを投げる関数に替える。
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- 差し替えの中で this を渡して呼ぶ
+      const original = ProjectsApi.prototype.updateProjectItemField
+      const spy = vi.spyOn(ProjectsApi.prototype, 'updateProjectItemField').mockImplementation(async function (this: Readonly<ProjectsApi>, projectId: string, itemId: string, fieldId: string, optionId: string) {
+        if (itemId === 'PVTI_14') throw new PecotError('boom')
+        return original.call(this, projectId, itemId, fieldId, optionId)
+      })
+      context.onTestFinished(() => {
+        spy.mockRestore()
+      })
+      const workspace = await pushedBranch({ github: [...TWO_WAITING_RULES] })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
       expect(result).toMatchObject({ isError: true, structured: { kind: 'other' } })
       const { detail, ...kept } = result.structured
       expect(kept).toEqual({ ...CREATED, moves: [MOVED_13], kind: 'other' })
-      expect(detail).toMatch(/^\[Errno 2\] No such file or directory: '.+\/\.pecot\/config\/\.env'$/u)
+      expect(detail).toBe('boom')
     })
 
     it('積んだ PR を作ると、下の段の PR とスタックの番号を stack に返す', async () => {

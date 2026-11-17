@@ -21,3 +21,4 @@ paths:
 - `package.json` / `project.json` の `//...-reason` のような説明用のキーも、同じ扱いにする
 - 触ったファイルに長いコメントの塊があれば、同じ変更で 1〜2 行に縮める
 - README や skills の `references/*.md` の文章は対象外
+- 利用者のリポに置く雛形（`plugins/pecot-workflow/cli/templates/workflow/`）の先頭のコメントは対象外。利用者が雛形だけを読んで置けるように、置き先・要る設定・変えられる値を書く

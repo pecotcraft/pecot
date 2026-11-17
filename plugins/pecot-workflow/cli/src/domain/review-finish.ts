@@ -27,14 +27,28 @@ export type ExecutionReading
     | { readonly kind: 'unreadable' }
     | { readonly kind: 'read', readonly last: ExecutionResult | undefined }
 
-export type FinishInput
-  = | { readonly kind: 'result', readonly result: ReviewResult }
-    | { readonly kind: 'ensure', readonly jobStatus: JobStatus, readonly isAppTokenMissing: boolean, readonly execution: ExecutionReading }
+/**
+自動レビューの step の `outcome`
+*/
+export type ReviewOutcome = 'success' | 'failure' | 'cancelled' | 'skipped'
 
-// 次にすることの文の種類。pre-start は、エージェントが動く前に止まったとき
-export type NextStep = 'retry' | 'auth' | 'app-token' | 'pre-start' | 'limit' | 'setup-detail'
+/**
+後始末の step が渡す値。`reviewConclusion` は action の出力 `conclusion` で、Claude Code を動かさなかった run では空
+*/
+export interface EnsureInput {
+  readonly kind: 'ensure'
+  readonly jobStatus: JobStatus
+  readonly reviewOutcome: ReviewOutcome
+  readonly reviewConclusion: string
+  readonly hasToken: boolean
+  readonly execution: ExecutionReading
+}
 
-export type SkipReason = 'reviewed' | 'job-succeeded'
+export type FinishInput = EnsureInput | { readonly kind: 'result', readonly result: ReviewResult }
+
+export type NextStep = 'retry' | 'auth' | 'app-token' | 'limit' | 'setup-detail'
+
+export type SkipReason = 'reviewed' | 'job-succeeded' | 'workflow-mismatch'
 
 export type FinishDecision
   = | { readonly action: 'skip', readonly reason: SkipReason }
@@ -82,19 +96,18 @@ function write(result: StoppedResult, next: NextStep, shouldCheckActor = false):
   return { action: 'write', result, next, shouldCheckActor }
 }
 
-function decideFailure(isAppTokenMissing: boolean, execution: ExecutionReading): FinishDecision {
-  if (isAppTokenMissing) return write('setup-missing', 'app-token')
-  // execution_file が無いのは、エージェントが動く前に止まったとき。action が書いた人の権限で止めた場合もここに来る
-  if (execution.kind === 'absent') return write('failed', 'pre-start', true)
-  const last = execution.kind === 'read' ? execution.last : undefined
-  if (last === undefined) return write('failed', 'retry')
-  if (last.subtype === 'error_max_turns') return write('limit', 'limit')
-  if (last.isError && last.terminalReason === 'api_error') return write('failed', isAuthenticationFailure(last) ? 'auth' : 'retry')
-  return write('failed', 'retry')
+function decideFailure(input: Readonly<EnsureInput>): FinishDecision {
+  const last = input.execution.kind === 'read' ? input.execution.last : undefined
+  if (last?.isError === true && last.terminalReason === 'api_error') return write('failed', isAuthenticationFailure(last) ? 'auth' : 'retry')
+  if (last?.subtype === 'error_max_turns') return write('limit', 'limit')
+  // action は、Claude の App のトークンを受け取れずに止めたときも、空の github_token を出力する
+  if (input.reviewOutcome === 'failure' && !input.hasToken) return write('setup-missing', 'app-token')
+  // Claude Code が動かずに step が落ちた run には、action が書いた人の権限で止めた場合が入る
+  return write('failed', 'retry', input.reviewOutcome === 'failure' && input.reviewConclusion === '')
 }
 
 /**
-結果を決める。`setup-missing` は `--result` か `--app-token-missing` で渡されたときだけ使う
+結果を決める。順は spec 027 の contracts/cli-commands.md の表のとおりで、最初に当たった行で決める
 */
 export function decideReviewFinish(input: Readonly<FinishInput>): FinishDecision {
   if (input.kind === 'result') {
@@ -105,11 +118,13 @@ export function decideReviewFinish(input: Readonly<FinishInput>): FinishDecision
       case 'setup-missing': { return write('setup-missing', 'setup-detail') }
     }
   }
+  // PR のブランチで雛形を変えた run は、Claude の App がトークンを出さず、action がレビューを飛ばして step を成功で終える
+  if (input.reviewOutcome === 'success' && input.reviewConclusion === '') return { action: 'skip', reason: 'workflow-mismatch' }
   switch (input.jobStatus) {
     case 'success': { return { action: 'skip', reason: 'job-succeeded' } }
     // 時間の上限と、人が run を取り消したときは同じ cancelled で、見分けない（research の R9）
     case 'cancelled': { return write('limit', 'limit') }
-    case 'failure': { return decideFailure(input.isAppTokenMissing, input.execution) }
+    case 'failure': { return decideFailure(input) }
   }
 }
 
@@ -195,7 +210,6 @@ function nextLine(next: NextStep, triggerPhrase: string, detail: string | undefi
     case 'retry': { return `実行の記録で原因を確かめてから、${retry}` }
     case 'auth': { return `モデルの認証に失敗した。${code('claude setup-token')} でトークンを作り直し、secret ${code('CLAUDE_CODE_OAUTH_TOKEN')} に登録し直す。その後、${retry}` }
     case 'app-token': { return `リポに Claude の GitHub App を入れてから、${retry}` }
-    case 'pre-start': { return `実行の記録で原因を確かめる。Claude の App のトークンを受け取れずに止まったなら、リポに Claude の GitHub App を入れてから、${retry}` }
     case 'limit': { return `大きな PR は、端末で ${code('/pecot-w:w-revise')} を回す。自動で回すなら、変数 ${code('PECOT_REVIEW_MAX_TURNS')}・${code('PECOT_REVIEW_TIMEOUT_MINUTES')} で上限を上げる。その後、PR に ${code(triggerPhrase)} とコメントして起動し直す` }
     case 'setup-detail': {
       const missing = detail === undefined || detail.trim() === '' ? '' : `足りない設定は ${code(detail.trim())} だ。`

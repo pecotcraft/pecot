@@ -294,7 +294,7 @@ build target は hook から単独で起動されないため、PluginGlobals �
 - `repo: https://...` の外部 hook (`ruff-pre-commit`, `markdownlint-cli2`, `gitlint`) も対象外。
   - 外部 `ruff-pre-commit` はリポ全体に適用されるため、`run-lint.sh`（`nx-affected-lint` 経由）内の ruff と二重に動く。
     これは許容する。前者はリポ全体、後者はプラグイン専用 lint で、見ていない領域を補う。
-- `.githooks/gitlint/**/*.py` は `githooks-lint` hook の対象。
+- `.githooks/gitlint/**/*.py` と `.githooks/scripts/pages_site/` は `githooks-lint` hook の対象。
   この hook は `.githooks/scripts/run-lint.sh` 経由で pyright --strict を実行する。
   `build/` 等の自動生成・未追跡ファイルは対象外。
 

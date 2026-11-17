@@ -152,10 +152,13 @@ const ENVIRONMENT_FILE_HEADER = `# pecot-cli 認証設定
 
 /**
 認証用の .env を生成または更新して、そのパスを返す。
-無ければ新規作成する。あるときは、ホストの環境変数名が書かれていない場合だけ追記する
+無ければ新規作成する。あるときは、ホストの環境変数名が書かれていない場合だけ追記する。
+設定ディレクトリが無ければ何も書かずに undefined を返す（.gitignore の無い clone にトークンのファイルを置かない）
 */
-export function ensureEnvironmentFile(host: string): string {
-  const file = path.join(configDirectory(), '.env')
+export function ensureEnvironmentFile(host: string): string | undefined {
+  const directory = configDirectory()
+  if (!existsSync(directory)) return undefined
+  const file = path.join(directory, '.env')
   const name = getEnvironmentVariableName(host)
   const entry = environmentEntry(host)
   try {

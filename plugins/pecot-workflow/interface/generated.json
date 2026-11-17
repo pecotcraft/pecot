@@ -5057,11 +5057,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "app_token_missing": {
-            "type": "boolean",
-            "default": false,
-            "description": "The action could not get the token of the Claude GitHub App (only with ensure)"
-          },
           "detail": {
             "type": "string",
             "description": "Name of the missing setting (only with result setup-missing)"
@@ -5103,6 +5098,28 @@
             ],
             "description": "Result of the review, passed by the skill (reviewed/failed/limit/setup-missing)"
           },
+          "review_conclusion": {
+            "type": "string",
+            "description": "The conclusion output of claude-code-action; empty when Claude Code did not run (required with ensure, may be empty)"
+          },
+          "review_has_token": {
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ],
+            "description": "Whether claude-code-action output a github_token (required with ensure; never the token itself)"
+          },
+          "review_outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "cancelled",
+              "skipped"
+            ],
+            "description": "Outcome of the automated review step (required with ensure)"
+          },
           "since": {
             "type": "string",
             "description": "Start time of the run in ISO 8601, to find the inline comments it posted (only with ensure)"
@@ -5118,9 +5135,6 @@
           "pr_ref"
         ],
         "flags": {
-          "app_token_missing": [
-            "--app-token-missing"
-          ],
           "detail": [
             "--detail"
           ],
@@ -5138,6 +5152,15 @@
           ],
           "result": [
             "--result"
+          ],
+          "review_conclusion": [
+            "--review-conclusion"
+          ],
+          "review_has_token": [
+            "--review-has-token"
+          ],
+          "review_outcome": [
+            "--review-outcome"
           ],
           "since": [
             "--since"
@@ -5176,6 +5199,7 @@
               "enum": [
                 "reviewed",
                 "job-succeeded",
+                "workflow-mismatch",
                 "closed",
                 "already-written",
                 "actor-without-write"
