@@ -95,7 +95,7 @@ ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `exit-plan-remind` | ExitPlanMode 後に案内を返す（Claude Code のみ。Copilot CLI は frontmatter のフックを読まない）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直し、同じターンで実装へ進むよう案内する。`--mode=active` は実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足し、`--mode=quick` は足さない。`--mode` が無いか不正なら、stderr に出して終了コード 1 で終わる。計画の投稿はしない（確認の前にエージェントが投稿する） | w-active・w-quick の frontmatter の PostToolUse (ExitPlanMode) | `true` |
+| `exit-plan-remind` | ExitPlanMode 後に案内を返す（Claude Code のみ。Copilot CLI は frontmatter のフックを読まない）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。変わったかどうかによらず、同じターンで実装へ進むよう案内する。`--mode=active` は実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足し、`--mode=quick` は足さない。`--mode` が無いか不正なら、stderr に出して終了コード 1 で終わる。計画の投稿はしない（確認の前にエージェントが投稿する） | w-active・w-quick の frontmatter の PostToolUse (ExitPlanMode) | `true` |
 
 ### セッション管理
 
