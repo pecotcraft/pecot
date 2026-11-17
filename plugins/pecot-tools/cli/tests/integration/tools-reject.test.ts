@@ -217,7 +217,7 @@ describe('Athena の変更系・複文（research R6）', () => {
     })
 
     expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('database')
+    expect(structured['detail']).toContain('cuj3-forced-failure')
   })
 
   it.for([
