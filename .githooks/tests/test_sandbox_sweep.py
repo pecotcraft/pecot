@@ -49,8 +49,9 @@ def ref(name: str) -> dict:
     return {"ref": f"refs/heads/{name}", "object": {"sha": "0" * 40}}
 
 
-def issue(number: int, title: str, pr: bool = False) -> dict:
-    body: dict = {"number": number, "title": title}
+def issue(number: int, title: str, pr: bool = False, state: str = "open") -> dict:
+    # state は 1 件ずつ取る API が返す今の状態。一覧の API は、閉じた直後でも開いたまま返すことがある。
+    body: dict = {"number": number, "title": title, "_state": state}
     if pr:
         body["pull_request"] = {"url": f"https://api.github.com/repos/{SANDBOX}/pulls/{number}"}
     return body
@@ -96,7 +97,11 @@ class Env:
         self._put(REFS, [[ref(n) for n in names]])
 
     def issues(self, *pages: list[dict]) -> None:
-        self._put(ISSUES, list(pages) or [[]])
+        listed = [[{k: v for k, v in i.items() if k != "_state"} for i in p] for p in pages]
+        self._put(ISSUES, listed or [[]])
+        for page in pages:
+            for i in page:
+                self._put(f"repos/{SANDBOX}/issues/{i['number']}", [{"state": i["_state"]}])
 
     def cards(self, *pages: list[dict]) -> None:
         self._put(
@@ -297,7 +302,8 @@ def test_every_call_names_the_sandbox(env: Env) -> None:
     r = env.run()
     assert r.returncode == 0, r.stderr
     calls = env.calls()
-    reads = [c for c in calls if _is_read(c)]
+    # 1 件ずつ今の状態を読む呼び出し（issues/<番号>）は一覧ではないので、ページ送りが要らない。
+    reads = [c for c in calls if _is_read(c) and not re.search(r"/issues/\d+$", c)]
     assert reads and all("--paginate" in c for c in reads)
     for c in calls:
         if c.startswith("project ") or c.startswith("api graphql "):
@@ -318,6 +324,28 @@ def test_closes_pr_before_deleting_branch(env: Env) -> None:
 
 
 # 引数と読めない場合
+
+
+def test_skips_issue_and_pr_the_list_still_shows_open(env: Env) -> None:
+    env.issues(
+        [
+            issue(11, "[Task] [cuj 456-ab12] 閉じた直後", state="closed"),
+            issue(12, "[cuj 456-ab12] 閉じた直後", pr=True, state="closed"),
+            issue(13, "[Task] [cuj 456-ab12] 開いている"),
+        ]
+    )
+    r = env.run()
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.splitlines() == ["Issue #13 [Task] [cuj 456-ab12] 開いている"]
+    assert env.writes() == [f"issue close 13 -R {SANDBOX}"]
+
+
+def test_only_stale_closed_items_is_zero(env: Env) -> None:
+    env.issues([issue(11, "[Task] [cuj 456-ab12] 閉じた直後", state="closed")])
+    r = env.run()
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.splitlines() == ["片付けるものは 0 件"]
+    assert env.writes() == []
 
 
 def test_second_run_after_sweep_is_zero(env: Env) -> None:

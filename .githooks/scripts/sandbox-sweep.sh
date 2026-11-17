@@ -71,6 +71,21 @@ mapfile -t cards < <(jq -r --arg re "$TITLE_RE" --arg repo "$REPO" \
 mapfile -t releases < <(jq -r --arg re "$TAG_RE" \
     '.[] | select(.tag_name | test($re)) | .tag_name' <<<"$releases_json")
 
+# 一覧の API は閉じた直後の Issue・PR を開いたまま返すことがあるので、1 件ずつ今の状態を見て、閉じたものを外す。
+still_open() {
+    local -n list="$1"
+    local kept=() line out
+    for line in "${list[@]}"; do
+        if ! out=$(gh api "repos/$REPO/issues/${line%%$'\t'*}" 2>&1); then
+            die "Issue・PR #${line%%$'\t'*} の状態を読めない: ${out##*$'\n'}"
+        fi
+        [ "$(jq -r '.state' <<<"$out")" = open ] && kept+=("$line")
+    done
+    list=("${kept[@]}")
+}
+still_open prs
+still_open issues
+
 total=$((${#prs[@]} + ${#branches[@]} + ${#issues[@]} + ${#cards[@]} + ${#releases[@]}))
 if [ "$total" -eq 0 ]; then
     echo "片付けるものは 0 件"

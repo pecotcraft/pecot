@@ -222,36 +222,36 @@ pecot-workflow の定義書（`interface/authored.yaml`）から、次の 2 つ�
 - `effects` の `target: github` で、`kind` が `write` か `destructive` の項目
 - remote へ push する `target: git` の項目。`pr_restack` だけが `git push --force-with-lease` で push する。ほかの `git` の項目は、手元のブランチ・worktree だけを変える
 
-MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形。「流した結果」は、検証用で最後まで流してから埋める。「未」は、まだ流していないことを表す。
+MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形。「流した結果」は、2026-11-17 に pecot 7.0.0 を検証用に流した結果。括弧の中の番号は、検証用のリポの Issue・PR の番号。
 
 | MCP ツール | CLI のコマンド | 作るもの・変えるもの | 片付け方 | 流した結果 |
 |:---|:---|:---|:---|:---|
-| `board_add` | `pecot board add` | ボードのカードと Status | `sandbox-sweep.sh`（Issue のカードをアーカイブ） | 未 |
-| `board_move` | `pecot board move` | カードの Status | `sandbox-sweep.sh`（カードをアーカイブ） | 未 |
-| `board_sync` | `pecot board sync` | カードの列と Status。新しい 20 件を超えた Archived のカードを削除 | 名前の形のものは `sandbox-sweep.sh`。削除は戻せない | 未 |
-| `branch_delete` | `pecot branch delete` | リモートブランチの削除 | 不要（消す処理） | 未 |
-| `issue_block` | `pecot issue block` | blocked-by・Issue の本文・カードの列 | `sandbox-sweep.sh`（Issue を閉じる） | 未 |
-| `issue_unblock` | `pecot issue unblock` | blocked-by の解除・Issue の本文・カードの列 | `sandbox-sweep.sh` | 未 |
-| `issue_comment` | `pecot issue comment` | Issue のコメント | Issue ごと `sandbox-sweep.sh` が閉じる。コメントは残る | 未 |
-| `issue_create` | `pecot issue create` | Issue・blocked-by・カード・sub-issue | `sandbox-sweep.sh`（題に `[cuj …]` を含める） | 未 |
-| `issue_reopen` | `pecot issue reopen` | Issue を開き直す・カードのアーカイブを解く | `sandbox-sweep.sh` | 未 |
-| `pr_create` | `pecot pr create` | PR・スタックへの登録・カードの Status | `sandbox-sweep.sh`（PR を閉じる） | 未 |
-| `pr_merge` | `pecot pr merge` | PR のマージか merge queue への投入 | マージ済みの PR は残り、commit は検証用の `main` に残る | 未 |
-| `pr_restack` | `pecot pr restack` | 手元のブランチの rebase と、remote のブランチの置き換え（`git push --force-with-lease`） | `sandbox-sweep.sh`（ブランチを消す） | 未 |
-| `project_create` | `pecot project create` | org のボードとフィールド | 手で片付ける。題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消す | 未 |
-| `project_init` | `pecot project init` | ボードのフィールドと選択肢 | 手で片付ける。題に `[cuj <Issue番号>-<乱数>]` を入れたボードで流し、`gh project delete` で消す | 未 |
-| `project_link` | `pecot project link` | リポのプロジェクトへのつなぎ | 手で外す。`gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` | 未 |
-| `release_create` | `pecot release create` | `v*` のリリースとタグ | 手で片付ける。作ったタグを `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox` で消す | 未 |
+| `board_add` | `pecot board add` | ボードのカードと Status | `sandbox-sweep.sh`（Issue のカードをアーカイブ） | 通った。外したカードを Ready に戻した（#215） |
+| `board_move` | `pecot board move` | カードの Status | `sandbox-sweep.sh`（カードをアーカイブ） | 通った。backlog と ready に移した（#214） |
+| `board_sync` | `pecot board sync` | カードの列と Status。新しい 20 件を超えた Archived のカードを削除 | 名前の形のものは `sandbox-sweep.sh`。削除は戻せない | 通った。動かすカードと消すカードは 0 件だった |
+| `branch_delete` | `pecot branch delete` | リモートブランチの削除 | 不要（消す処理） | 通った。消すと、その head の PR を GitHub が閉じた（#219） |
+| `issue_block` | `pecot issue block` | blocked-by・Issue の本文・カードの列 | `sandbox-sweep.sh`（Issue を閉じる） | 通った（#214、#225） |
+| `issue_unblock` | `pecot issue unblock` | blocked-by の解除・Issue の本文・カードの列 | `sandbox-sweep.sh` | 通った（#214、#225） |
+| `issue_comment` | `pecot issue comment` | Issue のコメント | Issue ごと `sandbox-sweep.sh` が閉じる。コメントは残る | 通った。`-m` で送るときは `-t` でテンプレートの種類を渡す（#214） |
+| `issue_create` | `pecot issue create` | Issue・blocked-by・カード・sub-issue | `sandbox-sweep.sh`（題に `[cuj …]` を含める） | 通った（#210 ほか） |
+| `issue_reopen` | `pecot issue reopen` | Issue を開き直す・カードのアーカイブを解く | `sandbox-sweep.sh` | 通った。ただし `Status` の `Done` が残り、後の `session start` で Issue が閉じる（pecotcraft/pecot#536） |
+| `pr_create` | `pecot pr create` | PR・スタックへの登録・カードの Status | `sandbox-sweep.sh`（PR を閉じる） | 通った（#211 ほか） |
+| `pr_merge` | `pecot pr merge` | PR のマージか merge queue への投入 | マージ済みの PR は残り、commit は検証用の `main` に残る | 通った。merge queue で落ちた PR は queue から外れた（#211、#213） |
+| `pr_restack` | `pecot pr restack` | 手元のブランチの rebase と、remote のブランチの置き換え（`git push --force-with-lease`） | `sandbox-sweep.sh`（ブランチを消す） | 通った。積んだ PR だけが対象で、積んでいない PR は遅れていても「up to date」になる（#219） |
+| `project_create` | `pecot project create` | org のボードとフィールド | 手で片付ける。題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消す | 通った。作った後は、新しいボードが有効になるので、`project activate` で戻す |
+| `project_init` | `pecot project init` | ボードのフィールドと選択肢 | 手で片付ける。題に `[cuj <Issue番号>-<乱数>]` を入れたボードで流し、`gh project delete` で消す | 通った。フィールドの無いボードを `gh project create` で作って流した |
+| `project_link` | `pecot project link` | リポのプロジェクトへのつなぎ | 手で外す。`gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` | 通った。外す手順も、この形で動いた |
+| `release_create` | `pecot release create` | `v*` のリリースとタグ | 手で片付ける。作ったタグを `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox` で消す | 通った。版の節を書いた `CHANGELOG.md` を clone に一時に置いて流した |
 | `release_merge` | `pecot release merge` | release の PR のマージと、head ブランチの削除 | 流せない。このリポは bypass で通す操作だが、bypass はこのリポだけの運用（FR-008）なので、検証用には足さない | 流せない |
-| `session_start` | `pecot session start` | 紐づいたブランチ・カードの Status を `active` に | `sandbox-sweep.sh`（ブランチを消す） | 未 |
-| `session_finish` | `pecot session finish` | Issue を閉じる・リモートの head ブランチを削除 | 不要（閉じる・消す処理）。カードは `sandbox-sweep.sh` がアーカイブ | 未 |
-| `tracker_sync` | `pecot tracker sync` | Tracker の Issue（題に `[cuj …]` が付かない）・カード | 手で片付ける。作った Issue の番号を控え、`gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じる | 未 |
-| （MCP ツールなし） | `pecot-board-sync.yml`（利用者へ配る workflow） | PR・Issue の変化で `board_sync` を動かし、カードの列と Status を直す | 検証用の `.github/workflows/` に入れる。`sandbox-diff.sh` がこのリポの `main` と中身を比べる | 未 |
+| `session_start` | `pecot session start` | 紐づいたブランチ・カードの Status を `active` に | `sandbox-sweep.sh`（ブランチを消す） | 通った（#210 ほか） |
+| `session_finish` | `pecot session finish` | Issue を閉じる・リモートの head ブランチを削除 | 不要（閉じる・消す処理）。カードは `sandbox-sweep.sh` がアーカイブ | 通った（#214） |
+| `tracker_sync` | `pecot tracker sync` | Tracker の Issue（題に `[cuj …]` が付かない）・カード | 手で片付ける。作った Issue の番号を控え、`gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じる | 通った。対象が 0 件で、Tracker を作らずに終わった |
+| （MCP ツールなし） | `pecot-board-sync.yml`（利用者へ配る workflow） | PR・Issue の変化で `board_sync` を動かし、カードの列と Status を直す | 検証用の `.github/workflows/` に入れる。`sandbox-diff.sh` がこのリポの `main` と中身を比べる | 通った。検証用の写しをこのリポの `main` にそろえた（#209） |
 
 名前の形に合わないものを作る処理は、`sandbox-sweep.sh` では片付かない。表の「手で片付ける」の手順で消す。
 
 ### 書き込む前の 3 つの決まり
 
-1. 検証用の clone に `.pecot/config/.env` を置く。GitHub のトークンを `PECOT_GITHUB_COM_TOKEN=<トークン>` の 1 行で書く。手元の `gh` の認証と同じ人のトークンでよい
+1. 手元で `gh` に認証していれば、`.pecot/config/.env` は置かなくてよい。pecot は `.env` が無いと `gh auth token` を使う。別のトークンで書き込むときだけ、検証用の clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` の 1 行を書く
 2. 書き込む前に、毎回 `board_show` を呼ぶ。書き込む先がボード `pecot sandbox` であることを見てから、書き込む処理を動かす
 3. このリポの ruleset・ボード・`pecot-board-sync.yml` の決まりを変えるときは、検証用を先に変える。順を逆にすると、検証用が古い決まりのままで、確かめた結果がこのリポで再現しない
