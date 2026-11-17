@@ -13,6 +13,7 @@ import { RELEASE_COMMANDS } from './release.js'
 import { SESSION_COMMANDS } from './session.js'
 import { TRACKER_COMMANDS } from './tracker.js'
 import { WORKTREE_COMMANDS } from './worktree.js'
+import { WORKFLOW_COMMANDS } from './workflow.js'
 
 export { defineCommand, toolNameOf } from './command-definition.js'
 export type { CommandDefinition, CommandIo, PreparedCommand } from './command-definition.js'
@@ -30,6 +31,7 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...TRACKER_COMMANDS,
   ...WORKTREE_COMMANDS,
   ...BRANCH_COMMANDS,
+  ...WORKFLOW_COMMANDS,
 ]
 
 registerCommandHints(COMMANDS)

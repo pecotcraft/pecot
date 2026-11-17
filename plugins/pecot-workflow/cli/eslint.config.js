@@ -32,7 +32,7 @@ const outputWriteSyntax = [
 
 // 次に打つコマンドの案内を `pecot <グループ> ...` の文字列で書かせない。グループは src/commands/names.ts の COMMAND_GROUPS
 const directHintMessage = 'コマンドの案内を文字列で書かない: src/commands/command-hint.ts の commandHint・inputHint を使う（MCP ではツールの呼び方になる）'
-const directHintPattern = '/pecot (project|board|issue|session|pr|review|release|tracker|worktree|branch) [a-z]/'
+const directHintPattern = '/pecot (project|board|issue|session|pr|review|release|tracker|worktree|branch|workflow) [a-z]/'
 // 呼び出しの引数に書いた文の中のロングオプションも止める。.describe() の help の文と、空白の無い値（git の引数など）は止めない
 const flagHintMessage = 'フラグ名を文字列で書かない: src/commands/command-hint.ts の inputHint・inputNameHint を使う（MCP では入力名になる）'
 const flagHintPattern = String.raw`/(^|[\s(\x60'])--[a-z][a-z-]*[a-z]([\s,.:;)\x60']|$)/`

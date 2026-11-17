@@ -45,6 +45,10 @@
         {
           "word": "branch",
           "meaning": "リモートのブランチ"
+        },
+        {
+          "word": "workflow",
+          "meaning": "導入先のリポに置く GitHub Actions のワークフロー"
         }
       ],
       [
@@ -74,6 +78,11 @@
           "read_only": true
         },
         {
+          "word": "doctor",
+          "meaning": "導入に要る設定がそろっているかを確かめる",
+          "read_only": true
+        },
+        {
           "word": "create",
           "meaning": "GitHub のものを作る"
         },
@@ -92,6 +101,10 @@
         {
           "word": "init",
           "meaning": "既にあるものを pecot で使える状態にする"
+        },
+        {
+          "word": "install",
+          "meaning": "雛形をリポに書き出す"
         },
         {
           "word": "set",
@@ -5991,6 +6004,275 @@
                 "added",
                 "removed",
                 "closed"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-WORKFLOW-DOCTOR",
+      "name": "workflow doctor",
+      "description": "Check that the repository has the workflow file and the settings it needs",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "workflow",
+            "doctor"
+          ]
+        },
+        "mcp": {
+          "tool": "workflow_doctor"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Root of the target Git repository (absolute or relative path; default: the current directory)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the workflow template (review)"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "name"
+        ],
+        "flags": {
+          "directory": [
+            "--directory",
+            "-D"
+          ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "Repository of the git remote (owner/repo)"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App"
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "ok",
+                      "missing",
+                      "outdated",
+                      "skipped"
+                    ],
+                    "description": "ok, missing, outdated, or skipped (not readable with the token; not counted as missing)"
+                  }
+                },
+                "required": [
+                  "name",
+                  "state"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Checked items in the order of the output lines"
+            },
+            "ready": {
+              "type": "boolean",
+              "description": "Whether nothing is missing or outdated"
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "repository",
+                "items",
+                "ready"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-WORKFLOW-INSTALL",
+      "name": "workflow install",
+      "description": "Write a GitHub Actions workflow template of pecot into the repository",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "workflow",
+            "install"
+          ]
+        },
+        "mcp": {
+          "tool": "workflow_install"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "Write nothing; check that the file in the repository has the version of the bundled template"
+          },
+          "directory": {
+            "type": "string",
+            "description": "Root of the target Git repository (absolute or relative path; default: the current directory)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be written without writing anything"
+          },
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "Overwrite the file when it already exists"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the workflow template (review)"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "name"
+        ],
+        "flags": {
+          "check": [
+            "--check"
+          ],
+          "directory": [
+            "--directory",
+            "-D"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "force": [
+            "--force"
+          ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path of the workflow file from the repository root"
+            },
+            "version": {
+              "type": "number",
+              "description": "Version of the bundled template"
+            },
+            "installedVersion": {
+              "description": "Version of the file already in the repository; omitted when there is no file or no version marker",
+              "type": "number"
+            },
+            "written": {
+              "type": "boolean",
+              "description": "Whether the file was written (false on check and dry_run)"
+            },
+            "upToDate": {
+              "description": "With check: whether the file in the repository has the version of the bundled template",
+              "type": "boolean"
+            },
+            "removedLines": {
+              "description": "With force: lines you added between the begin and end markers, which the bundled template replaces",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "dryRun": {
+              "description": "true on dry_run (nothing was changed)",
+              "type": "boolean",
+              "const": true
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "path",
+                "version",
+                "written"
               ]
             },
             {

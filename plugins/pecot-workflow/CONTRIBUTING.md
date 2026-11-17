@@ -42,13 +42,14 @@ find plugins/pecot-workflow/skills -type f \( -name "*.json" -o -name "*.yaml" -
 | `tracker` | Tracker の Issue の書き直し |
 | `worktree` | worktree |
 | `branch` | リモートのブランチ |
+| `workflow` | 導入先のリポに置く GitHub Actions のワークフロー |
 
 ### 動詞の語彙
 
 | 種類 | 動詞 |
 |:---|:---|
-| 読む | `list`（複数を並べる）・`search`（GitHub を探す）・`show`（1 件を出す）・`get`（設定の値を出す）・`check`（次の操作の前に確かめる） |
-| 作る・消す | `create`・`delete`（GitHub のもの）・`add`・`remove`（集まりへの出し入れ）・`init`（既存のものを pecot で使えるようにする） |
+| 読む | `list`（複数を並べる）・`search`（GitHub を探す）・`show`（1 件を出す）・`get`（設定の値を出す）・`check`（次の操作の前に確かめる）・`doctor`（導入に要る設定がそろっているかを確かめる） |
+| 作る・消す | `create`・`delete`（GitHub のもの）・`add`・`remove`（集まりへの出し入れ）・`init`（既存のものを pecot で使えるようにする）・`install`（雛形をリポに書き出す） |
 | 設定 | `set`・`unset`（キーの値）・`link`（リポをプロジェクトにつなぐ）・`activate`（使うプロジェクトを切り替える） |
 | 作業の流れ | `start`・`restore`・`finish`・`sync`（判定や一覧に合わせて書き直す）・`move`（列を移す）・`merge`（PR を取り込む） |
 | Issue | `comment`・`reopen`・`block`・`unblock` |

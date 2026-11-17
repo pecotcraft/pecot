@@ -11,7 +11,7 @@ import { pluginRoot } from '../version.js'
 
 import { readTextFile } from './text-file.js'
 
-export type TemplateKind = 'issue' | 'comment' | 'pr'
+export type TemplateKind = 'issue' | 'comment' | 'pr' | 'workflow'
 
 /**
 種別ごとのテンプレートのディレクトリ

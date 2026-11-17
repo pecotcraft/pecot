@@ -82,6 +82,13 @@
 | --- | --- |
 | `tracker sync` | Rewrite the open Tracker's list for a source: Dependabot PRs waiting for a human decision, or open security alerts |
 
+## workflow
+
+| コマンド | 説明 |
+| --- | --- |
+| `workflow doctor` | Check that the repository has the workflow file and the settings it needs |
+| `workflow install` | Write a GitHub Actions workflow template of pecot into the repository |
+
 ## worktree
 
 | コマンド | 説明 |
