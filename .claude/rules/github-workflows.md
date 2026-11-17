@@ -22,7 +22,7 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `release.yml`: 人が手で起動する。入力 `dry-run`（既定 `true`）では案だけを出す。本番は一時ブランチへ push してタグと Release を出し、その後で `main` を取り込んで push する
 - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する。初回の公開は `.claude/rules/npm-publish.md`
   - 正式版は、tag を渡した dispatch で Release の tgz を出す
-  - 開発版は、pecot-workflow に関わる main への push で devcontainer で作り、`@pecot/workflow-mcp` の dist-tag `next` で出す
+  - 開発版は、main への push で変わったプラグインだけを devcontainer で作り、`@pecot/<name>-mcp` の dist-tag `next` で出す。visual は監査を通してから作る
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる

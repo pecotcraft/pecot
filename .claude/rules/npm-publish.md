@@ -6,6 +6,7 @@ paths:
   - ".githooks/lib/mcp-publish-common.sh"
   - ".githooks/scripts/dev-version.mjs"
   - ".githooks/scripts/dev-superseded.mjs"
+  - ".githooks/scripts/dev-targets.mjs"
 ---
 
 # 新しい @pecot/<name>-mcp を初めて npm に出す
@@ -61,7 +62,9 @@ trusted publisher は、レジストリにあるパッケージにしか登録�
 
 ## 開発版
 
-- `@pecot/workflow-mcp` の開発版（dist-tag `next`）も、同じ trusted publisher で `publish-npm.yml` の `publish-dev` が出す
+- 3 つの `@pecot/<name>-mcp` の開発版（dist-tag `next`）も、同じ trusted publisher で `publish-npm.yml` の `publish-dev` が出す
+- 出すのは、main への push で変わったプラグインだけ（`dev-targets.mjs` が決める）。新しいパッケージを足すときは、`dev-targets.mjs` の表にも足す
+- 失敗した脚は、後で別のプラグインが push されても出し直されない。その run の脚を re-run で出し直す
 - trusted publisher に environment を付けるときは、`publish` と `publish-dev` の両方の job に同じ environment を置く。片方だけだと、置かない方の publish が止まる
 
 ## 失敗したとき

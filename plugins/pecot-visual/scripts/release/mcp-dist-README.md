@@ -112,6 +112,7 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、次の�
 `PECOTV_WSL_MOUNT_ROOT` に設定してください。
 
 版を固定する場合はパッケージ名の後ろに `@<version>` を付けます（例: `@pecot/visual-mcp@1.2.3`）。
+`@pecot/visual-mcp@next` は、次の正式版より前の開発版を取ります。
 
 ## 初回の操作
 

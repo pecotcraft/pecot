@@ -529,6 +529,17 @@ assert_eq "スキップ時の記録に監査時 HEAD が入る" "$REPO_HEAD" "$(
 assert_eq "スキップ時の記録に dist セクションは無い" "__MISSING__" "$(record_field dist.fingerprint)"
 stop_mock
 
+# --- 6b. --dev は version plan の探索先が無くても監査する（開発版の build）---
+
+start_mock "$TMP/moderate.json" case6b
+run_audit case6b --dist="$(new_dist case6b)" --runtime-dist="$(new_runtime_dist case6b)" --exceptions="$EXC_EMPTY" \
+    --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
+assert_eq "--dev は plan が無くても exit 0" "0" "$RC"
+assert_contains "--dev は開発版として監査する旨を出す" "開発版: version plan とリリースタグを見ずに監査する" "$OUT"
+assert_contains "--dev でも監査の pass を出す" "監査 pass（high 以上なし）" "$OUT"
+assert_eq "--dev の記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
+stop_mock
+
 # --- 7. moderate だけなら pass する（判定境界の下側）---
 
 start_mock "$TMP/moderate.json" case7
