@@ -36,9 +36,9 @@ CUJ を順に流し、合格基準ごとに合否と根拠を、PR の Verified 
 - 子の CLI の `-p` は、承認の要る呼び出しを止まらずに拒否する。使うツールを、Claude Code は `--allowedTools=<ツール>`、GitHub Copilot CLI は `--allow-tool='<ツール>'` で許す
 
 - EnterPlanMode / ExitPlanMode / AskUserQuestion を含む CUJ: `-p` では動かない。対話のセッションを起こして流す
-- 流す先が検証用の CUJ: 検証用の clone を作業ディレクトリにして流す
+- 流す先が検証用の CUJ: 検証用の clone を作業ディレクトリにして、子の CLI を起こして流す
   - clone の作り方・書き込む前の確かめ・作るものの名前の形・片付けは、プロジェクトの指示に従う。指示に片付けが無ければ、作ったものを Verified に並べる
-  - clone でプロジェクトが有効でなければ、先に `pecot project activate <設定>` を打つ
-  - MCP ツールに `repo` を渡して検証用を指す形は使わない。MCP ツールはセッションのリポの設定でボードを決めるので、検証用を指すと止まる。clone で `pecot` を打つか、clone で子の CLI を起こす
+  - 子の CLI の中の MCP ツールは、clone の設定で動く。clone でプロジェクトが有効でなければ、先に `project_activate` を呼ばせる
+  - 今のセッションの MCP ツールに `repo` を渡して検証用を指す形は使わない。MCP ツールはセッションのリポの設定でボードを決めるので、検証用を指すと止まる
   - Verified に、できたものの URL を載せる
 - 流す先が作業中のリポの CUJ: 作業中のリポに書き込む。作ったものを Verified に並べる
