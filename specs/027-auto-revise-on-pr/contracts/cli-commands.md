@@ -26,7 +26,7 @@
 
 | 条件 | 振る舞い |
 |---|---|
-| ファイルが無い | 置き先に雛形を書く。次に利用者がすること（App の作成、変数と secret の登録）を出す |
+| ファイルが無い | 置き先に雛形を書く。次に利用者がすること（Claude の App を入れる、モデルの認証の secret を登録する）を出す |
 | ファイルが既にあり、`--force` が無い | 何も書かず、入力の誤りとして止まる |
 | `--force` で、利用者が足した行がある | 上書きの前に、消える行を出す |
 | `--check` で、版が同じ | 成功 |
@@ -50,11 +50,11 @@
 |---|---|
 | 雛形がある | `missing: .github/workflows/pecot-review.yml` |
 | 雛形の版が新しい | `outdated: workflow template review` |
-| 変数 `PECOT_AGENT_APP_CLIENT_ID` がある | `missing: variable PECOT_AGENT_APP_CLIENT_ID` |
-| secret `PECOT_AGENT_APP_PRIVATE_KEY` がある | `missing: secret PECOT_AGENT_APP_PRIVATE_KEY` |
+| 変数 `PECOT_AGENT_APP_CLIENT_ID` があるときに、secret `PECOT_AGENT_APP_PRIVATE_KEY` もある | `missing: secret PECOT_AGENT_APP_PRIVATE_KEY` |
 | secret `CLAUDE_CODE_OAUTH_TOKEN` か、Workload Identity Federation の 4 つの変数がある | `missing: secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*` |
 
 - 全部そろっていれば成功、1 つでも足りなければ失敗
+- Claude の App が入っているかは、リポのトークンでは読めない。確かめず、`skipped: Claude GitHub App` の行で出す。入っていないときは、action が GitHub のトークンを受け取れずに止まり、後始末のコメントで知らせる
 - トークンの寿命は、名前の有無からは読めない。切れたことは、`review-finish` のコメントで知らせる
 - secret と変数は、名前の有無だけを読む。値は読まない。リポの単位と organization の単位の両方を見る
 - 手元のトークンに権限が無く読めない項目は、`skipped:` の行で出し、足りないとは数えない
@@ -81,6 +81,8 @@
 | `--ensure` で、job が失敗し、同じ実行のコメントが無い | job が `cancelled` なら `limit`、それ以外は `failed` として書く。`cancelled` は、時間の上限と手での取り消しを見分けない（research の R9） |
 | `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書き、認証の失敗なら、トークンを作り直す手順を添える。`subtype` だけで判定しない |
 | `--ensure` で、`execution_file` の最後の `result` が `subtype: error_max_turns` | `limit` として書く |
+| `--ensure` で、action の出力 `skipped_due_to_workflow_validation_mismatch` が `true` | コメントを書かない。PR のブランチで雛形を変えたので、Claude の App がトークンを出さなかった。実行の記録に、合言葉で起こし直してもこの PR では動かないことを 1 行出す |
+| `--ensure` で、action が Claude の App のトークンを受け取れずに止めた | `setup-missing` として書き、Claude の App を入れる手順を添える |
 | `--ensure` で、action が書いた人の権限で止めた（ログに `Actor does not have write permissions`） | コメントを書かない。起動した人に知らせる理由が無く、誰でも bot のコメントを付けさせられるのを避ける。job の `if` が先に止めるので、ふつうは起きない |
 | PR が閉じている | コメントを書かない |
 

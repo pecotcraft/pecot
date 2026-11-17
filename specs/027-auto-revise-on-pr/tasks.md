@@ -47,7 +47,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **Independent Test**: `spec/research.md` の R2〜R6 と R9 の「実装で確かめること」の各行に、結果・版・日付が書かれている
 
-**前提**: 検証用のリポと、検証用にだけ入れた GitHub App（spec 026 の Phase 2）。直したプラグインを action から入れる手段は、spec 026 の R11-6 の結果に従う。結果がまだ無ければ、main の版のプラグインで確かめられる項目だけを先に進める
+**前提**: 検証用のリポと、検証用にだけ入れた GitHub App（spec 026 の Phase 2）と Claude の App。直したプラグインを action から入れる手段は、spec 026 の R11-6 の結果に従う。結果がまだ無ければ、main の版のプラグインで確かめられる項目だけを先に進める
 
 - [x] T001 検証用に、確かめ用のワークフローを 1 つ置く。`spec/contracts/workflow-template.md` の job の形で、`prompt` は固定の文にする。App のトークンは Pull requests の write と Contents の read に絞る。置いたファイルは `.pecot/work/<Issue番号>/` にも写す
 - [x] T002 [P] T001 のワークフローで、プラグインのサブエージェント `pecot-w:w-reviewer` を起こし、結果が main に返るかを確かめる。サブエージェントが main の許可リストを引き継ぐかも見る。結果を `spec/research.md` の R5 に書く
@@ -104,7 +104,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [ ] T019 [US5] 雛形の書き出しと、変数・secret の名前の読み取りを `p-w/cli/src/infra/` に書く。secret と変数は名前の有無だけを読み、値は読まない。リポの単位と organization の単位の両方を見る
 - [ ] T020 [US5] `p-w/cli/src/commands/workflow.ts` に `install` と `doctor` を書く。コマンドの定義の配列を、`p-w/cli/src/commands/registry.ts` に足す。MCP ツール `workflow_install`・`workflow_doctor` は、registry の定義から出る。MCP の側に、別のファイルは足さない
 - [ ] T021 [US5] `p-w/interface/authored.yaml` に 2 つの項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T015〜T017 のテストに `verifies` を足す
-- [ ] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の表のものだ。App にインストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
+- [ ] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の表のものだ。既定は Claude の App で、名前を登録しないことを書く。自前の App を置くときは、インストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
 - [ ] T023 [P] [US5] `p-w/skills/w-help/references/commands.md` を直す。コマンドの表に、`workflow install` と `workflow doctor` の 2 行を足す
 - [ ] T024 [US5] T015〜T017 のテストを通す。検証用の作業ツリーで、quickstart.md の「導入を確かめる」の 1〜4 を流す。結果を PR の説明に書く
 
@@ -186,17 +186,19 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ### Tests for User Story 4
 
-- [ ] T043 [US4] `p-w/cli/tests/review-workflow-template.test.ts` に、導入の説明と雛形の一致の期待を足す。説明に書いた変数・secret の名前・合言葉の既定値と、App の権限が、雛形と同じであることを確かめる。説明が無いので落ちることを確かめる
+- [ ] T043 [US4] `p-w/cli/tests/review-workflow-template.test.ts` に、導入の説明と雛形の一致の期待を足す。説明に書いた変数・secret の名前・合言葉の既定値と、自前の App の権限が、雛形と同じであることを確かめる。説明が無いので落ちることを確かめる
 
 ### Implementation for User Story 4
 
-- [ ] T044 [US4] `p-w/skills/w-help/references/review-workflow.md` を書く。導入の節に、前提・置き方・GitHub App の作り方と権限・変数と secret・合言葉を書く。形は、同じ置き場の `board-sync-workflow.md` に合わせる。モデルの認証は `spec/research.md` の R14 のとおりにする
+- [ ] T044 [US4] `p-w/skills/w-help/references/review-workflow.md` を書く。導入の節に、前提・置き方・Claude の App の入れ方・モデルの認証の secret・合言葉を書く。
+  - 権限を絞りたい利用者のために、自前の App の作り方と権限・変数と secret を別の節に書く。
+  - 雛形を変えた PR では Claude の App の道でレビューが動かないことも書く。形は、同じ置き場の `board-sync-workflow.md` に合わせる。モデルの認証は `spec/research.md` の R14 のとおりにする
   - 既定はサブスクリプションのトークンだ。`claude setup-token` で作り、1 行で貼る
   - Workload Identity Federation は、subject の prefix を `sub_claim_prefix` から作る手順を書く
 - [ ] T058 [US4] 同じファイルに、運用の節を書く。次の項目だ
   - 変えられる 4 つの変数、bot を許す設定、Dependabot の secret、止まったときの読み方
   - トークンが切れたときの作り直しと、払い方の切り替え。secret を消すと Workload Identity Federation で動く
-  - 雛形の更新、App の権限の確かめ方、GHES で確かめていないこと
+  - 雛形の更新、Claude の App が入っているかの確かめ方、GHES で確かめていないこと
 - [ ] T059 [US4] 同じファイルに、「自動処理に共通の決まり」の節を書く。認証の名前・版の目印・利用者が足す行の印を書く
 - [ ] T045 [US4] `p-w/skills/w-onboarding/SKILL.md` に、自動レビューを入れるかを選ぶ Step を足す。中身は `spec/contracts/skill-flow.md` の「w-onboarding に足す Step」のとおりにする
 - [ ] T046 [P] [US4] `p-w/skills/w-help/SKILL.md` の参照の表に、`review-workflow.md` を足す
@@ -216,7 +218,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [ ] T049 quickstart.md のシナリオ 1〜13 と 15〜18 を、検証用で流す。実際に投稿するシナリオ 1・3・6 は main が流す。結果を、シナリオごとに PR の説明に書く
 - [ ] T050 T049 の実行の記録から、かかったターンと時間を読む。`p-w/cli/templates/workflow/pecot-review.yml` の既定値を直し、版の目印を上げる。w-reviewer に公式の文書を調べる手段を許すかを決め、`spec/research.md` の「残した判断」に結果を書く
 - [ ] T051 quickstart.md の「実行の記録で見ること」の 4 つを、T049 の run で確かめる。トークンと secret の値が、ログとコメントに出ていないことを見る
-- [ ] T052 このリポに導入する。`pecot workflow install review` で `.github/workflows/pecot-review.yml` を置き、GitHub App と変数・secret を用意する。App の作成と secret の登録は、ユーザーが行う。`pecot workflow doctor review` が通ることを見る
+- [ ] T052 このリポに導入する。`pecot workflow install review` で `.github/workflows/pecot-review.yml` を置き、Claude の App と secret を用意する。App のインストールと secret の登録は、ユーザーが行う。`pecot workflow doctor review` が通ることを見る
 - [ ] T053 このリポで PR を 1 つ作り、指摘が載ることを見る。fork からの PR で起動しないことは、検証用の結果（シナリオ 7）で代える
 
 ---
@@ -280,7 +282,7 @@ Phase 2〜3 と Phase 4〜6 は、Phase 1 の後なら、互いを待たずに�
 | T029・T030 | T007 の結果 |
 | T035 | T005 の結果。返信の手段が無ければ、2 巡目は指摘の一覧に前のスレッドを並べる |
 | T038・T042 | 直した w-revise を端末で読み込む手順（spec 026 の Phase 3） |
-| T052 | ユーザーによる App の作成と、secret の登録 |
+| T052 | ユーザーによる Claude の App のインストールと、secret の登録 |
 
 ### Parallel Opportunities
 

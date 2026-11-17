@@ -7,8 +7,8 @@
 
 | 項目 | 中身 |
 |---|---|
-| GitHub App | 検証用のリポにだけ入れた App。権限は Pull requests の write と Contents の read |
-| 変数と secret | `PECOT_AGENT_APP_CLIENT_ID`・`PECOT_AGENT_APP_PRIVATE_KEY`・`CLAUDE_CODE_OAUTH_TOKEN`（または Workload Identity Federation の 4 つの変数）。上限と合言葉を変えるときは、`PECOT_REVIEW_*` の変数 |
+| GitHub App | 検証用のリポにだけ入れた Claude の App。自前の App の道を確かめるシナリオでは、Pull requests の write と Contents の read だけの App も使う |
+| 変数と secret | `CLAUDE_CODE_OAUTH_TOKEN`（または Workload Identity Federation の 4 つの変数）。自前の App の道では、`PECOT_AGENT_APP_CLIENT_ID`・`PECOT_AGENT_APP_PRIVATE_KEY`。上限と合言葉を変えるときは、`PECOT_REVIEW_*` の変数 |
 | プラグイン | 直した pecot-workflow が、action から入る状態。入れ方は spec 026 の R11-6 の結果に従う |
 | アカウント | 書き込み権限のあるもの、triage だけのもの、権限の無いもの（fork 用） |
 
@@ -39,10 +39,12 @@
 | 13 | 同じ bot。名前を許す bot の一覧に足した後 | PR を作る | レビューが始まる。始まらなければ、research の R2 の「実装で確かめること」に結果を書く | FR-025 |
 | 14 | 利用者 | 自動レビューの無いリポで w-onboarding をたどる | 入れるかを聞かれる。入れないを選ぶと、何も置かれない。入れると、設定の順が示され、最後に `doctor` が通る。始めてから最初の自動レビューが起きるまでの時間を測り、30 分以内であることを見る | US4、SC-008 |
 | 15 | 書き込み権限のある開発者 | 許していない bot の PR に、`@pecotbot review` とコメントする | レビューが始まる。始まらなければ、research の R2 に結果を書き、ユーザーに FR-025 の扱いを仰ぐ | FR-025 |
-| 16 | 同じ開発者 | App のトークンの権限から Pull requests の write を外して、PR を作る | レビューが始まらず、足りない設定が実行の記録に出る。PR に書ける権限が残っている場合は、止まったことを知らせるコメントに足りない設定の名前がある | FR-018 |
+| 16 | 同じ開発者 | 自前の App の変数と secret を置き、その App の権限から Pull requests の write を外して、PR を作る | レビューが始まらず、足りない設定が実行の記録に出る。PR に書ける権限が残っている場合は、止まったことを知らせるコメントに足りない設定の名前がある | FR-018 |
 | 17 | 同じ開発者 | シナリオ 1 の実行が進行中の間に、同じ PR に `@pecotbot review` とコメントする | 2 つ目の実行は、1 つ目が終わるまで待つ。同時に 2 つ動かない | FR-024 |
 | 18 | 同じ開発者 | シナリオ 1 の実行の後、PR と Issue の状態を見る | PR はマージも閉じられもしていない。結び付いた Issue も開いたままだ | FR-013 |
 | 19 | 同じ開発者 | PR に「please @pecotbot review」と `@pecotbot reviewer` とコメントする。Issue に `@pecotbot review` とコメントする。GitHub の画面から、`@pecotbot review` の後に改行して文を続けたコメントを書く | 前の 3 つは job が飛ばされる。最後の 1 つは起動する | FR-021 |
+| 20 | 同じ開発者 | 雛形を変える PR を作る | Claude の App の道では、レビューが飛ばされ、PR に止まったことのコメントが付かない。実行の記録に、この PR では動かないことが出る | FR-018 |
+| 21 | 同じ開発者 | 自前の App の変数と secret を置いて PR を作る | インラインコメントと指摘の一覧が、どちらも自前の App の名前で付く | FR-011・FR-019 |
 
 シナリオ 1・3・6 は、実際に投稿するので main が流す。
 

@@ -21,7 +21,6 @@
 
 | 条件 | 見るもの |
 |---|---|
-| 導入が済んでいる | 変数 `PECOT_AGENT_APP_CLIENT_ID` が空でない |
 | リポの中のブランチの PR | PR の head のリポが、導入先のリポと同じ |
 | draft でない | PR の `draft` が偽 |
 | 契機が `comment` のとき | コメントが PR に付いた。本文が合言葉と同じか、合言葉の直後が空白か改行。書いたのが人で、`author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` のどれか |
@@ -110,16 +109,16 @@ w-reviewer が返す 1 件だ。形は、手で回す w-revise と同じにす�
 
 | 名前 | 種類 | 中身 |
 |---|---|---|
-| `PECOT_AGENT_APP_CLIENT_ID` | 変数 | 利用者が作る GitHub App の Client ID |
-| `PECOT_AGENT_APP_PRIVATE_KEY` | secret | その App の秘密鍵 |
+| `PECOT_AGENT_APP_CLIENT_ID` | 変数 | 任意。権限を絞りたい利用者が作る GitHub App の Client ID。無ければ、Claude の App を使う |
+| `PECOT_AGENT_APP_PRIVATE_KEY` | secret | 任意。その App の秘密鍵 |
 | `CLAUDE_CODE_OAUTH_TOKEN` | secret | モデルの利用の認証。既定。サブスクリプションのトークン |
 | `PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID`・`_ORGANIZATION_ID`・`_SERVICE_ACCOUNT_ID`・`_WORKSPACE_ID` | 変数 | Workload Identity Federation。secret のトークンが無いときに使う |
 
-App にインストールで与える権限は、使う自動処理の合計だ。ワークフローは、発行のときに、自分に要る権限だけに絞る。
+GitHub のトークンは、既定では Claude の App のものだ。利用者は何も登録しない。自前の App を置いたときは、App にインストールで与える権限を使う自動処理の合計にし、ワークフローが発行のときに自分に要る権限だけに絞る。
 
 | 自動処理 | 発行するトークンの権限 |
 |---|---|
-| 自動レビュー | Pull requests: write、Issues: write、Contents: read |
+| 自動レビュー | Pull requests: write、Contents: read |
 | 後に続く自動処理（spec 023） | その spec が決める |
 
 ## 雛形の一覧
