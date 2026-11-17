@@ -9,10 +9,10 @@
 pecot-workflow に、PR の作成で w-revise のレビューを始める仕組みを足す。pecot の最初のクラウドのエージェントだ。
 利用者のリポに置くワークフローの雛形が、`pull_request` を契機に claude-code-action を動かす。
 action は pecot-workflow のプラグインを入れ、`/pecot-w:w-revise --unattended <PR>` を起動する。
-w-revise は、w-reviewer を起こして diff を見せ、指摘をインラインコメントと `review-findings` で投稿して終わる。
+w-revise は、w-reviewer の定義を読んで自分で diff を見て、指摘をインラインコメントと `review-findings` で投稿して終わる。
 採否・修正・resolve は行わない。続きは、人が端末の w-revise を起こすと、自動レビューの指摘を引き継いで進む。
-発行するトークンは、PR への書き込みと内容の読み取りだけを持つ。リポの内容を書き換えられない。
-「必ず起きること」は CLI に寄せる。新しい `pecot pr review-finish` が、起動ラベルを外し、止まったときのコメントを書く。
+GitHub のトークンは、既定では Claude の App のものだ。書き込みを持つので、エージェントに書き換えのツールを渡さないことで、リポの内容を守る。権限を絞りたい利用者は、自前の App を置ける。
+「必ず起きること」は CLI に寄せる。新しい `pecot pr review-finish` が、止まったときのコメントを書く。
 導入は、w-onboarding の流れから `pecot workflow install review` と `pecot workflow doctor review` で進める。
 認証の名前・雛形を置いて確かめるコマンド・雛形の書き方の決まりは、後に続く自動処理（spec 023）が使える共通の形で作る。
 
@@ -22,7 +22,7 @@ w-revise は、w-reviewer を起こして diff を見せ、指摘をインライ
 |---|---|
 | Language/Version | TypeScript（pecot-workflow の `cli/`）、GitHub Actions の YAML（雛形）、Markdown（スキル） |
 | Primary Dependencies | 既存の CLI の依存。雛形が使う action は、claude-code-action v1、`actions/checkout`、`actions/setup-node`、`actions/create-github-app-token` |
-| Storage | 利用者のリポのファイル（`.github/workflows/pecot-review.yml`）と、GitHub の PR のコメント・スレッド・ラベル |
+| Storage | 利用者のリポのファイル（`.github/workflows/pecot-review.yml`）と、GitHub の PR のコメント・スレッド |
 | Testing | vitest（CLI と雛形）、スキルの文書のテスト（`cli/tests/skills/`）、定義書の lint、検証用のリポでの CUJ |
 | Target Platform | GitHub Actions の ubuntu の runner（自動レビュー）と、利用者の端末（導入と引き継ぎ） |
 | Project Type | 配布するプラグイン（CLI・スキル・テンプレート） |
@@ -31,7 +31,7 @@ w-revise は、w-reviewer を起こして diff を見せ、指摘をインライ
 **Constraints**:
 
 - w-revise の手で回す流れ（Step 1〜6 の順と、人に採否を聞くこと）を変えない
-- 自動レビューは、リポの内容を変えない。発行するトークンに Contents の write を渡さない
+- 自動レビューは、リポの内容を変えない。エージェントに `Bash`・`Edit`・`Write` を渡さない。自前の App を置いたときは、発行するトークンに Contents の write を渡さない
 - 指摘の採番・投稿先・コメントの形を、手で回すときと変えない。テンプレートの検証を迂回しない
 - 雛形は、このリポ固有の名前を持たない
 - プラグインの版は固定できない。雛形と CLI の版のずれは、版の目印で知らせる
@@ -69,7 +69,7 @@ Phase 1 の設計の後も、同じ判定になる。
 | 契機 | PR の中身を扱う処理は `pull_request`。`pull_request_target` で PR の中身を扱わない | `pull_request` だけ | 適合 |
 | fork の判定 | `github.event.pull_request.head.repo.full_name == github.repository` | 同じ式 | 適合 |
 | action の版 | full-length の commit SHA で固定する | SHA で固定し、版をコメントに書く | 適合 |
-| job の権限 | `permissions` を最小にする | `contents: read` だけ。書き込みは絞った App のトークン | 適合 |
+| job の権限 | `permissions` を最小にする | `contents: read`・`pull-requests: write`・`id-token: write`。`id-token` は Claude の App のトークンの引き換えに要る | 適合 |
 | 起動者の確かめ | action が actor の write を確かめる。`allowed_non_write_users` は使わない | action に任せる | 適合 |
 | bot の許可 | `allowed_bots` に名前を列挙する。`*` を使わない | 利用者が名前を列挙する | 適合 |
 | 権限のモード | 厳密にするときは `--permission-mode default` を明示する | 明示する | 適合 |
@@ -113,7 +113,7 @@ plugins/pecot-workflow/
 │   │   │   ├── pr-review-finish.ts      # 新規
 │   │   │   └── registry.ts              # 3 つのコマンドの登録。MCP ツールもここから出る
 │   │   ├── domain/                      # 雛形の一覧、版の比べ方、結果の決め方
-│   │   └── infra/                       # 雛形の読み書き、変数・secret・ラベルの読み取り
+│   │   └── infra/                       # 雛形の読み書き、変数・secret の読み取り
 │   ├── templates/
 │   │   ├── comment/review-stopped.md    # 新規。止まったことを知らせるコメント
 │   │   └── workflow/pecot-review.yml    # 新規。ワークフローの雛形
@@ -147,7 +147,7 @@ specs/023-label-triggered-autofix/       # FR-033 の整合の修正
 | 1 | 設計を左右する点を、検証用のリポで先に確かめる。人のいない実行で w-reviewer が起きるか、プラグインの hooks が止めないか、絞ったトークンで MCP ツールが動くか、job の `concurrency` と `if` の関係 | research の「実装で確かめること」 |
 | 2 | ワークフローの雛形と、そのテスト | US2、FR-001〜FR-004・FR-016・FR-017・FR-020〜FR-027 |
 | 3 | `pecot workflow install`・`doctor` と、雛形の一覧。認証の名前と、雛形の書き方の決まり | US5、FR-019・FR-028・FR-030・FR-031 |
-| 4 | `pecot pr review-finish` と、止まったことを知らせるコメントのテンプレート | FR-012・FR-018・FR-034 |
+| 4 | `pecot pr review-finish` と、止まったことを知らせるコメントのテンプレート | FR-012・FR-018 |
 | 5 | w-revise の Step 3 を「何を投稿するか」と「端末での投稿の手順」に分け、`--unattended` の分岐を足す | US1、FR-005〜FR-011・FR-013・FR-015 |
 | 6 | w-revise の引き継ぎの分岐 | US3、FR-014 |
 | 7 | w-onboarding の Step と、w-help の導入の説明 | US4、FR-029・FR-032 |
@@ -170,6 +170,6 @@ specs/023-label-triggered-autofix/       # FR-033 の整合の修正
 
 | 足すもの | 要る理由 | より単純な案を採らない理由 |
 |---|---|---|
-| `pecot pr review-finish` | 起動ラベルを外すことと、止まったことを PR に残すことは、エージェントがターンの上限で切られても起きなければならない | スキルの文だけで書くと、切られたときに何も残らない。雛形に `gh` の行を直接書くと、置いた後にコメントの形を直せない |
+| `pecot pr review-finish` | 止まったことを PR に残すことは、エージェントがターンの上限で切られても起きなければならない | スキルの文だけで書くと、切られたときに何も残らない。雛形に `gh` の行を直接書くと、置いた後にコメントの形を直せない |
 | `pecot workflow install`・`doctor` | 設定がそろっているかを確かめる手段（FR-030）と、置いた雛形が古いことを知る手段（FR-031）が要る。後に続く自動処理が、同じものを使う（FR-019） | board sync と同じく写して置くだけの形は、確かめる手段を持たない。自動レビュー専用のコマンドにすると、spec 023 が同じものをもう一度作る |
-| 自前の GitHub App | 後に続く自動処理と、認証の形を 1 つにそろえる。Clarifications の答えだ | `GITHUB_TOKEN` だけの形は、利用者の設定が API キー 1 つで済む。採らない理由は research の R3 に書いた |
+| 自前の GitHub App の道 | 権限を絞りたい利用者のための任意の道。既定は Claude の App で、利用者は App を作らない（Clarifications の 2026-11-17） | 自前の App を必須にする形は、導入が重い。research の R3 に書いた |

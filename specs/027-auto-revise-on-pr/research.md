@@ -26,88 +26,127 @@ spec 023 の research（2026-11-11、`v1.0.271`）で確かめた事実は繰り
 
 ## R1. 実行の基盤と契機
 
-- Decision: 契機は `pull_request` の `opened`・`ready_for_review`・`labeled` にする。claude-code-action の v1 を、`prompt` を渡す形（agent モード）で動かす
-- Rationale: 3 つの型とも、`prompt` があれば agent モードになる。agent モードは、追跡コメントを付けず、checkout もしない。ブランチも作らない。`track_progress` は指定しない。指定すると、追跡コメントの付く別のモードに切り替わる
+- Decision: 契機は `pull_request` の `opened`・`ready_for_review` と、`issue_comment` の `created`（合言葉での起動し直し、R15）にする。claude-code-action の v1 を、`prompt` を渡す形（agent モード）で動かす
+- Rationale: どの契機も、`prompt` があれば agent モードになる。agent モードは、追跡コメントを付けず、checkout もしない。ブランチも作らない。`track_progress` は指定しない。指定すると、追跡コメントの付く別のモードに切り替わる
 
 決まったこと:
 
 | 項目 | 値 |
 |---|---|
-| 契機 | `pull_request` だけ。`pull_request_target` は使わない |
+| 契機 | `pull_request` と `issue_comment`。`pull_request_target` は使わない |
 | `prompt` | `/pecot-w:w-revise --unattended <owner>/<repo>/<PR番号>`。PR の本文とタイトルを式で埋め込まない |
 | プラグイン | `plugin_marketplaces` に `https://github.com/pecotcraft/pecot.git`、`plugins` に `pecot-w@pecot`。spec 023 の R1 と同じ |
-| checkout | `actions/checkout` を `fetch-depth: 1`・`persist-credentials: false` で使う。`ref` は書かない。`pull_request` では merge commit が入る |
+| checkout | `actions/checkout` を `fetch-depth: 1`・`persist-credentials: false` で使う。`pull_request` では `ref` を書かず、merge commit が入る。`issue_comment` では既定のブランチが入るので、PR の確かめの step が読んだ head の SHA を `ref` に渡す |
 | 前準備 | `actions/setup-node`。`bin/pecot` が Node と pnpm で実行用の写しを作るため |
 
 - action は、PR の run で、作業ツリーの `.claude/`・`.mcp.json`・`CLAUDE.md` などを base ブランチの版に置き換える。PR の作者が、設定の差し替えでエージェントを操れない
 - `pull_request` の run は、ワークフローのファイルを PR の merge commit から読む。雛形を足す PR そのもので、最初の実行を確かめられる
+- `issue_comment` の run は、既定のブランチのワークフローのファイルで動く。合言葉の起動は、雛形が既定のブランチに入ってから確かめられる
 
 - Alternatives considered:
 
 | 候補 | 採らない理由 |
 |---|---|
 | `pull_request_target` | base の secret と書き込みのトークンで動く。公式は、PR の中身を扱う処理に使わないよう書いている。公開リポでは、既定の policy が 2026-12-02 から止める |
-| `issue_comment` でのメンション | コメントを書ける人が広く、起動者の制限が弱くなる。spec の対象にしていない |
-| `pull_request_review` など、ほかの契機 | spec が、PR の作成と起動ラベルだけと決めている |
+| `pull_request` の `labeled`（起動ラベル） | claude-code-action の公式の例に無い。作成と同時に付けると 2 度レビューする。R15 で、合言葉のコメントに替えた |
+| `pull_request_review` など、ほかの契機 | spec が、PR の作成と合言葉のコメントだけと決めている |
 
 ## R2. 起動の条件と、起動者の確かめ
 
-- Decision: fork・draft・ラベルの名前・bot の判定は、job の `if` に書く。書き込み権限の確かめは、action に任せる。`allowed_non_write_users` は設定しない
+- Decision: fork・draft・合言葉・書いた人の関係・bot の判定は、job の `if` に書く。`issue_comment` の fork・draft は、PR を読む step で判定する。書き込み権限の確かめは、action でも重ねて行う。`allowed_non_write_users` は設定しない
 - Rationale: action は、`github.actor` の権限を確かめ、admin と write だけを通す。確かめは Claude の起動の前に済む。`if` で先に落とせば、対象外の PR では runner の時間もモデルの費用もかからない
 
 job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
-起動ラベルの名前と、許す bot の一覧は、リポの変数（`vars`）から読み、式の `||` で既定値を持つ。board sync の雛形も、`if` の判定に `vars` を使っている。
+合言葉と、許す bot の一覧は、リポの変数（`vars`）から読み、式の `||` で既定値を持つ。board sync の雛形も、`if` の判定に `vars` を使っている。
 `timeout-minutes` も `vars` を読めるので、時間の上限も変数で変えられる。spec 023 の contracts は「式を受け付けない」と書いているが、公式の表と合わない。
+ただし、変数の値は文字列で、`timeout-minutes` は数を求める。
+
+- `${{ vars.X || 30 }}` は、変数が無いときだけ動き、変数を置くと run が job を作らずに失敗した（run 44039932798、2026-11-17）。actionlint も型の誤りで止める
+- `${{ fromJSON(vars.X || '30') }}` にすると、変数の有無のどちらでも動き、actionlint も通る（run 44040020565・44040534751）
 
 | 起動の試み | 止める仕組み |
 |---|---|
 | fork からの PR | `if` が、PR の head のリポと導入先のリポを比べる。公式の書き方は `github.event.pull_request.head.repo.full_name == github.repository`。fork の run には secret も渡らない |
 | draft の PR | `if` が `github.event.pull_request.draft` を見る |
-| 起動ラベルでないラベル | `if` が `github.event.label.name` を比べる。`prompt` を渡した action は、どのラベルでも動くからだ |
-| 書き込み権限の無い人が、コメント・本文の編集をする | 契機に無いので、起動しない |
-| 書き込み権限の無い人が、ラベルを付ける | triage の人は GitHub の上でラベルを付けられる。action が actor の権限を見て止める |
+| 合言葉で始まらないコメント、Issue へのコメント | `if` が、コメントが PR に付いたことと、本文が合言葉で始まり、直後が空白か改行か本文の終わりであることを見る。`prompt` を渡した action は、合言葉を確かめないからだ（R15） |
+| 書き込み権限の無い人が、本文を編集する | 契機に無いので、起動しない |
+| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに飛ばす。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
 | bot が作った PR | `if` が、PR の作者の名前を、許した bot の一覧と比べる。action の `allowed_bots` にも同じ一覧を渡す |
 
-- 起動ラベルを書き込み権限のある人が付けたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる
+- 書き込み権限のある人が合言葉を書いたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる
 - `allowed_bots` は、名前を小文字にし、`[bot]` を除いて比べる。`<slug>` と `<slug>[bot]` のどちらで書いても通る。spec 023 で残した問いは、これで決まる
 - `allowed_bots` を設定すると、action の権限のモードの既定が変わる。雛形は R5 のとおり、モードを明示する
-- Dependabot の PR の run には、Actions の secret が渡らない。Dependabot の secret が渡る。Dependabot を許す利用者は、API キーと App の鍵を Dependabot の secret にも置く。導入の説明に書く
+- Dependabot の PR の run には、Actions の secret が渡らない。Dependabot の secret が渡る。Dependabot を許す利用者は、モデルの認証の secret と App の鍵を、Dependabot の secret にも置く。導入の説明に書く
 
 実装で確かめること:
 
-- action の `restrict_untrusted_prs`（初期値は有効）は、bot が作者の PR を、`allowed_bots` にあっても信頼しない扱いにする。npm・bash などが拒否リストに入る。許した bot の PR で、プラグインの MCP サーバが起動するかを確かめる。許していない bot の PR に、人が起動ラベルを付けた場合も確かめる
-- `labeled` の run で、`github.actor` がラベルを付けた人になること。公式の定義の文からの読みで、payload では確かめていない
-- 自前の GitHub App が作った PR の作者の名前の形
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| bot が作者の PR で、プラグインの MCP サーバが起動するか（許した bot の `opened`、許していない bot に人が起動ラベル） | 2 つとも起動し、`pr_show` も動く。どちらの run にも `restrict_untrusted_prs` の警告が出る。制限が止めるのは checkout のコードを動かすコマンドで、MCP サーバの起動は止めない | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
+| `labeled` の run で、`github.actor` がラベルを付けた人になること | なる。bot の PR に人が付けた run でも、ラベルを付けた人だった | 同上 | 2026-11-17 |
+| 自前の GitHub App が作った PR の作者の名前の形 | `pecot-agent-sandbox[bot]`。`user.type` は `Bot`。App の `opened` の run の `github.actor` も同じ名前になる | 同上 | 2026-11-17 |
+
+結果:
+
+- 契約の判定 `contains(fromJSON(vars.PECOT_REVIEW_ALLOWED_BOTS || '[]'), <作者>)` は意図どおり動いた。一覧に無い bot の `opened` は `skipped`、一覧に入れると動いた（run 44040986344・44041242231）
+- 警告は `The author of pull request #N is not confirmed to have write access` で始まる（run 44041014404）
+- 確かめの head のブランチは、`cuj/567-<4 文字>` の下に置けない。`cuj/567-3w7k` があると `cuj/567-3w7k/bot` は作れないので、別の乱数の名前にした
 
 ## R3. GitHub のトークン
 
-- Decision: 利用者が作る GitHub App を 1 つ使う。変数と secret の名前は、自動処理に共通の `PECOT_AGENT_APP_CLIENT_ID` と `PECOT_AGENT_APP_PRIVATE_KEY` にする。ワークフローは、`actions/create-github-app-token` の `permission-*` で、自分に要る権限だけに絞って発行する
-- Rationale: Clarifications で、共通の部分をこの spec が先に作ると決めた。App にインストールで与える権限は、使う自動処理の合計にする。発行のときに絞れば、自動レビューのトークンはリポの内容を書き換えられない（FR-011）。後から別の自動処理を足すとき、利用者は App の権限を足すだけで、鍵を作り直さない（SC-009）
+- Decision: 既定は、公式の Claude の GitHub App（`https://github.com/apps/claude`）を使う。action に `github_token` を渡さず、action が GitHub の OIDC トークンと引き換えに Claude の App のトークンを受け取る
+  - 権限を絞りたい利用者だけ、自前の GitHub App を作り、変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` を置く。置けば、雛形はそのトークンを `actions/create-github-app-token` で絞って発行し、`github_token` に渡す
+- Rationale: 自前の App は、作成・インストール・鍵の登録が要り、導入でいちばん重い手順だった。Claude の App は `/install-github-app` か App のページから入れるだけで済む。プラグインの読み込みは GitHub のトークンに依らず、Claude の App のトークンでも pecot の MCP サーバが動いた（下の表）。既定を軽くし、権限を絞る道を残す形にした（2026-11-17、ユーザーの判断）
 
-自動レビューが発行するトークンの権限:
+トークンの使い分け:
 
-| 権限 | 範囲 | 使い道 |
+| 使う所 | Claude の App（既定） | 自前の App |
 |---|---|---|
-| Pull requests | write | インラインコメントの投稿、PR へのコメント、起動ラベルを外す |
-| Contents | read | PR と diff の読み取り |
+| action の中（インラインコメント・git の認証） | Claude の App のトークン。Contents・Issues・Pull requests の write を持ち、絞れない | 発行したトークン。Pull requests の write と Contents の read に絞る |
+| pecot の MCP ツール（`PECOT_GITHUB_COM_TOKEN`） | ワークフローの `GITHUB_TOKEN`。job の `permissions` で `pull-requests: write` に絞る | 発行したトークン |
+| PR の確かめ・受け付けの印・後始末 | ワークフローの `GITHUB_TOKEN` | 発行したトークン |
 
-- 公式の表では、Issue のコメントの投稿とラベルを外す操作は、Issues か Pull requests のどちらかの write で足りる。Issues の write は付けない
-- 発行したトークンは、action の `github_token` と、環境変数 `PECOT_GITHUB_COM_TOKEN` の両方に渡す。`github_token` を渡すので、job の `permissions` に `id-token: write` は要らない
-- job の `permissions` は `contents: read` だけにする。書き込みは App のトークンで行う
-- App のトークンで書いたコメントとラベルの操作は、ほかのワークフローを起こす。`GITHUB_TOKEN` は起こさない。起動ラベルを外す操作は `unlabeled` で、雛形の契機に無いので、輪にならない
+- job の `permissions` は `contents: read`・`pull-requests: write`・`id-token: write` にする。`id-token: write` は、Claude の App のトークンの引き換えと、Workload Identity Federation の両方に要る
+- Claude の App のトークンは書き込みを持つ。FR-011 は、エージェントに書き換えの手段を渡さないことで守る。`Bash`・`Edit`・`Write` を `--disallowedTools` に書き、`git` を打てないようにする（R5）
+- pecot の MCP ツールは `PECOT_GITHUB_COM_TOKEN` だけを読む。action が Claude の App のトークンを置く `GITHUB_TOKEN` は読まない。
+  このため、既定では投稿者が 2 つに分かれる。インラインコメントは `claude[bot]`、指摘の一覧は `github-actions[bot]` だ。そろえるには、pecot の CLI の直しが要る
+- App のトークンで書いたコメントは、`issue_comment` のワークフローを起こす。`GITHUB_TOKEN` は起こさない。書いたのが bot なので、`if` の bot の判定で飛ばされ、輪にならない。指摘の本文が合言葉で始まっても同じだ
 
 - Alternatives considered:
 
 | 候補 | 採らない理由 |
 |---|---|
-| `GITHUB_TOKEN`（`pull-requests: write`） | 公式の PR レビューの例と同じで、利用者の設定は API キーだけで済む。採らないのは、後に続く自動処理が App を要るためだ。認証の形が 2 つに分かれる。Clarifications の答えにも合わない |
-| Claude GitHub App（action の既定） | 利用者が権限を選べない。pecot CLI に渡すトークンを別に用意することになる |
-| PAT | 寿命を利用者が決め、人のアカウントに結び付く。board sync の雛形は、App を使えないボードのために PAT の道を持つ。自動レビューはボードに書かないので、要らない |
+| 自前の App を必須にする（前の決め） | 導入が重い。利用者が App を作らないと、最初のレビューも動かない |
+| `GITHUB_TOKEN` だけ | レビューには足りるが、後に続く自動処理（spec 023）の push が CI を起こさない（action の `docs/faq.md`）。Claude の App なら、同じ App で後の処理も動かせる見込みだ |
+| PAT | 寿命を利用者が決め、人のアカウントに結び付く。自動レビューはボードに書かないので、要らない |
 
-実装で確かめること:
+Claude の App のトークンで確かめたこと:
 
-- w-revise が使う MCP ツール（`pr_show`・`issue_show`・`pr_restack` の確かめ・`issue_comment`）が、Projects の権限の無いトークンで動くか。ボードを読むなら、`organization-projects: read` を足すか、読まない道を作る
-- GraphQL の `reviewThreads` の読み取りに要る権限。公式の表では読めなかった
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| Claude の App のトークンを受け取れるか | ワークフローのファイルが既定のブランチと同じ中身のときだけ受け取れる。PR のブランチで足した・変えたワークフローでは、action が `Workflow validation failed` でレビューを飛ばした | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
+| プラグインと pecot の MCP サーバ | `connected`。`PECOT_GITHUB_COM_TOKEN` に `GITHUB_TOKEN` を渡すと、`pr_show` が動いた | 同上 | 2026-11-17 |
+| インラインコメントの投稿者 | `claude[bot]`。URL と `comment_id` が返った | 同上 | 2026-11-17 |
+
+- run は 44074135386（PR のブランチの定義で、飛ばされた）・44074474994（既定のブランチの定義で、動いた）だ
+- ワークフローを変えた PR では、既定の構成の自動レビューは動かない。自前の App の構成では、この確かめが無い
+- `GITHUB_TOKEN` での `issue_comment` の投稿は、確かめの文の見出しが英語で、テンプレートの検証で止まった。トークンでは止まっていない。投稿できることは、Phase 2 の検証用の run で確かめる
+
+自前の App のトークンで確かめたこと:
+
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| w-revise が使う MCP ツール（`pr_show`・`issue_show`・`pr_restack` の確かめ・`issue_comment`）が、Projects の権限の無いトークンで動くか | 権限では止まらない。4 つとも、Pull requests の write と Contents の read で動く。ただし `.active` の無い checkout では、4 つとも `no-active-project` で止まる（#579） | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
+| GraphQL の `reviewThreads` の読み取りに要る権限 | 同じトークンで読める。`pr_show` の `reviews` が、スレッドの path・line・未解決か・本文を返す。スレッドの ID は返さない | 同上 | 2026-11-17 |
+
+検証用の PR #280 の run で分かったことは、次のとおりだ。
+
+- `.active` が無いと止まる訳は、PR と Issue を扱うツールが、対象のリポを見ずに `.active` の設定を要求するためだ。`.active` は配る `.pecot/.gitignore` で追跡しない。このリポは最初のコミットから追跡が残っているので、ここでは起きない。直しは #579 で行う
+- 権限の確かめは、run の中で `.active` を書く step を置き、設定の問題を外して行った（run 44037912331・44038253745・44038480578）
+- `issue_show` は、着手できるかの判定（`startable`）まで出た。ボードの読み取りに Projects の権限は要らなかった
+- `pr_restack` の確かめは、checkout の切り離された HEAD で `{"branch":"HEAD","base":"main","outcome":"up-to-date"}` を返した
+- `issue_comment` は、`message` に複数行の本文を渡せば、テンプレートの検証を通って投稿できる。`Write` を許さなくても、指摘の一覧を投稿できる
+- R8 の引き継ぎは、F-NN とスレッド ID の対応を要る。`pr_show` は ID を返さないので、R8 の読み取りの手段は後のフェーズで決める
 
 ## R4. 指摘の投稿の手段
 
@@ -131,12 +170,20 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 - action に同梱の MCP サーバは、GitHub 公式の MCP サーバ（`github/github-mcp-server`）とは別だ。action が自前で持ち、許可リストに名前を書いたときだけ入る（`src/mcp/install-mcp-server.ts`）
 - この MCP ツールは、`confirmed: true` を付けるとすぐ投稿する。付けないと、セッションの後に分類してから投稿する。指摘の一覧に URL を並べるには、すぐ投稿された結果が要る
+- 分類の step は `ANTHROPIC_API_KEY` を使う。トークンと Workload Identity Federation だけの構成（R14）では分類が飛ばされ、`confirmed` の無いコメントも全部投稿される（action の `docs/setup.md`）。雛形は `classify_inline_comments: "false"` を明示し、どの投稿もすぐ出す形に揃える
 
 実装で確かめること:
 
-- この MCP ツールで投稿したコメントの URL を、指摘の一覧の Disposition に並べられるか
-- 2 巡目で、前の巡の未解決のスレッドへ返信する手段があるか。無ければ、人のいない実行の 2 巡目は、新しい指摘として投稿する
-- 自動レビューの許可リストに、スレッドを resolve できる手段が入っていないこと
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| この MCP ツールで投稿したコメントの URL を、指摘の一覧の Disposition に並べられるか | 並べられる。`confirmed: true` の結果が `comment_id` と `html_url` を返す。本文の先頭の `**F-NN** [tech]` は、そのまま PR に出る | action v1.0.278・Claude Code 2.1.326 | 2026-11-17 |
+| 2 巡目で、前の巡の未解決のスレッドへ返信する手段があるか | 無い。ツールは返信の引数を持たない（action の `src/mcp/github-inline-comment-server.ts`）。人のいない実行の 2 巡目は、新しい指摘として投稿する | 同上 | 2026-11-17 |
+| 自動レビューの許可リストに、スレッドを resolve できる手段が入っていないこと | 入っていない。run の中のツールに、名前に resolve・reply を含むものは無かった | 同上 | 2026-11-17 |
+
+結果:
+
+- 行を指さない投稿（ファイル単位）は、`line` を求めるエラーで止まる（run 44031535860）
+- ファイル単位の指摘は、指摘の一覧の General へ回す
 
 ## R5. ツールの許可リストと上限
 
@@ -152,16 +199,42 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 | ターン | 60 | このリポの試行で直す |
 | 時間 | 30 分 | このリポの試行で直す |
 
-- Agent ツール（サブエージェントの起動）は、許可リストに書かなくても使える。プラグインのサブエージェントの名前は `pecot-w:w-reviewer` になる
+- Agent ツール（サブエージェントの起動）は、許可リストに書かなくても使える。人のいない実行では使わないので、`--disallowedTools` に書く（下の結果）。プラグインのサブエージェントの名前は `pecot-w:w-reviewer` になる
 - プラグインの MCP ツールは、許可リストに書かないと使えない。名前は `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` の形だ
 - `-p` の実行でも、サブエージェントは動き、`prompt` の `/スキル名` は展開される。公式の文書で確かめた
 - w-reviewer は Context7 と `git clone` で公式の文書を調べる。人のいない実行でこれを許すかは、試行で決める。初期値では許さない。根拠を調べきれない指摘は、その旨を付けて返させる
 
 実装で確かめること:
 
-- 人のいない実行で、w-reviewer が起き、指摘が main に返ること
-- サブエージェントが、main の許可リストを引き継ぐこと
-- プラグインの hooks が、人のいない実行で止まらないこと。`UserPromptSubmit`・`PreToolUse`・`Stop` の hook がある
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| 人のいない実行で、w-reviewer が起き、指摘が main に返ること | 起き、指摘を返す。サブエージェントは、MCP ツールを使う前に ToolSearch で読み込む | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
+| サブエージェントが、main の許可リストを引き継ぐこと | 確認が要るツールは、許可リストに無ければ拒まれる。確認の要らないツール（`Skill`、読み取りだけの `Bash` のコマンド）は、許可リストに無くても使える。`--disallowedTools` に書いたツールは、main でもサブエージェントでも使えない | 同上 | 2026-11-17 |
+| プラグインの hooks が、人のいない実行で止まらないこと | 止めない。`SessionStart`・`UserPromptSubmit`（2 本）・`PreToolUse:Skill` が動き、出力はどれも空だった。`Stop` の hook は今の `hooks.json` に無い。`PreToolUse` の `Bash` の hook は、`Bash` を禁止するので動かない | 同上 | 2026-11-17 |
+
+結果:
+
+- `--allowedTools` は、確認なしに使えるツールの一覧として働く
+- 一覧に無い pecot の MCP ツールは拒まれる。`board_show` と `session_show` は、`Claude requested permissions to use ...` で止まった（run 44041509504）
+- 確認の要らないツールは、一覧に無くても使える。w-reviewer は `Bash` で `echo probe` を打てた（run 44031535860）。main は `Skill` を呼べた（run 44038480578）
+- 使わせないツールは `--disallowedTools` に書く。`Bash` を書くと、`Bash is disabled for this session, in subagents as well as here` で拒まれる（run 44037912331）
+- `prompt` の `/pecot-w:w-help` は展開され、スキルの手順で動いた。スラッシュでの展開は `Skill` のツールを通らない（run 44038253745）
+- hook の動きは、`claude_args` に `--include-hook-events` を足して読んだ
+- Context7 の MCP サーバは `needs-auth` で、人のいない実行では使えない。初期値で許さない判断と合う
+
+w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-17）:
+
+| run | w-reviewer | 結果 | ターン・時間・費用 |
+|---|---|---|---|
+| 44081605799（検証用の PR #297） | 起こした。モデルが裏で起こす形を選んだ | main が「w-reviewer の知らせを待つ」と書いてターンを終え、実行も終わった。何も投稿されず、action の step は成功だった | 6 ターン・10 秒・$0.17 |
+| 検証用の PR #299 の run | 待つ形（`run_in_background: false`）で起こした | 7 件の指摘を投稿した。`[tech]`・`[quality]`・`[cuj]` を使い分け、テストの欠如も指摘した | 14 ターン・69 秒・$0.35 |
+| 44082723880（検証用の PR #301） | 起こさず、main が定義のファイルを `Glob` と `Read` で読んだ | 3 件の指摘を投稿した。致命的な不具合は #299 と同じく見つけた。印は 3 件とも `[quality]` で、テストの欠如の指摘は無く、`median` の 3 つの問題を 1 件にまとめた | 13 ターン・34 秒・$0.16 |
+
+- 人のいない実行では、w-reviewer を起こさない形にする（ユーザーの判断）。分けるべき作業の文脈が無く、裏で起こすと結果を待たずに終わる。`--disallowedTools` に `Agent` を書く
+- 定義のファイルは作業ディレクトリの外（`~/.claude/plugins/cache/pecot/pecot-w/<版>/agents/w-reviewer.md`）にあるが、`Glob` と `Read` で確認なしに読めた
+- 指摘の粒度と印の使い分けは、#299 より粗かった。1 回ずつの比べなので、quickstart の「手で回す w-revise と比べる」で、同じ PR を何度か流して確かめる
+- #301 の Disposition は「すべて直す — 対応」と採否を書いた。人のいない実行の Disposition の書き方を、`contracts/skill-flow.md` に足した
+- どの run も、インラインコメントは `claude[bot]`、指摘の一覧は `github-actions[bot]` の名前で付いた（R3）
 
 ## R6. 同時実行
 
@@ -169,7 +242,16 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 - Rationale: 進行中のレビューを途中で取り消すと、インラインコメントだけが残り、指摘の一覧が無い状態になる
 
 - 公式の PR 向けの例は `cancel-in-progress: true` だ。push のたびに古い run を捨てる CI のための形で、自動レビューは push で起動しない
-- `concurrency` をワークフローに書くと、起動ラベルでないラベルが付いた run も、同じ group に入る。job に書けば、`if` で飛ばされた run は group に入らない見込みだ。実装で確かめる
+- `concurrency` をワークフローに書くと、起動でない run（合言葉で始まらないコメントなど）も、同じ group に入る。job に書けば、`if` で飛ばされた run は group に入らない
+
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| job の `concurrency` で、`if` で飛ばされた run が group に入らないこと | 入らない。起動の run A の間に、起動の run B を待たせ、起動でないラベルの run C を起こした。C は待たずに `skipped` で終わり、B は取り消されずに A の直後に動いた | GitHub Actions（github.com） | 2026-11-17 |
+| 作成とラベル付けを続けて行ったときの扱い | 同じ PR を 2 度レビューする。`opened` と `labeled` の両方が条件を満たし、`concurrency` は 2 本を順に並べるだけで重複を防がない | 同上 | 2026-11-17 |
+
+- 場面 1 の run は 44038712373（A）・44038740962（B）・44038762984（C）だ
+- 場面 2 は、PR を開いた 1 秒後に起動ラベルを付けた。`gh pr create --label` と同じ形だ（run 44039121603・44039125330）
+- 起動し直しを合言葉のコメントに変えたので、この重なりは起きなくなった（R15）。PR の作成で合言葉は書けない
 
 ## R7. 人のいない実行の w-revise
 
@@ -204,7 +286,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 ## R9. 終わり方と、止まったときのコメント
 
 - Decision: CLI に `pecot pr review-finish` を足す。ワークフローの最後の step が、`if: always()` で呼ぶ。スキルは、最後に同じ処理を MCP ツールから呼ぶ
-- Rationale: 起動ラベルを外すこと（FR-034）と、失敗と上限を PR に残すこと（FR-012）は、エージェントがターンの上限で切られても起きなければならない。スキルの文だけで書くと、切られたときに何も残らない
+- Rationale: 失敗と上限を PR に残すこと（FR-012）は、エージェントがターンの上限で切られても起きなければならない。スキルの文だけで書くと、切られたときに何も残らない
 
 | 終わり方 | PR に残るもの |
 |---|---|
@@ -214,7 +296,22 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 - レビューを終えたときに別のコメントを足さないのは、GitHub が PR にチェックの行を出し、そこから実行の記録へ行けるためだ。同じことをコメントに書かない
 - 止まったことを知らせるコメントは、CLI がテンプレートから書く。エージェントは書かない
 - 同じ実行で 2 度書かないために、実行の ID を入れた目印の行を使う
-- 失敗と上限の見分けは、job の終わり方と、action の出力から決める。見分け方は実装で確かめる
+- 失敗と上限の見分けは、job の終わり方と、action の出力から決める
+
+| 終わり方 | job・step | action の `conclusion` | `execution_file` の最後の `result` |
+|---|---|---|---|
+| ターンの上限 | Review が `failure` | `failure` | `subtype: error_max_turns`・`terminal_reason: max_turns`・`is_error: true` |
+| 時間の上限 | job が `cancelled`。Review が `cancelled` | 空 | ファイルが残らない |
+| API の失敗（認証・クレジット） | Review が `failure` | `failure` | `subtype: success`・`terminal_reason: api_error`・`is_error: true`。`result` に API の文が入る |
+| 終えた | Review が `success` | `success` | `subtype: success`・`is_error: false` |
+
+確かめた版は action v1.0.278・Claude Code 2.1.326、日付は 2026-11-17 だ。分かったことは、次のとおりだ。
+
+- `if: always()` の step は、時間の上限で切られた後も動いた（run 44040534751）。後始末の step を最後に置く形は成り立つ
+- 時間の上限の `cancelled` は、人が run を手で取り消したときと同じ値だ。job の中からは、2 つを見分けられない
+- `subtype` だけでは、API の失敗と終えた場合を見分けられない。`is_error` と `terminal_reason` も見る
+- `--max-turns` は main のターンだけを数える。サブエージェントの中のやり取りは数えない。w-reviewer が長いレビューを返した run も、2 ターンで終わった（run 44039505483）
+- ターンの上限の run は 44039760791、API の失敗の run は 44029781882（認証）・44030238020（クレジット）だ
 
 - Alternatives considered:
 
@@ -263,12 +360,85 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 - プラグインは、既定のブランチから入る。`plugin_marketplaces` は `#ref` を受け付けない。直した w-revise を、マージの前に action の中で動かす手段は、spec 026 の R11-6 が確かめる
 - R11-6 の結果が出るまで、スキルを通した確かめは、main へのマージの後になる。tasks の前提の表に書く
-- 雛形そのものは、雛形を足す PR の run で確かめられる（R1）
+- 雛形の `pull_request` の契機は、雛形を足す PR の run で確かめられる（R1）。`issue_comment` の契機は既定のブランチの定義で動くので、検証用の main に入れて確かめる。spec 026 の「配る自動化を確かめる」の手順に従う
 
 ## R13. GitHub Enterprise Server
 
 - spec 023 の R13 と同じだ。`github_token` を渡す形なので、Claude GitHub App のトークンの交換に依らない
 - 導入の説明には、github.com で確かめたことと、GHES では確かめていないことを書く。トークンの環境変数の名前が変わることは、board sync の説明と同じ文を使う
+
+## R14. モデルの認証
+
+- Decision: 雛形は、secret `CLAUDE_CODE_OAUTH_TOKEN` を action の `claude_code_oauth_token` に渡す。Workload Identity Federation の 4 つの ID は、secret が無いときだけ変数から渡す。`anthropic_api_key` は渡さない
+- Rationale: 既定をサブスクリプションにするのは、ユーザーの判断だ（spec の「費用と認証の方針」）。action は、静的なトークンがあればそれを使い、Workload Identity Federation を使わない。secret の有無だけで、払い方を切り替えられる
+
+| 項目 | 値 |
+|---|---|
+| トークン | secret `CLAUDE_CODE_OAUTH_TOKEN`。`claude setup-token` で作る |
+| Workload Identity Federation | 変数 `PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID`・`PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID`・`PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID`・`PECOT_AGENT_ANTHROPIC_WORKSPACE_ID` |
+| job の `permissions` | `contents: read` と `id-token: write`。Workload Identity Federation が GitHub の OIDC トークンを取るためだ。`id-token: write` は、リポの何も書き換えない |
+
+確かめた版は action v1.0.278・Claude Code 2.1.326、日付は 2026-11-17 だ。分かったことは、次のとおりだ。
+
+- トークンと Workload Identity Federation の入力を両方渡すと、action は警告を出してトークンを使う（run 44031119294）。公式の文書も同時に渡さないよう書いているので、雛形は式で片方だけを渡す
+- 貼り付けのときに改行が入ったトークンは、`401 OAuth access token is invalid` で止まる。導入の説明に、1 行で貼ることを書く
+- 2026-07-15 より後に作ったリポでは、OIDC トークンの subject が ID を含む形になる（GitHub の immutable subject claims）
+  - 例は `repo:pecotcraft@351183614/pecot-sandbox@1455471836:*` だ
+  - Anthropic の文書とウィザードの例は古い形で、そのままでは `match_subject_prefix` で拒まれる（run 44029781882）
+- 導入の説明では、ルールの subject の prefix を、GitHub の API が返す `sub_claim_prefix` から作る
+  - 読む先は `repos/<owner>/<repo>/actions/oidc/customization/sub` だ
+- `pull_request` の fork の run には、GitHub が `id-token: write` を渡さない。`issue_comment` の run は base のリポの文脈で動くので、fork の PR へのコメントでも渡る。PR の確かめの step が、action より前に fork を弾く
+- Workload Identity Federation で動かすと、組織にクレジットが無ければ `Credit balance is too low` で止まる（run 44030238020）
+
+## R15. 起動し直しの契機
+
+- Decision: 起動し直しは、PR へのコメントの合言葉で行う。既定は `@pecotbot review` で、変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる。契機は `issue_comment` の `created` だ
+- Rationale: claude-code-action の `label_trigger` は Issue だけが対象だ。PR のレビューの公式の例は、`synchronize` で自動に動かすか、`@claude` のメンションで起こす形だけだ。ラベルの形は公式の例に無いので、メンションの形に合わせた（2026-11-17、ユーザーの判断）
+- Alternatives considered:
+  - 起動ラベル（`pull_request` の `labeled`）。公式の例に無い。作成と同時に付けると 2 度レビューする（R6）。終わりにラベルを外す処理も要る
+  - `synchronize`。push のたびに動き、費用が読めない
+  - `workflow_dispatch`。PR の画面から起こせない
+
+合言葉の形は、レビューの bot の前例に合わせた。2026-11-17 に、公式の文書と GitHub のアカウントで調べた。
+
+| サービス | 頼み方 | 名前のアカウント |
+|---|---|---|
+| claude-code-action | `@claude` | Anthropic が持つ User |
+| Codex | `@codex review` | OpenAI が持つ User |
+| CodeRabbit | `@coderabbitai review` | Organization |
+| Sourcery | `@sourcery-ai review` | Organization |
+| Dependabot | `@dependabot rebase` など | Organization |
+| Gemini Code Assist | `/gemini review` | — |
+| Cursor Bugbot | `cursor review`・`bugbot run` | — |
+
+- 主流は `@<名前> <頼みごと>` の形だ。頼みごとの語を後ろに付けるので、後の自動処理（spec 023）も同じ名前で頼める
+- 名前は、どの前例も提供元が自分で持つ。pecot は `pecotbot` を Organization として持つ。Organization は、ログインして使うアカウントを持たずに名前を押さえられる
+- 他人のアカウントの名前は使わない。`@pecot` は他人の User で、書くたびにその人へ通知が飛ぶ
+- `@` の候補にも、GitHub の `/` の一覧にも、自前の名前は出ない（下の表）。補完はどの形でも得られないので、前例の多い形を採った
+- 本文の先頭だけを見る。`contains` で探すと、文の途中の言及でも起動するためだ
+- `prompt` を渡す形では、action は合言葉を確かめない（`src/entrypoints/prepare.ts` の `containsTrigger` は、tag のモードでだけ `checkContainsTrigger` を呼ぶ）。判定は job の `if` だけが持つ
+- 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く。このため、job の `if` で `author_association` を先に見る
+- 合言葉の後に区切りを求める。本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ通す。`@pecotbot reviewer` では起動しない
+
+| 確かめること | 結果 | 版 | 確かめた日 |
+|---|---|---|---|
+| 書き込み権限を持つ人の `/pecot-review` で起動し、PR の head を読めるか | 起動した。checkout の `ref` に `refs/pull/<N>/head` を渡すと、PR のブランチにだけあるファイルを読めた。action のログに `Actor has write access` と `Verified human actor` が出た | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
+| 文の途中に合言葉を書いたコメント | job が `skipped` になった | 同上 | 2026-11-17 |
+| Issue への `/pecot-review` のコメント | job が `skipped` になった | 同上 | 2026-11-17 |
+| App の名前を合言葉にしたとき、コメント欄の `@` の候補に出るか | 出ない。App が作った PR（検証用の #283）で、ユーザーが画面で確かめた。`@<App の名前>` にしても補完は効かないので、合言葉の名前の決めに使った | GitHub の画面（github.com） | 2026-11-17 |
+| `@pecotbot review` で起動し、👀 が付くか | 起動した。PR の確かめを通った後、自前の App のトークンで 👀 を付けられた。checkout は、PR の確かめが出した `head.sha` を読んだ | action v1.0.278・pecot-w 8.0.0 | 2026-11-17 |
+| `@pecotbot reviewer` と `please @pecotbot review` | どちらも job が `skipped` になり、👀 も付かなかった | 同上 | 2026-11-17 |
+| 合言葉の直後で改行したコメント（`\n` と `\r\n`） | `\n` は前の式で起動した。`\r\n` も、`fromJSON` で改行を作った 4 つの比べ方の式で起動した | 同上 | 2026-11-17 |
+| `@pecotbot` と書いたとき、ユーザーに通知が飛ぶか | ユーザーの通知に `mention` の理由のものは無かった。ただし、書いたのが Organization の持ち主のユーザー自身なので、ほかの member に飛ばないことまでは確かめていない | GitHub（github.com） | 2026-11-17 |
+| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
+
+- 受け付けの印として、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。合言葉の run は PR の Checks の欄に出ず、結果が出るまで無言になるためだ。飛ばされた run は印を付けないので、受け付けられなかったことも分かる
+- 公式の表では、Issue のコメントへのリアクションは Issues か Pull requests の write で足りる。Pull requests の write に絞ったトークンで付けられた。既定の `GITHUB_TOKEN` は job の `permissions` の `pull-requests: write` で同じ権限を持つが、確かめていない
+- 表の上の 3 行は、合言葉が `/pecot-review` だった時点の run だ。`@pecotbot review` の行は、検証用の PR #289 で main に入れ、#291 で消した。改行の行は、#293 で入れ、#295 で消した
+- `@pecotbot` の run は 44054089447（起動）・44054099359（`reviewer`）・44054110563（文の途中）・44054121464（`\n`）だ。`\r\n` の run は 44074489766 だ
+- 確かめのワークフローは、検証用の main に入れて確かめ、後で消した（検証用の PR #287・#288）。`issue_comment` は既定のブランチの定義で動くためだ
+- run は 44045334864（起動）・44045337610（文の途中）・44045340626（Issue）だ
+- `issue_comment` のイベントは、PR の head のリポと draft を持たない。確かめのワークフローは、App のトークンで PR を読み、fork・draft・閉じた PR を弾く step を置いた
 
 ## 調査で見つけた、この spec の外の事実
 
