@@ -45,13 +45,13 @@ claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 |---|---|
 | `plugin list --json` の `pecot-w@inline` の行 | `installPath` が作業ツリーを指す |
 | セッションで w-help を起動する | 本文に「試験 456」がある |
-| MCP ツール `board_show` を呼ぶ | ボード `pecot sandbox` が出る。書き込む前に、毎回これを見る（FR-031） |
+| MCP ツール `board_show` を呼ぶ | `project` の `name` が `github.com_pecotcraft_pecot-sandbox_sandbox`、`number` が `3`（ボード `pecot sandbox`）。書き込む前に、毎回これを見る（FR-031） |
 | ふだんの起動のしかたで w-help を起動する | 「試験 456」が無い |
 
 GitHub Copilot CLI でも、同じことを確かめる。
 
 ```bash
-copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
+COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 ```
 
 | 見るもの | 期待 |
@@ -59,7 +59,7 @@ copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 | `/env` | プラグインの読み込み元が作業ツリーを指す |
 | w-help を起動する | 本文に「試験 456」がある |
 
-読まれないものがあれば、research の R11-2 と、CONTRIBUTING の節に、できない範囲として残っている。
+読まれないものと、直しを反映させる操作は、CONTRIBUTING の「直した pecot-workflow を動かす」にある。
 
 ## 4. GitHub に書き込む処理を、検証用で最後まで動かす（US1、SC-002）
 

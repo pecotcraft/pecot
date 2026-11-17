@@ -171,11 +171,62 @@ pecot project activate github.com_pecotcraft_pecot-sandbox_sandbox.json
 
 2 つのセッションで同時に確かめるときは、clone を 2 つ作る。1 つの clone を共有すると、`session_start` の checkout がぶつかる。
 
-直した pecot-workflow を動かすときは、作業ツリーの絶対パスを渡す。
+直した pecot-workflow は、この clone で、次の「直した pecot-workflow を動かす」の手順で起こす。
+
+### 直した pecot-workflow を動かす
+
+検証用の clone を作業ディレクトリにして、クライアントに作業ツリーのプラグインを読ませる。
+
+- `--plugin-dir` には、直した作業ツリーの絶対パスを渡す。別の checkout（base など）を渡すと、直しの入っていない版が動く。#454 で古い版が動いたのは、この形と同じ現れ方だった
+- base で始めたセッションのまま、worktree の直しを確かめない
+- clone で初めて起こすと、フォルダを信頼するかを聞かれる
+  - Claude Code は `Yes, I trust this folder` を選ぶ。信頼は覚えられ、同じパスでは次から聞かれない
+  - GitHub Copilot CLI は `Yes` を選ぶ。`remember this folder` の方は、利用者の設定に残る
+
+#### Claude Code
 
 ```bash
+cd .pecot/work/<Issue番号>/pecot-sandbox
+claude --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow plugin list --json
 claude --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow
 ```
+
+- 起こす前に、`plugin list --json` の `pecot-w@inline` の行を見る。`installPath` が作業ツリーを指すこと
+- 起こした後に、`/mcp` を開く。`plugin:pecot-w:pecot-workflow` が 1 つだけあること
+
+#### GitHub Copilot CLI
+
+```bash
+cd .pecot/work/<Issue番号>/pecot-sandbox
+COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow
+```
+
+- `COPILOT_PLUGIN_DIR_ONLY=true` を付けると、入れてあるプラグインを読まず、`--plugin-dir` のものだけを読む
+  - 付けないと、入れてある pecot-w と並んだとき、フックが両方の版で登録されて動く
+  - pecot-v など、ほかのプラグインも読まれない
+- 起こした後に、`/env` を開いて 2 つを見る
+  - Skills の各行のパスが作業ツリーを指すこと
+  - Hooks の sources は `pecot-w` だけであること
+- エージェントに渡った本文は、応答では確かめにくい。本文を引用させても、モデルは断ることがある。`--log-level all --log-dir <ディレクトリ>` を付けて起こし、ログの `instructions` の中に、直した文を探す
+- `com.github.copilot/agents/` の frontmatter の `autoCompactWindow`・`disallowedTools` は読まれない。起動のときに `unknown fields ignored` の警告が出る
+
+#### 直しを反映させる
+
+セッションの中で直したときは、次の操作で反映させる。
+
+| 直したもの | Claude Code | GitHub Copilot CLI |
+|:---|:---|:---|
+| スキル | `/reload-plugins` | `/skills reload` |
+| エージェント | `/reload-plugins` | 要らない。呼ぶたびに読み直す |
+| フックのスクリプトの本文 | 要らない。次に起きたときから反映される | 要らない |
+| MCP サーバ（`cli/src`） | `/mcp` で `plugin:pecot-w:pecot-workflow` を選び、Reconnect を選ぶ。その後に `/clear` する | `/mcp reload pecot-workflow` |
+| `hooks.json`・`.mcp.json`・`mcp.json` | `/reload-plugins` | セッションを始め直す |
+
+- MCP サーバを起こし直すと、`bin/pecot` が `cli/src` から build し直す
+- Claude Code の `/reload-plugins` は、設定の変わらない MCP サーバを起こし直さない
+- Claude Code の会話に読み込み済みのツール定義は、Reconnect の後も古いまま残る。そのため `/clear` で新しい会話にする
+
+手元の版は、Claude Code 2.1.326・GitHub Copilot CLI 1.0.112。
 
 ### 確かめの前に設定を比べる
 
@@ -256,4 +307,5 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
    - 別のトークンで書き込むときは、検証用の clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` の 1 行を書く
    - そのときは 2 つの変数を環境から外す。`.env` の行は、既にある環境変数を上書きしない
 2. 書き込む前に、毎回 `board_show` を呼ぶ。書き込む先がボード `pecot sandbox` であることを見てから、書き込む処理を動かす
+   - `board_show` はボードの題を出さない。`project` の `name` が `github.com_pecotcraft_pecot-sandbox_sandbox`、`number` が `3` であることを見る
 3. このリポの ruleset・ボード・`pecot-board-sync.yml` の決まりを変えるときは、検証用を先に変える。順を逆にすると、検証用が古い決まりのままで、確かめた結果がこのリポで再現しない

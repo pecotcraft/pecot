@@ -98,14 +98,14 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 **前提**: Phase 2（T017 で足した節に、手順を書き足す）
 
-- [ ] T019 [US2] `p-w/CONTRIBUTING.md` の「試験環境」の節に、Claude Code での手順を書く。中身は quickstart.md の 3 の始め方と、`installPath` での読み込み元の見方、MCP サーバの起こし直しだ。T001 で分かった訳と、避け方の 1 行も書く
+- [x] T019 [US2] `p-w/CONTRIBUTING.md` の「試験環境」の節に、Claude Code での手順を書く。中身は quickstart.md の 3 の始め方と、`installPath` での読み込み元の見方、MCP サーバの起こし直しだ。T001 で分かった訳と、避け方の 1 行も書く
   - 避け方は、直した作業ツリーの絶対パスを `--plugin-dir` に渡し、スキルの本文の直しは `/reload-plugins` の後に確かめることだ（R11-1）
-- [ ] T020 [US2] 同じ節に、GitHub Copilot CLI での手順を書く。`copilot --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow` で始め、`/env` で読み込み元を見る
-  - T002 で、4 種とも読まれると分かった（R11-2）。同じ名前の版を入れていると、フックが両方の版で登録されて動くので、確かめの間は入れてある pecot-w を外す手順を書く
-- [ ] T021 [US2] `CLAUDE.md` に 2 つを足す。検証用の場所（`pecotcraft/pecot-sandbox` とボード `pecot sandbox`）と、`p-w/CONTRIBUTING.md` の「試験環境」の節への案内だ。足すのは 3 行までにする
-- [ ] T052 [US2] pecot-workflow のスキル・フック・MCP ツール・エージェントの一覧を作る。2 つのクライアントで、全件が作業ツリーから読み込まれることを確かめる。読み込まれないものは、訳とともに同じ節に書く
+- [x] T020 [US2] 同じ節に、GitHub Copilot CLI での手順を書く。`copilot --plugin-dir <作業ツリーの絶対パス>/plugins/pecot-workflow` で始め、`/env` で読み込み元を見る
+  - T002 で、4 種とも読まれると分かった（R11-2）。同じ名前の版を入れていると、フックが両方の版で登録されて動くので、`COPILOT_PLUGIN_DIR_ONLY=true` を付けて `--plugin-dir` の版だけを読ませる手順を書く
+- [x] T021 [US2] `CLAUDE.md` に 2 つを足す。検証用の場所（`pecotcraft/pecot-sandbox` とボード `pecot sandbox`）と、`p-w/CONTRIBUTING.md` の「試験環境」の節への案内だ。足すのは 3 行までにする
+- [x] T052 [US2] pecot-workflow のスキル・フック・MCP ツール・エージェントの一覧を作る。2 つのクライアントで、全件が作業ツリーから読み込まれることを確かめる。読み込まれないものは、訳とともに同じ節に書く
   - GitHub Copilot CLI で同じ名前の版を入れているとき、エージェントがどちらの版で動くかを、エージェントの本文に目印を足して見る（R11-2）
-- [ ] T022 [US2] quickstart.md の 3 を、Claude Code と GitHub Copilot CLI のそれぞれで流す。スキル・フック・MCP ツール・エージェントの 4 つを、1 つずつ直して確かめる。文書を読み始めてから、直した中身で動かし始めるまでの時間を測り、5 分以内であることを見る。結果を PR の説明に書く
+- [x] T022 [US2] quickstart.md の 3 を、Claude Code と GitHub Copilot CLI のそれぞれで流す。スキル・フック・MCP ツール・エージェントの 4 つを、1 つずつ直して確かめる。文書を読み始めてから、直した中身で動かし始めるまでの時間を測り、5 分以内であることを見る。結果を PR の説明に書く
 
 ---
 

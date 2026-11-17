@@ -37,6 +37,8 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 - 手元では、変更箇所に絞ったテストと CI の失敗の再現だけを動かす。push 前にレーンの全量を動かさない
   - 絞り方は、vitest・pytest はファイル・ケース、`*.test.sh` は 1 本
 - CI の失敗の再現は ci-repro スキルに従う
+- GitHub に書き込む変更は、マージ前に検証用のリポ `pecotcraft/pecot-sandbox` とボード `pecot sandbox` で確かめる。このリポには確かめで何も作らない
+  - clone の作り方・直した pecot-workflow の動かし方・片付けは、`plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」
 - 手元の検証は pre-commit（lint は `nx-affected-lint`）と commit-msg が行う。仕組みと手で打つコマンドは `.githooks/README.md`
 
 ## 作業ファイルの置き場所
