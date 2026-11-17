@@ -14,6 +14,7 @@ import type { IssuePullRequest } from '../domain/readiness.js'
 import { createIssueReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { RESTACK_PATH } from '../domain/restack.js'
+import { isSameRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE } from '../domain/state.js'
 import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
@@ -42,7 +43,7 @@ import { isPositive, parseReference, PR_REFERENCE_DESCRIPTION, primaryRemote, re
 
 const SKIPPED_ISSUE_DATA = z.strictObject({
   number: z.int().describe('Issue number'),
-  reason: z.enum(['epic', 'already-closed', 'not-found', 'failed']).describe('Why it was not closed: epic (protected), already-closed, not-found, or failed (see warnings)'),
+  reason: z.enum(['epic', 'already-closed', 'not-found', 'failed']).describe('Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)'),
 })
 
 const DELETED_BRANCH_DATA = z.strictObject({
@@ -62,7 +63,7 @@ const RESTACK_DATA = z.strictObject({
 })
 
 const SESSION_FINISH_OUTPUT = z.strictObject({
-  closedIssues: z.array(z.int()).describe('Issue numbers closed (to be closed on dry_run)'),
+  closedIssues: z.array(z.int()).describe('Issue numbers this command closed (to be closed on dry_run); usually empty for a PR to the default branch, since GitHub closes them on merge'),
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
   deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted (to be deleted on dry_run)'),
   readinessChanges: z.array(READINESS_CHANGE_DATA).describe('Issues waiting for the closed Issues whose readiness changed by the merge'),
@@ -105,9 +106,7 @@ async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, locat
 
 // GitHub はキーワードを既定ブランチ宛ての PR でだけ解釈するので、そのときは closing issues だけを使う
 function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
-  const isSameRepository = (issue: Readonly<{ owner: string, repository: string }>): boolean =>
-    issue.owner.toLowerCase() === location.owner.toLowerCase() && issue.repository.toLowerCase() === location.repository.toLowerCase()
-  const numbers = new Set<number>(pr.closing_issues.filter(issue => isSameRepository(issue)).map(issue => issue.number))
+  const numbers = new Set<number>(pr.closing_issues.filter(issue => isSameRepository(issue, location)).map(issue => issue.number))
   if (pr.base_ref !== pr.default_branch) {
     for (const number of extractClosingIssueNumbers(pr.body, location)) numbers.add(number)
   }
@@ -136,6 +135,7 @@ async function classifyClosingIssues(client: GitHubClient, location: RepositoryR
     }
     catch (error: unknown) {
       if (error instanceof GitHubNotFoundError) {
+        // 状態は確かめていないが、close の 404 で not-found として記録するため open に入れる
         classified.open.add(number)
         continue
       }

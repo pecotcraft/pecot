@@ -7,6 +7,7 @@ import type { PullRequestReadout } from './issue-readout.js'
 import { PYTHON_LINE_BREAK, parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
 import { hasSummaryImage, maskCodeAndComments, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
+import { isSameRepository } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
 import type { BaseReading } from './state.js'
 import { RESTACK_PATH } from './restack.js'
@@ -32,11 +33,9 @@ GitHub が既定ブランチ宛ての PR で数えない所は数えない
 */
 export function extractClosingIssueNumbers(body: string, repository: Readonly<RepositoryReference>): readonly number[] {
   const numbers: number[] = []
-  const isSameRepository = (owner: string | undefined, name: string | undefined): boolean =>
-    owner === undefined || (owner.toLowerCase() === repository.owner.toLowerCase() && name?.toLowerCase() === repository.repository.toLowerCase())
   for (const match of maskCodeAndComments(body).matchAll(CLOSING_KEYWORDS_PATTERN)) {
-    const [, owner, name, digits = ''] = match
-    if (isSameRepository(owner, name)) numbers.push(Number(parsePythonInteger(digits)))
+    const [, owner, name = '', digits = ''] = match
+    if (owner === undefined || isSameRepository({ owner, repository: name }, repository)) numbers.push(Number(parsePythonInteger(digits)))
   }
   return [...new Set(numbers)]
 }

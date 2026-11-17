@@ -95,7 +95,10 @@ export interface FinishPullRequestSample {
   readonly body?: string
   readonly head?: string
   readonly base?: string
-  readonly defaultBranch?: string
+  /**
+  base のリポの既定ブランチ。null なら既定ブランチが無い（空のリポなど）
+  */
+  readonly defaultBranch?: string | null
   /**
   closing issues。リポは acme/demo。別のリポは [番号, 'owner/repo'] で書く
   */
@@ -119,7 +122,7 @@ export function finishPullRequestData(sample: Readonly<FinishPullRequestSample> 
     baseRefName: sample.base ?? 'main',
     isDraft: false,
     closingIssuesReferences: { nodes: closing },
-    baseRepository: { defaultBranchRef: { name: sample.defaultBranch ?? 'main' } },
+    baseRepository: { defaultBranchRef: sample.defaultBranch === null ? sample.defaultBranch : { name: sample.defaultBranch ?? 'main' } },
   } } }
 }
 

@@ -5257,7 +5257,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'PR と、関連する Issue それぞれの種類を読みます。'
+        what: 'PR と、関連する Issue それぞれの種類と状態を読みます。'
       - target: github
         kind: write
         what: '関連する Issue を閉じます。'

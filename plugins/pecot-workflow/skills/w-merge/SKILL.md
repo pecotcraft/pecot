@@ -63,7 +63,10 @@ pecot-workflow の MCP ツール `session_finish` を使って、マージ後の
 
 ### Step 3: 実装差分分析・Epicコメント
 
-PR が閉じた Issue に親 Epic があるときだけ行う。PR が閉じた Issue は、片付けの結果の `closedIssues` と、`skippedIssues` の `already-closed` の Issue。親 Epic は、pecot-workflow の MCP ツール `issue_show` で確かめる。
+PR が閉じた Issue に親 Epic があるときだけ行う。親 Epic は、pecot-workflow の MCP ツール `issue_show` で確かめる。
+
+PR が閉じた Issue は、片付けの結果の `closedIssues` の Issue と、`skippedIssues` の `already-closed` の Issue。
+`already-closed` の Issue は、`pr_show` で読む PR の closing issues にあるものだけを数える。
 
 1. マージした PR の変更と、Issue の本文の計画を比べる
 2. pecot-workflow の MCP ツール `issue_comment` を使って、Epic 宛ての merge-diff テンプレのファイルを作る

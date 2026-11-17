@@ -146,6 +146,16 @@ describe('session finish', () => {
     expect(closed).toMatchObject([11, 12, 13, 14].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
   })
 
+  it('base のリポに既定ブランチが無いと、本文の Closes の Issue も close する', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-01')
+    // eslint-disable-next-line unicorn/no-null -- 応答の形（既定ブランチが無いと null）
+    const github = mergedRules({ defaultBranch: null, closing: [], body: 'Closes #13\n' }, [12, 13].flatMap(number => closedRules(number)))
+    const workspace = await openWorkspace({ github })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
+    expect(restRequests(workspace, 'PATCH')).toMatchObject([12, 13].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}` })))
+  })
+
   it('閉じた Issue があると、close を送らず、unchanged の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-41')
     const github = mergedRules({ closing: [10] }, [kindRule(10, { state: 'CLOSED' }), waitingRule([], 10), ...closedRules(12)])
