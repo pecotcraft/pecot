@@ -58,19 +58,31 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| 原則 | 判断 | 理由 |
+憲章 4.0.0 の 9 条で確かめる。
+
+| 条 | 判断 | 理由 |
 |---|---|---|
-| I. DDD | 合格 | 定義と値の照らし合わせ（AttributeDefinition・AttributeValue の検証）、移行の判定、レーンの集計は domain の純粋な関数に置く。GitHub の読み書きは infra に置き、コマンドはそれをつなぐだけにする |
-| II. TDD | 合格 | 振る舞いの ID ごとに vitest を先に書く。GitHub の応答は、実物の形（公開スキーマに合う JSON）を入力にする。モックは API の境界だけ。担保の網羅は、写しと一覧のテストで機械的に止める。テストの通過とは別に、quickstart を検証用のボードで動かす |
-| III. 品質ゲート | 合格 | 今の lint（eslint・tsc・SKILL.md の lint・定義書の検証）にかける。新しいスクリプトは TypeScript で書き、同じ lint にかける |
-| IV. YAGNI | 合格 | `pecot-lane` の値の自動判定は CLI に置かず、スキルの判断にする。ビューは 1 つだけ作る。定義のキャッシュは作らない（書くたびに読む）。Issue fields の定義そのものの作成・変更は、担保の範囲（Issue の機能の値）の外として一覧に `excluded` で残す |
-| V. 本体優先 | 合格 | speckit の成果物はこの一式の作成と、調べで分かった spec の 2 つの誤り（Issue fields の状態・組み込みの Status の使い方）の整合の修正だけ |
-| VI. 標準準拠 | 合格 | 改名・作成・削除は GraphQL の公式の mutation、ビューは REST の公式の作成の API、Issue fields は GA の API を使う。MCP のツールは `inputSchema`・`outputSchema` を持つ。GitHub に置き場所のある情報（担当者・マイルストーン・Issue type）を pecot の設定に独自に持たない。不適合として残すものは無い |
+| I. ライブラリ優先 | 合格 | 処理はすべて `cli/src/` のモジュールに置く。写しの抜き出しと差の確かめも domain・infra に置き、`cli/scripts/github-surface/` のスクリプトは引数を読んで呼ぶだけにする。スキル・MCP ツールの入口には処理を書かない |
+| II. CLI インタフェース | 合格 | 足す・変える操作は、CLI のコマンドと MCP ツールの両方から同じ処理を呼ぶ。MCP ツールの構造化した結果は、定義書の `outputSchema` と一致させる |
+| III. テストファースト | 合格 | 振る舞いの ID ごとに、vitest を実装の前に書き、失敗を確かめる。テストの方針は、この計画の承認で利用者の承認を兼ねる。新しい振る舞いは定義書に項目を足し、テストが `verifies` で ID を書く |
+| IV. 標準準拠 | 合格 | 下の「標準との照らし合わせ」のとおり。不適合として残すものは無い |
+| V. 品質の自動チェック | 合格 | 今の lint（eslint・tsc の strict・knip・SKILL.md の lint・定義書の検証）にかける。新しいスクリプトも TypeScript で書き、同じ lint にかける |
+| VI. 層の分離 | 合格 | 照らし合わせ（AttributeDefinition・AttributeValue）、移行の判定、レーンの集計、写しの抜き出しと差は domain の純粋な関数に置く。GitHub の読み書きは infra に置き、コマンドとスクリプトはつなぐだけにする |
+| VII. シンプルさ | 合格 | 新しい nx project は作らない（pecot-workflow と githooks の 2 つに触る）。`pecot-lane` の値の自動判定は CLI に置かず、スキルの判断にする。ビューは 1 つだけ作る。定義のキャッシュは作らない |
+| VIII. 抽象化しない | 合格 | GitHub の API を包む層を作らず、今の infra から直接呼ぶ。`pecot-lane` の選択肢は設定に写さず、ボードだけを正にする（research R4）。名前から選択肢を引く関数は A と B で 1 つにする。`pecot-status` と組み込みの Status は `attributes` から書けなくし、列の移動を `board_move` の 1 つにする（research R7） |
+| IX. 統合を先にするテスト | 合格 | GitHub の応答は、実物の形（公開スキーマに合う JSON）を入力にする。モックは API の境界だけ。担保の網羅は、写しと一覧のテストで機械的に止める。テストの通過とは別に、quickstart を検証用のボード（`pecot sandbox`）で動かす |
+
+標準との照らし合わせ（IV）:
+
+- 改名・作成・削除は GraphQL の公式の mutation、ビューは REST の公式の作成の API、Issue fields は GA の API を使う
+- MCP のツールは `inputSchema`・`outputSchema` を持つ
+- GitHub に置き場所のある情報（担当者・マイルストーン・Issue type）を、pecot の設定に独自に持たない
 
 Phase 1 の後の再確認: 合格。
 
 - 設計で足した独自の項目は、MCP の入力の `attributes` だけ。GitHub の機能の名前と値をそのまま運ぶ入れ物で、GitHub に同じ役割の項目は無い
 - `confirm_delete` は、MCP に確認の標準（elicitation）があるが、対応しないクライアントがあるため入力で受ける。elicitation は任意の機能なので、使わないことは不適合ではない
+- 最初の設計は、憲章 3.2.1 で確かめていた。4.0.0 で確かめ直し、I と VIII に外れる 3 か所を直した（#612）
 
 ## Project Structure
 
@@ -95,10 +107,12 @@ specs/029-pecot-lane-issue-features/
 plugins/pecot-workflow/
 ├── cli/src/
 │   ├── domain/
-│   │   ├── config.ts               # 変更: workflow_suffix・priority・size を消し、fields.lane を足す。旧い形を読む
+│   │   ├── config.ts               # 変更: workflow_suffix・priority・size を消す。旧い形を読む
 │   │   ├── migration.ts            # 新規: 旧い形のボードと設定から、移行の予定を決める
 │   │   ├── lanes.ts                # 新規: LaneSummary の集計
+│   │   ├── lane-options.ts         # 新規: 選択肢の追加の計算、名前から選択肢を引く関数（A と B で共有）
 │   │   ├── attributes.ts           # 新規: 定義と値の照らし合わせ、ATTRIBUTE_HANDLERS
+│   │   ├── issue-surface.ts        # 新規: SDL と OpenAPI から写しの項目を抜く、写しとの差、差の Issue の組み立て
 │   │   ├── frontmatter.ts          # 変更: priority・size を読み捨て、lane・attributes を受ける
 │   │   ├── security-tracker.ts     # 変更: Priority の列を Severity に
 │   │   └── dependabot-pull-requests.ts  # 変更: PRIORITY を消す
@@ -106,7 +120,8 @@ plugins/pecot-workflow/
 │   │   ├── queries.ts              # 変更: 全種類の fieldValues、Issue fields、フィールドの改名・削除・作成
 │   │   ├── projects.ts             # 変更: フィールドの改名・削除、ビューの作成（REST）
 │   │   ├── issues.ts               # 変更: 作成と更新で type・assignees・milestone・issue_field_values
-│   │   └── attributes.ts           # 新規: 定義を読む（ボードのフィールド・Issue fields・type・ラベル・マイルストーン）
+│   │   ├── attributes.ts           # 新規: 定義を読む（ボードのフィールド・Issue fields・type・ラベル・マイルストーン）
+│   │   └── issue-surface.ts        # 新規: 公開スキーマの SDL と REST の OpenAPI を取りに行く
 │   └── commands/
 │       ├── project.ts              # 変更: suffix を消し、lanes とビュー
 │       ├── project-sync.ts         # 変更: 移行・lanes・confirm_delete
@@ -126,8 +141,8 @@ plugins/pecot-workflow/
 │   ├── github-issue-surface.json   # 新規: GitHub の Issue の機能の写し
 │   └── issue-coverage.yaml         # 新規: 担保の一覧
 ├── cli/scripts/github-surface/
-│   ├── extract.ts                  # 新規: SDL と OpenAPI から写しの項目を抜く
-│   └── drift.ts                    # 新規: 今の項目と写しを比べ、差の Issue を作る（--dry-run・--sdl）
+│   ├── extract.ts                  # 新規: 写しを作り直す。引数を読んで domain・infra を呼ぶだけ
+│   └── drift.ts                    # 新規: 写しと比べ、差の Issue を作る。--dry-run・--sdl を読んで呼ぶだけ
 ├── hooks/lib/core/mcp-guidance.sh  # 変更: priority・size の文を消す
 ├── skills/
 │   ├── w-onboarding/SKILL.md       # 変更: suffix を消し、lanes の決め方とビュー
@@ -146,7 +161,8 @@ plugins/pecot-workflow/
 
 **Structure Decision**: 変更は pecot-workflow の中に置く。ルートに新しいディレクトリは作らない。
 
-- 写しのスクリプトは、1 つのプラグインだけが使う TypeScript なので、`export-interface.ts` と同じ `plugins/pecot-workflow/cli/scripts/` に置く（`.claude/rules/repo-root-layout.md`）
+- 写しのスクリプトは、1 つのプラグインだけが使う TypeScript なので、`export-interface.ts` と同じ `plugins/pecot-workflow/cli/scripts/` に置く（`.claude/rules/repo-root-layout.md`）。
+  処理は `cli/src/` の domain と infra に置き、スクリプトは呼ぶだけにする（憲章の I）
 - 定期の起動は、既存の `pecot-board-sync` の Lambda の dispatch の先に足す
 
 ## 段階

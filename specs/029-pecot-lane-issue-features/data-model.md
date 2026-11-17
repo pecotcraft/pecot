@@ -9,13 +9,12 @@
 | ファイル名 | 変更 | `<host>_<owner>_<slug>_<suffix>.json` から `<host>_<owner>_<number>.json` にする。ボードの名前を変えても対応が外れない（R2） |
 | `workflow_suffix` | 削除 | 読み込みでは捨てる。`project_sync` が旧いファイルを移すときに消す |
 | `fields.workflow` | 変更なし | `pecot-status` の選択肢の名前と ID |
-| `fields.lane` | 追加 | `pecot-lane` の選択肢の名前と ID。フィールドが無ければ無い |
 | `fields.priority`・`fields.size` | 削除 | 読み込みでは捨てる |
 | `board_url` | 変更 | フィルタの欄の名前を `pecot-status` にする |
 
 検証の決まり:
 
-- `fields.lane` の選択肢の名前は、ボードの選択肢と同じ文字列。大文字と小文字を区別する
+- `pecot-lane` の選択肢は設定に写さない。使うたびにボードから読む（R4）
 - 旧い形の設定（`workflow_suffix` あり・旧いファイル名）は、`project_sync` の後に新しい形になる。それまでの各操作は旧い形を読んで動き、移行の手順を示す
 
 ### pecot のフィールド（ボード）
@@ -23,7 +22,7 @@
 | 名前 | 種類 | 選択肢 | 作るとき |
 |---|---|---|---|
 | `pecot-status` | single select | Backlog・Pending・Blocked・Ready・Active・In Review・Archived（今の `pecot-workflow-<suffix>` と同じ） | 準備のとき必ず |
-| `pecot-lane` | single select | 利用者が `lanes` で決める | `lanes` を受けたとき |
+| `pecot-lane` | single select | 利用者が `lanes` で決める。値の名前は大文字と小文字を区別する | `lanes` を受けたとき |
 
 ### 移行の状態（ボードを整える操作が見る）
 
@@ -58,7 +57,7 @@
 | `source` | `project`・`issue_field`・`issue` |
 | `kind` | `single_select`・`multi_select`・`text`・`number`・`date`・`iteration`・`users`・`milestone`・`issue_type`・`labels`・`issue_ref`・`issue_refs`・`unsupported` |
 | `options` | 選べる値（選択肢・Iteration・マイルストーン・Issue type・ラベル）。担当者は列挙せず、ログイン名で受ける |
-| `writable` | 書けるか。GitHub が計算するもの（Sub-issues progress など）は false |
+| `writable` | 書けるか。GitHub が計算するもの（Sub-issues progress など）は false。`pecot-status` と組み込みの Status も false（`board_move` で動かす） |
 | `unsupported_reason` | `kind` が `unsupported` のときの、扱えない理由（GitHub の種類の名前） |
 
 ### AttributeValue（`issue_create`・`issue_edit` の入力の 1 つ）

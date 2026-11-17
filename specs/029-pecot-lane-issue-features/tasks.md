@@ -9,7 +9,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/mcp-tools.md, quickstart.md
 
-**Tests**: 憲章 II（TDD）により、各フェーズでテストを先に書く。振る舞いは `plugins/pecot-workflow/interface/authored.yaml` に定義し、`cli/tests/interface/*.test.ts` から振る舞いの ID につなぐ。テストの通過とは別に、quickstart.md の手順を検証用のボードで動かす。
+**Tests**: 憲章の III（テストファースト）により、各フェーズでテストを先に書く。振る舞いは `plugins/pecot-workflow/interface/authored.yaml` に定義し、`cli/tests/interface/*.test.ts` から振る舞いの ID につなぐ。テストの通過とは別に、quickstart.md の手順を検証用のボードで動かす。
 
 **Organization**: フェーズ 1 つが PR 1 つに当たる。Phase 1〜4 と 10 が A（pecot のフィールドの整理）、Phase 5〜9 が B（Issue の機能を使える担保）。A と B は互いを待たない。
 
@@ -119,11 +119,13 @@ description: "Task list for 029-pecot-lane-issue-features"
   - ビューは REST の `POST .../views` に `layout: "board"`・`vertical_group_by: [pecot-status の ID]`・`group_by: [pecot-lane の ID]`・`name: "Lanes"` を送る
   - 同じ名前のビューがあれば作らない
   - 403・404 では `view.manual_steps` を返し、ほかの準備は続ける
-  - 設定に `fields.lane` が入る
+  - 設定に `pecot-lane` の選択肢を写さない（research R4）
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] `PW/cli/src/domain/lane-options.ts` を作る（T024 の後）。`PW/cli/src/domain/config.ts` に `fields.lane`（選択肢の名前と ID）を足す
+- [ ] T026 [US1] `PW/cli/src/domain/lane-options.ts` を作る（T024 の後）。
+  名前から選択肢を引く関数もここに置き、B の single select の照らし合わせ（T052）と共有する。
+  T052 が先にマージされていれば、そちらの関数を使い、同じ関数を 2 つ作らない（憲章の VIII）
 - [ ] T027 [US1] `PW/cli/src/infra/github/queries.ts`・`PW/cli/src/infra/github/projects.ts` に、`createProjectV2Field`、選択肢つきの `updateProjectV2Field`、ビューの一覧の読み込み、REST のビューの作成（組織と個人の両方のパス）を足す
 - [ ] T028 [US1] `PW/cli/src/commands/project.ts`・`PW/cli/src/commands/project-sync.ts` に `lanes` の入力、フィールドの作成と選択肢の追加、ビューの作成、出力の `view` を足す
 - [ ] T029 [US1] `PW/skills/w-onboarding/SKILL.md` に、`lanes` の値の決め方（プラグイン・チーム・サービスなど。GitHub の画面に出るので英語の名前）と、`Lanes` のビューの開き方を書く。
@@ -155,6 +157,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 - [ ] T036 [US3] `PW/cli/src/infra/github/queries.ts` の `listProjectItemsQuery` で `pecot-lane` の値を読む。
   `PW/cli/src/domain/format.ts` の `transformItems` と `PW/cli/src/commands/board-view.ts` の `BOARD_ITEM_JSON`・`BOARD_SHOW_OUTPUT` に `lane`・`lanes` を足す
 - [ ] T037 [US2] `PW/cli/src/commands/issue-create.ts` と `PW/cli/src/commands/issue-shared.ts` の `setIssueFields` に `lane` を足す。
+  値は、そのときボードから読んだ `pecot-lane` の選択肢と、T026 の関数で照らす。
   親の値は `parent_epic` の Item から読む。`PW/cli/src/domain/frontmatter.ts` に `lane` を足す
 - [ ] T038 [US2] `PW/cli/src/commands/board-sync.ts` に `missing_lane` を足し、警告を `PW/cli/src/commands/board-judgment.ts` の `out.warning` と同じ形で出す
 - [ ] T039 [P] [US2] `PW/skills/w-quick/SKILL.md`・`PW/skills/w-ready/SKILL.md`・`PW/skills/w-issueize/SKILL.md`・`PW/skills/w-backlog/SKILL.md` に、
@@ -203,13 +206,14 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 **Goal**: `issue_create` の `attributes` と `issue_edit` で、機能の値を書く・変える・外す。書く前にまとめて検証する（FR-013〜FR-015・FR-018〜FR-022、research R7）
 
-**Independent Test**: quickstart.md の B-1 の 3〜6
+**Independent Test**: quickstart.md の B-1 の 3〜7
 
 ### Tests for User Story 5（書く）
 
 - [ ] T050 [P] [US5] `PW/cli/src/domain/tests/attributes.test.ts` に、検証のテストを先に書く。
   data-model.md の表のとおり、`unknown_attribute`（似た名前の候補つき）・`ambiguous_attribute`・`read_only_attribute`・`unsupported_attribute`・`invalid_value` を確かめる。
-  値の決まり: 「number は数、date は `YYYY-MM-DD`、select は選択肢の名前、iteration は名前か開始日」。1 つでも合わなければ全部を返し、書く予定を作らないことも確かめる
+  値の決まり: 「number は数、date は `YYYY-MM-DD`、select は選択肢の名前、iteration は名前か開始日」。1 つでも合わなければ全部を返し、書く予定を作らないことも確かめる。
+  `pecot-status` と組み込みの Status は `read_only_attribute` で止まり、`board_move` を使うよう出すことも確かめる（research R7）
 - [ ] T051 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-EDIT-*` と `PW-ISSUE-CREATE` の `attributes` の振る舞いを足す。
   `PW/cli/tests/interface/issue-edit.test.ts`（新規）と `PW/cli/tests/interface/issue-create.test.ts` に先にテストを書く。
   確かめること:
@@ -224,14 +228,15 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Implementation for User Story 5（書く）
 
-- [ ] T052 [US5] `PW/cli/src/domain/attributes.ts` を作り、検証と書く予定の組み立てと `ATTRIBUTE_HANDLERS`（`kind` から書き方への対応）を置く（T050 の後）
+- [ ] T052 [US5] `PW/cli/src/domain/attributes.ts` を作り、検証と書く予定の組み立てと `ATTRIBUTE_HANDLERS`（`kind` から書き方への対応）を置く（T050 の後）。
+  single select の名前から選択肢を引く関数は、A の T026 と共有する。T026 が先にマージされていれば、そちらの関数を使う
 - [ ] T053 [US5] `PW/cli/src/infra/github/issues.ts` の作成と更新に `type`・`assignees`・`milestone`・`issue_field_values` を足す。
   `PW/cli/src/infra/github/projects.ts` に種類ごとの `updateProjectV2ItemFieldValue` と `clearProjectV2ItemFieldValue` を足す
 - [ ] T054 [US5] `PW/cli/src/commands/issue-create.ts` に `attributes` を足す。frontmatter（`PW/cli/src/domain/frontmatter.ts`）でも同じ名前で受ける
 - [ ] T055 [US5] `PW/cli/src/commands/issue-edit.ts` を作り、MCP ツール `issue_edit` として登録する
 - [ ] T056 [P] [US5] `PW/skills/w-help/references/` に、`issue_attributes` で定義を見て、`attributes` で指定する使い方を書く。利用を強制しないこと（指定しなければ空のまま）も書く
 - [ ] T057 [US5] `PW/interface/generated.json` を作り直し、T050・T051 のテストのファイルを動かす
-- [ ] T058 [US5] quickstart.md の B-1 の 3〜6 を、検証用のボードで動かす
+- [ ] T058 [US5] quickstart.md の B-1 の 3〜7 を、検証用のボードで動かす
 
 **Checkpoint**: pecot の知らない 6 種類のフィールドと担当者・マイルストーン・Issue type を、名前で書き、変え、外せる
 
@@ -245,7 +250,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 5（担保）
 
-- [ ] T059 [P] [US5] `PW/cli/scripts/github-surface/tests/extract.test.ts` に、抜き出しのテストを先に書く。
+- [ ] T059 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、抜き出しのテストを先に書く。
   入力は公開スキーマの SDL と REST の OpenAPI の小さな抜粋。確かめること: research R8 の範囲の項目だけが、data-model.md の `id` の形で、並べ替えて出る
 - [ ] T060 [P] [US5] `PW/cli/tests/issue-coverage.test.ts` に、網羅のテストを先に書く。
   確かめること:
@@ -257,7 +262,10 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Implementation for User Story 5（担保）
 
-- [ ] T061 [US5] `PW/cli/scripts/github-surface/extract.ts` を作る。SDL は既存の依存の `graphql` の `parse` で読む（T059 の後）
+- [ ] T061 [US5] 抜き出しを、憲章の I・VI に合わせて 3 つに分けて作る（T059 の後）。
+  - `PW/cli/src/domain/issue-surface.ts`: SDL と OpenAPI の文字列から写しの項目を抜く。SDL は既存の依存の `graphql` の `parse` で読む
+  - `PW/cli/src/infra/github/issue-surface.ts`: 公開スキーマと OpenAPI を取りに行く
+  - `PW/cli/scripts/github-surface/extract.ts`: 引数を読んで上の 2 つを呼び、写しを書くだけにする。処理を書かない
 - [ ] T062 [US5] `PW/interface/github-issue-surface.json` を、`extract.ts` で、この日の公開スキーマと OpenAPI（`X-GitHub-Api-Version: 2026-03-10`）から作る
 - [ ] T063 [US5] `PW/interface/issue-coverage.yaml` を書く。写しの全項目を `supported` か `excluded` にする。
   `excluded` の理由の例: preview（Issue の `statusId`）、GitHub が計算する、担保の範囲（Issue の機能の値）の外（Issue fields の定義そのものの作成）
@@ -277,14 +285,17 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 5（定期）
 
-- [ ] T067 [P] [US5] `PW/cli/scripts/github-surface/tests/drift.test.ts` に、差と Issue の組み立てのテストを先に書く。
+- [ ] T067 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、差と Issue の組み立てのテストを先に書く。
   確かめること: 増えた・消えた `id`、題「`GitHub の Issue の機能に差がある: <増えた数> 件増・<消えた数> 件減`」、本文の末尾の印 `<!-- pecot-issue-surface: <差の hash> -->`、同じ印の開いた Issue があれば作らない、`--sdl` で GitHub に取りに行かない、`--dry-run` で作らない
 - [ ] T068 [P] [US5] `.githooks/tests/test_issue_surface_workflow.py` に、workflow の形のテストを先に書く。
   確かめること: 起動は `workflow_dispatch` だけ、権限は `contents: read` と `issues: write` だけ、concurrency で重ねて動かない
 
 ### Implementation for User Story 5（定期）
 
-- [ ] T069 [US5] `PW/cli/scripts/github-surface/drift.ts` を作る（T067 の後）
+- [ ] T069 [US5] 差の確かめを、T061 と同じ分け方で作る（T067 の後）。
+  - `PW/cli/src/domain/issue-surface.ts`: 差、題と本文と印の組み立て、同じ印の開いた Issue があれば作らない判断
+  - infra: 開いた Issue の印の検索と、Issue の作成。作成は今の `PW/cli/src/infra/github/issues.ts` を使う
+  - `PW/cli/scripts/github-surface/drift.ts`: `--sdl`・`--dry-run` を読んで呼ぶだけにする
 - [ ] T070 [US5] `.github/workflows/issue-surface-drift.yml` を作る
 - [ ] T071 [US5] `.github/board-sync/handler.mjs` の dispatch の先に `issue-surface-drift.yml` を足し、その単体テストを直す。
   配備（`deploy.sh` の `update-function-code`）は、このフェーズのマージの後に、利用者の `pecot` プロファイルで行う。IAM は変えない
@@ -330,7 +341,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 |---|---|---|---|
 | 2 | 1 | 積める | Phase 2 の `confirm_delete` は、Phase 1 の `project_sync` の移行の予定と `migration` の出力に削除を足す |
 | 3 | 1 | 積める | Phase 3 のビューの作成が、Phase 1 で作る `pecot-status` の ID を `vertical_group_by` に使う |
-| 4 | 3 | 積める | Phase 4 の起票・同期・一覧が、Phase 3 で設定に足す `fields.lane` を読む |
+| 4 | 3 | 積める | Phase 4 の起票・同期・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
 | 6 | 5 | 積める | Phase 6 の検証が、Phase 5 で作る定義の読み込み（`infra/github/attributes.ts`）を使う |
 | 7 | 6 | 積める | Phase 7 の網羅のテストが、Phase 6 で作る `ATTRIBUTE_HANDLERS` と照らす |
 | 8 | 7 | 積める | Phase 8 の差の確かめが、Phase 7 で作る `extract.ts` と写しを使う |

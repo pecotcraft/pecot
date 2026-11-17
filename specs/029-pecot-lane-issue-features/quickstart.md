@@ -35,12 +35,14 @@
    - 期待: 起票の内容から `pecot-lane` が決まって入る。`pecot-priority`・`pecot-size` を聞かれない
 2. `issue_create` を `lane: "delta"`（無い値）で呼ぶ
    - 期待: Issue を作らずに止まり、取りうる値が出る
-3. `pecot-lane` の入った Epic の下に、`lane` なしでタスクを起票する
+3. ボードの画面で `pecot-lane` に選択肢 `epsilon` を足し、`project_sync` を呼ばずに `issue_create` を `lane: "epsilon"` で呼ぶ
+   - 期待: 止まらずに起票でき、`epsilon` が入る（選択肢を設定に写さないので、画面の変更がすぐ使える）
+4. `pecot-lane` の入った Epic の下に、`lane` なしでタスクを起票する
    - 期待: タスクに親と同じ値が入る
-4. ボードの画面で `pecot-lane` の無い Issue を 1 件作り、`board_sync` を呼ぶ
+5. ボードの画面で `pecot-lane` の無い Issue を 1 件作り、`board_sync` を呼ぶ
    - 期待: `missing_lane` にその Issue が出て、警告が 1 行出る。同期は終わる
-5. `board_show` を呼び、w-active を始める
-   - 期待: `lanes` に alpha・beta・gamma と値なしの組が、件数つきで出る。件数 0 の値も出る。w-active の候補が領域ごとに分かれる
+6. `board_show` を呼び、w-active を始める
+   - 期待: `lanes` に alpha・beta・gamma・epsilon と値なしの組が、件数つきで出る。件数 0 の値も出る。w-active の候補が領域ごとに分かれる
 
 ## A-4. 新しいボード（US1・US4）
 
@@ -62,6 +64,8 @@
    - 期待: Issue ができない。`errors` に 3 件、それぞれの取りうる値か似た名前が出る
 6. `attributes` を渡さずに `issue_create` を呼ぶ
    - 期待: 止まらずに起票でき、どの機能も空のまま
+7. `issue_edit` で、`attributes` の `pecot-status` を `Ready` にする
+   - 期待: 何も書かずに `read_only_attribute` で止まり、`board_move` を使うよう出る
 
 ## B-2. 担保の確かめ（US5）
 
