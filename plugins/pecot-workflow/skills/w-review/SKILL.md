@@ -43,15 +43,9 @@ Resolved 済みの既存スレッドは対象に含めない。
 
 #### ホストと head sha
 
-`gh` には対象 PR のホストを `--hostname` で必ず渡す。cwd の origin から求めるので、対象リポのワークツリーで打つ。空なら止める。未認証なら `gh auth login -h <host>` を案内して止める。
+`gh` には対象 PR のホストを `--hostname` で必ず渡す。ホストは、Step 1 で読んだ PR の URL から取る。`gh api` が未認証で失敗したら、`gh auth login -h <host>` を案内して止める。
 
-```bash
-GH_HOST=$(git remote get-url origin | sed -E 's#^[a-z0-9+.-]+://##; s#^[^@/]*@##; s#[:/].*$##')
-[ -n "$GH_HOST" ] || { echo "origin からホストを導出できない" >&2; exit 1; }
-gh auth status -h "$GH_HOST"
-```
-
-以降のコマンドには、得たホスト名を直接書く。head sha は API から取る。
+以降のコマンドには、ホスト名を直接書く。head sha は API から取る。
 
 ```bash
 gh api --hostname <対象ホスト> repos/<owner>/<repo>/pulls/<PR番号> --jq .head.sha
@@ -59,40 +53,21 @@ gh api --hostname <対象ホスト> repos/<owner>/<repo>/pulls/<PR番号> --jq .
 
 #### インラインコメント
 
-1 つの review にまとめて投稿する。`event` は `COMMENT` にする。インライン対象が 0 件なら投稿しない。本文の改行は `\n` にする。
+インラインコメントとファイルコメントは、1 件ずつ投稿する。値は `-f`（数値は `-F`）で渡し、JSON を組み立てない。本文は 1 つの引数にまとめ、単引用符で囲む。本文の中の単引用符は `'\''` にする。
 
 ```bash
-gh api --hostname <対象ホスト> \
-  repos/<owner>/<repo>/pulls/<PR番号>/reviews \
-  --input - <<'JSON'
-{
-  "commit_id": "<head sha>",
-  "event": "COMMENT",
-  "comments": [
-    {"path": "cli/core/sections.py", "line": 42, "side": "RIGHT", "body": "**F-01** [tech] 指摘内容"}
-  ]
-}
-JSON
+gh api --hostname <対象ホスト> repos/<owner>/<repo>/pulls/<PR番号>/comments \
+  -f commit_id=<head sha> -f path=cli/core/sections.py -F line=42 -f side=RIGHT \
+  -f 'body=**F-01** [tech] 指摘内容'
 ```
 
-422 で拒否されたら、疑わしい 1 件を外して再送し、原因の F-NN を General 節へ回す。
+422 で拒否されたら、その F-NN を General 節へ回す。
 
-ファイルコメントと、スレッドへの返信は 1 件ずつ投稿する。
-
-```bash
-gh api --hostname <対象ホスト> \
-  repos/<owner>/<repo>/pulls/<PR番号>/comments \
-  --input - <<'JSON'
-{"commit_id": "<head sha>", "path": "cli/core/sections.py", "subject_type": "file", "body": "**F-02** [tech] 指摘内容"}
-JSON
-```
+ファイルコメントは、`line`・`side` の代わりに `-f subject_type=file` を渡す。スレッドへの返信は、次のように投稿する。
 
 ```bash
-gh api --hostname <対象ホスト> \
-  repos/<owner>/<repo>/pulls/<PR番号>/comments \
-  --input - <<'JSON'
-{"in_reply_to": 1234567, "body": "返信本文"}
-JSON
+gh api --hostname <対象ホスト> repos/<owner>/<repo>/pulls/<PR番号>/comments \
+  -F in_reply_to=1234567 -f 'body=返信本文'
 ```
 
 `in_reply_to` は、返信先スレッドの先頭コメントの `databaseId`（数値）にする。
@@ -120,8 +95,8 @@ gh api --hostname <対象ホスト> graphql \
 
 テンプレを取り、ガイドに従って書いて投稿する。General にはインラインにできなかった指摘だけを書く。Disposition は表にして全 F-NN を 1 行ずつ並べ、F-NN の欄をコメントへのリンクにする。URL を裸で書かない。指摘が 0 件でも、0 件の文言で投稿する。
 
-1. pecot-workflow の MCP ツール `issue_comment` を使って、PR 宛てのテンプレのファイルを作る。入力は `prepare: true`・`template: "review-findings"`
-2. 書いたら、`issue_comment` を使って、そのファイルを投稿する
+1. pecot-workflow の MCP ツール `issue_comment` を使って、PR 宛てのテンプレのファイルを作り、ガイドを読む。入力は `prepare: true`・`template: "review-findings"`
+2. 書いた本文を、`issue_comment` で投稿する。入力は `template: "review-findings"` と、本文を入れた `message`
 
 投稿したら終わる。採否は聞かず、コードは直さない。投稿したコメントの URL をチャットに示し、対応は PR を出した側が `/pecot-w:w-pr` の Step 5 で行うと伝える。
 
