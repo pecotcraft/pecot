@@ -29,6 +29,7 @@
 .nx/nx-release/src/version-actions.js
 .nxignore
 .pre-commit-config.yaml
+.textlintignore
 README.md
 libs/interface-spec/package.json
 libs/interface-spec/src/cli.ts

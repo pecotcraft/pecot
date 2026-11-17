@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,8 +8,8 @@ import type { TextlintPluginProcessor } from '@textlint/types'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { TextlintKernelDescriptor } from '@textlint/kernel'
 import { buildDescriptor } from '../lib/descriptor.js'
-import { formatMessage, main, parseArgv, REAL_DEPS, stripCommitComments } from '../lib/main.js'
-import type { MainDependencies } from '../lib/main.js'
+import { formatMessage, main, parseArgv, REAL_DEPS, relativeToCwd, stripCommitComments } from '../lib/main.js'
+import type { IgnoreCheck, MainDependencies } from '../lib/main.js'
 import { buildRules } from '../lib/rules.js'
 import { pickWord } from './helpers/dictionary.js'
 
@@ -20,6 +20,14 @@ const BREAKING = 'feat!:'
 const BREAKING_SCOPED = 'feat(x)!:'
 const SCISSORS = '# ------------------------ >8 ------------------------'
 const descriptor = buildDescriptor()
+
+// 除外の判定のスタブ。既定はどのファイルも除外しない。
+function ignoring(check: IgnoreCheck): MainDependencies['ignoreCheck'] {
+  return vi.fn<MainDependencies['ignoreCheck']>().mockResolvedValue(check)
+}
+const ignoreNothing = ignoring(vi.fn<IgnoreCheck>().mockResolvedValue(false))
+const ignoreSpecs = ignoring(vi.fn<IgnoreCheck>().mockImplementation(file => Promise.resolve(file.startsWith('specs/'))))
+const ignoreCheckFailing = ignoring(vi.fn<IgnoreCheck>().mockRejectedValue(new Error('Failed to read ignore file: .textlintignore')))
 
 interface Run {
   readonly code: number
@@ -44,6 +52,7 @@ async function run(argv: readonly string[], files: Readonly<Record<string, strin
     stderr: (text) => {
       stderr.push(text)
     },
+    ignoreCheck: ignoreNothing,
     ...overrides,
   })
   return { code, stdout, stderr }
@@ -172,6 +181,67 @@ describe('main', () => {
   it('Error でない失敗も理由を文字列にして終了コード 2 を返す', async () => {
     const result = await run(['sample.md'], {}, { readFile: vi.fn<MainDependencies['readFile']>().mockRejectedValue('文字列の失敗') })
     expect(result).toEqual({ code: 2, stdout: [], stderr: ['pecot-text-lint: sample.md: 文字列の失敗\n'] })
+  })
+})
+
+describe('main の除外', () => {
+  it('除外に当たるファイルは読まずに飛ばし、終了コード 0 を返す', async () => {
+    const readFile = vi.fn<MainDependencies['readFile']>()
+    const result = await run(['specs/a.md'], {}, { ignoreCheck: ignoreSpecs, readFile })
+    expect(result).toEqual({ code: 0, stdout: [], stderr: [] })
+    expect(readFile).not.toHaveBeenCalled()
+  })
+
+  it('除外に当たらないファイルは、今までどおり違反を返す', async () => {
+    const result = await run(['specs/a.md', 'docs/a.md'], { 'docs/a.md': `${sentence}\n` }, { ignoreCheck: ignoreSpecs })
+    expect(result.code).toBe(1)
+    expect(wordLines(result)).toHaveLength(1)
+    expect(wordLines(result)[0]).toMatch(/^docs\/a\.md:1:1 /)
+  })
+
+  it('--commit-msg のときは、除外の判定を作らない', async () => {
+    const ignoreCheck = vi.fn<MainDependencies['ignoreCheck']>()
+    const result = await run(['--commit-msg', 'specs/MSG'], { 'specs/MSG': '短い文です。\n' }, { ignoreCheck })
+    expect(result.code).toBe(0)
+    expect(ignoreCheck).not.toHaveBeenCalled()
+  })
+
+  it('除外の判定が失敗したら、ファイル名を付けて終了コード 2 を返す', async () => {
+    const result = await run(['a.md'], { 'a.md': '短い文です。\n' }, { ignoreCheck: ignoreCheckFailing })
+    expect(result).toEqual({ code: 2, stdout: [], stderr: ['pecot-text-lint: a.md: Failed to read ignore file: .textlintignore\n'] })
+  })
+})
+
+describe('relativeToCwd', () => {
+  let directory = ''
+
+  beforeAll(async () => {
+    const created = await mkdtemp(path.join(tmpdir(), 'pecot-text-lint-relative-'))
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
+    directory = await realpath(created)
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
+    await mkdir(path.join(directory, 'repo/specs'), { recursive: true })
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
+    await symlink(path.join(directory, 'repo'), path.join(directory, 'link'))
+  })
+
+  afterAll(async () => {
+    await rm(directory, { recursive: true, force: true })
+  })
+
+  it('作業ディレクトリの下の絶対パスを、/ 区切りの相対パスにする', async () => {
+    const cwd = path.join(directory, 'repo')
+    await expect(relativeToCwd(path.join(cwd, 'specs/a.md'), cwd)).resolves.toBe('specs/a.md')
+  })
+
+  it('リンクを通った作業ディレクトリでも、実体と同じ相対パスにする', async () => {
+    const cwd = path.join(directory, 'link')
+    await expect(relativeToCwd(path.join(cwd, 'specs/a.md'), cwd)).resolves.toBe('specs/a.md')
+    await expect(relativeToCwd(path.join(directory, 'repo/specs/a.md'), cwd)).resolves.toBe('specs/a.md')
+  })
+
+  it('作業ディレクトリの外のパスには undefined を返す', async () => {
+    await expect(relativeToCwd(path.join(directory, 'repo/a.md'), path.join(directory, 'repo/specs'))).resolves.toBeUndefined()
   })
 })
 
@@ -310,9 +380,9 @@ describe('コマンドの実体', () => {
   let directory = ''
 
   // dist の bin を子プロセスで動かし、終了コードと出力を返す。
-  async function runBin(file: string): Promise<ExecResult> {
+  async function runBin(file: string, cwd = root): Promise<ExecResult> {
     try {
-      const { stdout, stderr } = await execFileAsync('node', ['dist/bin/pecot-text-lint.js', file], { cwd: root })
+      const { stdout, stderr } = await execFileAsync('node', [path.join(root, 'dist/bin/pecot-text-lint.js'), file], { cwd })
       return { code: 0, stdout, stderr }
     }
     catch (error) {
@@ -349,5 +419,53 @@ describe('コマンドの実体', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
     expect(failureLines(result.stderr)).toEqual([])
+  })
+
+  describe('.textlintignore', () => {
+    let repository = ''
+
+    beforeAll(async () => {
+      repository = path.join(directory, 'repository')
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
+      await mkdir(path.join(repository, 'specs/[id]'), { recursive: true })
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
+      await mkdir(path.join(repository, 'docs'), { recursive: true })
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
+      await writeFile(path.join(repository, '.textlintignore'), 'specs/**\n')
+      for (const file of ['specs/a.md', 'specs/[id]/a.md', 'docs/a.md']) {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
+        await writeFile(path.join(repository, file), `${sentence}\n`)
+      }
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
+      await symlink(repository, path.join(directory, 'link'))
+    })
+
+    it.for([
+      { name: '相対パス', file: 'specs/a.md', cwd: 'repository' },
+      { name: '絶対パス', file: 'repository/specs/a.md', cwd: 'repository' },
+      { name: 'リンクを通った作業ディレクトリの絶対パス', file: 'link/specs/a.md', cwd: 'link' },
+    ])('除外に当たるファイルを $name で渡すと、終了コード 0 を返す', async ({ file, cwd }) => {
+      const target = file.startsWith('specs/') ? file : path.join(directory, file)
+      const result = await runBin(target, path.join(directory, cwd))
+      expect(result).toMatchObject({ code: 0, stdout: '' })
+      expect(failureLines(result.stderr)).toEqual([])
+    })
+
+    it('除外に当たらないファイルは、違反を返す', async () => {
+      const result = await runBin(path.join(repository, 'docs/a.md'), repository)
+      expect(result.code).toBe(1)
+      expect(result.stdout).toContain('docs/a.md:1:1 no-ai-words ')
+    })
+
+    it('作業ディレクトリの外のファイルは、除外の型に当たっても違反を返す', async () => {
+      const result = await runBin(path.join(repository, 'specs/a.md'), path.join(repository, 'docs'))
+      expect(result.code).toBe(1)
+    })
+
+    // textlint の scanFilePath はパスを glob の型として扱うので、[ ] を含むパスは除外と照らせない（CLI と同じ）。
+    it('glob の記号を含むパスは、除外の下でも違反を返す', async () => {
+      const result = await runBin('specs/[id]/a.md', repository)
+      expect(result.code).toBe(1)
+    })
   })
 })

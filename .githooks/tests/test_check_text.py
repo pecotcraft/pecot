@@ -448,6 +448,7 @@ class _PushRepo:
         self.package_dir = _copy_real_sources(repo)
         (repo / ".git/info/exclude").write_text("libs/\nnode_modules\n")
         (repo / "README.md").write_text("# 見出し\n")
+        shutil.copyfile(repo_root / ".textlintignore", repo / ".textlintignore")
         self.commit("chore: init")
         self.base = self._rev(repo, "HEAD")
         git(repo, "update-ref", "refs/remotes/origin/main", self.base)
@@ -542,6 +543,21 @@ def test_check_text_push_passes_without_text_targets(
     push_repo.commit("feat: non targets")
     result = _run_push(script_dir, run_script, push_repo)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_check_text_push_skips_textlintignore(
+    script_dir: Path, run_script, push_repo: _PushRepo
+) -> None:
+    """.textlintignore で外した specs/ の違反は通し、外していないファイルの違反は止める。"""
+    push_repo.write("specs/001-x/spec.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+    push_repo.commit("docs: spec")
+    assert _run_push(script_dir, run_script, push_repo).returncode == 0
+    push_repo.write("docs-src/bad.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+    push_repo.commit("feat: bad")
+    result = _run_push(script_dir, run_script, push_repo)
+    assert result.returncode == 1
+    assert "specs/001-x/spec.md" not in result.stdout, result.stdout
+    assert "docs-src/bad.md:3:" in result.stdout, result.stdout
 
 
 def test_check_text_push_skips_deleted_files(

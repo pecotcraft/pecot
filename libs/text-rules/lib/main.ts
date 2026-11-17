@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, realpath } from 'node:fs/promises'
 import path from 'node:path'
 import { TextlintKernel } from '@textlint/kernel'
 import type { TextlintKernelDescriptor } from '@textlint/kernel'
@@ -6,15 +6,52 @@ import { BYTE_ORDER_MARK } from './byte-order-mark.js'
 import { buildDescriptor } from './descriptor.js'
 import { oneLine, withoutSummary } from './findings.js'
 
+// ファイルが除外に当たるかの判定。
+export type IgnoreCheck = (file: string) => Promise<boolean>
+
 export interface MainDependencies {
   readonly descriptor: () => TextlintKernelDescriptor
   readonly readFile: (file: string) => Promise<string>
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 同上
+  readonly ignoreCheck: (descriptor: TextlintKernelDescriptor) => Promise<IgnoreCheck>
+}
+
+// textlint の CLI と同じく、作業ディレクトリの .textlintignore を読む。
+export const IGNORE_FILE = '.textlintignore'
+
+// 作業ディレクトリからの相対パス。外にあるときは undefined。
+// process.cwd() はリンクを解決した実体を返すので、親ディレクトリにも realpath をかけてからそろえる。
+export async function relativeToCwd(file: string, cwd: string): Promise<string | undefined> {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 作業ディレクトリと、引数で渡されたファイルの親を解決する
+  const base = await realpath(cwd)
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
+  const directory = await realpath(path.dirname(path.resolve(cwd, file)))
+  const relative = path.relative(base, path.join(directory, path.basename(file)))
+  return relative.startsWith('..') || path.isAbsolute(relative) ? undefined : relative.split(path.sep).join('/')
+}
+
+// scanFilePath は除外の型を作業ディレクトリからの相対で照らすので、相対パスに直して渡す。
+// textlint は --commit-msg では要らないので、ここで初めて読む。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- textlint の型に合わせる
+async function textlintIgnoreCheck(descriptor: TextlintKernelDescriptor): Promise<IgnoreCheck> {
+  const { createLinter } = await import('textlint')
+  const cwd = process.cwd()
+  const linter = createLinter({ descriptor, cwd, ignoreFilePath: IGNORE_FILE })
+  return async (file) => {
+    const relative = await relativeToCwd(file, cwd)
+    if (relative === undefined) {
+      return false
+    }
+    const result = await linter.scanFilePath(relative)
+    return result.status === 'ignored'
+  }
 }
 
 export const REAL_DEPS: MainDependencies = {
   descriptor: buildDescriptor,
+  ignoreCheck: textlintIgnoreCheck,
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- 引数で渡されたパスを読むのがコマンドの役割
   readFile: async file => readFile(file, 'utf8'),
   stdout: (text) => {
@@ -98,11 +135,19 @@ export async function main(argv: readonly string[], dependencies: MainDependenci
     const { commitMsg, files } = parseArgv(argv)
     const descriptor = dependencies.descriptor()
     const kernel = new TextlintKernel()
+    let isIgnored: IgnoreCheck | undefined
     for (const file of files) {
       current = file
       const extension = commitMsg ? '.md' : path.extname(file)
       if (descriptor.findPluginDescriptorWithExt(extension) === undefined) {
         continue
+      }
+      // コミットメッセージはリポのファイルでないので、除外の一覧と照らさない。
+      if (!commitMsg) {
+        isIgnored ??= await dependencies.ignoreCheck(descriptor)
+        if (await isIgnored(file)) {
+          continue
+        }
       }
       // kernel は本文の BOM を落として数えるので、plugin にも同じ本文を渡して位置をそろえる。
       const original = await dependencies.readFile(file)

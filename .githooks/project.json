@@ -144,6 +144,7 @@
         },
         "{workspaceRoot}/specs/026-pre-merge-test-env/spec.md",
         "{workspaceRoot}/.pre-commit-config.yaml",
+        "{workspaceRoot}/.textlintignore",
         "{workspaceRoot}/.gitlint",
         "{workspaceRoot}/.github/workflows/ci.yml",
         "{workspaceRoot}/.github/workflows/dependabot-commit.yml",

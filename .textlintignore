@@ -1,0 +1,11 @@
+# 文章規則（pecot-text-lint）から外すファイル。commit・push・pecot-visual のフックが、この一覧を読む。
+# 外すのは、生成物と逐語の記録、上流の文書の写し（speckit の配布物・aws-agent-rules.md）、spec-kit のテンプレートの形で書く specs/ だ。
+**/CHANGELOG.md
+plugins/pecot-workflow/cli/tests/parity/golden/**
+plugins/pecot-workflow/cli/tests/python-output/**
+.nx/nx-release/tests/_fixtures/**
+.specify/**
+.claude/skills/speckit-*
+.claude/skills/speckit-*/**
+.claude/rules/aws-agent-rules.md
+specs/**
