@@ -232,10 +232,10 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
 
 ### 確かめの前に設定を比べる
 
-確かめの前に、このリポの作業ツリーで `.githooks/scripts/sandbox-diff.sh` を動かし、ずれが 0 件であることを見る。検証用の設定がこのリポとずれたままだと、確かめた結果がこのリポで再現しない。
+確かめの前に、このリポの作業ツリーで `plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh` を動かし、ずれが 0 件であることを見る。検証用の設定がこのリポとずれたままだと、確かめた結果がこのリポで再現しない。
 
 ```bash
-.githooks/scripts/sandbox-diff.sh
+plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh
 ```
 
 - 比べるのは、ruleset・ボードの項目・`pecot-board-sync.yml` などである。何も書き換えない
@@ -256,11 +256,11 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
 
 ### 確かめで作ったものの片付け
 
-確かめのあとは、`.githooks/scripts/sandbox-sweep.sh` で片付ける。対象は、名前の形に合う開いた PR・ブランチ・Issue・ボードのカード・リリース。
+確かめのあとは、`plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh` で片付ける。対象は、名前の形に合う開いた PR・ブランチ・Issue・ボードのカード・リリース。
 
 ```bash
-.githooks/scripts/sandbox-sweep.sh --issue <Issue番号> --dry-run
-.githooks/scripts/sandbox-sweep.sh --issue <Issue番号>
+plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
+plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
 ```
 
 - `--issue <番号>` は、その Issue の番号を持つものだけを片付ける。省くと、名前の形に合うものをすべて片付ける

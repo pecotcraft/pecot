@@ -636,6 +636,9 @@ _PECOTV_TEST_LANES = {
             {"pecot-visual:test-cli", "pecot-visual:test-compare"},
         ),
         ("plugins/pecot-tools/cli/src/version.ts", {"pecot-tools:test-cli"}),
+        # 検証用のスクリプトと、それが読む spec は、vitest で確かめる test-cli だけに届く (#562)。
+        ("plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh", {"pecot-workflow:test-cli"}),
+        ("specs/026-pre-merge-test-env/spec.md", {"pecot-workflow:test-cli"}),
         # 起動スクリプトは Globals が全レーンに引く / E2E と bootstrap が起動する (#1235、実 push で確認済み)。
         (
             "plugins/pecot-tools/bin/pecot-tools",

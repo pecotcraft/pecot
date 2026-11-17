@@ -11,7 +11,7 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 
 1. 検証用は、今ある `pecotcraft/pecot-sandbox` とボード `pecot sandbox` を引き継ぐ。clone を作業ディレクトリにすると、pecot の書き込む先が検証用になる
 2. 直した pecot-workflow は、公式の `--plugin-dir` で作業ツリーから読み込む。このリポの開発のセッションと同じ読み込み方だ
-3. このリポと検証用の設定を比べるスクリプトと、確かめで作ったものを片付けるスクリプトを足す。どちらも配布しない
+3. このリポと検証用の設定を比べるスクリプトと、確かめで作ったものを片付けるスクリプトを足す。どちらも開発用で、`plugins/pecot-workflow/scripts/sandbox/` に置く（#562 で移した）
 4. 配布物は 3 点を直す。計画の CUJ に「流す先」を足す。w-reviewer の手順を合わせ、CUJ は main が cuj-run.md に従って流す（w-e2e-planner は消す）。フェーズの前後の決まりから、確かめる場所の欠けを訳にした例を外す
 5. 人のいないセッションは、公式の文書に動かない点が書いてある。実機で確かめてから、動かし方を選ぶ
 
@@ -38,7 +38,7 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 | Language/Version | Bash（比べと片付けのスクリプト）、Markdown（plan テンプレ・エージェント・スキル・文書）、Python（root のテスト）、TypeScript（pecot-workflow の既存のテスト） |
 | Primary Dependencies | `gh`・`jq`・`git`（既存）。足す依存は無い |
 | Storage | 無い。検証用の clone は `.pecot/work/<Issue番号>/pecot-sandbox/` に置く |
-| Testing | pytest（`.githooks/tests/`。偽の `gh` でスクリプトを確かめる）、vitest（`cli/tests/hooks/cuj-definition-single-source.test.ts`・`cli/tests/skills/template-rules.test.ts`）、検証用での CUJ |
+| Testing | vitest（`cli/tests/sandbox/`・`cli/tests/hooks/cuj-definition-single-source.test.ts`・`cli/tests/skills/template-rules.test.ts`。sandbox は偽の `gh` でスクリプトを確かめる）、検証用での CUJ |
 | Target Platform | 開発者の devcontainer（Claude Code と GitHub Copilot CLI）と、人のいないセッション |
 | Project Type | 配布するプラグイン（テンプレート・エージェント・スキル）と、このリポの開発に使うスクリプト |
 | Performance Goals | 直した pecot-workflow を、文書の手順だけで 5 分以内に動かし始められる（SC-006） |
@@ -50,7 +50,8 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 - 配る workflow のテンプレートと、このリポの `.github/workflows/pecot-board-sync.yml` は、npx の dist-tag のほかは同じ中身に保つ。`test_board_sync_workflow_copy.py` が止める
   - dist-tag は、テンプレートが `@latest`、このリポが `@next` だ
 - 配布物を直す PR には、version plan が要る
-- ルート直下にディレクトリを足さない。スクリプトは `.githooks/scripts/`、テストは `.githooks/tests/` に置く
+- ルート直下にディレクトリを足さない。スクリプトとテストは pecot-workflow の中に置く（#562 で移した）
+  - スクリプトは `scripts/sandbox/`、テストは `cli/tests/sandbox/`
 - 検証用での確かめは、PR ごとの CI に入れない
 - pecot の設定のキーは足さない。検証用の場所は、プロジェクトの指示に書く
 
@@ -58,8 +59,8 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 
 | 種類 | 内容 |
 |---|---|
-| 足すスクリプト | `.githooks/scripts/` に 2 本（設定を比べる・確かめで作ったものを片付ける）と、比べる項目を書いたファイル 1 つ |
-| 足すテスト | `.githooks/tests/` に 2 本 |
+| 足すスクリプト | `plugins/pecot-workflow/scripts/sandbox/` に 2 本（設定を比べる・確かめで作ったものを片付ける）と、比べる項目を書いたファイル 1 つ |
+| 足すテスト | `plugins/pecot-workflow/cli/tests/sandbox/` に vitest で 2 本 |
 | 直す配布物 | `cli/templates/comment/plan.md`、`skills/w-help/references/cuj-run.md`（新規。`agents/w-e2e-planner.md` は消す）、`agents/w-reviewer.md`、`skills/w-breakdown/SKILL.md`、`skills/w-ready/SKILL.md`、`skills/w-help/references/issue-flow-rules.md`、`skills/w-help/references/spec-driven-workflow.md`。GitHub Copilot CLI 向けの写し（`com.github.copilot/agents/`）も同じに直す |
 | 直す文書 | `plugins/pecot-workflow/CONTRIBUTING.md`（試験環境の一覧と手順の節）、`CLAUDE.md`（検証用の場所と案内） |
 | 検証用の整え | `pecot-sandbox` の必須のチェックの確かめ、人のいないセッション向けの App |
@@ -71,8 +72,8 @@ main に入れる前の変更を、このリポの Issue・PR・ボード・merg
 
 | 原則 | 判定 | 根拠 |
 |---|---|---|
-| I. DDD | 合格 | CLI のコードを直さない。足すスクリプトは、配布しない開発のスクリプトで、`.githooks/scripts/` に置く |
-| II. TDD | 合格 | スクリプト 2 本は、偽の `gh` を使う pytest を先に書く。配布物の文の変更は、既存の同期のテストに期待を足してから直す。その後に、検証用で CUJ を流す |
+| I. DDD | 合格 | CLI のコードを直さない。足すスクリプトは開発用で、`plugins/pecot-workflow/scripts/sandbox/` に置く。プラグインに同梱されるが、引数なしでは検証用だけに触る |
+| II. TDD | 合格 | スクリプト 2 本は、偽の `gh` を使うテストを先に書く。配布物の文の変更は、既存の同期のテストに期待を足してから直す。その後に、検証用で CUJ を流す |
 | III. コード品質 | 合格 | 既存の lint（shellcheck・文面の規則）と必須のチェックを通す。迂回しない |
 | IV. YAGNI | 合格 | 書き込む先の切り替え・設定のキー・自動で直す仕組みを足さない。pecot-visual・pecot-tools・このリポだけの運用は扱わない |
 | V. 本体実装優先 | 合格 | speckit の成果物は、この機能の一式の作成だけ。spec の SC-010 の文は、research の R9 の判定に合わせて直してある |
@@ -110,16 +111,12 @@ specs/026-pre-merge-test-env/
 ### Source Code (repository root)
 
 ```text
-.githooks/
-├── scripts/
-│   ├── sandbox-diff.sh            # 足す。このリポと検証用の設定を比べる
-│   ├── sandbox-diff-items.json    # 足す。比べる項目と、比べない項目とその訳
-│   └── sandbox-sweep.sh           # 足す。確かめで作ったものを片付ける
-└── tests/
-    ├── test_sandbox_diff.py       # 足す
-    └── test_sandbox_sweep.py      # 足す
-
 plugins/pecot-workflow/
+├── scripts/sandbox/                           # 足す（#562 で .githooks/scripts/ から移した）
+│   ├── sandbox-diff.sh                        # このリポと検証用の設定を比べる
+│   ├── sandbox-diff-items.json                # 比べる項目と、比べない項目とその訳
+│   └── sandbox-sweep.sh                       # 確かめで作ったものを片付ける
+├── cli/tests/sandbox/                         # 足す。sandbox-diff.test.ts・sandbox-sweep.test.ts
 ├── CONTRIBUTING.md                            # 試験環境の節を足す
 ├── agents/
 │   ├── w-e2e-planner.md                       # 消す。CUJ は main が cuj-run.md に従って流す
@@ -138,7 +135,7 @@ CLAUDE.md                                      # 検証用の場所と、CONTRIB
 .nx/version-plans/                             # 配布物を直す PR ごとに 1 つ
 ```
 
-**Structure Decision**: 配布しない開発のスクリプトは `.githooks/` に、配布物の変更は `plugins/pecot-workflow/` の既存のファイルに入れる。新しいディレクトリと nx project は作らない。
+**Structure Decision**: 検証用のスクリプトは `plugins/pecot-workflow/scripts/sandbox/` に置く（#562 で `.githooks/` から移した）。配布物の変更は `plugins/pecot-workflow/` の既存のファイルに入れる。新しい nx project は作らない。
 
 ## 実装の順
 

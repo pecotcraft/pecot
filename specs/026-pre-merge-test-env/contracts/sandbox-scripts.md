@@ -1,6 +1,6 @@
 # Contract: 比べと片付けのスクリプト
 
-配布しない。このリポの開発で使う。置き場は `.githooks/scripts/`、テストは `.githooks/tests/`。
+このリポの開発で使う。プラグインに同梱されて導入先にも写るが、引数なしでは検証用だけに触る。置き場は `plugins/pecot-workflow/scripts/sandbox/`、テストは `plugins/pecot-workflow/cli/tests/sandbox/`（vitest）。
 どちらも `gh` で GitHub を読む。テストは、偽の `gh` を PATH に置いて確かめる。
 
 ## `sandbox-diff.sh`（FR-017）

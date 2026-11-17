@@ -12,8 +12,6 @@
       `finish-ci-summary.sh`・`dev-container.sh`・`find-pr-ci-base.sh`
   - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
   - `.githooks/scripts/` : hook の stage に属さず、複数のプロジェクトにまたがって install・CI・リリース・hook から呼ぶスクリプト。1 つのプラグインだけが使うものは、手で打つものも含めて `plugins/<name>/scripts/` に置く
-    - `sandbox-diff.sh` : このリポと検証用（`pecotcraft/pecot-sandbox`）の設定を比べ、ずれを出す。比べる項目は `sandbox-diff-items.json`。#562 で `plugins/pecot-workflow/scripts/` へ移す
-    - `sandbox-sweep.sh` : 確かめで検証用に作ったブランチ・PR・Issue・カード・リリースを片付ける。#562 で `plugins/pecot-workflow/scripts/` へ移す
   - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.test.sh` は `.githooks/scripts/tests/` に置く
   - `tests/test_pre_commit_config_wiring.py` が、置き場のディレクトリと `stages:` の一致を確かめる
 - プラグイン固有 CI : `plugins/<plugin>/scripts/ci/run-{lint,tests}.sh`

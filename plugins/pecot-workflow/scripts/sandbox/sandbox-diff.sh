@@ -11,7 +11,7 @@ WORKFLOWS=".github/workflows"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 items_file="$script_dir/sandbox-diff-items.json"
-tmp_base="$script_dir/../../.pecot/tmp"
+tmp_base="$(git rev-parse --show-toplevel)/.pecot/tmp"
 mkdir -p "$tmp_base"
 work=$(mktemp -d "$tmp_base/sandbox-diff.XXXXXX")
 trap 'rm -rf "$work"' EXIT

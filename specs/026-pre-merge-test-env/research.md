@@ -41,12 +41,13 @@
 ## R3. そろえる設定の比べ方（FR-017、FR-001〜008）
 
 - Decision: 比べるスクリプトを `.githooks/scripts/` に 1 本置く。このリポと検証用の設定を API で読み、ずれた項目と両方の値を出す。直さない
+  - #562 で、置き場を `plugins/pecot-workflow/scripts/sandbox/` に移した
 - Decision: 比べる項目と、比べない項目とその訳を、スクリプトの隣の 1 つのファイルに書く。spec の FR-001〜008 の表と同じ中身にする
 - Decision: 比べは、検証用で確かめを流す手順の最初に行う。PR ごとの CI には入れない
 - Rationale:
   - ruleset とボードの設定は、GitHub の画面か API で変わる。リポの中のファイルではないので、PR の差分からは変化が分からない。流す直前に比べるのが、ずれを踏まない確かな時機だ
   - #374 の手順は、確かめの途中で検証用の merge queue の規則を外して戻している。ずれは、こういう操作の戻し忘れで生まれる
-  - 配布しないスクリプトなので、置き場は `.claude/rules/repo-root-layout.md` の表のとおり `.githooks/scripts/` になる
+  - 配布しないスクリプトなので、置き場は `.claude/rules/repo-root-layout.md` の表のとおり `.githooks/scripts/` になる（#562 で pecot-workflow の中に移した）
 - 読み方:
 
 | 項目 | 読む先 | 比べないもの |
@@ -65,6 +66,7 @@
 
 - Decision: 確かめが検証用に作るブランチは `cuj/<Issue番号>-<乱数>` の形にする。Issue と PR の題に `[cuj <Issue番号>-<乱数>]` を入れる。pecot は Issue の題の先頭に種類の接頭辞（`[Task]` など）を付けるので、題の先頭には置けない（R11-7 で確かめた）
 - Decision: 片付けるスクリプトを `.githooks/scripts/` に 1 本置く。この形の名前を持つ、開いた PR・ブランチ・Issue を閉じて消し、ボードからアーカイブする
+  - #562 で、置き場を `plugins/pecot-workflow/scripts/sandbox/` に移した
 - Rationale:
   - terraform の GitHub provider は、作るものに目印の接頭辞を付け、残りをまとめて消す。gh CLI は、名前に乱数を入れて重なりを避ける
   - 接頭辞を持たないもの（検証用の `ci.yml`、設定の JSON、main の履歴）は、片付けの対象にならない

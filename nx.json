@@ -302,6 +302,7 @@
         "vitest.e2e.config.ts",
         ".gitignore",
         "plugins/*/scripts/ci/**",
+        "plugins/*/scripts/sandbox/**",
         "plugins/*/interface/**",
         "plugins/*/cli*/scripts/export-interface.ts",
         "!plugins/pecot-visual/scripts/ci/dev-install-lib.sh",
