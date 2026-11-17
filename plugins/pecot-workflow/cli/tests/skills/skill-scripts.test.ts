@@ -1,43 +1,43 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはテストの一時ディレクトリ配下のみ */
-// スキル本文から写して打つ bash ブロックを取り出し、一時ディレクトリで実際に流して結果を確かめる。
+// スキルの scripts/ にあるスクリプトを、一時ディレクトリで実際に動かして結果を確かめる。
+// あわせて、スキルの本文がスクリプトを埋め込まず、在るファイルを指していることを確かめる。
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process'
-import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, symlinkSync } from 'node:fs'
 import { createServer } from 'node:net'
 import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temporary.js'
-import { readPluginFile } from './_helpers/documents.js'
+import { pluginRoot, readDocuments, readPluginFile } from './_helpers/documents.js'
 
-// 見出しの行の後ろ、次の見出しまでにある最初の bash ブロックを返す。
-function extractBash(relative: string, heading: string): string {
-  const lines = readPluginFile(relative).split('\n')
-  const start = lines.indexOf(heading)
-  if (start === -1) throw new Error(`見出しがありません: ${relative} ${heading}`)
-  const rest = lines.slice(start + 1)
-  const body: string[] = []
-  let isInBlock = false
-  for (const line of rest) {
-    if (!isInBlock && line.startsWith('#')) break
-    if (!isInBlock && line === '```bash') isInBlock = true
-    else if (isInBlock && line === '```') return `${body.join('\n')}\n`
-    else if (isInBlock) body.push(line)
-  }
-  throw new Error(`bash ブロックがありません: ${relative} ${heading}`)
+function scriptPath(relative: string): string {
+  return path.join(pluginRoot, relative)
 }
 
-function writeScript(directory: string, name: string, script: string): string {
-  const file = path.join(directory, name)
-  writeFileSync(file, script)
-  return file
-}
-
-function runBash(script: string, cwd: string) {
-  const scriptFile = writeScript(makeTemporaryDirectory(), 'step.sh', script)
-  const result = spawnSync('bash', [scriptFile], { cwd, encoding: 'utf8' })
+function runScript(relative: string, cwd: string) {
+  const result = spawnSync(process.execPath, [scriptPath(relative)], { cwd, encoding: 'utf8' })
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
 }
+
+describe('スキルの本文とスクリプトのファイル', () => {
+  it.for([
+    { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/detect-sibling-config.cjs' },
+    { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/board-url.cjs' },
+    { skill: 'skills/w-pr/SKILL.md', script: 'scripts/serve-preview.cjs' },
+  ])('$skill は、base directory の $script を node で動かすよう書き、そのファイルが在る', ({ skill, script }) => {
+    expect(readPluginFile(skill)).toContain(`node <このスキルの base directory>/${script}`)
+    const file = path.join(pluginRoot, path.dirname(skill), script)
+    expect(existsSync(file)).toBe(true)
+  })
+
+  it('スキルとエージェントの本文に、node で動かすスクリプトを埋め込まない', () => {
+    const embedded = readDocuments()
+      .filter(({ text }) => /node (?:--input-type|--eval|-[ep] |- <<)/u.test(text))
+      .map(({ file }) => file)
+    expect(embedded).toStrictEqual([])
+  })
+})
 
 function repositoryWith(files: Readonly<Record<string, string>>): string {
   const directory = makeTemporaryDirectory()
@@ -46,7 +46,7 @@ function repositoryWith(files: Readonly<Record<string, string>>): string {
 }
 
 describe('w-onboarding Step 4 のボード URL の取得', () => {
-  const script = extractBash('skills/w-onboarding/SKILL.md', '### Step 4: 動作確認')
+  const script = 'skills/w-onboarding/scripts/board-url.cjs'
   const url = 'https://github.com/orgs/pecotcraft/projects/1'
 
   it('相対パスの .active から、ボード URL を 1 行で出す', () => {
@@ -54,13 +54,13 @@ describe('w-onboarding Step 4 のボード URL の取得', () => {
       '.pecot/config/projects/.active': 'p.json\n',
       '.pecot/config/projects/p.json': JSON.stringify({ project: { board_url: url } }),
     })
-    expect(runBash(script, directory)).toMatchObject({ status: 0, stdout: `${url}\n` })
+    expect(runScript(script, directory)).toMatchObject({ status: 0, stdout: `${url}\n` })
   })
 
   it('絶対パスの .active でも、ボード URL を 1 行で出す', () => {
     const directory = repositoryWith({ '.pecot/config/projects/p.json': JSON.stringify({ project: { board_url: url } }) })
     writeTree(directory, { '.pecot/config/projects/.active': `${path.join(directory, '.pecot/config/projects/p.json')}\n` })
-    expect(runBash(script, directory)).toMatchObject({ status: 0, stdout: `${url}\n` })
+    expect(runScript(script, directory)).toMatchObject({ status: 0, stdout: `${url}\n` })
   })
 
   it('board_url が無いと、終了コード 1 で止まる', () => {
@@ -68,13 +68,13 @@ describe('w-onboarding Step 4 のボード URL の取得', () => {
       '.pecot/config/projects/.active': 'p.json\n',
       '.pecot/config/projects/p.json': JSON.stringify({ project: {} }),
     })
-    const result = runBash(script, directory)
+    const result = runScript(script, directory)
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
   })
 
   it('.active が無いと、終了コード 1 で止まる', () => {
-    const result = runBash(script, repositoryWith({}))
+    const result = runScript(script, repositoryWith({}))
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
   })
@@ -132,7 +132,7 @@ async function waitUntilServing(port: number): Promise<void> {
 }
 
 describe('w-onboarding の兄弟リポの検出', () => {
-  const script = extractBash('skills/w-onboarding/references/existing-config-detection.md', '## 2. 兄弟リポに同一プロジェクトの設定あり')
+  const script = 'skills/w-onboarding/scripts/detect-sibling-config.cjs'
 
   const mine = JSON.stringify({ host: 'github.com', owner: 'pecotcraft' })
   const other = JSON.stringify({ host: 'github.com', owner: 'other' })
@@ -140,7 +140,7 @@ describe('w-onboarding の兄弟リポの検出', () => {
 
   it('一致が 1 件だと、MATCH の行でそのパスを出す', () => {
     const { current } = layout(https, { a: mine, b: other })
-    expect(runBash(script, current)).toMatchObject({
+    expect(runScript(script, current)).toMatchObject({
       status: 0,
       stdout: 'MATCH: ../a/.pecot/config/projects/p.json\n',
     })
@@ -148,7 +148,7 @@ describe('w-onboarding の兄弟リポの検出', () => {
 
   it('一致が 2 件だと、複数見つかった旨と 2 行のパスを出す', () => {
     const { current } = layout(https, { a: mine, b: mine })
-    expect(runBash(script, current).stdout).toBe(
+    expect(runScript(script, current).stdout).toBe(
       '複数見つかりました（AskUserQuestion で選択）:\n'
       + '  ../a/.pecot/config/projects/p.json\n'
       + '  ../b/.pecot/config/projects/p.json\n',
@@ -157,7 +157,7 @@ describe('w-onboarding の兄弟リポの検出', () => {
 
   it('一致が 0 件だと、見つからなかった旨を出す', () => {
     const { current } = layout(https, { b: other })
-    expect(runBash(script, current)).toMatchObject({
+    expect(runScript(script, current)).toMatchObject({
       status: 0,
       stdout: '兄弟リポに一致する設定ファイルが見つかりませんでした\n',
     })
@@ -165,7 +165,7 @@ describe('w-onboarding の兄弟リポの検出', () => {
 
   it('ssh の origin でも、一致が 1 件と数える', () => {
     const { current } = layout('git@github.com:pecotcraft/cur.git', { a: mine })
-    expect(runBash(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
+    expect(runScript(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
   it.for([
@@ -176,12 +176,12 @@ describe('w-onboarding の兄弟リポの検出', () => {
     'https://github.com/pecotcraft/cur/',
   ])('origin が %s だと、一致が 1 件と数える', (origin) => {
     const { current } = layout(origin, { a: mine })
-    expect(runBash(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
+    expect(runScript(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
   it('別名の origin だと、host が別名になり一致が 0 件になる', () => {
     const { current } = layout('gh-alias:pecotcraft/cur.git', { a: mine })
-    expect(runBash(script, current).stdout).toBe('兄弟リポに一致する設定ファイルが見つかりませんでした\n')
+    expect(runScript(script, current).stdout).toBe('兄弟リポに一致する設定ファイルが見つかりませんでした\n')
   })
 
   it('シンボリックリンクの兄弟リポも、一致に数える', () => {
@@ -189,25 +189,34 @@ describe('w-onboarding の兄弟リポの検出', () => {
     const outer = makeTemporaryDirectory()
     writeTree(outer, { '.pecot/config/projects/p.json': mine })
     symlinkSync(outer, path.join(parent, 'lnk'))
-    expect(runBash(script, current).stdout).toBe('MATCH: ../lnk/.pecot/config/projects/p.json\n')
+    expect(runScript(script, current).stdout).toBe('MATCH: ../lnk/.pecot/config/projects/p.json\n')
   })
 
   it('解析できない JSON は、一致の数に入れない', () => {
     const { current } = layout(https, { a: mine, broken: '{"host":' })
-    expect(runBash(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
+    expect(runScript(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
   it.for(['foo', 'git@github.com:~pecotcraft/cur.git', 'C:/pecotcraft/cur.git'])('origin が %s だと、解析できない旨の ERROR の行を出して終了コード 1 で止まる', (origin) => {
     const { current } = layout(origin, { a: mine })
-    expect(runBash(script, current)).toMatchObject({
+    expect(runScript(script, current)).toMatchObject({
       status: 1,
       stdout: `ERROR: origin URL を解析できませんでした: ${origin}\n`,
+    })
+  })
+
+  it('origin が無いと、取得できない旨の ERROR の行を出して終了コード 1 で止まる', () => {
+    const current = makeTemporaryDirectory()
+    git(current, 'init', '-q')
+    expect(runScript(script, current)).toMatchObject({
+      status: 1,
+      stdout: 'ERROR: origin URL を取得できませんでした\n',
     })
   })
 })
 
 describe('w-pr のプレビューの配信', () => {
-  const script = extractBash('skills/w-pr/SKILL.md', '#### スクリーンショット')
+  const script = scriptPath('skills/w-pr/scripts/serve-preview.cjs')
   let server: ChildProcess | undefined
 
   afterEach(() => {
@@ -226,9 +235,7 @@ describe('w-pr のプレビューの配信', () => {
     const repository = makeTemporaryDirectory()
     writeTree(repository, { '.pecot/work/399/index.html': '<!doctype html><p>日本語</p>\n', 'secret.txt': 'x' })
     const port = await freePort()
-    const filled = script.replaceAll('<Issue番号>', '399').split('<port>').join(String(port))
-    const scriptFile = writeScript(makeTemporaryDirectory(), 'serve.sh', filled)
-    server = spawn('bash', [scriptFile], { cwd: repository, detached: true, stdio: 'ignore' })
+    server = spawn(process.execPath, [script, '.pecot/work/399', String(port)], { cwd: repository, detached: true, stdio: 'ignore' })
     await waitUntilServing(port)
     return port
   }
@@ -258,5 +265,13 @@ describe('w-pr のプレビューの配信', () => {
     if (server?.pid !== undefined) process.kill(-server.pid)
     await sleep(300)
     await expect(fetch(`http://127.0.0.1:${String(port)}/index.html`)).rejects.toThrow()
+  })
+
+  it.for(['70000', '-1', 'abc'])('port が %s だと、立てられない旨を出して終了コード 1 で止まる', (port) => {
+    const repository = makeTemporaryDirectory()
+    writeTree(repository, { '.pecot/work/399/index.html': '<p>x</p>\n' })
+    const result = spawnSync(process.execPath, [script, '.pecot/work/399', port], { cwd: repository, encoding: 'utf8' })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toBe(`配信を立てられません: port が 0〜65535 の整数ではありません（${port}）\n`)
   })
 })

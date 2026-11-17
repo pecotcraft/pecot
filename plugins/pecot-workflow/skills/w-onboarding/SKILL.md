@@ -25,7 +25,30 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 最初のチェックには、pecot-workflow の MCP ツール `project_list` を使う。
 
-各パターンの検出手順・兄弟リポを走査するスクリプトの詳細は [既存設定検出の詳細](references/existing-config-detection.md) を参照。
+パターン 2 は、このスキルの base directory にある `scripts/detect-sibling-config.cjs` を動かし、その出力の行で決める。
+作業ディレクトリはカレントリポのままにし、base directory から組んだ絶対パスで打つ。
+`ls`・`cat` などで兄弟リポを調べて、スクリプトの代わりにしない。
+
+```bash
+node <このスキルの base directory>/scripts/detect-sibling-config.cjs
+```
+
+| 出力 | 対処 |
+|---|---|
+| `MATCH: <パス>` | そのファイルをコピーする |
+| `複数見つかりました` と、パスの一覧 | AskUserQuestion でどれを使うかを選ばせ、選んだファイルをコピーする |
+| `兄弟リポに一致する設定ファイルが見つかりませんでした` | パターン 3 へ |
+| `ERROR:` で始まる行 | その行の理由を利用者に伝え、パターン 3 へ |
+
+コピーは次のとおり。コピーしたら `project_activate` を使い（`project: "<コピーしたファイル名（拡張子なし）>"`）、Step 3 へ進む。
+Step 3 の後、Step 4 の前に、pecot-workflow の MCP ツール `project_link` でカレントリポを登録する。
+
+```bash
+mkdir -p .pecot/config/projects
+cp <出力のパス> .pecot/config/projects/
+```
+
+パターン 1・3 の検出手順は [既存設定検出の詳細](references/existing-config-detection.md) を参照。
 
 ### Step 2: プロジェクト新規作成
 
@@ -60,28 +83,10 @@ AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ�
 pecot-workflow の MCP ツール `board_show` を使って、作ったプロジェクトのボードが出ることを確かめる。
 
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
+URL は、このスキルの base directory にある `scripts/board-url.cjs` を、カレントリポで動かして得る。出力の 1 行が URL。
 
 ```bash
-board_url=$(node --input-type=commonjs -e '
-const fs = require("node:fs"), path = require("node:path");
-const fail = (msg) => { console.error(msg); process.exit(1); };
-const active = path.resolve(".pecot/config/projects/.active");
-let target;
-try {
-  target = path.resolve(path.dirname(active), fs.readFileSync(active, "utf8").trim());
-} catch {
-  fail("アクティブなプロジェクトの指定を読めません: " + active);
-}
-let url;
-try {
-  url = (JSON.parse(fs.readFileSync(target, "utf8")).project || {}).board_url;
-} catch {
-  fail("プロジェクト設定を読めません（ファイルが無い、または JSON が壊れています）: " + target);
-}
-if (typeof url !== "string" || url === "") fail("project.board_url がありません: " + target);
-console.log(url);
-') || exit 1
-printf '%s\n' "$board_url"
+node <このスキルの base directory>/scripts/board-url.cjs
 ```
 
 ### Step 5: 次ステップ案内

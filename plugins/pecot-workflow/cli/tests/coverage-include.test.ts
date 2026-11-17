@@ -36,7 +36,7 @@ describe('coverage', () => {
     const include = typeof project === 'object' && 'test' in project ? project.test.include ?? [] : []
     const matched = include.flatMap(pattern => globSync(pattern, { cwd: cliRoot }))
     expect(matched).toContain('tests/skills/tool-names.test.ts')
-    expect(matched).toContain('tests/skills/open-browser.test.ts')
+    expect(matched).toContain('tests/skills/skill-scripts.test.ts')
   })
 
   it('lines の閾値は baseline の行カバレッジと 90 の大きいほう', () => {
