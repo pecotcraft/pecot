@@ -350,9 +350,9 @@ describe('トークンの取得', () => {
     expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toThrow(new GitHubAuthError(
       'authentication error: could not get a GitHub API token\n\n'
       + 'authenticate with the GitHub CLI:\n   gh auth login -h github.com\n\n'
-      + 'or get a token and set it in PECOT_GITHUB_COM_TOKEN before starting pecot\n'
-      + '(for the MCP server, before starting the session):\n'
-      + '   get a token: https://github.com/settings/tokens',
+      + 'or set a token in an environment variable:\n'
+      + '1. get a token: https://github.com/settings/tokens\n'
+      + '2. set it in PECOT_GITHUB_COM_TOKEN before starting pecot (for the MCP server, before starting the session)',
     ))
     expect(existsSync(path.join(root, '.pecot'))).toBe(false)
   })

@@ -340,6 +340,7 @@ describe('pr create', () => {
     const result = await workspace.run(['pr', 'create', '--prepare'])
     expect(result.code).toBe(0)
     expect(result.stderr).toMatch(/^warning: acme\/demo is not in any project config\n {2}available: \(none\)\n/u)
+    expect(existsSync(result.stdout.trim())).toBe(true)
   })
 
   it('設定とトークンの無い clone で --prepare を付けて打つと、Closes を空のままにして warning を出し、テンプレのコピーを書く', async (context) => {
@@ -470,7 +471,8 @@ describe('pr create', () => {
     expect(result.stderr).toContain('warning: Issue #12 is an Epic; Closes left empty\n')
   })
 
-  it('Issue の種別を読めないまま --prepare を付けて打つと、warning の行を出して Closes を空のままにする', async () => {
+  it('Issue の種別を読めないまま --prepare を付けて打つと、warning の行を出して Closes を空のままにする', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-79')
     const workspace = await pushedBranch({ github: [KIND_FAILURE] })
     const result = await workspace.run(['pr', 'create', '--prepare'])
     expect(result.code).toBe(0)
@@ -1506,8 +1508,13 @@ describe('pr create', () => {
 
     it('待つ Issue の 2 件目の移動で想定外の例外が出ると、作った PR と動かせた 1 件目を data に残して失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
-      // 偽サーバの応答では API 以外の例外を起こせないので、列の書き込みを差し替え、#14 だけ投げる
-      const spy = vi.spyOn(ProjectsApi.prototype, 'updateProjectItemField').mockImplementation((_projectId: string, itemId: string) => itemId === 'PVTI_14' ? Promise.reject(new PecotError('boom')) : Promise.resolve(itemId))
+      // 偽サーバの応答では API 以外の例外を起こせない。#14 の書き込みだけを投げる関数に替える。
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- 差し替えの中で this を渡して呼ぶ
+      const original = ProjectsApi.prototype.updateProjectItemField
+      const spy = vi.spyOn(ProjectsApi.prototype, 'updateProjectItemField').mockImplementation(async function (this: Readonly<ProjectsApi>, projectId: string, itemId: string, fieldId: string, optionId: string) {
+        if (itemId === 'PVTI_14') throw new PecotError('boom')
+        return original.call(this, projectId, itemId, fieldId, optionId)
+      })
       context.onTestFinished(() => {
         spy.mockRestore()
       })

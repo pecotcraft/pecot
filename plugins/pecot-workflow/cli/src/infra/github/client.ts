@@ -477,10 +477,10 @@ export class GitHubClientBase {
         'authenticate with the GitHub CLI:',
         `   gh auth login -h ${host}`,
         '',
-        `or get a token and set it in ${getEnvironmentVariableName(host)} before starting pecot`,
-        '(for the MCP server, before starting the session):',
-        `   get a token: ${tokenUrlFor(host)}`,
+        'or set a token in an environment variable:',
+        `1. get a token: ${tokenUrlFor(host)}`,
         ...(scopesLine === '' ? [] : [scopesLine]),
+        `2. set it in ${getEnvironmentVariableName(host)} before starting pecot (for the MCP server, before starting the session)`,
       ].join('\n')
     }
     return `authentication error: could not get a GitHub API token
