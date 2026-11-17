@@ -92,15 +92,16 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/peco
 
 ## 6. 配る自動化を、検証用で起こす（US3、SC-004）
 
-作業ツリーで、`cli/templates/workflow/pecot-board-sync.yml` のログに「試験 456」の 1 行を足す。
+手順の細部は、`plugins/pecot-workflow/CONTRIBUTING.md` の「配る自動化を確かめる」にある。
 
 | 手順 | 期待 |
 |---|---|
-| 直したテンプレートを、検証用の PR で `.github/workflows/` に入れる | 検証用の merge queue を通って入る |
-| 検証用で workflow を起こす | 実行のログに「試験 456」がある。ボード `pecot sandbox` に結果が出る |
-| このリポの workflow の実行の一覧とボードを見る | 変わっていない |
-| 1 時間おいて、検証用の実行の一覧を見る | 定期の起動による実行は増えていない |
-| 検証用の workflow を、このリポの main のテンプレートに戻す PR を入れる | `sandbox-diff.sh` が「ずれは 0 件」に戻る |
+| 作業ツリーから版 `<版>-cuj.<Issue番号>.<乱数>` の tgz を作り、検証用のリリースに添える | `npx -y --prefix=/ <URL> --version` が、その版を出す |
+| テンプレートの `npx` の名前を tgz の URL に替えた写しを、検証用の PR で `.github/workflows/` に入れる | 検証用の merge queue を通って入る |
+| 検証用で workflow を起こす | `Sync the board` の step が URL の `npx` の行で成功する。ボード `pecot sandbox` に結果が出る |
+| 検証用の workflow を、このリポの main の `.github/workflows/pecot-board-sync.yml` に戻す PR を入れる | `sandbox-diff.sh` が「ずれは 0 件」に戻る |
+| `sandbox-sweep.sh` で片付ける | リリースも消える |
+| 1 時間おいて、検証用とこのリポの実行の一覧と、このリポのボードを見る | 検証用に定期の起動による実行は無い。このリポに増えた実行は、このリポの Scheduler と PR・Issue の変化によるものだけ |
 
 ## 7. 計画の「流す先」（US4、SC-001、SC-011）
 
