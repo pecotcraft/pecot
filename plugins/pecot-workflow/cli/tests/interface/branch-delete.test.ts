@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { ambiguousFiles, AMBIGUOUS_MESSAGE, NO_ACTIVE_FILES, otherRepositoryConfig, SECOND_PROJECT } from '../_helpers/harness-selection.js'
+import { ambiguousFiles, AMBIGUOUS_MESSAGE, NO_ACTIVE_FILES, otherRepositoryConfig, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 

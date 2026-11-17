@@ -347,7 +347,7 @@ describe('board sync', () => {
       const result = await runCommand({ argv: ['board', 'sync'], github: [], config: false, files: { [CONFIG_FILE]: contentOf(boardConfig()), [second]: contentOf(boardConfig()) } })
       expect(result.code).toBe(1)
       expect(result.stdout).toBe('')
-      expect(result.stderr).toBe(`error: no active project, and 2 project configs exist\n  run: pecot board sync --project <NAME>\n  available: ${DEFAULT_HOST}_acme_board_acme, ${DEFAULT_HOST}_acme_other_acme\n`)
+      expect(result.stderr).toBe(`error: no active project, and 2 project configs exist\n  choose one with --project <NAME>\n  available: ${DEFAULT_HOST}_acme_board_acme, ${DEFAULT_HOST}_acme_other_acme\n`)
       expect(result.requests).toEqual([])
     })
 

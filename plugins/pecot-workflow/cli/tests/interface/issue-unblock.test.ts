@@ -11,7 +11,7 @@ import { bodyWritten, bothLinked, labelUpdated, prepareDependencyProject, remove
 import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { ResponseRule } from '../fake-github/server.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -281,7 +281,7 @@ describe('issue unblock', () => {
       prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
     ])
 
-    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5', '--project', SECOND_CONFIG)
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5', '--project', SECOND_PROJECT)
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('removed: blocked-by #5 from #7\n')

@@ -26,7 +26,7 @@ import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { BaseReading } from '../domain/state.js'
-import { findConfigFor } from '../infra/config-store.js'
+import { configLookupFailure, findConfigFor } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
 import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, isAncestor, primaryRemoteName, remoteBranchHead, resolveCommit, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -41,7 +41,8 @@ import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
-import { configLookupFailure, PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
+import { findConfigForRemotes } from '../infra/remote-config.js'
 import { kindOfFailure } from './failure.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
@@ -706,17 +707,21 @@ interface DirectModeInput {
   readonly project: string | undefined
 }
 
+// 作り先のリポと設定。--repo が無ければ、設定にあるリポを指す remote（origin を先に）を使う
+function directTarget(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): { readonly location: RepositoryReference, readonly config: ProjectConfig } {
+  if (input.repository !== undefined && input.repository !== '') {
+    const location = requireRepository(input.repository, out)
+    return { location, config: requireConfigFor(out, location, input.project, PR_CREATE_PATH).config }
+  }
+  const lookup = findConfigForRemotes(directory, input.project)
+  if (lookup.kind === 'found') return { location: lookup.repository, config: lookup.found.config }
+  if (lookup.kind === 'no-remote') return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`, 'invalid-input')
+  const { message, kind } = configLookupFailure(lookup.lookup, lookup.repository, PR_CREATE_PATH)
+  return stopWith(out, message, kind)
+}
+
 async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  let location: RepositoryReference
-  if (input.repository === undefined || input.repository === '') {
-    const remote = primaryRemote(directory)?.location
-    if (remote === undefined) return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`, 'invalid-input')
-    location = { owner: remote.owner, repository: remote.repository }
-  }
-  else {
-    location = requireRepository(input.repository, out)
-  }
-  const config = requireConfigFor(out, location, input.project, PR_CREATE_PATH).config
+  const { location, config } = directTarget(input, directory, out)
   const head = resolveHeadBranch(input.head, directory, out)
   const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 

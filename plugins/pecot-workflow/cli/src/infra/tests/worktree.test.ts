@@ -613,19 +613,14 @@ describe('createWorktree（実 git・実ファイル）', () => {
     rmSync(path.join(projects, '.active'))
     writeTree(configRoot, { '.pecot/config/projects/github.com_myowner_2.json': projectConfigJson(DEFAULT_REPOSITORIES) })
     const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', isDryRun: true }))
-    expect(error.message).toBe('repository myowner/myrepo is in 2 project configs\nchoose one with --project <NAME>\navailable: github.com_myowner_1, github.com_myowner_2')
+    expect(error.message).toBe('myowner/myrepo is in 2 project configs\nchoose one with --project <NAME>\navailable: github.com_myowner_1, github.com_myowner_2')
     expect(error.failure).toBe('no-active-project')
     expect(createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true, project: 'github.com_myowner_2' }).branch).toBe('wt1')
   })
 
-  it('remote のリポを含む設定が無ければ、どの設定にも無いと示し、追加手順を示す', () => {
+  it('remote のリポを含む設定が無ければ、どの設定にも無いと示し、ある設定の名前を並べる', () => {
     const { repository } = createProject({ repositories: [{ owner: 'foo', name: 'bar' }, { owner: 'foo', name: 'baz' }] })
-    const expected = [
-      'repository myowner/myrepo is not in any project config',
-      '',
-      'to add this repository to the pecot project:',
-      '  pecot project link myowner/myrepo',
-    ].join('\n')
+    const expected = 'myowner/myrepo is not in any project config\navailable: github.com_myowner_1'
     const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))
     expect(error.message).toBe(expected)
     expect(error.failure).toBe('repo-not-in-project')

@@ -1507,6 +1507,9 @@ entries:
       - kind: invalid-input
         code: 1
         when: '`-m` で渡した `--status` が有効な値ではありません。status が type の既定の値でないときも含みます。'
+      - kind: invalid-input
+        code: 1
+        when: '一括で渡したファイルの作り先のリポが、別々のプロジェクトの設定に分かれています。'
       - kind: content-invalid
         code: 1
         when: 'フロントマターか本文が誤っています。プレースホルダが先のファイルを指していないとき、リポジトリの形が誤っているとき、本文がテンプレートに合わないとき（3 ではなく 1 です）も含みます。'
@@ -1811,6 +1814,15 @@ entries:
       - id: PW-ISSUE-CREATE-75
         pattern: event
         statement: '`--project` を付けて打つと、作り先のリポを含む設定が 2 つ以上あっても、その名前の設定で作ります'
+      - id: PW-ISSUE-CREATE-76
+        pattern: unwanted
+        statement: 'もし Epic を `--repo` なしで作るときに、アクティブなプロジェクトが無くて設定の数が 2 つ以上なら、設定の名前と `--project` の案内を出し、終了コード 1 で終わります'
+      - id: PW-ISSUE-CREATE-77
+        pattern: event
+        statement: 'Epic を `--repo` なしで `--project` を付けて打つと、その名前の設定の `aggregation_repo` に作ります'
+      - id: PW-ISSUE-CREATE-78
+        pattern: unwanted
+        statement: 'もし一括で渡したファイルの作り先のリポが、別々のプロジェクトの設定に分かれるなら、ファイルと設定の名前を出し、1 件も作らずに終了コード 1 で終わります'
   PW-ISSUE-REOPEN:
     help:
       details:
@@ -2600,7 +2612,7 @@ entries:
         - "With --prepare and the default template, fills the trailing Closes # with the number of the work Issue, found from the git remote and the number that ends the current branch name. A leftover .pecot/state/.pecot-active is not read, so a clone without .pecot/state/ gets the same Closes."
         - "The Closes # of the copy is left empty when that Issue is an Epic."
         - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
-        - With -m, the repository is --repo, or the repository of the git remote when --repo is omitted.
+        - With -m, the repository is --repo. When --repo is omitted, it is the repository of the git remote that points to a repository in a project config, checking origin first and then the others in git remote order.
         - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
         - With a file, Closes is not appended when that Issue is an Epic.
         - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
@@ -2620,7 +2632,7 @@ entries:
           note: Create a PR from the command line.
       default_notes:
         head: The current branch. The related Issue is the number that ends the head branch name.
-        repo: With -m, the repository of the git remote. With a file, the repository in the front matter.
+        repo: With -m, the repository of the git remote that points to a repository in a project config, checking origin first. With a file, the repository in the front matter.
         project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: PR（プルリクエスト）を作ります。
     arguments:
@@ -2663,7 +2675,7 @@ entries:
       - '`--prepare` と `default` のテンプレートでは、末尾の `Closes #` に、作業中の Issue の番号を入れます。作業中の Issue は、git remote と今のブランチ名の末尾の番号から求めます。古い版の `.pecot/state/.pecot-active` が残っていても読まないので、`.pecot/state/` の無い clone でも同じ `Closes` が入ります。'
       - 'その Issue が Epic のときは、コピーの `Closes #` を空のままにします。'
       - 'ファイルでは、リポジトリ・base・題・head・draft をフロントマターで決めます。同じ名前のオプションは無視します。'
-      - '`-m` では、リポジトリは `--repo` です。`--repo` を省くと、git remote のリポジトリです。'
+      - '`-m` では、リポジトリは `--repo` です。`--repo` を省くと、プロジェクトの設定にあるリポジトリを指す remote のリポジトリです。remote は `origin` を先に見て、次に `git remote` の順で見ます。'
       - '本文が head ブランチ名の末尾の番号 N に触れていないと、本文に `Closes #N` を足します。テンプレートが `release` のときと、`--no-issue-ref` を付けたときは足しません。'
       - 'ファイルでは、その Issue が Epic のときは `Closes` を足しません。'
       - '題・本文・base を確かめ、次のどれかが誤っていると終了コード 3 で止まります。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
@@ -2799,7 +2811,7 @@ entries:
         note: 'コマンドラインから PR を作ります。'
     default_notes:
       head: '省くと、今のブランチです。関連する Issue は、head ブランチ名の末尾の番号の Issue です。'
-      repo: '省くと、`-m` では、git remote のリポジトリです。ファイルでは、フロントマターのリポジトリです。'
+      repo: '省くと、`-m` では、プロジェクトの設定にあるリポジトリを指す remote（`origin` を先に見ます）のリポジトリです。ファイルでは、フロントマターのリポジトリです。'
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-CREATE-01
@@ -3024,6 +3036,9 @@ entries:
       - id: PW-PR-CREATE-76
         pattern: event
         statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-PR-CREATE-77
+        pattern: event
+        statement: '`-m` で `--repo` を省いて打つと、origin のリポが設定に無くても、設定にあるリポを指す別の remote のリポに PR を作ります'
   PW-PR-MERGE:
     help:
       details:
@@ -6646,7 +6661,7 @@ entries:
         - Joins the lowest numbered wtN set that has no worktree of this repository yet, and starts the set max(N)+1 when every set already has one.
         - Skips every wtN that a worktree of this repository already uses, including a worktree made with --path, which is found by its record or by a checked out branch wtN.
         - Records wtN in the git administrative directory of the new worktree, which pecot session finish reads to return to wtN.
-        - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the origin remote; when there is no origin, the first remote in git remote order that points to a repository in a project config, or the first remote when none does, and <base> is --base or the develop_branch of the repository in its project config.
+        - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the remote that points to a repository in a project config, checking origin first and then the others in git remote order, and <base> is --base or the develop_branch of the repository in its project config.
         - When the branch wtN already exists, stops unless its upstream is <remote>/<base> or --allow-existing-branch is given.
         - A matching branch that no worktree uses is deleted and created again.
         - Runs git worktree prune on the main worktree before it creates the worktree, also with --dry-run.
@@ -6692,7 +6707,7 @@ entries:
       - 'このリポジトリの worktree がまだ無い `wtN` のセットのうち、番号が最小のものに加わります。どのセットにも既にあるときは、最大の N に 1 を足したセットを始めます。'
       - 'このリポジトリの worktree が既に使っている `wtN` は、すべて飛ばします。`--path` で作った worktree も含みます。その worktree は、記録か、チェックアウトしているブランチ `wtN` で見つけます。'
       - '新しい worktree の git の管理ディレクトリに、`wtN` を記録します。`pecot session finish` が、`wtN` へ戻るためにこの記録を読みます。'
-      - 'ブランチは `<remote>/<base>` から作り、そのブランチを upstream にします。`<base>` は、`--base` か、プロジェクトの設定にあるリポジトリの `develop_branch` です。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、プロジェクトの設定にあるリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
+      - 'ブランチは `<remote>/<base>` から作り、そのブランチを upstream にします。`<base>` は、`--base` か、プロジェクトの設定にあるリポジトリの `develop_branch` です。`<remote>` は、プロジェクトの設定にあるリポジトリを指す remote です。`origin` を先に見て、次に `git remote` の順で見ます。'
       - 'ブランチ `wtN` が既にあるときは、止まります。upstream が `<remote>/<base>` のときと、`--allow-existing-branch` を付けたときは別です。'
       - 'upstream が合っていて、どの worktree も使っていないブランチは、消して作り直します。'
       - 'worktree を作る前に、メインの worktree で `git worktree prune` を動かします。`--dry-run` のときも動かします。'
@@ -6791,8 +6806,8 @@ entries:
     prerequisites:
       - 'コマンドは、devcontainer の中で動かします。'
       - 'リポジトリは、`<プロジェクトのルート>/base/<リポジトリ>` の配置になければなりません。worktree の設定ファイルも要ります（`pecot worktree init` で作ります）。'
-      - 'アクティブなプロジェクトが要り、リポジトリがそこに登録されていなければなりません。'
-      - 'ローカルのリポジトリに `<remote>/<base>` が要ります。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、プロジェクトの設定にあるリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
+      - 'remote のリポを含むプロジェクトの設定が要ります。'
+      - 'ローカルのリポジトリに `<remote>/<base>` が要ります。`<remote>` は、プロジェクトの設定にあるリポジトリを指す remote です。`origin` を先に見て、次に `git remote` の順で見ます。'
     idempotent: false
     examples:
       - run: pecot worktree add -D .
@@ -6968,6 +6983,9 @@ entries:
       - id: PW-WORKTREE-ADD-56
         pattern: event
         statement: '`--project` を付けて打つと、remote のリポを含む設定が 2 つ以上あっても、その名前の設定で作ります'
+      - id: PW-WORKTREE-ADD-57
+        pattern: event
+        statement: 'origin のリポが設定に無く、別の remote のリポが設定にある場所で打つと、その remote の `<remote>/<base>` からブランチを作ります'
   PW-WORKTREE-INIT:
     help:
       details:

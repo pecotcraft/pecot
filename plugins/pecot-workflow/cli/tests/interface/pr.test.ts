@@ -10,7 +10,7 @@ import { installFakeExecutable, prependToPath } from '../../src/tests/_helpers/f
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
-import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/harness-selection.js'
+import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
@@ -821,6 +821,20 @@ describe('pr create', () => {
   it('-m で --repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async (context) => {
     await verifies(context, 'PW-PR-CREATE-47')
     const workspace = await pushedBranch({ github: SUBMIT_RULES, config: { hasSecondRepository: true } })
+    const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
+    const result = await workspace.run(argv)
+    expect(result.code).toBe(0)
+    expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
+  })
+
+  it('-m で --repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-77')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    const originUrl = workspace.git(['remote', 'get-url', 'origin']).trim()
+    workspace.git(['remote', 'rename', 'origin', 'upstream'])
+    workspace.git(['remote', 'add', 'origin', 'https://ghes.example.com/someone/demo.git'])
+    workspace.git(['config', `url.${originUrl}.insteadOf`, 'https://ghes.example.com/someone/demo.git'])
+    workspace.git(['fetch', 'origin'])
     const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
     const result = await workspace.run(argv)
     expect(result.code).toBe(0)

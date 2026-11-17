@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { PR_COMMANDS } from '../../src/commands/pr.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { prepareProject } from '../_helpers/board-issue-case.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
@@ -376,7 +376,7 @@ describe('pr merge', () => {
     makeAmbiguous(project)
     await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
 
-    const outcome = await merge(['acme/demo/11', '--dry-run', '--project', SECOND_CONFIG])
+    const outcome = await merge(['acme/demo/11', '--dry-run', '--project', SECOND_PROJECT])
 
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would merge PR #11 into main (stack #3, 1 of 2)\n' })
   })

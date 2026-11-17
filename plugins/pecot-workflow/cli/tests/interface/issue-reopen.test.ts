@@ -9,7 +9,7 @@ import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -357,7 +357,7 @@ describe('issue reopen', () => {
     makeAmbiguous(project)
     await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), reopened()])
 
-    const result = await reopen(['acme/demo/7', '--project', SECOND_CONFIG])
+    const result = await reopen(['acme/demo/7', '--project', SECOND_PROJECT])
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('reopened: Issue acme/demo/7\n')

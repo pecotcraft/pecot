@@ -12,7 +12,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, MERGE_DIFF_BODY, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -316,7 +316,7 @@ describe('issue comment', () => {
     makeAmbiguous(setUpProject())
     await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7', '--project', SECOND_CONFIG)
+    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7', '--project', SECOND_PROJECT)
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
   })
@@ -327,7 +327,7 @@ describe('issue comment', () => {
     makeAmbiguous(project)
     await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    const result = await comment(file, '--project', SECOND_CONFIG)
+    const result = await comment(file, '--project', SECOND_PROJECT)
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${COMMENT_URL}\n`)

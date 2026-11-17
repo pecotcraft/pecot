@@ -282,13 +282,14 @@ describe('findConfigFor', () => {
     expect(findConfigFor(TARGET)).toMatchObject({ kind: 'found', found: { name: 'b' } })
   })
 
-  it('project を渡せば、その名前の設定を使う。無い名前と、対象のリポを含まない設定を分ける', () => {
+  it('project を渡せば、その名前の設定を使う。無い名前（空の名前も含む）と、対象のリポを含まない設定を分ける', () => {
     const { projects } = useProject()
     writeProject(projects, 'a', ['acme/app'])
     writeProject(projects, 'b', ['acme/app'])
     writeProject(projects, 'c', ['acme/lib'])
     expect(findConfigFor(TARGET, 'b')).toMatchObject({ kind: 'found', found: { name: 'b' } })
     expect(findConfigFor(TARGET, 'missing')).toEqual({ kind: 'unknown-project', project: 'missing' })
+    expect(findConfigFor(TARGET, '')).toEqual({ kind: 'unknown-project', project: '' })
     expect(findConfigFor(TARGET, 'c')).toMatchObject({ kind: 'not-in-project', found: { name: 'c' } })
   })
 })

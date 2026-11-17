@@ -12,7 +12,7 @@ import type { RunningGithub } from '../_helpers/interface-case.js'
 import { addBlockedByRule, bodyWritten, bothLinked, levelRule, nodeId, nodeIdRule, prepareDependencyProject, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
 import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -433,7 +433,7 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--project', SECOND_CONFIG)
+    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--project', SECOND_PROJECT)
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('added: blocked-by #5 to #7\n')

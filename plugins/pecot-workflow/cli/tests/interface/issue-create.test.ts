@@ -560,6 +560,26 @@ describe('issue create', () => {
       expect(result.code).toBe(0)
     })
 
+    it('Epic を --repo なしで作るとき、.active が無くて設定の数が 2 つなら、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-76')
+      setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/demo' }) } })
+
+      const result = await create('-t', '大きな仕事', '--type', 'epic', '-m', EPIC_BODY)
+
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project, and 2 project configs exist\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    })
+
+    it('Epic を --repo なしで --project を付けて作ると、その設定の aggregation_repo に作る', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-77')
+      setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/other', otherRepositories: ['other'] }) } })
+      const github = await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
+
+      const result = await create('-t', '大きな仕事', '--type', 'epic', '--project', 'second', '-m', EPIC_BODY)
+
+      expect(result.code).toBe(0)
+      expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ path: '/repos/acme/other/issues', body: { title: '[Epic] 大きな仕事' } })
+    })
+
     it('Epic を --repo なしで作ると、aggregation_repo に作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-14')
       setUpIssueProject({ aggregation: 'acme/demo' })
@@ -1065,6 +1085,22 @@ describe('issue create', () => {
         '',
       ].join('\n'))
       expect(result.stdout).toBe(`${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
+    })
+
+    it('ファイルの作り先が別々のプロジェクトの設定に分かれると、1 件も作らずに終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-78')
+      const otherOnly = configText({}).replaceAll('"name": "demo"', '"name": "other"')
+      const project = setUpIssueProject({ files: { '.pecot/config/projects/second.json': otherOnly } })
+      writeTree(project.root, {
+        'a.md': taskFile('先頭'),
+        'b.md': rawFrontmatterFile(['type: task', 'repository: acme/other', 'title: 別のリポ']),
+      })
+      const github = await startGithub([])
+
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
+
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: the files belong to different project configs: a.md (ghes.example.com_acme_board_acme), b.md (second)\n  post them separately\n' })
+      expect(github.requests()).toEqual([])
     })
 
     it('既存の Issue の表記は、一括の先頭のファイルのリポジトリを基準にそろえる', async (context) => {

@@ -4,6 +4,8 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { hinted, inputHint, placeholder } from '../domain/command-hint.js'
+import type { HintedText } from '../domain/command-hint.js'
 import { ConfigError, findRepository, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { InvalidValueError } from '../domain/errors.js'
@@ -169,7 +171,7 @@ export type ConfigLookup
 候補が 2 つ以上なら、.active の指す設定が候補にあればそれを使う
 */
 export function findConfigFor(target: Readonly<RepositoryReference>, project?: string): ConfigLookup {
-  if (project !== undefined && project !== '') {
+  if (project !== undefined) {
     const named = loadNamedConfig(project)
     if (named === undefined) return { kind: 'unknown-project', project }
     return hasRepository(named.config, target) ? { kind: 'found', found: named } : { kind: 'not-in-project', found: named }
@@ -181,4 +183,43 @@ export function findConfigFor(target: Readonly<RepositoryReference>, project?: s
   const active = getActiveConfigPath()
   const chosen = candidates.find(found => found.path === active)
   return chosen === undefined ? { kind: 'ambiguous', candidates } : { kind: 'found', found: chosen }
+}
+
+function availableLine(names: readonly string[]): string {
+  return `available: ${names.length === 0 ? '(none)' : names.join(', ')}`
+}
+
+/**
+findConfigFor が設定を選べなかったときの文と失敗の名前。commandPath は `project` の入力の案内に使う
+*/
+export function configLookupFailure(lookup: Exclude<ConfigLookup, { readonly kind: 'found' }>, target: Readonly<RepositoryReference>, commandPath: readonly string[]): { readonly message: string | HintedText, readonly kind: 'no-active-project' | 'project-not-found' | 'repo-not-in-project' } {
+  const repository = `${target.owner}/${target.repository}`
+  switch (lookup.kind) {
+    case 'none': {
+      return { message: `${repository} is not in any project config\n${availableLine(listProjectConfigNames())}`, kind: 'repo-not-in-project' }
+    }
+    case 'ambiguous': {
+      return { message: ambiguousMessage(`${repository} is in ${String(lookup.candidates.length)} project configs`, lookup.candidates.map(found => found.name), commandPath), kind: 'no-active-project' }
+    }
+    case 'unknown-project': {
+      return { message: unknownProjectMessage(lookup.project), kind: 'project-not-found' }
+    }
+    case 'not-in-project': {
+      return { message: `${repository} is not in project config ${lookup.found.name}`, kind: 'repo-not-in-project' }
+    }
+  }
+}
+
+/**
+設定が 2 つ以上あって選べないときの文。`project` の入力の案内と候補の名前を添える
+*/
+export function ambiguousMessage(headline: string, names: readonly string[], commandPath: readonly string[]): HintedText {
+  return hinted`${headline}\nchoose one with ${inputHint(commandPath, 'project', placeholder('NAME'))}\n${availableLine(names)}`
+}
+
+/**
+`project` の名前の設定が無いときの文
+*/
+export function unknownProjectMessage(project: string): string {
+  return `project config not found: ${project}\n${availableLine(listProjectConfigNames())}`
 }

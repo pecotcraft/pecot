@@ -6,7 +6,7 @@ import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { addedToBoard, failing, fieldUpdated, issueNodeId, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -153,7 +153,7 @@ describe('board add', () => {
     makeAmbiguous(project)
     const github = await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
 
-    const result = await add(['board', 'add', 'acme/demo/7', '--project', SECOND_CONFIG])
+    const result = await add(['board', 'add', 'acme/demo/7', '--project', SECOND_PROJECT])
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('added: Issue acme/demo/7 to project\n')

@@ -13,17 +13,17 @@ import { BaseError } from '../domain/errors.js'
 import { existsSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { commandHint, formatHinted, hinted, inputHint, inputNameHint, placeholder } from '../domain/command-hint.js'
+import { commandHint, formatHinted, hinted, inputHint, inputNameHint } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
 import { getDevelopBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
-import { pythonStrip, ValidationFailure } from '../domain/python-format.js'
-import { createRepositoryReference } from '../domain/repository-resolver.js'
+import { pythonStrip } from '../domain/python-format.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { findConfigFor, listProjectConfigNames } from './config-store.js'
+import { configLookupFailure } from './config-store.js'
+import { findConfigForRemotes } from './remote-config.js'
 import type { Diagnostics } from './diagnostics.js'
 import { isDirectory } from './file-kind.js'
-import { GitCommandError, gitToplevel, listRemotes, preferredRemotes, remoteRepository, runGit } from './git.js'
+import { GitCommandError, gitToplevel, runGit } from './git.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
 import { toOsError } from './os-error.js'
 import { normalizePath, resolveRealPath, WORKTREE_CONFIG_FILENAME } from './paths.js'
@@ -375,26 +375,6 @@ export function filterCopyableFiles(files: readonly string[], spec: Readonly<Git
 
 const NO_REMOTE_MESSAGE = 'cannot get the repository information: check that a git remote is set to a GitHub repository URL'
 
-interface RemoteCandidate {
-  readonly remote: string
-  readonly repository: RepositoryReference | undefined
-}
-
-// remote 候補を優先順に返す。origin があれば origin だけ、無ければ git remote の順にすべて。URL を読めない remote の repository は undefined
-function readRemoteCandidates(cwd: string): readonly RemoteCandidate[] {
-  return preferredRemotes(listRemotes(cwd) ?? []).map((remote) => {
-    const location = remoteRepository(cwd, remote)
-    if (location === undefined) return { remote, repository: undefined }
-    try {
-      return { remote, repository: createRepositoryReference(location.owner, location.repository) }
-    }
-    catch (error: unknown) {
-      if (error instanceof ValidationFailure) return { remote, repository: undefined }
-      throw error
-    }
-  })
-}
-
 // 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）。(ワークツリー設定ファイルのパス, コピー除外 spec) を返す
 function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnostics): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
   const configPath = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
@@ -411,33 +391,13 @@ function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnosti
   }
 }
 
-// リポジトリ登録チェック。remote は origin、無ければ登録済みのリポを指す最初の remote の順に見て、そのリポを含む設定を選ぶ。
-// どの remote のリポも設定に無ければ、最初の remote のリポで止まる
+// リポジトリ登録チェック。設定にあるリポを指す remote（origin を先に）を選び、そのリポを含む設定を使う
 function requireRegisteredRepository(cwd: string, project: string | undefined): { readonly repository: RepositoryReference, readonly config: ProjectConfig, readonly remote: string } {
-  const candidates = readRemoteCandidates(cwd)
-  if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
-  for (const candidate of candidates) {
-    if (candidate.repository === undefined) continue
-    const lookup = findConfigFor(candidate.repository, project)
-    if (lookup.kind === 'found') return { repository: candidate.repository, config: lookup.found.config, remote: candidate.remote }
-    // 名前の誤りと、候補から選べないときは、ほかの remote を見ずに止まる
-    if (lookup.kind === 'unknown-project') {
-      throw new WorktreeRuntimeError(`project config not found: ${lookup.project}\navailable: ${listProjectConfigNames().join(', ')}`, { failure: 'project-not-found' })
-    }
-    if (lookup.kind === 'ambiguous') {
-      const { owner, repository } = candidate.repository
-      throw new WorktreeRuntimeError(hinted`repository ${owner}/${repository} is in ${String(lookup.candidates.length)} project configs
-choose one with ${inputHint(['worktree', 'add'], 'project', placeholder('NAME'))}
-available: ${lookup.candidates.map(found => found.name).join(', ')}`, { failure: 'no-active-project' })
-    }
-  }
-  const repository = candidates[0]?.repository
-  if (repository === undefined) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
-  const where = project === undefined ? 'any project config' : `the project config ${project}`
-  throw new WorktreeRuntimeError(hinted`repository ${repository.owner}/${repository.repository} is not in ${where}
-
-to add this repository to the pecot project:
-  ${commandHint(['project', 'link'], { repo: `${repository.owner}/${repository.repository}` })}`, { failure: 'repo-not-in-project' })
+  const lookup = findConfigForRemotes(cwd, project)
+  if (lookup.kind === 'found') return { repository: lookup.repository, config: lookup.found.config, remote: lookup.remote }
+  if (lookup.kind === 'no-remote') throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
+  const { message, kind } = configLookupFailure(lookup.lookup, lookup.repository, WORKTREE_ADD_PATH)
+  throw new WorktreeRuntimeError(message, { failure: kind })
 }
 
 // ベースブランチ決定（プロジェクト設定の develop_branch を使用）

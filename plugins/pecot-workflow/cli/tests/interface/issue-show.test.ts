@@ -11,7 +11,7 @@ import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -290,7 +290,7 @@ describe('issue show', () => {
     makeAmbiguous(setUpProject())
     await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
 
-    const result = await read('acme/demo/7', '--project', SECOND_CONFIG)
+    const result = await read('acme/demo/7', '--project', SECOND_PROJECT)
 
     expect(result).toEqual({ code: 0, stdout: `${HEAD}${BODY}`, stderr: '' })
   })

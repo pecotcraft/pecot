@@ -5,7 +5,7 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { boardItems, failing, fieldUpdated, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -123,7 +123,7 @@ describe('board move', () => {
     makeAmbiguous(project)
     await startGithub([linkedRepositories(), boardItems(), fieldUpdated('o5')])
 
-    const result = await update(['board', 'move', 'acme/demo/7', 'in_review', '--project', SECOND_CONFIG])
+    const result = await update(['board', 'move', 'acme/demo/7', 'in_review', '--project', SECOND_PROJECT])
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'set: Issue acme/demo/7 status in_review\n' })
   })

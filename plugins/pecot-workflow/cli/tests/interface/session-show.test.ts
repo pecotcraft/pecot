@@ -18,7 +18,7 @@ import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession, separateRepository } from '../_helpers/session-case.js'
-import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -231,7 +231,7 @@ describe('session show', () => {
     makeAmbiguous(project)
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
-    const result = await runInProcess(['session', 'show', '-D', repository, '--project', SECOND_CONFIG], SESSION_COMMANDS)
+    const result = await runInProcess(['session', 'show', '-D', repository, '--project', SECOND_PROJECT], SESSION_COMMANDS)
 
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('## Active Issue')

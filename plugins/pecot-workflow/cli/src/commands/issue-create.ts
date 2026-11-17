@@ -674,8 +674,8 @@ async function ensureDependenciesSupported(output: Output, client: GitHubClient,
 function configForCreate(output: Output, repository: string | undefined, project: string | undefined): ProjectConfig {
   const given = repository === undefined ? '' : pythonStrip(repository)
   if (given === '') return requireBoardConfig(output, project, CREATE_PATH)
-  const target = splitOwnerRepository(given) ?? stopWith(output, `invalid repository format: ${pythonStringRepr(given)} (expected: owner/repo)`, 'invalid-input')
-  return requireConfigFor(output, target, project, CREATE_PATH).config
+  const [owner, name] = validateRepositoryShape(output, given)
+  return requireConfigFor(output, { owner, repository: name }, project, CREATE_PATH).config
 }
 
 // 一括作成の設定。ファイルごとに作成先のリポで選び、ファイルの間で分かれたら 1 件も作らずに止める
