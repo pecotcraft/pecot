@@ -3,7 +3,7 @@
 // Python の re と同じ判定にする（\d は Unicode の 10 進数字、\s は str.isspace、$ は末尾の改行 1 つの前でも合う）。
 
 import { PecotError, BaseError } from './errors.js'
-import { pythonStrip, splitCodePoints } from './python-format.js'
+import { PYTHON_LINE_BREAK, pythonStrip, splitCodePoints } from './python-format.js'
 
 export class ChangelogError extends PecotError {}
 
@@ -31,13 +31,9 @@ const SEMVER_PATTERN = /^\p{Nd}+\.\p{Nd}+\.\p{Nd}+\n?$/u
 // バージョン行の見出し記号と空白より後ろを見る。行の形は `## [X.Y.Z] - YYYY-MM-DD`。
 const VERSION_PATTERN = /^\[(\p{Nd}+\.\p{Nd}+\.\p{Nd}+)\]/u
 
-// str.splitlines() の区切り。U+001C〜U+001E も含む。量指定子は無く、unsafe-regex は誤検知。
-// eslint-disable-next-line no-control-regex, security/detect-unsafe-regex -- 区切りの制御文字と誤検知
-const LINE_BREAK = /[\n\r\v\f\u{1C}-\u{1E}\u{85}\u{2028}\u{2029}]/u
-
 function splitLines(content: string): readonly string[] {
   // 改行コードの \r\n は区切り 1 つと数えるため、先に \n へ揃える
-  const lines = content.replaceAll('\r\n', '\n').split(LINE_BREAK)
+  const lines = content.split(PYTHON_LINE_BREAK)
   if (lines.at(-1) === '') lines.pop()
   return lines
 }

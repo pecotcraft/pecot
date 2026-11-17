@@ -30,7 +30,7 @@ pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る�
 
 **特徴:**
 
-- タイトル自動生成
+- タイトルは `message` の 1 行目から自動で作る
 - テンプレート検証スキップ
 - ブランチは作られない（Step 2 の `session_start` が作る）
 - 固定設定: type=task, priority=medium, size=s。status は型の既定（`session_start` が active にする）

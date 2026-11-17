@@ -4,7 +4,7 @@
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
-import { parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
+import { PYTHON_LINE_BREAK, parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
 import { hasSummaryImage, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
 import type { BaseReading } from './state.js'
@@ -20,10 +20,6 @@ const PYTHON_SPACE = String.raw`[\t\n\v\f\r\u{1C}-\u{20}\u{85}\u{A0}\u{1680}\u{2
 // GitHub が認識する close・fix・resolve と、それぞれの -s / -es / -d 付きの形。`owner/repo#N` の形も受ける
 // eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列から組み立てる
 const CLOSING_KEYWORDS_PATTERN = new RegExp(String.raw`(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)${PYTHON_SPACE}+(?:[\w-]+/[\w.-]+)?#(\p{Nd}+)`, 'giu')
-
-// stash の件数を数える行の区切り。str.splitlines と同じ。
-// eslint-disable-next-line no-control-regex, security/detect-unsafe-regex -- 区切りの制御文字と誤検知
-const LINE_BREAK = /\r\n|[\n\r\v\f\u{1C}-\u{1E}\u{85}\u{2028}\u{2029}]/u
 
 const PR_CREATE_PATH = ['pr', 'create']
 
@@ -435,7 +431,7 @@ export function collectPreflightWarnings(facts: Readonly<PreflightFacts>): reado
   if (!facts.isPushed) warnings.push({ label: 'Push Status', message: facts.pushMessage, fixHint: facts.pushFixHint ?? hinted`git push` })
   if (hasStatusChanges(facts.gitStatus)) warnings.push({ label: 'Git Status', message: 'modified or untracked files', fixHint: hinted`commit` })
   if (hasStashEntries(facts.stashList)) {
-    const count = facts.stashList.split(LINE_BREAK).filter(line => pythonStrip(line) !== '').length
+    const count = facts.stashList.split(PYTHON_LINE_BREAK).filter(line => pythonStrip(line) !== '').length
     warnings.push({ label: 'Stash List', message: `${String(count)} stash entries`, fixHint: hinted`check them` })
   }
   return warnings

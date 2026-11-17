@@ -21,6 +21,10 @@ function isPythonWhitespace(character: string): boolean {
   return (character.trim() === '' && code !== 0xFE_FF) || (code >= 0x1C && code <= 0x1F) || code === 0x85
 }
 
+// str.splitlines() の行の区切り。U+001C〜U+001E も含む。量指定子は無く、unsafe-regex は誤検知。
+// eslint-disable-next-line no-control-regex, security/detect-unsafe-regex -- 区切りの制御文字と誤検知
+export const PYTHON_LINE_BREAK = /\r\n|[\n\r\v\f\u{1C}-\u{1E}\u{85}\u{2028}\u{2029}]/u
+
 /**
 universal newlines と同じ。`\r\n` と `\r` を `\n` に揃える（Python の text=True・read_text()）
 */
