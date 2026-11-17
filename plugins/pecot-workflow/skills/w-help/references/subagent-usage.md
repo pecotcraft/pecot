@@ -33,7 +33,7 @@ w-pr の Step 5 の修正と、w-active のプラン承認後の実装の引き�
 | 箇所 | エージェント | 当たる条件 |
 |---|---|---|
 | w-active の Step 8 | w-plan-reviewer | 独立したレビュー。計画を、書いた会話の経緯に引きずられずに見る。視点は 1 体の中で分け、問題の種類でエージェントを分けない |
-| w-review の Step 2 | なし（main がレビューする） | レビューの材料（PR の本文・diff・Issue）は Step 1 で main が読み終えており、分けて任せる作業の文脈が無い。人のいない実行で裏で起こすと、結果を待たずに実行が終わる |
+| w-review の Step 2 | なし（main がレビューする） | レビューの材料（PR の本文・diff・Issue）は Step 1 で main が読み終えており、分けて任せる作業の文脈が無い |
 | CUJ の実行（実装の後、w-pr の Step 5） | なし（main が流す） | CUJ は計画と実装の文脈で判断が要り、受け渡すと手順だけが渡って決まりが落ちる。そのため w-e2e-planner を廃止した。流し方は [CUJ の流し方](cuj-run.md) |
 | プラン承認後の実装、w-pr の Step 5 | w-implementer | 実装と修正を委譲する条件に当たるときだけ起こす。当たらなければ main が実装する |
 | pecot-visual の v-drawio・v-slidev の図 | v-diagram-creator | XML とスタイル参照を大量に読み書きし、返すのはファイルのパスだけ |

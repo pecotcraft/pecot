@@ -18,7 +18,7 @@ template: review-stopped
 
 - 結果 — `limit`（ターンか時間の上限で止まった）
 - 止まった場所 — インラインコメントを投稿した後（指摘の一覧はまだ無い）
-- 次にすること — 大きな PR は、端末で `/pecot-w:w-review` を回す。自動で回すなら、変数 `PECOT_REVIEW_MAX_TURNS`・`PECOT_REVIEW_TIMEOUT_MINUTES` で上限を上げる。その後、PR に `@pecotbot review` とコメントして起動し直す
+- 次にすること — 変数 `PECOT_REVIEW_MAX_TURNS`・`PECOT_REVIEW_TIMEOUT_MINUTES` で上限を上げる。その後、PR に `@pecotbot review` とコメントして起動し直す
 -->
 
 ## Review stopped — <止まった理由を1行で>

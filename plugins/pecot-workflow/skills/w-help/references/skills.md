@@ -13,7 +13,7 @@
 | `w-quick` | 小タスクを即Issue化 → ブランチ作成 → プランモード移行 |
 | `w-ready` | Epicから1タスクを切り出し → 前提に応じて Ready か Blocked に配置 |
 | `w-release` | 開発ブランチ → main へのリリースフロー |
-| `w-review` | PR のレビューと、指摘の投稿（直さない） |
+| `w-review` | 自動レビューのワークフローが起こす。PR のレビューと、指摘の投稿（直さない） |
 | `w-help` | pecot CLI・スキルの使い方ヘルプ |
 | `w-worktree-add` | ワークツリー作成（単発／並行セット、symlink setup 含む） |
 | `w-worktree-remove` | ワークツリー削除（単発／並行セット） |

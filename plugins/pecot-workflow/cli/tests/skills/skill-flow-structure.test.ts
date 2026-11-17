@@ -195,10 +195,14 @@ describe('w-review の手順', () => {
     expect(body).toContain('外部のレビュアーの指摘には印を付けない')
   })
 
-  it('Step 3 は、投稿で終わり、対応を w-pr の Step 5 に任せる', () => {
+  it('Step 3 は、インラインコメントを action の MCP ツールで投稿し、gh を使わない', () => {
     const body = sectionBody(text, numberIndex(headings, 3))
-    expect(body).toContain('投稿したら終わる。採否は聞かず、コードは直さない。')
-    expect(body).toContain('`/pecot-w:w-pr` の Step 5')
+    expect(body).toContain('`create_inline_comment`')
+    expect(text).not.toMatch(/\bgh (api|auth)\b/u)
+  })
+
+  it('Step 3 は、投稿で終わる', () => {
+    expect(sectionBody(text, numberIndex(headings, 3))).toContain('投稿したら終わる。採否は聞かず、コードは直さない。')
   })
 })
 
@@ -241,10 +245,11 @@ describe('w-pr の手順', () => {
     expect(body).toContain('main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流し直す。サブエージェントには渡さない。')
   })
 
-  it('Step 5 は、F-NN の表を w-review の Step 3 のクエリで作り、リンク先が実在する', () => {
+  it('Step 5 は、F-NN とスレッドの対応表のクエリを自分で持ち、w-review を案内しない', () => {
     const body = sectionBody(text, numberIndex(headings, 5))
-    expect(body).toContain('](../w-review/SKILL.md#f-nn-とスレッド-id-の対応表)')
-    expect(readSkill('w-review')).toContain('#### F-NN とスレッド ID の対応表')
+    expect(body).toContain('#### F-NN とスレッド ID の対応表')
+    expect(body).toContain('reviewThreads(first: 100)')
+    expect(body).not.toContain('/pecot-w:w-review')
   })
 
   it('Step 5 は、session_show で上の段の PR を確かめ、あれば pr_restack が要る旨を報告に入れる', () => {

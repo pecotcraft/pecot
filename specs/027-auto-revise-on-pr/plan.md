@@ -8,7 +8,7 @@
 
 pecot-workflow に、PR の作成で w-review のレビューを始める仕組みを足す。pecot の最初のクラウドのエージェントだ。
 利用者のリポに置くワークフローの雛形が、`pull_request` を契機に claude-code-action を動かす。
-action は pecot-workflow のプラグインを入れ、`/pecot-w:w-review <PR>` を起動する。人が起こすときと同じ文を読み、分岐は無い。
+action は pecot-workflow のプラグインを入れ、`/pecot-w:w-review <PR>` を起動する。w-review を起こすのはこのワークフローだけで、分岐は無い。
 w-review は、main が視点の参照に従って diff を見て、指摘をインラインコメントと `review-findings` で投稿して終わる。
 採否・修正・resolve は行わない。続きは、PR を出した開発者の w-pr が、CI を待った後の Step 5 で進める。
 GitHub のトークンは、既定では Claude の App のものだ。書き込みを持つので、エージェントに書き換えのツールを渡さないことで、リポの内容を守る。権限を絞りたい利用者は、自前の App を置ける。
@@ -24,7 +24,7 @@ GitHub のトークンは、既定では Claude の App のものだ。書き込
 | Primary Dependencies | 既存の CLI の依存。雛形が使う action は、claude-code-action v1、`actions/checkout`、`actions/setup-node`、`actions/create-github-app-token` |
 | Storage | 利用者のリポのファイル（`.github/workflows/pecot-review.yml`）と、GitHub の PR のコメント・スレッド |
 | Testing | vitest（CLI と雛形）、スキルの文書のテスト（`cli/tests/skills/`）、定義書の lint、検証用のリポでの CUJ |
-| Target Platform | GitHub Actions の ubuntu の runner（自動レビュー）と、利用者の端末（導入と、w-pr での対応） |
+| Target Platform | GitHub Actions の ubuntu の runner（自動レビュー）と、利用者の PC（導入と、w-pr での対応） |
 | Project Type | 配布するプラグイン（CLI・スキル・テンプレート） |
 | Performance Goals | 対象外の PR は、job の `if` で落ち、runner を使わない。1 回の自動レビューは、上限の既定値（30 分・60 ターン）に収まる。上限は、リポの変数で変えられる |
 
@@ -79,7 +79,7 @@ Phase 1 の設計の後も、同じ判定になる。
 | インラインコメントの投稿 | 公式の PR レビューの例は、action に同梱の MCP ツール `mcp__github_inline_comment__create_inline_comment` を使う | 雛形の許可リストに同じツールを入れる。`gh api` は許可しない。スキルは、投稿の手段を書かない | 適合 |
 | 同時実行 | 公式の PR 向けの例は `cancel-in-progress: true` | `false` | 例と違う。仕様の範囲の中の選択 |
 
-インラインコメントの投稿は、ユーザーの判断（2026-11-16）で、スキルに手段を書かない形にした。スキルは、何をどの形で投稿するかだけを決める。端末では今の `gh api` の手順で、人のいない実行では action のツールで投稿する（research の R4）。
+w-review は自動レビューのワークフローの中だけで動くので、インラインコメントは action のツールだけで投稿する（research の R4、2026-11-17）。
 
 `cancel-in-progress` は、どちらの値も GitHub の仕様が認める。途中で取り消すと、インラインコメントだけが残るので `false` にする（research の R6）。
 
@@ -156,7 +156,7 @@ specs/023-label-triggered-autofix/       # FR-033 の整合の修正
 | 9 | spec 023 の成果物を、共通の部分を使う形に直す | FR-033 |
 
 段階の番号は、tasks.md のフェーズの番号と同じだ。
-段階 1・2・4・5 で、PR の作成から指摘の投稿までが通る。雛形は手で写して置く。段階 6 は、その上に端末での続きを足す。段階 3 と 7 は、導入のコマンドと手順を足す。
+段階 1・2・4・5 で、PR の作成から指摘の投稿までが通る。雛形は手で写して置く。段階 6 は、その上に w-pr での続きを足す。段階 3 と 7 は、導入のコマンドと手順を足す。
 段階 1 の結果で設計が変わるときは、research と contracts を直してから、次の段階へ進む。
 
 ほかの Epic との関係:

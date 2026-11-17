@@ -127,9 +127,34 @@ CI が通ったら、PR に付いたレビューの指摘に対応する。自�
 - 後ろに `review-resolution` の無い `review-findings`
 
 pecot-workflow の MCP ツール `pr_show` で、PR のコメントを読む（`reviews: true`）。
-F-NN とスレッド ID の表は、w-review の [Step 3 のクエリ](../w-review/SKILL.md#f-nn-とスレッド-id-の対応表) で作る。`gh` に渡すホストは、同じ Step の「ホストと head sha」で求める。
+指摘が無ければ、その旨を伝えて終える。
 
-指摘が無ければ、自動レビューの無いリポでは `/pecot-w:w-review` で指摘を付けられることを伝えて終える。
+#### F-NN とスレッド ID の対応表
+
+`gh` には対象 PR のホストを `--hostname` で必ず渡す。cwd の origin から求めるので、対象リポのワークツリーで打つ。空なら止める。未認証なら `gh auth login -h <host>` を案内して止める。
+
+```bash
+GH_HOST=$(git remote get-url origin | sed -E 's#^[a-z0-9+.-]+://##; s#^[^@/]*@##; s#[:/].*$##')
+[ -n "$GH_HOST" ] || { echo "origin からホストを導出できない" >&2; exit 1; }
+gh auth status -h "$GH_HOST"
+```
+
+次のクエリで、先頭コメントの `**F-NN**` からスレッドの `id`・`url` と、先頭コメントの `databaseId` を引く。以降のコマンドには、得たホスト名を直接書く。
+
+```bash
+gh api --hostname <対象ホスト> graphql \
+  -f query='
+    query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          reviewThreads(first: 100) {
+            nodes { id isResolved isOutdated comments(first: 1) { nodes { databaseId body url } } }
+          }
+        }
+      }
+    }' \
+  -f owner=<owner> -f repo=<repo> -F number=<PR番号>
+```
 
 #### 対応可否をユーザーに一括確認
 
@@ -149,7 +174,12 @@ F-NN とスレッド ID の表は、w-review の [Step 3 のクエリ](../w-revi
 
 1. `issue_comment` を使って、PR 宛てのテンプレのファイルを作る（`prepare: true`・`template: "review-resolution"`）。Decision 節と Declined 節を埋める。
 
-2. 対応不要の F-NN のスレッドに、理由を返信する（w-review の Step 3 の `in_reply_to`）。
+2. 対応不要の F-NN のスレッドに、理由を返信する。返信先は、対応表の先頭コメントの `databaseId` にする。
+
+   ```bash
+   gh api --hostname <対象ホスト> repos/<owner>/<repo>/pulls/<PR番号>/comments \
+     -F in_reply_to=<databaseId> -f 'body=返信本文'
+   ```
 
 「対応なし」ならここで「スレッドを一括 resolve」へ進む。採用分があれば、main が直すことを基本にする。
 

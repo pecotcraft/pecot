@@ -21,7 +21,6 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | Ready のタスクに着手したい | `/pecot-w:w-active` |
 | PR を作りたい | `/pecot-w:w-pr` |
 | PR のレビュー指摘に対応したい | `/pecot-w:w-pr` |
-| PR をレビューして指摘を付けたい | `/pecot-w:w-review` |
 | PR をマージしたい | `/pecot-w:w-merge` |
 | develop → main にリリースしたい | `/pecot-w:w-release` |
 | Epic をサブタスクに分解したい | `/pecot-w:w-breakdown` |

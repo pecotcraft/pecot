@@ -228,12 +228,14 @@ describe('review のワークフローの雛形', () => {
     expect(claudeArguments).not.toContain('#')
   })
 
-  it('Edit・Write は拒否され、Bash は gh api だけを許す', () => {
+  it('Bash・Edit・Write は許可に無く、拒否にある', () => {
     const allowed = toolList('--allowedTools')
     const disallowed = toolList('--disallowedTools')
-    for (const tool of ['Bash', 'Edit', 'Write']) expect(allowed).not.toContain(tool)
-    expect(allowed.filter(tool => tool.startsWith('Bash'))).toEqual(['Bash(gh api:*)'])
-    expect(disallowed).toEqual(['Edit', 'Write', 'NotebookEdit', 'AskUserQuestion', 'Agent', 'WebFetch', 'WebSearch'])
+    for (const tool of ['Bash', 'Edit', 'Write']) {
+      expect(allowed.filter(entry => entry.startsWith(tool))).toEqual([])
+      expect(disallowed).toContain(tool)
+    }
+    expect(disallowed).toEqual(['Bash', 'Edit', 'Write', 'NotebookEdit', 'AskUserQuestion', 'Agent', 'WebFetch', 'WebSearch'])
   })
 
   it('許可は契約のツールだけで、マージ・クローズ・リリースのツールを含まない', () => {
@@ -246,7 +248,7 @@ describe('review のワークフローの雛形', () => {
       `${pecot}pr_show`,
       `${pecot}issue_show`,
       `${pecot}issue_comment`,
-      'Bash(gh api:*)',
+      'mcp__github_inline_comment__create_inline_comment',
     ])
     for (const tool of allowed) expect(tool).not.toMatch(/merge|close|release|session_finish|branch_delete/)
   })

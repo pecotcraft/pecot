@@ -136,7 +136,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ## Phase 5: PR を作ると、人が介さずにレビューの指摘が PR に載る (US1、P1)
 
-**Goal**: `/pecot-w:w-review <PR>`（旧 w-revise）が、PR の情報・main のレビュー・指摘の投稿だけを行って終わる。人が起こしても、ワークフローが起こしても同じ文を読む。指摘への対応は w-pr の Step 5 が行う（2026-11-17 のユーザーの判断で、`--unattended` の分岐をやめた）
+**Goal**: `/pecot-w:w-review <PR>`（旧 w-revise）が、PR の情報・main のレビュー・指摘の投稿だけを行って終わる。w-review を起こすのは自動レビューのワークフローだけだ。指摘への対応は w-pr の Step 5 が行う（2026-11-17 のユーザーの判断で、`--unattended` の分岐をやめた）
 
 **Independent Test**: 検証用の PR に対して、人のいない実行の許可リストで `/pecot-w:w-review <PR>` を起こす。インラインコメントと `review-findings` が付き、質問が出ず、ブランチにコミットが増えていない。続けて同じ PR で `/pecot-w:w-pr` を起こし、Step 5 で採否を聞かれる
 
@@ -149,6 +149,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 ### Implementation for User Story 1・3（手順）
 
 - [x] T034 [US1] `p-w/skills/w-revise/` を `p-w/skills/w-review/` に改め、Step 1〜3 だけにする。Step 2 は main が `references/review-viewpoints.md` に従ってレビューする。Step 1 の載せ直しは外す
+  - インラインコメントは action の `create_inline_comment` で投稿し、雛形の許可リストもそれに合わせる
 - [x] T035 [US3] `p-w/skills/w-pr/SKILL.md` に Step 5「レビューの指摘に対応」を足す。中身は旧 w-revise の Step 4〜6 で、対応する指摘は PR の未解決の F-NN のスレッドと、`review-resolution` の無い `review-findings` から読む
 - [x] T036 [US1] エージェント w-reviewer を w-plan-reviewer に改め、計画のレビューだけに使う。視点の印は `[tech]`・`[cuj]` の 2 つにする
 - [x] T037 [P] [US1] `p-w/skills/w-help/`・`p-w/README.md` の表と参照の、w-revise・w-reviewer の行を直す。`review-findings` の Disposition を表にし、F-NN をリンクにする
@@ -268,7 +269,7 @@ Phase 2〜3 と Phase 4〜6 は、Phase 1 の後なら、互いを待たずに�
 | T011 | T002〜T006・T008 の結果 |
 | T029・T030 | T007 の結果 |
 | T035 | T005 の結果。返信の手段が無ければ、2 巡目は指摘の一覧に前のスレッドを並べる |
-| T038 | 直した w-review・w-pr を端末で読み込む手順（spec 026 の Phase 3） |
+| T038 | 直した w-review・w-pr を検証用で読み込む手順（spec 026 の Phase 3） |
 | T052 | ユーザーによる Claude の App のインストールと、secret の登録 |
 
 ### Parallel Opportunities

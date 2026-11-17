@@ -150,9 +150,9 @@ Claude の App のトークンで確かめたこと:
 
 ## R4. 指摘の投稿の手段
 
-- Decision（2026-11-17 に改めた）: w-review（旧 w-revise）の投稿の手段は、Step 3 の `gh api` の手順の 1 つにする。スキルに、実行の場所で分ける分岐を置かない。雛形の許可リストに `Bash(gh api:*)` を入れる
-- 前の決め（2026-11-16）: スキルは手段を書かず、人のいない実行では `mcp__github_inline_comment__create_inline_comment` で投稿する。手段が場所ごとに違うと、スキルに分岐が要るので、やめた。`gh api` の許可が FR-011 に与える影響は、`contracts/workflow-template.md` の「許可するツール」に書いた
-- Rationale: ユーザーの判断だ（2026-11-16）。スキルが手段を書かなければ、端末と自動レビューが同じ文を読める（FR-005）。実行の場所ごとに、そこにある手段で投稿する。雛形は公式の例と同じ形になり、広い `Bash(gh api *)` の許可が要らない
+- Decision（2026-11-17 に改めた）: w-review（旧 w-revise）は、自動レビューのワークフローの中だけで動く。インラインコメントは、action に同梱の MCP ツール `mcp__github_inline_comment__create_inline_comment` で投稿する。`gh api` と `Bash` は許可しない
+- Rationale: ユーザーの判断だ。開発者が PC から w-review を打つ場面は無い。手段は 1 つになり、雛形は公式の例と同じ形になる
+- このツールは、行を指すコメントだけを投稿できる（`anthropics/claude-code-action` の `src/mcp/github-inline-comment-server.ts`、cc98b3a）。ファイルコメントとスレッドへの返信はできないので、ファイル単位の指摘は General 節に回し、前の巡と同じ趣旨の指摘は Disposition の表でそのスレッドへのリンクにする
 
 スキルが決めるのは、次のことだ（FR-007）。
 
@@ -160,7 +160,7 @@ Claude の App のトークンで確かめたこと:
 - 投稿先の振り分け。行を指せる指摘はインライン、それ以外は指摘の一覧の General 節
 - 指摘の一覧（`review-findings`）の形。これは pecot の MCP ツール `issue_comment` で投稿する
 
-下の表は、前の決めのときに比べたものだ。
+下の表は、端末でも動かす前提だったときに比べたものだ。
 
 | 比べる点 | 端末 | 人のいない実行 |
 |---|---|---|
@@ -195,7 +195,7 @@ Claude の App のトークンで確かめたこと:
 
 | 項目 | 初期値 | 決め方 |
 |---|---|---|
-| ツール | `Read`・`Glob`・`Grep`、w-review が使う pecot の MCP ツール、`Bash(gh api:*)` | w-review の Step 1〜3 とレビューの視点の調べ方に出るものから |
+| ツール | `Read`・`Glob`・`Grep`、w-review が使う pecot の MCP ツール、`mcp__github_inline_comment__create_inline_comment` | w-review の Step 1〜3 とレビューの視点の調べ方に出るものから |
 | 許可しないもの | `Edit`・`Write`・`AskUserQuestion`・`WebFetch`・`WebSearch`、`git push`・`git commit` | コードを直さず、人に聞かず、外へ送らないため |
 | ターン | 60 | このリポの試行で直す |
 | 時間 | 30 分 | このリポの試行で直す |
@@ -256,7 +256,7 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 
 ## R7. 人のいない実行の w-review（旧 w-revise）
 
-- Decision（2026-11-17 に改めた）: 分岐を足さない。w-revise を w-review に改め、Step 1〜3（PR の情報・main のレビュー・投稿）だけにする。人が起こしても、ワークフローが起こしても同じ所で終わる。採否・修正・resolve・報告は、w-pr の Step 5 に移す
+- Decision（2026-11-17 に改めた）: 分岐を足さない。w-revise を w-review に改め、Step 1〜3（PR の情報・main のレビュー・投稿）だけにする。w-review を起こすのは、自動レビューのワークフローだけだ。採否・修正・resolve・報告は、w-pr の Step 5 に移す
 - Rationale: ユーザーの判断だ。PR を出した開発者は、CI とレビューを待つ間も手を止めない。レビューのコメントが付いたら考える工程は、PR を出して CI を待つ w-pr の側にある
 - 前の決め: 引数 `--unattended` で分け、人のいない実行は Step 3 で終わる。続きは端末の w-revise が引き継ぐ。下の表と箇条は、前の決めのときのものだ
 
