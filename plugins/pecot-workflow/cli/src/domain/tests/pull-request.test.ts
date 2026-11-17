@@ -43,8 +43,21 @@ describe('extractClosingIssueNumbers', () => {
     ['Refs #10, see #11', []],
     ['Closes # 12', []],
     ['', []],
+    ['```console\nCloses #1\n```\nCloses #2', [2]],
+    ['~~~\nCloses #1\n~~~\nCloses #2', [2]],
+    ['> ```\n> Closes #1\n> ```\n> Closes #2', [2]],
+    ['`Closes #1` と Closes #2', [2]],
+    ['``Closes #1 ` x`` Closes #2', [2]],
+    ['<!-- Closes #1 -->\nCloses #2', [2]],
+    ['Closes #2\n```\nCloses #1', [2]],
+    ['text\n\n    Closes #1\n\nCloses #2', [2]],
+    ['    Closes #1\n\tCloses #3\nCloses #2', [2]],
+    ['text\n    Closes #1', [1]],
+    ['> ```\n> x\n\nCloses #2', [2]],
+    ['> > ```\n> > Closes #1\n> > ```\n> Closes #2', [2]],
+    ['Closes other/repo#1, Closes Owner/Repo#2, Closes owner/repo#3', [2, 3]],
   ])('%j から閉じる Issue 番号を取り出す', (body, expected) => {
-    expect(extractClosingIssueNumbers(body)).toEqual(expected)
+    expect(extractClosingIssueNumbers(body, { owner: 'owner', repository: 'repo' })).toEqual(expected)
   })
 })
 

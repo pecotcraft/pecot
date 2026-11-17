@@ -332,6 +332,59 @@ function maskedLines(body: string, fill = ' '): MaskedFences {
   return { lines: masked.split('\n'), hasUnclosedFence }
 }
 
+const BLOCKQUOTE_MARKER = /^ {0,3}>[\t ]?/u
+
+const INDENTED_CODE_LINE = /^(?: {4}|\t)/u
+
+interface QuotedLine {
+  readonly depth: number
+  readonly text: string
+}
+
+// 引用の行頭の `>` を、入れ子の分まで外す
+function unquote(line: string): QuotedLine {
+  let text = line
+  let depth = 0
+  while (BLOCKQUOTE_MARKER.test(text)) {
+    text = text.replace(BLOCKQUOTE_MARKER, '')
+    depth += 1
+  }
+  return { depth, text }
+}
+
+// 引用の深さが同じ行の並びごとにフェンスを読む。引用の中で開いたフェンスは、引用が終われば閉じる
+function maskBySameDepth(lines: readonly QuotedLine[]): string[] {
+  const groups: QuotedLine[][] = []
+  for (const line of lines) {
+    const last = groups.at(-1)
+    if (last?.at(0)?.depth === line.depth) last.push(line)
+    else groups.push([line])
+  }
+  return groups.flatMap(group => maskedLines(group.map(line => line.text).join('\n')).lines)
+}
+
+// インデントのコードブロックの行か。段落の続きの行はコードにならないので、前が空行かコードの行のときだけ
+function indentedCodeFlags(lines: readonly string[]): boolean[] {
+  let isInCode = false
+  let isAfterBlank = true
+  return lines.map((line) => {
+    const isBlank = line.trim() === ''
+    const isCode = !isBlank && INDENTED_CODE_LINE.test(line) && (isAfterBlank || isInCode)
+    if (!isBlank) isInCode = isCode
+    isAfterBlank = isBlank
+    return isCode
+  })
+}
+
+/**
+フェンス（引用の中を含む）・インデントのコードブロック・インラインコード・HTML コメントの中身を消した本文を返す。行の数は変えない
+*/
+export function maskCodeAndComments(body: string): string {
+  const lines = body.split('\n').map(line => unquote(line))
+  const codeFlags = indentedCodeFlags(lines.map(line => line.text))
+  return maskBySameDepth(lines).map((line, index) => (codeFlags.at(index) === true ? '' : line)).join('\n')
+}
+
 // 記法の判定
 
 interface TokenMatch {

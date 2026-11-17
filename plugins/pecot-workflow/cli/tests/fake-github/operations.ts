@@ -39,6 +39,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['repository.issue.subIssues{nodes,pageInfo}|after,number,owner,repo', 'GetSubIssuesPage'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews}|number,owner,repo', 'GetPullRequestSlim'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews,reviewThreads}|number,owner,repo', 'GetPullRequestWithReviews'],
+  ['repository.pullRequest{number,state,body,headRefName,baseRefName,isDraft,closingIssuesReferences,baseRepository}|number,owner,repo', 'GetPullRequestForFinish'],
   ['repository.pullRequest{number,state,isDraft,baseRefName,headRefOid,isMergeQueueEnabled,isInMergeQueue}|number,owner,repo', 'GetPullRequestForMerge'],
   ['repository.pullRequest{number,state,isDraft,baseRefName,headRefOid}|number,owner,repo', 'GetPullRequestForMergeWithoutQueue'],
   ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],

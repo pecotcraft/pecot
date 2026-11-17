@@ -62,10 +62,10 @@ setup:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:
   - match:
-      operation: "GetPullRequestSlim"
+      operation: "GetPullRequestForFinish"
     respond:
       status: 200
-      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "MERGED", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
+      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "MERGED", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "repository": {"name": "demo", "owner": {"login": "acme"}}}]}, "baseRepository": {"defaultBranchRef": {"name": "main"}}, "reviews": {"nodes": []}}}}}
   - match:
       operation: "GetIssueKind"
     respond:

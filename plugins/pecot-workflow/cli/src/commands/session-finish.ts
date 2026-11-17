@@ -14,12 +14,13 @@ import type { IssuePullRequest } from '../domain/readiness.js'
 import { createIssueReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { RESTACK_PATH } from '../domain/restack.js'
+import { isSameRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE } from '../domain/state.js'
 import { gitCurrentBranch, GitCommandError, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
-import type { PullRequestSlim } from '../infra/github/pulls.js'
+import type { PullRequestForFinish } from '../infra/github/pulls.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
@@ -42,7 +43,7 @@ import { isPositive, parseReference, PR_REFERENCE_DESCRIPTION, primaryRemote, re
 
 const SKIPPED_ISSUE_DATA = z.strictObject({
   number: z.int().describe('Issue number'),
-  reason: z.enum(['epic', 'already-closed', 'not-found', 'failed']).describe('Why it was not closed: epic (protected), already-closed, not-found, or failed (see warnings)'),
+  reason: z.enum(['epic', 'already-closed', 'not-found', 'failed']).describe('Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)'),
 })
 
 const DELETED_BRANCH_DATA = z.strictObject({
@@ -62,7 +63,7 @@ const RESTACK_DATA = z.strictObject({
 })
 
 const SESSION_FINISH_OUTPUT = z.strictObject({
-  closedIssues: z.array(z.int()).describe('Issue numbers closed (to be closed on dry_run)'),
+  closedIssues: z.array(z.int()).describe('Issue numbers this command closed (to be closed on dry_run); usually empty for a PR to the default branch, since GitHub closes them on merge'),
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
   deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted (to be deleted on dry_run)'),
   readinessChanges: z.array(READINESS_CHANGE_DATA).describe('Issues waiting for the closed Issues whose readiness changed by the merge'),
@@ -91,10 +92,10 @@ interface FinishContext {
   readonly record: FinishRecord
 }
 
-async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, location: Readonly<RepositoryReference & { readonly number: number }>, out: Readonly<Output>): Promise<{ readonly client: GitHubClient, readonly pr: PullRequestSlim }> {
+async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, location: Readonly<RepositoryReference & { readonly number: number }>, out: Readonly<Output>): Promise<{ readonly client: GitHubClient, readonly pr: PullRequestForFinish }> {
   try {
     const client = createGitHubClient(out, config.host)
-    return { client, pr: await client.getPullRequestSlim(location.owner, location.repository, location.number) }
+    return { client, pr: await client.getPullRequestForFinish(location.owner, location.repository, location.number) }
   }
   catch (error: unknown) {
     if (error instanceof GitHubNotFoundError) return stopWith(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`, 'github-not-found')
@@ -103,40 +104,65 @@ async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, locat
   }
 }
 
-function collectClosingIssueNumbers(pr: Readonly<{ readonly closing_issues: readonly { readonly number: number }[], readonly body: string, readonly head_ref: string }>): Set<number> {
-  const numbers = new Set<number>(pr.closing_issues.map(issue => issue.number))
-  for (const number of extractClosingIssueNumbers(pr.body)) numbers.add(number)
+// GitHub はキーワードを既定ブランチ宛ての PR でだけ解釈するので、そのときは closing issues だけを使う
+function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
+  const numbers = new Set<number>(pr.closing_issues.filter(issue => isSameRepository(issue, location)).map(issue => issue.number))
+  if (pr.base_ref !== pr.default_branch) {
+    for (const number of extractClosingIssueNumbers(pr.body, location)) numbers.add(number)
+  }
   const branchNumber = extractIssueNumberFromBranch(pr.head_ref)
   if (isPositive(branchNumber)) numbers.add(branchNumber)
   return numbers
 }
 
-// Epic 保護。Issue Type が Epic か、sub-issue を持つ Issue
-async function findEpicProtectedNumbers(client: GitHubClient, location: RepositoryReference, issueNumbers: ReadonlySet<number>, out: Readonly<Output>): Promise<Set<number>> {
-  const protectedNumbers = new Set<number>()
+interface ClosingIssues {
+  readonly open: Set<number>
+  readonly epic: Set<number>
+  readonly closed: Set<number>
+  readonly unread: Set<number>
+}
+
+// Epic（Issue Type が Epic か、sub-issue を持つ）と閉じた Issue を分ける。読めない Issue は、閉じた理由を上書きしないよう閉じない
+async function classifyClosingIssues(client: GitHubClient, location: RepositoryReference, issueNumbers: ReadonlySet<number>, out: Readonly<Output>): Promise<ClosingIssues> {
+  const classified: ClosingIssues = { open: new Set(), epic: new Set(), closed: new Set(), unread: new Set() }
   const ordered = [...issueNumbers].toSorted((a, b) => a - b)
   for (const number of ordered) {
     try {
-      if (isEpicIssue(await client.getIssueKind(location.owner, location.repository, number))) protectedNumbers.add(number)
+      const kind = await client.getIssueKind(location.owner, location.repository, number)
+      if (isEpicIssue(kind)) classified.epic.add(number)
+      else if (kind.state === 'CLOSED') classified.closed.add(number)
+      else classified.open.add(number)
     }
     catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) continue
+      if (error instanceof GitHubNotFoundError) {
+        // 状態は確かめていないが、close の 404 で not-found として記録するため open に入れる
+        classified.open.add(number)
+        continue
+      }
       if (!(error instanceof GitHubAPIError)) throw error
-      out.warning(`kind check of Issue #${String(number)} failed: ${error.message}; not protected`)
+      out.warning(`reading Issue #${String(number)} failed: ${error.message}; not closed`)
+      classified.unread.add(number)
     }
   }
-  return protectedNumbers
+  return classified
 }
 
-async function closeRelatedIssues(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, closing: ReadonlySet<number>, epicProtected: ReadonlySet<number>): Promise<void> {
+function sorted(numbers: ReadonlySet<number>): number[] {
+  return [...numbers].toSorted((a, b) => a - b)
+}
+
+async function closeRelatedIssues(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, issues: Readonly<ClosingIssues>): Promise<void> {
   const { out, isDryRun, record } = context
-  const protectedOrdered = [...epicProtected].toSorted((a, b) => a - b)
-  const closingOrdered = [...closing].toSorted((a, b) => a - b)
-  for (const number of protectedOrdered) {
+  for (const number of sorted(issues.epic)) {
     settle(out, { verb: 'skip', target: `closing Issue #${String(number)} (Epic)` })
     record.skippedIssues.push({ number, reason: 'epic' })
   }
-  for (const number of closingOrdered) {
+  for (const number of sorted(issues.unread)) record.skippedIssues.push({ number, reason: 'failed' })
+  for (const number of sorted(issues.closed)) {
+    settle(out, { verb: 'unchanged', target: `Issue #${String(number)} (already closed)` })
+    record.skippedIssues.push({ number, reason: 'already-closed' })
+  }
+  for (const number of sorted(issues.open)) {
     const operation: Operation = { verb: 'close', target: `Issue #${String(number)}` }
     out.planned(operation)
     if (isDryRun) {
@@ -173,7 +199,7 @@ interface WaitingSource {
   readonly pullRequest: IssuePullRequest
 }
 
-function mergedPullRequestOf(location: RepositoryReference, number: number, pr: Readonly<PullRequestSlim>): IssuePullRequest {
+function mergedPullRequestOf(location: RepositoryReference, number: number, pr: Readonly<PullRequestForFinish>): IssuePullRequest {
   return { repository: location, number, state: 'merged', headRefName: pr.head_ref, baseRefName: pr.base_ref, isDraft: pr.is_draft, isCrossRepository: false }
 }
 
@@ -379,12 +405,9 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with ${commandHint(['pr', 'merge'])} first`, 'pr-state')
   context.record.hasStarted = true
 
-  const closing = collectClosingIssueNumbers(pr)
-  const epicProtected = await findEpicProtectedNumbers(client, location, closing, out)
-  for (const number of epicProtected) closing.delete(number)
-
-  out.count('Issues to close', closing.size)
-  await closeRelatedIssues(context, client, location, closing, epicProtected)
+  const issues = await classifyClosingIssues(client, location, collectClosingIssueNumbers(pr, location), out)
+  out.count('Issues to close', issues.open.size)
+  await closeRelatedIssues(context, client, location, issues)
   await updateWaitingIssues(context, { client, config, location, pullRequest: mergedPullRequestOf(location, reference.number, pr) })
   if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
   if (input.skip_local_cleanup) return

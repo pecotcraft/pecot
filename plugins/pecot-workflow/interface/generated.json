@@ -4983,7 +4983,7 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
               },
-              "description": "Issue numbers closed (to be closed on dry_run)"
+              "description": "Issue numbers this command closed (to be closed on dry_run); usually empty for a PR to the default branch, since GitHub closes them on merge"
             },
             "skippedIssues": {
               "type": "array",
@@ -5004,7 +5004,7 @@
                       "not-found",
                       "failed"
                     ],
-                    "description": "Why it was not closed: epic (protected), already-closed, not-found, or failed (see warnings)"
+                    "description": "Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)"
                   }
                 },
                 "required": [

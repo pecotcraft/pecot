@@ -660,6 +660,36 @@ export const QUERY_GET_PULL_REQUEST_SLIM = `query ($owner: String!, $repo: Strin
   }
 }`
 
+// session finish が読む PR。closing issues のリポと、既定ブランチの名前を足す
+export const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      number
+      state
+      body
+      headRefName
+      baseRefName
+      isDraft
+      closingIssuesReferences(first: 10) {
+        nodes {
+          number
+          repository {
+            name
+            owner {
+              login
+            }
+          }
+        }
+      }
+      baseRepository {
+        defaultBranchRef {
+          name
+        }
+      }
+    }
+  }
+}`
+
 // pr merge が読む PR の状態。GetPullRequestSlim を変えずに、マージの判断に要る項目だけを読む
 export const QUERY_GET_PULL_REQUEST_FOR_MERGE = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
