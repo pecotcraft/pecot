@@ -1,13 +1,21 @@
 ---
 name: w-implementer
 description: コードの実装とテストの作成を担うエージェント。計画の Files にある作業単位を実装させるときに使う。
-autoCompactWindow: 300000
-disallowedTools:
-  - Agent
-  - EnterPlanMode
-  - ExitPlanMode
-  - AskUserQuestion
-  - Monitor
+tools:
+  - read
+  - edit
+  - search
+  - execute
+  - web
+  - todo
+  - pecot-workflow/*
+  - pecot-workflow-playwright/*
+  - context7/*
+  - pecot-visual/*
+  - pecot-visual-playwright/*
+  - pecot-tools/*
+  - github/*
+include-custom-instructions: true
 ---
 
 コードの変更と単体テストを担う。Issue・PR・ボードの操作とコミットは main が行う。

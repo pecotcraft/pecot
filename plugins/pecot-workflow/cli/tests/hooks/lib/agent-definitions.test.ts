@@ -22,17 +22,22 @@ interface AgentRow {
   readonly agent: string
   readonly tools: readonly string[]
   readonly window: number
+  // Copilot CLI 向けの定義（com.github.copilot/agents/）の tools。Claude Code で禁じていないツールを Copilot の名前で書く。
+  readonly copilotTools: readonly string[]
 }
 
 const ASK = 'AskUserQuestion'
 const PLAN = ['EnterPlanMode', 'ExitPlanMode']
+// 書いた名前のうち、入れていないプラグインのサーバは、Copilot が知らない名前として無視する。
+const MCP = ['pecot-workflow/*', 'pecot-workflow-playwright/*', 'context7/*', 'pecot-visual/*', 'pecot-visual-playwright/*', 'pecot-tools/*', 'github/*']
+const COPILOT_KEYS = ['name', 'description', 'tools', 'include-custom-instructions']
 // label の昇順に並べる。
 const AGENT_ROWS: readonly AgentRow[] = [
-  { label: 'pecot-visual/v-diagram-creator', plugin: 'pecot-visual', agent: 'v-diagram-creator', tools: ['Agent', 'WebSearch', 'WebFetch', ...PLAN, ASK], window: 200_000 },
-  { label: 'pecot-workflow/w-e2e-planner', plugin: 'pecot-workflow', agent: 'w-e2e-planner', tools: [ASK, 'Monitor'], window: 400_000 },
-  { label: 'pecot-workflow/w-implementer', plugin: 'pecot-workflow', agent: 'w-implementer', tools: ['Agent', ...PLAN, ASK, 'Monitor'], window: 300_000 },
-  { label: 'pecot-workflow/w-reviewer', plugin: 'pecot-workflow', agent: 'w-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000 },
-  { label: 'pecot-workflow/w-tech-advisor', plugin: 'pecot-workflow', agent: 'w-tech-advisor', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000 },
+  { label: 'pecot-visual/v-diagram-creator', plugin: 'pecot-visual', agent: 'v-diagram-creator', tools: ['Agent', 'WebSearch', 'WebFetch', ...PLAN, ASK], window: 200_000, copilotTools: ['read', 'edit', 'search', 'execute', 'todo', ...MCP] },
+  { label: 'pecot-workflow/w-e2e-planner', plugin: 'pecot-workflow', agent: 'w-e2e-planner', tools: [ASK, 'Monitor'], window: 400_000, copilotTools: ['*'] },
+  { label: 'pecot-workflow/w-implementer', plugin: 'pecot-workflow', agent: 'w-implementer', tools: ['Agent', ...PLAN, ASK, 'Monitor'], window: 300_000, copilotTools: ['read', 'edit', 'search', 'execute', 'web', 'todo', ...MCP] },
+  { label: 'pecot-workflow/w-reviewer', plugin: 'pecot-workflow', agent: 'w-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
+  { label: 'pecot-workflow/w-tech-advisor', plugin: 'pecot-workflow', agent: 'w-tech-advisor', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
 ]
 
 const WORKFLOW_SKILLS = 'w-active w-backlog w-breakdown w-help w-issueize w-merge w-onboarding w-pr w-quick w-ready w-release w-repo-add w-revise w-worktree-add w-worktree-remove'.split(' ')
@@ -81,6 +86,7 @@ function keyed(kind: string, pattern: string, name: (found: string) => string): 
 }
 
 const agentFiles = () => keyed('agents', '*.md', found => path.basename(found, '.md'))
+const copilotAgentFiles = () => keyed('com.github.copilot/agents', '*.md', found => path.basename(found, '.md'))
 const skillFiles = () => keyed('skills', '*/SKILL.md', found => path.dirname(found))
 
 function fileOf(files: Map<string, string>, key: string): string {
@@ -175,6 +181,21 @@ describe('型と内容', () => {
     const value = frontmatter(fileOf(agentFiles(), row.label))['autoCompactWindow']
     expect(Number.isSafeInteger(value), `${row.agent}: autoCompactWindow が int ではない`).toBe(true)
     expect(value).toBe(row.window)
+  })
+
+  it('Copilot 向けのエージェントの集合が、Claude Code 向けと同じになっている', () => {
+    expect(keysOf(copilotAgentFiles())).toEqual(AGENT_ROWS.map(row => row.label))
+  })
+
+  it.for(AGENT_ROWS)('$label の Copilot 向けの frontmatter は、Copilot が読むキーだけを持つ', (row) => {
+    const fm = frontmatter(fileOf(copilotAgentFiles(), row.label))
+    expect(Object.keys(fm)).toEqual(COPILOT_KEYS)
+    expect(fm['include-custom-instructions']).toBe(true)
+  })
+
+  it.for(AGENT_ROWS)('$label の Copilot 向けの tools は、期待どおりに完全一致する', (row) => {
+    const fm = frontmatter(fileOf(copilotAgentFiles(), row.label))
+    expect(fm['tools']).toEqual(row.copilotTools)
   })
 
   it('スキルの集合が期待どおりになっている', () => {

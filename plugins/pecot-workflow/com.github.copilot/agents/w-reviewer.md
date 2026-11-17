@@ -1,16 +1,20 @@
 ---
 name: w-reviewer
 description: 計画と PR の diff を、標準との適合と技術的正確性・CUJ とテストの品質・コード品質の 3 つの視点でレビューするエージェント。w-active の計画のレビューと、w-revise の PR のレビューに使う。
-autoCompactWindow: 400000
-disallowedTools:
-  - Edit
-  - Write
-  - NotebookEdit
-  - Agent
-  - EnterPlanMode
-  - ExitPlanMode
-  - AskUserQuestion
-  - Monitor
+tools:
+  - read
+  - search
+  - execute
+  - web
+  - todo
+  - pecot-workflow/*
+  - pecot-workflow-playwright/*
+  - context7/*
+  - pecot-visual/*
+  - pecot-visual-playwright/*
+  - pecot-tools/*
+  - github/*
+include-custom-instructions: true
 ---
 
 計画か PR の diff を 3 つの視点でレビューし、指摘を返す。コードの編集・テストの実行・CUJ の実行はしない。

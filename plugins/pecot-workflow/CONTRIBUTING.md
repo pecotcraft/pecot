@@ -209,7 +209,6 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
   - Skills の各行のパスが作業ツリーを指すこと
   - Hooks の sources は `pecot-w` だけであること
 - エージェントに渡った本文は、応答では確かめにくい。本文を引用させても、モデルは断ることがある。`--log-level all --log-dir <ディレクトリ>` を付けて起こし、ログの `instructions` の中に、直した文を探す
-- `com.github.copilot/agents/` の frontmatter の `autoCompactWindow`・`disallowedTools` は読まれない。起動のときに `unknown fields ignored` の警告が出る。直すのは #551
 
 #### 直しを反映させる
 

@@ -290,15 +290,15 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 |---|---|---|
 | スキルの `argument-hint` | スラッシュコマンドの入力欄に引数ヒントが出る | 文字列なら読み込まれるがモデルには渡らない。引用符なしの `[x]` は YAML のリストになり、そのスキルが読み込まれない（`argument-hint must be a string`）。値は必ず二重引用符で囲む |
 | スキルの `when_to_use` | スキル一覧で description の後ろに付く（合計 1,536 文字まで） | 警告なしで読み込まれるが、モデルには渡らない |
-| エージェントの `disallowedTools` | 指定したツールがエージェントから消える | 警告なしで読み込まれるが、制限として働かない（`Bash` を除外したエージェントで Bash が実行された） |
+| エージェントの `disallowedTools` | 指定したツールがエージェントから消える | 制限として働かない（`Bash` を除外したエージェントで Bash が実行された）。1.0.112 では `unknown fields ignored` の警告が出る（2026-11-17・Issue #551） |
 
 - Claude はサブエージェントから `AskUserQuestion` / `EnterPlanMode` / `ExitPlanMode` をもともと外すため、これらの
   除外は効果が無い。w-e2e-planner の `disallowedTools`（`AskUserQuestion` だけ）は Claude では実質の除外が無い
 - `Agent` を除外すると、`--agent` 起動の init の tools からは `Task` が消える。`Bash` を除外すると `Monitor` も消える
 - Windows では PowerShell ツールが自動で有効になるため、シェルを使わせないエージェントでは `Bash` と合わせて
   `PowerShell` も除外する
-- Copilot でツールを制限するには、許可型の `tools` が要る（Copilot の custom agents は `disallowedTools` を持たない）。
-  `tools` は許可したツール以外をすべて外すので、MCP ツール名の形がクライアントで違うことと、許可の書き忘れで作業が止まることに
-  注意する。ここでは Issue #1231 の指定どおり除外型だけを使い、Copilot では制限が働かない
+- Copilot の custom agents は `disallowedTools` を持たず、許可型の `tools` でツールを絞る。
+  Copilot 向けの写し（`com.github.copilot/agents/`）の `tools` には、Claude で禁じていないツールを Copilot の名前で書く（Issue #551）。
+  Claude 向けの `agents/` は除外型のままにする。MCP ツール名の形がクライアントで違い、許可の書き忘れで作業が止まるため
 - `claude plugin validate --strict`（pre-commit の `plugin-validate`）は未知のキー、`argument-hint` の型、
-  `disallowedTools` のツール名を確かめない。これらは `lib/tests/test_agent_definitions.py` が固定している
+  `disallowedTools` のツール名を確かめない。これらは `cli/tests/hooks/lib/agent-definitions.test.ts` が固定している
