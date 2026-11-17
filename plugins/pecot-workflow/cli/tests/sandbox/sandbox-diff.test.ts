@@ -238,6 +238,12 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     scene = new Scene(workspace)
   })
 
+  it('git の作業ツリーの外で打つと、error の行を出して終了コード 2 で止まる', () => {
+    const outside = makeSandbox(FAKE_GH)
+    const result = runScript(outside, script, [], { GIT_CEILING_DIRECTORIES: path.dirname(outside.directory) })
+    expect([result.status, result.stdout, result.stderr]).toStrictEqual([2, '', 'error: git の作業ツリーの中で打ってください（作業用の場所を .pecot/tmp に作るため）\n'])
+  })
+
   it('設定が同じなら、ずれは 0 件', () => {
     const result = scene.run()
     expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])

@@ -46,6 +46,7 @@
 | 検証用の `pecot-board-sync.yml` の中身が、このリポの main と違う | 1 件 |
 | `gh` が認証の失敗を返す | `error:` の行、終了コード 2 |
 | 比べるキーが `null` か無い（両方とも `null` の場合を含む） | `error:` の行、終了コード 2 |
+| git の作業ツリーの外で打つ | `error:` の行、終了コード 2 |
 
 ## `sandbox-sweep.sh`（FR-010、FR-011）
 

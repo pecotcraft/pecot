@@ -11,17 +11,21 @@ WORKFLOWS=".github/workflows"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 items_file="$script_dir/sandbox-diff-items.json"
-tmp_base="$(git rev-parse --show-toplevel)/.pecot/tmp"
-mkdir -p "$tmp_base"
-work=$(mktemp -d "$tmp_base/sandbox-diff.XXXXXX")
-trap 'rm -rf "$work"' EXIT
-
-items=$(jq -c '.' "$items_file")
 
 fail() {
     echo "error: $*" >&2
     exit 2
 }
+
+if ! top=$(git rev-parse --show-toplevel 2>/dev/null); then
+    fail "git の作業ツリーの中で打ってください（作業用の場所を .pecot/tmp に作るため）"
+fi
+tmp_base="$top/.pecot/tmp"
+mkdir -p "$tmp_base"
+work=$(mktemp -d "$tmp_base/sandbox-diff.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+
+items=$(jq -c '.' "$items_file")
 
 # gh api の出力を RESP に入れる。失敗したら、読めなかった先と gh の最後の行を出して 2 で終わる。
 api() {

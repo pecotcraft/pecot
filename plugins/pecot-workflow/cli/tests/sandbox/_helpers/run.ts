@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはテストの一時ディレクトリ配下のみ */
 // sandbox のスクリプトを、偽の gh を PATH に置いた一時ディレクトリで動かす補助。
 import { spawnSync } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { installFakeExecutable } from '../../../src/tests/_helpers/fake-executables.js'
@@ -23,7 +23,7 @@ export interface Sandbox {
 }
 
 /**
-bash の本体を持つ偽の gh を置く。installFakeExecutable は sh で呼び出しを記録するので、本体は bash の標準入力へ渡す
+bash の本体を持つ偽の gh を置く。installFakeExecutable は sh で呼び出しを記録するので、本体は別のファイルにして bash で呼ぶ
 */
 export function makeSandbox(ghScript: string): Sandbox {
   const directory = makeTemporaryDirectory()
@@ -31,7 +31,9 @@ export function makeSandbox(ghScript: string): Sandbox {
   const fake = path.join(directory, 'fake')
   mkdirSync(bin)
   mkdirSync(fake)
-  installFakeExecutable(bin, 'gh', `exec bash -s -- "$@" <<'FAKE_GH_BODY'\n${ghScript}\nFAKE_GH_BODY\n`)
+  const body = path.join(directory, 'gh-body.sh')
+  writeFileSync(body, `${ghScript}\n`)
+  installFakeExecutable(bin, 'gh', `exec bash '${body.replaceAll('\'', String.raw`'\''`)}' "$@"\n`)
   return { directory, bin, fake }
 }
 
@@ -46,7 +48,7 @@ export function runScript(sandbox: Readonly<Sandbox>, script: string, argumentsL
     FAKE_GH_DIR: sandbox.fake,
     ...extraEnvironment,
   }
-  const result = spawnSync('bash', [script, ...argumentsList], { cwd: sandbox.directory, env: environment, encoding: 'utf8' })
+  const result = spawnSync(script, [...argumentsList], { cwd: sandbox.directory, env: environment, encoding: 'utf8' })
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
 }
 
