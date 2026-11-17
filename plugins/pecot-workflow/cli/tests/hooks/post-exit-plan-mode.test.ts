@@ -157,6 +157,15 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).not.toContain('Implementation handoff')
   })
 
+  it.for(['active', 'quick'])('--mode=%s では、承認の後に止まらず実装へ進むよう案内する', (mode) => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    activate(hookCase, context)
+    const text = additionalContext(runHook(hookCase, EXIT_PLAN, mode))
+    expect(text).toContain('go on to implement the plan in the same turn')
+    expect(text).toContain('do not stop to ask')
+  })
+
   it('.pecot-quick-mode があっても、--mode=active では引き継ぎを案内し、ファイルを読まず消さない', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
