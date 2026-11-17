@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: --repo: unexpected remote URL format: not-a-url\n",
+  "stderr": "error: could not read the repository from the URL of the Git remote origin\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

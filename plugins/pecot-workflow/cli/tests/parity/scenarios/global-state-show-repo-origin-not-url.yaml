@@ -1,4 +1,4 @@
-# origin の URL を読めない。error: --repo: の文を出して exit 2 になる。
+# origin の URL を読めない。読めない理由の error の行を出して exit 2 になる。
 id: global-state-show-repo-origin-not-url
 command:
   path: []
