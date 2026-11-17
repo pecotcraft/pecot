@@ -18,7 +18,7 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { fetchCodeScanningStatus, fetchSecretScanningStatus, SecurityAlertError } from '../domain/security-alerts.js'
 import type { ScanAlertStatus } from '../domain/security-alerts.js'
 import { extractReleaseNotesFromFile, readChangelogIfExists, resolveChangelogPath } from '../infra/changelog-file.js'
-import { gitRunnerFor, gitToplevel, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
+import { gitRunnerFor, gitToplevel, primaryRemoteName, primaryRemoteRepository, remoteTagExists } from '../infra/git.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
@@ -26,7 +26,7 @@ import { createScanAlertSource } from '../infra/github/security-alerts-source.js
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
-import { createGitHubClient, makeClient } from './github-client.js'
+import { createAuthenticatedGitHubClient, createGitHubClient, makeClient } from './github-client.js'
 import { issuePath } from './issue-shared.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
@@ -116,7 +116,7 @@ function warnAlertsUnavailable(out: Readonly<Output>, reason: string): void {
 async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string, skip: (target: string) => void): Promise<DependabotAlertStatus | undefined> {
   let status
   try {
-    const client = createGitHubClient(out, config.host)
+    const client = await createAuthenticatedGitHubClient(out, config.host)
     status = await fetchDependabotAlertStatus(createDependabotSource(client), config.host, owner, repository)
   }
   catch (error: unknown) {
@@ -199,8 +199,8 @@ async function checkAlerts(out: Readonly<Output>, config: ProjectConfig, owner: 
       dependabot = await checkDependabotAlerts(out, config, owner, repository, skip)
       return true
     },
-    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository), skip),
-    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository), skip),
+    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(await createAuthenticatedGitHubClient(out, config.host)), config.host, owner, repository), skip),
+    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(await createAuthenticatedGitHubClient(out, config.host)), config.host, owner, repository), skip),
   ]
   let isPassed = true
   for (const check of checks) {
@@ -262,7 +262,7 @@ const releaseCheckCommand = defineCommand({
 
     const remote = primaryRemoteName(cwd) ?? 'origin'
     try {
-      const client = createGitHubClient(out, config.host)
+      const client = await createAuthenticatedGitHubClient(out, config.host)
       const result = await runPreflight({
         changelogPath: context.changelogPath,
         changelogContent: readChangelogIfExists(context.changelogPath),
@@ -271,7 +271,7 @@ const releaseCheckCommand = defineCommand({
         version: input.version,
         tagPrefix: context.tagPrefix,
         remote,
-      }, gitRunnerFor(cwd), async (base, head) => await client.countCommitsAhead(owner, repository, base, head))
+      }, gitRunnerFor(cwd), async (name, tagName) => await remoteTagExists(cwd, name, tagName, out.signal), async (base, head) => await client.countCommitsAhead(owner, repository, base, head))
       out.count(`commits to release (${remote}/${result.developBranch} -> ${remote}/${result.releaseBranch})`, result.diffCount)
       out.result({ version: result.version, tag: result.tagName, releaseNotes: result.releaseNotes, commitCount: result.diffCount })
       out.data(`version: ${result.version}\ntag: ${result.tagName}\n\n${result.releaseNotes}`)
@@ -343,7 +343,7 @@ const releaseCreateCommand = defineCommand({
       return 0
     }
 
-    const client = makeClient(out, config)
+    const client = await makeClient(out, config)
     try {
       const result = await client.createRelease(owner, repository, tagName, releaseName, releaseNotes, { targetCommitish: releaseBranch })
       out.done(operation)

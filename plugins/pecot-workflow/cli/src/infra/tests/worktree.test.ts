@@ -127,6 +127,22 @@ function runtimeMessage(action: () => void): string {
   return runtimeError(action).message
 }
 
+async function asyncRuntimeError(action: () => Promise<unknown>): Promise<WorktreeRuntimeError> {
+  try {
+    await action()
+  }
+  catch (error: unknown) {
+    if (error instanceof WorktreeRuntimeError) return error
+    throw new Error(`WorktreeRuntimeError でない: ${String(error)}`, { cause: error })
+  }
+  throw new Error('例外が投げられなかった')
+}
+
+async function asyncRuntimeMessage(action: () => Promise<unknown>): Promise<string> {
+  const { message } = await asyncRuntimeError(action)
+  return message
+}
+
 /**
 指定した引数の git の出力を偽物にする。それ以外の引数は終了コード 1
 */
@@ -361,48 +377,50 @@ function projectWithSetup(setupCommand: string | undefined, timeout?: number): P
   return createProject({ worktreeConfig: JSON.stringify(config) })
 }
 
-function addElsewhere(): { readonly repository: string, readonly root: string, readonly elsewhere: string } {
+async function addElsewhere(): Promise<{ readonly repository: string, readonly root: string, readonly elsewhere: string }> {
   const { repository, root } = createProject()
   const elsewhere = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
-  const first = createWorktree(repository, ignoredDiagnostics, { path: elsewhere, shouldCopy: false, shouldLink: false })
+  const first = await createWorktree(repository, ignoredDiagnostics, { path: elsewhere, shouldCopy: false, shouldLink: false })
   expect(first.name).toBe('wt1')
   return { repository, root, elsewhere }
 }
 
 describe('createWorktree と番号の記録（実 git）', () => {
-  it('作った worktree に番号を記録し、dry-run では書かない', () => {
+  it('作った worktree に番号を記録し、dry-run では書かない', async () => {
     const { repository, root } = createProject()
-    createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
     expect(claimedSetNames(repository)).toEqual(new Set())
-    const result = createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
     const recordPath = gitForTest(result.path, ['rev-parse', '--path-format=absolute', '--git-path', 'pecot-worktree-name']).trim()
     expect(readFileSync(recordPath, 'utf8')).toBe('wt1\n')
   })
 
-  it('path 指定の worktree があっても、次の作成は wt2 を選ぶ', () => {
-    const { repository, root } = addElsewhere()
-    const second = createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
+  it('path 指定の worktree があっても、次の作成は wt2 を選ぶ', async () => {
+    const { repository, root } = await addElsewhere()
+    const second = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(second.name).toBe('wt2')
     expect(second.path).toBe(path.join(root, 'wt2', 'myrepo'))
   })
 
-  it('path 指定の worktree が機能ブランチに移った後も、wt1 を選ばない', () => {
-    const { repository, elsewhere } = addElsewhere()
+  it('path 指定の worktree が機能ブランチに移った後も、wt1 を選ばない', async () => {
+    const { repository, elsewhere } = await addElsewhere()
     gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
-    expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true }).name).toBe('wt2')
+    const { name } = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    expect(name).toBe('wt2')
   })
 
-  it('記録の無い worktree でも、wtN のブランチを使っていればその番号を使用中にする', () => {
+  it('記録の無い worktree でも、wtN のブランチを使っていればその番号を使用中にする', async () => {
     const { repository, root } = createProject()
     gitForTest(repository, ['worktree', 'add', '-q', '-b', 'wt1', path.join(makeTemporaryDirectory(), 'x', 'myrepo')])
     expect(claimedSetNames(repository)).toEqual(new Set(['wt1']))
-    expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true }).path).toBe(path.join(root, 'wt2', 'myrepo'))
+    const created = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    expect(created.path).toBe(path.join(root, 'wt2', 'myrepo'))
   })
 
-  it('claimedSetNames はプロセスの作業ディレクトリに依らない', () => {
+  it('claimedSetNames はプロセスの作業ディレクトリに依らない', async () => {
     vi.restoreAllMocks()
-    const { repository } = addElsewhere()
+    const { repository } = await addElsewhere()
     const original = process.cwd()
     process.chdir(makeTemporaryDirectory())
     try {
@@ -415,98 +433,100 @@ describe('createWorktree と番号の記録（実 git）', () => {
 })
 
 describe('createWorktree（実 git・実ファイル）', () => {
-  it('dry-run は path を <root>/<name>/<repo> にし、WT を作らない', () => {
+  it('dry-run は path を <root>/<name>/<repo> にし、WT を作らない', async () => {
     const { repository, root } = createProject()
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true })
     expect(result).toEqual({ name: 'wt1', path: path.join(root, 'wt1', 'myrepo'), branch: 'wt1', baseBranch: 'develop', copiedFiles: [], linkedFiles: [], setupResult: undefined })
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
-  it('name を省略すると、プロジェクトルート基準で番号を決める。base は develop_branch', () => {
+  it('name を省略すると、プロジェクトルート基準で番号を決める。base は develop_branch', async () => {
     const { repository, root } = createProject()
     mkdirSync(path.join(root, 'wt1', 'myrepo'), { recursive: true })
-    const result = createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    const result = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
     expect(result.name).toBe('wt2')
     expect(result.path).toBe(path.join(root, 'wt2', 'myrepo'))
     expect(result.baseBranch).toBe('develop')
   })
 
-  it('別リポが作った wt1/ に該当リポが未参加なら、wt1 に参加する', () => {
+  it('別リポが作った wt1/ に該当リポが未参加なら、wt1 に参加する', async () => {
     const { repository, root } = createProject()
     mkdirSync(path.join(root, 'wt1', 'myrepo-B'), { recursive: true })
-    expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true }).name).toBe('wt1')
+    const { name } = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    expect(name).toBe('wt1')
   })
 
-  it('path を明示するとそこに作る', () => {
+  it('path を明示するとそこに作る', async () => {
     const { repository } = createProject()
     const target = path.join(makeTemporaryDirectory(), 'custom', 'dir')
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', path: `${target}/`, shouldCopy: false, shouldLink: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', path: `${target}/`, shouldCopy: false, shouldLink: false })
     expect(result.path).toBe(target)
     expect(gitForTest(target, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe('wt1')
   })
 
-  it('新しいブランチは base_branch の origin を追跡する', () => {
+  it('新しいブランチは base_branch の origin を追跡する', async () => {
     const { repository, root } = createProject()
-    const result = createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
     expect(gitForTest(result.path, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']).trim()).toBe('origin/develop')
     expect(result.setupResult).toBeUndefined()
   })
 
-  it('--base を明示すれば develop_branch が未設定でも作れる。未設定で省略するとエラー', () => {
+  it('--base を明示すれば develop_branch が未設定でも作れる。未設定で省略するとエラー', async () => {
     const { repository } = createProject({ repositories: [{ owner: 'myowner', name: 'myrepo' }] })
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { isDryRun: true }))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { isDryRun: true }))
     expect(error.message).toBe([
       'develop_branch is not set for repository myowner/myrepo',
       '  add develop_branch to repositories in the project config file',
       '  or pass --base explicitly',
     ].join('\n'))
     expect(error.failure).toBe('repo-setting-missing')
-    expect(createWorktree(repository, ignoredDiagnostics, { baseBranch: 'main', isDryRun: true }).baseBranch).toBe('main')
+    const { baseBranch } = await createWorktree(repository, ignoredDiagnostics, { baseBranch: 'main', isDryRun: true })
+    expect(baseBranch).toBe('main')
   })
 
-  it('空の base_branch は origin を追跡せず、現在のコミットから作る', () => {
+  it('空の base_branch は origin を追跡せず、現在のコミットから作る', async () => {
     const { repository } = createProject()
-    const result = createWorktree(repository, ignoredDiagnostics, { baseBranch: '', shouldCopy: false, shouldLink: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { baseBranch: '', shouldCopy: false, shouldLink: false })
     expect(gitForTest(result.path, ['rev-parse', 'HEAD']).trim()).toBe(branchCommit(repository, 'main'))
     expect(thrownError(() => gitForTest(result.path, ['rev-parse', '@{upstream}']))).toBeInstanceOf(Error)
   })
 
-  it('既存ブランチの upstream が develop_branch と違えば WorktreeRuntimeError', () => {
+  it('既存ブランチの upstream が develop_branch と違えば WorktreeRuntimeError', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
-    const message = runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
+    const message = await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
     expect(message).toBe('branch \'wt1\' already exists and its upstream differs from the expected one (current: origin/main, expected: origin/develop): pass --allow-existing-branch to reuse it')
   })
 
-  it('upstream の無い既存ブランチは「(未設定)」と表示する', () => {
+  it('upstream の無い既存ブランチは「(未設定)」と表示する', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', 'wt1', 'main'])
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop' }))).toContain('(current: (unset), expected: origin/develop)')
+    expect(await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop' }))).toContain('(current: (unset), expected: origin/develop)')
   })
 
-  it('base が空で upstream のあるブランチは、期待が None の不一致になる', () => {
+  it('base が空で upstream のあるブランチは、期待が None の不一致になる', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: '' }))).toContain('(current: origin/main, expected: None)')
+    expect(await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: '' }))).toContain('(current: origin/main, expected: None)')
   })
 
-  it('upstream が空の既存ブランチを base が空で作ると、そのまま再利用する', () => {
+  it('upstream が空の既存ブランチを base が空で作ると、そのまま再利用する', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', 'wt1', 'main'])
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: '', shouldLink: false, shouldCopy: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: '', shouldLink: false, shouldCopy: false })
     expect(gitForTest(result.path, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe('wt1')
   })
 
-  it('--allow-existing-branch なら upstream が違っても、そのブランチで WT を作る', () => {
+  it('--allow-existing-branch なら upstream が違っても、そのブランチで WT を作る', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false, isExistingBranchAllowed: true })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false, isExistingBranchAllowed: true })
     expect(gitForTest(result.path, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe('wt1')
     expect(gitForTest(result.path, ['rev-parse', '--abbrev-ref', '@{upstream}']).trim()).toBe('origin/main')
   })
 
-  it('孤児ブランチ（upstream 一致・どの WT にも bind されていない）は、削除して -b --track で作り直す', () => {
+  it('孤児ブランチ（upstream 一致・どの WT にも bind されていない）は、削除して -b --track で作り直す', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/develop'])
     gitForTest(repository, ['checkout', '-q', 'wt1'])
@@ -515,12 +535,12 @@ describe('createWorktree（実 git・実ファイル）', () => {
     gitForTest(repository, ['commit', '-q', '-m', 'stale'])
     gitForTest(repository, ['checkout', '-q', 'main'])
 
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false })
     expect(branchCommit(result.path, 'HEAD')).toBe(branchCommit(repository, 'origin/develop'))
     expect(existsSync(path.join(result.path, 'stale.txt'))).toBe(false)
   })
 
-  it('--allow-existing-branch なら孤児ブランチでも削除せず、そのまま再利用する', () => {
+  it('--allow-existing-branch なら孤児ブランチでも削除せず、そのまま再利用する', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/develop'])
     gitForTest(repository, ['checkout', '-q', 'wt1'])
@@ -529,28 +549,28 @@ describe('createWorktree（実 git・実ファイル）', () => {
     gitForTest(repository, ['commit', '-q', '-m', 'kept'])
     gitForTest(repository, ['checkout', '-q', 'main'])
 
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false, isExistingBranchAllowed: true })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false, isExistingBranchAllowed: true })
     expect(existsSync(path.join(result.path, 'kept.txt'))).toBe(true)
   })
 
-  it('他の WT に bind 済みのブランチは削除されず、git が拒否して WorktreeRuntimeError', () => {
+  it('他の WT に bind 済みのブランチは削除されず、git が拒否して WorktreeRuntimeError', async () => {
     const { repository, root } = createProject()
     const other = path.join(root, 'other', 'myrepo')
     gitForTest(repository, ['worktree', 'add', '-q', '--track', '-b', 'wt1', other, 'origin/develop'])
-    const message = runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
+    const message = await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
     expect(message).toMatch(/^failed to create the worktree: [\s\S]*fatal: 'wt1' is already (checked out|used by worktree)/u)
     expect(branchCommit(repository, 'wt1')).toBe(branchCommit(repository, 'origin/develop'))
     expect(existsSync(other)).toBe(true)
   })
 
-  it('孤児ブランチでも upstream が不一致なら、不一致のエラーが先に出て、ブランチは消さない', () => {
+  it('孤児ブランチでも upstream が不一致なら、不一致のエラーが先に出て、ブランチは消さない', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop' }))).toContain('upstream differs from the expected one')
+    expect(await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop' }))).toContain('upstream differs from the expected one')
     expect(branchCommit(repository, 'wt1')).toBe(branchCommit(repository, 'main'))
   })
 
-  it('container rebuild 後の stale な WT メタデータは、add の前に prune して再作成できる', () => {
+  it('container rebuild 後の stale な WT メタデータは、add の前に prune して再作成できる', async () => {
     const { repository, root } = createProject()
     const worktree = path.join(root, 'wt1', 'myrepo')
     gitForTest(repository, ['worktree', 'add', '-q', '--track', '-b', 'wt1', worktree, 'origin/develop'])
@@ -560,80 +580,82 @@ describe('createWorktree（実 git・実ファイル）', () => {
     rmSync(worktree, { recursive: true })
     expect(existsSync(metadata)).toBe(true)
 
-    const result = createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false, isExistingBranchAllowed: true })
+    const result = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false, isExistingBranchAllowed: true })
     expect(result.name).toBe('wt1')
     expect(result.path).toBe(worktree)
     expect(existsSync(worktree)).toBe(true)
     expect(existsSync(metadata)).toBe(true)
   })
 
-  it('メイン WT が base/ に無ければ WorktreeRuntimeError', () => {
+  it('メイン WT が base/ に無ければ WorktreeRuntimeError', async () => {
     const repository = createGitRepository({ 'README.md': 'x' }, path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo'))
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toContain('this repository is not placed in the layout pecot expects for a project')
+    expect(await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics))).toContain('this repository is not placed in the layout pecot expects for a project')
   })
 
-  it('worktree-config.json が無ければ init を促すエラー', () => {
+  it('worktree-config.json が無ければ init を促すエラー', async () => {
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', 'worktree-config.json'))
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics))
     expect(error.message).toBe('worktree config not found: .pecot/config/worktree-config.json\n  run pecot worktree init to generate the template')
     expect(error.failure).toBe('not-initialized')
   })
 
-  it('.worktreeignore が無ければ init を促すエラー', () => {
+  it('.worktreeignore が無ければ init を促すエラー', async () => {
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', '.worktreeignore'))
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics))
     expect(error.message).toBe('copy exclude config not found: .pecot/config/.worktreeignore\n  run pecot worktree init to generate the template')
     expect(error.failure).toBe('not-initialized')
   })
 
-  it('origin が無ければ WorktreeRuntimeError', () => {
+  it('origin が無ければ WorktreeRuntimeError', async () => {
     const { repository } = createProject()
     gitForTest(repository, ['remote', 'remove', 'origin'])
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics))
     expect(error.message).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
     expect(error.failure).toBe('git-unresolved')
   })
 
-  it('origin の owner が不正な名前でも WorktreeRuntimeError', () => {
+  it('origin の owner が不正な名前でも WorktreeRuntimeError', async () => {
     const { repository } = createProject({ originUrl: 'https://github.com/bad%20owner/myrepo.git' })
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
+    expect(await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
   })
 
-  it('.active が無くても、remote のリポを含む設定で作る', () => {
+  it('.active が無くても、remote のリポを含む設定で作る', async () => {
     const { repository, configRoot } = createProject()
     rmSync(path.join(configRoot, '.pecot', 'config', 'projects', '.active'))
-    expect(createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }).branch).toBe('wt1')
+    const { branch } = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true })
+    expect(branch).toBe('wt1')
   })
 
-  it('remote のリポを含む設定が 2 つで選べなければ、候補と project の案内を出して止まる', () => {
+  it('remote のリポを含む設定が 2 つで選べなければ、候補と project の案内を出して止まる', async () => {
     const { repository, configRoot } = createProject()
     const projects = path.join(configRoot, '.pecot', 'config', 'projects')
     rmSync(path.join(projects, '.active'))
     writeTree(configRoot, { '.pecot/config/projects/github.com_myowner_2.json': projectConfigJson(DEFAULT_REPOSITORIES) })
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', isDryRun: true }))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', isDryRun: true }))
     expect(error.message).toBe('myowner/myrepo is in 2 project configs\nchoose one with --project <NAME>\navailable: github.com_myowner_1, github.com_myowner_2')
     expect(error.failure).toBe('no-active-project')
-    expect(createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true, project: 'github.com_myowner_2' }).branch).toBe('wt1')
+    const { branch } = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true, project: 'github.com_myowner_2' })
+    expect(branch).toBe('wt1')
   })
 
-  it('remote のリポを含む設定が無ければ、どの設定にも無いと示し、ある設定の名前を並べる', () => {
+  it('remote のリポを含む設定が無ければ、どの設定にも無いと示し、ある設定の名前を並べる', async () => {
     const { repository } = createProject({ repositories: [{ owner: 'foo', name: 'bar' }, { owner: 'foo', name: 'baz' }] })
     const expected = 'myowner/myrepo is not in any project config\navailable: github.com_myowner_1'
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))
     expect(error.message).toBe(expected)
     expect(error.failure).toBe('repo-not-in-project')
   })
 
-  it('symlink 登録済みのファイルは、未追跡ファイルのコピーから除く', () => {
+  it('symlink 登録済みのファイルは、未追跡ファイルのコピーから除く', async () => {
     const files = { 'README.md': 'x', '.gitignore': '.env\n.claude/\n' }
     const worktreeConfig = JSON.stringify({ version: 3, links: [{ path: '.claude/settings.local.json', target_repo: 'shared-repo', target_path: '.claude/settings.local.json' }] })
     const { repository, root } = createProject({ files, worktreeConfig })
     writeTree(path.join(root, 'base', 'shared-repo'), { '.claude/settings.local.json': '{}' })
     writeTree(repository, { '.claude/settings.local.json': 'main-content', '.env': 'FOO=bar\n' })
 
-    const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop' })
+    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop' })
 
     const copied = result.copiedFiles.filter(item => item.action === 'copied').map(item => path.basename(item.source))
     expect(copied).toContain('.env')
@@ -645,35 +667,31 @@ describe('createWorktree（実 git・実ファイル）', () => {
     expect(result.linkedFiles.map(item => item.action)).toEqual(['created'])
   })
 
-  it('.worktreeignore に当たる未追跡ファイルはコピーしない。コピー対象が無ければ空', () => {
+  it('.worktreeignore に当たる未追跡ファイルはコピーしない。コピー対象が無ければ空', async () => {
     const { repository } = createProject({ files: { 'README.md': 'x', '.gitignore': '__pycache__/\n' }, ignoreContent: '__pycache__/\n' })
     writeTree(repository, { '__pycache__/a.pyc': 'x' })
-    const result = createWorktree(repository, ignoredDiagnostics, { shouldLink: false })
+    const result = await createWorktree(repository, ignoredDiagnostics, { shouldLink: false })
     expect(result.copiedFiles).toEqual([])
     expect(existsSync(path.join(result.path, '__pycache__'))).toBe(false)
   })
 
-  it('.worktreeignore に不正なパターン（感嘆符だけの行）があれば、GitIgnorePatternError をそのまま伝える', () => {
+  it('.worktreeignore に不正なパターン（感嘆符だけの行）があれば、GitIgnorePatternError をそのまま伝える', async () => {
     const { repository } = createProject({ ignoreContent: '!\n' })
-    expect(thrownError(() => {
-      createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
-    })).toBeInstanceOf(GitIgnorePatternError)
+    await expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true })).rejects.toBeInstanceOf(GitIgnorePatternError)
   })
 
-  it('worktree-config.json を読めなければ（ディレクトリ）、OsError をそのまま伝える', () => {
+  it('worktree-config.json を読めなければ（ディレクトリ）、OsError をそのまま伝える', async () => {
     const { repository } = createProject()
     const configPath = path.join(repository, '.pecot', 'config', 'worktree-config.json')
     rmSync(configPath)
     mkdirSync(configPath)
-    expect(thrownError(() => {
-      createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
-    })).toBeInstanceOf(OsError)
+    await expect(createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })).rejects.toBeInstanceOf(OsError)
   })
 
-  it('不正な JSON の worktree-config.json は、WT を作った後に WorktreeRuntimeError', () => {
+  it('不正な JSON の worktree-config.json は、WT を作った後に WorktreeRuntimeError', async () => {
     const { repository, root } = createProject({ worktreeConfig: '{ this is not valid json' })
     const configPath = path.join(repository, '.pecot', 'config', 'worktree-config.json')
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
     const { message } = error
     expect(error.failure).toBe('config-invalid')
     expect(message.startsWith(`failed to load the worktree config: ${configPath}: JSON parse error: ${configPath}: `)).toBe(true)
@@ -681,56 +699,58 @@ describe('createWorktree（実 git・実ファイル）', () => {
     expect(existsSync(path.join(root, 'wt1', 'myrepo'))).toBe(true)
   })
 
-  it('スキーマ違反の worktree-config.json は、pydantic と同じ検証エラーの文を含む', () => {
+  it('スキーマ違反の worktree-config.json は、pydantic と同じ検証エラーの文を含む', async () => {
     const { repository } = createProject({ worktreeConfig: '{"version": 2}' })
     const configPath = path.join(repository, '.pecot', 'config', 'worktree-config.json')
-    const message = runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
+    const message = await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
     const head = `failed to load the worktree config: ${configPath}: config file validation failed: ${configPath}`
     expect(message).toContain(`${head}: 1 validation error for WorktreeConfig\nversion\n  Input should be 3`)
   })
 
   describe('setup_command', () => {
-    it('CLI の --setup が config の setup_command より優先される。WT のルートで実行する', () => {
+    it('CLI の --setup が config の setup_command より優先される。WT のルートで実行する', async () => {
       const { repository } = projectWithSetup('echo from-config')
-      const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo from-cli; pwd', shouldCopy: false, shouldLink: false })
+      const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo from-cli; pwd', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toEqual({ command: 'echo from-cli; pwd', exitCode: 0, stdout: `from-cli\n${result.path}\n`, stderr: '' })
     })
 
-    it('CLI が未指定なら config の setup_command を使う', () => {
+    it('CLI が未指定なら config の setup_command を使う', async () => {
       const { repository } = projectWithSetup('echo from-config')
-      const result = createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
+      const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toEqual({ command: 'echo from-config', exitCode: 0, stdout: 'from-config\n', stderr: '' })
     })
 
-    it('CLI と config のどちらにも無ければ実行しない。空文字の setup_command では実行しない', () => {
+    it('CLI と config のどちらにも無ければ実行しない。空文字の setup_command では実行しない', async () => {
       const none = projectWithSetup(undefined)
-      expect(createWorktree(none.repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }).setupResult).toBeUndefined()
+      const { setupResult: noneResult } = await createWorktree(none.repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
+      expect(noneResult).toBeUndefined()
       const empty = projectWithSetup('')
-      expect(createWorktree(empty.repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }).setupResult).toBeUndefined()
+      const { setupResult: emptyResult } = await createWorktree(empty.repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
+      expect(emptyResult).toBeUndefined()
     })
 
-    it('config の setup_command_timeout を超えると exitCode -1 の結果になる', () => {
+    it('config の setup_command_timeout を超えると exitCode -1 の結果になる', async () => {
       const { repository } = projectWithSetup('sleep 5', 1)
       const recorded = recordDiagnostics()
-      const result = createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
+      const result = await createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toMatchObject({ command: 'sleep 5', exitCode: -1, stderr: 'timeout after 1 seconds' })
       expect(recorded.lines).toEqual(['warning: setup command timed out: sleep 5\nerr: timeout after 1 seconds'])
     })
 
-    it('setup_command が非ゼロ終了でも例外は投げず、結果と警告を残す', () => {
+    it('setup_command が非ゼロ終了でも例外は投げず、結果と警告を残す', async () => {
       const { repository } = projectWithSetup(undefined)
       const recorded = recordDiagnostics()
-      const result = createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo boom >&2; exit 42', shouldCopy: false, shouldLink: false })
+      const result = await createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo boom >&2; exit 42', shouldCopy: false, shouldLink: false })
       const root = path.dirname(path.dirname(repository))
       expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
       expect(result.setupResult).toMatchObject({ exitCode: 42, stderr: 'boom\n' })
       expect(recorded.lines).toEqual(['warning: setup command failed (exit 42): echo boom >&2; exit 42\nerr: boom'])
     })
 
-    it('stdout と stderr が両方あれば out: と err: の行で続ける', () => {
+    it('stdout と stderr が両方あれば out: と err: の行で続ける', async () => {
       const { repository } = projectWithSetup(undefined)
       const recorded = recordDiagnostics()
-      createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo hi; echo oops >&2; exit 42', shouldCopy: false, shouldLink: false })
+      await createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo hi; echo oops >&2; exit 42', shouldCopy: false, shouldLink: false })
       expect(recorded.lines).toEqual(['warning: setup command failed (exit 42): echo hi; echo oops >&2; exit 42\nout: hi\nerr: oops'])
     })
   })
@@ -765,8 +785,8 @@ describe('removeWorktree', () => {
     expect(() => removeWorktree(repository, 'nope', ignoredDiagnostics, { isDryRun: true })).toThrow(WorktreeRuntimeError)
   })
 
-  it('ブランチ wt1 が無い worktree を名前で消すと、ブランチを消せなかった理由を返す', () => {
-    const { repository, elsewhere } = addElsewhere()
+  it('ブランチ wt1 が無い worktree を名前で消すと、ブランチを消せなかった理由を返す', async () => {
+    const { repository, elsewhere } = await addElsewhere()
     gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
     gitForTest(repository, ['branch', '-D', 'wt1'])
     expect(removeWorktree(repository, 'wt1', ignoredDiagnostics)).toMatch(/wt1/u)
@@ -804,8 +824,8 @@ describe('removeWorktree', () => {
     })).toBe('worktree not found: nope')
   })
 
-  it('記録した名前を渡すと、機能ブランチに移した --path の worktree と wt1 ブランチを消す', () => {
-    const { repository, elsewhere } = addElsewhere()
+  it('記録した名前を渡すと、機能ブランチに移した --path の worktree と wt1 ブランチを消す', async () => {
+    const { repository, elsewhere } = await addElsewhere()
     gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
     removeWorktree(repository, 'wt1', ignoredDiagnostics)
     expect(existsSync(elsewhere)).toBe(false)
@@ -824,12 +844,13 @@ describe('removeWorktree', () => {
   })
 
   // 一覧の並びは git の管理ディレクトリの読み順で決まるので、どちらを先に作っても記録の方を消すことを確かめる
-  it.for([{ order: '記録の worktree を先に作る', isHolderFirst: false }, { order: 'ブランチ wt1 の worktree を先に作る', isHolderFirst: true }])('$order と、記録が wt1 の worktree を消し、ブランチ wt1 の別の worktree を残す', ({ isHolderFirst }) => {
+  it.for([{ order: '記録の worktree を先に作る', isHolderFirst: false }, { order: 'ブランチ wt1 の worktree を先に作る', isHolderFirst: true }])('$order と、記録が wt1 の worktree を消し、ブランチ wt1 の別の worktree を残す', async ({ isHolderFirst }) => {
     const { repository, root } = createProject()
     const holder = path.join(makeTemporaryDirectory(), 'holder', 'myrepo')
     if (isHolderFirst) gitForTest(repository, ['worktree', 'add', '-q', '-b', 'tmp', holder])
     const recorded = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
-    expect(createWorktree(repository, ignoredDiagnostics, { path: recorded, shouldCopy: false, shouldLink: false }).name).toBe('wt1')
+    const { name } = await createWorktree(repository, ignoredDiagnostics, { path: recorded, shouldCopy: false, shouldLink: false })
+    expect(name).toBe('wt1')
     if (!isHolderFirst) gitForTest(repository, ['worktree', 'add', '-q', '-b', 'tmp', holder])
     gitForTest(recorded, ['switch', '-q', '-c', 'feature/x'])
     gitForTest(holder, ['switch', '-q', 'wt1'])
@@ -839,15 +860,15 @@ describe('removeWorktree', () => {
     expect(existsSync(root)).toBe(true)
   })
 
-  it('detached HEAD の worktree も記録した名前で消す', () => {
-    const { repository, elsewhere } = addElsewhere()
+  it('detached HEAD の worktree も記録した名前で消す', async () => {
+    const { repository, elsewhere } = await addElsewhere()
     gitForTest(elsewhere, ['switch', '-q', '--detach'])
     removeWorktree(repository, 'wt1', ignoredDiagnostics)
     expect(existsSync(elsewhere)).toBe(false)
   })
 
-  it('別の worktree のディレクトリが消えていても、wt1 を消せる', () => {
-    const { repository, elsewhere } = addElsewhere()
+  it('別の worktree のディレクトリが消えていても、wt1 を消せる', async () => {
+    const { repository, elsewhere } = await addElsewhere()
     const other = path.join(makeTemporaryDirectory(), 'other', 'myrepo')
     gitForTest(repository, ['worktree', 'add', '-q', '-b', 'other', other])
     rmSync(other, { recursive: true })
@@ -1006,10 +1027,10 @@ describe('getCurrentWorktreeName', () => {
     expect(getCurrentWorktreeName(worktree)).toBe('wt2')
   })
 
-  it('記録があればそれを返す。置き場所の親の名前には依らない', () => {
+  it('記録があればそれを返す。置き場所の親の名前には依らない', async () => {
     const { repository } = createProject()
     const worktree = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
-    createWorktree(repository, ignoredDiagnostics, { path: worktree, shouldCopy: false, shouldLink: false })
+    await createWorktree(repository, ignoredDiagnostics, { path: worktree, shouldCopy: false, shouldLink: false })
     gitForTest(worktree, ['switch', '-q', '-c', 'feature/x'])
     expect(getCurrentWorktreeName(worktree)).toBe('wt1')
   })

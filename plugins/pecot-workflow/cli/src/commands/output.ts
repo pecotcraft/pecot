@@ -88,6 +88,10 @@ export interface Output<D extends object = Record<string, unknown>> {
   */
   // 補助の関数が Output（既定の D）で受け取れるよう、メソッドの形で書く（引数の型の比べ方が双変になる）
   result(fields: Readonly<Partial<D>>): void
+  /**
+  io の signal（MCP の要求の取り消し）。CLI では undefined
+  */
+  readonly signal: Readonly<AbortSignal> | undefined
 }
 
 /**
@@ -136,6 +140,7 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
     result(fields) {
       io.data?.(isDryRun ? { ...fields, dryRun: true } : fields)
     },
+    signal: io.signal,
   }
 }
 

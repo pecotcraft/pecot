@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { createGitRepository, gitEnvironment, gitForTest } from '../../tests/_helpers/git-repository.js'
+import { CancelledError } from '../../domain/errors.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import {
   abortRebase,
@@ -19,7 +20,9 @@ import {
   mergeBase,
   pushWithLease,
   rebaseOnto,
+  remoteBranchHead,
   remoteOnlyChanges,
+  remoteTagExists,
   resetHardTo,
   resolveCommit,
 } from '../git.js'
@@ -87,6 +90,36 @@ function createStack(): Stack {
   return { origin, lower, upper, recordedBase: sha(lower, 'lower') }
 }
 
+interface Hang {
+  readonly pidFile: string
+}
+
+// origin の upload-pack を、自分の pid を書いて眠るスクリプトに替える
+function hangUploadPack(cwd: string): Hang {
+  const directory = makeTemporaryDirectory('pecot-hang-')
+  const script = path.join(directory, 'upload-pack')
+  const pidFile = `${script}.pid`
+  writeFileSync(script, `#!/bin/sh\necho $$ > '${pidFile}'\nexec sleep 30\n`)
+  chmodSync(script, 0o755)
+  gitForTest(cwd, ['config', 'remote.origin.uploadpack', script])
+  return { pidFile }
+}
+
+async function pidOf(hang: Readonly<Hang>): Promise<number> {
+  await expect.poll(() => existsSync(hang.pidFile) && readFileSync(hang.pidFile, 'utf8').trim() !== '', { timeout: 10_000, interval: 20 }).toBe(true)
+  return Number(readFileSync(hang.pidFile, 'utf8').trim())
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  }
+  catch {
+    return false
+  }
+}
+
 /**
 下の段を squash で main に入れる。main には先に別の変更も入れておく
 */
@@ -134,10 +167,10 @@ describe('rebaseOnto', () => {
     expect(subjects(stack.upper, 'lower..HEAD')).toEqual(['U2', 'U1'])
   })
 
-  it('下の段を squash で開発ブランチへ入れた後、上の段を開発ブランチへ載せ、下の段のコミットを落とす', () => {
+  it('下の段を squash で開発ブランチへ入れた後、上の段を開発ブランチへ載せ、下の段のコミットを落とす', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
-    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
 
     expect(rebaseOnto(stack.upper, 'origin/main', stack.recordedBase)).toBe('done')
 
@@ -248,11 +281,11 @@ describe('isRebaseInProgress', () => {
 })
 
 describe('hasSameTree と resetHardTo', () => {
-  it('載せ直した木が origin の上の段と同じなら true を返し、resetHardTo の後は origin と同じ SHA になる', () => {
+  it('載せ直した木が origin の上の段と同じなら true を返し、resetHardTo の後は origin と同じ SHA になる', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
-    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
     expect(rebaseOnto(stack.upper, 'origin/main', stack.recordedBase)).toBe('done')
     expect(sha(stack.upper, 'HEAD')).not.toBe(sha(stack.upper, 'origin/upper'))
 
@@ -316,7 +349,7 @@ describe('pushWithLease', () => {
     await expect.poll(() => isRunning(hook.pid())).toBe(false)
   })
 
-  it('push を待つ間に取り消されると、フックごと git を止めてすぐに cancelled を返し、remote を変えない', async () => {
+  it('push を待つ間に取り消されると、フックごと git を止めてすぐに CancelledError を投げ、remote を変えない', async () => {
     const stack = createStack()
     const remoteBefore = sha(stack.origin, 'upper')
     commitFile(stack.upper, 'local.txt', 'x\n', 'local')
@@ -326,9 +359,9 @@ describe('pushWithLease', () => {
 
     const pending = pushWithLease(stack.upper, 'origin', 'upper', remoteBefore, { signal: controller.signal })
     await expect.poll(() => hook.pid()).toBeDefined()
-    controller.abort()
+    controller.abort('stop')
 
-    expect(await pending).toMatchObject({ pushed: false, reason: 'cancelled' })
+    await expect(pending).rejects.toThrow(new CancelledError('stop'))
     expect(Date.now() - started).toBeLessThan(HOOK_SECONDS * 1000 / 2)
     expect(sha(stack.origin, 'upper')).toBe(remoteBefore)
     await expect.poll(() => isRunning(hook.pid())).toBe(false)
@@ -365,16 +398,16 @@ function isRunning(pid: number | undefined): boolean {
 }
 
 describe('remoteOnlyChanges', () => {
-  it('GitHub が書き換えた上の段のコミットと、下の段・開発ブランチのコミットは一覧に入れない', () => {
+  it('GitHub が書き換えた上の段のコミットと、下の段・開発ブランチのコミットは一覧に入れない', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
-    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
 
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([])
   })
 
-  it('下の段の直しが上の段の変更の近くに入ると、書き換えたコミットは載せ直しの前の HEAD とは合わず、載せ直した後の HEAD とは合う', () => {
+  it('下の段の直しが上の段の変更の近くに入ると、書き換えたコミットは載せ直しの前の HEAD とは合わず、載せ直した後の HEAD とは合う', async () => {
     const initial = createStack()
     commitFile(initial.lower, 'f.txt', numbered({}), 'L2')
     gitForTest(initial.upper, ['rebase', '-q', 'lower'])
@@ -385,7 +418,7 @@ describe('remoteOnlyChanges', () => {
     gitForTest(stack.lower, ['push', '-q', 'origin', 'lower'])
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
-    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
     const excluded = [stack.recordedBase, 'origin/main']
 
     expect(remoteOnlyChanges(stack.upper, rewritten, 'origin/upper', excluded)).toHaveLength(1)
@@ -393,16 +426,16 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', excluded)).toEqual([])
   })
 
-  it('remote の上の段にだけ足されたコミットを一覧に入れる', () => {
+  it('remote の上の段にだけ足されたコミットを一覧に入れる', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     const suggestion = rewriteRemoteUpperOntoMain(stack, 'apply suggestion')
-    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
 
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([suggestion])
   })
 
-  it('書き換えの無い remote の上の段にだけ足されたコミットを一覧に入れ、下の段の新しいコミットは入れない', () => {
+  it('書き換えの無い remote の上の段にだけ足されたコミットを一覧に入れ、下の段の新しいコミットは入れない', async () => {
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     gitForTest(stack.lower, ['push', '-q', 'origin', 'lower'])
@@ -411,18 +444,73 @@ describe('remoteOnlyChanges', () => {
     gitForTest(scratch, ['config', 'commit.gpgsign', 'false'])
     const suggestion = commitFile(scratch, 'suggestion.txt', 's\n', 'apply suggestion')
     gitForTest(scratch, ['push', '-q', 'origin', 'upper'])
-    expect(fetchRemote(stack.upper, 'origin').succeeded).toBe(true)
+    expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
 
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/lower'])).toEqual([suggestion])
   })
 })
 
 describe('fetchRemote', () => {
-  it('remote が無ければ、失敗と stderr を返す', () => {
+  it('remote が無ければ、失敗と stderr を返す', async () => {
     const stack = createStack()
-    const result = fetchRemote(stack.upper, 'no-such-remote')
+    const result = await fetchRemote(stack.upper, 'no-such-remote')
     expect(result.succeeded).toBe(false)
     expect(result.stderr).toContain('no-such-remote')
+  })
+
+  it('取り消すと、待っている upload-pack ごと止めて CancelledError を投げる', async () => {
+    const stack = createStack()
+    const hang = hangUploadPack(stack.upper)
+    const controller = new AbortController()
+    const fetching = fetchRemote(stack.upper, 'origin', controller.signal)
+    const pid = await pidOf(hang)
+    controller.abort('stop')
+    await expect(fetching).rejects.toThrow(new CancelledError('stop'))
+    await expect.poll(() => isAlive(pid), { timeout: 2000, interval: 20 }).toBe(false)
+  })
+})
+
+describe('remoteBranchHead', () => {
+  it('remote にブランチがあれば、その先頭の SHA を返す', async () => {
+    const stack = createStack()
+    expect(await remoteBranchHead(stack.upper, 'origin', 'lower')).toEqual({ isReachable: true, sha: stack.recordedBase })
+  })
+
+  it('remote にブランチが無ければ、sha が undefined', async () => {
+    const stack = createStack()
+    expect(await remoteBranchHead(stack.upper, 'origin', 'no-such-branch')).toEqual({ isReachable: true, sha: undefined })
+  })
+
+  it('remote に届かなければ、isReachable が false', async () => {
+    const stack = createStack()
+    expect(await remoteBranchHead(stack.upper, 'no-such-remote', 'lower')).toEqual({ isReachable: false })
+  })
+})
+
+describe('remoteTagExists', () => {
+  it('remote にタグがあれば isFound が true、無ければ false', async () => {
+    const stack = createStack()
+    gitForTest(stack.lower, ['tag', 'v1.0.0'])
+    gitForTest(stack.lower, ['push', '-q', 'origin', 'v1.0.0'])
+    expect(await remoteTagExists(stack.upper, 'origin', 'v1.0.0')).toEqual({ isFound: true })
+    expect(await remoteTagExists(stack.upper, 'origin', 'v2.0.0')).toEqual({ isFound: false })
+  })
+
+  it('remote に届かなければ、failure に git の stderr を返す', async () => {
+    const stack = createStack()
+    const result = await remoteTagExists(stack.upper, 'no-such-remote', 'v1.0.0')
+    expect('failure' in result && result.failure).toContain('no-such-remote')
+  })
+
+  it('取り消すと、待っている upload-pack ごと止めて CancelledError を投げる', async () => {
+    const stack = createStack()
+    const hang = hangUploadPack(stack.upper)
+    const controller = new AbortController()
+    const listing = remoteTagExists(stack.upper, 'origin', 'v1.0.0', controller.signal)
+    const pid = await pidOf(hang)
+    controller.abort('stop')
+    await expect(listing).rejects.toThrow(new CancelledError('stop'))
+    await expect.poll(() => isAlive(pid), { timeout: 2000, interval: 20 }).toBe(false)
   })
 })
 

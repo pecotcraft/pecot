@@ -13,7 +13,7 @@ import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { kindOfFailure } from './failure.js'
-import { createGitHubClient } from './github-client.js'
+import { createAuthenticatedGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
@@ -232,7 +232,8 @@ export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
     const out = createOutput<PrMergeData>(input.dry_run, io)
     const target = parseReference(input.pr_ref, input.repo, out)
     const config = requireConfigFor(out, target, input.project, ['pr', 'merge']).config
-    const client = createGitHubClient(out, config.host)
+    // 認証の失敗を、PR を読めない文に包まないため
+    const client = await createAuthenticatedGitHubClient(out, config.host)
     const name = `PR #${String(target.number)}`
 
     const pullRequest = await readPullRequest(out, client, target)

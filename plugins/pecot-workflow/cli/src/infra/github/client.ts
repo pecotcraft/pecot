@@ -6,13 +6,12 @@
 // - URL は文字列の連結で作る。new URL は GHE の base（/api/v3）を落とす。
 // - 失敗の文は httpx と gql の文言を写す。
 
-import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
 import { isJsonObject, parseJsonText } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
-import { BaseError, InvalidValueError } from '../../domain/errors.js'
+import { BaseError, CancelledError, InvalidValueError } from '../../domain/errors.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import {
   formatHttpStatusError,
@@ -25,6 +24,7 @@ import {
 import { configDirectory } from '../config-store.js'
 import type { Diagnostics } from '../diagnostics.js'
 import { projectRoot } from '../paths.js'
+import { cancelledBy, runProcess } from '../process-run.js'
 import {
   ensureEnvironmentFile,
   environmentValue,
@@ -373,6 +373,10 @@ export interface GitHubClientOptions {
   */
   readonly token?: string | undefined
   /**
+  MCP の要求の取り消し。gh auth token と HTTP の要求を止める
+  */
+  readonly signal?: Readonly<AbortSignal> | undefined
+  /**
   1 回の要求の時間切れ（ミリ秒）。既定は 30000
   */
   readonly timeoutMilliseconds?: number | undefined
@@ -401,6 +405,8 @@ restJson・restObject・restRequest・handleHttpError・executeGraphql。
 export class GitHubClientBase {
   private readonly diagnostics: Diagnostics
   private usedFallback = false
+  private readonly signal: Readonly<AbortSignal> | undefined
+  private ghToken: Promise<void> | undefined
   readonly host: string
   token: string
   readonly timeoutMilliseconds: number
@@ -416,7 +422,9 @@ export class GitHubClientBase {
     this.diagnostics = options.diagnostics
     this.host = options.host ?? 'github.com'
     this.ghTimeoutMilliseconds = options.ghTimeoutMilliseconds ?? DEFAULT_GH_TIMEOUT_MILLISECONDS
-    this.token = options.token === undefined || options.token === '' ? this.resolveToken(this.host) : options.token
+    this.signal = options.signal
+    // gh auth token は子プロセスを待つので、構築では読まず ensureToken に回す。空はまだ読んでいない印
+    this.token = options.token === undefined || options.token === '' ? this.tokenFromEnvironment(this.host) ?? '' : options.token
     this.timeoutMilliseconds = options.timeoutMilliseconds ?? DEFAULT_TIMEOUT_MILLISECONDS
     const override = resolveApiUrlOverride()
     if (override !== undefined) {
@@ -433,13 +441,12 @@ export class GitHubClientBase {
     }
   }
 
-  // config/.env → ルート .env → gh auth token の順
-  private resolveToken(host: string): string {
-    return this.tokenFromEnvironment(host) ?? this.tokenFromGh(host) ?? this.failAuthentication(host)
-  }
-
   private failAuthentication(host: string): never {
     throw new GitHubAuthError(this.authErrorMessage(host))
+  }
+
+  private async loadGhToken(): Promise<void> {
+    this.token = await this.tokenFromGh(this.host) ?? this.failAuthentication(this.host)
   }
 
   private tokenFromEnvironment(host: string): string | undefined {
@@ -454,11 +461,17 @@ export class GitHubClientBase {
     return rootToken === undefined || rootToken === '' ? undefined : rootToken
   }
 
-  private tokenFromGh(host: string): string | undefined {
+  private async tokenFromGh(host: string): Promise<string | undefined> {
     const arguments_ = host === 'github.com' ? ['auth', 'token'] : ['auth', 'token', '-h', host]
-    const result = spawnSync('gh', arguments_, { encoding: 'utf8', timeout: this.ghTimeoutMilliseconds })
-    // gh が無い・時間切れ（error）、終了コードが 0 でない、または出力が空
-    const token = result.error === undefined && result.status === 0 ? pythonStrip(result.stdout) : ''
+    let token = ''
+    try {
+      const result = await runProcess('gh', arguments_, { stdin: 'ignore', timeoutMilliseconds: this.ghTimeoutMilliseconds, signal: this.signal })
+      token = result.exitCode === 0 && !result.isTimedOut ? pythonStrip(result.stdout) : ''
+    }
+    catch (error: unknown) {
+      // 取り消しは認証の失敗にしない（authErrorMessage が .env を作るため）。gh が無いときは読めなかった扱い
+      if (error instanceof CancelledError) throw error
+    }
     return token.length === 0 ? undefined : token
   }
 
@@ -508,10 +521,10 @@ or authenticate with the GitHub CLI:
   /**
   env のトークンが失効したとき、gh auth token に 1 回だけ切り替える。切り替えたら true
   */
-  private retryWithFallbackToken(): boolean {
+  private async retryWithFallbackToken(): Promise<boolean> {
     if (this.usedFallback) return false
     this.usedFallback = true
-    const newToken = this.tokenFromGh(this.host)
+    const newToken = await this.tokenFromGh(this.host)
     if (newToken === undefined || newToken === this.token) return false
     this.diagnostics.warning(TOKEN_FALLBACK_WARNING)
     this.token = newToken
@@ -525,7 +538,9 @@ or authenticate with the GitHub CLI:
         headers,
         ...(body !== undefined && { body }),
         redirect: 'manual',
-        signal: AbortSignal.timeout(this.timeoutMilliseconds),
+        signal: this.signal === undefined
+          ? AbortSignal.timeout(this.timeoutMilliseconds)
+          : AbortSignal.any([AbortSignal.timeout(this.timeoutMilliseconds), this.signal]),
       })
       const text = await response.text()
       return new RestResponse({
@@ -537,11 +552,18 @@ or authenticate with the GitHub CLI:
       })
     }
     catch (error: unknown) {
+      this.throwIfCancelled()
       throw new TransportFailure(describeTransportFailure(error), { cause: error })
     }
   }
 
+  // 取り消しは時間切れ（AbortError）と名前で分けられないので、signal で見分ける
+  private throwIfCancelled(): void {
+    if (this.signal?.aborted === true) throw cancelledBy(this.signal)
+  }
+
   private async sendRest(method: HttpMethod, url: string, options: Readonly<RestRequestOptions>): Promise<RestResponse> {
+    await this.ensureToken()
     const { json } = options
     const base = this.requestHeaders(options.apiVersion)
     const headers = json === undefined ? base : { ...base, 'Content-Type': 'application/json' }
@@ -555,6 +577,7 @@ or authenticate with the GitHub CLI:
       response = await this.send('POST', this.graphqlUrl, { ...this.requestHeaders(), 'Content-Type': 'application/json' }, JSON.stringify({ query, variables }))
     }
     catch (error: unknown) {
+      this.throwIfCancelled()
       throw new GraphqlFailure(error instanceof Error ? error.message : String(error), { cause: error })
     }
     const { statusCode } = response
@@ -610,17 +633,21 @@ or authenticate with the GitHub CLI:
   }
 
   private async runGraphql(query: string, variables: Readonly<Record<string, JsonValue>>, isTolerated?: PathPredicate): Promise<GraphqlOutcome> {
+    // 認証の失敗と取り消しを、GraphQL の失敗に包まないよう try の外で待つ
+    await this.ensureToken()
     try {
       return await this.sendGraphql(query, variables, isTolerated)
     }
     catch (error: unknown) {
+      this.throwIfCancelled()
       const failure = toGraphqlFailure(error)
       if (!isUnauthorized(failure)) throw this.classifyGraphqlFailure(failure)
-      if (!this.retryWithFallbackToken()) throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure })
+      if (!await this.retryWithFallbackToken()) throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure })
       try {
         return await this.sendGraphql(query, variables, isTolerated)
       }
       catch (retryError: unknown) {
+        this.throwIfCancelled()
         throw this.classifyGraphqlFailure(toGraphqlFailure(retryError))
       }
     }
@@ -635,6 +662,15 @@ or authenticate with the GitHub CLI:
   }
 
   /**
+  トークンが無ければ gh auth token を 1 回だけ読む。読めなければ GitHubAuthError、取り消されたら CancelledError
+  */
+  async ensureToken(): Promise<void> {
+    if (this.token !== '') return
+    this.ghToken ??= this.loadGhToken()
+    await this.ghToken
+  }
+
+  /**
   REST の要求（401 のときは gh auth token に切り替えて 1 回だけ再試行する）。
   target は `/user` のようなパス（base の後ろにつなぐ）か、`https://` で始まる絶対 URL（Link ヘッダの next など）。
   失敗の状態コードは例外にせず、そのまま返す。呼び出し側が isSuccess を見て handleHttpError に渡す
@@ -643,7 +679,7 @@ or authenticate with the GitHub CLI:
     this.assertSameOrigin(target)
     const url = buildUrl(this.apiUrl, target, options.params)
     const response = await this.sendRest(method, url, options)
-    return response.statusCode === 401 && this.retryWithFallbackToken() ? this.sendRest(method, url, options) : response
+    return response.statusCode === 401 && await this.retryWithFallbackToken() ? this.sendRest(method, url, options) : response
   }
 
   /**

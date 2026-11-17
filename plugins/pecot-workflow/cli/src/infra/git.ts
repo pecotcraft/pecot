@@ -1,7 +1,7 @@
 // git コマンド実行の唯一の窓口。git の subprocess 呼び出しはすべて runGit か runGitAsync を経由する。
 // 値を返す helper（gitToplevel 等）は、失敗時に undefined を返す。
 
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
@@ -12,8 +12,10 @@ import type { RemoteLocation } from '../domain/git-url.js'
 import { BaseError, InvalidValueError } from '../domain/errors.js'
 import { normalizeNewlines, pythonRepr, pythonStrip } from '../domain/python-format.js'
 import type { IssueReference } from '../domain/reference-parser.js'
+import type { RemoteTagLookup } from '../domain/release.js'
 import { childStdin } from './child-stdin.js'
 import { isFileNotFound, toOsError } from './os-error.js'
+import { runProcess } from './process-run.js'
 
 export interface GitOptions {
   /**
@@ -73,86 +75,6 @@ function withoutGitVariables(): Record<string, string> {
 }
 
 /**
-取り消しで止めたときの exitCode
-*/
-export const GIT_CANCELLED = -3
-
-// detached の git は端末の Ctrl-C を受けないので、受けたらグループごと止めてから既定の動きに戻す
-const FORWARDED_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM']
-
-function killGroup(pid: number | undefined): void {
-  if (pid === undefined) return
-  try {
-    // detached の git はプロセスグループの頭なので、負の pid でフックの孫までまとめて止める
-    process.kill(-pid, 'SIGKILL')
-  }
-  catch {
-    // 既に終わっている
-  }
-}
-
-/**
-runGit の非同期版。待つ間もイベントループを止めない。
-時間切れか signal の中断で、git を pre-push のフックごと止め、exitCode が GIT_TIMED_OUT か GIT_CANCELLED の結果を返す
-*/
-export async function runGitAsync(arguments_: readonly string[], options: Readonly<Omit<GitOptions, 'stripGitEnvironment' | 'check'>> & { readonly signal?: Readonly<AbortSignal> | undefined } = {}): Promise<GitResult> {
-  const timeout = options.timeoutMilliseconds === undefined ? undefined : AbortSignal.timeout(options.timeoutMilliseconds)
-  const stops = [options.signal, timeout].filter(signal => signal !== undefined)
-  const stop = stops.length === 0 ? undefined : AbortSignal.any(stops)
-  const child = spawn('git', [...arguments_], {
-    cwd: options.cwd,
-    // interface-env: none
-    env: options.env === undefined ? undefined : { ...process.env, ...options.env },
-    stdio: [childStdin(), 'pipe', 'pipe'],
-    detached: true,
-  })
-  const stdout: string[] = []
-  const stderr: string[] = []
-  child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
-    stdout.push(chunk)
-  })
-  child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
-    stderr.push(chunk)
-  })
-  const closed = new Promise<void>((resolve) => {
-    child.on('close', () => {
-      resolve()
-    })
-  })
-  const kill = (): void => {
-    killGroup(child.pid)
-  }
-  const forward = (signal: NodeJS.Signals): void => {
-    killGroup(child.pid)
-    for (const name of FORWARDED_SIGNALS) process.removeListener(name, forward)
-    process.kill(process.pid, signal)
-  }
-  stop?.addEventListener('abort', kill, { once: true })
-  for (const name of FORWARDED_SIGNALS) process.on(name, forward)
-  const ended = await new Promise<{ readonly kind: 'exit', readonly code: number | undefined } | { readonly kind: 'error', readonly error: Error }>((resolve) => {
-    child.on('error', (error) => {
-      resolve({ kind: 'error', error })
-    })
-    // 'close' は stdio を持つ孫（フック）が終わるまで出ないので、git の終わりは 'exit' で受ける
-    child.on('exit', (code) => {
-      resolve({ kind: 'exit', code: code ?? undefined })
-    })
-  })
-  stop?.removeEventListener('abort', kill)
-  for (const name of FORWARDED_SIGNALS) process.removeListener(name, forward)
-  if (ended.kind === 'error') throw toOsError(ended.error)
-  // 止めずに終わったなら、出力を読み切る。止めたなら、残ったパイプを捨てる
-  if (ended.code === 0 || stop?.aborted !== true) await closed
-  else {
-    child.stdout.destroy()
-    child.stderr.destroy()
-  }
-  const output = { stdout: normalizeNewlines(stdout.join('')), stderr: normalizeNewlines(stderr.join('')) }
-  if (ended.code === 0 || stop?.aborted !== true) return { exitCode: ended.code ?? -1, ...output }
-  return { exitCode: options.signal?.aborted === true ? GIT_CANCELLED : GIT_TIMED_OUT, ...output }
-}
-
-/**
 git を実行する。標準出力・標準エラーは改行を \n に揃えた文字列で返す。
 git や作業ディレクトリが見つからなければ OsError（code ENOENT）を投げる
 */
@@ -173,6 +95,31 @@ export function runGit(arguments_: readonly string[], options: Readonly<GitOptio
     throw toOsError(result.error)
   }
   const gitResult: GitResult = { exitCode: result.status ?? -1, stdout: normalizeNewlines(result.stdout), stderr: normalizeNewlines(result.stderr) }
+  if (options.check === true && gitResult.exitCode !== 0) throw new GitCommandError(arguments_, gitResult)
+  return gitResult
+}
+
+export interface AsyncGitOptions extends GitOptions {
+  /**
+  MCP の要求の取り消し。取り消されたら git をプロセスグループごと止めて CancelledError を投げる
+  */
+  readonly signal?: Readonly<AbortSignal> | undefined
+}
+
+/**
+runGit の非同期版。リモートを待つ git に使い、待つ間もイベントループを止めない
+*/
+export async function runGitAsync(arguments_: readonly string[], options: Readonly<AsyncGitOptions> = {}): Promise<GitResult> {
+  // interface-env: none
+  const base = options.stripGitEnvironment === true ? withoutGitVariables() : (options.env === undefined ? undefined : process.env)
+  const result = await runProcess('git', arguments_, {
+    cwd: options.cwd,
+    env: base === undefined ? undefined : { ...base, ...options.env },
+    timeoutMilliseconds: options.timeoutMilliseconds,
+    signal: options.signal,
+  })
+  if (result.isTimedOut) return { exitCode: GIT_TIMED_OUT, stdout: result.stdout, stderr: result.stderr }
+  const gitResult: GitResult = { exitCode: result.exitCode ?? -1, stdout: result.stdout, stderr: result.stderr }
   if (options.check === true && gitResult.exitCode !== 0) throw new GitCommandError(arguments_, gitResult)
   return gitResult
 }
@@ -278,8 +225,8 @@ export function remoteRepository(cwd: string | undefined, remote: string): Remot
 // 端末で尋ねさせない。ssh は GIT_SSH_COMMAND で BatchMode にすると利用者の GIT_SSH と core.sshCommand を上書きするので、askpass を失敗させる
 export const NON_INTERACTIVE_GIT: Readonly<Record<string, string>> = { GIT_TERMINAL_PROMPT: '0', SSH_ASKPASS: 'false', SSH_ASKPASS_REQUIRE: 'force' }
 
-// fetch は、この時間で諦める
-const REMOTE_TIMEOUT_MILLISECONDS = 60_000
+// fetch は、認証の入力を待たずに、この時間で諦める
+export const REMOTE_TIMEOUT_MILLISECONDS = 60_000
 
 /**
 push の時間切れ。pre-push のフックの時間を含める
@@ -291,7 +238,7 @@ export interface FetchResult {
   readonly stderr: string
 }
 
-export type PushResult = { readonly pushed: true } | { readonly pushed: false, readonly reason: 'rejected' | 'timed-out' | 'cancelled', readonly stderr: string }
+export type PushResult = { readonly pushed: true } | { readonly pushed: false, readonly reason: 'rejected' | 'timed-out', readonly stderr: string }
 
 export type RebaseOutcome = 'done' | 'conflict'
 
@@ -300,8 +247,8 @@ const PEEL_TO_COMMIT = '^{commit}'
 /**
 `git fetch <remote>`。失敗・時間切れは succeeded が false
 */
-export function fetchRemote(cwd: string, remote: string): FetchResult {
-  const result = runGit(['fetch', remote], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS })
+export async function fetchRemote(cwd: string, remote: string, signal?: Readonly<AbortSignal>): Promise<FetchResult> {
+  const result = await runGitAsync(['fetch', remote], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS, signal })
   return { succeeded: result.exitCode === 0, stderr: result.stderr }
 }
 
@@ -430,13 +377,12 @@ export interface PushOptions {
   readonly timeoutMilliseconds?: number | undefined
 }
 
-function pushFailure(exitCode: number): 'rejected' | 'timed-out' | 'cancelled' {
-  if (exitCode === GIT_TIMED_OUT) return 'timed-out'
-  return exitCode === GIT_CANCELLED ? 'cancelled' : 'rejected'
+function pushFailure(exitCode: number): 'rejected' | 'timed-out' {
+  return exitCode === GIT_TIMED_OUT ? 'timed-out' : 'rejected'
 }
 
 /**
-remote の branch が expectedSha のときだけ、手元の branch で置き換える。拒まれたか、時間切れか、取り消されたら、その理由と stderr を返す
+remote の branch が expectedSha のときだけ、手元の branch で置き換える。拒まれたか時間切れなら、その理由と stderr を返す。取り消されたら CancelledError を投げる
 */
 export async function pushWithLease(cwd: string, remote: string, branch: string, expectedSha: string, options: Readonly<PushOptions> = {}): Promise<PushResult> {
   const result = await runGitAsync(['push', `--force-with-lease=${branch}:${expectedSha}`, remote, branch], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: options.timeoutMilliseconds ?? PUSH_TIMEOUT_MILLISECONDS, signal: options.signal })
@@ -452,9 +398,19 @@ export type RemoteHead = { readonly isReachable: true, readonly sha: string | un
 /**
 remote の branch の先頭の SHA を、追跡参照を更新せずに尋ねる。無ければ sha が undefined。届かないか時間切れなら isReachable が false
 */
-export function remoteBranchHead(cwd: string, remote: string, branch: string): RemoteHead {
-  const listed = runGit(['ls-remote', '--exit-code', remote, `refs/heads/${branch}`], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: LS_REMOTE_TIMEOUT_MILLISECONDS })
+export async function remoteBranchHead(cwd: string, remote: string, branch: string, signal?: Readonly<AbortSignal>): Promise<RemoteHead> {
+  const listed = await runGitAsync(['ls-remote', '--exit-code', remote, `refs/heads/${branch}`], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: LS_REMOTE_TIMEOUT_MILLISECONDS, signal })
   if (listed.exitCode === LS_REMOTE_NOT_FOUND) return { isReachable: true, sha: undefined }
   const [sha] = listed.exitCode === 0 ? listed.stdout.split(/\s/u, 1) : []
   return sha === undefined || sha === '' ? { isReachable: false } : { isReachable: true, sha }
+}
+
+/**
+remote にタグがあるか。届かないか時間切れなら failure に git の stderr を入れる
+*/
+export async function remoteTagExists(cwd: string, remote: string, tagName: string, signal?: Readonly<AbortSignal>): Promise<RemoteTagLookup> {
+  const listed = await runGitAsync(['ls-remote', '--tags', remote, `refs/tags/${tagName}`], { cwd, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: LS_REMOTE_TIMEOUT_MILLISECONDS, signal })
+  if (listed.exitCode === GIT_TIMED_OUT) return { failure: `${listed.stderr}timed out after ${String(LS_REMOTE_TIMEOUT_MILLISECONDS / 1000)} seconds` }
+  if (listed.exitCode !== 0) return { failure: listed.stderr }
+  return { isFound: pythonStrip(listed.stdout) !== '' }
 }

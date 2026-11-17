@@ -5,7 +5,6 @@
 // nx の project graph → git diff → project root との最長一致、の順で求める。
 // 判定できない場合は例外ではなく undefined を返し、呼び出し側が警告して割り当てを飛ばす（フェイルオープン）。
 
-import { spawnSync } from 'node:child_process'
 import { accessSync, constants, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs'
 import path from 'node:path'
 
@@ -13,8 +12,10 @@ import { isJsonObject, jsonField, tryParseJsonText } from '../domain/json.js'
 import type { JsonValue } from '../domain/python-format.js'
 import { compareStrings, isJsonArray, pythonRepr } from '../domain/python-format.js'
 import { GitCommandError, runGit } from './git.js'
-import { isFileNotFound } from './os-error.js'
+import { isFileNotFound, OsError } from './os-error.js'
 import { TMP_DIR } from './paths.js'
+import { runProcess } from './process-run.js'
+import type { ProcessResult } from './process-run.js'
 import { readTextFile } from './text-file.js'
 
 /**
@@ -106,13 +107,17 @@ export interface NxGraphOptions {
   nx graph の実行上限（秒）。既定は NX_GRAPH_TIMEOUT_SECONDS
   */
   readonly timeoutSeconds?: number | undefined
+  /**
+  MCP の要求の取り消し。取り消されたら nx を止めて CancelledError を投げる
+  */
+  readonly signal?: Readonly<AbortSignal> | undefined
 }
 
 /**
 nx の project graph から `{プロジェクト名: NxProject}` を返す。stdout では大きな JSON が切れるため、一時ファイルに書かせて読む。
 nx が無い・実行失敗・部分 graph・JSON の解析失敗なら undefined
 */
-export function nxProjects(toplevel: string, options: Readonly<NxGraphOptions> = {}): ReadonlyMap<string, NxProject> | undefined {
+export async function nxProjects(toplevel: string, options: Readonly<NxGraphOptions> = {}): Promise<ReadonlyMap<string, NxProject> | undefined> {
   const nx = resolveNx(toplevel)
   if (nx === undefined) return undefined
   const temporaryBase = path.join(toplevel, TMP_DIR)
@@ -126,16 +131,22 @@ export function nxProjects(toplevel: string, options: Readonly<NxGraphOptions> =
   }
   try {
     const graphFile = path.join(work, 'graph.json')
-    const result = spawnSync(nx, ['graph', `--file=${graphFile}`], {
-      cwd: toplevel,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: (options.timeoutSeconds ?? NX_GRAPH_TIMEOUT_SECONDS) * 1000,
-      killSignal: 'SIGKILL',
-      // interface-env: none
-      env: { ...process.env, NX_DAEMON: 'false' },
-    })
-    if (result.error !== undefined || result.status !== 0 || result.stderr.includes('Showing partial graph')) return undefined
+    let result: ProcessResult
+    try {
+      result = await runProcess(nx, ['graph', `--file=${graphFile}`], {
+        cwd: toplevel,
+        stdin: 'ignore',
+        timeoutMilliseconds: (options.timeoutSeconds ?? NX_GRAPH_TIMEOUT_SECONDS) * 1000,
+        // interface-env: none
+        env: { ...process.env, NX_DAEMON: 'false' },
+        signal: options.signal,
+      })
+    }
+    catch (error: unknown) {
+      if (error instanceof OsError) return undefined
+      throw error
+    }
+    if (result.isTimedOut || result.exitCode !== 0 || result.stderr.includes('Showing partial graph')) return undefined
     let text: string
     try {
       text = readTextFile(graphFile)

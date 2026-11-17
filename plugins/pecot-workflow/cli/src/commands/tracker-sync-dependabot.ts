@@ -140,7 +140,7 @@ tracker sync の source dependabot の本体。Tracker の Dependabot PRs waitin
 export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<0> {
   const out = createOutput<TrackerSyncData>(input.dry_run, io)
   const { config, owner, repository } = loadTarget(out, input.repo, input.project)
-  const client = makeClient(out, config)
+  const client = await makeClient(out, config)
 
   let pullRequests
   let issues

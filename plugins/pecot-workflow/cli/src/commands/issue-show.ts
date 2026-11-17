@@ -15,7 +15,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
-import { createGitHubClient } from './github-client.js'
+import { createAuthenticatedGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, READINESS_JSON, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
 import type { IssueSnapshot, JudgedIssue, ReadinessJson } from './issue-readiness.js'
@@ -258,7 +258,8 @@ const ISSUE_SHOW = defineCommand({
       const { config } = requireConfigFor(output, { owner, repository }, input.project, ['issue', 'show'])
 
       let issue: IssueSlim
-      const client = createGitHubClient(output, config.host)
+      // 認証の失敗を、Issue を読めない文に包まないため
+      const client = await createAuthenticatedGitHubClient(output, config.host)
       try {
         issue = await client.getIssueSlim(owner, repository, number, input.comment_limit)
       }

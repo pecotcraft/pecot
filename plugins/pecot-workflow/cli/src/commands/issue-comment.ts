@@ -23,7 +23,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputNameHint, placeholder } from './command-hint.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
-import { createGitHubClient } from './github-client.js'
+import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
 import {
   COMMENT_VALIDATION_EXIT_CODE,
   hasReportedTemplateViolations,
@@ -208,7 +208,8 @@ async function postDirect(output: CommentOutput, project: string | undefined, re
     output.planned({ verb: 'create', target: `comment on ${issuePath(target.owner, target.repository, target.number)}` })
     return
   }
-  await createComment(output, createGitHubClient(output, config.host), target, message)
+  // 認証の失敗を、コメントを作れない文に包まないため
+  await createComment(output, await createAuthenticatedGitHubClient(output, config.host), target, message)
 }
 
 const COMMENT_PATH = ['issue', 'comment']

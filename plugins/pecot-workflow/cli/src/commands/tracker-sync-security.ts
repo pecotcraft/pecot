@@ -139,7 +139,7 @@ tracker sync の source security の本体。Tracker の open security alerts �
 export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<0> {
   const out = createOutput<TrackerSyncData>(input.dry_run, io)
   const { config, owner, repository } = loadTarget(out, input.repo, input.project)
-  const client = makeClient(out, config)
+  const client = await makeClient(out, config)
 
   const sources: AlertSources = { scan: createScanAlertSource(client), dependabot: createDependabotSource(client) }
   const { alerts, failed, disabled } = await fetchOpenAlerts(out, sources, config.host, owner, repository)

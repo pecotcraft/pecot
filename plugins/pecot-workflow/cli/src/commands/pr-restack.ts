@@ -112,10 +112,6 @@ function describePushFailure(push: Readonly<Extract<PushResult, { pushed: false 
     case 'timed-out': {
       return hinted`push timed out after ${String(PUSH_TIMEOUT_MILLISECONDS / MILLISECONDS_PER_SECOND)} seconds\n${unchanged}\npush the branch yourself: ${FORCE_PUSH_COMMAND} ${remote} ${branch}\nthen run: ${commandHint(RESTACK_PATH)}`
     }
-    case 'cancelled': {
-      // MCP の取り消しには応答が送られない。誰にも届かないが、記録を書かずに止める扱いとして持つ
-      return hinted`push was cancelled\n${unchanged}\nrun again: ${commandHint(RESTACK_PATH)}`
-    }
     case 'rejected': {
       return hinted`push was rejected: ${push.stderr.trim()}\n${unchanged}\nrun again: ${commandHint(RESTACK_PATH)}`
     }
@@ -134,7 +130,15 @@ async function finishRestack(out: RestackOutput, cwd: string, progress: Readonly
   const isSynced = isSyncedWithRemote(cwd, progress)
   if (isSynced) resetHardTo(cwd, remoteBranch)
   else if (leaseSha !== undefined) {
-    const push = await pushWithLease(cwd, remote, branch, leaseSha, { signal })
+    let push: PushResult
+    try {
+      push = await pushWithLease(cwd, remote, branch, leaseSha, { signal })
+    }
+    catch (error: unknown) {
+      // 取り消しでも、記録を書かずに途中の記録を消して止める
+      removeFlag(FLAG_PECOT_RESTACK)
+      throw error
+    }
     if (!push.pushed) {
       removeFlag(FLAG_PECOT_RESTACK)
       stopWith(out, describePushFailure(push, remote, branch), 'git-unresolved')
@@ -196,7 +200,7 @@ interface StackedTarget {
 async function decideFor(out: RestackOutput, cwd: string, host: string, target: Readonly<StackedTarget>): Promise<RestackDecision> {
   const { remote, owner, repository, developBranch, reading } = target
   const { branch } = reading.record
-  const read = await readRestackDecision({ client: () => createGitHubClient(out, host), owner, repository, cwd, remote, reading, developBranch })
+  const read = await readRestackDecision({ client: () => createGitHubClient(out, host), owner, repository, cwd, remote, reading, developBranch, signal: out.signal })
   switch (read.kind) {
     case 'pull-request-unreadable': {
       return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(read.error)}`, kindOfFailure(read.error))
@@ -247,9 +251,12 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   }
   const config = requireConfigFor(out, location, input.project, RESTACK_PATH).config
   // 記録が無ければ、求める前に fetch して、手元に無い下の段も追跡参照で見る
-  let fetched: FetchResult | undefined
-  const fetchOnce = (): FetchResult => (fetched ??= fetchRemote(cwd, remote))
-  const base = await readBaseOrInfer({ directory: cwd, project: { config, client: () => createGitHubClient(out, config.host) }, beforeInfer: fetchOnce })
+  let fetched: Promise<FetchResult> | undefined
+  const fetchOnce = async (): Promise<FetchResult> => await (fetched ??= fetchRemote(cwd, remote, out.signal))
+  const fetchBeforeInfer = async (): Promise<void> => {
+    await fetchOnce()
+  }
+  const base = await readBaseOrInfer({ directory: cwd, project: { config, client: () => createGitHubClient(out, config.host) }, beforeInfer: fetchBeforeInfer })
   warnUnresolved(base, out)
   const { reading } = base
   stopOnMalformedRecord(reading, out)
@@ -263,7 +270,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     return
   }
   if (!input.check && hasUncommittedChanges(cwd)) stopWith(out, 'working tree has uncommitted changes', 'preflight-failed', UNCOMMITTED_EXIT_CODE)
-  const fetchResult = fetchOnce()
+  const fetchResult = await fetchOnce()
   if (!fetchResult.succeeded) stopWith(out, `cannot fetch ${remote}: ${fetchResult.stderr.trim()}`, 'git-unresolved')
 
   const target: StackedTarget = { remote, owner: location.owner, repository: location.repository, reading, developBranch }

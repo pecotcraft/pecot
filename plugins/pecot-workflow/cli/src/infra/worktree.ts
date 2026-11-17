@@ -447,10 +447,10 @@ function copyUntrackedToWorktree(mainWorktree: string, worktreePath: string, spe
 }
 
 // セットアップコマンド実行。優先順位: CLI --setup 明示 > config.setup_command > skip
-function runEffectiveSetup(setupCommand: string | undefined, config: WorktreeConfig, worktreePath: string, diagnostics: Diagnostics): SetupResult | undefined {
+async function runEffectiveSetup(setupCommand: string | undefined, config: WorktreeConfig, worktreePath: string, diagnostics: Diagnostics, signal: Readonly<AbortSignal> | undefined): Promise<SetupResult | undefined> {
   const effective = setupCommand ?? config.setup_command
   if (effective === undefined || effective === '') return undefined
-  const result = runSetupCommand(effective, worktreePath, config.setup_command_timeout)
+  const result = await runSetupCommand(effective, worktreePath, config.setup_command_timeout, signal)
   if (result.exitCode !== 0) {
     // Python の core と同じ 1 メッセージ。字下げは受け口側が付ける
     const head = result.exitCode === -1 ? `setup command timed out: ${effective}` : `setup command failed (exit ${String(result.exitCode)}): ${effective}`
@@ -501,13 +501,17 @@ export interface CreateWorktreeOptions {
   使うプロジェクトの設定の名前。省略時は remote のリポを含む設定
   */
   readonly project?: string | undefined
+  /**
+  MCP の要求の取り消し。setup_command を止める
+  */
+  readonly signal?: Readonly<AbortSignal> | undefined
 }
 
 /**
 ワークツリーを作成する。cwd は対象 Git リポジトリのパス。
 作成に失敗した場合、プロジェクトルート・既存ブランチ衝突・設定の不備は WorktreeRuntimeError
 */
-export function createWorktree(cwd: string, diagnostics: Diagnostics, options: Readonly<CreateWorktreeOptions> = {}): WorktreeCreateResult {
+export async function createWorktree(cwd: string, diagnostics: Diagnostics, options: Readonly<CreateWorktreeOptions> = {}): Promise<WorktreeCreateResult> {
   // 1. メインWT検出 & プロジェクトルート
   const mainWorktree = findMainWorktree(cwd)
   const projectRoot = detectProjectRoot(cwd)
@@ -547,7 +551,7 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
     ? { linkedFiles: [], symlinkedPaths: [] }
     : createWorktreeSymlinks(worktreeConfig, projectRoot, worktreePath, diagnostics)
   const copiedFiles = options.shouldCopy === false ? [] : copyUntrackedToWorktree(mainWorktree, worktreePath, spec, linking.symlinkedPaths)
-  const setupResult = runEffectiveSetup(options.setupCommand, worktreeConfig, worktreePath, diagnostics)
+  const setupResult = await runEffectiveSetup(options.setupCommand, worktreeConfig, worktreePath, diagnostics, options.signal)
   return { name, path: worktreePath, branch: name, baseBranch, copiedFiles, linkedFiles: linking.linkedFiles, setupResult }
 }
 

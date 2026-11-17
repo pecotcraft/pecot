@@ -21,6 +21,11 @@ export class BaseError extends Error {
 export class PecotError extends BaseError {}
 
 /**
+MCP の要求が取り消され、待っていた子プロセスや要求を止めた。message は取り消しの理由
+*/
+export class CancelledError extends BaseError {}
+
+/**
 プロジェクトルートが見つからない
 */
 export class ProjectRootNotFoundError extends PecotError {}

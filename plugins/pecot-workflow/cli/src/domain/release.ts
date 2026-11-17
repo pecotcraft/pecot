@@ -53,14 +53,23 @@ base より head が進んでいる commit の数。GitHub の compare で数え
 export type CountCommitsAhead = (base: string, head: string) => Promise<number>
 
 /**
+remote のタグの有無。尋ねられなければ failure に git の stderr
+*/
+export type RemoteTagLookup = { readonly isFound: boolean } | { readonly failure: string }
+
+export type LookUpRemoteTag = (remote: string, tagName: string) => Promise<RemoteTagLookup>
+
+/**
 git を実行して標準出力を返す。非 0 終了は ReleaseError
 */
 function runGit(git: GitRunner, arguments_: readonly string[]): string {
   const result = git(arguments_)
-  if (result.exitCode !== 0) {
-    throw new ReleaseError(`git command failed: git ${arguments_.join(' ')}\n${pythonStrip(result.stderr)}`)
-  }
+  if (result.exitCode !== 0) throw gitFailed(arguments_, result.stderr)
   return pythonStrip(result.stdout)
+}
+
+function gitFailed(arguments_: readonly string[], stderr: string): ReleaseError {
+  return new ReleaseError(`git command failed: git ${arguments_.join(' ')}\n${pythonStrip(stderr)}`)
 }
 
 function determineVersion(options: PreflightOptions, changelogContent: string): string {
@@ -82,7 +91,7 @@ function determineVersion(options: PreflightOptions, changelogContent: string): 
 1. CHANGELOG.md の存在、2. バージョンの検出または検証、3. タグが無いこと（ローカル・リモート）、
 4. release→develop の差分（countAhead）、5. リリースノートの抽出、の順に確かめる。失敗は ReleaseError
 */
-export async function runPreflight(options: PreflightOptions, git: GitRunner, countAhead: CountCommitsAhead): Promise<PreflightResult> {
+export async function runPreflight(options: PreflightOptions, git: GitRunner, lookUpRemoteTag: LookUpRemoteTag, countAhead: CountCommitsAhead): Promise<PreflightResult> {
   const { changelogContent, developBranch, releaseBranch } = options
   if (changelogContent === undefined) throw new ReleaseError(changelogNotFoundMessage(options.changelogPath))
   const remote = options.remote ?? 'origin'
@@ -93,8 +102,9 @@ export async function runPreflight(options: PreflightOptions, git: GitRunner, co
   const localTags = runGit(git, ['tag', '-l', tagName])
   if (localTags.split('\n').includes(tagName)) throw new ReleaseError(`tag already exists locally: ${tagName}`)
 
-  const remoteTags = runGit(git, ['ls-remote', '--tags', remote, `refs/tags/${tagName}`])
-  if (remoteTags !== '') throw new ReleaseError(`tag already exists on the remote: ${tagName}`)
+  const remoteTag = await lookUpRemoteTag(remote, tagName)
+  if ('failure' in remoteTag) throw gitFailed(['ls-remote', '--tags', remote, `refs/tags/${tagName}`], remoteTag.failure)
+  if (remoteTag.isFound) throw new ReleaseError(`tag already exists on the remote: ${tagName}`)
 
   const diffCount = await countAhead(releaseBranch, developBranch)
   if (diffCount === 0) {

@@ -143,6 +143,8 @@ function dependenciesOver(stdin: PassThrough, stderr: FakeTarget, serverTranspor
     environment: {},
     cwd: () => process.cwd(),
     changeDirectory: vi.fn(),
+    onShutdown: [],
+    signals: { on: vi.fn(), exit: vi.fn() },
   }
 }
 

@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/server'
 import type { CallToolResult, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import { InvalidValueError } from '../domain/errors.js'
+import { CancelledError, InvalidValueError } from '../domain/errors.js'
 import { parseOwnerRepository } from '../domain/repository-resolver.js'
 import { resolveApiUrlOverride } from '../infra/github/client.js'
 import { usageOf, withUsage } from '../commands/command-binding.js'
@@ -32,6 +32,10 @@ export interface McpServerOptions {
   プログラムの誤り（報告できる失敗でも使い方の誤りでもない例外）と、それまでに集めた出力を、切り分けのために伝える先。結果は kind が other の失敗にする
   */
   readonly reportUnexpected?: (error: unknown, collected: { readonly stdout: string, readonly stderr: string }) => void
+  /**
+  要求の取り消しでコマンドを止めたとき、その理由を伝える先（仕様が理由の記録を求める）
+  */
+  readonly reportCancelled?: (reason: string) => void
 }
 
 type Preparation
@@ -108,7 +112,7 @@ function unexpectedMessage(error: unknown): string {
 
 async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, options: Readonly<McpServerOptions>, signal: Readonly<AbortSignal>): Promise<CallToolResult> {
   if (options.unavailableReason !== undefined) return unavailableResult(options.unavailableReason)
-  const collected = collectIo()
+  const collected = collectIo(signal)
   // interface-env: TERMINAL_WIDTH COLUMNS
   const width = outputWidth(process.env, undefined)
   let exitCode: number
@@ -118,13 +122,17 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     const preparation = prepare(definition, raw)
     if (preparation.kind === 'rejected') return toRejectedResult(preparation.message)
     try {
-      exitCode = await preparation.command.run({ ...collected.io, signal })
+      exitCode = await preparation.command.run(collected.io)
     }
     catch (error: unknown) {
       throw withUsage(error, usageOf(definition))
     }
   }
   catch (error: unknown) {
+    if (error instanceof CancelledError) {
+      options.reportCancelled?.(error.message)
+      return toAbortedResult()
+    }
     // 使い方の誤りは枠で出すので、error の行の代わりに例外の文の 1 行目を message にする
     if (error instanceof UsageError) message = error.message.split('\n', 1)[0]
     try {

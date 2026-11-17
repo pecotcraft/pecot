@@ -1,5 +1,5 @@
 // `pecot mcp` の実装。cli.ts が dynamic import で読む。stdout は JSON-RPC 専用にし、stdin が閉じたら接続を閉じる。
-// pecot-tools の serve.ts と骨格が同じ。SIGTERM・SIGINT の配線と子の kill は、子が短命で git が同期なので持たない（共有は別途）。
+// pecot-tools の serve.ts と骨格が同じ。終了のときは、待っている子プロセス（runProcess）を止める。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数は Node の stream。mutable な型でしか公開されていない */
 import { Writable } from 'node:stream'
 import type { Readable } from 'node:stream'
@@ -9,6 +9,7 @@ import { StdioServerTransport, serveStdio } from '@modelcontextprotocol/server/s
 import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 
 import { setChildStdin } from '../infra/child-stdin.js'
+import { killRunningProcesses } from '../infra/process-run.js'
 import { createOutput } from '../commands/output.js'
 import { UNDETERMINED_PREFIX, resolveSessionDirectory, unusableReason } from './session-directory.js'
 import { createMcpServer } from './server.js'
@@ -86,7 +87,23 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
   return protocolStdout
 }
 
+const SIGTERM_EXIT_CODE = 143
+const SIGINT_EXIT_CODE = 130
+
+/**
+SIGTERM / SIGINT / 'exit' の配線先。既定は process 本体で、テストはフェイクを渡す
+*/
+export interface ProcessSignals {
+  on(event: 'SIGTERM' | 'SIGINT' | 'exit', listener: () => void): void
+  exit(code: number): void
+}
+
 export interface McpServeDependencies {
+  /**
+  終了時の後始末。別のプロセスグループで待っている子は、サーバが終わっても残るので止める
+  */
+  readonly onShutdown: readonly (() => void)[]
+  readonly signals: ProcessSignals
   /**
   options.unavailableReason があるとき、サーバはどのツールの呼び出しにもその理由を返す（対象のリポを決められなかったとき）
   */
@@ -112,6 +129,25 @@ export interface McpServeDependencies {
   readonly changeDirectory: (directory: string) => void
 }
 
+function runShutdown(dependencies: Readonly<McpServeDependencies>): void {
+  for (const hook of dependencies.onShutdown) hook()
+}
+
+// SIGTERM / SIGINT は既定の即終了が無効になるので、明示的に exit する
+function installShutdownHandlers(dependencies: Readonly<McpServeDependencies>): void {
+  dependencies.signals.on('SIGTERM', () => {
+    runShutdown(dependencies)
+    dependencies.signals.exit(SIGTERM_EXIT_CODE)
+  })
+  dependencies.signals.on('SIGINT', () => {
+    runShutdown(dependencies)
+    dependencies.signals.exit(SIGINT_EXIT_CODE)
+  })
+  dependencies.signals.on('exit', () => {
+    runShutdown(dependencies)
+  })
+}
+
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -124,6 +160,7 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
   const protocolStdout = dependencies.installStdoutGuard()
   const transport = dependencies.createTransport(dependencies.stdin, protocolStdout)
   const reportError = reportTo(dependencies.stderr)
+  installShutdownHandlers(dependencies)
 
   // 接続とインスタンスの onerror に同じ Error が流れるので、1 回だけ報告する
   const report = (error: Readonly<Error>): void => {
@@ -136,11 +173,15 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
     if (collected.stdout !== '') reportError(`stdout so far: ${collected.stdout}`)
     if (collected.stderr !== '') reportError(`stderr so far: ${collected.stderr}`)
   }
+  const reportCancelled: NonNullable<McpServerOptions['reportCancelled']> = (reason) => {
+    // eslint-disable-next-line no-restricted-syntax -- 取り消しの理由の記録。失敗ではないので error の行にしない
+    dependencies.stderr.write(`cancelled: ${reason}\n`)
+  }
 
   const handle = serveStdio(
     () => {
       try {
-        const server = dependencies.createServer({ reportUnexpected })
+        const server = dependencies.createServer({ reportUnexpected, reportCancelled })
         // eslint-disable-next-line unicorn/prefer-add-event-listener -- SDK の Protocol は onerror 経由で通知する
         server.server.onerror = report
         return server
@@ -172,6 +213,8 @@ export function defaultDependencies(): McpServeDependencies {
   return {
     createServer: options => createMcpServer(undefined, options),
     createTransport: (stdin, stdout) => new StdioServerTransport(stdin, stdout),
+    onShutdown: [killRunningProcesses],
+    signals: process,
     /* v8 ignore next -- 実 process.stdout を差し替えるので、単体テストからは起動しない（ガード本体は偽の stream で確かめる） */
     installStdoutGuard: () => installStdoutGuard(process.stdout, process.stderr),
     stdin: process.stdin,
