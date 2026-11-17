@@ -125,10 +125,10 @@ export async function putOnBoard(
   issueNumber: number,
   priority: string | undefined,
   options: Readonly<PutOnBoardOptions>,
-  hintState: FieldHintState,
 ): Promise<number> {
+  const hintState: FieldHintState = { hasHinted: false }
   const { itemId } = await addIssueToBoard(client, config, owner, repository, issueNumber, undefined)
-  // 3 つ目は warning に出す欄の名前（issue-shared.ts の setIssueFields の文にそろえる）
+  // 3 つ目は error の行に出す欄の名前
   const fields: (readonly [string, string, string])[] = [['workflow', BOARD_STATUS, 'status']]
   if (priority !== undefined) fields.push(['priority', priority, 'priority'])
   let failures = 0
@@ -139,8 +139,7 @@ export async function putOnBoard(
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      // issuePath（issue-shared.ts）と同じ表記。issue-shared.ts はこのファイルを import するので、ここでは組み立てる
-      out.error(fieldWriteFailure(`could not set ${label} ${option} of Issue ${owner}/${repository}/${String(issueNumber)}: ${error.message}`, error, hintState))
+      out.error(fieldWriteFailure(`could not set ${label} ${option} of Tracker #${String(issueNumber)}: ${error.message}`, error, hintState))
       failures += 1
     }
   }
@@ -214,7 +213,7 @@ function warnConflict(out: Readonly<Output>, name: string, target: MoveTarget, c
 /**
 decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
 text は列を動かす理由の判定の文。board sync と issue block / unblock が使う。
-hintState は、選択肢の ID を読み直す案内を 1 回の実行で 1 回だけ出すための印
+hintState は、選択肢の ID を読み直す案内を 1 回の実行で 1 回だけ出すための印（省くと毎回出す）
 */
 export async function applyBoardMove(
   out: Readonly<Output>,
@@ -224,7 +223,7 @@ export async function applyBoardMove(
   target: MoveTarget,
   move: Readonly<BoardMove>,
   text: string,
-  hintState: FieldHintState,
+  hintState?: FieldHintState,
 ): Promise<AppliedMove> {
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)

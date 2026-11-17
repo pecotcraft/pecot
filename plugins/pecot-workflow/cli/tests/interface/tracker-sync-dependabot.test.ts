@@ -463,9 +463,9 @@ describe('tracker sync', () => {
     expect(stderrAfterCounts(result)).toBe([
       `created: Tracker "${TODAY_TITLE}"`,
       'added: PR #2 to new Tracker (major)',
-      `error: could not set status backlog of Issue acme/demo/100: ${STALE_OPTION_TEXT}`,
+      `error: could not set status backlog of Tracker #100: ${STALE_OPTION_TEXT}`,
       '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
-      `error: could not set priority medium of Issue acme/demo/100: ${STALE_OPTION_TEXT}`,
+      `error: could not set priority medium of Tracker #100: ${STALE_OPTION_TEXT}`,
       '',
     ].join('\n'))
   })

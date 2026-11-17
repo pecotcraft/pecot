@@ -100,7 +100,7 @@ async function applyChanges(out: Readonly<Output<TrackerSyncData>>, input: Reado
       for (const operation of stages.create) out.done(operation)
       const created = requireNumber(issue['number'], 'number')
       out.result({ tracker: created, created: true, added: rows.added })
-      return await putOnBoard(out, client, config, owner, repository, created, priority, { onlyIfEmpty: false }, { hasHinted: false })
+      return await putOnBoard(out, client, config, owner, repository, created, priority, { onlyIfEmpty: false })
     }
     let failures = 0
     let isUpdated = true
@@ -122,7 +122,7 @@ async function applyChanges(out: Readonly<Output<TrackerSyncData>>, input: Reado
       out.result(rows)
     }
     // 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
-    failures += await putOnBoard(out, client, config, owner, repository, number, priority, { onlyIfEmpty: true }, { hasHinted: false })
+    failures += await putOnBoard(out, client, config, owner, repository, number, priority, { onlyIfEmpty: true })
     return failures
   }
   catch (error: unknown) {

@@ -1068,6 +1068,9 @@ entries:
       - id: PW-ISSUE-BLOCK-24
         pattern: event
         statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
+      - id: PW-ISSUE-BLOCK-25
+        pattern: unwanted
+        statement: 'もし列を書けないなら、`warning` の行を出し、前提を付けたまま終了コード 0 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
   PW-ISSUE-COMMENT:
     help:
       details:
@@ -2237,6 +2240,9 @@ entries:
       - id: PW-ISSUE-UNBLOCK-18
         pattern: event
         statement: 'MCP で呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
+      - id: PW-ISSUE-UNBLOCK-19
+        pattern: unwanted
+        statement: 'もし列を書けないなら、`warning` の行を出し、前提を外したまま終了コード 0 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
   PW-PR-CHECK:
     help:
       details:
@@ -5313,6 +5319,9 @@ entries:
       - id: PW-SESSION-FINISH-39
         pattern: unwanted
         statement: 'もしリモートの head ブランチの削除に失敗したなら、`warning` の行を標準エラーに出し、終了コード 0 で終わります'
+      - id: PW-SESSION-FINISH-40
+        pattern: unwanted
+        statement: 'もし待っている Issue の列を書けないなら、`warning` の行を出して続けます。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を、1 回の実行で 1 回だけ添えます'
   PW-SESSION-SHOW:
     help:
       details:

@@ -151,7 +151,7 @@ async function moveBoard(context: Context, expected: ExpectedPrerequisites, hasP
     return undefined
   }
   if (hasWrite && itemId === '') return undefined
-  const { missing, written } = await applyBoardMove(out, client, config, itemId, { ref: target, home }, move, describeReadiness(judged.readiness, judged.prerequisites, home), { hasHinted: false })
+  const { missing, written } = await applyBoardMove(out, client, config, itemId, { ref: target, home }, move, describeReadiness(judged.readiness, judged.prerequisites, home))
   for (const value of missing) {
     out.warning(joinHinted([`the ${value} option is not on the board, so ${name} was not moved`, hintFor(value)]))
   }

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { requestLabels } from '../_helpers/command-harness.js'
+import { requestLabels, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
@@ -48,6 +48,28 @@ describe('issue unblock', () => {
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'removed: blocked-by #5 from #7\nmoved: #7 Blocked -> Ready (startable)\n' })
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'PATCH /repos/acme/demo/issues/7', 'UpdateProjectItemField'])
+  })
+
+  it('選択肢の ID が古くて列を書けないと、前提を外したまま warning と project activate の案内を出し、終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-19')
+    prepareDependencyProject()
+    await startGithub([
+      bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
+      prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [] }), boardItems(), staleOptionUpdate(),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result).toEqual({
+      code: 0,
+      stdout: '',
+      stderr: [
+        'removed: blocked-by #5 from #7',
+        `warning: could not move #7: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        '',
+      ].join('\n'),
+    })
   })
 
   it('--by がプロジェクトに無い別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を外す', async (context) => {

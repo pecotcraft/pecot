@@ -771,6 +771,38 @@ describe('issue create', () => {
       expect(workflowWrites(github)).toMatchObject([{ optionId: 'o7' }, { optionId: 'o3' }])
     })
 
+    it('欄と列の直しがどちらも古い ID で書けないとき、project activate の案内を 1 回だけ出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-24')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', 'priority: high', ...blockedBy('acme/demo/12')) })
+      await startGithub([
+        linkedRepositories(),
+        blockedBySupported(),
+        issueNodeId(12),
+        createdIssue(13),
+        blockedByAdded(),
+        issueNodeId(13),
+        addedToProject(),
+        updatedFields(1),
+        staleOptionUpdate(2),
+        prerequisitesRule({ number: 13, column: 'Blocked', blockedBy: [{ number: 12, state: 'CLOSED', branch: 'feat/12', pullRequests: [{ number: 5, state: 'MERGED', head: 'feat/12' }] }] }),
+      ])
+
+      const result = await create(path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe([
+        'created: Issue acme/demo/13 from a.md',
+        'added: blocked-by #12 to #13',
+        'added: Issue acme/demo/13 to project',
+        `warning: could not set priority high of Issue acme/demo/13: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        'set: Issue acme/demo/13 status blocked',
+        `warning: could not move #13: ${STALE_OPTION_TEXT}`,
+        '',
+      ].join('\n'))
+    })
+
     it('作成の応答に node_id が無いとき、ボードへ先に足して、その node ID で前提を付ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-46')
       const project = setUpIssueProject()

@@ -246,9 +246,9 @@ describe('tracker sync', () => {
         stderr: [
           `created: Tracker "${TODAY_TITLE}" with priority medium`,
           'added: dependabot #1 to new Tracker',
-          `error: could not set status backlog of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
+          `error: could not set status backlog of Tracker #12: ${STALE_OPTION_TEXT}`,
           '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
-          `error: could not set priority medium of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
+          `error: could not set priority medium of Tracker #12: ${STALE_OPTION_TEXT}`,
           '',
         ].join('\n'),
       })

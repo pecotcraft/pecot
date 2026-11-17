@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { requestLabels } from '../_helpers/command-harness.js'
+import { requestLabels, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
@@ -58,6 +58,28 @@ describe('issue block', () => {
       'GetLinkedRepositoriesUser', 'GetIssueBlockedByReferences', 'GetIssueNodeId', 'GetBlockedByOfNodes', 'AddBlockedBy',
       'GetIssuePrerequisites', 'GetIssueProjectItems', 'UpdateProjectItemField',
     ])
+  })
+
+  it('選択肢の ID が古くて列を書けないと、前提を付けたまま warning と project activate の案内を出し、終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-BLOCK-25')
+    prepareDependencyProject()
+    await startGithub([
+      bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
+      prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), staleOptionUpdate(),
+    ])
+
+    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result).toEqual({
+      code: 0,
+      stdout: '',
+      stderr: [
+        'added: blocked-by #5 to #7',
+        `warning: could not move #7: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        '',
+      ].join('\n'),
+    })
   })
 
   it('--wait merge と --reason を付けると、本文の節に前提と理由の行を足し、節の外は書き換えない', async (context) => {

@@ -149,20 +149,20 @@ describe('putOnBoard', () => {
       graphqlData('GetIssueProjectItems', projectItems(filledFieldIds), 2),
       ...expected.length === 0 ? [] : [updateRule(expected.length)],
     ])
-    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: true }, newHint())
+    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: true })
     expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual(expected)
   })
 
   it('onlyIfEmpty でなければ、入っている値も上書きする', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, updateRule(2)])
-    const failures = await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false }, newHint())
+    const failures = await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
     expect(failures).toBe(0)
     expect(graphqlRequests(server).filter(({ operation }) => operation !== 'GetIssueNodeId' && operation !== 'AddToProject')).toEqual([WORKFLOW, PRIORITY])
   })
 
   it('priority が無ければ Status だけ設定する', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, updateRule(1)])
-    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, undefined, { onlyIfEmpty: false }, newHint())
+    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, undefined, { onlyIfEmpty: false })
     expect(graphqlRequests(server).at(-1)).toEqual(WORKFLOW)
     expect(graphqlRequests(server)).toHaveLength(3)
   })
@@ -170,11 +170,11 @@ describe('putOnBoard', () => {
   it('欄の書き込みが VALIDATION で落ちると、欄ごとに error を出し、案内を 1 回だけ添えて続け、書けなかった欄の数を返す', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, STALE_UPDATES])
     const io = capture()
-    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false }, newHint())).toBe(2)
+    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })).toBe(2)
     const stderr = io.err.join('')
     expect(stderr.split('\n').filter(line => line.startsWith('error: '))).toEqual([
-      `error: could not set status backlog of Issue o/r/5: ${STALE_OPTION_TEXT}`,
-      `error: could not set priority high of Issue o/r/5: ${STALE_OPTION_TEXT}`,
+      `error: could not set status backlog of Tracker #5: ${STALE_OPTION_TEXT}`,
+      `error: could not set priority high of Tracker #5: ${STALE_OPTION_TEXT}`,
     ])
     expect(hintLines(stderr)).toHaveLength(1)
     expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual([WORKFLOW, PRIORITY])
@@ -183,14 +183,14 @@ describe('putOnBoard', () => {
   it('欄の書き込みが VALIDATION 以外で落ちると、error だけを出し、案内を添えずにほかの欄を続ける', async () => {
     const { client } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, graphqlError('UpdateProjectItemField', 'boom'), updateRule(1)])
     const io = capture()
-    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false }, newHint())).toBe(1)
-    expect(io.err.join('')).toBe('error: could not set status backlog of Issue o/r/5: GraphQL query error: {\'message\': \'boom\'}\n')
+    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })).toBe(1)
+    expect(io.err.join('')).toBe('error: could not set status backlog of Tracker #5: GraphQL query error: {\'message\': \'boom\'}\n')
   })
 
   it('追加に失敗したら、欄を書かずに GitHubAPIError を伝える', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, graphqlError('AddToProject', 'boom')])
     const io = capture()
-    const putting = putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false }, newHint())
+    const putting = putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
     expect(await rejection(putting)).toBeInstanceOf(GitHubAPIError)
     expect(io.err).toEqual([])
     expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetIssueNodeId', 'AddToProject'])
@@ -210,7 +210,7 @@ describe('applyBoardMove', () => {
   it('列を動かし、動いた先と move の行を返す', async () => {
     const { client, server } = await startClient([updateRule(1)])
     const io = capture()
-    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 'blocked by #3', newHint())
+    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 'blocked by #3')
     expect(applied).toEqual({ column: 'Blocked', missing: [], hasFailed: false, written: { issue: '#7', column: { from: 'Ready', to: 'Blocked' }, label: undefined, reason: 'blocked by #3' } })
     expect(io.err.join('')).toBe('moved: #7 Ready -> Blocked (blocked by #3)\n')
     expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_workflow', optionId: 'O_blocked' } }])
@@ -219,7 +219,7 @@ describe('applyBoardMove', () => {
   it('書き込みに失敗したら warning を出し、元の列のままにする', async () => {
     const { client } = await startClient([graphqlError('UpdateProjectItemField', 'boom')])
     const io = capture()
-    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 't', newHint())
+    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 't')
     expect(applied).toEqual({ column: undefined, missing: [], hasFailed: true })
     expect(io.err.join('')).toBe('warning: could not move #7: GraphQL query error: {\'message\': \'boom\'}\n')
   })
@@ -245,7 +245,7 @@ describe('applyBoardMove', () => {
   it('札だけを動かすと、set の行を出し、列は動かさない', async () => {
     const { client, server } = await startClient([updateRule(1)])
     const io = capture()
-    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { label: 'Todo', missing: [] }, 'startable', newHint())
+    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { label: 'Todo', missing: [] }, 'startable')
     expect(applied).toEqual({ column: undefined, missing: [], hasFailed: false, written: { issue: '#7', column: undefined, label: 'Todo', reason: 'startable' } })
     expect(io.err.join('')).toBe('set: Status of #7 to Todo\n')
     expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_status', optionId: 'O_todo' } }])
@@ -255,7 +255,7 @@ describe('applyBoardMove', () => {
     const { client, server } = await startClient([])
     const io = capture()
     const blocker = createIssueReference(createRepositoryReference('o', 'other'), 3)
-    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { conflict: { column: 'Active', issues: [blocker] }, missing: [] }, 'blocked by o/other#3', newHint())
+    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { conflict: { column: 'Active', issues: [blocker] }, missing: [] }, 'blocked by o/other#3')
     expect(applied).toEqual({ column: undefined, missing: [], hasFailed: false })
     expect(io.err.join('')).toBe('warning: #7 is in Active but blocked by o/other#3\n')
     expect(graphqlRequests(server)).toEqual([])
