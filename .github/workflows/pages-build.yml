@@ -1,26 +1,20 @@
 name: pages-build
 
-# 公開サイトの 1 つの側（release / dev / pr）を作り、artifact に上げる。公開は pages-deploy.yml が行う。
+# 公開サイトの 1 つの側（dev / pr）を作り、artifact に上げる。公開は pages-deploy.yml が行う。
 # 契機と出力の決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
 
+# 手での起動とリリース版は #616 で決め直すまで置かない。
 on:
   push:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, closed]
-  workflow_dispatch:
-    inputs:
-      side:
-        description: Side to build
-        type: choice
-        options: [release, dev]
-        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: pages-build-${{ github.event_name == 'pull_request' && 'pr' || inputs.side || 'dev' }}-${{ github.event.pull_request.number || github.ref }}
+  group: pages-build-${{ github.event_name == 'pull_request' && 'pr' || 'dev' }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -42,47 +36,31 @@ jobs:
       lanes: ${{ steps.lanes.outputs.lanes }}
     steps:
       # closed の PR は pages-deploy.yml を起こすためだけに成功で終わる。fork の PR は作らない。
-      # 手での起動はコミットを受け取らず、Latest のリリースか既定のブランチの先頭を作る（CodeQL の cache-poisoning）。
       - name: Decide side and commit
         id: decide
         env:
-          GH_TOKEN: ${{ github.token }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           EVENT_NAME: ${{ github.event_name }}
           PR_ACTION: ${{ github.event.action }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           REPO: ${{ github.repository }}
-          INPUT_SIDE: ${{ inputs.side }}
           PUSH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           build=true
           pr=""
-          case "$EVENT_NAME" in
-            pull_request)
-              side="pr"
-              pr=$PR_NUMBER
-              SHA=$PR_HEAD_SHA
-              if [ "$PR_ACTION" = "closed" ] || [ "$PR_HEAD_REPO" != "$REPO" ]; then
-                build=false
-              fi
-              ;;
-            workflow_dispatch)
-              side=$INPUT_SIDE
-              if [ "$side" = "release" ]; then
-                tag=$(gh api "repos/$REPO/releases/latest" --jq .tag_name)
-                SHA=$(gh api "repos/$REPO/commits/$tag" --jq .sha)
-              else
-                SHA=$(gh api "repos/$REPO/commits/$DEFAULT_BRANCH" --jq .sha)
-              fi
-              ;;
-            *)
-              side="dev"
-              SHA=$PUSH_SHA
-              ;;
-          esac
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            side="pr"
+            pr=$PR_NUMBER
+            SHA=$PR_HEAD_SHA
+            if [ "$PR_ACTION" = "closed" ] || [ "$PR_HEAD_REPO" != "$REPO" ]; then
+              build=false
+            fi
+          else
+            side="dev"
+            SHA=$PUSH_SHA
+          fi
           if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::sha must be a full 40-character lowercase hex commit SHA: $SHA"
             exit 1

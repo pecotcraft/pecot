@@ -1,7 +1,7 @@
 """公開サイトの workflow（pages-build.yml）の静的な確かめ。
 
 契機・権限・concurrency・artifact の決まりは specs/028-pages-site/contracts/pages.md にある。
-push と workflow_dispatch はマージの後でないと動かないため、形をここで固定する。
+push はマージの後でないと動かないため、形をここで固定する。
 """
 
 from __future__ import annotations
@@ -58,21 +58,8 @@ def test_triggers() -> None:
     on = _build()[True]
     assert on["push"] == {"branches": ["main"]}
     assert on["pull_request"] == {"types": ["opened", "synchronize", "reopened", "closed"]}
-    inputs = on["workflow_dispatch"]["inputs"]
-    assert inputs["side"]["type"] == "choice"
-    assert inputs["side"]["options"] == ["release", "dev"]
-    assert inputs["side"]["required"] is True
-    # 入力のコミットを既定のブランチの権限で動かさない（CodeQL の actions/cache-poisoning/poisonable-step）。
-    assert list(inputs) == ["side"]
-    assert "inputs.sha" not in _BUILD.read_text(encoding="utf-8")
-
-
-def test_dispatch_builds_latest_release_or_default_branch_head() -> None:
-    step = next(s for s in _steps("side") if s.get("id") == "decide")
-    assert step["env"]["DEFAULT_BRANCH"] == "${{ github.event.repository.default_branch }}"
-    assert 'gh api "repos/$REPO/releases/latest" --jq .tag_name' in step["run"]
-    assert 'gh api "repos/$REPO/commits/$tag" --jq .sha' in step["run"]
-    assert 'gh api "repos/$REPO/commits/$DEFAULT_BRANCH" --jq .sha' in step["run"]
+    # 外から起こせる契機を持たない（CodeQL の actions/cache-poisoning/poisonable-step）。手での起動は #616 で決め直す。
+    assert set(on) == {"push", "pull_request"}
 
 
 def test_jobs_and_order() -> None:
@@ -131,7 +118,7 @@ def test_permissions_are_contents_read_only() -> None:
 def test_concurrency_keeps_only_the_latest_per_side() -> None:
     concurrency = _build()["concurrency"]
     assert concurrency["group"] == (
-        "pages-build-${{ github.event_name == 'pull_request' && 'pr' || inputs.side || 'dev' }}"
+        "pages-build-${{ github.event_name == 'pull_request' && 'pr' || 'dev' }}"
         "-${{ github.event.pull_request.number || github.ref }}"
     )
     assert concurrency["cancel-in-progress"] is True

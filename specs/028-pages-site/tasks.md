@@ -97,7 +97,7 @@ description: "Task list for 028-pages-site"
 ### Tests for User Story 1（作る run）
 
 - [x] T020 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-build.yml` の形のテストを書く。
-  contracts/pages.md の「`pages-build.yml`」の表のとおり: 契機（`push` の `main`・`pull_request` の opened/synchronize/reopened/closed・`workflow_dispatch` の `side` だけ）、
+  contracts/pages.md の「`pages-build.yml`」の表のとおり: 契機（`push` の `main`・`pull_request` の opened/synchronize/reopened/closed だけ。手での起動とリリース版は #616 で決め直す）、
   PR は `head.repo.full_name == github.repository` のときだけ作る、
   権限は `contents: read` だけ、
   concurrency は `pages-build-<side>-<PR の番号か ref>` で `cancel-in-progress: true`、

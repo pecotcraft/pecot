@@ -31,7 +31,6 @@
 | `push`（`main`） | — | `dev` |
 | `pull_request`（opened・synchronize・reopened）、head が同じリポ | — | `pr`（PR の番号） |
 | `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こすためだけに成功で終わる） |
-| `workflow_dispatch` | `side`（`release` / `dev`） | 指定の側。コミットは、`release` が GitHub の Latest のリリースのタグが指すコミット、`dev` が既定のブランチの先頭 |
 
 出力:
 
@@ -48,7 +47,7 @@
 
 権限は `contents: read` だけ。
 
-手での起動は、作るコミットを入力で受け取らない。既定のブランチの権限で、入力のコミットのコードを動かさないためだ（CodeQL の `actions/cache-poisoning/poisonable-step`）。
+手での起動（`workflow_dispatch`）とリリース版は置かない。外から起こせる契機の run は、既定のブランチのキャッシュに書けるためだ（CodeQL の `actions/cache-poisoning/poisonable-step`）。リリース版の作り方と、この節より後の公開の段の決まりは #616 で決め直す。
 
 concurrency は `pages-build-<side>-<PR の番号か ref>` で、`cancel-in-progress: true`（同じ側は後に起動したものだけを残す）。
 
