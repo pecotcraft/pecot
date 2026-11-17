@@ -5158,7 +5158,8 @@ entries:
     help:
       details:
         - "Cleans up after a merged PR: closes the related Issues, optionally deletes the remote branches and returns the local checkout to the development branch."
-        - The related Issues are the closing issues of the PR, the Issues named after Closes, Fixes or Resolves in its body, and the Issue whose number ends the head branch name.
+        - The related Issues are the closing issues of the PR in its repository and the Issue whose number ends the head branch name. When the base is not the default branch, they also include the Issues of the same repository named after Closes, Fixes or Resolves in the body outside code blocks, inline code and HTML comments, since GitHub reads those keywords only in PRs to the default branch.
+        - Does not close an Issue that is already closed, so that the reason it was closed is kept, and writes an unchanged line for it. When the state of an Issue cannot be read, does not close it and writes a warning.
         - Does not close an Epic or an Issue that has sub-issues, and writes a skipped line for it.
         - "After closing the Issues, reads the Issues that wait for them and moves their board column and Status label by the readiness judgement. Issues with a trace of work are not moved. When the judgement does not show the closed Issue as done, reads once more after about 1.5 seconds, and if it still does not, prints a warning that tells to run pecot board sync later and does not move the column."
         - "Prints the Issues whose readiness changed to standard output under the line Readiness changed:, one line per Issue such as - #13 stackable on #12 -> startable. The readiness before the merge is judged by treating the closed Issues and the PR as still open. Nothing is printed when no readiness changed."
@@ -5188,7 +5189,8 @@ entries:
     constraints: []
     details:
       - 'マージ済みの PR の後片付けをします。関連する Issue を閉じ、ローカルのチェックアウトを開発ブランチに戻します。オプションを付けると、リモートブランチも削除します。'
-      - '関連する Issue は、次の 3 つです。PR の closing issues。本文の Closes・Fixes・Resolves の後に書いた Issue。head ブランチ名の末尾の番号の Issue。'
+      - '関連する Issue は、PR のリポの closing issues と、head ブランチ名の末尾の番号の Issue です。base が既定ブランチでない PR では、本文の Closes・Fixes・Resolves の後に書いた、PR のリポの Issue も含めます。GitHub がキーワードを読むのは既定ブランチ宛ての PR だけなので、そこで読まない所（コードブロック・インラインコード・HTML コメントの中）は数えません。'
+      - '閉じた理由を残すため、すでに閉じた Issue は閉じ直さず、`unchanged` の行を書きます。状態を読めない Issue も閉じず、`warning` の行を書きます。'
       - 'Epic と、sub-issue を持つ Issue は閉じず、`skipped` の行を書きます。'
       - 'Issue を閉じた後、その Issue を待っている Issue を読み、判定に合わせてボードの列と Status の札を動かします。着手の跡がある Issue は動かしません。判定に、閉じた Issue が済んだ前提として出ていないときは、約 1.5 秒後に 1 回だけ読み直します。それでも出なければ、後で `pecot board sync` を打つよう `warning` で知らせ、列を動かしません。'
       - '判定が変わった Issue を、標準出力の `Readiness changed:` の行の下に、1 件 1 行で出します。行は `- #13 stackable on #12 -> startable` の形です。マージ前の判定は、閉じた Issue と PR がまだ開いていたものとして出します。変わった Issue が無ければ、何も出しません。'
@@ -5208,8 +5210,8 @@ entries:
       description: '判定の変わった Issue があるときだけ、`Readiness changed:` の行と、Issue ごとの `- <Issue> <前の判定> -> <後の判定>` の行を出します。無ければ何も出しません。'
     mcp_output:
       fields:
-        closedIssues: '閉じた Issue の番号の配列です。`dry_run` のときは、閉じる予定の番号です。'
-        skippedIssues: 'PR が閉じる対象のうち、閉じなかった Issue の配列です。要素は `number` と `reason` を持ちます。`reason` は `epic`（保護している）・`already-closed`・`not-found`・`failed`（`warnings` を見る）のどれかです。'
+        closedIssues: 'このコマンドが閉じた Issue の番号の配列です。`dry_run` のときは、閉じる予定の番号です。既定ブランチ宛ての PR では、GitHub がマージで先に閉じるので、ふつうは空です。'
+        skippedIssues: 'PR が閉じる対象のうち、閉じなかった Issue の配列です。要素は `number` と `reason` を持ちます。`reason` は `epic`（保護している）・`already-closed`・`not-found`・`failed`（`warnings` を見る）のどれかです。`already-closed` には、PR のマージで GitHub が先に閉じた Issue も入ります。'
         deletedBranches: '削除したブランチの配列です。`dry_run` のときは、削除する予定のブランチです。要素は `branch` と `location`（`remote` か `local`）を持ちます。'
         readinessChanges: '判定が変わった Issue の配列です。要素は `issue`（`#N` か `owner/repo#N`）・`from`・`to` を持ちます。`from` と `to` は `blocked`・`startable`・`stackable on #N` のどれかです。無ければ空の配列です。'
         restack: 'この PR の上に積んだ段の配列です。要素は `issue` と、Issue につながるブランチがあれば `branch` を持ちます。その作業ディレクトリで載せ直しが要ります。無ければ空の配列です。'
@@ -5286,7 +5288,7 @@ entries:
     behaviors:
       - id: PW-SESSION-FINISH-01
         pattern: event
-        statement: 'マージ済みの PR の参照を渡すと、closing issues・本文の Closes / Fixes / Resolves・head ブランチ名の末尾の番号の Issue を close します'
+        statement: 'マージ済みの PR の参照を渡すと、PR のリポの closing issues と head ブランチ名の末尾の番号の Issue を close します。base が既定ブランチでない PR では、本文のコードと HTML コメントの外の Closes / Fixes / Resolves の後の、PR のリポの Issue も close します'
       - id: PW-SESSION-FINISH-02
         pattern: event
         statement: 'Epic か sub-issue を持つ Issue があると、その Issue を close しません'
@@ -5392,6 +5394,12 @@ entries:
       - id: PW-SESSION-FINISH-40
         pattern: unwanted
         statement: 'もし待っている Issue の列を書けないなら、`warning` の行を出して続けます。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を、1 回の実行で 1 回だけ添えます'
+      - id: PW-SESSION-FINISH-41
+        pattern: event
+        statement: '閉じる対象にすでに閉じた Issue があると、close を送らず、`unchanged` の行を標準エラーに出し、`skippedIssues` に `already-closed` で入れます'
+      - id: PW-SESSION-FINISH-42
+        pattern: unwanted
+        statement: 'もし閉じる対象の Issue の種別と状態を読めないなら、`warning` の行を出し、その Issue を close せず、`skippedIssues` に `failed` で入れます'
   PW-SESSION-SHOW:
     help:
       details:

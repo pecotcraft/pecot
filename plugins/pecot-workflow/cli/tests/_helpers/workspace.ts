@@ -90,14 +90,47 @@ export function pullRequestData(sample: Readonly<PullRequestSample> = {}): unkno
   return { repository: { pullRequest } }
 }
 
+export interface FinishPullRequestSample {
+  readonly state?: string
+  readonly body?: string
+  readonly head?: string
+  readonly base?: string
+  readonly defaultBranch?: string
+  /**
+  closing issues。リポは acme/demo。別のリポは [番号, 'owner/repo'] で書く
+  */
+  readonly closing?: readonly (number | readonly [number, string])[]
+}
+
+/**
+GetPullRequestForFinish の data
+*/
+export function finishPullRequestData(sample: Readonly<FinishPullRequestSample> = {}): unknown {
+  const closing = (sample.closing ?? [12]).map((entry) => {
+    const [number, fullName] = typeof entry === 'number' ? [entry, 'acme/demo'] : entry
+    const [login, name] = fullName.split('/', 2)
+    return { number, repository: { name, owner: { login } } }
+  })
+  return { repository: { pullRequest: {
+    number: 21,
+    state: sample.state ?? 'MERGED',
+    body: sample.body ?? 'Closes #12\n',
+    headRefName: sample.head ?? 'feat/demo/12',
+    baseRefName: sample.base ?? 'main',
+    isDraft: false,
+    closingIssuesReferences: { nodes: closing },
+    baseRepository: { defaultBranchRef: { name: sample.defaultBranch ?? 'main' } },
+  } } }
+}
+
 /**
 GetIssueKind の data。subIssues が 1 件以上、または issueType が Epic なら Epic になる
 */
-export function issueKindData(options: Readonly<{ number?: number, subIssues?: number, issueType?: string }> = {}): unknown {
+export function issueKindData(options: Readonly<{ number?: number, subIssues?: number, issueType?: string, state?: string }> = {}): unknown {
   // GraphQL の応答は、Issue Type が無いと null
   // eslint-disable-next-line unicorn/no-null -- 応答の形
   const issueType = options.issueType === undefined ? null : { name: options.issueType }
-  return { repository: { issue: { number: options.number ?? 12, state: 'OPEN', issueType, subIssues: { totalCount: options.subIssues ?? 0 } } } }
+  return { repository: { issue: { number: options.number ?? 12, state: options.state ?? 'OPEN', issueType, subIssues: { totalCount: options.subIssues ?? 0 } } } }
 }
 
 // 設定ファイル

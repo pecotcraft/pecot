@@ -495,6 +495,33 @@ describe('API の版', () => {
   })
 })
 
+function finishNode(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  return {
+    number: 11, state: 'MERGED', body: 'Closes #3', headRefName: 'feat/x/3', baseRefName: 'main', isDraft: false,
+    closingIssuesReferences: { nodes: [{ number: 3, repository: { name: 'repo', owner: { login: 'owner' } } }] },
+    baseRepository: { defaultBranchRef: { name: 'main' } },
+    ...overrides,
+  }
+}
+
+describe('getPullRequestForFinish', () => {
+  it('閉じる Issue を決める項目を返す', async () => {
+    const { client, server } = await startClient([graphqlData('GetPullRequestForFinish', { repository: { pullRequest: finishNode() } })])
+    expect(await client.getPullRequestForFinish('owner', 'repo', 11)).toEqual({
+      state: 'MERGED', body: 'Closes #3', head_ref: 'feat/x/3', base_ref: 'main', is_draft: false,
+      closing_issues: [{ owner: 'owner', repository: 'repo', number: 3 }], default_branch: 'main',
+    })
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetPullRequestForFinish', variables: { owner: 'owner', repo: 'repo', number: 11 } }])
+  })
+
+  it('既定ブランチが無いリポでは default_branch が undefined', async () => {
+    // eslint-disable-next-line unicorn/no-null -- 応答の形（既定ブランチが無いと null）
+    const { client } = await startClient([graphqlData('GetPullRequestForFinish', { repository: { pullRequest: finishNode({ baseRepository: { defaultBranchRef: null } }) } })])
+    const pullRequest = await client.getPullRequestForFinish('owner', 'repo', 11)
+    expect(pullRequest.default_branch).toBeUndefined()
+  })
+})
+
 function mergeNode(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
   return { number: 11, state: 'OPEN', isDraft: false, baseRefName: 'main', headRefOid: 'abc123', isMergeQueueEnabled: false, isInMergeQueue: false, ...overrides }
 }

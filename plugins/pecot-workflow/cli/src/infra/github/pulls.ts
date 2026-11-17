@@ -12,7 +12,7 @@ import type { RestResponse } from './client.js'
 import { GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { IssuesApi } from './issues.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
-import { QUERY_GET_PULL_REQUEST_FOR_MERGE, QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_BASE, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
+import { QUERY_GET_PULL_REQUEST_FOR_FINISH, QUERY_GET_PULL_REQUEST_FOR_MERGE, QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_BASE, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
 import { readPullRequests } from './readout.js'
 import { repositoryPath } from './rest-path.js'
 
@@ -85,6 +85,22 @@ export interface PullRequestStack {
 Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
 */
 export const STACKS_API_VERSION = '2026-03-10'
+
+/**
+session finish が読む PR
+*/
+export interface PullRequestForFinish {
+  readonly state: string
+  readonly body: string
+  readonly head_ref: string
+  readonly base_ref: string
+  readonly is_draft: boolean
+  readonly closing_issues: readonly { readonly owner: string, readonly repository: string, readonly number: number }[]
+  /**
+  base のリポの既定ブランチ。空のリポなどで無ければ undefined
+  */
+  readonly default_branch: string | undefined
+}
 
 /**
 pr merge が読む PR の状態
@@ -334,6 +350,30 @@ export class PullsApi extends IssuesApi {
     return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
       json: sha === undefined ? { merge_method: mergeMethod } : { merge_method: mergeMethod, sha },
     })
+  }
+
+  /**
+  session finish が閉じる Issue を決めるのに使う PR を読む（GraphQL）。PR が無ければ GitHubNotFoundError
+  */
+  async getPullRequestForFinish(owner: string, repository: string, number: number): Promise<PullRequestForFinish> {
+    const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_FINISH, owner, repository, number)
+    const defaultBranch = jsonField(jsonField(jsonField(pullRequest, 'baseRepository'), 'defaultBranchRef'), 'name')
+    return {
+      state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
+      body: requireString(jsonField(pullRequest, 'body'), 'pullRequest.body'),
+      head_ref: requireString(jsonField(pullRequest, 'headRefName'), 'pullRequest.headRefName'),
+      base_ref: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
+      is_draft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
+      closing_issues: truthyNodes(jsonField(pullRequest, 'closingIssuesReferences')).map((issue) => {
+        const issueRepository = jsonField(issue, 'repository')
+        return {
+          owner: requireString(jsonField(jsonField(issueRepository, 'owner'), 'login'), 'closingIssue.repository.owner.login'),
+          repository: requireString(jsonField(issueRepository, 'name'), 'closingIssue.repository.name'),
+          number: requireNumber(jsonField(issue, 'number'), 'closingIssue.number'),
+        }
+      }),
+      default_branch: typeof defaultBranch === 'string' ? defaultBranch : undefined,
+    }
   }
 
   /**

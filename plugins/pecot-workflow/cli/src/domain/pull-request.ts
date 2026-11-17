@@ -5,8 +5,9 @@ import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './com
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { PYTHON_LINE_BREAK, parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
-import { hasSummaryImage, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
+import { hasSummaryImage, maskCodeAndComments, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
+import type { RepositoryReference } from './repository-resolver.js'
 import type { BaseReading } from './state.js'
 import { RESTACK_PATH } from './restack.js'
 import type { RestackDecision } from './restack.js'
@@ -19,21 +20,24 @@ const PYTHON_SPACE = String.raw`[\t\n\v\f\r\u{1C}-\u{20}\u{85}\u{A0}\u{1680}\u{2
 
 // GitHub が認識する close・fix・resolve と、それぞれの -s / -es / -d 付きの形。`owner/repo#N` の形も受ける
 // eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列から組み立てる
-const CLOSING_KEYWORDS_PATTERN = new RegExp(String.raw`(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)${PYTHON_SPACE}+(?:[\w-]+/[\w.-]+)?#(\p{Nd}+)`, 'giu')
+const CLOSING_KEYWORDS_PATTERN = new RegExp(String.raw`(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)${PYTHON_SPACE}+(?:([\w-]+)/([\w.-]+))?#(\p{Nd}+)`, 'giu')
 
 const PR_CREATE_PATH = ['pr', 'create']
 
 export const SCREENSHOT_MISSING_ERROR: HintedText = hinted`Summary has no image and \`screenshot\` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as \`![alt](./<file>.png)\`. Otherwise, write the reason in the \`screenshot\` frontmatter field (\`${inputNameHint(PR_CREATE_PATH, 'screenshot')}\` with \`${inputNameHint(PR_CREATE_PATH, 'message')}\`)`
 
 /**
-本文の Closes / Fixes / Resolves に続く Issue 番号を、出てきた順に重複なしで返す
+本文のコードと HTML コメントの外の Closes / Fixes / Resolves に続く、repository の Issue 番号を、出てきた順に重複なしで返す。
+GitHub が既定ブランチ宛ての PR で数えない所は数えない
 */
-export function extractClosingIssueNumbers(body: string): readonly number[] {
+export function extractClosingIssueNumbers(body: string, repository: Readonly<RepositoryReference>): readonly number[] {
   const numbers: number[] = []
-  body.replaceAll(CLOSING_KEYWORDS_PATTERN, (matched, digits: string) => {
-    numbers.push(Number(parsePythonInteger(digits)))
-    return matched
-  })
+  const isSameRepository = (owner: string | undefined, name: string | undefined): boolean =>
+    owner === undefined || (owner.toLowerCase() === repository.owner.toLowerCase() && name?.toLowerCase() === repository.repository.toLowerCase())
+  for (const match of maskCodeAndComments(body).matchAll(CLOSING_KEYWORDS_PATTERN)) {
+    const [, owner, name, digits = ''] = match
+    if (isSameRepository(owner, name)) numbers.push(Number(parsePythonInteger(digits)))
+  }
   return [...new Set(numbers)]
 }
 

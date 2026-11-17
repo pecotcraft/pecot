@@ -13,8 +13,8 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
-import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
-import type { PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
+import { finishPullRequestData, graphql, HOST, issueKindData, openWorkspace, rest, rule } from '../_helpers/workspace.js'
+import type { FinishPullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { IssueSpec, TargetSpec } from '../_helpers/prerequisites.js'
@@ -23,11 +23,11 @@ import type { ResponseRule } from '../fake-github/server.js'
 useIsolatedEnvironment()
 
 const BRANCH = 'feat/demo/12'
-const KIND_WARNING_UNPROTECTED = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; not protected\n/mu
+const KIND_WARNING_NOT_CLOSED = /^warning: reading Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; not closed\n/mu
 
-const MERGED = 'GetPullRequestSlim'
+const MERGED = 'GetPullRequestForFinish'
 
-function kindRule(number: number, options: Readonly<{ subIssues?: number, issueType?: string }> = {}): ReturnType<typeof graphql> {
+function kindRule(number: number, options: Readonly<{ subIssues?: number, issueType?: string, state?: string }> = {}): ReturnType<typeof graphql> {
   return graphql('GetIssueKind', issueKindData({ number, ...options }), { variables: { number } })
 }
 
@@ -50,8 +50,8 @@ function closedRules(number: number): ResponseRuleList {
   return [kindRule(number), closeRule(number), waitingRule([], number)]
 }
 
-function mergedRules(sample: Readonly<PullRequestSample> = {}, extra: ResponseRuleList = closedRules(12)): ResponseRuleList {
-  return [graphql(MERGED, pullRequestData(sample)), ...extra]
+function mergedRules(sample: Readonly<FinishPullRequestSample> = {}, extra: ResponseRuleList = closedRules(12)): ResponseRuleList {
+  return [graphql(MERGED, finishPullRequestData(sample)), ...extra]
 }
 
 const ALL_FLAGS = ['.pecot-base', '.pecot-session-title']
@@ -114,7 +114,7 @@ function waitingTarget(number: number, blocker: IssueSpec = DONE_12, extra: Part
 
 const READY_WRITE_13 = graphql('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_13' } } }, { variables: { itemId: 'PVTI_13', optionId: 'o3' } })
 const WAITING_RULES: ResponseRuleList = [
-  graphql(MERGED, pullRequestData()),
+  graphql(MERGED, finishPullRequestData()),
   kindRule(12),
   closeRule(12),
   waitingRule([13, 14]),
@@ -125,14 +125,56 @@ const WAITING_RULES: ResponseRuleList = [
 ]
 
 describe('session finish', () => {
-  it('マージ済みの PR の参照を渡すと、closing issues・本文の Closes / Fixes / Resolves・head ブランチ名の末尾の番号の Issue を close する', async (context) => {
+  it('既定ブランチ宛ての PR の参照を渡すと、PR のリポの closing issues と head ブランチ名の末尾の番号の Issue を close し、本文は読まない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-01')
-    const github = mergedRules({ closing: [[10, 'closing']], body: 'Fixes #11\n\nResolves #13\n\nCloses #14\n' }, [10, 11, 12, 13, 14].flatMap(number => closedRules(number)))
+    const github = mergedRules({ closing: [10, [11, 'acme/other']], body: 'Fixes #13\n' }, [10, 12].flatMap(number => closedRules(number)))
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
     const closed = restRequests(workspace, 'PATCH')
-    expect(closed).toMatchObject([10, 11, 12, 13, 14].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
+    expect(closed).toMatchObject([10, 12].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
+  })
+
+  it('既定ブランチでない base の PR の参照を渡すと、本文のコードと HTML コメントの外の Closes / Fixes / Resolves の Issue も close する', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-01')
+    const body = 'Fixes #11\n\nResolves #13\n\n```console\nCloses #15\n```\n\n`Closes #16` <!-- Closes #17 -->\n\nCloses acme/other#18\n\nCloses #14\n'
+    const github = mergedRules({ base: 'develop', closing: [], body }, [11, 12, 13, 14].flatMap(number => closedRules(number)))
+    const workspace = await openWorkspace({ github })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
+    const closed = restRequests(workspace, 'PATCH')
+    expect(closed).toMatchObject([11, 12, 13, 14].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
+  })
+
+  it('閉じた Issue があると、close を送らず、unchanged の行を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-41')
+    const github = mergedRules({ closing: [10] }, [kindRule(10, { state: 'CLOSED' }), waitingRule([], 10), ...closedRules(12)])
+    const workspace = await openWorkspace({ github })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(/^count: Issues to close: 1\nunchanged: Issue #10 \(already closed\)\nclosed: Issue #12\n$/u)
+    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12' }])
+  })
+
+  it('閉じた Issue があると、MCP の結果の skippedIssues に already-closed で入れる', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-41')
+    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { state: 'CLOSED' }), waitingRule([])]) })
+    const outcome = await finishTool(workspace, { skip_local_cleanup: true })
+    expect(outcome.structured).toMatchObject({ closedIssues: [], skippedIssues: [{ number: 12, reason: 'already-closed' }] })
+    expect(restRequests(workspace, 'PATCH')).toStrictEqual([])
+  })
+
+  it('閉じた Issue があると、--dry-run でも close の予定に入れず、unchanged の予定の行を出す', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-41')
+    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { state: 'CLOSED' }), waitingRule([])]) })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup', '--dry-run'])
+    expect(lines(result.stderr)).toStrictEqual(['count: Issues to close: 0', 'dry-run: would leave Issue #12 (already closed) unchanged'])
+  })
+
+  it('閉じた Epic があると、Epic として skipped の行を出す', async () => {
+    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { issueType: 'Epic', state: 'CLOSED' })]) })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.stderr).toBe('count: Issues to close: 0\nskipped: closing Issue #12 (Epic)\n')
   })
 
   it.for([
@@ -140,7 +182,7 @@ describe('session finish', () => {
     { title: 'sub-issue を持つ Issue', options: { subIssues: 3 } },
   ])('次の Issue があると（$title）、その Issue を close しない', async (row, context) => {
     await verifies(context, 'PW-SESSION-FINISH-02')
-    const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'epic']] }, [kindRule(10, row.options), ...closedRules(12)]) })
+    const workspace = await openWorkspace({ github: mergedRules({ closing: [10] }, [kindRule(10, row.options), ...closedRules(12)]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
     expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
@@ -148,13 +190,21 @@ describe('session finish', () => {
     expect(result.stderr).toContain('closed: Issue #12\n')
   })
 
-  it('Issue の種別を読めないと、warning の行を出して、その Issue を Epic として守らずに close する', async () => {
-    const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE, closeRule(12), waitingRule([])]) })
+  it('もし Issue の種別と状態を読めないなら、warning の行を出し、その Issue を close しない', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-42')
+    const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(KIND_WARNING_UNPROTECTED)
-    expect(result.stderr).toMatch(/\ncount: Issues to close: 1\nclosed: Issue #12\n$/u)
-    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
+    expect(result.stderr).toMatch(KIND_WARNING_NOT_CLOSED)
+    expect(result.stderr).toMatch(/\ncount: Issues to close: 0\n$/u)
+    expect(restRequests(workspace, 'PATCH')).toStrictEqual([])
+  })
+
+  it('もし Issue の種別と状態を読めないなら、MCP の結果の skippedIssues に failed で入れる', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-42')
+    const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE]) })
+    const outcome = await finishTool(workspace, { skip_local_cleanup: true })
+    expect(outcome.structured).toMatchObject({ closedIssues: [], skippedIssues: [{ number: 12, reason: 'failed' }] })
   })
 
   it('Epic か sub-issue を持つ Issue があると、skipped の行を標準エラーに出す', async (context) => {
@@ -279,7 +329,7 @@ describe('session finish', () => {
 
   it('実行すると、close する Issue の件数を count の行で標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-13')
-    const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'a']] }, [...closedRules(10), ...closedRules(12)]) })
+    const workspace = await openWorkspace({ github: mergedRules({ closing: [10] }, [...closedRules(10), ...closedRules(12)]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.stderr.startsWith('count: Issues to close: 2\n')).toBe(true)
   })
@@ -351,7 +401,7 @@ describe('session finish', () => {
 
   it('カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-18')
-    const github = [graphql(MERGED, pullRequestData({ closing: [], body: '', head: 'feat/other' }))]
+    const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: 'feat/other' }))]
     const workspace = await cleanupBranch({ github })
     const result = await workspace.run(['session', 'finish', 'acme/other/21'])
     expect(result.code).toBe(0)
@@ -360,7 +410,7 @@ describe('session finish', () => {
 
   it('カレントのリポジトリが PR のリポジトリと違うなら、ローカルの片付けを飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-19')
-    const github = [graphql(MERGED, pullRequestData({ closing: [], body: '', head: BRANCH }))]
+    const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: BRANCH }))]
     const workspace = await cleanupBranch({ github })
     const result = await workspace.run(['session', 'finish', 'acme/other/21'])
     expect(result.stderr).not.toContain('current branch')
@@ -378,7 +428,7 @@ describe('session finish', () => {
 
   it('Issue の close に失敗したなら、ほかの Issue と後の処理を続ける', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-21')
-    const github = mergedRules({ closing: [[10, 'a']] }, [kindRule(10), closeRule(10, 500), ...closedRules(12), deleteRule()])
+    const github = mergedRules({ closing: [10] }, [kindRule(10), closeRule(10, 500), ...closedRules(12), deleteRule()])
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -618,7 +668,7 @@ describe('session finish', () => {
     })
 
     it('Epic を守って close しなかったとき、その番号と epic を data.skippedIssues に返す', async () => {
-      const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'epic']] }, [kindRule(10, { issueType: 'Epic' }), ...closedRules(12)]) })
+      const workspace = await openWorkspace({ github: mergedRules({ closing: [10] }, [kindRule(10, { issueType: 'Epic' }), ...closedRules(12)]) })
 
       const outcome = await finishTool(workspace, { skip_local_cleanup: true })
 

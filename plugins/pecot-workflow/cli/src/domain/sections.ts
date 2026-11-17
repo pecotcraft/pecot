@@ -332,6 +332,23 @@ function maskedLines(body: string, fill = ' '): MaskedFences {
   return { lines: masked.split('\n'), hasUnclosedFence }
 }
 
+const BLOCKQUOTE_MARKER = /^ {0,3}>[\t ]?/u
+
+// 引用の行頭の `>` を、入れ子の分まで外す
+function unquote(line: string): string {
+  let rest = line
+  while (BLOCKQUOTE_MARKER.test(rest)) rest = rest.replace(BLOCKQUOTE_MARKER, '')
+  return rest
+}
+
+/**
+フェンス（引用の中を含む）・インラインコード・HTML コメントの中身を消した本文を返す。行の数は変えない
+*/
+export function maskCodeAndComments(body: string): string {
+  const unquoted = body.split('\n').map(line => unquote(line)).join('\n')
+  return maskedLines(unquoted).lines.join('\n')
+}
+
 // 記法の判定
 
 interface TokenMatch {
