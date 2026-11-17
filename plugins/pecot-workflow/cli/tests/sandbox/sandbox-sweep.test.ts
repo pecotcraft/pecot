@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- フィクスチャを組み替える作業用のクラスを渡す */
 // sandbox-sweep.sh を、偽の gh で動かして結果を確かめる。
 // 偽の gh は呼び出しの引数を記録し、読む呼び出しにはエンドポイントごとのフィクスチャを返す。書き込みの有無と順は、その記録で見る。
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -17,7 +17,27 @@ const RELEASES = `repos/${SANDBOX}/releases?per_page=100`
 const script = pluginScript('scripts/sandbox/sandbox-sweep.sh')
 
 // FAKE_GH_FAIL の部分文字列を含む呼び出しは失敗する。読む呼び出し（-X の無い api）は、エンドポイントの記号を _ に替えた名前のフィクスチャを返す
-const FAKE_GH = readFileSync(path.join(import.meta.dirname, '_helpers/fake-gh-sweep.sh'), 'utf8')
+const FAKE_GH = [
+  'if [ -n "${FAKE_GH_FAIL:-}" ] && [[ "$*" == *"$FAKE_GH_FAIL"* ]]; then',
+  '    echo "HTTP 422: Reference does not exist" >&2',
+  '    exit 1',
+  'fi',
+  '[ "$1" = "api" ] || exit 0',
+  'shift',
+  'endpoint=""; method=""',
+  'while [ "$#" -gt 0 ]; do',
+  '    case "$1" in',
+  '        -X) method="$2"; shift 2 ;;',
+  '        -f|-F|-H) shift 2 ;;',
+  '        -*) shift ;;',
+  '        *) [ -z "$endpoint" ] && endpoint="$1"; shift ;;',
+  '    esac',
+  'done',
+  '[ -n "$method" ] && exit 0',
+  'f="$FAKE_GH_DIR/${endpoint//[^A-Za-z0-9]/_}"',
+  '[ -f "$f" ] || { echo "HTTP 404: Not Found ($endpoint)" >&2; exit 1; }',
+  'cat "$f"',
+].join('\n')
 
 interface Issue { number: number, title: string, state: string, pull_request?: { url: string } }
 
