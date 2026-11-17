@@ -87,11 +87,11 @@ w-reviewer が返す 1 件だ。形は、手で回す w-revise と同じにす�
 
 | 欄 | 既定値 |
 |---|---|
-| 文字列 | `/pecot-review`。変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる |
-| 一致の仕方 | 本文が合言葉と同じか、合言葉の直後が空白か改行。GitHub Actions の式に正規表現が無いので、`==` と `startsWith` の 3 つの比べ方で判定する。`/pecot-reviewer` では起動しない |
+| 文字列 | `@pecotbot review`。変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる |
+| 一致の仕方 | 本文が合言葉と同じか、合言葉の直後が空白か改行。GitHub Actions の式に正規表現が無いので、`==` と `startsWith` の 3 つの比べ方で判定する。`@pecotbot reviewer` では起動しない |
 | 起動できる人 | `author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` の人。job の `if` が見て、claude-code-action も書き込み権限を確かめる |
 
-- `@` を付けない。実在するアカウントへ通知が飛ぶためだ。`@pecot` は他人のアカウントだった（2026-11-17）
+- `pecotbot` は、pecot が Organization として持つ名前だ。他人のアカウントの名前（`@pecot` など）は使わない。書くたびにその人へ通知が飛ぶためだ
 - `prompt` を渡す形では、action は合言葉を確かめない。判定は job の `if` だけが持つ
 
 ## ワークフローの雛形

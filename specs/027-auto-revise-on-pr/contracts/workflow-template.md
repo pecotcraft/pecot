@@ -19,7 +19,7 @@
 
 | 変数 | 既定値 | 意味 |
 |---|---|---|
-| `PECOT_REVIEW_TRIGGER_PHRASE` | `/pecot-review` | 起動し直しの合言葉。コメントの本文がこれで始まると起動する |
+| `PECOT_REVIEW_TRIGGER_PHRASE` | `@pecotbot review` | 起動し直しの合言葉。コメントの本文がこれで始まると起動する |
 | `PECOT_REVIEW_ALLOWED_BOTS` | 空 | 起動を許す bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限。サブエージェントの中のやり取りは数えない |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | 時間の上限。分 |
@@ -27,7 +27,7 @@
 先頭の `env` に置かないのは、job の `if` が `env` を読めないためだ。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
 `jobs.<job_id>.timeout-minutes` と `jobs.<job_id>.concurrency` も、`vars` を読める。
 
-- 既定値は、式の `||` で書く。例は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '/pecot-review'` だ
+- 既定値は、式の `||` で書く。例は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review'` だ
 - `timeout-minutes` は、`${{ fromJSON(vars.PECOT_REVIEW_TIMEOUT_MINUTES || '30') }}` と書く。変数の値は文字列で、`timeout-minutes` は数を求める。`fromJSON` が無いと、変数を置いたときに run が job を作らずに失敗する（research の R2）
 - 許す bot の判定は、`contains(fromJSON(...), <PR の作者>)` で書く。カンマ区切りの文字列にしないのは、名前の一部が一致して通るのを避けるためだ
 - action の `allowed_bots` には、同じ一覧をカンマ区切りに直して渡す
@@ -53,7 +53,7 @@ job の `if` に書く。すべて満たすときだけ動く。対象外の PR 
 `issue_comment` のイベントは、PR の head のリポと draft を持たない。fork・draft・閉じた PR は、job の中の「PR の確かめ」の step で弾く。
 書いた人の権限は、`if` と action の両方で確かめる。`if` で止めないと、action が step を失敗にし、後始末が「止まった」と PR に書く。`prompt` を渡す形では、action は合言葉を確かめないので、合言葉の判定は `if` だけが持つ（research の R15）。
 
-合言葉の判定の式は、次の形にする。`P` は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '/pecot-review'` だ。GitHub Actions の式に正規表現が無いので、区切りを 3 つの比べ方で表す。
+合言葉の判定の式は、次の形にする。`P` は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review'` だ。GitHub Actions の式に正規表現が無いので、区切りを 3 つの比べ方で表す。
 
 ```text
 github.event.comment.body == P ||
@@ -61,7 +61,7 @@ startsWith(github.event.comment.body, format('{0} ', P)) ||
 startsWith(github.event.comment.body, format('{0}\n', P))
 ```
 
-- `/pecot-reviewer` と `/pecot-review-later` は通らない
+- `@pecotbot reviewer` と `@pecotbot review-later` は通らない
 - 改行が `\r\n` のコメントは、3 つ目の比べ方で通らない。GitHub の画面から書いたコメントの改行の形は、実装の後に quickstart のシナリオ 19 で確かめる
 
 ### step

@@ -363,31 +363,46 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 ## R15. 起動し直しの契機
 
-- Decision: 起動し直しは、PR へのコメントの合言葉で行う。既定は `/pecot-review` で、変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる。契機は `issue_comment` の `created` だ
+- Decision: 起動し直しは、PR へのコメントの合言葉で行う。既定は `@pecotbot review` で、変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる。契機は `issue_comment` の `created` だ
 - Rationale: claude-code-action の `label_trigger` は Issue だけが対象だ。PR のレビューの公式の例は、`synchronize` で自動に動かすか、`@claude` のメンションで起こす形だけだ。ラベルの形は公式の例に無いので、メンションの形に合わせた（2026-11-17、ユーザーの判断）
 - Alternatives considered:
   - 起動ラベル（`pull_request` の `labeled`）。公式の例に無い。作成と同時に付けると 2 度レビューする（R6）。終わりにラベルを外す処理も要る
   - `synchronize`。push のたびに動き、費用が読めない
   - `workflow_dispatch`。PR の画面から起こせない
 
-合言葉の形:
+合言葉の形は、レビューの bot の前例に合わせた。2026-11-17 に、公式の文書と GitHub のアカウントで調べた。
 
-- `@` を付けない。`@pecot` は実在する他人のアカウントで、書くたびに通知が飛ぶ
-- `@pecot` を `contains` で探すと、`@pecotcraft` でも一致する。job の `if` は、本文の先頭だけを見る
+| サービス | 頼み方 | 名前のアカウント |
+|---|---|---|
+| claude-code-action | `@claude` | Anthropic が持つ User |
+| Codex | `@codex review` | OpenAI が持つ User |
+| CodeRabbit | `@coderabbitai review` | Organization |
+| Sourcery | `@sourcery-ai review` | Organization |
+| Dependabot | `@dependabot rebase` など | Organization |
+| Gemini Code Assist | `/gemini review` | — |
+| Cursor Bugbot | `cursor review`・`bugbot run` | — |
+
+- 主流は `@<名前> <頼みごと>` の形だ。頼みごとの語を後ろに付けるので、後の自動処理（spec 023）も同じ名前で頼める
+- 名前は、どの前例も提供元が自分で持つ。pecot は `pecotbot` を Organization として持つ。Organization は、ログインして使うアカウントを持たずに名前を押さえられる
+- 他人のアカウントの名前は使わない。`@pecot` は他人の User で、書くたびにその人へ通知が飛ぶ
+- `@` の候補にも、GitHub の `/` の一覧にも、自前の名前は出ない（下の表）。補完はどの形でも得られないので、前例の多い形を採った
+- 本文の先頭だけを見る。`contains` で探すと、文の途中の言及でも起動するためだ
 - `prompt` を渡す形では、action は合言葉を確かめない（`src/entrypoints/prepare.ts` の `containsTrigger` は、tag のモードでだけ `checkContainsTrigger` を呼ぶ）。判定は job の `if` だけが持つ
 - 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く。このため、job の `if` で `author_association` を先に見る
-- 合言葉の後に区切りを求める。本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ通す。`/pecot-reviewer` では起動しない
+- 合言葉の後に区切りを求める。本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ通す。`@pecotbot reviewer` では起動しない
 
 | 確かめること | 結果 | 版 | 確かめた日 |
 |---|---|---|---|
 | 書き込み権限を持つ人の `/pecot-review` で起動し、PR の head を読めるか | 起動した。checkout の `ref` に `refs/pull/<N>/head` を渡すと、PR のブランチにだけあるファイルを読めた。action のログに `Actor has write access` と `Verified human actor` が出た | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
 | 文の途中に合言葉を書いたコメント | job が `skipped` になった | 同上 | 2026-11-17 |
 | Issue への `/pecot-review` のコメント | job が `skipped` になった | 同上 | 2026-11-17 |
-| App の名前を合言葉にしたとき、コメント欄の `@` の候補に出るか | 出ない。App が作った PR（検証用の #283）で、ユーザーが画面で確かめた。`@<App の名前>` にしても補完は効かないので、`/pecot-review` から変えない | GitHub の画面（github.com） | 2026-11-17 |
+| App の名前を合言葉にしたとき、コメント欄の `@` の候補に出るか | 出ない。App が作った PR（検証用の #283）で、ユーザーが画面で確かめた。`@<App の名前>` にしても補完は効かないので、合言葉の名前の決めに使った | GitHub の画面（github.com） | 2026-11-17 |
 | 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
 
 - 受け付けの印として、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。合言葉の run は PR の Checks の欄に出ず、結果が出るまで無言になるためだ。飛ばされた run は印を付けないので、受け付けられなかったことも分かる
 - リアクションは、App のトークンの Pull requests の write で付けられる見込みだ。公式の表では、Issue のコメントへのリアクションは Issues か Pull requests の write で足りる。Phase 2 の検証用の run で確かめる
+- 上の表の確かめは、合言葉が `/pecot-review` だった時点の run だ。`@pecotbot review` に変えた後の判定は、同じ式の形なので、Phase 2 の雛形で確かめ直す
+- `pecotbot` の Organization の名前を書いたとき、誰にも通知が飛ばないことは、Phase 2 の検証用の run で確かめる
 - 確かめのワークフローは、検証用の main に入れて確かめ、後で消した（検証用の PR #287・#288）。`issue_comment` は既定のブランチの定義で動くためだ
 - run は 44045334864（起動）・44045337610（文の途中）・44045340626（Issue）だ
 - `issue_comment` のイベントは、PR の head のリポと draft を持たない。確かめのワークフローは、App のトークンで PR を読み、fork・draft・閉じた PR を弾く step を置いた
