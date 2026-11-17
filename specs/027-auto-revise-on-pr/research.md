@@ -385,6 +385,8 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 | Issue への `/pecot-review` のコメント | job が `skipped` になった | 同上 | 2026-11-17 |
 | 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
 
+- 受け付けの印として、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。合言葉の run は PR の Checks の欄に出ず、結果が出るまで無言になるためだ。飛ばされた run は印を付けないので、受け付けられなかったことも分かる
+- リアクションは、App のトークンの Pull requests の write で付けられる見込みだ。公式の表では、Issue のコメントへのリアクションは Issues か Pull requests の write で足りる。Phase 2 の検証用の run で確かめる
 - 確かめのワークフローは、検証用の main に入れて確かめ、後で消した（検証用の PR #287・#288）。`issue_comment` は既定のブランチの定義で動くためだ
 - run は 44045334864（起動）・44045337610（文の途中）・44045340626（Issue）だ
 - `issue_comment` のイベントは、PR の head のリポと draft を持たない。確かめのワークフローは、App のトークンで PR を読み、fork・draft・閉じた PR を弾く step を置いた

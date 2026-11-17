@@ -70,6 +70,7 @@ startsWith(github.event.comment.body, format('{0}\n', P))
 |---|---|
 | トークン | `actions/create-github-app-token`。`permission-pull-requests: write` と `permission-contents: read` だけを渡す |
 | PR の確かめ | `issue_comment` の run だけ。発行したトークンで PR を読み、fork・draft・閉じた PR なら、後の step を飛ばす。読んだ PR の `head.sha` を出力する |
+| 受け付けの印 | `issue_comment` の run で、PR の確かめを通ったときだけ。App のトークンで、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。付けられなくても、レビューは続ける |
 | checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`issue_comment` の run は既定のブランチを取るので、`ref` に、PR の確かめの step が出力した `head.sha` を渡す。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
 | Node | `actions/setup-node` |
 | 利用者の準備 | 印の付いた空の step。初期は空 |
@@ -157,6 +158,7 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | `allowed_non_write_users`・`track_progress`・`anthropic_api_key` が無い | キーの有無を見る |
 | `claude_code_oauth_token` があり、Workload Identity Federation の 4 つの入力が、secret のあるときに空になる式を持つ | 式の文字列を探す |
 | `classify_inline_comments` が `"false"` | キーの値を見る |
+| `issue_comment` の run に、PR の確かめの後で 👀 のリアクションを付ける step がある | step の `if` と `run` を見る |
 | `prompt` に `github.event.pull_request.body`・`title`・`head.ref` の式が無い | 文字列を探す |
 | job の `permissions` が `contents: read`・`id-token: write` だけ | 読み込んだ値を比べる |
 | トークンの発行に渡す権限が、Pull requests の write と Contents の read だけ | `with` のキーを比べる |

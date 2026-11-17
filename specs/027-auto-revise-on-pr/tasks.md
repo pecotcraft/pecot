@@ -78,7 +78,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [ ] T011 [US2] `p-w/cli/templates/workflow/pecot-review.yml` を書く。中身は `spec/contracts/workflow-template.md` のとおりにする。利用者が変える 4 つの値は `vars` から読み、job の `if` で `env` を読まない。action は SHA で固定する
 - [ ] T012 [US2] 雛形の先頭のコメントに、置き先・要る変数と secret・変えられる 4 つの変数と既定値・合言葉・Dependabot を許すときの secret の置き場を、英語で書く。`p-w/cli/templates/workflow/pecot-board-sync.yml` の先頭のコメントと同じ調子にする
 - [ ] T013 [US2] `.pre-commit-config.yaml` の actionlint が、新しい雛形も対象にしていることを確かめる。対象から外れていれば、対象の指定を直す
-- [ ] T014 [US2] T010 のテストを通す。雛形を検証用に手で写し、quickstart.md のシナリオ 7（fork）・9（draft）・12（許していない bot）で job が飛ばされることを見る。結果を PR の説明に書く
+- [ ] T014 [US2] T010 のテストを通す。雛形を検証用に手で写し、quickstart.md のシナリオ 7（fork）・9（draft）・12（許していない bot）で job が飛ばされることを見る。合言葉のコメントに 👀 が付くことも見る（research の R15）。結果を PR の説明に書く
 
 ---
 
