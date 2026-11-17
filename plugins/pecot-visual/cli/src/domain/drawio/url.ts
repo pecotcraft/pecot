@@ -1,5 +1,5 @@
 // drawio XML から draw.io ブラウザ URL を構築する純粋関数群。
-// fs / process には触れない（憲法 II）。icon:// 解決の SVG 読み込みは
+// fs / process には触れない（憲法の層の分離）。icon:// 解決の SVG 読み込みは
 // resolveIcon コールバック経由で infra 層に注入する。
 //
 // Python リファレンス: plugins/pecot-visual/skills/v-drawio/scripts/drawio-url.py

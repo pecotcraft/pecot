@@ -1,5 +1,5 @@
 // draw.io の embed export で得た SVG を、静的公開物として使える形へ整える純粋関数群。
-// fs / process には触れない（憲法 II）。
+// fs / process には触れない（憲法の層の分離）。
 //
 // 公開ビルドの `<img>` 経由描画では、SVG が自前で持つ 2 つの性質が問題になる。
 //   1. editor が付ける `color-scheme: light dark` は `<img>` 内で OS のダークモードに
