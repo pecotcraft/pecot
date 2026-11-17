@@ -1,5 +1,6 @@
 """インタフェース定義書の HTML 表示の Sphinx 設定。"""
 
+import os
 import sys
 from pathlib import Path
 
@@ -76,7 +77,7 @@ needs_links = {
 }
 needs_fields = {
     "outcome": {
-        "description": "Test outcome (passed, failed, not run)",
+        "description": "Test outcome (not-run, no-test, failed, passed, skipped)",
         "schema": {"type": "string"},
     }
 }
@@ -91,6 +92,8 @@ tr_case_id_length = 8
 iface_root = str(ROOT)
 # 合否のレーンは junit-lanes.json が正。後の段の workflow の matrix も同じファイルから作る。
 iface_junit = load_junit_lanes(DOCS / "junit-lanes.json", ROOT)
+# 公開のサイトを作る run だけが付ける。JUnit が無いか読めないレーンがあると止める。
+iface_strict = os.environ.get("PECOT_SITE_STRICT") == "1"
 
 # コマンド・ツールごとのページを _generated/<plugin>/ に書く。テストは 1 ページで組むので切る。
 iface_pages = True

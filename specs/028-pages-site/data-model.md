@@ -25,7 +25,7 @@
 | `side` | `PECOT_SITE_SIDE` | `local` |
 | `pr` | `PECOT_SITE_PR` | 無し |
 | `sha` | `PECOT_SITE_SHA`（帯には先頭 7 文字） | `git rev-parse HEAD` |
-| `plugins` | 各プラグインの `package.json` の `version` | 同じ |
+| `plugins` | 各プラグインの `.claude-plugin/plugin.json` の `version`（nx release が上げる版） | 同じ |
 | `built_at` | `PECOT_SITE_BUILT_AT`（合否を作った run の開始時刻、UTC） | 今の時刻 |
 | `run_url` | `PECOT_SITE_RUN_URL`（作る run の URL） | 無し（帯にリンクを出さない） |
 

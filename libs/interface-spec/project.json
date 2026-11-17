@@ -121,7 +121,7 @@
         "install"
       ],
       "metadata": {
-        "description": "定義書とテストの合否の HTML を docs/_build に作る。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。PR の必須のレーンではない。 読む JUnit は docs/junit-lanes.json で決める。"
+        "description": "定義書とテストの合否の HTML を docs/_build に作る。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。PR の必須のレーンではない。 読む JUnit は docs/junit-lanes.json で決める。 PECOT_SITE_STRICT=1 を付けると、JUnit が無いか読めないレーンがあるとき、その名前を出して止まる。"
       },
       "options": {
         "commands": [
