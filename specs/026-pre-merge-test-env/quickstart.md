@@ -96,7 +96,7 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/peco
 
 | 手順 | 期待 |
 |---|---|
-| 作業ツリーから版 `<版>-cuj.<Issue番号>.<乱数>` の tgz を作り、検証用のリリースに添える | `npx -y --prefix=/ <URL> --version` が、その版を出す |
+| 作業ツリーから版 `<版>-cuj.<Issue番号>.r<乱数>` の tgz を作り、検証用のリリースに添える | `npx -y --prefix=/ <URL> --version` が、その版を出す |
 | テンプレートの `npx` の名前を tgz の URL に替えた写しを、検証用の PR で `.github/workflows/` に入れる | 検証用の merge queue を通って入る |
 | 検証用で workflow を起こす | `Sync the board` の step が URL の `npx` の行で成功する。ボード `pecot sandbox` に結果が出る |
 | 検証用の workflow を、このリポの main の `.github/workflows/pecot-board-sync.yml` に戻す PR を入れる | `sandbox-diff.sh` が「ずれは 0 件」に戻る |

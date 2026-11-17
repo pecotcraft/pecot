@@ -279,18 +279,22 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
 1. 作業ツリーで、配布ツリーを作る。`<版>` は `plugins/pecot-workflow/.claude-plugin/plugin.json` の版
 
    ```bash
-   OUT=$(mktemp -d)
-   bash plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version=<版>-cuj.<Issue番号>.<乱数> --out-dir="$OUT"
+   OUT=<リポの外の、不在か空のディレクトリ>
+   bash plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh --dry-run --version=<版>-cuj.<Issue番号>.r<乱数> --out-dir="$OUT"
    ```
 
-   - `--out-dir` には、実体のパスがリポの外にある、不在か空のディレクトリを渡す。リポの中は止まる。base の `.pecot/work` は実体がリポの中なので使えない
-   - 版の `-cuj.<Issue番号>.<乱数>` は、`npx` が取った版を `pecot --version` で見分けるため
+   - `--out-dir` は、実体のパスがリポの外になければ止まる
+     - worktree では `.pecot/work/<Issue番号>/dist` を使える。`.pecot/work` の実体が base にあり、リポの外になるため
+     - base とふつうの clone では、`.pecot/work` の実体がリポの中なので使えない。リポの外のディレクトリを渡す
+   - 版の `-cuj.<Issue番号>.r<乱数>` は、`npx` が取った版を手順 3 の `--version` で見分けるため
+     - `<乱数>` の前の `r` は、`0042` のような数字だけの `<乱数>` でも版を semver として有効にするため
 2. `$OUT` で `npm pack --pack-destination <置き場>` を打つ。リポの中で打つと、ルートの devEngines で止まる
-3. tgz を検証用のリリースに添え、URL を取る
+3. tgz を検証用のリリースに添え、URL を取る。その URL から `npx` が直した版を取れることを見る
 
    ```bash
    gh release create cuj/<Issue番号>-<乱数>-tgz <tgz> --latest=false --target main -R pecotcraft/pecot-sandbox
    gh api repos/pecotcraft/pecot-sandbox/releases/tags/cuj/<Issue番号>-<乱数>-tgz --jq '.assets[0].browser_download_url'
+   npx -y --prefix=/ <URL> --version    # pecot version <版>-cuj.<Issue番号>.r<乱数> が出る
    ```
 
 4. 作業ツリーのテンプレートを写し、`npx` に渡す `@pecot/workflow-mcp@latest` だけを、その URL に替える
@@ -298,13 +302,17 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリーの絶対パ�
    - `gh pr create` はフックが止めるので、`pecot issue create`・`pecot session start`・`pecot pr create`・`pecot pr merge` を使う
    - 題とブランチは「作るものの名前の形」に合わせる
    - `workflow_dispatch`・`pull_request_target`・`issues` は、既定のブランチの定義で動く。PR のブランチに置いただけでは、直した定義で動かない
-6. PR・Issue を変えるか `gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` を打って起こす。実行の `Sync the board` の step が URL の `npx` の行で動き、ボード `pecot sandbox` に結果が出ることを見る
+6. PR・Issue を変えるか `gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` を打って起こし、次の 2 つを見る
+   - 実行の `Sync the board` の step が、URL の `npx` の行で成功すること
+   - 検証用の clone で `pecot board show` を打ち、`project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
 7. 写しを、このリポの main の `.github/workflows/pecot-board-sync.yml` と同じ中身に戻す PR を入れる
    - 戻す先はテンプレートではない。`sandbox-diff.sh` は、このリポの `.github/workflows/` の写しと比べる。テンプレートとは `npx` の 1 行が違う
 8. `sandbox-diff.sh` で「ずれは 0 件」を見てから、`sandbox-sweep.sh` でリリースを消す
    - 順を逆にすると、検証用の main の workflow が消えた URL を取りに行き、間の実行が落ちる
 
-定期の起動は、検証用に届かない。検証用の写しは `schedule` を持たず、このリポの Lambda（`.github/board-sync/`）は `pecotcraft/pecot` だけを起こす。2026-11-17 に、デプロイ済みの設定で確かめた。
+定期の起動は、検証用に届かない。検証用の写しは `schedule` を持たず、このリポの Lambda（`.github/board-sync/`）は `pecotcraft/pecot` だけを起こす。
+検証用から Lambda に配送が届いても、このリポの workflow は起きない。`handler.mjs` がリポの ID を比べ、違う配送を捨てる。
+2026-11-17 に、デプロイ済みの設定で確かめた。
 
 ### このリポだけの運用
 
