@@ -170,6 +170,25 @@ it('--show-repo で remote の URL から owner/repo を読めないと、その
   expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: could not read the repository from the URL of the Git remote origin\n' })
 })
 
+it.for([
+  // eslint-disable-next-line unicorn/prefer-https -- remote の URL として http の形を読むことの確認
+  { url: 'http://github.com/pecotcraft/pecot.git' },
+  { url: 'https://github.com/pecotcraft/pecot.git' },
+  { url: 'ssh://git@github.com:22/pecotcraft/pecot.git' },
+  { url: 'git://github.com/pecotcraft/pecot.git' },
+  { url: 'ftp://github.com/pecotcraft/pecot.git' },
+  { url: 'ftps://github.com/pecotcraft/pecot.git' },
+  { url: 'git@github.com:pecotcraft/pecot.git' },
+  { url: 'gh-alias:pecotcraft/pecot.git' },
+  { url: 'git@github.com:/pecotcraft/pecot.git' },
+  { url: 'https://github.com/pecotcraft/pecot/' },
+])('origin の URL が $url だと、--show-repo で pecotcraft/pecot を出す', async ({ url }, context) => {
+  await verifies(context, 'PW-COMMON-23')
+  const repository = repositoryWithRemotes({ origin: url })
+  const result = await run(['--show-repo'], [TARGET], repository)
+  expect(result).toEqual({ code: 0, stdout: 'resolved: pecotcraft/pecot\nsource:   current-git (origin)\n', stderr: '' })
+})
+
 // ループバックの http の URL ではない値。どれも拒否される
 // eslint-disable-next-line unicorn/prefer-https -- http で外部ホストの URL を拒否することの確認
 const NON_LOOPBACK_URLS = [{ url: 'https://example.com' }, { url: 'ftp://127.0.0.1' }, { url: 'http://example.com' }]

@@ -1,7 +1,7 @@
 #!/bin/bash
 # 作業中の Issue の番号を、git のブランチ名と remote から求める。CLI の activeIssueFromBranch と同じ規則。
 
-# 番号を出す。末尾の区切りが数字だけのブランチで、主の remote の URL が CLI の parseRemoteUrl の 3 形式に合うときだけ。
+# 番号を出す。末尾の区切りが数字だけのブランチで、主の remote の URL が CLI の parseRemoteUrl と同じ形（git-clone の GIT URLS）に合うときだけ。
 # @param $1 dir  git の作業ディレクトリ。
 pecot_active_issue_number() {
     local dir="$1" branch number remotes remote url
@@ -21,9 +21,10 @@ pecot_active_issue_number() {
     [ -n "$remote" ] || return 1
     url=$(git -C "$dir" remote get-url "$remote" 2>/dev/null) || return 1
 
-    local https_re='^https?://[^/]+/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
-    local scp_re='^git@[^:]+:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
-    local ssh_re='^ssh://([^@/]+@)?[^/:@]+(:[0-9]+)?/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$'
-    [[ "$url" =~ $https_re || "$url" =~ $scp_re || "$url" =~ $ssh_re ]] || return 1
+    local scheme_re='^(https?|ssh|git|ftps?)://([^@/]+@)?[^/:@]+(:[0-9]+)?/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$'
+    local scp_re='^([^@/:]+@)?[^/:@]+:/?[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$'
+    # 先頭がドライブ文字（`C:`）なら、git（Windows）と同じくローカルのパスとみなす
+    [[ "$url" =~ ^[A-Za-z]: ]] && return 1
+    [[ "$url" =~ $scheme_re || "$url" =~ $scp_re ]] || return 1
     printf '%s\n' "$number"
 }

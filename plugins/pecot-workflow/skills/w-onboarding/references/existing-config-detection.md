@@ -26,7 +26,9 @@ try {
   console.log('ERROR: origin URL を取得できませんでした')
   process.exit(1)
 }
-const m = origin.match(/^git@([^:]+):([^/]+)\//) || origin.match(/^https?:\/\/([^/]+)\/([^/]+)\//)
+// git-clone の GIT URLS の 2 形式（スキーム付き・scp 形式）。host は userinfo とポートの外に取る
+const m = origin.match(/^(?:https?|ssh|git|ftps?):\/\/(?:[^/@]+@)?([^/:@]+)(?::\d+)?\/([^/~][^/]*)\/([^/]+?)(?:\.git)?\/?$/)
+  || origin.match(/^(?![A-Za-z]:)(?:[^@/:]+@)?([^/:@]+):\/?([^/~][^/]*)\/([^/]+?)(?:\.git)?\/?$/)
 if (!m) {
   console.log('ERROR: origin URL を解析できませんでした:', origin)
   process.exit(1)

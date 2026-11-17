@@ -7310,3 +7310,6 @@ common_behaviors:
   - id: PW-COMMON-22
     pattern: unwanted
     statement: 'もし `--repo` を省いて短い形 `N` を渡し、remote の URL から `owner/repo` を読めないなら、短い形の案内と理由を出し、終了コード 2 で終わります'
+  - id: PW-COMMON-23
+    pattern: ubiquitous
+    statement: '常に、git remote の URL から、次の 2 つの形で `owner/repo` を読みます。1 つはスキーム付きの `<scheme>://[user@]host[:port]/owner/repo[.git][/]` です。`<scheme>` は `http`・`https`・`ssh`・`git`・`ftp`・`ftps` のどれかです。もう 1 つは scp 形式の `[user@]host:[/]owner/repo[.git][/]` です'

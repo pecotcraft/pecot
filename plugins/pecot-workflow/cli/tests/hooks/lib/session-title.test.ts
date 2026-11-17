@@ -121,6 +121,11 @@ describe('session-title.sh', () => {
     { label: 'https の .git 無し', url: 'https://github.com/owner/repo' },
     { label: 'scp 形の ssh', url: 'git@github.com:owner/repo.git' },
     { label: 'ssh://', url: 'ssh://git@github.com:22/owner/repo.git' },
+    { label: 'git://', url: 'git://github.com/owner/repo.git' },
+    { label: 'git 以外のユーザーの scp 形', url: 'user@github.com:owner/repo.git' },
+    { label: '別名の scp 形', url: 'gh-alias:owner/repo.git' },
+    { label: 'コロンの直後に / がある scp 形', url: 'git@github.com:/owner/repo.git' },
+    { label: 'https で末尾に /', url: 'https://github.com/owner/repo/' },
   ])('remote の URL が $label の形なら、番号を出す', (row) => {
     const hookCase = createHookCase()
     const project = setUpState(hookCase)
@@ -132,10 +137,12 @@ describe('session-title.sh', () => {
     { label: 'remote が無い', url: false },
     { label: 'ローカルのパス', url: '/srv/git/repo.git' },
     { label: 'https で区切りが足りない', url: 'https://github.com/repo' },
-    { label: 'https で末尾に /', url: 'https://github.com/owner/repo/' },
+    { label: 'ftp:// で区切りが足りない', url: 'ftp://o/r' },
     { label: 'owner に % を含む https', url: 'https://github.com/own%20er/repo.git' },
     { label: 'repo に空白を含む scp 形の ssh', url: 'git@github.com:owner/re po.git' },
     { label: 'owner に @ を含む ssh://', url: 'ssh://git@github.com/own@er/repo.git' },
+    { label: '~user の scp 形', url: 'git@github.com:~user/repo.git' },
+    { label: 'ドライブ文字で始まるパス', url: 'C:/owner/repo.git' },
   ])('$label とき、作業中の Issue は無いとして、出力せず記録を残さない', (row) => {
     const hookCase = createHookCase()
     const project = setUpState(hookCase)
