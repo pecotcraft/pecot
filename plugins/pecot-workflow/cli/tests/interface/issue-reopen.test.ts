@@ -290,7 +290,7 @@ describe('issue reopen', () => {
     })
   })
 
-  it('コメントの投稿に失敗したとき、終了コード 1 で終わる', async (context) => {
+  it('コメントの投稿に失敗したとき、コメントの失敗と分かる error を出し、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-REOPEN-14')
     prepareProject()
     await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), reopened(), failing({ method: 'POST', path: '/repos/acme/demo/issues/7/comments' })])
@@ -299,7 +299,22 @@ describe('issue reopen', () => {
 
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('reopened: Issue acme/demo/7\n')
-    expect(result.stderr).toMatch(/error: could not reopen Issue acme\/demo\/7: .*502/u)
+    expect(result.stderr).toMatch(/error: could not comment on Issue acme\/demo\/7: .*502/u)
+    expect(result.stderr).not.toContain('could not reopen')
+  })
+
+  it.for([
+    { name: '打つ', args: [] },
+    { name: '--dry-run で打つ', args: ['--dry-run'] },
+  ] satisfies readonly { name: string, args: readonly string[] }[])('--comment が空白だけで $name と、GitHub を呼ばず、終了コード 1 で終わる', async (row, context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-25')
+    prepareProject()
+    const github = await startGithub([])
+
+    const result = await reopen(['acme/demo/7', '--comment', '  \n ', ...row.args])
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --comment is blank: give a reason or omit it\n' })
+    expect(github.requests()).toEqual([])
   })
 
   it('--status が有効な値でないとき、終了コード 1 で終わる', async (context) => {
@@ -373,6 +388,25 @@ describe('issue reopen', () => {
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'active', unarchived: true, commented: true })
+    })
+
+    it('コメントの投稿に失敗したとき、コメントの失敗と分かる detail を github-api の失敗で返す', async () => {
+      prepareProject()
+      await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), reopened(), failing({ method: 'POST', path: '/repos/acme/demo/issues/7/comments' })])
+
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: '理由' })
+
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'github-api' } })
+      expect(outcome.structured['detail']).toMatch(/^could not comment on Issue acme\/demo\/7: /u)
+    })
+
+    it('comment が空白だけのとき、入力の名前を comment と書いた invalid-input の失敗を返す', async () => {
+      prepareProject()
+      await startGithub([])
+
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: ' '.repeat(3) })
+
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input', detail: 'comment is blank: give a reason or omit it' } })
     })
 
     it('Issue がボードに無いとき、status を省いた data を返す', async () => {

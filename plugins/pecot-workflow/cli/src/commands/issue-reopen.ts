@@ -8,6 +8,7 @@ import type { ProjectConfig } from '../domain/config.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { defineCommand } from './command-definition.js'
+import { hinted, inputNameHint } from './command-hint.js'
 import type { CommandDefinition } from './command-definition.js'
 import { isStatusConfigured, setIssueField } from './issue-board.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
@@ -106,7 +107,14 @@ async function confirmReopened(output: ReopenOutput, client: GitHubClient, issue
   output.done({ verb: 'reopen', target })
 
   if (comment === undefined || comment === '') return
-  await client.addIssueComment(owner, repository, number, comment)
+  // Issue は開いているので、投稿の失敗は reopen の失敗と分けて伝える
+  try {
+    await client.addIssueComment(owner, repository, number, comment)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    stopWith(output, `could not comment on ${target}: ${error.message}`, kindOfFailure(error))
+  }
   output.done({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
   output.result({ commented: true })
 }
@@ -132,8 +140,10 @@ async function reopenIssue(output: ReopenOutput, client: GitHubClient, config: P
   await confirmReopened(output, client, issue, comment)
 }
 
+const REOPEN_PATH = ['issue', 'reopen']
+
 const ISSUE_REOPEN = defineCommand({
-  path: ['issue', 'reopen'],
+  path: REOPEN_PATH,
   description: 'Reopen a closed Issue (also sets the status on the board)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
@@ -150,6 +160,10 @@ const ISSUE_REOPEN = defineCommand({
     return await runWithExit(async () => {
       const { status, comment } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
+      // 空白だけの理由は GitHub が 422 で拒むので、開き直す前に止める
+      if (comment !== undefined && comment !== '' && comment.trim() === '') {
+        stopWith(output, hinted`${inputNameHint(REOPEN_PATH, 'comment')} is blank: give a reason or omit it`, 'invalid-input')
+      }
 
       const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
