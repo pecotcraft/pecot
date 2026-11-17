@@ -123,7 +123,9 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
 
    ```bash
    <作業ツリー>/plugins/pecot-workflow/bin/pecot issue create ...
-   <作業ツリー>/plugins/pecot-workflow/bin/pecot session start ...
+   <作業ツリー>/plugins/pecot-workflow/bin/pecot session start ...   # リモートにブランチを作るだけで、checkout はしない
+   git fetch origin && git checkout <作ったブランチ>
+   # 変更を commit して push する
    <作業ツリー>/plugins/pecot-workflow/bin/pecot pr create ...
    ```
 
@@ -142,7 +144,7 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
    plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
    ```
 
-clone は、確かめるセッションごとに 1 つ作ります。`session start` が clone の中で checkout するため、共有するとぶつかります。
+clone は、確かめるセッションごとに 1 つ作ります。clone の中でそれぞれのブランチを checkout するため、共有するとぶつかります。
 認証は `gh auth token` を使うので、`.env` は不要です。
 別のトークンで書き込むときは、clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` を書きます。そのうえで、環境変数 `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` を外します。
 `sandbox-sweep.sh` は、名前の形に合わないものと、検証用の `main`・設定ファイルには触りません。`--issue` を省くと、名前の形に合うものをすべて片付けます。
