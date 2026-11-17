@@ -223,6 +223,10 @@ describe('relativeToCwd', () => {
     await mkdir(path.join(directory, 'repo/specs'), { recursive: true })
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
     await symlink(path.join(directory, 'repo'), path.join(directory, 'link'))
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
+    await mkdir(path.join(directory, 'outside'))
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
+    await symlink(path.join(directory, 'outside'), path.join(directory, 'repo/vendor'))
   })
 
   afterAll(async () => {
@@ -238,6 +242,16 @@ describe('relativeToCwd', () => {
     const cwd = path.join(directory, 'link')
     await expect(relativeToCwd(path.join(cwd, 'specs/a.md'), cwd)).resolves.toBe('specs/a.md')
     await expect(relativeToCwd(path.join(directory, 'repo/specs/a.md'), cwd)).resolves.toBe('specs/a.md')
+  })
+
+  it('作業ディレクトリの中のリンクの下は、リンク先が外にあっても見かけのパスで返す', async () => {
+    const cwd = path.join(directory, 'repo')
+    await expect(relativeToCwd(path.join(cwd, 'vendor/a.md'), cwd)).resolves.toBe('vendor/a.md')
+  })
+
+  it('.. で始まる名前のファイルは、作業ディレクトリの中として返す', async () => {
+    const cwd = path.join(directory, 'repo')
+    await expect(relativeToCwd(path.join(cwd, '..notes.md'), cwd)).resolves.toBe('..notes.md')
   })
 
   it('作業ディレクトリの外のパスには undefined を返す', async () => {

@@ -14,22 +14,29 @@ export interface MainDependencies {
   readonly readFile: (file: string) => Promise<string>
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 同上
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- textlint の型を受け取るため
   readonly ignoreCheck: (descriptor: TextlintKernelDescriptor) => Promise<IgnoreCheck>
 }
 
 // textlint の CLI と同じく、作業ディレクトリの .textlintignore を読む。
 export const IGNORE_FILE = '.textlintignore'
 
+function isOutside(relative: string): boolean {
+  return relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)
+}
+
 // 作業ディレクトリからの相対パス。外にあるときは undefined。
-// process.cwd() はリンクを解決した実体を返すので、親ディレクトリにも realpath をかけてからそろえる。
+// 見かけのパスで外に出るときだけ、リンクを通った作業ディレクトリとみて実体どうしでそろえ直す。
 export async function relativeToCwd(file: string, cwd: string): Promise<string | undefined> {
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 作業ディレクトリと、引数で渡されたファイルの親を解決する
-  const base = await realpath(cwd)
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
-  const directory = await realpath(path.dirname(path.resolve(cwd, file)))
-  const relative = path.relative(base, path.join(directory, path.basename(file)))
-  return relative.startsWith('..') || path.isAbsolute(relative) ? undefined : relative.split(path.sep).join('/')
+  let relative = path.relative(cwd, path.resolve(cwd, file))
+  if (isOutside(relative)) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 作業ディレクトリと、引数で渡されたファイルの親を解決する
+    const base = await realpath(cwd)
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同上
+    const directory = await realpath(path.dirname(path.resolve(cwd, file)))
+    relative = path.relative(base, path.join(directory, path.basename(file)))
+  }
+  return isOutside(relative) ? undefined : relative.split(path.sep).join('/')
 }
 
 // scanFilePath は除外の型を作業ディレクトリからの相対で照らすので、相対パスに直して渡す。

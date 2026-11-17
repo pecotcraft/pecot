@@ -242,6 +242,13 @@ for CWD in "$REPO" "$REPO/docs" ""; do
     LABEL="cwd=${CWD#"$TMP"/}"
     expect_silent ".textlintignore で外したファイル $LABEL" "[text-lint-check] pass"
 done
+# git の外では、入力の cwd の .textlintignore を読む
+PLAIN="$TMP/plain"
+mkdir -p "$PLAIN/specs"
+printf 'specs/**\n' > "$PLAIN/.textlintignore"
+write_md "$PLAIN/specs/spec.md" "$VIOLATION_LINE"
+MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "ignored-outside-git" "{\"cwd\":\"$PLAIN\",\"tool_input\":{\"file_path\":\"$PLAIN/specs/spec.md\"}}"
+expect_silent "git の外で、入力の cwd の .textlintignore で外したファイル" "[text-lint-check] pass"
 MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "not-ignored" "{\"cwd\":\"$REPO/docs\",\"tool_input\":{\"file_path\":\"$REPO/docs/note.md\"}}"
 if [ "$(ctx_of "$OUT" | head -n 1)" = "warning: text lint violations: $REPO/docs/note.md" ]; then
     pass ".textlintignore に当たらないファイル: 違反を返す"
