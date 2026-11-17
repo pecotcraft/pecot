@@ -117,8 +117,15 @@ export function isInReview(issue: IssueFacts): boolean {
 /**
 open で、open の PR が無く、merged の PR がある。マージから `Closes` で閉じるまでの間と、`Closes` の無いマージで起きる
 */
-export function isMergedOpen(issue: IssueFacts): boolean {
+function isMergedOpen(issue: IssueFacts): boolean {
   return issue.state === 'open' && openPullRequests(issue).length === 0 && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged')
+}
+
+/**
+前提の状態が `merged-open` になり、Issue を閉じれば済む。列が Pending なら `pending` を先に出すので含めない
+*/
+export function isAwaitingCloseAfterMerge(issue: IssueFacts): boolean {
+  return isMergedOpen(issue) && !isPending(issue)
 }
 
 export function hasStarted(issue: IssueFacts): boolean {
@@ -204,7 +211,8 @@ export function judgeReadiness(input: JudgeReadinessInput): Readiness | undefine
 
   if (cycle !== undefined) return blocked({ code: 'cycle', cycle })
   if (isNeedsReview) return blocked({ code: 'closed-unmerged', issues: closedUnmerged.map(({ issue }) => issue.ref) })
-  const waitsMerge = unfinished.filter(({ wait }) => wait === 'merge')
+  // PR がマージ済みなら、マージを待つ前提でも待つものが無いので、順 7 の状態で示す
+  const waitsMerge = unfinished.filter(({ issue, wait }) => wait === 'merge' && !isMergedOpen(issue))
   if (waitsMerge.length > 0) {
     return blocked({ code: 'waits-merge', issues: waitsMerge.map(({ issue, reason }) => ({ issue: issue.ref, reason })) })
   }
@@ -397,8 +405,7 @@ export function describePrerequisiteState(prerequisite: Readonly<Prerequisite>):
   const { issue, wait, reason } = prerequisite
   if (isDone(issue)) return 'done'
   if (issue.state === 'closed') return 'closed without merge'
-  if (isMergedOpen(issue)) return NOT_IN_REVIEW_TEXT.get('merged-open') ?? 'merged-open'
-  if (wait === 'merge') return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`
+  if (wait === 'merge' && !isMergedOpen(issue)) return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`
   const state = notInReviewState(issue)
   return isStackable(issue) ? 'in review' : (NOT_IN_REVIEW_TEXT.get(state) ?? state)
 }

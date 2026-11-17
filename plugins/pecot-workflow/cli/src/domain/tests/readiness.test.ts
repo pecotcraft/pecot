@@ -197,6 +197,11 @@ describe('judgeReadiness の順', () => {
     })
   })
 
+  it('wait が merge でも PR が merged の open の前提は、waits-merge でなく merged-open として not-in-review になる', () => {
+    const facts = issue(1, { pullRequests: [pullRequest(1001, 'b1', DEV, { state: 'merged' })] })
+    expect(judge([need(facts, 'merge', '理由')]).reason).toEqual({ code: 'not-in-review', issues: [{ issue: reference(1), state: 'merged-open' }] })
+  })
+
   it('merged の PR と open の PR を 1 本ずつ持つ前提は、open の PR に積む', () => {
     const facts = inReview(1, DEV, { pullRequests: [pullRequest(1000, 'old', DEV, { state: 'merged' }), pullRequest(1001, 'b1')] })
     expect(judge([need(facts)])).toMatchObject({ kind: 'stackable', stackOn: { branch: 'b1', issue: reference(1) } })
@@ -756,6 +761,12 @@ describe('describePrerequisiteState', () => {
     const mergedOpen = issue(3, { pullRequests: [pullRequest(1003, 'b3', DEV, { state: 'merged' })] })
     expect(describePrerequisiteState(need(mergedOpen))).toBe('PR merged, Issue open')
     expect(describePrerequisiteState(need(mergedOpen, 'merge', '理由'))).toBe('PR merged, Issue open')
+  })
+
+  it('merged の PR を持つ open の前提でも、列が Pending なら wait が stack でも merge でも in Pending', () => {
+    const pending = issue(3, { column: 'Pending', pullRequests: [pullRequest(1003, 'b3', DEV, { state: 'merged' })] })
+    expect(describePrerequisiteState(need(pending))).toBe('in Pending')
+    expect(describePrerequisiteState(need(pending, 'merge', '理由'))).toBe('in Pending')
   })
 })
 

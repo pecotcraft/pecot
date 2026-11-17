@@ -85,7 +85,7 @@ Issue の PR は、次の 3 つから集め、リポと番号の組で重ねず�
 | 1 | 前提の読み取りに失敗した | `blocked` | `unreadable` |
 | 2 | 前提が輪になっている | `blocked` | `cycle` |
 | 3 | 前提のどれかが、閉じていて済んでいない | `blocked` | `closed-unmerged` |
-| 4 | 済んでいない `merge` の前提がある | `blocked` | `waits-merge` |
+| 4 | 済んでいない `merge` の前提がある。PR がマージ済みで Issue が開いている前提は除き、順 7 で扱う | `blocked` | `waits-merge` |
 | 5 | 済んでいない前提が無い | `startable` | — |
 | 6 | 済んでいない前提のどれかが、別のリポにある。前提が同じリポでも、その PR が別のリポにあるときを含む | `blocked` | `other-repository` |
 | 7 | 済んでいない前提のどれかが、PR 中でない | `blocked` | `not-in-review` |
