@@ -385,6 +385,58 @@ describe('入力の検証の誤り', () => {
     expect(results.map(entry => entry.status)).toEqual(['rejected'])
   })
 
+  it('順番を待つ間に取り消された呼び出しは、コマンドを動かさず、取り消しの理由を伝える', async () => {
+    const started = Promise.withResolvers<boolean>()
+    const release = Promise.withResolvers<boolean>()
+    const ran: string[] = []
+    const first = defineCommand({
+      path: ['first'],
+      description: '先に動いて待つ',
+      input: z.object({}),
+      output: z.strictObject({}),
+      positional: [],
+      interactive: false,
+      run: async () => {
+        started.resolve(true)
+        await release.promise
+        return await exitWith(0)
+      },
+    })
+    const second = defineCommand({
+      path: ['second'],
+      description: '後に並ぶ',
+      input: z.object({}),
+      output: z.strictObject({}),
+      positional: [],
+      interactive: false,
+      run: async () => {
+        ran.push('second')
+        return await exitWith(0)
+      },
+    })
+    const reasons: string[] = []
+    const { client } = await open([first, second], {
+      reportCancelled: (reason) => {
+        reasons.push(reason)
+      },
+    })
+    const running = client.callTool({ name: 'first', arguments: {} })
+    await started.promise
+    const controller = new AbortController()
+    const queued = Promise.allSettled([client.callTool({ name: 'second', arguments: {} }, { signal: controller.signal })])
+    // サーバが要求を受け付けて順番を待ち始めてから取り消す
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100)
+    })
+    controller.abort('cancelled while queued')
+    const outcomes = await queued
+    expect(outcomes.map(entry => entry.status)).toEqual(['rejected'])
+    release.resolve(true)
+    await running
+    await expect.poll(() => reasons).toEqual(['cancelled while queued'])
+    expect(ran).toEqual([])
+  })
+
   it('プログラムの誤りのとき、それまでに集めた出力も伝える', async () => {
     const noisy = defineCommand({
       path: ['noisy'],

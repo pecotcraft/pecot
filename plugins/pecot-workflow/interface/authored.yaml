@@ -7664,7 +7664,7 @@ common_behaviors:
     statement: '常に、git remote の URL から、次の 2 つの形で `owner/repo` を読みます。1 つはスキーム付きの `<scheme>://[user@]host[:port]/owner/repo[.git][/]` です。`<scheme>` は `http`・`https`・`ssh`・`git`・`ftp`・`ftps` のどれかです。もう 1 つは scp 形式の `[user@]host:[/]owner/repo[.git][/]` です'
   - id: PW-COMMON-24
     pattern: state
-    statement: 'MCP のツールが子プロセス（fetch・ls-remote・`git pull`・`gh auth token`・`setup_command`・`nx graph`）を待つ間、ping に、待ち終わる前に答えます'
+    statement: 'MCP のツールが子プロセス（fetch・ls-remote・push・`git pull`・`gh auth token`・`setup_command`・`nx graph`）を待つ間、ping へすぐ答えます'
   - id: PW-COMMON-25
     pattern: event
     statement: '子プロセスを待つ MCP のツールが取り消されると、子プロセスをその子ごと止め、コマンドの続きを動かしません'

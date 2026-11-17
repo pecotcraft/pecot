@@ -9,6 +9,16 @@ import { childStdin } from './child-stdin.js'
 import type { ChildStdin } from './child-stdin.js'
 import { toOsError } from './os-error.js'
 
+/**
+子の標準出力・標準エラーを溜める上限。出力が大きい git（log・diff 等）でも切れない大きさにし、超えた分は捨てる
+*/
+export const MAX_OUTPUT_BYTES = 1024 * 1024 * 1024
+
+/**
+止めるときに SIGTERM を送ってから SIGKILL を送るまでの猶予。git が lock ファイルを片付ける時間
+*/
+export const KILL_GRACE_MILLISECONDS = 1000
+
 export interface ProcessOptions {
   readonly cwd?: string | undefined
   /**
@@ -46,11 +56,27 @@ export interface ProcessResult {
 
 const running = new Set<ChildProcess>()
 
-// 別のグループの子は端末の Ctrl-C を受けないので、受けたらグループごと止めてから既定の動きに戻す
-const FORWARDED_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM']
+// 別のセッションの子には端末のシグナルが届かないので、受けたらグループへ送ってから既定の動きに戻す
+const FORWARDED_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT']
 
-function text(chunks: readonly Buffer[]): string {
-  return normalizeNewlines(Buffer.concat(chunks).toString('utf8'))
+interface Capture {
+  push: (chunk: Buffer) => void
+  text: () => string
+}
+
+function createCapture(): Capture {
+  const chunks: Buffer[] = []
+  let captured = 0
+  return {
+    push: (chunk) => {
+      const room = MAX_OUTPUT_BYTES - captured
+      if (room <= 0) return
+      const kept = chunk.subarray(0, Math.min(room, chunk.length))
+      captured += kept.length
+      chunks.push(kept)
+    },
+    text: () => normalizeNewlines(Buffer.concat(chunks).toString('utf8')),
+  }
 }
 
 function reasonText(reason: unknown): string {
@@ -65,32 +91,41 @@ export function cancelledBy(signal: Readonly<AbortSignal>): CancelledError {
   return new CancelledError(reasonText(signal.reason))
 }
 
-// 子はグループの頭なので、負の pid で孫（git-remote-https・フック・シェルの下のコマンド）まで止める
-function killGroup(child: ChildProcess): void {
+// 子はグループの頭なので、負の pid で孫（git-remote-https・フック・シェルの下のコマンド）にも送る
+function signalGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.pid === undefined) return
   try {
-    process.kill(-child.pid, 'SIGKILL')
+    process.kill(-child.pid, signal)
   }
   catch {
     // 既に終わっている
   }
 }
 
+// SIGTERM で片付けの機会を渡し、猶予の後も残っていれば SIGKILL で止める
+function terminateGroup(child: ChildProcess): void {
+  signalGroup(child, 'SIGTERM')
+  setTimeout(() => {
+    signalGroup(child, 'SIGKILL')
+  }, KILL_GRACE_MILLISECONDS).unref()
+}
+
 /**
-生きている子をすべて止める。サーバの終了のときに呼ぶ
+生きている子のグループに SIGTERM を送る。サーバの終了のときに呼ぶ
 */
 export function killRunningProcesses(): void {
-  for (const child of running) killGroup(child)
+  for (const child of running) signalGroup(child, 'SIGTERM')
 }
 
 /**
 子プロセスを動かし、終わるのを待つ。起動に失敗（ENOENT など）したら OsError を投げる。
-子が 0 で終わっていれば、時間切れや取り消しと重なっても成功の結果を返す
+子が 0 で終わっていれば、取り消しと重なっても成功の結果を返す
 */
 export async function runProcess(command: string, arguments_: readonly string[], options: Readonly<ProcessOptions> = {}): Promise<ProcessResult> {
   const { signal } = options
   if (signal?.aborted === true) throw cancelledBy(signal)
   const timeout = options.timeoutMilliseconds === undefined ? undefined : AbortSignal.timeout(options.timeoutMilliseconds)
+  // 時間切れのとき、フックなどの孫までまとめて止めるため、子を自分のグループの頭にする
   const child = spawn(command, [...arguments_], {
     cwd: options.cwd,
     env: options.env,
@@ -99,18 +134,15 @@ export async function runProcess(command: string, arguments_: readonly string[],
     detached: true,
   })
   running.add(child)
-  const stdout: Buffer[] = []
-  const stderr: Buffer[] = []
-  child.stdout.on('data', (chunk: Buffer) => {
-    stdout.push(chunk)
-  })
-  child.stderr.on('data', (chunk: Buffer) => {
-    stderr.push(chunk)
-  })
+  const stdout = createCapture()
+  const stderr = createCapture()
+  child.stdout.on('data', stdout.push)
+  child.stderr.on('data', stderr.push)
 
   return await new Promise<ProcessResult>((resolve, reject) => {
     let stopped: 'timed-out' | 'cancelled' | undefined
     let isSettled = false
+    const hasExited = (): boolean => child.exitCode !== null || child.signalCode !== null
     const onTimeout = (): void => {
       stop('timed-out')
     }
@@ -118,7 +150,7 @@ export async function runProcess(command: string, arguments_: readonly string[],
       stop('cancelled')
     }
     const forward = (received: NodeJS.Signals): void => {
-      killGroup(child)
+      signalGroup(child, received)
       finish()
       process.kill(process.pid, received)
     }
@@ -132,24 +164,28 @@ export async function runProcess(command: string, arguments_: readonly string[],
     const settle = (exitCode: number | null, exitSignal: NodeJS.Signals | null): void => {
       if (isSettled) return
       finish()
-      const isStopped = stopped !== undefined && exitCode !== 0
-      if (isStopped && stopped === 'cancelled' && signal !== undefined) {
+      if (stopped === 'cancelled' && signal !== undefined) {
         reject(cancelledBy(signal))
         return
       }
-      resolve({ exitCode, signal: exitSignal, stdout: text(stdout), stderr: text(stderr), isTimedOut: isStopped && stopped === 'timed-out' })
+      resolve({ exitCode, signal: exitSignal, stdout: stdout.text(), stderr: stderr.text(), isTimedOut: stopped === 'timed-out' })
     }
     // 止めた後は close を待たない。パイプを握った孫が残ると、close は孫が終わるまで来ない
-    const settleStopped = (): void => {
+    const settleOnExit = (): void => {
       child.stdout.destroy()
       child.stderr.destroy()
       settle(child.exitCode, child.signalCode)
     }
     const stop = (reason: 'timed-out' | 'cancelled'): void => {
       if (isSettled || stopped !== undefined) return
+      terminateGroup(child)
+      // 子が先に終わっていれば、その結果を返す。0 で終わっていない取り消しだけは、続きを動かさないために投げる
+      if (hasExited()) {
+        if (reason === 'cancelled' && child.exitCode !== 0) stopped = reason
+        settleOnExit()
+        return
+      }
       stopped = reason
-      killGroup(child)
-      if (child.exitCode !== null || child.signalCode !== null) settleStopped()
     }
     timeout?.addEventListener('abort', onTimeout, { once: true })
     signal?.addEventListener('abort', onAbort, { once: true })
@@ -161,8 +197,11 @@ export async function runProcess(command: string, arguments_: readonly string[],
       const converted = toOsError(error)
       reject(converted instanceof Error ? converted : error)
     })
-    child.once('exit', () => {
-      if (stopped !== undefined) settleStopped()
+    child.once('exit', (exitCode: number | null) => {
+      if (stopped === undefined) return
+      // 止める前に 0 で終わっていた（止めるのと終わるのが重なった）なら成功とする
+      if (exitCode === 0) stopped = undefined
+      settleOnExit()
     })
     child.once('close', (exitCode: number | null, exitSignal: NodeJS.Signals | null) => {
       settle(exitCode, exitSignal)

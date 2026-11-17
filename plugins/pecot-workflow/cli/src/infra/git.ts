@@ -15,7 +15,7 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import type { RemoteTagLookup } from '../domain/release.js'
 import { childStdin } from './child-stdin.js'
 import { isFileNotFound, toOsError } from './os-error.js'
-import { runProcess } from './process-run.js'
+import { MAX_OUTPUT_BYTES, runProcess } from './process-run.js'
 
 export interface GitOptions {
   /**
@@ -65,9 +65,6 @@ export class GitCommandError extends BaseError {
     this.stderr = result.stderr
   }
 }
-
-// 出力が大きい git（log・diff 等）でも切れないようにする
-export const MAX_OUTPUT_BYTES = 1024 * 1024 * 1024
 
 function withoutGitVariables(): Record<string, string> {
   // interface-env: none

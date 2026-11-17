@@ -1,15 +1,16 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の JSON-RPC の型は mutable */
 // 子プロセスを待つ MCP のツールが ping に答え、取り消しで子を止めること（PW-COMMON-24・25）を、同じプロセスのクライアントから確かめる。
 // git のリモートは GIT_SSH、gh と nx は眠る偽物で待たせる。
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import { expect, it } from 'vitest'
 
 import { createMcpServer } from '../../src/mcp/server.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { connectInMemory } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
@@ -74,17 +75,78 @@ interface Hang {
   readonly arguments: Readonly<Record<string, unknown>>
   readonly sleeper: Sleeper
   readonly directory: string
+  /**
+  コマンドの続きが動けば変わる状態。取り消しの前と後で比べる
+  */
+  readonly state?: () => string
 }
 
 interface Observed {
   readonly isPingInTime: boolean
   readonly isChildAliveAtPing: boolean
   readonly isCallRejected: boolean
+  readonly isUnanswered: boolean
   readonly isChildGone: boolean
+  readonly isStateUnchanged: boolean
   readonly isNextCallInTime: boolean
 }
 
-const RESPONSIVE: Observed = { isPingInTime: true, isChildAliveAtPing: true, isCallRejected: true, isChildGone: true, isNextCallInTime: true }
+const RESPONSIVE: Observed = { isPingInTime: true, isChildAliveAtPing: true, isCallRejected: true, isUnanswered: true, isChildGone: true, isStateUnchanged: true, isNextCallInTime: true }
+
+type Message = Parameters<InMemoryTransport['send']>[0]
+
+interface RecordedConnection {
+  readonly client: Client
+  /**
+  クライアントが送った tools/call の要求の id
+  */
+  readonly calls: readonly (number | string)[]
+  /**
+  サーバが応答（result か error）を送った要求の id
+  */
+  readonly answered: readonly (number | string)[]
+  readonly close: () => Promise<void>
+}
+
+function responseId(message: Message): number | string | undefined {
+  return 'id' in message && ('result' in message || 'error' in message) ? message.id : undefined
+}
+
+function toolCallId(message: Message): number | string | undefined {
+  return 'id' in message && 'method' in message && message.method === 'tools/call' ? message.id : undefined
+}
+
+// 両端の送信を記録してつなぐ。取り消した要求にサーバが応答を送らないことを、サーバの送信で確かめる
+async function connectRecording(): Promise<RecordedConnection> {
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+  const calls: (number | string)[] = []
+  const answered: (number | string)[] = []
+  const sendFromServer = serverTransport.send.bind(serverTransport)
+  serverTransport.send = async (message, options) => {
+    const id = responseId(message)
+    if (id !== undefined) answered.push(id)
+    await sendFromServer(message, options)
+  }
+  const sendFromClient = clientTransport.send.bind(clientTransport)
+  clientTransport.send = async (message, options) => {
+    const id = toolCallId(message)
+    if (id !== undefined) calls.push(id)
+    await sendFromClient(message, options)
+  }
+  const server = createMcpServer(COMMANDS)
+  const client = new Client({ name: 'test-client', version: '0.0.0' })
+  await server.connect(serverTransport)
+  await client.connect(clientTransport)
+  return {
+    client,
+    calls,
+    answered,
+    close: async () => {
+      await client.close()
+      await server.close()
+    },
+  }
+}
 
 async function isRejected(pending: Promise<unknown>): Promise<boolean> {
   try {
@@ -121,16 +183,18 @@ async function isGoneWithin(pid: number, milliseconds: number): Promise<boolean>
   return !isAlive(pid)
 }
 
-// ツールを呼び、子を待つ間に ping を送り、取り消して、子が消えることと次の呼び出しが待たずに動くことを見る
+// ツールを呼び、子を待つ間に ping を送って取り消す。見るのは、子の終わり・応答の有無・状態の変化・次の呼び出しの速さ
 async function pingAndCancel(hang: Readonly<Hang>): Promise<Observed> {
   const previous = process.cwd()
   process.chdir(hang.directory)
-  const connected = await connectInMemory(createMcpServer(COMMANDS))
+  const connected = await connectRecording()
   try {
+    const stateBefore = hang.state?.()
     const controller = new AbortController()
     const raw = connected.client.callTool({ name: hang.name, arguments: { ...hang.arguments } }, { signal: controller.signal })
     const rejected = isRejected(raw)
     const pid = await Promise.race([pidOf(hang.sleeper), failOnEarlyAnswer(raw)])
+    const [cancelledId] = connected.calls
 
     const pingStarted = Date.now()
     await connected.client.ping()
@@ -144,7 +208,10 @@ async function pingAndCancel(hang: Readonly<Hang>): Promise<Observed> {
     const nextStarted = Date.now()
     await connected.client.callTool({ name: 'session_show', arguments: {} })
     const isNextCallInTime = Date.now() - nextStarted < PING_LIMIT_MILLISECONDS * 5
-    return { isPingInTime, isChildAliveAtPing, isCallRejected, isChildGone, isNextCallInTime }
+    // 次の呼び出しの応答が届いた時点で、取り消した要求の応答が送られていない
+    const isUnanswered = cancelledId !== undefined && !connected.answered.includes(cancelledId)
+    const isStateUnchanged = hang.state?.() === stateBefore
+    return { isPingInTime, isChildAliveAtPing, isCallRejected, isUnanswered, isChildGone, isStateUnchanged, isNextCallInTime }
   }
   finally {
     await connected.close()
@@ -157,7 +224,7 @@ it('pr_restack が fetch を待つ間、ping に答え、取り消すとリモ�
   await verifies(context, 'PW-COMMON-25')
   const workspace = await openStacked()
   const sleeper = hangRemote(workspace)
-  expect(await pingAndCancel({ name: 'pr_restack', arguments: {}, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  expect(await pingAndCancel({ name: 'pr_restack', arguments: {}, sleeper, directory: workspace.directory, state: () => readFileSync(path.join(workspace.directory, stateFile('.pecot-base')), 'utf8') + workspace.git(['rev-parse', 'HEAD']) })).toEqual(RESPONSIVE)
 })
 
 it('pr_check が ls-remote を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
@@ -180,7 +247,7 @@ it('session_finish が git pull を待つ間、ping に答え、取り消すと�
   ]
   const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }], github })
   const sleeper = hangRemote(workspace)
-  expect(await pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21' }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  expect(await pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21' }, sleeper, directory: workspace.directory, state: () => workspace.git(['for-each-ref', '--format=%(refname)', `refs/heads/${UPPER}`]) })).toEqual(RESPONSIVE)
 })
 
 it('pr_create の prepare が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {

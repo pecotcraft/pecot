@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { CancelledError, InvalidValueError } from '../domain/errors.js'
 import { parseOwnerRepository } from '../domain/repository-resolver.js'
 import { resolveApiUrlOverride } from '../infra/github/client.js'
+import { cancelledBy } from '../infra/process-run.js'
 import { usageOf, withUsage } from '../commands/command-binding.js'
 import { createOutput } from '../commands/output.js'
 import { exitCodeOfFailure } from '../commands/failure.js'
@@ -191,14 +192,16 @@ function partialData(definition: Readonly<CommandDefinition>, raw: Readonly<Reco
 // コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
 const sequence: { tail: Promise<boolean> } = { tail: Promise.resolve(true) }
 
-async function inSequence(signal: Readonly<AbortSignal>, task: () => Promise<CallToolResult>): Promise<CallToolResult> {
+async function inSequence(signal: Readonly<AbortSignal>, options: Readonly<McpServerOptions>, task: () => Promise<CallToolResult>): Promise<CallToolResult> {
   const previous = sequence.tail
   const turn = Promise.withResolvers<boolean>()
   sequence.tail = turn.promise
   await previous
   try {
     // 待っている間に中断（notifications/cancelled）か接続の切断があれば、本体を呼ばない。応答は届かない
-    return signal.aborted ? toAbortedResult() : await task()
+    if (!signal.aborted) return await task()
+    options.reportCancelled?.(cancelledBy(signal).message)
+    return toAbortedResult()
   }
   finally {
     turn.resolve(true)
@@ -214,7 +217,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
     server.registerTool(
       definition.toolName,
       { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)) },
-      async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options, serverContext.mcpReq.signal)),
+      async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, options, async () => await invoke(definition, arguments_, options, serverContext.mcpReq.signal)),
     )
   }
   return server
