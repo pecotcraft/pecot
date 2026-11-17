@@ -69,7 +69,10 @@ def test_dev_targets_falls_back_to_all_when_before_is_unreachable() -> None:
     run = _step("dev-targets", "Resolve target plugins")["run"]
     assert "set -euo pipefail" in run
     assert 'git cat-file -e "${BEFORE}^{commit}"' in run
-    assert 'git diff --name-only "$BEFORE" "$SHA" | node .githooks/scripts/dev-targets.mjs' in run
+    assert (
+        'git diff --name-only --no-renames "$BEFORE" "$SHA" | node .githooks/scripts/dev-targets.mjs'
+        in run
+    )
     assert "node .githooks/scripts/dev-targets.mjs --all" in run
     assert "jq -e 'type == \"array\"'" in run
     assert _step("dev-targets", "Checkout")["with"]["fetch-depth"] == 0

@@ -186,7 +186,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$EVENT" = "push" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-            plugins="$(git diff --name-only "$BEFORE" "$SHA" | node .githooks/scripts/dev-targets.mjs)"
+            plugins="$(git diff --name-only --no-renames "$BEFORE" "$SHA" | node .githooks/scripts/dev-targets.mjs)"
           else
             plugins="$(node .githooks/scripts/dev-targets.mjs --all)"
           fi

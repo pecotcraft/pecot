@@ -63,7 +63,8 @@ trusted publisher は、レジストリにあるパッケージにしか登録�
 ## 開発版
 
 - 3 つの `@pecot/<name>-mcp` の開発版（dist-tag `next`）も、同じ trusted publisher で `publish-npm.yml` の `publish-dev` が出す
-- 出すのは、main への push で変わったプラグインだけ（`dev-targets.mjs` が決める）。新しいパッケージを足すときは、`dev-targets.mjs` の表にも足す
+- 出すのは、main への push で変わったプラグインだけ（`dev-targets.mjs` が決める）
+- 新しいパッケージは、手順 4 で正式版の publish が成功した後に `dev-targets.mjs` の表へ足す。先に足すと、trusted publisher を登録する前に `publish-dev` が動き、その脚が落ちる
 - 失敗した脚は、後で別のプラグインが push されても出し直されない。その run の脚を re-run で出し直す
 - trusted publisher に environment を付けるときは、`publish` と `publish-dev` の両方の job に同じ environment を置く。片方だけだと、置かない方の publish が止まる
 
