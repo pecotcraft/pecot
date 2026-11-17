@@ -32,7 +32,6 @@ const SEMVER_PATTERN = /^\p{Nd}+\.\p{Nd}+\.\p{Nd}+\n?$/u
 const VERSION_PATTERN = /^\[(\p{Nd}+\.\p{Nd}+\.\p{Nd}+)\]/u
 
 function splitLines(content: string): readonly string[] {
-  // 改行コードの \r\n は区切り 1 つと数えるため、先に \n へ揃える
   const lines = content.split(PYTHON_LINE_BREAK)
   if (lines.at(-1) === '') lines.pop()
   return lines
