@@ -39,7 +39,10 @@
 - **Decision**: 作る run の artifact は `retention-days: 90`（public リポの上限）で残す。
   公開する run は、各側について「最後に成功した作る run」の artifact を探す。
   リリース版の artifact が見つからない（期限切れ）ときは、公開せずに失敗する。
-  そのうえで、最新のリリースのコミットで作る run を `workflow_dispatch` で起こし、その完了で公開をやり直す
+  そのうえで、最新のリリースのコミットで作る run を `workflow_dispatch` で起こし、その完了で公開をやり直す。
+  起こす前に、同じ SHA の `side=release` の作る run を探す。進行中のものがあるか、最後のものが失敗していれば起こさず、summary に書くだけにする。
+  作る run の失敗が `workflow_run` で公開する run を起こし、その run がまた作り直しを起こす、というループを止めるためだ。
+  起こすには、組み立ての job に `actions: write` が要る
 - **Rationale**: 公開の流れの正を「作る run の artifact」に置けば、新しい保管場所（ブランチ・Release の asset）が要らない。開発版と PR 版は 90 日以内に必ず作り直される。リリースが 90 日以上空いたときだけ、自動で作り直せばよい
 - **Alternatives considered**:
   - 専用ブランチに tar を commit する: docs が Actions 方式で避けるとする「ビルド物を置く専用ブランチ」と同じ形になる
@@ -57,7 +60,9 @@
   | 同じリポの PR の closed | 作らずに終わる | 同上。開いている PR を数え直し、閉じた PR の側を外す |
   | 手での起動 | `workflow_dispatch`（side と sha を指定） | 同上。公開だけのやり直しは `pages-deploy.yml` の `workflow_dispatch` |
 
-- **Rationale**: `GITHUB_TOKEN` で起こした run は、新しい workflow を起こさない。ただし `workflow_dispatch` と `repository_dispatch` は例外として起こす（docs: triggering-a-workflow-from-a-workflow）。release.yml から作る run を起こすのは、この例外に当たる
+- **Rationale**: `GITHUB_TOKEN` で起こした run は、新しい workflow を起こさない。ただし `workflow_dispatch` と `repository_dispatch` は例外として起こす（docs: triggering-a-workflow-from-a-workflow）。
+  release.yml から作る run を起こすのは、この例外に当たる。
+  `workflow_dispatch` を打つ job には `actions: write` が要る
 - **Alternatives considered**: `pages-build.yml` が release.yml の `workflow_run` を受ける。本番か dry-run かと SHA を、run の入力から読み直すことになり、手での起動と入口がそろわない
 
 ## R6. 合否のレーンを動かす方法
@@ -72,7 +77,9 @@
 ## R7. 合否のレーンの定め
 
 - **Decision**: 合否のレーンと JUnit のパスを `libs/interface-spec/docs/junit-lanes.json` の 1 か所に書く。`conf.py` の `iface_junit` と、作る run の matrix は、どちらもこのファイルから決める
-- **Rationale**: FR-009。今の `iface_junit` は `conf.py` に直書きで、pecot-workflow の `junit.xml` が 2 回書かれている。workflow が別に一覧を持つと、レーンを足したときにずれる
+- **Rationale**: FR-009。今の `iface_junit` は `conf.py` に直書きで、pecot-workflow の `junit.xml` が 2 回書かれている。workflow が別に一覧を持つと、レーンを足したときにずれる。
+  matrix を作る処理と組み立ての処理は、`.githooks/scripts/pages_site/` の Python に置く。
+  `.githooks/scripts` の JS には型検査も lint も無く、憲章 III（strict の型検査）を満たせないため、JS では書かない
 - **Alternatives considered**: `project.json` の `outputs` から JUnit を拾う。pecot-visual の `test-hooks` のように、JUnit を出さないレーンがあり、どれが合否のレーンかを決められない
 
 ## R8. 版と実行の表示

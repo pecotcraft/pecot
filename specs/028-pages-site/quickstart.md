@@ -49,6 +49,8 @@ uv run pytest .githooks/tests/test_pages_workflows.py -q
 
 期待: 帯の側が「開発版」、コミットがマージのコミット。「未実行」の項目が 0 件。
 
+時間（SC-001）: `gh run list -w pages-build.yml -L 1 --json createdAt` と `gh run list -w pages-deploy.yml -L 1 --json updatedAt` を見て、push から公開の終わりまでが 30 分以内であることを確かめる。
+
 ## 4. リリース版の公開
 
 ```bash
@@ -68,7 +70,7 @@ gh workflow run pages-build.yml --ref main -f side=release -f sha=<最新のリ�
 
 - `https://pecotcraft.github.io/pecot/pr/<番号>/` が開き、帯が「PR #<番号>」と head のコミット
 - 変えた文言が出ている
-- head に push すると、同じ URL の中身が新しいコミットに変わる
+- head に push すると、同じ URL の中身が新しいコミットに変わる。push から公開の終わりまでが 30 分以内（SC-007。3 と同じく run の時刻で見る）
 - PR を閉じると、次の公開で `/pr/<番号>/` が 404 になる。`/` と `/dev/` は変わらない
 
 ## 6. 止まる場合

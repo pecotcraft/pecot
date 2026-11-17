@@ -33,14 +33,15 @@ description: "Task list for 028-pages-site"
 
 - [ ] T001 [P] `libs/interface-spec/docs/tests/test_iface_defs.py` に、`junit-lanes.json` の読み込みのテストを先に書く。
   確かめること: 4 本（`pecot-workflow:test-cli`・`pecot-workflow:test-hooks`・`pecot-tools:test-cli`・`pecot-visual:test-cli`）がプラグインごとにまとまる、「同じ `junit` を 2 回書かない」に反すると失敗する、`target` の `outputs` に `junit` が無いと失敗する
-- [ ] T002 [P] `.githooks/tests/test_pages_lanes.py` に、`.githooks/scripts/pages-lanes.mjs` が `junit-lanes.json` から GitHub Actions の matrix（`lane`・`slug`・`junit`）の JSON を出すテストを先に書く。
+- [ ] T002 [P] `.githooks/tests/test_pages_lanes.py` に、`.githooks/scripts/pages_site/lanes.py` が `junit-lanes.json` から GitHub Actions の matrix（`lane`・`slug`・`junit`）の JSON を出すテストを先に書く。
   slug は ci.yml の `tests (<lane>)` と同じ作り方
 - [ ] T003 `libs/interface-spec/docs/junit-lanes.json` を作る。項目は data-model.md の JunitLane（`plugin`・`target`・`junit`）。今の `conf.py` の `iface_junit` の重なり（pecot-workflow の `junit.xml` が 2 回）を解く
 - [ ] T004 `libs/interface-spec/docs/conf.py` の `iface_junit` を、`junit-lanes.json` から作るように直す（T003 の後）
-- [ ] T005 `.githooks/scripts/pages-lanes.mjs` を作る（T003 の後）
+- [ ] T005 `.githooks/scripts/pages_site/lanes.py` を作る（T003 の後）。
+  `.githooks/scripts/pages_site/pyrightconfig.json` を置き、`.githooks/scripts/run-lint.sh` と `.pre-commit-config.yaml` の `githooks-lint` の `files` を広げて、`pages_site/` を pyright strict にかける（憲章 III）
 - [ ] T006 `libs/interface-spec/project.json` の `docs` の `inputs`・description と、`test-unit` の description に、`junit-lanes.json` を足す
 
-**Checkpoint**: `pnpm exec nx run interface-spec:docs` が今と同じ HTML を作る。`node .githooks/scripts/pages-lanes.mjs` が 4 本の matrix を出す
+**Checkpoint**: `pnpm exec nx run interface-spec:docs` が今と同じ HTML を作る。`python3 .githooks/scripts/pages_site/lanes.py` が 4 本の matrix を出す。`bash .githooks/scripts/run-lint.sh` が通る
 
 ---
 
@@ -62,7 +63,8 @@ description: "Task list for 028-pages-site"
   「すべて skipped」→ `skipped`。
   入力は実物の vitest の JUnit の形（`tests/fixtures` に置く）
 - [ ] T008 [P] [US2] 同じファイルに、落ちたケースの要旨のテストを書く。`message` は `<failure>`・`<error>` の `message` 属性、無ければ本文の先頭の 1 行。`detail` は本文
-- [ ] T009 [P] [US2] 同じファイルに、状態ごとの数のテストを書く。0 件の状態は出さない。一覧表の行（コマンド・ツールごと）と、トップの全体の合否（プラグインごと）
+- [ ] T009 [P] [US2] 同じファイルに、状態ごとの数のテストを書く。0 件の状態は出さない。一覧表の行（コマンド・ツールごと）と、トップの全体の合否（プラグインごと）。
+  spec の Edge Cases「同じテストが複数の結果のファイルに出る: 1 件として数える」も確かめる
 - [ ] T010 [P] [US4] 同じファイルに、SiteStamp のテストを書く。
   `PECOT_SITE_*` が無いときは `side=local`・手元の HEAD・今の時刻・`run_url` 無し。
   `side=pr` で `PECOT_SITE_PR` が無いと失敗。
@@ -105,7 +107,7 @@ description: "Task list for 028-pages-site"
 
 - [ ] T021 [US1] `.github/workflows/pages-build.yml` に、側と SHA を決める job を書く。closed の PR では、作らずに成功で終わる
 - [ ] T022 [US1] 同じファイルに、合否のレーンの matrix の job を書く。
-  matrix は `.githooks/scripts/pages-lanes.mjs` の出力。
+  matrix は `.githooks/scripts/pages_site/lanes.py` の出力。
   ci.yml の `tests` の job と同じく `.githooks/ci/dev-container.sh` で `nx run <target>` を動かす。
   テストが落ちても job は続け、JUnit を `pages-junit-<slug>` に上げる。
   pecot-visual のレーンには `PECOT_CI_BROWSER=1` を渡す
@@ -125,26 +127,32 @@ description: "Task list for 028-pages-site"
 
 ### Tests for User Story 1（公開する run）
 
-- [ ] T024 [P] [US1] `.githooks/tests/test_pages_assemble.py` に、`.githooks/scripts/pages-plan.mjs` の DeployPlan の判定のテストを書く。
+- [ ] T024 [P] [US1] `.githooks/tests/test_pages_assemble.py` に、`.githooks/scripts/pages_site/plan.py` の DeployPlan の判定のテストを書く。
   入力は GitHub の REST の応答（workflow run の一覧・artifact の一覧）の実物の形。
-  確かめること: 「`release` の artifact が無いときは公開しない」、「`dev` の artifact が無いときは、`/dev/` を置かずに公開し、run の summary に書く」、各側で最後に成功した run を選ぶ
+  確かめること: 「`release` の artifact が無いときは公開しない」、「`dev` の artifact が無いときは、`/dev/` を置かずに公開し、run の summary に書く」、
+  各側で run の作成時刻が最も新しい成功した run を選ぶ（後に終わった古い run を選ばない）。
+  リリース版の作り直しは、同じ SHA の `side=release` の作る run が進行中か、最後のものが失敗なら起こさない（ループの止め）
 - [ ] T025 [P] [US1] 同じファイルに、組み立てのテストを書く。「展開した中身が、自分の `path` の外を指すもの（絶対パス・`..`・シンボリックリンク）を含むときは、その側を外して run の summary に書く」、「組み立てたツリーの大きさが 900 MB を超えたら、run の summary に警告を書く」、組んだツリーの内部リンク（側の行き来を含む）が切れていたら失敗する
 - [ ] T026 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-deploy.yml` の形のテストを書く。
   契機は `workflow_run`（`pages-build.yml` の completed）と `workflow_dispatch`。
-  組み立ての job の権限は `contents: read`・`actions: read`・`pull-requests: read`・`statuses: write`。
+  組み立ての job の権限は `contents: read`・`actions: write`・`pull-requests: read`・`statuses: write`。
   公開の job の権限は `pages: write`・`id-token: write`。
   environment は `github-pages`。
   concurrency は `group: pages`・`cancel-in-progress: false`。
   action は `configure-pages`・`upload-pages-artifact` v5・`deploy-pages` v5 を SHA で固定
-- [ ] T027 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）の成功の後にだけ `gh workflow run pages-build.yml -f side=release -f sha=<本番の SHA>` を打つ段があるテストを足す
+- [ ] T027 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）の成功の後にだけ `gh workflow run pages-build.yml -f side=release -f sha=<本番の SHA>` を打つ段があり、その job に `actions: write` があるテストを足す
 
 ### Implementation for User Story 1（公開する run）
 
-- [ ] T028 [US1] `.githooks/scripts/pages-plan.mjs` を作る。API の応答から DeployPlan（`release`・`dev`）を決める純粋な処理と、API を叩く部分を分ける
-- [ ] T029 [US1] `.githooks/scripts/pages-assemble.sh` を作る。DeployPlan の artifact を `actions/download-artifact` と同じく run の ID で取り、`/`・`/dev/` に展開する。パスの確かめ・大きさの警告・内部リンクの確かめをして、job summary に側ごとの採否を書く
+- [ ] T028 [US1] `.githooks/scripts/pages_site/plan.py` を作る。API の応答から DeployPlan（`release`・`dev`）とリリース版の作り直しの要否を決める純粋な処理だけを置く
+- [ ] T029 [US1] `.githooks/scripts/pages_site/assemble.py` を作る。
+  API を叩き（`gh api`）、DeployPlan の artifact を `gh run download <run-id> -n <name>` で取り、`/`・`/dev/` に展開する。
+  パスの確かめ・大きさの警告・内部リンクの確かめをして、job summary に側ごとの採否を書く
 - [ ] T030 [US1] `.github/workflows/pages-deploy.yml` を書く。組み立ての job と公開の job を分け、公開の job は `upload-pages-artifact` → `deploy-pages` だけにする
-- [ ] T031 [US1] `pages-deploy.yml` に、リリース版の artifact が無いときの段を足す。公開せずに失敗し、GitHub の Latest のリリースのタグが指すコミットで `pages-build.yml` を `side=release` で起こす
-- [ ] T032 [US1] `.github/workflows/release.yml` の本番の最後に、`pages-build.yml` を起こす段を足す。dry-run では打たない
+- [ ] T031 [US1] `pages-deploy.yml` に、リリース版の artifact が無いときの段を足す。
+  公開せずに失敗し、GitHub の Latest のリリースのタグが指すコミットで `pages-build.yml` を `side=release` で起こす。
+  起こすかどうかは T028 の判定に従う（同じ SHA の作る run が進行中か、最後のものが失敗なら起こさない）
+- [ ] T032 [US1] `.github/workflows/release.yml` の本番の最後に、`pages-build.yml` を起こす段を足す。dry-run では打たない。その job に `actions: write` を付ける
 - [ ] T033 [US1] GitHub Pages の公開元を「GitHub Actions」にし、environment `github-pages` の deployment branch を既定のブランチだけにする。リポの設定の変更なので、マージの前に利用者に打ってもらうコマンドを PR に書く
 
 **Checkpoint**: マージの後、main への push で `/pecot/dev/` が公開される。手でリリース版を作ると `/pecot/` が変わり、`/pecot/dev/` は変わらない
@@ -168,8 +176,8 @@ description: "Task list for 028-pages-site"
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] `.githooks/scripts/pages-plan.mjs` に `prs` の判定を足す
-- [ ] T037 [US3] `.githooks/scripts/pages-assemble.sh` で PR 版を `/pr/<番号>/` に展開し、commit status を付ける
+- [ ] T036 [US3] `.githooks/scripts/pages_site/plan.py` に `prs` の判定を足す
+- [ ] T037 [US3] `.githooks/scripts/pages_site/assemble.py` で PR 版を `/pr/<番号>/` に展開し、commit status を付ける
 - [ ] T038 [US3] `libs/interface-spec/docs/_templates/header.html` の PR 版の帯に、PR の番号と PR へのリンクを出す。PR 版どうしのリンクは置かない（FR-025）
 
 **Checkpoint**: マージの後、同じリポのブランチから開いた PR に `pages / preview` が付き、`/pecot/pr/<番号>/` が開く。PR を閉じると、次の公開で消える
@@ -183,7 +191,7 @@ description: "Task list for 028-pages-site"
 - [ ] T039 [P] `README.md` に、公開サイトへのリンクを足す（FR-011）。README の全面的な書き直しはしない
 - [ ] T040 [P] `libs/interface-spec/README.md` を書き直す。「定義書と合否の HTML」に版の帯と `PECOT_SITE_STRICT` を足し、「CI の artifact に上げない理由」を、公開の流れが全レーンを動かす今の形に直す。GitHub Pages を有効にする手順と、公開の流れの起動・やり直しの方法を書く（FR-010）
 - [ ] T041 [P] `plugins/pecot-workflow/CONTRIBUTING.md` の「このリポだけの運用」の表に、公開サイト（`pages-build.yml`・`pages-deploy.yml`）の行を足す。確かめ方は `.githooks/tests/test_pages_workflows.py`・`test_pages_assemble.py` と、マージの後の実物
-- [ ] T042 quickstart.md の 1〜6 を通して動かし、結果を PR に書く
+- [ ] T042 quickstart.md の 1〜6 を通して動かし、結果を PR に書く。3 と 5 では、push から公開の終わりまでの時間を run の時刻で測り、30 分以内（SC-001・SC-007）であることを書く
 
 ---
 
@@ -194,12 +202,14 @@ description: "Task list for 028-pages-site"
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
 | 2 | 1 | 積める | 「未実行」と「テストが無い」の区別と STRICT が、`junit-lanes.json` のプラグインごとのレーンの一覧を読む。Phase 1 のブランチの上で手元で作って確かめられる |
-| 3 | 1 | 積める | 作る run の matrix が `pages-lanes.mjs` の出力を読む。`pull_request` の run は PR のブランチの定義で動くので、積んだブランチの PR で確かめられる |
+| 3 | 1 | 積める | 作る run の matrix が `pages_site/lanes.py` の出力を読む。`pull_request` の run は PR のブランチの定義で動くので、積んだブランチの PR で確かめられる |
+| 4 | 2 | 積める | 組み立ての内部リンクの確かめ（T025）が、Phase 2 の帯の側の行き来のリンクを読む。Phase 2 のブランチの上で、手元で作ったツリーを組んで確かめられる |
 | 4 | 3 | マージを待つ | `pages-deploy.yml` は `workflow_run` で起き、既定のブランチの定義で動く。作る run が main への push で動いて artifact を残していないと、組み立てと公開を確かめられない |
 | 5 | 4 | マージを待つ | PR 版の組み立ては `pages-deploy.yml` の中にあり、`workflow_run` は既定のブランチの定義で動く。公開の流れが main に入っていないと、PR 版を公開して確かめられない |
 | 6 | 5 | 積める | 文書は、PR 版までの仕組みと URL を書く。Phase 5 のブランチの上で書いて、内容を突き合わせられる |
 
 Phase 2 と Phase 3 は、どちらも Phase 1 だけを前提にするので並べて進められる。Phase 3 の作る run は、Phase 2 が入っていなくても側を作れる（版の帯が出ないだけ）。
+Phase 5 の T038 と Phase 6 の T040 も Phase 2 の帯を使うが、Phase 4 を通して Phase 2 を間接に前提にするので、表には書かない。
 
 ### User Story Dependencies
 

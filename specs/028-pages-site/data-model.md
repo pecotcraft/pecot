@@ -6,7 +6,7 @@
 
 | 欄 | 値 | 決まり |
 |---|---|---|
-| `kind` | `release` / `dev` / `pr` / `local` | `local` は手元で作ったときだけ。公開の流れには出ない |
+| `kind` | `release` / `dev` / `pr` / `local` | `local` は手元で作ったときだけ。公開の流れには出ない。spec の「側」は公開サイトの 3 種で、`local` は帯の表示のためだけの値 |
 | `pr` | PR の番号 | `kind` が `pr` のときだけ持つ |
 | `path` | 公開サイトの中の置き場所 | `release` は `/`、`dev` は `/dev/`、`pr` は `/pr/<番号>/` |
 
@@ -93,8 +93,8 @@
 
 | 欄 | 決め方 |
 |---|---|
-| `release` | `pages-build.yml` の成功した run のうち、`side=release` の最新のもの。その artifact `pages-side-release` |
-| `dev` | 同じく `side=dev` の最新のもの |
+| `release` | `pages-build.yml` の成功した run のうち、`side=release` で run の作成時刻が最も新しいもの。その artifact `pages-side-release` |
+| `dev` | 同じく `side=dev` で run の作成時刻が最も新しいもの |
 | `prs` | 今開いている、同じリポのブランチの PR。それぞれについて、`side=pr` かつその PR の番号の最新の成功した run |
 
 決まり:

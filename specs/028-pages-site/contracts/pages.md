@@ -61,7 +61,7 @@ concurrency は `pages-build-<side>-<PR の番号か ref>` で、`cancel-in-prog
 
 | job | 権限 |
 |---|---|
-| 組み立て | `contents: read`、`actions: read`（別の run の artifact）、`pull-requests: read`（開いている PR）、`statuses: write`（PR 版のリンク） |
+| 組み立て | `contents: read`、`actions: write`（別の run の artifact の取得と、リリース版を作る run の起動）、`pull-requests: read`（開いている PR）、`statuses: write`（PR 版のリンク） |
 | 公開 | `pages: write`、`id-token: write` |
 
 environment は `github-pages`（既定のブランチだけが deploy できる保護）。concurrency は `group: pages`、`cancel-in-progress: false`。
@@ -77,12 +77,14 @@ environment は `github-pages`（既定のブランチだけが deploy できる
 リリース版の artifact が見つからないとき:
 
 1. 公開しない（job は失敗）
-2. 最新のリリースのコミット（GitHub の Latest のリリースのタグが指すコミット）で、`pages-build.yml` を `side=release` で起こす
-3. その完了で、`pages-deploy.yml` がもう一度動く
+2. 最新のリリースのコミット（GitHub の Latest のリリースのタグが指すコミット）について、`side=release` の作る run を探す
+3. その SHA の作る run が進行中か、最後のものが失敗なら、起こさずに summary に書いて終わる（作り直しのループを止める）
+4. どちらでもなければ、`pages-build.yml` を `side=release` とその SHA で起こす
+5. その完了で、`pages-deploy.yml` がもう一度動く
 
 ## `release.yml` への追加
 
-本番（`dry-run=false`）が成功したら、最後の段で `gh workflow run pages-build.yml -f side=release -f sha=<本番の SHA>` を打つ。dry-run では打たない。
+本番（`dry-run=false`）が成功したら、最後の段で `gh workflow run pages-build.yml -f side=release -f sha=<本番の SHA>` を打つ。dry-run では打たない。この段の job には `actions: write` を付ける。
 
 ## 手元の作り方（`interface-spec:docs`）
 

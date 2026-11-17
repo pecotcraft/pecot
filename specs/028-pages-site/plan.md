@@ -19,7 +19,7 @@ GitHub Pages の Actions 方式は、1 回の deploy でサイト全体を差し
 
 ## Technical Context
 
-**Language/Version**: Python 3（Sphinx の拡張と `conf.py`、uv の `libs/interface-spec/docs/pyproject.toml`）、GitHub Actions の YAML、bash（`.githooks/scripts/`）
+**Language/Version**: Python 3（Sphinx の拡張と `conf.py`、uv の `libs/interface-spec/docs/pyproject.toml`）、GitHub Actions の YAML、Python 3（`.githooks/scripts/pages_site/` の matrix・組み立て。pyright strict にかける）
 
 **Primary Dependencies**: Sphinx・sphinx-needs・sphinx-test-reports・sphinxawesome_theme（今の docs のまま）。
 actions/configure-pages・actions/upload-pages-artifact v5・actions/deploy-pages v5・actions/upload-artifact・actions/download-artifact v8（SHA で固定する。
@@ -47,12 +47,14 @@ ci.yml と同じ形）
 |---|---|---|
 | I. DDD | 合格 | 状態の決め方（`outcome_of` など）は拡張の中の純粋な関数に置き、JUnit・JSON の読み込みと分ける。組み立てのスクリプトは「どの側を使うかを決める」部分と「artifact を取る・展開する」部分を分ける |
 | II. TDD | 合格 | 5 つの状態・版の帯・`junit-lanes.json` の読み込みは pytest を先に書く。組み立ての判定（DeployPlan）は、GitHub の API の応答の実物の形を入力にしたテストで確かめる。モックは API を叩く境界だけ。workflow の形は `.githooks/tests` の pytest で確かめる。テストの通過とは別に、quickstart の手順を実物で動かす |
-| III. 品質ゲート | 合格 | Python は pyright strict と ruff、workflow は actionlint・yamllint（既存の pre-commit）。新しいゲートは足さない |
+| III. 品質ゲート | 合格 | Python は pyright strict と ruff、workflow は actionlint・yamllint（既存の pre-commit）。`.githooks/scripts` の JS には型検査が無いので、新しい処理は JS で書かない。`.githooks/scripts/pages_site/` の Python は、`githooks-lint`（pyright strict）の範囲を広げてかける |
 | IV. YAGNI | 合格 | 過去のリリースは残さない。外部リンクの確認・PR 版の数の上限・新しい保管場所は作らない。プラグインの紹介の文章は書かない |
 | V. 本体優先 | 合格 | speckit の成果物はこの一式の作成だけ |
 | VI. 標準準拠 | 合格 | 公開は docs が推奨する Actions 方式と公式の 3 つの action。environment `github-pages` に既定のブランチだけの保護、concurrency は starter workflow の値。PR の run からは deploy せず、保護を緩めない。`pull_request_target` を使わない。`workflow_run` で受ける artifact は untrusted として、展開とパスの確かめだけにする。公式の `preview` は alpha で非公開なので使わない。不適合として残すものは無い |
 
-Phase 1 の後の再確認: 合格。contracts の権限は job ごとに最小にした。組み立ての job（`statuses: write`・`actions: read`・`pull-requests: read`）と公開の job（`pages: write`・`id-token: write`）を分け、公開の job は artifact を受け取って deploy するだけにした。
+Phase 1 の後の再確認: 合格。
+contracts の権限は job ごとに最小にした。
+組み立ての job（`statuses: write`・`actions: write`（別の run の artifact の取得と、リリース版の作り直しの起動）・`pull-requests: read`）と公開の job（`pages: write`・`id-token: write`）を分け、公開の job は artifact を受け取って deploy するだけにした。
 
 ## Project Structure
 
@@ -92,12 +94,18 @@ libs/interface-spec/
 └── release.yml                   # 変更: 本番の後に pages-build を起こす
 
 .githooks/
-├── scripts/pages-assemble.sh     # 新規: DeployPlan を決め、artifact を集めてツリーを組む（中身の判定は .mjs に分ける）
-├── scripts/pages-plan.mjs        # 新規: API の応答から DeployPlan を決める純粋な処理
-├── scripts/pages-lanes.mjs       # 新規: junit-lanes.json から matrix を作る
+├── scripts/pages_site/
+│   ├── lanes.py                  # 新規: junit-lanes.json から matrix を作る
+│   ├── plan.py                   # 新規: API の応答から DeployPlan を決める純粋な処理
+│   ├── assemble.py               # 新規: artifact を取り、ツリーを組み、パス・大きさ・内部リンクを確かめる（I/O）
+│   └── pyrightconfig.json        # 新規: pyright strict の設定
+├── scripts/run-lint.sh           # 変更: pages_site も pyright strict にかける
 └── tests/
+    ├── test_pages_lanes.py       # 新規: matrix
     ├── test_pages_workflows.py   # 新規: workflow の形
     └── test_pages_assemble.py    # 新規: 組み立ての判定とパスの確かめ
+
+.pre-commit-config.yaml           # 変更: githooks-lint の files に pages_site を足す
 
 plugins/pecot-workflow/CONTRIBUTING.md  # 変更: 「このリポだけの運用」に公開サイトの行を足す
 README.md                                # 変更: 公開サイトへのリンク
