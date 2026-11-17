@@ -246,12 +246,14 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `session_start` | `pecot session start` | 紐づいたブランチ・カードの Status を `active` に | `sandbox-sweep.sh`（ブランチを消す） | 通った（#210 ほか） |
 | `session_finish` | `pecot session finish` | Issue を閉じる・リモートの head ブランチを削除 | 不要（閉じる・消す処理）。カードは `sandbox-sweep.sh` がアーカイブ | 通った（#214） |
 | `tracker_sync` | `pecot tracker sync` | Tracker の Issue（題に `[cuj …]` が付かない）・カード | 手で片付ける。作った Issue の番号を控え、`gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じる | 通った。対象が 0 件で、Tracker を作らずに終わった |
-| （MCP ツールなし） | `pecot-board-sync.yml`（利用者へ配る workflow） | PR・Issue の変化で `board_sync` を動かし、カードの列と Status を直す | 検証用の `.github/workflows/` に入れる。`sandbox-diff.sh` がこのリポの `main` と中身を比べる | 通った。検証用の写しをこのリポの `main` にそろえた（#209） |
+| （MCP ツールなし） | `pecot-board-sync.yml`（利用者へ配る workflow） | PR・Issue の変化で `board_sync` を動かし、カードの列と Status を直す | 検証用の `.github/workflows/` に入れる。`sandbox-diff.sh` がこのリポの `main` と中身を比べる | 動いた。PR・Issue の変化で毎回起き、成功した（run 43999921365 ほか）。直すカードは無く、カードを直す確かめは Phase 4（T023 以降）で行う。写しはこのリポの `main` にそろえた（#209） |
 
 名前の形に合わないものを作る処理は、`sandbox-sweep.sh` では片付かない。表の「手で片付ける」の手順で消す。
 
 ### 書き込む前の 3 つの決まり
 
-1. 手元で `gh` に認証していれば、`.pecot/config/.env` は置かなくてよい。pecot は `.env` が無いと `gh auth token` を使う。別のトークンで書き込むときだけ、検証用の clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` の 1 行を書く
+1. 環境に `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` が無く、手元で `gh` に認証していれば、`.pecot/config/.env` は置かなくてよい。pecot は、この 2 つの変数が無いと `gh auth token` を使う
+   - 別のトークンで書き込むときは、検証用の clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` の 1 行を書く
+   - そのときは 2 つの変数を環境から外す。`.env` の行は、既にある環境変数を上書きしない
 2. 書き込む前に、毎回 `board_show` を呼ぶ。書き込む先がボード `pecot sandbox` であることを見てから、書き込む処理を動かす
 3. このリポの ruleset・ボード・`pecot-board-sync.yml` の決まりを変えるときは、検証用を先に変える。順を逆にすると、検証用が古い決まりのままで、確かめた結果がこのリポで再現しない
