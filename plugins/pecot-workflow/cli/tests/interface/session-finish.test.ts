@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -467,6 +468,21 @@ describe('session finish', () => {
       ])
       const writes = workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
       expect(writes).toMatchObject([{ variables: { itemId: 'PVTI_13', optionId: 'o3' } }])
+    })
+
+    it('待つ Issue の列が古い ID で書けないと、warning と project activate の案内を出して続け、終了コード 0 で終わる', async (context) => {
+      await verifies(context, 'PW-SESSION-FINISH-40')
+      const workspace = await openWorkspace({ github: [...WAITING_RULES, staleOptionUpdate()] })
+      const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+      expect(result.code).toBe(0)
+      const stderr = lines(result.stderr)
+      expect(stderr.slice(0, 3)).toStrictEqual([
+        'count: Issues to close: 1',
+        'closed: Issue #12',
+        `warning: could not move #13: ${STALE_OPTION_TEXT}`,
+      ])
+      expect(stderr[3]).toMatch(/^ {2}hint: if the board options were recreated, run pecot project activate \S+ to read their IDs again$/u)
+      expect(stderr.slice(4)).toStrictEqual([`warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}`])
     })
 
     it('判定が変わった Issue を、stdout の Readiness changed の節に出す', async (context) => {

@@ -9,8 +9,11 @@ import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlData, graphqlError, graphqlRequests, rejection, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
 import { addIssueToBoard, applyBoardMove, createIssue, itemHasFieldValue, planBoardMove, putOnBoard, setIssueField } from '../issue-board.js'
 
+import type { BoardMove } from '../../domain/board-move.js'
 import type { Readiness } from '../../domain/readiness.js'
 import { createOutput } from '../output.js'
+// 案内のコマンドの形を登録する
+import '../registry.js'
 import { capture } from './support.js'
 
 useFakeGithub()
@@ -44,6 +47,21 @@ const ISSUE_NODE_ID = graphqlData('GetIssueNodeId', { repository: { issue: { id:
 
 function updateRule(times: number): ReturnType<typeof graphqlData> {
   return graphqlData('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM' } } }, times)
+}
+
+// config の選択肢の ID が古いときの書き込みの応答（GitHub は VALIDATION を返す）
+const STALE_OPTION = { type: 'VALIDATION', message: 'The single select option Id does not belong to the field' }
+const STALE_OPTION_TEXT = `GraphQL query error: {'type': 'VALIDATION', 'message': '${STALE_OPTION.message}'}`
+
+// 2 件の書き込みがどちらも古い ID で落ちる
+const STALE_UPDATES: ReturnType<typeof graphqlData> = { match: { operation: 'UpdateProjectItemField' }, respond: { status: 200, body: { errors: [STALE_OPTION] } }, times: 2 }
+
+function hintLines(stderr: string): readonly string[] {
+  return stderr.split('\n').filter(line => line.trimStart().startsWith('hint: if the board options were recreated'))
+}
+
+function newHint(): { hasHinted: boolean } {
+  return { hasHinted: false }
 }
 
 describe('createIssue', () => {
@@ -131,21 +149,51 @@ describe('putOnBoard', () => {
       graphqlData('GetIssueProjectItems', projectItems(filledFieldIds), 2),
       ...expected.length === 0 ? [] : [updateRule(expected.length)],
     ])
-    await putOnBoard(client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: true })
+    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: true })
     expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual(expected)
   })
 
   it('onlyIfEmpty でなければ、入っている値も上書きする', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, updateRule(2)])
-    await putOnBoard(client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
+    const failures = await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
+    expect(failures).toBe(0)
     expect(graphqlRequests(server).filter(({ operation }) => operation !== 'GetIssueNodeId' && operation !== 'AddToProject')).toEqual([WORKFLOW, PRIORITY])
   })
 
   it('priority が無ければ Status だけ設定する', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, updateRule(1)])
-    await putOnBoard(client, config(), 'o', 'r', 5, undefined, { onlyIfEmpty: false })
+    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, undefined, { onlyIfEmpty: false })
     expect(graphqlRequests(server).at(-1)).toEqual(WORKFLOW)
     expect(graphqlRequests(server)).toHaveLength(3)
+  })
+
+  it('欄の書き込みが VALIDATION で落ちると、欄ごとに error を出し、案内を 1 回だけ添えて続け、書けなかった欄の数を返す', async () => {
+    const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, STALE_UPDATES])
+    const io = capture()
+    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })).toBe(2)
+    const stderr = io.err.join('')
+    expect(stderr.split('\n').filter(line => line.startsWith('error: '))).toEqual([
+      `error: could not set status backlog of Tracker #5: ${STALE_OPTION_TEXT}`,
+      `error: could not set priority high of Tracker #5: ${STALE_OPTION_TEXT}`,
+    ])
+    expect(hintLines(stderr)).toHaveLength(1)
+    expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual([WORKFLOW, PRIORITY])
+  })
+
+  it('欄の書き込みが VALIDATION 以外で落ちると、error だけを出し、案内を添えずにほかの欄を続ける', async () => {
+    const { client } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, graphqlError('UpdateProjectItemField', 'boom'), updateRule(1)])
+    const io = capture()
+    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })).toBe(1)
+    expect(io.err.join('')).toBe('error: could not set status backlog of Tracker #5: GraphQL query error: {\'message\': \'boom\'}\n')
+  })
+
+  it('追加に失敗したら、欄を書かずに GitHubAPIError を伝える', async () => {
+    const { client, server } = await startClient([ISSUE_NODE_ID, graphqlError('AddToProject', 'boom')])
+    const io = capture()
+    const putting = putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
+    expect(await rejection(putting)).toBeInstanceOf(GitHubAPIError)
+    expect(io.err).toEqual([])
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetIssueNodeId', 'AddToProject'])
   })
 })
 
@@ -173,7 +221,25 @@ describe('applyBoardMove', () => {
     const io = capture()
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 't')
     expect(applied).toEqual({ column: undefined, missing: [], hasFailed: true })
-    expect(io.err.join('')).toMatch(/^warning: could not move #7: /u)
+    expect(io.err.join('')).toBe('warning: could not move #7: GraphQL query error: {\'message\': \'boom\'}\n')
+  })
+
+  it('書き込みが VALIDATION で落ちると、案内を添え、同じ印の 2 回目は添えない', async () => {
+    const { client } = await startClient([STALE_UPDATES])
+    const io = capture()
+    const out = createOutput(false, io)
+    const move: BoardMove = { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }
+    const hint = newHint()
+    const first = await applyBoardMove(out, client, withBlocked, 'ITEM', target, move, 't', hint)
+    const second = await applyBoardMove(out, client, withBlocked, 'ITEM', { ref: createIssueReference(createRepositoryReference('o', 'r'), 8), home: target.home }, move, 't', hint)
+    expect([first.hasFailed, second.hasFailed]).toEqual([true, true])
+    const stderr = io.err.join('')
+    expect(stderr.split('\n').filter(line => line.startsWith('warning: '))).toEqual([
+      `warning: could not move #7: ${STALE_OPTION_TEXT}`,
+      `warning: could not move #8: ${STALE_OPTION_TEXT}`,
+    ])
+    expect(hintLines(stderr)).toHaveLength(1)
+    expect(stderr.indexOf('hint:')).toBeLessThan(stderr.indexOf('#8'))
   })
 
   it('札だけを動かすと、set の行を出し、列は動かさない', async () => {

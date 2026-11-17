@@ -7,6 +7,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { addIssueToBoard, isStatusConfigured, setIssueField } from './issue-board.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
+import { fieldWriteFailure } from './field-write-failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -64,11 +65,17 @@ const BOARD_ADD = defineCommand({
         const { itemId } = await addIssueToBoard(client, config, owner, repository, number, undefined)
         output.done({ verb: 'add', target: `${target} to project` })
         output.result({ issue: issuePath(owner, repository, number), added: true })
-        if (status !== '') {
+        if (status === '') return
+        try {
           await setIssueField(client, config, itemId, 'workflow', status)
-          output.done({ verb: 'set', target: `${target} status ${status}` })
-          output.result({ status })
         }
+        catch (error: unknown) {
+          if (!(error instanceof GitHubAPIError)) throw error
+          // 追加は済んでいるので、追加の失敗とは別の文で止める
+          stopWith(output, fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error), kindOfFailure(error))
+        }
+        output.done({ verb: 'set', target: `${target} status ${status}` })
+        output.result({ status })
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error

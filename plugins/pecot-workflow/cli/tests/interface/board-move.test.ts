@@ -7,6 +7,7 @@ import { BOARD_MOVE_COMMANDS } from '../../src/commands/board-move.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { boardItems, failing, fieldUpdated, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -167,5 +168,47 @@ describe('board move', () => {
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: could not set Issue acme\/demo\/7 status active: .*502/u)
+  })
+
+  it('選択肢の ID が古くて列を書けないと、書けなかった列の error に project activate の案内を添えて終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-BOARD-MOVE-16')
+    prepareProject()
+    await startGithub([linkedRepositories(), boardItems(), staleOptionUpdate()])
+
+    const result = await update(['board', 'move', 'acme/demo/7', 'active'])
+
+    expect(result).toEqual({
+      code: 1,
+      stdout: '',
+      stderr: [
+        `error: could not set Issue acme/demo/7 status active: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        '',
+      ].join('\n'),
+    })
+  })
+
+  it('500 で列を書けないときは、書けなかった列の error だけを出し、ID を読み直す案内を添えない', async (context) => {
+    await verifies(context, 'PW-BOARD-MOVE-16')
+    prepareProject()
+    await startGithub([linkedRepositories(), boardItems(), failing({ operation: 'UpdateProjectItemField' }, 500)])
+
+    const result = await update(['board', 'move', 'acme/demo/7', 'active'])
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: could not set Issue acme\/demo\/7 status active: .+500/u)
+    expect(result.stderr).not.toContain('hint:')
+  })
+
+  it('ボードの項目を読めないときは、error に ID を読み直す案内を添えない', async (context) => {
+    await verifies(context, 'PW-BOARD-MOVE-13')
+    prepareProject()
+    await startGithub([linkedRepositories(), failing({ operation: 'GetIssueProjectItems' })])
+
+    const result = await update(['board', 'move', 'acme/demo/7', 'active'])
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: could not set Issue acme\/demo\/7 status active: .*502/u)
+    expect(result.stderr).not.toContain('hint:')
   })
 })

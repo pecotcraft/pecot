@@ -7,6 +7,8 @@ import { BOARD_ADD_COMMANDS } from '../../src/commands/board-add.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { addedToBoard, failing, fieldUpdated, issueNodeId, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -198,5 +200,55 @@ describe('board add', () => {
       stderr: 'error: status \'blocked\' is not configured in the project\n  hint: run pecot project init to add the Blocked option to the board\n',
     })
     expect(github.requests()).toEqual([])
+  })
+
+  describe('列の書き込みの失敗', () => {
+    it('選択肢の ID が古くて列を書けないと、追加の行の後に書けなかった列の error と project activate の案内を出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-BOARD-ADD-20')
+      prepareProject()
+      await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), staleOptionUpdate()])
+
+      const result = await add(['board', 'add', 'acme/demo/7'])
+
+      expect(result).toEqual({
+        code: 1,
+        stdout: '',
+        stderr: [
+          'added: Issue acme/demo/7 to project',
+          `error: could not set Issue acme/demo/7 status ready: ${STALE_OPTION_TEXT}`,
+          '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+          '',
+        ].join('\n'),
+      })
+    })
+
+    it('500 で列を書けないときは、書けなかった列の error だけを出し、ID を読み直す案内を添えない', async (context) => {
+      await verifies(context, 'PW-BOARD-ADD-20')
+      prepareProject()
+      await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), failing({ operation: 'UpdateProjectItemField' }, 500)])
+
+      const result = await add(['board', 'add', 'acme/demo/7'])
+
+      expect(result.code).toBe(1)
+      expect(result.stderr).toMatch(/^added: Issue acme\/demo\/7 to project\nerror: could not set Issue acme\/demo\/7 status ready: .+500/u)
+      expect(result.stderr).not.toContain('hint:')
+      expect(result.stderr).not.toContain('could not add')
+    })
+
+    it('MCP では、失敗の結果に added: true を残し、status を返さない', async (context) => {
+      await verifies(context, 'PW-BOARD-ADD-20')
+      prepareProject()
+      await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), staleOptionUpdate()])
+
+      const outcome = await callToolOnce(BOARD_ADD_COMMANDS, 'board_add', { issue_ref: 'acme/demo/7' })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        added: true,
+        kind: 'github-api',
+        detail: `could not set Issue acme/demo/7 status ready: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+      })
+    })
   })
 })

@@ -13,6 +13,8 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { JsonObject } from '../domain/json.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import { fieldWriteFailure } from './field-write-failure.js'
+import type { FieldHintState } from './field-write-failure.js'
 import type { Operation, Output } from './output.js'
 
 // 作ったボード項目の Status（Tracker はここから始める）
@@ -111,9 +113,11 @@ export interface PutOnBoardOptions {
 
 /**
 ボードへの追加と、Status（Backlog）・Priority の設定（何度やっても同じ結果になる）。
-途中で失敗して空のままの項目は、次の onlyIfEmpty の実行で直る。失敗したら GitHubAPIError
+途中で失敗して空のままの項目は、次の onlyIfEmpty の実行で直る。追加と欄の読み込みの失敗は GitHubAPIError。
+欄の書き込みの失敗は error の行にして残りの欄を続け、書けなかった欄の数を返す
 */
 export async function putOnBoard(
+  out: Readonly<Output>,
   client: GitHubClient,
   config: ProjectConfig,
   owner: string,
@@ -121,14 +125,25 @@ export async function putOnBoard(
   issueNumber: number,
   priority: string | undefined,
   options: Readonly<PutOnBoardOptions>,
-): Promise<void> {
+): Promise<number> {
+  const hintState: FieldHintState = { hasHinted: false }
   const { itemId } = await addIssueToBoard(client, config, owner, repository, issueNumber, undefined)
-  const fields: (readonly [string, string])[] = [['workflow', BOARD_STATUS]]
-  if (priority !== undefined) fields.push(['priority', priority])
-  for (const [fieldName, option] of fields) {
+  // 3 つ目は error の行に出す欄の名前
+  const fields: (readonly [string, string, string])[] = [['workflow', BOARD_STATUS, 'status']]
+  if (priority !== undefined) fields.push(['priority', priority, 'priority'])
+  let failures = 0
+  for (const [fieldName, option, label] of fields) {
     if (options.onlyIfEmpty && await itemHasFieldValue(client, config, owner, repository, issueNumber, itemId, fieldName)) continue
-    await setIssueField(client, config, itemId, fieldName, option)
+    try {
+      await setIssueField(client, config, itemId, fieldName, option)
+    }
+    catch (error: unknown) {
+      if (!(error instanceof GitHubAPIError)) throw error
+      out.error(fieldWriteFailure(`could not set ${label} ${option} of Tracker #${String(issueNumber)}: ${error.message}`, error, hintState))
+      failures += 1
+    }
   }
+  return failures
 }
 
 /**
@@ -197,7 +212,8 @@ function warnConflict(out: Readonly<Output>, name: string, target: MoveTarget, c
 
 /**
 decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
-text は列を動かす理由の判定の文。board sync と issue block / unblock が使う
+text は列を動かす理由の判定の文。board sync と issue block / unblock が使う。
+hintState は、選択肢の ID を読み直す案内を 1 回の実行で 1 回だけ出すための印（省くと毎回出す）
 */
 export async function applyBoardMove(
   out: Readonly<Output>,
@@ -207,6 +223,7 @@ export async function applyBoardMove(
   target: MoveTarget,
   move: Readonly<BoardMove>,
   text: string,
+  hintState?: FieldHintState,
 ): Promise<AppliedMove> {
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
@@ -225,7 +242,7 @@ export async function applyBoardMove(
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(`could not move ${name}: ${error.message}`)
+    out.warning(fieldWriteFailure(`could not move ${name}: ${error.message}`, error, hintState))
     hasFailed = true
   }
   const written = column === undefined && label === undefined ? undefined : { issue: name, column, label, reason: text }

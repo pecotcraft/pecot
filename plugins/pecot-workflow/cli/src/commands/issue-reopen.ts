@@ -12,6 +12,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { isStatusConfigured, setIssueField } from './issue-board.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
+import { fieldWriteFailure } from './field-write-failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -67,14 +68,30 @@ async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, co
   if (itemId === undefined) {
     output.warning(`${target} is not on the project board`)
   }
-  else if (await setIssueField(client, config, itemId, 'workflow', status)) {
-    output.done({ verb: 'set', target: `${target} status ${status}` })
-    output.result({ status })
-    await delay(AUTOMATION_WAIT_MILLISECONDS)
-  }
   else {
-    output.warning(notConfiguredMessage(status))
+    await setReopenedStatus(output, client, config, { target, itemId }, status)
   }
+}
+
+// 列を書く。書けなければ warning にとどめ、2 回目の reopen とコメントの投稿へ進む。設定できたときだけ自動化を待つ
+async function setReopenedStatus(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, item: Readonly<{ target: string, itemId: string }>, status: string): Promise<void> {
+  const { target, itemId } = item
+  let isSet: boolean
+  try {
+    isSet = await setIssueField(client, config, itemId, 'workflow', status)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.warning(fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error))
+    return
+  }
+  if (!isSet) {
+    output.warning(notConfiguredMessage(status))
+    return
+  }
+  output.done({ verb: 'set', target: `${target} status ${status}` })
+  output.result({ status })
+  await delay(AUTOMATION_WAIT_MILLISECONDS)
 }
 
 // 2 回目の reopen（自動化による close への対策）で open を確かめ、--comment があれば理由を投稿する

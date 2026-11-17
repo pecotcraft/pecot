@@ -19,7 +19,6 @@ import {
   EPIC_BODY,
   failedAddToProject,
   failedBlockedBy,
-  failedFieldUpdate,
   failedIssueCreation,
   failedSubIssue,
   frontmatterFile,
@@ -35,6 +34,7 @@ import {
   TASK_FRONTMATTER,
   updatedFields,
 } from '../_helpers/issue-create-case.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
@@ -257,7 +257,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
-      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), failedFieldUpdate(2, 'cannot set'), updatedFields(1)])
+      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), staleOptionUpdate(2), updatedFields(1)])
 
       const result = await create(path.join(project.root, 'draft.md'))
 
@@ -266,9 +266,9 @@ describe('issue create', () => {
       expect(result.stderr).toBe([
         'created: Issue acme/demo/12 from draft.md',
         'added: Issue acme/demo/12 to project',
-        'warning: could not set status ready of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot set\'}',
+        `warning: could not set status ready of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
         '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
-        'warning: could not set priority high of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot set\'}',
+        `warning: could not set priority high of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
         'set: Issue acme/demo/12 size s',
         '',
       ].join('\n'))
@@ -278,7 +278,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次') })
-      await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), failedFieldUpdate(2)])
+      await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), staleOptionUpdate(2)])
 
       const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
 
@@ -286,16 +286,20 @@ describe('issue create', () => {
       expect(result.stderr).toBe([
         'created: Issue acme/demo/12 from a.md',
         'added: Issue acme/demo/12 to project',
-        'warning: could not set status ready of Issue acme/demo/12: GraphQL query error: {\'message\': \'cannot write\'}',
+        `warning: could not set status ready of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
         '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
         'created: Issue acme/demo/13 from b.md',
         'added: Issue acme/demo/13 to project',
-        'warning: could not set status ready of Issue acme/demo/13: GraphQL query error: {\'message\': \'cannot write\'}',
+        `warning: could not set status ready of Issue acme/demo/13: ${STALE_OPTION_TEXT}`,
         '',
       ].join('\n'))
     })
 
-    it('認証かレート制限で欄の設定に失敗したときは、warning だけを出し、ID を読み直す案内を添えない', async (context) => {
+    it.for([
+      { name: 'レート制限', respond: { status: 200, body: { errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] } }, expected: 'GraphQL rate limit error: ' },
+      { name: '型の無い error', respond: { status: 200, body: { errors: [{ message: 'cannot write' }] } }, expected: 'GraphQL query error: ' },
+      { name: '500', respond: { status: 500, body: { message: 'boom' } }, expected: 'GraphQL query error: ' },
+    ])('$name で欄の設定に失敗したときは、warning だけを出し、ID を読み直す案内を添えない', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
@@ -304,13 +308,13 @@ describe('issue create', () => {
         createdIssue(12),
         issueNodeId(12),
         addedToProject(),
-        { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: { status: 200, body: { errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] } } },
+        { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: row.respond },
       ])
 
       const result = await create(path.join(project.root, 'a.md'))
 
       expect(result.code).toBe(0)
-      expect(result.stderr).toContain('warning: could not set status ready of Issue acme/demo/12: GraphQL rate limit error: ')
+      expect(result.stderr).toContain(`warning: could not set status ready of Issue acme/demo/12: ${row.expected}`)
       expect(result.stderr).not.toContain('hint:')
     })
 
@@ -767,6 +771,38 @@ describe('issue create', () => {
       expect(workflowWrites(github)).toMatchObject([{ optionId: 'o7' }, { optionId: 'o3' }])
     })
 
+    it('欄と列の直しがどちらも古い ID で書けないとき、project activate の案内を 1 回だけ出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-24')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', 'priority: high', ...blockedBy('acme/demo/12')) })
+      await startGithub([
+        linkedRepositories(),
+        blockedBySupported(),
+        issueNodeId(12),
+        createdIssue(13),
+        blockedByAdded(),
+        issueNodeId(13),
+        addedToProject(),
+        updatedFields(1),
+        staleOptionUpdate(2),
+        prerequisitesRule({ number: 13, column: 'Blocked', blockedBy: [{ number: 12, state: 'CLOSED', branch: 'feat/12', pullRequests: [{ number: 5, state: 'MERGED', head: 'feat/12' }] }] }),
+      ])
+
+      const result = await create(path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe([
+        'created: Issue acme/demo/13 from a.md',
+        'added: blocked-by #12 to #13',
+        'added: Issue acme/demo/13 to project',
+        `warning: could not set priority high of Issue acme/demo/13: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        'set: Issue acme/demo/13 status blocked',
+        `warning: could not move #13: ${STALE_OPTION_TEXT}`,
+        '',
+      ].join('\n'))
+    })
+
     it('作成の応答に node_id が無いとき、ボードへ先に足して、その node ID で前提を付ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-46')
       const project = setUpIssueProject()
@@ -995,7 +1031,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-48')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
-      await startGithub([linkedRepositories(), blockedBySupported(), issueNodeId(12), createdIssue(13), blockedByAdded(), issueNodeId(13), addedToProject(), failedFieldUpdate()])
+      await startGithub([linkedRepositories(), blockedBySupported(), issueNodeId(12), createdIssue(13), blockedByAdded(), issueNodeId(13), addedToProject(), staleOptionUpdate()])
 
       const result = await create(path.join(project.root, 'a.md'))
 
@@ -1004,7 +1040,7 @@ describe('issue create', () => {
         'created: Issue acme/demo/13 from a.md',
         'added: blocked-by #12 to #13',
         'added: Issue acme/demo/13 to project',
-        'warning: could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'cannot write\'}',
+        `warning: could not set status blocked of Issue acme/demo/13: ${STALE_OPTION_TEXT}`,
         '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
         '',
       ].join('\n'))
@@ -1155,7 +1191,7 @@ describe('issue create', () => {
         blockedByAdded(),
         issueNodeId(13),
         addedToProject(),
-        failedFieldUpdate(1, 'The single select option Id does not belong to the field'),
+        staleOptionUpdate(),
       ])
 
       const outcome = await createTool({ files: inRoot(project.root, 'a.md') })
@@ -1163,7 +1199,7 @@ describe('issue create', () => {
       expect(workflowWrites(github)).toEqual([expect.objectContaining({ optionId: 'o7' })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toEqual([
-        'could not set status blocked of Issue acme/demo/13: GraphQL query error: {\'message\': \'The single select option Id does not belong to the field\'}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
+        `could not set status blocked of Issue acme/demo/13: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
       ])
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13` }])
     })

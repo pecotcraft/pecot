@@ -11,7 +11,7 @@ import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
-import { graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
+import { STALE_OPTION_TEXT, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool, staleOptionUpdate } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
@@ -180,6 +180,28 @@ describe('session start', () => {
     expect(result.stderr).toContain(CREATED)
     expect(result.stderr).toMatch(/warning: could not set Issue acme\/demo\/7 status active: .+\n/u)
     expect(result.stderr).not.toContain('set: Issue')
+  })
+
+  it('選択肢の ID が古くて Status を active にできないと、warning の行に project activate の案内を添える', async (context) => {
+    await verifies(context, 'PW-SESSION-START-16')
+    const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), projectItems(), staleOptionUpdate()] })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toContain([
+      `warning: could not set Issue acme/demo/7 status active: ${STALE_OPTION_TEXT}`,
+      '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+      '',
+    ].join('\n'))
+    expect(result.stderr).not.toContain(STATUS_SET)
+  })
+
+  it('ボードの項目を読めずに Status を active にできないときは、warning に ID を読み直す案内を添えない', async (context) => {
+    await verifies(context, 'PW-SESSION-START-16')
+    const failing: ResponseRule = { match: { operation: 'GetIssueProjectItems' }, respond: { status: 200, body: { errors: [{ type: 'VALIDATION', message: 'bad item' }] } }, times: 1 }
+    const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), failing] })
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(/warning: could not set Issue acme\/demo\/7 status active: .+VALIDATION.+\n/u)
+    expect(result.stderr).not.toContain('hint:')
   })
 
   it('Issue がボードに載っていないと、Status を変えずに warning の行を標準エラーに出す', async (context) => {

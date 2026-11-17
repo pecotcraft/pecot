@@ -11,6 +11,7 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
 import { verifies } from '../_helpers/verifies.js'
+import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, REPOSITORY, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
@@ -1222,6 +1223,24 @@ describe('pr create', () => {
         code: 0,
         stdout: `${PULL_URL}\n`,
         stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\nmoved: #13 Blocked -> Ready (stackable on #12)\n`,
+      })
+    })
+
+    it('選択肢の ID が古くて In Review と待つ Issue の列を書けないと、warning を 2 行出し、ID を読み直す案内を 1 回だけ添える', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-39')
+      await verifies(context, 'PW-PR-CREATE-61')
+      const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), staleOptionUpdate(2), waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true))] })
+      const result = await workspace.run(messageArguments())
+      expect(result).toStrictEqual({
+        code: 0,
+        stdout: `${PULL_URL}\n`,
+        stderr: [
+          `created: PR acme/demo ${BRANCH} -> main: ${TITLE}`,
+          `warning: status update of Issue #12 failed: ${STALE_OPTION_TEXT}`,
+          '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+          `warning: could not move #13: ${STALE_OPTION_TEXT}`,
+          '',
+        ].join('\n'),
       })
     })
 

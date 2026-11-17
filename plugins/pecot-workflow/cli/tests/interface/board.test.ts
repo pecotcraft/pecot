@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの応答は readonly にしない */
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 // board sync の振る舞い（PW-BOARD-SYNC-*）を、runCli をプロセス内で呼んで確かめる。GitHub は偽サーバにする。
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
@@ -8,7 +10,7 @@ import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { IssueSpec } from '../_helpers/prerequisites.js'
-import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
+import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import type { CommandResult, ToolResult } from '../_helpers/command-harness.js'
 import { addedToBoard, boardItems, fieldUpdated, issueNodeId, linkedRepositories } from '../_helpers/board-issue-case.js'
 
@@ -73,6 +75,8 @@ const NO_POINTS_USED = 'count: GraphQL points used: 0\ncount: GraphQL points rem
 const done: IssueSpec = { number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }
 // 偽サーバの 500 の文。ポートは実行ごとに変わるので、stable で置き換えて比べる
 const SERVER_ERROR = 'GraphQL query error: Server error \'500 Internal Server Error\' for url \'http://127.0.0.1:PORT/graphql\'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500'
+// project activate の案内に出る名前（CONFIG_FILE のファイル名から .json を除いたもの）
+const ACTIVE_PROJECT = path.basename(CONFIG_FILE, '.json')
 const stable = (stderr: string): string => stderr.replaceAll(/http:\/\/127\.0\.0\.1:\d+/gu, 'http://127.0.0.1:PORT')
 
 async function sync(rules: ResponseRule[], argv: readonly string[] = [], config: Json | false = boardConfig()): Promise<CommandResult> {
@@ -196,6 +200,21 @@ describe('board sync', () => {
     expectClean(result)
     expect(result.code).toBe(1)
     expect(stable(result.stderr)).toBe(`moved: #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\nwarning: could not move #1: ${SERVER_ERROR}\n${RATE_NOTE}error: could not write 1 Issue to the board\n`)
+    expect(writes(result)).toHaveLength(2)
+  })
+
+  it('選択肢の ID が古くて 2 件の書き込みに失敗すると、warning を 2 行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-10')
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }), staleOptionUpdate(2), rateLimit(130)])
+    expectClean(result)
+    expect(result.code).toBe(1)
+    expect(result.stderr).toBe([
+      `warning: could not move #1: ${STALE_OPTION_TEXT}`,
+      `  hint: if the board options were recreated, run pecot project activate ${ACTIVE_PROJECT} to read their IDs again`,
+      `warning: could not move #3: ${STALE_OPTION_TEXT}`,
+      `${RATE_NOTE}error: could not write 2 Issues to the board`,
+      '',
+    ].join('\n'))
     expect(writes(result)).toHaveLength(2)
   })
 

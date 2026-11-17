@@ -38,6 +38,7 @@ import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder 
 import type { CommandHint } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
+import type { FieldHintState } from './field-write-failure.js'
 import { createGitHubClient } from './github-client.js'
 import { applyBoardMove } from './issue-board.js'
 import type { BoardItem } from './issue-board.js'
@@ -67,7 +68,7 @@ import {
   validateStatusForType,
   warnEpicRepositoryException,
 } from './issue-shared.js'
-import type { FieldHintState, IssueField, IssueType } from './issue-shared.js'
+import type { IssueField, IssueType } from './issue-shared.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
@@ -282,7 +283,7 @@ async function settleColumn(output: Output, client: GitHubClient, config: Projec
   const move = decideBoardMove(boardMoveInput(config, judged))
   if (move === undefined) return undefined
   // 起票の直後は、既定の自動化が札を書くので、札は書かない
-  const applied = await applyBoardMove(output, client, config, item.itemId, { ref: issue, home: issue.repository }, withoutLabel(move), describeReadiness(judged.readiness, judged.prerequisites, issue.repository))
+  const applied = await applyBoardMove(output, client, config, item.itemId, { ref: issue, home: issue.repository }, withoutLabel(move), describeReadiness(judged.readiness, judged.prerequisites, issue.repository), session.fieldHint)
   return applied.column
 }
 

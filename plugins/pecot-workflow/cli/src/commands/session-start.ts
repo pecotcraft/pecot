@@ -20,6 +20,7 @@ import { commandHint, hinted, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
+import { fieldWriteFailure } from './field-write-failure.js'
 import { createGitHubClient } from './github-client.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
@@ -116,7 +117,14 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
       out.warning(`could not set ${target}: the workflow status field has no 'active' option`)
       return
     }
-    await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId)
+    try {
+      await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId)
+    }
+    catch (error: unknown) {
+      if (!(error instanceof GitHubAPIError)) throw error
+      out.warning(fieldWriteFailure(`could not set ${target}: ${error.message}`, error))
+      return
+    }
     out.done({ verb: 'set', target })
   }
   catch (error: unknown) {
