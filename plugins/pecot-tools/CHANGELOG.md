@@ -1,3 +1,13 @@
+## 3.0.1 (2026-11-17)
+
+### 🩹 Fixes
+
+- main の開発版を `@pecot/visual-mcp@next`・`@pecot/tools-mcp@next` で取れるようになりました。 ([#521](https://github.com/pecotcraft/pecot/pull/521), [#504](https://github.com/pecotcraft/pecot/issues/504))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 3.0.0 (2026-11-16)
 
 ### 🩹 Fixes

@@ -1,3 +1,81 @@
+# 8.0.0 (2026-11-17)
+
+### 🚀 Features
+
+- `git-no-verify-check` と `git-sync` を初期値で無効にしました。hooks-config.json の `true` で有効になります。 ([#511](https://github.com/pecotcraft/pecot/pull/511), [#464](https://github.com/pecotcraft/pecot/issues/464))
+  compact の後も `.pecot/.gitignore` を補い、`develop-aist` への commit を止めなくなりました。
+  w-pr・w-revise は、CI を待つ前にコンフリクトを確かめます。
+
+- 計画の承認の後の案内を、w-active・w-quick を起動したセッションにだけ出すようにしました。 ([#510](https://github.com/pecotcraft/pecot/pull/510), [#466](https://github.com/pecotcraft/pecot/issues/466))
+  GitHub Copilot CLI では、この案内を出しません。`.pecot/state/.pecot-quick-mode` は作らなくなり、古いものが残っていても読みません。
+
+- w-breakdown が、分解の作業を Epic の下のタスクとして起票し、そのタスクのブランチで speckit を進めるようになりました。 ([#494](https://github.com/pecotcraft/pecot/pull/494), [#467](https://github.com/pecotcraft/pecot/issues/467))
+  speckit の git 拡張に `NNN-<名前>` のブランチを作らせず、成果物はタスクを閉じる PR で開発ブランチに入ります。
+
+- PR 作成・起票・マージで、フックが承認を求めなくなりました。 ([#481](https://github.com/pecotcraft/pecot/pull/481), [#462](https://github.com/pecotcraft/pecot/issues/462))
+  Bash の `pecot` と GitHub MCP の PR 作成も止めません。承認を省くフラグと設定キーを除きました。
+
+- フックのリマインダー・決まりの注入・開始時の案内・通知音・自動 push を撤廃しました。 ([#496](https://github.com/pecotcraft/pecot/pull/496), [#463](https://github.com/pecotcraft/pecot/issues/463))
+  通知は組み込みの設定を使ってください。撤廃した設定キーは残っていても無視します。
+  `wip/<branch>` は作らず消しもしないので、古いものは手で消してください。WebSearch の自動許可も外しました。
+
+
+### 🩹 Fixes
+
+- フックの README に、プラグインの自動更新と通知の推奨設定を足しました。 ([#535](https://github.com/pecotcraft/pecot/pull/535), [#468](https://github.com/pecotcraft/pecot/issues/468))
+  最低対応版を、実機で確かめた Claude Code 2.1.325・GitHub Copilot CLI 1.0.112 に上げました。
+
+- 設定ファイルを渡した `project activate` が、進行の欄が複数あるボードで**別の suffix の設定ファイルに切り替える**不具合を修正。 ([#485](https://github.com/pecotcraft/pecot/pull/485), [#469](https://github.com/pecotcraft/pecot/issues/469))
+- `issue create` がボードの欄を書けなかったとき、**警告を出さずに列が空のまま成功で終わる**不具合を修正。 ([#485](https://github.com/pecotcraft/pecot/pull/485), [#469](https://github.com/pecotcraft/pecot/issues/469))
+  書けなかった欄と値を `warning` で出し、`project activate` の案内を添える。
+
+- MCP の `issue_block`・`issue_unblock` の結果に、**動かした列と札が `moves` で入る**ようにした。ボードを読み直さなくても、列が動いたかが分かる。 ([#486](https://github.com/pecotcraft/pecot/pull/486), [#470](https://github.com/pecotcraft/pecot/issues/470))
+- `issue create` をファイルと `--dry-run` で打つと、ファイルごとの `dry-run` の行を出す。 ([#488](https://github.com/pecotcraft/pecot/pull/488), [#471](https://github.com/pecotcraft/pecot/issues/471))
+  MCP の `issue_create` の要約の文は、表の見出しでなく、この行になる。
+
+- `pr check` と `pr create` の事前確認が、remote とずれたブランチに `git push` を勧めなくなった。 ([#491](https://github.com/pecotcraft/pecot/pull/491), [#472](https://github.com/pecotcraft/pecot/issues/472))
+  載せ直しが要る積んだブランチには `pr restack` を、それ以外には `git pull --rebase` などを案内する。
+
+- `.pecot-base` の無い作業ディレクトリでも、積んだ先を作業中の Issue の判定と git から求める。 ([#534](https://github.com/pecotcraft/pecot/pull/534), [#473](https://github.com/pecotcraft/pecot/issues/473))
+  別の worktree や clone で続けた積んだ作業で、PR の操作が下の段を base にする。
+
+- `board add` が Status を書けないと、**追加に失敗したと読める error で止まる**不具合を修正。 ([#525](https://github.com/pecotcraft/pecot/pull/525), [#483](https://github.com/pecotcraft/pecot/issues/483))
+  列を書く各コマンドは、ID が古いときだけ `project activate` を案内する（`issue create` も同じ条件に絞る）。
+  `issue reopen` は列を書けなくても開き直しとコメントを続け、**終了コード 0** で終わる。
+
+- board sync の雛形が **npm の最新の正式版（`@latest`）を取る**ようにし、major が上がっても直さずに動く。 ([#502](https://github.com/pecotcraft/pecot/pull/502), [#499](https://github.com/pecotcraft/pecot/issues/499))
+  互換の無い変更を止めたいときは `@<版>` に替える。main の開発版は `@next` で取れる。
+
+- `pr restack` が載せ直し済みのブランチを rebase し直さず、push と記録の書き直しだけを行うようになった。 ([#509](https://github.com/pecotcraft/pecot/pull/509), [#503](https://github.com/pecotcraft/pecot/issues/503))
+  `branch delete` が、origin の URL が手元のパスのリポでも削除するようになった。
+
+- origin の URL から `owner/repo` を読めないリポでも、**`--repo` を渡したコマンドが止まらない**ようにした。 ([#524](https://github.com/pecotcraft/pecot/pull/524), [#506](https://github.com/pecotcraft/pecot/issues/506))
+  `warning` を出して `--repo` を使う。`--repo` を省くと、読めない理由を添えて止まる。
+
+- remote の URL から `owner/repo` を、**GitHub のリポを指せる git の標準の形（スキーム付きと scp 形式）**で読むようにした。 ([#545](https://github.com/pecotcraft/pecot/pull/545), [#515](https://github.com/pecotcraft/pecot/issues/515))
+  `user@host:`・ssh config の別名・`git://`・末尾に `/` の付いた `https://` などの remote でも、`--repo` を省いたコマンドが止まらない。
+
+- w-active・w-quick で計画が承認された後、エージェントが止まらずに実装を始めるようにしました。 ([#519](https://github.com/pecotcraft/pecot/pull/519), [#518](https://github.com/pecotcraft/pecot/issues/518))
+  承認の後の案内が届かないときや、GitHub Copilot CLI でも、スキルの本文に従って実装に進みます。
+
+- `issue create` の `--freeform` は、題を `--message` の 1 行目だけから作る。 ([#547](https://github.com/pecotcraft/pecot/pull/547), [#520](https://github.com/pecotcraft/pecot/issues/520))
+  1 行目が短くても、2 行目の頭が題に入らない。1 行目が 50 文字を超えるときは、今までどおり 50 文字で切る。
+
+- `issue reopen` でコメントを投稿できないと、**開き直しに失敗したと読める error で止まる**不具合を修正。 ([#544](https://github.com/pecotcraft/pecot/pull/544), [#522](https://github.com/pecotcraft/pecot/issues/522))
+  `could not comment on Issue …` で止まる。空白だけの `--comment` は、開き直す前に止める。
+
+- `session finish` が、**すでに閉じた Issue を閉じ直さない**ようにした。not planned で閉じた Issue の理由が、completed に書き換わらない。 ([#546](https://github.com/pecotcraft/pecot/pull/546), [#533](https://github.com/pecotcraft/pecot/issues/533))
+  既定ブランチ宛ての PR では、閉じる Issue を GitHub の closing issues にそろえ、本文のコードブロックの中の `Closes #N` を数えない。
+
+### ⚠️  Breaking Changes
+
+- 作業中の Issue を、`.pecot-active` ではなく git の remote とブランチ名から求める。 ([#482](https://github.com/pecotcraft/pecot/pull/482), [#465](https://github.com/pecotcraft/pecot/issues/465))
+  `session_start` の `allow_cross_repo`・`force_overwrite_active` と、`session_restore` を消した。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 7.0.0 (2026-11-16)
 
 ### 🚀 Features
