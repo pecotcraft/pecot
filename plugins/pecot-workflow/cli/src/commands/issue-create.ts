@@ -20,7 +20,7 @@ import type { IssueFrontmatter } from '../domain/frontmatter.js'
 import { findBatchDuplicate, planOrders } from '../domain/issue-order.js'
 import type { OrderRequest } from '../domain/issue-order.js'
 import { upsertWaitsForMerge } from '../domain/prerequisites.js'
-import { compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
+import { PYTHON_LINE_BREAK, compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
 import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { describeReadiness, displayReference, hasStarted, stackChains } from '../domain/readiness.js'
@@ -955,7 +955,7 @@ interface FreeformInput {
   readonly label?: readonly string[] | undefined
 }
 
-// テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは先頭 50 文字の空白を 1 つにまとめたもの
+// テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは 1 行目の先頭 50 文字の空白を 1 つにまとめたもの
 async function createFreeform(output: CreateOutput, input: Readonly<FreeformInput>, isDryRun: boolean): Promise<void> {
   const { message, repo, type: issueType } = input
   if (message === undefined || pythonStrip(message) === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'message')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
@@ -972,7 +972,8 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
   const [owner, repository] = validateRepositoryShape(output, repo)
   const config = requireActiveConfigPlain(output)
   const parentReference = parentReferenceOf(normalizeParentEpicCli(input.parent_epic), config, owner, repository)
-  const cleaned = pythonStrip(truncateCodePoints(message, FREEFORM_TITLE_LENGTH).replaceAll(PYTHON_WHITESPACE_RUN, ' '))
+  const [firstLine = ''] = pythonStrip(message).split(PYTHON_LINE_BREAK)
+  const cleaned = pythonStrip(truncateCodePoints(firstLine, FREEFORM_TITLE_LENGTH).replaceAll(PYTHON_WHITESPACE_RUN, ' '))
   const title = buildIssueTitle(issueType, cleaned, { parentEpic: parentReference?.number, order: input.order })
   const client = await clientForIssueCreate(output, config, owner, repository, repo, parentReference, input.order)
   if (parentReference !== undefined && issueType === 'epic') output.warning('giving a parent Epic to an Epic is not recommended')
@@ -1046,7 +1047,7 @@ const ISSUE_CREATE = defineCommand({
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
     dry_run: z.boolean().default(false).describe('Show what would be created without writing anything (with files: the progression table and stackable chains)'),
-    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters; priority medium and size s unless given)'),
+    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)'),
     prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
     template: TEMPLATE_SCHEMA,
     suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),

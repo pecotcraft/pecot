@@ -188,6 +188,10 @@ describe('extractVersionReleaseNotes', () => {
     expect(extractVersionReleaseNotes('## [1.0.0]\u{2028}a\u{2028}## [0.9.0]\nb', '1.0.0')).toBe('a')
   })
 
+  it('CRLF の改行は区切り 1 つと数え、LF のときと同じリリースノートを返す', () => {
+    expect(extractVersionReleaseNotes(content.replaceAll('\n', '\r\n'), '0.6.1')).toBe(extractVersionReleaseNotes(content, '0.6.1'))
+  })
+
   it('前後の空白は落とす', () => {
     expect(extractVersionReleaseNotes('## [1.0.0]\n\n\n  x  \n\n## [0.9.0]', '1.0.0')).toBe('x')
   })

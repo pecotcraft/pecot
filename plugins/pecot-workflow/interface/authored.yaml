@@ -1322,7 +1322,7 @@ entries:
         - With -m, creates one Issue from --title, the body, --repo and --type.
         - With -m, --repo is required unless --type is epic.
         - With --freeform, creates one Issue from --message and --repo without checking the body against the template.
-        - With --freeform, the title is the first 50 characters of the message with each run of whitespace turned into one space, prefixed by the type.
+        - With --freeform, the title is the first 50 characters of the first line of the message, with each run of whitespace turned into one space, prefixed by the type.
         - With --freeform, the status is --status, or the default of the type when it is not given. The priority is --priority or medium, and the size is --size or s, except that epic and tracker get no default size.
         - With --freeform, appends a comment that points to the issue-creation rules to the end of the body.
         - With --freeform, a parent Epic given to an Epic gives a warning and continues.
@@ -1354,7 +1354,7 @@ entries:
     arguments:
       dry_run: '何も書かずに、作る予定だけを出すかどうかです。ファイルでは、進め方の表と積める並びを出します。'
       files: 'フロントマター付きの Markdown ファイルのパスです。複数渡すと、まとめて投稿します。'
-      freeform: 'テンプレートの検証なしで、`--message` と `--repo` だけから Issue を作るかどうかです。題は `--message` の先頭 50 文字から作ります。'
+      freeform: 'テンプレートの検証なしで、`--message` と `--repo` だけから Issue を作るかどうかです。題は `--message` の 1 行目の先頭 50 文字から作ります。'
       label: 'ラベルです。繰り返して複数渡せます。'
       message: 'Issue の本文です。コマンドラインから直接投稿するときに渡します。'
       order: 'サブタスクの順番の番号です。`parent_epic` と一緒に使います。'
@@ -1398,7 +1398,7 @@ entries:
       - '`-m` では、`--title`・本文・`--repo`・`--type` から Issue を 1 件作ります。'
       - '`-m` では、`--type` が `epic` でなければ `--repo` が必須です。'
       - '`--freeform` では、`--message` と `--repo` から、本文をテンプレートで確かめずに Issue を 1 件作ります。'
-      - '`--freeform` の題は、`--message` の先頭の 50 文字です。連続した空白は 1 つの空白にまとめ、前に type を付けます。'
+      - '`--freeform` の題は、`--message` の 1 行目の先頭の 50 文字です。連続した空白は 1 つの空白にまとめ、前に type を付けます。'
       - '`--freeform` の status は `--status` の値で、無ければ type の既定の値です。priority は `--priority` の値か `medium` です。size は `--size` の値か `s` で、`epic` と `tracker` には既定の size を付けません。'
       - '`--freeform` では、本文の末尾に、起票の決まりを指すコメントを付けます。'
       - '`--freeform` で Epic に親 Epic を渡すと、`warning` を出して続けます。'
@@ -1699,7 +1699,7 @@ entries:
         statement: '`--freeform` に `--message` と `--repo` を付けて打つと、本文をテンプレートで確かめずに Issue を 1 件作り、その URL を標準出力へ出します'
       - id: PW-ISSUE-CREATE-61
         pattern: event
-        statement: '`--freeform` で打つと、`--message` の先頭 50 文字の連続する空白を 1 つにしたものを、type の接頭辞つきの題にします'
+        statement: '`--freeform` で打つと、`--message` の 1 行目の先頭 50 文字の連続する空白を 1 つにしたものを、type の接頭辞つきの題にします'
       - id: PW-ISSUE-CREATE-62
         pattern: event
         statement: '`--freeform` で打つと、status を `--status` の値か type の既定の値にします。`--priority`・`--size` が無ければ、priority を `medium`、size を `s` にします。`epic` と `tracker` には既定の size を付けません'

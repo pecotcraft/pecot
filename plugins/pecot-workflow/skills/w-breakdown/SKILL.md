@@ -71,7 +71,7 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 - `freeform: true`
 - `parent_epic`: Step 3 で読んだ Epic の `owner/repo/N`。整数は `aggregation_repo` の Issue と読まれるので使わない
 - `repo`: Step 2 で決めたリポ
-- `message`: 1 行目を `speckit で分解する: <Epic の題>` にする。題は先頭の 50 文字から付くので、目印を先頭に置く。2 行目からは、分解する範囲を 1〜2 行で書く
+- `message`: 1 行目を `speckit で分解する: <Epic の題>` にする。題は 1 行目の先頭の 50 文字から付くので、目印を先頭に置く。2 行目からは、分解する範囲を 1〜2 行で書く
 
 ブランチは、pecot-workflow の MCP ツール `session_start` で作る。`issue_ref` はタスクの `owner/repo/N`、`branch` は `feat/breakdown-<英語の短い名前>` にする。
 `base` は渡さない。`session_start` が、タスクを Active に移す。

@@ -49,17 +49,21 @@ describe('issue create --freeform', () => {
     expect(hasFile(project.root, '.pecot/state/.pecot-active')).toBe(false)
   })
 
-  it('長いメッセージは、先頭 50 文字の連続する空白を 1 つにしてタイトルにする', async () => {
+  it.each([
+    { name: '1 行目が短い複数行のメッセージは、1 行目だけ', message: `${'あ'.repeat(10)}   \n\t${'い'.repeat(45)}`, expected: 'あ'.repeat(10) },
+    { name: '1 行目が 50 文字を超えると、50 文字で切って連続する空白を 1 つにする', message: `${'あ'.repeat(10)}   \t${'い'.repeat(45)}\n2 行目`, expected: `${'あ'.repeat(10)} ${'い'.repeat(36)}` },
+    { name: '先頭の空行と空白は飛ばし、50 文字に数えない', message: `\n\n  ${'あ'.repeat(60)}\n2 行目`, expected: 'あ'.repeat(50) },
+    { name: '\\r\\n の改行でも、1 行目だけ', message: '短い題\r\n2 行目', expected: '短い題' },
+  ])('タイトルは、メッセージの 1 行目から作る: $name', async ({ message, expected }) => {
     setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
-    const message = `${'あ'.repeat(10)}   \n\t${'い'.repeat(45)}`
 
     const result = await freeform('-m', message, '--repo', 'acme/demo')
     expect(result.code).toBe(0)
     const created = github.requests().find(request => request.type === 'rest' && request.method === 'POST')
     const body = created?.type === 'rest' ? created.body : undefined
     const title = typeof body === 'object' && body !== null && 'title' in body ? body.title : undefined
-    expect(title).toBe(`[Task] ${'あ'.repeat(10)} ${'い'.repeat(35)}`)
+    expect(title).toBe(`[Task] ${expected}`)
   })
 
   it('Backlog に置く型（epic）は size を付けない', async () => {

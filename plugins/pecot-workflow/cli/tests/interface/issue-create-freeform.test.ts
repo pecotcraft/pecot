@@ -54,7 +54,7 @@ describe('issue create', () => {
     expect(existsSync(path.join(project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 
-  it('長いメッセージを渡すと、先頭 50 文字の連続する空白を 1 つにしたものを type の接頭辞つきの題にする', async (context) => {
+  it('複数行のメッセージを渡すと、1 行目の連続する空白を 1 つにしたものを type の接頭辞つきの題にし、本文にはメッセージの全体を入れる', async (context) => {
     await verifies(context, 'PW-ISSUE-CREATE-61')
     setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
@@ -64,10 +64,22 @@ describe('issue create', () => {
 
     expect(result.code).toBe(0)
     const post = github.requests().find(request => request.type === 'rest')
-    const expectedTitle = `[Task] 先頭の 行 次の行 ${'あ'.repeat(50 - '先頭の   行\n次の行 '.length)}`
-    expect(post).toMatchObject({ body: { title: expectedTitle } })
+    expect(post).toMatchObject({ body: { title: '[Task] 先頭の 行' } })
     const sent = post?.type === 'rest' ? JSON.stringify(post.body) : ''
     expect(sent).toContain(String.raw`先頭の   行\n次の行 ${'あ'.repeat(60)}\n\n<!-- ${FOOTER}`)
+  })
+
+  it('1 行目が 50 文字を超えるメッセージを渡すと、1 行目の先頭 50 文字の連続する空白を 1 つにしたものを題にする', async (context) => {
+    await verifies(context, 'PW-ISSUE-CREATE-61')
+    setUpIssueProject()
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const message = `${'あ'.repeat(30)}   ${'い'.repeat(27)}\n2 行目`
+
+    const result = await freeform('-m', message, '-r', 'acme/demo')
+
+    expect(result.code).toBe(0)
+    const post = github.requests().find(request => request.type === 'rest')
+    expect(post).toMatchObject({ body: { title: `[Task] ${'あ'.repeat(30)} ${'い'.repeat(17)}` } })
   })
 
   it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は backlog と medium だけで size を付けない', async (context) => {
