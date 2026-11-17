@@ -69,7 +69,7 @@ Issue の作成と作業の開始を 1 つのコマンドで行う動詞（以�
 | 操作するブランチ | `branch` | `session start`・`branch delete` |
 
 - PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
-- 名前を変えても、古い名前の別名は作らない。`cli/src/commands/renamed-commands.ts` に追加し、古い名前で呼ばれたら新しい名前を案内して止める。利用者向けの変更点は version plan に書く
+- 名前を変えても、古い名前の別名は作らない。`cli/src/commands/renamed-commands.ts` に追加し、古い名前で呼ばれたら新しい名前を案内して止める。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
 - 書き込むコマンド（effects に `write` か `destructive` を持つもの）には、入力 `dry_run`（CLI では `--dry-run`・`-n`）を付ける。予行でも入力の検証と読み取りは行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
 
 ### 次の操作の案内
@@ -118,8 +118,16 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
    <作業ツリー>/plugins/pecot-workflow/bin/pecot project activate github.com_pecotcraft_pecot-sandbox_sandbox.json
    ```
 
-3. 書き込む前に、毎回 `pecot board show` を実行し、出力の `project.number` が `3` であることを確かめる
-4. clone の中で、作業ツリーの `bin/pecot` を使って作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
+3. 書き込む前に、毎回 `pecot board show --json`（MCP では `board_show`）を実行し、`project.number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
+4. 作るものの名前を決める。`<乱数>` は `[0-9a-z]{4}` の 4 文字、`<Issue番号>` はこのリポで確かめている Issue の番号
+
+   | 作るもの | 名前の形 |
+   |:---|:---|
+   | ブランチ | `cuj/<Issue番号>-<乱数>`（`session start` が後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
+   | Issue・PR の題 | `[cuj <Issue番号>-<乱数>]` を含める。pecot が題の先頭に `[Task]` などを付けるので、先頭には置かない |
+   | リリースのタグ | `cuj/<Issue番号>-<乱数>-tgz`。`--latest=false` で作ります |
+
+5. clone の中で、作業ツリーの `bin/pecot` を使って作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
 
    ```bash
    <作業ツリー>/plugins/pecot-workflow/bin/pecot issue create ...
@@ -129,26 +137,20 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
    <作業ツリー>/plugins/pecot-workflow/bin/pecot pr create ...
    ```
 
-5. 作るものには、次の表の名前を付ける。`<乱数>` は `[0-9a-z]{4}` の 4 文字、`<Issue番号>` はこのリポで確かめている Issue の番号
-
-   | 作るもの | 名前の形 |
-   |:---|:---|
-   | ブランチ | `cuj/<Issue番号>-<乱数>`（`session start` が後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
-   | Issue・PR の題 | `[cuj <Issue番号>-<乱数>]` を含める。pecot が題の先頭に `[Task]` などを付けるので、先頭には置かない |
-   | リリースのタグ | `cuj/<Issue番号>-<乱数>-tgz`。`--latest=false` で作ります |
-
+   スキル・MCP ツールで作るときは、clone で「直した pecot-workflow を動かす」の手順でクライアントを起動する
 6. 確かめが終わったら片付ける。名前の形に合う開いた PR・ブランチ・Issue・カード・リリースが対象
 
    ```bash
-   plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
-   plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
+   <作業ツリー>/plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
+   <作業ツリー>/plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
    ```
 
-clone は、確かめるセッションごとに 1 つ作ります。clone の中でそれぞれのブランチを checkout するため、共有するとぶつかります。
-認証は `gh auth token` を使うので、`.env` は不要です。
+clone は、確かめるセッションごとに 1 つ作ります。手順 5 で clone の中のブランチを切り替えるため、共有するとぶつかります。
+環境に `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` が無く、`gh` に認証していれば、`gh auth token` を使うので `.env` は不要です。
 別のトークンで書き込むときは、clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` を書きます。そのうえで、環境変数 `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` を外します。
 `sandbox-sweep.sh` は、名前の形に合わないものと、検証用の `main`・設定ファイルには触りません。`--issue` を省くと、名前の形に合うものをすべて片付けます。
 `sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに実行できます。
+`sandbox-diff.sh` で比べない項目を足すときは、`sandbox-diff-items.json` と spec の表を同じ変更で直します。
 このリポの ruleset・ボード・`pecot-board-sync.yml` の決まりを変えるときは、検証用を先に変えます。逆にすると、確かめた結果がこのリポで再現しません。
 
 ### 直した pecot-workflow を動かす
@@ -175,7 +177,7 @@ cd .pecot/work/<Issue番号>/pecot-sandbox
 COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/pecot-workflow
 ```
 
-`COPILOT_PLUGIN_DIR_ONLY=true` を付けると、`--plugin-dir` のプラグインだけを読み込みます。付けないと、インストール済みの pecot-w のフックも一緒に動きます。
+`COPILOT_PLUGIN_DIR_ONLY=true` を付けると、`--plugin-dir` のプラグインだけを読み込みます。pecot-v など、ほかのプラグインも読み込みません。付けないと、インストール済みの pecot-w のフックも一緒に動きます。
 起動後に `/env` を開き、Skills のパスが作業ツリーを指すこと、Hooks の sources が `pecot-w` だけであることを確かめます。
 エージェントに渡った本文を確かめるには、`--log-level all --log-dir <ディレクトリ>` を付けて起動し、ログの `instructions` から直した文を探します。
 
@@ -219,7 +221,7 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 5. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作り、`pecot pr merge` で merge queue に入れる。`workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
 6. PR・Issue を変えるか、`gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` で起動し、次の 2 つを確かめる
    - 実行の `Sync the board` の step が、URL を使う `npx` の行で成功すること
-   - `pecot board show` の `project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
+   - `pecot board show --json` の `project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
 7. 写しを、このリポの `main` の `.github/workflows/pecot-board-sync.yml` と同じ中身に戻す PR を入れる。`sandbox-diff.sh` はテンプレートではなく、この写しと比べる
 8. `sandbox-diff.sh` でずれが 0 件であることを確かめてから、`sandbox-sweep.sh` でリリースを消す。順が逆だと、消えた URL を取りに行く実行が失敗する
 
@@ -257,10 +259,10 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `pr_merge` | PR のマージか merge queue への投入 | マージした PR と commit は検証用の `main` に残ります |
 | `pr_restack` | 手元のブランチの rebase と `git push --force-with-lease` | sweep。対象は積んだ PR だけです |
 | `project_create` | org のボードとフィールド | 題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消します。作ると新しいボードが有効になるので、`project activate` で戻します |
-| `project_init` | ボードのフィールドと選択肢 | `gh project create` で作った空のボードで実行し、`gh project delete` で消します |
+| `project_init` | ボードのフィールドと選択肢 | 題に `[cuj <Issue番号>-<乱数>]` を入れて `gh project create` で作った空のボードで実行し、`gh project delete` で消します |
 | `project_link` | リポとプロジェクトのつなぎ | `gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` |
 | `release_create` | `v*` のリリースとタグ | `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox`。版の節を書いた `CHANGELOG.md` を clone に一時的に置いて実行します |
-| `release_merge` | release の PR のマージと head ブランチの削除 | 検証用では実行できません。このリポだけの bypass で通す操作のためです |
+| `release_merge` | release の PR のマージと head ブランチの削除 | 検証用では実行できません。このリポだけの bypass で通す操作で、検証用には bypass を足しません |
 | `session_start` | 紐づいたブランチ・カードの Status を `active` に | sweep（ブランチを消す） |
 | `session_finish` | Issue のクローズ・リモートの head ブランチの削除 | カードは sweep がアーカイブします |
 | `tracker_sync` | Tracker の Issue（題に `[cuj …]` が付きません）・カード | 作った Issue を `gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じます |
