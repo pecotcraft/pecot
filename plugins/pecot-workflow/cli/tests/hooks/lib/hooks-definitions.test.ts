@@ -311,9 +311,9 @@ const CONFIG_KEYS = [
   'git-no-verify-check',
   'git-sync',
   'git-worktree-branch-check',
+  'reviewer-clone-allow',
   'session-start-common',
   'session-title',
-  'tech-advisor-clone-allow',
   'tmp-path-warner',
 ]
 

@@ -11,7 +11,7 @@
 #   1. gh-command-check.sh           → exit 1ならdeny JSON出力して終了
 #   2. git-worktree-branch-check.sh  → exit 1ならdeny JSON出力して終了
 #   3. git-no-verify-check.sh        → exit 1ならdeny JSON出力して終了
-#   4. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
+#   4. reviewer-clone-allow.sh       → exit 10ならallow JSON出力して終了。
 #      （全denyガード通過後のみ実行。deny > allow の不変条件を維持）。
 #
 # deny は hookSpecificOutput.permissionDecision で返す。
@@ -84,8 +84,8 @@ if [ "$NOVERIFY_EXIT" -eq 1 ]; then
     exit 0
 fi
 
-# --- 4. tech-advisor-clone-allow（exit 10 = 自動許可）---
-ALLOW_OUTPUT=$("$CORE_DIR/tech-advisor-clone-allow.sh" 2>/dev/null)
+# --- 4. reviewer-clone-allow（exit 10 = 自動許可）---
+ALLOW_OUTPUT=$("$CORE_DIR/reviewer-clone-allow.sh" 2>/dev/null)
 ALLOW_EXIT=$?
 
 if [ "$ALLOW_EXIT" -eq 10 ]; then

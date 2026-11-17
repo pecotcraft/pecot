@@ -76,7 +76,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_create`・`pr_merge` の使用を強制する | コアガード | `true` |
 | `git-no-verify-check` | 有効にしたときだけ、git のフックを飛ばす形を止める。対象は `--no-verify`、commit の `-n`（まとめ書きを含む。push の `-n` は `--dry-run` なので止めない）、引用符で囲んだそれらのオプション、`git -c core.hooksPath=`、`git config` で `core.hooksPath` を書く・消す形、前に置いた `SKIP=`・`HUSKY=0`。抜け道が多く守り切れないので、守りは CI に任せ、初期値は無効にしている | コアガード | `false` |
 | `git-worktree-branch-check` | `wt*` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
-| `tech-advisor-clone-allow` | w-tech-advisor の定型 clone（`.pecot/work/<Issue番号>/tech-advisor/<名前>` 宛の単一 `git clone`）を自動許可し、確認プロンプトを抑制する。w-reviewer の clone も同じパスに置くので、同じく許可される。全 deny ガード通過後のみ判定 | コアガード | `true` |
+| `reviewer-clone-allow` | w-reviewer の定型 clone（`.pecot/work/<Issue番号>/reviewer/<名前>` 宛の単一 `git clone`）を自動許可し、確認プロンプトを抑制する。全 deny ガード通過後のみ判定 | コアガード | `true` |
 
 > コアガードは `claude-bash-guards` から呼び出される。個別に無効化可能。
 > `pre-tool-use-bash.sh` は `merge-hook-outputs.sh` でガードの出力（deny / allow とその理由）と、`tmp-path-warner` のリマインダーを 1 つの JSON にまとめて返す。
@@ -122,7 +122,7 @@ ExitPlanMode の後のフック。
 `hooks.json`（Claude Code）のトリガー定義からlib呼び出しまでの対応。
 `post-tool-use-exit-plan-mode.sh` は、w-active・w-quick の frontmatter の PostToolUse（ExitPlanMode）から呼ばれる。
 引数は `--mode=active|quick` で、`hooks.json` には登録しない。
-括弧内の注記（`(Claude Code)` / `（deny 系 → tech-advisor-clone-allow）` 等）は、1段深い呼び出しの参考記載。
+括弧内の注記（`(Claude Code)` / `（deny 系 → reviewer-clone-allow）` 等）は、1段深い呼び出しの参考記載。
 エントリスクリプトからの直接呼び出しではない。
 `com.github.copilot/hooks/hooks.json`（Copilot CLI）は同じエントリを指す。
 ただし、`user-prompt-submit-title.sh` の配線を持たない。
@@ -137,7 +137,7 @@ settings.json トリガー          → シェルスクリプト                
 ─────────────────────────────────────────────────────────────────────────────────────────
 PreToolUse (Skill)              → pre-tool-use-skill.sh             → pecot-dir-init-detect
 PreToolUse (Bash)               → pre-tool-use-bash.sh              → claude-bash-guards → コアガード群
-                                                                       （deny 系 → tech-advisor-clone-allow）,
+                                                                       （deny 系 → reviewer-clone-allow）,
                                                                        tmp-path-warner
 
 SessionStart (startup|clear|resume|fork|compact) → session-start.sh      → session-title (Claude Code のみ。common と別に merge へ渡す),
@@ -252,7 +252,7 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 | 両方 | `wt1` ブランチでの `git commit` | 同上 | `git-worktree-branch-check` の deny | 2026-11-17 |
 | 両方 | 初期値のままの `git commit --no-verify` | 同上 | 止めずに実行される | 2026-11-17 |
 | 両方 | `git-no-verify-check` を有効にした `git commit --no-verify` | 同上 | `git-no-verify-check` の deny | 2026-11-17 |
-| 両方（対話のセッション） | `git clone --depth 1 <url> .pecot/work/<番号>/tech-advisor/<名前>` | 同上 | `tech-advisor-clone-allow` の allow で、承認の確認が出ずに実行される。`tech-advisor/` の外への clone では確認が出る | 2026-11-17 |
+| 両方（対話のセッション） | `git clone --depth 1 <url> .pecot/work/<番号>/reviewer/<名前>`（pecot-sandbox の clone で確認。このリポは `Bash(git *)` を許すため） | 同上 | `reviewer-clone-allow` の allow で、承認の確認が出ずに実行される。`reviewer/` の外への clone では確認が出る | 2026-11-17 |
 | 両方 | `cat /tmp/x-468` | 同上 | `tmp-path-warner` の案内が `additionalContext` でエージェントに届く | 2026-11-17 |
 | Copilot 1.0.112 | 起動（`-p`） | SessionStart: `session-start.sh` | 有効にした git-sync の結果が、トップレベルの `additionalContext` でモデルに届く | 2026-11-17 |
 | Copilot 1.0.112 | skill ツールで w-help | `pre-tool-use-skill.sh`（matcher `Skill\|skill`） | スキルは名前空間なしで起動できる。`.pecot` が初期化済みなので、何も出さない | 2026-11-17 |

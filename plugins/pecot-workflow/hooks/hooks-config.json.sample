@@ -7,7 +7,7 @@
   "git-sync": false,
   "git-worktree-branch-check": true,
   "exit-plan-remind": true,
-  "tech-advisor-clone-allow": true,
+  "reviewer-clone-allow": true,
   "session-start-common": true,
   "session-title": true,
   "tmp-path-warner": true

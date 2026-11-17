@@ -38,7 +38,6 @@ const AGENT_ROWS: readonly AgentRow[] = [
   { label: 'pecot-workflow/w-e2e-planner', plugin: 'pecot-workflow', agent: 'w-e2e-planner', tools: [ASK, 'Monitor'], window: 400_000, copilotTools: ['*'] },
   { label: 'pecot-workflow/w-implementer', plugin: 'pecot-workflow', agent: 'w-implementer', tools: ['Agent', ...PLAN, ASK, 'Monitor'], window: 300_000, copilotTools: ['read', 'edit', 'search', 'execute', 'web', 'todo', ...MCP] },
   { label: 'pecot-workflow/w-reviewer', plugin: 'pecot-workflow', agent: 'w-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
-  { label: 'pecot-workflow/w-tech-advisor', plugin: 'pecot-workflow', agent: 'w-tech-advisor', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
 ]
 
 const WORKFLOW_SKILLS = 'w-active w-backlog w-breakdown w-help w-issueize w-merge w-onboarding w-pr w-quick w-ready w-release w-repo-add w-revise w-worktree-add w-worktree-remove'.split(' ')
@@ -101,10 +100,6 @@ describe('エージェントファイルの存在', () => {
     expect(statSync(path.join(agentsDirectory, 'w-implementer.md')).isFile()).toBe(true)
   })
 
-  it('w-tech-advisor.md が実在する', () => {
-    expect(statSync(path.join(agentsDirectory, 'w-tech-advisor.md')).isFile()).toBe(true)
-  })
-
   it('w-worker.md は削除済みになっている', () => {
     expect(existsSync(path.join(agentsDirectory, 'w-worker.md'))).toBe(false)
   })
@@ -127,7 +122,7 @@ describe('エージェントファイルの存在', () => {
 })
 
 describe('model フィールド', () => {
-  it.for(['w-implementer', 'w-tech-advisor', 'w-e2e-planner', 'w-reviewer'])('%s は、空でない model を持つ', (agent) => {
+  it.for(['w-implementer', 'w-e2e-planner', 'w-reviewer'])('%s は、空でない model を持つ', (agent) => {
     const model = modelOf(path.join(agentsDirectory, `${agent}.md`))
     expect(model).toBeDefined()
     expect(model).not.toBe('')
@@ -135,14 +130,13 @@ describe('model フィールド', () => {
 
   it.for([
     { label: 'w-implementer', agent: 'w-implementer', expected: 'sonnet' },
-    { label: 'w-tech-advisor', agent: 'w-tech-advisor', expected: 'opus' },
     { label: 'w-e2e-planner', agent: 'w-e2e-planner', expected: 'opus' },
     { label: 'w-reviewer', agent: 'w-reviewer', expected: 'opus' },
   ])('$label の model は $expected になっている', (row) => {
     expect(modelOf(path.join(agentsDirectory, `${row.agent}.md`))).toBe(row.expected)
   })
 
-  it.for(['w-tech-advisor', 'w-e2e-planner', 'w-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
+  it.for(['w-e2e-planner', 'w-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
     const text = readFileSync(path.join(agentsDirectory, '..', 'skills', 'w-help', 'references', 'agent-models.md'), 'utf8')
     const lines = splitLines(text)
     const start = lines.indexOf('## 役ごとのモデル')
