@@ -18,7 +18,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
-import { requireActiveConfig, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { fieldWriteFailure } from './field-write-failure.js'
 import { createGitHubClient } from './github-client.js'
@@ -122,7 +122,7 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.warning(fieldWriteFailure(`could not set ${target}: ${error.message}`, error))
+      out.warning(fieldWriteFailure(`could not set ${target}: ${error.message}`, error, config))
       return
     }
     out.done({ verb: 'set', target })
@@ -153,6 +153,7 @@ const sessionStartCommand = defineCommand({
     base: z.string().optional().describe('Base branch (default: chosen by readiness, else develop_branch from the config)'),
     checkout: z.boolean().default(true).describe('Kept for compatibility; has no effect'),
     dry_run: z.boolean().default(false).describe('Show what would be created and recorded without writing anything'),
+    project: PROJECT_INPUT,
   }),
   output: SESSION_START_OUTPUT,
   positional: ['issue_ref', 'branch'],
@@ -162,9 +163,6 @@ const sessionStartCommand = defineCommand({
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
     const out = createOutput<z.input<typeof SESSION_START_OUTPUT>>(input.dry_run, io)
-    // 1. 設定取得
-    const config = requireActiveConfig(out)
-
     // 2. issue_ref をパース（フル形式必須、基準リポは渡さない）
     let issue
     try {
@@ -179,6 +177,9 @@ const sessionStartCommand = defineCommand({
 
     // A-1. 作業ディレクトリと Issue ref のリポジトリの整合チェック
     rejectCwdRepositoryMismatch(out, owner, repository)
+
+    // 1. 設定取得（issue_ref のリポを含む設定）
+    const config = requireConfigFor(out, issue.repository, input.project, ['session', 'start']).config
 
     const finalBranchName = `${input.branch}/${String(issueNumber)}`
     try {

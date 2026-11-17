@@ -26,7 +26,7 @@ import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { BaseReading } from '../domain/state.js'
-import { loadActiveConfig } from '../infra/config-store.js'
+import { findConfigFor } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
 import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, isAncestor, primaryRemoteName, remoteBranchHead, resolveCommit, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -41,7 +41,7 @@ import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
-import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { configLookupFailure, PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
@@ -240,7 +240,7 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
   }
   catch (error: unknown) {
     const message = `status update of ${label} failed: ${reasonOf(error)}`
-    out.warning(error instanceof GitHubAPIError ? fieldWriteFailure(message, error, hintState) : message)
+    out.warning(error instanceof GitHubAPIError ? fieldWriteFailure(message, error, config, hintState) : message)
     return
   }
   out.done(inReviewOperation(issueNumber))
@@ -651,10 +651,10 @@ interface FileModeInput {
   readonly template: string
   readonly noIssueRef: boolean
   readonly dryRun: boolean
+  readonly project: string | undefined
 }
 
 async function createFromFile(input: Readonly<FileModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  const config = requireActiveConfigPlain(out)
   let parsed: ParsedPullRequest
   try {
     parsed = parsePullRequestFile(input.file)
@@ -666,6 +666,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   const { frontmatter } = parsed
   if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)', 'content-invalid')
   const location = requireRepository(frontmatter.repository, out)
+  const config = requireConfigFor(out, location, input.project, PR_CREATE_PATH).config
   const head = resolveHeadBranch(frontmatter.head, directory, out)
   const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 
@@ -702,19 +703,20 @@ interface DirectModeInput {
   readonly noIssueRef: boolean
   readonly template: string
   readonly screenshot: string | undefined
+  readonly project: string | undefined
 }
 
 async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  const config = requireActiveConfigPlain(out)
   let location: RepositoryReference
   if (input.repository === undefined || input.repository === '') {
-    const [only] = config.repositories
-    if (only === undefined || config.repositories.length !== 1) return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`, 'invalid-input')
-    location = { owner: only.owner, repository: only.name }
+    const remote = primaryRemote(directory)?.location
+    if (remote === undefined) return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`, 'invalid-input')
+    location = { owner: remote.owner, repository: remote.repository }
   }
   else {
     location = requireRepository(input.repository, out)
   }
+  const config = requireConfigFor(out, location, input.project, PR_CREATE_PATH).config
   const head = resolveHeadBranch(input.head, directory, out)
   const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 
@@ -782,7 +784,14 @@ async function fillClosesInTemplate(content: string, config: Readonly<ProjectCon
   return content.replace(pattern, () => `Closes #${String(target.number)}`)
 }
 
-async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateData>>, template: string): Promise<void> {
+function configForPrepare(location: Readonly<RepositoryReference>, project: string | undefined, out: Readonly<Output<PrCreateData>>): ProjectConfig | undefined {
+  const lookup = findConfigFor(location, project)
+  if (lookup.kind === 'found') return lookup.found.config
+  out.warning(configLookupFailure(lookup, location, PR_CREATE_PATH).message)
+  return undefined
+}
+
+async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateData>>, template: string, project: string | undefined): Promise<void> {
   const templatePath = templateFile('pr', templateKindOf(template))
   if (!existsSync(templatePath)) stopWith(out, `template not found: ${templatePath}`, 'other')
   let content = readTextFile(templatePath)
@@ -790,13 +799,13 @@ async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateD
   // release テンプレートは、base をテンプレートの既定（main）のままにする
   if (template !== 'release') {
     // 下の段の PR がマージ済みかは、準備と投稿の間に変わりうるので、ここでは読まずに投稿のときに見る
-    const config = loadActiveConfig()
+    const location = primaryRemote(directory)?.location
+    const config = location === undefined ? undefined : configForPrepare(location, project, out)
     const base = await readBaseOrInfer({ directory, project: config === undefined ? undefined : { config, client: lazyClient(config, out) } })
     warnUnresolved(base, out)
     const { reading } = base
     stopOnMalformedRecord(reading, out)
     const record = reading.kind === 'stacked' ? reading.record : undefined
-    const location = primaryRemote(directory)?.location
     if (location !== undefined) {
       const developBranch = config === undefined ? undefined : getDevelopBranch(config, location.owner, location.repository)
       if (config !== undefined && developBranch !== undefined && developBranch !== '') {
@@ -837,6 +846,7 @@ const CreateInputSchema = z.strictObject({
   no_issue_ref: z.boolean().default(false).describe('Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)'),
   template: z.string().default('default').describe('PR template kind (default / release)'),
   screenshot: z.string().optional().describe('Reason to omit an image from Summary (with -m)'),
+  project: PROJECT_INPUT,
 })
 
 async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
@@ -845,11 +855,11 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
   if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`, 'invalid-input')
 
   if (input.prepare) {
-    await prepareTemplate(directory, createOutput<PrCreateData>(false, io), input.template)
+    await prepareTemplate(directory, createOutput<PrCreateData>(false, io), input.template, input.project)
   }
   else if (input.file !== undefined) {
     if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`, 'invalid-input')
-    await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run }, directory, out)
+    await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run, project: input.project }, directory, out)
   }
   else if (input.message === undefined) {
     stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { prepare: true })}\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`, 'invalid-input')
@@ -867,6 +877,7 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
       noIssueRef: input.no_issue_ref,
       template: input.template,
       screenshot: pythonStrip(input.screenshot ?? '') || undefined,
+      project: input.project,
     }, directory, out)
   }
 }
@@ -877,6 +888,7 @@ const ShowInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
   json: z.boolean().default(false).describe('Output as JSON'),
   reviews: z.boolean().default(false).describe('Include review details (bodies and line comments)'),
+  project: PROJECT_INPUT,
 })
 
 const ISSUE_LINK_JSON = z.strictObject({
@@ -946,8 +958,8 @@ function pullRequestJson(pr: Readonly<PullRequestSlim> | Readonly<PullRequestWit
 
 async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput<PrShowJson>(false, io)
-  const config = requireActiveConfigPlain(out)
   const { owner, repository, number } = parseReference(input.pr_ref, input.repo, out)
+  const config = requireConfigFor(out, { owner, repository }, input.project, ['pr', 'show']).config
   try {
     const client = createGitHubClient(out, config.host)
     if (input.reviews) {
@@ -1057,14 +1069,14 @@ function formatWorktreeInfo(info: Readonly<PrCheckData['worktree']>): string {
 
 const CheckInputSchema = z.strictObject({
   directory: directorySchema,
+  project: PROJECT_INPUT,
 })
 
 async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput<PrCheckData>(false, io)
   const directory = input.directory
   const context = validatePullRequestContext(directory, out)
-  const config = loadActiveConfig()
-  if (config === undefined) return stopWith(out, hinted`project config not found\nactivate a project with: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`, 'no-active-project')
+  const config = requireConfigFor(out, context.location, input.project, ['pr', 'check']).config
   const base = await readBaseOrInfer({ directory, project: { config, client: lazyClient(config, out) } })
   warnUnresolved(base, out)
   const { reading } = base

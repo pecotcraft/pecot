@@ -27,9 +27,13 @@ export interface IssueProjectOptions {
   真なら、進行の欄に Blocked の列を作らない
   */
   readonly withoutBlockedColumn?: boolean
+  /**
+  demo のほかに設定の repositories に足すリポジトリの名前（owner は acme）
+  */
+  readonly otherRepositories?: readonly string[]
 }
 
-function configText(options: Readonly<IssueProjectOptions>): string {
+export function configText(options: Readonly<IssueProjectOptions>): string {
   const { aggregation } = options
   const developBranch = Object.hasOwn(options, 'developBranch') ? options.developBranch : 'main'
   const status = { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6', ...options.withoutBlockedColumn !== true && { blocked: 'o7' } }
@@ -44,7 +48,10 @@ function configText(options: Readonly<IssueProjectOptions>): string {
     workflow_suffix: 'acme',
     ...aggregation !== undefined && { aggregation_repo: aggregation },
     project: { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields },
-    repositories: [{ owner: 'acme', name: 'demo', ...developBranch !== undefined && { develop_branch: developBranch } }],
+    repositories: [
+      { owner: 'acme', name: 'demo', ...developBranch !== undefined && { develop_branch: developBranch } },
+      ...(options.otherRepositories ?? []).map(name => ({ owner: 'acme', name })),
+    ],
   }
   return `${JSON.stringify(config, undefined, 2)}\n`
 }

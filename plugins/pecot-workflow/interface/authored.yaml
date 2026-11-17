@@ -47,6 +47,7 @@ entries:
         - A --status value that is not one of these values stops the command before anything is added.
         - A --status value that the board does not define stops the command before anything is added.
         - With --dry-run, reads the Issue and prints dry-run lines for adding it to the board and setting its Status, and writes nothing to the board.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot board add example-org/my-repo/123
           note: Add the Issue to the board with the Status ready.
@@ -59,6 +60,7 @@ entries:
     arguments:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       status: '足した Issue に設定する Status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       dry_run: '何も書かずに、する予定だけを出すかどうかです。'
     constraints: []
     details:
@@ -73,6 +75,7 @@ entries:
       - '`--status` がこれらの値のどれでもないと、何も足さずに止まります。'
       - '`--status` の値をボードが定義していないと、何も足さずに止まります。'
       - '`--dry-run` を付けると、Issue を読み、ボードに足す操作と Status の設定を `dry-run` の行に出して、ボードには何も書きません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -93,7 +96,10 @@ entries:
         when: '`--status` の値をボードが定義していません。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-not-in-project
         code: 1
         when: 'リポジトリがプロジェクトにありません。'
@@ -131,9 +137,9 @@ entries:
         what: 'Issue をプロジェクトのボードに足し、Status の欄を設定します。`--dry-run` のときは書きません。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
     idempotent: true
     examples:
@@ -180,7 +186,7 @@ entries:
         statement: 'もし `--status` が `backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれでもないなら、終了コード 1 で終わります'
       - id: PW-BOARD-ADD-12
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-BOARD-ADD-13
         pattern: unwanted
         statement: 'もし Issue の参照が不正なら、終了コード 2 で終わります'
@@ -205,6 +211,12 @@ entries:
       - id: PW-BOARD-ADD-20
         pattern: unwanted
         statement: 'もし Issue を足した後で Status の書き込みに失敗したなら、書けなかった Status の `error` の行を標準エラーに出し、終了コード 1 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
+      - id: PW-BOARD-ADD-21
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-BOARD-ADD-22
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-BOARD-MOVE:
     help:
       details:
@@ -217,6 +229,7 @@ entries:
         - The repository of the Issue must be registered in the active project, and the Issue must be on the board.
         - Unlike pecot board add, which only warns, a status that the board does not define stops the command with exit status 1.
         - With --dry-run, reads the board item and prints a dry-run line for setting the Status, and writes nothing to the board.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot board move example-org/my-repo/123 in_review
           note: Move the Issue to In Review.
@@ -227,6 +240,7 @@ entries:
     arguments:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       status: '設定する Status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       dry_run: '何も書かずに、する予定だけを出すかどうかです。'
     constraints: []
     details:
@@ -239,6 +253,7 @@ entries:
       - 'Issue のリポジトリはアクティブなプロジェクトに登録されていて、Issue はボードに載っていなければなりません。'
       - 'ボードが定義していない status を渡すと、終了コード 1 で止まります。`warning` を出すだけの `pecot board add` とは違います。'
       - '`--dry-run` を付けると、ボードの項目を読み、Status の設定を `dry-run` の行に出して、ボードには何も書きません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -255,7 +270,10 @@ entries:
         when: 'status が有効な値ではありません。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-not-in-project
         code: 1
         when: 'リポジトリがプロジェクトにありません。'
@@ -299,9 +317,9 @@ entries:
         what: 'ボードの項目の Status の欄を設定します。`--dry-run` のときは書きません。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
     idempotent: true
     examples:
@@ -331,7 +349,7 @@ entries:
         statement: 'もし Status が `backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれでもないなら、終了コード 1 で終わります'
       - id: PW-BOARD-MOVE-07
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-BOARD-MOVE-08
         pattern: unwanted
         statement: 'もし Issue の参照が不正なら、終了コード 2 で終わります'
@@ -359,6 +377,12 @@ entries:
       - id: PW-BOARD-MOVE-16
         pattern: unwanted
         statement: 'もし Status の書き込みに失敗したなら、書けなかった Status の `error` の行を標準エラーに出し、終了コード 1 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
+      - id: PW-BOARD-MOVE-17
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-BOARD-MOVE-18
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-BOARD-SHOW:
     help:
       details:
@@ -752,16 +776,19 @@ entries:
         - The global pecot --repo is not used. The command only needs the working directory to be inside a git repository with a remote.
         - The default branch of the repository and the develop_branch and release_branch in the config file are protected and are never deleted.
         - --dry-run reads the default branch and checks the protected branches, then writes the plan line for the branch and deletes nothing.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot branch delete example-org/my-repo feat/my-change/123
           note: Delete the remote branch.
         - run: pecot branch delete example-org/my-repo feat/my-change/123 --dry-run
           note: Show the plan without deleting.
-      default_notes: {}
+      default_notes:
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: リモートブランチを削除します。保護するブランチは削除しません。
     arguments:
       branch: '削除するブランチの名前です。'
       dry_run: '何も削除せず、削除する予定だけを出すかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
       repo: 'リポジトリの参照です。`owner/repo` の形で渡します。'
     constraints: []
     details:
@@ -770,6 +797,7 @@ entries:
       - 'pecot 全体のオプション `--repo` は使いません。作業ディレクトリが、remote を持つ git のリポジトリの中にあれば足ります。'
       - 'リポジトリの既定ブランチと、設定ファイルの `develop_branch`・`release_branch` は保護していて、削除しません。'
       - '`--dry-run` を付けると、既定ブランチを読んで保護するブランチを確かめた後、ブランチの予定の行を書きます。何も削除しません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -784,7 +812,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: guard-blocked
         code: 1
         when: 'ブランチが保護されています。'
@@ -825,9 +859,9 @@ entries:
         what: 'リモートブランチを削除します。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンと、ブランチを削除する権限が要ります。'
     idempotent: false
     examples:
@@ -835,7 +869,8 @@ entries:
         note: 'リモートブランチを削除します。'
       - run: pecot branch delete example-org/my-repo feat/my-change/123 --dry-run
         note: '削除せずに、予定を出します。'
-    default_notes: {}
+    default_notes:
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-BRANCH-DELETE-01
         pattern: event
@@ -860,7 +895,7 @@ entries:
         statement: 'もし `repo` が `owner/repo` の形でないなら、終了コード 2 で終わります'
       - id: PW-BRANCH-DELETE-13
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-BRANCH-DELETE-14
         pattern: unwanted
         statement: 'もしリポジトリの既定ブランチを読めないなら、終了コード 1 で終わります'
@@ -876,6 +911,12 @@ entries:
       - id: PW-BRANCH-DELETE-19
         pattern: event
         statement: '`origin` の URL が GitHub の形でない作業ディレクトリで打つと、引数のリポジトリのリモートブランチを削除します'
+      - id: PW-BRANCH-DELETE-20
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-BRANCH-DELETE-21
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-ISSUE-BLOCK:
     help:
       details:
@@ -892,6 +933,7 @@ entries:
         - With --dry-run, writes dry-run lines instead of the result lines. The reads, the cycle search and the checks are still made, and nothing is written.
         - Needs a GitHub Enterprise Server of version 3.19 or later, which has issue dependencies.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot issue block example-org/my-repo/12 --by example-org/my-repo/11 --wait merge --reason "The check script is on main."
           note: Make Issue 12 wait for the merge of Issue 11.
@@ -902,6 +944,7 @@ entries:
       by: '待つ相手の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
       dry_run: '何も書き込まずに、書く予定だけを出すかどうかです。'
       issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       reason: '前提のマージを待つ理由です。`--wait merge` のときは必須で、`--wait stack` のときは渡せません。'
       wait: '待ち方です。`stack`（相手のブランチの上に積みます。省くとこちら）か `merge`（相手がマージされるまで待ちます）を渡します。'
     constraints: []
@@ -919,6 +962,7 @@ entries:
       - '`--dry-run` を付けると、結果の行の代わりに `dry-run` の行を出します。読み取り、輪の探索、確認は行い、何も書き込みません。'
       - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -935,7 +979,10 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-not-in-project
         code: 1
         when: '待つ側の Issue のリポジトリがプロジェクトにありません。'
@@ -985,9 +1032,9 @@ entries:
         what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、輪の探索、読み直した判定、ボードの項目を読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: true
     examples:
@@ -1058,7 +1105,7 @@ entries:
         statement: 'もしリポジトリがプロジェクトに無いなら、終了コード 1 で終わります'
       - id: PW-ISSUE-BLOCK-21
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-ISSUE-BLOCK-22
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、終了コード 1 で終わります'
@@ -1071,6 +1118,12 @@ entries:
       - id: PW-ISSUE-BLOCK-25
         pattern: unwanted
         statement: 'もし列を書けないなら、`warning` の行を出し、前提を付けたまま終了コード 0 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
+      - id: PW-ISSUE-BLOCK-26
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-ISSUE-BLOCK-27
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-ISSUE-COMMENT:
     help:
       details:
@@ -1086,6 +1139,7 @@ entries:
         - comment_url must point to a comment on the Issue named by issue_ref.
         - With a file, a repository that is not in the project gives a warning and the comment is still posted.
         - With --dry-run, validates the input and prints dry-run lines instead of posting the comment, writing comment_url back or copying the template.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot issue comment --prepare -t plan -i example-org/my-repo/12
           note: Write a plan template for Issue 12 and print its path.
@@ -1103,6 +1157,7 @@ entries:
       message: 'コメントの本文です。'
       prepare: 'テンプレートを作業用のディレクトリにコピーするかどうかです。'
       template: 'テンプレートの種類です。`plan`・`merge-diff`・`review-findings`・`review-resolution`・`precede-notify` のどれかを渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       dry_run: '何も書かずに、する予定だけを出すかどうかです。'
     constraints:
       - requires: {message: [issue_ref, template]}
@@ -1120,6 +1175,7 @@ entries:
       - '`comment_url` は、`issue_ref` の Issue のコメントを指していなければなりません。'
       - 'ファイルでは、リポジトリがプロジェクトに無いと `warning` を出しますが、コメントは投稿します。'
       - '`--dry-run` を付けると、入力を検証し、コメントの投稿・`comment_url` の書き戻し・テンプレートのコピーの代わりに、`dry-run` の行を出します。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -1136,7 +1192,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: invalid-input
         code: 1
         when: 'モードの引数がありません。`--prepare` か `-m` に `-t` が無いとき、`-m` に `--issue-ref` が無いときも含みます。'
@@ -1191,7 +1253,7 @@ entries:
         kind: read
         what: 'コメントのファイル、テンプレート、アクティブな設定ファイルを読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: false
     examples:
@@ -1279,7 +1341,7 @@ entries:
         statement: 'もし `comment_url` の形が誤っているか、別のホストや別の Issue を指すなら、終了コード 1 で終わります'
       - id: PW-ISSUE-COMMENT-25
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-ISSUE-COMMENT-26
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
@@ -1295,6 +1357,12 @@ entries:
       - id: PW-ISSUE-COMMENT-30
         pattern: event
         statement: '`--prepare` に `--dry-run` を付けて打つと、コピーを書きません。`dry-run: would create comment template <テンプレ> in <ディレクトリ>` の行を標準エラーに出します'
+      - id: PW-ISSUE-COMMENT-31
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-ISSUE-COMMENT-32
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-ISSUE-CREATE:
     help:
       details:
@@ -1361,6 +1429,7 @@ entries:
       parent_epic: '親 Epic の参照です。整数か、`owner/repo/N` の形で渡します。'
       prepare: 'テンプレートを作業用のディレクトリにコピーするかどうかです。'
       priority: '優先度です。`high`・`medium`・`low` のどれかを渡します。'
+      project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、作り先のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。Epic を `--repo` なしで作るときは、アクティブなプロジェクト、設定が 1 つだけならその設定の順で選びます。'
       repo: 'リポジトリです。`owner/repo` の形で渡します。'
       size: 'サイズです。`xs`・`s`・`m`・`l` のどれかを渡します。'
       status: 'Status です。`backlog`・`pending`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
@@ -1428,7 +1497,10 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: invalid-input
         code: 1
         when: 'モードの引数がありません。`-m` に `-t` か `-r` が無いとき、ファイルが無いとき、同じファイルを重ねて渡したときも含みます。'
@@ -1501,7 +1573,7 @@ entries:
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: false
     examples:
@@ -1633,7 +1705,7 @@ entries:
         statement: 'もしリポジトリがプロジェクトにつながっていないなら、終了コード 1 で終わります'
       - id: PW-ISSUE-CREATE-38
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-ISSUE-CREATE-39
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
@@ -1733,6 +1805,12 @@ entries:
       - id: PW-ISSUE-CREATE-73
         pattern: event
         statement: '`--freeform` に `--priority` か `--size` を付けて打つと、既定の値の代わりにその値を設定します'
+      - id: PW-ISSUE-CREATE-74
+        pattern: unwanted
+        statement: 'もし作り先のリポを含む設定が無いなら、どのプロジェクトの設定にも無いことと設定の名前の一覧を出し、終了コード 1 で終わります'
+      - id: PW-ISSUE-CREATE-75
+        pattern: event
+        statement: '`--project` を付けて打つと、作り先のリポを含む設定が 2 つ以上あっても、その名前の設定で作ります'
   PW-ISSUE-REOPEN:
     help:
       details:
@@ -1746,6 +1824,7 @@ entries:
         - "When the built-in Status of the board item is Done, clears it before reopening the Issue, so that the board automation does not close the Issue again, and writes the line removed: Issue <ref> Status Done on the board."
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
         - With --dry-run, reads the Issue and the board item and prints dry-run lines for reopening, unarchiving, clearing the Status Done, setting the status and posting the comment, and writes nothing.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot issue reopen example-org/my-repo/12 --status active --comment "The fix did not hold."
           note: Reopen an Issue as active and leave the reason.
@@ -1758,6 +1837,7 @@ entries:
       comment: '開き直す理由です。コメントとして投稿します。'
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       status: '開き直した後の status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       dry_run: '何も書かずに、する予定だけを出すかどうかです。'
     constraints: []
     details:
@@ -1772,6 +1852,7 @@ entries:
       - '`Done` が残ると、ボードの自動化（Auto-close issue）が Issue を閉じ直すことがあります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       - '`--dry-run` を付けると、Issue とボードの項目を読みます。開き直し・アーカイブの解除・`Done` の消去・status の設定・コメントの投稿を `dry-run` の行に出し、何も書きません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -1791,7 +1872,10 @@ entries:
         when: 'status が有効な値ではありません。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-not-in-project
         code: 1
         when: 'リポジトリがプロジェクトにありません。'
@@ -1832,9 +1916,9 @@ entries:
         what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: true
     examples:
@@ -1892,7 +1976,7 @@ entries:
         statement: 'もし `--status` が有効な値でないなら、終了コード 1 で終わります'
       - id: PW-ISSUE-REOPEN-16
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-ISSUE-REOPEN-17
         pattern: unwanted
         statement: 'もしリポジトリがプロジェクトに無いなら、終了コード 1 で終わります'
@@ -1926,6 +2010,12 @@ entries:
       - id: PW-ISSUE-REOPEN-27
         pattern: unwanted
         statement: 'もし `Status` の `Done` を消せないなら、ボードの自動化が閉じ直しうることを伝える `warning` の行を標準エラーに出し、reopen とコメントの投稿を続けます'
+      - id: PW-ISSUE-REOPEN-28
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-ISSUE-REOPEN-29
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-ISSUE-SHOW:
     help:
       details:
@@ -1936,6 +2026,7 @@ entries:
         - Shows at most --comment-limit comments, from 0 to 20; 0 hides them.
         - With --json, prints the same data as JSON.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot issue show example-org/my-repo/12
           note: Show the Issue as Markdown.
@@ -1948,6 +2039,7 @@ entries:
       comment_limit: '出すコメントの数です。0 から 20 で渡します。0 にすると、コメントを出しません。'
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       json: 'JSON で出力するかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
     constraints: []
     details:
       - 'GraphQL のクエリ 1 回で、Issue を 1 件取得します。'
@@ -1957,6 +2049,7 @@ entries:
       - 'コメントは、多くても `--comment-limit` 件まで出します。値は 0 から 20 で、0 にするとコメントを出しません。'
       - '`--json` を付けると、同じデータを JSON で出します。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -1981,7 +2074,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: invalid-input
         code: 2
         when: 'Issue の参照の形が誤っています。`--comment-limit` が 0 から 20 の外のときと、ほかのコマンドラインの誤りも含みます。'
@@ -2013,9 +2112,9 @@ entries:
         what: 'Issue と、その親・sub-issue・紐づいたブランチ・紐づいた PR・コメントを読みます。blocked-by と、それぞれの前提の状態も読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: true
     examples:
@@ -2061,7 +2160,7 @@ entries:
         statement: 'もし `--comment-limit` が 0 から 20 の外なら、終了コード 2 で終わります'
       - id: PW-ISSUE-SHOW-12
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-ISSUE-SHOW-13
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
@@ -2092,6 +2191,12 @@ entries:
       - id: PW-ISSUE-SHOW-22
         pattern: event
         statement: '前提が 0 件の Issue を読むと、前提を個別に読まず、判定を `startable` にします'
+      - id: PW-ISSUE-SHOW-23
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-ISSUE-SHOW-24
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-ISSUE-UNBLOCK:
     help:
       details:
@@ -2106,6 +2211,7 @@ entries:
         - With --dry-run, writes a dry-run line instead of the result lines. The reads and the checks are still made, and nothing is written.
         - Needs a GitHub Enterprise Server of version 3.19 or later, which has issue dependencies.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
         - run: pecot issue unblock example-org/my-repo/12 --by example-org/my-repo/11
           note: Remove the wait of Issue 12 for Issue 11.
@@ -2116,6 +2222,7 @@ entries:
       by: '外す前提の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
       dry_run: '何も書き込まずに、書く予定だけを出すかどうかです。'
       issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
     constraints: []
     details:
       - 'Issue から blocked-by（前提）を外します。'
@@ -2129,6 +2236,7 @@ entries:
       - '`--dry-run` を付けると、結果の行の代わりに `dry-run` の行を出します。読み取りと確認は行い、何も書き込みません。'
       - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -2144,7 +2252,10 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-not-in-project
         code: 1
         when: '待つ側の Issue のリポジトリがプロジェクトにありません。'
@@ -2188,9 +2299,9 @@ entries:
         what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、読み直した判定、ボードの項目を読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: true
     examples:
@@ -2243,7 +2354,7 @@ entries:
         statement: 'もしリポジトリがプロジェクトに無いなら、終了コード 1 で終わります'
       - id: PW-ISSUE-UNBLOCK-15
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-ISSUE-UNBLOCK-16
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、終了コード 1 で終わります'
@@ -2256,12 +2367,18 @@ entries:
       - id: PW-ISSUE-UNBLOCK-19
         pattern: unwanted
         statement: 'もし列を書けないなら、`warning` の行を出し、前提を外したまま終了コード 0 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を添えます'
+      - id: PW-ISSUE-UNBLOCK-20
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-ISSUE-UNBLOCK-21
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-PR-CHECK:
     help:
       details:
         - Prints the information to check before creating a PR for the repository given by --directory.
         - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
-        - The base branch is <remote>/ followed by the develop_branch of the active project, where <remote> is the origin remote, or the first remote when there is no origin.
+        - The base branch is <remote>/ followed by the develop_branch of the selected project, where <remote> is the origin remote, or the first remote when there is no origin.
         - "When the base record of a stacked start exists, the base branch is <remote>/ followed by the branch of the layer below instead. When the remote reports that branch no longer exists, it is <remote>/ followed by the develop_branch, even if a stale remote-tracking ref remains. When the remote cannot be reached, the remote-tracking ref decides."
         - "When .pecot/state/.pecot-base of the worktree of the working directory is missing, the stacked base is inferred. When the readiness of the work Issue is stackable and the branch has the changes of the branch it names (the same commits, or the same patches after that branch was rebased; when that branch has no commits of its own, its head being an ancestor of the branch), the branch counts as stacked on it. Otherwise it counts as started from the develop_branch. A warning line cannot infer the stacked base is printed when the readiness cannot be read or is blocked, when GitHub cannot be reached, or when the remote-tracking ref is missing. The inferred base is not written."
         - "The query to the remote about the branch of the layer below times out after 10 seconds and never asks for credentials (GIT_TERMINAL_PROMPT=0 and the askpass programs are disabled). A timeout is handled the same as a remote that cannot be reached."
@@ -2274,18 +2391,21 @@ entries:
         - "When the branch has diverged and needs no restack otherwise, including a branch that is not stacked, the fix of the Push Status warning is git pull --rebase, or git push --force-with-lease after rewriting pushed commits, because git rejects a push that is not a fast-forward."
         - Exits with status 2 when there is at least one warning.
         - Reads the repository and the config and changes nothing.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot pr check -D .
           note: Check the current repository before creating a PR.
-      default_notes: {}
+      default_notes:
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: PR を作る前に確かめる情報を、まとめて出します。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - '`--directory` のリポジトリについて、PR を作る前に確かめる情報を出します。'
       - '11 の節を決まった順で出します。節は、Git Remote・Current Branch・Push Status・Base Branch・Git Status・.gitignore と続きます。その後は、Git Exclude・Commits・Diff Summary・Worktree Info・Stash List です。'
-      - 'base ブランチは、`<remote>/` の後にアクティブなプロジェクトの `develop_branch` を続けたものです。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
+      - 'base ブランチは、`<remote>/` の後に、選んだプロジェクトの `develop_branch` を続けたものです。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
       - '積んで着手した記録があるときは、base ブランチは、`<remote>/` の後に下の段のブランチを続けたものです。remote がそのブランチは無いと答えれば（マージで消えた後）、手元に追跡参照が残っていても `develop_branch` の方にします。remote に届かなければ、手元の追跡参照の有無で決めます。'
       - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
       - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`warning: cannot infer the stacked base` の行を出します。求めた結果は書きません。'
@@ -2300,6 +2420,7 @@ entries:
       - 'ほかに、ブランチが remote とずれて載せ直しが要らないときは、Push Status の直し方は `git pull --rebase` です。push 済みのコミットを書き換えたなら `git push --force-with-lease` です。積んでいないブランチも同じです。git は fast-forward でない push を拒むためです。'
       - '`warning` が 1 件以上あると、終了コード 2 で終わります。'
       - 'リポジトリと設定を読むだけで、何も変えません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -2324,7 +2445,13 @@ entries:
         when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-setting-missing
         code: 1
         when: '`develop_branch` が未設定です。'
@@ -2356,15 +2483,16 @@ entries:
         what: 'remote・ブランチ・push の状態・status・base との log と差分・worktree の一覧・stash の一覧を読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイル、`.gitignore`、`.git/info/exclude` を読みます。'
+        what: 'プロジェクトの設定ファイル、`.gitignore`、`.git/info/exclude` を読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ローカルのリポジトリに `<remote>/<develop_branch>` が要ります。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
     idempotent: true
     examples:
       - run: pecot pr check -D .
         note: 'PR を作る前に、今のリポジトリを確かめます。'
-    default_notes: {}
+    default_notes:
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-CHECK-01
         pattern: event
@@ -2407,7 +2535,7 @@ entries:
         statement: 'もし現在のブランチか remote のリポジトリを決められないなら、終了コード 1 で終わります'
       - id: PW-PR-CHECK-14
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-PR-CHECK-15
         pattern: unwanted
         statement: 'もし `develop_branch` が設定に無いなら、終了コード 1 で終わります'
@@ -2444,6 +2572,12 @@ entries:
       - id: PW-PR-CHECK-26
         pattern: unwanted
         statement: 'もし記録が無く、積んだ先を求められないなら、`warning: cannot infer the stacked base: <理由>` の行を出し、`develop_branch` の追跡参照と比べます'
+      - id: PW-PR-CHECK-27
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-PR-CHECK-28
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-PR-CREATE:
     help:
       details:
@@ -2461,12 +2595,12 @@ entries:
         - "When the record is malformed, stops with exit status 1 because the base cannot be decided."
         - "When the commit of the base record is not in the history of the head, a file or -m creates nothing and stops with exit status 1. Then reads the PR of the layer below and the head of that branch on the remote, and decides in the same way as pr restack whether the branch is already restacked. Only when it is, the second error line tells to rewrite the record with pr restack. The last line tells to run the command on the branch that wrote the record, or to pass --head to create the PR without the record. --prepare does not check this."
         - After the PR on a stacked base is created, registers it in the stack of the layer below, or starts a stack of the two PRs when none exists. When the PR of the layer below is not the top of its stack, does not call the add API and prints a warning that says so. When the repository has no stack API or the connection fails, prints a warning with the URL and keeps the PR.
-        - "After the PR is created, reads the Issues that wait for the Issue named by the head branch, and moves their board column by the readiness judgement. Only the board items of the active project are read, and an Issue that is not on the board is skipped. When the judgement does not show the created PR, reads once more after about 1.5 seconds. Issues with a trace of work are not moved. A failure of this step, including a connection failure, only prints a warning and does not change the exit status. When the state cannot be confirmed, the warning reads: warning: could not confirm that GitHub reflects PR #<N> in the readiness of <Issue>; its column was not moved; run pecot board sync later to move it. When the Issue of the head number is not in the repository of the PR, the step prints nothing and is skipped. Dry runs and release PRs skip it."
+        - "After the PR is created, reads the Issues that wait for the Issue named by the head branch, and moves their board column by the readiness judgement. Only the board items of the selected project are read, and an Issue that is not on the board is skipped. When the judgement does not show the created PR, reads once more after about 1.5 seconds. Issues with a trace of work are not moved. A failure of this step, including a connection failure, only prints a warning and does not change the exit status. When the state cannot be confirmed, the warning reads: warning: could not confirm that GitHub reflects PR #<N> in the readiness of <Issue>; its column was not moved; run pecot board sync later to move it. When the Issue of the head number is not in the repository of the PR, the step prints nothing and is skipped. Dry runs and release PRs skip it."
         - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
         - "With --prepare and the default template, fills the trailing Closes # with the number of the work Issue, found from the git remote and the number that ends the current branch name. A leftover .pecot/state/.pecot-active is not read, so a clone without .pecot/state/ gets the same Closes."
         - "The Closes # of the copy is left empty when that Issue is an Epic."
         - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
-        - With -m, the repository is --repo, or the only repository of the active project when --repo is omitted.
+        - With -m, the repository is --repo, or the repository of the git remote when --repo is omitted.
         - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
         - With a file, Closes is not appended when that Issue is an Epic.
         - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
@@ -2476,6 +2610,7 @@ entries:
         - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
         - "With --dry-run and an open PR of the layer below, also writes the line dry-run: would add the new PR to the stack of PR #<below>."
         - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot pr create --prepare
           note: Write a PR template and print its path.
@@ -2485,7 +2620,8 @@ entries:
           note: Create a PR from the command line.
       default_notes:
         head: The current branch. The related Issue is the number that ends the head branch name.
-        repo: With -m, the only repository of the active project when there is exactly one. With a file, the repository in the front matter.
+        repo: With -m, the repository of the git remote. With a file, the repository in the front matter.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: PR（プルリクエスト）を作ります。
     arguments:
       base: 'base ブランチです。`-m` では必須です。'
@@ -2500,6 +2636,7 @@ entries:
       screenshot: 'Summary の画像を省く理由です。`-m` と一緒に使います。'
       template: 'PR のテンプレートの種類です。`default` か `release` を渡します。'
       title: 'PR の題です。`-m` では必須です。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints:
       - requires: {message: [title, base]}
       - conflicts: [file, screenshot]
@@ -2521,12 +2658,12 @@ entries:
       - '記録の形が誤っているときは、base を決められないので、終了コード 1 で止まります。'
       - '記録のコミットが head の履歴に無いときは、ファイルと `-m` の投稿では PR を作らず、終了コード 1 で止まります。このとき、下の段の PR と remote の先頭を読み、`pr restack` と同じ判断で載せ直し済みかを決めます。載せ直し済みと決まったときだけ、`error` の 2 行目で `pr restack` で記録を書き直すことを案内します。最後の行で、記録を書いたブランチで打つか、`--head` を渡して記録なしで作るかを案内します。`--prepare` では確かめません。'
       - '積んだ base の PR を作った後、下の段のスタックに登録します。スタックが無ければ、2 つの PR で新しく作ります。下の段の PR がスタックの一番上に無いときは、追加を呼ばず、そのことを書いた `warning` の行を出します。スタックの API が無いリポジトリと接続の失敗では、URL を添えた `warning` の行を出し、PR は残します。'
-      - 'PR を作った後、head ブランチが指す Issue を待っている Issue を読み、判定に従って列を動かします。読むのは、アクティブなプロジェクトのボードの項目だけで、ボードに載っていない Issue は飛ばします。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します。着手の跡がある Issue は動かしません。接続の失敗を含め、この処理の失敗は `warning` の行にとどめ、終了コードを変えません。状態を確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。後から `pecot board sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も出さずに飛ばします。`--dry-run` とリリースの PR では行いません。'
+      - 'PR を作った後、head ブランチが指す Issue を待っている Issue を読み、判定に従って列を動かします。読むのは、選んだプロジェクトのボードの項目だけで、ボードに載っていない Issue は飛ばします。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します。着手の跡がある Issue は動かしません。接続の失敗を含め、この処理の失敗は `warning` の行にとどめ、終了コードを変えません。状態を確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。後から `pecot board sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も出さずに飛ばします。`--dry-run` とリリースの PR では行いません。'
       - 'nx のリポジトリの `--prepare` では、期待する題の scope を、題の行にコメントとして足します。'
       - '`--prepare` と `default` のテンプレートでは、末尾の `Closes #` に、作業中の Issue の番号を入れます。作業中の Issue は、git remote と今のブランチ名の末尾の番号から求めます。古い版の `.pecot/state/.pecot-active` が残っていても読まないので、`.pecot/state/` の無い clone でも同じ `Closes` が入ります。'
       - 'その Issue が Epic のときは、コピーの `Closes #` を空のままにします。'
       - 'ファイルでは、リポジトリ・base・題・head・draft をフロントマターで決めます。同じ名前のオプションは無視します。'
-      - '`-m` では、リポジトリは `--repo` です。`--repo` を省くと、アクティブなプロジェクトの唯一のリポジトリです。'
+      - '`-m` では、リポジトリは `--repo` です。`--repo` を省くと、git remote のリポジトリです。'
       - '本文が head ブランチ名の末尾の番号 N に触れていないと、本文に `Closes #N` を足します。テンプレートが `release` のときと、`--no-issue-ref` を付けたときは足しません。'
       - 'ファイルでは、その Issue が Epic のときは `Closes` を足しません。'
       - '題・本文・base を確かめ、次のどれかが誤っていると終了コード 3 で止まります。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
@@ -2536,6 +2673,7 @@ entries:
       - '`--dry-run` を付けると、検証して `dry-run: would` の行を書き、PR は作りません。'
       - '`--dry-run` で下の段の PR が開いているときは、スタックへの登録の予定も書きます。行は `dry-run: would add the new PR to the stack of PR #<下>` です。'
       - 'PR を作った後、head ブランチが指す Issue を In Review にします。テンプレートが `release` のときは行いません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -2557,7 +2695,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: invalid-input
         code: 1
         when: '`--template` が `default` でも `release` でもありません。モードの引数が無いとき、`-m` に `-t` か `-b` が無いとき、ファイルと一緒に `--screenshot` を渡したときも含みます。'
@@ -2640,9 +2784,9 @@ entries:
         what: 'テンプレートのコピーを `.pecot/tmp/output/` の下に書きます。'
       - target: file
         kind: read
-        what: 'PR のファイル、テンプレート、アクティブな設定ファイルを読みます。'
+        what: 'PR のファイル、テンプレート、プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
       - 'head ブランチを push 済みにし、作業ツリーの変更を無くしておきます。'
     idempotent: false
@@ -2655,7 +2799,8 @@ entries:
         note: 'コマンドラインから PR を作ります。'
     default_notes:
       head: '省くと、今のブランチです。関連する Issue は、head ブランチ名の末尾の番号の Issue です。'
-      repo: '省くと、`-m` では、アクティブなプロジェクトのリポジトリがちょうど 1 つならそのリポジトリです。ファイルでは、フロントマターのリポジトリです。'
+      repo: '省くと、`-m` では、git remote のリポジトリです。ファイルでは、フロントマターのリポジトリです。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-CREATE-01
         pattern: event
@@ -2773,7 +2918,7 @@ entries:
         statement: 'もし PR の作成で GitHub API がエラーを返したなら、終了コード 1 で終わります'
       - id: PW-PR-CREATE-41
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-PR-CREATE-42
         pattern: unwanted
         statement: 'もし `--template` が `default` でも `release` でもないなら、終了コード 1 で終わります'
@@ -2815,7 +2960,7 @@ entries:
         statement: '`--head` かフロントマターの `head` で別のブランチを指したときと、リリースの PR では、記録を読みません'
       - id: PW-PR-CREATE-55
         pattern: event
-        statement: 'PR を作ると、head ブランチの Issue を待っている Issue のうち、アクティブなプロジェクトのボードに載っているものを読み、列を動かして `moved:` の行を標準エラーに出します。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します'
+        statement: 'PR を作ると、head ブランチの Issue を待っている Issue のうち、選んだプロジェクトのボードに載っているものを読み、列を動かして `moved:` の行を標準エラーに出します。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します'
       - id: PW-PR-CREATE-56
         pattern: state
         statement: '待っている Issue に着手の跡がある間、その Issue の列を動かしません'
@@ -2873,6 +3018,12 @@ entries:
       - id: PW-PR-CREATE-74
         pattern: unwanted
         statement: 'もし記録が無く、積んだ先を求められないなら、`--dry-run` では warning の行を出し、`develop_branch` を base にします'
+      - id: PW-PR-CREATE-75
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-PR-CREATE-76
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-PR-MERGE:
     help:
       details:
@@ -2889,6 +3040,7 @@ entries:
         - Does not clean up after the merge. Run pecot session finish next.
         - "With --dry-run, reads the PR and its stack and writes a dry-run: would merge line without sending the request."
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot pr merge example-org/my-repo/123
           note: Merge a PR.
@@ -2896,10 +3048,12 @@ entries:
           note: Show what would be merged without merging.
       default_notes:
         pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: 'PR をマージします。スタックの中の PR は、最下段のものだけをマージします。'
     arguments:
       dry_run: 'マージせずに、行う内容だけを出すかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - 'GitHub の非同期のマージ API で PR をマージします。スタックの中の PR も、スタックの外の PR も同じです。'
@@ -2915,6 +3069,7 @@ entries:
       - 'マージの後の片付けはしません。続けて `pecot session finish` を打ちます。'
       - '`--dry-run` を付けると、PR とスタックを読み、要求を送らずに `dry-run: would merge` の行を出します。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -2930,7 +3085,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: pr-state
         code: 2
         when: 'PR がドラフトか、閉じているか、マージ済みか、スタックの最下段ではありません。要求は送っていません。'
@@ -2971,9 +3132,9 @@ entries:
         what: 'PR、PR が入っているスタック、スタックの下の段の PR、マージの結果を読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: false
     examples:
@@ -2983,6 +3144,7 @@ entries:
         note: 'マージせずに、行う内容を出します。'
     default_notes:
       pr_ref: '短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-MERGE-01
         pattern: event
@@ -3035,6 +3197,12 @@ entries:
       - id: PW-PR-MERGE-17
         pattern: unwanted
         statement: 'もしスタックの中の PR で非同期のマージ API が無いなら、同期のマージ API を呼ばずに終了コード 1 で終わります'
+      - id: PW-PR-MERGE-18
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-PR-MERGE-19
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-PR-RESTACK:
     help:
       details:
@@ -3051,6 +3219,7 @@ entries:
         - Only one of --check, --continue and --abort can be given.
         - "With --dry-run, fetches and decides like a restack, then prints a dry-run line of what would be done, without rebasing, pushing or writing records."
         - Changes only the branch of the current working directory. Other worktrees are not touched.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot pr restack --check
           note: Check whether the current branch needs a restack.
@@ -3060,13 +3229,15 @@ entries:
           note: Go on after resolving the conflicts and staging the files.
         - run: pecot pr restack --abort
           note: Go back to the position before the restack.
-      default_notes: {}
+      default_notes:
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: 積んだブランチを、base にしたブランチの新しい位置へ載せ直します。
     arguments:
       check: '載せ直しが要るかだけを確かめます。'
       continue: '衝突で止まった載せ直しを、衝突を解いた後に続けます。'
       abort: '衝突で止まった載せ直しを取りやめ、載せ直しの前の位置に戻します。'
       dry_run: '載せ直し・push・記録の書き込みをせずに、する予定だけを出すかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - '今のブランチを、積んで着手したときの base の記録を使って、下の段のブランチの新しい位置へ載せ直します。'
@@ -3088,6 +3259,7 @@ entries:
       - '`--check`・`--continue`・`--abort` は、1 つだけ渡せます。'
       - '`--dry-run` を付けると、fetch と判断までを行い、する予定を `dry-run` の行に出します。rebase・push・記録の書き込みは行いません。'
       - '書き換えるのは、今の作業ディレクトリのブランチだけです。ほかの worktree には触れません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -3113,7 +3285,13 @@ entries:
         when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたときも同じです。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-setting-missing
         code: 1
         when: '`develop_branch` が未設定です。'
@@ -3165,7 +3343,7 @@ entries:
         kind: write
         what: '`.pecot/state/.pecot-base` を書き直します。衝突で止まる間は `.pecot/state/.pecot-restack` を置き、終わるか取りやめると消します。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - '積んで着手した作業ディレクトリで打ちます（`pecot session start` が base の記録を書きます）。'
     idempotent: true
     examples:
@@ -3177,7 +3355,8 @@ entries:
         note: '衝突を解いて `git add` した後に、続けます。'
       - run: pecot pr restack --abort
         note: '載せ直しの前の位置に戻します。'
-    default_notes: {}
+    default_notes:
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-RESTACK-01
         pattern: event
@@ -3241,7 +3420,7 @@ entries:
         statement: 'もし積んだ base の記録の形が誤っているなら、終了コード 1 で終わります'
       - id: PW-PR-RESTACK-21
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-PR-RESTACK-22
         pattern: event
         statement: '`--dry-run` を付けて打つと、載せ直し・push・記録の書き込みをせずに、する予定を `dry-run` の行で標準エラーに出します'
@@ -3269,6 +3448,12 @@ entries:
       - id: PW-PR-RESTACK-30
         pattern: event
         statement: '記録の無い作業ディレクトリで打つと、積んだ先を求める前に remote を fetch し、手元に無い下の段のブランチも追跡参照で見ます'
+      - id: PW-PR-RESTACK-31
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-PR-RESTACK-32
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-PR-SHOW:
     help:
       details:
@@ -3277,6 +3462,7 @@ entries:
         - With --reviews, adds the review bodies and the line comments, and an issue show hint (the command name only, readable from the CLI and MCP) under each related Issue.
         - With --json, prints the PR as JSON, and with --reviews the JSON also holds the reviews and the line comments.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot pr show example-org/my-repo/123
           note: Show the PR as Markdown.
@@ -3284,11 +3470,13 @@ entries:
           note: Show the PR with its reviews and line comments.
       default_notes:
         pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: PR の詳細を、必要な項目だけ GraphQL で取得して出します。
     arguments:
       json: 'JSON で出力するかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       reviews: 'レビューの詳細（本文と行のコメント）を含めるかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - 'GraphQL のクエリ 1 回で、PR を 1 件取得します。'
@@ -3296,6 +3484,7 @@ entries:
       - '`--reviews` を付けると、レビューの本文と行のコメントを足します。関連する Issue ごとに、`issue show` の案内も足します。案内は、CLI でも MCP でも読めるように、コマンドの名前だけで書きます。'
       - '`--json` を付けると、PR を JSON で出します。`--reviews` も付けると、JSON にレビューと行のコメントも入ります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -3320,7 +3509,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: invalid-input
         code: 2
         when: 'PR の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
@@ -3352,9 +3547,9 @@ entries:
         what: 'PR と、関連する Issue を読みます。`--reviews` のときは、レビューと行のコメントも読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
     idempotent: true
     examples:
@@ -3364,6 +3559,7 @@ entries:
         note: 'PR を、レビューと行のコメントも付けて出します。'
     default_notes:
       pr_ref: '短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-SHOW-01
         pattern: event
@@ -3400,10 +3596,16 @@ entries:
         statement: 'もし PR の参照の形が誤っているなら、終了コード 2 で終わります'
       - id: PW-PR-SHOW-12
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-PR-SHOW-13
         pattern: unwanted
         statement: 'もし GitHub API がエラーを返したなら、終了コード 1 で終わります'
+      - id: PW-PR-SHOW-14
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-PR-SHOW-15
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-PROJECT-ACTIVATE:
     help:
       details:
@@ -4504,10 +4706,12 @@ entries:
       default_notes:
         version: "The first ## [X.Y.Z] heading of the CHANGELOG; the Unreleased heading is skipped."
         package: None; required when the repository has packages configured in the config file.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: リリースの前の確認をします。nx のリポジトリでは、alert だけを確かめます。
     arguments:
       package: 'monorepo のパッケージの名前です。'
       version: 'リリースする版です。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     constraints: []
     details:
       - 'リポジトリの open の Dependabot・code scanning・secret scanning の alert を確かめます。'
@@ -4552,7 +4756,13 @@ entries:
         when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: invalid-input
         code: 1
         when: '`--package` の決まりに反しています。nx のリポジトリに版か `--package` を渡したときと、版が `X.Y.Z` の形でないときも含みます。'
@@ -4596,9 +4806,9 @@ entries:
         what: 'git のルート、`<remote>` の URL、ローカルのタグ、`git ls-remote` で見たリモートのタグを読みます。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルと CHANGELOG を読みます。'
+        what: 'プロジェクトの設定ファイルと CHANGELOG を読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - '作業ディレクトリは、git のリポジトリの中でなければなりません。GitHub のリポジトリに、開発ブランチとリリースブランチが要ります。remote の `origin`（無ければ最初の remote）は、タグの確認に使います。'
       - '設定ファイルに、リポジトリの `develop_branch` と `release_branch` が要ります（`pecot project link` で設定します）。リリースの種類が nx のときは要りません。'
       - 'ホストの GitHub トークンと、alert を読む権限が要ります。'
@@ -4613,6 +4823,7 @@ entries:
     default_notes:
       version: '省くと、CHANGELOG の最初の `## [X.Y.Z]` の見出しの版です。Unreleased の見出しは飛ばします。'
       package: '省くと、値はありません。設定ファイルでリポジトリに packages を設定しているときは必須です。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-RELEASE-CHECK-01
         pattern: event
@@ -4670,7 +4881,7 @@ entries:
         statement: 'もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わります'
       - id: PW-RELEASE-CHECK-19
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-RELEASE-CHECK-20
         pattern: unwanted
         statement: 'もし nx のリポジトリに版か `--package` を渡したなら、終了コード 1 で終わります'
@@ -4737,6 +4948,12 @@ entries:
       - id: PW-RELEASE-CHECK-41
         pattern: unwanted
         statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
+      - id: PW-RELEASE-CHECK-42
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`repo-not-in-project` の行を出して終了コード 1 で終わります'
+      - id: PW-RELEASE-CHECK-43
+        pattern: event
+        statement: '`--project` で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-RELEASE-CREATE:
     help:
       details:
@@ -4764,11 +4981,13 @@ entries:
           note: Create the release pecot-workflow-v0.6.1 in a monorepo.
       default_notes:
         package: None; required when the repository has packages configured in the config file.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: GitHub のリリースとタグを作ります。リリースノートは CHANGELOG から取ります。
     arguments:
       dry_run: '何も変えずに、行う予定だけを出すかどうかです。'
       package: 'monorepo のパッケージの名前です。'
       version: 'リリースする版です。`0.6.1` のように渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     constraints: []
     details:
       - 'GitHub API でリリースとタグを作ります。`git tag` と `git push` のどちらも要りません。'
@@ -4807,7 +5026,13 @@ entries:
         when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: preflight-failed
         code: 1
         when: 'CHANGELOG か、その中の版が見つかりません。'
@@ -4845,12 +5070,12 @@ entries:
         what: 'リリースとタグを作ります。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルと CHANGELOG を読みます。'
+        what: 'プロジェクトの設定ファイルと CHANGELOG を読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
       - target: git
         kind: read
         what: 'git のリポジトリのルートと、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - '作業ディレクトリは、git のリポジトリの中でなければなりません。'
       - '設定ファイルに、リポジトリの `release_branch` が要ります（`pecot project link` で設定します）。'
       - 'CHANGELOG に、その版の節が要ります。'
@@ -4865,6 +5090,7 @@ entries:
         note: 'monorepo で、リリース `pecot-workflow-v0.6.1` を作ります。'
     default_notes:
       package: '省くと、値はありません。設定ファイルでリポジトリに packages を設定しているときは必須です。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-RELEASE-CREATE-01
         pattern: event
@@ -4901,7 +5127,7 @@ entries:
         statement: 'もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わります'
       - id: PW-RELEASE-CREATE-12
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-RELEASE-CREATE-13
         pattern: unwanted
         statement: 'もし `packages` を設定したリポジトリに `--package` を渡さなかったなら、終了コード 1 で終わります'
@@ -4950,6 +5176,12 @@ entries:
       - id: PW-RELEASE-CREATE-28
         pattern: unwanted
         statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
+      - id: PW-RELEASE-CREATE-29
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`repo-not-in-project` の行を出して終了コード 1 で終わります'
+      - id: PW-RELEASE-CREATE-30
+        pattern: event
+        statement: '`--project` で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-RELEASE-MERGE:
     help:
       details:
@@ -4981,6 +5213,7 @@ entries:
       delete_branch: 'マージの後でブランチを削除するかどうかです。'
       dry_run: 'マージせずに、行う予定だけを出すかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/123` の形で渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     constraints: []
     details:
       - 'PR を通常のマージ（マージコミット）でマージします。merge-base を保つために、squash と rebase は使いません。'
@@ -5018,7 +5251,13 @@ entries:
         when: 'git の外で `--repo` を省いたので、リポジトリが決まりません。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: github-not-found
         code: 1
         when: 'PR が見つかりません。'
@@ -5068,9 +5307,9 @@ entries:
         what: '`--delete-branch` を付けたときに、PR の head ブランチをリモートから削除します。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - '設定ファイルに、リポジトリの `release_branch` が要ります（`pecot project link` で設定します）。'
       - 'ホストの GitHub トークンと、PR をマージする権限が要ります。'
     idempotent: false
@@ -5121,7 +5360,7 @@ entries:
         statement: 'もし `--repo` が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わります'
       - id: PW-RELEASE-MERGE-13
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-RELEASE-MERGE-14
         pattern: unwanted
         statement: 'もし PR の参照が `owner/repo/N` の形でないなら、終了コード 2 で終わります'
@@ -5164,6 +5403,12 @@ entries:
       - id: PW-RELEASE-MERGE-27
         pattern: unwanted
         statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
+      - id: PW-RELEASE-MERGE-28
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`repo-not-in-project` の行を出して終了コード 1 で終わります'
+      - id: PW-RELEASE-MERGE-29
+        pattern: event
+        statement: '`--project` で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-SESSION-FINISH:
     help:
       details:
@@ -5174,7 +5419,7 @@ entries:
         - "After closing the Issues, reads the Issues that wait for them and moves their board column and Status label by the readiness judgement. Issues with a trace of work are not moved. When the judgement does not show the closed Issue as done, reads once more after about 1.5 seconds, and if it still does not, prints a warning that tells to run pecot board sync later and does not move the column."
         - "Prints the Issues whose readiness changed to standard output under the line Readiness changed:, one line per Issue such as - #13 stackable on #12 -> startable. The readiness before the merge is judged by treating the closed Issues and the PR as still open. Nothing is printed when no readiness changed."
         - When a waiting Issue of the stack kind has a branch or a PR, it is a layer stacked on this PR. Prints a warning that tells to restack its branch in its working directory, and never deletes that branch.
-        - An Issue that is not on the board of the active project, or that is outside the columns Ready, Blocked, Active and In Review, is neither moved nor listed.
+        - An Issue that is not on the board of the selected project, or that is outside the columns Ready, Blocked, Active and In Review, is neither moved nor listed.
         - With --delete-branch, deletes the remote head branch.
         - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
         - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
@@ -5183,6 +5428,7 @@ entries:
         - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
         - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot session finish example-org/my-repo/123 --delete-branch
           note: Clean up after a merged PR and delete its remote branch.
@@ -5190,12 +5436,14 @@ entries:
           note: Show what would be done without changing anything.
       default_notes:
         pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: マージ済みの PR の後片付けをします。関連する Issue を閉じ、ブランチを削除し、ローカルを片付けます。
     arguments:
       delete_branch: 'ブランチを削除するかどうかです。'
       dry_run: '実際には片付けず、予定だけを出すかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       skip_local_cleanup: 'ローカルのブランチの切り替えと削除を飛ばすかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - 'マージ済みの PR の後片付けをします。関連する Issue を閉じ、ローカルのチェックアウトを開発ブランチに戻します。オプションを付けると、リモートブランチも削除します。'
@@ -5205,7 +5453,7 @@ entries:
       - 'Issue を閉じた後、その Issue を待っている Issue を読み、判定に合わせてボードの列と Status の札を動かします。着手の跡がある Issue は動かしません。判定に、閉じた Issue が済んだ前提として出ていないときは、約 1.5 秒後に 1 回だけ読み直します。それでも出なければ、後で `pecot board sync` を打つよう `warning` で知らせ、列を動かしません。'
       - '判定が変わった Issue を、標準出力の `Readiness changed:` の行の下に、1 件 1 行で出します。行は `- #13 stackable on #12 -> startable` の形です。マージ前の判定は、閉じた Issue と PR がまだ開いていたものとして出します。変わった Issue が無ければ、何も出しません。'
       - '待っている Issue のうち、種類が `stack` でブランチか PR を持つものは、この PR の上に積んだ段です。その作業ディレクトリでブランチを載せ直すよう `warning` で知らせます。そのブランチは削除しません。'
-      - 'アクティブなプロジェクトのボードに無い Issue と、`Ready`・`Blocked`・`Active`・`In Review` の外の列の Issue は、動かさず、一覧にも出しません。'
+      - '選んだプロジェクトのボードに無い Issue と、`Ready`・`Blocked`・`Active`・`In Review` の外の列の Issue は、動かさず、一覧にも出しません。'
       - '`--delete-branch` を付けると、リモートの head ブランチを削除します。'
       - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`pecot worktree add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
@@ -5214,6 +5462,7 @@ entries:
       - '`--dry-run` を付けると、結果の行の代わりに `dry-run: would` の行を書き、何も変えません。'
       - '2 回目の実行の後の状態は 1 回目と同じですが、書く行は違います。リモートブランチは `unchanged` として知らせ、ローカルのブランチへの `git branch -D` は `warning` になります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -5232,7 +5481,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: github-not-found
         code: 1
         when: 'PR がありません。'
@@ -5282,9 +5537,9 @@ entries:
         what: '`.pecot/state/` の下のフラグを消します。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
       - 'PR は、マージ済みでなければなりません。'
     idempotent: true
@@ -5295,6 +5550,7 @@ entries:
         note: '何も変えずに、行う予定を出します。'
     default_notes:
       pr_ref: '短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-SESSION-FINISH-01
         pattern: event
@@ -5367,7 +5623,7 @@ entries:
         statement: 'もし PR がマージされていないなら、何も変えません'
       - id: PW-SESSION-FINISH-26
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-SESSION-FINISH-27
         pattern: unwanted
         statement: 'もし PR を取得できないか、PR が無いなら、終了コード 1 で終わります'
@@ -5410,6 +5666,12 @@ entries:
       - id: PW-SESSION-FINISH-42
         pattern: unwanted
         statement: 'もし閉じる対象の Issue の種別と状態を読めないなら、`warning` の行を出し、その Issue を close せず、`skippedIssues` に `failed` で入れます'
+      - id: PW-SESSION-FINISH-43
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-SESSION-FINISH-44
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-SESSION-SHOW:
     help:
       details:
@@ -5429,13 +5691,16 @@ entries:
         - The Stack section uses the config and the client of the Active Issue section and is left out when that section is.
         - The command is a diagnostic, so a value that cannot be read is shown as unknown or none, or left out, and does not fail the command.
         - Nothing is written.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot session show -D .
           note: Show the branch, the repository and the work Issue of the current repository.
-      default_notes: {}
+      default_notes:
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: セッションのブランチ、リポジトリ、作業中の Issue を出します。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - '今のブランチ、remote の `origin`（無ければ最初の remote）のリポジトリ、セッションの作業中の Issue を出します。'
@@ -5456,6 +5721,7 @@ entries:
       - 'Stack の節は、Active Issue の節と同じ設定とクライアントを使います。Active Issue の節を出さないときは、Stack の節も出しません。'
       - 'このコマンドは診断用です。読めない値は、`unknown` か `none` と出すか省き、コマンドは失敗しません。'
       - '何も書き込みません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
@@ -5467,7 +5733,7 @@ entries:
         activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo/N`。`issue_ref` にそのまま渡せる形）を持ちます。`title` と `state`（`OPEN` か `CLOSED`）は、GitHub から読めたときだけ入ります。本文は入りません。'
         stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、載せ直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
         stackedAbove: '今のブランチを base にした、同じリポジトリの open の PR の一覧です。`number` と `branch`（head のブランチ）を持ちます。無いときと読めないときは入りません。'
-    diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。記録が無く積んだ先を求められないとき（`warning: cannot infer the stacked base`）。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
+    diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。記録が無く積んだ先を求められないとき（`warning: cannot infer the stacked base`）。作業中の Issue のリポを含む設定が無いか使う設定が決まらないときと、選んだ設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -5482,14 +5748,14 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'ブランチ・リポジトリ・アクティブな Issue を読めないときも、終了コード 0 で終わります。作業中の Issue があり、アクティブな設定ファイルの内容が不正なときも同じです。'
+    on_error: 'ブランチ・リポジトリ・アクティブな Issue を読めないときも、終了コード 0 で終わります。作業中の Issue があり、選んだ設定ファイルの内容が不正なときも同じです。'
     effects:
       - target: git
         kind: read
         what: 'ディレクトリの今のブランチと git リポジトリの toplevel、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。積んだ作業では、下の段のブランチの先頭を `git ls-remote` で remote に尋ねます。'
       - target: file
         kind: read
-        what: '`--directory` の worktree の `.pecot/state/.pecot-base` と、アクティブな設定ファイルを読みます。記録が無ければ、git の追跡参照も読みます。`.pecot/state/.pecot-active` は読みません。'
+        what: '`--directory` の worktree の `.pecot/state/.pecot-base` と、プロジェクトの設定ファイルを読みます。作業中の Issue のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。記録が無ければ、git の追跡参照も読みます。`.pecot/state/.pecot-active` は読みません。'
       - target: github
         kind: read
         what: '作業中の Issue の題・状態・本文を読みます。積んだ作業では、base のブランチの PR と、Issue の前提も読みます。今のブランチを base にした open の PR も読みます。'
@@ -5498,7 +5764,8 @@ entries:
     examples:
       - run: pecot session show -D .
         note: '今のリポジトリのブランチ・リポジトリ・作業中の Issue を出します。'
-    default_notes: {}
+    default_notes:
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-SESSION-SHOW-01
         pattern: event
@@ -5532,10 +5799,10 @@ entries:
         statement: 'もしブランチ名の末尾が番号でないなら、処理を続けます'
       - id: PW-SESSION-SHOW-15
         pattern: unwanted
-        statement: 'もし作業中の Issue があるのにアクティブなプロジェクトが無いなら、Active Issue の節を出しません'
+        statement: 'もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、Active Issue の節を出しません'
       - id: PW-SESSION-SHOW-16
         pattern: unwanted
-        statement: 'もし作業中の Issue があるのにアクティブなプロジェクトが無いなら、`warning` の行を標準エラーに出します'
+        statement: 'もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、`warning` の行を標準エラーに出します'
       - id: PW-SESSION-SHOW-17
         pattern: unwanted
         statement: 'もし作業中の Issue があるのに Issue を GitHub から読めないなら、Active Issue の節を出しません'
@@ -5550,10 +5817,10 @@ entries:
         statement: 'もし `--directory` が無いパス・ファイル・読めないディレクトリなら、終了コード 2 で終わります'
       - id: PW-SESSION-SHOW-21
         pattern: unwanted
-        statement: 'もし作業中の Issue があり、アクティブな設定ファイルの形式が不正なら、`warning` の行を標準エラーに出します'
+        statement: 'もし作業中の Issue があり、選んだ設定ファイルの形式が不正なら、`warning` の行を標準エラーに出します'
       - id: PW-SESSION-SHOW-22
         pattern: unwanted
-        statement: 'もし作業中の Issue があり、アクティブな設定ファイルの形式が不正なら、終了コード 0 で終わります'
+        statement: 'もし作業中の Issue があり、選んだ設定ファイルの形式が不正なら、終了コード 0 で終わります'
       - id: PW-SESSION-SHOW-23
         pattern: state
         statement: '積んで着手した作業ディレクトリの間、積んだ先の Issue とその PR を Stack の節に出します'
@@ -5602,6 +5869,12 @@ entries:
       - id: PW-SESSION-SHOW-38
         pattern: state
         statement: '`--directory` の worktree に積んだ記録がある間、toplevel がプロジェクトのルートと違っても、判定から求めずに、その記録で Stack の節を出します'
+      - id: PW-SESSION-SHOW-39
+        pattern: unwanted
+        statement: 'もし作業中の Issue のリポを含む設定が無いか、使う設定が決まらないなら、`warning` の行を標準エラーに出し、終了コード 0 で終わります'
+      - id: PW-SESSION-SHOW-40
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-SESSION-START:
     help:
       details:
@@ -5625,12 +5898,13 @@ entries:
         - When the work target is recorded, the chosen base is written to .pecot/state/.pecot-base as <branch> <sha>, followed by owner/repo#N of the Issue it stacks on when the branch is stacked.
         - .pecot/state/.pecot-base is removed before the work target is recorded, so that it never keeps the record of the previous Issue.
         - The repository of the working directory git remote must be the repository of the Issue; no option skips this check, but the check is not made when the owner/repo cannot be read from the URL of the remote.
-        - The repository must be registered in the active project.
+        - The repository must be registered in the selected project.
         - --checkout and --no-checkout are kept for compatibility and have no effect.
         - The global pecot --repo must match the repository of the current git remote.
         - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and continues, and without --repo it stops."
         - This command does not take its target from --repo.
         - With --dry-run, reads the Issue, its prerequisites and the base commit, and prints dry-run lines for creating the branch, setting the Status and creating the work directory, and writes nothing.
+        - --project names the project config to use. Without it, the config that includes the repository of the target is used; when several do, the active one among them.
       examples:
         - run: pecot session start example-org/my-repo/123 feat/my-change
           note: Create the branch feat/my-change/123 from the develop branch.
@@ -5640,6 +5914,7 @@ entries:
           note: Show the planned branch and Status change without creating them.
       default_notes:
         base: The branch of the PR the Issue stacks on when its readiness is stackable; otherwise the develop_branch of the repository in the config file, and without it the command stops with exit status 1.
+        project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: Issue に紐づいたブランチを作ります。
     arguments:
       base: '分岐元のブランチです。'
@@ -5647,6 +5922,7 @@ entries:
       checkout: '互換のために残した引数で、何も変わりません。'
       issue_ref: 'Issue の参照です。`owner/repo/123` の形で渡します。'
       dry_run: '何も書かずに、する予定だけを出すかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
       - 'GitHub の GraphQL API（`createLinkedBranch`）で、Issue に紐づいたブランチを作ります。ブランチは、Issue の Development の欄に出ます。'
@@ -5669,12 +5945,13 @@ entries:
       - '作業対象を記録したときは、選んだ分岐元を `.pecot/state/.pecot-base` に `<branch> <sha>` の形で書きます。ブランチを積んだときは、積んだ先の Issue の `owner/repo#N` を続けて書きます。'
       - '`.pecot/state/.pecot-base` は、作業対象を記録する前に消します。前の Issue の記録を残さないためです。'
       - '作業ディレクトリの git remote のリポジトリは、Issue のリポジトリでなければなりません。この確かめを外す入力はありません。ただし、remote の URL から `owner/repo` を読めないときは、確かめません。'
-      - 'リポジトリは、アクティブなプロジェクトに登録されていなければなりません。'
+      - 'リポジトリは、選んだプロジェクトに登録されていなければなりません。'
       - '`--checkout` と `--no-checkout` は互換のために残したもので、何も変わりません。'
       - 'pecot 全体のオプション `--repo` は、今の git remote のリポジトリと一致していなければなりません。'
       - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して続け、無ければ止まります。'
       - 'このコマンドは、対象を `--repo` から決めません。'
       - '`--dry-run` を付けると、Issue・前提・分岐元の commit まで読み、ブランチの作成・Status の設定・作業ディレクトリの作成を `dry-run` の行に出して、何も書きません。'
+      - '`--project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
@@ -5692,7 +5969,10 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-setting-missing
         code: 1
         when: '`develop_branch` が未設定で、`--base` もありません。'
@@ -5748,12 +6028,12 @@ entries:
         what: '紐づいたブランチを作り、ボード上の Issue の Status を `active` にします。`--dry-run` のときは書きません。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
       - target: file
         kind: write
         what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/work/<N>/` も作ります。`.pecot/state/.pecot-active` は書きません。`--dry-run` のときは書きません。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
       - '作業ディレクトリは、Issue のリポジトリのチェックアウトでなければなりません。'
     idempotent: false
@@ -5766,6 +6046,7 @@ entries:
         note: 'ブランチと Status は作らず、する予定を出します。'
     default_notes:
       base: '省くと、着手の判定が `stackable` のときは、積む先の PR のブランチです。それ以外では設定ファイルにあるリポジトリの `develop_branch` で、それも無ければ終了コード 1 で止まります。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-SESSION-START-01
         pattern: event
@@ -5802,7 +6083,7 @@ entries:
         statement: 'もし作業対象を記録できなかったなら、`warning` の行を標準エラーに出します'
       - id: PW-SESSION-START-18
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-SESSION-START-19
         pattern: unwanted
         statement: 'もし Issue の参照がフル形式でないなら、終了コード 2 で終わります'
@@ -5866,6 +6147,12 @@ entries:
       - id: PW-SESSION-START-40
         pattern: event
         statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、Issue のリポジトリと作業ディレクトリの remote を比べずにブランチを作ります'
+      - id: PW-SESSION-START-41
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`error` の行を出して、終了コード 1 で終わります'
+      - id: PW-SESSION-START-42
+        pattern: event
+        statement: '`--project` に設定の名前を渡して打つと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-TRACKER-SYNC:
     help:
       details:
@@ -5909,7 +6196,7 @@ entries:
         - With security, when every alert is gone, each kind shows none, and a person closes the Tracker and moves it to Archived.
         - With security, on an existing Tracker, sets Status and Priority only while they are empty, so a change made by a person stays.
         - Text in the Tracker body outside the list markers stays as it is.
-        - A field that the active project does not define is not set.
+        - A field that the project config does not define is not set.
         - When several Trackers are open, uses the lowest number and leaves the others open.
         - A closed Tracker is not reused.
       examples:
@@ -5926,6 +6213,7 @@ entries:
     arguments:
       source: 'Tracker に載せるものです。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。どちらかを必ず渡します。'
       dry_run: '何も変えずに、Tracker を変える予定だけを出すかどうかです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     constraints: []
     details:
       - '`source` で、Tracker に載せるものを選びます。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。'
@@ -5968,7 +6256,7 @@ entries:
       - '`security` では、alert がすべて無くなると、どの種類も `none` と出します。Tracker を閉じて Archived へ動かすのは、人です。'
       - '`security` では、既にある Tracker には、Status と Priority が空の間だけ値を入れます。人が変えた値は残ります。'
       - 'Tracker の本文のうち、一覧の印の外にある文はそのまま残します。'
-      - 'アクティブなプロジェクトが定義していないフィールドは設定しません。'
+      - 'プロジェクトの設定が定義していないフィールドは設定しません。'
       - 'open の Tracker が複数あるときは、番号が最小のものを使い、ほかは open のまま残します。'
       - '閉じた Tracker は使い回しません。'
     stdin: none
@@ -5988,7 +6276,13 @@ entries:
     exit_status:
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: git-unresolved
         code: 1
         when: 'git remote からリポジトリを読めません。'
@@ -6038,9 +6332,9 @@ entries:
         what: '`security` では、Tracker の Issue を作り、本文を書き直します。プロジェクトのボードに足し、Status と Priority を設定します。'
       - target: file
         kind: read
-        what: 'アクティブな設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
     prerequisites:
-      - 'アクティブなプロジェクトが要ります（`pecot project activate` で決めます）。'
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンと、Issue とプロジェクトを編集する権限が要ります。`security` では、セキュリティ alert を読む権限も要ります。'
       - '対象のリポジトリは `--repo` です。無ければ、作業ディレクトリの remote の `origin` です。`origin` も無ければ、最初の remote です。'
     idempotent: true
@@ -6153,7 +6447,7 @@ entries:
         statement: '`dependabot` で、`--dry-run` を付けて打つと、予定の行を標準エラーに出します'
       - id: PW-TRACKER-SYNC-33
         pattern: unwanted
-        statement: 'もしsource が `dependabot` で、アクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし source が `dependabot` で、対象のリポを含む設定から 1 つを選べないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-TRACKER-SYNC-34
         pattern: unwanted
         statement: 'もし `dependabot` で、`--repo` を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わります'
@@ -6270,7 +6564,7 @@ entries:
         statement: '`security` で、`--dry-run` を付けて打つと、予定の行を標準エラーに出します'
       - id: PW-TRACKER-SYNC-72
         pattern: unwanted
-        statement: 'もしsource が `security` で、アクティブなプロジェクトが無いなら、終了コード 1 で終わります'
+        statement: 'もし source が `security` で、対象のリポを含む設定から 1 つを選べないなら、候補の名前と `--project` の案内を出して終了コード 1 で終わります'
       - id: PW-TRACKER-SYNC-73
         pattern: unwanted
         statement: 'もし `security` で、`--repo` を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わります'
@@ -6337,6 +6631,12 @@ entries:
       - id: PW-TRACKER-SYNC-94
         pattern: unwanted
         statement: 'もし `security` で、Tracker の Status か Priority の書き込みに失敗したなら、書けなかった欄と値の `error` の行を出し、ほかの欄を続けます。終了コードは 1 です。選択肢の ID が古くて書けないときは、ID を読み直す `project activate` の案内を、1 回の実行で 1 回だけ添えます'
+      - id: PW-TRACKER-SYNC-95
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`repo-not-in-project` の行を出して終了コード 1 で終わります'
+      - id: PW-TRACKER-SYNC-96
+        pattern: event
+        statement: '`--project` で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
   PW-WORKTREE-ADD:
     help:
       details:
@@ -6346,12 +6646,12 @@ entries:
         - Joins the lowest numbered wtN set that has no worktree of this repository yet, and starts the set max(N)+1 when every set already has one.
         - Skips every wtN that a worktree of this repository already uses, including a worktree made with --path, which is found by its record or by a checked out branch wtN.
         - Records wtN in the git administrative directory of the new worktree, which pecot session finish reads to return to wtN.
-        - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the origin remote; when there is no origin, the first remote in git remote order that points to a repository registered in the active project, or the first remote when none does, and <base> is --base or the develop_branch of the repository in the active project.
+        - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the origin remote; when there is no origin, the first remote in git remote order that points to a repository in a project config, or the first remote when none does, and <base> is --base or the develop_branch of the repository in its project config.
         - When the branch wtN already exists, stops unless its upstream is <remote>/<base> or --allow-existing-branch is given.
         - A matching branch that no worktree uses is deleted and created again.
         - Runs git worktree prune on the main worktree before it creates the worktree, also with --dry-run.
         - Needs .pecot/config/worktree-config.json and .pecot/config/.worktreeignore in the main worktree, which pecot worktree init creates.
-        - The repository must be registered in the active project.
+        - The repository must be in a project config (its repositories or aggregation_repo). When several configs include it, the active project or --project chooses one.
         - Creates the symlinks of worktree-config.json, then copies the git-ignored files of the main worktree that .worktreeignore does not exclude and that are not under a created symlink, then runs the setup command in the new worktree.
         - With --path, the worktree is created at that path, and the copied files go to that path.
         - With --path, the symlinks and .pecot/.gitignore are created in the worktree at that path.
@@ -6370,12 +6670,13 @@ entries:
         - run: pecot worktree add -D . --base develop --setup "pnpm install"
           note: Branch from develop and run a setup command after creation.
       default_notes:
-        base: The develop_branch of the repository in the active project.
+        base: The develop_branch of the repository in its project config.
         path: <project root>/<wtN>/<repository directory name>.
         setup: The setup_command of worktree-config.json; without it, no command runs.
     summary: 新しい worktree を作ります。
     arguments:
       allow_existing_branch: '既にあるブランチを、upstream が `develop_branch` と違っても使い回してよいかどうかです。'
+      project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、remote のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。'
       base: '分岐元のブランチです。'
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
       dry_run: '何も変えずに、行う予定だけを出すかどうかです。'
@@ -6391,12 +6692,12 @@ entries:
       - 'このリポジトリの worktree がまだ無い `wtN` のセットのうち、番号が最小のものに加わります。どのセットにも既にあるときは、最大の N に 1 を足したセットを始めます。'
       - 'このリポジトリの worktree が既に使っている `wtN` は、すべて飛ばします。`--path` で作った worktree も含みます。その worktree は、記録か、チェックアウトしているブランチ `wtN` で見つけます。'
       - '新しい worktree の git の管理ディレクトリに、`wtN` を記録します。`pecot session finish` が、`wtN` へ戻るためにこの記録を読みます。'
-      - 'ブランチは `<remote>/<base>` から作り、そのブランチを upstream にします。`<base>` は、`--base` か、アクティブなプロジェクトにあるリポジトリの `develop_branch` です。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、アクティブなプロジェクトに登録したリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
+      - 'ブランチは `<remote>/<base>` から作り、そのブランチを upstream にします。`<base>` は、`--base` か、プロジェクトの設定にあるリポジトリの `develop_branch` です。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、プロジェクトの設定にあるリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
       - 'ブランチ `wtN` が既にあるときは、止まります。upstream が `<remote>/<base>` のときと、`--allow-existing-branch` を付けたときは別です。'
       - 'upstream が合っていて、どの worktree も使っていないブランチは、消して作り直します。'
       - 'worktree を作る前に、メインの worktree で `git worktree prune` を動かします。`--dry-run` のときも動かします。'
       - 'メインの worktree に、`.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` が要ります。どちらも `pecot worktree init` が作ります。'
-      - 'リポジトリは、アクティブなプロジェクトに登録されていなければなりません。'
+      - 'リポジトリは、プロジェクトの設定の `repositories` か `aggregation_repo` に無ければなりません。含む設定が 2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - '`worktree-config.json` のシンボリックリンクを作ってから、メインの worktree で git が無視しているファイルをコピーします。`.worktreeignore` が除くファイルと、作ったシンボリックリンクの下のファイルはコピーしません。コピーの後、新しい worktree で setup のコマンドを動かします。'
       - '`--path` を付けると、そのパスに worktree を作り、ファイルもそのパスへコピーします。'
       - '`--path` を付けると、シンボリックリンクと `.pecot/.gitignore` も、そのパスの worktree に作ります。'
@@ -6442,10 +6743,13 @@ entries:
         when: '`worktree-config.json` の内容が不正です。'
       - kind: no-active-project
         code: 1
-        when: 'アクティブなプロジェクトがありません。'
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`--project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
       - kind: repo-not-in-project
         code: 1
-        when: 'リポジトリがそのプロジェクトに登録されていません。'
+        when: 'remote のリポを含むプロジェクトの設定がありません。`--project` で選んだ設定が含まないときも含みます。'
       - kind: repo-setting-missing
         code: 1
         when: '`develop_branch` が未設定で、`--base` もありません。'
@@ -6488,7 +6792,7 @@ entries:
       - 'コマンドは、devcontainer の中で動かします。'
       - 'リポジトリは、`<プロジェクトのルート>/base/<リポジトリ>` の配置になければなりません。worktree の設定ファイルも要ります（`pecot worktree init` で作ります）。'
       - 'アクティブなプロジェクトが要り、リポジトリがそこに登録されていなければなりません。'
-      - 'ローカルのリポジトリに `<remote>/<base>` が要ります。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、アクティブなプロジェクトに登録したリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
+      - 'ローカルのリポジトリに `<remote>/<base>` が要ります。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、プロジェクトの設定にあるリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
     idempotent: false
     examples:
       - run: pecot worktree add -D .
@@ -6612,10 +6916,10 @@ entries:
         statement: 'もし `worktree-config.json` か `.worktreeignore` が無いなら、終了コード 1 で終わります'
       - id: PW-WORKTREE-ADD-37
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いか、リポジトリがそのプロジェクトに登録されていないなら、何も作りません'
+        statement: 'もし remote のリポを含む設定が無いか、2 つ以上あって選べないなら、何も作りません'
       - id: PW-WORKTREE-ADD-38
         pattern: unwanted
-        statement: 'もしアクティブなプロジェクトが無いか、リポジトリがそのプロジェクトに登録されていないなら、終了コード 1 で終わります'
+        statement: 'もし remote のリポを含む設定が無いか、2 つ以上あって選べないなら、終了コード 1 で終わります'
       - id: PW-WORKTREE-ADD-39
         pattern: unwanted
         statement: 'もし使う remote の URL を GitHub の `owner/repo` として読めないなら、何も作りません'
@@ -6658,6 +6962,12 @@ entries:
       - id: PW-WORKTREE-ADD-54
         pattern: unwanted
         statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
+      - id: PW-WORKTREE-ADD-55
+        pattern: event
+        statement: '`.active` が無い clone で打つと、remote のリポを含む設定が 1 つなら、その設定で作ります'
+      - id: PW-WORKTREE-ADD-56
+        pattern: event
+        statement: '`--project` を付けて打つと、remote のリポを含む設定が 2 つ以上あっても、その名前の設定で作ります'
   PW-WORKTREE-INIT:
     help:
       details:

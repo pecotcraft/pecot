@@ -15,12 +15,12 @@ import path from 'node:path'
 
 import { commandHint, formatHinted, hinted, inputHint, inputNameHint, placeholder } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
-import { findRepository, getDevelopBranch } from '../domain/config.js'
+import { getDevelopBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { pythonStrip, ValidationFailure } from '../domain/python-format.js'
 import { createRepositoryReference } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { loadActiveConfig } from './config-store.js'
+import { findConfigFor, listProjectConfigNames } from './config-store.js'
 import type { Diagnostics } from './diagnostics.js'
 import { isDirectory } from './file-kind.js'
 import { GitCommandError, gitToplevel, listRemotes, preferredRemotes, remoteRepository, runGit } from './git.js'
@@ -44,7 +44,7 @@ const WORKTREE_ADD_PATH = ['worktree', 'add']
 /**
 WorktreeRuntimeError の原因の名前。commands の FailureKind の一部
 */
-export type WorktreeFailure = 'config-invalid' | 'git-unresolved' | 'no-active-project' | 'not-initialized' | 'other' | 'repo-not-in-project' | 'repo-setting-missing'
+export type WorktreeFailure = 'config-invalid' | 'git-unresolved' | 'no-active-project' | 'not-initialized' | 'other' | 'project-not-found' | 'repo-not-in-project' | 'repo-setting-missing'
 
 /**
 ワークツリー操作に失敗した（Python の RuntimeError に当たる）。メッセージは利用者に見せる文
@@ -411,34 +411,33 @@ function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnosti
   }
 }
 
-// リポジトリ登録チェック。remote は origin、無ければ登録済みのリポを指す最初の remote、どれも未登録なら最初の remote（未登録として止まる）
-function requireRegisteredRepository(cwd: string): { readonly repository: RepositoryReference, readonly config: ProjectConfig, readonly remote: string } {
+// リポジトリ登録チェック。remote は origin、無ければ登録済みのリポを指す最初の remote の順に見て、そのリポを含む設定を選ぶ。
+// どの remote のリポも設定に無ければ、最初の remote のリポで止まる
+function requireRegisteredRepository(cwd: string, project: string | undefined): { readonly repository: RepositoryReference, readonly config: ProjectConfig, readonly remote: string } {
   const candidates = readRemoteCandidates(cwd)
   if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
-  const config = loadActiveConfig()
-  if (config === undefined) {
-    throw new WorktreeRuntimeError(hinted`project config not found\n  hint: run ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })} to set the project`, { failure: 'no-active-project' })
-  }
   for (const candidate of candidates) {
-    if (candidate.repository !== undefined && findRepository(config, candidate.repository.owner, candidate.repository.repository) !== undefined) {
-      return { repository: candidate.repository, config, remote: candidate.remote }
+    if (candidate.repository === undefined) continue
+    const lookup = findConfigFor(candidate.repository, project)
+    if (lookup.kind === 'found') return { repository: candidate.repository, config: lookup.found.config, remote: candidate.remote }
+    // 名前の誤りと、候補から選べないときは、ほかの remote を見ずに止まる
+    if (lookup.kind === 'unknown-project') {
+      throw new WorktreeRuntimeError(`project config not found: ${lookup.project}\navailable: ${listProjectConfigNames().join(', ')}`, { failure: 'project-not-found' })
+    }
+    if (lookup.kind === 'ambiguous') {
+      const { owner, repository } = candidate.repository
+      throw new WorktreeRuntimeError(hinted`repository ${owner}/${repository} is in ${String(lookup.candidates.length)} project configs
+choose one with ${inputHint(['worktree', 'add'], 'project', placeholder('NAME'))}
+available: ${lookup.candidates.map(found => found.name).join(', ')}`, { failure: 'no-active-project' })
     }
   }
   const repository = candidates[0]?.repository
   if (repository === undefined) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE, { failure: 'git-unresolved' })
-  const registered = config.repositories.length > 0
-    ? config.repositories.map(item => `  - ${item.owner}/${item.name}`).join('\n')
-    : '  (none registered)'
-  throw new WorktreeRuntimeError(hinted`repository ${repository.owner}/${repository.repository} is not registered in the active pecot project
-
-registered repositories:
-${registered}
+  const where = project === undefined ? 'any project config' : `the project config ${project}`
+  throw new WorktreeRuntimeError(hinted`repository ${repository.owner}/${repository.repository} is not in ${where}
 
 to add this repository to the pecot project:
-  ${commandHint(['project', 'link'], { repo: `${repository.owner}/${repository.repository}` })}
-
-to switch to another project:
-  ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`, { failure: 'repo-not-in-project' })
+  ${commandHint(['project', 'link'], { repo: `${repository.owner}/${repository.repository}` })}`, { failure: 'repo-not-in-project' })
 }
 
 // ベースブランチ決定（プロジェクト設定の develop_branch を使用）
@@ -538,6 +537,10 @@ export interface CreateWorktreeOptions {
   既存ブランチの upstream が develop_branch と異なる場合でも再利用を許可するか。既定は false
   */
   readonly isExistingBranchAllowed?: boolean | undefined
+  /**
+  使うプロジェクトの設定の名前。省略時は remote のリポを含む設定
+  */
+  readonly project?: string | undefined
 }
 
 /**
@@ -556,8 +559,8 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
   //     `.git/worktrees/<name>/` だけ残って実体が消えているケース（rebuild や手動 rm -rf のあと）で、add が衝突エラーになるのを防ぐ
   runGit(['worktree', 'prune'], { cwd: mainWorktree })
 
-  // 1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）
-  const { repository, config, remote } = requireRegisteredRepository(cwd)
+  // 1.5 リポジトリ登録チェック（remote のリポを含むプロジェクトの設定を選ぶ）
+  const { repository, config, remote } = requireRegisteredRepository(cwd, options.project)
 
   // 2. 名前決定（プロジェクトセットへの自動参加）
   const repositoryDirectoryName = path.basename(mainWorktree)

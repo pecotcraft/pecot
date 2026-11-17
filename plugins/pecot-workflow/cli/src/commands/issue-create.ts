@@ -26,6 +26,7 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import { describeReadiness, displayReference, hasStarted, stackChains } from '../domain/readiness.js'
 import type { Progression } from '../domain/readiness.js'
 import { parseIssueFile } from '../infra/frontmatter-file.js'
+import { configSourcePath, projectNameOf } from '../infra/config-store.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -36,7 +37,7 @@ import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { CommandHint } from './command-hint.js'
-import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { PROJECT_INPUT, requireBoardConfig, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import type { FieldHintState } from './field-write-failure.js'
 import { createGitHubClient } from './github-client.js'
@@ -669,10 +670,43 @@ async function ensureDependenciesSupported(output: Output, client: GitHubClient,
   stopWith(output, DEPENDENCIES_UNSUPPORTED, 'dependency-rejected')
 }
 
+// 作成先のリポから設定を選ぶ。repository が無い（Epic の既定）ときは対象のリポが無いので、board sync と同じくボード全体の決め方で選ぶ
+function configForCreate(output: Output, repository: string | undefined, project: string | undefined): ProjectConfig {
+  const given = repository === undefined ? '' : pythonStrip(repository)
+  if (given === '') return requireBoardConfig(output, project, CREATE_PATH)
+  const target = splitOwnerRepository(given) ?? stopWith(output, `invalid repository format: ${pythonStringRepr(given)} (expected: owner/repo)`, 'invalid-input')
+  return requireConfigFor(output, target, project, CREATE_PATH).config
+}
+
+// 一括作成の設定。ファイルごとに作成先のリポで選び、ファイルの間で分かれたら 1 件も作らずに止める
+function configForFiles(output: Output, files: readonly string[], project: string | undefined): ProjectConfig {
+  const chosen = files.map((file) => {
+    let repository: string
+    try {
+      const { frontmatter } = parseIssueFile(file)
+      repository = frontmatter.repository
+      // Epic だけが repository を省ける（git remote のリポで設定を選び、aggregation_repo に作る）
+      if ((frontmatter.type !== 'epic' || pythonStrip(repository) !== '') && splitOwnerRepository(pythonStrip(repository)) === undefined) stopWith(output, `invalid repository format in the frontmatter: ${pythonStringRepr(repository)}`, 'content-invalid')
+    }
+    catch (error: unknown) {
+      if (!(error instanceof FrontmatterError)) throw error
+      return stopForFrontmatter(output, error, path.basename(file))
+    }
+    const config = configForCreate(output, repository, project)
+    return { file: path.basename(file), config, source: configSourcePath(config) ?? '' }
+  })
+  const [first] = chosen
+  if (first === undefined) throw new InternalError('no file to post')
+  if (chosen.some(entry => entry.source !== first.source)) {
+    stopWith(output, `the files belong to different project configs: ${chosen.map(entry => `${entry.file} (${projectNameOf(entry.source)})`).join(', ')}\npost them separately`, 'invalid-input')
+  }
+  return first.config
+}
+
 // 1 件も投稿しないうちに確かめられることをすべて確かめ、投稿に要るものをそろえる
-async function prepareBatch(output: Output, files: readonly string[]): Promise<BatchContext> {
+async function prepareBatch(output: Output, files: readonly string[], project: string | undefined): Promise<BatchContext> {
   validatePlaceholders(output, files)
-  const config = requireActiveConfigPlain(output)
+  const config = configForFiles(output, files, project)
   const locals = files.map(file => readLocalFile(output, config, file))
   const [first] = locals
   if (first === undefined) throw new InternalError('no file to post')
@@ -820,8 +854,8 @@ function isBatchReference(reference: IssueReference, posted: readonly (PostedFil
   return posted.some(entry => entry !== undefined && issueReferenceKey(entry.reference) === issueReferenceKey(reference))
 }
 
-async function createFromFiles(output: CreateOutput, files: readonly string[], isDryRun: boolean): Promise<void> {
-  const context = await prepareBatch(output, files)
+async function createFromFiles(output: CreateOutput, files: readonly string[], project: string | undefined, isDryRun: boolean): Promise<void> {
+  const context = await prepareBatch(output, files, project)
   if (isDryRun) {
     // 番号は投稿まで決まらないので、本番の created の行から番号を除いた対象にする
     for (const local of context.locals) output.planned({ verb: 'create', target: `Issue in ${local.owner}/${local.repository} from ${local.name}` })
@@ -844,6 +878,7 @@ interface DirectOptions {
   readonly parentEpic: string | undefined
   readonly labels: readonly string[] | undefined
   readonly order: number | undefined
+  readonly project: string | undefined
 }
 
 // config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
@@ -860,8 +895,8 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
     status = options.status
   }
 
-  const config = loadedConfig ?? requireActiveConfigPlain(output)
   const [owner, repository] = validateRepositoryShape(output, options.repository)
+  const config = loadedConfig ?? requireConfigFor(output, { owner, repository }, options.project, CREATE_PATH).config
 
   const parentReference = parentReferenceOf(normalizeParentEpicCli(options.parentEpic), config, owner, repository)
   const title = buildIssueTitle(issueType, options.title, { parentEpic: parentReference?.number, order: options.order })
@@ -900,14 +935,14 @@ interface MessageTarget {
 }
 
 // -m の作成先。epic 以外は --repo が要る。epic は aggregation_repo の方針で決める
-function messageModeTarget(output: Output, issueType: IssueType, repository: string | undefined): MessageTarget {
+function messageModeTarget(output: Output, issueType: IssueType, repository: string | undefined, project: string | undefined): MessageTarget {
   if (issueType !== 'epic') {
     if (repository === undefined || repository === '') {
       stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputNameHint(CREATE_PATH, 'message')}`, 'invalid-input')
     }
     return { repository, config: undefined }
   }
-  const config = requireActiveConfigPlain(output)
+  const config = configForCreate(output, repository, project)
   const target = resolveEpicTargetRepository(output, repository, config)
   if (target.needsWarning) warnEpicRepositoryException(output, target.repository, config)
   return { repository: target.repository, config }
@@ -953,6 +988,7 @@ interface FreeformInput {
   readonly parent_epic?: string | undefined
   readonly order?: number | undefined
   readonly label?: readonly string[] | undefined
+  readonly project?: string | undefined
 }
 
 // テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは 1 行目の先頭 50 文字の空白を 1 つにまとめたもの
@@ -970,7 +1006,7 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
     status = input.status
   }
   const [owner, repository] = validateRepositoryShape(output, repo)
-  const config = requireActiveConfigPlain(output)
+  const { config } = requireConfigFor(output, { owner, repository }, input.project, CREATE_PATH)
   const parentReference = parentReferenceOf(normalizeParentEpicCli(input.parent_epic), config, owner, repository)
   const [firstLine = ''] = pythonStrip(message).split(PYTHON_LINE_BREAK)
   const cleaned = pythonStrip(truncateCodePoints(firstLine, FREEFORM_TITLE_LENGTH).replaceAll(PYTHON_WHITESPACE_RUN, ' '))
@@ -1007,6 +1043,7 @@ interface MessageInput {
   readonly parent_epic?: string | undefined
   readonly label?: readonly string[] | undefined
   readonly order?: number | undefined
+  readonly project?: string | undefined
 }
 
 // -m の直接投稿。入力の確認から作成まで
@@ -1014,7 +1051,7 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
   if (input.title === undefined || input.title === '') {
     stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'title')} is required with ${inputNameHint(CREATE_PATH, 'message')}`, 'invalid-input')
   }
-  const target = messageModeTarget(output, input.type, input.repo)
+  const target = messageModeTarget(output, input.type, input.repo, input.project)
   await createDirect(output, {
     message,
     title: input.title,
@@ -1026,6 +1063,7 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
     parentEpic: input.parent_epic,
     labels: input.label,
     order: input.order,
+    project: input.project,
   }, target.config, isDryRun)
 }
 
@@ -1051,6 +1089,7 @@ const ISSUE_CREATE = defineCommand({
     prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
     template: TEMPLATE_SCHEMA,
     suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),
+    project: PROJECT_INPUT,
   }),
   output: ISSUE_CREATE_OUTPUT,
   positional: ['files'],
@@ -1070,7 +1109,7 @@ const ISSUE_CREATE = defineCommand({
         prepareTemplate(output, input.template, input.repo, input.suffix, input.dry_run)
       }
       else if (hasFiles) {
-        await createFromFiles(output, input.files ?? [], input.dry_run)
+        await createFromFiles(output, input.files ?? [], input.project, input.dry_run)
       }
       else if (input.message === undefined) {
         stopWith(output, USAGE_TEXT, 'invalid-input')

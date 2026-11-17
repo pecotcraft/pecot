@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
+import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/harness-selection.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -412,7 +413,7 @@ describe('session finish', () => {
   it('カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-18')
     const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: 'feat/other' }))]
-    const workspace = await cleanupBranch({ github })
+    const workspace = await cleanupBranch({ github, config: { hasSecondRepository: true } })
     const result = await workspace.run(['session', 'finish', 'acme/other/21'])
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: current repository (acme/demo) differs from the PR\'s (acme/other); skipped local cleanup\n')
@@ -421,7 +422,7 @@ describe('session finish', () => {
   it('カレントのリポジトリが PR のリポジトリと違うなら、ローカルの片付けを飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-19')
     const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: BRANCH }))]
-    const workspace = await cleanupBranch({ github })
+    const workspace = await cleanupBranch({ github, config: { hasSecondRepository: true } })
     const result = await workspace.run(['session', 'finish', 'acme/other/21'])
     expect(result.stderr).not.toContain('current branch')
     expect(currentBranch(workspace)).toBe(BRANCH)
@@ -484,12 +485,34 @@ describe('session finish', () => {
     expect(filesOf(workspace.directory)).toStrictEqual(files)
   })
 
-  it('アクティブなプロジェクトが無いなら、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないなら、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-26')
+    const workspace = await openWorkspace({ files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(CLEANUP)
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+    expect(workspace.requests()).toStrictEqual([])
+  })
+
+  it('対象のリポを含む設定が無いなら、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-43')
     const workspace = await openWorkspace({ config: false })
     const result = await workspace.run(CLEANUP)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
     expect(workspace.requests()).toStrictEqual([])
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で片付ける', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-44')
+    const workspace = await openWorkspace({ github: mergedRules(), files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup', '--project', SECOND_PROJECT])
+    expect(result.code).toBe(0)
+    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12' }])
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で片付ける', async () => {
+    const workspace = await openWorkspace({ github: mergedRules(), files: NO_ACTIVE_FILES })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
   })
 
   it.for([

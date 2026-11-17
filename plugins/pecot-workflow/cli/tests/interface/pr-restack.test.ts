@@ -11,6 +11,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { lines, operationsOf, stateFile } from '../_helpers/workspace-inspect.js'
+import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/harness-selection.js'
 import { graphql, openWorkspace } from '../_helpers/workspace.js'
 import type { ConfigOptions, Workspace } from '../_helpers/workspace.js'
 import type { ResponseRule } from '../fake-github/server.js'
@@ -60,6 +61,7 @@ interface StackedOptions {
   */
   readonly isPushed?: boolean
   readonly config?: ConfigOptions | false
+  readonly files?: Readonly<Record<string, string>>
 }
 
 // main の上に下の段、その上に上の段を積み、上の段を checkout して base の記録を書く
@@ -68,6 +70,7 @@ async function openStacked(options: Readonly<StackedOptions> = {}): Promise<Work
     branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }],
     github: options.github ?? [],
     ...options.config !== undefined && { config: options.config },
+    ...options.files !== undefined && { files: options.files },
   })
   workspace.git(['checkout', '-b', UPPER, `origin/${LOWER}`])
   commitFile(workspace, 'upper.txt', 'upper\n', 'upper')
@@ -547,11 +550,31 @@ describe('pr restack', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: .pecot-base is malformed: garbage\n' })
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-RESTACK-21')
+    const workspace = await openStacked({ files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(['pr', 'restack'])
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-31')
     const workspace = await openStacked({ config: false })
     const result = await workspace.run(['pr', 'restack'])
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-32')
+    const workspace = await openStacked({ github: [lowerPullRequests('OPEN')], files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(['pr', 'restack', '--check', '--project', SECOND_PROJECT])
+    expect(result).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on ${LOWER}\n`, stderr: '' })
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で確かめる', async () => {
+    const workspace = await openStacked({ github: [lowerPullRequests('OPEN')], files: NO_ACTIVE_FILES })
+    const result = await workspace.run(['pr', 'restack', '--check'])
+    expect(result).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on ${LOWER}\n`, stderr: '' })
   })
 
   describe('載せ直し済みの判断', () => {

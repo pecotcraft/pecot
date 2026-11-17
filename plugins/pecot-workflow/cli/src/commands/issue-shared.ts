@@ -421,7 +421,7 @@ export async function setIssueFields(
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      output.warning(fieldWriteFailure(`could not set ${label} of ${target}: ${error.message}`, error, hintState))
+      output.warning(fieldWriteFailure(`could not set ${label} of ${target}: ${error.message}`, error, config, hintState))
     }
   }
   if (labels.length > 0) output.done({ verb: 'set', target: `${target} ${labels.join(', ')}` })

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
+import { ambiguousFiles, AMBIGUOUS_MESSAGE, NO_ACTIVE_FILES, otherRepositoryConfig, SECOND_PROJECT } from '../_helpers/harness-selection.js'
 import { projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
@@ -71,12 +72,34 @@ describe('branch delete', () => {
     expect(result.requests).toEqual([])
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-BRANCH-DELETE-13')
-    const result = await remove({ config: false, github: [] })
+    const result = await remove({ files: ambiguousFiles(), github: [] })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: no active project\n  run: pecot project activate <PROJECT>\n')
+    expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
     expect(result.requests).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-BRANCH-DELETE-20')
+    const result = await remove({ config: otherRepositoryConfig(), github: [] })
+    expect(result.code).toBe(1)
+    expect(result.stderr).toBe('error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n')
+    expect(result.requests).toEqual([])
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で削除する', async (context) => {
+    await verifies(context, 'PW-BRANCH-DELETE-21')
+    const result = await remove({ files: ambiguousFiles() }, ['branch', 'delete', 'acme/demo', 'feat/7', '--project', SECOND_PROJECT])
+    expect(result.code).toBe(0)
+    expect(result.problems).toEqual([])
+    expect(result.stderr).toContain(DELETED)
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で削除する', async () => {
+    const result = await remove({ files: NO_ACTIVE_FILES })
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain(DELETED)
   })
 
   it('リポジトリの既定ブランチを読めないと、終了コード 1 で終わる', async (context) => {

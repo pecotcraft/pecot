@@ -18,14 +18,13 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { fetchCodeScanningStatus, fetchSecretScanningStatus, SecurityAlertError } from '../domain/security-alerts.js'
 import type { ScanAlertStatus } from '../domain/security-alerts.js'
 import { extractReleaseNotesFromFile, readChangelogIfExists, resolveChangelogPath } from '../infra/changelog-file.js'
-import { loadActiveConfig } from '../infra/config-store.js'
 import { gitRunnerFor, gitToplevel, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
-import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient, makeClient } from './github-client.js'
 import { issuePath } from './issue-shared.js'
@@ -85,11 +84,12 @@ function requireBranchSetting(out: Readonly<Output>, branch: string | undefined,
   return branch === undefined || branch === '' ? stopWith(out, hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch
 }
 
-function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference | undefined, explicit: string | undefined, packageName: string | undefined, options: Readonly<ContextOptions> = {}): ReleaseContext {
+function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference | undefined, explicit: string | undefined, packageName: string | undefined, project: string | undefined, commandPath: readonly string[], options: Readonly<ContextOptions> = {}): ReleaseContext {
   const cwd = process.cwd()
   const gitRoot = gitToplevel({ cwd }) ?? stopWith(out, 'could not find the root directory of the git repository', 'git-unresolved')
-  const { owner, repository } = requireReleaseTargetRepository(adopted, explicit, out)
-  const config = loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
+  const target = requireReleaseTargetRepository(adopted, explicit, out)
+  const { owner, repository } = target
+  const config = requireConfigFor(out, target, project, commandPath).config
 
   const repositoryConfig = findRepository(config, owner, repository)
   if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
@@ -236,6 +236,7 @@ const releaseCheckCommand = defineCommand({
   input: z.object({
     version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
+    project: PROJECT_INPUT,
   }),
   output: RELEASE_CHECK_OUTPUT,
   positional: ['version'],
@@ -244,7 +245,7 @@ const releaseCheckCommand = defineCommand({
     const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
     const out = createOutput<z.input<typeof RELEASE_CHECK_OUTPUT>>(false, io)
     const cwd = process.cwd()
-    const context = loadReleaseContext(out, adopted, input.repo, input.package, { version: input.version, nxAlertsOnly: true })
+    const context = loadReleaseContext(out, adopted, input.repo, input.package, input.project, CHECK_PATH, { version: input.version, nxAlertsOnly: true })
     const { config, owner, repository } = context
 
     const alerts = await checkAlerts(out, config, owner, repository)
@@ -300,6 +301,7 @@ const releaseCreateCommand = defineCommand({
     version: z.string().describe('Release version (for example 0.6.1)'),
     dry_run: z.boolean().default(false).describe('Show what would happen without changing anything'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
+    project: PROJECT_INPUT,
   }),
   output: RELEASE_CREATE_OUTPUT,
   positional: ['version'],
@@ -316,7 +318,7 @@ const releaseCreateCommand = defineCommand({
       return stopWith(out, error.message, 'invalid-input')
     }
 
-    const context = loadReleaseContext(out, adopted, input.repo, input.package)
+    const context = loadReleaseContext(out, adopted, input.repo, input.package, input.project, ['release', 'create'])
     const { config, owner, repository, tagPrefix } = context
 
     let releaseNotes: string
@@ -373,6 +375,7 @@ const releaseMergeCommand = defineCommand({
     dry_run: z.boolean().default(false).describe('Show what would happen without merging'),
     delete_branch: z.boolean().default(false).describe('Delete the branch after merging'),
     admin: z.boolean().default(false).describe('Merge with admin rights (skip the mergeability check)'),
+    project: PROJECT_INPUT,
   }),
   output: RELEASE_MERGE_OUTPUT,
   positional: ['pr_ref'],
@@ -381,8 +384,6 @@ const releaseMergeCommand = defineCommand({
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
     const out = createOutput<z.input<typeof RELEASE_MERGE_OUTPUT>>(input.dry_run, io)
-    const config = loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
-
     let reference
     try {
       reference = parsePullRequestReference(input.pr_ref)
@@ -394,6 +395,7 @@ const releaseMergeCommand = defineCommand({
     const { owner, repository } = reference.repository
     const number = reference.number
     const pullRequestName = issuePath(owner, repository, number)
+    const config = requireConfigFor(out, reference.repository, input.project, ['release', 'merge']).config
 
     let client
     let pullRequest

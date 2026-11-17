@@ -55,6 +55,14 @@ export interface ProjectOptions {
   */
   readonly isActive?: boolean
   /**
+  false なら、設定は置くが `.active` を置かない
+  */
+  readonly hasActiveMark?: boolean
+  /**
+  設定の名前（`.json` を除く）から repositories への表。既定の設定のほかに置く設定
+  */
+  readonly extraProjects?: Readonly<Record<string, readonly Readonly<Record<string, unknown>>[]>>
+  /**
   git の remote。省略すると origin だけ。空なら remote を持たない
   */
   readonly remotes?: Readonly<Record<string, string>>
@@ -188,7 +196,9 @@ export function createProject(options: Readonly<ProjectOptions> = {}): Project {
     const projects = path.join(directory, '.pecot', 'config', 'projects')
     mkdirSync(projects, { recursive: true })
     writeFileSync(path.join(projects, name), configFile(options.repositories ?? [DEFAULT_REPOSITORY]))
-    writeFileSync(path.join(projects, '.active'), `${name}\n`)
+    const extras = Object.entries(options.extraProjects ?? {})
+    for (const [extra, repositories] of extras) writeFileSync(path.join(projects, `${extra}.json`), configFile(repositories))
+    if (options.hasActiveMark !== false) writeFileSync(path.join(projects, '.active'), `${name}\n`)
   }
   return { directory, root, bin }
 }

@@ -30,7 +30,7 @@ import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { commandHint, hinted } from './command-hint.js'
-import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
@@ -64,6 +64,7 @@ const RestackInputSchema = z.strictObject({
   continue: z.boolean().default(false).describe('Continue a restack that stopped on conflicts, after resolving them'),
   abort: z.boolean().default(false).describe('Abort a restack that stopped on conflicts and go back to the position before it'),
   dry_run: z.boolean().default(false).describe('Show what would be done without rebasing, pushing or writing records'),
+  project: PROJECT_INPUT,
 })
 
 function causeOf(decision: Readonly<RestackDecision>): Pick<PrRestackData, 'cause' | 'pullRequest'> {
@@ -223,7 +224,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   if (isRebaseInProgress(cwd)) {
     stopWith(out, hinted`a rebase is in progress\ncontinue the restack: ${commandHint(RESTACK_PATH, { continue: true })}\nor abort it: ${commandHint(RESTACK_PATH, { abort: true })}`, 'invalid-input', USAGE_EXIT_CODE)
   }
-  const config = requireActiveConfigPlain(out)
+  const config = requireConfigFor(out, location, input.project, RESTACK_PATH).config
   // 記録が無ければ、求める前に fetch して、手元に無い下の段も追跡参照で見る
   let fetched: FetchResult | undefined
   const fetchOnce = (): FetchResult => (fetched ??= fetchRemote(cwd, remote))

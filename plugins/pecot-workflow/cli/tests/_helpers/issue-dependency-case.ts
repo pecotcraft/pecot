@@ -4,6 +4,7 @@ import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { graphqlRule } from './command-harness.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
+import type { ProjectFixture } from './interface-case.js'
 import { CONFIG_FILE, linkedRepositories, ORIGIN_URL } from './board-issue-case.js'
 
 export type BoardValue = 'blocked' | 'needs_attention' | 'todo'
@@ -11,7 +12,7 @@ export type BoardValue = 'blocked' | 'needs_attention' | 'todo'
 /**
 設定のボードに、列 Blocked と札 Needs Attention・Todo を載せる。omit に挙げた値は載せない
 */
-export function prepareDependencyProject(options: Readonly<{ omit?: readonly BoardValue[] }> = {}): void {
+export function prepareDependencyProject(options: Readonly<{ omit?: readonly BoardValue[] }> = {}): ProjectFixture {
   const omit = new Set(options.omit)
   const workflow = { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6', ...!omit.has('blocked') && { blocked: 'o7' } }
   const status = { ...!omit.has('needs_attention') && { needs_attention: 's1' }, ...!omit.has('todo') && { todo: 's2' } }
@@ -22,9 +23,10 @@ export function prepareDependencyProject(options: Readonly<{ omit?: readonly Boa
   const project = { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields }
   const repositories = ['demo', 'other'].map(name => ({ owner: 'acme', name, develop_branch: 'main' }))
   const config = { host: 'ghes.example.com', owner: 'acme', workflow_suffix: 'acme', project, repositories }
-  setUpProject({ repositories: ['demo', 'other'], files: { [`.pecot/config/projects/${CONFIG_FILE}`]: `${JSON.stringify(config, undefined, 2)}\n` } })
+  const fixture = setUpProject({ repositories: ['demo', 'other'], files: { [`.pecot/config/projects/${CONFIG_FILE}`]: `${JSON.stringify(config, undefined, 2)}\n` } })
   const repository = enterGitRepository()
   gitForTest(repository, ['remote', 'add', 'origin', ORIGIN_URL])
+  return fixture
 }
 
 /**

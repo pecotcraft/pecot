@@ -7,7 +7,7 @@ import { ReferenceParseError, parseRepositoryReference } from '../domain/referen
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { requireActiveConfig, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
@@ -31,6 +31,7 @@ const branchDeleteCommand = defineCommand({
     repo: z.string().describe('Repository reference (owner/repo)'),
     branch: z.string().describe('Name of the branch to delete'),
     dry_run: z.boolean().default(false).describe('Show what would be deleted without deleting anything'),
+    project: PROJECT_INPUT,
   }),
   output: BRANCH_DELETE_OUTPUT,
   positional: ['repo', 'branch'],
@@ -52,7 +53,7 @@ const branchDeleteCommand = defineCommand({
     const { owner, repository } = target
 
     // 2. 設定取得
-    const config = requireActiveConfig(out)
+    const config = requireConfigFor(out, target, input.project, ['branch', 'delete']).config
 
     // 3. 保護ブランチ収集（設定の develop_branch・release_branch と、API の既定ブランチ）
     const protectedBranches = new Set<string>()

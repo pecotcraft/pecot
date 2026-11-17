@@ -9,7 +9,7 @@ import { jsonField, tryParseJsonText } from '../domain/json.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import type { AsyncMergeResult, PullRequestForMerge } from '../infra/github/pulls.js'
-import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { kindOfFailure } from './failure.js'
@@ -30,6 +30,7 @@ const SYNC_MERGE_REJECTED_STATUSES: ReadonlySet<number> = new Set([405, 409])
 const MergeInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
   dry_run: z.boolean().default(false).describe('Read the PR and its stack, and show what would happen without merging'),
+  project: PROJECT_INPUT,
 })
 
 const PR_MERGE_OUTPUT = z.strictObject({
@@ -229,8 +230,8 @@ export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
   interactive: false,
   run: async (input, io) => {
     const out = createOutput<PrMergeData>(input.dry_run, io)
-    const config = requireActiveConfigPlain(out)
     const target = parseReference(input.pr_ref, input.repo, out)
+    const config = requireConfigFor(out, target, input.project, ['pr', 'merge']).config
     const client = createGitHubClient(out, config.host)
     const name = `PR #${String(target.number)}`
 

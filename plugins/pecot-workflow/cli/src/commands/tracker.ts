@@ -1,6 +1,7 @@
 // `pecot tracker sync <source>`。source ごとの本体（dependabot.ts・security.ts）を呼び分ける。
 import { z } from 'zod'
 
+import { PROJECT_INPUT } from './command-stop.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { runDependabotSync } from './tracker-sync-dependabot.js'
@@ -13,6 +14,7 @@ const syncCommand = defineCommand({
   input: z.strictObject({
     source: z.enum(['dependabot', 'security']).describe('What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)'),
     dry_run: z.boolean().default(false).describe('Show the planned Tracker changes without changing anything'),
+    project: PROJECT_INPUT,
   }),
   output: TRACKER_SYNC_OUTPUT,
   positional: ['source'],

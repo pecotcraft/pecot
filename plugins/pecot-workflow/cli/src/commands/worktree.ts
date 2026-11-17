@@ -38,7 +38,7 @@ import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import { commandHint, hinted, hintedTextOf, inputHint, placeholder } from './command-hint.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
-import { stopWith } from './command-stop.js'
+import { PROJECT_INPUT, stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { requireRepositoryMatch } from './repository-match.js'
 
@@ -81,13 +81,14 @@ function countCopyResults(results: readonly CopyResult[], out: Readonly<Output>)
 
 const worktreeAddInput = z.object({
   directory: directorySchema,
-  base: z.string().optional().describe('Base branch (default: the develop_branch of the repository in the active project)'),
+  base: z.string().optional().describe('Base branch (default: the develop_branch of the repository in its project config)'),
   path: z.string().transform(lenientRealPath).optional().describe('Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)'),
   no_copy: z.boolean().default(false).describe('Skip copying untracked files'),
   no_link: z.boolean().default(false).describe('Skip creating symlinks'),
   setup: z.string().optional().describe('Command to run after creation'),
   dry_run: dryRunInput,
   allow_existing_branch: z.boolean().default(false).describe('Allow reusing an existing branch even if its upstream differs from develop_branch'),
+  project: PROJECT_INPUT,
 })
 
 const ADD_OUTPUT = z.strictObject({
@@ -124,6 +125,7 @@ function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>
       setupCommand: input.setup,
       isDryRun: input.dry_run,
       isExistingBranchAllowed: input.allow_existing_branch,
+      project: input.project,
     })
     const operation: Operation = { verb: 'create', target: `worktree ${result.name} at ${result.path} (branch ${result.branch} from ${result.baseBranch})` }
     out.planned(operation)

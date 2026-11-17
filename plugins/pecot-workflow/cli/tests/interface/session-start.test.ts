@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
+import { ambiguousFiles, AMBIGUOUS_MESSAGE, NO_ACTIVE_FILES, otherRepositoryConfig, SECOND_PROJECT } from '../_helpers/harness-selection.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { STALE_OPTION_TEXT, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool, staleOptionUpdate } from '../_helpers/command-harness.js'
@@ -232,12 +233,34 @@ describe('session start', () => {
     expect(result.stderr).not.toContain('created: work directory')
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-SESSION-START-18')
-    const result = await create({ config: false, github: [] })
+    const result = await create({ files: ambiguousFiles(), github: [] })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: no active project\n  run: pecot project activate <PROJECT>\n')
+    expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
     expect(result.requests).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-SESSION-START-41')
+    const result = await create({ config: otherRepositoryConfig(), github: [] })
+    expect(result.code).toBe(1)
+    expect(result.stderr).toBe('error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n')
+    expect(result.requests).toEqual([])
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定でブランチを作る', async (context) => {
+    await verifies(context, 'PW-SESSION-START-42')
+    const result = await create({ files: ambiguousFiles() }, ['session', 'start', 'acme/demo/7', 'feat', '--project', SECOND_PROJECT])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toContain(CREATED)
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定でブランチを作る', async () => {
+    const result = await create({ files: NO_ACTIVE_FILES })
+    expect(result.code).toBe(0)
+    expectClean(result)
   })
 
   it.for([

@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -18,6 +18,7 @@ import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession, separateRepository } from '../_helpers/session-case.js'
+import { makeAmbiguous, removeActive, SECOND_CONFIG } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -173,7 +174,7 @@ describe('session show', () => {
   it('origin が無くても、最初の remote のリポジトリを出し、そのリポジトリの Issue を作業中の Issue にする', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-01')
     await verifies(context, 'PW-SESSION-SHOW-02')
-    const { repository } = prepareSession({ remotes: { upstream: 'https://ghes.example.com/acme/other.git' } })
+    const { repository } = prepareSession({ remotes: { upstream: 'https://ghes.example.com/acme/other.git' }, repositories: ['other'] })
     const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
     const result = await status(repository)
@@ -199,17 +200,54 @@ describe('session show', () => {
     expect(result.stdout).not.toContain('## Active Issue')
   })
 
-  it('作業中の Issue があるのにアクティブなプロジェクトが無いとき、節を出さずに warning を標準エラーに出す', async (context) => {
+  it('作業中の Issue があるのに、そのリポを含む設定が 2 つあり .active も選べないとき、節を出さずに warning を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-15')
     await verifies(context, 'PW-SESSION-SHOW-16')
+    await verifies(context, 'PW-SESSION-SHOW-39')
     const { project, repository } = prepareSession()
-    rmSync(path.join(project.root, '.pecot/config/projects/.active'))
+    makeAmbiguous(project)
 
     const result = await status(repository)
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(SUMMARY)
-    expect(result.stderr).toBe('warning: cannot read the active Issue: no active project\n')
+    expect(result.stderr).toBe('warning: cannot read the active Issue: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n')
+  })
+
+  it('作業中の Issue があるのに、そのリポを含む設定が無いとき、節を出さずに warning を標準エラーに出して終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-SESSION-SHOW-39')
+    const { repository } = prepareSession({ repositories: ['other'] })
+
+    const result = await status(repository)
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe(SUMMARY)
+    expect(result.stderr).toBe('warning: cannot read the active Issue: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n')
+  })
+
+  it('--project を渡すと、そのリポを含む設定が 2 つあってもその設定で作業中の Issue を読む', async (context) => {
+    await verifies(context, 'PW-SESSION-SHOW-40')
+    const { project, repository } = prepareSession()
+    makeAmbiguous(project)
+    await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
+
+    const result = await runInProcess(['session', 'show', '-D', repository, '--project', SECOND_CONFIG], SESSION_COMMANDS)
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('## Active Issue')
+    expect(result.stderr).toBe('')
+  })
+
+  it('.active が無くても、そのリポを含む設定が 1 つならその設定で作業中の Issue を読む', async () => {
+    const { project, repository } = prepareSession()
+    removeActive(project)
+    await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
+
+    const result = await status(repository)
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('## Active Issue')
+    expect(result.stderr).toBe('')
   })
 
   it('作業中の Issue があるのに Issue を GitHub から読めないとき、節を出さずに warning を標準エラーに出す', async (context) => {
@@ -619,9 +657,8 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({ branch: 'feat/no-number', repository: 'acme/demo' })
     })
 
-    it('アクティブなプロジェクトが無いとき、activeIssue に reference だけを返して warning を返す', async () => {
-      const { project, repository } = prepareSession()
-      rmSync(path.join(project.root, '.pecot/config/projects/.active'))
+    it('そのリポを含む設定が無いとき、activeIssue に reference だけを返して warning を返す', async () => {
+      const { repository } = prepareSession({ repositories: ['other'] })
 
       const outcome = await showTool(repository)
 
@@ -630,7 +667,7 @@ describe('session show', () => {
         branch: 'feat/demo/7',
         repository: 'acme/demo',
         activeIssue: { reference: 'acme/demo/7' },
-        warnings: ['cannot read the active Issue: no active project'],
+        warnings: ['cannot read the active Issue: acme/demo is not in any project config\navailable: ghes.example.com_acme_board_acme'],
       })
     })
 

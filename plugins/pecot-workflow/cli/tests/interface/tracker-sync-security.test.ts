@@ -496,13 +496,33 @@ describe('tracker sync', () => {
   })
 
   describe('実行できない', () => {
-    it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+    it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-72')
-      prepareSync({ hasConfig: false })
+      prepareSync({ ambiguous: true })
       const github = await startGithub([])
       const result = await sync()
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
+      expect(result.stderr).toContain('--project <NAME>')
       expect(github.requests()).toEqual([])
+    })
+
+    it('対象のリポを含む設定が無いと、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-95')
+      prepareSync({ repositories: ['other'] })
+      const github = await startGithub([])
+      const result = await sync()
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+      expect(github.requests()).toEqual([])
+    })
+
+    it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-96')
+      prepareSync({ ambiguous: true })
+      await startGithub(listings({}, []))
+      const result = await sync('--dry-run', '--project', 'second')
+      expect(result.code).toBe(0)
     })
 
     it('--repo を省いて git の remote のリポジトリを読めないと、終了コード 1 で終わる', async (context) => {
