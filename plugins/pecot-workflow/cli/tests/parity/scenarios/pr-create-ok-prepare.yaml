@@ -8,6 +8,9 @@ setup:
   repo:
     branch: feat/demo/12
     files:
+      # session start が書く、開発ブランチから着手した記録
+      .pecot/state/.pecot-base: |
+        main 0000000000000000000000000000000000000000
       .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
           {
             "host": "ghes.example.com",

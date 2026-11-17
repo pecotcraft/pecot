@@ -15,7 +15,7 @@ import { loadActiveConfig } from '../infra/config-store.js'
 import { activeIssueOf, gitCurrentBranch, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { readBaseOrInfer } from './base-reading.js'
+import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { directorySchema } from './directory-option.js'
@@ -121,7 +121,9 @@ interface StackSection {
 
 // 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
 async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation> | undefined, directory: string, output: Output): Promise<StackSection> {
-  const { reading, readiness: known } = await readBaseOrInfer({ directory, config: active.config, client: () => active.client, output })
+  const base = await readBaseOrInfer({ directory, project: { config: active.config, client: () => active.client } })
+  warnUnresolved(base, output)
+  const { reading, readiness: known } = base
   if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
   if (reading.kind !== 'stacked') return { lines: [] }
   const { record, stackedOn } = reading

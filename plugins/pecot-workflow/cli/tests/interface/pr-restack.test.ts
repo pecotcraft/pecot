@@ -337,17 +337,25 @@ describe('pr restack', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: row.expected })
   })
 
-  it.for([
-    { name: '記録が無く、判定が startable', isRecorded: false },
-    { name: '開発ブランチから着手した記録がある', isRecorded: true },
-  ])('積んでいないブランチ（$name）では、fetch と載せ直しをせずに up to date と出す', async (row, context) => {
+  it('開発ブランチから着手した記録があると、fetch と載せ直しをせずに up to date と出す', async (context) => {
     await verifies(context, 'PW-PR-RESTACK-10')
-    const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER }], baseRecord: row.isRecorded, github: row.isRecorded ? [] : [STARTABLE_RULE, STARTABLE_RULE] })
+    const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER }] })
     workspace.advanceRemote('main')
     const tracked = head(workspace, 'origin/main')
     expect(await workspace.run(['pr', 'restack', '--check'])).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on main\n`, stderr: '' })
     expect(await workspace.run(['pr', 'restack'])).toStrictEqual({ code: 0, stdout: '', stderr: `unchanged: ${UPPER} is up to date\n` })
     expect(head(workspace, 'origin/main')).toBe(tracked)
+  })
+
+  it('記録が無く、判定が startable なら、fetch してから判定を読み、載せ直さずに up to date と出す', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-10')
+    await verifies(context, 'PW-PR-RESTACK-30')
+    const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER }], baseRecord: false, github: [STARTABLE_RULE, STARTABLE_RULE] })
+    workspace.advanceRemote('main')
+    const tracked = head(workspace, 'origin/main')
+    expect(await workspace.run(['pr', 'restack', '--check'])).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on main\n`, stderr: '' })
+    expect(await workspace.run(['pr', 'restack'])).toStrictEqual({ code: 0, stdout: '', stderr: `unchanged: ${UPPER} is up to date\n` })
+    expect(head(workspace, 'origin/main')).not.toBe(tracked)
   })
 
   describe('記録が無い作業ディレクトリ', () => {
@@ -370,8 +378,16 @@ describe('pr restack', () => {
       expect(result).toStrictEqual({ code: 0, stdout: `needs restack: ${UPPER} on ${LOWER} (base moved)\n`, stderr: '' })
     })
 
+    it('下の段の追跡参照が手元に無くても、求める前に fetch して、下の段に積んだものとして扱う', async (context) => {
+      await verifies(context, 'PW-PR-RESTACK-30')
+      const workspace = await openInferred([STACKABLE_RULE, lowerPullRequests('OPEN')])
+      workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
+      const result = await workspace.run(['pr', 'restack', '--check'])
+      expect(result).toStrictEqual({ code: 0, stdout: `up to date: ${UPPER} on ${LOWER}\n`, stderr: '' })
+    })
+
     it('判定が blocked なら、warning を出し、積んでいないものとして up to date と出す', async (context) => {
-      await verifies(context, 'PW-PR-RESTACK-27')
+      await verifies(context, 'PW-PR-RESTACK-29')
       const blocked = prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })
       const workspace = await openInferred([blocked])
       const result = await workspace.run(['pr', 'restack', '--check'])

@@ -444,6 +444,21 @@ describe('session show', () => {
       expect(operationsOf(github)).toEqual(['GetIssueSlim', 'GetIssuePrerequisites', 'ListPullRequestsByBase'])
     })
 
+    it('--directory の toplevel がプロジェクトのルートと違っても、その worktree に積んだ記録があれば、判定から求めずにその記録を Stack の節に出す', async (context) => {
+      await verifies(context, 'PW-SESSION-SHOW-38')
+      prepareSession()
+      const clone = separateRepository()
+      mkdirSync(path.join(clone, '.pecot/state'), { recursive: true })
+      writeFileSync(path.join(clone, '.pecot/state/.pecot-base'), STACKED['.pecot/state/.pecot-base'])
+      await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
+
+      const result = await status(clone)
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('')
+      expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')).toBe(true)
+    })
+
     describe('記録が無い作業ディレクトリ', () => {
       it('判定が stackable で下の段の上にあると、Stack の節に求めた base を出し、判定を 1 回だけ読む', async (context) => {
         await verifies(context, 'PW-SESSION-SHOW-35')

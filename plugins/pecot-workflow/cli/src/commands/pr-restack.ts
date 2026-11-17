@@ -25,6 +25,7 @@ import {
   resetHardTo,
   resolveCommit,
 } from '../infra/git.js'
+import type { FetchResult } from '../infra/git.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
@@ -36,7 +37,7 @@ import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { stopOnMalformedRecord, validatePullRequestContext } from './pr.js'
 import { readRestackDecision } from './restack-reading.js'
-import { readBaseOrInfer } from './base-reading.js'
+import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const CONFLICT_EXIT_CODE = 3
@@ -223,7 +224,12 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     stopWith(out, hinted`a rebase is in progress\ncontinue the restack: ${commandHint(RESTACK_PATH, { continue: true })}\nor abort it: ${commandHint(RESTACK_PATH, { abort: true })}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   const config = requireActiveConfigPlain(out)
-  const { reading } = await readBaseOrInfer({ directory: cwd, config, client: () => createGitHubClient(out, config.host), output: out })
+  // 記録が無ければ、求める前に fetch して、手元に無い下の段も追跡参照で見る
+  let fetched: FetchResult | undefined
+  const fetchOnce = (): FetchResult => (fetched ??= fetchRemote(cwd, remote))
+  const base = await readBaseOrInfer({ directory: cwd, project: { config, client: () => createGitHubClient(out, config.host) }, beforeInfer: fetchOnce })
+  warnUnresolved(base, out)
+  const { reading } = base
   stopOnMalformedRecord(reading, out)
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}`, 'repo-setting-missing')
@@ -235,8 +241,8 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     return
   }
   if (!input.check && hasUncommittedChanges(cwd)) stopWith(out, 'working tree has uncommitted changes', 'preflight-failed', UNCOMMITTED_EXIT_CODE)
-  const fetched = fetchRemote(cwd, remote)
-  if (!fetched.succeeded) stopWith(out, `cannot fetch ${remote}: ${fetched.stderr.trim()}`, 'git-unresolved')
+  const fetchResult = fetchOnce()
+  if (!fetchResult.succeeded) stopWith(out, `cannot fetch ${remote}: ${fetchResult.stderr.trim()}`, 'git-unresolved')
 
   const target: StackedTarget = { remote, owner: location.owner, repository: location.repository, reading, developBranch }
   const decision = await decideFor(out, cwd, config.host, target)
