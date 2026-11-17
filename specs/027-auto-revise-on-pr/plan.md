@@ -9,7 +9,7 @@
 pecot-workflow に、PR の作成で w-revise のレビューを始める仕組みを足す。pecot の最初のクラウドのエージェントだ。
 利用者のリポに置くワークフローの雛形が、`pull_request` を契機に claude-code-action を動かす。
 action は pecot-workflow のプラグインを入れ、`/pecot-w:w-revise --unattended <PR>` を起動する。
-w-revise は、w-reviewer を起こして diff を見せ、指摘をインラインコメントと `review-findings` で投稿して終わる。
+w-revise は、w-reviewer の定義を読んで自分で diff を見て、指摘をインラインコメントと `review-findings` で投稿して終わる。
 採否・修正・resolve は行わない。続きは、人が端末の w-revise を起こすと、自動レビューの指摘を引き継いで進む。
 GitHub のトークンは、既定では Claude の App のものだ。書き込みを持つので、エージェントに書き換えのツールを渡さないことで、リポの内容を守る。権限を絞りたい利用者は、自前の App を置ける。
 「必ず起きること」は CLI に寄せる。新しい `pecot pr review-finish` が、止まったときのコメントを書く。

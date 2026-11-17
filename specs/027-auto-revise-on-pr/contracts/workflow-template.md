@@ -144,6 +144,7 @@ diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないの�
 - `Bash`
 - `Edit`・`Write`・`NotebookEdit`
 - `AskUserQuestion`
+- `Agent`。人のいない実行では、サブエージェントを起こさない（`contracts/skill-flow.md`）
 - `WebFetch`・`WebSearch`
 
 許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で、書き換えのツールと `Bash` を渡さないことだ（FR-011）。自前の App のときは、トークンの権限も境界になる。
