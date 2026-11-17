@@ -252,7 +252,7 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 | 両方 | `wt1` ブランチでの `git commit` | 同上 | `git-worktree-branch-check` の deny | 2026-11-17 |
 | 両方 | 初期値のままの `git commit --no-verify` | 同上 | 止めずに実行される | 2026-11-17 |
 | 両方 | `git-no-verify-check` を有効にした `git commit --no-verify` | 同上 | `git-no-verify-check` の deny | 2026-11-17 |
-| 両方（対話のセッション） | `git clone --depth 1 <url> .pecot/work/<番号>/reviewer/<名前>` | 同上 | `reviewer-clone-allow` の allow で、承認の確認が出ずに実行される。`reviewer/` の外への clone では確認が出る | 2026-11-17 |
+| 両方（対話のセッション） | `git clone --depth 1 <url> .pecot/work/<番号>/reviewer/<名前>`（pecot-sandbox の clone で確認。このリポは `Bash(git *)` を許すため） | 同上 | `reviewer-clone-allow` の allow で、承認の確認が出ずに実行される。`reviewer/` の外への clone では確認が出る | 2026-11-17 |
 | 両方 | `cat /tmp/x-468` | 同上 | `tmp-path-warner` の案内が `additionalContext` でエージェントに届く | 2026-11-17 |
 | Copilot 1.0.112 | 起動（`-p`） | SessionStart: `session-start.sh` | 有効にした git-sync の結果が、トップレベルの `additionalContext` でモデルに届く | 2026-11-17 |
 | Copilot 1.0.112 | skill ツールで w-help | `pre-tool-use-skill.sh`（matcher `Skill\|skill`） | スキルは名前空間なしで起動できる。`.pecot` が初期化済みなので、何も出さない | 2026-11-17 |
