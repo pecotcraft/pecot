@@ -73,8 +73,8 @@ repos:
         entry: .githooks/lib/with-timing.sh check-text .githooks/pre-commit/check-text.sh
         language: unsupported_script
         files: \.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$
-        # 外すのは、生成物と逐語の記録、上流の speckit の配布物、spec-kit のテンプレートの形で書く specs/ だ。
-        # 一覧は test_check_text_excludes_generated_files が固定する。
+        # 外すのは、生成物と逐語の記録、上流の文書の写し（speckit の配布物・aws-agent-rules.md）、spec-kit のテンプレートの形で書く specs/ だ。
+        # 一覧は test_check_text_excludes_listed_paths が固定する。
         exclude: (^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-|^\.claude/rules/aws-agent-rules\.md$|^\.nx/nx-release/tests/_fixtures/|^specs/
         # 違反が確定した時点で、後続の重い hook を始めない
         fail_fast: true
