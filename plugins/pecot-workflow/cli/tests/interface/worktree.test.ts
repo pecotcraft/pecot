@@ -657,8 +657,8 @@ describe('worktree add', () => {
     expect(withBase.code).toBe(0)
   })
 
-  it('wt1 から wt9 までのセットがすべて使われているとき、wt10 のセットを始める', async (context) => {
-    await verifies(context, 'PW-WORKTREE-ADD-55')
+  it('wt1 から wt9 までのセットがすべて使われていても、最大の番号の次の wt10 のセットに worktree を作る', async (context) => {
+    await verifies(context, 'PW-WORKTREE-ADD-04')
     const { repository, root } = createProject()
     for (let number = 1; number <= 9; number += 1) gitForTest(repository, ['worktree', 'add', '-q', '-b', `wt${String(number)}`, path.join(root, 'used', String(number))])
     const result = await pecot(['worktree', 'add', '-D', repository])

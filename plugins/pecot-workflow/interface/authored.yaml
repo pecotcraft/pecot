@@ -6648,9 +6648,6 @@ entries:
       - id: PW-WORKTREE-ADD-54
         pattern: unwanted
         statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
-      - id: PW-WORKTREE-ADD-55
-        pattern: event
-        statement: '`wt1` から `wt9` までのセットがすべて使われているときに打つと、`wt10` のセットを始めます'
   PW-WORKTREE-INIT:
     help:
       details:
