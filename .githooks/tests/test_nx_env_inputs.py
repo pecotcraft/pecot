@@ -116,6 +116,12 @@ _EXEMPT: dict[str, str] = {
     "PECOT_BOOTSTRAP_FORCE": (
         "run-tests.sh と conftest が unset して固定する。ミラーを作り直す bootstrap テストは、自分で env に渡す"
     ),
+    "GITHUB_RUN_ID": (
+        "review finish が目印に入れる。vitest の useIsolatedEnvironment が外し、review finish のテストが自分で渡す"
+    ),
+    "GITHUB_RUN_ATTEMPT": "GITHUB_RUN_ID と同じ",
+    "GITHUB_ACTOR": "GITHUB_RUN_ID と同じ",
+    "PECOT_REVIEW_TRIGGER_PHRASE": "GITHUB_RUN_ID と同じ",
     "PECOT_GITHUB_API_URL": (
         "cli/tests/conftest.py が unset して固定する。前後比較のテストは、子プロセスの env に偽サーバの URL を"
         "自分で渡す"

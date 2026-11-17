@@ -294,6 +294,13 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
+  Issue・PR のコメントを全件取る（REST）
+  */
+  async listIssueComments(owner: string, repository: string, number: number): Promise<readonly JsonValue[]> {
+    return this.listAll(`${repositoryPath(owner, repository)}/issues/${String(number)}/comments`, { per_page: ISSUES_PER_PAGE })
+  }
+
+  /**
   Issue 番号から GraphQL Node ID を取る。見つからなければ GitHubNotFoundError
   */
   async getIssueNodeId(owner: string, repository: string, number: number): Promise<string> {

@@ -79,7 +79,7 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | Node | `actions/setup-node` |
 | 利用者の準備 | 開始と終了の印のコメント 2 行だけ。step は `uses` か `run` を要するので、空の step は置かない |
 | 自動レビュー | claude-code-action。入力は下の表 |
-| 後始末 | `if: always()` で `pecot pr review-finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
+| 後始末 | `if: always()` で `pecot review finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
 
 後始末の step が渡す値:
 
@@ -89,10 +89,16 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | `REVIEW_OUTCOME` | `${{ steps.claude.outcome }}` | `--review-outcome "$REVIEW_OUTCOME"` |
 | `REVIEW_CONCLUSION` | `${{ steps.claude.outputs.conclusion }}` | `--review-conclusion "$REVIEW_CONCLUSION"` |
 | `REVIEW_HAS_TOKEN` | `${{ steps.claude.outputs.github_token != '' }}` | `--review-has-token "$REVIEW_HAS_TOKEN"` |
+| `EXECUTION_FILE` | `${{ steps.claude.outputs.execution_file }}` | `--execution-file "$EXECUTION_FILE"` |
+| `REVIEW_STARTED_AT` | `${{ steps.start.outputs.time }}` | `--since "$REVIEW_STARTED_AT"` |
+| `PECOT_REVIEW_TRIGGER_PHRASE` | `${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}` | 引数にしない。CLI が環境変数から読む |
 
 - `run:` に式を直接埋め込まない。GitHub の公式の安全ガイドは、値を中間の環境変数で渡す形を勧めている
 - `conclusion` はふつう空なので、引用符が無いと引数が消え、次のオプションが値として読まれる
 - `github_token` は、値を渡さず、有無だけを `true` か `false` で渡す
+- 開始時刻は、job の最初の step（`id: start`）が `date -u +%Y-%m-%dT%H:%M:%SZ` を出力に置いて作る。`--execution-file`・`--since` は空でもよく、空なら上限の見分けと止まった場所を「分からない」に倒す
+- リポの変数は、step の環境変数に自動では入らないので、合言葉も `env` で渡す
+- 環境変数 `GITHUB_RUN_ID`・`GITHUB_RUN_ATTEMPT`・`GITHUB_ACTOR` は、GitHub Actions が入れる
 
 action はすべて SHA で固定し、版をコメントに書く。
 後始末の step は、`npx -y --prefix=/ @pecot/workflow-mcp@latest` で CLI を打つ。dist-tag の決め方は、board sync の雛形と同じだ。このリポと検証用に置くファイルは、`@next` にする。
@@ -150,7 +156,7 @@ action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、actio
 | ツール | 使い道 |
 |---|---|
 | `Read`・`Glob`・`Grep` | コードを読む |
-| `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`pr_restack`・`issue_comment`・`pr_review_finish` | w-revise の Step 1〜3 と終わり方 |
+| `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`pr_restack`・`issue_comment`・`review_finish` | w-revise の Step 1〜3 と終わり方 |
 | `mcp__github_inline_comment__create_inline_comment` | インラインコメントの投稿。action に同梱のツールで、公式の PR レビューの例と同じだ |
 | `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` | 利用者が足す許可。job の `env` に印のコメントで囲んで置き、`--allowedTools` の末尾に、空でないときだけ足す。初期は空 |
 

@@ -52,7 +52,7 @@ function stepUsing(action: string): Step {
 const review = stepUsing('anthropics/claude-code-action')
 const reviewInputs = review.with ?? {}
 const claudeArguments = text(reviewInputs['claude_args'])
-const finish = steps.find(step => step.run?.includes('pr review-finish') === true) ?? {}
+const finish = steps.find(step => step.run?.includes('review finish') === true) ?? {}
 const checkPr = steps.find(step => step.id === 'pr') ?? {}
 
 // job の if を、event_name の比べで始まる 2 つの枝に分ける。
@@ -249,7 +249,7 @@ describe('review のワークフローの雛形', () => {
       `${pecot}issue_show`,
       `${pecot}pr_restack`,
       `${pecot}issue_comment`,
-      `${pecot}pr_review_finish`,
+      `${pecot}review_finish`,
       'mcp__github_inline_comment__create_inline_comment',
     ])
     for (const tool of allowed) expect(tool).not.toMatch(/merge|close|release|session_finish|branch_delete/)
@@ -288,6 +288,17 @@ describe('review のワークフローの雛形', () => {
     }
   })
 
+  it('後始末の step は、実行のファイル・最初の step が記録した開始時刻・合言葉の変数を env で受けて渡す', () => {
+    expect(steps[0]?.id).toBe('start')
+    expect(steps[0]?.run).toBe('echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"')
+    expect(finish.env).toMatchObject({
+      EXECUTION_FILE: '${{ steps.claude.outputs.execution_file }}',
+      REVIEW_STARTED_AT: '${{ steps.start.outputs.time }}',
+      PECOT_REVIEW_TRIGGER_PHRASE: '${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}',
+    })
+    expect(finish.run).toContain('--execution-file "$EXECUTION_FILE" --since "$REVIEW_STARTED_AT"')
+  })
+
   it('すべての action を 40 桁の SHA で固定する', () => {
     const uses = steps.map(step => step.uses).filter(use => use !== undefined)
     expect(uses.length).toBeGreaterThan(0)
@@ -295,6 +306,6 @@ describe('review のワークフローの雛形', () => {
   })
 
   it('後始末の step は、最新の正式版の CLI を取る', () => {
-    expect(finish.run).toMatch(/^npx -y --prefix=\/ @pecot\/workflow-mcp@latest pr review-finish /)
+    expect(finish.run).toMatch(/^npx -y --prefix=\/ @pecot\/workflow-mcp@latest review finish /)
   })
 })

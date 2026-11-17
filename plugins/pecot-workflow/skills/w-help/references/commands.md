@@ -62,6 +62,12 @@
 | `release create` | Create a GitHub release and its tag (the release notes come from the CHANGELOG) |
 | `release merge` | Merge a release PR with a regular merge |
 
+## review
+
+| コマンド | 説明 |
+| --- | --- |
+| `review finish` | Finish an automated review: post a comment on the PR only when the review stopped (failed, limit or setup-missing) |
+
 ## session
 
 | コマンド | 説明 |

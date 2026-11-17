@@ -7,7 +7,7 @@ import { GitHubClientBase } from './client.js'
 import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { asArray, isTruthy, requireString } from './payload.js'
 import { MUTATION_CREATE_LINKED_BRANCH, QUERY_GET_REPOSITORY_ID } from './queries.js'
-import { encodePath, repositoryPath } from './rest-path.js'
+import { encodePath, encodePathSegment, repositoryPath } from './rest-path.js'
 
 export interface CreateReleaseOptions {
   /**
@@ -79,6 +79,14 @@ export class ReposApi extends GitHubClientBase {
     const repository = jsonField(result, 'repository')
     if (!isTruthy(repository)) throw new GitHubNotFoundError(`repository not found: ${owner}/${name}`)
     return requireString(jsonField(repository, 'id'), 'repository.id')
+  }
+
+  /**
+  利用者のリポへの権限（REST の collaborators の permission）。maintain は write、triage は read で返る
+  */
+  async getCollaboratorPermission(owner: string, repository: string, user: string): Promise<string> {
+    const result = await this.restObject('GET', `${repositoryPath(owner, repository)}/collaborators/${encodePathSegment(user)}/permission`)
+    return requireString(jsonField(result, 'permission'), 'permission')
   }
 
   /**
