@@ -19,7 +19,7 @@ import {
 const { required, closedHeadingsByTemplate, cases } = sectionsOutputs()
 
 describe('Python の出力との一致', () => {
-  describe.each(cases)('本文 $body', (result) => {
+  describe.each(cases)('%$ 件目の本文 $body', (result) => {
     it('本文の書式の検証が Python の結果と一致する', () => {
       expect(validateBodyStyle(result.body)).toEqual(result.style)
     })

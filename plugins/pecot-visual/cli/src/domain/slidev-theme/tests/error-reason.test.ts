@@ -14,7 +14,7 @@ describe('themeErrorReason', () => {
     [new ThemeDeclarationError('x', 'unknown-rule'), 'theme-unknown-rule'],
     [new ThemeFetchError('x', 'tag'), 'theme-tag'],
     [new ThemeSpecError('x', 'tag-required'), 'theme-tag-required'],
-  ])('%s の reason は theme-<reason>', (error, reason) => {
+  ])('%s の reason は %s', (error, reason) => {
     expect(themeErrorReason(error)).toBe(reason)
     expect(isThemeError(error)).toBe(true)
   })

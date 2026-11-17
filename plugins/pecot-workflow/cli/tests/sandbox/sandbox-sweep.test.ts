@@ -325,7 +325,7 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       ['--repo', 'pecotcraft/pecot'],
       ['-R', 'pecotcraft/pecot'],
       ['extra'],
-    ])('許さない引数 %j は、gh を呼ばずに終了コード 2 で断る', (argumentList) => {
+    ].map(argumentList => ({ argumentList })))('許さない引数 $argumentList は、gh を呼ばずに終了コード 2 で断る', ({ argumentList }) => {
       const result = environment.run(...argumentList)
       expect(result.status).toBe(2)
       expect(result.stderr.startsWith('error: ')).toBe(true)

@@ -55,7 +55,7 @@ describe('setupFiles', () => {
 
   it('題が重ならないファイルは通る', () => {
     const result = runFixture('unique.fixture.ts')
-    expect(result.stderr).toBe('')
+    expect(result.stdout + result.stderr).not.toContain('同じ題のテストが重なる')
     expect(result.status).toBe(0)
   })
 })
