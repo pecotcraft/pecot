@@ -2,11 +2,11 @@
 
 ## A. pecot のフィールド
 
-### ProjectConfig（設定ファイル。`.pecot/config/projects/<host>_<owner>_<slug>.json`）
+### ProjectConfig（設定ファイル。`.pecot/config/projects/<host>_<owner>_<number>.json`）
 
 | 項目 | 変更 | 内容 |
 |---|---|---|
-| ファイル名 | 変更 | 末尾の `_<suffix>` を外す（R2） |
+| ファイル名 | 変更 | `<host>_<owner>_<slug>_<suffix>.json` から `<host>_<owner>_<number>.json` にする。ボードの名前を変えても対応が外れない（R2） |
 | `workflow_suffix` | 削除 | 読み込みでは捨てる。`project_sync` が旧いファイルを移すときに消す |
 | `fields.workflow` | 変更なし | `pecot-status` の選択肢の名前と ID |
 | `fields.lane` | 追加 | `pecot-lane` の選択肢の名前と ID。フィールドが無ければ無い |

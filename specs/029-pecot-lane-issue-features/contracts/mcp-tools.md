@@ -32,7 +32,7 @@
 | 入力 | 変更 | 内容 |
 |---|---|---|
 | `priority`・`size` | 削除 | 渡されたら、無い入力として止める |
-| `lane` | 追加 | `pecot-lane` の値。省略できる。`parent_epic` があり省略したら、親の値 |
+| `lane` | 追加 | `pecot-lane` の値。省略できる。`parent_epic` があり省略したら、親の値。`attributes` にも `pecot-lane` を入れると、どちらを使うか決まらないので、Issue を作らずに止める（`ambiguous_attribute`） |
 | `attributes` | 追加 | B を参照 |
 
 frontmatter: `priority`・`size` は読み捨てる。`lane` と `attributes` を受ける。
@@ -93,12 +93,14 @@ AttributeValue の配列。検証に 1 つでも通らなければ、Issue を�
 |---|---|
 | `changed` | 変えた機能の名前と、前の値・後の値 |
 | `errors` | 検証で止めたときの一覧。止めたときは何も書かない |
+| `failed` | 検証は通ったが書けなかった機能と理由（Issue fields の権限の不足など）。ほかの機能は書く（FR-020）。`issue_create` の出力にも同じ項目を足す |
 
 ### `issue_show`
 
 | 出力 | 変更 | 内容 |
 |---|---|---|
 | `attributes` | 追加 | AttributeReading の配列。値の入っている機能をすべて |
+| `unsupported` | 追加 | 値は入っているが pecot が扱えない種類の機能の、名前と GitHub の種類（FR-022） |
 
 ## 担保の確かめ
 

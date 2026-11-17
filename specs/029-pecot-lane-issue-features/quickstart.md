@@ -1,6 +1,8 @@
 # Quickstart: pecot のフィールドの整理と、Issue の機能の担保を確かめる
 
-確かめは、`plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」に従い、検証用のリポ `pecotcraft/pecot-sandbox` とボード `pecot sandbox`（Projects の 3 番）で行う。このリポのボードに書き込むのは、最後の「このリポへの導入」だけにする。
+確かめは、`plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」に従い、検証用のリポ `pecotcraft/pecot-sandbox` とボード `pecot sandbox`（Projects の 3 番）で行う。
+
+このリポのボードを移すのは、最後の「このリポへの導入」だけにする。棚卸しで見つけた不適合と「使う」とした機能の起票（tasks.md の Phase 9）は、確かめではないので、このリポに起票する。
 
 入力と出力の形は [contracts/mcp-tools.md](contracts/mcp-tools.md)、値の決まりは [data-model.md](data-model.md) を見る。
 

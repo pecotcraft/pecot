@@ -14,8 +14,8 @@
 
 - **Decision**:
   - `project_create`・`project_init` の入力から `suffix` を外す。設定の `workflow_suffix` を消す
-  - 設定ファイルの名前は `${host}_${owner}_${slugify(name)}.json` にする。ボードの持ち主と名前で一意に決まる
-  - `project_sync` は、旧い名前の設定ファイル（末尾に `_<suffix>`）を見つけたら新しい名前に移し、使用中のプロジェクトの指定（設定ファイルの stem）も書き換える
+  - 設定ファイルの名前は `${host}_${owner}_${number}.json` にする。ボードの持ち主と番号で一意に決まる。ボードの名前は画面で変えられるので使わない
+  - `project_sync` は、旧い名前の設定ファイル（`${host}_${owner}_${slugify(name)}_${suffix}.json`）を見つけたら新しい名前に移し、使用中のプロジェクトの指定（設定ファイルの stem）も書き換える
   - `board_url` のフィルタ（`filterQuery`）の欄の名前も `pecot-status` にする
 - **Rationale**: 調べた範囲で `suffix` の用途は、フィールド名・設定ファイル名・`board_url` の 3 つだけだった。w-onboarding の「ラベル識別子に使用」は、コードに当たる箇所が無く、文書の誤り。3 つとも、ボードの持ち主・名前と固定の名前で置き換えられる
 - **Alternatives considered**: 設定ファイル名にだけ `suffix` を残す。clarify で、入力ごと無くすと決めた

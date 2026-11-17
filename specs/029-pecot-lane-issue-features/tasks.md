@@ -37,7 +37,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 ### Tests for User Story 4b
 
 - [ ] T001 [P] [US4b] `PW/cli/src/domain/tests/config.test.ts` に、設定の新しい形と旧い形の読み込みのテストを先に書く。
-  確かめること: `workflow_suffix` の無い設定を読める、旧い設定の `workflow_suffix` は読み捨てる、`workflowFieldName()` が常に `pecot-status` を返す、設定ファイルの名前が `${host}_${owner}_${slugify(name)}.json` になる
+  確かめること: `workflow_suffix` の無い設定を読める、旧い設定の `workflow_suffix` は読み捨てる、`workflowFieldName()` が常に `pecot-status` を返す、設定ファイルの名前が `${host}_${owner}_${number}.json` になり、ボードの名前を変えても同じ
 - [ ] T002 [P] [US4b] `PW/cli/src/domain/tests/migration.test.ts` に、移行の予定を決める関数のテストを先に書く。
   入力はボードのフィールドの一覧と設定ファイルの名前。確かめること: `pecot-workflow-<s>` だけなら改名の予定、`pecot-status` だけなら何もしない、両方あれば `pecot-status` を使い旧いほうを消す予定（data-model.md の「移行の状態」）、旧いファイル名なら移す先を返す
 - [ ] T003 [P] [US4b] `PW/interface/authored.yaml` の `PW-PROJECT-*` と `PW-BOARD-*` に、改名・`suffix` の廃止・旧い形の警告の振る舞いを足し、`PW/cli/tests/interface/project.test.ts` に先にテストを書く。
@@ -126,7 +126,8 @@ description: "Task list for 029-pecot-lane-issue-features"
 - [ ] T026 [US1] `PW/cli/src/domain/lane-options.ts` を作る（T024 の後）。`PW/cli/src/domain/config.ts` に `fields.lane`（選択肢の名前と ID）を足す
 - [ ] T027 [US1] `PW/cli/src/infra/github/queries.ts`・`PW/cli/src/infra/github/projects.ts` に、`createProjectV2Field`、選択肢つきの `updateProjectV2Field`、ビューの一覧の読み込み、REST のビューの作成（組織と個人の両方のパス）を足す
 - [ ] T028 [US1] `PW/cli/src/commands/project.ts`・`PW/cli/src/commands/project-sync.ts` に `lanes` の入力、フィールドの作成と選択肢の追加、ビューの作成、出力の `view` を足す
-- [ ] T029 [US1] `PW/skills/w-onboarding/SKILL.md` に、`lanes` の値の決め方（プラグイン・チーム・サービスなど。GitHub の画面に出るので英語の名前）と、`Lanes` のビューの開き方を書く
+- [ ] T029 [US1] `PW/skills/w-onboarding/SKILL.md` に、`lanes` の値の決め方（プラグイン・チーム・サービスなど。GitHub の画面に出るので英語の名前）と、`Lanes` のビューの開き方を書く。
+  同じ案内を `PW/skills/w-help/references/` にも書く（FR-012）
 - [ ] T030 [US1] `PW/interface/generated.json` を作り直し、T024・T025 のテストのファイルを動かす
 - [ ] T031 [US1] quickstart.md の A-2 と A-4 の 1 を、検証用のボードで動かす
 
@@ -182,14 +183,15 @@ description: "Task list for 029-pecot-lane-issue-features"
   - Issue fields・Issue type・ラベル・マイルストーンが出る
   - Issue fields の読み込みが 403・404 でも、ほかの定義は出る
 - [ ] T044 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-ATTRIBUTES-*` と `PW-ISSUE-SHOW` の `attributes` の振る舞いを足す。
-  `PW/cli/tests/interface/issue-attributes.test.ts`（新規）と `PW/cli/tests/interface/issue-show.test.ts` に先にテストを書く
+  `PW/cli/tests/interface/issue-attributes.test.ts`（新規）と `PW/cli/tests/interface/issue-show.test.ts` に先にテストを書く。
+  `issue_show` で扱えない種類の値に出会ったら、その名前と GitHub の種類を `unsupported` に出し、ほかの `attributes` は出すことも確かめる（FR-022）
 
 ### Implementation for User Story 5（定義と表示）
 
 - [ ] T045 [US5] `PW/cli/src/infra/github/attributes.ts` を作り、ボードのフィールド・Issue fields・Issue type・ラベル・マイルストーンの定義を読む。
   `PW/cli/src/infra/github/queries.ts` の `fieldValues` を全種類（text・number・date・single select・multi select・iteration）で読む形にする（T043 の後）
 - [ ] T046 [US5] `PW/cli/src/commands/issue-attributes.ts` を作り、MCP ツール `issue_attributes` として登録する（`inputSchema`・`outputSchema` 付き）
-- [ ] T047 [US5] `PW/cli/src/commands/issue-show.ts` に `attributes`（AttributeReading の配列）を足す。担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールドを読む
+- [ ] T047 [US5] `PW/cli/src/commands/issue-show.ts` に `attributes`（AttributeReading の配列）を足す。担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールドを読む。扱えない種類の値は `unsupported` に出す（FR-022）
 - [ ] T048 [US5] `PW/interface/generated.json` を作り直し、T043・T044 のテストのファイルを動かす
 - [ ] T049 [US5] quickstart.md の B-1 の 1・2 を、検証用のボードで動かす
 
@@ -214,6 +216,8 @@ description: "Task list for 029-pecot-lane-issue-features"
   - REST の作成に `type`・`assignees`・`milestone`・`labels`・`issue_field_values` が入る
   - ボードのフィールドは `updateProjectV2ItemFieldValue` で種類ごとの値で書く
   - `value: null` で外す
+  - Issue fields の書き込みが権限の不足（403）で失敗しても、ほかの機能の書き込みは続き、書けなかった機能と理由が出力に出る（FR-020）
+  - `lane` と `attributes` の `pecot-lane` を両方渡すと、Issue を作らずに `ambiguous_attribute` で止まる
   - 検証に通らなければ何も書かない
   - `attributes` が無くても止まらない
   - `issue_edit` の出力の `changed` に前と後の値が出る
@@ -381,6 +385,6 @@ Task: "T034 [P] [US3] board.test.ts に board_show の lane・lanes のテスト
 
 ## Notes
 
-- このリポのボードへの書き込みは Phase 10 だけ。それまでは検証用のボードで確かめる
+- このリポのボードの移行は Phase 10 だけ。それまでの確かめは検証用のボードで行う。Phase 9 の T074・T075 の起票は、確かめではなく本物の作業なので、このリポに起票する
 - フィールドの削除は値ごと消え、戻せない。Phase 10 の T079 は、必ず利用者の確認を取る
 - Lambda の配備と Scheduler の書き換えは、利用者の `pecot` プロファイルで行う。IAM は変えない
