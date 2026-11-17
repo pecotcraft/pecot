@@ -120,68 +120,99 @@ description: "Task list for 028-pages-site"
 
 ---
 
-## Phase 4: User Story 1 - 集めて公開する run (Priority: P1) 🎯 MVP
+## Phase 4: User Story 1 - 確かめて保管し、公開する run (Priority: P1) 🎯 MVP
 
-**Goal**: `pages-deploy.yml` が、リリース版と開発版の artifact を集めて 1 つのツリーに組み、公式の `deploy-pages` で公開する。release.yml の本番が、リリース版を作る run を起こす
+**Goal**: `pages-deploy.yml` が、受けた run の出どころを API で確かめ、保管ブランチ `pages-store` のその側だけを差し替え、公式の `deploy-pages` で公開する。
+`pages-build.yml` に手での起動とリリース版を足し、レーンを 1 つの job で順に動かす。release.yml の本番が、land の後にリリース版を作る run を起こす
 
-**Independent Test**: quickstart.md の「3. 開発版の公開」「4. リリース版の公開」「6. 止まる場合」の 2 行目
+**Independent Test**: quickstart.md の「3. 開発版の公開」「4. リリース版の公開」「6. 止まる場合」の 2〜4 行目
 
-### Tests for User Story 1（公開する run）
+2026-11-17 の 2 回目の決め直し（#616）で、このフェーズ以降を書き直した。理由は research.md の R1〜R6・R12・R13。
 
-- [ ] T024 [P] [US1] `.githooks/tests/test_pages_assemble.py` に、`.githooks/scripts/pages_site/plan.py` の DeployPlan の判定のテストを書く。
-  入力は GitHub の REST の応答（workflow run の一覧・artifact の一覧）の実物の形。
-  確かめること: 「`release` の artifact が無いときは公開しない」、「`dev` の artifact が無いときは、`/dev/` を置かずに公開し、run の summary に書く」、
-  各側で run の作成時刻が最も新しい成功した run を選ぶ（後に終わった古い run を選ばない）。
-  リリース版の作り直しは、同じ SHA の `side=release` の作る run が進行中か、最後のものが失敗なら起こさない（ループの止め）
-- [ ] T025 [P] [US1] 同じファイルに、組み立てのテストを書く。「展開した中身が、自分の `path` の外を指すもの（絶対パス・`..`・シンボリックリンク）を含むときは、その側を外して run の summary に書く」、「組み立てたツリーの大きさが 900 MB を超えたら、run の summary に警告を書く」、組んだツリーの内部リンク（側の行き来を含む）が切れていたら失敗する
-- [ ] T026 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-deploy.yml` の形のテストを書く。
-  契機は `workflow_run`（`pages-build.yml` の completed）と `workflow_dispatch`。
-  組み立ての job の権限は `contents: read`・`actions: write`・`pull-requests: read`・`statuses: write`。
-  公開の job の権限は `pages: write`・`id-token: write`。
-  environment は `github-pages`。
-  concurrency は `group: pages`・`cancel-in-progress: false`。
-  action は `configure-pages`・`upload-pages-artifact` v5・`deploy-pages` v5 を SHA で固定
-- [ ] T027 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）の成功の後にだけ `gh workflow run pages-build.yml -f side=release` を打つ段があり、その job に `actions: write` があるテストを足す
+### Tests for User Story 1（確かめて保管し、公開する run）
 
-### Implementation for User Story 1（公開する run）
+- [ ] T024 [P] [US1] `.githooks/tests/test_pages_provenance.py` に、`.githooks/scripts/pages_site/provenance.py` の RunProvenance の判定のテストを書く。
+  入力は GitHub の REST の応答（workflow run・compare・pull）の実物の形。
+  確かめること: data-model.md の RunProvenance の表と決まりのとおり。
+  開発版は `push` と `workflow_dispatch` を受け、main の祖先でない `head_sha`（`head_branch` に `main` という名前のタグが入った run を含む）を捨てる。
+  保管中の開発版の SHA を祖先に持たない古い run を捨て、同じ SHA の再実行は受ける。
+  開発版・リリース版は `pull_requests` にほかのリポの PR があっても落ちない。
+  PR 版は、`base.repo` と `head.sha` で絞り、閉じた PR と head の変わった PR を捨てる。
+  `path`・`head_repository`・`conclusion` が違う run を捨てる。
+  `push` と `pull_request` の run では、artifact の名前（`pages-side-dev` など）を判定に使わない。
+  main の祖先の定義で動いた `workflow_dispatch` の run だけ、artifact の名前で `dev` か `release` かを決め、名前が 1 つに決まらなければ捨てる。
+  開いている PR の番号の一覧を出す（store の掃除に使う）
+- [ ] T025 [P] [US1] `.githooks/tests/test_pages_release.py` に、`.githooks/scripts/pages_site/release_sources.py` の ReleaseSources のテストを書く。
+  プレリリースの接尾辞のあるタグを除いた semver の最大値を選ぶ。
+  `skeleton` はほかのすべてのタグのコミットを祖先に持つもので、無ければ失敗する。
+  タグのコミットが main の祖先でなければ失敗する。
+  各プラグインのレーンを、そのタグのコミットの `junit-lanes.json` から取る
+- [ ] T026 [P] [US1] `.githooks/tests/test_pages_store.py` に、`.githooks/scripts/pages_site/store.py` のテストを書く。
+  SideCheck: 絶対パス・`..`・シンボリックリンク・通常のファイルとディレクトリ以外を含む側を捨てる。側の中の内部リンクが切れた側を捨てる。
+  StoreLayout: 受けた側のディレクトリと `.pecot-store.json` だけを書き換える。リリース版を書き換えても `dev/`・`pr/` が残る。
+  リリース版か開発版が無いとき、案内のページを置く。組んだ全体で、側の間の行き来のリンクが切れていない。
+  900 MB を超えたら summary に警告を書く
+- [ ] T027 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-deploy.yml` と、直した `pages-build.yml` の形のテストを足す。
+  `pages-deploy.yml`: 契機は `workflow_run`（`pages-build.yml` の completed）と `workflow_dispatch`。
+  verify・store・deploy の 3 つの job の権限と environment が contracts の表のとおり。どの job にも `actions: write` が無い。
+  store の concurrency が `group: pages-store`・`cancel-in-progress: false`・`queue: max`、deploy が `group: pages`・`cancel-in-progress: false`。
+  action は `configure-pages`・`upload-pages-artifact` v5・`deploy-pages` v5 を SHA で固定。
+  `pages-build.yml`: `workflow_dispatch` の入力が `side`（`release`・`dev`）だけ。job が side と build の 2 つ。権限が `contents: read` だけ。側の artifact が `retention-days: 7`。
+  side の job が、`workflow_dispatch` で `github.ref` が `refs/heads/main` でないときに失敗する。
+  `.github/actionlint.yaml` の `paths` に `pages-deploy.yml` の除外がある
+- [ ] T028 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）で land が成功した後にだけ、App のトークンで `gh workflow run pages-build.yml -f side=release` を打つ段があるテストを足す。
+  release の job に `actions: write` が無いことも確かめる
 
-- [ ] T028 [US1] `.githooks/scripts/pages_site/plan.py` を作る。API の応答から DeployPlan（`release`・`dev`）とリリース版の作り直しの要否を決める純粋な処理だけを置く
-- [ ] T029 [US1] `.githooks/scripts/pages_site/assemble.py` を作る。
-  API を叩き（`gh api`）、DeployPlan の artifact を `gh run download <run-id> -n <name>` で取り、`/`・`/dev/` に展開する。
-  パスの確かめ・大きさの警告・内部リンクの確かめをして、job summary に側ごとの採否を書く
-- [ ] T030 [US1] `.github/workflows/pages-deploy.yml` を書く。組み立ての job と公開の job を分け、公開の job は `upload-pages-artifact` → `deploy-pages` だけにする
-- [ ] T031 [US1] `pages-deploy.yml` に、リリース版の artifact が無いときの段を足す。
-  公開せずに失敗し、GitHub の Latest のリリースのタグが指すコミットで `pages-build.yml` を `side=release` で起こす。
-  起こすかどうかは T028 の判定に従う（同じ SHA の作る run が進行中か、最後のものが失敗なら起こさない）
-- [ ] T032 [US1] `.github/workflows/release.yml` の本番の最後に、`pages-build.yml` を起こす段を足す。dry-run では打たない。その job に `actions: write` を付ける
-- [ ] T033 [US1] GitHub Pages の公開元を「GitHub Actions」にし、environment `github-pages` の deployment branch を既定のブランチだけにする。リポの設定の変更なので、マージの前に利用者に打ってもらうコマンドを PR に書く
+### Implementation for User Story 1（確かめて保管し、公開する run）
 
-**Checkpoint**: マージの後、main への push で `/pecot/dev/` が公開される。手でリリース版を作ると `/pecot/` が変わり、`/pecot/dev/` は変わらない
+- [ ] T029 [US1] `.githooks/scripts/pages_site/provenance.py` を作る。API の応答から RunProvenance を判定する純粋な処理だけを置く
+- [ ] T030 [US1] `.githooks/scripts/pages_site/release_sources.py` を作る。タグと main から ReleaseSources を決める
+- [ ] T031 [US1] `.githooks/scripts/pages_site/store.py` を作る。
+  SideCheck、`pages-store` の差し替え・案内のページ・行き来のリンクの確かめ・大きさの警告、job summary を置く。
+  push は `--force-with-lease=<取ったときの SHA>` で、断られたら取り直してやり直す
+- [ ] T032 [US1] `.github/workflows/pages-build.yml` を直す。
+  job を side と build の 2 つにし、build は dev container を 1 回だけ立ててレーンを順に動かし、続けてサイトを作る。
+  `workflow_dispatch`（`side` だけ。main からの起動に限り、開発版は `github.sha` で作る）を足す。
+  リリース版（T030 の ReleaseSources、`PECOT_SITE_PLUGIN_COMMITS`、`release-sources.json`）を、contracts の「リリース版の build」の順で足す。
+  側の artifact に JUnit を入れ、`retention-days: 7` にする。レーンごとの artifact はやめる
+- [ ] T033 [US1] `libs/interface-spec/docs/_ext/site_stamp.py` と `_templates/header.html` に、リリース版のプラグインごとのタグのコミット（`PECOT_SITE_PLUGIN_COMMITS`）を足す。
+  `conf.py` に、STRICT と `iface_junit` が使うレーンの一覧を外から受け取る口を足す（リリース版で、各タグから集めた一覧を渡す）。
+  テストは `libs/interface-spec/docs/tests/` に先に書く
+- [ ] T034 [US1] `.github/workflows/pages-deploy.yml` を書く。verify・store・deploy の 3 つの job を、contracts の表のとおりの権限・environment・concurrency で置く。
+  PR 版の run は、verify が「保管は Phase 5 から」と summary に書いて捨てる（T039 で保管に替える）。
+  `.github/actionlint.yaml` の `paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ `queue` の除外を付ける。#529 の対象にも加える
+- [ ] T035 [US1] `.github/workflows/release.yml` の本番の land の成功の後に、App のトークンで `pages-build.yml` を `side=release` で起こす段を足す。dry-run では打たない
+- [ ] T036 [US1] 保管ブランチ・environment・deploy key・ruleset と、GitHub Pages の公開元を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定する。
+  リポの管理者の操作なので、マージの前にユーザーに打ってもらうコマンドを PR に書く。
+  `pages-store` の初回の作成も含める
+
+**Checkpoint**: マージの後、main への push で `/pecot/dev/` が公開され、`/pecot/` に案内のページが出る。手でリリース版を作ると `/pecot/` が変わり、`/pecot/dev/` は変わらない
 
 ---
 
 ## Phase 5: User Story 3 - PR 版 (Priority: P3)
 
-**Goal**: 開いている同じリポの PR の PR 版を `/pr/<番号>/` に並べ、PR の head のコミットに URL の commit status を付ける。PR が閉じたら外す
+**Goal**: 開いている同じリポの PR の PR 版を `/pr/<番号>/` に保管し、PR の head のコミットに URL の commit status を付ける。PR が閉じたら、次の保管で消す
 
-**Independent Test**: quickstart.md の「5. PR 版」
+**Independent Test**: quickstart.md の「5. PR 版」と「6. 止まる場合」の 2 行目
 
 ### Tests for User Story 3
 
-- [ ] T034 [P] [US3] `.githooks/tests/test_pages_assemble.py` に、DeployPlan の `prs` の判定のテストを足す。
-  「今開いている、同じリポのブランチの PR。
-  それぞれについて、`side=pr` かつその PR の番号の最新の成功した run」。
-  「PR の artifact が無い PR（作る run がまだ終わっていない・落ちた）は、その PR の側を置かない」。
-  fork の PR と閉じた PR は入らない
-- [ ] T035 [P] [US3] 同じファイルに、PR 版の commit status のテストを足す。context `pages / preview`、state `success`、`target_url` は `https://pecotcraft.github.io/pecot/pr/<番号>/`、付け先は PR の今の head のコミット
+- [ ] T037 [P] [US3] `.githooks/tests/test_pages_store.py` に、PR 版の保管のテストを足す。
+  `/pr/<番号>/` だけを書き換える。保管のたびに、verify が出した開いている PR の番号の一覧に無い `pr/<番号>/` を消す。
+  closed の契機の run と、RunProvenance に合わない run でも、掃除はする
+- [ ] T038 [P] [US3] `.githooks/tests/test_pages_workflows.py` に、preview-status の job のテストを足す。
+  job が verify・store・deploy・preview-status の 4 つになる。preview-status の権限は `statuses: write` だけ。context は `pages / preview` で、必須のチェックの名前（`ci-result`・`version-plan`）と重ならない。
+  `pages / preview` を付ける job は `pages-deploy.yml` の preview-status だけで、ほかの workflow に無い（research R12）。
+  `target_url` は `https://pecotcraft.github.io/pecot/pr/<番号>/`、付け先は verify が決めた PR の head のコミット
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] `.githooks/scripts/pages_site/plan.py` に `prs` の判定を足す
-- [ ] T037 [US3] `.githooks/scripts/pages_site/assemble.py` で PR 版を `/pr/<番号>/` に展開し、commit status を付ける
-- [ ] T038 [US3] `libs/interface-spec/docs/_templates/header.html` の PR 版の帯に、PR の番号と PR へのリンクを出す。PR 版どうしのリンクは置かない（FR-025）
+- [ ] T039 [US3] `.githooks/scripts/pages_site/store.py` に、PR 版の保管と閉じた PR の掃除を足す。T034 で捨てていた PR 版の run を、保管に替える
+- [ ] T040 [US3] `.github/workflows/pages-deploy.yml` に preview-status の job を足す
+- [ ] T041 [US3] `libs/interface-spec/docs/_templates/header.html` の PR 版の帯に、PR の番号と PR へのリンクを出す。PR 版どうしのリンクは置かない（FR-025）
 
-**Checkpoint**: マージの後、同じリポのブランチから開いた PR に `pages / preview` が付き、`/pecot/pr/<番号>/` が開く。PR を閉じると、次の公開で消える
+**Checkpoint**: マージの後、同じリポのブランチから開いた PR に `pages / preview` が付き、`/pecot/pr/<番号>/` が開く。PR を閉じると、次の保管で消える
 
 ---
 
@@ -189,10 +220,12 @@ description: "Task list for 028-pages-site"
 
 **Purpose**: 公開サイトの案内と、保守者の手順
 
-- [ ] T039 [P] `README.md` に、公開サイトへのリンクを足す（FR-011）。README の全面的な書き直しはしない
-- [ ] T040 [P] `libs/interface-spec/README.md` を書き直す。「定義書と合否の HTML」に版の帯と `PECOT_SITE_STRICT` を足し、「CI の artifact に上げない理由」を、公開の流れが全レーンを動かす今の形に直す。GitHub Pages を有効にする手順と、公開の流れの起動・やり直しの方法を書く（FR-010）
-- [ ] T041 [P] `plugins/pecot-workflow/CONTRIBUTING.md` の「このリポだけの運用」の表に、公開サイト（`pages-build.yml`・`pages-deploy.yml`）の行を足す。確かめ方は `.githooks/tests/test_pages_workflows.py`・`test_pages_assemble.py` と、マージの後の実物
-- [ ] T042 quickstart.md の 1〜6 を通して動かし、結果を PR に書く。3 と 5 では、push から公開の終わりまでの時間を run の時刻で測り、30 分以内（SC-001・SC-007）であることを書く
+- [ ] T042 [P] `README.md` に、公開サイトへのリンクを足す（FR-011）。README の全面的な書き直しはしない
+- [ ] T043 [P] `libs/interface-spec/README.md` を書き直す。
+  「定義書と合否の HTML」に版の帯と `PECOT_SITE_STRICT` を足し、「CI の artifact に上げない理由」を、公開の流れが全レーンを動かす今の形に直す。
+  保管ブランチ・environment・ruleset の設定と、公開の流れの起動・やり直しの方法を書く（FR-010）
+- [ ] T044 [P] `plugins/pecot-workflow/CONTRIBUTING.md` の「このリポだけの運用」の表に、公開サイト（`pages-build.yml`・`pages-deploy.yml`・`pages-store`）の行を足す。確かめ方は `.githooks/tests/test_pages_*.py` と、マージの後の実物
+- [ ] T045 quickstart.md の 1〜6 を通して動かし、結果を PR に書く。3 と 5 では、push から公開の終わりまでの時間を run の時刻で測り、30 分以内（SC-001・SC-007）であることを書く
 
 ---
 
@@ -203,34 +236,34 @@ description: "Task list for 028-pages-site"
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
 | 2 | 1 | 積める | 「未実行」と「テストが無い」の区別と STRICT が、`junit-lanes.json` のプラグインごとのレーンの一覧を読む。Phase 1 のブランチの上で手元で作って確かめられる |
-| 3 | 1 | 積める | 作る run の matrix が `pages_site/lanes.py` の出力を読む。`pull_request` の run は PR のブランチの定義で動くので、積んだブランチの PR で確かめられる |
-| 4 | 2 | 積める | 組み立ての内部リンクの確かめ（T025）が、Phase 2 の帯の側の行き来のリンクを読む。Phase 2 のブランチの上で、手元で作ったツリーを組んで確かめられる |
-| 4 | 3 | マージを待つ | `pages-deploy.yml` は `workflow_run` で起き、既定のブランチの定義で動く。作る run が main への push で動いて artifact を残していないと、組み立てと公開を確かめられない |
-| 5 | 4 | マージを待つ | PR 版の組み立ては `pages-deploy.yml` の中にあり、`workflow_run` は既定のブランチの定義で動く。公開の流れが main に入っていないと、PR 版を公開して確かめられない |
-| 6 | 5 | 積める | 文書は、PR 版までの仕組みと URL を書く。Phase 5 のブランチの上で書いて、内容を突き合わせられる |
+| 3 | 1 | 積める | 作る run が `pages_site/lanes.py` の出力を読む。`pull_request` の run は PR のブランチの定義で動くので、積んだブランチの PR で確かめられる |
+| 4 | 2 | 積める | SideCheck の内部リンクの確かめ（T026）と、帯のタグのコミット（T033）が、Phase 2 の帯を読む |
+| 4 | 3 | マージを待つ | `pages-deploy.yml` は `workflow_run` で起き、既定のブランチの定義で動く。作る run が main への push で動いて artifact を残していないと、確かめと保管と公開を確かめられない |
+| 5 | 4 | マージを待つ | PR 版の保管は `pages-deploy.yml` の中にあり、`workflow_run` は既定のブランチの定義で動く。公開の流れが main に入っていないと、PR 版を公開して確かめられない |
+| 6 | 5 | 積める | 文書は、PR 版までの仕組みと URL を書く。Phase 5 のブランチの上で書いて、内容を見比べられる |
 
 Phase 2 と Phase 3 は、どちらも Phase 1 だけを前提にするので並べて進められる。Phase 3 の作る run は、Phase 2 が入っていなくても側を作れる（版の帯が出ないだけ）。
-Phase 5 の T038 と Phase 6 の T040 も Phase 2 の帯を使うが、Phase 4 を通して Phase 2 を間接に前提にするので、表には書かない。
+Phase 5 の T041 と Phase 6 の T043 も Phase 2 の帯を使うが、Phase 4 を通して Phase 2 を間接に前提にするので、表には書かない。
 
 ### User Story Dependencies
 
 - **US2・US4（Phase 2）**: 手元で完結する
-- **US1（Phase 3・4）**: Phase 3 の作る run を main に入れてから、Phase 4 の公開を確かめる
+- **US1（Phase 3・4）**: Phase 3 の作る run を main に入れてから、Phase 4 の確かめ・保管・公開を確かめる
 - **US3（Phase 5）**: US1 の公開の流れの上に載る
 
 ### Within Each User Story
 
 - テストを先に書き、落ちることを確かめてから実装する
-- 判定の純粋な処理（`outcome_of`・DeployPlan）を、I/O（JUnit の読み込み・API・展開）より先に作る
+- 判定の純粋な処理（`outcome_of`・RunProvenance・ReleaseSources）を、I/O（JUnit の読み込み・API・展開・push）より先に作る
 
 ### Parallel Opportunities
 
 - Phase 1 の T001・T002
 - Phase 2 のテスト T007〜T011、CSS の T018
 - Phase 2 と Phase 3（どちらも Phase 1 の上に積める）
-- Phase 4 のテスト T024〜T027
-- Phase 5 のテスト T034・T035
-- Phase 6 の T039〜T041
+- Phase 4 のテスト T024〜T028
+- Phase 5 のテスト T037・T038
+- Phase 6 の T042〜T044
 
 ---
 
@@ -254,7 +287,7 @@ Task: "帯と状態の見た目を libs/interface-spec/docs/_static/pecot.css �
 ### Incremental Delivery
 
 1. Phase 1 → Phase 2（出し方）と Phase 3（作る run）を並べて進める
-2. Phase 3 のマージの後に Phase 4（公開）→ リリース版・開発版が見える
+2. Phase 3 のマージの後に Phase 4（確かめ・保管・公開）→ リリース版・開発版が見える
 3. Phase 4 のマージの後に Phase 5（PR 版）→ PR の間に確かめられる
 4. Phase 6 で文書を整える
 
@@ -264,4 +297,4 @@ Task: "帯と状態の見た目を libs/interface-spec/docs/_static/pecot.css �
 
 - [P] tasks = different files, no dependencies
 - workflow の `workflow_dispatch` と `workflow_run` は、既定のブランチの定義で動く。PR のブランチで直しても、その PR の上では動かない
-- Pages の設定（T033）は、リポの管理者の操作。エージェントは、打つコマンドを示して利用者に打ってもらう
+- 保管ブランチ・environment・deploy key・ruleset・Pages の設定（T036）は、リポの管理者の操作。エージェントは、打つコマンドを示して利用者に打ってもらう
