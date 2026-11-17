@@ -121,6 +121,8 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |
 | `worktree_link` | 既存の worktree にシンボリックリンクを適用・更新する |
 | `branch_delete` | リモートブランチを削除する（保護ブランチは消さない） |
+| `workflow_install` | 同梱の GitHub Actions のワークフローの雛形をリポに書き出す（`check` で置いた雛形の版を確かめ、`force` で上書きする） |
+| `workflow_doctor` | 雛形と、雛形が要る Actions の secret・変数の名前がそろっているかを確かめる（値は読まない） |
 
 ## 失敗したとき
 
