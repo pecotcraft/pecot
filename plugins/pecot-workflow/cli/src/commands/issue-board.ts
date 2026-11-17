@@ -139,7 +139,7 @@ export async function putOnBoard(
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(fieldWriteFailure(`could not set ${label} ${option} of Tracker #${String(issueNumber)}: ${error.message}`, error, hintState))
+      out.error(fieldWriteFailure(`could not set ${label} ${option} of Tracker #${String(issueNumber)}: ${error.message}`, error, config, hintState))
       failures += 1
     }
   }
@@ -242,7 +242,7 @@ export async function applyBoardMove(
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(fieldWriteFailure(`could not move ${name}: ${error.message}`, error, hintState))
+    out.warning(fieldWriteFailure(`could not move ${name}: ${error.message}`, error, config, hintState))
     hasFailed = true
   }
   const written = column === undefined && label === undefined ? undefined : { issue: name, column, label, reason: text }

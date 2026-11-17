@@ -2,7 +2,7 @@
 // 他の塊の例外（changelog・release・worktree・frontmatter・github など）は、その塊のテストが同じ形で固定する。
 import { describe, expect, it } from 'vitest'
 
-import { ConfigError, MultipleConfigsError } from '../domain/config.js'
+import { ConfigError } from '../domain/config.js'
 import { PecotError, BaseError, InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
 import { ReferenceParseError } from '../domain/reference-parser.js'
 import { AmbiguousRepositoryError } from '../domain/repository-resolver.js'
@@ -33,15 +33,10 @@ describe('独自例外は PecotError を継承する', () => {
     ['ProjectRootNotFoundError', ProjectRootNotFoundError],
     ['OutputPathReservationError', OutputPathReservationError],
     ['ConfigError', ConfigError],
-    ['MultipleConfigsError', MultipleConfigsError],
     ['ReferenceParseError', ReferenceParseError],
     ['AmbiguousRepositoryError', AmbiguousRepositoryError],
   ])('%s は PecotError を継承する', (_name, errorClass) => {
     expect(errorClass.prototype).toBeInstanceOf(PecotError)
-  })
-
-  it('MultipleConfigsError は、ConfigError として捕まえられる', () => {
-    expect(MultipleConfigsError.prototype).toBeInstanceOf(ConfigError)
   })
 
   it('値の不正（Python の ValueError）は PecotError ではない', () => {

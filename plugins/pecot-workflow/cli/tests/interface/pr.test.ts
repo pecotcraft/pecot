@@ -10,6 +10,7 @@ import { installFakeExecutable, prependToPath } from '../../src/tests/_helpers/f
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
+import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
@@ -329,6 +330,12 @@ describe('pr create', () => {
     expect(content).toMatch(/^---\ntitle: ""\nrepository: ""\nbase: "main"\n/u)
     expect(content).toContain('## Summary')
     expect(content).toContain('## Verified')
+  })
+
+  it('--prepare で対象のリポを含む設定が無いと、止めずに warning を標準エラーに出す', async () => {
+    const workspace = await pushedBranch({ config: false })
+    const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.stderr).toMatch(/^warning: acme\/demo is not in any project config\n {2}available: \(none\)\n/u)
   })
 
   it('--prepare を付けて打つと、書いたテンプレのパスを標準出力に出す', async (context) => {
@@ -782,11 +789,56 @@ describe('pr create', () => {
     expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls'])
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-41')
+    const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(messageArguments())
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-75')
     const workspace = await pushedBranch({ config: false })
     const result = await workspace.run(messageArguments())
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-76')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES, files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(messageArguments(['--project', SECOND_PROJECT]))
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe(`${PULL_URL}\n`)
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で PR を作る', async () => {
+    const workspace = await pushedBranch({ github: SUBMIT_RULES, files: NO_ACTIVE_FILES })
+    const result = await workspace.run(messageArguments())
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe(`${PULL_URL}\n`)
+  })
+
+  it('-m で --repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-47')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES, config: { hasSecondRepository: true } })
+    const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
+    const result = await workspace.run(argv)
+    expect(result.code).toBe(0)
+    expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
+  })
+
+  it('-m で --repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-77')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    const originUrl = workspace.git(['remote', 'get-url', 'origin']).trim()
+    workspace.git(['remote', 'rename', 'origin', 'upstream'])
+    workspace.git(['remote', 'add', 'origin', 'https://ghes.example.com/someone/demo.git'])
+    workspace.git(['config', `url.${originUrl}.insteadOf`, 'https://ghes.example.com/someone/demo.git'])
+    workspace.git(['fetch', 'origin'])
+    const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
+    const result = await workspace.run(argv)
+    expect(result.code).toBe(0)
+    expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
   })
 
   it('--template が default でも release でもないと、終了コード 1 で終わる', async (context) => {
@@ -836,11 +888,12 @@ describe('pr create', () => {
   })
 
   it.for([
-    { title: '設定のリポジトリが 2 つで --repo も無い', config: { hasSecondRepository: true }, repo: [], expected: 'error: specify the repository (--repo <owner/repo>)\n' },
+    { title: 'git remote が無く --repo も無い', config: {}, repo: [], expected: 'error: specify the repository (--repo <owner/repo>)\n' },
     { title: '--repo が owner/repo の形でない', config: {}, repo: ['-r', 'invalid'], expected: 'error: invalid repository format: invalid (expected: owner/repo)\n' },
   ])('-m で次の形だと（$title）、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-PR-CREATE-47')
     const workspace = await pushedBranch({ config: row.config })
+    if (row.repo.length === 0) workspace.git(['remote', 'remove', 'origin'])
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', ...row.repo])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: row.expected })
   })
@@ -1658,13 +1711,13 @@ describe('pr show', () => {
   it.for([
     { title: '--repo（git の remote と違う値）', argv: ['--repo', 'acme/other', 'pr', 'show', '21'], remote: 'origin', expected: 'other' },
     { title: 'origin の remote', argv: ['pr', 'show', '21'], remote: 'origin', expected: 'demo' },
-    { title: 'origin が無いときの upstream の remote', argv: ['pr', 'show', '21'], remote: 'upstream', expected: 'upstream-repo' },
+    { title: 'origin が無いときの upstream の remote', argv: ['pr', 'show', '21'], remote: 'upstream', expected: 'other' },
   ])('短い形 N の参照を渡すと、$title で補って読む', async (row, context) => {
     await verifies(context, 'PW-PR-SHOW-10')
-    const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))] })
+    const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], config: { hasSecondRepository: true } })
     if (row.remote === 'upstream') {
       workspace.git(['remote', 'rename', 'origin', 'upstream'])
-      workspace.git(['remote', 'set-url', 'upstream', `https://${HOST}/acme/upstream-repo.git`])
+      workspace.git(['remote', 'set-url', 'upstream', `https://${HOST}/acme/other.git`])
     }
     const result = await workspace.run(row.argv)
     expect(result.code).toBe(0)
@@ -1680,12 +1733,33 @@ describe('pr show', () => {
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-SHOW-12')
+    const workspace = await openWorkspace({ files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+    expect(workspace.requests()).toStrictEqual([])
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-SHOW-14')
     const workspace = await openWorkspace({ config: false })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
     expect(workspace.requests()).toStrictEqual([])
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
+    await verifies(context, 'PW-PR-SHOW-15')
+    const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--project', SECOND_PROJECT])
+    expect(result.code).toBe(0)
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で読む', async () => {
+    const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], files: NO_ACTIVE_FILES })
+    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    expect(result.code).toBe(0)
   })
 
   it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
@@ -2049,11 +2123,32 @@ describe('pr check', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot read repository info from the remote URL\n  check it with: git remote -v\n' })
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CHECK-14')
+    const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
+    const result = await preflight(workspace)
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-27')
     const workspace = await pushedBranch({ config: false })
     const result = await preflight(workspace)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: project config not found\n  activate a project with: pecot project activate <PROJECT>\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async (context) => {
+    await verifies(context, 'PW-PR-CHECK-28')
+    const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
+    const result = await workspace.run(['pr', 'check', '-D', workspace.directory, '--project', SECOND_PROJECT])
+    expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
+    expect(result.stderr).not.toContain('project config')
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で確かめる', async () => {
+    const workspace = await pushedBranch({ files: NO_ACTIVE_FILES })
+    const result = await preflight(workspace)
+    expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
   })
 
   it('develop_branch が設定に無いと、終了コード 1 で終わる', async (context) => {

@@ -1,6 +1,3 @@
-import { rmSync } from 'node:fs'
-import path from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
 import { BOARD_ADD_COMMANDS } from '../../src/commands/board-add.js'
@@ -9,6 +6,7 @@ import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { addedToBoard, failing, fieldUpdated, issueNodeId, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -128,14 +126,49 @@ describe('board add', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('アクティブなプロジェクトが無いとき、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-BOARD-ADD-12')
     const { project } = prepareProject()
-    rmSync(path.join(project.root, '.pecot/config/projects/.active'))
+    makeAmbiguous(project)
+    const github = await startGithub([])
 
     const result = await add(['board', 'add', 'acme/demo/7'])
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-BOARD-ADD-21')
+    prepareProject({ repositories: ['other'] })
+
+    const result = await add(['board', 'add', 'acme/demo/7'])
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定でボードに足す', async (context) => {
+    await verifies(context, 'PW-BOARD-ADD-22')
+    const { project } = prepareProject()
+    makeAmbiguous(project)
+    const github = await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
+
+    const result = await add(['board', 'add', 'acme/demo/7', '--project', SECOND_PROJECT])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('added: Issue acme/demo/7 to project\n')
+    expect(github.requests()).toHaveLength(4)
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定でボードに足す', async () => {
+    const { project } = prepareProject()
+    removeActive(project)
+    await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
+
+    const result = await add(['board', 'add', 'acme/demo/7'])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('added: Issue acme/demo/7 to project\n')
   })
 
   it('Issue の参照が不正なとき、終了コード 2 で終わる', async (context) => {

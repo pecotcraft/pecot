@@ -4,16 +4,13 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import {
-  ConfigError,
-  findRepositoryByName,
-  MultipleConfigsError,
-  parseProjectConfig,
-  serializeProjectConfig,
-} from '../domain/config.js'
+import { hinted, inputHint, placeholder } from '../domain/command-hint.js'
+import type { HintedText } from '../domain/command-hint.js'
+import { ConfigError, findRepository, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { InvalidValueError } from '../domain/errors.js'
 import { parseJsonText } from '../domain/json.js'
+import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { compareStrings, pythonStrip, ValidationFailure } from '../domain/python-format.js'
 import { isFileNotFound } from './os-error.js'
 import { CONFIG_DIR, projectRoot, resolveRealPath } from './paths.js'
@@ -33,6 +30,16 @@ export function projectsDirectory(): string {
   return path.join(configDirectory(), 'projects')
 }
 
+// 設定の値から、読んだファイルの実パスを引く。書き込みの失敗の案内（project activate <名前>）に使う
+const SOURCE_PATHS = new WeakMap<ProjectConfig, string>()
+
+/**
+loadConfig で読んだ設定のファイルの実パス。ファイルから読んでいない設定は undefined
+*/
+export function configSourcePath(config: ProjectConfig): string | undefined {
+  return SOURCE_PATHS.get(config)
+}
+
 /**
 JSON ファイルから設定を読む。無ければ ConfigError、JSON の構文や形が不正なら `invalid config file: {パス}: {詳細}` の ConfigError。
 詳細は、形の不正なら `場所: 本文` を `; ` でつないだもの（Python と同じ）、構文の不正なら JSON パーサーの文（Python の JSONDecodeError の文とは違う）
@@ -40,7 +47,9 @@ JSON ファイルから設定を読む。無ければ ConfigError、JSON の構�
 export function loadConfig(file: string): ProjectConfig {
   if (!existsSync(file)) throw new ConfigError(`config file not found: ${file}`)
   try {
-    return parseProjectConfig(parseJsonText(readTextFile(file)))
+    const config = parseProjectConfig(parseJsonText(readTextFile(file)))
+    SOURCE_PATHS.set(config, resolveRealPath(file))
+    return config
   }
   catch (error: unknown) {
     if (error instanceof ValidationFailure) {
@@ -102,54 +111,115 @@ export function setActiveConfig(file: string): void {
   writeFileSync(activeFile, `${relative}\n`)
 }
 
-export interface FindConfigOptions {
-  readonly host?: string | undefined
-  readonly owner?: string | undefined
+/**
+設定と、その名前・実パス。name は projects/ の中なら拡張子を除いたファイル名、外ならパス（project activate に渡せる形）
+*/
+export interface FoundConfig {
+  readonly name: string
+  readonly path: string
+  readonly config: ProjectConfig
 }
 
 /**
-`{host}_{owner}_*.json` の設定ファイルを探す（プロジェクト名ベース）。host と owner の両方が要る。
-複数見つかったら MultipleConfigsError（名前順）
+project activate に渡せる設定の名前。projects/ の中なら拡張子を除いたファイル名、外ならパスそのもの
 */
-export function findConfigFile(options: Readonly<FindConfigOptions>): string | undefined {
-  const { host, owner } = options
-  if (host === undefined || host === '' || owner === undefined || owner === '') return undefined
-  const directory = projectsDirectory()
-  const prefix = `${host}_${owner}_`
-  let names: readonly string[]
-  try {
-    names = readdirSync(directory)
-  }
-  catch (error: unknown) {
-    if (isFileNotFound(error)) return undefined
-    throw error
-  }
-  const matches = names.filter(name => name.startsWith(prefix) && name.endsWith('.json') && name.length >= prefix.length + '.json'.length).toSorted(compareStrings)
-  const [only] = matches
-  if (matches.length > 1) throw new MultipleConfigsError(matches.map(name => path.join(directory, name)))
-  return only === undefined ? undefined : path.join(directory, only)
+export function projectNameOf(configPath: string): string {
+  return path.dirname(configPath) === resolveRealPath(projectsDirectory()) ? path.basename(configPath, '.json') : configPath
 }
 
-export interface ProjectConfigQuery extends FindConfigOptions {
-  /**
-  リポジトリ名（owner なし）。アクティブ設定の repositories に含まれるかを先に確かめる
-  */
-  readonly repository?: string | undefined
+function foundAt(file: string): FoundConfig {
+  const config = loadConfig(file)
+  const realPath = configSourcePath(config) ?? resolveRealPath(file)
+  return { name: projectNameOf(realPath), path: realPath, config }
 }
 
 /**
-プロジェクト設定を取得する。引数なしはアクティブ設定。
-repository だけなら、アクティブ設定の repositories にあればそれを返し、無ければ検索する。見つからなければ undefined
+projects/ の設定を名前で読む。`.json` は省ける。その名前の設定が無ければ undefined
 */
-export function getProjectConfig(query: Readonly<ProjectConfigQuery> = {}): ProjectConfig | undefined {
-  const { host, owner, repository } = query
-  if (host === undefined && owner === undefined && repository === undefined) return loadActiveConfig()
+export function loadNamedConfig(name: string): FoundConfig | undefined {
+  // 一覧は projects/ の *.json の名前なので、一致すれば ../ などの外のパスにならない
+  const bare = name.endsWith('.json') ? name.slice(0, -'.json'.length) : name
+  return listProjectConfigNames().includes(bare) ? foundAt(path.join(projectsDirectory(), `${bare}.json`)) : undefined
+}
 
-  if (host === undefined && owner === undefined && repository !== undefined) {
-    const active = loadActiveConfig()
-    if (active !== undefined && findRepositoryByName(active, repository) !== undefined) return active
+/**
+設定が対象のリポを含むか。repositories にあるか、aggregation_repo と一致すれば含む（aggregation_repo は repositories に無くてよい）
+*/
+export function hasRepository(config: ProjectConfig, target: Readonly<RepositoryReference>): boolean {
+  return findRepository(config, target.owner, target.repository) !== undefined || config.aggregation_repo === `${target.owner}/${target.repository}`
+}
+
+/**
+対象のリポを含む設定（projects/ の *.json と、.active の指す設定）。名前順。形の誤った設定は、関係が無くても ConfigError
+*/
+export function findConfigsForRepository(target: Readonly<RepositoryReference>): readonly FoundConfig[] {
+  const all = listProjectConfigNames().map(name => foundAt(path.join(projectsDirectory(), `${name}.json`)))
+  const active = getActiveConfigPath()
+  if (active !== undefined && all.every(found => found.path !== active)) all.push(foundAt(active))
+  return all.filter(found => hasRepository(found.config, target))
+}
+
+export type ConfigLookup
+  = | { readonly kind: 'found', readonly found: FoundConfig }
+    | { readonly kind: 'none' }
+    | { readonly kind: 'ambiguous', readonly candidates: readonly FoundConfig[] }
+    | { readonly kind: 'unknown-project', readonly project: string }
+    | { readonly kind: 'not-in-project', readonly found: FoundConfig }
+
+/**
+対象のリポから設定を決める。project を渡せばその名前の設定、無ければ対象のリポを含む設定。
+候補が 2 つ以上なら、.active の指す設定が候補にあればそれを使う
+*/
+export function findConfigFor(target: Readonly<RepositoryReference>, project?: string): ConfigLookup {
+  if (project !== undefined) {
+    const named = loadNamedConfig(project)
+    if (named === undefined) return { kind: 'unknown-project', project }
+    return hasRepository(named.config, target) ? { kind: 'found', found: named } : { kind: 'not-in-project', found: named }
   }
+  const candidates = findConfigsForRepository(target)
+  const [only] = candidates
+  if (only === undefined) return { kind: 'none' }
+  if (candidates.length === 1) return { kind: 'found', found: only }
+  const active = getActiveConfigPath()
+  const chosen = candidates.find(found => found.path === active)
+  return chosen === undefined ? { kind: 'ambiguous', candidates } : { kind: 'found', found: chosen }
+}
 
-  const configPath = findConfigFile({ host, owner })
-  return configPath === undefined ? undefined : loadConfig(configPath)
+function availableLine(names: readonly string[]): string {
+  return `available: ${names.length === 0 ? '(none)' : names.join(', ')}`
+}
+
+/**
+findConfigFor が設定を選べなかったときの文と失敗の名前。commandPath は `project` の入力の案内に使う
+*/
+export function configLookupFailure(lookup: Exclude<ConfigLookup, { readonly kind: 'found' }>, target: Readonly<RepositoryReference>, commandPath: readonly string[]): { readonly message: string | HintedText, readonly kind: 'no-active-project' | 'project-not-found' | 'repo-not-in-project' } {
+  const repository = `${target.owner}/${target.repository}`
+  switch (lookup.kind) {
+    case 'none': {
+      return { message: `${repository} is not in any project config\n${availableLine(listProjectConfigNames())}`, kind: 'repo-not-in-project' }
+    }
+    case 'ambiguous': {
+      return { message: ambiguousMessage(`${repository} is in ${String(lookup.candidates.length)} project configs`, lookup.candidates.map(found => found.name), commandPath), kind: 'no-active-project' }
+    }
+    case 'unknown-project': {
+      return { message: unknownProjectMessage(lookup.project), kind: 'project-not-found' }
+    }
+    case 'not-in-project': {
+      return { message: `${repository} is not in project config ${lookup.found.name}`, kind: 'repo-not-in-project' }
+    }
+  }
+}
+
+/**
+設定が 2 つ以上あって選べないときの文。`project` の入力の案内と候補の名前を添える
+*/
+export function ambiguousMessage(headline: string, names: readonly string[], commandPath: readonly string[]): HintedText {
+  return hinted`${headline}\nchoose one with ${inputHint(commandPath, 'project', placeholder('NAME'))}\n${availableLine(names)}`
+}
+
+/**
+`project` の名前の設定が無いときの文
+*/
+export function unknownProjectMessage(project: string): string {
+  return `project config not found: ${project}\n${availableLine(listProjectConfigNames())}`
 }

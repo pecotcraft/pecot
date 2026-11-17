@@ -5,7 +5,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { addIssueToBoard, isStatusConfigured, setIssueField } from './issue-board.js'
-import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { fieldWriteFailure } from './field-write-failure.js'
 import {
@@ -33,6 +33,7 @@ const BOARD_ADD = defineCommand({
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     status: z.string().default('ready').describe('Initial status (backlog/pending/blocked/ready/active/in_review/archived)'),
+    project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: BOARD_ADD_OUTPUT,
@@ -45,12 +46,12 @@ const BOARD_ADD = defineCommand({
       const { status } = input
       if (status !== '' && !VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
 
-      const config = requireActiveConfigPlain(output)
+      const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
+      const { config } = requireConfigFor(output, { owner, repository }, input.project, ['board', 'add'])
       if (status !== '' && !isStatusConfigured(config, status)) {
         stopWith(output, notConfiguredMessage(status), 'status-not-configured')
       }
 
-      const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
       const target = `Issue ${issuePath(owner, repository, number)}`
       try {
         const client = await connectToProject(output, config, owner, repository)
@@ -72,7 +73,7 @@ const BOARD_ADD = defineCommand({
         catch (error: unknown) {
           if (!(error instanceof GitHubAPIError)) throw error
           // 追加は済んでいるので、追加の失敗とは別の文で止める
-          stopWith(output, fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error), kindOfFailure(error))
+          stopWith(output, fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error, config), kindOfFailure(error))
         }
         output.done({ verb: 'set', target: `${target} status ${status}` })
         output.result({ status })

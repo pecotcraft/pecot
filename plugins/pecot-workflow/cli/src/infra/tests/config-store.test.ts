@@ -1,21 +1,23 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ConfigError, MultipleConfigsError, parseProjectConfig, serializeProjectConfig } from '../../domain/config.js'
+import { ConfigError, parseProjectConfig, serializeProjectConfig } from '../../domain/config.js'
 import type { ProjectConfig } from '../../domain/config.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import {
   configDirectory,
-  findConfigFile,
+  configSourcePath,
+  findConfigFor,
+  findConfigsForRepository,
   getActiveConfigPath,
-  getProjectConfig,
   loadActiveConfig,
   loadConfig,
+  loadNamedConfig,
   projectsDirectory,
   saveConfig,
   setActiveConfig,
@@ -204,88 +206,99 @@ describe('アクティブ設定', () => {
   })
 })
 
-describe('findConfigFile', () => {
-  it('host_owner_*.json を探す', () => {
+/**
+projects/ に名前の設定を書く。repositories と aggregation_repo を差し替えられる
+*/
+function writeProject(projects: string, name: string, repositories: readonly string[], aggregation?: string): string {
+  const file = path.join(projects, `${name}.json`)
+  const data = {
+    ...sampleData(),
+    repositories: repositories.map(full => ({ owner: full.split('/', 2)[0] ?? '', name: full.split('/', 2)[1] ?? '' })),
+    ...aggregation !== undefined && { aggregation_repo: aggregation },
+  }
+  writeFileSync(file, JSON.stringify(data))
+  return file
+}
+
+const TARGET = { owner: 'acme', repository: 'app' }
+
+describe('loadNamedConfig', () => {
+  it('名前で読み、.json は省ける。無い名前は undefined', () => {
     const { projects } = useProject()
-    const file = path.join(projects, 'ghes.example.com_test-owner_project1.json')
-    writeFileSync(file, '{}')
-    expect(findConfigFile({ host: 'ghes.example.com', owner: 'test-owner' })).toBe(file)
-  })
-
-  it('見つからなければ undefined', () => {
-    useProject()
-    expect(findConfigFile({ host: 'github.com', owner: 'test' })).toBeUndefined()
-  })
-
-  it('host か owner が無ければ undefined', () => {
-    const { projects } = useProject()
-    writeFileSync(path.join(projects, 'github.com_test_p.json'), '{}')
-    expect(findConfigFile({ host: 'github.com' })).toBeUndefined()
-    expect(findConfigFile({ owner: 'test' })).toBeUndefined()
-    expect(findConfigFile({})).toBeUndefined()
-  })
-
-  it('複数見つかったら MultipleConfigsError（名前順）', () => {
-    const { projects } = useProject()
-    writeFileSync(path.join(projects, 'ghes.example.com_test-owner_project2.json'), '{}')
-    writeFileSync(path.join(projects, 'ghes.example.com_test-owner_project1.json'), '{}')
-    expect(() => findConfigFile({ host: 'ghes.example.com', owner: 'test-owner' })).toThrow(MultipleConfigsError)
-    expect(() => findConfigFile({ host: 'ghes.example.com', owner: 'test-owner' }))
-      .toThrow('multiple config files found: '
-        + '[\'ghes.example.com_test-owner_project1.json\', \'ghes.example.com_test-owner_project2.json\']')
-  })
-
-  it('接頭辞が似ていて owner が長い別のファイルは拾わない', () => {
-    const { projects } = useProject()
-    writeFileSync(path.join(projects, 'github.com_test2_p.json'), '{}')
-    expect(findConfigFile({ host: 'github.com', owner: 'test' })).toBeUndefined()
-  })
-
-  it('.json でないファイルは拾わない', () => {
-    const { projects } = useProject()
-    writeFileSync(path.join(projects, 'github.com_test_p.json.bak'), '{}')
-    expect(findConfigFile({ host: 'github.com', owner: 'test' })).toBeUndefined()
-  })
-
-  it('projects ディレクトリが無ければ undefined', () => {
-    setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
-    expect(findConfigFile({ host: 'github.com', owner: 'test' })).toBeUndefined()
+    writeProject(projects, 'board', ['acme/app'])
+    expect(loadNamedConfig('board')?.name).toBe('board')
+    expect(loadNamedConfig('board.json')?.name).toBe('board')
+    expect(loadNamedConfig('missing')).toBeUndefined()
   })
 })
 
-describe('getProjectConfig', () => {
-  it('引数なしならアクティブ設定', () => {
+describe('findConfigsForRepository', () => {
+  it('対象のリポを含む設定だけを名前順に返す', () => {
     const { projects } = useProject()
-    const file = path.join(projects, 'config.json')
-    writeFileSync(file, JSON.stringify(sampleData()))
-    writeFileSync(path.join(projects, '.active'), file)
-    expect(getProjectConfig()?.host).toBe('ghes.example.com')
+    writeProject(projects, 'b', ['acme/app'])
+    writeProject(projects, 'a', ['acme/app', 'acme/lib'])
+    writeProject(projects, 'c', ['acme/lib'])
+    expect(findConfigsForRepository(TARGET).map(found => found.name)).toEqual(['a', 'b'])
   })
 
-  it('repo 名だけならアクティブ設定の repositories を確かめる', () => {
+  it('repositories に無くても aggregation_repo が一致すれば含む', () => {
     const { projects } = useProject()
-    const file = path.join(projects, 'config.json')
-    writeFileSync(file, JSON.stringify(sampleData()))
-    writeFileSync(path.join(projects, '.active'), file)
-    expect(getProjectConfig({ repository: 'test-repo' })?.host).toBe('ghes.example.com')
+    writeProject(projects, 'board', ['acme/lib'], 'acme/app')
+    expect(findConfigsForRepository(TARGET).map(found => found.name)).toEqual(['board'])
   })
 
-  it('repo 名がアクティブ設定に無ければ undefined', () => {
-    const { projects } = useProject()
-    const file = path.join(projects, 'config.json')
-    writeFileSync(file, JSON.stringify(sampleData()))
-    writeFileSync(path.join(projects, '.active'), file)
-    expect(getProjectConfig({ repository: 'unknown-repo' })).toBeUndefined()
+  it('.active が projects/ の外の設定を指せば、それも候補にし、名前はパスにする', () => {
+    const { root, projects } = useProject()
+    const outside = writeProject(root, 'outside', ['acme/app'])
+    writeFileSync(path.join(projects, '.active'), outside)
+    const [found] = findConfigsForRepository(TARGET)
+    expect(found?.path).toBe(realpathSync(outside))
+    expect(found?.name).toBe(realpathSync(outside))
   })
 
-  it('host と owner で検索する', () => {
+  it('形の誤った設定は、関係が無くても、パスを文に出して ConfigError', () => {
     const { projects } = useProject()
-    writeFileSync(path.join(projects, 'ghes.example.com_test-owner_project.json'), JSON.stringify(sampleData()))
-    expect(getProjectConfig({ host: 'ghes.example.com', owner: 'test-owner' })?.host).toBe('ghes.example.com')
+    writeProject(projects, 'good', ['acme/app'])
+    writeFileSync(path.join(projects, 'broken.json'), '{}')
+    expect(() => findConfigsForRepository(TARGET)).toThrow(ConfigError)
+    expect(() => findConfigsForRepository(TARGET)).toThrow(path.join(projects, 'broken.json'))
+  })
+})
+
+describe('findConfigFor', () => {
+  it('候補が 1 つならそれ、0 個なら none', () => {
+    const { projects } = useProject()
+    writeProject(projects, 'board', ['acme/app'])
+    expect(findConfigFor(TARGET)).toMatchObject({ kind: 'found', found: { name: 'board' } })
+    expect(findConfigFor({ owner: 'acme', repository: 'other' })).toEqual({ kind: 'none' })
   })
 
-  it('見つからなければ undefined', () => {
-    useProject()
-    expect(getProjectConfig({ host: 'github.com', owner: 'nobody' })).toBeUndefined()
+  it('候補が 2 つ以上なら、.active の指す候補を使い、無ければ ambiguous', () => {
+    const { projects } = useProject()
+    writeProject(projects, 'a', ['acme/app'])
+    const second = writeProject(projects, 'b', ['acme/app'])
+    expect(findConfigFor(TARGET)).toMatchObject({ kind: 'ambiguous', candidates: [{ name: 'a' }, { name: 'b' }] })
+    writeFileSync(path.join(projects, '.active'), second)
+    expect(findConfigFor(TARGET)).toMatchObject({ kind: 'found', found: { name: 'b' } })
+  })
+
+  it('project を渡せば、その名前の設定を使う。無い名前（空の名前も含む）と、対象のリポを含まない設定を分ける', () => {
+    const { projects } = useProject()
+    writeProject(projects, 'a', ['acme/app'])
+    writeProject(projects, 'b', ['acme/app'])
+    writeProject(projects, 'c', ['acme/lib'])
+    expect(findConfigFor(TARGET, 'b')).toMatchObject({ kind: 'found', found: { name: 'b' } })
+    expect(findConfigFor(TARGET, 'missing')).toEqual({ kind: 'unknown-project', project: 'missing' })
+    expect(findConfigFor(TARGET, '')).toEqual({ kind: 'unknown-project', project: '' })
+    expect(findConfigFor(TARGET, 'c')).toMatchObject({ kind: 'not-in-project', found: { name: 'c' } })
+  })
+})
+
+describe('configSourcePath', () => {
+  it('loadConfig で読んだ設定のファイルの実パスを返す', () => {
+    const { projects } = useProject()
+    const file = writeProject(projects, 'board', ['acme/app'])
+    expect(configSourcePath(loadConfig(file))).toBe(realpathSync(file))
+    expect(configSourcePath(sampleConfig())).toBeUndefined()
   })
 })

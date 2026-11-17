@@ -7,7 +7,6 @@ import path from 'node:path'
 import { z } from 'zod'
 
 import { isRepositoryInProject } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
 import { FrontmatterError, setFrontmatterValue } from '../domain/frontmatter.js'
 import { jsonField } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
@@ -22,7 +21,7 @@ import { templateFile } from '../infra/template-store.js'
 import { defineCommand, CommandExit } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputNameHint, placeholder } from './command-hint.js'
-import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import {
@@ -154,7 +153,7 @@ async function updateComment(output: CommentOutput, client: GitHubClient, target
   output.data(updatedUrl)
 }
 
-async function postFromFile(output: CommentOutput, config: ProjectConfig, repository: string | undefined, file: string, isDryRun: boolean): Promise<void> {
+async function postFromFile(output: CommentOutput, project: string | undefined, repository: string | undefined, file: string, isDryRun: boolean): Promise<void> {
   let parsed
   try {
     parsed = parseCommentFile(file)
@@ -166,6 +165,7 @@ async function postFromFile(output: CommentOutput, config: ProjectConfig, reposi
   const { frontmatter, body } = parsed
 
   const target = parseIssueReferenceOrExit(output, repository, frontmatter.issue_ref)
+  const { config } = requireConfigFor(output, target, project, COMMENT_PATH)
 
   if (frontmatter.template === undefined) {
     return stopWith(output, `specify template in the frontmatter (${TEMPLATE_CHOICES})`, 'content-invalid')
@@ -197,8 +197,9 @@ async function postFromFile(output: CommentOutput, config: ProjectConfig, reposi
   if (createdUrl !== '') writeBackCommentUrl(output, file, createdUrl)
 }
 
-async function postDirect(output: CommentOutput, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
+async function postDirect(output: CommentOutput, project: string | undefined, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
+  const { config } = requireConfigFor(output, target, project, COMMENT_PATH)
 
   if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
@@ -223,6 +224,7 @@ const ISSUE_COMMENT = defineCommand({
     template: TEMPLATE_SCHEMA.optional().describe(
       'Template type (required with --prepare and -m; plan/merge-diff/review-findings/review-resolution/precede-notify)',
     ),
+    project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
   output: ISSUE_COMMENT_OUTPUT,
@@ -241,14 +243,14 @@ const ISSUE_COMMENT = defineCommand({
         return
       }
       if (file !== undefined) {
-        await postFromFile(output, requireActiveConfigPlain(output), input.repo, file, input.dry_run)
+        await postFromFile(output, input.project, input.repo, file, input.dry_run)
         return
       }
       if (message !== undefined && template !== undefined) {
         if (issue === undefined || issue === '') {
           stopWith(output, hinted`${inputNameHint(COMMENT_PATH, 'issue_ref')} (Issue reference) is required with ${inputNameHint(COMMENT_PATH, 'message')}`, 'invalid-input')
         }
-        await postDirect(output, requireActiveConfigPlain(output), input.repo, issue, message, template, input.dry_run)
+        await postDirect(output, input.project, input.repo, issue, message, template, input.dry_run)
         return
       }
       stopWith(

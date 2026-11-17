@@ -1,6 +1,3 @@
-import { rmSync } from 'node:fs'
-import path from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
@@ -14,6 +11,7 @@ import { bodyWritten, bothLinked, labelUpdated, prepareDependencyProject, remove
 import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { ResponseRule } from '../fake-github/server.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -253,14 +251,54 @@ describe('issue unblock', () => {
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: repository acme/demo is not in the project\n' })
   })
 
-  it('アクティブなプロジェクトが無いとき、終了コード 1 で止める', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で止める', async (context) => {
     await verifies(context, 'PW-ISSUE-UNBLOCK-15')
     const project = setUpProject()
-    rmSync(path.join(project.root, '.pecot/config/projects/.active'))
+    makeAmbiguous(project)
+    const github = await startGithub([])
 
     const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('待つ側のリポを含む設定が無いとき、error を出して終了コード 1 で止める', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-20')
+    setUpProject({ repositories: ['other'] })
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+  })
+
+  it('--project を渡すと、待つ側のリポを含む設定が 2 つあってもその設定で動く', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-21')
+    const project = prepareDependencyProject()
+    makeAmbiguous(project)
+    await startGithub([
+      bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
+      prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5', '--project', SECOND_PROJECT)
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('removed: blocked-by #5 from #7\n')
+  })
+
+  it('.active が無くても、待つ側のリポを含む設定が 1 つならその設定で動く', async () => {
+    const project = prepareDependencyProject()
+    removeActive(project)
+    await startGithub([
+      bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
+      prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('removed: blocked-by #5 from #7\n')
   })
 
   it('前提を外す要求が失敗したとき、error を出して終了コード 1 で止める', async (context) => {

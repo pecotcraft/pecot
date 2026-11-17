@@ -620,8 +620,8 @@ describe('worktree add', () => {
   })
 
   it.for<{ readonly name: string, readonly options: Readonly<ProjectOptions>, readonly message: string }>([
-    { name: 'アクティブなプロジェクトが無い', options: { activeConfig: false }, message: 'project config not found' },
-    { name: 'リポジトリがプロジェクトに登録されていない', options: { repositories: [{ owner: 'acme', name: 'other', develop_branch: 'main' }] }, message: 'is not registered in the active pecot project' },
+    { name: 'プロジェクトの設定が無い', options: { activeConfig: false }, message: 'is not in any project config' },
+    { name: 'リポジトリがどの設定にも無い', options: { repositories: [{ owner: 'acme', name: 'other', develop_branch: 'main' }] }, message: 'is not in any project config' },
   ])('$name と、何も作らず、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-WORKTREE-ADD-37')
     await verifies(context, 'PW-WORKTREE-ADD-38')
@@ -631,6 +631,33 @@ describe('worktree add', () => {
     expect(result.stderr).toContain(row.message)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     expect(branches(repository)).not.toContain('wt1')
+  })
+
+  it('.active が無くても、remote のリポを含む設定が 1 つなら、その設定で作る', async (context) => {
+    await verifies(context, 'PW-WORKTREE-ADD-55')
+    const { repository, root } = createProject()
+    rmSync(path.join(process.env['CLAUDE_PROJECT_DIR'] ?? '', '.pecot', 'config', 'projects', '.active'))
+    const result = await pecot(['worktree', 'add', '-D', repository])
+    expect(result.code).toBe(0)
+    expect(existsSync(path.join(root, 'wt1', 'demo'))).toBe(true)
+  })
+
+  it('remote のリポを含む設定が 2 つで選べなければ止まり、--project を付けるとその設定で作る', async (context) => {
+    await verifies(context, 'PW-WORKTREE-ADD-37')
+    await verifies(context, 'PW-WORKTREE-ADD-38')
+    await verifies(context, 'PW-WORKTREE-ADD-56')
+    const { repository, root } = createProject()
+    const configRoot = process.env['CLAUDE_PROJECT_DIR'] ?? ''
+    rmSync(path.join(configRoot, '.pecot', 'config', 'projects', '.active'))
+    writeTree(configRoot, { '.pecot/config/projects/github.com_acme_2.json': projectConfigJson({}) })
+    const ambiguous = await pecot(['worktree', 'add', '-D', repository])
+    expect(ambiguous.code).toBe(1)
+    expect(ambiguous.stderr).toContain('acme/demo is in 2 project configs')
+    expect(ambiguous.stderr).toContain('--project <NAME>')
+    expect(existsSync(path.join(root, 'wt1'))).toBe(false)
+    const chosen = await pecot(['worktree', 'add', '-D', repository, '--project', 'github.com_acme_2'])
+    expect(chosen.code).toBe(0)
+    expect(existsSync(path.join(root, 'wt1', 'demo'))).toBe(true)
   })
 
   it('使う remote の URL を GitHub の owner/repo として読めないと、何も作らず、終了コード 1 で終わる', async (context) => {
@@ -717,6 +744,15 @@ describe('worktree add', () => {
     const { repository } = createProject()
     gitForTest(repository, ['remote', 'add', 'aaa', 'https://github.com/elsewhere/unregistered.git'])
     gitForTest(repository, ['remote', 'rename', 'origin', 'upstream'])
+    const worktree = await addWorktree()
+    expect(upstreamOf(worktree)).toBe('upstream/develop')
+  })
+
+  it('origin のリポが設定に無く、別の remote のリポが設定にあると、その remote を使う', async (context) => {
+    await verifies(context, 'PW-WORKTREE-ADD-57')
+    const { repository } = createProject()
+    gitForTest(repository, ['remote', 'rename', 'origin', 'upstream'])
+    gitForTest(repository, ['remote', 'add', 'origin', 'https://github.com/elsewhere/unregistered.git'])
     const worktree = await addWorktree()
     expect(upstreamOf(worktree)).toBe('upstream/develop')
   })

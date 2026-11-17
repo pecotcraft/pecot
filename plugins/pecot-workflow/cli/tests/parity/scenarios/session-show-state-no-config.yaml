@@ -1,4 +1,4 @@
-# ブランチ feat/demo/7 から作業中の Issue はあるが、アクティブなプロジェクト設定が無い。警告を出して exit 0 で終わる。
+# ブランチ feat/demo/7 から作業中の Issue はあるが、対象のリポを含むプロジェクト設定が無い。警告を出して exit 0 で終わる。
 id: session-show-state-no-config
 command:
   path: [session, show]

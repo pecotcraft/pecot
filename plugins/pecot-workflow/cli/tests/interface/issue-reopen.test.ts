@@ -1,6 +1,3 @@
-import { rmSync } from 'node:fs'
-import path from 'node:path'
-
 import { describe, expect, it, vi } from 'vitest'
 
 import { ISSUE_REOPEN_COMMANDS } from '../../src/commands/issue-reopen.js'
@@ -12,6 +9,7 @@ import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -332,14 +330,48 @@ describe('issue reopen', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('アクティブなプロジェクトが無いとき、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-REOPEN-16')
     const { project } = prepareProject()
-    rmSync(path.join(project.root, '.pecot/config/projects/.active'))
+    makeAmbiguous(project)
+    const github = await startGithub([])
 
     const result = await reopen(['acme/demo/7'])
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-28')
+    prepareProject({ repositories: ['other'] })
+
+    const result = await reopen(['acme/demo/7'])
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で reopen する', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-29')
+    const { project } = prepareProject()
+    makeAmbiguous(project)
+    await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), reopened()])
+
+    const result = await reopen(['acme/demo/7', '--project', SECOND_PROJECT])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('reopened: Issue acme/demo/7\n')
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で reopen する', async () => {
+    const { project } = prepareProject()
+    removeActive(project)
+    await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), reopened()])
+
+    const result = await reopen(['acme/demo/7'])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('reopened: Issue acme/demo/7\n')
   })
 
   it('リポジトリがプロジェクトに無いとき、reopen せずに終了コード 1 で終わる', async (context) => {

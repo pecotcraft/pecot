@@ -6,7 +6,7 @@ import type { TrackerIssue } from '../domain/tracker-body.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { requireActiveConfigPlain } from './command-stop.js'
+import { requireConfigFor } from './command-stop.js'
 import { DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { requireReleaseTargetRepository } from './release.js'
@@ -42,6 +42,7 @@ tracker sync の各 source の本体が受ける入力
 export interface TrackerSyncInput {
   readonly dry_run: boolean
   readonly repo?: string | undefined
+  readonly project?: string | undefined
 }
 
 export interface SyncTarget {
@@ -51,12 +52,11 @@ export interface SyncTarget {
 }
 
 /**
-対象のリポ（--repo、主の remote の順）とアクティブな設定を決める。決められなければ error の行を出して終了コード 1 で止める。
-設定が無いときの文は Python の sync と同じ 1 行で、案内の行を付けない
+対象のリポ（--repo、主の remote の順）と、それを含むプロジェクトの設定を決める。決められなければ error の行を出して終了コード 1 で止める
 */
-export function loadTarget(out: Readonly<Output>, explicitRepository: string | undefined): SyncTarget {
+export function loadTarget(out: Readonly<Output>, explicitRepository: string | undefined, project: string | undefined): SyncTarget {
   const target = requireReleaseTargetRepository(undefined, explicitRepository, out)
-  const config = requireActiveConfigPlain(out)
+  const config = requireConfigFor(out, target, project, ['tracker', 'sync']).config
   return { config, owner: target.owner, repository: target.repository }
 }
 

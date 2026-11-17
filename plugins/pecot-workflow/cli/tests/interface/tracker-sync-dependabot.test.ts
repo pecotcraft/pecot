@@ -324,11 +324,27 @@ describe('tracker sync', () => {
     expect(stderrAfterCounts(result)).toBe('dry-run: would remove PR #1 from Tracker #9\ndry-run: would close Tracker #9\n')
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-33')
-    const { result, github } = await sync([], [], { hasConfig: false })
-    expect(result).toEqual({ code: FAILURE_CODE, stdout: '', stderr: 'error: no active project\n' })
+    const { result, github } = await sync([], [], { ambiguous: true })
+    expect(result.code).toBe(FAILURE_CODE)
+    expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
+    expect(result.stderr).toContain('--project <NAME>')
     expect(github.requests()).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いと、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-TRACKER-SYNC-95')
+    const { result, github } = await sync([], [], { repositories: ['other'] })
+    expect(result.code).toBe(FAILURE_CODE)
+    expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+    expect(github.requests()).toEqual([])
+  })
+
+  it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+    await verifies(context, 'PW-TRACKER-SYNC-96')
+    const { result } = await sync(listings([], []), ['--dry-run', '--project', 'second'], { ambiguous: true })
+    expect(result.code).toBe(0)
   })
 
   it('--repo を省いて git の remote のリポジトリを読めないと、終了コード 1 で終わる', async (context) => {

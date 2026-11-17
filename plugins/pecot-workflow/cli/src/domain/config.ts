@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 import { PecotError } from './errors.js'
 import { isJsonObject, jsonField } from './json.js'
-import { isJsonArray, pythonRepr, pythonStrip, pythonStringRepr, ValidationFailure } from './python-format.js'
+import { isJsonArray, pythonStrip, pythonStringRepr, ValidationFailure } from './python-format.js'
 import type { JsonValue, ValidationIssue } from './python-format.js'
 import { parseOwnerRepository, splitOwnerRepository } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
@@ -143,16 +143,6 @@ export interface RepositoryMembership {
 
 export class ConfigError extends PecotError {}
 
-export class MultipleConfigsError extends ConfigError {
-  readonly files: readonly string[]
-
-  constructor(files: readonly string[]) {
-    const names = files.map(file => file.slice(file.lastIndexOf('/') + 1))
-    super(`multiple config files found: ${pythonRepr(names)}`)
-    this.files = files
-  }
-}
-
 // 検証エラーの変換
 
 function valueAt(root: JsonValue, location: readonly (string | number)[]): JsonValue | undefined {
@@ -275,13 +265,6 @@ export function getOptionId(config: ProjectConfig, fieldName: string, optionName
 
 export function findRepository(config: ProjectConfig, owner: string, name: string): Repository | undefined {
   return config.repositories.find(repository => repository.owner === owner && repository.name === name)
-}
-
-/**
-owner を指定せずに名前だけで探す（アクティブ設定内の検索用）
-*/
-export function findRepositoryByName(config: ProjectConfig, name: string): Repository | undefined {
-  return config.repositories.find(repository => repository.name === name)
 }
 
 /**

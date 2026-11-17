@@ -6,7 +6,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { isStatusConfigured, setIssueField } from './issue-board.js'
 import { commandHint, hinted } from './command-hint.js'
-import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { fieldWriteFailure } from './field-write-failure.js'
 import {
@@ -33,6 +33,7 @@ const BOARD_MOVE = defineCommand({
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
+    project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: BOARD_MOVE_OUTPUT,
@@ -45,8 +46,8 @@ const BOARD_MOVE = defineCommand({
       const { status } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
 
-      const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
+      const { config } = requireConfigFor(output, { owner, repository }, input.project, ['board', 'move'])
       const target = `Issue ${issuePath(owner, repository, number)}`
       try {
         const client = await connectToProject(output, config, owner, repository)
@@ -66,7 +67,7 @@ const BOARD_MOVE = defineCommand({
         }
         catch (error: unknown) {
           if (!(error instanceof GitHubAPIError)) throw error
-          stopWith(output, fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error), kindOfFailure(error))
+          stopWith(output, fieldWriteFailure(`could not set ${target} status ${status}: ${error.message}`, error, config), kindOfFailure(error))
         }
         if (!isSet) stopWith(output, notConfiguredMessage(status), 'status-not-configured')
         output.done({ verb: 'set', target: `${target} status ${status}` })

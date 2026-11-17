@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // board sync。ボードの Ready・Blocked・Active・In Review の Issue を判定に合わせて、列と札を直す。
-import path from 'node:path'
 import { z } from 'zod'
 
 import { homeRepositoryOf } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
-import { loadActiveConfig, listProjectConfigNames, loadConfig, projectsDirectory } from '../infra/config-store.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GraphqlRateLimit } from '../infra/github/repos.js'
 import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
@@ -14,8 +11,7 @@ import { BOARD_MOVE_JSON, moveJson } from './issue-board.js'
 import type { BoardMoveLine } from './issue-board.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, placeholder } from './command-hint.js'
-import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
+import { requireBoardConfig } from './command-stop.js'
 import { makeClient } from './github-client.js'
 import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
@@ -51,26 +47,6 @@ async function syncBoard(context: Readonly<BoardContext>, read: Readonly<BoardRe
   return await applyJudgedMoves(context, judged, isDryRun)
 }
 
-function availableNames(): string {
-  return listProjectConfigNames().join(', ')
-}
-
-// --project、次にアクティブ設定。どちらも無く設定が 1 つだけなら、それを使う
-function resolveConfig(out: Readonly<Output>, project: string | undefined): ProjectConfig {
-  if (project !== undefined) {
-    // 一覧は projects/ の *.json の名前なので、一致すれば ../ などの外のパスにならない
-    const name = project.endsWith('.json') ? project.slice(0, -'.json'.length) : project
-    return listProjectConfigNames().includes(name) ? loadConfig(path.join(projectsDirectory(), `${name}.json`)) : stopWith(out, `project config not found: ${project}\navailable: ${availableNames()}`, 'project-not-found')
-  }
-  const active = loadActiveConfig()
-  if (active !== undefined) return active
-  const names = listProjectConfigNames()
-  const [only] = names
-  if (only === undefined) return stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
-  if (names.length === 1) return loadConfig(path.join(projectsDirectory(), `${only}.json`))
-  return stopWith(out, hinted`no active project, and ${String(names.length)} project configs exist\nrun: ${commandHint(['board', 'sync'], { project: placeholder('NAME') })}\navailable: ${names.join(', ')}`, 'no-active-project')
-}
-
 // 窓が途中で切り替わると前後の used を比べられないので、使用量の行を省く
 function reportPoints(out: Readonly<Output>, before: GraphqlRateLimit | undefined, after: GraphqlRateLimit | undefined): void {
   if (before === undefined || after === undefined) return
@@ -99,7 +75,7 @@ const boardSyncCommand = defineCommand({
   interactive: false,
   run: async (input, io) => {
     const out = createOutput<z.input<typeof BOARD_SYNC_OUTPUT>>(input.dry_run, io)
-    const config = resolveConfig(out, input.project)
+    const config = requireBoardConfig(out, input.project, ['board', 'sync'])
     const client = makeClient(out, config)
     const before = await client.getGraphqlRateLimit()
     let read: BoardRead

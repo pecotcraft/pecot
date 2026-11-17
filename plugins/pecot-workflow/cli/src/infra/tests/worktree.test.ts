@@ -601,37 +601,29 @@ describe('createWorktree（実 git・実ファイル）', () => {
     expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
   })
 
-  it('アクティブなプロジェクト設定が無ければ WorktreeRuntimeError', () => {
+  it('.active が無くても、remote のリポを含む設定で作る', () => {
     const { repository, configRoot } = createProject()
     rmSync(path.join(configRoot, '.pecot', 'config', 'projects', '.active'))
-    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
-    expect(error.message).toBe('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
-    expect(error.failure).toBe('no-active-project')
+    expect(createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }).branch).toBe('wt1')
   })
 
-  it('アクティブなプロジェクトに登録されていないリポジトリはエラー。登録済みの一覧と追加手順を示す', () => {
+  it('remote のリポを含む設定が 2 つで選べなければ、候補と project の案内を出して止まる', () => {
+    const { repository, configRoot } = createProject()
+    const projects = path.join(configRoot, '.pecot', 'config', 'projects')
+    rmSync(path.join(projects, '.active'))
+    writeTree(configRoot, { '.pecot/config/projects/github.com_myowner_2.json': projectConfigJson(DEFAULT_REPOSITORIES) })
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', isDryRun: true }))
+    expect(error.message).toBe('myowner/myrepo is in 2 project configs\nchoose one with --project <NAME>\navailable: github.com_myowner_1, github.com_myowner_2')
+    expect(error.failure).toBe('no-active-project')
+    expect(createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true, project: 'github.com_myowner_2' }).branch).toBe('wt1')
+  })
+
+  it('remote のリポを含む設定が無ければ、どの設定にも無いと示し、ある設定の名前を並べる', () => {
     const { repository } = createProject({ repositories: [{ owner: 'foo', name: 'bar' }, { owner: 'foo', name: 'baz' }] })
-    const expected = [
-      'repository myowner/myrepo is not registered in the active pecot project',
-      '',
-      'registered repositories:',
-      '  - foo/bar',
-      '  - foo/baz',
-      '',
-      'to add this repository to the pecot project:',
-      '  pecot project link myowner/myrepo',
-      '',
-      'to switch to another project:',
-      '  pecot project activate <PROJECT>',
-    ].join('\n')
+    const expected = 'myowner/myrepo is not in any project config\navailable: github.com_myowner_1'
     const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))
     expect(error.message).toBe(expected)
     expect(error.failure).toBe('repo-not-in-project')
-  })
-
-  it('登録が 1 件も無ければ「(登録なし)」', () => {
-    const { repository } = createProject({ repositories: [] })
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { isDryRun: true }))).toContain('registered repositories:\n  (none registered)\n')
   })
 
   it('symlink 登録済みのファイルは、未追跡ファイルのコピーから除く', () => {

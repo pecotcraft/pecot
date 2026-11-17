@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { PR_COMMANDS } from '../../src/commands/pr.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { prepareProject } from '../_helpers/board-issue-case.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
@@ -356,6 +357,48 @@ describe('pr merge', () => {
 
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would merge PR #11 into main (stack #3, 1 of 2)\n' })
     expect(github.requests().some(request => request.type === 'rest' && request.method === 'PUT')).toBe(false)
+  })
+
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-MERGE-18')
+    prepareProject({ repositories: ['other'] })
+    const github = await startGithub([])
+
+    const outcome = await merge(['acme/demo/11'])
+
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
+    await verifies(context, 'PW-PR-MERGE-19')
+    const { project } = prepareProject()
+    makeAmbiguous(project)
+    await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
+
+    const outcome = await merge(['acme/demo/11', '--dry-run', '--project', SECOND_PROJECT])
+
+    expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would merge PR #11 into main (stack #3, 1 of 2)\n' })
+  })
+
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
+    const { project } = prepareProject()
+    makeAmbiguous(project)
+    await startGithub([])
+
+    const outcome = await merge(['acme/demo/11'])
+
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で読む', async () => {
+    const { project } = prepareProject()
+    removeActive(project)
+    await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
+
+    const outcome = await merge(['acme/demo/11', '--dry-run'])
+
+    expect(outcome.code).toBe(0)
   })
 
   it('MCP で成功すると、マージした PR・base・結果・スタックを返す', async (context) => {

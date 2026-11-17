@@ -179,6 +179,10 @@
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "status": {
             "type": "string",
             "default": "ready",
@@ -198,6 +202,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ],
           "status": [
             "--status",
@@ -293,6 +300,10 @@
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "status": {
             "type": "string",
             "description": "Status (backlog/pending/blocked/ready/active/in_review/archived)"
@@ -313,6 +324,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -937,6 +951,10 @@
             "default": false,
             "description": "Show what would be deleted without deleting anything"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "repo": {
             "type": "string",
             "description": "Repository reference (owner/repo)"
@@ -957,6 +975,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -1053,6 +1074,10 @@
             "type": "string",
             "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "reason": {
             "type": "string",
             "description": "Why it waits for the merge (required with --wait merge)"
@@ -1083,6 +1108,9 @@
           ],
           "dry_run": [
             "--dry-run"
+          ],
+          "project": [
+            "--project"
           ],
           "reason": [
             "--reason"
@@ -1242,6 +1270,10 @@
             "default": false,
             "description": "Copy a template to the work directory"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "template": {
             "type": "string",
             "enum": [
@@ -1277,6 +1309,9 @@
           "prepare": [
             "--prepare",
             "-p"
+          ],
+          "project": [
+            "--project"
           ],
           "template": [
             "--template",
@@ -1402,6 +1437,10 @@
             "type": "string",
             "description": "Priority (high/medium/low)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "repo": {
             "type": "string",
             "description": "Repository (owner/repo form; required with -m / --prepare unless epic)"
@@ -1481,6 +1520,9 @@
           ],
           "priority": [
             "--priority"
+          ],
+          "project": [
+            "--project"
           ],
           "repo": [
             "--repo",
@@ -1724,6 +1766,10 @@
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "status": {
             "type": "string",
             "default": "ready",
@@ -1747,6 +1793,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ],
           "status": [
             "--status",
@@ -1858,6 +1907,10 @@
             "type": "boolean",
             "default": false,
             "description": "Output as JSON"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -1877,6 +1930,9 @@
           "json": [
             "--json",
             "-j"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -2279,6 +2335,10 @@
           "issue_ref": {
             "type": "string",
             "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -2297,6 +2357,9 @@
           ],
           "dry_run": [
             "--dry-run"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -2421,6 +2484,10 @@
           "directory": {
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -2434,6 +2501,9 @@
           "directory": [
             "--directory",
             "-D"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -2602,6 +2672,10 @@
             "default": false,
             "description": "Copy the template to the work directory"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "repo": {
             "type": "string",
             "description": "Repository in owner/repo form (with -m)"
@@ -2653,6 +2727,9 @@
           "prepare": [
             "--prepare",
             "-p"
+          ],
+          "project": [
+            "--project"
           ],
           "repo": [
             "--repo",
@@ -2823,6 +2900,10 @@
           "pr_ref": {
             "type": "string",
             "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -2838,6 +2919,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -2966,6 +3050,10 @@
             "type": "boolean",
             "default": false,
             "description": "Show what would be done without rebasing, pushing or writing records"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [],
@@ -2986,6 +3074,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -3111,6 +3202,10 @@
             "type": "string",
             "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "reviews": {
             "type": "boolean",
             "default": false,
@@ -3130,6 +3225,9 @@
           "json": [
             "--json",
             "-j"
+          ],
+          "project": [
+            "--project"
           ],
           "reviews": [
             "--reviews",
@@ -4561,6 +4659,10 @@
             "type": "string",
             "description": "Package name in a monorepo (required for repositories with packages configured)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "version": {
             "type": "string",
             "description": "Release version (detected from the CHANGELOG when omitted)"
@@ -4576,6 +4678,9 @@
         "flags": {
           "package": [
             "--package"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -4704,6 +4809,10 @@
             "type": "string",
             "description": "Package name in a monorepo (required for repositories with packages configured)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "version": {
             "type": "string",
             "description": "Release version (for example 0.6.1)"
@@ -4724,6 +4833,9 @@
           ],
           "package": [
             "--package"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -4824,6 +4936,10 @@
           "pr_ref": {
             "type": "string",
             "description": "PR reference (owner/repo/123)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -4846,6 +4962,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -4948,6 +5067,10 @@
             "type": "string",
             "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "skip_local_cleanup": {
             "type": "boolean",
             "default": false,
@@ -4971,6 +5094,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ],
           "skip_local_cleanup": [
             "--skip-local-cleanup"
@@ -5167,6 +5293,10 @@
           "directory": {
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -5180,6 +5310,9 @@
           "directory": [
             "--directory",
             "-D"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -5354,6 +5487,10 @@
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (owner/repo/123)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           }
         },
         "required": [
@@ -5379,6 +5516,9 @@
           "dry_run": [
             "--dry-run",
             "-n"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -5482,6 +5622,10 @@
             "default": false,
             "description": "Show the planned Tracker changes without changing anything"
           },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
           "source": {
             "type": "string",
             "enum": [
@@ -5503,6 +5647,9 @@
         "flags": {
           "dry_run": [
             "--dry-run"
+          ],
+          "project": [
+            "--project"
           ]
         }
       },
@@ -5665,7 +5812,7 @@
           },
           "base": {
             "type": "string",
-            "description": "Base branch (default: the develop_branch of the repository in the active project)"
+            "description": "Base branch (default: the develop_branch of the repository in its project config)"
           },
           "directory": {
             "type": "string",
@@ -5689,6 +5836,10 @@
           "path": {
             "type": "string",
             "description": "Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           },
           "setup": {
             "type": "string",
@@ -5725,6 +5876,9 @@
           ],
           "path": [
             "--path"
+          ],
+          "project": [
+            "--project"
           ],
           "setup": [
             "--setup"

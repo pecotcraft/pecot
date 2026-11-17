@@ -1,6 +1,3 @@
-import { rmSync } from 'node:fs'
-import path from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
 import { BOARD_MOVE_COMMANDS } from '../../src/commands/board-move.js'
@@ -8,6 +5,7 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { boardItems, failing, fieldUpdated, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -98,14 +96,46 @@ describe('board move', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('アクティブなプロジェクトが無いとき、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-BOARD-MOVE-07')
     const { project } = prepareProject()
-    rmSync(path.join(project.root, '.pecot/config/projects/.active'))
+    makeAmbiguous(project)
+    const github = await startGithub([])
 
     const result = await update(['board', 'move', 'acme/demo/7', 'active'])
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-BOARD-MOVE-17')
+    prepareProject({ repositories: ['other'] })
+
+    const result = await update(['board', 'move', 'acme/demo/7', 'active'])
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で Status を更新する', async (context) => {
+    await verifies(context, 'PW-BOARD-MOVE-18')
+    const { project } = prepareProject()
+    makeAmbiguous(project)
+    await startGithub([linkedRepositories(), boardItems(), fieldUpdated('o5')])
+
+    const result = await update(['board', 'move', 'acme/demo/7', 'in_review', '--project', SECOND_PROJECT])
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'set: Issue acme/demo/7 status in_review\n' })
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で Status を更新する', async () => {
+    const { project } = prepareProject()
+    removeActive(project)
+    await startGithub([linkedRepositories(), boardItems(), fieldUpdated('o5')])
+
+    const result = await update(['board', 'move', 'acme/demo/7', 'in_review'])
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'set: Issue acme/demo/7 status in_review\n' })
   })
 
   it('Issue の参照が不正なとき、終了コード 2 で終わる', async (context) => {

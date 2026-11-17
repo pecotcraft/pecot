@@ -39,7 +39,7 @@ const UNREACHABLE: readonly { readonly file: string, readonly kinds: readonly st
   // キーごとの操作の表のうち、値を確かめるのは set だけ
   { file: 'project.ts', kinds: ['invalid-input'], ids: ['PW-PROJECT-GET', 'PW-PROJECT-UNSET'] },
   // WorktreeRuntimeError の個別の名前は、worktree add の作成だけが付ける
-  { file: 'worktree.ts', kinds: ['config-invalid', 'no-active-project', 'not-initialized', 'repo-not-in-project', 'repo-setting-missing'], ids: ['PW-WORKTREE-INIT', 'PW-WORKTREE-LINK', 'PW-WORKTREE-REMOVE'] },
+  { file: 'worktree.ts', kinds: ['config-invalid', 'no-active-project', 'not-initialized', 'project-not-found', 'repo-not-in-project', 'repo-setting-missing'], ids: ['PW-WORKTREE-INIT', 'PW-WORKTREE-LINK', 'PW-WORKTREE-REMOVE'] },
 ]
 
 function isUnreachable(id: string, { kind, at }: ReturnedKind): boolean {

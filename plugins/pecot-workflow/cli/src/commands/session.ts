@@ -11,12 +11,14 @@ import type { RestackDecision } from '../domain/restack.js'
 import { issueReferenceToCliReference, issueReferenceToString } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { describeStackBase } from '../domain/work-start.js'
-import { loadActiveConfig } from '../infra/config-store.js'
+import { configLookupFailure, findConfigFor } from '../infra/config-store.js'
 import { activeIssueOf, gitCurrentBranch, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { defineCommand } from './command-definition.js'
+import { joinHinted } from './command-hint.js'
+import { PROJECT_INPUT } from './command-stop.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
@@ -83,7 +85,7 @@ interface ActiveIssueReading {
 
 // 作業中の Issue（remote とブランチ名から求める）を GitHub から読んで、Markdown の行にする。
 // 作業中の Issue が無ければ undefined。読めなければ warning を出し、参照だけを返す
-async function readActiveIssue(directory: string, output: Output): Promise<ActiveIssueReading | undefined> {
+async function readActiveIssue(directory: string, output: Output, project: string | undefined): Promise<ActiveIssueReading | undefined> {
   const reference = activeIssueOf(directory)
   if (reference === undefined) return undefined
   const label = issueReferenceToString(reference)
@@ -93,11 +95,12 @@ async function readActiveIssue(directory: string, output: Output): Promise<Activ
   let config
   let client
   try {
-    config = loadActiveConfig()
-    if (config === undefined) {
-      output.warning('cannot read the active Issue: no active project')
+    const lookup = findConfigFor(reference.repository, project)
+    if (lookup.kind !== 'found') {
+      output.warning(joinHinted(['cannot read the active Issue: ', configLookupFailure(lookup, reference.repository, ['session', 'show']).message], ''))
       return { label, data }
     }
+    config = lookup.found.config
     client = createGitHubClient(output, config.host)
     issue = await client.getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
   }
@@ -186,7 +189,7 @@ async function blockedReadiness(active: Readonly<ActiveIssue>, known: IssueReadi
 const SESSION_SHOW = defineCommand({
   path: ['session', 'show'],
   description: 'Show the branch, repository and work Issue of the session',
-  input: z.object({ directory: directorySchema }),
+  input: z.object({ directory: directorySchema, project: PROJECT_INPUT }),
   output: SESSION_SHOW_OUTPUT,
   positional: [],
   shortFlags: { directory: '-D' },
@@ -195,7 +198,7 @@ const SESSION_SHOW = defineCommand({
     const output = createOutput<SessionShowData>(false, io)
     const branch = gitCurrentBranch(input.directory)
     const origin = primaryRemoteRepository(input.directory)
-    const reading = await readActiveIssue(input.directory, output)
+    const reading = await readActiveIssue(input.directory, output, input.project)
     const active = reading?.read
     const stack = active === undefined ? { lines: [] } : await stackSection(active, origin, input.directory, output)
     const above = active === undefined || origin === undefined || branch === undefined ? undefined : await readStackedAbove(active, origin, branch, output)

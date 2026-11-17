@@ -6,6 +6,7 @@ import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
+import { makeAmbiguous } from './project-selection.js'
 
 export const NOW = new Date('2026-11-09T12:00:00Z')
 export const WORKFLOW_FIELD = 'PVTSSF_workflow'
@@ -17,7 +18,14 @@ export function freezeClock(): void {
 }
 
 export interface SyncSetup {
-  readonly hasConfig?: boolean
+  /**
+  設定の repositories に載せるリポジトリ名。既定は demo
+  */
+  readonly repositories?: readonly string[]
+  /**
+  真なら、同じリポを含む 2 つ目の設定を足し、.active を外す
+  */
+  readonly ambiguous?: boolean
   readonly hasRemote?: boolean
 }
 
@@ -25,8 +33,9 @@ export interface SyncSetup {
 設定と origin（acme/demo）を持つ一時 git リポジトリへ移る
 */
 export function prepareSync(setup: Readonly<SyncSetup> = {}): ProjectFixture {
-  const { hasConfig = true, hasRemote = true } = setup
-  const project = setUpProject(hasConfig ? {} : { files: { '.pecot/config/projects/.active': '' } })
+  const { repositories, ambiguous = false, hasRemote = true } = setup
+  const project = setUpProject(repositories === undefined ? {} : { repositories })
+  if (ambiguous) makeAmbiguous(project)
   const repository = enterGitRepository()
   if (hasRemote) gitForTest(repository, ['remote', 'add', 'origin', 'https://ghes.example.com/acme/demo.git'])
   return project

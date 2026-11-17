@@ -11,6 +11,7 @@ import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -264,13 +265,43 @@ describe('issue show', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('アクティブなプロジェクトが無いとき、終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-SHOW-12')
-    enterGitRepository()
+    makeAmbiguous(setUpProject())
+    const github = await startGithub([])
 
     const result = await read('acme/demo/7')
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-SHOW-23')
+    setUpProject({ repositories: ['other'] })
+
+    const result = await read('acme/demo/7')
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+  })
+
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
+    await verifies(context, 'PW-ISSUE-SHOW-24')
+    makeAmbiguous(setUpProject())
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
+
+    const result = await read('acme/demo/7', '--project', SECOND_PROJECT)
+
+    expect(result).toEqual({ code: 0, stdout: `${HEAD}${BODY}`, stderr: '' })
+  })
+
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で読む', async () => {
+    removeActive(setUpProject())
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
+
+    const result = await read('acme/demo/7')
+
+    expect(result).toEqual({ code: 0, stdout: `${HEAD}${BODY}`, stderr: '' })
   })
 
   it.for([

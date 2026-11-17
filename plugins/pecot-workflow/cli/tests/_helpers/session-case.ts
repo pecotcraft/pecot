@@ -25,6 +25,10 @@ export interface SessionCaseOptions extends BaseRecordOption {
   プロジェクトルートに足すファイル（設定ファイルの上書きを含む）
   */
   readonly files?: Readonly<Record<string, string>>
+  /**
+  設定のリポジトリ名（owner は acme）。既定は demo だけ
+  */
+  readonly repositories?: readonly string[]
 }
 
 export interface SessionCase {
@@ -37,7 +41,7 @@ export interface SessionCase {
 */
 export function prepareSession(options: Readonly<SessionCaseOptions> = {}): SessionCase {
   const { branch = 'feat/demo/7', remotes = { origin: ORIGIN_URL }, files = {} } = options
-  const project = setUpProject({ files: { ...developmentRecordOf(options), ...files } })
+  const project = setUpProject({ files: { ...developmentRecordOf(options), ...files }, ...options.repositories !== undefined && { repositories: [...options.repositories] } })
   const repository = realpathSync(createGitRepository(undefined, project.root))
   process.chdir(repository)
   gitForTest(repository, ['checkout', '-q', '-b', branch])

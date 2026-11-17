@@ -11,6 +11,7 @@ import type { ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import {
+  configText,
   addedToProject,
   blockedByAdded,
   blockedBySupported,
@@ -531,13 +532,52 @@ describe('issue create', () => {
       expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: invalid repository format: acme/demo/x\n  expected: owner/repo\n' })
     })
 
-    it('アクティブなプロジェクトが無いとき、error の行を出して終了コード 1 で終わる', async (context) => {
+    it('作り先のリポを含む設定が 2 つで選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-38')
-      setUpIssueProject({ files: { '.pecot/config/projects/.active': '' } })
+      setUpIssueProject({ files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({}) } })
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY)
 
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    })
+
+    it('作り先のリポを含む設定が無いとき、どの設定にも無いと出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-74')
+      setUpIssueProject()
+
+      const result = await create('-t', '題', '-r', 'acme/unknown', '-m', TASK_BODY)
+
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/unknown is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
+    })
+
+    it('--project を付けると、作り先のリポを含む設定が 2 つでも、その設定で作る', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-75')
+      setUpIssueProject({ files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({}) } })
+      await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
+
+      const result = await create('-t', '題', '-r', 'acme/demo', '--project', 'second', '-m', TASK_BODY)
+
+      expect(result.code).toBe(0)
+    })
+
+    it('Epic を --repo なしで作るとき、.active が無くて設定の数が 2 つなら、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-76')
+      setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/demo' }) } })
+
+      const result = await create('-t', '大きな仕事', '--type', 'epic', '-m', EPIC_BODY)
+
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project, and 2 project configs exist\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    })
+
+    it('Epic を --repo なしで --project を付けて作ると、その設定の aggregation_repo に作る', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-77')
+      setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/other', otherRepositories: ['other'] }) } })
+      const github = await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
+
+      const result = await create('-t', '大きな仕事', '--type', 'epic', '--project', 'second', '-m', EPIC_BODY)
+
+      expect(result.code).toBe(0)
+      expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ path: '/repos/acme/other/issues', body: { title: '[Epic] 大きな仕事' } })
     })
 
     it('Epic を --repo なしで作ると、aggregation_repo に作る', async (context) => {
@@ -554,7 +594,7 @@ describe('issue create', () => {
 
     it('aggregation_repo と違うリポジトリに Epic を作ると、warning の行を出して続ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-15')
-      setUpIssueProject({ aggregation: 'acme/demo' })
+      setUpIssueProject({ aggregation: 'acme/demo', otherRepositories: ['other'] })
       await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
 
       const result = await create('-t', '大きな仕事', '--type', 'epic', '-r', 'acme/other', '-m', EPIC_BODY)
@@ -1047,9 +1087,25 @@ describe('issue create', () => {
       expect(result.stdout).toBe(`${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
     })
 
+    it('ファイルの作り先が別々のプロジェクトの設定に分かれると、1 件も作らずに終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-78')
+      const otherOnly = configText({}).replaceAll('"name": "demo"', '"name": "other"')
+      const project = setUpIssueProject({ files: { '.pecot/config/projects/second.json': otherOnly } })
+      writeTree(project.root, {
+        'a.md': taskFile('先頭'),
+        'b.md': rawFrontmatterFile(['type: task', 'repository: acme/other', 'title: 別のリポ']),
+      })
+      const github = await startGithub([])
+
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
+
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: the files belong to different project configs: a.md (ghes.example.com_acme_board_acme), b.md (second)\n  post them separately\n' })
+      expect(github.requests()).toEqual([])
+    })
+
     it('既存の Issue の表記は、一括の先頭のファイルのリポジトリを基準にそろえる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-45')
-      const project = setUpIssueProject()
+      const project = setUpIssueProject({ otherRepositories: ['other'] })
       writeTree(project.root, {
         'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')),
         'b.md': rawFrontmatterFile(['type: task', 'repository: acme/other', 'title: 別のリポ', ...blockedBy('acme/demo/12')]),

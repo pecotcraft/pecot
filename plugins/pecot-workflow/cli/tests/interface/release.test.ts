@@ -278,11 +278,26 @@ describe('release check', () => {
     expect(result.stderr).toBe('error: could not find the root directory of the git repository\n')
   })
 
-  it('もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる', async (context) => {
+  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-19')
+    const result = await runPreflight(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), [], [])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
+    expect(result.stderr).toContain('--project <NAME>')
+    expect(result.stderr).toContain('available: ')
+  })
+
+  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-CHECK-42')
     const result = await runPreflight(project({ isActive: false }), [], [])
     expect(result.code).toBe(1)
-    expect(result.stderr).toContain('error: no active project\n')
+    expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+  })
+
+  it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+    await verifies(context, 'PW-RELEASE-CHECK-43')
+    const result = await runCounted(project({ ...WITH_BRANCHES, extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), ['--project', 'second'])
+    expect(result.code).toBe(0)
   })
 
   it.for([{ arguments_: ['0.2.0'] }, { arguments_: ['--package', 'pkg-a'] }])('もし nx のリポジトリに $arguments_ を渡したなら、終了コード 1 で終わる', async ({ arguments_ }, context) => {
@@ -587,11 +602,27 @@ describe('release create', () => {
     expect(result.stderr).toBe('error: could not find the root directory of the git repository\n')
   })
 
-  it('もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる', async (context) => {
+  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-RELEASE-CREATE-12')
+    const result = await runCreate(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), ['0.2.0'])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
+    expect(result.stderr).toContain('--project <NAME>')
+    expect(result.stderr).toContain('available: ')
+  })
+
+  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-CREATE-29')
     const result = await runCreate(project({ isActive: false }), ['0.2.0'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toContain('error: no active project\n')
+    expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+  })
+
+  it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+    await verifies(context, 'PW-RELEASE-CREATE-30')
+    const result = await runCreate(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), ['0.2.0', '--dry-run', '--project', 'second'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('dry-run: would create release v0.2.0 on release\n')
   })
 
   it('もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる', async (context) => {
@@ -812,11 +843,27 @@ describe('release merge', () => {
     })
   })
 
-  it('もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる', async (context) => {
+  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-RELEASE-MERGE-13')
+    const result = await runMerge(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }))
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
+    expect(result.stderr).toContain('--project <NAME>')
+    expect(result.stderr).toContain('available: ')
+  })
+
+  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-MERGE-28')
     const result = await runMerge(project({ isActive: false }))
     expect(result.code).toBe(1)
-    expect(result.stderr).toContain('error: no active project\n')
+    expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+  })
+
+  it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+    await verifies(context, 'PW-RELEASE-MERGE-29')
+    const result = await runMerge(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), ['acme/demo/31', '--dry-run', '--project', 'second'], [pullRequestResponse()])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('dry-run: would merge PR acme/demo/31 (develop -> release, merge commit)\n')
   })
 
   it('もし PR の参照が owner/repo/N の形でないなら、終了コード 2 で終わる', async (context) => {

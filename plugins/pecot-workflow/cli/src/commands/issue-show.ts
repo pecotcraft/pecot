@@ -13,7 +13,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
@@ -243,6 +243,7 @@ const ISSUE_SHOW = defineCommand({
   description: 'Fetch Issue details efficiently (GraphQL, only the needed fields)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
+    project: PROJECT_INPUT,
     json: z.boolean().default(false).describe('Output as JSON'),
     comment_limit: z.int().min(0).max(MAX_COMMENT_LIMIT).default(DEFAULT_COMMENT_LIMIT).describe('Number of comments to show (0-20; 0 hides them)'),
   }),
@@ -253,8 +254,8 @@ const ISSUE_SHOW = defineCommand({
   run: async (input, io) => {
     const output = createOutput<IssueShowJson>(false, io)
     return await runWithExit(async () => {
-      const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
+      const { config } = requireConfigFor(output, { owner, repository }, input.project, ['issue', 'show'])
 
       let issue: IssueSlim
       const client = createGitHubClient(output, config.host)

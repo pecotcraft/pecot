@@ -1,4 +1,4 @@
-# origin のリポがアクティブなプロジェクトに登録されていない。exit 1。
+# origin のリポを含むプロジェクトの設定が無い。exit 1。
 id: worktree-add-state-not-registered
 command:
   path: [worktree, add]

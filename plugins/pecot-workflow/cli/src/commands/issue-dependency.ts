@@ -21,7 +21,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
-import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { apiFailureMessage, createGitHubClient } from './github-client.js'
 import { applyBoardMove, BOARD_MOVE_JSON, moveJson } from './issue-board.js'
@@ -38,6 +38,7 @@ const CONTENT_EXIT_CODE = 3
 // たどる Issue の数の上限。大きな連鎖で止まらないことより、確かめずに付けないことを優先する
 const MAX_CYCLE_ISSUES = 200
 const BLOCK_PATH = ['issue', 'block']
+const UNBLOCK_PATH = ['issue', 'unblock']
 
 const ISSUE_FIELD = z.string().describe('The waiting Issue (owner/repo/N)')
 const BY_FIELD = z.string().describe('The prerequisite Issue (owner/repo/N)')
@@ -172,6 +173,7 @@ interface BlockInput {
   readonly wait: Wait
   readonly reason?: string | undefined
   readonly dry_run: boolean
+  readonly project?: string | undefined
   readonly repo?: string | undefined
 }
 
@@ -203,9 +205,9 @@ async function checkNoCycle(context: Context, byId: string): Promise<void> {
 }
 
 async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
-  const config = requireActiveConfigPlain(out)
   const targetIssue = parseIssueReferenceOrExit(out, input.repo, input.issue_ref)
   const byIssue = parseIssueReferenceOrExit(out, input.repo, input.by)
+  const { config } = requireConfigFor(out, targetIssue, input.project, BLOCK_PATH)
   const target = toReference(targetIssue)
   const by = toReference(byIssue)
   const reason = checkBlockUsage(out, input, target, by)
@@ -275,13 +277,14 @@ interface UnblockInput {
   readonly issue_ref: string
   readonly by: string
   readonly dry_run: boolean
+  readonly project?: string | undefined
   readonly repo?: string | undefined
 }
 
 async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void> {
-  const config = requireActiveConfigPlain(out)
   const targetIssue = parseIssueReferenceOrExit(out, input.repo, input.issue_ref)
   const byIssue = parseIssueReferenceOrExit(out, input.repo, input.by)
+  const { config } = requireConfigFor(out, targetIssue, input.project, UNBLOCK_PATH)
   const target = toReference(targetIssue)
   const by = toReference(byIssue)
 
@@ -342,6 +345,7 @@ const ISSUE_BLOCK = defineCommand({
     by: z.string().describe('The Issue to wait for (`owner/repo/N`; another repository is allowed)'),
     wait: z.enum(['stack', 'merge']).default('stack').describe('stack (build on its branch) or merge (wait until it is merged)'),
     reason: z.string().optional().describe('Why it waits for the merge (required with --wait merge)'),
+    project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: ISSUE_BLOCK_OUTPUT,
@@ -356,11 +360,12 @@ const ISSUE_BLOCK = defineCommand({
 })
 
 const ISSUE_UNBLOCK = defineCommand({
-  path: ['issue', 'unblock'],
+  path: UNBLOCK_PATH,
   description: 'Remove a blocked-by (prerequisite) from an Issue',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),
     by: z.string().describe('The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)'),
+    project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: ISSUE_UNBLOCK_OUTPUT,

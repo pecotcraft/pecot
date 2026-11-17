@@ -9,13 +9,11 @@ import {
   effectiveReleaseType,
   findPackage,
   findRepository,
-  findRepositoryByName,
   getDevelopBranch,
   getFieldId,
   getOptionId,
   getReleaseBranch,
   isRepositoryInProject,
-  MultipleConfigsError,
   parseProjectConfig,
   PRIORITIES,
   serializeProjectConfig,
@@ -303,11 +301,6 @@ describe('リポジトリの検索', () => {
     expect(findRepository(config, 'test-owner', 'nonexistent')).toBeUndefined()
   })
 
-  it('名前だけでリポジトリを探し、無ければ undefined を返す', () => {
-    expect(findRepositoryByName(config, 'test-repo')?.owner).toBe('test-owner')
-    expect(findRepositoryByName(config, 'nonexistent')).toBeUndefined()
-  })
-
   it('リポジトリの develop ブランチを返し、未設定や無いリポジトリには undefined を返す', () => {
     expect(getDevelopBranch(config, 'test-owner', 'test-repo')).toBe('develop')
     expect(getDevelopBranch(config, 'test-owner', 'another-repo')).toBeUndefined()
@@ -371,18 +364,11 @@ describe('isRepositoryInProject', () => {
   })
 })
 
-describe('ConfigError / MultipleConfigsError', () => {
+describe('ConfigError', () => {
   it('ConfigError はメッセージを持つ', () => {
     expect(() => {
       throw new ConfigError('テストエラー')
     }).toThrow('テストエラー')
-  })
-
-  it('MultipleConfigsError の文にファイル名が含まれる（Python のリスト表記）', () => {
-    const error = new MultipleConfigsError(['/tmp/config1.json', '/tmp/config2.json'])
-    expect(error.message).toBe('multiple config files found: [\'config1.json\', \'config2.json\']')
-    expect(error.files).toEqual(['/tmp/config1.json', '/tmp/config2.json'])
-    expect(error).toBeInstanceOf(ConfigError)
   })
 })
 

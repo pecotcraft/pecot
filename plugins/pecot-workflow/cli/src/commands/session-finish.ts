@@ -27,7 +27,7 @@ import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree
 import type { BoardContext } from './board-judgment.js'
 import { commandHint, hinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
-import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { createReadinessCache, judgeAssuming } from './issue-readiness.js'
 import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
 import { moveIssuesWaitingFor, prerequisiteOf } from './pr-waiting.js'
@@ -381,6 +381,7 @@ const FinishInputSchema = z.strictObject({
   dry_run: z.boolean().default(false).describe('Dry-run (do not actually clean up)'),
   delete_branch: z.boolean().default(false).describe('Delete the branch'),
   skip_local_cleanup: z.boolean().default(false).describe('Skip the local branch switch and deletion'),
+  project: PROJECT_INPUT,
 })
 
 async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
@@ -397,9 +398,9 @@ async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & Gl
 
 async function finish(input: Readonly<z.output<typeof FinishInputSchema> & GlobalInput>, context: Readonly<FinishContext>): Promise<void> {
   const { out } = context
-  const config = requireActiveConfigPlain(out)
   const reference = parseReference(input.pr_ref, input.repo, out)
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
+  const config = requireConfigFor(out, location, input.project, ['session', 'finish']).config
 
   const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
   if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with ${commandHint(['pr', 'merge'])} first`, 'pr-state')
