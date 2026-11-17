@@ -12,7 +12,7 @@
   {
     "plugin": "pecot-tools",
     "target": "pecot-tools:test-cli",
-    "junit": "plugins/pecot-tools/cli/test-results/cuj2-missing.xml"
+    "junit": "plugins/pecot-tools/cli/test-results/junit.xml"
   },
   {
     "plugin": "pecot-visual",
