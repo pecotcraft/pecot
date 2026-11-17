@@ -104,7 +104,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
   - T002 で、4 種とも読まれると分かった（R11-2）。同じ名前の版を入れていると、フックが両方の版で登録されて動くので、`COPILOT_PLUGIN_DIR_ONLY=true` を付けて `--plugin-dir` の版だけを読ませる手順を書く
 - [x] T021 [US2] `CLAUDE.md` に 2 つを足す。検証用の場所（`pecotcraft/pecot-sandbox` とボード `pecot sandbox`）と、`p-w/CONTRIBUTING.md` の「試験環境」の節への案内だ。足すのは 3 行までにする
 - [x] T052 [US2] pecot-workflow のスキル・フック・MCP ツール・エージェントの一覧を作る。2 つのクライアントで、全件が作業ツリーから読み込まれることを確かめる。読み込まれないものは、訳とともに同じ節に書く
-  - GitHub Copilot CLI で同じ名前の版を入れているとき、エージェントがどちらの版で動くかを、エージェントの本文に目印を足して見る（R11-2）
+  - GitHub Copilot CLI では、`COPILOT_PLUGIN_DIR_ONLY=true` で入れてある版と並ばない形にしたので、エージェントがどちらの版で動くかは見ない（R11-2）
 - [x] T022 [US2] quickstart.md の 3 を、Claude Code と GitHub Copilot CLI のそれぞれで流す。スキル・フック・MCP ツール・エージェントの 4 つを、1 つずつ直して確かめる。文書を読み始めてから、直した中身で動かし始めるまでの時間を測り、5 分以内であることを見る。結果を PR の説明に書く
 
 ---
