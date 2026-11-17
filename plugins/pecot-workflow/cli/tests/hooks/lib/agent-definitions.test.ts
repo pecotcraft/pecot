@@ -29,6 +29,7 @@ interface AgentRow {
 const ASK = 'AskUserQuestion'
 const PLAN = ['EnterPlanMode', 'ExitPlanMode']
 // 書いた名前のうち、入れていないプラグインのサーバは、Copilot が知らない名前として無視する。
+// w-e2e-planner だけ '*' にする。task で起きたサブエージェントには ask_user が渡らない（1.0.112 で確認）。
 const MCP = ['pecot-workflow/*', 'pecot-workflow-playwright/*', 'context7/*', 'pecot-visual/*', 'pecot-visual-playwright/*', 'pecot-tools/*', 'github/*']
 const COPILOT_KEYS = ['name', 'description', 'tools', 'include-custom-instructions']
 // label の昇順に並べる。
@@ -189,7 +190,7 @@ describe('型と内容', () => {
 
   it.for(AGENT_ROWS)('$label の Copilot 向けの frontmatter は、Copilot が読むキーだけを持つ', (row) => {
     const fm = frontmatter(fileOf(copilotAgentFiles(), row.label))
-    expect(Object.keys(fm)).toEqual(COPILOT_KEYS)
+    expect(Object.keys(fm).toSorted(compareStrings)).toEqual(COPILOT_KEYS.toSorted(compareStrings))
     expect(fm['include-custom-instructions']).toBe(true)
   })
 

@@ -135,7 +135,7 @@ check('旧 .github/plugin/plugin.json は無い（1.0 形式では Copilot が�
 const agentsDir = path.join(root, 'agents')
 const copilotAgentsDir = path.join(root, 'com.github.copilot/agents')
 const fix = '直し方: agents/ の定義の name・description と本文を、com.github.copilot/agents/ の同名のファイルに写す'
-// frontmatter をトップレベルのキーごとの生の行に分け、本文と合わせて返す。
+// frontmatter をトップレベルのキーごとの生の行に分け、本文と合わせて返す。pecot-visual の manifest.sh と同じ処理なので、直すときは両方を直す。
 const splitDefinition = (text) => {
   const m = text.match(/^---\n([\s\S]*?)\n---\n/)
   if (!m) return undefined

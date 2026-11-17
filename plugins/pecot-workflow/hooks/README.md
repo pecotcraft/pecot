@@ -300,5 +300,8 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 - Copilot の custom agents は `disallowedTools` を持たず、許可型の `tools` でツールを絞る。
   Copilot 向けの写し（`com.github.copilot/agents/`）の `tools` には、Claude で禁じていないツールを Copilot の名前で書く（Issue #551）。
   Claude 向けの `agents/` は除外型のままにする。MCP ツール名の形がクライアントで違い、許可の書き忘れで作業が止まるため
+- w-e2e-planner だけ `tools` を `*` にする。task で起きたサブエージェントには `ask_user` が渡らないため（1.0.112 で確認）。
+  ただし `--agent` でセッションのエージェントとして起こすと、`ask_user` が渡る
+- `tools` には MCP のサーバ名を前もって書く。そのため、利用者のリポの MCP サーバは、w-e2e-planner 以外では使えない
 - `claude plugin validate --strict`（pre-commit の `plugin-validate`）は未知のキー、`argument-hint` の型、
   `disallowedTools` のツール名を確かめない。これらは `cli/tests/hooks/lib/agent-definitions.test.ts` が固定している
