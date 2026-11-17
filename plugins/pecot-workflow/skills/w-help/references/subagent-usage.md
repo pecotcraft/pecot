@@ -34,7 +34,6 @@ w-revise の Step 5 の修正と、w-active のプラン承認後の実装の引
 |---|---|---|
 | w-active の Step 8、w-revise の Step 2 | w-reviewer | 独立したレビュー。計画や diff を、書いた会話の経緯に引きずられずに見る。視点は 1 体の中で分け、問題の種類でエージェントを分けない。計画を読んだ同じ w-reviewer が PR も見るので、計画の文脈を持ち、実装の会話には引きずられない。代わりに、計画からのずれは見つけやすいが、計画の判断そのものを問い直しにくい |
 | w-revise の Step 6（計画に CUJ があり、直したファイルを CUJ が読むとき） | w-e2e-planner | 独立した検証。製品を動かして合否だけを返す |
-| 実装中の技術の質問 | w-tech-advisor | 多数の文書とソースを読み、短い答えを返す調査 |
 | プラン承認後の実装、w-revise の Step 5 | w-implementer | 実装と修正を委譲する条件に当たるときだけ起こす。当たらなければ main が実装する |
 | pecot-visual の v-drawio・v-slidev の図 | v-diagram-creator | XML とスタイル参照を大量に読み書きし、返すのはファイルのパスだけ |
 | pecot-visual の v-slidev のページ | なし（main が作る） | ページは目次・前後のつながり・語の統一で互いに依存する。同じレイアウトの仕様は 1 回読めば足りる。そのため 1 枚 1 体の v-slide-creator を廃止した |

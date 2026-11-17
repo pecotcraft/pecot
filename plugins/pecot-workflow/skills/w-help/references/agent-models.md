@@ -8,12 +8,11 @@ main のモデルをそのまま引き継がせない。main が最上位のモ�
 | 役 | エージェント | モデル | 決める場所 |
 |---|---|---|---|
 | 計画と PR のレビュー | w-reviewer | `opus` | 定義の `model` |
-| 実装中の技術の質問への回答 | w-tech-advisor | `opus` | 定義の `model` |
 | CUJ の実行 | w-e2e-planner | `opus` | 定義の `model` |
 | 実装 | w-implementer | 作業単位ごとに `sonnet` か `opus` | 計画の Files の作業単位の表。計画に無いときは定義の `sonnet` |
 | w-revise の Step 5 の修正 | w-implementer | 群ごとに `sonnet` か `opus` | Step 5 の割り当て表 |
 
-- w-reviewer・w-tech-advisor・w-e2e-planner は、公式文書とソースを読んで判断する役なので `sonnet` には下げない。スキルの本文で `Agent` の `model` を上書きしない
+- w-reviewer・w-e2e-planner は、公式文書とソースを読んで判断する役なので `sonnet` には下げない。スキルの本文で `Agent` の `model` を上書きしない
 - 実装者を起こすかは、[サブエージェントの使い方](subagent-usage.md) の「実装と修正を委譲する条件」で決める。このページの基準は、起こした後のモデルの選び方にだけ使う
 
 ## 実装者のモデルの基準

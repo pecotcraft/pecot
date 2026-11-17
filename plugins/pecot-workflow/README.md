@@ -41,7 +41,6 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 |:-----------|:----|
 | w-implementer | コード実装。コード変更とテスト作成 |
 | w-reviewer | レビュー。計画と PR の diff を、技術・CUJ・コード品質の 3 つの視点で見る |
-| w-tech-advisor | 技術調査。対象技術を解析し、実装中の技術的な質問に回答する |
 | w-e2e-planner | E2E テスト。実際の CUJ 実行による検証 |
 
 ## MCP サーバ

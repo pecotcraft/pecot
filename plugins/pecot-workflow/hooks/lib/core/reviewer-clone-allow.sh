@@ -1,8 +1,8 @@
 #!/bin/bash
-# w-tech-advisor と w-reviewer の定型 clone の自動許可判定。
+# w-reviewer の定型 clone の自動許可判定。
 #
 # HOOK_COMMAND が、次のコマンドに厳密一致する場合のみ exit 10 を返す。
-# 対象は「.pecot/work/<数字>/tech-advisor/<名前> を clone 先とする単一の git clone コマンド」。
+# 対象は「.pecot/work/<数字>/reviewer/<名前> を clone 先とする単一の git clone コマンド」。
 # exit 10 は allow 判定で、stdout に理由を出す。
 # それ以外は exit 0（判定なし。通常の許可フローに委ねる）。
 # HOOK_COMMAND が未設定・空文字の場合は exit 2 + stderr（他コアガードと同一契約）。
@@ -12,7 +12,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config-dispatcher.sh"
-pecot_hook_enabled "tech-advisor-clone-allow" true || exit 0
+pecot_hook_enabled "reviewer-clone-allow" true || exit 0
 
 CMD="${HOOK_COMMAND:-}"
 if [ -z "$CMD" ]; then
@@ -44,9 +44,9 @@ esac
 # URL は https:// または git@ 形式のみ。
 #
 # DEST は次のいずれかの形のみ許容する（末尾 / 可）。
-#   .pecot/work/<数字>/tech-advisor/<名前>（相対）。
-#   ./.pecot/work/<数字>/tech-advisor/<名前>（./ 前置）。
-#   <HOOK_WORKING_DIR>/.pecot/work/<数字>/tech-advisor/<名前>（プロジェクト内絶対パス）。
+#   .pecot/work/<数字>/reviewer/<名前>（相対）。
+#   ./.pecot/work/<数字>/reviewer/<名前>（./ 前置）。
+#   <HOOK_WORKING_DIR>/.pecot/work/<数字>/reviewer/<名前>（プロジェクト内絶対パス）。
 # HOOK_WORKING_DIR はプレフィックス文字列比較（quoted変数）で剥がしてから、残りを相対パス regex で検証する。
 # 正規表現へパスを直接埋め込まない。
 OPT_DEPTH='--depth(=[0-9]+|[[:space:]]+[0-9]+)'
@@ -56,7 +56,7 @@ OPT_FLAG='--(single-branch|no-tags|quiet)'
 OPT_ONE="(${OPT_DEPTH}|${OPT_BRANCH}|${OPT_FILTER}|${OPT_FLAG})"
 OPT="(${OPT_ONE}[[:space:]]+)*"
 URL='(https://[A-Za-z0-9._/:%-]+|git@[A-Za-z0-9._-]+:[A-Za-z0-9._/-]+)'
-DEST_BODY='\.pecot/work/[0-9]+/tech-advisor/[A-Za-z0-9][A-Za-z0-9._-]*/?'
+DEST_BODY='\.pecot/work/[0-9]+/reviewer/[A-Za-z0-9][A-Za-z0-9._-]*/?'
 
 PREFIX_RE="^[[:space:]]*git[[:space:]]+clone[[:space:]]+${OPT}${URL}[[:space:]]+"
 if [[ "$CMD" =~ $PREFIX_RE ]]; then
@@ -70,7 +70,7 @@ if [[ "$CMD" =~ $PREFIX_RE ]]; then
     fi
 
     if [[ "$rel_dest" =~ ^${DEST_BODY}[[:space:]]*$ ]]; then
-        hook_message note "tech-advisor-clone-allow: allowed automatically because this is a standard git clone into .pecot/work/<Issue number>/tech-advisor/"
+        hook_message note "reviewer-clone-allow: allowed automatically because this is a standard git clone into .pecot/work/<Issue number>/reviewer/"
         exit 10
     fi
 fi

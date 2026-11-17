@@ -110,7 +110,7 @@ describe('w-active の手順', () => {
     expect(body).toContain('`Agent` ツールで w-reviewer を 1 回起こし')
     expect(body).toContain('agent teams が有効なら `name: w-reviewer` を付ける')
     expect(body).toContain('返った agent ID を控える。完了した w-reviewer は `SendMessage` で再開できる')
-    for (const agent of ['w-tech-advisor', 'w-e2e-planner', 'w-implementer']) expect(body).not.toContain(agent)
+    for (const agent of ['w-e2e-planner', 'w-implementer']) expect(body).not.toContain(agent)
     for (const word of ['並列 spawn', '単発 spawn', '待機']) expect(body).not.toContain(word)
   })
 
@@ -196,7 +196,7 @@ describe('w-revise の手順', () => {
     expect(body).toContain('w-active の Step 8 で控えた agent ID か名前があれば、それを宛先に `SendMessage` を送り、PR の diff のレビューを依頼する')
     expect(body).toContain('送信が拒否されたら（宛先が無いなど）、または ID と名前のどちらも控えていなければ、`Agent` ツールで w-reviewer を新しく起こす')
     expect(body).toContain('GitHub Copilot CLI では、`SendMessage` を送らずに新しく起こす')
-    for (const word of ['単発 spawn', '残っていれば', 'w-tech-advisor', 'w-implementer']) expect(body).not.toContain(word)
+    for (const word of ['単発 spawn', '残っていれば', 'w-implementer']) expect(body).not.toContain(word)
   })
 
   it('Step 2 は、計画の CUJ を実行しない（初回の実行は実装の後に済ませる）', () => {

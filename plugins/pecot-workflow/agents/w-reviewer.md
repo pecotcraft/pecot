@@ -43,7 +43,7 @@ disallowedTools:
 2. 足りなければ、リポジトリを clone して型定義・設定・サンプルを読む。置き場所は次の形にする。この形だけが自動で許可される
 
    ```bash
-   git clone --depth 1 <repo-url> .pecot/work/<Issue番号>/tech-advisor/<lib-name>
+   git clone --depth 1 <repo-url> .pecot/work/<Issue番号>/reviewer/<lib-name>
    ```
 
 3. それでも足りなければ WebSearch で補う。WebSearch が拒まれたら試し直さず、確かめられなかった点を明記して答える

@@ -151,13 +151,13 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   })
 
   // allow は理由が残る。
-  it.for(CLIENTS)('$clientName の入力で tech-advisor の作業場所へ clone するとき、理由つきで allow を返す', (row) => {
+  it.for(CLIENTS)('$clientName の入力で reviewer の作業場所へ clone するとき、理由つきで allow を返す', (row) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
-    const command = 'git clone https://github.com/owner/repo.git .pecot/work/1229/tech-advisor/repo'
+    const command = 'git clone https://github.com/owner/repo.git .pecot/work/1229/reviewer/repo'
     const result = runBashEntry(hookCase, row.client, command, project)
     expect(result.exitCode).toBe(0)
-    assertDecision(result, 'allow', 'tech-advisor-clone-allow')
+    assertDecision(result, 'allow', 'reviewer-clone-allow')
   })
 
   // 統合後のエントリは、リマインダーと判定が同時に当たっても判定が落ちない。判定の無いコマンドにはリマインダーだけを載せる。
