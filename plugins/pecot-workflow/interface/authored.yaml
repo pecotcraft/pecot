@@ -6344,7 +6344,6 @@ entries:
         - The project root is the parent of base/ in the layout <project root>/base/<repository>.
         - A repository outside that layout stops the command.
         - Joins the lowest numbered wtN set that has no worktree of this repository yet, and starts the set max(N)+1 when every set already has one.
-        - wt1 to wt9 are the limit.
         - Skips every wtN that a worktree of this repository already uses, including a worktree made with --path, which is found by its record or by a checked out branch wtN.
         - Records wtN in the git administrative directory of the new worktree, which pecot session finish reads to return to wtN.
         - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the origin remote; when there is no origin, the first remote in git remote order that points to a repository registered in the active project, or the first remote when none does, and <base> is --base or the develop_branch of the repository in the active project.
@@ -6390,7 +6389,6 @@ entries:
       - 'プロジェクトのルートは、`<プロジェクトのルート>/base/<リポジトリ>` の配置での `base/` の親です。'
       - 'この配置の外のリポジトリでは、止まります。'
       - 'このリポジトリの worktree がまだ無い `wtN` のセットのうち、番号が最小のものに加わります。どのセットにも既にあるときは、最大の N に 1 を足したセットを始めます。'
-      - '上限は、`wt1` から `wt9` までです。'
       - 'このリポジトリの worktree が既に使っている `wtN` は、すべて飛ばします。`--path` で作った worktree も含みます。その worktree は、記録か、チェックアウトしているブランチ `wtN` で見つけます。'
       - '新しい worktree の git の管理ディレクトリに、`wtN` を記録します。`pecot session finish` が、`wtN` へ戻るためにこの記録を読みます。'
       - 'ブランチは `<remote>/<base>` から作り、そのブランチを upstream にします。`<base>` は、`--base` か、アクティブなプロジェクトにあるリポジトリの `develop_branch` です。`<remote>` は、remote の `origin` です。`origin` が無ければ、`git remote` の順で、アクティブなプロジェクトに登録したリポジトリを指す最初の remote です。そういう remote も無ければ、最初の remote です。'
@@ -6453,7 +6451,7 @@ entries:
         when: '`develop_branch` が未設定で、`--base` もありません。'
       - kind: other
         code: 1
-        when: 'worktree を作れません。次のどれかです。メインの worktree が見つかりません。リポジトリが `base/` の配置にありません。`wt1` から `wt9` までのセットをすべて使っています。ブランチ `wtN` が別の upstream で既にあります。`git worktree add` が失敗しました。devcontainer の外で動かしました。'
+        when: 'worktree を作れません。次のどれかです。メインの worktree が見つかりません。リポジトリが `base/` の配置にありません。ブランチ `wtN` が別の upstream で既にあります。`git worktree add` が失敗しました。devcontainer の外で動かしました。'
       - kind: invalid-input
         code: 2
         when: '`-D` が無いか、既にあるディレクトリでないか、ほかのコマンドラインの誤りがあります。'
@@ -6630,12 +6628,6 @@ entries:
       - id: PW-WORKTREE-ADD-42
         pattern: unwanted
         statement: 'もし `--base` を省いて `develop_branch` が設定に無いなら、終了コード 1 で終わります'
-      - id: PW-WORKTREE-ADD-43
-        pattern: unwanted
-        statement: 'もし `wt1` から `wt9` までのセットがすべて使われているなら、何も作りません'
-      - id: PW-WORKTREE-ADD-44
-        pattern: unwanted
-        statement: 'もし `wt1` から `wt9` までのセットがすべて使われているなら、終了コード 1 で終わります'
       - id: PW-WORKTREE-ADD-45
         pattern: unwanted
         statement: 'もし同じ名前のブランチが別の upstream で既にあり `--allow-existing-branch` が無いなら、何も作りません'

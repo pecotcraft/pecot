@@ -315,10 +315,6 @@ export interface NextSetNameOptions {
   */
   readonly prefix?: string | undefined
   /**
-  最大番号。既定は 9
-  */
-  readonly maxNumber?: number | undefined
-  /**
   使用中の名前（claimedSetNames の結果）。ディレクトリが無くても、参加せず max にも数える
   */
   readonly claimed?: Iterable<string> | undefined
@@ -340,12 +336,9 @@ function existingSetNumbers(projectRoot: string, prefix: string): readonly numbe
 2. 各 wtN について `wtN/<repositoryDirectoryName>` が存在しないものを先頭から探す。見つかったら既存セットに参加させる形でその名前を返す。
 3. 全ての既存 wtN に該当リポが既にあるなら、max(N)+1 で新セット `wt<N+1>` を返す。
 4. 既存セットが無ければ `wt1` を返す。
-
-全セットに参加済みで maxNumber を超えるなら WorktreeRuntimeError
 */
 export function getNextSetName(projectRoot: string, repositoryDirectoryName: string, options: Readonly<NextSetNameOptions> = {}): string {
   const prefix = options.prefix ?? 'wt'
-  const maxNumber = options.maxNumber ?? 9
   const claimed = new Set<number>()
   const claimedNames = [...options.claimed ?? []]
   for (const claimedName of claimedNames) {
@@ -356,13 +349,9 @@ export function getNextSetName(projectRoot: string, repositoryDirectoryName: str
   const last = numbers.at(-1)
   if (last === undefined) return `${prefix}1`
 
-  // 既存セットで該当リポが未登場のものがあればそこに参加
+  // 既存セットで該当リポが未登場のものに参加し、全セットに参加済みなら新セット
   const joinable = numbers.find(number => !claimed.has(number) && !existsSync(path.join(projectRoot, `${prefix}${String(number)}`, repositoryDirectoryName)))
-  if (joinable !== undefined) return `${prefix}${String(joinable)}`
-
-  // 全セットに参加済み → 新セット
-  if (last + 1 > maxNumber) throw new WorktreeRuntimeError(`all of ${prefix}1 to ${prefix}${String(maxNumber)} are in use: no free set`)
-  return `${prefix}${String(last + 1)}`
+  return `${prefix}${String(joinable ?? last + 1)}`
 }
 
 // 未追跡ファイル操作
