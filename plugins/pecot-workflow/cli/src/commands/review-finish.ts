@@ -99,9 +99,11 @@ function validateCombination(out: FinishOutput, input: Readonly<Input>): void {
 }
 
 function parseSince(out: FinishOutput, since: string | undefined): Date | undefined {
-  if (since === undefined) return undefined
-  const time = Date.parse(since)
-  if (Number.isNaN(time)) stopInvalid(out, hinted`${inputNameHint(PATH, 'since')} is not an ISO 8601 time: ${since}`)
+  // 雛形の出力が空のときも、止まった場所が分からないとして書く
+  const value = nonEmpty(since)
+  if (value === undefined) return undefined
+  const time = Date.parse(value)
+  if (Number.isNaN(time)) stopInvalid(out, hinted`${inputNameHint(PATH, 'since')} is not an ISO 8601 time: ${value}`)
   return new Date(time)
 }
 
@@ -149,7 +151,8 @@ async function readOrStop<T>(out: FinishOutput, what: string, read: () => Promis
 // 読めないときは書く側に倒す。止まったことが PR に残らないほうが困る
 async function canActorWrite(out: FinishOutput, client: GitHubClient, target: Readonly<Target>): Promise<boolean> {
   const actor = nonEmpty(process.env['GITHUB_ACTOR'])
-  if (actor === undefined) return true
+  // action の checkWritePermissions と同じく、名前が [bot] で終わる起動者は API を読まずに書ける側とみなす
+  if (actor === undefined || actor.endsWith('[bot]')) return true
   try {
     return WRITE_PERMISSIONS.has(await client.getCollaboratorPermission(target.owner, target.repository, actor))
   }

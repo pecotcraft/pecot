@@ -189,6 +189,30 @@ describe('review finish', () => {
     expect(postedBody(github.requests())).toContain('Claude の App のトークンを受け取れずに止まったなら')
   })
 
+  it('起動した人の権限を読めないと、warning の行を出して書く', async (context) => {
+    await verifies(context, 'PW-REVIEW-FINISH-17')
+    prepare()
+    const denied: ResponseRule = { match: { method: 'GET', path: '/repos/acme/demo/collaborators/alice/permission' }, respond: { status: 403, body: { message: 'Resource not accessible by integration' } }, times: 1 }
+    const github = await startGithub([pullRequest(), denied, comments(), POSTED])
+
+    const outcome = await finish(['--ensure', '--job-status', 'failure'])
+
+    expect(outcome.code).toBe(0)
+    expect(outcome.stderr).toBe('warning: could not read the permission of alice: access denied\ncreated: stopped-review comment (failed) on PR acme/demo#11\n')
+    expect(hasPosted(github.requests())).toBe(true)
+  })
+
+  it('起動した人の名前が [bot] で終わると、権限を読まずに書く', async (context) => {
+    await verifies(context, 'PW-REVIEW-FINISH-07')
+    prepare({ GITHUB_ACTOR: 'renovate[bot]' })
+    const github = await startGithub([pullRequest(), comments(), POSTED])
+
+    const outcome = await finish(['--ensure', '--job-status', 'failure'])
+
+    expect(outcome.stderr).toBe('created: stopped-review comment (failed) on PR acme/demo#11\n')
+    expect(github.requests().some(request => request.type === 'rest' && request.path.includes('/collaborators/'))).toBe(false)
+  })
+
   it('--result reviewed で打つと、PR を読まずに、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-08')
     prepare()
@@ -240,6 +264,17 @@ describe('review finish', () => {
     await finish(['--ensure', '--job-status', 'cancelled', '--since', '2026-11-17T10:00:00Z'])
 
     expect(postedBody(github.requests())).toContain('- 止まった場所 — 指摘を投稿する前')
+  })
+
+  it('--since が空だと、止まった場所を分からないと書く', async (context) => {
+    await verifies(context, 'PW-REVIEW-FINISH-18')
+    prepare()
+    const github = await startGithub([pullRequest(), comments(), POSTED])
+
+    const outcome = await finish(['--ensure', '--job-status', 'cancelled', '--since', ''])
+
+    expect(outcome.code).toBe(0)
+    expect(postedBody(github.requests())).toContain('- 止まった場所 — 分からない')
   })
 
   it('GITHUB_RUN_ID が無いと、目印を付けず、PR のコメントを読まない', async (context) => {

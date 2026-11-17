@@ -184,9 +184,9 @@ const LOCATION_LINES: Readonly<Record<StopLocation, string>> = {
   'unknown': '分からない',
 }
 
-// 利用者の値をコードの書き方の中に入れる。バッククォートで書き方が崩れないよう、引用符に替える
+// 利用者の値をコードの書き方の中に入れる。改行とバッククォートで書き方が崩れないよう、空白と引用符に替える
 function code(text: string): string {
-  return `\`${text.replaceAll('`', '\'')}\``
+  return `\`${text.replaceAll(/\s+/gu, ' ').replaceAll('`', '\'')}\``
 }
 
 function nextLine(next: NextStep, triggerPhrase: string, detail: string | undefined): string {

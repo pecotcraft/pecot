@@ -92,10 +92,12 @@
 | `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書く。`result` の文か `errors` に `authentication_error` があれば、トークンを作り直す手順を添える。`subtype` だけで判定しない |
 | `--ensure` で、job が `failure` で、上のどれにも当たらない（`execution_file` が無い・読めない、`result` の行が無い、ほかの `subtype`） | `failed` として書く |
 | `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の権限が `admin` でも `write` でもない | コメントを書かない。action が書いた人の権限で止めた場合だ。誰でも bot のコメントを付けさせられるのを避ける |
+| `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の名前が `[bot]` で終わる | 権限を読まずに書く。action も、名前が `[bot]` で終わる起動者を書ける側とみなす |
+| `--ensure` で、job が `failure` で `execution_file` が無く、`GITHUB_ACTOR` の権限を読めない | `warning` の行を出して書く。止まったことが PR に残らないほうが困る |
 | PR が閉じている | コメントを書かない |
 
 - 止まったことを知らせるコメントは、`cli/templates/comment/review-stopped.md` から作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
-- 止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントの有無から決める。`--since` が無ければ「分からない」と書く
+- 止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントの有無から決める。`--since` が無いか空なら「分からない」と書く
 - 目印には、環境変数 `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` を入れる。re-run では run の ID が変わらないためだ。`GITHUB_RUN_ID` が無ければ、目印を付けずに書く
 - 目印を探すのは、bot のコメントだけだ。人が目印を書き込んで、記録を消せないようにする
 - 書いた人の権限は、job の `if` が見る `author_association` では決まらない。`MEMBER`・`COLLABORATOR` は write の権限を意味しないので、read だけの人のコメントも `if` を通る

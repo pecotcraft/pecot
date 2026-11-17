@@ -144,6 +144,7 @@ describe('renderReviewStopped', () => {
     { result: 'limit', next: 'limit', location: 'after-inline', triggerPhrase: '@my-bot review', run: { runId: '2', attempt: '3' } },
     { result: 'setup-missing', next: 'app-token', location: 'before-findings', triggerPhrase: '@pecotbot review' },
     { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret <X> `Y`' },
+    { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret X\nと変数 Y' },
   ])('$result・$next の本文が、テンプレートの検証を通る', (values) => {
     const body = renderReviewStopped(TEMPLATE_BODY, values)
     expect(validateSections(body, sections)).toEqual([])
@@ -168,5 +169,10 @@ describe('renderReviewStopped', () => {
   it('setup-missing の detail を、足りない設定の名前として書く', () => {
     const body = renderReviewStopped(TEMPLATE_BODY, { result: 'setup-missing', next: 'setup-detail', location: 'before-findings', triggerPhrase: '@pecotbot review', detail: 'pull-requests: write' })
     expect(body).toContain('足りない設定は `pull-requests: write` だ。')
+  })
+
+  it('detail の改行と続く空白は、1 つの空白にまとめて 1 行のコードに書く', () => {
+    const body = renderReviewStopped(TEMPLATE_BODY, { result: 'setup-missing', next: 'setup-detail', location: 'before-findings', triggerPhrase: '@pecotbot review', detail: 'secret X\n  と変数 Y' })
+    expect(body).toContain('足りない設定は `secret X と変数 Y` だ。')
   })
 })

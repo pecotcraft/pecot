@@ -5450,7 +5450,7 @@ entries:
       ensure: 'ワークフローの後始末から呼ぶかどうかです。job の終わり方から結果を決め、同じ実行のコメントがまだ無いときだけ書きます。'
       job_status: '`--ensure` のときの job の終わり方です。`success`・`failure`・`cancelled` のどれかです。'
       execution_file: '`--ensure` のときの、claude-code-action の出力 `execution_file` のパスです。'
-      since: '`--ensure` のときの、実行の開始時刻です。ISO 8601 で渡します。この時刻より後のインラインコメントから、止まった場所を決めます。'
+      since: '`--ensure` のときの、実行の開始時刻です。ISO 8601 で渡します。この時刻より後のインラインコメントから、止まった場所を決めます。空なら渡さないのと同じです。'
       app_token_missing: '`--ensure` のときに、action が Claude の GitHub App のトークンを受け取れなかったかどうかです。'
       dry_run: 'PR を読み、書くはずの本文を標準出力に出します。コメントは書きません。'
     constraints:
@@ -5491,7 +5491,7 @@ entries:
       - name: GITHUB_RUN_ATTEMPT
         effect: '目印に入れる試行の番号です。無いか空なら `1` にします。'
       - name: GITHUB_ACTOR
-        effect: '`--ensure` で実行のファイルが無い `failure` のときに、権限を読む利用者です。無いか空なら、権限を読まずに書きます。'
+        effect: '`--ensure` で実行のファイルが無い `failure` のときに、権限を読む利用者です。無いときと空のときは、権限を読まずに書きます。名前が `[bot]` で終わるときも同じです。'
       - name: PECOT_REVIEW_TRIGGER_PHRASE
         effect: '次にすることの文に書く合言葉です。無いか空なら `@pecotbot review` を書きます。'
     exit_status:
@@ -5592,6 +5592,12 @@ entries:
       - id: PW-REVIEW-FINISH-16
         pattern: optional
         statement: '`--dry-run` が有効なら、PR を読み、書くはずの本文を標準出力に出し、コメントを書きません'
+      - id: PW-REVIEW-FINISH-17
+        pattern: event
+        statement: '起動した人の権限を読めないと、`warning` の行を出して、コメントを書きます'
+      - id: PW-REVIEW-FINISH-18
+        pattern: event
+        statement: '`--since` に空の値を渡すと、止まった場所を「分からない」と書きます'
   PW-SESSION-FINISH:
     help:
       details:
