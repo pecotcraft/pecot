@@ -26,7 +26,16 @@
 | `diverged` | `not in one chain` |
 | `cycle` | `cycle: #A -> #B -> #A` |
 
-`not-in-review` の状態は、`not started`・`no PR`・`multiple PRs`・`PR from fork`・`in Pending` の 5 つだ。
+`not-in-review` の状態は次の 6 つだ。JSON の `reason.issues[].state` にはコードが出る。
+
+| コード | 括弧の中 |
+|---|---|
+| `not-started` | `not started` |
+| `started-without-pr` | `no PR` |
+| `merged-open` | `PR merged, Issue open` |
+| `multiple-prs` | `multiple PRs` |
+| `fork-pr` | `PR from fork` |
+| `pending` | `in Pending` |
 
 ## 新しいコマンド
 
