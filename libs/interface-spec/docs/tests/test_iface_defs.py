@@ -1,10 +1,11 @@
 """iface_defs 拡張のテスト。小さいリポジトリの形の fixture を Sphinx で実際にビルドし、needs.json・HTML・警告を読む。"""
 
+import fnmatch
 import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from sphinx.cmd.build import build_main
@@ -561,3 +562,41 @@ def test_junit_lanes_reject_broken_lanes(
     path = _lanes_repo(tmp_path, lanes, outputs)
     with pytest.raises(ValueError, match=re.escape(message)):
         load_junit_lanes(path, tmp_path)
+
+
+def test_junit_lanes_reject_non_array_file(tmp_path: Path) -> None:
+    path = _lanes_repo(tmp_path, [])
+    path.write_text(json.dumps({"lanes": []}), encoding="utf-8")
+    with pytest.raises(ValueError, match="レーンの配列ではありません"):
+        load_junit_lanes(path, tmp_path)
+
+
+def test_junit_lanes_reject_non_array_outputs(tmp_path: Path) -> None:
+    path = _lanes_repo(tmp_path, [_lane("p:test-a", "plugins/p/a.xml")])
+    project_json = tmp_path / "plugins/p/project.json"
+    project_json.write_text(
+        json.dumps({"targets": {"test-a": {"outputs": "{projectRoot}/a.xml"}}}), encoding="utf-8"
+    )
+    with pytest.raises(
+        ValueError, match=re.escape("p:test-a (plugins/p/a.xml)") + ".*配列ではありません"
+    ):
+        load_junit_lanes(path, tmp_path)
+
+
+def test_lane_targets_have_no_default_outputs() -> None:
+    """load_junit_lanes は project.json の outputs だけを読むので、nx.json の targetDefaults が outputs を足さないことを確かめる。"""
+    defaults = cast(
+        "dict[str, dict[str, Any]]",
+        json.loads((REPO / "nx.json").read_text(encoding="utf-8"))["targetDefaults"],
+    )
+    for lane in json.loads((DOCS / "junit-lanes.json").read_text(encoding="utf-8")):
+        project, _, name = lane["target"].partition(":")
+        project_json = json.loads(
+            (REPO / "plugins" / project / "project.json").read_text(encoding="utf-8")
+        )
+        executor = project_json["targets"][name].get("executor")
+        for key, value in defaults.items():
+            if key == executor or fnmatch.fnmatchcase(name, key):
+                assert "outputs" not in value, (
+                    f"nx.json の targetDefaults['{key}'] が {lane['target']} に outputs を足す"
+                )

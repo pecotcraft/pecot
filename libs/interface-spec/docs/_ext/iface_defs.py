@@ -588,15 +588,23 @@ def _load_yaml(path: Path) -> Any:
 
 
 def _lane_outputs(root: Path, project: str, target: str) -> list[str]:
-    """``plugins/<project>/project.json`` の target の outputs。targetDefaults に outputs が無い前提で、そのまま読む。"""
+    """``plugins/<project>/project.json`` の target の outputs。
+
+    nx.json の targetDefaults に outputs が無い前提で、そのまま読む（test_lane_targets_have_no_default_outputs）。
+    """
     project_json = root / "plugins" / project / "project.json"
     if not project_json.is_file():
         raise ValueError(f"{project_json.relative_to(root)} がありません")
     targets = cast("dict[str, dict[str, Any]]", _load_json(project_json).get("targets", {}))
     if target not in targets:
         raise ValueError(f"{project_json.relative_to(root)} に target {target} がありません")
+    outputs: object = targets[target].get("outputs", [])
+    if not isinstance(outputs, list):
+        raise ValueError(
+            f"{project_json.relative_to(root)} の {target} の outputs が配列ではありません"
+        )
     resolved: list[str] = []
-    for output in cast("list[str]", targets[target].get("outputs", [])):
+    for output in cast("list[str]", outputs):
         unknown = set(re.findall(r"\{[^}]*\}", output)) - {"{projectRoot}"}
         if unknown:
             raise ValueError(f"outputs の {', '.join(sorted(unknown))} を解けません")
@@ -609,7 +617,10 @@ def load_junit_lanes(path: Path, root: Path) -> dict[str, list[str]]:
     table: dict[str, list[str]] = {}
     seen_targets: set[str] = set()
     seen_junits: set[str] = set()
-    for i, raw in enumerate(cast("list[Any]", _load_json(path)), start=1):
+    lanes: object = _load_json(path)
+    if not isinstance(lanes, list):
+        raise ValueError(f"{path.name}: レーンの配列ではありません")
+    for i, raw in enumerate(cast("list[Any]", lanes), start=1):
         lane = cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
         plugin, target, junit = (lane.get(k) for k in ("plugin", "target", "junit"))
         if not (isinstance(plugin, str) and isinstance(target, str) and isinstance(junit, str)):

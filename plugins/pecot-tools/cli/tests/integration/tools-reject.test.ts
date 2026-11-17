@@ -221,12 +221,12 @@ describe('Athena の変更系・複文（research R6）', () => {
   })
 
   it.for([
-    { name: 'database', args: { database: 'a=b' } },
-    { name: 'database', args: { database: 'a{b' } },
-    { name: 'database', args: { database: 'a}b' } },
-    { name: 'catalog', args: { database: 'analytics', catalog: 'x,y' } },
-    { name: 'output_location', args: { output_location: 's3://b/p{x}' } },
-  ])('$name に , = { } のいずれかを含むとき、invalid-input で拒否する', async (row, context) => {
+    { name: 'database', char: '=', args: { database: 'a=b' } },
+    { name: 'database', char: '{', args: { database: 'a{b' } },
+    { name: 'database', char: '}', args: { database: 'a}b' } },
+    { name: 'catalog', char: ',', args: { database: 'analytics', catalog: 'x,y' } },
+    { name: 'output_location', char: '{', args: { output_location: 's3://b/p{x}' } },
+  ])('$name に $char を含むとき、invalid-input で拒否する', async (row, context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
