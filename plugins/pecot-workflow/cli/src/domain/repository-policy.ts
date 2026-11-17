@@ -8,9 +8,11 @@
 //   1. --repo を指定しない場合
 //      - カレント Git remote を解決できたら続行する（採用値なし）。
 //      - 解決できなければ「リポジトリが曖昧です」で終了コード 1。
+//        remote の URL から owner/repo を読めないときは、その理由の行を添える。
 //   2. --repo を指定した場合
 //      - 形式が不正なら終了コード 1。
 //      - カレント Git remote が無い場合（Git 外・remote 無し）は、比較できないので明示値を採用して続行する。
+//      - remote の URL から owner/repo を読めない場合も比較できない。reject・warn とも警告を出して明示値を採用して続行する。
 //      - 一致なら明示値を採用して続行する。
 //      - 不一致で reject は終了コード 1、warn は警告を出して明示値を採用して続行する。
 //
@@ -21,7 +23,7 @@ import type { HintedText } from './command-hint.js'
 import { InvalidValueError } from './errors.js'
 import { pythonStringRepr } from './python-format.js'
 import { parseOwnerRepository, repositoryFullName } from './repository-resolver.js'
-import type { RepositoryReference, ResolvedRepository } from './repository-resolver.js'
+import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from './repository-resolver.js'
 
 export type PolicyMode = 'reject' | 'warn'
 
@@ -30,15 +32,22 @@ export type PolicyMode = 'reject' | 'warn'
 */
 export const AMBIGUOUS_REPOSITORY_LINE = 'error: the repository is ambiguous'
 
+/**
+remote の URL から owner/repo を読めない理由の文。`--show-repo` も同じ文を出す
+*/
+export function unreadableRemoteReason(remote: UnreadableRemote): string {
+  return `could not read the repository from the URL of the Git remote ${remote.remoteName}`
+}
+
 export interface PolicyInput {
   /**
   グローバル `--repo` の値。無ければ undefined
   */
   readonly explicit: string | undefined
   /**
-  カレント Git remote からの解決結果。解決できなければ undefined
+  カレント Git remote からの解決結果。git の外・remote 無しは undefined
   */
-  readonly resolved: ResolvedRepository | undefined
+  readonly resolved: ResolvedRepository | UnreadableRemote | undefined
   readonly mode: PolicyMode
 }
 
@@ -77,13 +86,24 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
   const { explicit, resolved, mode } = input
 
   if (explicit === undefined) {
-    return resolved === undefined
-      ? exitWith('git-unresolved', AMBIGUOUS_REPOSITORY_LINE, hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`)
-      : { kind: 'proceed', adopted: undefined, stderr: [] }
+    const giveRepository = hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`
+    if (resolved === undefined) return exitWith('git-unresolved', AMBIGUOUS_REPOSITORY_LINE, giveRepository)
+    if (resolved.source === 'unreadable-remote') {
+      return exitWith('git-unresolved', AMBIGUOUS_REPOSITORY_LINE, `  ${unreadableRemoteReason(resolved)}`, giveRepository)
+    }
+    return { kind: 'proceed', adopted: undefined, stderr: [] }
   }
 
   const explicitReference = parseExplicit(explicit)
   if (explicitReference === undefined) return exitWith('invalid-input', hinted`error: ${globalRepositoryHint()} has an invalid form: ${pythonStringRepr(explicit)}`)
+
+  if (resolved?.source === 'unreadable-remote') {
+    return {
+      kind: 'proceed',
+      adopted: explicitReference,
+      stderr: [hinted`warning: using ${globalRepositoryHint()} ${repositoryFullName(explicitReference)} (could not read the repository from the Git remote ${resolved.remoteName})`],
+    }
+  }
 
   // Git 外 / remote 不在は比較対象が無いので、明示値を採用する
   if (resolved?.source !== 'current-git') return { kind: 'proceed', adopted: explicitReference, stderr: [] }

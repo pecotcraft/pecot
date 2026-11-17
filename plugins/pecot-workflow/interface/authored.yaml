@@ -4421,6 +4421,7 @@ entries:
         - With a --repo that differs from the git remote, the git commands still use origin, or the first remote when there is no origin.
         - The command needs the working directory to be inside a git repository.
         - A mismatch between --repo and the current git remote is a warning, and --repo is used.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and uses --repo, and without --repo it stops."
         - Counts the commits with the GitHub compare API, from the ahead_by of its response. It runs no git fetch and moves no local ref, and it counts a commit that exists only on the remote.
       examples:
         - run: pecot release check
@@ -4458,6 +4459,7 @@ entries:
       - '`--repo` が git remote と違っても、git のコマンドは `origin` を使います。`origin` が無ければ、最初の remote を使います。'
       - '作業ディレクトリは、git のリポジトリの中でなければなりません。'
       - '`--repo` が今の git remote と食い違うときは、`warning` を出して `--repo` を使います。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して `--repo` を使い、無ければ止まります。'
       - 'コミットの数は、GitHub の compare API の `ahead_by` で数えます。呼ぶ先は `GET /repos/{owner}/{repo}/compare/{release_branch}...{develop_branch}` です。`git fetch` は打たず、手元の ref も動かしません。リモートにだけあるコミットも数えます。'
     stdin: none
     output:
@@ -4471,12 +4473,12 @@ entries:
         commitCount: 'リリースブランチから develop ブランチまでのコミットの数です。リリースの種類が `nx` のときは入りません。'
         skipped: '機能が無効なので飛ばした確認の文の配列です。例は `Dependabot alerts (feature disabled)` です。飛ばした確認が無ければ空です。'
         dependabotAlerts: 'Dependabot アラートの状態です。読めなかったときは入りません。リリースは止めません。`enabled`・`openCount`・`alertsUrl` を必ず持ち、`maxSeverity` は、開いたアラートがあるときだけ入ります。'
-    diagnostics: 'alert の種類ごとに、`count` の行、`skipped` の行、`warning` の行のどれかを出します。code scanning と secret scanning には、`error` の行も出します。リリースするコミットの `count` の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。コミットの数を数えられなかったときは、`error: could not count the commits from <release> to <develop>: ...` の行を出します。'
+    diagnostics: 'alert の種類ごとに、`count` の行、`skipped` の行、`warning` の行のどれかを出します。code scanning と secret scanning には、`error` の行も出します。リリースするコミットの `count` の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。コミットの数を数えられなかったときは、`error: could not count the commits from <release> to <develop>: ...` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: git-unresolved
         code: 1
-        when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。'
+        when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: no-active-project
         code: 1
         when: 'アクティブなプロジェクトがありません。'
@@ -4658,6 +4660,12 @@ entries:
       - id: PW-RELEASE-CHECK-39
         pattern: unwanted
         statement: 'もしコミットの数を数えられないなら、終了コード 1 で終わります。標準エラーに `error: could not count the commits from <release> to <develop>: ...` の行を出します'
+      - id: PW-RELEASE-CHECK-40
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-RELEASE-CHECK-41
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-RELEASE-CREATE:
     help:
       details:
@@ -4674,6 +4682,7 @@ entries:
         - The repository is taken from the global pecot --repo, and without it from the origin remote, or from the first remote when there is no origin.
         - The command needs the working directory to be inside a git repository.
         - A mismatch between --repo and the current git remote is a warning, and --repo is used.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and uses --repo, and without --repo it stops."
         - With --dry-run, the release is not created and no GitHub client is made.
       examples:
         - run: pecot release create 0.6.1
@@ -4704,6 +4713,7 @@ entries:
       - 'リポジトリは、pecot 全体のオプション `--repo` から決めます。無ければ remote の `origin` から、`origin` も無ければ最初の remote から決めます。'
       - '作業ディレクトリは、git のリポジトリの中でなければなりません。'
       - '`--repo` が今の git remote と食い違うときは、`warning` を出して `--repo` を使います。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して `--repo` を使い、無ければ止まります。'
       - '`--dry-run` を付けると、リリースを作らず、GitHub のクライアントも作りません。'
     stdin: none
     output:
@@ -4715,7 +4725,7 @@ entries:
         url: '作ったリリースの URL です。`dry_run` のときは入りません。'
         releaseNotes: 'CHANGELOG から取ったリリースノートです。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
-    diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。'
+    diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -4723,7 +4733,7 @@ entries:
         when: '版が `X.Y.Z` の形ではありません。`--package` の決まりに反するときも含みます。'
       - kind: git-unresolved
         code: 1
-        when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。'
+        when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: no-active-project
         code: 1
         when: 'アクティブなプロジェクトがありません。'
@@ -4863,6 +4873,12 @@ entries:
       - id: PW-RELEASE-CREATE-26
         pattern: unwanted
         statement: 'もし GitHub のトークンが見つからないなら、終了コード 1 で終わります'
+      - id: PW-RELEASE-CREATE-27
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-RELEASE-CREATE-28
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-RELEASE-MERGE:
     help:
       details:
@@ -4871,6 +4887,7 @@ entries:
         - The short form N is rejected even when --repo is given.
         - The global pecot --repo is only compared with the current git remote and is not used as the target.
         - A mismatch between --repo and the current git remote stops the command.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and continues, and without --repo it stops."
         - Only a PR whose base branch equals the release_branch of the repository in the config file is merged.
         - A PR that is already merged or closed is not merged.
         - A PR with merge conflicts is not merged unless --admin is given.
@@ -4900,6 +4917,7 @@ entries:
       - '短い形の `N` は、`--repo` を渡しても受け付けません。'
       - 'pecot 全体のオプション `--repo` は、今の git remote と比べるだけで、対象には使いません。'
       - '`--repo` が今の git remote と食い違うときは、止まります。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して続け、無ければ止まります。'
       - 'マージするのは、base ブランチが設定ファイルにあるリポジトリの `release_branch` と同じ PR だけです。'
       - '既にマージ済みか閉じている PR は、マージしません。'
       - 'マージの衝突がある PR は、`--admin` を付けなければマージしません。'
@@ -4918,7 +4936,7 @@ entries:
         base: 'PR の base ブランチです。リリースブランチです。'
         deletedBranch: 'リモートの head ブランチを削除したかどうかです。`delete_branch` を付けなかったとき、`dry_run` のとき、削除に失敗したときは `false` です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何もマージしていません。'
-    diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。'
+    diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: repo-mismatch
@@ -4926,7 +4944,7 @@ entries:
         when: '`--repo` が今の git remote と違います。'
       - kind: git-unresolved
         code: 1
-        when: 'git の外で `--repo` を省いたので、リポジトリが決まりません。'
+        when: 'git の外で `--repo` を省いたので、リポジトリが決まりません。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: no-active-project
         code: 1
         when: 'アクティブなプロジェクトがありません。'
@@ -5069,6 +5087,12 @@ entries:
       - id: PW-RELEASE-MERGE-25
         pattern: unwanted
         statement: 'もし `--repo` を省いて git の外で打ったなら、終了コード 1 で終わります'
+      - id: PW-RELEASE-MERGE-26
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-RELEASE-MERGE-27
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-SESSION-FINISH:
     help:
       details:
@@ -5505,10 +5529,11 @@ entries:
         - A failure to record the work target does not stop the command.
         - When the work target is recorded, the chosen base is written to .pecot/state/.pecot-base as <branch> <sha>, followed by owner/repo#N of the Issue it stacks on when the branch is stacked.
         - .pecot/state/.pecot-base is removed before the work target is recorded, so that it never keeps the record of the previous Issue.
-        - The repository of the working directory git remote must be the repository of the Issue; no option skips this check.
+        - The repository of the working directory git remote must be the repository of the Issue; no option skips this check, but the check is not made when the owner/repo cannot be read from the URL of the remote.
         - The repository must be registered in the active project.
         - --checkout and --no-checkout are kept for compatibility and have no effect.
         - The global pecot --repo must match the repository of the current git remote.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and continues, and without --repo it stops."
         - This command does not take its target from --repo.
         - With --dry-run, reads the Issue, its prerequisites and the base commit, and prints dry-run lines for creating the branch, setting the Status and creating the work directory, and writes nothing.
       examples:
@@ -5548,10 +5573,11 @@ entries:
       - '作業対象の記録に失敗しても、コマンドは止まりません。'
       - '作業対象を記録したときは、選んだ分岐元を `.pecot/state/.pecot-base` に `<branch> <sha>` の形で書きます。ブランチを積んだときは、積んだ先の Issue の `owner/repo#N` を続けて書きます。'
       - '`.pecot/state/.pecot-base` は、作業対象を記録する前に消します。前の Issue の記録を残さないためです。'
-      - '作業ディレクトリの git remote のリポジトリは、Issue のリポジトリでなければなりません。この確かめを外す入力はありません。'
+      - '作業ディレクトリの git remote のリポジトリは、Issue のリポジトリでなければなりません。この確かめを外す入力はありません。ただし、remote の URL から `owner/repo` を読めないときは、確かめません。'
       - 'リポジトリは、アクティブなプロジェクトに登録されていなければなりません。'
       - '`--checkout` と `--no-checkout` は互換のために残したもので、何も変わりません。'
       - 'pecot 全体のオプション `--repo` は、今の git remote のリポジトリと一致していなければなりません。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して続け、無ければ止まります。'
       - 'このコマンドは、対象を `--repo` から決めません。'
       - '`--dry-run` を付けると、Issue・前提・分岐元の commit まで読み、ブランチの作成・Status の設定・作業ディレクトリの作成を `dry-run` の行に出して、何も書きません。'
     stdin: none
@@ -5566,7 +5592,7 @@ entries:
         issue: '作業中の Issue です。`owner/repo/N` の形です。'
         workDirectory: '作業ディレクトリの絶対パスです。`dry_run` のときと、作れなかったときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も作らず、何も記録していません。'
-    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。'
+    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -5580,7 +5606,7 @@ entries:
         when: 'リポジトリがプロジェクトにありません。'
       - kind: git-unresolved
         code: 1
-        when: '積む先のブランチが無くなりました。git の外で `--repo` を省いたときも含みます。'
+        when: '積む先のブランチが無くなりました。git の外で `--repo` を省いたときも含みます。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: repo-mismatch
         code: 1
         when: '`--repo` が今の git remote と違います。'
@@ -5736,6 +5762,12 @@ entries:
       - id: PW-SESSION-START-37
         pattern: unwanted
         statement: 'もし廃止した入力（`allow_cross_repo`・`force_overwrite_active`）を渡したなら、未知の入力として終了コード 2 で終わり、ブランチを作りません'
+      - id: PW-SESSION-START-38
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-SESSION-START-39
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-TRACKER-SYNC:
     help:
       details:
@@ -6226,6 +6258,7 @@ entries:
         - A link whose target does not exist, whose path is tracked by git or that cannot be created is skipped with a warning, and does not change the exit status.
         - Needs a devcontainer.
         - The command stops before it runs when none of the checks passes.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning, and without --repo it stops. Because the command also needs the URL of the remote it uses, it then stops with the error of PW-WORKTREE-ADD-39 either way."
       examples:
         - run: pecot worktree add -D .
           note: Create the next worktree of the repository in the current directory.
@@ -6271,6 +6304,7 @@ entries:
       - '次のリンクは、`warning` を出して飛ばします。リンク先が無いもの、パスを git が追跡しているもの、作れないものです。終了コードは変わりません。'
       - 'devcontainer が要ります。'
       - 'devcontainer の確認がどれも通らないときは、コマンドは動く前に止まります。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出し、無ければ止まります。このコマンドは使う remote の URL も要るので、`--repo` があっても、そのあと `PW-WORKTREE-ADD-39` の `error` で止まります。'
     stdin: none
     output:
       format: text
@@ -6283,7 +6317,7 @@ entries:
         base: 'ブランチの起点にした base ブランチです。'
         setupFailed: 'setup のコマンドが失敗したか、時間切れになったかです。成功したときと、実行しなかったときは `false` です。`dry_run` のときは入りません。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、`created` の行（`--dry-run` のときは `dry-run` の行）を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。'
+    diagnostics: '標準エラーに、`created` の行（`--dry-run` のときは `dry-run` の行）を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -6297,7 +6331,7 @@ entries:
         when: '`--repo` が今の git remote と違います。'
       - kind: git-unresolved
         code: 1
-        when: 'git のリポジトリの外で `--repo` を省きました。選んだ remote のリポジトリを GitHub の `owner/repo` として読めないときも含みます。'
+        when: 'git のリポジトリの外で `--repo` を省きました。選んだ remote のリポジトリを GitHub の `owner/repo` として読めないときも含みます。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: not-initialized
         code: 1
         when: '`worktree-config.json` か `.worktreeignore` がありません。'
@@ -6522,6 +6556,12 @@ entries:
       - id: PW-WORKTREE-ADD-52
         pattern: event
         statement: '`origin` が無く、登録済みのリポを指す remote があると、その中で最初の remote を使います'
+      - id: PW-WORKTREE-ADD-53
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出します（MCP は `warnings` に入れます）。使う remote の URL も読めないので、PW-WORKTREE-ADD-39 の `error` の行を出して、終了コード 1 で終わります'
+      - id: PW-WORKTREE-ADD-54
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-WORKTREE-INIT:
     help:
       details:
@@ -6533,6 +6573,7 @@ entries:
         - Stops without writing when either file already exists.
         - Needs a devcontainer.
         - With --dry-run, prints dry-run lines for creating the worktree config and the ignore file, and writes neither.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and uses --repo, and without --repo it stops."
       examples:
         - run: pecot worktree init -D .
           note: Write the worktree config files of the repository in the current directory.
@@ -6553,6 +6594,7 @@ entries:
       - 'どちらかのファイルが既にあるときは、何も書かずに止まります。'
       - 'devcontainer が要ります。'
       - '`--dry-run` を付けると、worktree の設定ファイルと ignore ファイルを作る操作を `dry-run` の行に出して、どちらも書きません。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して `--repo` を使い、無ければ止まります。'
     stdin: none
     output:
       format: none
@@ -6561,7 +6603,7 @@ entries:
         configFile: 'worktree の設定ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
         ignoreFile: 'worktree の ignore ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。'
+    diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -6575,7 +6617,7 @@ entries:
         when: '`--repo` が今の git remote と違います。'
       - kind: git-unresolved
         code: 1
-        when: 'git のリポジトリの外で `--repo` を省きました。'
+        when: 'git のリポジトリの外で `--repo` を省きました。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: already-exists
         code: 1
         when: '2 つのファイルのどちらかが既にあります。'
@@ -6675,6 +6717,12 @@ entries:
       - id: PW-WORKTREE-INIT-19
         pattern: event
         statement: '`--dry-run` を付けて打つと、設定ファイルと ignore ファイルを書かず、作る操作を `dry-run` の行で標準エラーに出し、終了コード 0 で終わります'
+      - id: PW-WORKTREE-INIT-20
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-WORKTREE-INIT-21
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-WORKTREE-LINK:
     help:
       details:
@@ -6692,6 +6740,7 @@ entries:
         - With --dry-run, each link is decided the same way as in the real run, so a link the run skips is planned as a skipped line with the same reason. With --all and without --force, a real file is planned as skipped.
         - A path tracked by git is planned as skipped, and the real run writes a warning line for it and counts it as an error.
         - Needs a devcontainer.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and uses --repo, and without --repo it stops."
       examples:
         - run: pecot worktree link -D ../wt1/my-repo
           note: Apply the links to one sub-worktree.
@@ -6722,6 +6771,7 @@ entries:
       - '`--dry-run` は、リンクごとの判断を実際の実行と同じ方法で決めます。実行が飛ばすリンクは、同じ理由を添えた `skipped` の行として予定に出ます。`--all` を付けて `--force` が無いときは、実体のファイルを飛ばす予定にします。'
       - 'git が追跡しているパスは、飛ばす予定にします。実際の実行では、`warning` の行を書き、エラーとして数えます。'
       - 'devcontainer が要ります。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して `--repo` を使い、無ければ止まります。'
     stdin: '上書きの確認への `y` か `n` の答えです。確認を尋ねるのは、worktree が 1 つで、`--force` が無いときだけです。そのうえで、リンクのパスに、git が追跡していない実体のファイルかディレクトリがあると尋ねます。入力が終わりに達すると、コマンドを中断します。'
     output:
       format: none
@@ -6729,7 +6779,7 @@ entries:
       fields:
         links: '各対象 worktree にある、設定の link ごとの結果の配列です。サブ worktree が無ければ空です。要素は `path`（symlink の絶対パス）・`destination`（向き先の絶対パス）・`change` を持ちます。`change` は `create`（新しい symlink）・`update`（既存を置き換えた）・`skip`（そのまま）・`error`（作れなかった）のどれかです。`reason` は、`skip` と `error` のときだけ入ります。'
         dryRun: '`dry_run` のときだけ `true` で入ります。symlink は何も変えていません。'
-    diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`--all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。`--dry-run` のときは、`dry-run` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。'
+    diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`--all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。`--dry-run` のときは、`dry-run` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -6743,7 +6793,7 @@ entries:
         when: '`--repo` が今の git remote と違います。'
       - kind: git-unresolved
         code: 1
-        when: 'git のリポジトリの外で `--repo` を省きました。'
+        when: 'git のリポジトリの外で `--repo` を省きました。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: not-initialized
         code: 1
         when: '設定ファイルがありません。'
@@ -6903,6 +6953,12 @@ entries:
       - id: PW-WORKTREE-LINK-34
         pattern: event
         statement: '`-D` にサブディレクトリを渡して打つと、その worktree のルートにリンクを作ります'
+      - id: PW-WORKTREE-LINK-35
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-WORKTREE-LINK-36
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
   PW-WORKTREE-REMOVE:
     help:
       details:
@@ -6920,6 +6976,7 @@ entries:
         - Needs a devcontainer.
         - Does not read the worktree config files or the active project.
         - With --dry-run, prints dry-run lines for removing the worktree and deleting the local branch, and removes nothing.
+        - "When the owner/repo cannot be read from the URL of the remote, --repo is not compared with it: with --repo the command prints a warning and uses --repo, and without --repo it stops."
       examples:
         - run: pecot worktree remove wt1 -D .
           note: Remove the worktree wt1 and its branch.
@@ -6951,6 +7008,7 @@ entries:
       - 'devcontainer が要ります。'
       - 'worktree の設定ファイルとアクティブなプロジェクトは読みません。'
       - '`--dry-run` を付けると、worktree の削除とローカルブランチの削除を `dry-run` の行に出して、何も消しません。'
+      - 'remote の URL から `owner/repo` を読めないときは、`--repo` と比べません。`--repo` があれば、`warning` を出して `--repo` を使い、無ければ止まります。'
     stdin: none
     output:
       format: none
@@ -6959,7 +7017,7 @@ entries:
         name: '削除した worktree の名前です。渡したままの名前です。`dry_run` のときは、削除する予定の名前です。'
         deletedBranch: 'ローカルブランチを削除したかどうかです。残したとき、削除に失敗したとき、`dry_run` のときは `false` です。'
         dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
-    diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。'
+    diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -6973,7 +7031,7 @@ entries:
         when: '`--repo` が今の git remote と違います。'
       - kind: git-unresolved
         code: 1
-        when: 'git のリポジトリの外で `--repo` を省きました。'
+        when: 'git のリポジトリの外で `--repo` を省きました。`--repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: other
         code: 1
         when: '渡した名前に当たる worktree がありません。`git worktree remove` が失敗したときと、devcontainer の外で動かしたときも含みます。'
@@ -7093,6 +7151,12 @@ entries:
       - id: PW-WORKTREE-REMOVE-27
         pattern: unwanted
         statement: 'もし `--force` を付けずに変更のある worktree を削除しようとしたなら、git の文に続けて、`--force` を案内する `hint` の行を標準エラーに出します。MCP では `force: true` を案内します'
+      - id: PW-WORKTREE-REMOVE-28
+        pattern: event
+        statement: '`--repo` を渡して remote の URL から `owner/repo` を読めないと、`warning` の行を出して続けます（MCP は `warnings` に入れます）'
+      - id: PW-WORKTREE-REMOVE-29
+        pattern: unwanted
+        statement: 'もし `--repo` を省いて remote の URL から `owner/repo` を読めないなら、`the repository is ambiguous` と理由を出し、終了コード 1 で終わります'
 common_behaviors:
   - id: PW-COMMON-01
     pattern: event
@@ -7154,3 +7218,6 @@ common_behaviors:
   - id: PW-COMMON-20
     pattern: event
     statement: 'MCP のツールがファイルやディレクトリを作ると、その絶対パスを、ツールごとの項目（`file`・`path`・`configPath` など）に入れて返します'
+  - id: PW-COMMON-21
+    pattern: unwanted
+    statement: 'もし `--show-repo` で git remote の URL から `owner/repo` を読めないなら、その理由の `error` の行を標準エラーに出します'

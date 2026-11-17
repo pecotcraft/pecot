@@ -212,6 +212,17 @@ describe('issue show', () => {
     expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
   })
 
+  it('短い形 N の参照を --repo なしで渡し、remote の URL から owner/repo を読めないと、例外でなくリポジトリが曖昧な案内を出す', async () => {
+    setUpProject()
+    const repository = enterGitRepository()
+    gitForTest(repository, ['remote', 'add', 'origin', '/srv/git/demo.git'])
+
+    const result = await read('5')
+
+    expect(result.code).toBe(2)
+    expect(result.stderr).toBe('error: the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'\n')
+  })
+
   it.for([
     { name: '参照が owner/repo/N の形でない', reference: 'invalid-format' },
     { name: '参照が # で始まる', reference: '#5' },

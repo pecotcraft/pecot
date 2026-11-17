@@ -1,18 +1,10 @@
-// マルチリポ対応のリポジトリ解決。
-//
-// 決定木:
-//   1. 明示値（--repo）があれば、それを owner/repo として使う（source=explicit）。
-//   2. git のワークツリー内なら、origin の URL から取る（source=current-git）。
-//      origin が無ければ、先頭の remote を使う。
-//   3. どちらも成り立たなければ、AmbiguousRepositoryError を投げる。
-//
-// 検証エラーの文は、Python の CLI の書式に揃える。
-// 表題は元のクラス名（RepoRef・ResolvedRepo）を使う。
+// リポジトリ解決: --repo、無ければ git の origin（無ければ先頭の remote）、どちらも無ければ AmbiguousRepositoryError。
+// 検証エラーの文は Python の CLI の書式（表題は RepoRef・ResolvedRepo）に揃える。
 
 import { formatHinted, globalRepositoryHint, hinted, placeholder } from './command-hint.js'
 import { PecotError, InvalidValueError } from './errors.js'
 import type { GitRunner } from './git-runner.js'
-import { parseRemoteUrl } from './git-url.js'
+import { parseRemoteUrl, RemoteUrlFormatError } from './git-url.js'
 import { pythonStringRepr, ValidationFailure } from './python-format.js'
 import type { ValidationIssue } from './python-format.js'
 
@@ -110,11 +102,15 @@ export function pickPrimaryRemote(remotes: readonly string[]): string | undefine
 }
 
 /**
-現在の git の remote からリポジトリを取り出す。git の外・remote 無しは undefined。
-URL の形式が不正なときは、InvalidValueError をそのまま伝える（バグ扱い）。
-Python の `_detect_current_git_repo` と同じで、不正なら undefined を返す infra/git.ts の remoteRepository とは契約が違う
+主の remote はあるが、その URL から `owner/repo` を読めないこと
 */
-export function detectCurrentGitRepository(git: GitRunner): { readonly repository: RepositoryReference, readonly remoteName: string } | undefined {
+export interface UnreadableRemote {
+  readonly source: 'unreadable-remote'
+  readonly remoteName: string
+}
+
+// 主の remote の名前と URL。git の外・remote 無し・URL を取れないときは undefined
+function readPrimaryRemoteUrl(git: GitRunner): { readonly remoteName: string, readonly url: string } | undefined {
   const inside = git(['rev-parse', '--is-inside-work-tree'])
   if (inside.exitCode !== 0 || inside.stdout.trim() !== 'true') return undefined
 
@@ -124,9 +120,48 @@ export function detectCurrentGitRepository(git: GitRunner): { readonly repositor
   const remoteName = pickPrimaryRemote(remotes)
   if (remoteName === undefined) return undefined
   const url = git(['remote', 'get-url', remoteName])
-  if (url.exitCode !== 0) return undefined
-  const { owner, repository } = parseRemoteUrl(url.stdout.trim())
-  return { repository: createRepositoryReference(owner, repository), remoteName }
+  return url.exitCode === 0 ? { remoteName, url: url.stdout.trim() } : undefined
+}
+
+/**
+git の remote のリポジトリ。git の外・remote 無しは undefined、URL を読めなければ InvalidValueError（Python の `_detect_current_git_repo` と同じ）。
+読めないことを値で受けるなら readCurrentGitRemote を使う
+*/
+export function detectCurrentGitRepository(git: GitRunner): { readonly repository: RepositoryReference, readonly remoteName: string } | undefined {
+  const primary = readPrimaryRemoteUrl(git)
+  if (primary === undefined) return undefined
+  const { owner, repository } = parseRemoteUrl(primary.url)
+  return { repository: createRepositoryReference(owner, repository), remoteName: primary.remoteName }
+}
+
+/**
+git の remote を読む。git の外・remote 無しは undefined、URL から `owner/repo` を読めなければ UnreadableRemote
+*/
+export function readCurrentGitRemote(git: GitRunner): ResolvedRepository | UnreadableRemote | undefined {
+  const primary = readPrimaryRemoteUrl(git)
+  if (primary === undefined) return undefined
+  let location
+  try {
+    location = parseRemoteUrl(primary.url)
+  }
+  catch (error: unknown) {
+    if (error instanceof RemoteUrlFormatError) return { source: 'unreadable-remote', remoteName: primary.remoteName }
+    throw error
+  }
+  return createResolvedRepository({
+    repository: createRepositoryReference(location.owner, location.repository),
+    source: 'current-git',
+    remoteName: primary.remoteName,
+  })
+}
+
+/**
+短い参照を補うリポジトリ。明示値か git の remote で、決められなければ undefined。明示値の形が不正なら InvalidValueError
+*/
+export function resolveRepositoryIfKnown(explicit: string | undefined, git: GitRunner): RepositoryReference | undefined {
+  if (explicit !== undefined) return parseOwnerRepository(explicit)
+  const current = readCurrentGitRemote(git)
+  return current?.source === 'current-git' ? current.repository : undefined
 }
 
 /**

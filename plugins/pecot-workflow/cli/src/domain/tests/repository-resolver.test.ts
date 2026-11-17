@@ -11,8 +11,10 @@ import {
   isSameRepository,
   parseOwnerRepository,
   pickPrimaryRemote,
+  readCurrentGitRemote,
   repositoryFullName,
   resolveRepository,
+  resolveRepositoryIfKnown,
   splitOwnerRepository,
 } from '../repository-resolver.js'
 
@@ -214,6 +216,32 @@ describe('detectCurrentGitRepository', () => {
 
   it('remote get-url が失敗したら undefined', () => {
     expect(detectCurrentGitRepository(fakeGit({ remotes: ['origin'], remoteUrls: {} }))).toBeUndefined()
+  })
+})
+
+describe('readCurrentGitRemote', () => {
+  it('URL を読めると、current-git の解決結果を返す', () => {
+    const current = readCurrentGitRemote(fakeGit({ remotes: ['origin'], remoteUrls: { origin: 'git@github.com:o/r.git' } }))
+    expect(current).toEqual({ repository: { owner: 'o', repository: 'r' }, source: 'current-git', remoteName: 'origin' })
+  })
+
+  it('URL から owner/repo を読めないと、unreadable-remote を返す', () => {
+    const current = readCurrentGitRemote(fakeGit({ remotes: ['origin'], remoteUrls: { origin: '/srv/git/bare.git' } }))
+    expect(current).toEqual({ source: 'unreadable-remote', remoteName: 'origin' })
+  })
+
+  it('git の外なら undefined', () => {
+    expect(readCurrentGitRemote(fakeGit({ isInsideWorktree: false }))).toBeUndefined()
+  })
+})
+
+describe('resolveRepositoryIfKnown', () => {
+  it('明示値があると、その値を返す', () => {
+    expect(resolveRepositoryIfKnown('a/b', fakeGit())).toEqual({ owner: 'a', repository: 'b' })
+  })
+
+  it('明示値が無く URL を読めないと、undefined を返す', () => {
+    expect(resolveRepositoryIfKnown(undefined, fakeGit({ remotes: ['origin'], remoteUrls: { origin: '/srv/git/bare.git' } }))).toBeUndefined()
   })
 })
 

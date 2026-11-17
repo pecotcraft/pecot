@@ -18,7 +18,7 @@ import type { UsedOrder } from '../domain/issue-order.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { AmbiguousRepositoryError, createRepositoryReference, resolveRepository } from '../domain/repository-resolver.js'
+import { createRepositoryReference, resolveRepositoryIfKnown } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import {
   CLOSED_HEADINGS_BY_TEMPLATE,
@@ -133,18 +133,8 @@ export interface IssueTarget {
   readonly number: number
 }
 
-/**
-グローバルの --repo（run の入力の repo）か、カレントの git から base のリポジトリを決める。
-曖昧なら undefined（`owner/repo/N` の主軸形を使う利用者のため）。--repo の形式が不正なら InvalidValueError を伝える
-*/
 function resolveBaseRepository(repository: string | undefined): RepositoryReference | undefined {
-  try {
-    return resolveRepository(repository, gitRunnerFor()).repository
-  }
-  catch (error: unknown) {
-    if (error instanceof AmbiguousRepositoryError) return undefined
-    throw error
-  }
+  return resolveRepositoryIfKnown(repository, gitRunnerFor())
 }
 
 /**

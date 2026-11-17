@@ -163,6 +163,13 @@ it('--show-repo でリポジトリを解決できないと、終了コード 2 �
   expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: repository is ambiguous: pass --repo <owner/repo>\n' })
 })
 
+it('--show-repo で remote の URL から owner/repo を読めないと、その理由の error の行を標準エラーに出す', async (context) => {
+  await verifies(context, 'PW-COMMON-21')
+  const repository = repositoryWithRemotes({ origin: '/srv/git/demo.git' })
+  const result = await run(['--show-repo'], [TARGET], repository)
+  expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: could not read the repository from the URL of the Git remote origin\n' })
+})
+
 // ループバックの http の URL ではない値。どれも拒否される
 // eslint-disable-next-line unicorn/prefer-https -- http で外部ホストの URL を拒否することの確認
 const NON_LOOPBACK_URLS = [{ url: 'https://example.com' }, { url: 'ftp://127.0.0.1' }, { url: 'http://example.com' }]
