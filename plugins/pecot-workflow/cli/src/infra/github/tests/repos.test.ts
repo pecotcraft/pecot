@@ -344,3 +344,62 @@ describe('isDependabotAlertsEnabled', () => {
     expect(await rejection(client.isDependabotAlertsEnabled('owner', 'repo'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 200', { statusCode: 200 }))
   })
 })
+
+describe('listActionsSecretNames', () => {
+  it('応答の secrets から名前だけを、per_page=100 でページを辿って返す', async () => {
+    const { client, server } = await startClient([
+      restResponse('GET', '/repos/owner/repo/actions/secrets', {
+        status: 200,
+        body: { total_count: 2, secrets: [{ name: 'A', created_at: 'x' }] },
+        headers: { link: '<{{GITHUB_API}}/repos/owner/repo/actions/secrets?page=2>; rel="next"' },
+      }),
+      restResponse('GET', '/repos/owner/repo/actions/secrets', { status: 200, body: { total_count: 2, secrets: [{ name: 'B' }] } }),
+    ])
+    expect(await client.listActionsSecretNames('owner', 'repo', 'repository')).toEqual(['A', 'B'])
+    expect(restRequests(server).map(({ query }) => query)).toEqual([{ per_page: '100' }, { page: '2' }])
+  })
+
+  it('organization の単位では、リポに渡る organization の secret を読む', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/actions/organization-secrets', { status: 200, body: { total_count: 1, secrets: [{ name: 'ORG' }] } })])
+    expect(await client.listActionsSecretNames('owner', 'repo', 'organization')).toEqual(['ORG'])
+  })
+
+  it('403 と 404 は読めないとして undefined を返す', async () => {
+    const { client } = await startClient([
+      restResponse('GET', '/repos/owner/repo/actions/secrets', { status: 403, text: '{"message":"Resource not accessible by integration"}' }),
+      restResponse('GET', '/repos/owner/repo/actions/organization-secrets', { status: 404, text: '{"message":"Not Found"}' }),
+    ])
+    expect(await client.listActionsSecretNames('owner', 'repo', 'repository')).toBeUndefined()
+    expect(await client.listActionsSecretNames('owner', 'repo', 'organization')).toBeUndefined()
+  })
+
+  it('rate limit の 403 は GitHubRateLimitError のまま投げる', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/actions/secrets', { status: 403, text: 'API rate limit exceeded' })])
+    await expect(client.listActionsSecretNames('owner', 'repo', 'repository')).rejects.toBeInstanceOf(GitHubRateLimitError)
+  })
+})
+
+describe('listActionsVariableNames', () => {
+  it('応答の variables から名前だけを per_page=30 で読み、値を返さない', async () => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/actions/variables', { status: 200, body: { total_count: 1, variables: [{ name: 'V', value: 'secret-ish' }] } })])
+    expect(await client.listActionsVariableNames('owner', 'repo', 'repository')).toEqual(['V'])
+    expect(restRequests(server).map(({ query }) => query)).toEqual([{ per_page: '30' }])
+  })
+
+  it('organization の単位では、リポに渡る organization の変数を読む', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/actions/organization-variables', { status: 200, body: { total_count: 1, variables: [{ name: 'OV', value: 'x' }] } })])
+    expect(await client.listActionsVariableNames('owner', 'repo', 'organization')).toEqual(['OV'])
+  })
+})
+
+describe('getRepositoryOwnerType', () => {
+  it('リポの owner.type を返す', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { owner: { type: 'Organization' } } })])
+    expect(await client.getRepositoryOwnerType('owner', 'repo')).toBe('Organization')
+  })
+
+  it('owner.type が無ければ undefined', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: {} })])
+    expect(await client.getRepositoryOwnerType('owner', 'repo')).toBeUndefined()
+  })
+})

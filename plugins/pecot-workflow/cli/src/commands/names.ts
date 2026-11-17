@@ -46,6 +46,7 @@ export const COMMAND_GROUPS: readonly CommandGroup[] = [
   { name: 'tracker', meaning: 'Tracker の Issue の書き直し', help: 'Rewrite the list in a Tracker Issue' },
   { name: 'worktree', meaning: 'worktree', help: 'Work with worktrees' },
   { name: 'branch', meaning: 'リモートのブランチ', help: 'Work with remote branches' },
+  { name: 'workflow', meaning: '導入先のリポに置く GitHub Actions のワークフロー', help: 'Install and check the GitHub Actions workflows of pecot' },
 ]
 
 /**
@@ -57,11 +58,13 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'show', meaning: '1 件を出す', readOnly: true },
   { name: 'get', meaning: '設定の値を出す', readOnly: true },
   { name: 'check', meaning: '次の操作の前に確かめる', readOnly: true },
+  { name: 'doctor', meaning: '導入に要る設定がそろっているかを確かめる', readOnly: true },
   { name: 'create', meaning: 'GitHub のものを作る' },
   { name: 'delete', meaning: 'GitHub のものを消す' },
   { name: 'add', meaning: '集まりに入れる' },
   { name: 'remove', meaning: '集まりから出す' },
   { name: 'init', meaning: '既にあるものを pecot で使える状態にする' },
+  { name: 'install', meaning: '雛形をリポに書き出す' },
   { name: 'set', meaning: '設定のキーに値を入れる' },
   { name: 'unset', meaning: '設定のキーの値を消す' },
   { name: 'link', meaning: 'リポジトリをプロジェクトにつなぐ' },

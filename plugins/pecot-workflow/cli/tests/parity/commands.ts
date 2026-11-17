@@ -1,4 +1,4 @@
-// 前後比較の対象にする 36 サブコマンドの path。src/commands/registry.ts の COMMANDS と同じ。
+// 前後比較の対象にする 39 サブコマンドの path。src/commands/registry.ts の COMMANDS と同じ。
 // シナリオの path の集合がこの一覧と一致することを scenario.test.ts が確かめる。
 export const COMMAND_PATHS: readonly (readonly string[])[] = [
   ['project', 'list'],
@@ -38,4 +38,6 @@ export const COMMAND_PATHS: readonly (readonly string[])[] = [
   ['worktree', 'link'],
   ['worktree', 'remove'],
   ['branch', 'delete'],
+  ['workflow', 'install'],
+  ['workflow', 'doctor'],
 ]

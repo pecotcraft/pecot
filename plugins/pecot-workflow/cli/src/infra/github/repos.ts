@@ -4,7 +4,7 @@ import { jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubClientBase } from './client.js'
-import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
+import { GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError } from './errors.js'
 import { asArray, isTruthy, requireString } from './payload.js'
 import { MUTATION_CREATE_LINKED_BRANCH, QUERY_GET_REPOSITORY_ID } from './queries.js'
 import { encodePath, encodePathSegment, repositoryPath } from './rest-path.js'
@@ -28,22 +28,46 @@ export interface GraphqlRateLimit {
   readonly reset: number
 }
 
+/**
+Actions の secret と変数を読む単位。organization は、organization の値のうち、そのリポに渡るもの
+*/
+export type ActionsScope = 'repository' | 'organization'
+
 const ALERTS_PER_PAGE = 100
+// 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
+const SECRETS_PER_PAGE = 100
+const VARIABLES_PER_PAGE = 30
 const NO_CONTENT = 204
+const FORBIDDEN = 403
 const NOT_FOUND = 404
 
 export class ReposApi extends GitHubClientBase {
+  // 名前だけを返し、変数の値は外へ渡さない。読めない（403・404）ときは undefined
+  private async listNamesOrUndefined(path: string, perPage: number, itemsKey: string): Promise<readonly string[] | undefined> {
+    let items: readonly JsonValue[]
+    try {
+      items = await this.listAll(path, { per_page: perPage }, itemsKey)
+    }
+    catch (error: unknown) {
+      if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN || error.statusCode === NOT_FOUND) && !(error instanceof GitHubRateLimitError)) return undefined
+      throw error
+    }
+    return items.map(item => jsonField(item, 'name')).filter(name => typeof name === 'string')
+  }
+
   /**
   Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
   */
-  protected async listAll(path: string, firstParameters: Readonly<Record<string, number | string>>): Promise<readonly JsonValue[]> {
+  protected async listAll(path: string, firstParameters: Readonly<Record<string, number | string>>, itemsKey?: string): Promise<readonly JsonValue[]> {
     const items: JsonValue[] = []
     let target = path
     let parameters: Readonly<Record<string, number | string>> | undefined = firstParameters
     for (;;) {
       const response = await this.restRequest('GET', target, { params: parameters })
       if (!response.isSuccess) this.handleHttpError(response)
-      items.push(...asArray(response.json()))
+      // 応答が `{ total_count, <itemsKey>: [...] }` の形の一覧は、キーで配列を取り出す
+      const body = response.json()
+      items.push(...asArray(itemsKey === undefined ? body : jsonField(body, itemsKey)))
       const next = response.links.get('next')
       if (next === undefined) return items
       target = next.url
@@ -146,6 +170,31 @@ export class ReposApi extends GitHubClientBase {
       prerelease: options.prerelease ?? false,
     }
     return this.restObject('POST', `${repositoryPath(owner, repository)}/releases`, { json: data })
+  }
+
+  /**
+  Actions の secret の名前の一覧。scope が organization なら、organization の secret のうち、このリポに渡るもの
+  */
+  async listActionsSecretNames(owner: string, repository: string, scope: ActionsScope): Promise<readonly string[] | undefined> {
+    const kind = scope === 'organization' ? 'organization-secrets' : 'secrets'
+    return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, SECRETS_PER_PAGE, 'secrets')
+  }
+
+  /**
+  Actions の変数の名前の一覧。scope が organization なら、organization の変数のうち、このリポに渡るもの
+  */
+  async listActionsVariableNames(owner: string, repository: string, scope: ActionsScope): Promise<readonly string[] | undefined> {
+    const kind = scope === 'organization' ? 'organization-variables' : 'variables'
+    return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, VARIABLES_PER_PAGE, 'variables')
+  }
+
+  /**
+  リポジトリの持ち主の種類（`User`・`Organization`）。読めない形なら undefined
+  */
+  async getRepositoryOwnerType(owner: string, repository: string): Promise<string | undefined> {
+    const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository))
+    const type = jsonField(jsonField(repositoryInfo, 'owner'), 'type')
+    return typeof type === 'string' ? type : undefined
   }
 
   /**

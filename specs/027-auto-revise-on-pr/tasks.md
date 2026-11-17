@@ -94,19 +94,19 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ### Tests for User Story 5
 
-- [ ] T015 [P] [US5] 雛形の一覧と版の比べ方の単体テストを、`p-w/cli/src/domain/tests/` に書く。一覧の `review` の行が、`spec/data-model.md` の「雛形の一覧」の欄を持つこと、1 行目の目印から版を読めること、目印の無いファイルを古いと判定することを確かめる
-- [ ] T016 [P] [US5] `pecot workflow install` のテストを、`p-w/cli/src/commands/tests/` に書く。`spec/contracts/cli-commands.md` の `install` の条件の表を、1 行ずつテストにする。`--force` が、利用者の足した行を上書きの前に出すことも入れる
-- [ ] T017 [P] [US5] `pecot workflow doctor` のテストを、`p-w/cli/src/commands/tests/` に書く。`spec/contracts/cli-commands.md` の `doctor` の項目の表を、1 行ずつテストにする。権限が無く読めない項目を `skipped:` で出し、足りないと数えないことも入れる
+- [x] T015 [P] [US5] 雛形の一覧と版の比べ方の単体テストを、`p-w/cli/src/domain/tests/` に書く。一覧の `review` の行が、`spec/data-model.md` の「雛形の一覧」の欄を持つこと、1 行目の目印から版を読めること、目印の無いファイルを古いと判定することを確かめる
+- [x] T016 [P] [US5] `pecot workflow install` のテストを、`p-w/cli/tests/interface/` に書く。`spec/contracts/cli-commands.md` の `install` の条件の表を、1 行ずつテストにする。`--force` が、利用者の足した行を上書きの前に出すことも入れる
+- [x] T017 [P] [US5] `pecot workflow doctor` のテストを、`p-w/cli/tests/interface/` に書く。`spec/contracts/cli-commands.md` の `doctor` の項目の表を、1 行ずつテストにする。権限が無く読めない項目を `skipped:` で出し、足りないと数えないことも入れる
 
 ### Implementation for User Story 5
 
-- [ ] T018 [US5] 雛形の一覧と版の比べ方を `p-w/cli/src/domain/` に書く。初版の一覧は `review` の 1 行だ。欄は `spec/data-model.md` の「雛形の一覧」のとおりにする
-- [ ] T019 [US5] 雛形の書き出しと、変数・secret の名前の読み取りを `p-w/cli/src/infra/` に書く。secret と変数は名前の有無だけを読み、値は読まない。リポの単位と organization の単位の両方を見る
-- [ ] T020 [US5] `p-w/cli/src/commands/workflow.ts` に `install` と `doctor` を書く。コマンドの定義の配列を、`p-w/cli/src/commands/registry.ts` に足す。MCP ツール `workflow_install`・`workflow_doctor` は、registry の定義から出る。MCP の側に、別のファイルは足さない
-- [ ] T021 [US5] `p-w/interface/authored.yaml` に 2 つの項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T015〜T017 のテストに `verifies` を足す
-- [ ] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の表のものだ。既定は Claude の App で、名前を登録しないことを書く。自前の App を置くときは、インストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
-- [ ] T023 [P] [US5] `p-w/skills/w-help/references/commands.md` を直す。コマンドの表に、`workflow install` と `workflow doctor` の 2 行を足す
-- [ ] T024 [US5] T015〜T017 のテストを通す。検証用の作業ツリーで、quickstart.md の「導入を確かめる」の 1〜4 を流す。結果を PR の説明に書く
+- [x] T018 [US5] 雛形の一覧と版の比べ方を `p-w/cli/src/domain/` に書く。初版の一覧は `review` の 1 行だ。欄は `spec/data-model.md` の「雛形の一覧」のとおりにする
+- [x] T019 [US5] 雛形の書き出しと、変数・secret の名前の読み取りを `p-w/cli/src/infra/` に書く。secret と変数は名前の有無だけを読み、値は読まない。リポの単位と organization の単位の両方を見る
+- [x] T020 [US5] `p-w/cli/src/commands/workflow.ts` に `install` と `doctor` を書く。コマンドの定義の配列を、`p-w/cli/src/commands/registry.ts` に足す。MCP ツール `workflow_install`・`workflow_doctor` は、registry の定義から出る。MCP の側に、別のファイルは足さない
+- [x] T021 [US5] `p-w/interface/authored.yaml` に 2 つの項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T015〜T017 のテストに `verifies` を足す
+- [x] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の表のものだ。既定は Claude の App で、名前を登録しないことを書く。自前の App を置くときは、インストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
+- [x] T023 [P] [US5] `p-w/skills/w-help/references/commands.md` を直す。コマンドの表に、`workflow install` と `workflow doctor` の 2 行を足す
+- [x] T024 [US5] T015〜T017 のテストを通す。検証用の作業ツリーで、quickstart.md の「導入を確かめる」の 1〜4 を流す。結果を PR の説明に書く
 
 ---
 

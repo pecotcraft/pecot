@@ -9,13 +9,13 @@ import { commandNameViolations } from '../names.js'
 import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
-const COMMAND_COUNT = 37
+const COMMAND_COUNT = 39
 const GENERATED = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
 const EntrySchema = z.object({ id: z.string() })
 const GeneratedSchema = z.object({ prefix: z.string(), entries: z.array(EntrySchema) })
 
 describe('コマンドの一覧', () => {
-  it('37 個が登録され、path は重複しない', () => {
+  it('39 個が登録され、path は重複しない', () => {
     expect(COMMANDS).toHaveLength(COMMAND_COUNT)
     expect(new Set(COMMANDS.map(command => command.path.join(' '))).size).toBe(COMMAND_COUNT)
   })
@@ -42,6 +42,7 @@ describe('コマンドの一覧', () => {
       'tracker sync',
       'worktree add', 'worktree remove', 'worktree init', 'worktree link',
       'branch delete',
+      'workflow install', 'workflow doctor',
     ])
   })
 

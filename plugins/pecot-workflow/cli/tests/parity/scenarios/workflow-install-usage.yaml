@@ -1,0 +1,7 @@
+# --check と --force を同時に付ける。使い方の誤りで exit 2 になる。
+id: workflow-install-usage
+command:
+  path: [workflow, install]
+  args: [review, --check, --force]
+setup: {}
+github: []

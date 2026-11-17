@@ -6863,6 +6863,276 @@ entries:
       - id: PW-TRACKER-SYNC-96
         pattern: event
         statement: '`--project` で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+  PW-WORKFLOW-DOCTOR:
+    help:
+      details:
+        - Checks that the repository in --directory has the workflow file of the named template and the GitHub settings it needs. Nothing is written.
+        - The repository is read from the git remote of --directory. The project config and the board are not read.
+        - Prints one line per checked item to stdout, in the form <state> <name>. The state is ok, missing, outdated or skipped.
+        - The items are the workflow file, the version marker on its first line, the secrets and variables the template needs, and the Claude GitHub App.
+        - "For review: the secret PECOT_AGENT_APP_PRIVATE_KEY is needed, and printed as an item, only when the variable PECOT_AGENT_APP_CLIENT_ID is set. The secret CLAUDE_CODE_OAUTH_TOKEN, or all 4 variables PECOT_AGENT_ANTHROPIC_*, are needed."
+        - Secrets and variables are read by name only, at the repository level and, for a repository of an organization, the organization level shared with the repository. Their values are never printed.
+        - When the token cannot read a list (403 or 404), an item whose names are not found in the lists that were read is skipped, and a skipped item does not count as missing.
+        - Whether the Claude GitHub App is installed cannot be read with the token of the repository, so it is always printed as skipped.
+        - Fails when any item is missing or outdated.
+      examples:
+        - run: pecot workflow doctor review
+          note: Check the files and settings for the automatic review.
+      default_notes:
+        directory: The current directory.
+    summary: ワークフローの雛形と、雛形の要る設定が、導入先のリポにそろっているかを確かめます。
+    arguments:
+      name: '雛形の一覧の名前です。いまは `review` だけです。'
+      directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、今のディレクトリです。'
+    constraints: []
+    details:
+      - '`--directory` のリポに、名前の雛形のワークフローのファイルと、雛形が要る GitHub の設定がそろっているかを確かめます。何も書きません。'
+      - 'リポは `--directory` の git remote から読みます。プロジェクトの設定とボードは読みません。'
+      - '確かめた項目を 1 行ずつ、`<状態>: <名前>` の形で標準出力に出します。状態は `ok`・`missing`・`outdated`・`skipped` のどれかです。'
+      - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数、Claude の GitHub App です。'
+      - '`review` では、変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要り、その項目を出します。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
+      - 'secret と変数は、名前の有無だけを読みます。リポの単位と、organization のリポでは、リポに渡る organization の単位の両方を見ます。値は出しません。'
+      - 'トークンで読めない一覧（403・404）があると、読めた一覧に名前の見つからない項目を `skipped` にします。`skipped` は足りないと数えません。'
+      - 'Claude の GitHub App が入っているかは、リポのトークンでは読めません。いつも `skipped` で出します。'
+      - '`missing` か `outdated` の項目が 1 つでもあると、失敗します。'
+    stdin: none
+    output:
+      format: text
+      description: '確かめた項目ごとに、`<状態>: <名前>` の行を出します。'
+    mcp_output:
+      fields:
+        repository: 'git remote のリポジトリです。`owner/repo` の形です。'
+        items: '確かめた項目の一覧です。出力の行と同じ順です。項目ごとに `name`（確かめたもの）と `state`（`ok`・`missing`・`outdated`・`skipped`）を持ちます。失敗のときも入ります。'
+        ready: '`missing` と `outdated` の項目が無いかどうかです。'
+    diagnostics: '足りない項目があると、その数を書いた `error` の行を標準エラーに出します。ほかの失敗でも `error` の行を出します。'
+    environment: []
+    exit_status:
+      - kind: repo-setting-missing
+        code: 1
+        when: '`missing` か `outdated` の項目があります。'
+      - kind: invalid-input
+        code: 2
+        when: '名前が雛形の一覧に無いか、`--directory` が無いパス・ファイル・読めないディレクトリです。ほかのコマンドラインの誤りも含みます。'
+      - kind: git-unresolved
+        code: 1
+        when: '`--directory` が Git リポジトリの外か、その git remote からリポジトリを読めません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub にリポジトリが見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返したか、GitHub に届きません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: default
+    effects:
+      - target: git
+        kind: read
+        what: '`--directory` を含むリポのルートと、その remote の URL を読みます。'
+      - target: file
+        kind: read
+        what: 'リポのルートの下のワークフローのファイルと、同梱の雛形を読みます。'
+      - target: github
+        kind: read
+        what: 'リポの持ち主の種類と、Actions の secret と変数の名前の一覧を読みます。'
+    prerequisites:
+      - 'ホストの GitHub トークンと、secret と変数の一覧を読む権限が要ります。'
+      - 'classic のトークンは `repo` の scope、fine-grained のトークンは Secrets と Variables の read です。どちらも、リポの collaborator であることが要ります。'
+    idempotent: true
+    examples:
+      - run: pecot workflow doctor review
+        note: '自動レビューのファイルと設定を確かめます。'
+    default_notes:
+      directory: '今のディレクトリです。'
+    behaviors:
+      - id: PW-WORKFLOW-DOCTOR-01
+        pattern: event
+        statement: '打つと、確かめた項目を `<状態>: <名前>` の行で標準出力に出します'
+      - id: PW-WORKFLOW-DOCTOR-02
+        pattern: unwanted
+        statement: 'もしワークフローのファイルが無いなら、`missing` の行を出して終了コード 1 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-03
+        pattern: unwanted
+        statement: 'もしファイルの版が同梱の雛形より古いなら、`outdated` の行を出して終了コード 1 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-04
+        pattern: unwanted
+        statement: 'もし変数 `PECOT_AGENT_APP_CLIENT_ID` を置き、秘密鍵の secret を置いていないなら、その `missing` の行を出して終了コード 1 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-05
+        pattern: unwanted
+        statement: 'もしモデルの認証の secret も、4 つの変数のそろった組も無いなら、その `missing` の行を出して終了コード 1 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-06
+        pattern: event
+        statement: 'ファイルと設定がそろっていると、終了コード 0 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-07
+        pattern: ubiquitous
+        statement: '常に、Claude の GitHub App は確かめず、`skipped` の行で出します'
+      - id: PW-WORKFLOW-DOCTOR-08
+        pattern: unwanted
+        statement: 'もし secret か変数の一覧をトークンで読めないなら、読めた一覧に名前の見つからない項目を `skipped` で出し、足りないと数えません'
+      - id: PW-WORKFLOW-DOCTOR-09
+        pattern: event
+        statement: 'リポの持ち主が organization だと、リポに渡る organization の secret と変数も見ます'
+      - id: PW-WORKFLOW-DOCTOR-10
+        pattern: event
+        statement: 'リポの持ち主が個人だと、organization の一覧を読みません'
+      - id: PW-WORKFLOW-DOCTOR-11
+        pattern: ubiquitous
+        statement: '常に、secret と変数の値を出力に出しません'
+      - id: PW-WORKFLOW-DOCTOR-12
+        pattern: unwanted
+        statement: 'もし名前が雛形の一覧に無いなら、一覧の名前を出して終了コード 2 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-13
+        pattern: unwanted
+        statement: 'もし Git リポジトリの外か、git remote からリポジトリを読めないなら、GitHub を読まずに終了コード 1 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-14
+        pattern: event
+        statement: 'リポのサブディレクトリを `--directory` に渡すと、リポのルートに置いたワークフローのファイルを見ます'
+      - id: PW-WORKFLOW-DOCTOR-15
+        pattern: event
+        statement: '変数 `PECOT_AGENT_APP_CLIENT_ID` が無いと、秘密鍵の secret の項目を出しません'
+  PW-WORKFLOW-INSTALL:
+    help:
+      details:
+        - Writes the named workflow template bundled with pecot into the repository in --directory. For review, the file is .github/workflows/pecot-review.yml.
+        - Creates the parent directories when they are missing.
+        - After writing, prints the next steps to stdout. They are installing the Claude GitHub App, setting the model credential, and checking with pecot workflow doctor.
+        - When the file already exists, the command stops unless --force is given.
+        - With --force, the lines you added between the begin and end markers are printed as a warning before the file is overwritten.
+        - With --check, nothing is written. The command checks that the file has the version of the bundled template on its first line, and fails with the command to update it when the file is missing or outdated.
+        - --check cannot be used with --force or --dry-run.
+        - With --dry-run, prints the plan line and writes nothing.
+        - Values you change, such as the trigger phrase and the limits, live in repository variables, so overwriting the file keeps them.
+      examples:
+        - run: pecot workflow install review
+          note: Write the automatic review workflow.
+        - run: pecot workflow install review --check
+          note: Check that the installed workflow is up to date.
+        - run: pecot workflow install review --force
+          note: Update the installed workflow to the bundled version.
+      default_notes:
+        directory: The current directory.
+    summary: pecot が同梱する GitHub Actions のワークフローの雛形を、リポに書き出します。
+    arguments:
+      name: '雛形の一覧の名前です。いまは `review` だけです。'
+      check: '書き出さずに、置いたファイルの版が同梱の雛形と同じかを確かめるかどうかです。'
+      force: 'ファイルが既にあるときに上書きするかどうかです。'
+      dry_run: '何も書かずに、書く予定だけを出すかどうかです。'
+      directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、今のディレクトリです。'
+    constraints:
+      - conflicts: [check, force]
+      - conflicts: [check, dry_run]
+    details:
+      - '名前の雛形を、`--directory` のリポに書き出します。`review` の置き先は `.github/workflows/pecot-review.yml` です。'
+      - '親のディレクトリが無ければ作ります。'
+      - '書き出した後に、次にすることを標準出力に出します。Claude の GitHub App を入れること、モデルの認証を設定すること、`pecot workflow doctor` で確かめることです。'
+      - 'ファイルが既にあるときは、`--force` が無ければ止まります。'
+      - '`--force` では、利用者が begin と end の印の間に足した行を、上書きの前に `warning` で出します。'
+      - '`--check` では何も書きません。ファイルの 1 行目の版が同梱の雛形と同じかを確かめます。ファイルが無いか古いときは、更新のコマンドを出して失敗します。'
+      - '`--dry-run` では、予定の行を出し、何も書きません。'
+      - '合言葉や上限など利用者が変える値は、リポの変数にあります。ファイルを上書きしても消えません。'
+    stdin: none
+    output:
+      format: text
+      description: '書き出したときだけ、次にすることを番号付きの行で出します。'
+    mcp_output:
+      fields:
+        path: 'リポのルートからのワークフローのファイルのパスです。'
+        version: '同梱の雛形の版です。'
+        installedVersion: '置いてあったファイルの版です。ファイルが無いか、版の目印が無いときは入りません。'
+        written: 'ファイルを書いたかどうかです。`check` と `dry_run` のときは、いつも `false` です。'
+        upToDate: '`check` のときだけ入ります。置いたファイルの版が同梱の雛形と同じかどうかです。'
+        removedLines: '既にあるファイルを上書きするときだけ入ります。利用者が印の間に足した行で、雛形の中身に置き換わります。'
+        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+    diagnostics: '標準エラーに、書いたファイルの結果の行（`created`・`updated`）を出します。`--dry-run` のときは予定の行（`dry-run`）を、`--check` で版が同じときは `unchanged` の行を出します。消える行があると `warning` の行を出します。失敗では `error` の行を出します。'
+    environment: []
+    exit_status:
+      - kind: already-exists
+        code: 2
+        when: 'ファイルが既にあり、`--force` がありません。'
+      - kind: not-ready
+        code: 1
+        when: '`--check` で、ファイルが無いか、版が同梱の雛形より古いです。'
+      - kind: invalid-input
+        code: 2
+        when: '名前が雛形の一覧に無いか、`--check` を `--force`・`--dry-run` と一緒に渡したか、`--directory` が無いパス・ファイル・読めないディレクトリです。ほかのコマンドラインの誤りも含みます。'
+      - kind: git-unresolved
+        code: 1
+        when: '`--directory` が Git リポジトリの外です。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。ファイルを書けないときも含みます。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: default
+    effects:
+      - target: git
+        kind: read
+        what: '`--directory` を含むリポのルートを読みます。'
+      - target: file
+        kind: read
+        what: '同梱の雛形と、リポのルートの下に置いてあるワークフローのファイルを読みます。'
+      - target: file
+        kind: write
+        what: 'リポのルートの下に、ワークフローのファイルを書きます。`--force` のときは上書きします。'
+    prerequisites: []
+    idempotent: false
+    examples:
+      - run: pecot workflow install review
+        note: '自動レビューのワークフローを書き出します。'
+      - run: pecot workflow install review --check
+        note: '置いたワークフローが新しいかを確かめます。'
+      - run: pecot workflow install review --force
+        note: '置いたワークフローを、同梱の版に更新します。'
+    default_notes:
+      directory: '今のディレクトリです。'
+    behaviors:
+      - id: PW-WORKFLOW-INSTALL-01
+        pattern: event
+        statement: '置き先にファイルが無いとき打つと、雛形を書き出し、`created` の行を標準エラーに出します'
+      - id: PW-WORKFLOW-INSTALL-02
+        pattern: event
+        statement: '雛形を書き出すと、次にすることを標準出力に出します'
+      - id: PW-WORKFLOW-INSTALL-03
+        pattern: event
+        statement: '`--dry-run` を付けて打つと、何も書かずに `dry-run` の行を標準エラーに出します'
+      - id: PW-WORKFLOW-INSTALL-04
+        pattern: unwanted
+        statement: 'もし置き先にファイルのあるとき `--force` を付けずに打つなら、何も書かずに終了コード 2 で終わります'
+      - id: PW-WORKFLOW-INSTALL-05
+        pattern: event
+        statement: '`--force` を付けて打つと、既にあるファイルを雛形で上書きし、`updated` の行を出します'
+      - id: PW-WORKFLOW-INSTALL-06
+        pattern: event
+        statement: '`--force` で、利用者の足した行が印の間にあると、上書きの前に消える行を `warning` で出します'
+      - id: PW-WORKFLOW-INSTALL-07
+        pattern: event
+        statement: '置いたファイルの版が同梱の雛形と同じとき `--check` を付けて打つと、何も書かずに終了コード 0 で終わります'
+      - id: PW-WORKFLOW-INSTALL-08
+        pattern: unwanted
+        statement: 'もし `--check` で、ファイルが無いか版が古いなら、更新のコマンドを出して終了コード 1 で終わります'
+      - id: PW-WORKFLOW-INSTALL-09
+        pattern: unwanted
+        statement: 'もし名前が雛形の一覧に無いなら、一覧の名前を出して終了コード 2 で終わります'
+      - id: PW-WORKFLOW-INSTALL-10
+        pattern: unwanted
+        statement: 'もし `--check` を `--force` か `--dry-run` と一緒に渡したなら、何も書かずに終了コード 2 で終わります'
+      - id: PW-WORKFLOW-INSTALL-11
+        pattern: event
+        statement: 'リポのサブディレクトリを `--directory` に渡すと、リポのルートからの置き先に書き出します'
+      - id: PW-WORKFLOW-INSTALL-12
+        pattern: unwanted
+        statement: 'もし `--directory` が Git リポジトリの外なら、何も書かずに終了コード 1 で終わります'
   PW-WORKTREE-ADD:
     help:
       details:

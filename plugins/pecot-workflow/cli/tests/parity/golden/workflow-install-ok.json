@@ -1,0 +1,7 @@
+{
+  "stdout": "next:\n  1. install the Claude GitHub App on the repository\n  2. set secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_* in Settings > Secrets and variables > Actions\n  3. check the settings with: pecot workflow doctor review\n",
+  "stderr": "created: .github/workflows/pecot-review.yml\n",
+  "exitCode": 0,
+  "requests": [],
+  "files": {}
+}

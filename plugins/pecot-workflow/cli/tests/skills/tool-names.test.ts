@@ -16,22 +16,22 @@ import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:58', 'skills/w-help/SKILL.md:60']
 
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
-const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id'])
+const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'workflow_dispatch'])
 
 // main のツール名。古いコマンド名の空白とハイフンを _ にした形（create_branch・project_info）。
 const OLD_TOOL_NAMES = Array.from(RENAMED_COMMANDS.keys(), name => name.replaceAll(/[ -]/gu, '_'))
 const OLD_TOOLS = OLD_TOOL_NAMES.join('|')
 const GROUP_WORDS = COMMAND_GROUPS.map(group => group.name).join('|')
-// 1 語目が names.ts のグループの語の名前と、main のツール名を拾う。
+// 1 語目がグループの語の名前と、main のツール名を拾う。pecot-workflow__ の続きは除く。
 // eslint-disable-next-line security/detect-non-literal-regexp -- 語は COMMAND_GROUPS と古い名前の表から作る
-const TOOL_LIKE = new RegExp(String.raw`\b(?:(?:${GROUP_WORDS})_[a-z_]+|${OLD_TOOLS})\b`, 'gu')
+const TOOL_LIKE = new RegExp(String.raw`(?<![\w-])(?:(?:${GROUP_WORDS})_[a-z_]+|${OLD_TOOLS})\b`, 'gu')
 // 古いツール名を、ツールとして書いた形。入力名として書いた `delete_branch: true` は拾わない。
 const TOOL_NOUN = 'ツール'
 const CALL_WORDS = ['を呼', 'で呼', 'を使', TOOL_NOUN, 'の呼び出し'].join('|')
 // eslint-disable-next-line security/detect-non-literal-regexp -- 語は古い名前の表から作る
 const OLD_TOOL_CALL = new RegExp(String.raw`${TOOL_NOUN}\s*\x60?(?:${OLD_TOOLS})\x60?(?![\w:])|\x60?(?:${OLD_TOOLS})\x60?\s*(?:${CALL_WORDS})`, 'u')
-// 今のグループの語に、古いコマンド名の 1 語目（create-branch・dependabot など）を足す
-const TOP_WORDS = [...new Set([...COMMANDS.map(command => command.path[0] ?? ''), ...Array.from(RENAMED_COMMANDS.keys(), name => name.split(' ', 1)[0] ?? '')])].toSorted(compareStrings).join('|')
+// 今と古いコマンドの名前の全体。グループの語だけの形を除く。
+const TOP_WORDS = [...new Set([...COMMANDS.map(command => command.path.join(' ')), ...RENAMED_COMMANDS.keys()])].toSorted(compareStrings).map(name => name.replaceAll(' ', String.raw`\s+`)).join('|')
 // deny の hook の起動形を拾う。起動形は pecot・$PECOT・${PECOT}・.../bin/pecot で、クオート付きを含む。
 // 後ろに `--repo <値>` があってもよい。その後ろに、サブコマンドか `--help`・`--version` が来る形を拾う。
 // eslint-disable-next-line security/detect-non-literal-regexp -- サブコマンドの語は COMMANDS から作る
@@ -178,6 +178,7 @@ describe('`pecot <サブコマンド>` の検出式', () => {
     'pecot update-issue-status acme/demo/1 ready',
     'pecot dependabot sync',
     '$PECOT security sync --dry-run',
+    'pecot workflow doctor review',
   ]
   const allowed = [
     'pecot-tools aws s3 ls',
@@ -189,6 +190,8 @@ describe('`pecot <サブコマンド>` の検出式', () => {
     'pecot issue-tracker',
     'pecot create-branches',
     'pecot securityx',
+    'pecot workflow management',
+    'pecot issue',
   ]
 
   it('deny の起動形の見本を、全部拾う', () => {

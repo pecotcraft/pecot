@@ -80,9 +80,9 @@ describe('exportNames', () => {
     expect(names.positions.map(words => words.map(item => item.word))).toStrictEqual([COMMAND_GROUPS.map(group => group.name), COMMAND_VERBS.map(verb => verb.name)])
   })
 
-  it('読むだけの動詞（list・search・show・get・check）にだけ read_only を付ける', () => {
+  it('読むだけの動詞（list・search・show・get・check・doctor）にだけ read_only を付ける', () => {
     const marked = exportNames().positions.flat().filter(item => item.read_only === true).map(item => item.word)
-    expect(marked).toStrictEqual(['list', 'search', 'show', 'get', 'check'])
+    expect(marked).toStrictEqual(['list', 'search', 'show', 'get', 'check', 'doctor'])
   })
 
   it('語と意味だけを書き、グループの help は書かない', () => {
