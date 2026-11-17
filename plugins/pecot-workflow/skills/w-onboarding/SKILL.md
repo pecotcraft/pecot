@@ -93,10 +93,10 @@ node <このスキルの base directory>/scripts/board-url.cjs
 
 PR を作ると GitHub Actions の上で w-revise のレビューを回すワークフローを、カレントリポに入れるかを決める。
 
-カレントが git のリポでなければ、聞かずに Step 6 へ進む。そのときは、後から `workflow_install`・`workflow_doctor` で入れられることと、[自動レビューのワークフロー](../w-help/references/review-workflow.md) を案内する。
-
 1. pecot-workflow の MCP ツール `workflow_doctor`（`name: "review"`）を使い、雛形が置かれているかを見る
    - 見るのは、`items` のうち `name` が `.github/workflows/pecot-review.yml` の項目
+   - 雛形が置かれているかを読めずに止まったら（カレントが git のリポでない、GitHub に届かないなど）、止まった理由を示して Step 6 へ進む
+   - そのときは、後から `workflow_install`・`workflow_doctor` で入れられることと、[自動レビューのワークフロー](../w-help/references/review-workflow.md) を案内する
 2. その `state` が `missing` でなければ、聞かずに `items` を示して Step 6 へ進む
    - `workflow template review` の項目が `outdated` なら、`workflow_install` の `force: true` で更新できることを添える
 3. `missing` なら、AskUserQuestion で「カレントリポ `<owner/repo>` に自動レビューを入れるか」を聞く。入れないなら、何もせずに Step 6 へ進む
@@ -108,8 +108,9 @@ PR を作ると GitHub Actions の上で w-revise のレビューを回すワー
 
    権限を絞りたい利用者だけ、自前の GitHub App を足せることを 1 行で添える。詳しい手順と運用は、[自動レビューのワークフロー](../w-help/references/review-workflow.md) にあることを示す
 6. 設定の順を示したら、このターンを終えて利用者の返事を待つ。Step 6 へは進まない
-7. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない
-8. 足りないものが無ければ、既定のブランチへ入れるまで動かないことを添えて、Step 6 へ進む
+7. 後で設定すると答えたら、`workflow_doctor` を呼ばずに、後から `workflow_doctor`（`name: "review"`）で確かめられることを添えて Step 6 へ進む
+8. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない
+9. 足りないものが無ければ、既定のブランチへ入れるまで動かないことを添えて、Step 6 へ進む
 
 ### Step 6: 次ステップ案内
 

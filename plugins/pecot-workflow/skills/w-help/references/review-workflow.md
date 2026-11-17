@@ -6,7 +6,7 @@ PR を作ると、GitHub Actions の上で w-revise のレビューを回し、�
 
 ## 前提
 
-- pecot-workflow の MCP ツール `workflow_install` と `workflow_doctor` を使える版であること
+- pecot-workflow の MCP ツール `workflow_install` と `workflow_doctor` があること。呼んで、ツールが見つからないと言われなければよい
 - リポが github.com にあること。GHES では確かめていない（「GHES」の節）
 - モデルの利用の認証を、次のどちらかで用意できること
   - Claude のサブスクリプション（既定）
@@ -60,7 +60,7 @@ pecot-workflow の MCP ツール `workflow_doctor`（`name: "review"`）で、�
 PR に合言葉のコメントを書くと、もう一度レビューが始まります。既定の合言葉は `@pecotbot review` です。
 
 - コメントの本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ起動する。`@pecotbot reviewer` や、文の途中の合言葉では起動しない
-- 起動できるのは、リポに書き込み権限のある人だけ。read・triage の人のコメントは、job が飛ばされる
+- 起動できるのは、リポに書き込み権限のある人だけ。書き込み権限の無い人のコメントでは、レビューは動かず、PR には何も付かない。実行の記録には、成功の run が残る
 - 受け付けると、コメントに 👀 のリアクションが付く
 - 2 巡目以降の指摘は、`R2/F-01` のように巡の番号を付けて採番する
 - 変えるときは、変数 `PECOT_REVIEW_TRIGGER_PHRASE` を置く
@@ -122,7 +122,7 @@ Claude の App を使う構成では、雛形のファイルを足す・変え�
 |---|---|---|
 | `PECOT_REVIEW_TRIGGER_PHRASE` | `@pecotbot review` | 起動し直しの合言葉 |
 | `PECOT_REVIEW_ALLOWED_BOTS` | `[]` | PR をレビューする bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
-| `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限。サブエージェントの中のやり取りは数えない |
+| `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限 |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | job の時間の上限。分 |
 
 雛形を上書きしても、変数は消えません。
@@ -202,9 +202,11 @@ github.com で確かめた構成です。GHES では確かめていません。
 
 - Claude の GitHub App は github.com の App なので、GHES では自前の App の構成になる
 - token を渡す環境変数の名前が変わる。名前は `PECOT_GITHUB_<HOST>_TOKEN` で、`<HOST>` はホスト名を大文字にし、ドットをアンダースコアに替えたもの
+- 雛形の Review と Finish の 2 つの step の `env` にある `PECOT_GITHUB_COM_TOKEN` を、その名前に替える
 - 次の 2 つも前提になる
   - 雛形が SHA で固定した版の action（`anthropics/claude-code-action` など）を使える
   - Actions の実行環境から npm の registry に届く
+  - Actions の実行環境から、github.com の pecot のマーケットプレイス（`pecotcraft/pecot`）に届く。雛形は、そこからプラグインを取る
 
 ## 自動処理に共通の決まり
 
