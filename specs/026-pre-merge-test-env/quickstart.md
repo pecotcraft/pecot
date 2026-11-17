@@ -13,16 +13,15 @@
 ## 1. スクリプトのテスト
 
 ```bash
-.githooks/tests/run.sh test_sandbox_diff.py
-.githooks/tests/run.sh test_sandbox_sweep.py
+pnpm -C plugins/pecot-workflow/cli exec vitest run --project cli tests/sandbox
 ```
 
-期待: どちらも通る。場合の一覧は [contracts/sandbox-scripts.md](contracts/sandbox-scripts.md) にある。
+期待: 2 本のテストが通る。場合の一覧は [contracts/sandbox-scripts.md](contracts/sandbox-scripts.md) にある。
 
 ## 2. 設定を比べる（US1、SC-005）
 
 ```bash
-.githooks/scripts/sandbox-diff.sh
+plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh
 ```
 
 | 手順 | 期待 |
@@ -78,9 +77,9 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/peco
 ## 5. 片付ける（US1、SC-007）
 
 ```bash
-.githooks/scripts/sandbox-sweep.sh --issue <Issue番号> --dry-run
-.githooks/scripts/sandbox-sweep.sh --issue <Issue番号>
-.githooks/scripts/sandbox-sweep.sh --issue <Issue番号>
+plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
+plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
+plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
 ```
 
 | 手順 | 期待 |

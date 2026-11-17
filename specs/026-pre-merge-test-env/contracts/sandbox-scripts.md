@@ -1,6 +1,6 @@
 # Contract: 比べと片付けのスクリプト
 
-配布しない。このリポの開発で使う。置き場は `.githooks/scripts/`、テストは `.githooks/tests/`。
+このリポの開発で使う。プラグインに同梱されて導入先にも写るが、引数なしでは検証用だけに触る。置き場は `plugins/pecot-workflow/scripts/sandbox/`、テストは `plugins/pecot-workflow/cli/tests/sandbox/`（vitest）。
 どちらも `gh` で GitHub を読む。テストは、偽の `gh` を PATH に置いて確かめる。
 
 ## `sandbox-diff.sh`（FR-017）
@@ -46,6 +46,7 @@
 | 検証用の `pecot-board-sync.yml` の中身が、このリポの main と違う | 1 件 |
 | `gh` が認証の失敗を返す | `error:` の行、終了コード 2 |
 | 比べるキーが `null` か無い（両方とも `null` の場合を含む） | `error:` の行、終了コード 2 |
+| git の作業ツリーの外で打つ | `error:` の行、終了コード 2 |
 
 ## `sandbox-sweep.sh`（FR-010、FR-011）
 
