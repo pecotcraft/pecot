@@ -42,7 +42,7 @@
 
 ### 動く条件
 
-job の `if` に書く。すべて満たすときだけ動く。対象外の PR は、runner を使わずに飛ばされる。
+job の `if` に、`github.event_name` で始まる `pull_request` と `issue_comment` の 2 つの枝に分けて書く。枝の条件をすべて満たすときだけ動く。対象外の PR は、runner を使わずに飛ばされる。
 
 | 条件 | 式が見るもの |
 |---|---|
@@ -50,7 +50,11 @@ job の `if` に書く。すべて満たすときだけ動く。対象外の PR 
 | `issue_comment` のとき | コメントが PR に付いた（`github.event.issue.pull_request`）。書いたのが bot でない。書いた人の `github.event.comment.author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` のどれか。本文が合言葉と同じか、合言葉の直後が空白か改行（下の式） |
 
 `issue_comment` のイベントは、PR の head のリポと draft を持たない。fork・draft・閉じた PR は、job の中の「PR の確かめ」の step で弾く。
-書いた人の権限は、`if` と action の両方で確かめる。`if` で止めないと、action が step を失敗にし、後始末が「止まった」と PR に書く。`prompt` を渡す形では、action は合言葉を確かめないので、合言葉の判定は `if` だけが持つ（research の R15）。
+書いた人の権限は、`if`・PR の確かめの step・action の 3 か所で確かめる。
+`author_association` の `COLLABORATOR` は read・triage の招待も含み、`MEMBER` はリポへの権限を問わない。
+このため `if` は runner を使わない前段の絞りにとどめ、PR の確かめの step が `collaborators/<login>/permission` の `role_name` を読み、`admin`・`maintain`・`write` でなければ後の step を飛ばす。
+ここで止めないと、action が step を失敗にし、後始末が「止まった」と PR に書く。
+`prompt` を渡す形では、action は合言葉を確かめないので、合言葉の判定は `if` だけが持つ（research の R15）。
 
 合言葉の判定の式は、次の形にする。`P` は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review'` だ。GitHub Actions の式に正規表現が無いので、区切りを 4 つの比べ方で表す。式の文字列に改行の書き方が無いので、改行は `fromJSON` で作る。
 
@@ -69,13 +73,13 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | step | 中身 |
 |---|---|
 | トークン | 変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ。`actions/create-github-app-token` で、`permission-pull-requests: write` と `permission-contents: read` だけを渡す。無いときは飛ばし、Claude の App を使う |
-| PR の確かめ | `issue_comment` の run だけ。PR を読み、fork・draft・閉じた PR なら、後の step を飛ばす。読んだ PR の `head.sha` を出力する |
+| PR の確かめ | `issue_comment` の run だけ。PR と書いた人の権限を読み、fork・draft・閉じた PR か、書いた人が `admin`・`maintain`・`write` でなければ、後の step を飛ばす。読んだ PR の `head.sha` を出力する。API の失敗は step の失敗にする |
 | 受け付けの印 | `issue_comment` の run で、PR の確かめを通ったときだけ。合言葉のコメントに 👀 のリアクションを付ける（FR-035）。付けられなくても、レビューは続ける |
-| checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`issue_comment` の run は既定のブランチを取るので、`ref` に、PR の確かめの step が出力した `head.sha` を渡す。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
+| checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`ref` に、`pull_request` の run は `github.event.pull_request.head.sha`、`issue_comment` の run は PR の確かめの step が出力した `head.sha` を渡す。既定の merge の ref では、base の変更で指摘の行が head の diff とずれる。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
 | Node | `actions/setup-node` |
-| 利用者の準備 | 印の付いた空の step。初期は空 |
+| 利用者の準備 | 開始と終了の印のコメント 2 行だけ。step は `uses` か `run` を要するので、空の step は置かない |
 | 自動レビュー | claude-code-action。入力は下の表 |
-| 後始末 | `if: always()` で `pecot pr review-finish --ensure` を打つ。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
+| 後始末 | `if: always()` で `pecot pr review-finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
 
 後始末の step が渡す値:
 
@@ -148,7 +152,7 @@ action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、actio
 | `Read`・`Glob`・`Grep` | コードを読む |
 | `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`pr_restack`・`issue_comment`・`pr_review_finish` | w-revise の Step 1〜3 と終わり方 |
 | `mcp__github_inline_comment__create_inline_comment` | インラインコメントの投稿。action に同梱のツールで、公式の PR レビューの例と同じだ |
-| 印の付いた行 | 利用者が足す許可。初期は空 |
+| `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` | 利用者が足す許可。job の `env` に印のコメントで囲んで置き、`--allowedTools` の末尾に、空でないときだけ足す。初期は空 |
 
 diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないので、手元の `git diff` と `git log` では base との差を出せない。
 
@@ -163,13 +167,14 @@ diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないの�
 
 許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で、書き換えのツールと `Bash` を渡さないことだ（FR-011）。自前の App のときは、トークンの権限も境界になる。
 
-pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。指定の渡し方は #579 で決める。
+pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、Phase 5 で `prompt` への渡し方と合わせて決める。
 
 ## 版の目印
 
 - ファイルの 1 行目に `# pecot-workflow-template: review <版>` を置く
 - 版は整数で、雛形の中身を変えるたびに 1 つ上げる
-- 利用者が足す行（準備の step、許可）は、開始と終了の印のコメントで囲む。`pecot workflow install review --force` は、囲みの中を消す前に出す
+- 利用者が足す行（準備の step、許可の変数）は、開始と終了の印のコメントで囲む。`pecot workflow install review --force` は、囲みの中を消す前に出す
+- 許可を `claude_args` の中に書かない。`claude_args: >-` の中の `#` の行はコメントにならず、引数として渡る
 - 利用者が変える値は変数にあるので、雛形を上書きしても消えない
 
 ## テストで確かめること
@@ -179,8 +184,9 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | YAML として読める | 雛形を読み込む |
 | `pull_request_target` が無い | キーの有無を見る |
 | 契機が `pull_request` の 2 つの型と、`issue_comment` の `created` だけ | 読み込んだ `on` を比べる |
-| job の `if` に、fork・draft・合言葉と区切りの 4 つの比べ方・`author_association`・bot の判定がある | 式の文字列を探す |
-| `issue_comment` の run に、PR の確かめの step があり、checkout の `ref` がその step の `head.sha` の出力を読む | step の `if` と `with` を見る |
+| job の `if` が `pull_request` と `issue_comment` の 2 つの枝に分かれ、`pull_request` の枝に fork・draft・bot の判定、`issue_comment` の枝に合言葉と区切りの 4 つの比べ方・`author_association`・bot の判定がある | 枝ごとに式の文字列を探す |
+| `issue_comment` の run に、PR の確かめの step があり、checkout の `ref` が `pull_request` の `head.sha` かその step の `head.sha` の出力を読む | step の `if` と `with` を見る |
+| PR の確かめの step が、書いた人の権限を読み、`admin`・`maintain`・`write` のときだけ通す。API の失敗をプロセス置換で握りつぶさない | `env` と `run` の文字列を見る |
 | job の `if`・`timeout-minutes`・`concurrency` が、`env.` を読んでいない | 式の文字列を探す |
 | 4 つの変数に、既定値の式がある | 式の文字列を探す |
 | `timeout-minutes` が `fromJSON` で数に直している | 式の文字列を探す |
@@ -199,6 +205,8 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | 後始末の step が `if: always()` を持つ | キーの値を見る |
 | 後始末の step が、`JOB_STATUS`・`REVIEW_OUTCOME`・`REVIEW_CONCLUSION`・`REVIEW_HAS_TOKEN` を `env` で受け、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |
 | 後始末の step が、`steps.claude.outputs.github_token` の値そのものを `env` に置いていない | 式の文字列を探す |
+| `claude_args` に `#` が無い | 読み込んだ値を見る |
+| 利用者が足す許可が、job の `env` の変数から `--allowedTools` に足される | 式の文字列を探す |
 | action がすべて SHA で固定されている | `uses` の形を見る |
 | 後始末の step の dist-tag が `@latest` | `run` の文字列を見る |
 | 導入の説明に書いた変数・secret の名前と合言葉の既定値が、雛形と同じ | 文書と雛形を比べる |

@@ -70,7 +70,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 | draft の PR | `if` が `github.event.pull_request.draft` を見る |
 | 合言葉で始まらないコメント、Issue へのコメント | `if` が、コメントが PR に付いたことと、本文が合言葉で始まり、直後が空白か改行か本文の終わりであることを見る。`prompt` を渡した action は、合言葉を確かめないからだ（R15） |
 | 書き込み権限の無い人が、本文を編集する | 契機に無いので、起動しない |
-| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに飛ばす。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
+| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに絞る。この値は read の collaborator と権限の無い member も通すので、PR の確かめの step が書いた人の権限を読み、`admin`・`maintain`・`write` でなければ後の step を飛ばす（#602 のレビューで追加）。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
 | bot が作った PR | `if` が、PR の作者の名前を、許した bot の一覧と比べる。action の `allowed_bots` にも同じ一覧を渡す |
 
 - 書き込み権限のある人が合言葉を書いたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる
@@ -452,7 +452,8 @@ v1.0.278 の `src/entrypoints/run.ts`・`src/github/token.ts`・`base-action/src
 - `@` の候補にも、GitHub の `/` の一覧にも、自前の名前は出ない（下の表）。補完はどの形でも得られないので、前例の多い形を採った
 - 本文の先頭だけを見る。`contains` で探すと、文の途中の言及でも起動するためだ
 - `prompt` を渡す形では、action は合言葉を確かめない（`src/entrypoints/prepare.ts` の `containsTrigger` は、tag のモードでだけ `checkContainsTrigger` を呼ぶ）。判定は job の `if` だけが持つ
-- 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く。このため、job の `if` で `author_association` を先に見る
+- 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く
+  - このため、job の `if` で `author_association` を先に見て、PR の確かめの step で書いた人の権限を読む。`author_association` だけでは、read の collaborator を止められない
 - 合言葉の後に区切りを求める。本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ通す。`@pecotbot reviewer` では起動しない
 
 | 確かめること | 結果 | 版 | 確かめた日 |
@@ -465,7 +466,7 @@ v1.0.278 の `src/entrypoints/run.ts`・`src/github/token.ts`・`base-action/src
 | `@pecotbot reviewer` と `please @pecotbot review` | どちらも job が `skipped` になり、👀 も付かなかった | 同上 | 2026-11-17 |
 | 合言葉の直後で改行したコメント（`\n` と `\r\n`） | `\n` は前の式で起動した。`\r\n` も、`fromJSON` で改行を作った 4 つの比べ方の式で起動した | 同上 | 2026-11-17 |
 | `@pecotbot` と書いたとき、ユーザーに通知が飛ぶか | ユーザーの通知に `mention` の理由のものは無かった。ただし、書いたのが Organization の持ち主のユーザー自身なので、ほかの member に飛ばないことまでは確かめていない | GitHub（github.com） | 2026-11-17 |
-| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
+| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。権限を読む PR の確かめの step を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
 
 - 受け付けの印として、合言葉のコメントに 👀 のリアクションを付ける（FR-035）。合言葉の run は PR の Checks の欄に出ず、結果が出るまで無言になるためだ。飛ばされた run は印を付けないので、受け付けられなかったことも分かる
 - 公式の表では、Issue のコメントへのリアクションは Issues か Pull requests の write で足りる。Pull requests の write に絞ったトークンで付けられた。既定の `GITHUB_TOKEN` は job の `permissions` の `pull-requests: write` で同じ権限を持つが、確かめていない
