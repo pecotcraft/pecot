@@ -1769,7 +1769,7 @@ entries:
       - 'ボードに無い Issue は、`warning` を出して開き直し、status は変えません。'
       - 'ボードの項目がアーカイブ済みのときは、status を設定する前にアーカイブを解き、`updated: Issue <ref> unarchived on the board` の行を出します。'
       - '組み込みの `Status` が `Done` の項目は、Issue を開き直す前に値を消し、`removed: Issue <ref> Status Done on the board` の行を出します。'
-      - '`Done` が残ると、後でボードを書き換えたときに、ボードの自動化が Issue を閉じ直します。'
+      - '`Done` が残ると、ボードの自動化（Auto-close issue）が Issue を閉じ直すことがあります。'
       - '参照の短い形の `N` は、`pecot --repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       - '`--dry-run` を付けると、Issue とボードの項目を読みます。開き直し・アーカイブの解除・`Done` の消去・status の設定・コメントの投稿を `dry-run` の行に出し、何も書きません。'
     stdin: none
@@ -1822,7 +1822,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'コメントの投稿に失敗したときは、Issue は新しい status で open のまま残り、終了コード 1 で終わります。2 回目に開き直した後も Issue が open でないときは、status は変わったまま残り、終了コード 1 で終わります。'
+    on_error: 'コメントの投稿に失敗したときは、Issue は新しい status で open のまま残り、終了コード 1 で終わります。2 回目に開き直した後も Issue が open でないときは、status は変わったまま残り、終了コード 1 で終わります。`Status` の `Done` を消した後で Issue を開き直せないときは、閉じた Issue と空の `Status` が残り、終了コード 1 で終わります。もう一度打てば開き直します。'
     effects:
       - target: github
         kind: write

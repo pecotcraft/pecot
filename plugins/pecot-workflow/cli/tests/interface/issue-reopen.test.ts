@@ -401,14 +401,25 @@ describe('issue reopen', () => {
       expect(labels.indexOf('ClearProjectItemField')).toBeLessThan(labels.indexOf(PATCH))
     })
 
-    it('Status が Done でないとき、Status を消さない', async () => {
+    it('Status が Done でないとき、Status を消さず、removed の行を出さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-REOPEN-26')
       prepareProject()
       const github = await startGithub([linkedRepositories(), itemWithStatus('Needs Attention'), reopened(), fieldUpdated('o3'), reopened()])
 
       const result = await reopen(['acme/demo/7'])
 
       expect(result.code).toBe(0)
+      expect(result.stderr).toBe('set: Issue acme/demo/7 status ready\nreopened: Issue acme/demo/7\n')
       expect(github.requests().map(request => labelOf(request))).not.toContain('ClearProjectItemField')
+    })
+
+    it('Status が Done でないとき、doneCleared を false で data に返す', async () => {
+      prepareProject()
+      await startGithub([linkedRepositories(), itemWithStatus('Needs Attention'), reopened(), fieldUpdated('o3'), reopened()])
+
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, doneCleared: false, commented: false })
     })
 
     it('Status の Done を消せないとき、warning の行を出し、reopen とコメントの投稿を続ける', async (context) => {
@@ -423,8 +434,19 @@ describe('issue reopen', () => {
       expect(result.stderr).toContain('reopened: Issue acme/demo/7\ncreated: comment on acme/demo/7\n')
     })
 
-    it('--dry-run で打つと、Status を消す予定を dry-run の行に出し、doneCleared を data に返す', async (context) => {
+    it('--dry-run で打つと、Status を消さずに、消す予定を reopen の後・set の前の dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-REOPEN-21')
+      prepareProject()
+      const github = await startGithub([linkedRepositories(), itemWithStatus('Done')])
+
+      const result = await reopen(['acme/demo/7', '--dry-run'])
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('dry-run: would reopen Issue acme/demo/7\ndry-run: would remove Issue acme/demo/7 Status Done on the board\ndry-run: would set Issue acme/demo/7 status ready\n')
+      expect(github.requests().map(request => labelOf(request))).not.toContain('ClearProjectItemField')
+    })
+
+    it('--dry-run で打つと、Status を消す予定を doneCleared で data に返す', async () => {
       prepareProject()
       await startGithub([linkedRepositories(), itemWithStatus('Done')])
 

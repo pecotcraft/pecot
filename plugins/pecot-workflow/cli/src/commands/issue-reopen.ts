@@ -79,7 +79,7 @@ async function reopenAndSetStatus(output: ReopenOutput, client: GitHubClient, co
   }
 }
 
-// Status の Done が残ると、後の書き換えで Auto-close issue が閉じ直す（#536）。消せなければ warning にとどめて続ける
+// Status に Done が残ると、Auto-close issue で閉じ直されうる（#536）。消せなければ warning にとどめて続ける
 async function clearDoneStatus(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, item: Readonly<{ target: string, itemId: string, fieldId: string }>): Promise<void> {
   const { target, itemId, fieldId } = item
   try {
