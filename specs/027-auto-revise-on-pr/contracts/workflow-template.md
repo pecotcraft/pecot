@@ -75,7 +75,20 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | Node | `actions/setup-node` |
 | 利用者の準備 | 印の付いた空の step。初期は空 |
 | 自動レビュー | claude-code-action。入力は下の表 |
-| 後始末 | `if: always()` で `pecot pr review-finish --ensure` を打つ |
+| 後始末 | `if: always()` で `pecot pr review-finish --ensure` を打つ。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
+
+後始末の step が渡す値:
+
+| `env` | 式 | 引数 |
+|---|---|---|
+| `JOB_STATUS` | `${{ job.status }}` | `--job-status "$JOB_STATUS"` |
+| `REVIEW_OUTCOME` | `${{ steps.claude.outcome }}` | `--review-outcome "$REVIEW_OUTCOME"` |
+| `REVIEW_CONCLUSION` | `${{ steps.claude.outputs.conclusion }}` | `--review-conclusion "$REVIEW_CONCLUSION"` |
+| `REVIEW_HAS_TOKEN` | `${{ steps.claude.outputs.github_token != '' }}` | `--review-has-token "$REVIEW_HAS_TOKEN"` |
+
+- `run:` に式を直接埋め込まない。GitHub の公式の安全ガイドは、値を中間の環境変数で渡す形を勧めている
+- `conclusion` はふつう空なので、引用符が無いと引数が消え、次のオプションが値として読まれる
+- `github_token` は、値を渡さず、有無だけを `true` か `false` で渡す
 
 action はすべて SHA で固定し、版をコメントに書く。
 後始末の step は、`npx -y --prefix=/ @pecot/workflow-mcp@latest` で CLI を打つ。dist-tag の決め方は、board sync の雛形と同じだ。このリポと検証用に置くファイルは、`@next` にする。
@@ -124,7 +137,8 @@ ${{ steps.token.outputs.token || github.token }}
 
 Claude の App のトークンは、ワークフローのファイルが既定のブランチと同じ中身のときだけ受け取れる。
 PR のブランチで雛形を変えた PR では、action がレビューを飛ばし、step は成功で終わる。
-action の出力 `skipped_due_to_workflow_validation_mismatch` が `true` になる。後始末は、これを止まったこととして扱わない（`contracts/cli-commands.md`）。
+このとき、自動レビューの step の `outcome` は `success` で、action の出力 `conclusion` は空になる。後始末は、これを止まったこととして扱わない（`contracts/cli-commands.md`、research の R9）。
+action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、action の `outputs` に無く、呼ぶ側から読めない。
 自前の App のときは、この確かめは無い。
 
 ## 許可するツール
@@ -183,6 +197,8 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | 許可リストに `Bash`・`Edit`・`Write` が無く、`--disallowedTools` にある | 文字列を探す |
 | 許可リストに、マージ・クローズ・リリースのツール（`pr_merge`・`release_create` など）が無い | 文字列を探す |
 | 後始末の step が `if: always()` を持つ | キーの値を見る |
+| 後始末の step が、`JOB_STATUS`・`REVIEW_OUTCOME`・`REVIEW_CONCLUSION`・`REVIEW_HAS_TOKEN` を `env` で受け、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |
+| 後始末の step が、`steps.claude.outputs.github_token` の値そのものを `env` に置いていない | 式の文字列を探す |
 | action がすべて SHA で固定されている | `uses` の形を見る |
 | 後始末の step の dist-tag が `@latest` | `run` の文字列を見る |
 | 導入の説明に書いた変数・secret の名前と合言葉の既定値が、雛形と同じ | 文書と雛形を比べる |
