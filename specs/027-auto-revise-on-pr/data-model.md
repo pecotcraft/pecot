@@ -11,7 +11,7 @@
 | `pr` | `owner/repo/N` | イベント | 対象の PR |
 | `trigger` | `opened`・`ready_for_review`・`comment` | イベントの名前と `action` | 起動の契機。`comment` は合言葉のコメント |
 | `actor` | 文字列 | `github.actor` | 起動した人か bot |
-| `head_sha` | 文字列 | イベント | レビューした時点の PR の先頭 |
+| `head_sha` | 文字列 | `pull_request` はイベント。`comment` は PR の確かめの step が読んだ値 | レビューした時点の PR の先頭 |
 | `round` | 整数 | PR の既存のスレッド | 1 巡目は 1。前の巡の `F-NN` のスレッドがあれば、その次の数 |
 | `result` | 下の表 | 実行の終わり方 | 結果 |
 
@@ -24,10 +24,10 @@
 | 導入が済んでいる | 変数 `PECOT_AGENT_APP_CLIENT_ID` が空でない |
 | リポの中のブランチの PR | PR の head のリポが、導入先のリポと同じ |
 | draft でない | PR の `draft` が偽 |
-| 契機が `comment` のとき | コメントが PR に付いた。本文が合言葉で始まる。書いたのが人 |
+| 契機が `comment` のとき | コメントが PR に付いた。本文が合言葉と同じか、合言葉の直後が空白か改行。書いたのが人で、`author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` のどれか |
 | 契機が `opened`・`ready_for_review` のとき | PR を作ったのが人。bot なら、許した bot の一覧に名前がある |
 
-起動した人が書き込み権限を持つかは、claude-code-action が確かめる。
+起動した人が書き込み権限を持つかは、claude-code-action も重ねて確かめる。
 
 ### 結果
 
@@ -88,8 +88,8 @@ w-reviewer が返す 1 件だ。形は、手で回す w-revise と同じにす�
 | 欄 | 既定値 |
 |---|---|
 | 文字列 | `/pecot-review`。変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる |
-| 一致の仕方 | コメントの本文が、合言葉で始まる。GitHub Actions の式に正規表現が無いので、`startsWith` で判定する |
-| 起動できる人 | 書き込み権限を持つ人。claude-code-action が確かめる |
+| 一致の仕方 | 本文が合言葉と同じか、合言葉の直後が空白か改行。GitHub Actions の式に正規表現が無いので、`==` と `startsWith` の 3 つの比べ方で判定する。`/pecot-reviewer` では起動しない |
+| 起動できる人 | `author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` の人。job の `if` が見て、claude-code-action も書き込み権限を確かめる |
 
 - `@` を付けない。実在するアカウントへ通知が飛ぶためだ。`@pecot` は他人のアカウントだった（2026-11-17）
 - `prompt` を渡す形では、action は合言葉を確かめない。判定は job の `if` だけが持つ
@@ -131,4 +131,4 @@ App にインストールで与える権限は、使う自動処理の合計だ�
 | 名前 | `review`。コマンドの引数 |
 | 雛形のファイル | `cli/templates/workflow/pecot-review.yml` |
 | 置き先 | `.github/workflows/pecot-review.yml` |
-| 要る変数と secret | 上の「エージェント用の認証」の 3 つ |
+| 要る変数と secret | 上の「エージェント用の認証」の表のもの |

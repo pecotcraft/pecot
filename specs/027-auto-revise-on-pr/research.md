@@ -26,33 +26,34 @@ spec 023 の research（2026-11-11、`v1.0.271`）で確かめた事実は繰り
 
 ## R1. 実行の基盤と契機
 
-- Decision: 契機は `pull_request` の `opened`・`ready_for_review`・`labeled` にする。claude-code-action の v1 を、`prompt` を渡す形（agent モード）で動かす
-- Rationale: 3 つの型とも、`prompt` があれば agent モードになる。agent モードは、追跡コメントを付けず、checkout もしない。ブランチも作らない。`track_progress` は指定しない。指定すると、追跡コメントの付く別のモードに切り替わる
+- Decision: 契機は `pull_request` の `opened`・`ready_for_review` と、`issue_comment` の `created`（合言葉での起動し直し、R15）にする。claude-code-action の v1 を、`prompt` を渡す形（agent モード）で動かす
+- Rationale: どの契機も、`prompt` があれば agent モードになる。agent モードは、追跡コメントを付けず、checkout もしない。ブランチも作らない。`track_progress` は指定しない。指定すると、追跡コメントの付く別のモードに切り替わる
 
 決まったこと:
 
 | 項目 | 値 |
 |---|---|
-| 契機 | `pull_request` だけ。`pull_request_target` は使わない |
+| 契機 | `pull_request` と `issue_comment`。`pull_request_target` は使わない |
 | `prompt` | `/pecot-w:w-revise --unattended <owner>/<repo>/<PR番号>`。PR の本文とタイトルを式で埋め込まない |
 | プラグイン | `plugin_marketplaces` に `https://github.com/pecotcraft/pecot.git`、`plugins` に `pecot-w@pecot`。spec 023 の R1 と同じ |
-| checkout | `actions/checkout` を `fetch-depth: 1`・`persist-credentials: false` で使う。`ref` は書かない。`pull_request` では merge commit が入る |
+| checkout | `actions/checkout` を `fetch-depth: 1`・`persist-credentials: false` で使う。`pull_request` では `ref` を書かず、merge commit が入る。`issue_comment` では既定のブランチが入るので、PR の確かめの step が読んだ head の SHA を `ref` に渡す |
 | 前準備 | `actions/setup-node`。`bin/pecot` が Node と pnpm で実行用の写しを作るため |
 
 - action は、PR の run で、作業ツリーの `.claude/`・`.mcp.json`・`CLAUDE.md` などを base ブランチの版に置き換える。PR の作者が、設定の差し替えでエージェントを操れない
 - `pull_request` の run は、ワークフローのファイルを PR の merge commit から読む。雛形を足す PR そのもので、最初の実行を確かめられる
+- `issue_comment` の run は、既定のブランチのワークフローのファイルで動く。合言葉の起動は、雛形が既定のブランチに入ってから確かめられる
 
 - Alternatives considered:
 
 | 候補 | 採らない理由 |
 |---|---|
 | `pull_request_target` | base の secret と書き込みのトークンで動く。公式は、PR の中身を扱う処理に使わないよう書いている。公開リポでは、既定の policy が 2026-12-02 から止める |
-| `issue_comment` でのメンション | コメントを書ける人が広く、起動者の制限が弱くなる。spec の対象にしていない |
-| `pull_request_review` など、ほかの契機 | spec が、PR の作成と起動ラベルだけと決めている |
+| `pull_request` の `labeled`（起動ラベル） | claude-code-action の公式の例に無い。作成と同時に付けると 2 度レビューする。R15 で、合言葉のコメントに替えた |
+| `pull_request_review` など、ほかの契機 | spec が、PR の作成と合言葉のコメントだけと決めている |
 
 ## R2. 起動の条件と、起動者の確かめ
 
-- Decision: fork・draft・ラベルの名前・bot の判定は、job の `if` に書く。書き込み権限の確かめは、action に任せる。`allowed_non_write_users` は設定しない
+- Decision: fork・draft・合言葉・書いた人の関係・bot の判定は、job の `if` に書く。`issue_comment` の fork・draft は、PR を読む step で判定する。書き込み権限の確かめは、action でも重ねて行う。`allowed_non_write_users` は設定しない
 - Rationale: action は、`github.actor` の権限を確かめ、admin と write だけを通す。確かめは Claude の起動の前に済む。`if` で先に落とせば、対象外の PR では runner の時間もモデルの費用もかからない
 
 job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
@@ -67,15 +68,15 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 |---|---|
 | fork からの PR | `if` が、PR の head のリポと導入先のリポを比べる。公式の書き方は `github.event.pull_request.head.repo.full_name == github.repository`。fork の run には secret も渡らない |
 | draft の PR | `if` が `github.event.pull_request.draft` を見る |
-| 起動ラベルでないラベル | `if` が `github.event.label.name` を比べる。`prompt` を渡した action は、どのラベルでも動くからだ |
-| 書き込み権限の無い人が、コメント・本文の編集をする | 契機に無いので、起動しない |
-| 書き込み権限の無い人が、ラベルを付ける | triage の人は GitHub の上でラベルを付けられる。action が actor の権限を見て止める |
+| 合言葉で始まらないコメント、Issue へのコメント | `if` が、コメントが PR に付いたことと、本文が合言葉で始まり、直後が空白か改行か本文の終わりであることを見る。`prompt` を渡した action は、合言葉を確かめないからだ（R15） |
+| 書き込み権限の無い人が、本文を編集する | 契機に無いので、起動しない |
+| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに飛ばす。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
 | bot が作った PR | `if` が、PR の作者の名前を、許した bot の一覧と比べる。action の `allowed_bots` にも同じ一覧を渡す |
 
-- 起動ラベルを書き込み権限のある人が付けたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる
+- 書き込み権限のある人が合言葉を書いたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる
 - `allowed_bots` は、名前を小文字にし、`[bot]` を除いて比べる。`<slug>` と `<slug>[bot]` のどちらで書いても通る。spec 023 で残した問いは、これで決まる
 - `allowed_bots` を設定すると、action の権限のモードの既定が変わる。雛形は R5 のとおり、モードを明示する
-- Dependabot の PR の run には、Actions の secret が渡らない。Dependabot の secret が渡る。Dependabot を許す利用者は、API キーと App の鍵を Dependabot の secret にも置く。導入の説明に書く
+- Dependabot の PR の run には、Actions の secret が渡らない。Dependabot の secret が渡る。Dependabot を許す利用者は、モデルの認証の secret と App の鍵を、Dependabot の secret にも置く。導入の説明に書く
 
 実装で確かめること:
 
@@ -100,13 +101,13 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 | 権限 | 範囲 | 使い道 |
 |---|---|---|
-| Pull requests | write | インラインコメントの投稿、PR へのコメント、起動ラベルを外す |
+| Pull requests | write | インラインコメントの投稿、PR へのコメント |
 | Contents | read | PR と diff の読み取り |
 
-- 公式の表では、Issue のコメントの投稿とラベルを外す操作は、Issues か Pull requests のどちらかの write で足りる。Issues の write は付けない
-- 発行したトークンは、action の `github_token` と、環境変数 `PECOT_GITHUB_COM_TOKEN` の両方に渡す。`github_token` を渡すので、job の `permissions` に `id-token: write` は要らない
-- job の `permissions` は `contents: read` だけにする。書き込みは App のトークンで行う
-- App のトークンで書いたコメントとラベルの操作は、ほかのワークフローを起こす。`GITHUB_TOKEN` は起こさない。起動ラベルを外す操作は `unlabeled` で、雛形の契機に無いので、輪にならない
+- 公式の表では、PR へのコメントの投稿は、Issues か Pull requests のどちらかの write で足りる。Issues の write は付けない
+- 発行したトークンは、action の `github_token` と、環境変数 `PECOT_GITHUB_COM_TOKEN` の両方に渡す。`github_token` を渡すので、GitHub の API のために `id-token: write` は要らない
+- job の `permissions` は `contents: read` と `id-token: write` にする。`id-token: write` は、モデルの認証の Workload Identity Federation のためだ（R14）。書き込みは App のトークンで行う
+- App のトークンで書いたコメントは、`issue_comment` のワークフローを起こす。`GITHUB_TOKEN` は起こさない。書いたのが bot なので、`if` の bot の判定で飛ばされ、輪にならない。指摘の本文が合言葉で始まっても同じだ
 
 - Alternatives considered:
 
@@ -154,6 +155,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 - action に同梱の MCP サーバは、GitHub 公式の MCP サーバ（`github/github-mcp-server`）とは別だ。action が自前で持ち、許可リストに名前を書いたときだけ入る（`src/mcp/install-mcp-server.ts`）
 - この MCP ツールは、`confirmed: true` を付けるとすぐ投稿する。付けないと、セッションの後に分類してから投稿する。指摘の一覧に URL を並べるには、すぐ投稿された結果が要る
+- 分類の step は `ANTHROPIC_API_KEY` を使う。トークンと Workload Identity Federation だけの構成（R14）では分類が飛ばされ、`confirmed` の無いコメントも全部投稿される（action の `docs/setup.md`）。雛形は `classify_inline_comments: "false"` を明示し、どの投稿もすぐ出す形に揃える
 
 実装で確かめること:
 
@@ -211,7 +213,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 - Rationale: 進行中のレビューを途中で取り消すと、インラインコメントだけが残り、指摘の一覧が無い状態になる
 
 - 公式の PR 向けの例は `cancel-in-progress: true` だ。push のたびに古い run を捨てる CI のための形で、自動レビューは push で起動しない
-- `concurrency` をワークフローに書くと、起動ラベルでないラベルが付いた run も、同じ group に入る。job に書けば、`if` で飛ばされた run は group に入らない
+- `concurrency` をワークフローに書くと、起動でない run（合言葉で始まらないコメントなど）も、同じ group に入る。job に書けば、`if` で飛ばされた run は group に入らない
 
 | 確かめること | 結果 | 版 | 確かめた日 |
 |---|---|---|---|
@@ -255,7 +257,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 ## R9. 終わり方と、止まったときのコメント
 
 - Decision: CLI に `pecot pr review-finish` を足す。ワークフローの最後の step が、`if: always()` で呼ぶ。スキルは、最後に同じ処理を MCP ツールから呼ぶ
-- Rationale: 起動ラベルを外すこと（FR-034）と、失敗と上限を PR に残すこと（FR-012）は、エージェントがターンの上限で切られても起きなければならない。スキルの文だけで書くと、切られたときに何も残らない
+- Rationale: 失敗と上限を PR に残すこと（FR-012）は、エージェントがターンの上限で切られても起きなければならない。スキルの文だけで書くと、切られたときに何も残らない
 
 | 終わり方 | PR に残るもの |
 |---|---|
@@ -329,7 +331,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 - プラグインは、既定のブランチから入る。`plugin_marketplaces` は `#ref` を受け付けない。直した w-revise を、マージの前に action の中で動かす手段は、spec 026 の R11-6 が確かめる
 - R11-6 の結果が出るまで、スキルを通した確かめは、main へのマージの後になる。tasks の前提の表に書く
-- 雛形そのものは、雛形を足す PR の run で確かめられる（R1）
+- 雛形の `pull_request` の契機は、雛形を足す PR の run で確かめられる（R1）。`issue_comment` の契機は既定のブランチの定義で動くので、検証用の main に入れて確かめる。spec 026 の「配る自動化を確かめる」の手順に従う
 
 ## R13. GitHub Enterprise Server
 
@@ -338,7 +340,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 ## R14. モデルの認証
 
-- Decision: 雛形は、secret `CLAUDE_CODE_OAUTH_TOKEN` を action の `claude_code_oauth_token` に渡す。Workload Identity Federation の 4 つの ID も、変数から渡す。`anthropic_api_key` は渡さない
+- Decision: 雛形は、secret `CLAUDE_CODE_OAUTH_TOKEN` を action の `claude_code_oauth_token` に渡す。Workload Identity Federation の 4 つの ID は、secret が無いときだけ変数から渡す。`anthropic_api_key` は渡さない
 - Rationale: 既定をサブスクリプションにするのは、ユーザーの判断だ（spec の「費用と認証の方針」）。action は、静的なトークンがあればそれを使い、Workload Identity Federation を使わない。secret の有無だけで、払い方を切り替えられる
 
 | 項目 | 値 |
@@ -349,14 +351,14 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 
 確かめた版は action v1.0.278・Claude Code 2.1.326、日付は 2026-11-17 だ。分かったことは、次のとおりだ。
 
-- トークンと Workload Identity Federation の入力を両方渡すと、action は警告を出してトークンを使う（run 44031119294）
+- トークンと Workload Identity Federation の入力を両方渡すと、action は警告を出してトークンを使う（run 44031119294）。公式の文書も同時に渡さないよう書いているので、雛形は式で片方だけを渡す
 - 貼り付けのときに改行が入ったトークンは、`401 OAuth access token is invalid` で止まる。導入の説明に、1 行で貼ることを書く
 - 2026-07-15 より後に作ったリポでは、OIDC トークンの subject が ID を含む形になる（GitHub の immutable subject claims）
   - 例は `repo:pecotcraft@351183614/pecot-sandbox@1455471836:*` だ
   - Anthropic の文書とウィザードの例は古い形で、そのままでは `match_subject_prefix` で拒まれる（run 44029781882）
 - 導入の説明では、ルールの subject の prefix を、GitHub の API が返す `sub_claim_prefix` から作る
   - 読む先は `repos/<owner>/<repo>/actions/oidc/customization/sub` だ
-- fork の PR の run は、GitHub が `id-token: write` を渡さない。ルールで fork を弾く条件は書けないが、トークンも発行されない
+- `pull_request` の fork の run には、GitHub が `id-token: write` を渡さない。`issue_comment` の run は base のリポの文脈で動くので、fork の PR へのコメントでも渡る。PR の確かめの step が、action より前に fork を弾く
 - Workload Identity Federation で動かすと、組織にクレジットが無ければ `Credit balance is too low` で止まる（run 44030238020）
 
 ## R15. 起動し直しの契機
@@ -371,16 +373,17 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 合言葉の形:
 
 - `@` を付けない。`@pecot` は実在する他人のアカウントで、書くたびに通知が飛ぶ
-- `@pecot` を `contains` で探すと、`@pecotcraft` でも一致する。job の `if` は `startsWith` で、本文の先頭だけを見る
+- `@pecot` を `contains` で探すと、`@pecotcraft` でも一致する。job の `if` は、本文の先頭だけを見る
 - `prompt` を渡す形では、action は合言葉を確かめない（`src/entrypoints/prepare.ts` の `containsTrigger` は、tag のモードでだけ `checkContainsTrigger` を呼ぶ）。判定は job の `if` だけが持つ
-- 書いた人の書き込み権限と、人であることは、action が確かめる（`checkWritePermissions`・`checkHumanActor`）
+- 書いた人の書き込み権限と、人であることは、action も確かめる（`checkWritePermissions`・`checkHumanActor`）。ただし action が止めると step が失敗し、後始末が「止まった」と PR に書く。このため、job の `if` で `author_association` を先に見る
+- 合言葉の後に区切りを求める。本文が合言葉と同じか、合言葉の直後が空白か改行のときだけ通す。`/pecot-reviewer` では起動しない
 
 | 確かめること | 結果 | 版 | 確かめた日 |
 |---|---|---|---|
 | 書き込み権限を持つ人の `/pecot-review` で起動し、PR の head を読めるか | 起動した。checkout の `ref` に `refs/pull/<N>/head` を渡すと、PR のブランチにだけあるファイルを読めた。action のログに `Actor has write access` と `Verified human actor` が出た | action v1.0.278・Claude Code 2.1.326・pecot-w 8.0.0 | 2026-11-17 |
 | 文の途中に合言葉を書いたコメント | job が `skipped` になった | 同上 | 2026-11-17 |
 | Issue への `/pecot-review` のコメント | job が `skipped` になった | 同上 | 2026-11-17 |
-| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。action のソースの確かめで止まる。quickstart のシナリオ 8 で確かめる | — | — |
+| 書き込み権限の無い人のコメント | 確かめていない。書き込み権限の無いアカウントが無い。`if` に `author_association` の判定を入れた雛形で、quickstart のシナリオ 8 で確かめる | — | — |
 
 - 確かめのワークフローは、検証用の main に入れて確かめ、後で消した（検証用の PR #287・#288）。`issue_comment` は既定のブランチの定義で動くためだ
 - run は 44045334864（起動）・44045337610（文の途中）・44045340626（Issue）だ

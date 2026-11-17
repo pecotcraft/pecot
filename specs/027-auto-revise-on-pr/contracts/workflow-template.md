@@ -48,18 +48,29 @@ job の `if` に書く。すべて満たすときだけ動く。対象外の PR 
 |---|---|
 | 導入が済んでいる | `vars.PECOT_AGENT_APP_CLIENT_ID` が空でない。空の間は、失敗せずに飛ばす |
 | `pull_request` のとき | fork でない（`github.event.pull_request.head.repo.full_name == github.repository`）。draft でない。PR の作者が bot でないか、許す bot の一覧に名前がある |
-| `issue_comment` のとき | コメントが PR に付いた（`github.event.issue.pull_request`）。書いたのが bot でない。本文が合言葉で始まる（`startsWith`） |
+| `issue_comment` のとき | コメントが PR に付いた（`github.event.issue.pull_request`）。書いたのが bot でない。書いた人の `github.event.comment.author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` のどれか。本文が合言葉と同じか、合言葉の直後が空白か改行（下の式） |
 
 `issue_comment` のイベントは、PR の head のリポと draft を持たない。fork・draft・閉じた PR は、job の中の「PR の確かめ」の step で弾く。
-書いた人が書き込み権限を持つかは、action が確かめる。`prompt` を渡す形では、action は合言葉を確かめないので、合言葉の判定は `if` だけが持つ（research の R15）。
+書いた人の権限は、`if` と action の両方で確かめる。`if` で止めないと、action が step を失敗にし、後始末が「止まった」と PR に書く。`prompt` を渡す形では、action は合言葉を確かめないので、合言葉の判定は `if` だけが持つ（research の R15）。
+
+合言葉の判定の式は、次の形にする。`P` は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '/pecot-review'` だ。GitHub Actions の式に正規表現が無いので、区切りを 3 つの比べ方で表す。
+
+```text
+github.event.comment.body == P ||
+startsWith(github.event.comment.body, format('{0} ', P)) ||
+startsWith(github.event.comment.body, format('{0}\n', P))
+```
+
+- `/pecot-reviewer` と `/pecot-review-later` は通らない
+- 改行が `\r\n` のコメントは、3 つ目の比べ方で通らない。GitHub の画面から書いたコメントの改行の形は、実装の後に quickstart のシナリオ 19 で確かめる
 
 ### step
 
 | step | 中身 |
 |---|---|
 | トークン | `actions/create-github-app-token`。`permission-pull-requests: write` と `permission-contents: read` だけを渡す |
-| PR の確かめ | `issue_comment` の run だけ。発行したトークンで PR を読み、fork・draft・閉じた PR なら、後の step を飛ばす |
-| checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`issue_comment` の run は既定のブランチを取るので、`ref` に `refs/pull/<PR番号>/head` を渡す |
+| PR の確かめ | `issue_comment` の run だけ。発行したトークンで PR を読み、fork・draft・閉じた PR なら、後の step を飛ばす。読んだ PR の `head.sha` を出力する |
+| checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`issue_comment` の run は既定のブランチを取るので、`ref` に、PR の確かめの step が出力した `head.sha` を渡す。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
 | Node | `actions/setup-node` |
 | 利用者の準備 | 印の付いた空の step。初期は空 |
 | 自動レビュー | claude-code-action。入力は下の表 |
@@ -73,13 +84,22 @@ action はすべて SHA で固定し、版をコメントに書く。
 | 入力 | 値 |
 |---|---|
 | `claude_code_oauth_token` | secret `CLAUDE_CODE_OAUTH_TOKEN`。既定の認証（spec の「費用と認証の方針」） |
-| `anthropic_federation_rule_id`・`anthropic_organization_id`・`anthropic_service_account_id`・`anthropic_workspace_id` | 変数 `PECOT_AGENT_ANTHROPIC_*`。secret のトークンが無いときに使われる（research の R14） |
+| `anthropic_federation_rule_id`・`anthropic_organization_id`・`anthropic_service_account_id`・`anthropic_workspace_id` | secret のトークンが無いときだけ、変数 `PECOT_AGENT_ANTHROPIC_*` を渡す。あるときは空を渡す（下の式） |
+| `classify_inline_comments` | `"false"`。分類の step は `ANTHROPIC_API_KEY` が無いと飛ばされ、`confirmed` の無いコメントも全部投稿される。明示して、どの投稿もすぐ出す形に揃える（research の R4） |
 | `github_token` | 発行した App のトークン |
 | `plugin_marketplaces` | `https://github.com/pecotcraft/pecot.git` |
 | `plugins` | `pecot-w@pecot` |
 | `prompt` | `/pecot-w:w-revise --unattended <github.repository>/<PR番号>` |
 | `allowed_bots` | 許す bot の一覧。`*` は使わない |
 | `claude_args` | `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` |
+
+action の公式の文書は、トークンと Workload Identity Federation の入力を同時に渡さないよう書いている（`docs/setup.md`）。4 つの ID は、次の形で片方だけを渡す。
+
+```text
+anthropic_federation_rule_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID || '' }}
+```
+
+残りの 3 つも同じ形にする。secret を消すと、雛形を書き換えずに Workload Identity Federation で動く。
 
 設定しない入力:
 
@@ -129,13 +149,14 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | YAML として読める | 雛形を読み込む |
 | `pull_request_target` が無い | キーの有無を見る |
 | 契機が `pull_request` の 2 つの型と、`issue_comment` の `created` だけ | 読み込んだ `on` を比べる |
-| job の `if` に、fork・draft・合言葉の `startsWith`・bot の判定がある | 式の文字列を探す |
-| `issue_comment` の run に、PR の確かめの step と、checkout の `ref` がある | step の `if` と `with` を見る |
+| job の `if` に、fork・draft・合言葉と区切りの 3 つの比べ方・`author_association`・bot の判定がある | 式の文字列を探す |
+| `issue_comment` の run に、PR の確かめの step があり、checkout の `ref` がその step の `head.sha` の出力を読む | step の `if` と `with` を見る |
 | job の `if`・`timeout-minutes`・`concurrency` が、`env.` を読んでいない | 式の文字列を探す |
 | 4 つの変数に、既定値の式がある | 式の文字列を探す |
 | `timeout-minutes` が `fromJSON` で数に直している | 式の文字列を探す |
 | `allowed_non_write_users`・`track_progress`・`anthropic_api_key` が無い | キーの有無を見る |
-| `claude_code_oauth_token` と、Workload Identity Federation の 4 つの入力がある | キーの有無を見る |
+| `claude_code_oauth_token` があり、Workload Identity Federation の 4 つの入力が、secret のあるときに空になる式を持つ | 式の文字列を探す |
+| `classify_inline_comments` が `"false"` | キーの値を見る |
 | `prompt` に `github.event.pull_request.body`・`title`・`head.ref` の式が無い | 文字列を探す |
 | job の `permissions` が `contents: read`・`id-token: write` だけ | 読み込んだ値を比べる |
 | トークンの発行に渡す権限が、Pull requests の write と Contents の read だけ | `with` のキーを比べる |

@@ -51,7 +51,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 - [x] T001 検証用に、確かめ用のワークフローを 1 つ置く。`spec/contracts/workflow-template.md` の job の形で、`prompt` は固定の文にする。App のトークンは Pull requests の write と Contents の read に絞る。置いたファイルは `.pecot/work/<Issue番号>/` にも写す
 - [x] T002 [P] T001 のワークフローで、プラグインのサブエージェント `pecot-w:w-reviewer` を起こし、結果が main に返るかを確かめる。サブエージェントが main の許可リストを引き継ぐかも見る。結果を `spec/research.md` の R5 に書く
-- [x] T003 [P] T001 のワークフローで、プラグインの hooks（`UserPromptSubmit`・`PreToolUse`・`Stop`）が、人のいない実行を止めないかを確かめる。止めた hook があれば、名前と出力を `spec/research.md` の R5 に書く
+- [x] T003 [P] T001 のワークフローで、プラグインの hooks（`SessionStart`・`UserPromptSubmit`・`PreToolUse`）が、人のいない実行を止めないかを確かめる。止めた hook があれば、名前と出力を `spec/research.md` の R5 に書く
 - [x] T004 [P] T001 のワークフローで、`pr_show`・`issue_show`・`pr_restack`・`issue_comment` が、絞ったトークンで動くかを確かめる。Projects の権限を求めたツールと、スレッドの読み取りの結果を `spec/research.md` の R3 に書く
 - [x] T005 [P] T001 のワークフローで、`mcp__github_inline_comment__create_inline_comment` を確かめる。`confirmed: true` で投稿した結果からコメントの URL を得られるか、ファイル単位の指摘とスレッドへの返信ができるかを見る。結果を `spec/research.md` の R4 に書く
 - [x] T006 [P] `concurrency` を job に書いたとき、`if` で飛ばされた run が group に入らないことを確かめる。起動ラベルでないラベルを、進行中の run の間に付けて見る。`labeled` の run で `github.actor` がラベルを付けた人になることも見る。結果を `spec/research.md` の R2 と R6 に書く
@@ -104,7 +104,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [ ] T019 [US5] 雛形の書き出しと、変数・secret の名前の読み取りを `p-w/cli/src/infra/` に書く。secret と変数は名前の有無だけを読み、値は読まない。リポの単位と organization の単位の両方を見る
 - [ ] T020 [US5] `p-w/cli/src/commands/workflow.ts` に `install` と `doctor` を書く。コマンドの定義の配列を、`p-w/cli/src/commands/registry.ts` に足す。MCP ツール `workflow_install`・`workflow_doctor` は、registry の定義から出る。MCP の側に、別のファイルは足さない
 - [ ] T021 [US5] `p-w/interface/authored.yaml` に 2 つの項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T015〜T017 のテストに `verifies` を足す
-- [ ] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の 3 つだ。App にインストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
+- [ ] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の表のものだ。App にインストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
 - [ ] T023 [P] [US5] `p-w/skills/w-help/references/commands.md` を直す。コマンドの表に、`workflow install` と `workflow doctor` の 2 行を足す
 - [ ] T024 [US5] T015〜T017 のテストを通す。検証用の作業ツリーで、quickstart.md の「導入を確かめる」の 1〜4 を流す。結果を PR の説明に書く
 

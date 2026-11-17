@@ -81,6 +81,7 @@
 | `--ensure` で、job が失敗し、同じ実行のコメントが無い | job が `cancelled` なら `limit`、それ以外は `failed` として書く。`cancelled` は、時間の上限と手での取り消しを見分けない（research の R9） |
 | `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書き、認証の失敗なら、トークンを作り直す手順を添える。`subtype` だけで判定しない |
 | `--ensure` で、`execution_file` の最後の `result` が `subtype: error_max_turns` | `limit` として書く |
+| `--ensure` で、action が書いた人の権限で止めた（ログに `Actor does not have write permissions`） | コメントを書かない。起動した人に知らせる理由が無く、誰でも bot のコメントを付けさせられるのを避ける。job の `if` が先に止めるので、ふつうは起きない |
 | PR が閉じている | コメントを書かない |
 
 - 止まったことを知らせるコメントは、`cli/templates/comment/` のテンプレートから作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
