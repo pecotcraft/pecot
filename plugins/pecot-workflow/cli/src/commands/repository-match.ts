@@ -4,24 +4,26 @@ import { formatHinted } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
 import { AMBIGUOUS_REPOSITORY_LINE, applyRepositoryPolicy } from '../domain/repository-policy.js'
 import type { PolicyMode } from '../domain/repository-policy.js'
-import { AmbiguousRepositoryError, resolveRepository } from '../domain/repository-resolver.js'
-import type { RepositoryReference, ResolvedRepository } from '../domain/repository-resolver.js'
+import { readCurrentGitRemote } from '../domain/repository-resolver.js'
+import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from '../domain/repository-resolver.js'
 import { gitRunnerFor, listRemotes } from '../infra/git.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
 import { WARNING_PREFIX } from './output.js'
 
 /**
-今の git remote からリポジトリを解決する。git の外・remote 無しは undefined
+今の git remote を読む。git の外・remote 無しは undefined、URL から owner/repo を読めなければ UnreadableRemote
+*/
+export function readCurrentRepository(cwd: string): ResolvedRepository | UnreadableRemote | undefined {
+  return readCurrentGitRemote(gitRunnerFor(cwd))
+}
+
+/**
+今の git remote からリポジトリを解決する。git の外・remote 無し・URL から owner/repo を読めないときは undefined
 */
 export function resolveCurrentRepository(cwd: string): ResolvedRepository | undefined {
-  try {
-    return resolveRepository(undefined, gitRunnerFor(cwd))
-  }
-  catch (error: unknown) {
-    if (error instanceof AmbiguousRepositoryError) return undefined
-    throw error
-  }
+  const current = readCurrentRepository(cwd)
+  return current?.source === 'unreadable-remote' ? undefined : current
 }
 
 /**
@@ -35,7 +37,7 @@ export function requireRepositoryMatch(
   io: Readonly<CommandIo>,
   cwd: string,
 ): RepositoryReference | undefined {
-  const outcome = applyRepositoryPolicy({ explicit, resolved: resolveCurrentRepository(cwd), mode })
+  const outcome = applyRepositoryPolicy({ explicit, resolved: readCurrentRepository(cwd), mode })
   writeLines(io, outcome.stderr)
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted

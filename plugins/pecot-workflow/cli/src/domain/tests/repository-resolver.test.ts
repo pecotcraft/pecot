@@ -7,13 +7,16 @@ import {
   AmbiguousRepositoryError,
   createRepositoryReference,
   createResolvedRepository,
-  detectCurrentGitRepository,
   isSameRepository,
   parseOwnerRepository,
   pickPrimaryRemote,
+  readCurrentGitRemote,
   repositoryFullName,
   resolveRepository,
+  resolveShortReferenceBase,
   splitOwnerRepository,
+  UnreadableRemoteError,
+  withUnreadableReason,
 } from '../repository-resolver.js'
 
 interface FakeGitOptions {
@@ -180,40 +183,62 @@ describe('AmbiguousRepositoryError', () => {
   })
 })
 
-describe('detectCurrentGitRepository', () => {
+describe('readCurrentGitRemote', () => {
   it('git の外なら undefined', () => {
-    expect(detectCurrentGitRepository(fakeGit({ isInsideWorktree: false }))).toBeUndefined()
+    expect(readCurrentGitRemote(fakeGit({ isInsideWorktree: false }))).toBeUndefined()
   })
 
   it('origin だけがあるとき、origin の URL からリポジトリを返す', () => {
-    const detected = detectCurrentGitRepository(fakeGit({ remotes: ['origin'], remoteUrls: { origin: 'git@github.com:owner/repoA.git' } }))
-    expect(detected).toEqual({ repository: { owner: 'owner', repository: 'repoA' }, remoteName: 'origin' })
+    const current = readCurrentGitRemote(fakeGit({ remotes: ['origin'], remoteUrls: { origin: 'git@github.com:owner/repoA.git' } }))
+    expect(current).toEqual({ repository: { owner: 'owner', repository: 'repoA' }, source: 'current-git', remoteName: 'origin' })
   })
 
   it('origin を upstream より優先する', () => {
-    const detected = detectCurrentGitRepository(fakeGit({
+    const current = readCurrentGitRemote(fakeGit({
       remotes: ['origin', 'upstream'],
       remoteUrls: { origin: 'git@github.com:o/origin-repo.git', upstream: 'git@github.com:o/upstream-repo.git' },
     }))
-    expect(detected?.remoteName).toBe('origin')
-    expect(detected?.repository.repository).toBe('origin-repo')
+    expect(current).toMatchObject({ repository: { repository: 'origin-repo' }, remoteName: 'origin' })
   })
 
   it('upstream だけなら先頭の remote を使う', () => {
-    const detected = detectCurrentGitRepository(fakeGit({ remotes: ['upstream'], remoteUrls: { upstream: 'https://github.com/o/up.git' } }))
-    expect(detected).toEqual({ repository: { owner: 'o', repository: 'up' }, remoteName: 'upstream' })
+    const current = readCurrentGitRemote(fakeGit({ remotes: ['upstream'], remoteUrls: { upstream: 'https://github.com/o/up.git' } }))
+    expect(current).toEqual({ repository: { owner: 'o', repository: 'up' }, source: 'current-git', remoteName: 'upstream' })
   })
 
   it('remote が無ければ undefined', () => {
-    expect(detectCurrentGitRepository(fakeGit({ remotes: [] }))).toBeUndefined()
+    expect(readCurrentGitRemote(fakeGit({ remotes: [] }))).toBeUndefined()
   })
 
-  it('URL が読めなければ値の不正がそのまま伝わる', () => {
-    expect(() => detectCurrentGitRepository(fakeGit({ remotes: ['origin'], remoteUrls: { origin: 'foo.bar' } }))).toThrow(InvalidValueError)
+  it('URL から owner/repo を読めないと、unreadable-remote を返す', () => {
+    const current = readCurrentGitRemote(fakeGit({ remotes: ['origin'], remoteUrls: { origin: '/srv/git/bare.git' } }))
+    expect(current).toEqual({ source: 'unreadable-remote', remoteName: 'origin' })
   })
 
   it('remote get-url が失敗したら undefined', () => {
-    expect(detectCurrentGitRepository(fakeGit({ remotes: ['origin'], remoteUrls: {} }))).toBeUndefined()
+    expect(readCurrentGitRemote(fakeGit({ remotes: ['origin'], remoteUrls: {} }))).toBeUndefined()
+  })
+})
+
+describe('resolveShortReferenceBase', () => {
+  it('明示値があると、その値を base にする', () => {
+    expect(resolveShortReferenceBase('a/b', fakeGit())).toEqual({ base: { owner: 'a', repository: 'b' }, unreadable: undefined })
+  })
+
+  it('明示値が無く URL を読めないと、base を決めずに読めない remote を返す', () => {
+    const result = resolveShortReferenceBase(undefined, fakeGit({ remotes: ['origin'], remoteUrls: { origin: '/srv/git/bare.git' } }))
+    expect(result).toEqual({ base: undefined, unreadable: { source: 'unreadable-remote', remoteName: 'origin' } })
+  })
+})
+
+describe('withUnreadableReason', () => {
+  it('読めない remote があると、案内の後に理由の行を足す', () => {
+    expect(withUnreadableReason('needs a base', { source: 'unreadable-remote', remoteName: 'origin' }))
+      .toBe('needs a base\ncould not read the repository from the URL of the Git remote origin')
+  })
+
+  it('読めない remote が無ければ、案内をそのまま返す', () => {
+    expect(withUnreadableReason('needs a base', undefined)).toBe('needs a base')
   })
 })
 
@@ -233,6 +258,12 @@ describe('resolveRepository', () => {
   it('git の外で明示値も無ければ曖昧', () => {
     expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow(AmbiguousRepositoryError)
     expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow('repository is ambiguous: pass --repo <owner/repo>')
+  })
+
+  it('明示値が無く remote の URL を読めないと、理由を持つ UnreadableRemoteError を投げる', () => {
+    const git = fakeGit({ remotes: ['origin'], remoteUrls: { origin: '/srv/git/bare.git' } })
+    expect(() => resolveRepository(undefined, git)).toThrow(UnreadableRemoteError)
+    expect(() => resolveRepository(undefined, git)).toThrow('could not read the repository from the URL of the Git remote origin')
   })
 
   it('明示値の形式が不正なら値の不正', () => {

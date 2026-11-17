@@ -1,18 +1,11 @@
-// マルチリポ対応のリポジトリ解決。
-//
-// 決定木:
-//   1. 明示値（--repo）があれば、それを owner/repo として使う（source=explicit）。
-//   2. git のワークツリー内なら、origin の URL から取る（source=current-git）。
-//      origin が無ければ、先頭の remote を使う。
-//   3. どちらも成り立たなければ、AmbiguousRepositoryError を投げる。
-//
-// 検証エラーの文は、Python の CLI の書式に揃える。
-// 表題は元のクラス名（RepoRef・ResolvedRepo）を使う。
+// リポジトリ解決: --repo、無ければ git の origin（無ければ先頭の remote）、どちらも無ければ AmbiguousRepositoryError。
+// 検証エラーの文は Python の CLI の書式（表題は RepoRef・ResolvedRepo）に揃える。
 
 import { formatHinted, globalRepositoryHint, hinted, placeholder } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { PecotError, InvalidValueError } from './errors.js'
 import type { GitRunner } from './git-runner.js'
-import { parseRemoteUrl } from './git-url.js'
+import { parseRemoteUrl, RemoteUrlFormatError } from './git-url.js'
 import { pythonStringRepr, ValidationFailure } from './python-format.js'
 import type { ValidationIssue } from './python-format.js'
 
@@ -110,11 +103,15 @@ export function pickPrimaryRemote(remotes: readonly string[]): string | undefine
 }
 
 /**
-現在の git の remote からリポジトリを取り出す。git の外・remote 無しは undefined。
-URL の形式が不正なときは、InvalidValueError をそのまま伝える（バグ扱い）。
-Python の `_detect_current_git_repo` と同じで、不正なら undefined を返す infra/git.ts の remoteRepository とは契約が違う
+主の remote はあるが、その URL から `owner/repo` を読めないこと
 */
-export function detectCurrentGitRepository(git: GitRunner): { readonly repository: RepositoryReference, readonly remoteName: string } | undefined {
+export interface UnreadableRemote {
+  readonly source: 'unreadable-remote'
+  readonly remoteName: string
+}
+
+// 主の remote の名前と URL。git の外・remote 無し・URL を取れないときは undefined
+function readPrimaryRemoteUrl(git: GitRunner): { readonly remoteName: string, readonly url: string } | undefined {
   const inside = git(['rev-parse', '--is-inside-work-tree'])
   if (inside.exitCode !== 0 || inside.stdout.trim() !== 'true') return undefined
 
@@ -124,22 +121,72 @@ export function detectCurrentGitRepository(git: GitRunner): { readonly repositor
   const remoteName = pickPrimaryRemote(remotes)
   if (remoteName === undefined) return undefined
   const url = git(['remote', 'get-url', remoteName])
-  if (url.exitCode !== 0) return undefined
-  const { owner, repository } = parseRemoteUrl(url.stdout.trim())
-  return { repository: createRepositoryReference(owner, repository), remoteName }
+  return url.exitCode === 0 ? { remoteName, url: url.stdout.trim() } : undefined
 }
 
 /**
-リポジトリを解決する。明示値があれば git を呼ばずにそれを使う
+remote の URL から owner/repo を読めない理由の文
+*/
+export function unreadableRemoteReason(remote: UnreadableRemote): string {
+  return `could not read the repository from the URL of the Git remote ${remote.remoteName}`
+}
+
+/**
+remote の URL から owner/repo を読めず、リポジトリを決められないこと。message は理由の文
+*/
+export class UnreadableRemoteError extends PecotError {}
+
+/**
+git の remote を読む。git の外・remote 無しは undefined、URL から `owner/repo` を読めなければ UnreadableRemote
+*/
+export function readCurrentGitRemote(git: GitRunner): ResolvedRepository | UnreadableRemote | undefined {
+  const primary = readPrimaryRemoteUrl(git)
+  if (primary === undefined) return undefined
+  let location
+  try {
+    location = parseRemoteUrl(primary.url)
+  }
+  catch (error: unknown) {
+    if (error instanceof RemoteUrlFormatError) return { source: 'unreadable-remote', remoteName: primary.remoteName }
+    throw error
+  }
+  return createResolvedRepository({
+    repository: createRepositoryReference(location.owner, location.repository),
+    source: 'current-git',
+    remoteName: primary.remoteName,
+  })
+}
+
+/**
+短い参照を補うリポジトリ（決められなければ base は undefined）と、remote の URL を読めなかったこと。明示値の形が不正なら InvalidValueError
+*/
+export function resolveShortReferenceBase(explicit: string | undefined, git: GitRunner): { readonly base: RepositoryReference | undefined, readonly unreadable: UnreadableRemote | undefined } {
+  if (explicit !== undefined) return { base: parseOwnerRepository(explicit), unreadable: undefined }
+  const current = readCurrentGitRemote(git)
+  return current?.source === 'unreadable-remote'
+    ? { base: undefined, unreadable: current }
+    : { base: current?.repository, unreadable: undefined }
+}
+
+/**
+短い参照の案内に、remote の URL を読めなかった理由の行を足す
+*/
+export function withUnreadableReason(text: string | HintedText, unreadable: UnreadableRemote | undefined): string | HintedText {
+  if (unreadable === undefined) return text
+  const reason = `\n${unreadableRemoteReason(unreadable)}`
+  return typeof text === 'string' ? text + reason : [...text, reason]
+}
+
+/**
+リポジトリを解決する。明示値があれば git を呼ばずにそれを使う。remote の URL を読めなければ UnreadableRemoteError
 */
 export function resolveRepository(explicit: string | undefined, git: GitRunner): ResolvedRepository {
   if (explicit !== undefined) {
     return createResolvedRepository({ repository: parseOwnerRepository(explicit), source: 'explicit', remoteName: undefined })
   }
-  const detected = detectCurrentGitRepository(git)
-  if (detected !== undefined) {
-    return createResolvedRepository({ repository: detected.repository, source: 'current-git', remoteName: detected.remoteName })
-  }
+  const current = readCurrentGitRemote(git)
+  if (current?.source === 'unreadable-remote') throw new UnreadableRemoteError(unreadableRemoteReason(current))
+  if (current !== undefined) return current
   // 文を出すのは CLI の最上位（src/cli.ts）だけ。ほかの呼び手は捕まえて undefined にする
   const repositoryHint = globalRepositoryHint(placeholder('owner/repo'))
   throw new AmbiguousRepositoryError(formatHinted(hinted`repository is ambiguous: pass ${repositoryHint}`, 'cli'))

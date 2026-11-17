@@ -357,13 +357,13 @@ describe('--show-repo', () => {
     })
   })
 
-  it('remote の URL を読めなければ error: --repo: を出して 2', async () => {
+  it('remote の URL を読めなければ、--repo の誤りでなく読めない理由を出して 2', async () => {
     const repository = createGitRepository()
     gitForTest(repository, ['remote', 'add', 'origin', 'not-a-url'])
     const result = await run(['--show-repo'], repository)
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/^error: --repo: /u)
+    expect(result.stderr).toBe('error: could not read the repository from the URL of the Git remote origin\n')
   })
 
   it('作業ディレクトリが無く git を起動できなければ、OS のエラーとして 1', async () => {

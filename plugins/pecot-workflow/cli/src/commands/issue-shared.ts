@@ -18,8 +18,7 @@ import type { UsedOrder } from '../domain/issue-order.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { AmbiguousRepositoryError, createRepositoryReference, resolveRepository } from '../domain/repository-resolver.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
+import { createRepositoryReference, resolveShortReferenceBase, withUnreadableReason } from '../domain/repository-resolver.js'
 import {
   CLOSED_HEADINGS_BY_TEMPLATE,
   FOLD_SUMMARY_BY_TEMPLATE,
@@ -135,30 +134,16 @@ export interface IssueTarget {
 }
 
 /**
-グローバルの --repo（run の入力の repo）か、カレントの git から base のリポジトリを決める。
-曖昧なら undefined（`owner/repo/N` の主軸形を使う利用者のため）。--repo の形式が不正なら InvalidValueError を伝える
-*/
-function resolveBaseRepository(repository: string | undefined): RepositoryReference | undefined {
-  try {
-    return resolveRepository(repository, gitRunnerFor()).repository
-  }
-  catch (error: unknown) {
-    if (error instanceof AmbiguousRepositoryError) return undefined
-    throw error
-  }
-}
-
-/**
 Issue 参照（`owner/repo/N` または短縮形 `N`）を分ける。不正、または base が決まらない短縮形なら BadParameterError
 */
 function parseIssueReferenceFromContext(repository: string | undefined, raw: string): IssueTarget {
-  const base = resolveBaseRepository(repository)
+  const { base, unreadable } = resolveShortReferenceBase(repository, gitRunnerFor())
   try {
     const reference = parseIssueReference(raw, base, { repositoryFlag: true })
     return { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) throw new BadParameterError(error.hintedText ?? error.message)
+    if (error instanceof ReferenceParseError) throw new BadParameterError(withUnreadableReason(error.hintedText ?? error.message, unreadable))
     throw error
   }
 }

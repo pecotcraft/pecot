@@ -186,6 +186,14 @@ function outsideGit(): string {
   return directory
 }
 
+const UNREADABLE_REMOTE = 'could not read the repository from the URL of the Git remote origin'
+const AMBIGUOUS_LINES = 'error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n'
+
+// origin を手元の bare リポのパスに付け替えて、URL から owner/repo を読めなくする
+function useBareOrigin(project: Readonly<Project>): void {
+  gitForTest(project.repository, ['remote', 'set-url', 'origin', path.join(project.root, 'remotes', 'demo.git')])
+}
+
 function leaveDevcontainer(): void {
   setEnvironment({ DEVCONTAINER: undefined })
 }
@@ -716,6 +724,31 @@ describe('worktree add', () => {
     expect(upstreamOf(worktree)).toBe('upstream/develop')
   })
 
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れ、使う remote の URL を読めないので終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-WORKTREE-ADD-53')
+      const project = createProject()
+      useBareOrigin(project)
+      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'add', '-D', project.repository])
+      expect(cli.code).toBe(1)
+      expect(cli.stderr).toBe(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\nerror: cannot get the repository information: check that a git remote is set to a GitHub repository URL\n`)
+      const result = await tool('worktree_add', { directory: project.repository, repo: 'acme/demo' })
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-WORKTREE-ADD-54')
+      const project = createProject()
+      useBareOrigin(project)
+      const cli = await pecot(['worktree', 'add', '-D', project.repository])
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      expect(worktreePaths(project.repository)).toEqual([project.repository])
+      const result = await tool('worktree_add', { directory: project.repository })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
+  })
+
   it('--path がファイルの下を指しても、検証で落とさず、その先の処理に進む', async () => {
     const { repository } = createProject()
     const file = path.join(makeTemporaryDirectory(), 'file.txt')
@@ -907,6 +940,33 @@ describe('worktree init', () => {
     finally {
       chmodSync(directory, 0o755)
     }
+  })
+
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-WORKTREE-INIT-20')
+      const project = initialProject()
+      useBareOrigin(project)
+      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'init', '-D', project.repository])
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      rmSync(configPaths(project.repository).config)
+      rmSync(configPaths(project.repository).ignore)
+      const result = await tool('worktree_init', { directory: project.repository, repo: 'acme/demo' })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-WORKTREE-INIT-21')
+      const project = initialProject()
+      useBareOrigin(project)
+      const cli = await pecot(['worktree', 'init', '-D', project.repository])
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      expect(existsSync(configPaths(project.repository).config)).toBe(false)
+      const result = await tool('worktree_init', { directory: project.repository })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
   })
 
   describe('MCP の data', () => {
@@ -1185,6 +1245,31 @@ describe('worktree link', () => {
     expect(existsSync(path.join(subdirectory, 'CLAUDE.local.md'))).toBe(false)
   })
 
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-WORKTREE-LINK-35')
+      const { project, worktree } = await linkedProject()
+      useBareOrigin(project)
+      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'link', '-D', worktree])
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      const result = await tool('worktree_link', { directory: worktree, repo: 'acme/demo' })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-WORKTREE-LINK-36')
+      const { project, worktree } = await linkedProject()
+      useBareOrigin(project)
+      const cli = await pecot(['worktree', 'link', '-D', worktree])
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
+      const result = await tool('worktree_link', { directory: worktree })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
+  })
+
   describe('MCP の data', () => {
     it('リンクを作ると、change を create にして、作った symlink のパスを links[].path に返す', async () => {
       const { project, worktree } = await linkedProject()
@@ -1396,6 +1481,34 @@ describe('worktree remove', () => {
     const result = await pecot(['worktree', 'remove', 'topic', '-D', repository])
     expect(result.code).toBe(0)
     expect(existsSync(elsewhere)).toBe(false)
+  })
+
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-WORKTREE-REMOVE-28')
+      const project = createProject()
+      await addWorktree()
+      await addWorktree()
+      useBareOrigin(project)
+      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'remove', 'wt1', '-D', project.repository])
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      const result = await tool('worktree_remove', { directory: project.repository, name: 'wt2', repo: 'acme/demo' })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-WORKTREE-REMOVE-29')
+      const project = createProject()
+      const worktree = await addWorktree()
+      useBareOrigin(project)
+      const cli = await pecot(['worktree', 'remove', 'wt1', '-D', project.repository])
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      expect(existsSync(worktree)).toBe(true)
+      const result = await tool('worktree_remove', { directory: project.repository, name: 'wt1' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
   })
 
   describe('MCP の data', () => {

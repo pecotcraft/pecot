@@ -16,7 +16,7 @@ import { realpathSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 import { InvalidValueError } from './domain/errors.js'
-import { AmbiguousRepositoryError, parseOwnerRepository, resolveRepository } from './domain/repository-resolver.js'
+import { AmbiguousRepositoryError, parseOwnerRepository, resolveRepository, UnreadableRemoteError } from './domain/repository-resolver.js'
 import { readAuthoredNotes } from './infra/authored-notes.js'
 import { gitRunnerFor } from './infra/git.js'
 import { resolveApiUrlOverride } from './infra/github/client.js'
@@ -113,7 +113,7 @@ function showRepository(repository: string | undefined, context: Readonly<CliCon
   catch (error: unknown) {
     // eslint-disable-next-line no-restricted-syntax -- CLI の最上位でグローバルの --repo を読むときだけ出る
     if (error instanceof InvalidValueError) context.io.stderr(`error: --repo: ${error.message}\n`)
-    else if (error instanceof AmbiguousRepositoryError) context.io.stderr(`error: ${error.message}\n`)
+    else if (error instanceof AmbiguousRepositoryError || error instanceof UnreadableRemoteError) context.io.stderr(`error: ${error.message}\n`)
     else throw error
     return USAGE_EXIT_CODE
   }

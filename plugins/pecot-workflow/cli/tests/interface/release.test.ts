@@ -1,8 +1,11 @@
 // release check・create・merge の振る舞い（PW-RELEASE-*）を、runCli をプロセス内で呼んで確かめる。
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { RELEASE_COMMANDS } from '../../src/commands/release.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import { startFakeGithub } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
@@ -44,6 +47,16 @@ function project(options: Readonly<ProjectOptions> = {}): Project {
 function projectWithBrokenRemote(options: Readonly<ProjectOptions> = {}): Project {
   const created = project(options)
   failRemoteLookupFrom(created, 2)
+  return created
+}
+
+const UNREADABLE_REMOTE = 'could not read the repository from the URL of the Git remote origin'
+const AMBIGUOUS_LINES = 'error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n'
+
+// origin を手元の bare リポのパスに付け替えて、URL から owner/repo を読めなくする
+function projectWithBareOrigin(options: Readonly<ProjectOptions> = {}): Project {
+  const created = project({ remote: 'empty', ...options })
+  gitForTest(created.directory, ['remote', 'set-url', 'origin', path.join(created.root, 'remotes', 'acme', 'demo.git')])
   return created
 }
 
@@ -434,6 +447,26 @@ describe('release check', () => {
     })
   })
 
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-40')
+      const cli = await runCounted(projectWithBareOrigin(WITH_BRANCHES), [], alertRules(), ['--repo', 'acme/demo'])
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      const result = await callTool(projectWithBareOrigin(WITH_BRANCHES), 'release_check', { repo: 'acme/demo' }, [...alertRules(), compareRule(1)])
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-41')
+      const cli = await runPreflight(projectWithBareOrigin(WITH_BRANCHES), [], [])
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      const result = await callTool(projectWithBareOrigin(WITH_BRANCHES), 'release_check', {}, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
+  })
+
   describe('MCP の data', () => {
     it('チェックが通ると、版・タグ・リリースノート・コミット数と、Dependabot alert の件数を返す', async () => {
       const rules = [...alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] }), compareRule(1)]
@@ -657,6 +690,27 @@ describe('release create', () => {
     expect(result.requests).toEqual([])
   })
 
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-27')
+      const cli = await runCreate(projectWithBareOrigin(), ['0.2.0'], [releaseCreated()], ['--repo', 'acme/demo'])
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      const result = await callTool(projectWithBareOrigin(), 'release_create', { version: '0.2.0', repo: 'acme/demo' }, [releaseCreated()])
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-28')
+      const cli = await runCreate(projectWithBareOrigin(), ['0.2.0'])
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      expect(cli.requests).toEqual([])
+      const result = await callTool(projectWithBareOrigin(), 'release_create', { version: '0.2.0' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
+  })
+
   describe('MCP の data', () => {
     it('リリースを作ると、タグ・URL・リリースノートを返す', async () => {
       const result = await callTool(project(), 'release_create', { version: '0.2.0' }, [releaseCreated()])
@@ -848,6 +902,26 @@ describe('release merge', () => {
     await verifies(context, 'PW-RELEASE-MERGE-25')
     const result = await runMerge(project({ isGit: false }))
     expect(result.code).toBe(1)
+  })
+
+  describe('remote の URL から owner/repo を読めない', () => {
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-26')
+      const cli = await runMerge(projectWithBareOrigin(), ['acme/demo/31', '--dry-run'], [pullRequestResponse()], ['--repo', 'acme/demo'])
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      const result = await callTool(projectWithBareOrigin(), 'release_merge', { pr_ref: 'acme/demo/31', dry_run: true, repo: 'acme/demo' }, [pullRequestResponse()])
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-27')
+      const cli = await runMerge(projectWithBareOrigin())
+      expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
+      const result = await callTool(projectWithBareOrigin(), 'release_merge', { pr_ref: 'acme/demo/31' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+    })
   })
 
   describe('MCP の data', () => {

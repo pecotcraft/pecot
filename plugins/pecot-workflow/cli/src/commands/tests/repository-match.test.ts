@@ -4,7 +4,7 @@ import { gitForTest, createGitRepository } from '../../tests/_helpers/git-reposi
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { CommandExit } from '../command-definition.js'
-import { requireRepositoryMatch, resolveCurrentRepository } from '../repository-match.js'
+import { readCurrentRepository, requireRepositoryMatch, resolveCurrentRepository } from '../repository-match.js'
 import { capture } from './support.js'
 
 useIsolatedEnvironment()
@@ -12,6 +12,12 @@ useIsolatedEnvironment()
 function repositoryWithRemote(): string {
   const directory = createGitRepository()
   gitForTest(directory, ['remote', 'add', 'origin', 'git@ghes.example.com:acme/demo.git'])
+  return directory
+}
+
+function repositoryWithLocalOrigin(): string {
+  const directory = createGitRepository()
+  gitForTest(directory, ['remote', 'add', 'origin', makeTemporaryDirectory('pecot-bare-')])
   return directory
 }
 
@@ -30,6 +36,16 @@ describe('resolveCurrentRepository', () => {
     const directory = makeTemporaryDirectory('pecot-nogit-')
     setEnvironment({ GIT_CEILING_DIRECTORIES: directory.slice(0, directory.lastIndexOf('/')) })
     expect(resolveCurrentRepository(directory)).toBeUndefined()
+  })
+
+  it('remote の URL が手元のパスなら undefined を返す', () => {
+    expect(resolveCurrentRepository(repositoryWithLocalOrigin())).toBeUndefined()
+  })
+})
+
+describe('readCurrentRepository', () => {
+  it('remote の URL が手元のパスなら、unreadable-remote を返す', () => {
+    expect(readCurrentRepository(repositoryWithLocalOrigin())).toEqual({ source: 'unreadable-remote', remoteName: 'origin' })
   })
 })
 

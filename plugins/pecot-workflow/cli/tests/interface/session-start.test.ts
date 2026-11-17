@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 見るのは一時リポ配下だけ */
-// session start の振る舞い（PW-SESSION-START-01〜37）を、runCli をプロセス内で呼んで確かめる。
+// session start の振る舞い（PW-SESSION-START-01〜39）を、runCli をプロセス内で呼んで確かめる。
 // 一時 git リポ・設定ファイル・偽の GitHub サーバの上で動かし、受けた要求と終わった後のファイルを比べる。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -328,6 +328,46 @@ describe('session start', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
     expect(result.requests).toEqual([])
+  })
+
+  describe('remote の URL から owner/repo を読めない', () => {
+    // origin が手元のパス（bare リポ）で、URL から owner/repo を読めない
+    const LOCAL_REMOTE = '/srv/git/demo.git'
+    const WARNING = 'could not read the repository from the URL of the Git remote origin'
+
+    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+      await verifies(context, 'PW-SESSION-START-38')
+      const cli = await create({ remoteUrl: LOCAL_REMOTE }, ['--repo', 'acme/demo', 'session', 'start', 'acme/demo/7', 'feat'])
+      expectClean(cli)
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${WARNING})\n`)
+      expect(cli.stderr).toContain(CREATED)
+      const tool = await runTool({ tool: 'session_start', arguments: { issue_ref: 'acme/demo/7', branch: 'feat', repo: 'acme/demo' }, github: succeeding(), remoteUrl: LOCAL_REMOTE })
+      expectClean(tool)
+      expect(tool.isError).toBe(false)
+      expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [`using repo acme/demo (${WARNING})`] })
+    })
+
+    it('--repo を渡すと、Issue のリポジトリと作業ディレクトリの remote を比べずにブランチを作る', async (context) => {
+      await verifies(context, 'PW-SESSION-START-40')
+      const cli = await create({ remoteUrl: LOCAL_REMOTE }, ['--repo', 'other/tree', 'session', 'start', 'acme/demo/7', 'feat'])
+      expectClean(cli)
+      expect(cli.code).toBe(0)
+      expect(cli.stderr).not.toContain('differs from the CWD git remote')
+      expect(cli.stderr).toContain(CREATED)
+    })
+
+    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-SESSION-START-39')
+      const cli = await create({ remoteUrl: LOCAL_REMOTE, github: [] })
+      expect(cli.code).toBe(1)
+      expect(cli.stderr).toBe('error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n')
+      expect(cli.requests).toEqual([])
+      const tool = await runTool({ tool: 'session_start', arguments: { issue_ref: 'acme/demo/7', branch: 'feat' }, github: [], remoteUrl: LOCAL_REMOTE })
+      expect(tool).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+      expect(tool.structured['detail']).toContain('give repo: <owner/repo>')
+      expect(tool.requests).toEqual([])
+    })
   })
 
   describe('MCP の data', () => {

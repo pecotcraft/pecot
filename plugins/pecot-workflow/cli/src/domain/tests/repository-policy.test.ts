@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { formatHinted } from '../command-hint.js'
 import type { HintSurface } from '../command-hint.js'
 import { createRepositoryReference } from '../repository-resolver.js'
-import type { ResolvedRepository } from '../repository-resolver.js'
+import type { ResolvedRepository, UnreadableRemote } from '../repository-resolver.js'
 import { applyRepositoryPolicy } from '../repository-policy.js'
 import type { PolicyInput, PolicyMode } from '../repository-policy.js'
 
@@ -64,6 +64,35 @@ describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mod
       failure: 'invalid-input',
       stderr: ['error: --repo has an invalid form: "it\'s/x"'],
     })
+  })
+})
+
+describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で remote の URL を読めない', (mode) => {
+  const UNREADABLE: UnreadableRemote = { source: 'unreadable-remote', remoteName: 'origin' }
+
+  it('--repo があると、warning の行を出して明示値を採用して続ける', () => {
+    expect(policy({ explicit: 'acme-labs/aist-plugin', resolved: UNREADABLE, mode })).toStrictEqual({
+      kind: 'proceed',
+      adopted: { owner: 'acme-labs', repository: 'aist-plugin' },
+      stderr: ['warning: using --repo acme-labs/aist-plugin (could not read the repository from the URL of the Git remote origin)'],
+    })
+  })
+
+  it('--repo が無いと、曖昧の行に理由の行を添えて終了コード 1', () => {
+    expect(policy({ explicit: undefined, resolved: UNREADABLE, mode })).toStrictEqual({
+      kind: 'exit',
+      exitCode: 1,
+      failure: 'git-unresolved',
+      stderr: ['error: the repository is ambiguous', '  could not read the repository from the URL of the Git remote origin', '  give --repo <owner/repo>'],
+    })
+  })
+
+  it('--repo の形が不正なら、invalid-input が先に出る', () => {
+    expect(applyRepositoryPolicy({ explicit: 'not-a-repo', resolved: UNREADABLE, mode })).toMatchObject({ kind: 'exit', failure: 'invalid-input' })
+  })
+
+  it.for(['acme-labs/pecot-cli', 'other/tree'])('--repo が %s でも repo-mismatch に入らない', (explicit) => {
+    expect(applyRepositoryPolicy({ explicit, resolved: UNREADABLE, mode }).kind).toBe('proceed')
   })
 })
 
