@@ -113,6 +113,7 @@ function describePushFailure(push: Readonly<Extract<PushResult, { pushed: false 
       return hinted`push timed out after ${String(PUSH_TIMEOUT_MILLISECONDS / MILLISECONDS_PER_SECOND)} seconds\n${unchanged}\npush the branch yourself: ${FORCE_PUSH_COMMAND} ${remote} ${branch}\nthen run: ${commandHint(RESTACK_PATH)}`
     }
     case 'cancelled': {
+      // MCP の取り消しには応答が送られない。誰にも届かないが、記録を書かずに止める扱いとして持つ
       return hinted`push was cancelled\n${unchanged}\nrun again: ${commandHint(RESTACK_PATH)}`
     }
     case 'rejected': {

@@ -4,8 +4,6 @@
 import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import type ChildProcess from 'node:child_process'
-
 import { describe, expect, it, vi } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
@@ -19,27 +17,16 @@ import type { ConfigOptions, Workspace } from '../_helpers/workspace.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { COMMANDS } from '../../src/commands/registry.js'
-
-// 10 分を待てないので、git push の時間切れだけを縮める。時間切れの変換は実物の runGitAsync を通る
-const pushTimeout: { milliseconds: number | undefined } = vi.hoisted(() => ({ milliseconds: undefined }))
-vi.mock('node:child_process', async (importOriginal) => {
-  const actual = await importOriginal<typeof ChildProcess>()
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- spawn の options の型
-  const spawn = (command: string, arguments_: readonly string[], options: Readonly<ChildProcess.SpawnOptions>): ChildProcess.ChildProcess => {
-    const isPush = command === 'git' && arguments_[0] === 'push' && pushTimeout.milliseconds !== undefined
-    return actual.spawn(command, arguments_, isPush ? { ...options, timeout: pushTimeout.milliseconds } : options)
-  }
-  return { ...actual, spawn }
-})
+import { PUSH_TIMEOUT_MILLISECONDS } from '../../src/infra/git.js'
 
 useIsolatedEnvironment()
 
-// 2 秒かかる pre-push のフックを置き、そのパスを返す
+// 30 秒かかる pre-push のフックを置き、そのパスを返す。時間切れの後にすぐ返らないと、テストの時間切れで落ちる
 function installSlowPrePush(workspace: Readonly<Workspace>): string {
   const hooks = path.resolve(workspace.directory, workspace.git(['rev-parse', '--git-path', 'hooks']).trim())
   mkdirSync(hooks, { recursive: true })
   const hook = path.join(hooks, 'pre-push')
-  writeFileSync(hook, '#!/bin/sh\nexec sleep 2\n')
+  writeFileSync(hook, '#!/bin/sh\nexec sleep 30\n')
   chmodSync(hook, 0o755)
   return hook
 }
@@ -563,13 +550,15 @@ describe('pr restack', () => {
     workspace.advanceRemote(LOWER)
     const record = workspace.read(BASE_FILE)
     const hook = installSlowPrePush(workspace)
-    pushTimeout.milliseconds = 500
+    // 10 分を待てないので、push の時間切れの時計だけを縮める。止め方と時間切れの変換は実物の runGitAsync を通る
+    const timeout = AbortSignal.timeout.bind(AbortSignal)
+    const shortened = vi.spyOn(AbortSignal, 'timeout').mockImplementation(milliseconds => timeout(milliseconds === PUSH_TIMEOUT_MILLISECONDS ? 1000 : milliseconds))
     let result: Awaited<ReturnType<Workspace['run']>>
     try {
       result = await workspace.run(['pr', 'restack'])
     }
     finally {
-      pushTimeout.milliseconds = undefined
+      shortened.mockRestore()
     }
     expect(result.code).toBe(1)
     expect(lines(result.stderr)).toStrictEqual([

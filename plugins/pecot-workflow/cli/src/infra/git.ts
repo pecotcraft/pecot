@@ -77,20 +77,34 @@ function withoutGitVariables(): Record<string, string> {
 */
 export const GIT_CANCELLED = -3
 
-const KILL_SIGNAL = 'SIGKILL'
+// detached の git は端末の Ctrl-C を受けないので、受けたらグループごと止めてから既定の動きに戻す
+const FORWARDED_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM']
+
+function killGroup(pid: number | undefined): void {
+  if (pid === undefined) return
+  try {
+    // detached の git はプロセスグループの頭なので、負の pid でフックの孫までまとめて止める
+    process.kill(-pid, 'SIGKILL')
+  }
+  catch {
+    // 既に終わっている
+  }
+}
 
 /**
-runGit の非同期版。待つ間もイベントループを止めない。signal が中断されたら git を止め、exitCode が GIT_CANCELLED の結果を返す
+runGit の非同期版。待つ間もイベントループを止めない。
+時間切れか signal の中断で、git を pre-push のフックごと止め、exitCode が GIT_TIMED_OUT か GIT_CANCELLED の結果を返す
 */
 export async function runGitAsync(arguments_: readonly string[], options: Readonly<Omit<GitOptions, 'stripGitEnvironment' | 'check'>> & { readonly signal?: Readonly<AbortSignal> | undefined } = {}): Promise<GitResult> {
+  const timeout = options.timeoutMilliseconds === undefined ? undefined : AbortSignal.timeout(options.timeoutMilliseconds)
+  const stops = [options.signal, timeout].filter(signal => signal !== undefined)
+  const stop = stops.length === 0 ? undefined : AbortSignal.any(stops)
   const child = spawn('git', [...arguments_], {
     cwd: options.cwd,
     // interface-env: none
     env: options.env === undefined ? undefined : { ...process.env, ...options.env },
     stdio: [childStdin(), 'pipe', 'pipe'],
-    killSignal: KILL_SIGNAL,
-    ...(options.timeoutMilliseconds !== undefined && { timeout: options.timeoutMilliseconds }),
-    ...(options.signal !== undefined && { signal: options.signal }),
+    detached: true,
   })
   const stdout: string[] = []
   const stderr: string[] = []
@@ -100,20 +114,42 @@ export async function runGitAsync(arguments_: readonly string[], options: Readon
   child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
     stderr.push(chunk)
   })
-  const ended = await new Promise<{ readonly code: number | undefined, readonly signal: NodeJS.Signals | undefined, readonly error?: Error }>((resolve) => {
-    child.on('error', (error) => {
-      resolve({ code: undefined, signal: undefined, error })
-    })
-    child.on('close', (code, signal) => {
-      resolve({ code: code ?? undefined, signal: signal ?? undefined })
+  const closed = new Promise<void>((resolve) => {
+    child.on('close', () => {
+      resolve()
     })
   })
+  const kill = (): void => {
+    killGroup(child.pid)
+  }
+  const forward = (signal: NodeJS.Signals): void => {
+    killGroup(child.pid)
+    for (const name of FORWARDED_SIGNALS) process.removeListener(name, forward)
+    process.kill(process.pid, signal)
+  }
+  stop?.addEventListener('abort', kill, { once: true })
+  for (const name of FORWARDED_SIGNALS) process.on(name, forward)
+  const ended = await new Promise<{ readonly kind: 'exit', readonly code: number | undefined } | { readonly kind: 'error', readonly error: Error }>((resolve) => {
+    child.on('error', (error) => {
+      resolve({ kind: 'error', error })
+    })
+    // 'close' は stdio を持つ孫（フック）が終わるまで出ないので、git の終わりは 'exit' で受ける
+    child.on('exit', (code) => {
+      resolve({ kind: 'exit', code: code ?? undefined })
+    })
+  })
+  stop?.removeEventListener('abort', kill)
+  for (const name of FORWARDED_SIGNALS) process.removeListener(name, forward)
+  if (ended.kind === 'error') throw toOsError(ended.error)
+  // 止めずに終わったなら、出力を読み切る。止めたなら、残ったパイプを捨てる
+  if (ended.code === 0 || stop?.aborted !== true) await closed
+  else {
+    child.stdout.destroy()
+    child.stderr.destroy()
+  }
   const output = { stdout: normalizeNewlines(stdout.join('')), stderr: normalizeNewlines(stderr.join('')) }
-  if (options.signal?.aborted === true) return { exitCode: GIT_CANCELLED, ...output }
-  if (ended.error !== undefined) throw toOsError(ended.error)
-  // timeout の後は Node が killSignal で止める。ほかに SIGKILL を送る者はいない前提で、時間切れと見る
-  const isTimedOut = ended.signal === KILL_SIGNAL && options.timeoutMilliseconds !== undefined
-  return { exitCode: isTimedOut ? GIT_TIMED_OUT : ended.code ?? -1, ...output }
+  if (ended.code === 0 || stop?.aborted !== true) return { exitCode: ended.code ?? -1, ...output }
+  return { exitCode: options.signal?.aborted === true ? GIT_CANCELLED : GIT_TIMED_OUT, ...output }
 }
 
 /**
