@@ -298,16 +298,16 @@ w-revise を Claude の App の形で、Step 3 まで通した結果（2026-11-1
 - 同じ実行で 2 度書かないために、実行の ID を入れた目印の行を使う
 - 失敗と上限の見分けは、job の終わり方と、action の出力から決める
 
-| 終わり方 | job・step | action の中の step `run` の終わり方 | `execution_file` の最後の `result` |
-|---|---|---|---|
-| ターンの上限 | Review が `failure` | `failure` | `subtype: error_max_turns`・`terminal_reason: max_turns`・`is_error: true` |
-| 時間の上限 | job が `cancelled`。Review が `cancelled` | — | ファイルが残らない |
-| API の失敗（認証・クレジット） | Review が `failure` | `failure` | `subtype: success`・`terminal_reason: api_error`・`is_error: true`。`result` に API の文が入る |
-| 終えた | Review が `success` | `success` | `subtype: success`・`is_error: false` |
+| 終わり方 | job | Review の `outcome` | action の出力 `conclusion` | `execution_file` の最後の `result` |
+|---|---|---|---|---|
+| ターンの上限 | `failure` | `failure` | 空 | `subtype: error_max_turns`・`terminal_reason: max_turns`・`is_error: true` |
+| 時間の上限 | `cancelled` | `cancelled` | 空 | ファイルが残らない |
+| API の失敗（認証・クレジット） | `failure` | `failure` | 空 | `subtype: success`・`terminal_reason: api_error`・`is_error: true`。`result` に API の文が入る |
+| 終えた | `success` | `success` | `success` | `subtype: success`・`is_error: false` |
 
 確かめた版は action v1.0.278・Claude Code 2.1.326、日付は 2026-11-17 だ。分かったことは、次のとおりだ。
 
-- 3 列目は、action の中の step の終わり方だ。呼ぶ側が読む action の出力 `conclusion` は、失敗のときに空になる。前の版のこの表は、ターンの上限と API の失敗の出力を `failure` と書いていた。出力の値は、下の「後始末が読む値」に書く
+- `conclusion` は、失敗のときに空になる（下の「後始末が読む値」）
 
 - `if: always()` の step は、時間の上限で切られた後も動いた（run 44040534751）。後始末の step を最後に置く形は成り立つ
 - 時間の上限の `cancelled` は、人が run を手で取り消したときと同じ値だ。job の中からは、2 つを見分けられない
@@ -331,7 +331,10 @@ v1.0.278 の `src/entrypoints/run.ts`・`src/github/token.ts`・`base-action/src
 | 終わり方 | Review の `outcome` | 出力 `conclusion` | 出力 `execution_file` | 出力 `github_token` | 確かめ方 |
 |---|---|---|---|---|---|
 | 雛形を変えた PR で飛ばした（Claude の App） | `success` | 空 | 空 | 空 | run 44100602207 |
+| 自動レビューより前の step が失敗した | `skipped` | 空 | 空 | 空 | step の `if` に `always()` が無いので、自動レビューの step は動かない |
+| 時間の上限 | `cancelled` | 空 | 空 | 読んでいない | run 44040534751 の job と step の終わり方。出力は判定に使わない |
 | ターンの上限（自前の App） | `failure` | 空 | 有る | 有る | run 44100285556 |
+| API の失敗 | `failure` | 空 | 有る | 有る | `run.ts` と `run-claude-sdk.ts` を読んだ |
 | Claude の App のトークンを受け取れない | `failure` | 空 | 空 | 空 | `token.ts` と `run.ts` を読んだ。検証用で Claude の App を外さないと起こせない |
 | 書いた人の権限で止めた・ほかの準備の失敗 | `failure` | 空 | 空 | 有る | `run.ts` を読んだ |
 | 終えた | `success` | `success` | 有る | 有る | `run.ts` を読んだ |
@@ -341,6 +344,8 @@ v1.0.278 の `src/entrypoints/run.ts`・`src/github/token.ts`・`base-action/src
 - 出力 `skipped_due_to_workflow_validation_mismatch` は、どちらの run でも空だった
 - 書いた人の権限で止めた run は、準備のほかの失敗と、公開の値では見分けられない。後始末は `failed` として書く（`contracts/cli-commands.md`）
 - 判定の順は、`contracts/cli-commands.md` の `--ensure` の表のとおりだ。飛ばしたときは job が成功するので、job の成否より前に見る
+- `outcome` の `skipped` は、判定に使わない。PR の確かめで弾いた run（job が成功）と、前の step の失敗（job が失敗）の両方で出るからだ。job の成否で分ける
+- `setup-missing` は、`outcome` が `failure` のときだけにする。前の step の失敗でも `github_token` は空になるので、`conclusion` と `github_token` だけでは、Claude の App を入れる案内を誤って書く
 
 - Alternatives considered:
 

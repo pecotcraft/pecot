@@ -114,13 +114,13 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **Goal**: `pecot pr review-finish` が、失敗と上限のときだけ、止まったことを知らせるコメントを 1 つ書く
 
-**Independent Test**: 検証用の PR に対して `pecot pr review-finish <PR> --ensure --job-status failure` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
+**Independent Test**: 検証用の PR に対して `pecot pr review-finish <PR> --ensure --job-status failure --review-outcome failure --review-conclusion "" --review-has-token true` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
 
 **前提**: Phase 1（失敗と上限の見分け方が、実機の結果で決まる）
 
 ### Tests for User Story 1（終わり方）
 
-- [ ] T025 [P] [US1] 結果の決め方の単体テストを、`p-w/cli/src/domain/tests/` に書く。`--ensure` と job の終わり方から、`reviewed`・`failed`・`limit` を決める表を、1 行ずつ確かめる。`setup-missing` は、`--result` で渡されたときだけ使うことも入れる。止まった場所を、同じ実行のインラインコメントの有無から決めることも入れる
+- [ ] T025 [P] [US1] 結果の決め方の単体テストを、`p-w/cli/src/domain/tests/` に書く。`--ensure` と job の終わり方・自動レビューの step の値から結果を決める表を、`spec/contracts/cli-commands.md` の順に 1 行ずつ確かめる。止まった場所を、同じ実行のインラインコメントの有無から決めることも入れる
 - [ ] T026 [P] [US1] `pecot pr review-finish` のテストを、`p-w/cli/src/commands/tests/` に書く。`spec/contracts/cli-commands.md` の `review-finish` の条件の表を、1 行ずつテストにする。同じ実行の目印があるときに 2 度書かないこと、トークンの値が出力に出ないことも入れる
 - [ ] T027 [P] [US1] `p-w/cli/tests/interface/issue-comment.test.ts` に、テンプレート `review-stopped` の検証の期待を足す
 
