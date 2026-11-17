@@ -5,7 +5,7 @@
   "requests": [
     {
       "type": "graphql",
-      "operation": "GetPullRequestSlim",
+      "operation": "GetPullRequestForFinish",
       "variables": {
         "owner": "acme",
         "repo": "demo",

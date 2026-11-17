@@ -61,7 +61,7 @@ setup:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:
   - match:
-      operation: "GetPullRequestSlim"
+      operation: "GetPullRequestForFinish"
     respond:
       status: 502
       body: {"message": "Bad Gateway"}
