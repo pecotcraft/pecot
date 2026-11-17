@@ -1,0 +1,7 @@
+# 一覧に無い名前を渡す。使える名前を示して exit 2 になる。
+id: workflow-doctor-usage
+command:
+  path: [workflow, doctor]
+  args: [deploy]
+setup: {}
+github: []

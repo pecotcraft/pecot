@@ -1,0 +1,31 @@
+# 雛形の版と要る secret がそろう。変数の値は出さない。
+id: workflow-doctor-ok
+command:
+  path: [workflow, doctor]
+  args: [review]
+setup:
+  repo:
+    files:
+      .github/workflows/pecot-review.yml: |
+        # pecot-workflow-template: review 1
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      method: GET
+      path: /repos/acme/demo
+    respond:
+      status: 200
+      body: {owner: {type: User}}
+  - match:
+      method: GET
+      path: /repos/acme/demo/actions/secrets
+    respond:
+      status: 200
+      body: {total_count: 1, secrets: [{name: CLAUDE_CODE_OAUTH_TOKEN}]}
+  - match:
+      method: GET
+      path: /repos/acme/demo/actions/variables
+    respond:
+      status: 200
+      body: {total_count: 1, variables: [{name: PECOT_AGENT_UNRELATED, value: must-not-appear}]}

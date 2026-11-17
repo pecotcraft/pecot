@@ -16,6 +16,7 @@
   "review-finish-usage-both": "error: specify exactly one of result and ensure\n",
   "session-finish-state-open": "error: PR #21 is not merged yet (state: OPEN); merge it with pr_merge first\n",
   "session-start-state-no-develop-branch": "error: develop_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", develop_branch: \"develop\"\n  or give the base: session_start with issue_ref: \"acme/demo/7\", branch: \"feat\", base: \"main\"\n",
+  "workflow-install-usage": "error: check cannot be used with force or dry_run\n",
   "worktree-add-state-no-config": "error: worktree config not found: .pecot/config/worktree-config.json\n    run worktree_init to generate the template\n",
   "worktree-link-state-main-worktree": "error: use all: true in the main worktree\n",
   "worktree-link-state-no-config": "error: worktree config not found\n  run: worktree_init with directory: <directory>\n",

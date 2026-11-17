@@ -1,0 +1,7 @@
+# 雛形を書き出し、次にすることを出す。
+id: workflow-install-ok
+command:
+  path: [workflow, install]
+  args: [review]
+setup: {}
+github: []

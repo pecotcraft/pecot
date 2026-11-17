@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "error: unknown workflow template: deploy\n  available: review\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}
