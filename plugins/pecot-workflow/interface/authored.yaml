@@ -6856,9 +6856,9 @@ entries:
         - The repository is read from the git remote of --directory. The project config and the board are not read.
         - Prints one line per checked item to stdout, in the form <state> <name>. The state is ok, missing, outdated or skipped.
         - The items are the workflow file, the version marker on its first line, the secrets and variables the template needs, and the Claude GitHub App.
-        - "For review: the secret PECOT_AGENT_APP_PRIVATE_KEY is needed only when the variable PECOT_AGENT_APP_CLIENT_ID is set. The secret CLAUDE_CODE_OAUTH_TOKEN, or all 4 variables PECOT_AGENT_ANTHROPIC_*, are needed."
+        - "For review: the secret PECOT_AGENT_APP_PRIVATE_KEY is needed, and printed as an item, only when the variable PECOT_AGENT_APP_CLIENT_ID is set. The secret CLAUDE_CODE_OAUTH_TOKEN, or all 4 variables PECOT_AGENT_ANTHROPIC_*, are needed."
         - Secrets and variables are read by name only, at the repository level and, for a repository of an organization, the organization level shared with the repository. Their values are never printed.
-        - A list the token cannot read (403 or 404) makes the items that depend on it skipped, and a skipped item does not count as missing.
+        - When the token cannot read a list (403 or 404), an item whose names are not found in the lists that were read is skipped, and a skipped item does not count as missing.
         - Whether the Claude GitHub App is installed cannot be read with the token of the repository, so it is always printed as skipped.
         - Fails when any item is missing or outdated.
       examples:
@@ -6869,16 +6869,16 @@ entries:
     summary: ワークフローの雛形と、雛形の要る設定が、導入先のリポにそろっているかを確かめます。
     arguments:
       name: '雛形の一覧の名前です。いまは `review` だけです。'
-      directory: '対象の Git リポジトリのルートです。絶対パスと相対パスのどちらも渡せます。省くと、今のディレクトリです。'
+      directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、今のディレクトリです。'
     constraints: []
     details:
       - '`--directory` のリポに、名前の雛形のワークフローのファイルと、雛形が要る GitHub の設定がそろっているかを確かめます。何も書きません。'
       - 'リポは `--directory` の git remote から読みます。プロジェクトの設定とボードは読みません。'
       - '確かめた項目を 1 行ずつ、`<状態>: <名前>` の形で標準出力に出します。状態は `ok`・`missing`・`outdated`・`skipped` のどれかです。'
       - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数、Claude の GitHub App です。'
-      - '`review` では、変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要ります。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
+      - '`review` では、変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要り、その項目を出します。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
       - 'secret と変数は、名前の有無だけを読みます。リポの単位と、organization のリポでは、リポに渡る organization の単位の両方を見ます。値は出しません。'
-      - 'トークンで読めない一覧（403・404）があると、その一覧に頼る項目を `skipped` にします。`skipped` は足りないと数えません。'
+      - 'トークンで読めない一覧（403・404）があると、読めた一覧に名前の見つからない項目を `skipped` にします。`skipped` は足りないと数えません。'
       - 'Claude の GitHub App が入っているかは、リポのトークンでは読めません。いつも `skipped` で出します。'
       - '`missing` か `outdated` の項目が 1 つでもあると、失敗します。'
     stdin: none
@@ -6901,7 +6901,7 @@ entries:
         when: '名前が雛形の一覧に無いか、`--directory` が無いパス・ファイル・読めないディレクトリです。ほかのコマンドラインの誤りも含みます。'
       - kind: git-unresolved
         code: 1
-        when: '`--directory` の git remote からリポジトリを読めません。'
+        when: '`--directory` が Git リポジトリの外か、その git remote からリポジトリを読めません。'
       - kind: github-auth
         code: 1
         when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
@@ -6924,10 +6924,10 @@ entries:
     effects:
       - target: git
         kind: read
-        what: '`--directory` の remote の URL を読みます。'
+        what: '`--directory` を含むリポのルートと、その remote の URL を読みます。'
       - target: file
         kind: read
-        what: '`--directory` の下のワークフローのファイルと、同梱の雛形を読みます。'
+        what: 'リポのルートの下のワークフローのファイルと、同梱の雛形を読みます。'
       - target: github
         kind: read
         what: 'リポの持ち主の種類と、Actions の secret と変数の名前の一覧を読みます。'
@@ -6964,7 +6964,7 @@ entries:
         statement: '常に、Claude の GitHub App は確かめず、`skipped` の行で出します'
       - id: PW-WORKFLOW-DOCTOR-08
         pattern: unwanted
-        statement: 'もし secret か変数の一覧をトークンで読めないなら、その一覧に頼る項目を `skipped` で出し、足りないと数えません'
+        statement: 'もし secret か変数の一覧をトークンで読めないなら、読めた一覧に名前の見つからない項目を `skipped` で出し、足りないと数えません'
       - id: PW-WORKFLOW-DOCTOR-09
         pattern: event
         statement: 'リポの持ち主が organization だと、リポに渡る organization の secret と変数も見ます'
@@ -6979,7 +6979,13 @@ entries:
         statement: 'もし名前が雛形の一覧に無いなら、一覧の名前を出して終了コード 2 で終わります'
       - id: PW-WORKFLOW-DOCTOR-13
         pattern: unwanted
-        statement: 'もし git remote からリポジトリを読めないなら、終了コード 1 で終わります'
+        statement: 'もし Git リポジトリの外か、git remote からリポジトリを読めないなら、GitHub を読まずに終了コード 1 で終わります'
+      - id: PW-WORKFLOW-DOCTOR-14
+        pattern: event
+        statement: 'リポのサブディレクトリを `--directory` に渡すと、リポのルートに置いたワークフローのファイルを見ます'
+      - id: PW-WORKFLOW-DOCTOR-15
+        pattern: event
+        statement: '変数 `PECOT_AGENT_APP_CLIENT_ID` が無いと、秘密鍵の secret の項目を出しません'
   PW-WORKFLOW-INSTALL:
     help:
       details:
@@ -7007,7 +7013,7 @@ entries:
       check: '書き出さずに、置いたファイルの版が同梱の雛形と同じかを確かめるかどうかです。'
       force: 'ファイルが既にあるときに上書きするかどうかです。'
       dry_run: '何も書かずに、書く予定だけを出すかどうかです。'
-      directory: '対象の Git リポジトリのルートです。絶対パスと相対パスのどちらも渡せます。省くと、今のディレクトリです。'
+      directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、今のディレクトリです。'
     constraints:
       - conflicts: [check, force]
       - conflicts: [check, dry_run]
@@ -7045,6 +7051,9 @@ entries:
       - kind: invalid-input
         code: 2
         when: '名前が雛形の一覧に無いか、`--check` を `--force`・`--dry-run` と一緒に渡したか、`--directory` が無いパス・ファイル・読めないディレクトリです。ほかのコマンドラインの誤りも含みます。'
+      - kind: git-unresolved
+        code: 1
+        when: '`--directory` が Git リポジトリの外です。'
       - kind: other
         code: 1
         when: 'ほかの名前に当たらない失敗です。ファイルを書けないときも含みます。MCP のツールでは、コマンドの想定外の例外も含みます。'
@@ -7053,12 +7062,15 @@ entries:
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
+      - target: git
+        kind: read
+        what: '`--directory` を含むリポのルートを読みます。'
       - target: file
         kind: read
-        what: '同梱の雛形と、`--directory` の下に置いてあるワークフローのファイルを読みます。'
+        what: '同梱の雛形と、リポのルートの下に置いてあるワークフローのファイルを読みます。'
       - target: file
         kind: write
-        what: '`--directory` の下に、ワークフローのファイルを書きます。`--force` のときは上書きします。'
+        what: 'リポのルートの下に、ワークフローのファイルを書きます。`--force` のときは上書きします。'
     prerequisites: []
     idempotent: false
     examples:
@@ -7101,6 +7113,12 @@ entries:
       - id: PW-WORKFLOW-INSTALL-10
         pattern: unwanted
         statement: 'もし `--check` を `--force` か `--dry-run` と一緒に渡したなら、何も書かずに終了コード 2 で終わります'
+      - id: PW-WORKFLOW-INSTALL-11
+        pattern: event
+        statement: 'リポのサブディレクトリを `--directory` に渡すと、リポのルートからの置き先に書き出します'
+      - id: PW-WORKFLOW-INSTALL-12
+        pattern: unwanted
+        statement: 'もし `--directory` が Git リポジトリの外なら、何も書かずに終了コード 1 で終わります'
   PW-WORKTREE-ADD:
     help:
       details:

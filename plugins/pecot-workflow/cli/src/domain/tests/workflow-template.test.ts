@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { evaluateRequirements, findWorkflowTemplate, isOutdated, readTemplateVersion, userLines, WORKFLOW_TEMPLATES } from '../workflow-template.js'
-import type { SettingNames } from '../workflow-template.js'
+import type { SettingList, SettingNames } from '../workflow-template.js'
 
 const BUNDLED = [
   '# pecot-workflow-template: review 2',
@@ -74,10 +74,15 @@ describe('userLines', () => {
   })
 })
 
+// undefined は読めなかった一覧（名前は無し）
+function list(found: readonly string[] | undefined): SettingList {
+  return { names: new Set(found), complete: found !== undefined }
+}
+
 function names(secrets: readonly string[] | undefined, variables: readonly string[] | undefined): SettingNames {
   return {
-    secrets: secrets === undefined ? undefined : new Set(secrets),
-    variables: variables === undefined ? undefined : new Set(variables),
+    secrets: list(secrets),
+    variables: list(variables),
   }
 }
 
@@ -85,18 +90,18 @@ describe('evaluateRequirements', () => {
   const requirements = review().requirements
   const anthropicVariables = ['FEDERATION_RULE_ID', 'ORGANIZATION_ID', 'SERVICE_ACCOUNT_ID', 'WORKSPACE_ID'].map(suffix => `PECOT_AGENT_ANTHROPIC_${suffix}`)
 
-  it('何も無ければ、モデルの認証だけが足りない', () => {
-    expect(evaluateRequirements(requirements, names([], [])).map(result => result.state)).toEqual(['ok', 'missing'])
+  it('何も無ければ、モデルの認証だけを足りないとし、条件の付いた秘密鍵の項目は出さない', () => {
+    expect(evaluateRequirements(requirements, names([], []))).toEqual([{ name: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*', state: 'missing' }])
   })
 
   it('secret のトークンがあれば、そろっている', () => {
-    expect(evaluateRequirements(requirements, names(['CLAUDE_CODE_OAUTH_TOKEN'], [])).map(result => result.state)).toEqual(['ok', 'ok'])
+    expect(evaluateRequirements(requirements, names(['CLAUDE_CODE_OAUTH_TOKEN'], [])).map(result => result.state)).toEqual(['ok'])
   })
 
   it('Workload Identity Federation の 4 つの変数がそろえば、そろっている。3 つでは足りない', () => {
-    expect(evaluateRequirements(requirements, names([], anthropicVariables))[1]?.state).toBe('ok')
+    expect(evaluateRequirements(requirements, names([], anthropicVariables))[0]?.state).toBe('ok')
     const threeVariables = names([], anthropicVariables.slice(1))
-    expect(evaluateRequirements(requirements, threeVariables)[1]?.state).toBe('missing')
+    expect(evaluateRequirements(requirements, threeVariables)[0]?.state).toBe('missing')
   })
 
   it('App の Client ID の変数があり秘密鍵の secret の無いとき、秘密鍵を足りないとする', () => {
@@ -107,7 +112,12 @@ describe('evaluateRequirements', () => {
     expect(evaluateRequirements(requirements, names(undefined, ['PECOT_AGENT_APP_CLIENT_ID'])).map(result => result.state)).toEqual(['skipped', 'skipped'])
   })
 
+  it('一部の一覧を読めなくても、読めた一覧に名前があれば ok にする', () => {
+    const partial: SettingNames = { secrets: { names: new Set(['CLAUDE_CODE_OAUTH_TOKEN']), complete: false }, variables: list([]) }
+    expect(evaluateRequirements(requirements, partial)).toEqual([{ name: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*', state: 'ok' }])
+  })
+
   it('読めない一覧があっても、読めた一覧でそろえば ok にする', () => {
-    expect(evaluateRequirements(requirements, names(undefined, anthropicVariables)).map(result => result.state)).toEqual(['ok', 'ok'])
+    expect(evaluateRequirements(requirements, names(undefined, anthropicVariables)).map(result => result.state)).toEqual(['ok'])
   })
 })

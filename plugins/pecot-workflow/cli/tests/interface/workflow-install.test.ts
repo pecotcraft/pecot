@@ -114,6 +114,22 @@ describe('workflow install', () => {
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 
+  it('リポのサブディレクトリを渡すと、リポのルートからの置き先に書き出す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-11')
+    const result = await install(['-D', 'sub'], { 'sub/.keep': '' })
+    expect(result.code).toBe(0)
+    expect(result.read(DESTINATION)).toBe(BUNDLED)
+    expect(result.read(`sub/${DESTINATION}`)).toBeUndefined()
+  })
+
+  it('Git リポジトリの外で打つと、何も書かずに終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-12')
+    const result = await runCommand({ argv: ['workflow', 'install', 'review'], remote: false, config: false, github: [] })
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: .+ is not in a Git repository\n$/u)
+    expect(result.read(DESTINATION)).toBeUndefined()
+  })
+
   describe('MCP の結果', () => {
     it('書き出すと、置き先・版・written を返す', async (context) => {
       await verifies(context, 'PW-WORKFLOW-INSTALL-01')

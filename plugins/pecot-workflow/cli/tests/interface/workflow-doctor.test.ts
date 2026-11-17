@@ -69,7 +69,6 @@ describe('workflow doctor', () => {
     expect(result.stdout).toBe([
       `ok: ${DESTINATION}`,
       'ok: workflow template review',
-      `ok: ${KEY_MISSING}`,
       `ok: ${TOKEN_MISSING}`,
       'skipped: Claude GitHub App',
       '',
@@ -165,10 +164,38 @@ describe('workflow doctor', () => {
 
   it('git remote からリポジトリを読めないと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-13')
-    const result = await runCommand({ argv: ['workflow', 'doctor', 'review'], remote: false, config: false, github: [] })
+    const result = await runCommand({ argv: ['workflow', 'doctor', 'review'], remoteUrl: '/srv/git/demo.git', config: false, github: [] })
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: cannot read the repository from the git remote')
     expect(result.requests).toEqual([])
+  })
+
+  it('Git リポジトリの外で打つと、GitHub を読まずに終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-13')
+    const result = await runCommand({ argv: ['workflow', 'doctor', 'review'], remote: false, config: false, github: [] })
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: .+ is not in a Git repository\n$/u)
+    expect(result.requests).toEqual([])
+  })
+
+  it('リポのサブディレクトリを渡すと、リポのルートに置いた雛形を見る', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-14')
+    const result = await runCommand({ argv: ['workflow', 'doctor', 'review', '-D', 'sub'], files: { ...INSTALLED, 'sub/.keep': '' }, config: false, github: github(READY) })
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain(`ok: ${DESTINATION}\n`)
+  })
+
+  it('Client ID の変数が無いと、秘密鍵の項目を出さない', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-15')
+    const result = await doctor(READY)
+    expect(result.stdout).not.toContain(KEY_MISSING)
+  })
+
+  it('一部の一覧を読めなくても、読めた一覧に名前があれば ok を出す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-08')
+    const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], organizationSecrets: 403 })
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain(`ok: ${TOKEN_MISSING}\n`)
   })
 
   describe('MCP の結果', () => {

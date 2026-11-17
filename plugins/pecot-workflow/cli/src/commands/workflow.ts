@@ -3,8 +3,8 @@ import { z } from 'zod'
 
 import { formatHinted } from '../domain/command-hint.js'
 import { evaluateRequirements, findWorkflowTemplate, isOutdated, readTemplateVersion, userLines, WORKFLOW_TEMPLATES } from '../domain/workflow-template.js'
-import type { SettingNames, WorkflowTemplate } from '../domain/workflow-template.js'
-import { primaryRemoteRepository } from '../infra/git.js'
+import type { SettingList, SettingNames, WorkflowTemplate } from '../domain/workflow-template.js'
+import { gitToplevel, primaryRemoteRepository } from '../infra/git.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -27,6 +27,12 @@ const DIRECTORY_INPUT = directorySchema.optional().describe('Root of the target 
 
 function requireTemplate(out: Readonly<Output>, name: string): WorkflowTemplate {
   return findWorkflowTemplate(name) ?? stopWith(out, `unknown workflow template: ${name}\navailable: ${WORKFLOW_TEMPLATES.map(item => item.name).join(', ')}`, 'invalid-input', USAGE_EXIT_CODE)
+}
+
+// 置き先はリポのルートから決めるので、サブディレクトリで打ってもルートに置く
+function repositoryRoot(out: Readonly<Output>, directory: string | undefined): string {
+  const start = directory ?? process.cwd()
+  return gitToplevel({ cwd: start }) ?? stopWith(out, `${start} is not in a Git repository`, 'git-unresolved')
 }
 
 function versionOf(text: string | undefined): number | undefined {
@@ -77,7 +83,7 @@ const workflowInstallCommand = defineCommand({
       return stopWith(out, message, 'invalid-input', USAGE_EXIT_CODE)
     }
     const template = requireTemplate(out, input.name)
-    const root = input.directory ?? process.cwd()
+    const root = repositoryRoot(out, input.directory)
     const bundled = readBundledWorkflow(template)
     const version = versionOf(bundled) ?? 0
     const installed = readInstalledWorkflow(root, template)
@@ -130,9 +136,9 @@ const DOCTOR_OUTPUT = z.strictObject({
 // Claude の App が入っているかは、リポのトークンでは読めない
 const CLAUDE_APP_ITEM: z.input<typeof DOCTOR_ITEM> = { name: 'Claude GitHub App', state: 'skipped' }
 
-// 読めない一覧が 1 つでもあれば undefined
-function mergeNames(lists: readonly (readonly string[] | undefined)[]): ReadonlySet<string> | undefined {
-  return lists.includes(undefined) ? undefined : new Set(lists.flatMap(list => list ?? []))
+// 読めた一覧の名前を合わせる。読めなかった一覧があれば complete を false にする
+function mergeNames(lists: readonly (readonly string[] | undefined)[]): SettingList {
+  return { names: new Set(lists.flatMap(list => list ?? [])), complete: !lists.includes(undefined) }
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない
@@ -160,7 +166,7 @@ const workflowDoctorCommand = defineCommand({
   run: async (input, io) => {
     const out = createOutput<z.input<typeof DOCTOR_OUTPUT>>(false, io)
     const template = requireTemplate(out, input.name)
-    const root = input.directory ?? process.cwd()
+    const root = repositoryRoot(out, input.directory)
     const location = primaryRemoteRepository(root)
     if (location === undefined) return stopWith(out, 'cannot read the repository from the git remote\ncheck it with: git remote -v', 'git-unresolved')
     const { owner, repository } = location

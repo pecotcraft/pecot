@@ -121,11 +121,16 @@ export function userLines(installed: string, bundled: string): readonly string[]
 }
 
 /**
-置いた先で読めた名前。読めなかった一覧は undefined
+読めた一覧の名前と、読めなかった一覧が無いか（complete）
 */
+export interface SettingList {
+  readonly names: ReadonlySet<string>
+  readonly complete: boolean
+}
+
 export interface SettingNames {
-  readonly secrets: ReadonlySet<string> | undefined
-  readonly variables: ReadonlySet<string> | undefined
+  readonly secrets: SettingList
+  readonly variables: SettingList
 }
 
 export type RequirementState = 'ok' | 'missing' | 'skipped'
@@ -135,9 +140,11 @@ export interface RequirementResult {
   readonly state: RequirementState
 }
 
-// 名前の有無。読めない一覧に頼るなら undefined
+// 名前の有無。見つからず、読めなかった一覧があるなら undefined
 function has(names: Readonly<SettingNames>, setting: Readonly<SettingName>): boolean | undefined {
-  return (setting.kind === 'secret' ? names.secrets : names.variables)?.has(setting.name)
+  const list = setting.kind === 'secret' ? names.secrets : names.variables
+  if (list.names.has(setting.name)) return true
+  return list.complete ? false : undefined
 }
 
 function allPresent(names: Readonly<SettingNames>, settings: readonly SettingName[]): boolean | undefined {
@@ -146,10 +153,11 @@ function allPresent(names: Readonly<SettingNames>, settings: readonly SettingNam
   return found.has(undefined) ? undefined : true
 }
 
-function stateOf(names: Readonly<SettingNames>, requirement: Readonly<SettingRequirement>): RequirementState {
+// 条件の付いた要件で、条件の名前が無いと undefined（項目にしない）
+function stateOf(names: Readonly<SettingNames>, requirement: Readonly<SettingRequirement>): RequirementState | undefined {
   if (requirement.type === 'when') {
     const condition = has(names, requirement.when)
-    if (condition === false) return 'ok'
+    if (condition === false) return undefined
     const required = has(names, requirement.require)
     if (required === true) return 'ok'
     return condition === undefined || required === undefined ? 'skipped' : 'missing'
@@ -160,8 +168,14 @@ function stateOf(names: Readonly<SettingNames>, requirement: Readonly<SettingReq
 }
 
 /**
-要件ごとに、そろっているか（ok）・足りないか（missing）・読めない一覧に頼るので決まらないか（skipped）を返す
+要件ごとに、そろっているか（ok）・足りないか（missing）・読めない一覧に頼るので決まらないか（skipped）を返す。
+条件の名前が無い要件は返さない
 */
 export function evaluateRequirements(requirements: readonly SettingRequirement[], names: Readonly<SettingNames>): readonly RequirementResult[] {
-  return requirements.map(requirement => ({ name: requirement.missing, state: stateOf(names, requirement) }))
+  const results: RequirementResult[] = []
+  for (const requirement of requirements) {
+    const state = stateOf(names, requirement)
+    if (state !== undefined) results.push({ name: requirement.missing, state })
+  }
+  return results
 }
