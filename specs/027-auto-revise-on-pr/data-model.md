@@ -1,6 +1,6 @@
 # Data Model: PR を作ると、GitHub Actions の上で w-revise のレビューが始まる
 
-新しい保存先は作らない。状態は、GitHub の PR・コメント・ラベル・実行の記録と、導入先のリポのファイルが持つ。
+新しい保存先は作らない。状態は、GitHub の PR・コメント・実行の記録と、導入先のリポのファイルが持つ。
 
 ## 自動レビューの実行
 
@@ -9,7 +9,7 @@
 | 欄 | 型 | 出どころ | 意味 |
 |---|---|---|---|
 | `pr` | `owner/repo/N` | イベント | 対象の PR |
-| `trigger` | `opened`・`ready_for_review`・`labeled` | イベントの `action` | 起動の契機 |
+| `trigger` | `opened`・`ready_for_review`・`comment` | イベントの名前と `action` | 起動の契機。`comment` は合言葉のコメント |
 | `actor` | 文字列 | `github.actor` | 起動した人か bot |
 | `head_sha` | 文字列 | イベント | レビューした時点の PR の先頭 |
 | `round` | 整数 | PR の既存のスレッド | 1 巡目は 1。前の巡の `F-NN` のスレッドがあれば、その次の数 |
@@ -17,14 +17,14 @@
 
 ### 起動の条件
 
-すべて満たすときだけ、エージェントを起こす。判定は job の `if` が持つ。`if` は `env` を読めないので、利用者が変える値はリポの変数から読む。
+すべて満たすときだけ、エージェントを起こす。判定は job の `if` が持つ。`comment` の契機では、イベントに PR の head と draft が無いので、fork・draft・閉じた PR の判定は、PR を読む step が持つ。`if` は `env` を読めないので、利用者が変える値はリポの変数から読む。
 
 | 条件 | 見るもの |
 |---|---|
 | 導入が済んでいる | 変数 `PECOT_AGENT_APP_CLIENT_ID` が空でない |
 | リポの中のブランチの PR | PR の head のリポが、導入先のリポと同じ |
 | draft でない | PR の `draft` が偽 |
-| 契機が `labeled` のとき | 付いたラベルの名前が、起動ラベルと同じ |
+| 契機が `comment` のとき | コメントが PR に付いた。本文が合言葉で始まる。書いたのが人 |
 | 契機が `opened`・`ready_for_review` のとき | PR を作ったのが人。bot なら、許した bot の一覧に名前がある |
 
 起動した人が書き込み権限を持つかは、claude-code-action が確かめる。
@@ -78,18 +78,21 @@ w-reviewer が返す 1 件だ。形は、手で回す w-revise と同じにす�
 |---|---|
 | 結果 | `failed`・`limit`・`setup-missing` のどれか |
 | 止まった場所 | 指摘を投稿する前か、インラインコメントを投稿した後か |
-| 次にすること | 起動ラベルの付け直しか、端末の w-revise。`setup-missing` は足りない設定の名前 |
+| 次にすること | 合言葉のコメントでの起動し直しか、端末の w-revise。`setup-missing` は足りない設定の名前 |
 | 目印 | 実行の ID を入れた、画面に出ないコメントの行。同じ実行で 2 度書かないために使う |
 
 トークンの値と secret の値は、書かない。
 
-## 起動ラベル
+## 合言葉
 
 | 欄 | 既定値 |
 |---|---|
-| 名前 | `pecot-review` |
-| 付けられる人 | GitHub の決まりで、triage 以上の権限を持つ人。起動するのは、書き込み権限を持つ人が付けたときだけ |
-| 外す時点 | 実行の終わり。結果に依らない |
+| 文字列 | `/pecot-review`。変数 `PECOT_REVIEW_TRIGGER_PHRASE` で変えられる |
+| 一致の仕方 | コメントの本文が、合言葉で始まる。GitHub Actions の式に正規表現が無いので、`startsWith` で判定する |
+| 起動できる人 | 書き込み権限を持つ人。claude-code-action が確かめる |
+
+- `@` を付けない。実在するアカウントへ通知が飛ぶためだ。`@pecot` は他人のアカウントだった（2026-11-17）
+- `prompt` を渡す形では、action は合言葉を確かめない。判定は job の `if` だけが持つ
 
 ## ワークフローの雛形
 
@@ -98,7 +101,7 @@ w-reviewer が返す 1 件だ。形は、手で回す w-revise と同じにす�
 | 欄 | 中身 |
 |---|---|
 | 版の目印 | 1 行目のコメント。整数 |
-| 利用者が変える値 | 起動ラベルの名前・許す bot の一覧・ターンの上限・時間の上限。リポの変数に置く。変数が無ければ、雛形の既定値で動く |
+| 利用者が変える値 | 合言葉・許す bot の一覧・ターンの上限・時間の上限。リポの変数に置く。変数が無ければ、雛形の既定値で動く |
 | 利用者が足す行 | 開始と終了の印のコメントで囲む |
 
 ## エージェント用の認証
@@ -109,7 +112,8 @@ w-reviewer が返す 1 件だ。形は、手で回す w-revise と同じにす�
 |---|---|---|
 | `PECOT_AGENT_APP_CLIENT_ID` | 変数 | 利用者が作る GitHub App の Client ID |
 | `PECOT_AGENT_APP_PRIVATE_KEY` | secret | その App の秘密鍵 |
-| `ANTHROPIC_API_KEY` | secret | モデルの利用の認証 |
+| `CLAUDE_CODE_OAUTH_TOKEN` | secret | モデルの利用の認証。既定。サブスクリプションのトークン |
+| `PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID`・`_ORGANIZATION_ID`・`_SERVICE_ACCOUNT_ID`・`_WORKSPACE_ID` | 変数 | Workload Identity Federation。secret のトークンが無いときに使う |
 
 App にインストールで与える権限は、使う自動処理の合計だ。ワークフローは、発行のときに、自分に要る権限だけに絞る。
 
@@ -128,4 +132,3 @@ App にインストールで与える権限は、使う自動処理の合計だ�
 | 雛形のファイル | `cli/templates/workflow/pecot-review.yml` |
 | 置き先 | `.github/workflows/pecot-review.yml` |
 | 要る変数と secret | 上の「エージェント用の認証」の 3 つ |
-| 要るラベル | 起動ラベル |

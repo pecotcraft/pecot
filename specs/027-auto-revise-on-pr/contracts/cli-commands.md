@@ -15,27 +15,24 @@
 
 ## `pecot workflow install <名前>`
 
-ワークフローの雛形を、導入先のリポに書き出す。雛形が要るラベルも作る。
+ワークフローの雛形を、導入先のリポに書き出す。
 
 | 引数 | 型 | 既定値 | 意味 |
 |---|---|---|---|
 | `名前` | 文字列 | 無い | 雛形の一覧の名前。初版は `review` だけ |
-| `--label` | 文字列 | `pecot-review` | 起動ラベルの名前。既定値と違うときは、変数 `PECOT_REVIEW_LABEL` に同じ名前を置くよう、次にすることへ出す |
 | `--check` | 真偽値 | 偽 | 書き出さずに、置かれた雛形の版を確かめる |
 | `--force` | 真偽値 | 偽 | 既にあるファイルを上書きする |
 | `-D` | パス | 現在地 | リポのルート |
 
 | 条件 | 振る舞い |
 |---|---|
-| ファイルが無い | 置き先に雛形を書き、起動ラベルを作る。次に利用者がすること（App の作成、変数と secret の登録）を出す |
+| ファイルが無い | 置き先に雛形を書く。次に利用者がすること（App の作成、変数と secret の登録）を出す |
 | ファイルが既にあり、`--force` が無い | 何も書かず、入力の誤りとして止まる |
 | `--force` で、利用者が足した行がある | 上書きの前に、消える行を出す |
 | `--check` で、版が同じ | 成功 |
 | `--check` で、版が古いか、ファイルが無い | 失敗。更新のコマンドを出す |
-| 起動ラベルが既にある | 作らずに進む |
 | 一覧に無い名前 | 入力の誤りとして止まり、一覧の名前を出す |
 
-- 起動ラベルは、名前・説明・色を付けて作る。説明は、付けると何が起きるかを 1 文で書く
 - ファイルを書くので、冪等ではない。`--check` は何も書かない
 
 ## `pecot workflow doctor <名前>`
@@ -53,38 +50,38 @@
 |---|---|
 | 雛形がある | `missing: .github/workflows/pecot-review.yml` |
 | 雛形の版が新しい | `outdated: workflow template review` |
-| 起動ラベルがある | `missing: label <名前>` |
 | 変数 `PECOT_AGENT_APP_CLIENT_ID` がある | `missing: variable PECOT_AGENT_APP_CLIENT_ID` |
 | secret `PECOT_AGENT_APP_PRIVATE_KEY` がある | `missing: secret PECOT_AGENT_APP_PRIVATE_KEY` |
-| secret `ANTHROPIC_API_KEY` がある | `missing: secret ANTHROPIC_API_KEY` |
+| secret `CLAUDE_CODE_OAUTH_TOKEN` か、Workload Identity Federation の 4 つの変数がある | `missing: secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*` |
 
 - 全部そろっていれば成功、1 つでも足りなければ失敗
+- トークンの寿命は、名前の有無からは読めない。切れたことは、`review-finish` のコメントで知らせる
 - secret と変数は、名前の有無だけを読む。値は読まない。リポの単位と organization の単位の両方を見る
 - 手元のトークンに権限が無く読めない項目は、`skipped:` の行で出し、足りないとは数えない
 - App にインストールで与えた権限は、手元のトークンでは読めない。確かめる方法を、導入の説明に書く
 
 ## `pecot pr review-finish <PR>`
 
-自動レビューの終わりの処理だ。起動ラベルを外し、止まったときは PR にコメントを書く。
+自動レビューの終わりの処理だ。止まったときに、PR にコメントを書く。
 
 | 引数 | 型 | 意味 |
 |---|---|---|
 | `PR` | 文字列 | `owner/repo/N` |
 | `--result` | 文字列 | `reviewed`・`failed`・`limit`・`setup-missing` のどれか |
 | `--detail` | 文字列 | `setup-missing` のときの、足りない設定の名前 |
-| `--label` | 文字列 | 外す起動ラベルの名前 |
 | `--ensure` | 真偽値 | ワークフローの後始末から呼ぶ形。同じ実行の結果がまだ無いときだけ書く |
 | `--job-status` | 文字列 | `--ensure` のときに、job の終わり方から結果を決める |
 
 | 条件 | 振る舞い |
 |---|---|
-| 結果が `reviewed` | コメントを書かない。起動ラベルを外す。実行の記録に、終えたことを 1 行出す |
-| 結果が `failed`・`limit`・`setup-missing` | 止まったことを知らせるコメントを書き、起動ラベルを外す |
-| `--ensure` で、job が成功 | コメントを書かない。起動ラベルが残っていれば外す |
-| `--ensure` で、job が失敗し、同じ実行のコメントがある | 何も書かない。起動ラベルが残っていれば外す |
-| `--ensure` で、job が失敗し、同じ実行のコメントが無い | 時間切れか取り消しなら `limit`、それ以外は `failed` として書く |
-| 起動ラベルが付いていない | 失敗にしない |
-| PR が閉じている | コメントを書かない。起動ラベルは外す |
+| 結果が `reviewed` | コメントを書かない。実行の記録に、終えたことを 1 行出す |
+| 結果が `failed`・`limit`・`setup-missing` | 止まったことを知らせるコメントを書く |
+| `--ensure` で、job が成功 | 何もしない |
+| `--ensure` で、job が失敗し、同じ実行のコメントがある | 何も書かない |
+| `--ensure` で、job が失敗し、同じ実行のコメントが無い | job が `cancelled` なら `limit`、それ以外は `failed` として書く。`cancelled` は、時間の上限と手での取り消しを見分けない（research の R9） |
+| `--ensure` で、`execution_file` の最後の `result` が `is_error: true`・`terminal_reason: api_error` | `failed` として書き、認証の失敗なら、トークンを作り直す手順を添える。`subtype` だけで判定しない |
+| `--ensure` で、`execution_file` の最後の `result` が `subtype: error_max_turns` | `limit` として書く |
+| PR が閉じている | コメントを書かない |
 
 - 止まったことを知らせるコメントは、`cli/templates/comment/` のテンプレートから作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
 - 止まった場所は、同じ実行が投稿したインラインコメントの有無から決める

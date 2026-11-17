@@ -49,15 +49,15 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **前提**: 検証用のリポと、検証用にだけ入れた GitHub App（spec 026 の Phase 2）。直したプラグインを action から入れる手段は、spec 026 の R11-6 の結果に従う。結果がまだ無ければ、main の版のプラグインで確かめられる項目だけを先に進める
 
-- [ ] T001 検証用に、確かめ用のワークフローを 1 つ置く。`spec/contracts/workflow-template.md` の job の形で、`prompt` は固定の文にする。App のトークンは Pull requests の write と Contents の read に絞る。置いたファイルは `.pecot/work/<Issue番号>/` にも写す
-- [ ] T002 [P] T001 のワークフローで、プラグインのサブエージェント `pecot-w:w-reviewer` を起こし、結果が main に返るかを確かめる。サブエージェントが main の許可リストを引き継ぐかも見る。結果を `spec/research.md` の R5 に書く
-- [ ] T003 [P] T001 のワークフローで、プラグインの hooks（`UserPromptSubmit`・`PreToolUse`・`Stop`）が、人のいない実行を止めないかを確かめる。止めた hook があれば、名前と出力を `spec/research.md` の R5 に書く
-- [ ] T004 [P] T001 のワークフローで、`pr_show`・`issue_show`・`pr_restack`・`issue_comment` が、絞ったトークンで動くかを確かめる。Projects の権限を求めたツールと、スレッドの読み取りの結果を `spec/research.md` の R3 に書く
-- [ ] T005 [P] T001 のワークフローで、`mcp__github_inline_comment__create_inline_comment` を確かめる。`confirmed: true` で投稿した結果からコメントの URL を得られるか、ファイル単位の指摘とスレッドへの返信ができるかを見る。結果を `spec/research.md` の R4 に書く
-- [ ] T006 [P] `concurrency` を job に書いたとき、`if` で飛ばされた run が group に入らないことを確かめる。起動ラベルでないラベルを、進行中の run の間に付けて見る。`labeled` の run で `github.actor` がラベルを付けた人になることも見る。結果を `spec/research.md` の R2 と R6 に書く
-- [ ] T007 [P] ターンの上限で切られた run と、時間の上限で切られた run を 1 つずつ起こす。job の終わり方と action の出力から、失敗と上限を見分けられるかを確かめる。結果を `spec/research.md` の R9 に書く
-- [ ] T008 [P] bot が作者の PR で、プラグインの MCP サーバが起動するかを確かめる。許した bot の PR と、許していない bot の PR に人が起動ラベルを付けた場合の 2 つだ。作者の名前の形も見る。結果を `spec/research.md` の R2 に書く。動かなければ、ユーザーに FR-025 の扱いを仰ぐ
-- [ ] T009 T002〜T008 の結果で見込みと違った点を、`spec/contracts/` の 3 つの文書と、後のフェーズのタスクに反映する。標準から外れる点が出たら、ユーザーに伝える
+- [x] T001 検証用に、確かめ用のワークフローを 1 つ置く。`spec/contracts/workflow-template.md` の job の形で、`prompt` は固定の文にする。App のトークンは Pull requests の write と Contents の read に絞る。置いたファイルは `.pecot/work/<Issue番号>/` にも写す
+- [x] T002 [P] T001 のワークフローで、プラグインのサブエージェント `pecot-w:w-reviewer` を起こし、結果が main に返るかを確かめる。サブエージェントが main の許可リストを引き継ぐかも見る。結果を `spec/research.md` の R5 に書く
+- [x] T003 [P] T001 のワークフローで、プラグインの hooks（`UserPromptSubmit`・`PreToolUse`・`Stop`）が、人のいない実行を止めないかを確かめる。止めた hook があれば、名前と出力を `spec/research.md` の R5 に書く
+- [x] T004 [P] T001 のワークフローで、`pr_show`・`issue_show`・`pr_restack`・`issue_comment` が、絞ったトークンで動くかを確かめる。Projects の権限を求めたツールと、スレッドの読み取りの結果を `spec/research.md` の R3 に書く
+- [x] T005 [P] T001 のワークフローで、`mcp__github_inline_comment__create_inline_comment` を確かめる。`confirmed: true` で投稿した結果からコメントの URL を得られるか、ファイル単位の指摘とスレッドへの返信ができるかを見る。結果を `spec/research.md` の R4 に書く
+- [x] T006 [P] `concurrency` を job に書いたとき、`if` で飛ばされた run が group に入らないことを確かめる。起動ラベルでないラベルを、進行中の run の間に付けて見る。`labeled` の run で `github.actor` がラベルを付けた人になることも見る。結果を `spec/research.md` の R2 と R6 に書く
+- [x] T007 [P] ターンの上限で切られた run と、時間の上限で切られた run を 1 つずつ起こす。job の終わり方と action の出力から、失敗と上限を見分けられるかを確かめる。結果を `spec/research.md` の R9 に書く
+- [x] T008 [P] bot が作者の PR で、プラグインの MCP サーバが起動するかを確かめる。許した bot の PR と、許していない bot の PR に人が起動ラベルを付けた場合の 2 つだ。作者の名前の形も見る。結果を `spec/research.md` の R2 に書く。動かなければ、ユーザーに FR-025 の扱いを仰ぐ
+- [x] T009 T002〜T008 の結果で見込みと違った点を、`spec/contracts/` の 3 つの文書と、後のフェーズのタスクに反映する。標準から外れる点が出たら、ユーザーに伝える
 
 ---
 
@@ -67,7 +67,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **Independent Test**: `p-w/cli/tests/review-workflow-template.test.ts` が通る。雛形を検証用に手で写すと、fork の PR と draft の PR で job が飛ばされる
 
-**前提**: Phase 1（許可リスト・`if`・`concurrency` の形が、実機の結果で決まる）
+**前提**: Phase 1（許可リスト・`if`・`concurrency` の形が、実機の結果で決まる）。#579（`.active` の無い checkout で、pecot の MCP ツールが動く）。起動し直しは合言葉のコメントで行う（research の R15）
 
 ### Tests for User Story 2
 
@@ -76,7 +76,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 ### Implementation for User Story 2
 
 - [ ] T011 [US2] `p-w/cli/templates/workflow/pecot-review.yml` を書く。中身は `spec/contracts/workflow-template.md` のとおりにする。利用者が変える 4 つの値は `vars` から読み、job の `if` で `env` を読まない。action は SHA で固定する
-- [ ] T012 [US2] 雛形の先頭のコメントに、置き先・要る変数と secret・変えられる 4 つの変数と既定値・起動ラベル・Dependabot を許すときの secret の置き場を、英語で書く。`p-w/cli/templates/workflow/pecot-board-sync.yml` の先頭のコメントと同じ調子にする
+- [ ] T012 [US2] 雛形の先頭のコメントに、置き先・要る変数と secret・変えられる 4 つの変数と既定値・合言葉・Dependabot を許すときの secret の置き場を、英語で書く。`p-w/cli/templates/workflow/pecot-board-sync.yml` の先頭のコメントと同じ調子にする
 - [ ] T013 [US2] `.pre-commit-config.yaml` の actionlint が、新しい雛形も対象にしていることを確かめる。対象から外れていれば、対象の指定を直す
 - [ ] T014 [US2] T010 のテストを通す。雛形を検証用に手で写し、quickstart.md のシナリオ 7（fork）・9（draft）・12（許していない bot）で job が飛ばされることを見る。結果を PR の説明に書く
 
@@ -86,7 +86,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 **Goal**: `pecot workflow install`・`doctor` が、雛形の一覧から雛形を置き、設定を確かめる。認証の名前と雛形の書き方の決まりが、自動処理に共通のものとして文書にある
 
-**Independent Test**: 空のリポの作業ツリーで `pecot workflow install review` を打つと、雛形と起動ラベルができる。`pecot workflow doctor review` が、足りない変数と secret を名前で出す
+**Independent Test**: 空のリポの作業ツリーで `pecot workflow install review` を打つと、雛形ができる。`pecot workflow doctor review` が、足りない変数と secret を名前で出す
 
 **前提**: Phase 2（雛形のファイルを読んで書き出す）
 
@@ -101,7 +101,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 ### Implementation for User Story 5
 
 - [ ] T018 [US5] 雛形の一覧と版の比べ方を `p-w/cli/src/domain/` に書く。初版の一覧は `review` の 1 行だ。欄は `spec/data-model.md` の「雛形の一覧」のとおりにする
-- [ ] T019 [US5] 雛形の書き出しと、変数・secret・ラベルの名前の読み取りを `p-w/cli/src/infra/` に書く。secret と変数は名前の有無だけを読み、値は読まない。リポの単位と organization の単位の両方を見る
+- [ ] T019 [US5] 雛形の書き出しと、変数・secret の名前の読み取りを `p-w/cli/src/infra/` に書く。secret と変数は名前の有無だけを読み、値は読まない。リポの単位と organization の単位の両方を見る
 - [ ] T020 [US5] `p-w/cli/src/commands/workflow.ts` に `install` と `doctor` を書く。コマンドの定義の配列を、`p-w/cli/src/commands/registry.ts` に足す。MCP ツール `workflow_install`・`workflow_doctor` は、registry の定義から出る。MCP の側に、別のファイルは足さない
 - [ ] T021 [US5] `p-w/interface/authored.yaml` に 2 つの項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T015〜T017 のテストに `verifies` を足す
 - [ ] T022 [P] [US5] `p-w/skills/w-help/references/auth-config.md` に、エージェント用の認証の名前を足す。名前は `spec/data-model.md` の「エージェント用の認証」の 3 つだ。App にインストールで与える権限は使う自動処理の合計で、ワークフローが発行のときに絞ることを書く
@@ -110,11 +110,11 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ---
 
-## Phase 4: 起動ラベルが外れ、止まったことが PR に残る (US1、P1)
+## Phase 4: 止まったことが PR に残る (US1、P1)
 
-**Goal**: `pecot pr review-finish` が、起動ラベルを外し、失敗と上限のときだけ、止まったことを知らせるコメントを 1 つ書く
+**Goal**: `pecot pr review-finish` が、失敗と上限のときだけ、止まったことを知らせるコメントを 1 つ書く
 
-**Independent Test**: 検証用の PR に対して `pecot pr review-finish <PR> --ensure --job-status failure` を打つ。コメントが 1 つ付き、起動ラベルが外れる。同じコマンドをもう一度打っても、コメントが増えない
+**Independent Test**: 検証用の PR に対して `pecot pr review-finish <PR> --ensure --job-status failure` を打つ。コメントが 1 つ付く。同じコマンドをもう一度打っても、コメントが増えない
 
 **前提**: Phase 1（失敗と上限の見分け方が、実機の結果で決まる）
 
@@ -186,12 +186,17 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ### Tests for User Story 4
 
-- [ ] T043 [US4] `p-w/cli/tests/review-workflow-template.test.ts` に、導入の説明と雛形の一致の期待を足す。説明に書いた変数・secret・ラベルの名前と、App の権限が、雛形と同じであることを確かめる。説明が無いので落ちることを確かめる
+- [ ] T043 [US4] `p-w/cli/tests/review-workflow-template.test.ts` に、導入の説明と雛形の一致の期待を足す。説明に書いた変数・secret の名前・合言葉の既定値と、App の権限が、雛形と同じであることを確かめる。説明が無いので落ちることを確かめる
 
 ### Implementation for User Story 4
 
-- [ ] T044 [US4] `p-w/skills/w-help/references/review-workflow.md` を書く。導入の節に、前提・置き方・GitHub App の作り方と権限・変数と secret・起動ラベルを書く。形は、同じ置き場の `board-sync-workflow.md` に合わせる
-- [ ] T058 [US4] 同じファイルに、運用の節を書く。変えられる 4 つの変数、bot を許す設定、Dependabot の secret、止まったときの読み方、雛形の更新、App の権限の確かめ方、GHES で確かめていないことを書く
+- [ ] T044 [US4] `p-w/skills/w-help/references/review-workflow.md` を書く。導入の節に、前提・置き方・GitHub App の作り方と権限・変数と secret・合言葉を書く。形は、同じ置き場の `board-sync-workflow.md` に合わせる。モデルの認証は `spec/research.md` の R14 のとおりにする
+  - 既定はサブスクリプションのトークンだ。`claude setup-token` で作り、1 行で貼る
+  - Workload Identity Federation は、subject の prefix を `sub_claim_prefix` から作る手順を書く
+- [ ] T058 [US4] 同じファイルに、運用の節を書く。次の項目だ
+  - 変えられる 4 つの変数、bot を許す設定、Dependabot の secret、止まったときの読み方
+  - トークンが切れたときの作り直しと、払い方の切り替え。secret を消すと Workload Identity Federation で動く
+  - 雛形の更新、App の権限の確かめ方、GHES で確かめていないこと
 - [ ] T059 [US4] 同じファイルに、「自動処理に共通の決まり」の節を書く。認証の名前・版の目印・利用者が足す行の印を書く
 - [ ] T045 [US4] `p-w/skills/w-onboarding/SKILL.md` に、自動レビューを入れるかを選ぶ Step を足す。中身は `spec/contracts/skill-flow.md` の「w-onboarding に足す Step」のとおりにする
 - [ ] T046 [P] [US4] `p-w/skills/w-help/SKILL.md` の参照の表に、`review-workflow.md` を足す
