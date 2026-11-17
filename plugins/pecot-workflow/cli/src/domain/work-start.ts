@@ -4,9 +4,10 @@ import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { describePrerequisiteState, describeReadiness, displayReference, isDone } from './readiness.js'
-import type { Prerequisite, Readiness } from './readiness.js'
+import type { Prerequisite, Readiness, StackTarget } from './readiness.js'
 import { issueReferenceToCliReference } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'
+import type { BaseRecord } from './state.js'
 
 export type StartDecision
   = | { readonly kind: 'start' }
@@ -42,6 +43,33 @@ export function decideStart(readiness: Readiness | undefined, prerequisites: rea
 export function describeBaseMismatch(base: string | undefined, decision: Exclude<StartDecision, { kind: 'blocked' }>, target: IssueReference): HintedText | undefined {
   const isDifferent = base !== undefined && base !== '' && decision.kind === 'stack' && base !== decision.branch
   return isDifferent ? hinted`${inputHint(['session', 'start'], 'base', base)} differs from the base chosen by readiness: ${decision.branch} (stacked on ${displayReference(decision.issue, target.repository)})` : undefined
+}
+
+/**
+積んだ先の下の段を git で調べた結果。追跡参照が手元に無ければ untracked
+*/
+export type LowerProbe
+  = | { readonly kind: 'untracked', readonly reference: string }
+    | { readonly kind: 'probed', readonly isShared: boolean, readonly sha: string | undefined }
+
+export type StackInference
+  = | { readonly kind: 'stacked', readonly record: BaseRecord, readonly stackedOn: IssueReference }
+    | { readonly kind: 'development' }
+    | { readonly kind: 'unknown', readonly reason: string }
+
+/**
+.pecot-base が無いときに、判定と下の段の git の様子から積んだ先を求める。
+判定が stackable でも下の段の変更を持たないのは、開発ブランチから着手した後に前提を足したとき
+*/
+export function inferStackedBase(readiness: Readiness | undefined, prerequisites: readonly Prerequisite[], target: IssueReference, probe: (stackOn: Readonly<StackTarget>) => LowerProbe): StackInference {
+  if (readiness?.kind === 'blocked') return { kind: 'unknown', reason: describeReadiness(readiness, prerequisites, target.repository) }
+  if (readiness?.kind !== 'stackable' || readiness.stackOn === undefined) return { kind: 'development' }
+  const { branch, issue } = readiness.stackOn
+  const probed = probe(readiness.stackOn)
+  if (probed.kind === 'untracked') return { kind: 'unknown', reason: `${probed.reference} is not found; fetch it with: git fetch` }
+  if (!probed.isShared) return { kind: 'development' }
+  if (probed.sha === undefined) return { kind: 'unknown', reason: `cannot find where HEAD forked from ${branch}` }
+  return { kind: 'stacked', record: { branch, sha: probed.sha, stackedOn: issue }, stackedOn: issue }
 }
 
 /**

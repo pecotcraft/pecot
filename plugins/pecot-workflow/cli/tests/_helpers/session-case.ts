@@ -23,7 +23,14 @@ export interface SessionCaseOptions {
   プロジェクトルートに足すファイル（設定ファイルの上書きを含む）
   */
   readonly files?: Readonly<Record<string, string>>
+  /**
+  session start が書く、開発ブランチから着手した記録（.pecot-base）を置くか。既定は置く。false なら置かず、積んだ先を判定から求める
+  */
+  readonly baseRecord?: boolean
 }
+
+// 開発ブランチから着手した記録。位置は読まれないので、形だけ合わせる
+const DEVELOPMENT_RECORD = { '.pecot/state/.pecot-base': `main ${'0'.repeat(40)}\n` }
 
 export interface SessionCase {
   readonly project: ProjectFixture
@@ -35,7 +42,7 @@ export interface SessionCase {
 */
 export function prepareSession(options: Readonly<SessionCaseOptions> = {}): SessionCase {
   const { branch = 'feat/demo/7', remotes = { origin: ORIGIN_URL }, files = {} } = options
-  const project = setUpProject({ files })
+  const project = setUpProject({ files: { ...options.baseRecord !== false && DEVELOPMENT_RECORD, ...files } })
   const repository = realpathSync(createGitRepository(undefined, project.root))
   process.chdir(repository)
   gitForTest(repository, ['checkout', '-q', '-b', branch])

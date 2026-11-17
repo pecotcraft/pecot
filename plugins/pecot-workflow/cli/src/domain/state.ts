@@ -122,6 +122,10 @@ export interface RestackProgress {
   載せ直した後も積んだ記録を保つなら、積んだ先の Issue。開発ブランチへ載せ直すなら undefined
   */
   readonly stackedOn: IssueReference | undefined
+  /**
+  載せ直す前の積んだ記録の位置。`--continue` が remote にだけある変更を数えるときに除く。古い版の途中の記録には無い
+  */
+  readonly recordSha: string | undefined
 }
 
 export type RestackProgressReading
@@ -132,23 +136,32 @@ export type RestackProgressReading
 const ABSENT = '-'
 
 /**
-.pecot-restack の 1 行。`<remote> <branch> <originalSha> <ontoBranch> <ontoSha> <leaseSha> <owner/repo#N>` で、無い項目は `-`
+.pecot-restack の 1 行。項目は `<remote> <branch> <originalSha> <ontoBranch> <ontoSha> <leaseSha> <owner/repo#N> <recordSha>`。
+無い項目は `-`
 */
 export function formatRestackProgress(progress: Readonly<RestackProgress>): string {
   const stackedOn = progress.stackedOn === undefined ? ABSENT : issueReferenceToString(progress.stackedOn)
-  return [progress.remote, progress.branch, progress.originalSha, progress.ontoBranch, progress.ontoSha, progress.leaseSha ?? ABSENT, stackedOn].join(' ')
+  return [progress.remote, progress.branch, progress.originalSha, progress.ontoBranch, progress.ontoSha, progress.leaseSha ?? ABSENT, stackedOn, progress.recordSha ?? ABSENT].join(' ')
+}
+
+// 無い項目の `-` か SHA
+function optionalSha(text: string | undefined): { readonly isValid: boolean, readonly sha: string | undefined } {
+  if (text === undefined || text === ABSENT) return { isValid: true, sha: undefined }
+  return BASE_SHA_PATTERN.test(text) ? { isValid: true, sha: text } : { isValid: false, sha: undefined }
 }
 
 /**
-.pecot-restack の内容を読む。ファイルが無ければ none、形が誤っていれば malformed
+.pecot-restack を読む。ファイルが無ければ none、形が誤っていれば malformed。
+古い版が書いた 7 項目の行も読み、recordSha を undefined にする
 */
 export function interpretRestackProgress(content: string | undefined): RestackProgressReading {
   if (content === undefined) return { kind: 'none' }
   const malformed: RestackProgressReading = { kind: 'malformed', content }
-  const [remote, branch, originalSha, ontoBranch, ontoSha, lease, issue, ...rest] = content.split(' ')
+  const [remote, branch, originalSha, ontoBranch, ontoSha, lease, issue, record, ...rest] = content.split(' ')
   if (remote === undefined || branch === undefined || originalSha === undefined || ontoBranch === undefined || ontoSha === undefined || lease === undefined || issue === undefined || rest.length > 0 || [remote, branch, ontoBranch].includes('') || !BASE_SHA_PATTERN.test(ontoSha) || !BASE_SHA_PATTERN.test(originalSha)) return malformed
-  if (lease !== ABSENT && !BASE_SHA_PATTERN.test(lease)) return malformed
+  const leaseSha = optionalSha(lease)
+  const recordSha = optionalSha(record)
+  if (!leaseSha.isValid || !recordSha.isValid) return malformed
   const stackedOn = issue === ABSENT ? undefined : parseStackedOn(issue)
-  if (issue !== ABSENT && stackedOn === undefined) return malformed
-  return { kind: 'progress', progress: { remote, branch, originalSha, ontoBranch, ontoSha, leaseSha: lease === ABSENT ? undefined : lease, stackedOn } }
+  return issue !== ABSENT && stackedOn === undefined ? malformed : { kind: 'progress', progress: { remote, branch, originalSha, ontoBranch, ontoSha, leaseSha: leaseSha.sha, stackedOn, recordSha: recordSha.sha } }
 }

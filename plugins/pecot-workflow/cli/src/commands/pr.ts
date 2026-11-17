@@ -36,8 +36,8 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { readBaseRecord } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
+import { readBaseOrInfer } from './base-reading.js'
 import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
@@ -510,7 +510,7 @@ export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output
 // 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手で載せ直した後の古い記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため
 async function readBaseRecordFor(head: string, template: string, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
   if (template === 'release' || head !== gitCurrentBranch(directory)) return undefined
-  const reading = readBaseRecord()
+  const { reading } = await readBaseOrInfer({ directory, config: target.config, client: lazyClient(target.config, out), output: out })
   stopOnMalformedRecord(reading, out)
   if (reading.kind !== 'stacked') return reading
   const { branch, sha } = reading.record
@@ -775,11 +775,11 @@ async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateD
   // release テンプレートは、base をテンプレートの既定（main）のままにする
   if (template !== 'release') {
     // 下の段の PR がマージ済みかは、準備と投稿の間に変わりうるので、ここでは読まずに投稿のときに見る
-    const reading = readBaseRecord()
+    const config = loadActiveConfig()
+    const { reading } = await readBaseOrInfer({ directory, config, client: () => createGitHubClient(out, config?.host), output: out })
     stopOnMalformedRecord(reading, out)
     const record = reading.kind === 'stacked' ? reading.record : undefined
     const location = primaryRemote(directory)?.location
-    const config = loadActiveConfig()
     if (location !== undefined) {
       const developBranch = config === undefined ? undefined : getDevelopBranch(config, location.owner, location.repository)
       if (config !== undefined && developBranch !== undefined && developBranch !== '') {
@@ -1048,7 +1048,7 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
   const context = validatePullRequestContext(directory, out)
   const config = loadActiveConfig()
   if (config === undefined) return stopWith(out, hinted`project config not found\nactivate a project with: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`, 'no-active-project')
-  const reading = readBaseRecord()
+  const { reading } = await readBaseOrInfer({ directory, config, client: lazyClient(config, out), output: out })
   stopOnMalformedRecord(reading, out)
   const baseBranch = determineBaseBranch(config, reading, context.location, directory, context.remoteName, out)
 

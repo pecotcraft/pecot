@@ -169,6 +169,10 @@ export interface WorkspaceOptions {
   アクティブなプロジェクトの設定。false なら置かない。既定は develop_branch が main の設定
   */
   readonly config?: ConfigOptions | false
+  /**
+  session start が書く、開発ブランチから着手した記録（.pecot-base）を置くか。既定は置く。false なら置かず、積んだ先を判定から求める
+  */
+  readonly baseRecord?: boolean
   readonly github?: readonly ResponseRule[]
   readonly env?: Readonly<Record<string, string | undefined>>
 }
@@ -228,6 +232,9 @@ afterEach(async () => {
   }
 })
 
+// 開発ブランチから着手した記録。位置は読まれないので、形だけ合わせる
+const DEVELOPMENT_RECORD = { '.pecot/state/.pecot-base': `main ${'0'.repeat(40)}\n` }
+
 // 偽サーバの代わりに、プロキシと PATH は触らない
 const NOT_APPLIED = new Set(['PATH', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'NODE_USE_ENV_PROXY'])
 
@@ -247,7 +254,7 @@ function scenarioOf(options: Readonly<WorkspaceOptions>): Scenario {
         branches: (options.branches ?? []).map(branch => ({ name: branch.name, commits: branch.commits ?? [] })),
         tags: [],
         worktrees: options.worktrees ?? [],
-        files: { ...configFiles, ...options.files },
+        files: { ...configFiles, ...options.baseRecord !== false && DEVELOPMENT_RECORD, ...options.files },
       },
       cwd: '.',
       data: {},
