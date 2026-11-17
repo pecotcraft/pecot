@@ -584,6 +584,69 @@ def _load_yaml(path: Path) -> Any:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
+# ---------------------------------------------------------------- 合否のレーン
+
+
+def _lane_outputs(root: Path, project: str, target: str) -> list[str]:
+    """``plugins/<project>/project.json`` の target の outputs。
+
+    nx.json の targetDefaults に outputs が無い前提で、そのまま読む（test_lane_targets_have_no_default_outputs）。
+    """
+    project_json = root / "plugins" / project / "project.json"
+    if not project_json.is_file():
+        raise ValueError(f"{project_json.relative_to(root)} がありません")
+    targets = cast("dict[str, dict[str, Any]]", _load_json(project_json).get("targets", {}))
+    if target not in targets:
+        raise ValueError(f"{project_json.relative_to(root)} に target {target} がありません")
+    outputs: object = targets[target].get("outputs", [])
+    if not isinstance(outputs, list):
+        raise ValueError(
+            f"{project_json.relative_to(root)} の {target} の outputs が配列ではありません"
+        )
+    resolved: list[str] = []
+    for output in cast("list[str]", outputs):
+        unknown = set(re.findall(r"\{[^}]*\}", output)) - {"{projectRoot}"}
+        if unknown:
+            raise ValueError(f"outputs の {', '.join(sorted(unknown))} を解けません")
+        resolved.append(output.replace("{projectRoot}", f"plugins/{project}"))
+    return resolved
+
+
+def load_junit_lanes(path: Path, root: Path) -> dict[str, list[str]]:
+    """junit-lanes.json を読み、プラグインごとの JUnit の絶対パスの一覧にする。決まりに反したら ValueError。"""
+    table: dict[str, list[str]] = {}
+    seen_targets: set[str] = set()
+    seen_junits: set[str] = set()
+    lanes: object = _load_json(path)
+    if not isinstance(lanes, list):
+        raise ValueError(f"{path.name}: レーンの配列ではありません")
+    for i, raw in enumerate(cast("list[Any]", lanes), start=1):
+        lane = cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
+        plugin, target, junit = (lane.get(k) for k in ("plugin", "target", "junit"))
+        if not (isinstance(plugin, str) and isinstance(target, str) and isinstance(junit, str)):
+            raise ValueError(f"{path.name} #{i}: plugin・target・junit の文字列が要ります")
+        where = f"{path.name} #{i} {target} ({junit})"
+        project, sep, name = target.partition(":")
+        if not sep or not project or not name or ":" in name:
+            raise ValueError(f"{where}: target は <project>:<target> の形にします")
+        if plugin != project:
+            raise ValueError(f"{where}: plugin {plugin} が target の project と違います")
+        if target in seen_targets:
+            raise ValueError(f"{where}: 同じ target が 2 回あります")
+        if junit in seen_junits:
+            raise ValueError(f"{where}: 同じ junit が 2 回あります")
+        try:
+            outputs = _lane_outputs(root, project, name)
+        except ValueError as error:
+            raise ValueError(f"{where}: {error}") from error
+        if junit not in outputs:
+            raise ValueError(f"{where}: junit が target の outputs にありません")
+        seen_targets.add(target)
+        seen_junits.add(junit)
+        table.setdefault(plugin, []).append(str(root / junit))
+    return table
+
+
 # ---------------------------------------------------------------- ディレクティブ
 
 

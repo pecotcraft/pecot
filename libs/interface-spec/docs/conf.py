@@ -7,6 +7,8 @@ DOCS = Path(__file__).resolve().parent
 ROOT = DOCS.parents[2]
 sys.path.insert(0, str(DOCS / "_ext"))
 
+from iface_defs import load_junit_lanes  # noqa: E402
+
 project = "pecot"
 # 既定の題は「pecot  ドキュメント」になるので、プロジェクト名だけにする。
 html_title = "pecot"
@@ -87,15 +89,8 @@ tr_case_id_length = 8
 
 # iface_defs 拡張の設定。テストはこれらを差し替える。
 iface_root = str(ROOT)
-iface_junit = {
-    "pecot-workflow": [
-        str(ROOT / "plugins/pecot-workflow/cli/test-results/junit.xml"),
-        str(ROOT / "plugins/pecot-workflow/cli/test-results/junit.xml"),
-        str(ROOT / "plugins/pecot-workflow/cli/test-results/junit-hooks.xml"),
-    ],
-    "pecot-tools": [str(ROOT / "plugins/pecot-tools/cli/test-results/junit.xml")],
-    "pecot-visual": [str(ROOT / "plugins/pecot-visual/cli/test-results/junit.xml")],
-}
+# 合否のレーンは junit-lanes.json が正。後の段の workflow の matrix も同じファイルから作る。
+iface_junit = load_junit_lanes(DOCS / "junit-lanes.json", ROOT)
 
 # コマンド・ツールごとのページを _generated/<plugin>/ に書く。テストは 1 ページで組むので切る。
 iface_pages = True

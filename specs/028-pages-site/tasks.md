@@ -31,15 +31,16 @@ description: "Task list for 028-pages-site"
 
 **Purpose**: 合否のレーンと JUnit のパスを `junit-lanes.json` に移し、サイトと workflow の両方がそこから決まるようにする（FR-009、research R7）
 
-- [ ] T001 [P] `libs/interface-spec/docs/tests/test_iface_defs.py` に、`junit-lanes.json` の読み込みのテストを先に書く。
+- [x] T001 [P] `libs/interface-spec/docs/tests/test_iface_defs.py` に、`junit-lanes.json` の読み込みのテストを先に書く。
   確かめること: 4 本（`pecot-workflow:test-cli`・`pecot-workflow:test-hooks`・`pecot-tools:test-cli`・`pecot-visual:test-cli`）がプラグインごとにまとまる、「同じ `junit` を 2 回書かない」に反すると失敗する、`target` の `outputs` に `junit` が無いと失敗する
-- [ ] T002 [P] `.githooks/tests/test_pages_lanes.py` に、`.githooks/scripts/pages_site/lanes.py` が `junit-lanes.json` から GitHub Actions の matrix（`lane`・`slug`・`junit`）の JSON を出すテストを先に書く。
+- [x] T002 [P] `.githooks/tests/test_pages_lanes.py` に、`.githooks/scripts/pages_site/lanes.py` が `junit-lanes.json` から GitHub Actions の matrix（`lane`・`slug`・`junit`）の JSON を出すテストを先に書く。
   slug は ci.yml の `tests (<lane>)` と同じ作り方
-- [ ] T003 `libs/interface-spec/docs/junit-lanes.json` を作る。項目は data-model.md の JunitLane（`plugin`・`target`・`junit`）。今の `conf.py` の `iface_junit` の重なり（pecot-workflow の `junit.xml` が 2 回）を解く
-- [ ] T004 `libs/interface-spec/docs/conf.py` の `iface_junit` を、`junit-lanes.json` から作るように直す（T003 の後）
-- [ ] T005 `.githooks/scripts/pages_site/lanes.py` を作る（T003 の後）。
+- [x] T003 `libs/interface-spec/docs/junit-lanes.json` を作る。項目は data-model.md の JunitLane（`plugin`・`target`・`junit`）。今の `conf.py` の `iface_junit` の重なり（pecot-workflow の `junit.xml` が 2 回）を解く
+- [x] T004 `libs/interface-spec/docs/conf.py` の `iface_junit` を、`junit-lanes.json` から作るように直す（T003 の後）
+- [x] T005 `.githooks/scripts/pages_site/lanes.py` を作る（T003 の後）。
   `.githooks/scripts/pages_site/pyrightconfig.json` を置き、`.githooks/scripts/run-lint.sh` と `.pre-commit-config.yaml` の `githooks-lint` の `files` を広げて、`pages_site/` を pyright strict にかける（憲章 III）
-- [ ] T006 `libs/interface-spec/project.json` の `docs` の `inputs`・description と、`test-unit` の description に、`junit-lanes.json` を足す
+- [x] T006 `libs/interface-spec/project.json` の `docs` と `test-unit` の description に、`junit-lanes.json` を足す。`test-unit` の inputs に `plugins/*/project.json` を足す。
+  `docs` は `cache: false` で inputs が働かないので、inputs は足さない
 
 **Checkpoint**: `pnpm exec nx run interface-spec:docs` が今と同じ HTML を作る。`python3 .githooks/scripts/pages_site/lanes.py` が 4 本の matrix を出す。`bash .githooks/scripts/run-lint.sh` が通る
 

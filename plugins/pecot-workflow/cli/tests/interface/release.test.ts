@@ -340,9 +340,9 @@ describe('release check', () => {
   })
 
   it.for([
-    { repository: { owner: 'acme', name: 'demo', release_branch: 'release' } },
-    { repository: { owner: 'acme', name: 'demo', develop_branch: 'develop' } },
-  ])('もし develop_branch か release_branch を設定していないなら、終了コード 1 で終わる', async ({ repository }, context) => {
+    { kind: 'develop', repository: { owner: 'acme', name: 'demo', release_branch: 'release' } },
+    { kind: 'release', repository: { owner: 'acme', name: 'demo', develop_branch: 'develop' } },
+  ])('もし $kind の branch を設定していないなら、終了コード 1 で終わる', async ({ repository }, context) => {
     await verifies(context, 'PW-RELEASE-CHECK-25')
     const result = await runPreflight(project({ repositories: [repository] }))
     expect(result.code).toBe(1)

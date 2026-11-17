@@ -924,9 +924,9 @@ describe('worktree init', () => {
   })
 
   it.for([
-    { name: '形式が不正', content: '{"host": 1}' },
+    { name: '形式が不正な JSON', content: '{"host": 1}' },
     { name: '不完全な JSON', content: '{' },
-  ])('アクティブな設定ファイルの$nameだと、何も書かず、error の行を標準エラーに出し、終了コード 1 で終わる', async (row, context) => {
+  ])('アクティブな設定ファイルが $name のとき、何も書かず、error の行を標準エラーに出し、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-WORKTREE-INIT-16')
     await verifies(context, 'PW-WORKTREE-INIT-17')
     await verifies(context, 'PW-WORKTREE-INIT-18')
