@@ -62,8 +62,17 @@ def test_triggers() -> None:
     assert inputs["side"]["type"] == "choice"
     assert inputs["side"]["options"] == ["release", "dev"]
     assert inputs["side"]["required"] is True
-    assert inputs["sha"]["type"] == "string"
-    assert inputs["sha"]["required"] is True
+    # 入力のコミットを既定のブランチの権限で動かさない（CodeQL の actions/cache-poisoning/poisonable-step）。
+    assert list(inputs) == ["side"]
+    assert "inputs.sha" not in _BUILD.read_text(encoding="utf-8")
+
+
+def test_dispatch_builds_latest_release_or_default_branch_head() -> None:
+    step = next(s for s in _steps("side") if s.get("id") == "decide")
+    assert step["env"]["DEFAULT_BRANCH"] == "${{ github.event.repository.default_branch }}"
+    assert 'gh api "repos/$REPO/releases/latest" --jq .tag_name' in step["run"]
+    assert 'gh api "repos/$REPO/commits/$tag" --jq .sha' in step["run"]
+    assert 'gh api "repos/$REPO/commits/$DEFAULT_BRANCH" --jq .sha' in step["run"]
 
 
 def test_jobs_and_order() -> None:

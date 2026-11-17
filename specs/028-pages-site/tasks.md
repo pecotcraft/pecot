@@ -97,7 +97,7 @@ description: "Task list for 028-pages-site"
 ### Tests for User Story 1（作る run）
 
 - [x] T020 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-build.yml` の形のテストを書く。
-  contracts/pages.md の「`pages-build.yml`」の表のとおり: 契機（`push` の `main`・`pull_request` の opened/synchronize/reopened/closed・`workflow_dispatch` の `side` と `sha`）、
+  contracts/pages.md の「`pages-build.yml`」の表のとおり: 契機（`push` の `main`・`pull_request` の opened/synchronize/reopened/closed・`workflow_dispatch` の `side` だけ）、
   PR は `head.repo.full_name == github.repository` のときだけ作る、
   権限は `contents: read` だけ、
   concurrency は `pages-build-<side>-<PR の番号か ref>` で `cancel-in-progress: true`、
@@ -141,7 +141,7 @@ description: "Task list for 028-pages-site"
   environment は `github-pages`。
   concurrency は `group: pages`・`cancel-in-progress: false`。
   action は `configure-pages`・`upload-pages-artifact` v5・`deploy-pages` v5 を SHA で固定
-- [ ] T027 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）の成功の後にだけ `gh workflow run pages-build.yml -f side=release -f sha=<本番の SHA>` を打つ段があり、その job に `actions: write` があるテストを足す
+- [ ] T027 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）の成功の後にだけ `gh workflow run pages-build.yml -f side=release` を打つ段があり、その job に `actions: write` があるテストを足す
 
 ### Implementation for User Story 1（公開する run）
 

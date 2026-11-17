@@ -15,10 +15,6 @@ on:
         type: choice
         options: [release, dev]
         required: true
-      sha:
-        description: Full commit SHA to build
-        type: string
-        required: true
 
 permissions:
   contents: read
@@ -46,9 +42,12 @@ jobs:
       lanes: ${{ steps.lanes.outputs.lanes }}
     steps:
       # closed の PR は pages-deploy.yml を起こすためだけに成功で終わる。fork の PR は作らない。
+      # 手での起動はコミットを受け取らず、Latest のリリースか既定のブランチの先頭を作る（CodeQL の cache-poisoning）。
       - name: Decide side and commit
         id: decide
         env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           EVENT_NAME: ${{ github.event_name }}
           PR_ACTION: ${{ github.event.action }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -56,7 +55,6 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           REPO: ${{ github.repository }}
           INPUT_SIDE: ${{ inputs.side }}
-          INPUT_SHA: ${{ inputs.sha }}
           PUSH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -73,7 +71,12 @@ jobs:
               ;;
             workflow_dispatch)
               side=$INPUT_SIDE
-              SHA=$INPUT_SHA
+              if [ "$side" = "release" ]; then
+                tag=$(gh api "repos/$REPO/releases/latest" --jq .tag_name)
+                SHA=$(gh api "repos/$REPO/commits/$tag" --jq .sha)
+              else
+                SHA=$(gh api "repos/$REPO/commits/$DEFAULT_BRANCH" --jq .sha)
+              fi
               ;;
             *)
               side="dev"

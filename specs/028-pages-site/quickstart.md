@@ -54,10 +54,10 @@ uv run pytest .githooks/tests/test_pages_workflows.py -q
 ## 4. リリース版の公開
 
 ```bash
-gh workflow run pages-build.yml --ref main -f side=release -f sha=<最新のリリースのコミット>
+gh workflow run pages-build.yml --ref main -f side=release
 ```
 
-期待: `https://pecotcraft.github.io/pecot/` の帯が「リリース版」と指定のコミットになる。`/dev/` は変わらない。次の本番のリリースからは、release.yml が同じように起動する。
+期待: `https://pecotcraft.github.io/pecot/` の帯が「リリース版」と、GitHub の Latest のリリースのタグが指すコミットになる。`/dev/` は変わらない。次の本番のリリースからは、release.yml が同じように起動する。
 
 ## 5. PR 版（PR 版を入れた PR のマージの後）
 

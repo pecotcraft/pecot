@@ -55,10 +55,10 @@
   | 契機 | 作る run（`pages-build.yml`） | 公開する run（`pages-deploy.yml`） |
   |---|---|---|
   | main への push | 開発版を作る | 作る run の完了の `workflow_run` で起きる |
-  | `release.yml` の本番が済む | release.yml の最後の段が `gh workflow run pages-build.yml -f side=release -f sha=<SHA>` で起こす | 同上 |
+  | `release.yml` の本番が済む | release.yml の最後の段が `gh workflow run pages-build.yml -f side=release` で起こす | 同上 |
   | 同じリポの PR の opened・synchronize・reopened | PR 版を作る | 同上 |
   | 同じリポの PR の closed | 作らずに終わる | 同上。開いている PR を数え直し、閉じた PR の側を外す |
-  | 手での起動 | `workflow_dispatch`（side と sha を指定） | 同上。公開だけのやり直しは `pages-deploy.yml` の `workflow_dispatch` |
+  | 手での起動 | `workflow_dispatch`（side を指定） | 同上。公開だけのやり直しは `pages-deploy.yml` の `workflow_dispatch` |
 
 - **Rationale**: `GITHUB_TOKEN` で起こした run は、新しい workflow を起こさない。ただし `workflow_dispatch` と `repository_dispatch` は例外として起こす（docs: triggering-a-workflow-from-a-workflow）。
   release.yml から作る run を起こすのは、この例外に当たる。
