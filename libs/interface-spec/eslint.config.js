@@ -10,6 +10,7 @@ import { configs as regexpConfigs } from 'eslint-plugin-regexp'
 import security from 'eslint-plugin-security'
 import vitest from '@vitest/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
+import { tableKeyConfig } from './src/eslint/table-key.ts'
 
 const JA = String.raw`[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]`
 const NO_JA = '題に日本語が無い（.claude/rules/test-conventions.md）'
@@ -106,6 +107,7 @@ export default defineConfig(
       'src/domain/issues.ts',
       'src/domain/validate.ts',
       'src/eslint/describe-title.ts',
+      'src/eslint/table-key.ts',
       'tests/**/*.ts',
     ],
     rules: { '@typescript-eslint/prefer-readonly-parameter-types': 'off' },
@@ -129,6 +131,8 @@ export default defineConfig(
       ],
     },
   },
+  // 表を回すテストの題の $キー を確かめる。規則は src/eslint/table-key.ts にある。
+  tableKeyConfig(['**/*.test.ts']),
   {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     ...tsConfigs.disableTypeChecked,

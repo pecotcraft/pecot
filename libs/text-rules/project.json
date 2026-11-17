@@ -46,7 +46,8 @@
         "default",
         "runtime",
         "env",
-        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts"
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts"
       ],
       "dependsOn": [
         "install"
@@ -72,6 +73,7 @@
     "test-unit": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "default",
         "runtime",
         "env"

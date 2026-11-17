@@ -179,7 +179,7 @@ describe('renderReviewStopped', () => {
     { result: 'setup-missing', next: 'app-token', location: 'before-findings', triggerPhrase: '@pecotbot review' },
     { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret <X> `Y`' },
     { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret X\nと変数 Y' },
-  ])('$result・$next の本文が、テンプレートの検証を通る', (values) => {
+  ])('%$ 行目の $result と $next の本文が、テンプレートの検証を通る', (values) => {
     const body = renderReviewStopped(TEMPLATE_BODY, values)
     expect(validateSections(body, sections)).toEqual([])
     expect(validateHeadingSummaries(body, sections)).toEqual([])

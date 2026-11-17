@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     exclude: ['node_modules/**', 'tests/fixtures/**'],
+    setupFiles: ['src/vitest/unique-titles.ts'],
     // CI の 4 CPU の runner で、既定の 5 秒を超えたテストがあった（#131）。
     testTimeout: 30_000,
     coverage: {

@@ -334,7 +334,7 @@ describe('waitingReasons の状態', () => {
     { name: '秒が 60', value: '2026-11-09T00:00:60Z' },
     { name: 'オフセットが 24 時間', value: '2026-11-09T00:00:00+24:00' },
     { name: '末尾に改行', value: '2026-11-09T00:00:00Z\n' },
-  ])('作成時刻が$name形だと、読めない時刻として扱う', ({ value }) => {
+  ])('作成時刻が $name 形だと、読めない時刻として扱う', ({ value }) => {
     expect(waitingReasons({ ...pr({ autoMerge: false }), createdAt: value }, NOW)).toEqual([])
   })
 
