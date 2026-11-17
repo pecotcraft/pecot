@@ -25,6 +25,6 @@ describe('subagent-usage.md', () => {
       .split('\n')
       .filter(line => line.startsWith('|'))
       .map(line => line.split('|', 3)[2]?.trim() ?? '')
-    for (const agent of ['w-reviewer', 'w-e2e-planner', 'w-implementer', 'v-diagram-creator']) expect(agents).toContain(agent)
+    for (const agent of ['w-reviewer', 'w-implementer', 'v-diagram-creator']) expect(agents).toContain(agent)
   })
 })

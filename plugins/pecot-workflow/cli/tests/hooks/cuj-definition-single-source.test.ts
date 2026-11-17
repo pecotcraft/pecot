@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはリポ内の固定のパスのみ */
-// CUJ の定義段落が、plan テンプレ・w-e2e-planner.md・w-reviewer.md の 3 箇所で一致することの固定。
+// CUJ の定義段落が、plan テンプレ・CUJ の流し方の参照・w-reviewer.md の 3 箇所で一致することの固定。
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,7 +9,7 @@ import { projectRoot } from './_helpers/paths.js'
 
 const SOURCES: readonly string[] = [
   'plugins/pecot-workflow/cli/templates/comment/plan.md',
-  'plugins/pecot-workflow/agents/w-e2e-planner.md',
+  'plugins/pecot-workflow/skills/w-help/references/cuj-run.md',
   'plugins/pecot-workflow/agents/w-reviewer.md',
 ]
 

@@ -35,7 +35,6 @@ const COPILOT_KEYS = ['name', 'description', 'tools', 'include-custom-instructio
 // label の昇順に並べる。
 const AGENT_ROWS: readonly AgentRow[] = [
   { label: 'pecot-visual/v-diagram-creator', plugin: 'pecot-visual', agent: 'v-diagram-creator', tools: ['Agent', 'WebSearch', 'WebFetch', ...PLAN, ASK], window: 200_000, copilotTools: ['read', 'edit', 'search', 'execute', 'todo', ...MCP] },
-  { label: 'pecot-workflow/w-e2e-planner', plugin: 'pecot-workflow', agent: 'w-e2e-planner', tools: [ASK, 'Monitor'], window: 400_000, copilotTools: ['*'] },
   { label: 'pecot-workflow/w-implementer', plugin: 'pecot-workflow', agent: 'w-implementer', tools: ['Agent', ...PLAN, ASK, 'Monitor'], window: 300_000, copilotTools: ['read', 'edit', 'search', 'execute', 'web', 'todo', ...MCP] },
   { label: 'pecot-workflow/w-reviewer', plugin: 'pecot-workflow', agent: 'w-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
 ]
@@ -104,8 +103,8 @@ describe('エージェントファイルの存在', () => {
     expect(existsSync(path.join(agentsDirectory, 'w-worker.md'))).toBe(false)
   })
 
-  it('w-e2e-planner.md が実在する', () => {
-    expect(statSync(path.join(agentsDirectory, 'w-e2e-planner.md')).isFile()).toBe(true)
+  it('w-e2e-planner.md は削除済みになっている', () => {
+    expect(existsSync(path.join(agentsDirectory, 'w-e2e-planner.md'))).toBe(false)
   })
 
   it('w-e2e-tester.md は削除済みになっている', () => {
@@ -122,7 +121,7 @@ describe('エージェントファイルの存在', () => {
 })
 
 describe('model フィールド', () => {
-  it.for(['w-implementer', 'w-e2e-planner', 'w-reviewer'])('%s は、空でない model を持つ', (agent) => {
+  it.for(['w-implementer', 'w-reviewer'])('%s は、空でない model を持つ', (agent) => {
     const model = modelOf(path.join(agentsDirectory, `${agent}.md`))
     expect(model).toBeDefined()
     expect(model).not.toBe('')
@@ -130,13 +129,12 @@ describe('model フィールド', () => {
 
   it.for([
     { label: 'w-implementer', agent: 'w-implementer', expected: 'sonnet' },
-    { label: 'w-e2e-planner', agent: 'w-e2e-planner', expected: 'opus' },
     { label: 'w-reviewer', agent: 'w-reviewer', expected: 'opus' },
   ])('$label の model は $expected になっている', (row) => {
     expect(modelOf(path.join(agentsDirectory, `${row.agent}.md`))).toBe(row.expected)
   })
 
-  it.for(['w-e2e-planner', 'w-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
+  it.for(['w-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
     const text = readFileSync(path.join(agentsDirectory, '..', 'skills', 'w-help', 'references', 'agent-models.md'), 'utf8')
     const lines = splitLines(text)
     const start = lines.indexOf('## 役ごとのモデル')

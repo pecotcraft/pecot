@@ -118,3 +118,5 @@ EnterPlanMode を呼び、投稿した計画で承認を得る。
 承認されたら、同じターンのまま実装を始める。承認が実装の開始の合図なので、利用者への確認はしない。承認の後で止まらない。
 
 main が実装するか、w-implementer に任せるかは、[`w-help/references/subagent-usage.md`](../w-help/references/subagent-usage.md) の「実装と修正を委譲する条件」で決める。
+
+実装の後、計画の CUJ を main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流す。
