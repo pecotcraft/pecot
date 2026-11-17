@@ -89,7 +89,30 @@ URL は、このスキルの base directory にある `scripts/board-url.cjs` �
 node <このスキルの base directory>/scripts/board-url.cjs
 ```
 
-### Step 5: 次ステップ案内
+### Step 5: 自動レビューを入れる（任意）
+
+PR を作ると GitHub Actions の上で w-revise のレビューを回すワークフローを、カレントリポに入れるかを決める。
+
+カレントが git のリポでなければ、聞かずに Step 6 へ進む。そのときは、後から `workflow_install`・`workflow_doctor` で入れられることと、[自動レビューのワークフロー](../w-help/references/review-workflow.md) を案内する。
+
+1. pecot-workflow の MCP ツール `workflow_doctor`（`name: "review"`）を使い、雛形が置かれているかを見る
+   - 見るのは、`items` のうち `name` が `.github/workflows/pecot-review.yml` の項目
+2. その `state` が `missing` でなければ、聞かずに `items` を示して Step 6 へ進む
+   - `workflow template review` の項目が `outdated` なら、`workflow_install` の `force: true` で更新できることを添える
+3. `missing` なら、AskUserQuestion で「カレントリポ `<owner/repo>` に自動レビューを入れるか」を聞く。入れないなら、何もせずに Step 6 へ進む
+4. 入れるなら、pecot-workflow の MCP ツール `workflow_install`（`name: "review"`）で雛形を置く
+5. 利用者が画面で行う設定を、次の順に示す
+   1. Claude の GitHub App をリポに入れる
+   2. モデルの認証の secret `CLAUDE_CODE_OAUTH_TOKEN` を登録する（`claude setup-token` で作り、1 行で貼る）
+   3. 雛形をコミットし、既定のブランチへ入れる
+
+   権限を絞りたい利用者だけ、自前の GitHub App を足せることを 1 行で添える
+6. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない
+7. 足りないものが無ければ、既定のブランチへ入れるまで動かないことを添える
+
+詳しい手順と運用は [自動レビューのワークフロー](../w-help/references/review-workflow.md) を指す。
+
+### Step 6: 次ステップ案内
 
 集約リポの設定状況に応じて案内を分岐する。設定は pecot-workflow の MCP ツール `project_get` で確かめる。
 
