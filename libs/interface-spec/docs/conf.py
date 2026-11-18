@@ -14,6 +14,8 @@ from site_stamp import site_stamp  # noqa: E402
 from sphinxawesome_theme.postprocess import Icons  # noqa: E402  # pyright: ignore[reportMissingTypeStubs]
 
 project = "pecot"
+# フッターの著作権の表示（_templates/footer.html）。
+copyright = "2026 pecotcraft"
 # 既定の題は「pecot  ドキュメント」になるので、プロジェクト名だけにする。
 html_title = "pecot"
 language = "ja"

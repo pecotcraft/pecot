@@ -765,6 +765,20 @@ def test_release_has_no_notice_and_no_footer_values(
     assert "pecot-build" not in built.html("index.html")
 
 
+def test_footer_has_logo_links_and_copyright(full: Built) -> None:
+    assert full.code == 0, full.warnings
+    found = re.search(r"<footer[\s\S]*?</footer>", full.html("index.html"))
+    assert found
+    footer = found.group(0)
+    assert "pecot-wordmark-light.svg" in footer
+    assert links_of(footer) == {
+        "": "#",  # ロゴは画像だけのリンクで、トップでは自分を指す
+        "GitHub": "https://github.com/pecotcraft/pecot",
+        "ライセンス": "https://github.com/pecotcraft/pecot/blob/main/LICENSE",
+    }
+    assert "© 2026 pecotcraft" in text_of(footer)
+
+
 _COMMON = {
     "kind": {"type": "string"},
     "detail": {"type": "string"},

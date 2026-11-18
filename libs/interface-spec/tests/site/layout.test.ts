@@ -72,16 +72,16 @@ async function open(width: number, page: string): Promise<Page> {
   return tab
 }
 
-// 目次の無いページは、本文の右端からヘッダーの内側の右端までの空き（px）。目次のあるページは、欄の幅を負の値で返す。
+// 目次の無いページは、本文の右端から本文の外枠の内側の右端までの空き（px）。目次のあるページは、欄の幅を負の値で返す。
 async function rightGap(width: number, page: string): Promise<number> {
   const tab = await open(width, page)
   const gap = await tab.evaluate(() => {
     const sidebar = document.querySelector('#right-sidebar')
     if (sidebar !== null) return -sidebar.getBoundingClientRect().width
     const content = document.querySelector('#content')
-    const header = document.querySelector('header .container:not(.pecot-site-row)')
-    if (content === null || header === null) return Infinity
-    const inner = header.getBoundingClientRect().right - Number(getComputedStyle(header).paddingRight.replace('px', ''))
+    const frame = document.querySelector('main')?.parentElement
+    if (content === null || frame === undefined || frame === null) return Infinity
+    const inner = frame.getBoundingClientRect().right - Number(getComputedStyle(frame).paddingRight.replace('px', ''))
     return Math.round(inner - content.getBoundingClientRect().right)
   })
   await tab.close()
@@ -89,7 +89,7 @@ async function rightGap(width: number, page: string): Promise<number> {
 }
 
 describe('公開サイトの見た目', () => {
-  it.for(WIDE)('幅 %s px で、目次の無いページは本文がヘッダーの右端まで広がり、空欄を残さない', async (width) => {
+  it.for(WIDE)('幅 %s px で、目次の無いページは本文が外枠の右端まで広がり、空欄を残さない', async (width) => {
     const gaps: Record<string, number> = {}
     const pages = site().pages.filter(page => !NO_NOTOC.has(page))
     for (const page of pages) {
@@ -116,6 +116,19 @@ describe('公開サイトの見た目', () => {
       if (widest > 800 + 1) widths[page] = Math.round(widest)
     }
     expect(widths).toEqual({})
+  })
+
+  it.for(WIDE)('幅 %s px で、ヘッダーは画面の幅いっぱいに広がり、フッターの中身は真ん中に寄る', async (width) => {
+    const tab = await open(width, 'index.html')
+    const header = 'header .container:not(.pecot-site-row) a, header .container:not(.pecot-site-row) button'
+    const [headerEdges, footerEdges] = await tab.evaluate(selectors => selectors.map((selector): [number, number] => {
+      const boxes = [...document.querySelectorAll(selector)].map(element => element.getBoundingClientRect()).filter(box => box.width > 0)
+      return [Math.min(...boxes.map(box => box.left)), innerWidth - Math.max(...boxes.map(box => box.right))]
+    }), [header, 'footer a, footer span'] as const)
+    await tab.close()
+    expect(Math.max(...headerEdges ?? [Infinity])).toBeLessThanOrEqual(32)
+    const [left, right] = footerEdges ?? [0, Infinity]
+    expect(Math.abs(left - right)).toBeLessThanOrEqual(2)
   })
 
   it('見出しのリンクはテーマのアイコンで、文字の ¶ を出さない', async () => {

@@ -119,6 +119,42 @@
   text-underline-offset: 2px;
 }
 
+/* GitHub と同じく、ヘッダーは外枠の上限を外し、画面の幅いっぱいに広げる。 */
+header .container:not(.pecot-site-row) {
+  max-width: none;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* フッター。GitHub と同じく、ロゴ・著作権・リンクを真ん中に寄せる。 */
+.pecot-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 2rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.pecot-footer-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.pecot-footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.pecot-footer-links a:hover {
+  color: hsl(var(--foreground));
+}
+
 /* 表は、包み（_ext/table_scroll.py）の中だけで横に送る。表の display は変えない。 */
 #content .pecot-table-scroll {
   overflow-x: auto;

@@ -1,0 +1,16 @@
+{#- テーマのフッターを、ロゴ・著作権・リンクの 1 段に置き換える。 -#}
+<footer class="border-t border-border">
+  <div class="container pecot-footer">
+    <div class="pecot-footer-brand">
+      <a href="{{ pathto(master_doc) }}" aria-label="{{ docstitle }}">
+        <img height="20" class="h-5 w-auto dark:hidden" src="{{ pathto('_static/pecot-wordmark-light.svg', 1) }}" alt="{{ docstitle }}" />
+        <img height="20" class="h-5 w-auto hidden dark:block" src="{{ pathto('_static/pecot-wordmark-dark.svg', 1) }}" alt="{{ docstitle }}" />
+      </a>
+      <span>© {{ copyright|e }}</span>
+    </div>
+    <nav class="pecot-footer-links" aria-label="関連リンク">
+      <a href="https://github.com/pecotcraft/pecot" rel="noopener">GitHub</a>
+      <a href="https://github.com/pecotcraft/pecot/blob/main/LICENSE" rel="noopener">ライセンス</a>
+    </nav>
+  </div>
+</footer>
