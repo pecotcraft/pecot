@@ -96,7 +96,7 @@ async function handleEvidenceCreate(
 export const evidenceCreateTool: ToolDefinition = {
   name: 'evidence_create',
   config: {
-    title: 'Generate evidence xlsx',
+    title: 'Create evidence workbook',
     description:
       'Generates a work-evidence xlsx with screenshots pasted in, from an EvidenceSpec JSON.'
       + ' Places the images listed in the spec in order and adds annotations.'

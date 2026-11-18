@@ -41,7 +41,10 @@ SDK は渡されたスキーマ自身で JSON Schema を作るため、ツール
 混在しない。引数を取らないツールは inputSchema に `z.object({})` を渡す。
 */
 export interface ToolConfig {
-  readonly title?: string
+  /**
+  Tool の最上位の title（表示名）。英語・4 語以内
+  */
+  readonly title: string
   readonly description?: string
   readonly inputSchema: z.ZodObject
   /**

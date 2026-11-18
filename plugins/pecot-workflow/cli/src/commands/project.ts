@@ -131,6 +131,7 @@ const LIST_OUTPUT = z.strictObject({
 
 const listCommand = defineCommand({
   path: ['project', 'list'],
+  title: 'List projects',
   description: 'List available projects',
   input: z.strictObject({}),
   output: LIST_OUTPUT,
@@ -176,6 +177,7 @@ const SEARCH_OUTPUT = z.strictObject({
 
 const searchCommand = defineCommand({
   path: ['project', 'search'],
+  title: 'Search projects',
   description: 'Search projects through the GitHub API',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
@@ -355,6 +357,7 @@ const INIT_OUTPUT = z.strictObject({
 
 const initCommand = defineCommand({
   path: ['project', 'init'],
+  title: 'Initialize project fields',
   description: 'Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
@@ -398,6 +401,7 @@ const CREATE_OUTPUT = z.strictObject({
 
 const projectCreationCommand = defineCommand({
   path: ['project', 'create'],
+  title: 'Create project',
   description: 'Create a new project (to add the fields to an existing project, use project init)',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
@@ -589,6 +593,7 @@ function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<Sync
 
 const activateCommand = defineCommand({
   path: ['project', 'activate'],
+  title: 'Activate project',
   description: 'Activate an initialized project',
   input: z.strictObject({
     project: z.string().optional().describe('Project number or name, or config file path/file name'),
@@ -730,6 +735,7 @@ const LINK_OUTPUT = z.strictObject({
 
 const projectLinkCommand = defineCommand({
   path: ['project', 'link'],
+  title: 'Link repository to project',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
   description: 'Add or update a repository in the project config',
@@ -910,6 +916,7 @@ const CONFIG_KEY_OPERATIONS: Readonly<Record<ConfigKey, ConfigKeyOperations>> = 
 
 const projectSetCommand = defineCommand({
   path: ['project', 'set'],
+  title: 'Set project config',
   description: 'Set a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({
     key: CONFIG_KEY,
@@ -929,6 +936,7 @@ const projectSetCommand = defineCommand({
 
 const projectUnsetCommand = defineCommand({
   path: ['project', 'unset'],
+  title: 'Clear project config',
   description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo',
   input: z.strictObject({ key: CONFIG_KEY, dry_run: dryRunInput }),
   output: UNSET_OUTPUT,
@@ -943,6 +951,7 @@ const projectUnsetCommand = defineCommand({
 
 const projectGetCommand = defineCommand({
   path: ['project', 'get'],
+  title: 'Get project config',
   description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({ key: CONFIG_KEY }),
   output: GET_OUTPUT,

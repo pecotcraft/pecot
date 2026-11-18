@@ -27,8 +27,11 @@ PECOT_SITE_RESULTS=1 pnpm exec nx run interface-spec:docs
 作る HTML の構成は次のとおり。
 
 - トップ（`index.html`）: プラグインごとの一覧と、欄の対応表へのリンク
-- プラグインの一覧表: コマンド・ツールごとに、名前（ページへのリンク）・surface・説明・振る舞いの合否の数（「2 passed, 1 not run」の形）を 1 行にする。最後の行は共通の振る舞い。表の下に、そのプラグインのテストの表を置く
-- コマンド・ツールごとのページ: 定義書の本文（POSIX の節の順）と、その項目の振る舞いごとの合否・つながるテストケース。`_generated/<plugin>/<名前>.html` にできる
+- プラグインの一覧表: ツールごとに、表示名・ツール名・説明・型・振る舞いの合否の数を 1 行にする。表の下に、そのプラグインのテストの表を置く
+  - 表示名は MCP の `title` で、ページへのリンクにする。型は MCP で、Actions から CLI でも呼ぶものは MCP・CLI
+  - 合否の数は「2 passed, 1 not run」の形
+- ツールごとのページ: 題は表示名で、その下にツール名を添える。本文は定義書の本文（POSIX の節の順）を MCP のツールの形（引数名・`tools/call` の使用例・結果の項目）で書き、その項目の振る舞いごとの合否・つながるテストケースを続ける。`_generated/<plugin>/<名前>.html` にできる
+  - CLI の節（構文・フラグ・標準入出力）と終了コードの列は、定義書に `cli_reference` を持つツールにだけ出す。今は GitHub Actions から CLI で呼ぶ pecot-workflow の 4 つ
 - 共通の振る舞いのページ: 全コマンドに共通の振る舞い。`_generated/<plugin>/_common.html` にできる
 - 欄の対応表（`field-map.html`）: 定義書の欄と POSIX の節の対応
 

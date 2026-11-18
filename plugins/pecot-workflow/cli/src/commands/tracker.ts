@@ -10,6 +10,7 @@ import { TRACKER_SYNC_OUTPUT } from './tracker-sync.js'
 
 const syncCommand = defineCommand({
   path: ['tracker', 'sync'],
+  title: 'Sync Tracker list',
   description: 'Rewrite the open Tracker\'s list for a source: Dependabot PRs waiting for a human decision, or open security alerts',
   input: z.strictObject({
     source: z.enum(['dependabot', 'security']).describe('What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)'),

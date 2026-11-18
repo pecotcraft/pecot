@@ -198,3 +198,9 @@ header .container:not(.pecot-site-row) {
 #left-sidebar a {
   overflow-wrap: anywhere;
 }
+
+/* ツールのページの題（表示名）の下に添える、呼ぶときのツール名。 */
+p.iface-tool-name {
+  margin-top: -0.5rem;
+  color: hsl(var(--muted-foreground));
+}

@@ -134,14 +134,14 @@ describe('MCP ツールの異常系応答', () => {
     // 意図的に throw するツールを登録して直接作る。
     const exploding: ToolDefinition = {
       name: 'exploding',
-      config: { description: '未捕捉例外の検証用', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '未捕捉例外の検証用', inputSchema: z.object({}) },
       handler: () => {
         throw new Error('意図的な失敗')
       },
     }
     const survivor: ToolDefinition = {
       name: 'survivor',
-      config: { description: '後続呼び出しの検証用', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '後続呼び出しの検証用', inputSchema: z.object({}) },
       handler: () => Promise.resolve({ content: [{ type: 'text', text: 'alive' }] }),
     }
 

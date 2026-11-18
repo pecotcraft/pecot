@@ -33,12 +33,13 @@
 | `cli.flags` | 対応表 | `input` の名前から、CLI のオプションの名前（`--title`・`-t`）へ |
 | `mcp.output` | JSON Schema の object | MCP ツールの `outputSchema`。CLI だけの項目には無い |
 | `mcp.annotations` | 対応表 | MCP ツールの annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
+| `mcp.title` | 文字列 | MCP ツールの Tool の最上位の `title`（表示名）。英語。MCP の面を持つ項目では必須 |
 
 `surfaces` は `cli` と `mcp` の少なくとも一方を持つ。Epic #42 の移行の後、pecot-workflow の項目は両方を持つ。
 
 ## 項目（人が書く側）
 
-`mcp_output` のほかの欄は省けない。使わない欄は、表の「使わないときの値」を書く。
+`mcp_output`・`cli_reference`・`help` のほかの欄は省けない。使わない欄は、表の「使わないときの値」を書く。
 
 | 欄 | 型 | 言語 | 使わないときの値 | 決め |
 |---|---|---|---|---|
@@ -49,12 +50,13 @@
 | `mcp_output` | 対象 | `prose` に従う | 省く | MCP のツールの項目ごとの説明（`fields`）。`fields` のキーは `mcp.output` の最上位の項目（共通の 4 項目を除く）とそろえる。MCP の面のある項目だけに書く |
 | `diagnostics` | 文字列 | 英語 | `default` | 標準エラーに出すもの。`default` は、共通の関数の `error:`・`warning:` の行だけを指す |
 | `environment` | 配列 | 英語 | `[]` | この項目だけが読む環境変数の名前と、変わる振る舞い。全項目に共通のものは、ファイルの先頭の `environment` に書く |
-| `exit_status` | 配列 | 英語 | 必ず書く | CLI は終了コードと条件。MCP ツールは失敗の種別と条件 |
+| `exit_status` | 配列 | 英語 | 必ず書く | 失敗の種別と条件。終了コード（`code`）は CLI の面を持つ項目だけが書く |
 | `on_error` | 文字列 | 英語 | `default` | 失敗の後に残る状態。`default` は、何も作らず何も変えずに終わることを指す |
 | `effects` | 配列 | 英語 | `[]` | 外部への副作用。相手は `github`・`aws`・`git`・`file`・`process`、種類は `read`・`write`・`destructive` |
 | `prerequisites` | 文字列の配列 | 英語 | `[]` | 呼ぶ側が満たす事前条件（認証、設定ファイルなど） |
 | `idempotent` | 真偽値 | — | 必ず書く | 同じ入力で 2 回呼んだ結果が、1 回と同じなら真 |
-| `examples` | 配列 | 英語 | 必ず書く | 呼び出しの例と、その説明 |
+| `examples` | 配列 | 英語 | 必ず書く | 呼び出しの例と、その説明。MCP の面を持つ項目は `arguments`（`tools/call` の引数）、持たない項目は `run`（コマンドの行） |
+| `cli_reference` | 対象 | `prose` に従う | 省く | CLI の節をページに出す項目の、CLI の使用例（`examples` の `run` と `note`）。CLI の面を持つ項目だけに書く |
 | `default_notes` | 対応表 | 英語 | `{}` | 既定値が実行時に決まる引数の、決まり方 |
 | `behaviors` | 配列 | 日本語 | 必ず書く | 振る舞いの項目。1 つ以上 |
 

@@ -132,7 +132,7 @@ async function run(argv: readonly string[], github: readonly ResponseRule[] = []
   return await runCommand({ argv, github, ...GHES, ...extra })
 }
 
-function expectClean(result: Readonly<CommandResult>): void {
+function expectClean(result: Readonly<Pick<CommandResult, 'problems' | 'unused'>>): void {
   expect(result.problems).toEqual([])
   expect(result.unused).toEqual([])
 }
@@ -140,6 +140,11 @@ function expectClean(result: Readonly<CommandResult>): void {
 function asJson(value: unknown): Json {
   if (typeof value !== 'object' || value === null) throw new TypeError('not an object')
   return Object.fromEntries(Object.entries(value))
+}
+
+function jsonList(value: unknown): Json[] {
+  if (!Array.isArray(value)) throw new TypeError('not an array')
+  return value.map(entry => asJson(entry))
 }
 
 function savedConfig(result: Readonly<Pick<CommandResult, 'read'>>, file = CONFIG_FILE): Json {
@@ -158,17 +163,17 @@ function repositoryEntries(result: Readonly<CommandResult>): Json[] {
   return Array.isArray(entries) ? entries.map(entry => asJson(entry)) : []
 }
 
-function repositoriesOf(result: Readonly<CommandResult>, file = CONFIG_FILE): unknown {
+function repositoriesOf(result: Readonly<Pick<CommandResult, 'read'>>, file = CONFIG_FILE): unknown {
   return savedConfig(result, file)['repositories']
 }
 
 const configPathOf = (result: Readonly<CommandResult>): string => path.join(result.directory, CONFIG_FILE)
 
-function graphqlVariables(result: Readonly<CommandResult>, operation: string): unknown[] {
+function graphqlVariables(result: Readonly<Pick<CommandResult, 'requests'>>, operation: string): unknown[] {
   return result.requests.filter((request): request is Extract<RecordedRequest, { type: 'graphql' }> => request.type === 'graphql' && request.operation === operation).map(request => request.variables)
 }
 
-function variableValues(result: Readonly<CommandResult>, operation: string, key: string): unknown[] {
+function variableValues(result: Readonly<Pick<CommandResult, 'requests'>>, operation: string, key: string): unknown[] {
   return graphqlVariables(result, operation).map(variables => Reflect.get(asJson(variables), key))
 }
 
@@ -189,35 +194,35 @@ const withAggregation = (value?: string): Partial<CommandRun> => ({ config: proj
 describe('project list', () => {
   const other = { [`${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_other_acme.json`]: `${JSON.stringify(projectConfig(), undefined, 2)}\n` }
 
-  it('設定ファイルがあると、ファイル名の順に 1 行ずつ出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-LIST-01')
+  it('設定ファイルがあると、ファイル名の順に 1 行ずつ出す', async () => {
     const result = await run(arguments_('list'), [], { files: other })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`=== Projects ===\n  ${DEFAULT_HOST}_acme_board_acme [ACTIVE]\n  ${DEFAULT_HOST}_acme_other_acme\n`)
     expect(result.stderr).toBe('')
   })
 
-  it('アクティブなプロジェクトの設定ファイルの行の末尾に、[ACTIVE] を付ける', async (context) => {
-    await verifies(context, 'PW-PROJECT-LIST-02')
+  it('アクティブなプロジェクトの設定ファイルの行の末尾に、[ACTIVE] を付ける', async () => {
     const result = await run(arguments_('list'), [], { files: other })
     const lines = result.stdout.split('\n')
     expect(lines.filter(line => line.endsWith('[ACTIVE]'))).toEqual([`  ${DEFAULT_HOST}_acme_board_acme [ACTIVE]`])
   })
 
-  it('設定ファイルが 1 つも無いと、none の行を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-LIST-03')
+  it('設定ファイルが 1 つも無いと、none の行を出す', async () => {
     const result = await run(arguments_('list'), [], { config: false })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('=== Projects ===\n  none\n')
   })
 
   describe('MCP の data', () => {
-    it('設定の名前とアクティブかどうかを projects に返す', async () => {
+    it('設定ファイルがあると、ファイル名の順で projects に並べ、アクティブな設定の active を true にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-LIST-01')
+      await verifies(context, 'PW-PROJECT-LIST-02')
       const result = await tool('project_list', {}, [], { files: otherFile })
       expect(result.structured).toEqual({ projects: [{ name: CONFIG_NAME, active: true }, { name: OTHER_NAME, active: false }] })
     })
 
-    it('設定が 1 つも無いと projects を空の配列で返す', async () => {
+    it('設定が 1 つも無いと projects を空の配列で返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-LIST-03')
       const result = await tool('project_list', {}, [], { config: false })
       expect(result.structured).toEqual({ projects: [] })
     })
@@ -228,8 +233,7 @@ describe('project search', () => {
   const search = async (nodes: Json[]): Promise<CommandResult> => await run(arguments_('search', 'acme', '--host', DEFAULT_HOST), [listProjects(...nodes)], { config: false })
   const URL1 = `https://${DEFAULT_HOST}/users/acme/projects/1`
 
-  it('プロジェクトを持つ所有者を渡すと、番号・タイトル・URL の表を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SEARCH-01')
+  it('プロジェクトを持つ所有者を渡すと、番号・タイトル・URL の表を出す', async () => {
     const result = await search([projectNode(1, 'board')])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -244,16 +248,14 @@ describe('project search', () => {
     expect(rows[1]).toContain(` ${'y'.repeat(35)}...  `)
   })
 
-  it('プロジェクトが 1 件も無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SEARCH-03')
+  it('プロジェクトが 1 件も無いと、終了コード 1 で終わる', async () => {
     const result = await search([])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('error: no projects found for acme\n')
   })
 
-  it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SEARCH-04')
+  it('GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const result = await run(arguments_('search', 'acme', '--host', DEFAULT_HOST), [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -261,12 +263,33 @@ describe('project search', () => {
   })
 
   describe('MCP の data', () => {
-    it('番号・タイトル・URL を projects に返し、検索した owner と host も返す', async () => {
+    it('番号・タイトル・URL を projects に返し、検索した owner と host も返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SEARCH-01')
       const result = await tool('project_search', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'other'))], { config: false })
       expect(result.structured).toEqual({
         ...owned,
         projects: [{ number: 1, title: 'board', url: BOARD_URL }, { number: 2, title: 'other', url: `https://${DEFAULT_HOST}/users/acme/projects/2` }],
       })
+    })
+
+    it('タイトルが 38 文字を超えても、projects の title は切り詰めない', async (context) => {
+      await verifies(context, 'PW-PROJECT-SEARCH-02')
+      const longTitle = 'y'.repeat(39)
+      const result = await tool('project_search', owned, [listProjects(projectNode(1, longTitle))], { config: false })
+      expect(result.structured['projects']).toEqual([{ number: 1, title: longTitle, url: BOARD_URL }])
+    })
+
+    it('プロジェクトが 1 件も無いと、kind が project-not-found の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SEARCH-03')
+      const result = await tool('project_search', owned, [listProjects()], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'project-not-found', detail: 'no projects found for acme' } })
+    })
+
+    it('GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SEARCH-04')
+      const result = await tool('project_search', owned, [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not list projects: /u)
     })
   })
 })
@@ -287,15 +310,13 @@ describe('project init', () => {
     expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-workflow-acme', 'pecot-priority', 'pecot-size'])
   })
 
-  it('フィールドを作ると、created の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-02')
+  it('フィールドを作ると、created の行を標準エラーに出す', async () => {
     const result = await init([...base(titleWithoutStatus), ...createFields(), ...syncRules()])
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(`created: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nskipped: field Status (not found)\n${syncedLines(result)}`)
   })
 
-  it('既にあるフィールドは作らずに、skipped の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-03')
+  it('既にあるフィールドは作らずに、skipped の行を標準エラーに出す', async () => {
     const existing = [...titleOnly, workflowField([...WORKFLOW_NAMES_WITH_BLOCKED])]
     const result = await init([...base(existing), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
@@ -303,22 +324,19 @@ describe('project init', () => {
     expect(result.stderr).toBe(`skipped: field pecot-workflow-acme (already exists)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nunchanged: option Blocked in field pecot-workflow-acme\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
   })
 
-  it('指定したタイトルのプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-04')
+  it('指定したタイトルのプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const result = await init([listProjects(projectNode(2, 'Other Project'))], 'Nonexistent')
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: project not found: Nonexistent\n  available projects:\n  - Other Project\n')
   })
 
-  it('フィールドの作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-05')
+  it('フィールドの作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const result = await init([...base(titleOnly), failing('CreateProjectField')])
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not initialize project fields: /u)
   })
 
-  it('既にあるフィールドに Blocked と Needs Attention が無いと、足して added の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-06')
+  it('既にあるフィールドに Blocked と Needs Attention が無いと、足して added の行を標準エラーに出す', async () => {
     const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
     const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
@@ -357,8 +375,7 @@ describe('project init', () => {
     })
   })
 
-  it('値が既にあると、書き込まずに unchanged の行を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-09')
+  it('値が既にあると、書き込まずに unchanged の行を出す', async () => {
     const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), statusField([...STATUS_NAMES, 'needs attention'])]
     const result = await init([...base(existing), ...syncRules()])
     expect(result.code).toBe(0)
@@ -367,8 +384,7 @@ describe('project init', () => {
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
   })
 
-  it('Status のフィールドが無いボードでは、何も足さずに skipped の行を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-10')
+  it('Status のフィールドが無いボードでは、何も足さずに skipped の行を出す', async () => {
     const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
     const result = await init([...base(existing), ...syncRules()])
     expect(result.code).toBe(0)
@@ -377,8 +393,7 @@ describe('project init', () => {
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
   })
 
-  it('選択肢を足せなかったときは、warning の行を出して続け、終了コード 0 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-11')
+  it('選択肢を足せなかったときは、warning の行を出して続け、終了コード 0 で終わる', async () => {
     const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
     const result = await init([...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
@@ -387,8 +402,7 @@ describe('project init', () => {
     expect(graphqlVariables(result, 'UpdateProjectField')).toHaveLength(2)
   })
 
-  it('HTTP 200 で GraphQL の errors が返って足せなくても、warning の行を出して続け、終了コード 0 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-11')
+  it('HTTP 200 で GraphQL の errors が返って足せなくても、warning の行を出して続け、終了コード 0 で終わる', async () => {
     const rejected: ResponseRule = { match: { operation: 'UpdateProjectField' }, respond: { status: 200, body: { errors: [{ message: 'Variable $options of type [ProjectV2SingleSelectFieldOptionInput!]! was provided invalid value for 0.id (Field is not defined on ProjectV2SingleSelectFieldOptionInput)' }] } }, times: 1 }
     const existing = [...titleOnly, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
     const result = await init([...base(existing), rejected, ...syncRules()])
@@ -422,8 +436,7 @@ describe('project init', () => {
     expect(workflowOptions(result)).toHaveProperty('blocked', 'o2')
   })
 
-  it('既にある進行の欄に必須の値が欠けていると、何も書かずに終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-13')
+  it('既にある進行の欄に必須の値が欠けていると、何も書かずに終了コード 1 で終わる', async () => {
     const existing = [...titleOnly, workflowField(['Backlog', 'Blocked']), ...otherFields()]
     const result = await init(base(existing))
     expect(result.code).toBe(1)
@@ -446,8 +459,7 @@ describe('project init', () => {
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
   })
 
-  it('設定ファイルの同期で GitHub API がエラーを返すと、could not sync project config の行を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INIT-15')
+  it('設定ファイルの同期で GitHub API がエラーを返すと、could not sync project config の行を出して終了コード 1 で終わる', async () => {
     const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
     const result = await init([...base(existing), listProjects(projectNode(1, 'board')), failing('GetProjectFieldsUser'), failing('GetProjectFieldsOrg')])
     expect(result.code).toBe(1)
@@ -466,7 +478,9 @@ describe('project init', () => {
   })
 
   describe('MCP の data', () => {
-    it('作ったフィールドと足した選択肢を fields に返す', async () => {
+    it('作ったフィールドと足した選択肢を fields に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-03')
+      await verifies(context, 'PW-PROJECT-INIT-06')
       const rules = [...initRules([...titleOnly, workflowWithBlocked]), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()]
       const result = await tool('project_init', initArguments, rules, { config: false })
       expect(result.structured).toEqual({
@@ -479,12 +493,81 @@ describe('project init', () => {
       })
     })
 
-    it('Status の欄が無いと、その欄を skip にする', async () => {
+    it('Status の欄が無いと、その欄を skip にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-02')
+      await verifies(context, 'PW-PROJECT-INIT-10')
       const result = await tool('project_init', initArguments, [...initRules(titleWithoutStatus), ...createFields(), ...syncRules()], { config: false })
       expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-workflow-acme', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, { name: 'Status', change: 'skip', addedOptions: [] }] })
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     })
 
-    it('dry_run だと、作る予定のフィールドと dryRun を返す', async () => {
+    it('足す選択肢が既にあると、書き込まずに、その欄の change を unchanged にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-09')
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), statusField([...STATUS_NAMES, 'needs attention'])]
+      const result = await tool('project_init', initArguments, [...base(existing), ...syncRules()], { config: false })
+      expect(result.structured).toEqual({
+        fields: [
+          { name: 'pecot-workflow-acme', change: 'unchanged', addedOptions: [] },
+          { name: 'pecot-priority', change: 'unchanged', addedOptions: [] },
+          { name: 'pecot-size', change: 'unchanged', addedOptions: [] },
+          { name: 'Status', change: 'unchanged', addedOptions: [] },
+        ],
+      })
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+    })
+
+    it('指定したタイトルのプロジェクトが無いと、kind が project-not-found の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-04')
+      const result = await tool('project_init', { ...initArguments, name: 'Nonexistent' }, [listProjects(projectNode(2, 'Other Project'))], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'project-not-found', detail: 'project not found: Nonexistent\n  available projects:\n  - Other Project' } })
+    })
+
+    it('フィールドの作成で GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-05')
+      const result = await tool('project_init', initArguments, [...base(titleOnly), failing('CreateProjectField')], { config: false })
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not initialize project fields: /u)
+    })
+
+    it('選択肢を足せないと、warnings に入れて続け、成功を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-11')
+      const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+      const result = await tool('project_init', initArguments, [...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expectClean(result)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add option Blocked to field pecot-workflow-acme: /u)])
+    })
+
+    it('既にある進行の欄に必須の値が欠けていると、何も書かずに、欠けた値を detail に入れて kind が not-initialized の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-13')
+      const existing = [...titleOnly, workflowField(['Backlog', 'Blocked']), ...otherFields()]
+      const result = await tool('project_init', initArguments, base(existing), { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
+      expect(result.structured['detail']).toContain('pecot-workflow field is missing options: Pending, Ready, Active, In Review, Archived')
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+      expect(result.read(CONFIG_FILE)).toBeUndefined()
+    })
+
+    it('設定ファイルの同期で GitHub API がエラーを返すと、could not sync project config で始まる detail を入れて失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-15')
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const result = await tool('project_init', initArguments, [...base(existing), listProjects(projectNode(1, 'board')), failing('GetProjectFieldsUser'), failing('GetProjectFieldsOrg')], { config: false })
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not sync project config: /u)
+    })
+
+    it('dry_run で、足す選択肢があると、設定ファイルの書き込みの予定を調べない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-17')
+      const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+      const result = await tool('project_init', { ...initArguments, dry_run: true }, base(existing), { config: false })
+      expectClean(result)
+      expect(result.structured).toMatchObject({ dryRun: true })
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-workflow-acme', change: 'update', addedOptions: ['Blocked'] })
+      expect(requestLabels(result.requests)).not.toContain('GetLinkedRepositoriesUser')
+    })
+
+    it('dry_run だと、作る予定のフィールドと dryRun を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-16')
       const result = await tool('project_init', { ...initArguments, dry_run: true }, initRules(titleWithoutStatus), { config: false })
       expect(result.structured).toEqual({
         fields: [
@@ -535,15 +618,13 @@ describe('project create', () => {
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
   })
 
-  it('プロジェクトを作ると、created の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-CREATE-05')
+  it('プロジェクトを作ると、created の行を標準エラーに出す', async () => {
     const result = await create(createRules())
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nadded: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
   })
 
-  it('Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る', async (context) => {
-    await verifies(context, 'PW-PROJECT-CREATE-10')
+  it('Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る', async () => {
     const rules = createRules().map(rule => rule.match.operation === 'UpdateProjectField' ? failing('UpdateProjectField') : rule)
     const result = await create(rules)
     expect(result.code).toBe(0)
@@ -552,30 +633,26 @@ describe('project create', () => {
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
   })
 
-  it('同じタイトルのプロジェクトが既にあると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-CREATE-06')
+  it('同じタイトルのプロジェクトが既にあると、終了コード 1 で終わる', async () => {
     const result = await create([graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects(projectNode(1, 'board'))])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(`error: project already exists: board\n  url: ${BOARD_URL}\n`)
     expect(requestLabels(result.requests)).not.toContain('CreateProject')
   })
 
-  it('所有者が見つからないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-CREATE-07')
+  it('所有者が見つからないと、終了コード 1 で終わる', async () => {
     const result = await create([graphqlRule('GetUserNodeId', { user: null }), graphqlRule('GetOrgNodeId', { organization: null })])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: owner not found: acme\n')
   })
 
-  it('プロジェクトの作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-CREATE-08')
+  it('プロジェクトの作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const result = await create([graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects(), failing('CreateProject')])
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not create project: /u)
   })
 
-  it('作ったプロジェクトの workflow フィールドに選択肢が足りないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-CREATE-09')
+  it('作ったプロジェクトの workflow フィールドに選択肢が足りないと、終了コード 1 で終わる', async () => {
     const result = await create(createRules(standardFields(['Backlog'])))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('required options: Backlog / Pending / Ready / Active / In Review / Archived')
@@ -585,12 +662,52 @@ describe('project create', () => {
   })
 
   describe('MCP の data', () => {
-    it('作ったプロジェクトの番号・URL・タイトル・owner を返す', async () => {
-      const result = await tool('project_create', { ...owned, title: 'board', suffix: 'acme' }, createRules(), { config: false })
+    const projectInput = { ...owned, title: 'board', suffix: 'acme' }
+
+    it('作ったプロジェクトの番号・URL・タイトル・owner を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-05')
+      const result = await tool('project_create', projectInput, createRules(), { config: false })
       expect(result.structured).toEqual({ number: 1, url: BOARD_URL, title: 'board', owner: 'acme' })
     })
 
-    it('dry_run だと、タイトルと owner と dryRun だけを返す', async () => {
+    it('Status に Needs Attention を足せないと、warnings に入れて設定ファイルを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-10')
+      const rules = createRules().map(rule => rule.match.operation === 'UpdateProjectField' ? failing('UpdateProjectField') : rule)
+      const result = await tool('project_create', projectInput, rules, { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add option Needs Attention to field Status: /u)])
+      expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
+    })
+
+    it('同じタイトルのプロジェクトが既にあると、kind が already-exists の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-06')
+      const result = await tool('project_create', projectInput, [graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects(projectNode(1, 'board'))], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'already-exists' } })
+      expect(requestLabels(result.requests)).not.toContain('CreateProject')
+    })
+
+    it('所有者が見つからないと、kind が github-not-found の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-07')
+      const result = await tool('project_create', projectInput, [graphqlRule('GetUserNodeId', { user: null }), graphqlRule('GetOrgNodeId', { organization: null })], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'github-not-found', detail: 'owner not found: acme' } })
+    })
+
+    it('プロジェクトの作成で GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-08')
+      const result = await tool('project_create', projectInput, [graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects(), failing('CreateProject')], { config: false })
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not create project: /u)
+    })
+
+    it('作ったプロジェクトが pecot-workflow に準拠しないと、kind が not-initialized の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-09')
+      const result = await tool('project_create', projectInput, createRules(standardFields(['Backlog'])), { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized', number: 1, url: BOARD_URL } })
+      expect(result.read(CONFIG_FILE)).toBeUndefined()
+    })
+
+    it('dry_run だと、タイトルと owner と dryRun だけを返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-11')
       const result = await tool('project_create', { ...owned, title: 'board', suffix: 'acme', dry_run: true }, [graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects()], { config: false })
       expect(result.structured).toEqual({ title: 'board', owner: 'acme', dryRun: true })
     })
@@ -623,8 +740,7 @@ describe('board show', () => {
 
   const olderRules = (): ResponseRule[] => quietReady(11, 13)
 
-  it('引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-01')
+  it('引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す', async () => {
     const result = await run(boardArguments('show'), standardBoard())
     expect(result.code).toBe(0)
     expectClean(result)
@@ -646,8 +762,7 @@ describe('board show', () => {
     ].join('\n'))
   })
 
-  it('--json を付けて打つと、同じ内容を JSON で出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-02')
+  it('--json を付けて打つと、同じ内容を JSON で出す', async () => {
     const result = await run(boardArguments('show', '--json'), standardBoard())
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual({
@@ -671,8 +786,7 @@ describe('board show', () => {
     ['サブコマンドの側', ['board', 'show', '--repo', 'acme/other']],
     ['グローバルの側', ['--repo', 'acme/other', 'board', 'show']],
     ['両方（サブコマンドの側が勝つ）', ['--repo', 'acme/demo', 'board', 'show', '--repo', 'acme/other']],
-  ])('--repo を付けて打つと、ボードの項目をそのリポジトリに絞る（%s）', async ([, argv], context) => {
-    await verifies(context, 'PW-BOARD-SHOW-03')
+  ])('--repo を付けて打つと、ボードの項目をそのリポジトリに絞る（%s）', async ([, argv]) => {
     const rules = [board(item('PVTI_1', 1, 'Ready'), item('PVTI_9', 9, 'Ready', { repo: 'other' })), twoAlerts(), prerequisitesRule({ number: 9, repo: 'other' })]
     const result = await run(argv, rules)
     expect(result.code).toBe(0)
@@ -681,8 +795,7 @@ describe('board show', () => {
     expect(result.stdout).not.toContain('acme/demo#1')
   })
 
-  it('Archived の項目が 20 件を超えていても、ボードから何も削除しない', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-34')
+  it('Archived の項目が 20 件を超えていても、ボードから何も削除しない', async () => {
     const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), ...olderRules()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -694,14 +807,12 @@ describe('board show', () => {
     expect(result.stdout).toContain('| acme/demo#13 | 課題13 |')
   })
 
-  it('aggregation_repo を設定していると、概要に Roadmap repo として出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-05')
+  it('aggregation_repo を設定していると、概要に Roadmap repo として出す', async () => {
     const result = await run(boardArguments('show'), standardBoard(), { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.stdout).toContain('- Roadmap repo: `acme/roadmap`\n')
   })
 
-  it('Dependabot alert を取れたリポジトリの行に、open の件数か disabled を出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-06')
+  it('Dependabot alert を取れたリポジトリの行に、open の件数か disabled を出す', async () => {
     const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Forbidden' }, 403), restRule('GET', '/repos/acme/other/vulnerability-alerts', 404, { message: 'Not Found' })]
     const result = await run(boardArguments('show'), rules, { config: twoRepositories })
     expect(result.code).toBe(0)
@@ -710,8 +821,7 @@ describe('board show', () => {
     expect(result.stdout).toContain('- acme/other\n    release_type: single\n    dependabot_alerts: disabled\n')
   })
 
-  it('登録したリポジトリの Dependabot alert を取れないと、その行に失敗の理由を出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-08')
+  it('登録したリポジトリの Dependabot alert を取れないと、その行に失敗の理由を出す', async () => {
     const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Boom' }, 500)]
     const result = await run(boardArguments('show'), rules, { config: twoRepositories })
     expect(result.code).toBe(0)
@@ -721,16 +831,14 @@ describe('board show', () => {
     expect(sorted(requestLabels(result.requests))).toEqual(sorted(['ListProjectItems', 'GET /repos/acme/demo/dependabot/alerts', 'GET /repos/acme/other/dependabot/alerts']))
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-10')
+  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const result = await run(boardArguments('show'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
-  it('ボードの取得で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-11')
+  it('ボードの取得で GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const result = await run(boardArguments('show'), [failing('ListProjectItems')])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -755,8 +863,7 @@ describe('board show', () => {
     const NOTE_TWO = NOTE_ONE.replace('1 Ready or Blocked Issue may be', '2 Ready or Blocked Issues may be')
     const failedRead = (): ResponseRule => ({ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
 
-    it('Ready と Blocked の表に Readiness の列を出し、判定とずれた列にあっても動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-14')
+    it('Ready と Blocked の表に Readiness の列を出し、判定とずれた列にあっても動かさない', async () => {
       const result = await info([
         board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
@@ -777,15 +884,13 @@ describe('board show', () => {
       ].join('\n'))
     })
 
-    it('列と判定の食い違いそうな Issue を見つけると、件数と pecot board sync の案内を 1 行、標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-33')
+    it('列と判定の食い違いそうな Issue を見つけると、件数と pecot board sync の案内を 1 行、標準エラーに出す', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_TWO}\n`)
     })
 
-    it('board sync と同じ規則で数え、札の食い違いを数え、動かす先の値がボードに無い Issue は数えない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-33')
+    it('board sync と同じ規則で数え、札の食い違いを数え、動かす先の値がボードに無い Issue は数えない', async () => {
       const withoutBlocked = boardConfig()
       const project = asJson(withoutBlocked['project'])
       const fields = asJson(project['fields'])
@@ -797,16 +902,14 @@ describe('board show', () => {
       expect(result.stderr).toBe(`${NOTE_ONE}\n`)
     })
 
-    it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-15')
+    it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async () => {
       const result = await info([board(item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review'), item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1 })], boardConfig(), '--json')
       expectClean(result)
       expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1])
       expect(boardItems(result)).toMatchObject([{ readiness: null }, { readiness: null }, { readiness: { kind: 'startable' } }])
     })
 
-    it('一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-30')
+    it('一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する', async () => {
       const result = await info([board(item('PVTI_4', 4, 'Blocked', { progress: { blockedBy: 0 } }), item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0 } }))])
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_ONE}\n`)
@@ -816,16 +919,14 @@ describe('board show', () => {
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
     })
 
-    it('一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-30')
+    it('一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0, issueType: 'Epic' } }))], boardConfig(), '--json')
       expectClean(result)
       expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
       expect(boardItems(result)).toMatchObject([{ readiness: null }])
     })
 
-    it('一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-31')
+    it('一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む', async () => {
       const result = await info([
         board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } }), item('PVTI_7', 7, 'Ready', { progress: { blockedBy: 9 } })),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
@@ -837,8 +938,7 @@ describe('board show', () => {
       expect(variableValues(result, 'GetIssuePrerequisites', 'blockedByFirst')).toEqual([8, 50, 9])
     })
 
-    it('読み取りに失敗した Issue は unknown と出し、列を動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-18')
+    it('読み取りに失敗した Issue は unknown と出し、列を動かさない', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready')), failedRead()])
       expectClean(result)
       expect(result.code).toBe(0)
@@ -846,15 +946,13 @@ describe('board show', () => {
       expect(result.stderr).toBe('')
     })
 
-    it('読み取りに失敗した Issue の JSON の readiness は、stackOn と reason を null で持つ', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-32')
+    it('読み取りに失敗した Issue の JSON の readiness は、stackOn と reason を null で持つ', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready')), failedRead()], boardConfig(), '--json')
       expectClean(result)
       expect(boardItems(result)).toMatchObject([{ readiness: { kind: 'unknown', stackOn: null, reason: null } }])
     })
 
-    it('前提の無い Issue だけのボードでは、すべて startable で、列を動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-20')
+    it('前提の無い Issue だけのボードでは、すべて startable で、列を動かさない', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 1 })])
       expectClean(result)
       expect(result.stderr).toBe('')
@@ -863,8 +961,7 @@ describe('board show', () => {
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
     })
 
-    it('前提の Issue への言及を読まず、Development 欄のマージ済みの PR で、済んだ前提と判定する', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-35')
+    it('前提の Issue への言及を読まず、Development 欄のマージ済みの PR で、済んだ前提と判定する', async () => {
       const done: IssueSpec = { number: 9, state: 'CLOSED', pullRequests: [{ number: 90, state: 'MERGED' }] }
       const result = await info([board(item('PVTI_1', 1, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [done] })])
       expectClean(result)
@@ -872,8 +969,7 @@ describe('board show', () => {
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
     })
 
-    it('PR のカードと Tracker は、前提を読まない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-22')
+    it('PR のカードと Tracker は、前提を読まない', async () => {
       const pullRequest = item('PVTI_5', 5, 'Ready')
       const tracker = item('PVTI_6', 6, 'Ready')
       const result = await info([
@@ -889,24 +985,21 @@ describe('board show', () => {
       expect(result.stdout).toContain('| acme/demo#5 | 課題5 | - |')
     })
 
-    it('Epic は判定を出さず、JSON の readiness は null', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-23')
+    it('Epic は判定を出さず、JSON の readiness は null', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, issueType: 'Epic', subIssues: 2 })], boardConfig(), '--json')
       expectClean(result)
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
       expect(boardItems(result)).toMatchObject([{ readiness: null }])
     })
 
-    it('develop_branch の無いリポジトリで済んでいない前提があると、unknown と出し、列を動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-24')
+    it('develop_branch の無いリポジトリで済んでいない前提があると、unknown と出し、列を動かさない', async () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] })], boardConfig([{ owner: 'acme', name: 'demo' }]))
       expectClean(result)
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | unknown (develop_branch is not set for acme/demo) |')
       expect(result.stderr).toBe('')
     })
 
-    it('Issue の依存関係に対応しない GHES では、warning を 1 回出し、Readiness の列の無い表を出す', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-25')
+    it('Issue の依存関係に対応しない GHES では、warning を 1 回出し、Readiness の列の無い表を出す', async () => {
       const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       const result = await info([board(item('PVTI_1', 1, 'Ready')), unsupported])
       expectClean(result)
@@ -915,8 +1008,7 @@ describe('board show', () => {
       expect(result.stdout).toContain('### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 課題1 |')
     })
 
-    it('一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、判定を出さない', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-25')
+    it('一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、判定を出さない', async () => {
       const rejected: ResponseRule = { match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       const legacy = graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })
       const result = await info([rejected, legacy])
@@ -943,8 +1035,7 @@ describe('board show', () => {
         expect(result.stdout).toContain('\n\n## Stackable chains\n\n- #10: #2 -> #3')
       })
 
-      it('--json は、各 Issue に readiness を足す', async (context) => {
-        await verifies(context, 'PW-BOARD-SHOW-27')
+      it('--json は、各 Issue に readiness を足す', async () => {
         const result = await info(chain(), boardConfig(), '--json')
         expectClean(result)
         expect(boardItems(result)).toMatchObject([
@@ -954,8 +1045,7 @@ describe('board show', () => {
       })
     })
 
-    it('前提が輪になっている Issue は、cycle の blocked にする', async (context) => {
-      await verifies(context, 'PW-BOARD-SHOW-28')
+    it('前提が輪になっている Issue は、cycle の blocked にする', async () => {
       const result = await info([
         board(item('PVTI_1', 1, 'Blocked'), item('PVTI_2', 2, 'Blocked')),
         prerequisitesRule({ number: 1, blockedBy: [{ number: 2 }] }),
@@ -964,6 +1054,226 @@ describe('board show', () => {
       expectClean(result)
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | blocked by #2 (cycle: #1 -> #2 -> #1) |')
       expect(result.stdout).toContain('| acme/demo#2 | 課題2 | blocked by #1 (cycle: #1 -> #2 -> #1) |')
+    })
+
+    describe('MCP の呼び出し', () => {
+      const infoTool = async (rules: ResponseRule[], config: Json = boardConfig()): ReturnType<typeof runTool> => await tool('board_show', {}, [twoAlerts(), ...rules], { config })
+      const itemsOf = (result: Readonly<{ structured: Readonly<Record<string, unknown>> }>): unknown => asJson(result.structured['board'])['items']
+
+      it('Ready と Blocked の Issue の readiness に判定を入れ、判定とずれた列にあっても動かさない', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-14')
+        const result = await infoTool([
+          board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')),
+          prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
+          prerequisitesRule({ number: 4 }),
+        ])
+        expectClean(result)
+        expect(result.isError).toBe(false)
+        expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
+        expect(itemsOf(result)).toMatchObject([
+          { id: 'PVTI_1', readiness: { kind: 'blocked', reason: 'not-in-review' } },
+          { id: 'PVTI_4', readiness: { kind: 'startable' } },
+        ])
+      })
+
+      it('列と判定の食い違いそうな Issue を数え、件数を mismatches に入れ、warnings に board_sync の案内を入れる', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-33')
+        const result = await infoTool([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
+        expectClean(result)
+        expect(result.structured['mismatches']).toBe(2)
+        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; run board_sync (dry_run: true to preview) to fix'])
+      })
+
+      it('Active と In Review の Issue は、前提を読まず、readiness を null にする', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-15')
+        const result = await infoTool([board(item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review'), item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1 })])
+        expectClean(result)
+        expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1])
+        expect(itemsOf(result)).toMatchObject([{ readiness: null }, { readiness: null }, { readiness: { kind: 'startable' } }])
+      })
+
+      it('一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-30')
+        const result = await infoTool([board(item('PVTI_4', 4, 'Blocked', { progress: { blockedBy: 0 } }), item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0 } }))])
+        expectClean(result)
+        expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
+        expect(itemsOf(result)).toMatchObject([{ readiness: { kind: 'startable' } }, { readiness: { kind: 'startable' } }])
+      })
+
+      it('一覧で前提が 1 件以上の Issue だけ、その件数を下限 8・上限 50 に収めて前提を読む', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-31')
+        const result = await infoTool([
+          board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } }), item('PVTI_7', 7, 'Ready', { progress: { blockedBy: 9 } })),
+          prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
+          prerequisitesRule({ number: 6, blockedBy: [notStarted] }),
+          prerequisitesRule({ number: 7, blockedBy: [notStarted] }),
+        ])
+        expectClean(result)
+        expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1, 6, 7])
+        expect(variableValues(result, 'GetIssuePrerequisites', 'blockedByFirst')).toEqual([8, 50, 9])
+      })
+
+      it('前提を読めない Issue は、readiness を unknown にし、stackOn と reason を null にして、列を動かさない', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-18')
+        await verifies(context, 'PW-BOARD-SHOW-32')
+        const result = await infoTool([board(item('PVTI_1', 1, 'Ready')), failedRead()])
+        expectClean(result)
+        expect(result.isError).toBe(false)
+        expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
+        expect(itemsOf(result)).toMatchObject([{ readiness: { kind: 'unknown', stackOn: null, reason: null } }])
+      })
+
+      it('前提の無い Issue だけのボードでは、すべて startable にし、列を動かさない', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-20')
+        const result = await infoTool([board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 1 })])
+        expectClean(result)
+        expect(result.structured['mismatches']).toBe(0)
+        expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
+        expect(itemsOf(result)).toMatchObject([{ readiness: { kind: 'startable' } }, { readiness: null }, { readiness: null }])
+      })
+
+      it('前提の Issue への言及を読まず、Development 欄のマージ済みの PR で、済んだ前提と判定する', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-35')
+        const done: IssueSpec = { number: 9, state: 'CLOSED', pullRequests: [{ number: 90, state: 'MERGED' }] }
+        const result = await infoTool([board(item('PVTI_1', 1, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [done] })])
+        expectClean(result)
+        expect(itemsOf(result)).toMatchObject([{ readiness: { kind: 'startable' } }])
+      })
+
+      it('PR のカードと Tracker は、前提を読まず、readiness を null にする', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-22')
+        const pullRequest = item('PVTI_5', 5, 'Ready')
+        const tracker = item('PVTI_6', 6, 'Ready')
+        const result = await infoTool([
+          board(
+            { ...pullRequest, content: { ...asJson(pullRequest['content']), url: `https://${DEFAULT_HOST}/acme/demo/pull/5` } },
+            { ...tracker, content: { ...asJson(tracker['content']), title: '[Tracker] 進め方' } },
+            item('PVTI_1', 1, 'Ready'),
+          ),
+          prerequisitesRule({ number: 1 }),
+        ])
+        expectClean(result)
+        expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1])
+        expect(itemsOf(result)).toMatchObject([{ readiness: null }, { readiness: null }, { readiness: { kind: 'startable' } }])
+      })
+
+      it('Epic は判定をせず、readiness を null にする', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-23')
+        const result = await infoTool([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, issueType: 'Epic', subIssues: 2 })])
+        expectClean(result)
+        expect(itemsOf(result)).toMatchObject([{ readiness: null }])
+      })
+
+      it('develop_branch の無いリポジトリで済んでいない前提があると、readiness を unknown にする', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-24')
+        const result = await infoTool([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] })], boardConfig([{ owner: 'acme', name: 'demo' }]))
+        expectClean(result)
+        expect(itemsOf(result)).toMatchObject([{ readiness: { kind: 'unknown', text: 'unknown (develop_branch is not set for acme/demo)' } }])
+      })
+
+      it.for([
+        { name: '前提の読み取りがスキーマの失敗になる', rules: (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready')), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }] },
+        { name: '一覧の新しいクエリがスキーマの失敗になる', rules: (): ResponseRule[] => [{ match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }, graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })] },
+      ])('$name とき、warnings に 1 つ入れ、readiness の無いボードを返す', async (row, context) => {
+        await verifies(context, 'PW-BOARD-SHOW-25')
+        const result = await infoTool(row.rules())
+        expectClean(result)
+        expect(result.isError).toBe(false)
+        expect(result.structured['warnings']).toEqual(['this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted'])
+        const items = jsonList(itemsOf(result))
+        expect(items).toHaveLength(1)
+        expect(items[0]).not.toHaveProperty('readiness')
+      })
+
+      it('積める並びの Issue は、readiness に stackable と積む先を入れる', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-27')
+        const result = await infoTool([
+          board(item('PVTI_2', 2, 'In Review'), item('PVTI_3', 3, 'Ready')),
+          prerequisitesRule({ number: 3, parent: { number: 10 }, blockedBy: [{ number: 2, column: 'In Review', branch: 'feat/2', pullRequests: [{ number: 20, head: 'feat/2' }] }] }),
+        ])
+        expectClean(result)
+        expect(itemsOf(result)).toMatchObject([
+          { readiness: null },
+          { readiness: { kind: 'stackable', stackOn: { number: 2, repository: 'acme/demo', branch: 'feat/2' }, reason: null, text: 'stackable on #2' } },
+        ])
+      })
+
+      it('前提が輪になっている Issue は、readiness を cycle の blocked にする', async (context) => {
+        await verifies(context, 'PW-BOARD-SHOW-28')
+        const result = await infoTool([
+          board(item('PVTI_1', 1, 'Blocked'), item('PVTI_2', 2, 'Blocked')),
+          prerequisitesRule({ number: 1, blockedBy: [{ number: 2 }] }),
+          prerequisitesRule({ number: 2, blockedBy: [{ number: 1 }] }),
+        ])
+        expectClean(result)
+        expect(itemsOf(result)).toMatchObject([
+          { readiness: { kind: 'blocked', reason: 'cycle', text: 'blocked by #2 (cycle: #1 -> #2 -> #1)' } },
+          { readiness: { kind: 'blocked', reason: 'cycle', text: 'blocked by #1 (cycle: #1 -> #2 -> #1)' } },
+        ])
+      })
+    })
+  })
+
+  describe('MCP の呼び出し', () => {
+    const show = async (toolArguments: Record<string, unknown>, rules: readonly ResponseRule[], extra: Partial<CommandRun> = {}): ReturnType<typeof runTool> => await tool('board_show', toolArguments, rules, extra)
+    const itemIds = (result: Readonly<{ structured: Readonly<Record<string, unknown>> }>): unknown[] => jsonList(asJson(result.structured['board'])['items']).map(entry => entry['id'])
+    const repositoriesOfResult = (result: Readonly<{ structured: Readonly<Record<string, unknown>> }>): Json[] => jsonList(result.structured['repositories'])
+
+    it('repo を付けると、ボードの項目をそのリポジトリに絞る', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-03')
+      const result = await show({ repo: 'acme/other' }, [board(item('PVTI_1', 1, 'Ready'), item('PVTI_9', 9, 'Ready', { repo: 'other' })), twoAlerts(), prerequisitesRule({ number: 9, repo: 'other' })])
+      expect(result.isError).toBe(false)
+      expect(itemIds(result)).toEqual(['PVTI_9'])
+    })
+
+    it('Archived の項目が 20 件を超えていても、ボードから何も削除しない', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-34')
+      const result = await show({}, [board(...archivedItems(22), ...olderActive()), twoAlerts(), ...olderRules()])
+      expectClean(result)
+      expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
+      expect(itemIds(result)).toEqual(expect.arrayContaining(['PVTI_r1', 'PVTI_r2', 'PVTI_r3']))
+    })
+
+    it('aggregation_repo を設定していると、project の aggregation_repo にその値を入れる', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-05')
+      const result = await show({}, standardBoard(), { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
+      expect(asJson(result.structured['project'])['aggregation_repo']).toBe('acme/roadmap')
+    })
+
+    it('Dependabot alert を取れたリポジトリの dependabot_alerts に、有効かどうかと open の件数を入れる', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-06')
+      const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Forbidden' }, 403), restRule('GET', '/repos/acme/other/vulnerability-alerts', 404, { message: 'Not Found' })]
+      const result = await show({}, rules, { config: twoRepositories })
+      expect(result.problems).toEqual([])
+      expect(repositoriesOfResult(result).map(entry => entry['dependabot_alerts'])).toEqual([
+        { enabled: true, open_count: 2, max_severity: 'high', alerts_url: `https://${DEFAULT_HOST}/acme/demo/security/dependabot` },
+        { enabled: false, open_count: 0, max_severity: null, alerts_url: `https://${DEFAULT_HOST}/acme/other/security/dependabot` },
+      ])
+    })
+
+    it('登録したリポジトリの Dependabot alert を取れないと、その dependabot_alerts に失敗の理由を入れる', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-08')
+      const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Boom' }, 500)]
+      const result = await show({}, rules, { config: twoRepositories })
+      expect(result.isError).toBe(false)
+      const failure = asJson(repositoriesOfResult(result)[1]?.['dependabot_alerts'])
+      expect(Object.keys(failure)).toEqual(['error'])
+      expect(failure['error']).toMatch(/^acme\/other: .*Boom/u)
+    })
+
+    it('アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-10')
+      const result = await show({}, [], { config: false })
+      expect(result.isError).toBe(true)
+      expect(result.structured).toEqual({ kind: 'no-active-project', detail: 'no active project\n  run: project_activate with project: <PROJECT>' })
+    })
+
+    it('ボードの取得で GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-11')
+      const result = await show({}, [failing('ListProjectItems')])
+      expect(result.isError).toBe(true)
+      expect(result.structured['kind']).toBe('github-api')
+      expect(result.structured['detail']).toMatch(/^could not read project board: GraphQL query error: Server error '500 Internal Server Error'/u)
     })
   })
 })
@@ -975,22 +1285,19 @@ describe('project activate', () => {
     await run(reference('1'), [projectFields(), ...syncRules(...linkedNames)], { config: false, ...extra })
   const existing = (repositories: Json[], extra: Json = {}): Partial<CommandRun> => ({ config: projectConfig({ repositories, extra }) })
 
-  it('--host を付けてプロジェクトを渡さずに打つと、初期化済みのプロジェクトを一覧する', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-01')
+  it('--host を付けてプロジェクトを渡さずに打つと、初期化済みのプロジェクトを一覧する', async () => {
     const result = await run(reference(), [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), projectFields(), projectFields(titleOnly, 'plain')], { config: false })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  #1: board\n`)
   })
 
-  it('一覧にアクティブなプロジェクトがあると、その行に [ACTIVE] を付ける', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-02')
+  it('一覧にアクティブなプロジェクトがあると、その行に [ACTIVE] を付ける', async () => {
     const result = await run(reference(), [listProjects(projectNode(1, 'board')), projectFields()])
     expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  #1: board [ACTIVE]\n`)
   })
 
-  it('初期化済みのプロジェクトが 1 つも無い所有者を一覧すると、none の行を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-03')
+  it('初期化済みのプロジェクトが 1 つも無い所有者を一覧すると、none の行を出す', async () => {
     const result = await run(reference(), [listProjects(projectNode(1, 'plain')), projectFields(titleOnly, 'plain')], { config: false })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  none\n`)
@@ -1076,16 +1383,14 @@ describe('project activate', () => {
     expect(names).toEqual(['demo', 'fresh'])
   })
 
-  it('--host が要る場面で渡していないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-12')
+  it('--host が要る場面で渡していないと、終了コード 1 で終わる', async () => {
     const result = await run(arguments_('activate', '1'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('error: --host is required\n  example: pecot project activate --host github.com --owner example-org\n  example: pecot project activate --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_example-project_example-org\n')
   })
 
-  it('指定したプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-13')
+  it('指定したプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const byNumber = await run(reference('999'), missingProject(), { config: false })
     expect(byNumber.code).toBe(1)
     expect(byNumber.stderr).toBe('error: project #999 not found\n')
@@ -1094,31 +1399,27 @@ describe('project activate', () => {
     expect(byName.stderr).toBe('error: project not found: Non Existent\n  available projects:\n  - Other Project\n')
   })
 
-  it('指定したプロジェクトが初期化されていないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-14')
+  it('指定したプロジェクトが初期化されていないと、終了コード 1 で終わる', async () => {
     const result = await run(reference('1'), [projectFields(titleOnly, 'Not Initialized Project')], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(`error: project "Not Initialized Project" is not initialized\n  run: pecot project init acme 'Not Initialized Project' --host ${DEFAULT_HOST} --suffix <suffix>\n`)
     expect(result.read(CONFIG_FILE)).toBeUndefined()
   })
 
-  it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-15')
+  it('GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const result = await run(reference(), [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not activate project: /u)
   })
 
-  it('渡した設定ファイルを読めないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-16')
+  it('渡した設定ファイルを読めないと、終了コード 1 で終わる', async () => {
     const result = await run(arguments_('activate', 'broken'), [], { config: false, files: { [`${PROJECTS_DIRECTORY}/broken.json`]: '{ not json' } })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not load config file broken\.json: /u)
     expect(result.requests).toEqual([])
   })
 
-  it('--host が渡した設定ファイルの host と違うと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-17')
+  it('--host が渡した設定ファイルの host と違うと、warning の行を標準エラーに出す', async () => {
     const result = await run(arguments_('activate', NAME, '--host', 'github.com'), [projectFields(), ...syncRules()])
     expect(result.code).toBe(0)
     expect(result.stderr).toBe(`warning: --host github.com differs from the config file host (${DEFAULT_HOST})\n  using the config file host\nupdated: config file ${configPathOf(result)}\nset: active project to ${NAME}\n`)
@@ -1175,8 +1476,7 @@ describe('project activate', () => {
     expect(asJson(saved['fields'])).not.toHaveProperty('status')
   })
 
-  it('必須の値（Blocked を除く 6 つ）が欠けたボードを同期すると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-22')
+  it('必須の値（Blocked を除く 6 つ）が欠けたボードを同期すると、終了コード 1 で終わる', async () => {
     const result = await run(reference('1'), [projectFields(standardFields(['Backlog', 'Blocked'])), listProjects(projectNode(1, 'board')), projectFields(standardFields(['Backlog', 'Blocked']))], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('pecot-workflow field is missing options: Pending, Ready, Active, In Review, Archived')
@@ -1195,19 +1495,73 @@ describe('project activate', () => {
       expect(result.structured).toMatchObject({ project: CONFIG_NAME, change: 'update' })
     })
 
-    it('dry_run だと、予定の change と dryRun を返す', async () => {
+    it('dry_run だと、予定の change と dryRun を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-23')
       const result = await tool('project_activate', { ...owned, project: '1', dry_run: true }, [projectFields(), ...syncRules()], { config: false })
       expect(result.structured).toEqual({ project: CONFIG_NAME, configPath: path.join(result.directory, CONFIG_FILE), change: 'create', dryRun: true })
     })
 
-    it('プロジェクトを渡さないと、初期化済みの候補を candidates に返す', async () => {
+    it('プロジェクトを渡さないと、初期化済みの候補を candidates に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-01')
+      await verifies(context, 'PW-PROJECT-ACTIVATE-02')
       const result = await tool('project_activate', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), projectFields(), projectFields(titleOnly, 'plain')])
       expect(result.structured).toEqual({ candidates: [{ number: 1, title: 'board', active: true }] })
     })
 
-    it('初期化済みのプロジェクトが無いと、candidates を空の配列で返す', async () => {
+    it('初期化済みのプロジェクトが無いと、candidates を空の配列で返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-03')
       const result = await tool('project_activate', owned, [listProjects(projectNode(1, 'plain')), projectFields(titleOnly, 'plain')], { config: false })
       expect(result.structured).toEqual({ candidates: [] })
+    })
+
+    it('host が要る場面で渡していないと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-12')
+      const result = await tool('project_activate', { project: '1' }, [], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.structured['detail']).toMatch(/^host is required/u)
+    })
+
+    it('指定したプロジェクトが無いと、kind が project-not-found の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-13')
+      const result = await tool('project_activate', { ...owned, project: '999' }, missingProject(), { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'project-not-found', detail: 'project #999 not found' } })
+    })
+
+    it('指定したプロジェクトが初期化されていないと、kind が not-initialized の失敗を返し、project_init を案内する', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-14')
+      const result = await tool('project_activate', { ...owned, project: '1' }, [projectFields(titleOnly, 'Not Initialized Project')], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
+      expect(result.structured['detail']).toContain('project_init')
+      expect(result.read(CONFIG_FILE)).toBeUndefined()
+    })
+
+    it('GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-15')
+      const result = await tool('project_activate', owned, [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not activate project: /u)
+    })
+
+    it('渡した設定ファイルを読めないと、kind が config-invalid の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-16')
+      const result = await tool('project_activate', { project: 'broken' }, [], { config: false, files: { [`${PROJECTS_DIRECTORY}/broken.json`]: '{ not json' } })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'config-invalid' } })
+      expect(result.requests).toEqual([])
+    })
+
+    it('host が渡した設定ファイルの host と違うと、warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-17')
+      const result = await tool('project_activate', { project: CONFIG_NAME, host: 'github.com' }, [projectFields(), ...syncRules()])
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([`host: "github.com" differs from the config file host (${DEFAULT_HOST})\nusing the config file host`])
+    })
+
+    it('進行の欄に必須の値が欠けていると、kind が not-initialized の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-22')
+      const missing = standardFields(['Backlog', 'Blocked'])
+      const result = await tool('project_activate', { ...owned, project: '1' }, [projectFields(missing), listProjects(projectNode(1, 'board')), projectFields(missing)], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
+      expect(result.read(CONFIG_FILE)).toBeUndefined()
     })
   })
 })
@@ -1270,44 +1624,38 @@ describe('project link', () => {
     expect(JSON.parse(result.read(CONFIG_FILE) ?? '')).toEqual(JSON.parse(before))
   })
 
-  it('リンクに失敗すると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-08')
+  it('リンクに失敗すると、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/other'], {}, [projectIdRule(), unresolvedRepository()])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('error: could not link acme/other to project #1: GraphQL query error: {\'type\': \'NOT_FOUND\', \'message\': \'Could not resolve to a Repository with the name acme/other.\'}\n')
   })
 
-  it('--package と --changelog-file を一緒に渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-09')
+  it('--package と --changelog-file を一緒に渡すと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo', '--package', 'a:a.md', '--changelog-file', 'C.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package and --changelog-file cannot be used together\n')
   })
 
-  it('--package と --clear-packages を一緒に渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-10')
+  it('--package と --clear-packages を一緒に渡すと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo', '--package', 'a:a.md', '--clear-packages'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package and --clear-packages cannot be used together\n')
   })
 
-  it('--package が NAME:PATH の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-11')
+  it('--package が NAME:PATH の形でないと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo', '--package', 'nocolon'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give --package <NAME:PATH>: \'nocolon\'\n')
   })
 
-  it('--package の NAME が重なると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-12')
+  it('--package の NAME が重なると、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo', '--package', 'foo:a.md', '--package', 'foo:b.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package NAME is duplicated: \'foo\'\n')
   })
 
-  it('未登録のリポジトリに不正な --package の名前を渡すと、リンクせず終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-11')
+  it('未登録のリポジトリに不正な --package の名前を渡すと、リンクせず終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/new', '--package', 'bad name:p'])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -1316,36 +1664,31 @@ describe('project link', () => {
     expect(JSON.parse(result.read(CONFIG_FILE) ?? '')).toEqual(projectConfig())
   })
 
-  it('リポジトリの所有者がプロジェクトの所有者と違うと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-13')
+  it('リポジトリの所有者がプロジェクトの所有者と違うと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['different-owner/repo'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: repository owner different-owner differs from project owner acme\n  GitHub Projects V2 links only repositories of the project owner\n')
   })
 
-  it('リポジトリが owner/repo の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-14')
+  it('リポジトリが owner/repo の形でないと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['justname'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give the repository as owner/repo\n  example: pecot project link example-org/my-repo\n')
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-15')
+  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo'], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
-  it('--release-type が single・multi・nx のどれでもないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-16')
+  it('--release-type が single・multi・nx のどれでもないと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo', '--release-type', 'bogus'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --release-type must be one of [\'multi\', \'nx\', \'single\'] (got: \'bogus\')\n')
   })
 
-  it('packages を持つリポジトリに --changelog-file を渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-LINK-17')
+  it('packages を持つリポジトリに --changelog-file を渡すと、終了コード 1 で終わる', async () => {
     const result = await setRepository(['acme/demo', '--changelog-file', 'C.md'], withRepository({ ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: this repository has packages set\n  run with --clear-packages before switching to --changelog-file\n')
@@ -1364,9 +1707,57 @@ describe('project link', () => {
       expect(result.structured).toMatchObject({ repository: 'acme/demo', change: 'update' })
     })
 
-    it('dry_run だと dryRun を返す', async () => {
+    it('dry_run だと dryRun を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-LINK-18')
       const result = await tool('project_link', { repo: 'acme/demo', develop_branch: 'dev', dry_run: true })
       expect(result.structured).toMatchObject({ repository: 'acme/demo', change: 'update', dryRun: true })
+    })
+
+    it('リンクに失敗すると、kind が github-api の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-LINK-08')
+      const result = await tool('project_link', { repo: 'acme/other' }, [projectIdRule(), unresolvedRepository()])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'github-api' } })
+      expect(result.structured['detail']).toMatch(/^could not link acme\/other to project #1: /u)
+    })
+
+    it.for([
+      { name: 'package と changelog_file を一緒に渡す', input: { package: ['a:a.md'], changelog_file: 'C.md' }, id: 'PW-PROJECT-LINK-09' },
+      { name: 'package と clear_packages を一緒に渡す', input: { package: ['a:a.md'], clear_packages: true }, id: 'PW-PROJECT-LINK-10' },
+      { name: 'package の要素が NAME:PATH の形でない', input: { package: ['nocolon'] }, id: 'PW-PROJECT-LINK-11' },
+      { name: 'package の NAME が重なる', input: { package: ['foo:a.md', 'foo:b.md'] }, id: 'PW-PROJECT-LINK-12' },
+      { name: 'release_type が single・multi・nx のどれでもない', input: { release_type: 'bogus' }, id: 'PW-PROJECT-LINK-16' },
+    ])('$name と、kind が invalid-input の失敗を返す', async ({ input, id }, context) => {
+      await verifies(context, id)
+      const result = await tool('project_link', { repo: 'acme/demo', ...input })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(requestLabels(result.requests)).not.toContain('LinkProjectRepository')
+    })
+
+    it('リポジトリの所有者がプロジェクトの所有者と違うと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-LINK-13')
+      const result = await tool('project_link', { repo: 'different-owner/repo' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.structured['detail']).toContain('repository owner different-owner differs from project owner acme')
+    })
+
+    it('リポジトリが owner/repo の形でないと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-LINK-14')
+      const result = await tool('project_link', { repo: 'justname' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+    })
+
+    it('アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-LINK-15')
+      const result = await tool('project_link', { repo: 'acme/demo' }, [], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+    })
+
+    it('packages を持つリポジトリに changelog_file を渡すと、kind が invalid-input の失敗を返し、設定ファイルを書き換えない', async (context) => {
+      await verifies(context, 'PW-PROJECT-LINK-17')
+      const packaged = { ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }
+      const result = await tool('project_link', { repo: 'acme/demo', changelog_file: 'C.md' }, [], withRepository(packaged))
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(repositoriesOf(result)).toEqual([packaged])
     })
   })
 })
@@ -1382,51 +1773,44 @@ describe('project set', () => {
     expect(savedConfig(result)['aggregation_repo']).toBe('acme/roadmap')
   })
 
-  it('未設定の状態で値を渡すと、set の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-02')
+  it('未設定の状態で値を渡すと、set の行を標準エラーに出す', async () => {
     const result = await set(['acme/roadmap'])
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('set: aggregation_repo to acme/roadmap\n')
   })
 
-  it('既にある値と同じ値を渡すと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-03')
+  it('既にある値と同じ値を渡すと、unchanged の行を標準エラーに出す', async () => {
     const result = await set(['acme/roadmap'], withAggregation('acme/roadmap'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('unchanged: aggregation_repo acme/roadmap\n')
   })
 
-  it('既にある値と違う値を渡すと、上書きの warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-04')
+  it('既にある値と違う値を渡すと、上書きの warning の行を標準エラーに出す', async () => {
     const result = await set(['acme/new'], withAggregation('acme/roadmap'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\n  pass --yes to omit this hint\nset: aggregation_repo to acme/new\n')
     expect(savedConfig(result)['aggregation_repo']).toBe('acme/new')
   })
 
-  it('--yes を付けて上書きすると、warning の行から確認の案内を省く', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-05')
+  it('--yes を付けて上書きすると、warning の行から確認の案内を省く', async () => {
     const result = await set(['acme/new', '--yes'], withAggregation('acme/roadmap'))
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\nset: aggregation_repo to acme/new\n')
   })
 
-  it('値が owner/repo の形でないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-06')
+  it('値が owner/repo の形でないと、終了コード 1 で終わる', async () => {
     const result = await set(['roadmap'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: give aggregation_repo as owner/repo: \'roadmap\'\n')
     expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-07')
+  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const result = await set(['acme/roadmap'], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
-  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-SET-08')
+  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async () => {
     const result = await run(arguments_('set', 'foo', 'acme/roadmap'), [], { config: projectConfig({}) })
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
@@ -1434,24 +1818,53 @@ describe('project set', () => {
   })
 
   describe('MCP の data', () => {
-    it('未設定のキーに書くと change を create にして、previous を返さず、書いた設定ファイルのパスを configPath に返す', async () => {
+    it('未設定のキーに書くと change を create にして、previous を返さず、書いた設定ファイルのパスを configPath に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-02')
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' })
       const configPath = path.join(result.directory, CONFIG_FILE)
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create', configPath })
     })
 
-    it('別の値に上書きすると、change を update にして previous を返し、warning を data.warnings に返す', async () => {
+    it('別の値に上書きすると、change を update にして previous を返し、上書きの知らせを warnings に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-04')
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new' }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toMatchObject({ key: 'aggregation_repo', value: 'acme/new', previous: 'acme/roadmap', change: 'update', configPath: path.join(result.directory, CONFIG_FILE) })
-      expect(result.structured['warnings']).toHaveLength(1)
+      expect(result.structured['warnings']).toEqual(['overwriting aggregation_repo: acme/roadmap -> acme/new\npass yes: true to omit this hint'])
     })
 
-    it('同じ値だと change を unchanged にする', async () => {
+    it('yes を付けて上書きすると、上書きの知らせから確認の案内を省く', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-05')
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new', yes: true }, [], withAggregation('acme/roadmap'))
+      expect(result.structured['warnings']).toEqual(['overwriting aggregation_repo: acme/roadmap -> acme/new'])
+    })
+
+    it('値が owner/repo の形でないと、kind が invalid-input の失敗を返し、設定ファイルを書かない', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-06')
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'roadmap' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input', detail: 'give aggregation_repo as owner/repo: \'roadmap\'' } })
+      expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
+    })
+
+    it('アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-07')
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, [], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+    })
+
+    it('aggregation_repo でないキーを渡すと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-08')
+      const result = await tool('project_set', { key: 'foo', value: 'acme/roadmap' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+    })
+
+    it('同じ値だと change を unchanged にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-03')
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', previous: 'acme/roadmap', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
-    it('dry_run だと、書く予定の設定ファイルのパスを configPath に入れ、dryRun を返す', async () => {
+    it('dry_run だと、書く予定の設定ファイルのパスを configPath に入れ、dryRun を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-SET-09')
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap', dry_run: true })
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create', configPath: path.join(result.directory, CONFIG_FILE), dryRun: true })
     })
@@ -1468,29 +1881,25 @@ describe('project unset', () => {
     expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
   })
 
-  it('値を設定していると、removed の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-02')
+  it('値を設定していると、removed の行を標準エラーに出す', async () => {
     const result = await run(arguments_('unset', 'aggregation_repo'), [], configured)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('removed: aggregation_repo (was acme/roadmap)\n')
   })
 
-  it('未設定だと、unchanged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-03')
+  it('未設定だと、unchanged の行を標準エラーに出す', async () => {
     const result = await run(arguments_('unset', 'aggregation_repo'))
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('unchanged: aggregation_repo (not set)\n')
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-04')
+  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const result = await run(arguments_('unset', 'aggregation_repo'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
-  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-UNSET-05')
+  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async () => {
     const result = await run(arguments_('unset', 'foo'), [], { config: projectConfig({}) })
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
@@ -1498,49 +1907,60 @@ describe('project unset', () => {
   })
 
   describe('MCP の data', () => {
-    it('値を消すと change を delete にして、消した値を previous に、書いた設定ファイルのパスを configPath に返す', async () => {
+    it('値を消すと change を delete にして、消した値を previous に、書いた設定ファイルのパスを configPath に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-UNSET-02')
       const result = await tool('project_unset', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
-    it('未設定だと change を unchanged にする', async () => {
+    it('未設定だと change を unchanged にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-UNSET-03')
       const result = await tool('project_unset', { key: 'aggregation_repo' })
       expect(result.structured).toEqual({ key: 'aggregation_repo', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
-    it('dry_run だと、消す予定の値と dryRun を返し、設定ファイルを書かない', async () => {
+    it('dry_run だと、消す予定の値と dryRun を返し、設定ファイルを書かない', async (context) => {
+      await verifies(context, 'PW-PROJECT-UNSET-06')
       const result = await tool('project_unset', { key: 'aggregation_repo', dry_run: true }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', configPath: path.join(result.directory, CONFIG_FILE), dryRun: true })
       expect(savedConfig(result)).toHaveProperty('aggregation_repo', 'acme/roadmap')
+    })
+
+    it('アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-UNSET-04')
+      const result = await tool('project_unset', { key: 'aggregation_repo' }, [], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+    })
+
+    it('aggregation_repo でないキーを渡すと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-UNSET-05')
+      const result = await tool('project_unset', { key: 'foo' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
     })
   })
 })
 
 describe('project get', () => {
-  it('値を設定していると、その値を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-GET-01')
+  it('値を設定していると、その値を標準出力に出す', async () => {
     const result = await run(arguments_('get', 'aggregation_repo'), [], { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('acme/roadmap\n')
   })
 
-  it('未設定だと、none を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-GET-02')
+  it('未設定だと、none を標準出力に出す', async () => {
     const result = await run(arguments_('get', 'aggregation_repo'))
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('none\n')
   })
 
-  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-GET-03')
+  it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async () => {
     const result = await run(arguments_('get', 'aggregation_repo'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(NO_ACTIVE)
   })
 
-  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-GET-04')
+  it('aggregation_repo でないキーを渡すと、終了コード 2 で終わる', async () => {
     const result = await run(arguments_('get', 'foo'), [], { config: projectConfig({}) })
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
@@ -1548,14 +1968,28 @@ describe('project get', () => {
   })
 
   describe('MCP の data', () => {
-    it('値があると key と value を返す', async () => {
+    it('値があると key と value を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-GET-01')
       const result = await tool('project_get', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap' })
     })
 
-    it('値が未設定だと value を返さない', async () => {
+    it('値が未設定だと value を返さない', async (context) => {
+      await verifies(context, 'PW-PROJECT-GET-02')
       const result = await tool('project_get', { key: 'aggregation_repo' })
       expect(result.structured).toEqual({ key: 'aggregation_repo' })
+    })
+
+    it('アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-GET-03')
+      const result = await tool('project_get', { key: 'aggregation_repo' }, [], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+    })
+
+    it('aggregation_repo でないキーを渡すと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-GET-04')
+      const result = await tool('project_get', { key: 'foo' })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
     })
   })
 })

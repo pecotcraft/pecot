@@ -22,6 +22,7 @@ const generatedPath = path.resolve(import.meta.dirname, '../../../../interface/g
 interface GeneratedEntry {
   readonly name: string
   readonly surfaces: { readonly mcp: { readonly tool: string } }
+  readonly mcp?: { readonly title?: string }
 }
 
 function readGeneratedEntries(): readonly GeneratedEntry[] {
@@ -57,7 +58,7 @@ const SUCCESS_REQUIRED: Readonly<Record<string, readonly (readonly string[])[]>>
   aws_scheduler_list_schedules: [['Schedules'], ...AWSCLI_OUTPUT_REQUIRED],
 }
 
-const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({ name: entry.surfaces.mcp.tool }))
+const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({ name: entry.surfaces.mcp.tool, title: entry.mcp?.title }))
 const REGION_TOOLS = GENERATED_TOOLS.filter(tool => !SSO_TOOL_NAMES.includes(tool.name))
 
 function patternOf(properties: Readonly<Record<string, unknown>>, name: string): unknown {
@@ -207,11 +208,12 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(names.includes('NextToken')).toBe(entry?.pagination === 'max-items')
   })
 
-  it.each(GENERATED_TOOLS)('$name が title と description を持ち openWorldHint が true', ({ name }) => {
+  it.each(GENERATED_TOOLS)('$name が定義書の mcp.title と同じ最上位の title と description を持ち openWorldHint が true', ({ name, title }) => {
     const tool = toolOf(name)
 
-    // title は generated.json の形式に欄が無く、書き出しの対象外。ここで値の有無だけ確かめる。
-    expect(tool.title).toEqual(expect.stringMatching(/\S/))
+    expect(title).toEqual(expect.stringMatching(/\S/))
+    expect(tool.title).toBe(title)
+    expect(tool.annotations?.title).toBeUndefined()
     expect(tool.description).toEqual(expect.stringMatching(/\S/))
     expect(tool.annotations?.openWorldHint).toBe(true)
   })

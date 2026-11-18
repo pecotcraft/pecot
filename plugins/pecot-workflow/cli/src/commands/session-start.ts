@@ -146,6 +146,7 @@ const SESSION_START_OUTPUT = z.strictObject({
 
 const sessionStartCommand = defineCommand({
   path: START_PATH,
+  title: 'Start Issue branch',
   description: 'Create a branch linked to an Issue (shown in the Development section of the Issue)',
   input: z.strictObject({
     issue_ref: z.string().describe('Issue reference (owner/repo/123)'),

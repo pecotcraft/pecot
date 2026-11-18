@@ -222,6 +222,7 @@ async function requestMerge(context: Readonly<MergeContext>, pullRequest: Readon
 
 export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
   path: ['pr', 'merge'],
+  title: 'Merge PR',
   description: 'Merge a PR with the asynchronous merge API (a PR in a stack must be the bottom one)',
   input: MergeInputSchema,
   output: PR_MERGE_OUTPUT,

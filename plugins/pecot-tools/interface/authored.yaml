@@ -39,9 +39,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -52,7 +51,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -66,7 +64,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_athena_get_query_execution {"query_execution_id": "11111111-2222-3333-4444-555555555555"}'
+      - arguments:
+          query_execution_id: '11111111-2222-3333-4444-555555555555'
         note: クエリが終わったかどうかを確かめます。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -102,9 +101,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -115,7 +113,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -129,7 +126,9 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_athena_get_query_results {"query_execution_id": "11111111-2222-3333-4444-555555555555", "max_items": 100}'
+      - arguments:
+          query_execution_id: '11111111-2222-3333-4444-555555555555'
+          max_items: 100
         note: 最初の 100 行を取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -172,12 +171,10 @@ entries:
     environment: []
     exit_status:
       - kind: not-allowed
-        code: 2
         when: 入力が、公開している操作の外の操作を求めています。awscli は起動しません。
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -188,7 +185,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -203,7 +199,9 @@ entries:
       - 'ワークグループか `output_location` に、クエリの結果の置き場所が要ります。'
     idempotent: false
     examples:
-      - run: 'aws_athena_start_query_execution {"query_string": "SELECT 1", "work_group": "primary"}'
+      - arguments:
+          query_string: 'SELECT 1'
+          work_group: 'primary'
         note: '`primary` のワークグループでクエリを始めます。'
     default_notes:
       catalog: 省くと、Athena の決め方に従います。
@@ -259,9 +257,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -272,7 +269,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -286,7 +282,17 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_cloudwatch_get_metric_statistics {"namespace": "AWS/SQS", "metric_name": "NumberOfMessagesSent", "dimensions": [{"name": "QueueName", "value": "my-queue"}], "start_time": "2026-09-01T00:00:00Z", "end_time": "2026-09-01T01:00:00Z", "period": 300, "statistics": ["Sum"]}'
+      - arguments:
+          namespace: 'AWS/SQS'
+          metric_name: 'NumberOfMessagesSent'
+          dimensions:
+            - name: 'QueueName'
+              value: 'my-queue'
+          start_time: '2026-09-01T00:00:00Z'
+          end_time: '2026-09-01T01:00:00Z'
+          period: 300
+          statistics:
+            - 'Sum'
         note: キューに送られたメッセージの数を、5 分ごとの合計で取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -329,9 +335,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -342,7 +347,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -356,7 +360,11 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_ec2_describe_instances {"filters": [{"name": "instance-state-name", "values": ["running"]}]}'
+      - arguments:
+          filters:
+            - name: 'instance-state-name'
+              values:
+                - 'running'
         note: 動いているインスタンスを一覧にします。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -404,9 +412,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -417,7 +424,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -431,7 +437,10 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_ecr_describe_images {"repository_name": "my-repo", "tag_status": "TAGGED", "max_items": 20}'
+      - arguments:
+          repository_name: 'my-repo'
+          tag_status: 'TAGGED'
+          max_items: 20
         note: タグの付いたイメージを 20 件まで一覧にします。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -513,9 +522,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -526,7 +534,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -540,7 +547,9 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_lambda_get_function_configuration {"function_name": "my-function", "qualifier": "prod"}'
+      - arguments:
+          function_name: 'my-function'
+          qualifier: 'prod'
         note: '`prod` のエイリアスの設定を取得します。'
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -581,9 +590,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -594,7 +602,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -608,7 +615,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_lambda_list_event_source_mappings {"function_name": "my-function"}'
+      - arguments:
+          function_name: 'my-function'
         note: 関数 1 つのマッピングを一覧にします。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -646,9 +654,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -659,7 +666,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -673,7 +679,9 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_lambda_list_functions {"region": "ap-northeast-1", "max_items": 20}'
+      - arguments:
+          region: 'ap-northeast-1'
+          max_items: 20
         note: 関数を 20 件まで一覧にします。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -711,9 +719,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -724,7 +731,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -738,7 +744,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_logs_describe_log_groups {"log_group_name_prefix": "/aws/lambda/"}'
+      - arguments:
+          log_group_name_prefix: '/aws/lambda/'
         note: Lambda のロググループを一覧にします。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -780,9 +787,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -793,7 +799,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -807,7 +812,11 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_logs_describe_log_streams {"log_group_name": "/aws/lambda/my-function", "order_by": "LastEventTime", "descending": true, "max_items": 1}'
+      - arguments:
+          log_group_name: '/aws/lambda/my-function'
+          order_by: 'LastEventTime'
+          descending: true
+          max_items: 1
         note: 最新のログストリームを探します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -857,9 +866,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -870,7 +878,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -884,7 +891,10 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_logs_filter_log_events {"log_group_name": "/aws/lambda/my-function", "filter_pattern": "ERROR", "max_items": 50}'
+      - arguments:
+          log_group_name: '/aws/lambda/my-function'
+          filter_pattern: 'ERROR'
+          max_items: 50
         note: '`ERROR` のイベントを探します。'
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -930,9 +940,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -943,7 +952,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -957,7 +965,10 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_logs_get_log_events {"log_group_name": "/aws/lambda/my-function", "log_stream_name": "2026/09/01/[$LATEST]abc", "limit": 100}'
+      - arguments:
+          log_group_name: '/aws/lambda/my-function'
+          log_stream_name: '2026/09/01/[$LATEST]abc'
+          limit: 100
         note: ストリーム 1 つのイベントを 100 件取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -995,9 +1006,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1008,7 +1018,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1022,7 +1031,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_rds_describe_db_clusters {"db_cluster_identifier": "my-cluster"}'
+      - arguments:
+          db_cluster_identifier: 'my-cluster'
         note: クラスターを 1 つ取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1060,9 +1070,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1073,7 +1082,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1087,7 +1095,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_rds_describe_db_instances {"db_instance_identifier": "my-db"}'
+      - arguments:
+          db_instance_identifier: 'my-db'
         note: インスタンスを 1 つ取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1137,9 +1146,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1150,7 +1158,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1164,7 +1171,10 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_rds_describe_events {"source_type": "db-instance", "source_identifier": "my-db", "duration": 1440}'
+      - arguments:
+          source_type: 'db-instance'
+          source_identifier: 'my-db'
+          duration: 1440
         note: 直近 24 時間のイベントを取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1204,9 +1214,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1217,7 +1226,6 @@ entries:
       - kind: resource-not-found
         when: 'バケットがありません（`NoSuchBucket`）。'
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1231,7 +1239,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_s3_ls {"s3_uri": "s3://my-bucket/logs/"}'
+      - arguments:
+          s3_uri: 's3://my-bucket/logs/'
         note: プレフィックスの下の項目を一覧にします。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1283,9 +1292,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1296,7 +1304,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1310,7 +1317,9 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_scheduler_get_schedule {"name": "nightly-job", "group_name": "default"}'
+      - arguments:
+          name: 'nightly-job'
+          group_name: 'default'
         note: スケジュールを 1 つ取得します。
     default_notes:
       group_name: 省くと、既定のグループです。
@@ -1348,9 +1357,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1361,7 +1369,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1375,7 +1382,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_scheduler_list_schedules {"state": "ENABLED"}'
+      - arguments:
+          state: 'ENABLED'
         note: 有効なスケジュールを一覧にします。
     default_notes:
       group_name: 省くと、すべてのグループのスケジュールが対象です。
@@ -1412,9 +1420,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1425,7 +1432,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1439,7 +1445,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_sqs_get_queue_attributes {"queue_url": "https://sqs.ap-northeast-1.amazonaws.com/123456789012/my-queue"}'
+      - arguments:
+          queue_url: 'https://sqs.ap-northeast-1.amazonaws.com/123456789012/my-queue'
         note: キュー 1 つの属性をすべて取得します。
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1477,9 +1484,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1490,7 +1496,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1504,7 +1509,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_sqs_list_queues {"queue_name_prefix": "orders-"}'
+      - arguments:
+          queue_name_prefix: 'orders-'
         note: '名前が `orders-` で始まるキューを一覧にします。'
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1541,7 +1547,6 @@ entries:
       - kind: invalid-input
         when: awscli が引数を受け付けませんでした。
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1552,7 +1557,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: 確認用の URL とユーザーコードが 15 秒以内に出ません。または、ユーザーが 10 分以内に承認しません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1569,7 +1573,8 @@ entries:
       - 'プロファイルに、SSO の設定（`sso_start_url` と `sso_region`）が要ります。'
     idempotent: false
     examples:
-      - run: 'aws_sso_login {"profile": "dev"}'
+      - arguments:
+          profile: 'dev'
         note: '`dev` のプロファイルのデバイス認可を始めます。'
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1611,7 +1616,6 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        code: 2
         when: 'そのプロファイルで `aws_sso_login` を呼んでいません。awscli は起動しません。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1622,7 +1626,6 @@ entries:
       - kind: resource-not-found
         when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        code: 124
         when: '`aws_sso_login` で始めた認可が、10 分以内に終わりません。'
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1635,7 +1638,8 @@ entries:
       - '同じプロファイルで、先に `aws_sso_login` を呼んでおきます。'
     idempotent: true
     examples:
-      - run: 'aws_sso_login_status {"profile": "dev"}'
+      - arguments:
+          profile: 'dev'
         note: '`dev` のプロファイルの認可が承認されたかどうかを確かめます。'
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
@@ -1678,9 +1682,8 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ。awscli が引数を受け付けなかったときも、この種別になります。'
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめます。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
         when: プロファイルの認証情報も SSO の設定も見つかりません。
@@ -1691,7 +1694,6 @@ entries:
       - kind: resource-not-found
         when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
-        code: 124
         when: awscli が 120 秒以内に終わりません。
       - kind: other
         when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。'
@@ -1705,7 +1707,8 @@ entries:
       - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
-      - run: 'aws_sts_get_caller_identity {"profile": "dev"}'
+      - arguments:
+          profile: 'dev'
         note: '`dev` のプロファイルがどの ID を使うかを確かめます。'
     default_notes:
       profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'

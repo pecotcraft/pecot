@@ -17,7 +17,7 @@ const ToolSchema = z.object({ tool: z.string() })
 const EntrySchema = z.object({
   surfaces: z.object({ mcp: ToolSchema }),
   input: z.looseObject({}),
-  mcp: z.object({ output: z.looseObject({}) }),
+  mcp: z.object({ title: z.string(), output: z.looseObject({}) }),
 })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 const RepositorySchema = z.looseObject({ type: z.literal('string') })
@@ -81,6 +81,15 @@ describe('tools/list', () => {
     expect(tool).toBeDefined()
     expect(entry).toBeDefined()
     expect(normalizeInput(tool?.inputSchema ?? {}, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)
+  })
+
+  it('全ツールが最上位の title を持ち、値は定義書の mcp.title に一致し、annotations に title を持たない', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.title)
+    expect(tools.map(tool => tool.title)).toEqual(expected)
+    expect(expected.every(title => typeof title === 'string' && title !== '')).toBe(true)
+    expect(tools.filter(tool => tool.annotations?.title !== undefined).map(tool => tool.name)).toEqual([])
   })
 
   it('全ツールの outputSchema は、$schema を除いて定義書の mcp.output に一致する', async () => {

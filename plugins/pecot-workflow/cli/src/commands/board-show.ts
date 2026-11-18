@@ -30,6 +30,7 @@ function mismatchNote(count: number): HintedText {
 
 const boardShowCommand = defineCommand({
   path: ['board', 'show'],
+  title: 'Show board dashboard',
   description: 'Show the dashboard of the project board',
   input: z.strictObject({
     json: z.boolean().default(false).describe('Output as JSON'),

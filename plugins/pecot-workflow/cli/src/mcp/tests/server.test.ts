@@ -23,6 +23,7 @@ const calls: unknown[] = []
 const COMMANDS: readonly CommandDefinition[] = [
   defineCommand({
     path: ['echo'],
+    title: 'Test command',
     description: '入力を返す',
     input: z.object({ text: z.string(), count: z.int().optional(), flag: z.boolean().optional() }),
     output: z.strictObject({}),
@@ -37,6 +38,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['exit', 'three'],
+    title: 'Test command',
     description: '3 で終わる',
     input: z.object({}),
     output: z.strictObject({}),
@@ -49,6 +51,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['ask'],
+    title: 'Test command',
     description: '確認を求める',
     input: z.object({}),
     output: z.strictObject({}),
@@ -58,6 +61,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['bad', 'parameter'],
+    title: 'Test command',
     description: 'context の無い使い方の誤り',
     input: z.object({}),
     output: z.strictObject({}),
@@ -67,6 +71,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['pecot', 'failure'],
+    title: 'Test command',
     description: '報告できる失敗',
     input: z.object({}),
     output: z.strictObject({}),
@@ -76,6 +81,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['bug'],
+    title: 'Test command',
     description: 'プログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
@@ -85,6 +91,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['own', 'repo'],
+    title: 'Test command',
     description: '自分の repo を持つ',
     input: z.object({ repo: z.string() }),
     hasOwnRepo: true,
@@ -98,6 +105,7 @@ const COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     path: ['slow'],
+    title: 'Test command',
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
     output: z.strictObject({}),
@@ -120,6 +128,7 @@ const TYPED_OUTPUT = z.strictObject({ name: z.string(), count: z.int().optional(
 // mode で、合う項目・合わない項目・途中まで進んだ失敗を返す
 const TYPED = defineCommand({
   path: ['typed'],
+  title: 'Test command',
   description: '型のある項目を返す',
   input: z.object({ mode: z.enum(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong']) }),
   output: TYPED_OUTPUT,
@@ -319,6 +328,7 @@ describe('入力の検証の誤り', () => {
   it('検証の途中で投げたプログラムの誤りは、isError の結果にして、報告先にも伝える', async () => {
     const broken = defineCommand({
       path: ['broken'],
+      title: 'Test command',
       description: '検証が誤っている',
       input: z.object({}).refine(() => {
         throw new TypeError('refine bug')
@@ -361,6 +371,7 @@ describe('入力の検証の誤り', () => {
     const aborted = Promise.withResolvers<boolean>()
     const waiting = defineCommand({
       path: ['waiting'],
+      title: 'Test command',
       description: '取り消しを待つ',
       input: z.object({}),
       output: z.strictObject({}),
@@ -391,6 +402,7 @@ describe('入力の検証の誤り', () => {
     const ran: string[] = []
     const first = defineCommand({
       path: ['first'],
+      title: 'Test command',
       description: '先に動いて待つ',
       input: z.object({}),
       output: z.strictObject({}),
@@ -404,6 +416,7 @@ describe('入力の検証の誤り', () => {
     })
     const second = defineCommand({
       path: ['second'],
+      title: 'Test command',
       description: '後に並ぶ',
       input: z.object({}),
       output: z.strictObject({}),
@@ -440,6 +453,7 @@ describe('入力の検証の誤り', () => {
   it('プログラムの誤りのとき、それまでに集めた出力も伝える', async () => {
     const noisy = defineCommand({
       path: ['noisy'],
+      title: 'Test command',
       description: '出力の後の誤り',
       input: z.object({}),
       output: z.strictObject({}),
@@ -469,6 +483,7 @@ describe('入力の検証の誤り', () => {
   it('入力の全体を見る検証の誤りは、名前を付けずに文だけを返す', async () => {
     const refined = defineCommand({
       path: ['refined'],
+      title: 'Test command',
       description: '全体の検証',
       input: z.object({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a === undefined || value.b === undefined, 'a と b は同時に渡せません'),
       output: z.strictObject({}),

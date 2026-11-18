@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { graphqlRule, runCommand } from '../_helpers/command-harness.js'
+import { graphqlRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import { verifies } from '../_helpers/verifies.js'
 
 vi.mock(import('../../src/commands/board-view.js'), async (importOriginal) => {
@@ -19,14 +19,22 @@ vi.mock(import('../../src/commands/board-view.js'), async (importOriginal) => {
 useIsolatedEnvironment()
 
 describe('board show', () => {
-  it('予期しないエラーが起きると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-12')
+  const emptyBoard = graphqlRule('ListProjectItems', { node: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: undefined } } } })
+
+  it('予期しないエラーが起きると、終了コード 1 で終わる', async () => {
     const result = await runCommand({
       argv: ['board', 'show'],
-      github: [graphqlRule('ListProjectItems', { node: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: undefined } } } })],
+      github: [emptyBoard],
     })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('error: unexpected error: boom\n')
+  })
+
+  it('MCP で予期しないエラーが起きると、kind が other の失敗を返す', async (context) => {
+    await verifies(context, 'PW-BOARD-SHOW-12')
+    const result = await runTool({ tool: 'board_show', arguments: {}, github: [emptyBoard] })
+    expect(result.isError).toBe(true)
+    expect(result.structured).toEqual({ kind: 'other', detail: 'unexpected error: boom' })
   })
 })

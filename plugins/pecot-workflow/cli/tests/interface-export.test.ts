@@ -20,6 +20,7 @@ import { COMMAND_GROUPS, COMMAND_VERBS } from '../src/commands/names.js'
 
 const alpha = defineCommand({
   path: ['alpha'],
+  title: 'Greet someone',
   description: 'Greet someone',
   input: z.strictObject({
     name: z.string().describe('Name to greet.'),
@@ -40,6 +41,7 @@ const strings = z.array(z.string())
 
 const beta = defineCommand({
   path: ['beta'],
+  title: 'Read files',
   description: 'Read files.',
   input: z.strictObject({
     source: z.string().optional().describe('Optional source.'),
@@ -113,6 +115,11 @@ describe('exportEntries', () => {
     ])
   })
 
+  it('mcp は、コマンド定義の title を output より先に持つ', () => {
+    expect(entries.map(entry => entry.mcp.title)).toStrictEqual(['Greet someone', 'Read files'])
+    expect(Object.keys(entries[0]?.mcp ?? {})).toStrictEqual(['title', 'output'])
+  })
+
   it('項目のキーは contracts の例の順', () => {
     expect(Object.keys(entries[0] ?? {})).toStrictEqual(['id', 'name', 'description', 'surfaces', 'hidden', 'deprecated', 'input', 'cli', 'mcp'])
   })
@@ -124,6 +131,7 @@ describe('exportEntries', () => {
   it('自分の --repo を持つコマンド（hasOwnRepo）は、repo を input と cli.flags に出し、required には入れない', () => {
     const own = defineCommand({
       path: ['own'],
+      title: 'Test command',
       description: 'Has its own repo.',
       input: z.strictObject({
         json: z.boolean().default(false).describe('Print JSON.'),
@@ -169,6 +177,7 @@ describe('exportEntries', () => {
     const integers = z.array(z.int())
     const gamma = defineCommand({
       path: ['gamma'],
+      title: 'Test command',
       description: 'Numbers.',
       input: z.strictObject({ one: z.int().optional(), many: integers.optional() }),
       output: z.strictObject({}),
@@ -186,6 +195,7 @@ describe('exportEntries', () => {
   it('id は名前を大文字にし、空白と _ を - にする', () => {
     const [entry] = exportEntries([defineCommand({
       path: ['sub', 'add-to_x'],
+      title: 'Test command',
       description: 'Sub.',
       input: z.strictObject({}),
       output: z.strictObject({}),
@@ -201,6 +211,7 @@ describe('exportEntries', () => {
 describe('exportEntries の別名', () => {
   const aliased = defineCommand({
     path: ['aliased'],
+    title: 'Test command',
     description: 'Has aliases.',
     input: z.strictObject({
       allow_existing_branch: z.boolean().default(false),
@@ -227,12 +238,13 @@ describe('exportEntries の別名', () => {
 
 describe('exportEntries の失敗と refine', () => {
   function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineCommand> {
-    return defineCommand({ path: ['bad', 'cmd'], description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), positional: [], run: () => Promise.resolve(0), interactive: false })
+    return defineCommand({ path: ['bad', 'cmd'], title: 'Test command', description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), positional: [], run: () => Promise.resolve(0), interactive: false })
   }
 
   it('全体の refine を持つ input でも書き出せ、repo を出さない', () => {
     const refined = defineCommand({
       path: ['refined'],
+      title: 'Test command',
       description: 'Refined.',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined),
       output: z.strictObject({}),
@@ -442,6 +454,7 @@ describe('main の --check', () => {
   describe('Node の側の項目が不正なとき', () => {
     const broken = defineCommand({
       path: ['broken'],
+      title: 'Test command',
       description: 'Has an invalid path',
       input: z.strictObject({}),
       output: z.strictObject({}),

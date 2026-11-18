@@ -78,7 +78,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Athena query status"
       },
       "name": "aws_athena_get_query_execution",
       "surfaces": {
@@ -187,7 +188,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Athena query results"
       },
       "name": "aws_athena_get_query_results",
       "surfaces": {
@@ -288,7 +290,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Start Athena query"
       },
       "name": "aws_athena_start_query_execution",
       "surfaces": {
@@ -477,7 +480,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get CloudWatch metric statistics"
       },
       "name": "aws_cloudwatch_get_metric_statistics",
       "surfaces": {
@@ -612,7 +616,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List EC2 instances"
       },
       "name": "aws_ec2_describe_instances",
       "surfaces": {
@@ -752,7 +757,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List ECR images"
       },
       "name": "aws_ecr_describe_images",
       "surfaces": {
@@ -1040,7 +1046,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Lambda function config"
       },
       "name": "aws_lambda_get_function_configuration",
       "surfaces": {
@@ -1149,7 +1156,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List event source mappings"
       },
       "name": "aws_lambda_list_event_source_mappings",
       "surfaces": {
@@ -1250,7 +1258,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List Lambda functions"
       },
       "name": "aws_lambda_list_functions",
       "surfaces": {
@@ -1355,7 +1364,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List log groups"
       },
       "name": "aws_logs_describe_log_groups",
       "surfaces": {
@@ -1480,7 +1490,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List log streams"
       },
       "name": "aws_logs_describe_log_streams",
       "surfaces": {
@@ -1624,7 +1635,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Search log events"
       },
       "name": "aws_logs_filter_log_events",
       "surfaces": {
@@ -1754,7 +1766,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get log events"
       },
       "name": "aws_logs_get_log_events",
       "surfaces": {
@@ -1859,7 +1872,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List DB clusters"
       },
       "name": "aws_rds_describe_db_clusters",
       "surfaces": {
@@ -1964,7 +1978,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List DB instances"
       },
       "name": "aws_rds_describe_db_instances",
       "surfaces": {
@@ -2108,7 +2123,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List RDS events"
       },
       "name": "aws_rds_describe_events",
       "surfaces": {
@@ -2205,7 +2221,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List S3 contents"
       },
       "name": "aws_s3_ls",
       "surfaces": {
@@ -2366,7 +2383,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get schedule details"
       },
       "name": "aws_scheduler_get_schedule",
       "surfaces": {
@@ -2507,7 +2525,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List schedules"
       },
       "name": "aws_scheduler_list_schedules",
       "surfaces": {
@@ -2608,7 +2627,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get SQS queue attributes"
       },
       "name": "aws_sqs_get_queue_attributes",
       "surfaces": {
@@ -2711,7 +2731,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List SQS queues"
       },
       "name": "aws_sqs_list_queues",
       "surfaces": {
@@ -2805,7 +2826,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Start SSO login"
       },
       "name": "aws_sso_login",
       "surfaces": {
@@ -2898,7 +2920,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get SSO login status"
       },
       "name": "aws_sso_login_status",
       "surfaces": {
@@ -2984,7 +3007,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get caller identity"
       },
       "name": "aws_sts_get_caller_identity",
       "surfaces": {

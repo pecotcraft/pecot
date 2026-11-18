@@ -673,7 +673,7 @@ describe('MCP サーバ経由の並行実行', () => {
 
     const tool: ToolDefinition = {
       name: 'aws_sts_get_caller_identity',
-      config: { description: '並行上限の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '並行上限の検証', inputSchema: z.object({}) },
       handler: async (_arguments, call) => {
         const result = await executeAllowlisted(IDENTITY_ENTRY, {}, call)
         return { content: [{ type: 'text', text: String(result.ok) }] }

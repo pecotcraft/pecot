@@ -24,7 +24,7 @@ export function ecrTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
   return [
     allowlistedTool({
       entry: ECR_DESCRIBE_IMAGES,
-      title: 'List container images',
+      title: 'List ECR images',
       description: 'Returns tags, digests, and push times of images in a repository. Use it to check deploy times. Only ACTIVE images are returned unless specified otherwise',
       inputSchema: z.object({
         repository_name: z.string().describe('Repository name'),

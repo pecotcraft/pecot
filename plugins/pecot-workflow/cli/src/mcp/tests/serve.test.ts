@@ -84,6 +84,7 @@ const started: string[] = []
 const COMMANDS = [
   defineCommand({
     path: ['slow'],
+    title: 'Test command',
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
     output: z.strictObject({}),
@@ -99,6 +100,7 @@ const COMMANDS = [
   }),
   defineCommand({
     path: ['hello'],
+    title: 'Test command',
     description: 'あいさつ',
     input: z.object({}),
     output: z.strictObject({}),
@@ -111,6 +113,7 @@ const COMMANDS = [
   }),
   defineCommand({
     path: ['noisy', 'bug'],
+    title: 'Test command',
     description: '出力の後にプログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
@@ -124,6 +127,7 @@ const COMMANDS = [
   }),
   defineCommand({
     path: ['bug'],
+    title: 'Test command',
     description: 'プログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),

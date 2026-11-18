@@ -88,8 +88,7 @@ const MERGED = { status: 'merged', details: { message: 'Pull request merged', sh
 const ENQUEUED = { status: 'enqueued', details: { message: 'Added to the merge queue' } }
 
 describe('pr merge', () => {
-  it('単独の PR を、読んだ head の SHA と squash で頼み、結果が merged になれば merged の行を出して 0 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-01')
+  it('単独の PR を、読んだ head の SHA と squash で頼み、結果が merged になれば merged の行を出して 0 で終わる', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), NO_STACK, requested(202, pending(), { sha: 'sha-11', merge_method: 'squash' }), result(pending()), result(MERGED)])
 
@@ -99,8 +98,7 @@ describe('pr merge', () => {
     expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
   })
 
-  it('スタックの最下段の PR をマージすると、スタックの番号と段の数を添えた merged の行を出す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-02')
+  it('スタックの最下段の PR をマージすると、スタックの番号と段の数を添えた merged の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest(), stacks([stackOf([11, 12])]), requested(202, pending()), result(MERGED)])
 
@@ -109,8 +107,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'merged: PR #11 into main (stack #3, 1 of 2)\n' })
   })
 
-  it('下の段の PR がマージ済みで並びに残っていても、最下段として扱う', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-03')
+  it('下の段の PR がマージ済みで並びに残っていても、最下段として扱う', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), stacks([stackOf([10, 11, 12])]), pullRequest({ number: 10, state: 'MERGED' }), requested(202, pending()), result(MERGED)])
 
@@ -120,8 +117,7 @@ describe('pr merge', () => {
     expect(github.requests().map(request => labelOf(request))).toContain(PUT)
   })
 
-  it('merge queue のあるブランチでは、マージの方法の値を渡さず、enqueued なら added の行を出して 0 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-04')
+  it('merge queue のあるブランチでは、マージの方法の値を渡さず、enqueued なら added の行を出して 0 で終わる', async () => {
     prepareProject()
     const github = await startGithub([pullRequest({ isMergeQueueEnabled: true }), NO_STACK, requested(202, pending()), result(ENQUEUED)])
 
@@ -132,8 +128,7 @@ describe('pr merge', () => {
     expect(put?.type === 'rest' ? put.body : undefined).toEqual({ sha: 'sha-11' })
   })
 
-  it('スタックの最下段でなければ、要求を送らずに、先にマージする PR を示す error の行を出し、終了コード 2 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-05')
+  it('スタックの最下段でなければ、要求を送らずに、先にマージする PR を示す error の行を出し、終了コード 2 を返す', async () => {
     prepareProject()
     const github = await startGithub([pullRequest({ number: 12 }), { match: { method: 'GET', path: '/repos/acme/demo/stacks', query: { pull_request: '12' } }, respond: { status: 200, body: [stackOf([10, 11, 12])] }, times: 1 }, pullRequest({ number: 10, state: 'MERGED' }), pullRequest({ number: 11 })])
 
@@ -154,8 +149,7 @@ describe('pr merge', () => {
     expect(outcome.structured).toMatchObject({ kind: 'pr-state', detail: 'PR #12 is not the bottom of stack #3. Merge PR #11 first' })
   })
 
-  it('ドラフトの PR は、要求を送らずに error の行を出し、終了コード 2 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-06')
+  it('ドラフトの PR は、要求を送らずに error の行を出し、終了コード 2 を返す', async () => {
     prepareProject()
     const github = await startGithub([pullRequest({ isDraft: true })])
 
@@ -165,8 +159,7 @@ describe('pr merge', () => {
     expect(github.requests().map(request => labelOf(request))).toEqual(['GetPullRequestForMerge'])
   })
 
-  it('GitHub が規則で拒んだ（failed）ときは、details.message を添えた error の行を出し、終了コード 1 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-07')
+  it('GitHub が規則で拒んだ（failed）ときは、details.message を添えた error の行を出し、終了コード 1 を返す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(202, pending()), result({ status: 'failed', details: { message: 'Repository rule violations found' } })])
 
@@ -175,8 +168,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: merge was rejected: Repository rule violations found\n' })
   })
 
-  it('非同期のマージが 60 秒で終わらなければ、確かめる PR を示す error の行を出し、終了コード 1 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-08')
+  it('非同期のマージが 60 秒で終わらなければ、確かめる PR を示す error の行を出し、終了コード 1 を返す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(202, pending()), result(pending(), 'u-1', 30)])
 
@@ -198,8 +190,7 @@ describe('pr merge', () => {
     expect(github.requests().filter(request => request.type === 'rest' && request.method === 'GET' && request.path.startsWith(MERGE_ASYNC))).toEqual([])
   })
 
-  it('読んだ後に閉じられた PR など（400）は、GitHub の文を添えた error の行を出し、終了コード 1 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-07')
+  it('読んだ後に閉じられた PR など（400）は、GitHub の文を添えた error の行を出し、終了コード 1 を返す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(400, { message: 'Pull request is closed' })])
 
@@ -208,8 +199,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: merge was rejected: Pull request is closed\n' })
   })
 
-  it('同じ PR の要求が既にある（409）ときは、返った uuid の結果を読み続ける', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-09')
+  it('同じ PR の要求が既にある（409）ときは、返った uuid の結果を読み続ける', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), NO_STACK, requested(409, pending('u-old')), result(pending('u-old'), 'u-old'), result(MERGED, 'u-old')])
 
@@ -219,8 +209,7 @@ describe('pr merge', () => {
     expect(github.requests().filter(request => labelOf(request) === `GET ${MERGE_ASYNC}/u-old`)).toHaveLength(2)
   })
 
-  it('409 の本文に uuid が無ければ、PR の状態を読み直し、キューの中なら added の行を出す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-10')
+  it('409 の本文に uuid が無ければ、PR の状態を読み直し、キューの中なら added の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest({ isMergeQueueEnabled: true }), NO_STACK, requested(409, { message: 'conflict' }), pullRequest({ isMergeQueueEnabled: true, isInMergeQueue: true })])
 
@@ -229,8 +218,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'added: PR #11 to merge queue of main\n' })
   })
 
-  it('uuid の結果が消えていたら（404）、PR の状態を読み直し、マージ済みなら merged の行を出す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-10')
+  it('uuid の結果が消えていたら（404）、PR の状態を読み直し、マージ済みなら merged の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(202, pending()), { match: { method: 'GET', path: `${MERGE_ASYNC}/u-1` }, respond: { status: 404, body: { message: 'Not Found' } }, times: 1 }, pullRequest({ state: 'MERGED' })])
 
@@ -239,8 +227,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'merged: PR #11 into main\n' })
   })
 
-  it('uuid の結果の 404 が続き、PR が open のまま、キューにも無いまま 60 秒が過ぎれば、error の行を出し、終了コード 1 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-11')
+  it('uuid の結果の 404 が続き、PR が open のまま、キューにも無いまま 60 秒が過ぎれば、error の行を出し、終了コード 1 を返す', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), NO_STACK, requested(202, pending()), resultMissing(30), pullRequest({}, 30)])
 
@@ -250,8 +237,7 @@ describe('pr merge', () => {
     expect(github.requests().filter(request => labelOf(request) === 'GetPullRequestForMerge')).toHaveLength(31)
   })
 
-  it('uuid の結果の 404 が続いても、期限までに PR が MERGED へ変われば、merged の行を出して 0 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-10')
+  it('uuid の結果の 404 が続いても、期限までに PR が MERGED へ変われば、merged の行を出して 0 で終わる', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(202, pending()), resultMissing(3), pullRequest({}, 2), pullRequest({ state: 'MERGED' })])
 
@@ -260,8 +246,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'merged: PR #11 into main\n' })
   })
 
-  it('uuid の結果の 404 の後に結果が読めて failed なら、details.message を添えた error の行を出す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-07')
+  it('uuid の結果の 404 の後に結果が読めて failed なら、details.message を添えた error の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(202, pending()), resultMissing(1), pullRequest({}, 1), result({ status: 'failed', details: { message: 'Repository rule violations found' } })])
 
@@ -270,8 +255,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: merge was rejected: Repository rule violations found\n' })
   })
 
-  it('merge-async が 404（GHES）なら、スタックに入っていない PR を、読んだ head の SHA と squash の同期のマージでマージする', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-16')
+  it('merge-async が 404（GHES）なら、スタックに入っていない PR を、読んだ head の SHA と squash の同期のマージでマージする', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), stacks({ message: 'Not Found' }, 404), ASYNC_MISSING, syncMerged()])
 
@@ -282,8 +266,7 @@ describe('pr merge', () => {
     expect(put?.type === 'rest' ? put.body : undefined).toEqual({ merge_method: 'squash', sha: 'sha-11' })
   })
 
-  it('merge-async が 404 で、同期のマージが 409（head が読んだ SHA と違う）なら、GitHub の文を添えた rejected の行を出す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-16')
+  it('merge-async が 404 で、同期のマージが 409（head が読んだ SHA と違う）なら、GitHub の文を添えた rejected の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, ASYNC_MISSING, syncMerged(409, { message: 'Head branch was modified. Review and try the merge again.' })])
 
@@ -292,8 +275,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: merge was rejected: Head branch was modified. Review and try the merge again.\n' })
   })
 
-  it('スタックの中の PR で merge-async が 404 なら、同期のマージに戻さず、失敗の行を出して終了コード 1 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-17')
+  it('スタックの中の PR で merge-async が 404 なら、同期のマージに戻さず、失敗の行を出して終了コード 1 を返す', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), stacks([stackOf([11, 12])]), ASYNC_MISSING])
 
@@ -307,8 +289,7 @@ describe('pr merge', () => {
   it.for([
     { state: 'CLOSED', line: 'error: PR #11 is closed\n' },
     { state: 'MERGED', line: 'error: PR #11 is already merged\n' },
-  ])('state が $state なら、スタックを読まず要求も送らずに error の行を出し、終了コード 2 を返す', async ({ state, line }, context) => {
-    await verifies(context, 'PW-PR-MERGE-15')
+  ])('state が $state なら、スタックを読まず要求も送らずに error の行を出し、終了コード 2 を返す', async ({ state, line }) => {
     prepareProject()
     const github = await startGithub([pullRequest({ state })])
 
@@ -318,8 +299,7 @@ describe('pr merge', () => {
     expect(github.requests().map(request => labelOf(request))).toEqual(['GetPullRequestForMerge'])
   })
 
-  it('--dry-run でも、閉じている PR は error の行を出し、終了コード 2 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-15')
+  it('--dry-run でも、閉じている PR は error の行を出し、終了コード 2 を返す', async () => {
     prepareProject()
     await startGithub([pullRequest({ state: 'CLOSED' })])
 
@@ -327,8 +307,7 @@ describe('pr merge', () => {
 
     expect(outcome).toEqual({ code: 2, stdout: '', stderr: 'error: PR #11 is closed\n' })
   })
-  it('スタックの機能が無いリポ（404）では、単独の PR として扱う', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-12')
+  it('スタックの機能が無いリポ（404）では、単独の PR として扱う', async () => {
     prepareProject()
     await startGithub([pullRequest(), stacks({ message: 'Not Found' }, 404), requested(202, pending()), result(MERGED)])
 
@@ -337,8 +316,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'merged: PR #11 into main\n' })
   })
 
-  it('403 は、ほかの API と同じ失敗の文を出し、終了コード 1 を返す', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-13')
+  it('403 は、ほかの API と同じ失敗の文を出し、終了コード 1 を返す', async () => {
     prepareProject()
     await startGithub([pullRequest(), NO_STACK, requested(403, { message: 'Forbidden' })])
 
@@ -348,8 +326,7 @@ describe('pr merge', () => {
     expect(outcome.stderr).toMatch(/^error: could not merge PR acme\/demo\/11: access denied/u)
   })
 
-  it('--dry-run は、PR とスタックを読み、要求を送らずに dry-run の行を出して 0 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-14')
+  it('--dry-run は、PR とスタックを読み、要求を送らずに dry-run の行を出して 0 で終わる', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
 
@@ -359,8 +336,7 @@ describe('pr merge', () => {
     expect(github.requests().some(request => request.type === 'rest' && request.method === 'PUT')).toBe(false)
   })
 
-  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-18')
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
     prepareProject({ repositories: ['other'] })
     const github = await startGithub([])
 
@@ -370,8 +346,7 @@ describe('pr merge', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
-    await verifies(context, 'PW-PR-MERGE-19')
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async () => {
     const { project } = prepareProject()
     makeAmbiguous(project)
     await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
@@ -411,5 +386,167 @@ describe('pr merge', () => {
     expect(outcome.isError).toBe(false)
     expect(outcome.text).toBe('merged: PR #11 into main (stack #3, 1 of 2)')
     expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'merged', stack: { number: 3, size: 2 } })
+  })
+
+  describe('MCP の呼び出し', () => {
+    it('スタックの外の PR を渡すと、読んだ head のコミットと squash でマージを頼み、status を merged にする', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-01')
+      prepareProject()
+      const github = await startGithub([pullRequest(), NO_STACK, requested(202, pending(), { sha: 'sha-11', merge_method: 'squash' }), result(pending()), result(MERGED)])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'merged' })
+      expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
+    })
+
+    it('下の段の PR がマージ済みで並びに残っていても、最下段として扱い、残りの段の数を stack に入れる', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-03')
+      prepareProject()
+      await startGithub([pullRequest(), stacks([stackOf([10, 11, 12])]), pullRequest({ number: 10, state: 'MERGED' }), requested(202, pending()), result(MERGED)])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'merged', stack: { number: 3, size: 2 } })
+    })
+
+    it('merge queue のあるブランチでは、マージの方法を送らず、merge queue に入ると status を enqueued にする', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-04')
+      prepareProject()
+      const github = await startGithub([pullRequest({ isMergeQueueEnabled: true }), NO_STACK, requested(202, pending()), result(ENQUEUED)])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'enqueued' })
+      const put = github.requests().find(request => labelOf(request) === PUT)
+      expect(put?.type === 'rest' ? put.body : undefined).toEqual({ sha: 'sha-11' })
+    })
+
+    it('ドラフトの PR は、要求を送らずに kind が pr-state の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-06')
+      prepareProject()
+      const github = await startGithub([pullRequest({ isDraft: true })])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ kind: 'pr-state', detail: 'PR #11 is a draft' })
+      expect(github.requests().map(request => labelOf(request))).toEqual(['GetPullRequestForMerge'])
+    })
+
+    it.for([
+      { name: 'GitHub が規則で拒んだ', rules: [requested(202, pending()), result({ status: 'failed', details: { message: 'Repository rule violations found' } })], message: 'Repository rule violations found' },
+      { name: '読んだ後に PR が閉じられた', rules: [requested(400, { message: 'Pull request is closed' })], message: 'Pull request is closed' },
+    ])('$name とき、GitHub の文を添えた detail を入れて kind が pr-state の失敗を返す', async (row, context) => {
+      await verifies(context, 'PW-PR-MERGE-07')
+      prepareProject()
+      await startGithub([pullRequest(), NO_STACK, ...row.rules])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', kind: 'pr-state', detail: `merge was rejected: ${row.message}` })
+    })
+
+    it('マージが 60 秒で終わらないと、確かめる PR を detail で示して kind が github-api の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-08')
+      prepareProject()
+      await startGithub([pullRequest(), NO_STACK, requested(202, pending()), result(pending(), 'u-1', 30)])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', kind: 'github-api', detail: 'merge did not finish in 60s. Check PR #11' })
+    })
+
+    it('同じ PR のマージの要求が既にあると、その要求の結果を読み続ける', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-09')
+      prepareProject()
+      const github = await startGithub([pullRequest(), NO_STACK, requested(409, pending('u-old')), result(pending('u-old'), 'u-old'), result(MERGED, 'u-old')])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'merged' })
+      expect(github.requests().filter(request => labelOf(request) === `GET ${MERGE_ASYNC}/u-old`)).toHaveLength(2)
+    })
+
+    it.for([
+      { name: '409 の本文に uuid が無く、PR が merge queue の中', rules: [pullRequest({ isMergeQueueEnabled: true }), NO_STACK, requested(409, { message: 'conflict' }), pullRequest({ isMergeQueueEnabled: true, isInMergeQueue: true })], status: 'enqueued' },
+      { name: 'uuid の結果が消え、PR がマージ済み', rules: [pullRequest(), NO_STACK, requested(202, pending()), resultMissing(1), pullRequest({ state: 'MERGED' })], status: 'merged' },
+    ])('$name なら、PR の状態を読み直して status を $status にする', async (row, context) => {
+      await verifies(context, 'PW-PR-MERGE-10')
+      prepareProject()
+      await startGithub(row.rules)
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: row.status })
+    })
+
+    it('結果を読めないまま 60 秒が過ぎ、PR がマージ済みでも merge queue の中でもないと、kind が pr-state の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-11')
+      prepareProject()
+      await startGithub([pullRequest(), NO_STACK, requested(202, pending()), resultMissing(30), pullRequest({}, 30)])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', kind: 'pr-state', detail: 'could not confirm the merge of PR #11: it is neither merged nor in the merge queue' })
+    })
+
+    it('リポジトリにスタックの API が無いと、スタックの外の PR として扱う', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-12')
+      prepareProject()
+      await startGithub([pullRequest(), stacks({ message: 'Not Found' }, 404), requested(202, pending()), result(MERGED)])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'merged' })
+    })
+
+    it('GitHub API がほかのエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-13')
+      prepareProject()
+      await startGithub([pullRequest(), NO_STACK, requested(403, { message: 'Forbidden' })])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['detail']).toMatch(/^could not merge PR acme\/demo\/11: access denied/u)
+    })
+
+    it('dry_run を付けると、PR とスタックを読み、要求を送らずに dryRun を true にして成功を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-14')
+      prepareProject()
+      const github = await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11', dry_run: true })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', stack: { number: 3, size: 2 }, dryRun: true })
+      expect(github.requests().some(request => request.type === 'rest' && request.method === 'PUT')).toBe(false)
+    })
+
+    it.for([
+      { state: 'CLOSED', detail: 'PR #11 is closed', dry_run: false },
+      { state: 'MERGED', detail: 'PR #11 is already merged', dry_run: false },
+      { state: 'CLOSED', detail: 'PR #11 is closed', dry_run: true },
+    ])('state が $state で dry_run が $dry_run なら、要求を送らずに kind が pr-state の失敗を返す', async (row, context) => {
+      await verifies(context, 'PW-PR-MERGE-15')
+      prepareProject()
+      const github = await startGithub([pullRequest({ state: row.state })])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11', dry_run: row.dry_run })
+      expect(outcome.structured).toEqual({ kind: 'pr-state', detail: row.detail })
+      expect(github.requests().map(request => labelOf(request))).toEqual(['GetPullRequestForMerge'])
+    })
+
+    it('非同期のマージ API が無いと、スタックの外の PR を、読んだ head のコミットを添えた同期のマージ API で squash でマージする', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-16')
+      prepareProject()
+      const github = await startGithub([pullRequest(), stacks({ message: 'Not Found' }, 404), ASYNC_MISSING, syncMerged()])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', status: 'merged' })
+      const put = github.requests().find(request => labelOf(request) === `PUT ${SYNC_MERGE}`)
+      expect(put?.type === 'rest' ? put.body : undefined).toEqual({ merge_method: 'squash', sha: 'sha-11' })
+    })
+
+    it('スタックの中の PR で非同期のマージ API が無いと、同期のマージ API を呼ばずに失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-17')
+      prepareProject()
+      const github = await startGithub([pullRequest(), stacks([stackOf([11, 12])]), ASYNC_MISSING])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['detail']).toMatch(/^could not merge PR acme\/demo\/11: /u)
+      expect(github.requests().map(request => labelOf(request))).not.toContain(`PUT ${SYNC_MERGE}`)
+    })
+
+    it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-18')
+      prepareProject({ repositories: ['other'] })
+      const github = await startGithub([])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
+      expect(outcome.structured).toEqual({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme' })
+      expect(github.requests()).toEqual([])
+    })
+
+    it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
+      await verifies(context, 'PW-PR-MERGE-19')
+      const { project } = prepareProject()
+      makeAmbiguous(project)
+      await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11', dry_run: true, project: SECOND_PROJECT })
+      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', stack: { number: 3, size: 2 }, dryRun: true })
+    })
   })
 })

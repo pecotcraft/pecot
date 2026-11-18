@@ -11,6 +11,7 @@ describe('CommandExit', () => {
   it('run が投げると、defineCommand の run が終了コードにして返す', async () => {
     const command = defineCommand({
       path: ['sample', 'exit'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -39,6 +40,7 @@ describe('CommandExit', () => {
   it('CommandExit 以外の例外は握りつぶさずに伝える', async () => {
     const command = defineCommand({
       path: ['sample', 'boom'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -57,6 +59,7 @@ describe('hasOwnRepo', () => {
   const seen: unknown[] = []
   const own = defineCommand({
     path: ['sample', 'own'],
+    title: 'Test command',
     description: '',
     input: z.object({ repo: z.string().optional(), name: z.string() }).refine(value => value.repo === undefined || /^[^/]+\/[^/]+$/u.test(value.repo), { path: ['repo'], message: 'bad' }),
     output: z.strictObject({}),
@@ -72,6 +75,7 @@ describe('hasOwnRepo', () => {
   it('印の無いコマンドが repo を input に持つと作れない', () => {
     expect(() => defineCommand({
       path: ['sample', 'clash'],
+      title: 'Test command',
       description: '',
       input: z.object({ repo: z.string().optional() }),
       output: z.strictObject({}),
@@ -84,6 +88,7 @@ describe('hasOwnRepo', () => {
   it('印があるのに repo が input に無いと作れない', () => {
     expect(() => defineCommand({
       path: ['sample', 'missing'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -104,6 +109,7 @@ describe('hasOwnRepo', () => {
   it('印の無いコマンドは --repo をオプションとして受けない', async () => {
     const plain = defineCommand({
       path: ['sample', 'plain'],
+      title: 'Test command',
       description: '',
       input: z.object({ name: z.string() }),
       output: z.strictObject({}),

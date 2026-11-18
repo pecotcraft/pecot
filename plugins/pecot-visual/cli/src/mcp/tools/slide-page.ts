@@ -376,7 +376,7 @@ export function slidePageTool(
   return {
     name: 'slide_page',
     config: {
-      title: 'Generate a Slidev page',
+      title: 'Create Slidev page',
       description: 'Generates a skeleton page for one layout under pages/ of the talk-dir, '
         + 'and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). '
         + 'The specification is returned in reference and includes. '

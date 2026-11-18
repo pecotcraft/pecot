@@ -91,13 +91,16 @@ export type Settle = <T>(pending: Promise<T>) => Promise<T>
 
 const awaitAsIs: Settle = async pending => await pending
 
+// 偽のタイマーを進めると SDK の要求の期限（既定 60 秒）も進むため、待つツールでは期限を長くする
+const FAKE_DELAY_REQUEST_TIMEOUT = 24 * 60 * 60 * 1000
+
 /**
 commands から MCP のサーバを作り、同じプロセスの中のクライアントからツールを 1 回呼んで、成否と structuredContent を返す。cwd は呼ぶ側が決める
 */
 export async function callToolOnce(commands: readonly CommandDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolOutcome> {
   const connected = await connectInMemory(createMcpServer(commands))
   try {
-    return toolOutcomeOf(await settle(connected.client.callTool({ name, arguments: { ...arguments_ } })))
+    return toolOutcomeOf(await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT })))
   }
   finally {
     await connected.close()

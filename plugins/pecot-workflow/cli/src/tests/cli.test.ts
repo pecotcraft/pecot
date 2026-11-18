@@ -42,6 +42,7 @@ const calls: unknown[] = []
 const COMMANDS = [
   defineCommand({
     path: ['issue', 'read'],
+    title: 'Test command',
     description: 'Issue を読む',
     input: z.object({ issue_ref: z.string() }),
     output: z.strictObject({}),
@@ -55,6 +56,7 @@ const COMMANDS = [
   }),
   defineCommand({
     path: ['boom'],
+    title: 'Test command',
     description: '落ちる',
     input: z.object({}),
     output: z.strictObject({}),
@@ -64,6 +66,7 @@ const COMMANDS = [
   }),
   defineCommand({
     path: ['abort'],
+    title: 'Test command',
     description: '中止する',
     input: z.object({}),
     output: z.strictObject({}),
@@ -74,6 +77,7 @@ const COMMANDS = [
   // 古い名前と同じ path。一覧にあれば古い名前の表を引かないことを、「古い名前の案内」が確かめる
   defineCommand({
     path: ['add-to-project'],
+    title: 'Test command',
     description: 'Project へ追加する',
     input: z.object({}),
     output: z.strictObject({}),
@@ -146,7 +150,7 @@ describe('引数なしと --help', () => {
   })
 
   it('説明を持たないグループも並べる', async () => {
-    const customCommands = [defineCommand({ path: ['custom', 'run'], description: '実行する', input: z.object({}), output: z.strictObject({}), positional: [], interactive: false, run: async () => await exitWith(0) })]
+    const customCommands = [defineCommand({ path: ['custom', 'run'], title: 'Test command', description: '実行する', input: z.object({}), output: z.strictObject({}), positional: [], interactive: false, run: async () => await exitWith(0) })]
     const io = captureIo()
     const context = { commands: customCommands, cwd: process.cwd(), environment: {}, terminalColumns: undefined }
     expect(await runCli([], { ...context, io })).toBe(2)
@@ -167,6 +171,7 @@ describe('引数なしと --help', () => {
 
 const BRANCH_COMMAND = defineCommand({
   path: ['session', 'start'],
+  title: 'Test command',
   description: 'Create a branch linked to an Issue',
   input: z.object({ issue_ref: z.string().describe('Issue reference'), branch_name: z.string().describe('Name of the branch'), base: z.string().optional().describe('Base branch') }),
   output: z.strictObject({}),
@@ -579,6 +584,7 @@ describe('枠の幅', () => {
 async function runFailing(failure: Error): Promise<Run> {
   const failing = defineCommand({
     path: ['fail'],
+    title: 'Test command',
     description: '落ちる',
     input: z.object({}),
     output: z.strictObject({}),

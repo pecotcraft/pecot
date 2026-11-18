@@ -24,6 +24,7 @@ const BRANCH_DELETE_OUTPUT = z.strictObject({
 
 const branchDeleteCommand = defineCommand({
   path: ['branch', 'delete'],
+  title: 'Delete remote branch',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
   description: 'Delete a remote branch (a protected branch is never deleted)',

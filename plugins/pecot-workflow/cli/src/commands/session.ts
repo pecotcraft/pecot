@@ -188,6 +188,7 @@ async function blockedReadiness(active: Readonly<ActiveIssue>, known: IssueReadi
 
 const SESSION_SHOW = defineCommand({
   path: ['session', 'show'],
+  title: 'Show session',
   description: 'Show the branch, repository and work Issue of the session',
   input: z.object({ directory: directorySchema, project: PROJECT_INPUT }),
   output: SESSION_SHOW_OUTPUT,
