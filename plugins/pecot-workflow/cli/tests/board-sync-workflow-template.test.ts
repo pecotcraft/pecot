@@ -77,6 +77,12 @@ describe('board sync のワークフローの雛形', () => {
     for (const step of runs) expect(step.run).not.toContain('${{')
   })
 
+  it('setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない', () => {
+    const setupNode = steps.find(step => step.uses?.startsWith('actions/setup-node@'))
+    expect(setupNode).toBeDefined()
+    expect(setupNode?.with?.['package-manager-cache']).toBe(false)
+  })
+
   it('すべての action を 40 桁の SHA で固定する', () => {
     const uses = steps.map(step => step.uses).filter(use => use !== undefined)
     expect(uses.length).toBeGreaterThan(0)

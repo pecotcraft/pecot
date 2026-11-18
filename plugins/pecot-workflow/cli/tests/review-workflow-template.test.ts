@@ -300,6 +300,10 @@ describe('review のワークフローの雛形', () => {
     expect(finish.run).toContain('--execution-file "$EXECUTION_FILE" --since "$REVIEW_STARTED_AT"')
   })
 
+  it('setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない', () => {
+    expect(stepUsing('actions/setup-node').with?.['package-manager-cache']).toBe(false)
+  })
+
   it('すべての action を 40 桁の SHA で固定する', () => {
     const uses = steps.map(step => step.uses).filter(use => use !== undefined)
     expect(uses.length).toBeGreaterThan(0)
