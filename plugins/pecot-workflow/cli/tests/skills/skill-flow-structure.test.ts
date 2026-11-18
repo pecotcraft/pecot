@@ -81,13 +81,15 @@ describe.each(['w-active', 'w-quick'])('%s の手順', (name) => {
     expect(titleIndex(headings, 'ブランチ切り替え')).toBeLessThan(titleIndex(headings, '調査'))
   })
 
-  it('計画ドラフトの Step は、利用者の判断が要る点の基準を持ち、計画の投稿より前に AskUserQuestion で聞く', () => {
+  it('計画ドラフトの Step は、計画の投稿より前に、参照の clarify に従って曖昧な点を AskUserQuestion で聞く', () => {
     const draft = titleIndex(headings, '計画ドラフト')
     const draftBody = sectionBody(text, draft)
+    const link = '../w-help/references/plan-clarify.md'
     expect(draft).toBeLessThan(titleIndex(headings, '計画の投稿'))
-    expect(draftBody).toContain('次のどちらかに当たる点は、利用者の判断が要る。AskUserQuestion で聞き、答えを計画に書いてから')
-    expect(draftBody).toContain('- 依頼と Issue の記述だけでは案を絞れず、選ぶ案で利用者に見える結果が変わる')
-    expect(draftBody).toContain('- Issue の記述と違うことをする')
+    expect(draftBody).toContain(`](${link}) に従って clarify を行う`)
+    expect(draftBody).toContain('Issue と依頼の曖昧な点を AskUserQuestion で聞き、答えを受けるたびに、できたファイルへ書く')
+    expect(draftBody.indexOf('clarify を行う')).toBeLessThan(draftBody.indexOf('テンプレの見出しと規則のとおりに計画を書く'))
+    expect(existsSync(path.join(pluginRoot, 'skills', name, link))).toBe(true)
   })
 
   it('EnterPlanMode を呼ばない、という注意を手順に書かない', () => {

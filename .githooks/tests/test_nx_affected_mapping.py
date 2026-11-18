@@ -791,7 +791,11 @@ _PECOTV_TEST_LANES = {
         # 配布物と配布スクリプトの変更は、pecot-workflow の test-release に届く。
         (
             "plugins/pecot-workflow/cli/templates/comment/plan.md",
-            {"pecot-workflow:test-cli", "pecot-workflow:test-release"},
+            {
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-release",
+                "pecot-workflow:test-skills",
+            },
         ),
         (
             "plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh",
