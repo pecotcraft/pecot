@@ -75,7 +75,7 @@
 - **脅威の前提**:
   - main の ruleset は、承認 0 件でマージできる（`required_approving_review_count: 0`）
   - 守れるのは「マージ前の PR のコードが、リリース版・開発版を書き換えない」まで。書き込み権限のある人がマージすること自体は防げない
-  - 必須のチェックも PR の定義で動くので、マージ前の PR が満たせる（R12）。これは公開の作りとは別の欠陥として扱う
+  - 必須のチェックも PR の定義で動くので、マージ前の PR が満たせる（R12）。書き込み権限のある人は信頼する側に置くので、これは守らない
 - **Alternatives considered**:
   - PR の run から直接公開する: environment の保護に `refs/pull/*/merge` を足すことになり、docs の推奨（既定のブランチだけ）から外れる
   - artifact の名前（`pages-side-*`）で側を選ぶ: 1 回目の形。PR から偽れる
@@ -193,7 +193,10 @@
   - 承認 0 件の ruleset では、同じリポの PR の作者は、PR の ci.yml の `ci-result` の job を書き換えるだけで必須のチェックを満たせる。status で偽れるかどうかで、守れる範囲は変わらない
   - merge queue に入れた後は、merge_group の run が改めて要る。PR の head の status だけで queue を通るかは調べていない
 - **決まり**: R10 の 2 つの決まりを contracts に書き、`.githooks/tests/test_pages_workflows.py` で固定する（#590）
-- **別の欠陥**: 必須のチェックが PR の定義で動き、承認 0 件でマージできることは、公開の作りとは別の欠陥として扱う
+- **守らない範囲**（#624）: 必須のチェックが PR の定義で動き、承認 0 件でマージできることは、欠陥として扱わない
+  - GitHub は、書き込み権限のある人を信頼する側に置く。docs「Available rules for rulesets」に "Any person or integration with write permissions to a repository can set the state of any status check in the repository" とある。必須のチェックは失敗を止める安全網で、書き込める人への防壁ではない
+  - PR から CI の定義を変えられなくする標準の手段は、org の ruleset の required workflows だけで、GitHub Team 以上が要る。pecotcraft は Free のプランで、費用に見合わない
+  - 承認の必須と CODEOWNERS は、書き込み権限者が 1 人なので使えない。自分の PR を自分で承認できない
 
 ## R13. リリース版の定義
 
