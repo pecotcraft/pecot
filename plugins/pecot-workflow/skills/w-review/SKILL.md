@@ -22,7 +22,11 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを�
 
 diff は `gh pr diff <PR番号> --repo <owner/repo>` で読む。長い diff がファイルとして渡されたときは、そのファイルを `Read` で読む。
 
-紐づいた Issue があれば、pecot-workflow の MCP ツール `issue_show` を使って、それも読む。
+PR が閉じる Issue（`pr_show` の `closing_issues`）があれば、pecot-workflow の MCP ツール `issue_show` を使って、それも読む。入力に `comment_limit: 20` を渡す。`referenced_issues` の Issue は読まない。
+
+読んだ Issue のコメントから、計画のコメントを探す。計画のコメントは、`## Plan` と `## PECOT-Workflow` の 2 つの見出しを持つ。複数あれば、新しい方を使う。Issue が複数あれば、Issue ごとに探す。
+
+`closing_issues` が空のときと、計画のコメントが見つからないときは、計画と照らす手順を飛ばしてレビューを続ける。
 
 前の自動レビューの `review-findings` は、`gh pr view <PR番号> --repo <owner/repo> --comments` で読む。あれば、この実行は 2 巡目以降になる。
 
@@ -38,7 +42,7 @@ diff は `gh pr diff <PR番号> --repo <owner/repo>` で読む。長い diff が
 
 ### Step 3: diff をレビュー
 
-Step 1 の情報で、main が diff をレビューする。視点・返し方・調べ方は [レビューの視点](references/review-viewpoints.md) に従う。
+Step 1 の情報で、main が diff をレビューする。視点・返し方・調べ方は [レビューの視点](references/review-viewpoints.md) に従う。Step 1 で計画のコメントを読めたときは、その参照の「計画と照らす」にも従う。
 
 前の指摘と同じ趣旨のものは、新しい指摘にしない。Step 2 の結果に含める。
 

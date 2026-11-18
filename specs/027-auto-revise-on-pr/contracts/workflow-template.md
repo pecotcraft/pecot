@@ -24,6 +24,9 @@
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限。サブエージェントの中のやり取りは数えない |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | 時間の上限。分 |
 | `PECOT_REVIEW_PROJECT` | 空 | プロジェクトの設定の名前。リポが 2 つ以上の設定に入っているときに置く。`.pecot/config/projects/` のファイル名から `.json` を除いたもの |
+| `PECOT_REVIEW_WEB_ACCESS` | `true` | `false` にすると、Context7 を足さず、`WebFetch`・`WebSearch` を拒む |
+
+任意の secret `CONTEXT7_API_KEY` があれば、Context7 にキーを渡す。無ければ、キー無しでつなぐ（回数の上限が低い）。
 
 先頭の `env` に置かないのは、job の `if` が `env` を読めないためだ。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
 `jobs.<job_id>.timeout-minutes` と `jobs.<job_id>.concurrency` も、`vars` を読める。
@@ -175,7 +178,15 @@ action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、actio
 | `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`issue_comment` | w-review の Step 1〜3 |
 | `mcp__github_inline_comment__create_inline_comment` | インラインコメントの投稿。action に同梱のツールで、公式の PR レビューの例と同じだ |
 | `Bash(gh pr diff:*)`・`Bash(gh pr view:*)` | PR の diff と情報を読む。公式の PR レビューの例と同じだ（#633） |
+| `WebSearch`・`mcp__context7__resolve-library-id`・`mcp__context7__query-docs` | 外の公式の文書を引く。`PECOT_REVIEW_WEB_ACCESS` が `false` でないときだけ足す（#657） |
 | `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` | 利用者が足す許可。job の `env` に印のコメントで囲んで置き、`--allowedTools` の末尾に、空でないときだけ足す。初期は空 |
+
+Context7 は、`--mcp-config` で `https://mcp.context7.com/mcp`（OAuth でない URL）につなぐ。
+設定の JSON は job の `env` に 2 つ置き、secret `CONTEXT7_API_KEY` の有無で式が選ぶ。
+キーは Review の step の `env` から、Claude Code が `${CONTEXT7_API_KEY}` を展開して渡す。
+
+`WebFetch` は許可にも拒否にも書かない。Claude Code に組み込みの文書のドメインだけが承認なしで通り、ほかのドメインは `default` のモードで拒まれる。
+利用者は `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` に `WebFetch(domain:...)` を書いてドメインを足す。
 
 diff は `gh pr diff` で読む。`pr_show` は本文とレビューしか返さない。checkout は履歴を 1 つしか取らないので、手元の `git diff` と `git log` では base との差を出せない。
 
@@ -185,7 +196,7 @@ diff は `gh pr diff` で読む。`pr_show` は本文とレビューしか返さ
 - `Edit`・`Write`・`NotebookEdit`
 - `AskUserQuestion`
 - `Agent`。w-review はサブエージェントを起こさない（`contracts/skill-flow.md`）
-- `WebFetch`・`WebSearch`
+- `WebFetch`・`WebSearch`。`PECOT_REVIEW_WEB_ACCESS` が `false` のときだけ
 - `Bash(git clone:*)`。pecot-w の hook が、`.pecot/work/<数字>/reviewer/` への clone に allow を返す。deny の規則は hook の allow より優先される
 - `Read(//proc/**)`。`/proc/self/environ` から環境変数のトークンを読ませない
 

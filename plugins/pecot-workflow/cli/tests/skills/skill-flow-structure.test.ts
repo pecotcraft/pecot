@@ -205,6 +205,19 @@ describe('w-review の手順', () => {
     expect(text).not.toMatch(/R\d+\/F-/u)
   })
 
+  it('Step 1 は、PR が閉じる Issue をコメント 20 件まで読み、計画が無ければ照らす手順を飛ばす', () => {
+    const body = sectionBody(text, numberIndex(headings, 1))
+    for (const phrase of ['`closing_issues`', '`comment_limit: 20`', '`## Plan` と `## PECOT-Workflow`', '計画と照らす手順を飛ばしてレビューを続ける']) expect(body).toContain(phrase)
+  })
+
+  it('視点の参照は、[tech] の節の下に計画と照らす節を持つ', () => {
+    const viewpoints = readPluginFile('skills/w-review/references/review-viewpoints.md')
+    const tech = viewpoints.indexOf('## [tech] ')
+    expect(tech).toBeGreaterThanOrEqual(0)
+    expect(viewpoints.indexOf('### 計画と照らす', tech)).toBeGreaterThan(tech)
+    expect(sectionBody(text, numberIndex(headings, 3))).toContain('「計画と照らす」')
+  })
+
   it('Step 3 は、main が視点の参照に従ってレビューし、サブエージェントを起こさない', () => {
     const body = sectionBody(text, numberIndex(headings, 3))
     expect(body).toContain('main が diff をレビューする')
