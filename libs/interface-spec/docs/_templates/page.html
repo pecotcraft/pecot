@@ -1,0 +1,8 @@
+{#- テーマの docs「Example: hide the right sidebar」の形。:notoc: のページは、目次を入れない。 -#}
+{%- extends "!page.html" -%}
+
+{%- block on_page_toc %}
+{%- if (meta is not defined or meta is none or "notoc" not in meta) and display_toc %}
+{%- include "toc.html" %}
+{%- endif %}
+{% endblock %}

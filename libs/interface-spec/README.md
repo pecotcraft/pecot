@@ -31,6 +31,20 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 - 読む JUnit は `docs/conf.py` の `iface_junit` に並べている
 - 項目の ID を書いたテスト（`verifies`）だけが、項目につながる。定義書に無い ID のケースは落とす
 
+### 見た目のテスト（`test-site`）
+
+`test-site` のレーンは、サイトを一時ディレクトリにビルドし、Chromium で全ページを開いて次の崩れを測ります。
+
+- 幅 1440px・1920px で、目次の無いページの本文の右に空欄が残る。目次の無いページの rst には、テーマの docs のとおり先頭に `:notoc: true` を付ける
+- 見出しのリンクが、テーマのアイコンでなく文字の ¶ で出る。カーソルを当てる前から見える
+- 幅 390px で、ページが横にはみ出す
+
+```bash
+pnpm exec nx run interface-spec:test-site
+```
+
+Chromium は pecot-visual と同じ版の playwright のものを使います。devcontainer は作るときに入れています。
+
 ### CI の artifact に上げない理由
 
 CI は affected のレーンだけを matrix の job に分けて動かすので、1 つの job に全レーンの JUnit がそろいません。

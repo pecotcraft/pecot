@@ -329,6 +329,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             "libs/interface-spec/src/vitest/unique-titles.ts",
             {
                 "interface-spec:test-unit",
+                "interface-spec:test-site",
                 "pecot-tools:test-cli",
                 "pecot-visual:test-cli",
                 "pecot-workflow:test-cli",
@@ -770,6 +771,7 @@ _PECOTV_TEST_LANES = {
             "libs/interface-spec/package.json",
             {
                 "interface-spec:test-unit",
+                "interface-spec:test-site",
                 "pecot-tools:test-cli",
                 "pecot-visual:test-cli",
                 "pecot-workflow:test-cli",
@@ -780,11 +782,11 @@ _PECOTV_TEST_LANES = {
         # 3 つのプラグインの generated.json は、interface-spec の出力の形のテストも読む。
         (
             "plugins/pecot-visual/interface/generated.json",
-            {"pecot-visual:test-cli", "interface-spec:test-unit"},
+            {"pecot-visual:test-cli", "interface-spec:test-unit", "interface-spec:test-site"},
         ),
         (
             "plugins/pecot-tools/interface/generated.json",
-            {"pecot-tools:test-cli", "interface-spec:test-unit"},
+            {"pecot-tools:test-cli", "interface-spec:test-unit", "interface-spec:test-site"},
         ),
         # 配布物と配布スクリプトの変更は、pecot-workflow の test-release に届く。
         (
@@ -833,9 +835,18 @@ _PECOTV_TEST_LANES = {
         # pecot-workflow の定義書は、一致のテストの test-cli に届く。
         (
             "plugins/pecot-workflow/interface/generated.json",
-            {"pecot-workflow:test-cli", "interface-spec:test-unit"},
+            {"pecot-workflow:test-cli", "interface-spec:test-unit", "interface-spec:test-site"},
         ),
-        ("plugins/pecot-workflow/interface/authored.yaml", {"pecot-workflow:test-cli"}),
+        # 定義書の本文は、サイトの見た目を測る test-site にも届く。
+        (
+            "plugins/pecot-workflow/interface/authored.yaml",
+            {"pecot-workflow:test-cli", "interface-spec:test-site"},
+        ),
+        # サイトの CSS は、サイトを組む pytest（test-unit）と見た目を測る test-site に届く。
+        (
+            "libs/interface-spec/docs/_static/pecot.css",
+            {"interface-spec:test-unit", "interface-spec:test-site"},
+        ),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
         (

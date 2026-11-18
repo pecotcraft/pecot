@@ -13,6 +13,7 @@ sys.path.insert(0, str(DOCS / "_ext"))
 
 from iface_defs import junit_lanes_table, load_junit_lanes  # noqa: E402
 from site_stamp import site_stamp  # noqa: E402
+from sphinxawesome_theme.postprocess import Icons  # noqa: E402  # pyright: ignore[reportMissingTypeStubs]
 
 project = "pecot"
 # 既定の題は「pecot  ドキュメント」になるので、プロジェクト名だけにする。
@@ -25,6 +26,7 @@ extensions = [
     "sphinx_design",
     "sphinxawesome_theme",
     "iface_defs",
+    "table_scroll",
 ]
 exclude_patterns = ["_build", "_generated/junit", ".venv", "tests", "_ext"]
 html_theme = "sphinxawesome_theme"
@@ -43,6 +45,9 @@ templates_path = ["_templates"]
 html_static_path = ["_static", "../../../.github/assets"]
 html_css_files = ["pecot.css"]
 html_favicon = "../../../.github/assets/pecot-icon-light.svg"
+# 見出しのリンクをテーマのアイコンにする（テーマの docs「How to configure > Permalinks icons」）。
+# 既定の ¶ は文字だけで子要素を持たないので、テーマの CSS が隠せず、常に出る。
+html_permalinks_icon = Icons.permalinks_icon
 html_theme_options = {
     "logo_light": "../../../.github/assets/pecot-icon-light.svg",
     "logo_dark": "../../../.github/assets/pecot-icon-dark.svg",

@@ -25,6 +25,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],
+  "include": ["src/**/*", "tests/**/*", "vitest.config.ts", "vitest.site.config.ts"],
   "exclude": ["tests/fixtures", "coverage", "node_modules"]
 }

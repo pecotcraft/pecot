@@ -195,7 +195,7 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 > `libs/<name>/` は plugin ではないライブラリの nx project である。
 >
 > - `libs/text-rules`: release group に入る。レーンは `test-unit`、lint は `lint` 1 つである。
-> - `libs/interface-spec`: 配布しないので release group に入らず、変えても version plan は要らない。レーンは `test-unit`、lint は `lint`・`lint-defs` である。`docs` は名前が test / lint で始まらないので、レーンの列挙に入らない。
+> - `libs/interface-spec`: 配布しないので release group に入らず、変えても version plan は要らない。レーンは `test-unit` と、Chromium でサイトの見た目を測る `test-site`、lint は `lint`・`lint-defs` である。`docs` は名前が test / lint で始まらないので、レーンの列挙に入らない。
 
 ### R2. CI スクリプトのペア必須
 

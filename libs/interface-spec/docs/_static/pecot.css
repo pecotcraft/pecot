@@ -143,3 +143,29 @@
 .pecot-site-sides [aria-current] {
   color: hsl(var(--foreground));
 }
+
+/* 表は、包み（_ext/table_scroll.py）の中だけで横に送る。表の display は変えない。 */
+#content .pecot-table-scroll {
+  overflow-x: auto;
+}
+
+/* 索引の表はテーマのテンプレートが出し、包みを通らない。配置のための表なので、表ごと横に送る。 */
+#content table.genindextable {
+  display: block;
+  overflow-x: auto;
+}
+
+/* ツール名のような切れ目の無い題が、狭い画面で横にはみ出さないよう、要るときだけ語の途中で折る。 */
+#content h1,
+#content h2,
+#content h3 {
+  overflow-wrap: break-word;
+}
+
+/* テーマは行内のコードの折り返しを止める。狭い画面でだけ折り返す。 */
+@media (max-width: 47.99rem) {
+  #content :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}
