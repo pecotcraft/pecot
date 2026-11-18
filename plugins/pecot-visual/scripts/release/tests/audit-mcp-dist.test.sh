@@ -553,6 +553,15 @@ assert_contains "--dev は high を残して続行した旨を出す" "開発版
 assert_eq "--dev の記録に永続層の high 件数が入る" "1" "$(record_field runtime.vulnerabilities.high)"
 stop_mock
 
+start_mock "$TMP/high.json" case6c-dist
+run_audit case6c-dist --dist="$(new_dist case6c-dist)" --runtime-dist="$(new_runtime_dist case6c-dist)" --exceptions="$EXC_EMPTY" \
+    --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
+assert_eq "--dev は配布ツリーに high があっても exit 0" "0" "$RC"
+assert_contains "--dev は配布ツリーの high を警告として出す" "WARNING: 配布ツリー: high 以上の脆弱なパッケージ 1 件" "$ERR"
+assert_contains "--dev の配布ツリーの警告に脆弱なパッケージ名を出す" "lodash (high)" "$ERR"
+assert_eq "--dev の記録に配布ツリーの high 件数が入る" "1" "$(record_field dist.vulnerabilities.high)"
+stop_mock
+
 # --- 6d. --dev でも、監査結果が得られなければ止める ---
 
 start_mock "$TMP/no-advisory.json" case6d
