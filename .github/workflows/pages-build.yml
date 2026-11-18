@@ -174,10 +174,6 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Restore workspace owner after lanes
-        if: always() && env.SIDE != 'release'
-        run: .githooks/ci/dev-container.sh restore-owner
-
       - name: Collect JUnit
         if: env.SIDE != 'release'
         run: |
