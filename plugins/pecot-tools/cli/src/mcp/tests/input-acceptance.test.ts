@@ -1,4 +1,4 @@
-// 全 26 ツールの入力の受理・拒否を、SDK の検証層を通して固定する特性テスト。
+// 全 24 ツールの入力の受理・拒否を、SDK の検証層を通して固定する特性テスト。
 //
 // 本番の createMcpServer に、実ツール定義の handler だけを spy へ差し替えて渡す。awscli を
 // 起こさずに inputSchema の検証・未知キーの除去・既定値の適用を全ツールで観測できる。
@@ -265,30 +265,6 @@ const TOOL_CASES: readonly ToolCase[] = [
     invalid: { 's3_uri が数値': { s3_uri: 1 } },
   },
   {
-    name: 'aws_s3_cp',
-    minimal: { s3_uri: 's3://bucket/key', local_path: '/work/out.txt' },
-    minimalReceived: { s3_uri: 's3://bucket/key', local_path: '/work/out.txt', overwrite: false },
-    full: { s3_uri: 's3://bucket/key', local_path: '/work/out.txt', overwrite: true, ...COMMON_FULL },
-    required: ['s3_uri', 'local_path'],
-    invalid: { 'overwrite が文字列': { overwrite: 'true' } },
-  },
-  {
-    name: 'aws_s3api_get_object',
-    minimal: { bucket: 'b', key: 'k', outfile: '/work/out.bin' },
-    minimalReceived: { bucket: 'b', key: 'k', outfile: '/work/out.bin', overwrite: false },
-    full: {
-      bucket: 'b',
-      key: 'k',
-      outfile: '/work/out.bin',
-      version_id: 'v1',
-      range: 'bytes=0-1023',
-      overwrite: true,
-      ...COMMON_FULL,
-    },
-    required: ['bucket', 'key', 'outfile'],
-    invalid: { 'overwrite が数値': { overwrite: 1 } },
-  },
-  {
     name: 'aws_rds_describe_events',
     minimal: {},
     full: {
@@ -425,7 +401,7 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
 
   it('表が公開ツール全件と過不足なく一致する', () => {
     expect(toolCaseNames()).toEqual(allTools().map(tool => tool.name))
-    expect(TOOL_CASES).toHaveLength(26)
+    expect(TOOL_CASES).toHaveLength(24)
   })
 
   describe.each(TOOL_CASES)('$name', (toolCase) => {
