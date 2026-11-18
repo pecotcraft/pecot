@@ -770,7 +770,7 @@ def test_footer_has_logo_links_and_copyright(full: Built) -> None:
     found = re.search(r"<footer[\s\S]*?</footer>", full.html("index.html"))
     assert found
     footer = found.group(0)
-    assert "pecot-wordmark-light.svg" in footer
+    assert "pecot-icon-light.svg" in footer
     assert links_of(footer) == {
         "": "#",  # ロゴは画像だけのリンクで、トップでは自分を指す
         "GitHub": "https://github.com/pecotcraft/pecot",
