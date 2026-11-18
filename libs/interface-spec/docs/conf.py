@@ -44,6 +44,7 @@ templates_path = ["_templates"]
 # ロゴは README などでも使うので、リポジトリの .github/assets に置いてある。
 html_static_path = ["_static", "../../../.github/assets"]
 html_css_files = ["pecot.css"]
+html_js_files = ["pecot.js"]
 html_favicon = "../../../.github/assets/pecot-icon-light.svg"
 # 見出しのリンクをテーマのアイコンにする（テーマの docs「How to configure > Permalinks icons」）。
 # 既定の ¶ は文字だけで子要素を持たないので、テーマの CSS が隠せず、常に出る。

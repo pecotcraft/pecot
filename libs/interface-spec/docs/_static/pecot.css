@@ -193,3 +193,8 @@ header .container:not(.pecot-site-row) {
     overflow-wrap: break-word;
   }
 }
+
+/* 左の目次の長い名前は、pecot.js が `_` の後ろに折り返しの位置を足す。それでも収まらないときだけ語の途中で折る。 */
+#left-sidebar a {
+  overflow-wrap: anywhere;
+}
