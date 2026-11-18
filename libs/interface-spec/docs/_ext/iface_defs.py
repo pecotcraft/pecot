@@ -429,7 +429,7 @@ def _constraint(item: object) -> str:
 
 
 MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
-COMMON_OUTPUT_TITLE = "出力項目"
+COMMON_OUTPUT_TITLE = "出力"
 # structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
 _MCP_COMMON = ("kind", "detail", "log", "warnings")
 
@@ -465,7 +465,7 @@ PLUGIN_KEY = "_plugin"
 
 
 def common_output_label(plugin: str) -> str:
-    """共通仕様のページの、出力項目の節のラベル。ページの rst が、節の前に同じ名前で置く。"""
+    """共通仕様のページの、出力の節のラベル。ページの rst が、節の前に同じ名前で置く。"""
     return f"iface-common-output-{plugin}"
 
 
@@ -1026,13 +1026,7 @@ class IfaceCommonOutput(_Base):
 
     def run(self) -> list[nodes.Node]:
         plan = self._plan(self.arguments[0])
-        lines = [
-            "次の項目は、すべての MCP ツールの実行結果に共通です。"
-            "ツールの実行に失敗した場合や、警告がある場合に、実行結果に含まれます。",
-            "",
-            *_table("", ["項目名", "型", "説明"], plan.common_output),
-            "ツールごとの出力項目については、各ツールのページの「出力」を参照してください。",
-        ]
+        lines = _table("", ["項目名", "型", "説明"], plan.common_output)
         return self.parse_text_to_nodes("\n".join(lines))
 
 

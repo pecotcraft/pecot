@@ -867,8 +867,8 @@ def test_mcp_output_links_to_common_fields_of_the_plugin() -> None:
 COMMON_PAGE = """\
 .. _iface-common-output-sample:
 
-出力項目
-========
+出力
+====
 
 .. iface-common-output:: sample
 """
