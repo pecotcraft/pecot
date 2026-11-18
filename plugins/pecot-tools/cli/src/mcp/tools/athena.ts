@@ -11,6 +11,7 @@ import { classifyAthenaQuery } from '../../domain/athena-query.js'
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsObject,
   COMMON_INPUT_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
   type PreExecutionRejection,
@@ -70,6 +71,9 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
         ...COMMON_INPUT_SHAPE,
       }),
       reject: rejectStartQueryExecution,
+      responseShape: {
+        QueryExecutionId: z.string().describe('ID of the started query (Athena StartQueryExecution response)'),
+      },
     }, options),
     allowlistedTool({
       entry: ATHENA_GET_QUERY_EXECUTION,
@@ -79,6 +83,9 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
         query_execution_id: z.string().describe('ID returned by aws_athena_start_query_execution'),
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        QueryExecution: awsObject('QueryExecution object of the Athena GetQueryExecution response'),
+      },
     }, options),
     allowlistedTool({
       entry: ATHENA_GET_QUERY_RESULTS,
@@ -89,6 +96,10 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        ResultSet: awsObject('ResultSet object (Rows and ResultSetMetadata) of the Athena GetQueryResults response'),
+        UpdateCount: z.number().describe('Number of rows changed by a DML statement (Athena GetQueryResults response)'),
+      },
     }, options),
   ]
 }

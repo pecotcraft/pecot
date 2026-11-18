@@ -29,6 +29,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { describe, it, expect, afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'
+import { z } from 'zod'
 
 import type { Tool } from '@modelcontextprotocol/server'
 import { createChromiumCacheDirectory, removeChromiumCacheDirectory } from '../../../tests/_helpers/chromium-cache.js'
@@ -243,9 +244,12 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
 ]
 
 /**
-outputSchema が名前を持たせる共通の項目。ツールの項目は名前を持たせず、開いた object で受ける。
+全ツールの outputSchema が持つ共通の項目。ツールの項目はツールごとに宣言する。
 */
 const COMMON_OUTPUT_ITEMS = ['detail', 'kind', 'log', 'warnings']
+
+const RequiredBranchSchema = z.looseObject({ required: z.array(z.string()) })
+const OutputBranchesSchema = z.looseObject({ anyOf: z.array(RequiredBranchSchema) })
 
 // src/mcp/tests → cli/。実在しないディレクトリを起点に、実処理が即失敗する入力を作る。
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -632,16 +636,22 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(structured['file']).toBe(expectedOutPath)
   })
 
-  it.each(TOOL_CONTRACTS)('$name の outputSchema は、共通の 4 項目だけに名前を持たせた開いた object になる', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の outputSchema は、宣言に無い項目を拒む閉じた object で、共通の 4 項目を持ち、anyOf で成功の必須項目か kind と detail を求める', (contract) => {
     const outputSchema = toolOf(contract.name).outputSchema
     const properties = outputSchema?.['properties']
     const names = Object.keys(isRecord(properties) ? properties : {})
+    const { anyOf } = OutputBranchesSchema.parse(outputSchema)
+    const [success, failure] = anyOf
 
     expect(outputSchema?.['type']).toBe('object')
-    expect(sorted(names)).toEqual(COMMON_OUTPUT_ITEMS)
-    expect(outputSchema?.['required'] ?? []).toEqual([])
-    expect(outputSchema).not.toHaveProperty('anyOf')
-    expect(outputSchema?.['additionalProperties']).toEqual({})
+    expect(names).toEqual(expect.arrayContaining(COMMON_OUTPUT_ITEMS))
+    expect(outputSchema?.['additionalProperties']).toBe(false)
+    expect(outputSchema).not.toHaveProperty('required')
+    expect(anyOf).toHaveLength(2)
+    expect(success?.required.length).toBeGreaterThan(0)
+    expect(names).toEqual(expect.arrayContaining(success?.required ?? []))
+    expect(success?.required).not.toEqual(expect.arrayContaining(['kind']))
+    expect(failure).toEqual({ required: ['kind', 'detail'] })
     // JSON Schema の boolean スキーマ（true）を出さない。
     expect(JSON.stringify(outputSchema)).not.toMatch(/:true[,\}]/v)
   })

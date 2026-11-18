@@ -24,6 +24,7 @@ import { executeSlideTheme } from '../../../commands/slidev-project/theme.js'
 import { NodeThemeFiles } from '../../../infra/slidev-theme/fs.js'
 import type { ToolCallContext } from '../../server.js'
 import { normalizePageFileName, slidePageTool } from '../slide-page.js'
+import { withOutputCheck } from './_output.js'
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -47,7 +48,7 @@ const DATA_SIZE_BUDGET = 40_000
 */
 const CALL: ToolCallContext = { signal: new AbortController().signal }
 
-const tool = slidePageTool()
+const tool = withOutputCheck(slidePageTool())
 
 const temporaryDirectories: string[] = []
 
@@ -575,7 +576,7 @@ describe('slide_page の失敗ルート', () => {
   it('参照 yaml が読めなければ、書き込みと別の reason で失敗する', async () => {
     // catalog の確認の後に参照 yaml が消える競合を、読み取りの差し替えで再現する。
     const directory = makeTalkDirectory()
-    const racing = slidePageTool(() => Promise.reject(new Error('ENOENT: no such file (race)')))
+    const racing = withOutputCheck(slidePageTool(() => Promise.reject(new Error('ENOENT: no such file (race)'))))
 
     const result = await racing.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 

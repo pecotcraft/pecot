@@ -9,6 +9,7 @@
 
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import type { CallToolResult } from '@modelcontextprotocol/client'
+import type { StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 
 import { isRecord } from '../../../tests/_helpers/records.js'
@@ -119,7 +120,7 @@ export async function connectSpied(era: ProtocolEra = 'legacy'): Promise<SpiedMc
     ...tool,
     handler: (arguments_) => {
       calls.push({ name: tool.name, arguments: arguments_ })
-      return Promise.resolve(toCallToolResult(SPY_RESULT))
+      return Promise.resolve(toCallToolResult(spyResultOf(tool.name)))
     },
   }))
   const connected = await connectMcp(spied, { era })
@@ -127,12 +128,34 @@ export async function connectSpied(era: ProtocolEra = 'legacy'): Promise<SpiedMc
 }
 
 /**
-spy が返す成功結果。outputSchema 検証を通る完全な形にしておく。
+spy が返す成功結果。outputSchema は閉じていて成功の必須項目も求めるので、対象のツールに合う形で作る。
 */
-export const SPY_RESULT: ExecutionResult = {
-  ok: true,
-  data: { spy: true },
-  message: 'spy',
+export function spyResultOf(name: string): ExecutionResult {
+  const data = name === 'aws_sso_login'
+    ? { state: 'pending', profile: '' }
+    : (name === 'aws_sso_login_status' ? { state: 'pending' } : { lines: ['spy'] })
+  return { ok: true, data, message: 'spy' }
+}
+
+function outputSchemaOf(tool: Readonly<ToolDefinition>): StandardSchemaWithJSON {
+  const schema = tool.config.outputSchema
+  if (schema === undefined) throw new Error(`${tool.name} に outputSchema がありません`)
+  return schema
+}
+
+/**
+ツールの outputSchema の JSON Schema（tools/list に載る形）。
+*/
+export function outputJsonSchemaOf(tool: Readonly<ToolDefinition>): Record<string, unknown> {
+  return outputSchemaOf(tool)['~standard'].jsonSchema.output({ target: 'draft-2020-12' })
+}
+
+/**
+structuredContent が outputSchema に合わない理由。SDK が成功の結果に使うのと同じ validator で、失敗の結果も確かめる。
+*/
+export async function outputSchemaIssues(tool: Readonly<ToolDefinition>, value: unknown): Promise<readonly string[]> {
+  const checked = await outputSchemaOf(tool)['~standard'].validate(value)
+  return checked.issues === undefined ? [] : checked.issues.map(issue => issue.message)
 }
 
 /**

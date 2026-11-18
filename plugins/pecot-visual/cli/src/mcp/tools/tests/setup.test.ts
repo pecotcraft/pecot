@@ -20,6 +20,7 @@ import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
 import type { ToolCallContext } from '../../server.js'
 import { setupTool } from '../setup.js'
+import { withOutputCheck } from './_output.js'
 import type { ChromiumDependencies, RuntimeDependencies } from '../_shared.js'
 import type { HostDependencies } from '../../../infra/playwright/host-dependencies.js'
 
@@ -166,7 +167,7 @@ async function callSetup(
   runtimeDependencies: Readonly<RuntimeDependencies> = fakeRuntimeDependencies().deps,
   hostDependencies: Readonly<HostDependencies> = fakeHostDependencies().deps,
 ): Promise<CallToolResult> {
-  return await setupTool(() => dependencies, () => runtimeDependencies, () => hostDependencies).handler({}, CALL)
+  return await withOutputCheck(setupTool(() => dependencies, () => runtimeDependencies, () => hostDependencies)).handler({}, CALL)
 }
 
 /**
@@ -247,11 +248,8 @@ describe('runtime_setup: chromium', () => {
 
     expect(result.isError).toBe(true)
     const structured = structuredOf(result)
-    expect(structured).toHaveProperty('kind')
-    expect(dataOf(result)).toMatchObject({
-      event: 'setup.error',
-      reason: 'chromium-install-failed',
-    })
+    expect(structured).toMatchObject({ event: 'setup.error', kind: 'chromium-install-failed' })
+    expect(structured).not.toHaveProperty('reason')
     expect(stageOf(result, 'chromium')['installed']).toBe(false)
     // bin/pecotv の fatal メッセージと同じ誘導内容に揃える。
     const detail = String(dataOf(result)['detail'])
@@ -332,7 +330,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
     const runtime = fakeRuntimeDependencies({ installed: false })
     const chromium = fakeDependencies({ installed: false })
     const hostDependencies = fakeHostDependencies().deps
-    const tool = setupTool(() => chromium.deps, () => runtime.deps, () => hostDependencies)
+    const tool = withOutputCheck(setupTool(() => chromium.deps, () => runtime.deps, () => hostDependencies))
 
     await tool.handler({}, CALL)
     const second = await tool.handler({}, CALL)
@@ -352,7 +350,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
     const result = await callSetup(chromium.deps, runtime.deps)
 
     expect(result.isError).toBe(true)
-    expect(dataOf(result)).toMatchObject({ event: 'setup.error', reason: 'runtime-install-failed' })
+    expect(dataOf(result)).toMatchObject({ event: 'setup.error', kind: 'runtime-install-failed' })
     expect(String(dataOf(result)['detail'])).toContain('exited with 1')
     expect(dataOf(result)['log']).toBe('ERR_PNPM')
     // npm が破損している環境で chromium 取得まで巻き添えにしない。
@@ -542,11 +540,12 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
     expect(message).toContain('Playwright Chromium')
   })
 
-  it('reason は失敗した系統を全て並べ、kind は最初の失敗の系統を指す', async () => {
+  it('両系統が失敗すると、kind は最初の失敗の系統を指し、失敗した系統は各段の installed で読め、reason を返さない', async () => {
     const structured = structuredOf(await callSetupWithBothFailing())
 
-    expect(structured['reason']).toBe('runtime-install-failed,chromium-install-failed')
     expect(structured['kind']).toBe('runtime-install-failed')
+    expect(structured).toMatchObject({ runtime: { installed: false }, chromium: { installed: false } })
+    expect(structured).not.toHaveProperty('reason')
   })
 
   it('両系統が失敗したら、両系統の stdout と stderr を log に残す', async () => {
@@ -614,8 +613,8 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
 
     const structured = structuredOf(result)
-    expect(structured).toHaveProperty('kind')
-    expect(dataOf(result)['reason']).toBe('chromium-host-deps-missing')
+    expect(structured['kind']).toBe('chromium-host-deps-missing')
+    expect(stageOf(result, 'hostDeps')['installed']).toBe(false)
     expect(sentenceOf(result)).toContain('sudo apt-get install -y --no-install-recommends libatk1.0-0t64')
     expect(sentenceOf(result), '取得の失敗ではなく不足として、前置きなしで 1 回だけ案内する')
       .toMatch(/^OS libraries required to launch Chromium are missing \(libatk-1\.0\.so\.0\); (?!.*OS libraries required)/)
@@ -640,7 +639,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
 
     const result = await callSetup(chromium.deps, fakeRuntimeDependencies().deps, host.deps)
 
-    expect(dataOf(result)['reason']).toBe('chromium-install-failed')
+    expect(dataOf(result)['kind']).toBe('chromium-install-failed')
     expect(dataOf(result)['hostDeps']).toBeUndefined()
     expect(host.probeCalls()).toBe(0)
   })

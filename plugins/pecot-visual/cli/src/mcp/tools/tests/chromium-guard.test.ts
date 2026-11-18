@@ -26,9 +26,13 @@ import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
 import { snapshotTree } from './tree-snapshot.js'
 import type { ToolCallContext } from '../../server.js'
-import { drawioExportTool, drawioCreateTool } from '../drawio.js'
+import { drawioCreateTool as drawioCreateDefinition, drawioExportTool as drawioExportDefinition } from '../drawio.js'
+import { withOutputCheck } from './_output.js'
 import { ensureChromium, type ChromiumDependencies } from '../_shared.js'
-import { slideConvertTool } from '../slide.js'
+import { slideConvertTool as slideConvertDefinition } from '../slide.js'
+
+const drawioCreateTool = withOutputCheck(drawioCreateDefinition)
+const drawioExportTool = withOutputCheck(drawioExportDefinition)
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -367,7 +371,7 @@ describe('chromium 未取得時のツール応答', () => {
     await verifies(context, 'PV-SLIDE-CONVERT-07')
     stubChromium()
 
-    const result = await slideConvertTool().handler(
+    const result = await withOutputCheck(slideConvertDefinition()).handler(
       { project_dir: path.join(CLI_ROOT, 'tests', 'fixtures', 'minimal-slidev') },
       CALL,
     )

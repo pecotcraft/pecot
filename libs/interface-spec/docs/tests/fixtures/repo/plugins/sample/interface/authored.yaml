@@ -89,3 +89,9 @@ common_behaviors:
   - id: SM-COMMON-01
     pattern: event
     statement: --help を付けて打つと、使い方を出す
+common_mcp_output:
+  fields:
+    kind: 失敗の種別です。失敗のときだけ入ります。
+    detail: 失敗の文です。失敗のときだけ入ります。
+    log: 子プロセスの出力です。失敗のときだけ入ります。
+    warnings: 警告の文です。無いときは入りません。

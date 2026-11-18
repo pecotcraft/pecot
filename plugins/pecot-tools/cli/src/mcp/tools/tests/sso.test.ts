@@ -11,10 +11,12 @@ import path from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
+import { compareStrings } from '../../../../tests/_helpers/compare-strings.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { useFakeAws } from '../../../../tests/_helpers/fake-aws.js'
 import { OUTPUT_LIMIT_BYTES, resetAwscliProbe } from '../../../infra/awscli.js'
 import type { ToolCallContext, ToolDefinition } from '../../server.js'
+import { outputSchemaIssues } from '../../tests/_client.js'
 import { ssoTools } from '../sso.js'
 import { useLoginRegistry } from '../../../../tests/_helpers/login-registry.js'
 import { useTemporaryDirectories } from '../../../../tests/_helpers/temporary-directory.js'
@@ -48,6 +50,13 @@ function dataOf(result: Readonly<CallToolResult>): Record<string, unknown> {
 }
 
 /**
+structuredContent をツールの outputSchema で parse する。SDK は失敗の結果を検証しないので、失敗もここで見る。
+*/
+async function expectDeclared(tool: ToolDefinition, result: Readonly<CallToolResult>): Promise<void> {
+  expect(await outputSchemaIssues(tool, result.structuredContent)).toEqual([])
+}
+
+/**
 content の 1 つ目の text（成功の文か失敗の detail）。
 */
 function sentenceOf(result: Readonly<CallToolResult>): string {
@@ -72,6 +81,43 @@ describe('ssoTools', () => {
       verificationUrlComplete: 'https://example.awsapps.com/start/#/device?user_code=ABCD-EFGH',
     })
     expect(registry.get()?.state).toBe('pending')
+    await expectDeclared(toolOf(tools, 'aws_sso_login'), result)
+    expect(Object.keys(dataOf(result)).toSorted(compareStrings)).toEqual(['profile', 'state', 'userCode', 'verificationUrl', 'verificationUrlComplete'])
+  })
+
+  it('pending の状態確認は、state・URL・コードだけを返す', async () => {
+    fakeAws.install({ exitWhenFile: true })
+    const registry = newRegistry()
+    const tools = ssoTools({ loginRegistry: registry })
+
+    await toolOf(tools, 'aws_sso_login').handler({}, ABORTED_CONTEXT)
+    const result = await toolOf(tools, 'aws_sso_login_status').handler({}, ABORTED_CONTEXT)
+
+    expect(result.isError).toBeUndefined()
+    await expectDeclared(toolOf(tools, 'aws_sso_login_status'), result)
+    expect(Object.keys(dataOf(result)).toSorted(compareStrings)).toEqual(['state', 'userCode', 'verificationUrl', 'verificationUrlComplete'])
+  })
+
+  it('成功の必須項目を欠いた結果は、outputSchema の検証で落ちる', async () => {
+    const tools = ssoTools({ loginRegistry: newRegistry() })
+    const login = toolOf(tools, 'aws_sso_login')
+    const status = toolOf(tools, 'aws_sso_login_status')
+
+    expect(await outputSchemaIssues(login, { state: 'pending', profile: '' })).toEqual([])
+    expect(await outputSchemaIssues(login, { state: 'pending' })).not.toEqual([])
+    expect(await outputSchemaIssues(login, { profile: 'dev' })).not.toEqual([])
+    expect(await outputSchemaIssues(status, { state: 'completed' })).toEqual([])
+    expect(await outputSchemaIssues(status, { userCode: 'ABCD-EFGH' })).not.toEqual([])
+    expect(await outputSchemaIssues(status, { kind: 'invalid-input', detail: 'd' })).toEqual([])
+  })
+
+  it('開始していない状態確認の失敗も、宣言した型に合う', async () => {
+    const tools = ssoTools({ loginRegistry: newRegistry() })
+
+    const result = await toolOf(tools, 'aws_sso_login_status').handler({}, ABORTED_CONTEXT)
+
+    expect(result.isError).toBe(true)
+    await expectDeclared(toolOf(tools, 'aws_sso_login_status'), result)
   })
 
   it('status の output は上限で切り詰めて、注記を文に残す', async () => {
@@ -93,6 +139,7 @@ describe('ssoTools', () => {
     expect(Buffer.byteLength(String(output), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
     expect(result.isError).toBeUndefined()
     expect(sentenceOf(result)).toContain('exceeded the limit')
+    await expectDeclared(toolOf(tools, 'aws_sso_login_status'), result)
   })
 
   it('確定待ちより先にタイムアウトが来ると timed-out を返す', async () => {
@@ -111,6 +158,7 @@ describe('ssoTools', () => {
     })
     expect(result.isError).toBe(true)
     expect(sentenceOf(result)).toContain('Call aws_sso_login again')
+    await expectDeclared(toolOf(tools, 'aws_sso_login'), result)
   })
 
   it('開始に失敗して出力が上限を超えると、注記を detail に残す', async () => {
@@ -131,5 +179,6 @@ describe('ssoTools', () => {
     expect(typeof log).toBe('string')
     expect(Buffer.byteLength(String(log), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
     expect(sentenceOf(result)).toContain('exceeded the limit')
+    await expectDeclared(toolOf(tools, 'aws_sso_login'), result)
   })
 })

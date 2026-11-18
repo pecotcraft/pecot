@@ -17,6 +17,7 @@ import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-dire
 import { slideThemeDefaultDependencies } from '../../../commands/slidev-project/theme.js'
 import type { ToolCallContext } from '../../server.js'
 import { slideThemeTool } from '../slide-theme.js'
+import { withOutputCheck } from './_output.js'
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -31,7 +32,7 @@ afterEach(() => {
   rmSync(temporaryRoot(), { recursive: true, force: true })
 })
 
-const tool = slideThemeTool(slideThemeDefaultDependencies)
+const tool = withOutputCheck(slideThemeTool(slideThemeDefaultDependencies))
 
 function makeTalk(options: Readonly<{ link?: boolean, theme?: string }> = {}): string {
   const talk = temporaryRoot('talk')

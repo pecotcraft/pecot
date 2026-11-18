@@ -16,7 +16,8 @@ import { buildPng } from '../../../../tests/_helpers/image-fixture.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
 import type { ToolCallContext } from '../../server.js'
-import { evidenceCreateTool } from '../evidence.js'
+import { evidenceCreateTool as evidenceCreateDefinition } from '../evidence.js'
+import { withOutputCheck } from './_output.js'
 import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-directory.js'
 
 /**
@@ -28,7 +29,7 @@ function toolCall(): ToolCallContext {
 }
 
 function callEvidenceCreate(arguments_: Readonly<Record<string, unknown>>): Promise<CallToolResult> {
-  return evidenceCreateTool.handler(arguments_, toolCall())
+  return withOutputCheck(evidenceCreateDefinition).handler(arguments_, toolCall())
 }
 
 // 引数を Record で受けるのは、CallToolResult が持つ配列メンバのせいで Readonly<CallToolResult> に narrowing できないため。

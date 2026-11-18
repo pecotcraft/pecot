@@ -6,6 +6,7 @@ import { EC2_DESCRIBE_INSTANCES } from '../../domain/allowlist.js'
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsObjects,
   COMMON_INPUT_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
   type ToolOptions,
@@ -33,6 +34,9 @@ export function ec2Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        Reservations: awsObjects('Reservation objects of the EC2 DescribeInstances response'),
+      },
     }, options),
   ]
 }

@@ -16,6 +16,7 @@ import type { z } from 'zod'
 
 import { readVersion } from '../version.js'
 import { createExecutionQueue } from './queue.js'
+import { standardOutputSchema, toolOutputSchema } from './result.js'
 import { ignoreRejection } from '../domain/_shared/ignore-rejection.js'
 
 /**
@@ -44,7 +45,7 @@ export interface ToolConfig {
   readonly description?: string
   readonly inputSchema: z.ZodObject
   /**
-  指定すると SDK が structuredContent をこのスキーマで検証する。
+  ツールの項目の宣言。toolOutputSchema で共通の 4 項目と anyOf を足した JSON Schema にして、SDK に渡す。
   */
   readonly outputSchema?: z.ZodObject
   /**
@@ -204,9 +205,10 @@ export function createMcpServer(tools: readonly ToolDefinition[] = [], options: 
   const intervalMs = options.progressIntervalMs ?? PROGRESS_HEARTBEAT_INTERVAL_MS
 
   for (const tool of tools) {
+    const { outputSchema, ...config } = tool.config
     server.registerTool(
       tool.name,
-      tool.config,
+      { ...config, ...(outputSchema !== undefined && { outputSchema: standardOutputSchema(toolOutputSchema(outputSchema)) }) },
       async (arguments_: Readonly<Record<string, unknown>>, serverContext: ServerContext) => {
         const heartbeat = startProgressHeartbeat(tool.name, serverContext, intervalMs)
         const context: ToolContext = {

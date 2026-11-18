@@ -19,10 +19,14 @@ import type { ToolCallContext } from '../../server.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { useInstalledChromiumCache } from '../../../../tests/_helpers/chromium-cache.js'
 import { copyFixtureTheme } from '../../../../tests/_helpers/theme-fixtures.js'
-import { drawioExportTool, drawioCreateTool } from '../drawio.js'
+import { drawioCreateTool as drawioCreateDefinition, drawioExportTool as drawioExportDefinition } from '../drawio.js'
+import { withOutputCheck } from './_output.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
 import { decodeData } from '../../../domain/drawio/url.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+
+const drawioCreateTool = withOutputCheck(drawioCreateDefinition)
+const drawioExportTool = withOutputCheck(drawioExportDefinition)
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')

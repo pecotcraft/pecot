@@ -27,6 +27,7 @@ import type { ToolCallContext } from '../server.js'
 import { drawioCreateTool } from '../tools/drawio.js'
 import { evidenceCreateTool } from '../tools/evidence.js'
 import { slideLintTool } from '../tools/slide.js'
+import { withOutputCheck } from '../tools/tests/_output.js'
 
 // src/mcp/tests → cli/ → plugins/pecot-visual（既定 deps ファクトリが要求する CLAUDE_PLUGIN_ROOT）
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -93,7 +94,7 @@ function placeDiagram(cells: string): { input: string, out: string } {
 }
 
 function callDrawio(input: string, out: string): Promise<CallToolResult> {
-  return drawioCreateTool.handler({ input_path: input, out_path: out, png: false }, CALL)
+  return withOutputCheck(drawioCreateTool).handler({ input_path: input, out_path: out, png: false }, CALL)
 }
 
 function placeEvidence(spec: Readonly<Record<string, unknown>>): { input: string, out: string } {
@@ -109,7 +110,7 @@ function placePng(): string {
 }
 
 function callEvidence(input: string, out: string): Promise<CallToolResult> {
-  return evidenceCreateTool.handler({ input_path: input, out_path: out }, CALL)
+  return withOutputCheck(evidenceCreateTool).handler({ input_path: input, out_path: out }, CALL)
 }
 
 describe('drawio_create の文面確認', () => {
@@ -290,7 +291,7 @@ async function placeParityTalk(): Promise<string> {
 }
 
 async function slideLintRuleIds(rule: string): Promise<Set<string>> {
-  const result = await slideLintTool().handler({ dir: await placeParityTalk() }, CALL)
+  const result = await withOutputCheck(slideLintTool()).handler({ dir: await placeParityTalk() }, CALL)
   const violations = dataOf(result)['violations']
   if (!Array.isArray(violations)) throw new TypeError('violations が配列ではありません')
   return new Set(

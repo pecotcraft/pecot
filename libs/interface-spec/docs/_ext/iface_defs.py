@@ -3,6 +3,7 @@
 - ``iface-defs <plugin> [<項目の ID> | common]``: コマンド・ツールを cmd、振る舞いを behavior の need にし、
   outcome を決める。2 つ目を渡すと、その項目とその振る舞いだけ（``common`` は共通の振る舞いだけ）を出す
 - ``iface-index <plugin>``: コマンド・ツールの一覧を、各ページへのリンクと状態ごとの数の表にする
+- ``iface-common-output <plugin>``: すべての MCP ツールの実行結果に共通する項目の表を出す
 - ``iface-overview``: プラグインごとに、リファレンスのページへのリンクと状態ごとの数を 1 行で出す
 - ``iface-tests <plugin>``: 項目につながるケースだけの JUnit を書き、test-file で描く
 
@@ -428,9 +429,9 @@ def _constraint(item: object) -> str:
 
 
 MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
-MCP_FIELDS_OPEN = "このほかの項目も返します（型を閉じていません）。"
+COMMON_OUTPUT_TITLE = "出力"
 # structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
-_MCP_COMMON = frozenset({"kind", "detail", "log", "warnings"})
+_MCP_COMMON = ("kind", "detail", "log", "warnings")
 
 
 def _mcp_output(entry: dict[str, Any]) -> list[str]:
@@ -447,17 +448,48 @@ def _mcp_output(entry: dict[str, Any]) -> list[str]:
         for name, spec in properties.items()
         if name not in _MCP_COMMON
     ]
-    lines = _table("MCP の結果の項目", ["項目名", "型", "説明"], rows)
-    if body.get("additionalProperties") is not False:
-        return lines + _para(MCP_FIELDS_OPEN)
-    return lines or _para(MCP_FIELDS_EMPTY)
+    lines = _table("MCP の結果の項目", ["項目名", "型", "説明"], rows) or _para(MCP_FIELDS_EMPTY)
+    plugin = entry.get(PLUGIN_KEY)
+    if plugin is None:
+        return lines
+    target = f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label(str(plugin))}>`"
+    return [
+        *lines,
+        f"エラーと警告の項目については、共通仕様の\\ {target}\\ を参照してください。",
+        "",
+    ]
+
+
+# render_sections へ渡す項目の、プラグインの名前を載せるキー。定義書の欄ではない。
+PLUGIN_KEY = "_plugin"
+
+
+def common_output_label(plugin: str) -> str:
+    """共通仕様のページの、出力の節のラベル。ページの rst が、節の前に同じ名前で置く。"""
+    return f"iface-common-output-{plugin}"
+
+
+def common_output_rows(generated: dict[str, Any], authored: dict[str, Any]) -> list[list[str]]:
+    """共通の項目の表の行。説明は common_mcp_output、型は最初の MCP ツールの mcp.output から取る。"""
+    common = _get(authored, "common_mcp_output.fields")
+    written = cast("dict[str, str]", common) if isinstance(common, dict) else {}
+    entries = cast("list[dict[str, Any]]", generated.get("entries", []))
+    outputs = [o for o in (_get(g, "mcp.output") for g in entries) if o is not _MISSING]
+    properties, _ = _schema(outputs[0] if outputs else None)
+    return [
+        [name, _type(properties.get(name, {})), written[name]]
+        for name in _MCP_COMMON
+        if name in written
+    ]
 
 
 def _output(entry: dict[str, Any]) -> list[str]:
     output = cast("dict[str, Any]", entry.get("output", {}))
     lines: list[str] = []
+    # 標準出力の文は、CLI の面を持つ項目だけに出す。surfaces の無い entry は CLI として扱う
+    has_cli = "cli" in cast("dict[str, Any]", entry.get("surfaces", {"cli": {}}))
     if output.get("format") == "none":
-        lines += _para("標準出力には何も出しません。")
+        lines += _para("標準出力には何も出しません。") if has_cli else []
     elif output.get("description"):
         lines += _para(output["description"])
     properties, _ = _schema(output.get("schema"))
@@ -559,6 +591,7 @@ class Plan:
     commands: list[Command] = field(default_factory=lambda: [])
     behaviors: list[Behavior] = field(default_factory=lambda: [])
     warnings: list[str] = field(default_factory=lambda: [])
+    common_output: list[list[str]] = field(default_factory=lambda: [])
 
     @property
     def ids(self) -> frozenset[str]:
@@ -582,7 +615,8 @@ def _label(raw: object, default: str) -> str:
 
 
 def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
-    plan = Plan()
+    plan = Plan(common_output=common_output_rows(generated, authored))
+    plugin = {PLUGIN_KEY: generated["plugin"]} if "plugin" in generated else {}
     entries = cast("dict[str, dict[str, Any]]", authored.get("entries", {}))
     for g in cast("list[dict[str, Any]]", generated.get("entries", [])):
         gid = str(g.get("id", "?"))
@@ -591,7 +625,7 @@ def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
             plan.warnings.append(f"{gid}: authored.yaml に項目が無いため、飛ばしました")
             continue
         try:
-            sections = render_sections({**g, **a})
+            sections = render_sections({**g, **a, **plugin})
             command = Command(
                 id=gid,
                 name=str(g["name"]),
@@ -991,6 +1025,17 @@ class IfaceIndex(_Base):
         return self.parse_text_to_nodes("\n".join(lines))
 
 
+class IfaceCommonOutput(_Base):
+    """``iface-common-output <plugin>``。すべての MCP ツールの実行結果に共通する項目の表を出す。"""
+
+    required_arguments = 1
+
+    def run(self) -> list[nodes.Node]:
+        plan = self._plan(self.arguments[0])
+        lines = _table("", ["項目名", "型", "説明"], plan.common_output)
+        return self.parse_text_to_nodes("\n".join(lines))
+
+
 class IfaceOverview(_Base):
     """``iface-overview``。iface_junit のプラグインごとに、リファレンスのページへのリンクと状態ごとの数を出す。
 
@@ -1191,6 +1236,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
         app.add_role(name, _class_role(name))
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
+    app.add_directive("iface-common-output", IfaceCommonOutput)
     app.add_directive("iface-overview", IfaceOverview)
     app.add_directive("iface-tests", IfaceTests)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

@@ -44,38 +44,18 @@ entries:
       - '作る前に、ラベルの文面を文面の規則と照らし、フォントとフォントサイズをテーマの宣言と照らします。使ったテーマは `theme` に入ります。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        url: '図の URL です。'
-        theme: '使ったテーマです。'
-        file: '書いた表示用 HTML の絶対パスです。`out_path` を省いたときは入りません。'
-        png: '書いた PNG の絶対パスです。PNG を書けなかったときは `null` です。'
-        pngFailed: 'PNG を書けなかったときだけ `true` です。HTML は残ります。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        violations: '`text-violation` のときの、違反の全件の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `drawio.url.done`、失敗なら `drawio.url.error` です。パスの引数を拒否したときは入りません。'
+        url: '図の URL です。`out_path` を省いたときだけ入ります。'
+        file: '書いた表示用 HTML の絶対パスです。`out_path` を渡したときだけ入ります。'
+        png: '書いた PNG の絶対パスです。`out_path` と `png` を渡したときに入ります。PNG を書けなかったときは `null` です。'
+        pngFailed: 'PNG を書けなかったかどうかです。`png` と同じときに入ります。'
+        theme: '確かめに使ったテーマです。出どころの `source`・名前の `name`・`fonts`・`fontSizes` を持ちます。成功のときだけ入ります。'
+        violations: '`text-violation` のときの、文の規則の違反の全件の配列です。要素は `item`・`ruleId`・`message`・`text` を持ちます。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_PNG_FAIL
@@ -214,36 +194,18 @@ entries:
       - '図の文面は確かめません。`drawio_create` を通した `.drawio` を渡します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        file: '書いた SVG の絶対パスです。`print_hash` を `true` にしたときは入りません。'
-        pdf: '書いた PDF の絶対パスです。PDF を書けなかったときと `pdf` を `false` にしたときは `null` です。'
-        pdfFailed: 'PDF を書けなかったときだけ `true` です。SVG は残ります。'
-        sourceSha256: '`print_hash` を `true` にしたときの合成ハッシュです。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。書き出したなら `drawio.export.done`、`print_hash` なら `drawio.export.hash` です。失敗なら `drawio.export.error` か `chromium.unavailable` です。パスの引数を拒否したときは入りません。'
+        file: '書いた SVG の絶対パスです。`print_hash` のときは、入力の絶対パスです。成功のときだけ入ります。'
+        icons: '解決した `icon://` の参照の数です。成功のときだけ入ります。'
+        pdf: '書いた PDF の絶対パスです。`pdf` が `false` のときと、PDF を書けなかったときは `null` です。`print_hash` のときは入りません。'
+        pdfFailed: 'PDF を書けなかったかどうかです。`print_hash` のときは入りません。'
+        sourceSha256: '`print_hash` のときの、入力と参照するアイコンの合成ハッシュです。図が古くなっていないかを確かめるのに使います。'
+        expectedAt: '実行時依存か Chromium が置かれるはずの場所です。`runtime-dependencies-not-installed`・`chromium-not-installed`・`chromium-install-failed` のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_SVG_FAIL
@@ -333,37 +295,17 @@ entries:
       - EvidenceSpec の JSON を読み、スクリーンショットを書いた順で並べた xlsx を 1 つ作ります。注釈は、スクリーンショットの上に重なります。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        outPath: '書いた xlsx の絶対パスです。'
-        items: '貼った項目の数です。'
-        annotations: '注釈の数です。'
-        skipped: '飛ばした画像と理由の配列です。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        violations: '`text-violation` のときの、違反の全件の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `result`、失敗なら `evidence.create.error` です。パスの引数を拒否したときは入りません。'
+        outPath: '書いた xlsx の絶対パスです。成功のときだけ入ります。'
+        items: '貼った画像の数です。成功のときだけ入ります。'
+        annotations: '足した注釈の数です。成功のときだけ入ります。'
+        skipped: '飛ばした画像の配列です。要素は、spec に書いたパスの `path` と、理由の `reason` を持ちます。理由は `not-found`・`unsupported-format`・`unreadable` のどれかです。飛ばした画像が無ければ空です。'
+        violations: '`text-violation` のときの、文の規則の違反の全件の配列です。要素は `item`・`ruleId`・`message`・`text` を持ちます。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -436,35 +378,13 @@ entries:
       - 'OS のライブラリが足りないときは、sudo を使えれば apt-get で入れます。使えなければ、入れるためのコマンドを返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        runtime: '実行時依存の結果です。`downloaded`（取得したかどうか）・`location`（取得した置き場所）・`detail`（失敗の理由）を持ちます。'
-        chromium: 'Chromium の結果です。`runtime` と同じ項目を持ちます。'
-        hostDeps: 'OS のライブラリの結果です。入れるためのコマンドは `detail` に入ります。'
-        reason: '失敗した段階の名前をカンマでつないだ文字列です。失敗のときだけ入ります。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。何かを取得したときは `setup.done` です。すべて揃っていたときは `setup.skipped` です。失敗のときは `setup.error` です。'
+        runtime: '実行時依存の段階の結果です。`installed`・`downloaded`・`durationMs` を必ず持ちます。置き場所の `location` と、失敗の理由の `detail` も持つことがあります。'
+        chromium: 'Playwright の Chromium の段階の結果です。`runtime` と同じ項目を持ちます。'
+        hostDeps: 'OS のライブラリの段階の結果です。`runtime` と同じ項目を持ち、入れるためのコマンドは `detail` に入ります。Chromium を置けなかったときは入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -537,34 +457,20 @@ entries:
       - '変換の前に、`node_modules` のテーマのリンクを張り直し、talk-dir の生成ファイルをそろえます。古くなったテーマのリンクは、この呼び出しで直ります。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        output: '書いた PPTX の絶対パスです。'
-        errors: 'ビルドのエラーの配列です。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `slide.convert.done` です。失敗なら `slide.convert.error`・`runtime-dependencies.unavailable`・`chromium.unavailable` のどれかです。パスの引数を拒否したときは入りません。'
+        input: '変換した Slidev のプロジェクトの絶対パスです。成功のときだけ入ります。'
+        output: '書いた PPTX の絶対パスです。成功のときだけ入ります。'
+        durationMs: '変換にかかった時間です。単位はミリ秒です。成功のときだけ入ります。'
+        errors: 'スライドか要素ごとの変換のエラーの配列です。成功のときと `slide.convert.error` のときに入り、無ければ空です。要素のエラーだけなら、結果を失敗にしません。'
+        animationTimingRemovedSlides: '飾りの CSS アニメーションから作った `p:timing` を消したスライドの数です。成功のときだけ入ります。'
+        timings: '段階ごとにかかった時間です。単位はミリ秒です。測ったときだけ入ります。'
+        cache: '差分のキャッシュの結果です。`enabled`・`hits`・`misses`・`invalidated` を持ちます。キャッシュを扱ったときだけ入ります。'
+        expectedAt: '実行時依存か Chromium が置かれるはずの場所です。`runtime-dependencies-not-installed`・`chromium-not-installed`・`chromium-install-failed` のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment:
       - name: PECOTV_SINGLE_PASS
@@ -713,36 +619,18 @@ entries:
       - '作られる `start.mjs` は、`SLIDEV_PORT` があれば、そのポートで dev サーバを起動します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        projectDir: '作った talk-dir の絶対パスです。'
-        categories: 'テーマの提示カテゴリです。'
-        layouts: '選べるレイアウトです。'
-        lint: '作った直後のデッキ全体の lint の結果です。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `slide.create.done` です。失敗なら `slide.create.error` か `runtime-dependencies.unavailable` です。パスの引数を拒否したときは入りません。'
+        projectDir: '作った talk-dir の絶対パスです。成功のときだけ入ります。'
+        theme: 'talk-dir が参照するテーマです。`name` と `spec` を持ちます。成功のときだけ入ります。'
+        categories: 'テーマが宣言する提示カテゴリの配列です。要素は `id`・`label`・`question` を持ちます。成功のときだけ入ります。'
+        layouts: '選べるレイアウトの配列です。隠したレイアウトは入りません。成功のときだけ入ります。'
+        lint: '作った直後のデッキ全体の lint の結果です。成功のときだけ入ります。'
+        expectedAt: '実行時依存か Chromium が置かれるはずの場所です。`runtime-dependencies-not-installed`・`chromium-not-installed`・`chromium-install-failed` のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment:
       - name: SLIDEV_PORT
@@ -871,36 +759,19 @@ entries:
       - '起動の前に、`node_modules` のテーマのリンクを張り直し、talk-dir の生成ファイルをそろえます。そのとき起動中のサーバがあれば、止めて起動し直します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        url: 'プレビューの URL です。'
-        port: 'プレビューのポートです。'
-        reused: '起動中のサーバを使ったかどうかです。'
-        stopped: '`stop` を `true` にしたときの、動いていたサーバを止めたかどうかです。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `slide.dev.started`・`slide.dev.reused`・`slide.dev.stopped` のどれかです。失敗なら `slide.dev.error` か `runtime-dependencies.unavailable` です。パスの引数を拒否したときは入りません。'
+        dir: 'talk-dir の絶対パスです。成功のときと `slide.dev.error` のときに入ります。'
+        url: 'プレビューをブラウザで開く URL です。起動したときと、起動中のサーバを使ったときに入ります。'
+        port: 'サーバが待ち受けるポートです。止めるときは、動いていたサーバがあったときだけ入ります。'
+        reused: '起動中のサーバをそのまま返したかどうかです。起動したときと、起動中のサーバを使ったときに入ります。'
+        pid: 'dev サーバのプロセス ID です。手で止めるときに使います。分かったときだけ入ります。'
+        stopped: '動いていたサーバを止めたかどうかです。`stop` を `true` にしたときだけ入ります。'
+        expectedAt: '実行時依存か Chromium が置かれるはずの場所です。`runtime-dependencies-not-installed`・`chromium-not-installed`・`chromium-install-failed` のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1022,35 +893,19 @@ entries:
       - '`pages/` の下のシンボリックリンクのディレクトリは調べません。飛ばしたディレクトリは、`skippedSymlinkDirectories` に入ります。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        event: '結果の種類です。違反が無ければ `slide.lint.done`、あれば `slide.lint.violations` です。'
-        violations: '違反の一覧です。違反があっても、結果は失敗（`isError`）ではありません。'
-        skippedSymlinkDirectories: '飛ばしたシンボリックリンクのディレクトリです。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `slide.lint.done` か `slide.lint.violations` です。失敗なら `slide.lint.error` です。パスの引数を拒否したときは入りません。'
+        dir: 'lint した talk-dir の絶対パスです。成功のときだけ入ります。'
+        outcome: '結果の分類で、`clean`（違反無し）・`violations`（違反あり）・`no-target`（対象のファイル無し）のどれかです。成功のときだけ入ります。'
+        lintedFileCount: 'lint したファイルの数です。成功のときだけ入ります。'
+        errorCount: 'エラーの数です。成功のときだけ入ります。'
+        warningCount: '警告の数です。成功のときだけ入ります。'
+        violations: '見つけた違反の配列です。要素は `file`・`line`・`column`・`rule`・`message` を持ちます。違反があっても、結果は失敗（`isError`）になりません。'
+        skippedSymlinkDirectories: '`pages/` の下で lint しなかったシンボリックリンクのディレクトリです。talk-dir からの相対パスで並びます。成功のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1142,37 +997,21 @@ entries:
       - 'テーマに無いレイアウトの名前を渡すと失敗し、`categories` と `layouts` を返します。そこから名前を選び直せます。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        path: '書いたページの絶対パスです。'
-        reference: 'レイアウトの仕様です。'
-        includes: 'その仕様が取り込む共通の仕様です。'
-        categories: '`unknown-layout` のときの、テーマの提示カテゴリです。'
-        layouts: '`unknown-layout` のときの、選べるレイアウトです。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `slide.page.done`、失敗なら `slide.page.error` です。パスの引数を拒否したときは入りません。'
+        layout: '書いたページのレイアウトの名前です。成功のときだけ入ります。'
+        category: 'レイアウトのカテゴリの ID です。成功のときだけ入ります。'
+        deprecated: 'レイアウトが非推奨かどうかです。成功のときだけ入ります。'
+        path: '書いたページの絶対パスです。成功のときだけ入ります。'
+        skeleton: 'ページに書いた frontmatter です。成功のときだけ入ります。'
+        reference: 'レイアウトの仕様の yaml の全文です。成功のときだけ入ります。'
+        includes: '仕様が取り込む共通の yaml の全文です。名前をキーにします。成功のときだけ入り、無ければ空です。'
+        categories: '`unknown-layout` のときの、テーマが宣言する提示カテゴリの配列です。'
+        layouts: '`unknown-layout` のときの、選べるレイアウトの配列です。隠したレイアウトは入りません。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1280,37 +1119,21 @@ entries:
       - '起動中の `slide_dev` は、`stop` を `true` にして止めてから、起動し直します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        dir: '揃えた talk-dir の絶対パスです。'
-        categories: 'テーマの提示カテゴリです。'
-        layouts: '選べるレイアウトです。'
+        event: '結果の種類です。成功なら `slide.sync.done` です。失敗なら `slide.sync.error` か `runtime-dependencies.unavailable` です。パスの引数を拒否したときは入りません。'
+        dir: 'そろえた talk-dir の絶対パスです。成功のときだけ入ります。'
+        nodeModulesTarget: 'talk-dir の `node_modules` のリンク先です。成功のときだけ入ります。'
+        nodeModulesOnly: '`node_modules` のリンクだけを張り直したかどうかです。成功のときだけ入ります。'
+        theme: 'talk-dir が参照するテーマです。`name`・`spec`・`directory` を持ちます。テーマを参照しないときは `null` です。'
         migration: '移行したときの、消した名前（`removed`）です。移行しなかったときは `null` です。'
-        lint: 'そろえた後のデッキ全体の lint の結果です。'
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        categories: 'テーマが宣言する提示カテゴリの配列です。要素は `id`・`label`・`question` を持ちます。成功のときだけ入ります。'
+        layouts: '選べるレイアウトの配列です。隠したレイアウトは入りません。成功のときだけ入ります。'
+        lint: 'そろえた後のデッキ全体の lint の結果です。成功のときだけ入ります。'
+        expectedAt: '実行時依存か Chromium が置かれるはずの場所です。`runtime-dependencies-not-installed`・`chromium-not-installed`・`chromium-install-failed` のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1445,32 +1268,17 @@ entries:
       - 'ファイルは書き換えず、テーマも取得しません。スキルが、テーマの値を読むために使います。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        invalidPaths: '`invalid-path` のときの、渡された値の配列です。'
-        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。成功のときは入りません。原因が失敗の名前の一覧に無いときは `unknown` です。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残り、切り詰めたときは冒頭の 1 行で知らせます。'
-        warnings: '警告の文の配列です。無ければ項目ごと入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: Failure kind (failure only)
-            type: string
-          log:
-            description: Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted
-            items:
-              type: string
-            type: array
-        type: object
+        event: '結果の種類です。成功なら `slide.theme.done`、失敗なら `slide.theme.error` です。パスの引数を拒否したときは入りません。'
+        theme: 'talk-dir が参照するテーマです。`name`・`spec`・`declared`・`directory`・`linked` を持ちます。成功のときだけ入ります。'
+        declaration: 'テーマの宣言です。省いた項目には既定の値を入れます。成功のときだけ入ります。'
+        lint: 'デッキの lint に渡す入力です。成功のときだけ入ります。'
+        categories: 'テーマが宣言する提示カテゴリの配列です。要素は `id`・`label`・`question` を持ちます。成功のときだけ入ります。'
+        layouts: '選べるレイアウトの配列です。隠したレイアウトは入りません。成功のときだけ入ります。'
+        invalidPaths: '`invalid-path` のときの、拒否したパスの引数の配列です。要素は `<引数>=<値>` の形です。'
+        convertedPaths: '`invalid-path` のときの、拒否の前に変換した Windows 形式のパスです。引数の名前をキーに、`from` と `to` を持ちます。変換が無ければ入りません。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1563,3 +1371,9 @@ common_behaviors:
   - id: PV-COMMON-14
     pattern: unwanted
     statement: 'もしハンドラの中で捕捉されない例外が起きたなら、その呼び出しだけを失敗させ、サーバは次の呼び出しを受け付けます'
+common_mcp_output:
+  fields:
+    kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。失敗のときだけ入ります。'
+    detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+    log: '失敗のときの子プロセスの出力です。64KB を超えると末尾だけ残し、切り詰めたことを冒頭の 1 行で知らせます。'
+    warnings: '警告の文の配列です。無ければ項目ごと入りません。100 件か 64KB を超えた分は省き、最後の要素で省いた数を示します。'

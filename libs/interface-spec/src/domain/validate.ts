@@ -158,6 +158,9 @@ function checkGenerated(file: string, name: string, data: GeneratedFile): Findin
     if (entry.surfaces.cli === undefined && entry.surfaces.mcp === undefined) {
       findings.push({ file, scope, field: 'surfaces', reason: 'must have cli or mcp' })
     }
+    if (entry.surfaces.mcp !== undefined && entry.mcp?.output?.['additionalProperties'] !== false) {
+      findings.push({ file, scope, field: 'mcp.output', reason: 'is not a closed type (declare every field the tool returns and set additionalProperties to false)' })
+    }
     findings.push(
       ...japaneseFindings(file, scope, [['name', entry.name], ['description', entry.description], ...inputDescriptions(entry.input, 'input')]),
       ...inputNameFindings(file, scope, entry),
@@ -328,24 +331,42 @@ function readOnlyFindings(file: string, scope: string, entry: AuthoredEntry, gen
 // structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールの項目ごとの説明には数えない
 const COMMON_OUTPUT_FIELDS: ReadonlySet<string> = new Set(['kind', 'detail', 'log', 'warnings'])
 
-// mcp.output が閉じた型（最上位の additionalProperties: false）の項目は、mcp_output を必須にする。閉じていない項目は、書かなくてよい
+// MCP の面を持つ項目は、mcp_output に mcp.output のツールの項目をすべて書く。mcp.output が閉じた型かは checkGenerated が確かめる
 function mcpOutputFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
-  const output = generated.mcp?.output
-  const isClosed = output?.['additionalProperties'] === false
-  if (entry.mcp_output === undefined) {
-    const isRequired = generated.surfaces.mcp !== undefined && isClosed
-    return isRequired ? [{ file, scope, field: 'mcp_output', reason: 'is missing (the tool fields in mcp.output are a closed type; write each field, or an empty fields when it returns none)' }] : []
+  if (generated.surfaces.mcp === undefined) {
+    return entry.mcp_output === undefined ? [] : [{ file, scope, field: 'mcp_output', reason: 'is only for entries with an MCP surface (remove it)' }]
   }
-  if (generated.surfaces.mcp === undefined) return [{ file, scope, field: 'mcp_output', reason: 'is only for entries with an MCP surface (remove it)' }]
-  if (output === undefined || !isClosed) return []
+  if (entry.mcp_output === undefined) {
+    return [{ file, scope, field: 'mcp_output', reason: 'is missing (write each tool field in mcp.output, or an empty fields when it returns none)' }]
+  }
   const finding = (reason: string): Finding => ({ file, scope, field: 'mcp_output.fields', reason })
-  const expected = Object.keys(output.properties).filter(name => !COMMON_OUTPUT_FIELDS.has(name)).toSorted(compareText)
+  const expected = Object.keys(generated.mcp?.output?.properties ?? {}).filter(name => !COMMON_OUTPUT_FIELDS.has(name)).toSorted(compareText)
   const written = Object.keys(entry.mcp_output.fields).toSorted(compareText)
   const missing = expected.filter(name => !written.includes(name))
   const unknown = written.filter(name => !expected.includes(name))
   return [
     ...(missing.length === 0 ? [] : [finding(`is missing ${missing.map(name => quote(name)).join(', ')} (present in mcp.output)`)]),
     ...(unknown.length === 0 ? [] : [finding(`has ${unknown.map(name => quote(name)).join(', ')} not in mcp.output (remove it)`)]),
+  ]
+}
+
+// MCP の面を持つ項目があるプラグインは、common_mcp_output に共通の 4 項目の説明を書く
+function commonMcpOutputFindings(file: string, authored: AuthoredFile, generated: GeneratedFile): Finding[] {
+  const hasMcp = generated.entries.some(entry => entry.surfaces.mcp !== undefined)
+  const common = authored.common_mcp_output
+  if (common === undefined) {
+    return hasMcp ? [{ file, field: 'common_mcp_output', reason: 'is missing (write kind, detail, log and warnings in fields)' }] : []
+  }
+  if (!hasMcp) return [{ file, field: 'common_mcp_output', reason: 'is only for plugins with an MCP surface (remove it)' }]
+  const finding = (reason: string): Finding => ({ file, field: 'common_mcp_output.fields', reason })
+  const expected = [...COMMON_OUTPUT_FIELDS].toSorted(compareText)
+  const written = Object.keys(common.fields).toSorted(compareText)
+  const missing = expected.filter(name => !written.includes(name))
+  const unknown = written.filter(name => !expected.includes(name))
+  return [
+    ...(missing.length === 0 ? [] : [finding(`is missing ${missing.map(name => quote(name)).join(', ')}`)]),
+    ...(unknown.length === 0 ? [] : [finding(`has ${unknown.map(name => quote(name)).join(', ')} that is not a common field (remove it)`)]),
+    ...japaneseFindings(file, undefined, Object.entries(common.fields).map(([name, text]) => [`common_mcp_output.fields.${name}`, text] as const), authored.prose ?? 'en'),
   ]
 }
 
@@ -402,7 +423,10 @@ function checkAuthored(file: string, name: string, mode: PluginInput['mode'], au
   }
   findings.push(...environmentFindings(file, undefined, authored.environment, authored.prose ?? 'en'))
   if (generated === undefined) return findings
-  findings.push(...behaviorFindings(file, authored.common_behaviors, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
+  findings.push(
+    ...behaviorFindings(file, authored.common_behaviors, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'),
+    ...commonMcpOutputFindings(file, authored, generated),
+  )
   const byId = new Map(generated.entries.map(entry => [entry.id, entry]))
   // partial は generated.json にあって authored.yaml に無い項目を許す。
   const required = mode === 'complete' ? byId.keys().toArray() : []

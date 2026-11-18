@@ -31,7 +31,14 @@
       "mcp": {
         "output": {
           "type": "object",
-          "properties": { "ok": { "type": "boolean", "description": "Whether it worked" } }
+          "properties": {
+            "ok": { "type": "boolean", "description": "Whether it worked" },
+            "kind": { "type": "string" },
+            "detail": { "type": "string" },
+            "log": { "type": "string" },
+            "warnings": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
         }
       }
     },

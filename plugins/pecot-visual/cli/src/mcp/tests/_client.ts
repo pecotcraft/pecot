@@ -102,20 +102,93 @@ export async function connectSpied(era: ProtocolEra = 'legacy'): Promise<SpiedMc
     ...tool,
     handler: (arguments_) => {
       calls.push({ name: tool.name, arguments: arguments_ })
-      return Promise.resolve(toCallToolResult(SPY_RESULT))
+      return Promise.resolve(toCallToolResult(spyResultOf(tool.name)))
     },
   }))
   const connected = await connectMcp(spied, { era })
   return { ...connected, calls }
 }
 
+const SPY_STAGE = { installed: true, downloaded: false, durationMs: 0 }
+const SPY_SKIPPED_LINT = { skipped: true, detail: 'spy' }
+
 /**
-spy が返す成功結果。outputSchema 検証を通る完全な形にしておく。
+spy が返す成功の項目。ツールごとに、成功のときに必ず返る項目を持たせ、outputSchema の検証を通す。
 */
-export const SPY_RESULT: ToolResult = {
-  ok: true,
-  data: { spy: true },
-  message: 'spy',
+const SPY_DATA: ReadonlyMap<string, Readonly<Record<string, unknown>>> = new Map(Object.entries({
+  drawio_create: { event: 'spy', theme: { source: 'default', fonts: { body: [] } } },
+  drawio_export: { event: 'spy', file: '/spy.svg', sourceSha256: 'spy', icons: 0 },
+  evidence_create: { event: 'spy', outPath: '/spy.xlsx', items: 0, annotations: 0, skipped: [] },
+  runtime_setup: { event: 'spy', runtime: SPY_STAGE, chromium: SPY_STAGE, hostDeps: SPY_STAGE },
+  slide_convert: { event: 'spy', input: '/spy', output: '/spy.pptx', durationMs: 0, errors: [], animationTimingRemovedSlides: 0 },
+  slide_create: { event: 'spy', projectDir: '/spy', theme: { name: 'spy', spec: 'spy' }, categories: [], layouts: [], lint: SPY_SKIPPED_LINT },
+  slide_dev: { event: 'spy', dir: '/spy' },
+  slide_lint: {
+    event: 'spy',
+    dir: '/spy',
+    outcome: 'clean',
+    lintedFileCount: 0,
+    errorCount: 0,
+    warningCount: 0,
+    violations: [],
+    skippedSymlinkDirectories: [],
+  },
+  slide_page: {
+    event: 'spy',
+    layout: 'spy',
+    category: 'spy',
+    deprecated: false,
+    path: '/spy.md',
+    skeleton: '',
+    reference: '',
+    includes: {},
+  },
+  slide_sync: {
+    event: 'spy',
+    dir: '/spy',
+    nodeModulesTarget: '/spy',
+    nodeModulesOnly: false,
+    // eslint-disable-next-line unicorn/no-null -- テーマを参照しない talk-dir の契約は null
+    theme: null,
+    // eslint-disable-next-line unicorn/no-null -- 移行しなかったときの契約は null
+    migration: null,
+    categories: [],
+    layouts: [],
+    lint: SPY_SKIPPED_LINT,
+  },
+  slide_theme: {
+    event: 'spy',
+    theme: { name: 'spy', spec: 'spy', declared: true, directory: '/spy', linked: true },
+    declaration: {
+      schema: 1,
+      slide: { width: 0, height: 0 },
+      fonts: { body: [], heading: [] },
+      fontSizes: { heading: 0, headingSm: 0, body: 0, bodySm: 0, label: 0 },
+      pptx: {},
+      lint: { rules: {} },
+      layouts: { references: 'spy' },
+      drawio: { panels: {}, markerLayouts: [] },
+    },
+    categories: [],
+    layouts: [],
+    lint: { referencesDirectories: [], panels: {}, markerLayouts: [], rules: {} },
+  },
+}))
+
+/**
+spy が返す成功の項目。
+*/
+export function spyDataOf(name: string): Readonly<Record<string, unknown>> {
+  const data = SPY_DATA.get(name)
+  if (data === undefined) throw new Error(`${name} の spy の結果がありません`)
+  return data
+}
+
+/**
+spy が返す成功結果。
+*/
+export function spyResultOf(name: string): ToolResult {
+  return { ok: true, data: spyDataOf(name), message: 'spy' }
 }
 
 /**

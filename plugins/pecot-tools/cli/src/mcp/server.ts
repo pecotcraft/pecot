@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- ツールハンドラの第 2 引数は mutable */
 
 import { McpServer } from '@modelcontextprotocol/server'
-import type { CallToolResult, ServerContext, ToolAnnotations } from '@modelcontextprotocol/server'
+import type { CallToolResult, ServerContext, StandardSchemaWithJSON, ToolAnnotations } from '@modelcontextprotocol/server'
 import type { z } from 'zod'
 
 import { readVersion } from '../version.js'
@@ -35,9 +35,9 @@ export interface ToolConfig {
   readonly description?: string
   readonly inputSchema: z.ZodObject
   /**
-  指定すると SDK が structuredContent をこのスキーマで検証する。
+  指定すると SDK が成功の structuredContent をこのスキーマで検証する。作りは output-schema.ts。
   */
-  readonly outputSchema?: z.ZodObject
+  readonly outputSchema?: StandardSchemaWithJSON
   /**
   readOnlyHint / destructiveHint 等、クライアントの実行判断に使われるヒント。
   */

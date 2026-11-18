@@ -27,7 +27,8 @@ import {
   INVALID_PARAMS_CODE,
   negotiatedVersionOf,
   PROTOCOL_ERAS,
-  SPY_RESULT,
+  spyDataOf,
+  spyResultOf,
   type ProtocolEra,
   type SpiedMcp,
 } from './_client.js'
@@ -264,7 +265,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       const called = await mcp.client.callTool({ name: table.tool, arguments: { ...table.minimal } })
 
       expect(called.isError).toBeUndefined()
-      expect(called.structuredContent).toEqual(toCallToolResult(SPY_RESULT).structuredContent)
+      expect(called.structuredContent).toEqual(toCallToolResult(spyResultOf(table.tool)).structuredContent)
     })
 
     it.for(table.rejects)('スキーマ違反を拒否する: %s', async ([, arguments_], context) => {
@@ -291,6 +292,29 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       const violating: CallToolResult = { content: [{ type: 'text', text: '{}' }], structuredContent: { kind: 1 } }
 
       const called = await callLintWith(era, () => violating)
+
+      expect(called.isError).toBe(true)
+      expect(called.structuredContent).toBeUndefined()
+      const [block] = called.content
+      expect(block?.type === 'text' ? block.text : '').toContain('Output validation error')
+    })
+
+    it('宣言に無い項目を返す成功結果は拒否され、その項目はクライアントへ届かない', async () => {
+      const undeclared = toCallToolResult({ ok: true, data: { ...spyDataOf('slide_lint'), undeclared: 1 }, message: 'lint' })
+
+      const called = await callLintWith(era, () => undeclared)
+
+      expect(called.isError).toBe(true)
+      expect(called.structuredContent).toBeUndefined()
+      const [block] = called.content
+      expect(block?.type === 'text' ? block.text : '').toContain('Output validation error')
+    })
+
+    it('成功の必須項目が欠けた成功結果は拒否され、クライアントへ届かない', async () => {
+      const { outcome: _dropped, ...withoutOutcome } = spyDataOf('slide_lint')
+      const missing = toCallToolResult({ ok: true, data: withoutOutcome, message: 'lint' })
+
+      const called = await callLintWith(era, () => missing)
 
       expect(called.isError).toBe(true)
       expect(called.structuredContent).toBeUndefined()

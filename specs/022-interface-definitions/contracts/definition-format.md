@@ -190,11 +190,34 @@ MCP ツールの結果の `structuredContent` に、ツールごとに返す項�
 | 決め | 内容 |
 |---|---|
 | 置き場所 | 項目の中の `output` の後。MCP の面を持つ項目だけに書く |
-| `fields` のキー | `mcp.output` の最上位の `properties` から、全ツールに共通の 4 項目を除いたものと、同じ集まりにする。`mcp.output` の最上位が `additionalProperties: false` のときだけ比べる |
+| `fields` のキー | `mcp.output` の最上位の `properties` から、全ツールに共通の 4 項目を除いたものと、同じ集まりにする |
 | `fields` の値 | 項目ごとの説明の文。言語は `prose` に従う |
-| 省いたとき | `mcp.output` の最上位が `additionalProperties: false` の項目は、省くと `error` になる（返す項目が無いときは `fields: {}` と書く）。閉じていない項目は、省いてよく、キーを比べない |
+| 省いたとき | MCP の面を持つ項目は、省くと `error` になる（返す項目が無いときは `fields: {}` と書く） |
 
-全ツールに共通の項目（`kind`・`detail`・`log`・`warnings`）は、`mcp_output` に書かない。
+`mcp.output` の最上位は、閉じた型（`additionalProperties: false`）にする。閉じていない型は、`validate` が `generated.json` の行で止める。
+
+全ツールに共通の項目（`kind`・`detail`・`log`・`warnings`）は、`mcp_output` に書かない。ファイルの最上位の `common_mcp_output` に書く。
+
+### `common_mcp_output`
+
+全ツールに共通の 4 項目を、プラグインごとに 1 か所で説明する欄だ。`common_behaviors` と同じ階層に書く。
+
+```yaml
+common_mcp_output:
+  fields:
+    kind: 失敗の種別。失敗のときだけ入る
+    detail: 失敗の全文。失敗のときだけ入る
+    log: 子プロセスの出力。失敗のときだけ入る
+    warnings: 警告の文の配列。警告が無いときは入らない
+```
+
+| 決め | 中身 |
+|---|---|
+| `fields` のキー | `kind`・`detail`・`log`・`warnings` の 4 つと、同じ集まりにする |
+| `fields` の値 | 項目ごとの説明の文。言語は `prose` に従う |
+| 省いたとき | MCP の面を持つ項目があるプラグインは、省くと `error` になる。MCP の面を持つ項目が無いプラグインは、書くと `error` になる |
+
+プラグインの共通仕様のページは、この欄から「出力」の節を作る。各ツールのページの「出力」は、その節へリンクする。
 
 `requires` のキーの引数を渡すときは、値に並べた引数がすべて要る。
 
@@ -255,7 +278,11 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | YAML の構文 | `error: <file>:17: map keys must be unique`。JSON の構文も、位置が分かるときは `error: <file>:3: is not valid JSON`（位置が無いときは行番号なし）。alias の展開で読めない YAML は行番号なしで止める |
 | `mcp_output.fields` のキーが足りない | `error: <file>: PW-SESSION-START: mcp_output.fields: is missing "branch" (present in mcp.output)` |
 | `mcp_output.fields` のキーが余る | `error: <file>: PW-SESSION-START: mcp_output.fields: has "branchName" not in mcp.output (remove it)` |
-| `mcp_output` の書き忘れ | `error: <file>: PW-SESSION-START: mcp_output: is missing (the tool fields in mcp.output are a closed type; write each field, or an empty fields when it returns none)` |
+| `mcp_output` の書き忘れ | `error: <file>: PW-SESSION-START: mcp_output: is missing (write each tool field in mcp.output, or an empty fields when it returns none)` |
+| `mcp.output` が閉じていない | `error: <file>: PT-AWS-S3-LS: mcp.output: is not a closed type (declare every field the tool returns and set additionalProperties to false)` |
+| `common_mcp_output` の書き忘れ | `error: <file>: common_mcp_output: is missing (write kind, detail, log and warnings in fields)` |
+| `common_mcp_output.fields` のキーが足りない・余る | `error: <file>: common_mcp_output.fields: is missing "log"`、`error: <file>: common_mcp_output.fields: has "lines" that is not a common field (remove it)` |
+| MCP の面の無いプラグインの `common_mcp_output` | `error: <file>: common_mcp_output: is only for plugins with an MCP surface (remove it)` |
 | MCP の面の無い項目の `mcp_output` | `error: <file>: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)` |
 | 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
 | 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: x: unknown validation issue (not_multiple_of): Invalid number: must be a multiple of 5` |

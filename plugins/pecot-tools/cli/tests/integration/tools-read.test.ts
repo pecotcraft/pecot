@@ -11,7 +11,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { FailureKind } from '../../src/domain/allowlist.js'
 import { ALLOWLIST } from '../../src/domain/allowlist.js'
 import { resetAwscliProbe, OUTPUT_LIMIT_BYTES } from '../../src/infra/awscli.js'
-import { closeMcp, connectMcp, type ConnectedMcp } from '../../src/mcp/tests/_client.js'
+import { closeMcp, connectMcp, outputSchemaIssues, type ConnectedMcp } from '../../src/mcp/tests/_client.js'
 import { allTools } from '../../src/mcp/tools/index.js'
 import { FAKE_AWS_FIXTURE_DIR, useFakeAws, type FakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
@@ -217,7 +217,7 @@ const TOOL_COMMANDS: readonly {
 /**
 NextToken を nextToken へ転記するツール（許可リストで pagination が max-items のもの）と項目 ID。
 */
-const PAGINATED_ROWS: readonly { readonly name: string, readonly id: string }[] = [
+const PAGINATED_ROWS: readonly { readonly name: string, readonly id: string, readonly fixture?: string }[] = [
   { name: 'aws_athena_get_query_results', id: 'PT-AWS-ATHENA-GET-QUERY-RESULTS-02' },
   { name: 'aws_ec2_describe_instances', id: 'PT-AWS-EC2-DESCRIBE-INSTANCES-03' },
   { name: 'aws_ecr_describe_images', id: 'PT-AWS-ECR-DESCRIBE-IMAGES-04' },
@@ -229,7 +229,7 @@ const PAGINATED_ROWS: readonly { readonly name: string, readonly id: string }[] 
   { name: 'aws_rds_describe_db_clusters', id: 'PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-02' },
   { name: 'aws_rds_describe_db_instances', id: 'PT-AWS-RDS-DESCRIBE-DB-INSTANCES-02' },
   { name: 'aws_rds_describe_events', id: 'PT-AWS-RDS-DESCRIBE-EVENTS-04' },
-  { name: 'aws_scheduler_list_schedules', id: 'PT-AWS-SCHEDULER-LIST-SCHEDULES-02' },
+  { name: 'aws_scheduler_list_schedules', id: 'PT-AWS-SCHEDULER-LIST-SCHEDULES-02', fixture: 'paginated-schedules' },
   { name: 'aws_sqs_list_queues', id: 'PT-AWS-SQS-LIST-QUEUES-02' },
 ]
 
@@ -240,16 +240,32 @@ const mcp: { connected: ConnectedMcp | undefined } = { connected: undefined }
 */
 const largeOutputDirectory = useTemporaryDirectory('pecot-tools-large-output-', { hook: 'all' })
 
+/**
+空の出力を返して exit 0 で終わる fixture の置き場。
+*/
+const emptyOutputDirectory = useTemporaryDirectory('pecot-tools-empty-output-', { hook: 'all' })
+
 beforeAll(() => {
   writeFileSync(
     largeOutputDirectory('large-output.stdout'),
     `{"Functions":["${'x'.repeat(OUTPUT_LIMIT_BYTES)}"]}`,
   )
+  writeFileSync(emptyOutputDirectory('empty-output.stdout'), '')
 })
 
 afterAll(() => {
   rmSync(largeOutputDirectory(), { recursive: true, force: true })
+  rmSync(emptyOutputDirectory(), { recursive: true, force: true })
 })
+
+/**
+structuredContent が outputSchema に合わない理由。SDK は失敗の結果を検証しないので、失敗もここで見る。
+*/
+async function outputIssuesOf(name: string, structured: Readonly<Record<string, unknown>>): Promise<readonly string[]> {
+  const tool = allTools().find(item => item.name === name)
+  if (tool === undefined) throw new Error(`${name} が公開されていません`)
+  return outputSchemaIssues(tool, structured)
+}
 
 beforeEach(async () => {
   resetAwscliProbe()
@@ -362,6 +378,7 @@ describe('全 24 ツールの正常系', () => {
     expect(structured['kind']).toBeUndefined()
     for (const key of ['ok', 'exitCode', 'data', 'artifacts', 'message']) expect(structured).not.toHaveProperty(key)
     expect(commandCalls(instance), `${command.name} の引数`).toEqual([expectedArgumentsOf(command.name)])
+    expect(await outputIssuesOf(command.name, structured), `${command.name} の outputSchema`).toEqual([])
 
     if (!command.jsonOutput) return
     expect(withoutAddedItems(structured), `${command.name} の structuredContent`).toEqual(fixtureJson(command))
@@ -687,11 +704,13 @@ describe('応答の中身', () => {
 
   it.for(PAGINATED_ROWS)('$name の NextToken を nextToken へ転記する', async (row, context) => {
     await verifies(context, row.id)
-    fakeAws.install({ fixture: 'paginated' })
+    fakeAws.install({ fixture: row.fixture ?? 'paginated' })
 
     const structured = await callMinimal(row.name)
 
     expect(structured['nextToken']).toBe('eyJuZXh0IjogMX0=')
+    expect(structured).not.toHaveProperty('warnings')
+    expect(await outputIssuesOf(row.name, structured)).toEqual([])
   })
 
   it('NextToken の表が max-items のツールと 1:1 で対応する', () => {
@@ -721,6 +740,32 @@ describe('応答の中身', () => {
 
     expect(copied['file']).toBe('/var/data/report.json')
     expect(fetched['file']).toBe('/var/data/report.json')
+  })
+
+  it('JSON に宣言外の最上位のキーがあると、そのキーを落として warnings に名前を出す', async (context) => {
+    await verifies(context, 'PT-COMMON-16')
+    fakeAws.install({ fixture: 'undeclared-key' })
+
+    const result = await call('aws_sts_get_caller_identity')
+
+    expect(result.isError).toBeUndefined()
+    expect(result.structured).toEqual({
+      UserId: 'AIDAEXAMPLEUSERID',
+      Account: '123456789012',
+      Arn: 'arn:aws:iam::123456789012:user/dev',
+      warnings: ['Dropped undeclared top-level keys: FutureField'],
+    })
+    expect(await outputIssuesOf('aws_sts_get_caller_identity', result.structured)).toEqual([])
+  })
+
+  it('JSON を出すツールの出力が空なら、空の lines を返して outputSchema に合う', async () => {
+    fakeAws.install({ fixture: 'empty-output', fixtureDir: emptyOutputDirectory() })
+
+    const result = await call('aws_lambda_list_functions')
+
+    expect(result.isError).toBeUndefined()
+    expect(result.structured).toEqual({ lines: [] })
+    expect(await outputIssuesOf('aws_lambda_list_functions', result.structured)).toEqual([])
   })
 
   it('書き出しを伴わないツールは file を持たない', async () => {
@@ -754,6 +799,9 @@ describe('失敗種別', () => {
 
     expect(result.isError).toBe(true)
     expect(result.structured['kind']).toBe(failure.kind)
+    expect(await outputIssuesOf('aws_lambda_get_function_configuration', result.structured)).toEqual([])
+    // 失敗の形は全ツールで同じなので、anyOf を持つツールの kind と detail の枝にも通す。
+    expect(await outputIssuesOf('aws_scheduler_list_schedules', result.structured)).toEqual([])
     expect(result.structured['detail']).toContain(failure.kind)
     expect(result.structured).not.toHaveProperty('stderr')
     expect(result.structured).not.toHaveProperty('reason')

@@ -10,7 +10,7 @@ import { isRecord } from '../../../tests/_helpers/records.js'
 import { SSO_TOOL_NAMES } from '../../../tests/_helpers/sso-tool-names.js'
 import { ALLOWLIST } from '../../domain/allowlist.js'
 import { allTools } from '../tools/index.js'
-import { TOOL_OUTPUT_SCHEMA } from '../tools/_shared.js'
+import { COMMON_OUTPUT_SHAPE } from '../tools/_shared.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
 import { compareStrings } from '../../../tests/_helpers/compare-strings.js'
 
@@ -42,6 +42,20 @@ function propertiesOf(schema: Readonly<Record<string, unknown>> | undefined): Re
 
 function asStringArray(value: unknown): readonly string[] {
   return Array.isArray(value) ? value.filter(element => typeof element === 'string') : []
+}
+
+const AWSCLI_OUTPUT_REQUIRED: readonly (readonly string[])[] = [['lines'], ['output', 'truncated']]
+
+/**
+anyOf を持つツールと、成功の形ごとの必須項目。ほかの JSON のツールは AWS の応答に必ず返るキーが無く、anyOf を持たない。
+*/
+const SUCCESS_REQUIRED: Readonly<Record<string, readonly (readonly string[])[]>> = {
+  aws_sso_login: [['state', 'profile']],
+  aws_sso_login_status: [['state']],
+  aws_s3_ls: AWSCLI_OUTPUT_REQUIRED,
+  aws_s3_cp: AWSCLI_OUTPUT_REQUIRED,
+  // 根拠は awscli 同梱の botocore のモデルで、ListSchedules の出力の shape が Schedules を required に持つ。
+  aws_scheduler_list_schedules: [['Schedules'], ...AWSCLI_OUTPUT_REQUIRED],
 }
 
 const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({ name: entry.surfaces.mcp.tool }))
@@ -152,19 +166,46 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(items.every(value => value === false)).toBe(true)
   })
 
-  it.each(GENERATED_TOOLS)('$name の outputSchema は、共通の 4 項目だけに名前を持たせた開いた object になる', ({ name }) => {
+  it.each(GENERATED_TOOLS)('$name の outputSchema は、共通の 4 項目を持つ閉じた object になる', ({ name }) => {
     const outputSchema = toolOf(name).outputSchema
 
     const names = Object.keys(propertiesOf(outputSchema))
 
     expect(outputSchema?.['type']).toBe('object')
-    expect(sorted(names)).toEqual(sorted(Object.keys(TOOL_OUTPUT_SCHEMA.shape)))
-    expect(sorted(names)).toEqual(['detail', 'kind', 'log', 'warnings'])
+    expect(names).toEqual(expect.arrayContaining(Object.keys(COMMON_OUTPUT_SHAPE)))
     expect(asStringArray(outputSchema?.['required'])).toEqual([])
-    expect(outputSchema).not.toHaveProperty('anyOf')
-    expect(outputSchema?.['additionalProperties']).toEqual({})
+    expect(outputSchema?.['additionalProperties']).toBe(false)
     // JSON Schema の boolean スキーマ（true）を出さない。
     expect(JSON.stringify(outputSchema)).not.toMatch(/:true[,}]/)
+  })
+
+  it.each(GENERATED_TOOLS)('$name の outputSchema の anyOf は、成功の必須項目か kind と detail を求める', ({ name }) => {
+    const outputSchema = toolOf(name).outputSchema
+    // eslint-disable-next-line security/detect-object-injection -- name は generated.json 由来のツール名
+    const success = SUCCESS_REQUIRED[name]
+    const expected = success === undefined ? undefined : [...success, ['kind', 'detail']].map(required => ({ required }))
+
+    expect(outputSchema?.['anyOf']).toEqual(expected)
+  })
+
+  it('成功の必須項目の表が tools/list のツールに含まれる', () => {
+    const names = new Set(listed.map(tool => tool.name))
+
+    expect(Object.keys(SUCCESS_REQUIRED).filter(name => !names.has(name))).toEqual([])
+  })
+
+  it.each(REGION_TOOLS)('$name の outputSchema は、awscli の出力から作る項目を持つ', ({ name }) => {
+    const names = Object.keys(propertiesOf(toolOf(name).outputSchema))
+
+    expect(names).toEqual(expect.arrayContaining(['lines', 'output', 'truncated']))
+  })
+
+  it.each(REGION_TOOLS)('$name の outputSchema は、max-items のツールだけが nextToken を持つ', ({ name }) => {
+    const entry = ALLOWLIST.find(item => item.toolName === name)
+    const names = Object.keys(propertiesOf(toolOf(name).outputSchema))
+
+    expect(names.includes('nextToken')).toBe(entry?.pagination === 'max-items')
+    expect(names.includes('NextToken')).toBe(entry?.pagination === 'max-items')
   })
 
   it.each(GENERATED_TOOLS)('$name が title と description を持ち openWorldHint が true', ({ name }) => {

@@ -3,8 +3,9 @@
 import path from 'node:path'
 import { Writable } from 'node:stream'
 
-import type { CallToolResult } from '@modelcontextprotocol/server'
-import type { z } from 'zod'
+import { fromJsonSchema } from '@modelcontextprotocol/server'
+import type { CallToolResult, JsonSchemaType, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
+import { z } from 'zod'
 
 import type { FailureKind } from '../domain/_shared/failure-kind.js'
 import { createWarningCollector, WARNING_LIMIT_BYTES } from './warnings.js'
@@ -22,7 +23,7 @@ const TRUNCATION_MARKER = `[pecotv] output exceeded the ${String(OUTPUT_CAPTURE_
 
 /**
 ツールの結果。toCallToolResult が MCP の CallToolResult に変える。
-data はツールごとの項目で、structuredContent の最上位にそのまま並ぶ。共通の項目は tools/_shared.ts の TOOL_OUTPUT_SCHEMA。
+data はツールごとの項目で、structuredContent の最上位にそのまま並ぶ。宣言は各ツールの outputSchema で、tools/list へは toolOutputSchema で JSON Schema にして渡す。
 */
 export type ToolResult = SucceededToolResult | FailedToolResult
 
@@ -277,4 +278,54 @@ export function createOutputCapture(): OutputCapture {
     text: () => (isTruncated ? TRUNCATION_MARKER : '') + Buffer.concat(chunks).toString('utf8'),
     warnings: () => collector.list(pendingBytes === 0 ? undefined : Buffer.concat(pending).toString('utf8')),
   }
+}
+
+/**
+ツールの項目と並べて structuredContent の最上位に置く、全ツールに共通の 4 項目
+*/
+export const COMMON_OUTPUT_PROPERTIES = {
+  kind: { type: 'string', description: 'Failure kind (failure only)' },
+  detail: { type: 'string', description: 'Full text of the failure and how to recover (failure only)' },
+  log: {
+    type: 'string',
+    description: 'Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation',
+  },
+  warnings: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted',
+  },
+}
+
+const FAILURE_REQUIRED: readonly string[] = ['kind', 'detail']
+
+const JsonObjectSchema = z.looseObject({
+  properties: z.record(z.string(), z.unknown()).optional(),
+  required: z.array(z.string()).optional(),
+})
+
+/**
+ツールの outputSchema（JSON Schema）。最上位の properties にツールの項目と共通の 4 項目を並べ、
+anyOf の枝で「成功の必須項目」か「kind と detail」を求める。成功の必須項目が無ければ anyOf を置かない
+*/
+// zod の型は readonly にできない。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+export function toolOutputSchema(output: z.ZodObject): Record<string, unknown> {
+  const generated = Object.entries(z.toJSONSchema(output, { io: 'output' })).filter(([key]) => key !== '$schema')
+  const { required = [], properties = {}, ...rest } = JsonObjectSchema.parse(Object.fromEntries(generated))
+  return {
+    type: 'object',
+    properties: { ...properties, ...COMMON_OUTPUT_PROPERTIES },
+    // 定義書に書き出す順（type・properties・additionalProperties）に合わせる
+    ...rest,
+    ...required.length > 0 && { anyOf: [{ required }, { required: [...FAILURE_REQUIRED] }] },
+  }
+}
+
+/**
+手組みの JSON Schema を、SDK が受ける形にする。検証は SDK の ajv（2020-12）で、値を変えない
+*/
+export function standardOutputSchema(schema: Readonly<Record<string, unknown>>): StandardSchemaWithJSON {
+  // eslint-disable-next-line no-restricted-syntax -- JsonSchemaType は全キーワードの型で、組み立てた object を当てられない
+  return fromJsonSchema(schema as JsonSchemaType)
 }

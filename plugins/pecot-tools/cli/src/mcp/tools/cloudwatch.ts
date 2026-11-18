@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { CLOUDWATCH_GET_METRIC_STATISTICS, CLOUDWATCH_UNIT_VALUES } from '../../domain/allowlist.js'
 import type { ToolDefinition } from '../server.js'
-import { allowlistedTool, COMMON_INPUT_SHAPE, type ToolOptions } from './_shared.js'
+import { allowlistedTool, awsObjects, COMMON_INPUT_SHAPE, type ToolOptions } from './_shared.js'
 
 /**
 ディメンション 1 件。`z.object` は宣言外のキーを通知せず削るため strictObject を使う。
@@ -45,6 +45,10 @@ export function cloudwatchTools(options: Readonly<ToolOptions> = {}): readonly T
           .describe('Unit to filter by. The result is empty if it does not match the unit of the data'),
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        Label: z.string().describe('Metric label (CloudWatch GetMetricStatistics response)'),
+        Datapoints: awsObjects('Datapoint objects of the CloudWatch GetMetricStatistics response'),
+      },
     }, options),
   ]
 }

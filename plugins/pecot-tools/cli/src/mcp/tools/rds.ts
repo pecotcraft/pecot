@@ -11,6 +11,7 @@ import {
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsObjects,
   COMMON_INPUT_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
   type ToolOptions,
@@ -47,6 +48,9 @@ export function rdsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        Events: awsObjects('Event objects of the RDS DescribeEvents response'),
+      },
     }, options),
     allowlistedTool({
       entry: RDS_DESCRIBE_DB_CLUSTERS,
@@ -57,6 +61,9 @@ export function rdsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        DBClusters: awsObjects('DBCluster objects of the RDS DescribeDBClusters response'),
+      },
     }, options),
     allowlistedTool({
       entry: RDS_DESCRIBE_DB_INSTANCES,
@@ -67,6 +74,9 @@ export function rdsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        DBInstances: awsObjects('DBInstance objects of the RDS DescribeDBInstances response'),
+      },
     }, options),
   ]
 }
