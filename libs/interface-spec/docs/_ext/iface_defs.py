@@ -3,6 +3,7 @@
 - ``iface-defs <plugin> [<項目の ID> | common]``: コマンド・ツールを cmd、振る舞いを behavior の need にし、
   outcome を決める。2 つ目を渡すと、その項目とその振る舞いだけ（``common`` は共通の振る舞いだけ）を出す
 - ``iface-index <plugin>``: コマンド・ツールの一覧を、各ページへのリンクと状態ごとの数の表にする
+- ``iface-common-output <plugin>``: すべての MCP ツールの実行結果に共通する項目の表を出す
 - ``iface-overview``: プラグインごとに、リファレンスのページへのリンクと状態ごとの数を 1 行で出す
 - ``iface-tests <plugin>``: 項目につながるケースだけの JUnit を書き、test-file で描く
 
@@ -428,7 +429,7 @@ def _constraint(item: object) -> str:
 
 
 MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
-COMMON_OUTPUT_TITLE = "全ツールに共通の項目"
+COMMON_OUTPUT_TITLE = "出力項目"
 # structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
 _MCP_COMMON = ("kind", "detail", "log", "warnings")
 
@@ -452,7 +453,11 @@ def _mcp_output(entry: dict[str, Any]) -> list[str]:
     if plugin is None:
         return lines
     target = f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label(str(plugin))}>`"
-    return [*lines, f"失敗の種別と警告は、\\ {target}\\ に書いています。", ""]
+    return [
+        *lines,
+        f"エラーと警告の項目については、共通仕様の\\ {target}\\ を参照してください。",
+        "",
+    ]
 
 
 # render_sections へ渡す項目の、プラグインの名前を載せるキー。定義書の欄ではない。
@@ -460,7 +465,7 @@ PLUGIN_KEY = "_plugin"
 
 
 def common_output_label(plugin: str) -> str:
-    """プラグインのページの、共通の項目の節のラベル。"""
+    """共通仕様のページの、出力項目の節のラベル。ページの rst が、節の前に同じ名前で置く。"""
     return f"iface-common-output-{plugin}"
 
 
@@ -1011,19 +1016,24 @@ class IfaceIndex(_Base):
         lines = [".. list-table::", "   :header-rows: 1", "   :widths: 22 50 8 20", ""]
         for row in [["名前", "説明", "型", "状態"], *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
-        if plan.common_output:
-            lines += [
-                "",
-                f".. _{common_output_label(plugin)}:",
-                "",
-                COMMON_OUTPUT_TITLE,
-                "-" * (len(COMMON_OUTPUT_TITLE) * 2),
-                "",
-                "どのツールも、ツールごとの項目と並べて、次の項目を結果の最上位で返します。",
-                "",
-                *_table("", ["項目名", "型", "説明"], plan.common_output),
-            ]
-        return self.parse_text_to_nodes("\n".join(lines), allow_section_headings=True)
+        return self.parse_text_to_nodes("\n".join(lines))
+
+
+class IfaceCommonOutput(_Base):
+    """``iface-common-output <plugin>``。すべての MCP ツールの実行結果に共通する項目の表を出す。"""
+
+    required_arguments = 1
+
+    def run(self) -> list[nodes.Node]:
+        plan = self._plan(self.arguments[0])
+        lines = [
+            "次の項目は、すべての MCP ツールの実行結果に共通です。"
+            "ツールの実行に失敗した場合や、警告がある場合に、実行結果に含まれます。",
+            "",
+            *_table("", ["項目名", "型", "説明"], plan.common_output),
+            "ツールごとの出力項目については、各ツールのページの「出力」を参照してください。",
+        ]
+        return self.parse_text_to_nodes("\n".join(lines))
 
 
 class IfaceOverview(_Base):
@@ -1219,6 +1229,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
         app.add_role(name, _class_role(name))
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
+    app.add_directive("iface-common-output", IfaceCommonOutput)
     app.add_directive("iface-overview", IfaceOverview)
     app.add_directive("iface-tests", IfaceTests)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

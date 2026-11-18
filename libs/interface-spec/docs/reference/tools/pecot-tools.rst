@@ -9,4 +9,5 @@ pecot-tools
    :hidden:
    :glob:
 
+   pecot-tools-common
    /_generated/pecot-tools/*

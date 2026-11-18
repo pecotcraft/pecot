@@ -9,4 +9,5 @@ pecot-visual
    :hidden:
    :glob:
 
+   pecot-visual-common
    /_generated/pecot-visual/*

@@ -864,16 +864,23 @@ def test_mcp_output_links_to_common_fields_of_the_plugin() -> None:
     assert "型を閉じていません" not in text
 
 
-def test_index_has_common_fields_section_linked_from_tool_page(
+COMMON_PAGE = """\
+.. _iface-common-output-sample:
+
+出力項目
+========
+
+.. iface-common-output:: sample
+"""
+
+
+def test_common_output_page_has_fields_and_is_linked_from_tool_page(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    files = {"index.rst": PAGES_INDEX + "\n.. toctree::\n\n   common\n", "common.rst": COMMON_PAGE}
+    built = build(tmp_path, LANES, capfd, files=files, pages=True)
     assert built.code == 0, built.warnings
-    anchor = common_output_label("sample")
-    found = re.search(rf'<section id="{anchor}">([\s\S]*?)</section>', built.html())
-    assert found
-    section = text_of(found.group(1))
-    assert COMMON_OUTPUT_TITLE in section
+    section = text_of(built.html("common.html"))
     for name, text in {
         "kind": "失敗の種別です。",
         "detail": "失敗の文です。",
@@ -883,7 +890,7 @@ def test_index_has_common_fields_section_linked_from_tool_page(
         assert name in section
         assert text in section
     page = built.html("_generated/sample/sample_two.html")
-    assert f'href="../../index.html#{anchor}"' in page
+    assert f'href="../../common.html#{common_output_label("sample")}"' in page
     assert (
         '<code class="docutils literal notranslate"><span class="pre">kind</span></code>'
         not in page

@@ -9,4 +9,5 @@ pecot-workflow
    :hidden:
    :glob:
 
+   pecot-workflow-common
    /_generated/pecot-workflow/*
