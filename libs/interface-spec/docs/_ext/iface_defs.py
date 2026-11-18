@@ -452,7 +452,7 @@ def _mcp_output(entry: dict[str, Any]) -> list[str]:
     if plugin is None:
         return lines
     target = f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label(str(plugin))}>`"
-    return [*lines, f"失敗の種別や警告は、\\ {target}\\ の項目で返します。", ""]
+    return [*lines, f"失敗の種別と警告は、\\ {target}\\ に書いています。", ""]
 
 
 # render_sections へ渡す項目の、プラグインの名前を載せるキー。定義書の欄ではない。
