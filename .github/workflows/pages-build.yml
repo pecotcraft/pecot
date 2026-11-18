@@ -100,7 +100,7 @@ jobs:
         if: steps.decide.outputs.side == 'release'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.decide.outputs.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -145,10 +145,11 @@ jobs:
         PECOT_SITE_RUN_URL
         PECOT_SITE_BUILT_AT
     steps:
+      # ref は step の出力でなく GitHub が決める値から取る（CodeQL の actions/cache-poisoning）。リリース版は release_build.py が取り出す。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.side.outputs.sha }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 

@@ -163,9 +163,14 @@ def test_build_uploads_one_side_artifact_for_seven_days() -> None:
     assert upload["with"]["if-no-files-found"] == "error"
 
 
-def test_build_checkout_uses_side_sha() -> None:
-    (checkout,) = _uses(_BUILD, "build", "actions/checkout")
-    assert checkout["with"]["ref"] == "${{ needs.side.outputs.sha }}"
+def test_checkout_refs_come_from_github_not_step_outputs() -> None:
+    # step の出力の SHA を checkout すると、CodeQL の actions/cache-poisoning が手での起動で止める。
+    (build,) = _uses(_BUILD, "build", "actions/checkout")
+    assert build["with"]["ref"] == (
+        "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+    )
+    (side,) = _uses(_BUILD, "side", "actions/checkout")
+    assert side["with"]["ref"] == "${{ github.sha }}"
 
 
 def test_build_restores_owner_always() -> None:
