@@ -1,4 +1,12 @@
 {
   "//": "リリース監査 (audit-mcp-dist.sh) で high 以上でも中止しない advisory。配布ツリーと永続層に同じ規則で適用する。ここに載せた分を除いた件数で判定するため、追加はリリースを通すための唯一の抜け道になる。期限による自動失効は持たせない。リリース手順 (w-release の references/release-nx.md) で毎回見直す。",
-  "exceptions": []
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "修正版が無い（対象は 4.0.7 以下で、最新も 4.0.7）。攻撃者が glob のパターンを渡せるときの ReDoS で、永続層の Slidev と Vite が picomatch に渡すパターンは、デッキと設定のファイルからだけ来る。それらのファイルは同じプロセスでコードとして動くので、パターンを書ける人に新しくできることは無い。",
+      "added": "2026-11-18",
+      "reevaluate": "picomatch に 4.0.7 より後の版が出たら、依存を上げてこの項目を消す。Dependabot の alert #20 が閉じたときも消す。"
+    }
+  ]
 }
