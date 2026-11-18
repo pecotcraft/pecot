@@ -220,10 +220,10 @@ Phase 5 の T035 に含めた。w-revise の引き継ぎの分岐は足さない
 
 **前提**: Phase 8（共通の部分の形が、検証用での試行の後に決まる）
 
-- [ ] T054 `specs/023-label-triggered-autofix/research.md` を直す。R2 の認証の名前、R8 の導入のコマンド、R10 の版の目印を、この spec の形に合わせる。`allowed_bots` の名前の形と、権限のモードの既定が変わったことを書く
-- [ ] T055 `specs/023-label-triggered-autofix/plan.md` と `contracts/` を直す。Python の CLI の前提を TypeScript の今の構成に直し、雛形の一覧に行を足す形にする
-- [ ] T056 `specs/023-label-triggered-autofix/tasks.md` を、T054・T055 に合わせて直す。作り直しになる範囲が広いときは、ユーザーに伝えて、tasks の工程のやり直しを仰ぐ
-- [ ] T057 Epic #315 の本文の GAP を、共通の部分ができた後の差に直す
+- [x] T054 `specs/023-label-triggered-autofix/research.md` を直す。R2 の認証の名前、R8 の導入のコマンド、R10 の版の目印を、この spec の形に合わせる。`allowed_bots` の名前の形と、権限のモードの既定が変わったことを書く
+- [x] T055 `specs/023-label-triggered-autofix/plan.md` と `contracts/` を直す。Python の CLI の前提を TypeScript の今の構成に直し、雛形の一覧に行を足す形にする
+- [x] T056 `specs/023-label-triggered-autofix/tasks.md` を、T054・T055 に合わせて直す。作り直しになる範囲が広いときは、ユーザーに伝えて、tasks の工程のやり直しを仰ぐ
+- [x] T057 Epic #315 の本文の GAP を、共通の部分ができた後の差に直す
 
 ---
 
