@@ -76,7 +76,7 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | PR の確かめ | `issue_comment` の run だけ。PR と書いた人の権限を読み、fork・draft・閉じた PR か、書いた人が `admin`・`maintain`・`write` でなければ、後の step を飛ばす。読んだ PR の `head.sha` を出力する。API の失敗は step の失敗にする |
 | 受け付けの印 | `issue_comment` の run で、PR の確かめを通ったときだけ。合言葉のコメントに 👀 のリアクションを付ける（FR-035）。付けられなくても、レビューは続ける |
 | checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`ref` に、`pull_request` の run は `github.event.pull_request.head.sha`、`issue_comment` の run は PR の確かめの step が出力した `head.sha` を渡す。既定の merge の ref では、base の変更で指摘の行が head の diff とずれる。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
-| Node | `actions/setup-node` |
+| Node | `actions/setup-node`。`package-manager-cache: false` を渡す。job が secret を持つので、PR の `package.json` が npm を指しても、npm のキャッシュを戻さず保存もしない。キャッシュが要る利用者は、利用者の準備の囲みで `actions/cache` を使う。setup-node は囲みの外にあり、`cache` を足しても雛形の上書きで消える |
 | 利用者の準備 | 開始と終了の印のコメント 2 行だけ。step は `uses` か `run` を要するので、空の step は置かない |
 | 自動レビュー | claude-code-action。入力は下の表 |
 | 後始末 | `if: always()` で `pecot review finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
