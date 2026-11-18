@@ -483,6 +483,20 @@ def common_output_rows(generated: dict[str, Any], authored: dict[str, Any]) -> l
     ]
 
 
+def resource_rows(generated: dict[str, Any], authored: dict[str, Any]) -> list[list[str]]:
+    """resource の表の行。説明は authored の summary、無ければ generated の description。"""
+    written = authored.get("resources")
+    summaries = cast("dict[str, Any]", written) if isinstance(written, dict) else {}
+    rows: list[list[str]] = []
+    for r in cast("list[dict[str, Any]]", generated.get("resources", [])):
+        uri = str(r.get("uri", "?"))
+        item = summaries.get(uri)
+        summary = cast("dict[str, Any]", item).get("summary") if isinstance(item, dict) else None
+        description = str(summary or r.get("description", ""))
+        rows.append([uri, str(r.get("name", "")), description, str(r.get("mimeType", ""))])
+    return rows
+
+
 def _output(entry: dict[str, Any]) -> list[str]:
     output = cast("dict[str, Any]", entry.get("output", {}))
     lines: list[str] = []
@@ -592,6 +606,7 @@ class Plan:
     behaviors: list[Behavior] = field(default_factory=lambda: [])
     warnings: list[str] = field(default_factory=lambda: [])
     common_output: list[list[str]] = field(default_factory=lambda: [])
+    resources: list[list[str]] = field(default_factory=lambda: [])
 
     @property
     def ids(self) -> frozenset[str]:
@@ -615,7 +630,10 @@ def _label(raw: object, default: str) -> str:
 
 
 def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
-    plan = Plan(common_output=common_output_rows(generated, authored))
+    plan = Plan(
+        common_output=common_output_rows(generated, authored),
+        resources=resource_rows(generated, authored),
+    )
     plugin = {PLUGIN_KEY: generated["plugin"]} if "plugin" in generated else {}
     entries = cast("dict[str, dict[str, Any]]", authored.get("entries", {}))
     for g in cast("list[dict[str, Any]]", generated.get("entries", [])):
@@ -1036,6 +1054,17 @@ class IfaceCommonOutput(_Base):
         return self.parse_text_to_nodes("\n".join(lines))
 
 
+class IfaceResources(_Base):
+    """``iface-resources <plugin>``。MCP サーバが出す resource の表を出す。"""
+
+    required_arguments = 1
+
+    def run(self) -> list[nodes.Node]:
+        plan = self._plan(self.arguments[0])
+        lines = _table("", ["URI", "名前", "説明", "MIME タイプ"], plan.resources, code=2)
+        return self.parse_text_to_nodes("\n".join(lines))
+
+
 class IfaceOverview(_Base):
     """``iface-overview``。iface_junit のプラグインごとに、リファレンスのページへのリンクと状態ごとの数を出す。
 
@@ -1237,6 +1266,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
     app.add_directive("iface-common-output", IfaceCommonOutput)
+    app.add_directive("iface-resources", IfaceResources)
     app.add_directive("iface-overview", IfaceOverview)
     app.add_directive("iface-tests", IfaceTests)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

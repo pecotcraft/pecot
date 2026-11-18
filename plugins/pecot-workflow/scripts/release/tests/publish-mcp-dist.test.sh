@@ -432,6 +432,7 @@ cat > "$TMP/smoke.mjs" << 'SMOKE'
 // tools/list の後に続けて tools/call を送り、各応答の isError と出力（structuredContent）を
 // 返り値の calls 配列（呼び出し順）に載せる（配布ツリーが実際に起動して応答することの検証。
 // tools/list が緑のまま tools/call だけ壊れる回帰を拾うため）。
+// 環境変数 SMOKE_RESOURCE_READS に URI の JSON の配列を渡すと、続けて resources/read を送り、各応答の本文を reads 配列に載せる。
 // 環境変数 SMOKE_CWD があれば、それをサーバの cwd にする。
 import { spawn } from 'node:child_process'
 
@@ -441,11 +442,16 @@ const CALLS = process.env['SMOKE_TOOL_CALLS'] === undefined
   ? []
   : JSON.parse(process.env['SMOKE_TOOL_CALLS'])
 const CALL_ID_BASE = 100
+const READS = process.env['SMOKE_RESOURCE_READS'] === undefined
+  ? []
+  : JSON.parse(process.env['SMOKE_RESOURCE_READS'])
+const READ_ID_BASE = 200
 const requests = [
   { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'release-smoke', version: '0' } } },
   { jsonrpc: '2.0', method: 'notifications/initialized' },
   { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} },
-  ...CALLS.map((call, index) => ({ jsonrpc: '2.0', id: CALL_ID_BASE + index, method: 'tools/call', params: call }))
+  ...CALLS.map((call, index) => ({ jsonrpc: '2.0', id: CALL_ID_BASE + index, method: 'tools/call', params: call })),
+  ...READS.map((uri, index) => ({ jsonrpc: '2.0', id: READ_ID_BASE + index, method: 'resources/read', params: { uri } }))
 ]
 const expected = requests.filter((message) => message.id !== undefined).map((message) => message.id)
 
@@ -499,8 +505,11 @@ const calls = CALLS.map((_, index) => {
   const response = seen.get(CALL_ID_BASE + index)
   const outcome = response?.result?.structuredContent
   const branch = outcome?.branch ?? ''
-  const artifact = outcome?.file ?? ''
-  return { isError: response === undefined ? null : response.result?.isError ?? false, branch, artifact }
+  return { isError: response === undefined ? null : response.result?.isError ?? false, branch }
+})
+const reads = READS.map((_, index) => {
+  const response = seen.get(READ_ID_BASE + index)
+  return { isError: response === undefined ? null : response.error !== undefined, text: response?.result?.contents?.[0]?.text ?? '' }
 })
 const initialized = seen.get(1)
 process.stdout.write(JSON.stringify({
@@ -508,7 +517,8 @@ process.stdout.write(JSON.stringify({
   firstTool: tools[0]?.name ?? '',
   toolNames: tools.map((tool) => tool.name),
   serverName: initialized?.result?.serverInfo?.name ?? '',
-  calls
+  calls,
+  reads
 }))
 SMOKE
 
@@ -524,7 +534,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 }
 
 # tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している（cli/tests/bootstrap/run.sh と同値）。
-EXPECTED_TOOL_COUNT=39
+EXPECTED_TOOL_COUNT=40
 EXPECTED_FIRST_TOOL="project_list"
 
 # smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
@@ -578,18 +588,18 @@ assert_eq "README の登録名が initialize の serverInfo.name と一致する
     "$(smoke_value "$TMP/smoke-default.json" serverName)"
 
 # tools/list が緑でも、dist の外のファイルを読めないと tools/call は失敗する。
-# 一時 git リポ（ブランチ名に Issue 番号なし）を cwd に、gh を呼ばない session_show と issue_comment (prepare) を投げる。
+# 一時 git リポ（ブランチ名に Issue 番号なし）を cwd に、gh を呼ばない session_show を投げ、同梱のテンプレートを resource で読む。
 call_value() {
-    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'isError'・'branch'・'artifact'
+    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'isError'・'branch'・'text'。$4 に reads を渡すと reads 配列を読む
     node -e "
 const fs = require('node:fs')
 let value
 try { value = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')) }
 catch { process.stdout.write('PARSE_ERROR'); process.exit(0) }
-const call = (value.calls ?? [])[Number(process.argv[2])]
+const call = (value[process.argv[4] ?? 'calls'] ?? [])[Number(process.argv[2])]
 const field = call === undefined ? undefined : call[process.argv[3]]
 process.stdout.write(field === undefined || field === null ? '' : String(field))
-" "$1" "$2" "$3"
+" "$1" "$2" "$3" "${4:-calls}"
 }
 
 CALL_REPO="$TMP/call-repo"
@@ -598,7 +608,8 @@ git init --quiet --initial-branch=smoke-branch "$CALL_REPO" || exit 1
 git -C "$CALL_REPO" commit --quiet --allow-empty -m "smoke" > /dev/null 2>&1 || exit 1
 SMOKE_CALLS_OUT="$TMP/smoke-calls.json"
 SMOKE_CWD="$CALL_REPO" \
-    SMOKE_TOOL_CALLS='[{"name":"session_show","arguments":{"directory":"."}},{"name":"issue_comment","arguments":{"prepare":true,"template":"plan"}}]' \
+    SMOKE_TOOL_CALLS='[{"name":"session_show","arguments":{"directory":"."}}]' \
+    SMOKE_RESOURCE_READS='["pecot-template://comment/plan"]' \
     smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
     > "$SMOKE_CALLS_OUT" 2> "$SMOKE_CALLS_OUT.err"
 case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
@@ -615,17 +626,12 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
             "$(call_value "$SMOKE_CALLS_OUT" 0 isError)"
         assert_eq "session_show が一時リポのブランチ名を branch に返す" "smoke-branch" \
             "$(call_value "$SMOKE_CALLS_OUT" 0 branch)"
-        assert_eq "issue_comment (prepare) の tools/call が成功（isError が false）を返す" "false" \
-            "$(call_value "$SMOKE_CALLS_OUT" 1 isError)"
-        PREPARED="$(call_value "$SMOKE_CALLS_OUT" 1 artifact)"
-        case "$PREPARED" in
-            "$CALL_REPO"/.pecot/tmp/output/comment-plan-*.md) pass "issue_comment (prepare) が一時リポの出力先にファイルを作る" ;;
-            *) fail "issue_comment (prepare) の出力先が期待と違う: $PREPARED" ;;
-        esac
-        if [ -f "$PREPARED" ] && grep -qxF '## Plan' "$PREPARED"; then
-            pass "prepare したファイルに同梱テンプレートの '## Plan' 節がある"
+        assert_eq "pecot-template://comment/plan の resources/read が成功する" "false" \
+            "$(call_value "$SMOKE_CALLS_OUT" 0 isError reads)"
+        if call_value "$SMOKE_CALLS_OUT" 0 text reads | grep -qxF '## Plan'; then
+            pass "resource で読んだテンプレートに同梱テンプレートの '## Plan' 節がある"
         else
-            fail "prepare したファイルが無いか、'## Plan' 節が無い: $PREPARED"
+            fail "resource で読んだテンプレートに '## Plan' 節が無い"
         fi
         ;;
 esac

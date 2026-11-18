@@ -155,7 +155,6 @@ describe('issue create', () => {
   })
 
   it.for([
-    { name: '--prepare', argv: ['--prepare', '-m', MESSAGE, '-r', 'acme/demo'] },
     { name: 'ファイル', argv: ['-m', MESSAGE, '-r', 'acme/demo', 'a.md'] },
     { name: '--title', argv: ['-m', MESSAGE, '-r', 'acme/demo', '-t', '題'] },
   ])('$name と一緒に打ったとき、何も作らずに終了コード 2 で終わる', async (row, context) => {
@@ -166,6 +165,6 @@ describe('issue create', () => {
 
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: --freeform cannot be used with --prepare, --files or --title\n')
+    expect(result.stderr).toBe('error: --freeform cannot be used with --files or --title\n')
   })
 })

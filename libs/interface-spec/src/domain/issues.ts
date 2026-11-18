@@ -84,6 +84,12 @@ function locate(root: unknown, path: readonly PathPart[], kind: FileKind): Locat
     }
     return { scope, field: rest.length === 0 ? 'entry' : fieldOf(rest) }
   }
+  // resource は uri を項目の ID の位置に出す。generated は配列、authored は uri をキーにした record。
+  if (kind !== 'targets' && head === 'resources' && key !== undefined) {
+    const resource = valueAt(root, ['resources', key])
+    const scope = kind === 'generated' ? (isRecord(resource) && typeof resource['uri'] === 'string' ? resource['uri'] : undefined) : String(key)
+    if (scope !== undefined) return { scope, field: rest.length === 0 ? 'resource' : fieldOf(rest) }
+  }
   return { field: fieldOf(path) }
 }
 

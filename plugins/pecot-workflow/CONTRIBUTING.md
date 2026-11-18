@@ -5,7 +5,7 @@
 ## 1. 成果物テンプレートは CLI 側に置く
 
 スキルが作る Issue・PR・コメントの本文の雛形は、`cli/templates/<種別>/<名前>.<ext>` に置きます。スキル（`skills/*/`）には置きません。
-スキルは `--prepare`（MCP ツールでは `prepare: true`）でテンプレートを作業ファイルに写し、そのパスを受け取って書き込みます。
+MCP サーバは、雛形を `pecot-template://<種別>/<名前>` の resource として出します。スキルは resource を読んで作業ファイルに写し、書き込んでから、そのパスを投稿のツールに渡します。
 
 雛形の定義元を 1 か所にするための決まりです。対話（AskUserQuestion）を伴う雛形でも、雛形は CLI に置き、対話はスキルが受け持ちます。
 
@@ -70,8 +70,9 @@ Issue の作成と作業の開始を 1 つのコマンドで行う動詞（以�
 | 操作するブランチ | `branch` | `session start`・`branch delete` |
 
 - PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
-- 名前を変えても、古い名前の別名は作らない。`cli/src/commands/renamed-commands.ts` に追加し、古い名前で呼ばれたら新しい名前を案内して止める。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
+- 名前を変えても、古い名前の別名は作らない。古い名前は、知らない名前として止まる。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
 - 書き込むコマンド（effects に `write` か `destructive` を持つもの）には、入力 `dry_run`（CLI では `--dry-run`・`-n`）を付ける。予行でも入力の検証と読み取りは行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
+  - 例外: 予行を別の check のコマンドが担うものは、`dry_run` を持たない（`issue create` の予行は `issue check`）
 
 ### 次の操作の案内
 

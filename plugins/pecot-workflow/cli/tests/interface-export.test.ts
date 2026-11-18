@@ -15,7 +15,7 @@ import { compareText } from '../../../../libs/interface-spec/src/domain/utility.
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
 import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
 import vitestConfig from '../vitest.config.js'
-import { exportEntries, exportNames, main } from '../scripts/export-interface.js'
+import { exportEntries, exportNames, exportResources, main } from '../scripts/export-interface.js'
 import { COMMAND_GROUPS, COMMAND_VERBS } from '../src/commands/names.js'
 
 const alpha = defineCommand({
@@ -90,6 +90,21 @@ describe('exportNames', () => {
       [{ word: 'alpha', meaning: '見本のグループ' }],
       [{ word: 'show', meaning: '見本の読む動詞', read_only: true }, { word: 'add', meaning: '見本の書く動詞' }],
     ])
+  })
+})
+
+describe('exportResources', () => {
+  it('テンプレートの resource を、URI・名前・題・説明・MIME 型の形で、登録の順に返す', () => {
+    const resources = exportResources()
+    expect(resources).toHaveLength(12)
+    expect(resources[0]).toStrictEqual({
+      uri: 'pecot-template://comment/plan',
+      name: 'comment/plan',
+      title: 'Plan comment',
+      description: 'Template of the plan comment posted on an Issue before implementation (issue_comment)',
+      mimeType: 'text/markdown',
+    })
+    expect(resources.map(resource => resource.uri).at(-1)).toBe('pecot-template://pr/release')
   })
 })
 
@@ -266,7 +281,7 @@ const generated = path.resolve(import.meta.dirname, '../../interface/generated.j
 const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/export-interface.ts --write'
 
 function fileOf(commands: Parameters<typeof exportEntries>[0]): Record<string, unknown> {
-  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: exportEntries(commands) }
+  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: exportEntries(commands), resources: exportResources() }
 }
 
 const EntriesSchema = z.array(z.custom<Record<string, unknown>>(value => typeof value === 'object' && value !== null))
@@ -322,7 +337,7 @@ describe('main の --write', () => {
   it('登録が 0 件でも、空の項目で書く', () => {
     const target = temporaryTarget()
     expect(run('--write', target, []).code).toBe(0)
-    expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: [] }, undefined, 2)}\n`)
+    expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: [], resources: exportResources() }, undefined, 2)}\n`)
   })
 
   it('モードの指定が無い・不正なら 2 を返す', () => {

@@ -1,5 +1,6 @@
 // issue のグループのコマンド。並びは help の一覧に出る順
 import type { CommandDefinition } from './command-definition.js'
+import { ISSUE_CHECK_COMMANDS } from './issue-check.js'
 import { ISSUE_COMMENT_COMMANDS } from './issue-comment.js'
 import { ISSUE_CREATE_COMMANDS } from './issue-create.js'
 import { ISSUE_DEPENDENCY_COMMANDS } from './issue-dependency.js'
@@ -8,6 +9,7 @@ import { ISSUE_SHOW_COMMANDS } from './issue-show.js'
 
 export const ISSUE_COMMANDS: readonly CommandDefinition[] = [
   ...ISSUE_CREATE_COMMANDS,
+  ...ISSUE_CHECK_COMMANDS,
   ...ISSUE_SHOW_COMMANDS,
   ...ISSUE_COMMENT_COMMANDS,
   ...ISSUE_DEPENDENCY_COMMANDS,

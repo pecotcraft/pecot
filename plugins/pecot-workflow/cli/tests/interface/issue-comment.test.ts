@@ -1,11 +1,10 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { chmodSync, existsSync, readdirSync, readFileSync } from 'node:fs'
+import { chmodSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_COMMENT_COMMANDS } from '../../src/commands/issue-comment.js'
-import { compareStrings } from '../../src/domain/python-format.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -23,54 +22,11 @@ async function comment(...argv: readonly string[]): Promise<Awaited<ReturnType<t
   return await runInProcess(['issue', 'comment', ...argv], ISSUE_COMMENT_COMMANDS)
 }
 
-function outputFiles(root: string): string[] {
-  const directory = path.join(root, '.pecot', 'tmp', 'output')
-  return existsSync(directory) ? readdirSync(directory).toSorted(compareStrings) : []
-}
-
 async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   return await callToolOnce(ISSUE_COMMENT_COMMANDS, 'issue_comment', argumentsOfTool)
 }
 
 describe('issue comment', () => {
-  it('--prepare とテンプレの種類を渡すと、テンプレのコピーを .pecot/tmp/output/ に書く', async (context) => {
-    await verifies(context, 'PW-ISSUE-COMMENT-01')
-    await verifies(context, 'PW-ISSUE-COMMENT-09')
-    const { root } = setUpProject()
-
-    const result = await comment('--prepare', '-t', 'merge-diff')
-
-    const [name = ''] = outputFiles(root)
-    expect(name).toMatch(/^comment-merge-diff-\d{8}-\d{6}\.md$/u)
-    const written = path.join(root, '.pecot', 'tmp', 'output', name)
-    expect(result).toEqual({ code: 0, stdout: `${written}\n`, stderr: '' })
-    expect(readFileSync(written, 'utf8')).toBe(readFileSync(templateFile('comment', 'merge-diff'), 'utf8'))
-  })
-
-  it('--prepare に --issue-ref を渡すと、コピーの issue_ref に渡した参照を入れる', async (context) => {
-    await verifies(context, 'PW-ISSUE-COMMENT-02')
-    const { root } = setUpProject()
-
-    await comment('--prepare', '-t', 'plan', '--issue-ref', 'acme/demo/123')
-
-    const [name = ''] = outputFiles(root)
-    const content = readFileSync(path.join(root, '.pecot', 'tmp', 'output', name), 'utf8')
-    expect(content).toContain('issue_ref: "acme/demo/123"\n')
-    expect(content).not.toContain('issue_ref: ""')
-  })
-
-  it('--prepare とファイルを一緒に渡すと、ファイルを投稿せずにテンプレのコピーだけを書く', async (context) => {
-    await verifies(context, 'PW-ISSUE-COMMENT-07')
-    const { root, file } = setUpCommentProject()
-    const github = await startGithub([])
-
-    const result = await comment('--prepare', '-t', 'merge-diff', file)
-
-    expect(result.code).toBe(0)
-    expect(outputFiles(root)).toHaveLength(1)
-    expect(github.requests()).toEqual([])
-  })
-
   it('ファイルを渡すと、フロントマターの issue_ref の Issue にコメントを投稿する', async (context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-03')
     await verifies(context, 'PW-ISSUE-COMMENT-10')
@@ -205,7 +161,6 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { name: '--prepare に -t が無い', argv: ['--prepare'] },
     { name: '-m に -t が無い', argv: ['-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
   ])('テンプレの種類を渡していない（$name）とき、終了コード 1 で終わる', async ({ argv }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-19')
@@ -229,7 +184,7 @@ describe('issue comment', () => {
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --issue-ref (Issue reference) is required with --message\n' })
   })
 
-  it('--prepare・ファイル・-m のどれも渡していないとき、使い方を添えて終了コード 1 で終わる', async (context) => {
+  it('ファイルと -m のどちらも渡していないとき、使い方を添えて終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-21')
     setUpProject()
 
@@ -239,7 +194,6 @@ describe('issue comment', () => {
     expect(result.stderr).toBe(
       'error: missing arguments\n'
       + '  direct posting: pecot issue comment --message <MESSAGE> --template <template> --issue-ref owner/repo/123\n'
-      + '  prepare a template: pecot issue comment --prepare --template <template>\n'
       + '  from a file: pecot issue comment <path>\n',
     )
   })
@@ -436,18 +390,6 @@ describe('issue comment', () => {
       const outcome = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', dry_run: true })
 
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
-    })
-
-    it('prepare で打つと、書いたテンプレのパスを file に返す', async (context) => {
-      await verifies(context, 'PW-COMMON-20')
-      const { root } = setUpProject()
-
-      const outcome = await commentTool({ prepare: true, template: 'plan' })
-
-      const [name = ''] = outputFiles(root)
-      const written = path.join(root, '.pecot', 'tmp', 'output', name)
-      expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toEqual({ file: written })
     })
 
     it('ファイルの本文がテンプレに合わないと、違反の文を detail に入れて content-invalid を返す', async () => {

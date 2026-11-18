@@ -80,7 +80,7 @@ describe('issue create --freeform', () => {
     { name: 'メッセージが無い', argv: ['--repo', 'acme/demo'], expected: 'error: --message is required with --freeform\n' },
     { name: 'メッセージが空白だけ', argv: ['-m', '  \n ', '--repo', 'acme/demo'], expected: 'error: --message is required with --freeform\n' },
     { name: 'リポジトリが無い', argv: ['-m', MESSAGE], expected: 'error: --repo is required with --freeform\n' },
-    { name: '--title と併用', argv: ['-m', MESSAGE, '--repo', 'acme/demo', '--title', 't'], expected: 'error: --freeform cannot be used with --prepare, --files or --title\n' },
+    { name: '--title と併用', argv: ['-m', MESSAGE, '--repo', 'acme/demo', '--title', 't'], expected: 'error: --freeform cannot be used with --files or --title\n' },
   ])('$name とき、GitHub を呼ばずに終了コード 2 で止まる', async ({ argv, expected }) => {
     setUpIssueProject()
     const github = await startGithub([])
@@ -96,17 +96,8 @@ describe('issue create --freeform', () => {
 describe('issue create --dry-run', () => {
   it('ファイルと -m が無いと、引数の不足として止まる', async () => {
     setUpIssueProject()
-    const result = await runInProcess(['issue', 'create', '--dry-run'], COMMANDS)
+    const result = await runInProcess(['issue', 'create'], COMMANDS)
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: missing arguments\n/u)
-  })
-})
-
-describe('issue quick', () => {
-  it('古い名前は、issue create --freeform を案内して終了コード 2 で止まる', async () => {
-    setUpIssueProject()
-    const result = await runInProcess(['issue', 'quick', '-m', MESSAGE, '-r', 'acme/demo'], COMMANDS)
-    expect(result.code).toBe(2)
-    expect(result.stderr).toContain('issue create --freeform')
   })
 })

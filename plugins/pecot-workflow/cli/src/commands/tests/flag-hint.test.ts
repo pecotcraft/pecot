@@ -10,7 +10,6 @@ describe('入力の誤りの文のフラグ名', () => {
   it.for([
     { name: 'issue block の --wait merge に理由が無い', argv: ['issue', 'block', 'acme/demo/7', '--by', 'acme/demo/8', '--wait', 'merge'], expected: 'error: --reason is required with --wait merge\n' },
     { name: 'issue block の --wait stack に理由がある', argv: ['issue', 'block', 'acme/demo/7', '--by', 'acme/demo/8', '--wait', 'stack', '--reason', 'x'], expected: 'error: --reason is only valid with --wait merge\n' },
-    { name: 'issue create の --prepare に --repo が無い', argv: ['issue', 'create', '--prepare', '--template', 'task'], expected: 'error: --repo <owner/repo> is required with --prepare unless --template epic\n' },
     { name: 'issue create の -m に -t が無い', argv: ['issue', 'create', '-m', 'body'], expected: 'error: --title is required with --message\n' },
     { name: 'pr create の -m に -t と -b が無い', argv: ['pr', 'create', '-m', 'body'], expected: 'error: --title and --base (base branch) are required with --message\n' },
     { name: 'pr create の --template が不正', argv: ['pr', 'create', '--template', 'x'], expected: 'error: --template must be \'default\' or \'release\' (given: x)\n' },

@@ -1,5 +1,3 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- パスは一時ディレクトリの中だけ */
-import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -30,7 +28,6 @@ import {
   rawFrontmatterFile,
   setUpIssueProject,
   subIssueAdded,
-  subIssuesPage,
   TASK_BODY,
   TASK_FRONTMATTER,
   updatedFields,
@@ -91,66 +88,6 @@ async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): P
 }
 
 describe('issue create', () => {
-  describe('--prepare', () => {
-    it('--template と --repo を渡すと、リポジトリを入れたテンプレのコピーを出力ディレクトリに書き、そのパスを標準出力に出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-01')
-      await verifies(context, 'PW-ISSUE-CREATE-02')
-      await verifies(context, 'PW-ISSUE-CREATE-16')
-      const project = setUpIssueProject()
-
-      const result = await create('--prepare', '--template', 'bug', '--repo', 'acme/demo')
-
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe('')
-      const written = result.stdout.trimEnd()
-      expect(written.startsWith(`${project.root}/.pecot/tmp/output/`)).toBe(true)
-      expect(written).toMatch(/\/issue-bug-\d{8}-\d{6}\.md$/u)
-      expect(result.stdout.endsWith('\n')).toBe(true)
-      const content = readFileSync(written, 'utf8')
-      expect(content).toContain('repository: acme/demo')
-      expect(content).not.toContain('repository: ""')
-    })
-
-    it('--suffix を渡すと、コピーのファイル名の末尾に suffix を付ける', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-03')
-      setUpIssueProject()
-
-      const result = await create('-p', '--template', 'task', '-r', 'acme/demo', '--suffix', 'part-a')
-
-      expect(result.code).toBe(0)
-      expect(result.stdout.trimEnd()).toMatch(/\/issue-task-\d{8}-\d{6}-part-a\.md$/u)
-    })
-
-    it('ファイルを一緒に渡すと、Issue を作らずにテンプレのコピーだけを書く', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-06')
-      setUpIssueProject()
-
-      const result = await create('--prepare', '--template', 'task', '--repo', 'acme/demo', '/no/such/file.md')
-
-      expect(result.code).toBe(0)
-      expect(result.stdout).toMatch(/issue-task-\d{8}-\d{6}\.md\n$/u)
-      expect(result.stderr).toBe('')
-    })
-
-    it('epic 以外で --repo を渡していないとき、error の行を出して終了コード 2 で終わる', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-41')
-      setUpIssueProject()
-
-      const result = await create('--prepare', '--template', 'task')
-
-      expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --repo <owner/repo> is required with --prepare unless --template epic\n' })
-    })
-
-    it('--repo が owner/repo の形でないとき、error の行を出して終了コード 2 で終わる', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-40')
-      setUpIssueProject()
-
-      const result = await create('--prepare', '--template', 'task', '--repo', 'acme')
-
-      expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: invalid repository format: acme\n  expected: owner/repo\n' })
-    })
-  })
-
   describe('ファイルから作る', () => {
     it('ファイルを 2 つ渡すと、渡した順に作って {{issue:key}} を前の番号に直し、ボードと親 Epic につなぎ、フラグを消す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-04')
@@ -618,7 +555,7 @@ describe('issue create', () => {
   })
 
   describe('引数がないとき', () => {
-    it('--prepare・ファイル・-m のどれも渡していないとき、使い方を error の行に出して終了コード 1 で終わる', async (context) => {
+    it('ファイルと -m のどちらも渡していないとき、使い方を error の行に出して終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-33')
       setUpIssueProject()
 
@@ -629,49 +566,13 @@ describe('issue create', () => {
       expect(result.stderr).toBe(
         'error: missing arguments\n  direct posting: pecot issue create --title <TITLE> --repo owner/repo --message <BODY>\n'
         + '  free format: pecot issue create --freeform --repo owner/repo --message <BODY>\n'
-        + '  prepare a template: pecot issue create --prepare --template task --repo owner/repo\n  from a file: pecot issue create <path>\n',
+        + '  from a file: pecot issue create <path>\n',
       )
     })
   })
 
   describe('前提と進め方', () => {
     const BASE = ISSUE_URL_BASE
-
-    // 親 Epic #3 の下に 4 つのファイルを、番号を省いて置く。前提は 1 → 2 → 3 の鎖と、3 のマージを待つ 4 番目
-    function chainFiles(root: string): string[] {
-      writeTree(root, {
-        'a.md': taskFile('先頭', PARENT),
-        'b.md': taskFile('2 番目', PARENT, ...blockedBy('a')),
-        'c.md': taskFile('3 番目', PARENT, ...blockedBy('b')),
-        'd.md': taskFile('4 番目', PARENT, 'blocked_by:', '  - issue: c', '    wait: merge', '    reason: 既定のブランチから配られる'),
-      })
-      return inRoot(root, 'a.md', 'b.md', 'c.md', 'd.md')
-    }
-
-    it('--dry-run を付けると、投稿せずに進め方の表と積める並びを標準出力に出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-45')
-      const project = setUpIssueProject()
-      const files = chainFiles(project.root)
-      const github = await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE])])
-
-      const result = await create('--dry-run', ...files)
-
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe(['a.md', 'b.md', 'c.md', 'd.md'].map(name => `dry-run: would create Issue in acme/demo from ${name}\n`).join(''))
-      expect(result.stdout).toBe([
-        '| File | Number | Blocked by | Approach |',
-        '|---|---|---|---|',
-        '| a | 3 | - | alone |',
-        '| b | 4 | a | stack on a |',
-        '| c | 5 | b | stack on b |',
-        '| d | 6 | c (merge) | wait for merge of c |',
-        '',
-        'Stackable chains:',
-        '- a -> b -> c',
-        '',
-      ].join('\n'))
-      expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput', 'GetIssueSlim'])
-    })
 
     const REJECTED_INPUTS = [
       { id: 'PW-ISSUE-CREATE-52', name: '前提が一括のどのファイルのキーにも当たらない', second: blockedBy('nope'), first: [], expected: 'error: blocked_by in b.md refers to unknown key nope\n' },
@@ -681,9 +582,9 @@ describe('issue create', () => {
       { id: 'PW-ISSUE-CREATE-53', name: 'parallel を書く', second: ['parallel: true'], first: [], expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
       { id: 'PW-ISSUE-CREATE-53', name: 'parallel とほかの誤りを両方書く', second: ['parallel: true', 'size: zzz'], first: [], expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
       { id: 'PW-ISSUE-CREATE-54', name: 'wait: merge に reason が無い', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
-    ].flatMap(row => [{ ...row, isPlan: false }, { ...row, isPlan: true }])
+    ]
 
-    it.for(REJECTED_INPUTS)('$name とき（--dry-run: $isPlan）、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
+    it.for(REJECTED_INPUTS)('$name とき、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
       await verifies(context, row.id)
       const project = setUpIssueProject()
       writeTree(project.root, {
@@ -692,7 +593,7 @@ describe('issue create', () => {
       })
 
       const files = [path.join(project.root, 'a.md'), path.join(project.root, 'b.md')]
-      const result = await create(...row.isPlan ? ['--dry-run', ...files] : files)
+      const result = await create(...files)
 
       expect(result).toEqual({ code: 1, stdout: '', stderr: row.expected })
     })
@@ -927,25 +828,6 @@ describe('issue create', () => {
       expect(result.stderr.match(/set: Issue acme\/demo\/\d+ status ready\n/gu)).toHaveLength(3)
     })
 
-    it('ボードに Blocked の列が無いとき、--dry-run ではこれからの動きとして warning を 1 回だけ出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-47')
-      const project = setUpIssueProject({ withoutBlockedColumn: true })
-      writeTree(project.root, {
-        'a.md': taskFile('先頭'),
-        'b.md': taskFile('次', ...blockedBy('a')),
-        'c.md': taskFile('最後', ...blockedBy('b')),
-      })
-      await startGithub([linkedRepositories(), blockedBySupported()])
-
-      const result = await create('--dry-run', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
-
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe([
-        'warning: the board has no Blocked column; Issues with blocked-by will be created in Ready\n',
-        ...['a.md', 'b.md', 'c.md'].map(name => `dry-run: would create Issue in acme/demo from ${name}\n`),
-      ].join(''))
-    })
-
     it.for([
       { name: '既定のブランチの設定が無い', develop: { developBranch: undefined }, blockedBy: [OPEN_PREREQUISITE], expected: '' },
       { name: '読めた前提が付けた数に足りない', develop: {}, blockedBy: [], expected: 'warning: could not read all blocked-by of #13 yet; left it in Blocked\n' },
@@ -974,14 +856,14 @@ describe('issue create', () => {
 
     const UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
 
-    it.for([{ isPlan: false }, { isPlan: true }])('依存関係に対応しないサーバで blocked_by を書いたとき（--dry-run: $isPlan）、何も作らずに error を出して終了コード 1 で終わる', async (row, context) => {
+    it('依存関係に対応しないサーバで blocked_by を書いたとき、何も作らずに error を出して終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-58')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
       const github = await startGithub([linkedRepositories(), blockedByUnsupported()])
 
       const files = inRoot(project.root, 'a.md', 'b.md')
-      const result = await create(...row.isPlan ? ['--dry-run', ...files] : files)
+      const result = await create(...files)
 
       expect(result).toEqual({ code: 1, stdout: '', stderr: `error: ${UNSUPPORTED}\n` })
       expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput'])
@@ -1103,50 +985,6 @@ describe('issue create', () => {
       expect(github.requests()).toEqual([])
     })
 
-    it('既存の Issue の表記は、一括の先頭のファイルのリポジトリを基準にそろえる', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-45')
-      const project = setUpIssueProject({ otherRepositories: ['other'] })
-      writeTree(project.root, {
-        'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')),
-        'b.md': rawFrontmatterFile(['type: task', 'repository: acme/other', 'title: 別のリポ', ...blockedBy('acme/demo/12')]),
-        'c.md': taskFile('最後', ...blockedBy('acme/other/7')),
-      })
-      await startGithub([linkedRepositories(1, ['demo', 'other']), blockedBySupported(), issueNodeId(12), issueNodeId(7, 1, 'other')])
-
-      const result = await create('--dry-run', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
-
-      expect(result.code).toBe(0)
-      expect(result.stdout).toBe([
-        '| File | Number | Blocked by | Approach |',
-        '|---|---|---|---|',
-        '| a | - | #12 | stack on #12 |',
-        '| b | - | #12 | stack on #12 |',
-        '| c | - | acme/other#7 | stack on acme/other#7 |',
-        '',
-        'Stackable chains:',
-        '- #12 -> a',
-        '- #12 -> b',
-        '- acme/other#7 -> c',
-        '',
-      ].join('\n'))
-    })
-
-    it('親 Epic のサブ Issue が複数のページにわたっても、全ページの最大の次の番号を振る', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-49')
-      const project = setUpIssueProject()
-      writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
-      await startGithub([
-        linkedRepositories(),
-        parentEpic(3, [EXISTING_SUB_ISSUE], 1, 'cursor1'),
-        subIssuesPage([{ number: 30, state: 'OPEN', title: '#3-21: 2 ページ目の子' }]),
-      ])
-
-      const result = await create('--dry-run', path.join(project.root, 'a.md'))
-
-      expect(result.code).toBe(0)
-      expect(result.stdout).toBe('| File | Number | Blocked by | Approach |\n|---|---|---|---|\n| a | 22 | - | alone |\n')
-    })
-
     it('一括の中で同じ親 Epic に同じ order を書いたファイルがあるとき、何も作らずに終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-57')
       const project = setUpIssueProject()
@@ -1181,38 +1019,6 @@ describe('issue create', () => {
       const outcome = await createTool({ ...DIRECT, parent_epic: '3', order: 3 })
 
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready', parent: 'acme/demo/3' }])
-    })
-
-    it('message を dry_run で打つと、作る予定の Issue と dryRun を data に返す', async () => {
-      setUpIssueProject()
-      await startGithub([linkedRepositories()])
-
-      const outcome = await createTool({ ...DIRECT, dry_run: true })
-
-      expect(outcome.structured).toEqual({ plannedIssue: { owner: 'acme', repository: 'demo', title: '[Task] 一覧に状態を出す' }, dryRun: true })
-    })
-
-    it('ファイルを dry_run で打つと、進め方の表の行と積める並びを data に返し、最初のファイルの dry-run の行を文にする', async () => {
-      const project = setUpIssueProject()
-      writeTree(project.root, {
-        'a.md': taskFile('先頭', PARENT),
-        'b.md': taskFile('2 番目', PARENT, ...blockedBy('a')),
-        'c.md': taskFile('3 番目', PARENT, 'blocked_by:', '  - issue: b', '    wait: merge', '    reason: 配られてから', '  - issue: acme/demo/12'),
-      })
-      await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE]), issueNodeId(12)])
-
-      const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md', 'c.md'), dry_run: true })
-
-      expect(outcome.structured).toEqual({
-        plan: [
-          { file: 'a', order: 3, blockedBy: [], approach: 'alone' },
-          { file: 'b', order: 4, blockedBy: [{ issue: 'a', wait: 'stack' }], approach: 'stack', stackOn: 'a' },
-          { file: 'c', order: 5, blockedBy: [{ issue: 'b', wait: 'merge' }, { issue: '#12', wait: 'stack' }], approach: 'wait-merge' },
-        ],
-        stackableChains: [['a', 'b']],
-        dryRun: true,
-      })
-      expect(outcome.text).toBe('dry-run: would create Issue in acme/demo from a.md')
     })
 
     it('前提の済んだ Issue を Blocked で作って Ready へ動かすと、data.issues の status を ready にする', async () => {
@@ -1286,18 +1092,6 @@ describe('issue create', () => {
         { owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' },
         { owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'blocked' },
       ])
-    })
-
-    it('prepare で打つと、コピーしたテンプレの絶対パスを file に返す', async () => {
-      const project = setUpIssueProject()
-
-      const outcome = await createTool({ prepare: true, template: 'task', repo: 'acme/demo' })
-
-      expect(outcome.isError).toBe(false)
-      const file = String(outcome.structured['file'])
-      expect(path.dirname(file)).toBe(path.join(project.root, '.pecot', 'tmp', 'output'))
-      expect(path.basename(file)).toMatch(/^issue-task-\d{8}-\d{6}\.md$/u)
-      expect(outcome.structured).toEqual({ file })
     })
   })
 })

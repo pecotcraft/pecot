@@ -20,7 +20,7 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 1. **カレントリポに設定あり** → pecot-workflow の MCP ツール `project_activate` を使って、その設定を有効にする → Step 3 へ
 2. **兄弟リポに同一プロジェクトの設定あり** → コピーして activate → Step 3 へ
-3. **GitHub 上に init 済みプロジェクトあり** → `project_activate` を使って、そのプロジェクトを有効にする（`host`・`owner`）→ Step 3 へ
+3. **GitHub 上に init 済みプロジェクトあり** → `project_search` で探し、`project_activate` を使って、そのプロジェクトを有効にする → Step 3 へ
 4. **どれもない** → Step 2 へ
 
 最初のチェックには、pecot-workflow の MCP ツール `project_list` を使う。

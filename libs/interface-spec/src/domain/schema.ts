@@ -61,12 +61,22 @@ export const namesSchema = z.strictObject({
   rest: z.boolean(),
 })
 
+// MCP の静的な resource。並びは書き出す側の順。
+const generatedResourceSchema = z.strictObject({
+  uri: z.string(),
+  name: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  mimeType: z.string().optional(),
+})
+
 export const generatedFileSchema = z.strictObject({
   format: z.literal(1),
   plugin: z.string(),
   prefix: z.string(),
   names: namesSchema,
   entries: z.array(generatedEntrySchema),
+  resources: z.array(generatedResourceSchema).optional(),
 })
 
 // 人が書く文字列の欄。空白だけも空とみなす（trim は検証の中だけで、ファイルには書き戻さない）。
@@ -139,6 +149,8 @@ export const authoredFileSchema = z.strictObject({
   common_mcp_output: z.strictObject({
     fields: z.record(z.string(), authoredText),
   }).optional(),
+  // キーは generated.json の resources の uri。
+  resources: z.record(z.string(), z.strictObject({ summary: authoredText })).optional(),
 })
 
 export const targetsSchema = z.strictObject({

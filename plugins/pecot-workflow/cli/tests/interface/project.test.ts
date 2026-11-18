@@ -225,8 +225,15 @@ describe('project list', () => {
 })
 
 describe('project search', () => {
-  const search = async (nodes: Json[]): Promise<CommandResult> => await run(arguments_('search', 'acme', '--host', DEFAULT_HOST), [listProjects(...nodes)], { config: false })
+  const searchArguments = arguments_('search', 'acme', '--host', DEFAULT_HOST)
+  // 一覧の後に、各プロジェクトのフィールドを番号の順に 1 回ずつ読む
+  const fieldsOf = (number: number, fields: Json[] = standardFields()): ResponseRule =>
+    graphqlRule('GetProjectFieldsUser', { user: { projectV2: { id: `PVT_${String(number)}`, title: 'board', url: BOARD_URL, views: { nodes: [] }, fields: { nodes: fields } } } }, { projectNumber: number })
+  const search = async (nodes: Json[], fields: ResponseRule[] = nodes.map((_, index) => fieldsOf(index + 1, titleOnly))): Promise<CommandResult> =>
+    await run(searchArguments, [listProjects(...nodes), ...fields], { config: false })
   const URL1 = `https://${DEFAULT_HOST}/users/acme/projects/1`
+  const URL2 = `https://${DEFAULT_HOST}/users/acme/projects/2`
+  const rowsOf = (result: Readonly<CommandResult>): string[] => result.stdout.split('\n').slice(4, -1)
 
   it('プロジェクトを持つ所有者を渡すと、番号・タイトル・URL の表を出す', async (context) => {
     await verifies(context, 'PW-PROJECT-SEARCH-01')
@@ -254,18 +261,42 @@ describe('project search', () => {
 
   it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PROJECT-SEARCH-04')
-    const result = await run(arguments_('search', 'acme', '--host', DEFAULT_HOST), [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
+    const result = await run(searchArguments, [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: could not list projects: GraphQL query error: Server error '500 Internal Server Error'/u)
   })
 
+  it('pecot-workflow のフィールドを持つプロジェクトを一覧すると、その行に [INITIALIZED] を付ける', async (context) => {
+    await verifies(context, 'PW-PROJECT-SEARCH-05')
+    const result = await search([projectNode(1, 'board'), projectNode(2, 'plain')], [fieldsOf(1), fieldsOf(2, titleOnly)])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(rowsOf(result)).toEqual([`1    board${' '.repeat(35)} ${URL1} [INITIALIZED]`, `2    plain${' '.repeat(35)} ${URL2}`])
+  })
+
+  it('アクティブなプロジェクトを一覧すると、その行に [ACTIVE] を付ける', async (context) => {
+    await verifies(context, 'PW-PROJECT-SEARCH-06')
+    const result = await run(searchArguments, [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), fieldsOf(1), fieldsOf(2, titleOnly)])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(rowsOf(result)).toEqual([`1    board${' '.repeat(35)} ${URL1} [INITIALIZED] [ACTIVE]`, `2    plain${' '.repeat(35)} ${URL2}`])
+  })
+
+  it('プロジェクトのフィールドを読めないと、warning の行を出し、その行に [INITIALIZED] を付けずに続ける', async (context) => {
+    await verifies(context, 'PW-PROJECT-SEARCH-07')
+    const result = await search([projectNode(1, 'board'), projectNode(2, 'other')], [failing('GetProjectFieldsUser'), failing('GetProjectFieldsOrg'), fieldsOf(2)])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(/^warning: could not read the fields of project #1: GraphQL query error: Server error '500 Internal Server Error'/u)
+    expect(rowsOf(result)).toEqual([`1    board${' '.repeat(35)} ${URL1}`, `2    other${' '.repeat(35)} ${URL2} [INITIALIZED]`])
+  })
+
   describe('MCP の data', () => {
-    it('番号・タイトル・URL を projects に返し、検索した owner と host も返す', async () => {
-      const result = await tool('project_search', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'other'))], { config: false })
+    it('番号・タイトル・URL と、初期化済みか・アクティブかを projects に返し、検索した owner と host も返す', async () => {
+      const result = await tool('project_search', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'other')), fieldsOf(1), fieldsOf(2, titleOnly)])
       expect(result.structured).toEqual({
         ...owned,
-        projects: [{ number: 1, title: 'board', url: BOARD_URL }, { number: 2, title: 'other', url: `https://${DEFAULT_HOST}/users/acme/projects/2` }],
+        projects: [{ number: 1, title: 'board', url: BOARD_URL, initialized: true, active: true }, { number: 2, title: 'other', url: URL2, initialized: false, active: false }],
       })
     })
   })
@@ -975,27 +1006,6 @@ describe('project activate', () => {
     await run(reference('1'), [projectFields(), ...syncRules(...linkedNames)], { config: false, ...extra })
   const existing = (repositories: Json[], extra: Json = {}): Partial<CommandRun> => ({ config: projectConfig({ repositories, extra }) })
 
-  it('--host を付けてプロジェクトを渡さずに打つと、初期化済みのプロジェクトを一覧する', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-01')
-    const result = await run(reference(), [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), projectFields(), projectFields(titleOnly, 'plain')], { config: false })
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  #1: board\n`)
-  })
-
-  it('一覧にアクティブなプロジェクトがあると、その行に [ACTIVE] を付ける', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-02')
-    const result = await run(reference(), [listProjects(projectNode(1, 'board')), projectFields()])
-    expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  #1: board [ACTIVE]\n`)
-  })
-
-  it('初期化済みのプロジェクトが 1 つも無い所有者を一覧すると、none の行を出す', async (context) => {
-    await verifies(context, 'PW-PROJECT-ACTIVATE-03')
-    const result = await run(reference(), [listProjects(projectNode(1, 'plain')), projectFields(titleOnly, 'plain')], { config: false })
-    expect(result.code).toBe(0)
-    expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  none\n`)
-  })
-
   it('プロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイルを作る', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-04')
     const byNumber = await activateByNumber()
@@ -1042,10 +1052,10 @@ describe('project activate', () => {
 
   it('--owner を省くと、認証したユーザーのプロジェクトを対象にする', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-07')
-    const result = await run(arguments_('activate', '--host', DEFAULT_HOST), [restRule('GET', '/user', 200, { login: 'acme' }), listProjects(projectNode(1, 'board')), projectFields()], { config: false })
+    const result = await run(arguments_('activate', 'board', '--host', DEFAULT_HOST), [restRule('GET', '/user', 200, { login: 'acme' }), listProjects(projectNode(1, 'board')), projectFields(), ...syncRules()], { config: false })
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stdout).toBe(`=== Initialized projects (${DEFAULT_HOST}/acme) ===\n  #1: board\n`)
+    expect(savedConfig(result)).toMatchObject({ host: DEFAULT_HOST, owner: 'acme', project: { number: 1 } })
   })
 
   it('既存の設定ファイルがあるプロジェクトを同期すると、リポジトリごとの branches・changelog_file・packages・release_type を引き継ぐ', async (context) => {
@@ -1081,7 +1091,7 @@ describe('project activate', () => {
     const result = await run(arguments_('activate', '1'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: --host is required\n  example: pecot project activate --host github.com --owner example-org\n  example: pecot project activate --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_example-project_example-org\n')
+    expect(result.stderr).toBe('error: --host is required\n  example: pecot project activate 1 --host github.com --owner example-org\n  example: pecot project activate example-project --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_example-project_example-org\n')
   })
 
   it('指定したプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
@@ -1104,7 +1114,7 @@ describe('project activate', () => {
 
   it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-15')
-    const result = await run(reference(), [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
+    const result = await run(reference('board'), [failing('ListProjectsUser'), failing('ListProjectsOrg')], { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not activate project: /u)
   })
@@ -1198,16 +1208,6 @@ describe('project activate', () => {
     it('dry_run だと、予定の change と dryRun を返す', async () => {
       const result = await tool('project_activate', { ...owned, project: '1', dry_run: true }, [projectFields(), ...syncRules()], { config: false })
       expect(result.structured).toEqual({ project: CONFIG_NAME, configPath: path.join(result.directory, CONFIG_FILE), change: 'create', dryRun: true })
-    })
-
-    it('プロジェクトを渡さないと、初期化済みの候補を candidates に返す', async () => {
-      const result = await tool('project_activate', owned, [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), projectFields(), projectFields(titleOnly, 'plain')])
-      expect(result.structured).toEqual({ candidates: [{ number: 1, title: 'board', active: true }] })
-    })
-
-    it('初期化済みのプロジェクトが無いと、candidates を空の配列で返す', async () => {
-      const result = await tool('project_activate', owned, [listProjects(projectNode(1, 'plain')), projectFields(titleOnly, 'plain')], { config: false })
-      expect(result.structured).toEqual({ candidates: [] })
     })
   })
 })

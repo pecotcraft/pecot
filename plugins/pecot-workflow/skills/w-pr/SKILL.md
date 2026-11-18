@@ -33,12 +33,12 @@ pecot-workflow の MCP ツール `pr_check` を使って、PR を作れる状態
 
 ### Step 3: PR作成
 
-1. pecot-workflow の MCP ツール `pr_create` を使って、テンプレートのファイルを作る（`prepare: true`）
+1. pecot-workflow の MCP サーバの resource `pecot-template://pr/create` を読み、テンプレートのファイルを作る
 2. できたファイルを編集する
    - 冒頭の <!-- 読者: / 書き方: / フィールド: --> ガイドコメントに従って YAML フロントマターと本文を記述する
-3. `pr_create` を使って、書いたファイルで PR を作る
+3. pecot-workflow の MCP ツール `pr_create` を使って、書いたファイルで PR を作る
 
-`base` はツールが入れる。書き換えない。積んで着手したブランチでは下の段のブランチが入るが、これも書き換えない。
+`base` は空のままにする。ツールが決める。積んで着手したブランチでは下の段のブランチになる。
 
 本文の検証で止まったら、指摘を直して作り直す。
 下の段の PR が開いていないと止まったら、エラーの文を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
@@ -99,8 +99,8 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Closing Issue キーワードと Epic
 
-- テンプレの `Closes #` には、作業中のタスクの番号が入っている
-- この番号を書き換えない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
+- テンプレの `Closes #` は空のままにする。`pr_create` が作業中のタスクの番号で埋める
+- 自分で番号を書かない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
 - ブランチ名末尾の `<num>` も sub-issue 番号にする
 
 ### Step 4: CI を待って直す
@@ -174,7 +174,7 @@ gh api --hostname <対象ホスト> graphql \
 
 まず、選択に関わらず次の 2 つを行う。
 
-1. `issue_comment` を使って、PR 宛てのテンプレのファイルを作る（`prepare: true`・`template: "review-resolution"`）。Decision 節と Declined 節を埋める。
+1. resource `pecot-template://comment/review-resolution` を読み、PR 宛てのテンプレのファイルを作る。frontmatter の `issue_ref` には PR を書く。Decision 節と Declined 節を埋める。
 
 2. 対応不要の F-NN のスレッドに、理由を返信する。返信先は、対応表の先頭コメントの `databaseId` にする。
 

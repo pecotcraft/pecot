@@ -44,6 +44,11 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
   ['format-unknown', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")`]],
   ['file-format', [`error: ${PW}/authored.yaml: format: unknown value 2 (expected 1)`]],
   ['unknown-issue', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255`]],
+  ['resources', []],
+  ['resource-missing', [`error: ${PW}/authored.yaml: pecot-template://pr/default: resource is missing (present in generated.json)`]],
+  ['resource-extra', [`error: ${PW}/authored.yaml: pecot-template://issue/old: resource is not in generated.json (remove it)`]],
+  ['resources-unlisted', [`error: ${PW}/authored.yaml: resources: is only for plugins with resources in generated.json (remove it)`]],
+  ['resource-duplicate', [`error: ${PW}/generated.json: pecot-template://issue/task: uri: is defined more than once`]],
   ['yaml-duplicate-key', [`error: ${PW}/authored.yaml:17: map keys must be unique`]],
   ['invalid-json', [`error: ${PW}/generated.json:1: is not valid JSON`]],
   ['interface-missing', [`error: ${PW}: directory is missing (listed in libs/interface-spec/targets.json)`]],
@@ -214,6 +219,18 @@ describe('validateRepository', () => {
         `error: ${PW}/authored.yaml: common_mcp_output: is only for plugins with an MCP surface (remove it)`,
       ])
     })
+  })
+
+  it('resource の summary の言語が prose と違うと、報告する', async () => {
+    const root = await materialize('resources')
+    const file = path.join(root, PW, 'authored.yaml')
+    const original = await readFile(file, 'utf8')
+    const text = original.replace('summary: The body of a task issue.', 'summary: タスクの Issue の本文です。')
+    expect(text).not.toBe(original)
+    await writeFile(file, text)
+    expect(await validateRepository(root)).toEqual([
+      `error: ${PW}/authored.yaml: pecot-template://issue/task: summary: contains Japanese text (write English)`,
+    ])
   })
 
   it('targets.json が無いと、報告する', async () => {

@@ -14,7 +14,7 @@ import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
-import type { WorkspaceOptions, Workspace } from '../_helpers/workspace.js'
+import type { Workspace } from '../_helpers/workspace.js'
 
 useIsolatedEnvironment()
 
@@ -54,8 +54,8 @@ async function pidOf(sleeper: Readonly<Sleeper>): Promise<number> {
 }
 
 // 上の段を checkout し、下の段の今の remote の先頭で base の記録を書く
-async function openStacked(options: Readonly<WorkspaceOptions> = {}): Promise<Workspace> {
-  const workspace = await openWorkspace({ branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], ...options })
+async function openStacked(): Promise<Workspace> {
+  const workspace = await openWorkspace({ branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }] })
   workspace.git(['checkout', '-q', '-b', UPPER, `origin/${LOWER}`])
   const record = path.join(workspace.directory, stateFile('.pecot-base'))
   mkdirSync(path.dirname(record), { recursive: true })
@@ -250,12 +250,13 @@ it('session_finish が git pull を待つ間、ping に答え、取り消すと�
   expect(await pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21' }, sleeper, directory: workspace.directory, state: () => workspace.git(['for-each-ref', '--format=%(refname)', `refs/heads/${UPPER}`]) })).toEqual(RESPONSIVE)
 })
 
-it('pr_create の prepare が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {
+it('pr_create の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
-  const workspace = await openStacked({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' } })
+  const workspace = await openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx')
-  expect(await pingAndCancel({ name: 'pr_create', arguments: { prepare: true }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  const arguments_ = { message: 'body\n\nCloses #12\n', title: 'feat(demo): #12 変更', base: 'main', repo: 'acme/demo', screenshot: '撮らない', dry_run: true }
+  expect(await pingAndCancel({ name: 'pr_create', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
 })
 
 it('トークンの無い issue_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める', { timeout: 30_000 }, async (context) => {

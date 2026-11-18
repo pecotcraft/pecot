@@ -145,7 +145,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 5. リリース PR 作成
 
-`pr_create` を使う（`prepare: true`・`template: "release"`）。
+pecot-workflow の MCP サーバの resource `pecot-template://pr/release` を読み、下書きファイルを作る。
 
 できた下書きファイルを編集:
 

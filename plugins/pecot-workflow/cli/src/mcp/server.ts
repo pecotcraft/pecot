@@ -14,13 +14,13 @@ import { exitCodeOfFailure } from '../commands/failure.js'
 import type { FailureKind } from '../commands/failure-kind.js'
 import { isRecord } from '../commands/input-schema.js'
 import { COMMANDS } from '../commands/registry.js'
-import { findRenamedInput, renamedInputNote } from '../commands/renamed-commands.js'
 import type { CommandDefinition, PreparedCommand } from '../commands/registry.js'
 import { outputWidth } from '../commands/rich-panel.js'
 import { UsageError } from '../commands/usage-error.js'
 import { readVersion } from '../version.js'
 import { collectIo, standardOutputSchema, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from './result.js'
 import type { CollectedIo } from './result.js'
+import { readTemplate, TEMPLATE_MIME_TYPE, TEMPLATE_RESOURCES, templateResourceName, templateUri } from './templates.js'
 
 export const MCP_SERVER_NAME = 'pecot-workflow'
 
@@ -75,11 +75,7 @@ function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Prepara
   const input = isRecord(raw) ? raw : {}
   const unknown = Object.keys(input).filter(key => !Object.hasOwn(definition.input.shape, key))
   if (unknown.length > 0) {
-    const notes = unknown.map((key) => {
-      const renamed = findRenamedInput(definition.path, key)
-      return renamed === undefined ? '' : renamedInputNote(key, renamed)
-    })
-    return rejected(`unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map(key => `'${key}'`).join(', ')}${notes.join('')}`)
+    return rejected(`unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map(key => `'${key}'`).join(', ')}`)
   }
   const repository = input['repo']
   if (typeof repository === 'string' && !definition.hasOwnRepo) {
@@ -208,11 +204,31 @@ async function inSequence(signal: Readonly<AbortSignal>, options: Readonly<McpSe
   }
 }
 
+export const MCP_INSTRUCTIONS = [
+  'Templates for Issues, comments and PRs are the pecot-template:// resources.',
+  'To post one, write a copy to .pecot/tmp/output/ under the project root, fill it in, and pass its path as file to issue_comment, issue_create or pr_create.',
+  'For Issue files, the file name without the extension is the key that blocked_by uses to point at another file in the same batch.',
+].join(' ')
+
+// テンプレートはリポに依存しないので、unavailableReason のときも読める
+function registerTemplates(server: McpServer): void {
+  for (const template of TEMPLATE_RESOURCES) {
+    const uri = templateUri(template)
+    server.registerResource(
+      templateResourceName(template),
+      uri,
+      { title: template.title, description: template.description, mimeType: TEMPLATE_MIME_TYPE },
+      () => ({ contents: [{ uri, mimeType: TEMPLATE_MIME_TYPE, text: readTemplate(template) }] }),
+    )
+  }
+}
+
 /**
-MCP サーバを作り、commands のそれぞれをツールとして登録する。名前は toolName、説明は description、並びは commands の順
+MCP サーバを作り、commands のそれぞれをツールとして、テンプレートを resource として登録する。名前は toolName、説明は description、並びは commands の順
 */
 export function createMcpServer(commands: readonly CommandDefinition[] = COMMANDS, options: Readonly<McpServerOptions> = {}): McpServer {
-  const server = new McpServer({ name: MCP_SERVER_NAME, version: readVersion() })
+  const server = new McpServer({ name: MCP_SERVER_NAME, version: readVersion() }, { instructions: MCP_INSTRUCTIONS })
+  registerTemplates(server)
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,

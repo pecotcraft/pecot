@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者の引数で決まる */
-// issue create。--prepare・ファイル・-m・--freeform の 4 つの形があり、どの形も --dry-run で予行できる。
-import { existsSync, statSync, writeFileSync } from 'node:fs'
+// issue create。ファイル・-m・--freeform の 3 つの形がある。ファイルの予行は issue check（issue-check.ts）が担う。
+import { statSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
 
-import { formatPlanTable, formatStackableChains, resolveBatch } from '../domain/batch-plan.js'
-import type { BatchFile, PlanRow, ResolvedPrerequisite } from '../domain/batch-plan.js'
+import { formatStackableChains, resolveBatch } from '../domain/batch-plan.js'
+import type { BatchFile, ResolvedPrerequisite } from '../domain/batch-plan.js'
 import { decideBoardMove } from '../domain/board-move.js'
 import type { BoardMove, BoardMoveInput, MovableColumn } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'
@@ -30,11 +30,11 @@ import { configSourcePath, projectNameOf } from '../infra/config-store.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { OutputPathReservationError, normalizePath, outputDirectory, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { templateFile } from '../infra/template-store.js'
+import { normalizePath, resolveRealPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
+
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { CommandHint } from './command-hint.js'
 import { PROJECT_INPUT, requireBoardConfig, requireConfigFor, stopWith } from './command-stop.js'
@@ -70,7 +70,7 @@ import {
   warnEpicRepositoryException,
 } from './issue-shared.js'
 import type { IssueField, IssueType } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -78,12 +78,8 @@ const FILES_SCHEMA = z.array(z.string()).optional().describe('Path of a Markdown
 const LABEL_SCHEMA = z.array(z.string()).optional().describe('Label (can be given several times)')
 const CREATE_PATH = ['issue', 'create']
 
-const TEMPLATE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker', 'task-implement']).default('task').describe('Template type (with --prepare: task/bug/epic/tracker/task-implement)')
-
-// 一括投稿の先行 Issue 番号の置き場所。key は先行ファイルの --suffix 由来か、ファイルの stem
+// 一括投稿の先行 Issue 番号の置き場所。key は先行ファイルの名前の幹
 const PLACEHOLDER_PATTERN = /\{\{issue:([^{}\s]+)\}\}/gu
-// --prepare --suffix が作るファイル名 `issue-<template>-<YYYYMMDD>-<HHMMSS>-<suffix>`
-const PREPARED_FILENAME_PATTERN = /^issue-.+-\d{8}-\d{6}-(?<suffix>.+)$/u
 // Python の `$` は末尾の改行の前にも当たる
 const REPOSITORY_SEGMENT_PATTERN = /^[\w.-]+\n?$/u
 
@@ -110,34 +106,11 @@ const CREATED_ISSUE_DATA = z.strictObject({
   parent: z.string().optional().describe('Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)'),
 })
 
-const STACKABLE_CHAINS = z.array(z.array(z.string())).optional().describe('Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)')
-
-const PLAN_PREREQUISITE_DATA = z.strictObject({
-  issue: z.string().describe('Prerequisite: key of a file, or #N / owner/repo#N for an existing Issue'),
-  wait: z.enum(['stack', 'merge']).describe('How to wait for the prerequisite'),
-})
-
-const PLAN_ROW_DATA = z.strictObject({
-  file: z.string().describe('Key of the file (the --prepare suffix, else the file stem)'),
-  order: z.int().optional().describe('Order number in the title (omitted without a parent Epic)'),
-  blockedBy: z.array(PLAN_PREREQUISITE_DATA).describe('Prerequisites in the order written'),
-  approach: z.enum(['alone', 'wait-merge', 'stack', 'join']).describe('How to proceed'),
-  stackOn: z.string().optional().describe('Prerequisite to stack on (only when approach is stack)'),
-})
-
-const PLANNED_ISSUE_DATA = z.strictObject({
-  owner: z.string().describe('Owner of the repository'),
-  repository: z.string().describe('Name of the repository'),
-  title: z.string().describe('Title of the Issue'),
-})
+export const STACKABLE_CHAINS = z.array(z.array(z.string())).optional().describe('Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)')
 
 const ISSUE_CREATE_OUTPUT = z.strictObject({
-  issues: z.array(CREATED_ISSUE_DATA).optional().describe('Issues created, in the order of creation (also kept on a failure after some were created)'),
+  issues: z.array(CREATED_ISSUE_DATA).describe('Issues created, in the order of creation (also kept on a failure after some were created)'),
   stackableChains: STACKABLE_CHAINS,
-  plan: z.array(PLAN_ROW_DATA).optional().describe('Progression table of the files (only on dry_run with files)'),
-  plannedIssue: PLANNED_ISSUE_DATA.optional().describe('Issue that would be created (only on dry_run with message or freeform)'),
-  file: z.string().optional().describe('Absolute path of the template file copied (only with prepare)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type IssueCreateData = z.input<typeof ISSUE_CREATE_OUTPUT>
@@ -341,60 +314,16 @@ async function postIssue(output: CreateOutput, client: GitHubClient, config: Pro
   return { number, nodeId: knownNodeId, isMovedToReady, isOnBoard: added !== undefined }
 }
 
-/**
-予行の行。番号の要るボード・欄・親 Epic の書き込みは出さない
-*/
-function planIssue(output: CreateOutput, owner: string, repository: string, title: string): void {
-  output.result({ plannedIssue: { owner, repository, title } })
-  output.planned({ verb: 'create', target: `Issue in ${owner}/${repository}: ${title}` })
-}
-
 function parentReferenceOf(raw: number | string | undefined, config: ProjectConfig, owner: string, repository: string): IssueReference | undefined {
   return raw === undefined ? undefined : resolveParentEpicReference(raw, config, owner, repository)
 }
 
-// --- --prepare ---
-
-function prepareTemplate(output: CreateOutput, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined, isDryRun: boolean): void {
-  if (template !== 'epic' && repository === undefined) {
-    stopWith(output, hinted`${inputHint(CREATE_PATH, 'repo', placeholder('owner/repo'))} is required with ${inputHint(CREATE_PATH, 'prepare')} unless ${inputHint(CREATE_PATH, 'template', 'epic')}`, 'invalid-input', USAGE_EXIT_CODE)
-  }
-  if (repository !== undefined) validateRepositoryShape(output, repository)
-
-  const source = templateFile('issue', template)
-  if (!existsSync(source)) {
-    stopWith(output, `template not found: ${source}`, 'other')
-  }
-  if (isDryRun) {
-    output.result({})
-    output.planned({ verb: 'create', target: `Issue template ${template} in ${outputDirectory()}` })
-    return
-  }
-  let content = readTextFile(source)
-  // 置き換えの文字列に `$` があっても、そのまま入れる
-  if (repository !== undefined) content = content.replace('repository: ""', () => `repository: ${repository}`)
-
-  const nameSuffix = suffix === undefined || suffix === '' ? '' : `-${suffix}`
-  try {
-    withReservedOutputPath(outputDirectory(), timestamp => `issue-${template}-${timestamp}${nameSuffix}.md`, (reserved) => {
-      writeFileSync(reserved, content, 'utf8')
-      output.result({ file: path.resolve(reserved) })
-      output.data(reserved)
-    })
-  }
-  catch (error: unknown) {
-    if (!(error instanceof OutputPathReservationError)) throw error
-    stopWith(output, error.message, 'other')
-  }
-}
-
 // --- ファイルからの一括投稿 ---
 
-// 前提に書けるキーすべて（幹と suffix）と、代表のキー（suffix があれば suffix、無ければ幹）
+// 前提に書けるキー。ファイルの名前の幹
 function fileKeys(file: string): { readonly key: string, readonly keys: readonly string[] } {
   const stem = path.parse(path.basename(file)).name
-  const suffix = PREPARED_FILENAME_PATTERN.exec(stem)?.groups?.['suffix']
-  return suffix === undefined ? { key: stem, keys: [stem] } : { key: suffix, keys: [stem, suffix] }
+  return { key: stem, keys: [stem] }
 }
 
 function isFile(file: string): boolean {
@@ -453,14 +382,14 @@ function fileTargetRepository(output: Output, frontmatter: IssueFrontmatter, con
   return [parts.owner, parts.repository]
 }
 
-interface LocalFile {
+export interface LocalFile {
   readonly name: string
   readonly frontmatter: IssueFrontmatter
   readonly body: string
   readonly owner: string
   readonly repository: string
   /**
-  前提に書ける代表のキー。suffix があれば suffix、無ければ幹
+  前提に書けるキー。ファイルの名前の幹
   */
   readonly key: string
   readonly keys: readonly string[]
@@ -625,12 +554,12 @@ async function readExistingPrerequisites(output: Output, client: GitHubClient, f
   return nodeIds
 }
 
-function chainsText(progressions: ReadonlyMap<string, Progression>, labels: ReadonlyMap<string, string>): string | undefined {
+export function chainsText(progressions: ReadonlyMap<string, Progression>, labels: ReadonlyMap<string, string>): string | undefined {
   return formatStackableChains(progressions, key => labels.get(key) ?? key)
 }
 
 // formatStackableChains と同じ並びを、表記に直した配列で返す
-function chainsData(progressions: ReadonlyMap<string, Progression>, labels: ReadonlyMap<string, string>): Pick<IssueCreateData, 'stackableChains'> {
+export function chainsData(progressions: ReadonlyMap<string, Progression>, labels: ReadonlyMap<string, string>): Pick<IssueCreateData, 'stackableChains'> {
   const chains = stackChains(progressions).filter(chain => chain.length >= 2).map(chain => chain.map(key => labels.get(key) ?? key))
   return chains.length === 0 ? {} : { stackableChains: chains }
 }
@@ -643,7 +572,7 @@ function expandPlaceholders(body: string, created: ReadonlyMap<string, CreatedIs
   })
 }
 
-interface BatchContext {
+export interface BatchContext {
   readonly locals: readonly LocalFile[]
   /**
   既存の Issue を表記する基準。一括の先頭のファイルのリポジトリ
@@ -671,15 +600,15 @@ async function ensureDependenciesSupported(output: Output, client: GitHubClient,
 }
 
 // 作成先のリポから設定を選ぶ。repository が無い（Epic の既定）ときは対象のリポが無いので、board sync と同じくボード全体の決め方で選ぶ
-function configForCreate(output: Output, repository: string | undefined, project: string | undefined): ProjectConfig {
+function configForCreate(output: Output, repository: string | undefined, project: string | undefined, commandPath: readonly string[] = CREATE_PATH): ProjectConfig {
   const given = repository === undefined ? '' : pythonStrip(repository)
-  if (given === '') return requireBoardConfig(output, project, CREATE_PATH)
+  if (given === '') return requireBoardConfig(output, project, commandPath)
   const [owner, name] = validateRepositoryShape(output, given)
-  return requireConfigFor(output, { owner, repository: name }, project, CREATE_PATH).config
+  return requireConfigFor(output, { owner, repository: name }, project, commandPath).config
 }
 
 // 一括作成の設定。ファイルごとに作成先のリポで選び、ファイルの間で分かれたら 1 件も作らずに止める
-function configForFiles(output: Output, files: readonly string[], project: string | undefined): ProjectConfig {
+function configForFiles(output: Output, files: readonly string[], project: string | undefined, commandPath: readonly string[]): ProjectConfig {
   const chosen = files.map((file) => {
     let repository: string
     try {
@@ -692,7 +621,7 @@ function configForFiles(output: Output, files: readonly string[], project: strin
       if (!(error instanceof FrontmatterError)) throw error
       return stopForFrontmatter(output, error, path.basename(file))
     }
-    const config = configForCreate(output, repository, project)
+    const config = configForCreate(output, repository, project, commandPath)
     return { file: path.basename(file), config, source: configSourcePath(config) ?? '' }
   })
   const [first] = chosen
@@ -703,10 +632,10 @@ function configForFiles(output: Output, files: readonly string[], project: strin
   return first.config
 }
 
-// 1 件も投稿しないうちに確かめられることをすべて確かめ、投稿に要るものをそろえる
-async function prepareBatch(output: Output, files: readonly string[], project: string | undefined): Promise<BatchContext> {
+// 1 件も投稿しないうちに確かめられることをすべて確かめ、投稿に要るものをそろえる。issue check もこれを使う
+export async function prepareBatch(output: Output, files: readonly string[], project: string | undefined, commandPath: readonly string[] = CREATE_PATH): Promise<BatchContext> {
   validatePlaceholders(output, files)
-  const config = configForFiles(output, files, project)
+  const config = configForFiles(output, files, project, commandPath)
   const locals = files.map(file => readLocalFile(output, config, file))
   const [first] = locals
   if (first === undefined) throw new InternalError('no file to post')
@@ -745,7 +674,7 @@ function titleOf(local: Readonly<LocalFile>, order: number | undefined): string 
   return buildIssueTitle(local.frontmatter.type, local.frontmatter.title, { parentEpic: local.parentReference?.number, order })
 }
 
-function existingLabels(context: Readonly<BatchContext>): Map<string, string> {
+export function existingLabels(context: Readonly<BatchContext>): Map<string, string> {
   const labels = new Map<string, string>()
   for (const list of context.prerequisites) {
     for (const { target, key } of list) {
@@ -753,32 +682,6 @@ function existingLabels(context: Readonly<BatchContext>): Map<string, string> {
     }
   }
   return labels
-}
-
-function planRowData(row: Readonly<PlanRow>, home: RepositoryReference): z.input<typeof PLAN_ROW_DATA> {
-  const label = ({ target, key }: Readonly<ResolvedPrerequisite>): string => target.kind === 'file' ? key : displayReference(target.reference, home)
-  const { progression } = row
-  const stackOn = progression?.kind === 'stack' ? row.prerequisites.find(({ key }) => key === progression.on) : undefined
-  return {
-    file: row.file,
-    ...row.order !== undefined && { order: row.order },
-    blockedBy: row.prerequisites.map(prerequisite => ({ issue: label(prerequisite), wait: prerequisite.wait })),
-    approach: progression?.kind ?? 'alone',
-    ...progression?.kind === 'stack' && { stackOn: stackOn === undefined ? progression.on : label(stackOn) },
-  }
-}
-
-function printPlan(output: CreateOutput, context: Readonly<BatchContext>): void {
-  const rows = context.locals.map((local, index): PlanRow => ({
-    file: local.key,
-    order: context.orders.at(index),
-    prerequisites: context.prerequisites.at(index) ?? [],
-    progression: context.progressions.get(local.key),
-  }))
-  const labels = existingLabels(context)
-  output.result({ plan: rows.map(row => planRowData(row, context.home)), ...chainsData(context.progressions, labels) })
-  const chains = chainsText(context.progressions, labels)
-  output.data([formatPlanTable(rows, context.home), ...chains === undefined ? [] : ['', chains]].join('\n'))
 }
 
 function postPrerequisites(context: Readonly<BatchContext>, index: number, posted: readonly (PostedFile | undefined)[]): readonly PostPrerequisite[] {
@@ -854,15 +757,8 @@ function isBatchReference(reference: IssueReference, posted: readonly (PostedFil
   return posted.some(entry => entry !== undefined && issueReferenceKey(entry.reference) === issueReferenceKey(reference))
 }
 
-async function createFromFiles(output: CreateOutput, files: readonly string[], project: string | undefined, isDryRun: boolean): Promise<void> {
-  const context = await prepareBatch(output, files, project)
-  if (isDryRun) {
-    // 番号は投稿まで決まらないので、本番の created の行から番号を除いた対象にする
-    for (const local of context.locals) output.planned({ verb: 'create', target: `Issue in ${local.owner}/${local.repository} from ${local.name}` })
-    printPlan(output, context)
-    return
-  }
-  await postFiles(output, context)
+async function createFromFiles(output: CreateOutput, files: readonly string[], project: string | undefined): Promise<void> {
+  await postFiles(output, await prepareBatch(output, files, project))
 }
 
 // --- -m の直接投稿 ---
@@ -882,7 +778,7 @@ interface DirectOptions {
 }
 
 // config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
-async function createDirect(output: CreateOutput, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined, isDryRun: boolean): Promise<void> {
+async function createDirect(output: CreateOutput, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined): Promise<void> {
   const { issueType } = options
   // status は設定の取得や作成より前に確かめる
   let status: string
@@ -902,10 +798,6 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
   const title = buildIssueTitle(issueType, options.title, { parentEpic: parentReference?.number, order: options.order })
   validateIssueTemplate(output, issueType, options.message)
   const client = await clientForIssueCreate(output, config, owner, repository, options.repository, parentReference, options.order)
-  if (isDryRun) {
-    planIssue(output, owner, repository, title)
-    return
-  }
 
   const fields: IssueField[] = [{ fieldName: 'workflow', optionName: status, label: `status ${status}` }]
   if (options.priority !== undefined && options.priority !== '') fields.push({ fieldName: 'priority', optionName: options.priority, label: `priority ${options.priority}` })
@@ -951,7 +843,6 @@ function messageModeTarget(output: Output, issueType: IssueType, repository: str
 const USAGE_TEXT = hinted`missing arguments
 direct posting: ${commandHint(CREATE_PATH, { title: placeholder('TITLE'), repo: 'owner/repo', message: placeholder('BODY') })}
 free format: ${commandHint(CREATE_PATH, { freeform: true, repo: 'owner/repo', message: placeholder('BODY') })}
-prepare a template: ${commandHint(CREATE_PATH, { prepare: true, template: 'task', repo: 'owner/repo' })}
 from a file: ${commandHint(CREATE_PATH, { files: placeholder('path') })}`
 
 // --- --freeform ---
@@ -992,7 +883,7 @@ interface FreeformInput {
 }
 
 // テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは 1 行目の先頭 50 文字の空白を 1 つにまとめたもの
-async function createFreeform(output: CreateOutput, input: Readonly<FreeformInput>, isDryRun: boolean): Promise<void> {
+async function createFreeform(output: CreateOutput, input: Readonly<FreeformInput>): Promise<void> {
   const { message, repo, type: issueType } = input
   if (message === undefined || pythonStrip(message) === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'message')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
   if (repo === undefined || repo === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
@@ -1013,10 +904,6 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
   const title = buildIssueTitle(issueType, cleaned, { parentEpic: parentReference?.number, order: input.order })
   const client = await clientForIssueCreate(output, config, owner, repository, repo, parentReference, input.order)
   if (parentReference !== undefined && issueType === 'epic') output.warning('giving a parent Epic to an Epic is not recommended')
-  if (isDryRun) {
-    planIssue(output, owner, repository, title)
-    return
-  }
 
   await postIssue(output, client, config, newSession(), {
     owner,
@@ -1047,7 +934,7 @@ interface MessageInput {
 }
 
 // -m の直接投稿。入力の確認から作成まで
-async function createFromMessage(output: CreateOutput, input: Readonly<MessageInput>, message: string, isDryRun: boolean): Promise<void> {
+async function createFromMessage(output: CreateOutput, input: Readonly<MessageInput>, message: string): Promise<void> {
   if (input.title === undefined || input.title === '') {
     stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'title')} is required with ${inputNameHint(CREATE_PATH, 'message')}`, 'invalid-input')
   }
@@ -1064,7 +951,7 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
     labels: input.label,
     order: input.order,
     project: input.project,
-  }, target.config, isDryRun)
+  }, target.config)
 }
 
 const ISSUE_CREATE = defineCommand({
@@ -1076,7 +963,7 @@ const ISSUE_CREATE = defineCommand({
     files: FILES_SCHEMA,
     message: z.string().optional().describe('Issue body (direct posting mode)'),
     title: z.string().optional().describe('Issue title (direct posting mode, required with -m)'),
-    repo: z.string().optional().describe('Repository (owner/repo form; required with -m / --prepare unless epic)'),
+    repo: z.string().optional().describe('Repository (owner/repo form; required with -m unless epic)'),
     type: ISSUE_TYPE_SCHEMA,
     status: z.string().optional().describe('Status (backlog/pending/ready/active/in_review/archived)'),
     priority: z.string().optional().describe('Priority (high/medium/low)'),
@@ -1084,38 +971,31 @@ const ISSUE_CREATE = defineCommand({
     parent_epic: z.string().optional().describe(PARENT_EPIC_DESCRIPTION),
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
-    dry_run: z.boolean().default(false).describe('Show what would be created without writing anything (with files: the progression table and stackable chains)'),
     freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)'),
-    prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
-    template: TEMPLATE_SCHEMA,
-    suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),
     project: PROJECT_INPUT,
   }),
   output: ISSUE_CREATE_OUTPUT,
   positional: ['files'],
-  shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l', prepare: '-p', suffix: '-s', dry_run: '-n' },
+  shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l' },
   interactive: false,
   run: async (input, io: CommandIo) => {
-    const output = createOutput<IssueCreateData>(input.dry_run, io)
+    const output = createOutput<IssueCreateData>(false, io)
     const hasFiles = input.files !== undefined && input.files.length > 0
     return await runWithExit(async () => {
-      if ((hasFiles || input.prepare || input.title !== undefined) && input.freeform) {
-        stopWith(output, hinted`${inputHint(CREATE_PATH, 'freeform')} cannot be used with ${inputHint(CREATE_PATH, 'prepare')}, ${inputNameHint(CREATE_PATH, 'files')} or ${inputNameHint(CREATE_PATH, 'title')}`, 'invalid-input', USAGE_EXIT_CODE)
+      if ((hasFiles || input.title !== undefined) && input.freeform) {
+        stopWith(output, hinted`${inputHint(CREATE_PATH, 'freeform')} cannot be used with ${inputNameHint(CREATE_PATH, 'files')} or ${inputNameHint(CREATE_PATH, 'title')}`, 'invalid-input', USAGE_EXIT_CODE)
       }
       if (input.freeform) {
-        await createFreeform(output, input, input.dry_run)
-      }
-      else if (input.prepare) {
-        prepareTemplate(output, input.template, input.repo, input.suffix, input.dry_run)
+        await createFreeform(output, input)
       }
       else if (hasFiles) {
-        await createFromFiles(output, input.files ?? [], input.project, input.dry_run)
+        await createFromFiles(output, input.files ?? [], input.project)
       }
       else if (input.message === undefined) {
         stopWith(output, USAGE_TEXT, 'invalid-input')
       }
       else {
-        await createFromMessage(output, input, input.message, input.dry_run)
+        await createFromMessage(output, input, input.message)
       }
     })
   },

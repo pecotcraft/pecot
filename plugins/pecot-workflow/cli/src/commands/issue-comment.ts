@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者の引数とテンプレートの置き場で決まる */
 // issue comment。cli/commands/issue.py の issue_comment とその内部関数の移植。
-import { existsSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -15,7 +15,6 @@ import { OsError, toOsError } from '../infra/os-error.js'
 import { parseCommentFile } from '../infra/frontmatter-file.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { OutputPathReservationError, outputDirectory, withReservedOutputPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
 import { defineCommand, CommandExit } from './command-definition.js'
@@ -42,10 +41,10 @@ const TEMPLATE_CHOICES = TEMPLATE_SCHEMA.options.join(' / ')
 const COMMENT_URL_PATTERN = /^https?:\/\/(?<host>[^/]+)\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/(?:issues|pull)\/(?<number>\d+)#issuecomment-(?<id>\d+)$/u
 
 const ISSUE_COMMENT_OUTPUT = z.strictObject({
-  issue: z.string().optional().describe('Issue commented on (owner/repo/N; omitted with prepare)'),
-  commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted on dry_run, with prepare, or when GitHub returned no URL)'),
-  change: z.enum(['created', 'updated']).optional().describe('Whether the comment was created or updated (omitted with prepare)'),
-  file: z.string().optional().describe('Absolute path of the file written: the template copied with prepare, or the file whose comment_url was written back after posting from it (omitted otherwise)'),
+  issue: z.string().describe('Issue commented on (owner/repo/N)'),
+  commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted on dry_run, or when GitHub returned no URL)'),
+  change: z.enum(['created', 'updated']).describe('Whether the comment was (on dry_run, would be) created or updated'),
+  file: z.string().optional().describe('Absolute path of the file whose comment_url was written back after posting from it (omitted otherwise)'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -54,34 +53,6 @@ type CommentOutput = Output<z.input<typeof ISSUE_COMMENT_OUTPUT>>
 function htmlUrlOf(comment: JsonObject, fallback: string): string {
   const url = jsonField(comment, 'html_url')
   return typeof url === 'string' ? url : fallback
-}
-
-// テンプレートをコピーして、そのパスを標準出力に出す。issue_ref が渡されていれば、コピーの issue_ref に入れる
-function prepareTemplate(output: CommentOutput, template: string, issueReference: string | undefined, isDryRun: boolean): void {
-  const templatePath = templateFile('comment', template)
-  if (!existsSync(templatePath)) {
-    stopWith(output, `template not found: ${templatePath}`, 'other')
-  }
-  if (isDryRun) {
-    output.result({})
-    output.planned({ verb: 'create', target: `comment template ${template} in ${outputDirectory()}` })
-    return
-  }
-  let content = readTextFile(templatePath)
-  if (issueReference !== undefined && issueReference !== '') {
-    content = content.replaceAll('issue_ref: ""', () => `issue_ref: "${issueReference}"`)
-  }
-  try {
-    withReservedOutputPath(outputDirectory(), timestamp => `comment-${template}-${timestamp}.md`, (reserved) => {
-      writeFileSync(reserved, content, 'utf8')
-      output.result({ file: path.resolve(reserved) })
-      output.data(reserved)
-    })
-  }
-  catch (error: unknown) {
-    if (!(error instanceof OutputPathReservationError)) throw error
-    stopWith(output, error.message, 'other')
-  }
 }
 
 // comment_url からコメントの id を取る。issue_ref と別の Issue を指していたら終了コード 1
@@ -221,27 +192,22 @@ const ISSUE_COMMENT = defineCommand({
     file: z.string().optional().describe('Path of a Markdown file with frontmatter'),
     message: z.string().optional().describe('Comment body'),
     issue_ref: z.string().optional().describe('Issue reference (owner/repo/123 form, required with -m)'),
-    prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
     template: TEMPLATE_SCHEMA.optional().describe(
-      'Template type (required with --prepare and -m; plan/merge-diff/review-findings/review-resolution/precede-notify)',
+      'Template type the message is checked against (required with -m; plan/merge-diff/review-findings/review-resolution/precede-notify)',
     ),
     project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
   output: ISSUE_COMMENT_OUTPUT,
   positional: ['file'],
-  shortFlags: { message: '-m', issue_ref: '-i', prepare: '-p', template: '-t', dry_run: '-n' },
+  shortFlags: { message: '-m', issue_ref: '-i', template: '-t', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
     const output = createOutput<z.input<typeof ISSUE_COMMENT_OUTPUT>>(input.dry_run, io)
     return await runWithExit(async () => {
-      const { file, message, issue_ref: issue, prepare, template } = input
-      if (template === undefined && (prepare || (message !== undefined && file === undefined))) {
+      const { file, message, issue_ref: issue, template } = input
+      if (template === undefined && message !== undefined && file === undefined) {
         stopWith(output, hinted`specify a template with ${inputNameHint(COMMENT_PATH, 'template')} (${TEMPLATE_CHOICES})`, 'invalid-input')
-      }
-      if (prepare && template !== undefined) {
-        prepareTemplate(output, template, issue, input.dry_run)
-        return
       }
       if (file !== undefined) {
         await postFromFile(output, input.project, input.repo, file, input.dry_run)
@@ -258,7 +224,6 @@ const ISSUE_COMMENT = defineCommand({
         output,
         hinted`missing arguments
 direct posting: ${commandHint(COMMENT_PATH, { message: placeholder('MESSAGE'), template: placeholder('template'), issue_ref: 'owner/repo/123' })}
-prepare a template: ${commandHint(COMMENT_PATH, { prepare: true, template: placeholder('template') })}
 from a file: ${commandHint(COMMENT_PATH, { file: placeholder('path') })}`,
         'invalid-input',
       )

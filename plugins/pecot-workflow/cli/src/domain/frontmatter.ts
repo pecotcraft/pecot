@@ -265,13 +265,13 @@ export function validatePullRequestFrontmatter(data: unknown): PullRequestFrontm
 // eslint-disable-next-line regexp/no-super-linear-backtracking -- 空白の連続が長い入力でだけ遅くなる。取る範囲を Python と揃えるため書き換えない
 const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/dsu
 
-// 本文先頭のガイドコメント（`--prepare` 雛形の「読者:／書き方:／フィールド:」ブロック）。
+// 本文先頭のガイドコメント（テンプレートの「読者:／書き方:／フィールド:」ブロック）。
 // 前後の空白・空行ごと 1 ブロックだけ食う。本文途中のコメントは対象外。
 const LEADING_HTML_COMMENT_PATTERN = /^\s*<!--.*?-->\s*/su
 
 /**
 本文先頭の HTML コメントブロックを 1 つだけ除去する。
-`--prepare` が配る雛形は、冒頭に書き方ガイドの HTML コメントを持つ。
+テンプレートは、冒頭に書き方ガイドの HTML コメントを持つ。
 利用者が消し忘れたまま投稿しても GitHub 本文に残らないよう、パース時に取り除く（#958 F-02）。
 本文途中の `<details>` 等の HTML には触れない
 */

@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // pr create・pr show・pr check。cli/commands/pr.py の移植。
 // 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
-import { existsSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
 
 import { describeApiError } from '../domain/api-error-detail.js'
-import { activeIssueFromBranch, extractIssueNumberFromBranch } from '../domain/branch-name.js'
+import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { InvalidValueError } from '../domain/errors.js'
@@ -26,7 +26,7 @@ import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { RESTACK_PATH } from '../domain/restack.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { BaseReading } from '../domain/state.js'
-import { configLookupFailure, findConfigFor } from '../infra/config-store.js'
+import { configLookupFailure } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
 import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, isAncestor, primaryRemoteName, remoteBranchHead, resolveCommit, runGit } from '../infra/git.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -35,7 +35,7 @@ import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
-import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
+import { resolveRealPath } from '../infra/paths.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { readTextFile } from '../infra/text-file.js'
@@ -117,7 +117,7 @@ interface ScopeTarget {
 }
 
 /**
-積んだ base のときの題の scope の差分の起点。記録のコミット（下の段がマージ済みのときと --prepare）か、下の段のブランチ（開いている間）
+積んだ base のときの題の scope の差分の起点。記録のコミット（下の段がマージ済みのとき）か、下の段のブランチ（開いている間）
 */
 type StackedScope = { readonly sha: string } | { readonly branch: string }
 
@@ -190,19 +190,18 @@ async function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<
 // pr create
 
 const PR_CREATE_OUTPUT = z.strictObject({
-  url: z.string().optional().describe('URL of the created PR (omitted on dry_run and prepare)'),
-  number: z.int().optional().describe('Number of the created PR (omitted on dry_run and prepare, or when the response has none)'),
-  head: z.string().optional().describe('Head branch of the PR, owner:branch for a branch of a fork (omitted on prepare)'),
-  base: z.string().optional().describe('Base branch of the PR. On prepare, the base filled into the draft (omitted when it was not filled)'),
-  title: z.string().optional().describe('Title of the PR (omitted on prepare)'),
+  url: z.string().optional().describe('URL of the created PR (omitted on dry_run)'),
+  number: z.int().optional().describe('Number of the created PR (omitted on dry_run, or when the response has none)'),
+  head: z.string().describe('Head branch of the PR, owner:branch for a branch of a fork'),
+  base: z.string().describe('Base branch of the PR'),
+  title: z.string().describe('Title of the PR'),
   inReview: z.int().optional().describe('Issue number whose status was set to In Review (omitted when not set)'),
   stack: z.strictObject({
     lower: z.int().describe('PR number of the lower stage the new PR is stacked on'),
     registered: z.boolean().optional().describe('Whether the new PR was registered to the stack (omitted on dry_run)'),
     number: z.int().optional().describe('Stack number (omitted when not registered)'),
   }).optional().describe('Stack of the PR (omitted when the PR is not stacked)'),
-  moves: z.array(BOARD_MOVE_JSON).optional().describe('Issues waiting for this PR whose column or Status was written (omitted on dry_run and prepare)'),
-  file: z.string().optional().describe('Absolute path of the draft file written on prepare'),
+  moves: z.array(BOARD_MOVE_JSON).optional().describe('Issues waiting for this PR whose column or Status was written (omitted on dry_run)'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -275,17 +274,28 @@ function requireHeadReference(head: string, out: Readonly<Output>): HeadReferenc
   return parseHeadReference(head) ?? stopWith(out, `invalid head: ${head} (expected: branch or owner:branch)`, 'invalid-input')
 }
 
-async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
+// テンプレートの末尾の、番号の空いた `Closes #` の行
+const EMPTY_CLOSES_PATTERN = /^Closes #[ \t]*$/mu
+const EMPTY_CLOSES_LINE_PATTERN = /^Closes #[ \t]*(?:\n|$)/mu
+
+async function isEpicOrUnknown(config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, out: Readonly<Output>): Promise<boolean> {
   try {
-    const kind = await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber)
-    if (!isEpicIssue(kind)) return appendIssueCloseIfNeeded(body, issueNumber)
-    out.warning(`Issue #${String(issueNumber)} at the end of the branch is an Epic; Closes not added`)
-    return body
+    return isEpicIssue(await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber))
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return appendIssueCloseIfNeeded(body, issueNumber)
+    if (error instanceof GitHubAPIError) return false
     throw error
   }
+}
+
+// 空の `Closes #` の行を作業中の Issue の番号で埋め、本文に番号が無ければ足す。Epic なら空の行を消し、足さない
+async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
+  if (await isEpicOrUnknown(config, location, issueNumber, out)) {
+    const hasEmptyLine = EMPTY_CLOSES_PATTERN.test(body)
+    out.warning(`Issue #${String(issueNumber)} at the end of the branch is an Epic; Closes not added${hasEmptyLine ? ', and the empty Closes line removed' : ''}`)
+    return hasEmptyLine ? body.replace(EMPTY_CLOSES_LINE_PATTERN, '').trimEnd() : body
+  }
+  return appendIssueCloseIfNeeded(body.replace(EMPTY_CLOSES_PATTERN, () => `Closes #${String(issueNumber)}`), issueNumber)
 }
 
 function exitOnValidationErrors(errors: readonly (string | HintedText)[], out: Readonly<Output>): void {
@@ -697,6 +707,15 @@ function requireRepository(value: string, out: Readonly<Output>): RepositoryRefe
   return splitOwnerRepository(value) ?? stopWith(out, `invalid repository format: ${value} (expected: owner/repo)`, 'invalid-input')
 }
 
+// frontmatter の base が空のときの base。積んだ記録があれば下の段のブランチ、無ければ開発ブランチ。下の段がマージ済みなら decideBase が開発ブランチに戻す
+function defaultBase(config: Readonly<ProjectConfig>, location: RepositoryReference, reading: BaseReading | undefined, out: Readonly<Output>): string {
+  if (reading?.kind === 'stacked') return reading.record.branch
+  const developBranch = getDevelopBranch(config, location.owner, location.repository)
+  return developBranch === undefined || developBranch === ''
+    ? stopWith(out, hinted`develop_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', develop_branch: 'develop' })}`, 'repo-setting-missing')
+    : developBranch
+}
+
 interface FileModeInput {
   readonly file: string
   readonly template: string
@@ -721,6 +740,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   const head = resolveHeadBranch(frontmatter.head, directory, out)
   const headReference = requireHeadReference(head, out)
   const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
+  const base = pythonStrip(frontmatter.base) === '' && input.template !== 'release' ? defaultBase(config, location, reading, out) : frontmatter.base
 
   let body = parsed.body
   const issueNumber = extractIssueNumberFromBranch(headReference.branch)
@@ -735,7 +755,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
     dryRun: input.dryRun,
     location,
     title: frontmatter.title,
-    base: frontmatter.base,
+    base,
     head,
     headReference,
     isDraft: frontmatter.draft,
@@ -801,97 +821,6 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
   }, out)
 }
 
-// --prepare
-
-async function addScopeHint(content: string, config: Readonly<ProjectConfig>, location: RepositoryReference, base: string, directory: string, stacked: StackedScope | undefined, out: Readonly<Output>): Promise<string> {
-  const target = nxScopeTarget(config, location.owner, location.repository, base, directory, stacked)
-  if (target === undefined) return content
-  const head = gitCurrentBranch(directory)
-  const expected = head === undefined || head === '' ? undefined : await expectedTitleScope(target, head, out)
-  if (expected === undefined || expected.length === 0) return content
-  const scope = expected.join(',')
-  // コメントは閉じの引用符の後ろに置き、YAML の title を "" のままにする
-  const hinted = content.replace(/^(title:\s*"[^"]*")/mu, (_matched, title: string) => `${title}  # expected scope: ${scope}`)
-  out.done({ verb: 'set', target: `title scope hint to ${scope}` })
-  return hinted
-}
-
-async function fillClosesInTemplate(content: string, config: Readonly<ProjectConfig> | undefined, directory: string, location: RemoteLocation | undefined, out: Readonly<Output>): Promise<string> {
-  // 作業中の Issue は remote とブランチ名から決める。古い .pecot-active は読まない
-  const active = activeIssueFromBranch(location, gitCurrentBranch(directory))
-  if (active === undefined) return content
-  const target = { owner: active.repository.owner, repository: active.repository.repository, number: active.number }
-
-  const label = `Issue #${String(target.number)}`
-  try {
-    const kind = await createGitHubClient(out, config?.host).getIssueKind(target.owner, target.repository, target.number)
-    if (isEpicIssue(kind)) {
-      out.warning(`${label} is an Epic; Closes left empty`)
-      return content
-    }
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) {
-      out.warning(`kind check of ${label} failed: ${error.message}; fill Closes by hand`)
-      return content
-    }
-    throw error
-  }
-  const pattern = /^Closes #\s*$/mu
-  if (!pattern.test(content)) return content
-  out.done({ verb: 'set', target: `Closes to #${String(target.number)}` })
-  return content.replace(pattern, () => `Closes #${String(target.number)}`)
-}
-
-function configForPrepare(location: Readonly<RepositoryReference>, project: string | undefined, out: Readonly<Output<PrCreateData>>): ProjectConfig | undefined {
-  const lookup = findConfigFor(location, project)
-  if (lookup.kind === 'found') return lookup.found.config
-  out.warning(configLookupFailure(lookup, location, PR_CREATE_PATH).message)
-  return undefined
-}
-
-async function prepareTemplate(directory: string, out: Readonly<Output<PrCreateData>>, template: string, project: string | undefined): Promise<void> {
-  const templatePath = templateFile('pr', templateKindOf(template))
-  if (!existsSync(templatePath)) stopWith(out, `template not found: ${templatePath}`, 'other')
-  let content = readTextFile(templatePath)
-
-  // release テンプレートは、base をテンプレートの既定（main）のままにする
-  if (template !== 'release') {
-    // 下の段の PR がマージ済みかは、準備と投稿の間に変わりうるので、ここでは読まずに投稿のときに見る
-    const location = primaryRemote(directory)?.location
-    const config = location === undefined ? undefined : configForPrepare(location, project, out)
-    const base = await readBaseOrInfer({ directory, project: config === undefined ? undefined : { config, client: lazyClient(config, out) } })
-    warnUnresolved(base, out)
-    const { reading } = base
-    stopOnMalformedRecord(reading, out)
-    const record = reading.kind === 'stacked' ? reading.record : undefined
-    if (location !== undefined) {
-      const developBranch = config === undefined ? undefined : getDevelopBranch(config, location.owner, location.repository)
-      if (config !== undefined && developBranch !== undefined && developBranch !== '') {
-        const base = record?.branch ?? developBranch
-        content = content.replace(/^base:\s*"[^"]*"/mu, () => `base: "${base}"`)
-        out.done({ verb: 'set', target: `base to ${base}` })
-        out.result({ base })
-        content = await addScopeHint(content, config, { owner: location.owner, repository: location.repository }, base, directory, record === undefined ? undefined : { sha: record.sha }, out)
-      }
-    }
-    content = await fillClosesInTemplate(content, config, directory, location, out)
-  }
-
-  const prefix = template === 'release' ? 'pr-release' : 'pr-create'
-  try {
-    withReservedOutputPath(outputDirectory(), timestamp => `${prefix}-${timestamp}.md`, (reserved) => {
-      writeFileSync(reserved, content, 'utf8')
-      out.result({ file: path.resolve(reserved) })
-      out.data(reserved)
-    })
-  }
-  catch (error: unknown) {
-    if (error instanceof OutputPathReservationError) return stopWith(out, error.message, 'other')
-    throw error
-  }
-}
-
 const CreateInputSchema = z.strictObject({
   file: z.string().optional().describe('Path to a Markdown file with front matter'),
   message: z.string().optional().describe('PR body, given directly'),
@@ -899,7 +828,6 @@ const CreateInputSchema = z.strictObject({
   base: z.string().optional().describe('Base branch (required with -m)'),
   head: z.string().optional().describe('Head branch, or owner:branch for a branch of a fork (default: the current branch)'),
   draft: z.boolean().default(false).describe('Create as a draft PR'),
-  prepare: z.boolean().default(false).describe('Copy the template to the work directory'),
   dry_run: z.boolean().default(false).describe('Validate only (skip the early preflight check, do not create the PR)'),
   repo: z.string().optional().describe('Repository in owner/repo form (with -m)'),
   no_issue_ref: z.boolean().default(false).describe('Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)'),
@@ -913,15 +841,12 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
   const out = createOutput<PrCreateData>(input.dry_run, io)
   if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`, 'invalid-input')
 
-  if (input.prepare) {
-    await prepareTemplate(directory, createOutput<PrCreateData>(false, io), input.template, input.project)
-  }
-  else if (input.file !== undefined) {
+  if (input.file !== undefined) {
     if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`, 'invalid-input')
     await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run, project: input.project }, directory, out)
   }
   else if (input.message === undefined) {
-    stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { prepare: true })}\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`, 'invalid-input')
+    stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`, 'invalid-input')
   }
   else {
     if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'title')} and ${inputNameHint(PR_CREATE_PATH, 'base')} (base branch) are required with ${inputNameHint(PR_CREATE_PATH, 'message')}`, 'invalid-input')
@@ -1186,7 +1111,7 @@ const prCreate = defineCommand({
   input: CreateInputSchema,
   output: PR_CREATE_OUTPUT,
   positional: ['file'],
-  shortFlags: { message: '-m', title: '-t', base: '-b', draft: '-d', prepare: '-p', dry_run: '-n', repo: '-r' },
+  shortFlags: { message: '-m', title: '-t', base: '-b', draft: '-d', dry_run: '-n', repo: '-r' },
   hasOwnRepo: true,
   interactive: false,
   run: async (input, io) => {

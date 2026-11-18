@@ -18,6 +18,7 @@ import { createOutput } from '../src/commands/output.js'
 import { COMMANDS } from '../src/commands/registry.js'
 import type { CommandDefinition, CommandIo } from '../src/commands/registry.js'
 import { toolOutputSchema } from '../src/mcp/result.js'
+import { TEMPLATE_MIME_TYPE, TEMPLATE_RESOURCES, templateResourceName, templateUri } from '../src/mcp/templates.js'
 
 export interface InterfaceEntry {
   readonly id: string
@@ -92,6 +93,19 @@ export function exportNames(groups: readonly CommandWord[] = COMMAND_GROUPS, ver
   return { separator: ' ', positions: [wordsOf(groups), wordsOf(verbs)], rest: false }
 }
 
+/**
+MCP の resource（テンプレート）を、generated.json の resources の形にする。並びは TEMPLATE_RESOURCES の順
+*/
+export function exportResources(): NonNullable<GeneratedFile['resources']> {
+  return TEMPLATE_RESOURCES.map(template => ({
+    uri: templateUri(template),
+    name: templateResourceName(template),
+    title: template.title,
+    description: template.description,
+    mimeType: TEMPLATE_MIME_TYPE,
+  }))
+}
+
 export interface MainOptions {
   // 比べる・書く定義書。既定は plugins/pecot-workflow/interface/generated.json
   readonly target?: string
@@ -139,7 +153,7 @@ function serialize(file: Readonly<GeneratedFile>): string {
 }
 
 function build(entries: readonly InterfaceEntry[]): GeneratedFile {
-  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries })
+  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries, resources: exportResources() })
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない

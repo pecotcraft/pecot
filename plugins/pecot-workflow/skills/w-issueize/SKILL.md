@@ -57,20 +57,19 @@ Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本�
 
 ### Step 3: 各フェーズをIssueとして作成する
 
-pecot-workflow の MCP ツール `issue_create` を使って、テンプレートのファイルをフェーズの数だけ作る。
-入力は `prepare: true`・`template: "task-implement"`。
-ファイルを見分けられるよう、`suffix` を `phase1`、`phase2` … と変える。
+pecot-workflow の MCP サーバの resource `pecot-template://issue/task-implement` を読み、テンプレートのファイルをフェーズの数だけ作る。
+ファイル名は `phase1.md`、`phase2.md` … とする。拡張子を除いた名前が、そのファイルのキーになる。
 
-`repo: "<owner/repo>"` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
+`repository` には、**実装コードを置くリポ** を書く（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 できた各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
-`title` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。`repository` には、`repo` で指定した値が入っている。
+`title` / `repository` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。
 
 `blocked_by` の写し方は次のとおり。
 
 | 前提の表 | `blocked_by` |
 |---|---|
-| `前提` のフェーズ | `issue`。そのフェーズのファイルのキー（`suffix`）。Issue 化済みのフェーズは `owner/repo/N` |
+| `前提` のフェーズ | `issue`。そのフェーズのファイルのキー。Issue 化済みのフェーズは `owner/repo/N` |
 | `種類` が「積める」 | `wait` を書かない |
 | `種類` が「マージを待つ」 | `wait: merge` と、`理由` のセルの文をそのまま写した `reason` |
 
@@ -109,11 +108,11 @@ before / after の例を示す。
 
 全フェーズ分のファイルを Phase の順に並べる。前提が後ろのフェーズを指すときは、前提にされるフェーズのファイルを先にする。
 
-投稿の前に、`issue_create` を使って、投稿せずに番号・前提・進め方を確かめる（`dry_run: true`。全フェーズのファイルを `files` に並べる）。
+投稿の前に、pecot-workflow の MCP ツール `issue_check` を使って、番号・前提・進め方を確かめる（全フェーズのファイルを `files` に並べる）。
 結果の番号・前提・進め方を表にし、Step 2 の前提の表と並べてユーザーに示す。積める並びも示す。前提の食い違いが無いかを見てもらう。
-食い違いがあればファイルを直して、もう一度 `dry_run: true` で確かめる。失敗で止まったときも、エラーの文に従ってファイルか並びを直し、もう一度確かめる。合意を得てから投稿する。
+食い違いがあればファイルを直して、もう一度 `issue_check` で確かめる。失敗で止まったときも、エラーの文に従ってファイルか並びを直し、もう一度確かめる。合意を得てから投稿する。
 
-投稿は、同じ `files` で `issue_create` を 1 回だけ使う（`dry_run` なし）。複数回に分けない。
+投稿は、同じ `files` で `issue_create` を 1 回だけ使う。複数回に分けない。
 
 投稿が失敗したときは、次のとおりにする。
 
@@ -124,5 +123,5 @@ before / after の例を示す。
 
 ### Step 4: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` で確かめたもの）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`issue_check` で確かめたもの）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
 警告があるときは、その文をそのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。

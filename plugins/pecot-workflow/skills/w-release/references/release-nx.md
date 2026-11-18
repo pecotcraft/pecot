@@ -449,9 +449,9 @@ branch にしか commit しないため、別途 PR で `<develop> → <release>
 
 ### 7. リリース PR 作成
 
-release-single / release-multi と同じ `prepare: true`・`template: "release"` のフローを使う。
+release-single / release-multi と同じフローを使う。
 
-`pr_create` を使う（`prepare: true`・`template: "release"`）。
+pecot-workflow の MCP サーバの resource `pecot-template://pr/release` を読み、下書きファイルを作る。
 
 できた下書きファイルを編集:
 

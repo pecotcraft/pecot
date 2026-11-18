@@ -951,6 +951,29 @@ def test_common_output_page_has_fields_and_is_linked_from_tool_page(
     )
 
 
+def test_resources_table_uses_summary_or_description(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    files = {
+        "index.rst": PAGES_INDEX + "\n.. toctree::\n\n   resources\n",
+        "resources.rst": "Resources\n=========\n\n.. iface-resources:: sample\n",
+    }
+    built = build(tmp_path, LANES, capfd, files=files, pages=True)
+    assert built.code == 0, built.warnings
+    page = built.html("resources.html")
+    headers = re.findall(r'<th class="head"><p>(.*?)</p></th>', page)
+    assert headers == ["URI", "名前", "説明", "MIME タイプ"]
+    rows = [
+        [text_of(cell) for cell in re.findall(r"<td><p>(.*?)</p></td>", row, re.S)]
+        for row in re.findall(r"<tr class=\"row-(?:odd|even)\">(.*?)</tr>", page, re.S)
+        if "<td>" in row
+    ]
+    assert rows == [
+        ["sample://note/one", "note-one", "1 つ目のメモです。", "text/markdown"],
+        ["sample://note/two", "note-two", "The second note.", "text/markdown"],
+    ]
+
+
 # ---------------------------------------------------------------- junit-lanes.json
 
 REPO = DOCS.parents[2]

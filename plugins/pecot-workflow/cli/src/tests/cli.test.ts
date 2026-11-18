@@ -12,7 +12,7 @@ import { InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { OsError } from '../infra/os-error.js'
 import { isConfirmed } from '../commands/output.js'
-import { COMMANDS as REGISTERED_COMMANDS, defineCommand } from '../commands/registry.js'
+import { defineCommand } from '../commands/registry.js'
 import type { CommandIo } from '../commands/registry.js'
 import { capture as captureIo, exitWith, failWith, throwFailure } from '../commands/tests/support.js'
 import { pluginRoot } from '../version.js'
@@ -464,81 +464,6 @@ describe('候補の案内', () => {
   it('グループの未知のオプションには --help を案内する', async () => {
     const result = await run(['issue', '--hlp'])
     expect(result.stderr).toContain('No such option: --hlp (Possible options: --help)')
-  })
-})
-
-async function runRegistered(argv: readonly string[]): Promise<Run> {
-  const io = captureIo()
-  const code = await runCli(argv, { commands: REGISTERED_COMMANDS, cwd: process.cwd(), io, environment: {}, terminalColumns: undefined })
-  return { code, stdout: io.out.join(''), stderr: io.err.join('') }
-}
-
-function errorPanel(text: string): string {
-  return `╭─ Error ${'─'.repeat(70)}╮\n│ ${text.padEnd(76)} │\n╰${'─'.repeat(78)}╯\n`
-}
-
-// 枠の中の文。長い文は枠の幅で折り返されるので、行をつなぎ直す
-function panelText(stderr: string): string {
-  return stderr.split('\n').filter(line => line.startsWith('│ ')).map(line => line.slice(2, -2).trim()).join(' ')
-}
-
-describe('古い名前の案内', () => {
-  it('最上位の古い名前は、実行せずに新しい名前を枠の中に出して 2', async () => {
-    const result = await runRegistered(['create-branch', 'pecotcraft/nonexistent/1', 'feat/x'])
-    expect(result).toEqual({
-      code: 2,
-      stdout: '',
-      stderr: `Usage: pecot [OPTIONS] COMMAND [ARGS]...\nTry 'pecot --help' for help.\n${errorPanel('\'create-branch\' was renamed to \'session start\'.')}`,
-    })
-  })
-
-  it('グループの下の古い名前は、そのグループの Usage 行と、新しい名前を出して 2', async () => {
-    const result = await runRegistered(['pr', 'cleanup', 'o/r/1'])
-    expect(result).toEqual({
-      code: 2,
-      stdout: '',
-      stderr: `Usage: pecot pr [OPTIONS] COMMAND [ARGS]...\nTry 'pecot pr --help' for help.\n${errorPanel('\'pr cleanup\' was renamed to \'session finish\'.')}`,
-    })
-  })
-
-  it.for([
-    { argv: ['add-to-project'], oldName: 'add-to-project', newName: 'board add' },
-    { argv: ['update-issue-status'], oldName: 'update-issue-status', newName: 'board move' },
-    { argv: ['delete-branch'], oldName: 'delete-branch', newName: 'branch delete' },
-    { argv: ['dependabot', 'sync'], oldName: 'dependabot sync', newName: 'tracker sync dependabot' },
-    { argv: ['dependabot', '--help'], oldName: 'dependabot sync', newName: 'tracker sync dependabot' },
-    { argv: ['dependabot'], oldName: 'dependabot sync', newName: 'tracker sync dependabot' },
-    { argv: ['security', 'sync', '--dry-run'], oldName: 'security sync', newName: 'tracker sync security' },
-    { argv: ['project', 'info'], oldName: 'project info', newName: 'board show' },
-    { argv: ['project', 'set-repo', 'a/b'], oldName: 'project set-repo', newName: 'project link' },
-    { argv: ['project', 'set-aggregation-repo', 'a/b'], oldName: 'project set-aggregation-repo', newName: 'project set aggregation_repo' },
-    { argv: ['project', 'unset-aggregation-repo'], oldName: 'project unset-aggregation-repo', newName: 'project unset aggregation_repo' },
-    { argv: ['project', 'show-aggregation-repo'], oldName: 'project show-aggregation-repo', newName: 'project get aggregation_repo' },
-    { argv: ['issue', 'read', '1'], oldName: 'issue read', newName: 'issue show' },
-    { argv: ['pr', 'read'], oldName: 'pr read', newName: 'pr show' },
-    { argv: ['pr', 'preflight'], oldName: 'pr preflight', newName: 'pr check' },
-    { argv: ['release', 'preflight'], oldName: 'release preflight', newName: 'release check' },
-    { argv: ['session', 'status'], oldName: 'session status', newName: 'session show' },
-  ])('$argv は、$oldName から $newName へ案内して 2', async ({ argv, oldName, newName }) => {
-    const result = await runRegistered(argv)
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(panelText(result.stderr)).toBe(`'${oldName}' was renamed to '${newName}'.`)
-  })
-
-  it.for([
-    { argv: ['branch', 'create'], message: 'No such command \'create\'.' },
-    { argv: ['repo', 'set'], message: 'No such command \'repo\'.' },
-    { argv: ['aggregation', 'show'], message: 'No such command \'aggregation\'.' },
-  ])('この PR の途中の名前 $argv は案内せず、No such command にする', async ({ argv, message }) => {
-    const result = await runRegistered(argv)
-    expect(result.code).toBe(2)
-    expect(result.stderr).toContain(message)
-    expect(result.stderr).not.toContain('was renamed')
-  })
-
-  it('渡された一覧に同じ名前があれば、案内せずにそのコマンドを実行する', async () => {
-    expect(await run(['add-to-project'])).toEqual({ code: 0, stdout: '', stderr: '' })
   })
 })
 

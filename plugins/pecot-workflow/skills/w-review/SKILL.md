@@ -67,7 +67,7 @@ action に同梱の MCP ツール `create_inline_comment` で、1 件ずつ投�
 - 直ったものは、想定する方針の欄を「直った」にする
 - 直っていないものは「対応」にする
 
-1. pecot-workflow の MCP ツール `issue_comment` を使って、PR 宛てのテンプレのファイルを作り、ガイドを読む。入力は `prepare: true`・`template: "review-findings"`
-2. 書いた本文を、`issue_comment` で投稿する。入力は `template: "review-findings"` と、本文を入れた `message`
+1. pecot-workflow の MCP サーバの resource `pecot-template://comment/review-findings` を読み、ガイドを読む
+2. 書いた本文を、pecot-workflow の MCP ツール `issue_comment` で投稿する。入力は `template: "review-findings"` と、本文を入れた `message`
 
 投稿したら終わる。採否は聞かず、コードは直さない。スレッドの resolve もしない。

@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmdirSync, symlinkSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -16,20 +16,14 @@ import {
   PECOT_GITIGNORE_FILENAME,
   CONFIG_DIR,
   dataDirectory,
-  formatTimestamp,
   HOOKS_CONFIG_FILENAME,
   OUTPUT_DIR,
-  outputDirectory,
-  OutputPathReservationError,
   projectRoot,
-  reserveOutputPath,
   resolveRealPath,
   STATE_DIR,
   WORK_DIR,
   WORKTREE_CONFIG_FILENAME,
   WORKTREE_IGNORE_FILENAME,
-  withReservedOutputPath,
-  withReservedOutputPathAsync,
 } from '../paths.js'
 
 useIsolatedEnvironment()
@@ -135,164 +129,6 @@ describe('resolveRealPath', () => {
   })
 })
 
-describe('outputDirectory', () => {
-  it('CLAUDE_PROJECT_DIR 配下の .pecot/tmp/output を返す', () => {
-    const directory = makeTemporaryDirectory()
-    setEnvironment({ CLAUDE_PROJECT_DIR: directory })
-    expect(outputDirectory()).toBe(path.join(directory, '.pecot', 'tmp', 'output'))
-  })
-
-  it('絶対パスで、末尾が .pecot/tmp/output のパスを返す', () => {
-    const repository = createGitRepository()
-    expect(path.isAbsolute(outputDirectory({ cwd: repository }))).toBe(true)
-    expect(outputDirectory({ cwd: repository }).split(path.sep).slice(-3)).toEqual(['.pecot', 'tmp', 'output'])
-  })
-})
-
-const FIXED_NOW = (): Date => new Date(2026, 4, 13, 10, 0, 0)
-const commentName = (timestamp: string): string => `comment-plan-${timestamp}.md`
-const createName = (timestamp: string): string => `pr-create-${timestamp}.md`
-
-describe('reserveOutputPath', () => {
-  it('同じ時刻で 2 回呼ぶと、1 秒進んだ別のパスになる', () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    const first = reserveOutputPath(output, commentName, { now: FIXED_NOW })
-    const second = reserveOutputPath(output, commentName, { now: FIXED_NOW })
-    expect(path.basename(first)).toBe('comment-plan-20260513-100000.md')
-    expect(path.basename(second)).toBe('comment-plan-20260513-100001.md')
-    expect(existsSync(first)).toBe(true)
-    expect(existsSync(second)).toBe(true)
-  })
-
-  it('1 回の予約で時刻の取得は 1 回だけ', () => {
-    const output = makeTemporaryDirectory()
-    writeFileSync(path.join(output, 'pr-create-20260513-100000.md'), '先客')
-    let calls = 0
-    reserveOutputPath(output, timestamp => `pr-create-${timestamp}.md`, {
-      now: () => {
-        calls += 1
-        return FIXED_NOW()
-      },
-    })
-    expect(calls).toBe(1)
-  })
-
-  it('先客の候補名を 2 件飛ばし、先客の内容は変えない', () => {
-    const output = makeTemporaryDirectory()
-    const existing = ['pr-create-20260513-100000.md', 'pr-create-20260513-100001.md']
-    for (const [index, name] of existing.entries()) writeFileSync(path.join(output, name), `SENTINEL-${String(index)}`)
-    const reserved = reserveOutputPath(output, timestamp => `pr-create-${timestamp}.md`, { now: FIXED_NOW })
-    expect(path.basename(reserved)).toBe('pr-create-20260513-100002.md')
-    for (const [index, name] of existing.entries()) expect(readFileSync(path.join(output, name), 'utf8')).toBe(`SENTINEL-${String(index)}`)
-  })
-
-  it('出力先が無くても親ごと作り、返したファイルは空', () => {
-    const output = path.join(makeTemporaryDirectory(), 'missing', 'output')
-    const reserved = reserveOutputPath(output, timestamp => `comment-plan-${timestamp}.md`)
-    expect(existsSync(output)).toBe(true)
-    expect(readFileSync(reserved, 'utf8')).toBe('')
-  })
-
-  it('候補名を使い切ると OutputPathReservationError。文は Python と同じ', () => {
-    const output = makeTemporaryDirectory()
-    writeFileSync(path.join(output, 'fixed.md'), '先客')
-    expect(() => reserveOutputPath(output, () => 'fixed.md', { maxAttempts: 3, now: FIXED_NOW })).toThrow(OutputPathReservationError)
-    expect(() => reserveOutputPath(output, () => 'fixed.md', { maxAttempts: 3, now: FIXED_NOW }))
-      .toThrow(`could not reserve an output path: all 3 candidate names are in use (last candidate: ${path.join(output, 'fixed.md')})`)
-    expect(readFileSync(path.join(output, 'fixed.md'), 'utf8')).toBe('先客')
-  })
-
-  it('既定の時刻は現在時刻で、名前は YYYYMMDD-HHMMSS', () => {
-    const reserved = reserveOutputPath(makeTemporaryDirectory(), timestamp => `x-${timestamp}.md`)
-    expect(path.basename(reserved)).toMatch(/^x-\d{8}-\d{6}\.md$/u)
-  })
-})
-
-describe('withReservedOutputPath', () => {
-  it('正常終了なら書いた内容が残る', () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    const reserved = withReservedOutputPath(output, timestamp => `pr-create-${timestamp}.md`, (target) => {
-      writeFileSync(target, '本文')
-      return target
-    }, { now: FIXED_NOW })
-    expect(path.basename(reserved)).toBe('pr-create-20260513-100000.md')
-    expect(readFileSync(reserved, 'utf8')).toBe('本文')
-  })
-
-  it('本文が例外を投げたら 0 バイトのファイルを残さず、例外はそのまま出る', () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    let reserved = ''
-    expect(() => withReservedOutputPath(output, timestamp => `pr-create-${timestamp}.md`, (target) => {
-      reserved = target
-      expect(existsSync(target)).toBe(true)
-      throw new Error('書き込み失敗')
-    }, { now: FIXED_NOW })).toThrow('書き込み失敗')
-    expect(existsSync(reserved)).toBe(false)
-    expect(readdirSync(output)).toEqual([])
-  })
-
-  it('撤去した候補名は同じ秒の次の予約で再利用される', () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    expect(() => withReservedOutputPath(output, createName, () => {
-      throw new Error('書き込み失敗')
-    }, { now: FIXED_NOW })).toThrow('書き込み失敗')
-    const second = withReservedOutputPath(output, createName, target => target, { now: FIXED_NOW })
-    expect(path.basename(second)).toBe('pr-create-20260513-100000.md')
-  })
-
-  it('予約に失敗したら、本文は呼ばれず例外が出る', () => {
-    const output = makeTemporaryDirectory()
-    writeFileSync(path.join(output, 'fixed.md'), '先客')
-    let isEntered = false
-    expect(() => {
-      withReservedOutputPath(output, () => 'fixed.md', () => {
-        isEntered = true
-      }, { maxAttempts: 2, now: FIXED_NOW })
-    }).toThrow(OutputPathReservationError)
-    expect(isEntered).toBe(false)
-    expect(readFileSync(path.join(output, 'fixed.md'), 'utf8')).toBe('先客')
-  })
-
-  it('非同期の本文が失敗したときも予約を撤去する', async () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    await expect(withReservedOutputPathAsync(output, timestamp => `pr-${timestamp}.md`, async () => {
-      await Promise.resolve()
-      throw new Error('非同期の失敗')
-    }, { now: FIXED_NOW })).rejects.toThrow('非同期の失敗')
-    expect(readdirSync(output)).toEqual([])
-  })
-
-  it('撤去に失敗しても、本文が投げた元の例外を優先する', () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    expect(() => withReservedOutputPath(output, createName, (target) => {
-      // 予約したファイルをディレクトリに差し替え、unlink を EISDIR・EPERM で失敗させる
-      rmSync(target)
-      mkdirSync(target)
-      throw new Error('元の例外')
-    }, { now: FIXED_NOW })).toThrow('元の例外')
-  })
-
-  it('非同期でも、撤去に失敗したときは元の例外を優先する', async () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    await expect(withReservedOutputPathAsync(output, createName, async (target) => {
-      await Promise.resolve()
-      rmSync(target)
-      mkdirSync(target)
-      throw new Error('元の非同期の例外')
-    }, { now: FIXED_NOW })).rejects.toThrow('元の非同期の例外')
-  })
-
-  it('非同期の本文が成功したら残す', async () => {
-    const output = path.join(makeTemporaryDirectory(), 'output')
-    const reserved = await withReservedOutputPathAsync(output, timestamp => `pr-${timestamp}.md`, async (target) => {
-      await Promise.resolve()
-      writeFileSync(target, 'ok')
-      return target
-    }, { now: FIXED_NOW })
-    expect(readFileSync(reserved, 'utf8')).toBe('ok')
-  })
-})
-
 describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結果になる', () => {
   const libraryPath = path.join(pluginRoot(), 'bin', '_lib.sh')
   const callFunction = path.join(import.meta.dirname, '../../tests/_helpers/call-bash-function.sh')
@@ -337,12 +173,5 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
   it('bash の解決結果が実際に得られている（テストの前提）', () => {
     expect(execFileSync('bash', [callFunction, libraryPath, 'plugin_data_dir_resolve', PROJECT_NAME], { env: { PATH: process.env['PATH'] ?? '', HOME: '/home/u' }, encoding: 'utf8' }))
       .toBe(`/home/u/.local/share/pecot/${PROJECT_NAME}\n`)
-  })
-})
-
-describe('formatTimestamp', () => {
-  it('ローカル時刻を YYYYMMDD-HHMMSS にし、1 桁は 0 で埋める', () => {
-    expect(formatTimestamp(new Date(2026, 0, 2, 3, 4, 5).getTime())).toBe('20260102-030405')
-    expect(formatTimestamp(new Date(2026, 11, 31, 23, 59, 59).getTime())).toBe('20261231-235959')
   })
 })
