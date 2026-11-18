@@ -69,8 +69,7 @@ function expectClean(result: Readonly<CommandResult>): void {
 }
 
 describe('board', () => {
-  it('board add に dry_run を渡すと、Issue を読むだけで、足す操作と Status の設定を予行の行に出す', async (context) => {
-    await verifies(context, 'PW-BOARD-ADD-19')
+  it('board add に dry_run を渡すと、Issue を読むだけで、足す操作と Status の設定を予行の行に出す', async () => {
     const result = await dryRun(['board', 'add', 'acme/demo/7', '-n'], [linked('demo'), issueNode()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -78,8 +77,7 @@ describe('board', () => {
     expect(result.stderr).toBe('dry-run: would add Issue acme/demo/7 to project\ndry-run: would set Issue acme/demo/7 status ready\n')
   })
 
-  it('board move に dry_run を渡すと、ボードの項目を読むだけで、Status の設定を予行の行に出す', async (context) => {
-    await verifies(context, 'PW-BOARD-MOVE-15')
+  it('board move に dry_run を渡すと、ボードの項目を読むだけで、Status の設定を予行の行に出す', async () => {
     const result = await dryRun(['board', 'move', 'acme/demo/7', 'active', '--dry-run'], [linked('demo'), projectItem(false)])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -89,8 +87,7 @@ describe('board', () => {
 })
 
 describe('issue', () => {
-  it('issue reopen に dry_run を渡すと、アーカイブ済みの項目でも書かずに、開き直し・アーカイブの解除・Status・コメントを予行の行に出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-REOPEN-21')
+  it('issue reopen に dry_run を渡すと、アーカイブ済みの項目でも書かずに、開き直し・アーカイブの解除・Status・コメントを予行の行に出す', async () => {
     const result = await dryRun(['issue', 'reopen', 'acme/demo/7', '-c', '理由', '-n'], [linked('demo'), projectItem(true)])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -104,8 +101,7 @@ describe('issue', () => {
     ].join('\n'))
   })
 
-  it('issue comment のファイルの形に dry_run を渡すと、コメントを投稿せず、ファイルに comment_url を書かない', async (context) => {
-    await verifies(context, 'PW-ISSUE-COMMENT-28')
+  it('issue comment のファイルの形に dry_run を渡すと、コメントを投稿せず、ファイルに comment_url を書かない', async () => {
     const content = commentFileContent()
     const result = await dryRun(['issue', 'comment', 'note.md', '-n'], [linked('demo')], { files: { 'note.md': content } })
     expect(result.code).toBe(0)
@@ -114,16 +110,14 @@ describe('issue', () => {
     expect(result.read('note.md')).toBe(content)
   })
 
-  it('issue comment の -m に dry_run を渡すと、コメントを投稿せず、予行の行だけ出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-COMMENT-29')
+  it('issue comment の -m に dry_run を渡すと、コメントを投稿せず、予行の行だけ出す', async () => {
     const result = await dryRun(['issue', 'comment', '-t', 'merge-diff', '-i', 'acme/demo/7', '-m', MERGE_DIFF_BODY, '-n'], [])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe('dry-run: would create comment on acme/demo/7\n')
   })
 
-  it('issue comment の --prepare に dry_run を渡すと、テンプレートの写しを作らない', async (context) => {
-    await verifies(context, 'PW-ISSUE-COMMENT-30')
+  it('issue comment の --prepare に dry_run を渡すと、テンプレートの写しを作らない', async () => {
     const result = await dryRun(['issue', 'comment', '--prepare', '-t', 'plan', '-n'], [])
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
@@ -131,8 +125,7 @@ describe('issue', () => {
     expect(existsSync(path.join(result.directory, OUTPUT_DIRECTORY)) ? readdirSync(path.join(result.directory, OUTPUT_DIRECTORY)) : []).toEqual([])
   })
 
-  it('issue create の freeform に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-71')
+  it('issue create の freeform に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async () => {
     const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -140,23 +133,20 @@ describe('issue', () => {
     expect(result.stderr).toBe('dry-run: would create Issue in acme/demo: [Task] 一覧に 状態を 出す\n')
   })
 
-  it('issue create の freeform に dry_run を渡すと、状態のファイルを作らない', async (context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-71')
+  it('issue create の freeform に dry_run を渡すと、状態のファイルを作らない', async () => {
     const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')])
     expect(result.code).toBe(0)
     expect(Object.keys(snapshot(result.directory, STATE))).toEqual([])
   })
 
-  it('issue create の -m に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-70')
+  it('issue create の -m に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async () => {
     const result = await dryRun(['issue', 'create', '-t', '一覧に状態を出す', '-r', 'acme/demo', '-m', TASK_BODY, '-n'], [linked('demo')])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe('dry-run: would create Issue in acme/demo: [Task] 一覧に状態を出す\n')
   })
 
-  it('issue create の --prepare に dry_run を渡すと、テンプレートの写しを作らない', async (context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-72')
+  it('issue create の --prepare に dry_run を渡すと、テンプレートの写しを作らない', async () => {
     const result = await dryRun(['issue', 'create', '--prepare', '-r', 'acme/demo', '-n'], [])
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
@@ -305,8 +295,7 @@ function projectWithWorktree(): { readonly repository: string, readonly worktree
 }
 
 describe('worktree', () => {
-  it('worktree remove に dry_run を渡すと、worktree とブランチを残して予行の行を出す', async (context) => {
-    await verifies(context, 'PW-WORKTREE-REMOVE-26')
+  it('worktree remove に dry_run を渡すと、worktree とブランチを残して予行の行を出す', async () => {
     const { repository, worktree } = projectWithWorktree()
     const result = await dryRun(['worktree', 'remove', 'wt1', '-D', repository, '-n'], [], { environment: { DEVCONTAINER: '1' } })
     expect(result.code).toBe(0)
@@ -315,8 +304,7 @@ describe('worktree', () => {
     expect(gitForTest(repository, ['branch', '--list', '--format=%(refname:short)', 'wt1']).trim()).toBe('wt1')
   })
 
-  it('worktree init に dry_run を渡すと、設定ファイルを書かずに予行の行を出す', async (context) => {
-    await verifies(context, 'PW-WORKTREE-INIT-19')
+  it('worktree init に dry_run を渡すと、設定ファイルを書かずに予行の行を出す', async () => {
     const { repository } = projectWithWorktree()
     const result = await dryRun(['worktree', 'init', '-D', repository, '-n'], [], { environment: { DEVCONTAINER: '1' } })
     expect(result.code).toBe(0)

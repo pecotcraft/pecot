@@ -1069,6 +1069,7 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
 
 const ISSUE_CREATE = defineCommand({
   path: ['issue', 'create'],
+  title: 'Create Issues',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
   description: 'Create Issues from Markdown files with frontmatter',

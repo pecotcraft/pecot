@@ -10,6 +10,7 @@ import { exitWith } from './support.js'
 function define(path: readonly string[], description: string): CommandDefinition {
   return defineCommand({
     path,
+    title: 'Test command',
     description,
     input: z.object({}),
     output: z.strictObject({}),

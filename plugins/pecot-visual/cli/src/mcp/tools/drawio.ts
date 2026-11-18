@@ -282,7 +282,7 @@ function drawioExportMessage(execution: Readonly<DrawioExportExecution>, warning
 export const drawioCreateTool: ToolDefinition = {
   name: 'drawio_create',
   config: {
-    title: 'Output a drawio diagram as a deliverable',
+    title: 'Create draw.io diagram',
     description: 'Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in theme.',
     inputSchema: drawioCreateInput,
     outputSchema: drawioCreateOutput,
@@ -293,7 +293,7 @@ export const drawioCreateTool: ToolDefinition = {
 export const drawioExportTool: ToolDefinition = {
   name: 'drawio_export',
   config: {
-    title: 'drawio SVG / PDF export',
+    title: 'Export draw.io diagram',
     description: 'Exports drawio XML to a static SVG and a sibling PDF. Set pdf: false to suppress the PDF. With print_hash, it exports nothing and returns only the composite hash used for staleness checks. It does not check the diagram text, so pass a .drawio that has gone through drawio_create.',
     inputSchema: drawioExportInput,
     outputSchema: drawioExportOutput,

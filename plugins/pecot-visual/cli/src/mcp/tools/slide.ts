@@ -238,7 +238,7 @@ export function slideCreateTool(
   return {
     name: 'slide_create',
     config: {
-      title: 'Generate a Slidev project',
+      title: 'Create Slidev deck',
       description: 'Generates a new talk-dir that references the Slidev theme given by `theme`. '
         + 'The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) '
         + 'or a local path (`file:<path>`). '
@@ -429,7 +429,7 @@ export function slideSyncTool(
   return {
     name: 'slide_sync',
     config: {
-      title: 'Sync a Slidev talk-dir',
+      title: 'Sync Slidev deck',
       description: 'Syncs an existing talk-dir. '
         + 'A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) '
         + 'is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, '
@@ -517,7 +517,7 @@ export function slideLintTool(
   return {
     name: 'slide_lint',
     config: {
-      title: 'Lint a Slidev deck',
+      title: 'Lint Slidev deck',
       description: 'Lints the whole talk-dir (pages/**/*.md and slides.md) '
         + 'and returns the list of violations. The call itself succeeds even with violations; outcome is violations when any are found.',
       inputSchema: slideLintInput,

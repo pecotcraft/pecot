@@ -29,6 +29,7 @@ const BOARD_MOVE_OUTPUT = z.strictObject({
 
 const BOARD_MOVE = defineCommand({
   path: ['board', 'move'],
+  title: 'Move Issue on board',
   description: 'Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),

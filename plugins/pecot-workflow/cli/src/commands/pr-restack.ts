@@ -381,6 +381,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
 
 const prRestack = defineCommand({
   path: RESTACK_PATH,
+  title: 'Restack branch',
   description: 'Restack the current branch onto the new position of its base branch',
   input: RestackInputSchema,
   output: PR_RESTACK_OUTPUT,

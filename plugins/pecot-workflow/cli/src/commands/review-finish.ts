@@ -274,6 +274,7 @@ async function finish(out: FinishOutput, input: Readonly<Input>, globalRepositor
 
 const REVIEW_FINISH = defineCommand({
   path: PATH,
+  title: 'Finish automated review',
   description: 'Finish an automated review: post a comment on the PR only when the review stopped (failed, limit or setup-missing)',
   input: InputSchema,
   output: OUTPUT,

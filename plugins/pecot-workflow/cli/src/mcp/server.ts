@@ -209,14 +209,14 @@ async function inSequence(signal: Readonly<AbortSignal>, options: Readonly<McpSe
 }
 
 /**
-MCP サーバを作り、commands のそれぞれをツールとして登録する。名前は toolName、説明は description、並びは commands の順
+MCP サーバを作り、commands のそれぞれをツールとして登録する。名前は toolName、表示名は title、説明は description、並びは commands の順
 */
 export function createMcpServer(commands: readonly CommandDefinition[] = COMMANDS, options: Readonly<McpServerOptions> = {}): McpServer {
   const server = new McpServer({ name: MCP_SERVER_NAME, version: readVersion() })
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,
-      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)) },
+      { title: definition.title, description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)) },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, options, async () => await invoke(definition, arguments_, options, serverContext.mcpReq.signal)),
     )
   }

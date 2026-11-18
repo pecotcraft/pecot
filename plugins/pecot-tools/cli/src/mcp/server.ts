@@ -31,7 +31,10 @@ export const MCP_SERVER_NAME = 'pecot-tools'
 registerTool に渡すツールのメタ情報。スキーマは自前の zod で書き、SDK 同梱の zod と混在させない。
 */
 export interface ToolConfig {
-  readonly title?: string
+  /**
+  Tool の最上位の title（表示名）。英語・4 語以内
+  */
+  readonly title: string
   readonly description?: string
   readonly inputSchema: z.ZodObject
   /**

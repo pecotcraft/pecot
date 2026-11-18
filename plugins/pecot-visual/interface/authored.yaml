@@ -59,73 +59,51 @@ entries:
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_PNG_FAIL
-        effect: '`1` にすると、PNG の描画をわざと失敗させます。呼び出しは、PNG を書かず、`pngFailed` を `true` にした結果を返します（CLI の終了コードは 3 です）。失敗したときの動きを試すために使います。'
+        effect: '`1` にすると、PNG の描画をわざと失敗させます。呼び出しは、PNG を書かず、`pngFailed` を `true` にした成功の結果を返します。失敗したときの動きを試すために使います。'
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: invalid-option
-        code: 2
         when: '`theme` が、相対パスか、変換できない `file:` のパスです。'
       - kind: invalid-output-extension
-        code: 2
         when: '`out_path` の拡張子が `.html` ではありません。'
       - kind: invalid-theme
-        code: 2
         when: '`theme` が、テーマの指定・talk-dir・テーマのルートのどれでもありません。'
       - kind: input-not-found
-        code: 1
         when: '`input_path` のファイルがありません。'
       - kind: output-write-failed
-        code: 1
         when: '`out_path` のファイルを書けませんでした。'
       - kind: text-violation
-        code: 1
         when: 'ラベルの文面が文面の規則に反しているか、フォントがテーマの宣言に反しています。ファイルは書きません。違反は、全件が `violations` に並びます。'
       - kind: text-lint-failed
-        code: 1
         when: '文面の規則を確かめる処理が動きませんでした。'
       - kind: theme-invalid-shape
-        code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        code: 1
         when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: theme-connection
-        code: 1
         when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        code: 1
         when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        code: 1
         when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        code: 1
         when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        code: 1
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-none
-        code: 1
         when: '`theme` で指した talk-dir が、テーマを参照していません。'
       - kind: theme-unlinked
-        code: 1
         when: 'talk-dir の `theme:` で指したパッケージは、`dependencies` にありません。'
       - kind: theme-tag-required
-        code: 2
         when: '`theme` の git URL に `#<tag>` がありません。'
       - kind: theme-tag-format
-        code: 2
         when: '`theme` の tag が、受け付ける形式ではありません。'
       - kind: theme-semver-range
-        code: 2
         when: '`theme` の tag が、版の範囲になっています。'
       - kind: theme-unsupported-spec
-        code: 2
         when: '`theme` が、`git+https` の URL でも `file:` のパスでもありません。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: '文面の確認か入力の確認で失敗したときは、ファイルを 1 つも書きません。PNG を書けなかったときは、HTML を残し、失敗ではなく、`pngFailed` か `pdfFailed` を `true` にした成功の結果で返します。'
     effects:
@@ -145,9 +123,13 @@ entries:
       - '`out_path` を渡して PNG も書くときは、Playwright の Chromium が要ります。入っていなければ、先に `runtime_setup` を呼びます。入っていないときは、HTML だけを書き、`pngFailed` を `true` にして返します。'
     idempotent: true
     examples:
-      - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"out_path\": \"/work/diagram.html\"}"
+      - arguments:
+          input_path: '/work/diagram.drawio'
+          out_path: '/work/diagram.html'
         note: '表示用の HTML と、同じ名前の PNG を書きます。'
-      - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"mode\": \"edit\"}"
+      - arguments:
+          input_path: '/work/diagram.drawio'
+          mode: 'edit'
         note: 'ファイルを書かずに、編集用の URL だけを受け取ります。'
     default_notes:
       out_path: '省くと、ファイルを書かずに `url` だけを返します。'
@@ -191,7 +173,6 @@ entries:
     constraints: []
     details:
       - '`.drawio` ファイルを 1 つ読み、静的な SVG と、同じ名前の PDF を書きます。'
-      - '図の文面は確かめません。`drawio_create` を通した `.drawio` を渡します。'
     stdin: none
     output:
       format: none
@@ -211,34 +192,25 @@ entries:
       - name: PECOTV_FORCE_SVG_FAIL
         effect: '`1` にすると、SVG の書き出しをわざと失敗させます。呼び出しは `export-failed` で失敗します。失敗したときの動きを試すために使います。'
       - name: PECOTV_FORCE_PDF_FAIL
-        effect: '`1` にすると、PDF の書き出しをわざと失敗させます。呼び出しは、PDF を書かず、`pdfFailed` を `true` にした結果を返します（CLI の終了コードは 3 です）。失敗したときの動きを試すために使います。'
+        effect: '`1` にすると、PDF の書き出しをわざと失敗させます。呼び出しは、PDF を書かず、`pdfFailed` を `true` にした成功の結果を返します。失敗したときの動きを試すために使います。'
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: invalid-output-extension
-        code: 2
         when: '`print_hash` が `false` で、`out_path` の拡張子が `.pdf` です。'
       - kind: input-not-found
-        code: 1
         when: '`input_path` のファイルがありません。'
       - kind: icon-unresolved
-        code: 1
         when: '図の中の `icon://` の参照が、`icons_dir` の下にありません。'
       - kind: export-failed
-        code: 1
         when: 'draw.io での SVG の書き出しに失敗しました。'
       - kind: output-write-failed
-        code: 1
         when: '`out_path` のファイルを書けませんでした。'
       - kind: chromium-not-installed
-        code: 1
         when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
-        code: 1
         when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: '入力の確認か SVG の書き出しで失敗したときは、ファイルを 1 つも書きません。PDF を書けなかったときは、SVG を残し、失敗ではなく、`pngFailed` か `pdfFailed` を `true` にした成功の結果で返します。'
     effects:
@@ -256,9 +228,12 @@ entries:
       - '図は、先に `drawio_create` を通しておきます。このツールは、図の文面を確かめません。'
     idempotent: true
     examples:
-      - run: "drawio_export {\"input_path\": \"/work/diagram.drawio\"}"
+      - arguments:
+          input_path: '/work/diagram.drawio'
         note: '入力と同じディレクトリに、`diagram.drawio.svg` と `diagram.drawio.pdf` を書きます。'
-      - run: "drawio_export {\"input_path\": \"/work/diagram.drawio\", \"print_hash\": true}"
+      - arguments:
+          input_path: '/work/diagram.drawio'
+          print_hash: true
         note: '書き出さずに、図が古くなっていないかを確かめるためのハッシュだけを受け取ります。'
     default_notes:
       icons_dir: '省くと、プラグインに同梱のアイコンのカタログを使います。'
@@ -310,31 +285,22 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: input-not-found
-        code: 1
         when: '`input_path` のファイルがありません。'
       - kind: invalid-json
-        code: 1
         when: '`input_path` のファイルを JSON として読めません。'
       - kind: invalid-spec
-        code: 1
         when: 'JSON が EvidenceSpec の形式に合っていません。'
       - kind: text-violation
-        code: 1
         when: '題・見出し・注釈のどれかが文面の規則に反しています。xlsx は書きません。違反は、全件が `violations` に並びます。'
       - kind: text-lint-failed
-        code: 1
         when: '文面の規則を確かめる処理が動きませんでした。'
       - kind: no-valid-images
-        code: 1
         when: 'EvidenceSpec の画像を 1 枚も貼れませんでした。'
       - kind: output-write-failed
-        code: 1
         when: 'xlsx を書き込めませんでした。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: EvidenceSpec の確認か文面の規則の確認で失敗したときは、ファイルを 1 つも書きません。
     effects:
@@ -347,7 +313,8 @@ entries:
     prerequisites: []
     idempotent: true
     examples:
-      - run: "evidence_create {\"input_path\": \"/work/evidence/spec.json\"}"
+      - arguments:
+          input_path: '/work/evidence/spec.json'
         note: 'EvidenceSpec のファイルと同じディレクトリに `evidence.xlsx` を作ります。'
     default_notes:
       out_path: '省くと、`input_path` と同じディレクトリの `evidence.xlsx` に書きます。'
@@ -389,13 +356,10 @@ entries:
     environment: []
     exit_status:
       - kind: runtime-install-failed
-        code: 1
         when: '実行時依存のインストールに失敗しました。原因は `runtime.detail` に入ります。TLS の証明書の検証で失敗したときは、`NODE_EXTRA_CA_CERTS` の案内が加わります。'
       - kind: chromium-install-failed
-        code: 1
         when: 'Chromium のダウンロードに失敗しました。'
       - kind: chromium-host-deps-missing
-        code: 1
         when: 'Chromium の起動に要る OS のライブラリが足りず、入れられませんでした。入れるためのコマンドは `hostDeps.detail` に入ります。'
     on_error: '失敗した手順より前にダウンロードしたものは、入ったまま残ります。原因を直してから呼ぶと、続きから進みます。実行時依存で失敗しても、Chromium と OS のライブラリの手順は続けます。'
     effects:
@@ -412,7 +376,7 @@ entries:
       - 'npm のレジストリと、Playwright のダウンロード元にネットワークで届くことが要ります。SSL を中継するプロキシの内側では、`NODE_EXTRA_CA_CERTS` にプロキシの CA を渡します。'
     idempotent: true
     examples:
-      - run: runtime_setup {}
+      - arguments: {}
         note: '最初の `slide_create` や `drawio_export` の前に、実行時依存と Chromium を入れます。'
     default_notes: {}
     behaviors:
@@ -479,70 +443,48 @@ entries:
         effect: '1 回でまとめて描く処理で、同時に描く組の数です。1 以上の整数で渡します。ほかの値は無視します。'
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        code: 1
         when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-not-installed
-        code: 1
         when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
-        code: 1
         when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
       - kind: project-not-found
-        code: 1
         when: '`project_dir` が無いか、Slidev のプロジェクトではありません。'
       - kind: invalid-theme
-        code: 2
         when: '`theme` に、`[a-zA-Z0-9@/_.-]` の外の文字があります。'
       - kind: invalid-staging-json
-        code: 1
         when: '字間の JSON かハイパーリンクの JSON を読めないか、形が違います。'
       - kind: slidev-build-failed
-        code: 1
         when: '`slidev build` がエラーで終わりました。診断は `warnings` と `errors` に、失敗の文は `detail` に、ビルドの出力は `log` に入ります。'
       - kind: slidev-build-timeout
-        code: 1
         when: '`slidev build` が、制限時間の内に終わりませんでした。'
       - kind: pptx-convert-failed
-        code: 1
         when: 'スライドの描画か、PPTX の組み立てに失敗しました。'
       - kind: pptx-convert-timeout
-        code: 1
         when: '変換が、制限時間の内に終わりませんでした。'
       - kind: merge-failed
-        code: 1
         when: '変換したスライドの結合か、出力の書き込みに失敗しました。'
       - kind: cancelled
-        code: 1
         when: 'クライアントが呼び出しを取り消しました。'
       - kind: theme-none
-        code: 1
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        code: 1
         when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-connection
-        code: 1
         when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        code: 1
         when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        code: 1
         when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        code: 1
         when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        code: 1
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-name-mismatch
-        code: 1
         when: '`dependencies` のテーマのキーが、テーマの名前と合っていません。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: 'ビルドより後の手順で失敗したときは、`project_dir` の `dist` ディレクトリと `index.html` は消えたままで、PPTX は書きません。'
     effects:
@@ -566,9 +508,14 @@ entries:
       - '`project_dir` は、テーマを参照する talk-dir です。'
     idempotent: true
     examples:
-      - run: "slide_convert {\"project_dir\": \"/work/talk\"}"
+      - arguments:
+          project_dir: '/work/talk'
         note: 'talk-dir の `pptx` ディレクトリに PPTX を書きます。'
-      - run: "slide_convert {\"project_dir\": \"/work/talk\", \"out_path\": \"/work/out/talk.pptx\", \"transition_type\": \"morph\", \"morph_option\": \"byWord\"}"
+      - arguments:
+          project_dir: '/work/talk'
+          out_path: '/work/out/talk.pptx'
+          transition_type: 'morph'
+          morph_option: 'byWord'
         note: '単語ごとの morph の切り替え効果を付けて変換します。'
     default_notes:
       out_path: '省くと、`project_dir/pptx/` の下に書きます。ファイル名は、`slides.md` の title か、`project_dir` の最後の名前に `.pptx` を付けたものです。'
@@ -637,58 +584,40 @@ entries:
         effect: 'talk-dir から起動する dev サーバのポートです。ツールではなく、作られる `start.mjs` が読みます。'
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        code: 1
         when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: invalid-option
-        code: 2
         when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
       - kind: dest-exists
-        code: 2
         when: '`project_dir` が既にあり、`force` が `false` です。'
       - kind: theme-tag-required
-        code: 2
         when: '`theme` の git URL に `#<tag>` がありません。'
       - kind: theme-tag-format
-        code: 2
         when: '`theme` の tag が、受け付ける形式ではありません。'
       - kind: theme-semver-range
-        code: 2
         when: '`theme` の tag が、版の範囲になっています。'
       - kind: theme-unsupported-spec
-        code: 2
         when: '`theme` が、`git+https` の URL でも `file:` のパスでもありません。'
       - kind: theme-connection
-        code: 1
         when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        code: 1
         when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        code: 1
         when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        code: 1
         when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        code: 1
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-invalid-shape
-        code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        code: 1
         when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: copy-failed
-        code: 1
         when: 'talk-dir のファイルの組み立てに失敗しました。'
       - kind: symlink-failed
-        code: 1
         when: '`node_modules` のリンクを張れませんでした。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: 'どの手順で失敗しても、既にある `project_dir` はそのまま残り、一時ディレクトリは消えます。`force` を `true` にしたときも同じです。'
     effects:
@@ -709,9 +638,14 @@ entries:
       - '`project_dir` とその親に、書き込めることが要ります。'
     idempotent: false
     examples:
-      - run: "slide_create {\"project_dir\": \"/work/talk\", \"theme\": \"git+https://github.com/example/slidev-theme.git#v1.0.0\"}"
+      - arguments:
+          project_dir: '/work/talk'
+          theme: 'git+https://github.com/example/slidev-theme.git#v1.0.0'
         note: 'tag 付きのテーマを参照する talk-dir を作ります。'
-      - run: "slide_create {\"project_dir\": \"/work/talk\", \"theme\": \"file:/work/theme\", \"force\": true}"
+      - arguments:
+          project_dir: '/work/talk'
+          theme: 'file:/work/theme'
+          force: true
         note: 'ローカルのテーマから、talk-dir を作り直します。'
     default_notes: {}
     behaviors:
@@ -776,55 +710,38 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        code: 1
         when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: talk-dir-not-found
-        code: 1
         when: '`dir` が無いか、ディレクトリではありません。'
       - kind: slides-md-not-found
-        code: 1
         when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: node-modules-unresolved
-        code: 1
         when: 'テーマを張り直しても、`dir` の `node_modules` を解決できません。`detail` が `slide_sync` の呼び出しを示します。'
       - kind: dev-server-port-in-use
-        code: 1
         when: '渡したポートが使用中か、3030 から 3034 のポートがすべて使用中です。'
       - kind: dev-server-spawn-failed
-        code: 1
         when: 'dev サーバのプロセスを起動できませんでした。'
       - kind: dev-server-exited
-        code: 1
         when: 'dev サーバが、起動してすぐに終わりました。理由は `detail` に、dev サーバの出力は `log` に入ります。'
       - kind: dev-server-timeout
-        code: 1
         when: 'dev サーバが、15 秒の内に応答しませんでした。'
       - kind: dev-server-cancelled
-        code: 1
         when: 'サーバが起動する前に、クライアントが呼び出しを取り消しました。'
       - kind: theme-none
-        code: 1
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-connection
-        code: 1
         when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        code: 1
         when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        code: 1
         when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        code: 1
         when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        code: 1
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: '応答できるようにならなかったサーバは止めます。動いたまま残しません。'
     effects:
@@ -845,9 +762,12 @@ entries:
       - '`dir` は、テーマを参照する talk-dir です。'
     idempotent: false
     examples:
-      - run: "slide_dev {\"dir\": \"/work/talk\"}"
+      - arguments:
+          dir: '/work/talk'
         note: 'プレビューを起動し、URL を受け取ります。'
-      - run: "slide_dev {\"dir\": \"/work/talk\", \"stop\": true}"
+      - arguments:
+          dir: '/work/talk'
+          stop: true
         note: 'プレビューを止めます。'
     default_notes:
       port: '省くと、3030 から 3034 を小さい順に試し、最初に空いていたポートを使います。'
@@ -910,43 +830,30 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: dir-not-found
-        code: 1
         when: '`dir` がありません。'
       - kind: not-a-directory
-        code: 1
         when: '`dir` がディレクトリではありません。'
       - kind: not-talk-dir
-        code: 1
         when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: eslint-not-launched
-        code: 1
         when: 'eslint を起動できませんでした。'
       - kind: eslint-timeout
-        code: 1
         when: 'eslint が、制限時間の内に終わりませんでした。'
       - kind: eslint-failed
-        code: 1
         when: 'eslint が、lint の違反ではないエラーで終わりました。'
       - kind: invalid-report
-        code: 1
         when: 'eslint の結果を読めませんでした。'
       - kind: theme-none
-        code: 1
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        code: 1
         when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
-        code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        code: 1
         when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
@@ -960,7 +867,8 @@ entries:
       - '`dir` は、テーマを参照する talk-dir です。'
     idempotent: true
     examples:
-      - run: "slide_lint {\"dir\": \"/work/talk\"}"
+      - arguments:
+          dir: '/work/talk'
         note: 'デッキ全体を lint します。'
     default_notes: {}
     behaviors:
@@ -1016,46 +924,32 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: invalid-file-name
-        code: 1
         when: '`file` が空か、パスの区切りを含むか、ページの名前に使えない文字を含みます。'
       - kind: numeric-filename-prefix
-        code: 1
         when: '`file` が数字で始まります。'
       - kind: unknown-layout
-        code: 1
         when: '`layout` が、talk-dir のテーマにありません。選べる名前は、`categories` と `layouts` に並びます。'
       - kind: skeleton-unavailable
-        code: 1
         when: 'レイアウトの仕様の yaml が無いか、使える骨組みがありません。'
       - kind: reference-read-failed
-        code: 1
         when: 'レイアウトの仕様の yaml を読めませんでした。'
       - kind: broken-reference
-        code: 1
         when: 'レイアウトの仕様の yaml が取り込む共通の仕様がありません。'
       - kind: file-exists
-        code: 1
         when: '`pages/<file>.md` が既にあり、`force` が `false` です。'
       - kind: write-failed
-        code: 1
         when: 'ページを書き込めませんでした。'
       - kind: theme-none
-        code: 1
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        code: 1
         when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
-        code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        code: 1
         when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
@@ -1070,7 +964,10 @@ entries:
       - 'レイアウトの名前は、`slide_create` か `slide_sync` の `layouts` から選びます。'
     idempotent: false
     examples:
-      - run: "slide_page {\"layout\": \"cover\", \"dir\": \"/work/talk\", \"file\": \"cover\"}"
+      - arguments:
+          layout: 'cover'
+          dir: '/work/talk'
+          file: 'cover'
         note: '`cover` のレイアウトから、`pages/cover.md` を作ります。'
     default_notes: {}
     behaviors:
@@ -1138,73 +1035,50 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        code: 1
         when: '実行時依存が入っていません。`detail` が `runtime_setup` の呼び出しを案内します。'
       - kind: invalid-option
-        code: 2
         when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
       - kind: dir-not-found
-        code: 1
         when: '`dir` がありません。'
       - kind: not-a-directory
-        code: 1
         when: '`dir` がディレクトリではありません。'
       - kind: not-talk-dir
-        code: 1
         when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: theme-required
-        code: 2
         when: '`dir` が移行前の talk-dir で、`theme` を渡していません。'
       - kind: theme-with-node-modules-only
-        code: 2
         when: '`theme` と `node_modules_only` を同時に渡しています。'
       - kind: theme-root
-        code: 1
         when: '`file:` のテーマのディレクトリが、テーマのルートではありません。'
       - kind: theme-name-mismatch
-        code: 1
         when: '`dependencies` のテーマのキーが、テーマの名前と合っていません。'
       - kind: migrate-failed
-        code: 1
         when: '移行前の talk-dir を、テーマを参照する形へ移せませんでした。'
       - kind: symlink-failed
-        code: 1
         when: '`node_modules` のリンクを張れませんでした。'
       - kind: theme-tag-required
-        code: 2
         when: '`theme` の git URL に `#<tag>` がありません。'
       - kind: theme-tag-format
-        code: 2
         when: '`theme` の tag が、受け付ける形式ではありません。'
       - kind: theme-semver-range
-        code: 2
         when: '`theme` の tag が、版の範囲になっています。'
       - kind: theme-unsupported-spec
-        code: 2
         when: '`theme` が、`git+https` の URL でも `file:` のパスでもありません。'
       - kind: theme-connection
-        code: 1
         when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        code: 1
         when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        code: 1
         when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        code: 1
         when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        code: 1
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-unlinked
-        code: 1
         when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
@@ -1225,9 +1099,13 @@ entries:
       - '`dir` の `slide_dev` が起動中なら、先に止めます。'
     idempotent: true
     examples:
-      - run: "slide_sync {\"dir\": \"/work/talk\", \"theme\": \"git+https://github.com/example/slidev-theme.git#v1.0.0\"}"
+      - arguments:
+          dir: '/work/talk'
+          theme: 'git+https://github.com/example/slidev-theme.git#v1.0.0'
         note: '移行前の talk-dir を、テーマを参照する形へ移します。'
-      - run: "slide_sync {\"dir\": \"/work/talk\", \"node_modules_only\": true}"
+      - arguments:
+          dir: '/work/talk'
+          node_modules_only: true
         note: '`node_modules` だけを張り直します。'
     default_notes: {}
     behaviors:
@@ -1283,22 +1161,16 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        code: 2
         when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `invalidPaths` に並びます。'
       - kind: theme-none
-        code: 1
         when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        code: 1
         when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`detail` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
-        code: 1
         when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        code: 1
         when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: unknown
-        code: 1
         when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
@@ -1309,7 +1181,8 @@ entries:
       - '`dir` は、テーマを参照する talk-dir で、テーマが `node_modules` に張られています。'
     idempotent: true
     examples:
-      - run: "slide_theme {\"dir\": \"/work/talk\"}"
+      - arguments:
+          dir: '/work/talk'
         note: 'テーマのフォント・フォントサイズ・レイアウトを受け取ります。'
     default_notes: {}
     behaviors:

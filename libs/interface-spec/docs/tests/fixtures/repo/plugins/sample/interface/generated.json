@@ -29,6 +29,7 @@
       "deprecated": false,
       "input": { "type": "object", "properties": {} },
       "mcp": {
+        "title": "Sample two",
         "output": {
           "type": "object",
           "properties": {

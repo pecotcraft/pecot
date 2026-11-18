@@ -432,6 +432,7 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
 
 const sessionFinishCommand = defineCommand({
   path: ['session', 'finish'],
+  title: 'Clean up after merge',
   description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
   input: FinishInputSchema,
   output: SESSION_FINISH_OUTPUT,

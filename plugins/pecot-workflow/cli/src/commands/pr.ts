@@ -1182,6 +1182,7 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
 
 const prCreate = defineCommand({
   path: PR_CREATE_PATH,
+  title: 'Create PR',
   description: 'Create a PR (pull request)',
   input: CreateInputSchema,
   output: PR_CREATE_OUTPUT,
@@ -1197,6 +1198,7 @@ const prCreate = defineCommand({
 
 const prShow = defineCommand({
   path: ['pr', 'show'],
+  title: 'Get PR details',
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
   input: ShowInputSchema,
   output: PR_SHOW_OUTPUT,
@@ -1211,6 +1213,7 @@ const prShow = defineCommand({
 
 const prCheck = defineCommand({
   path: ['pr', 'check'],
+  title: 'Check PR readiness',
   description: 'Show all the information to check before creating a PR',
   input: CheckInputSchema,
   output: PR_CHECK_OUTPUT,

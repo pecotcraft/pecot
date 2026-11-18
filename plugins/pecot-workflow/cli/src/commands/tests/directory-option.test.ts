@@ -17,6 +17,7 @@ const seen: unknown[] = []
 
 const preflight = defineCommand({
   path: ['pr', 'preflight'],
+  title: 'Test command',
   description: '見本',
   input: z.object({ directory: directorySchema }),
   output: z.strictObject({}),

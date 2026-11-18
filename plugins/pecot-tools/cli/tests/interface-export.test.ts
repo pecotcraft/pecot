@@ -53,6 +53,12 @@ describe('generated.json の書き出し', () => {
     expect(diffGenerated(buildGenerated(tools), buildGenerated(changed))).toEqual(['PT-AWS-S3-LS: input.properties.probe: added'])
   })
 
+  it('ツールの title は mcp.title に写り、変えると差の行に mcp.title が出る', () => {
+    const changed = tools.map(tool => tool.name === 'aws_s3_ls' ? { ...tool, title: 'Probe title' } : tool)
+    expect(buildGenerated(tools).entries.find(entry => entry.name === 'aws_s3_ls')?.mcp?.title).toBe(tools.find(tool => tool.name === 'aws_s3_ls')?.title)
+    expect(diffGenerated(buildGenerated(tools), buildGenerated(changed))).toEqual([`PT-AWS-S3-LS: mcp.title: ${JSON.stringify(tools.find(tool => tool.name === 'aws_s3_ls')?.title)} -> "Probe title"`])
+  })
+
   it('legacy と modern の世代で同じバイト列になる', async () => {
     const modernTools = await listTools('modern')
 

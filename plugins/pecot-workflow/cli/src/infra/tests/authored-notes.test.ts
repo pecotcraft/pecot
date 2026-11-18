@@ -99,6 +99,22 @@ describe('readAuthoredNotes', () => {
     })
   })
 
+  it('examples が MCP の呼び出し（arguments）の形でも、help の examples を返す', () => {
+    const content = `entries:
+  PW-DEMO:
+    constraints: []
+    details: [Site detail.]
+    examples: [{arguments: {target: a}, note: Site note.}]
+    default_notes: {}
+    help:
+      details: [English detail.]
+      examples: [{run: pecot demo a, note: Run a.}]
+      default_notes: {}
+`
+    const { examples } = notesFrom(readAuthoredNotes('PW-DEMO', rootWith(content)))
+    expect(examples).toEqual([{ run: 'pecot demo a', note: 'Run a.' }])
+  })
+
   it('YAML 1.2 として読む（yes を真偽値にしない）ので、文字列の yes を保つ', () => {
     expect(notesFor('PW-DEMO').details[1]).toBe('yes')
   })

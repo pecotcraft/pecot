@@ -230,6 +230,7 @@
         }
       },
       "mcp": {
+        "title": "Add Issue to board",
         "output": {
           "type": "object",
           "properties": {
@@ -348,6 +349,7 @@
         }
       },
       "mcp": {
+        "title": "Move Issue on board",
         "output": {
           "type": "object",
           "properties": {
@@ -448,6 +450,7 @@
         }
       },
       "mcp": {
+        "title": "Show board dashboard",
         "output": {
           "type": "object",
           "properties": {
@@ -853,6 +856,7 @@
         }
       },
       "mcp": {
+        "title": "Sync board columns",
         "output": {
           "type": "object",
           "properties": {
@@ -999,6 +1003,7 @@
         }
       },
       "mcp": {
+        "title": "Delete remote branch",
         "output": {
           "type": "object",
           "properties": {
@@ -1138,6 +1143,7 @@
         }
       },
       "mcp": {
+        "title": "Set Issue blocker",
         "output": {
           "type": "object",
           "properties": {
@@ -1337,6 +1343,7 @@
         }
       },
       "mcp": {
+        "title": "Comment on Issue",
         "output": {
           "type": "object",
           "properties": {
@@ -1568,6 +1575,7 @@
         }
       },
       "mcp": {
+        "title": "Create Issues",
         "output": {
           "type": "object",
           "properties": {
@@ -1821,6 +1829,7 @@
         }
       },
       "mcp": {
+        "title": "Reopen Issue",
         "output": {
           "type": "object",
           "properties": {
@@ -1954,6 +1963,7 @@
         }
       },
       "mcp": {
+        "title": "Get Issue details",
         "output": {
           "type": "object",
           "properties": {
@@ -2381,6 +2391,7 @@
         }
       },
       "mcp": {
+        "title": "Remove Issue blocker",
         "output": {
           "type": "object",
           "properties": {
@@ -2525,6 +2536,7 @@
         }
       },
       "mcp": {
+        "title": "Check PR readiness",
         "output": {
           "type": "object",
           "properties": {
@@ -2765,6 +2777,7 @@
         }
       },
       "mcp": {
+        "title": "Create PR",
         "output": {
           "type": "object",
           "properties": {
@@ -2943,6 +2956,7 @@
         }
       },
       "mcp": {
+        "title": "Merge PR",
         "output": {
           "type": "object",
           "properties": {
@@ -3098,6 +3112,7 @@
         }
       },
       "mcp": {
+        "title": "Restack branch",
         "output": {
           "type": "object",
           "properties": {
@@ -3259,6 +3274,7 @@
         }
       },
       "mcp": {
+        "title": "Get PR details",
         "output": {
           "type": "object",
           "properties": {
@@ -3576,6 +3592,7 @@
         }
       },
       "mcp": {
+        "title": "Activate project",
         "output": {
           "type": "object",
           "properties": {
@@ -3723,6 +3740,7 @@
         }
       },
       "mcp": {
+        "title": "Create project",
         "output": {
           "type": "object",
           "properties": {
@@ -3827,6 +3845,7 @@
         "flags": {}
       },
       "mcp": {
+        "title": "Get project config",
         "output": {
           "type": "object",
           "properties": {
@@ -3949,6 +3968,7 @@
         }
       },
       "mcp": {
+        "title": "Initialize project fields",
         "output": {
           "type": "object",
           "properties": {
@@ -4124,6 +4144,7 @@
         }
       },
       "mcp": {
+        "title": "Link repository to project",
         "output": {
           "type": "object",
           "properties": {
@@ -4222,6 +4243,7 @@
         "flags": {}
       },
       "mcp": {
+        "title": "List projects",
         "output": {
           "type": "object",
           "properties": {
@@ -4331,6 +4353,7 @@
         }
       },
       "mcp": {
+        "title": "Search projects",
         "output": {
           "type": "object",
           "properties": {
@@ -4470,6 +4493,7 @@
         }
       },
       "mcp": {
+        "title": "Set project config",
         "output": {
           "type": "object",
           "properties": {
@@ -4596,6 +4620,7 @@
         }
       },
       "mcp": {
+        "title": "Clear project config",
         "output": {
           "type": "object",
           "properties": {
@@ -4716,6 +4741,7 @@
         }
       },
       "mcp": {
+        "title": "Check release readiness",
         "output": {
           "type": "object",
           "properties": {
@@ -4871,6 +4897,7 @@
         }
       },
       "mcp": {
+        "title": "Create release",
         "output": {
           "type": "object",
           "properties": {
@@ -5000,6 +5027,7 @@
         }
       },
       "mcp": {
+        "title": "Merge release PR",
         "output": {
           "type": "object",
           "properties": {
@@ -5195,6 +5223,7 @@
         }
       },
       "mcp": {
+        "title": "Finish automated review",
         "output": {
           "type": "object",
           "properties": {
@@ -5349,6 +5378,7 @@
         }
       },
       "mcp": {
+        "title": "Clean up after merge",
         "output": {
           "type": "object",
           "properties": {
@@ -5562,6 +5592,7 @@
         }
       },
       "mcp": {
+        "title": "Show session",
         "output": {
           "type": "object",
           "properties": {
@@ -5768,6 +5799,7 @@
         }
       },
       "mcp": {
+        "title": "Start Issue branch",
         "output": {
           "type": "object",
           "properties": {
@@ -5899,6 +5931,7 @@
         }
       },
       "mcp": {
+        "title": "Sync Tracker list",
         "output": {
           "type": "object",
           "properties": {
@@ -6076,6 +6109,7 @@
         }
       },
       "mcp": {
+        "title": "Check workflow setup",
         "output": {
           "type": "object",
           "properties": {
@@ -6225,6 +6259,7 @@
         }
       },
       "mcp": {
+        "title": "Install workflow template",
         "output": {
           "type": "object",
           "properties": {
@@ -6400,6 +6435,7 @@
         }
       },
       "mcp": {
+        "title": "Add worktree",
         "output": {
           "type": "object",
           "properties": {
@@ -6517,6 +6553,7 @@
         }
       },
       "mcp": {
+        "title": "Initialize worktree config",
         "output": {
           "type": "object",
           "properties": {
@@ -6635,6 +6672,7 @@
         }
       },
       "mcp": {
+        "title": "Update worktree symlinks",
         "output": {
           "type": "object",
           "properties": {
@@ -6789,6 +6827,7 @@
         }
       },
       "mcp": {
+        "title": "Remove worktree",
         "output": {
           "type": "object",
           "properties": {

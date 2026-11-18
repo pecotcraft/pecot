@@ -73,6 +73,10 @@ export interface CommandSpec<Input extends z.ZodObject, Output extends z.ZodObje
   */
   readonly path: readonly string[]
   /**
+  MCP の Tool の最上位の title（表示名）。英語・4 語以内
+  */
+  readonly title: string
+  /**
   typer の help の 1 行目と同じ文
   */
   readonly description: string
@@ -136,6 +140,7 @@ export interface PreparedCommand {
 export interface CommandDefinition {
   readonly path: readonly string[]
   readonly toolName: string
+  readonly title: string
   readonly description: string
   /**
   グローバルの repo を足した入力
@@ -248,6 +253,7 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
   return {
     path: spec.path,
     toolName: toolNameOf(spec.path),
+    title: spec.title,
     description: spec.description,
     input,
     output: spec.output,

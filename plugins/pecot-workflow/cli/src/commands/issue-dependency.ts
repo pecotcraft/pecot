@@ -339,6 +339,7 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
 
 const ISSUE_BLOCK = defineCommand({
   path: BLOCK_PATH,
+  title: 'Set Issue blocker',
   description: 'Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),
@@ -361,6 +362,7 @@ const ISSUE_BLOCK = defineCommand({
 
 const ISSUE_UNBLOCK = defineCommand({
   path: UNBLOCK_PATH,
+  title: 'Remove Issue blocker',
   description: 'Remove a blocked-by (prerequisite) from an Issue',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),

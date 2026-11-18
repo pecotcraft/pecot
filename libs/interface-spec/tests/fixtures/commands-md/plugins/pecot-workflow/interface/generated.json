@@ -178,6 +178,9 @@
       "input": {
         "type": "object",
         "properties": {}
+      },
+      "mcp": {
+        "title": "Mcp only"
       }
     }
   ]

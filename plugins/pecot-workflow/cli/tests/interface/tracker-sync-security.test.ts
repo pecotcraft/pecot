@@ -1,10 +1,11 @@
-// tracker sync security の振る舞い（PW-TRACKER-SYNC-47〜90）を、runCli をプロセス内で呼んで確かめる。GitHub は偽サーバにする。
+// tracker sync security の振る舞い（PW-TRACKER-SYNC-47〜90）を、runCli と MCP のツールをプロセス内で呼んで確かめる。GitHub は偽サーバにする。
 import { describe, expect, it } from 'vitest'
 
 import { TRACKER_COMMANDS } from '../../src/commands/tracker.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import {
@@ -215,8 +216,7 @@ describe('tracker sync', () => {
       expect(restPaths(github.requests())).toEqual(['/repos/acme/demo/issues'])
     })
 
-    it('Tracker の作成が失敗すると、Tracker の error の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-TRACKER-SYNC-89')
+    it('CLI で、Tracker の作成が失敗すると、Tracker の error の行を標準エラーに出す', async () => {
       freezeClock()
       prepareSync()
       await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12, 502)])
@@ -224,8 +224,7 @@ describe('tracker sync', () => {
       expect(result.stderr).toBe('error: Tracker: GitHub API error: 502\n')
     })
 
-    it('ボードへの追加が失敗すると、Tracker の error の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-TRACKER-SYNC-89')
+    it('CLI で、ボードへの追加が失敗すると、Tracker の error の行を標準エラーに出す', async () => {
       freezeClock()
       prepareSync()
       const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
@@ -233,8 +232,23 @@ describe('tracker sync', () => {
       expect(result.stderr).toBe(`created: Tracker "${TODAY_TITLE}" with priority medium\nadded: dependabot #1 to new Tracker\nerror: Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}\n`)
     })
 
-    it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async (context) => {
+    it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの失敗と ID を読み直す案内を 1 回だけ detail に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-94')
+      freezeClock()
+      prepareSync()
+      const added = boardRules(12, { onlyIfEmpty: false, priority: 'medium' }).filter(rule => rule.match.operation !== UPDATE_FIELD)
+      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...added, staleOptionUpdate(2)])
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'partial-failure' })
+      expect(outcome.structured['detail']).toBe([
+        `could not set status backlog of Tracker #12: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
+        `error: could not set priority medium of Tracker #12: ${STALE_OPTION_TEXT}`,
+      ].join('\n'))
+    })
+
+    it('CLI で、選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async () => {
       freezeClock()
       prepareSync()
       const added = boardRules(12, { onlyIfEmpty: false, priority: 'medium' }).filter(rule => rule.match.operation !== UPDATE_FIELD)
@@ -254,22 +268,15 @@ describe('tracker sync', () => {
       })
     })
 
-    it('Tracker の作成に失敗すると、終了コード 1 で終わる', async (context) => {
+    it('Tracker の作成に失敗すると、Tracker の失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-89')
       await verifies(context, 'PW-TRACKER-SYNC-90')
       freezeClock()
       prepareSync()
       await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12, 502)])
-      const result = await sync()
-      expect(result.code).toBe(1)
-    })
-
-    it('ボードへの追加に失敗すると、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-TRACKER-SYNC-90')
-      freezeClock()
-      prepareSync()
-      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(13), ...boardRules(13, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
-      const result = await sync()
-      expect(result.code).toBe(1)
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'partial-failure', detail: 'Tracker: GitHub API error: 502' })
     })
   })
 
@@ -450,12 +457,14 @@ describe('tracker sync', () => {
       expect(result.stderr).toBe('error: could not update Tracker #5 body: GitHub API error: 422\n')
     })
 
-    it('Tracker の本文の書き直しに失敗したなら、終了コード 1 で終わる', async (context) => {
+    it('Tracker の本文の書き直しに失敗したなら、失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-87')
       await verifies(context, 'PW-TRACKER-SYNC-88')
       prepareSync()
       await startGithub(failingUpdate())
-      const result = await sync()
-      expect(result.code).toBe(1)
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'partial-failure', detail: 'could not update Tracker #5 body: GitHub API error: 422' })
     })
   })
 
@@ -496,41 +505,42 @@ describe('tracker sync', () => {
   })
 
   describe('実行できない', () => {
-    it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
+    it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と project の案内を detail に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-72')
       prepareSync({ ambiguous: true })
       const github = await startGithub([])
-      const result = await sync()
-      expect(result.code).toBe(1)
-      expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
-      expect(result.stderr).toContain('--project <NAME>')
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['detail']).toContain('acme/demo is in 2 project configs')
+      expect(outcome.structured['detail']).toContain('choose one with project: <NAME>')
       expect(github.requests()).toEqual([])
     })
 
-    it('対象のリポを含む設定が無いと、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+    it('対象のリポを含む設定が無いと、repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-95')
       prepareSync({ repositories: ['other'] })
       const github = await startGithub([])
-      const result = await sync()
-      expect(result.code).toBe(1)
-      expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'repo-not-in-project' })
       expect(github.requests()).toEqual([])
     })
 
-    it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+    it('project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-96')
       prepareSync({ ambiguous: true })
       await startGithub(listings({}, []))
-      const result = await sync('--dry-run', '--project', 'second')
-      expect(result.code).toBe(0)
+      const outcome = await syncOutcome({ dry_run: true, project: 'second' })
+      expect(outcome.isError).toBe(false)
     })
 
-    it('--repo を省いて git の remote のリポジトリを読めないと、終了コード 1 で終わる', async (context) => {
+    it('repo を省いて git の remote のリポジトリを読めないと、git-unresolved の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-73')
       prepareSync({ hasRemote: false })
       const github = await startGithub([])
-      const result = await sync()
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: could not read the repository from the git remote\n' })
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'git-unresolved', detail: 'could not read the repository from the git remote' })
       expect(github.requests()).toEqual([])
     })
 
@@ -541,10 +551,17 @@ describe('tracker sync', () => {
       expect(result.stderr).toBe(missingTokenStderr(root))
     })
 
-    it('GitHub のトークンが見つからないと、終了コード 1 で終わる', async (context) => {
+    it('GitHub のトークンが見つからないと、理由を detail に入れて github-auth の失敗を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-74')
       await verifies(context, 'PW-TRACKER-SYNC-75')
-      const { result } = await withoutToken()
-      expect(result.code).toBe(1)
+      const project = prepareSync()
+      const github = await startGithub([])
+      setEnvironment({ [project.tokenVariable]: undefined })
+      const outcome = await syncOutcome({ dry_run: true })
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'github-auth' })
+      expect(outcome.structured['detail']).toContain('authentication error: could not get a GitHub API token')
+      expect(github.requests()).toEqual([])
     })
   })
 
@@ -583,22 +600,25 @@ describe('tracker sync', () => {
       expect(updatedBody(github.requests(), 5)).toContain('pecot-alert: dependabot/1 ')
     })
 
-    it('ほかの種類を書き直した後に終了コード 1 で終わる', async (context) => {
+    it('ほかの種類を書き直した後に、その種類を触らない旨を detail に入れて partial-failure の失敗を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-78')
       await verifies(context, 'PW-TRACKER-SYNC-80')
       prepareSync()
       const github = await startGithub(failedSecret(SECRET_ROW_BODY))
-      const result = await sync()
-      expect(result.code).toBe(1)
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
       expect(restPaths(github.requests())).toEqual([TRACKER_5])
-      expect(result.stderr).toContain('added: dependabot #1 to Tracker #5\n')
+      expect(outcome.structured).toMatchObject({ kind: 'partial-failure', added: [{ kind: 'dependabot', number: 1 }] })
+      expect(String(outcome.structured['detail']).split('\n', 1)[0]).toBe('could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: GitHub API error: 500 boom')
     })
 
-    it('Tracker が無く、取れなかった種類しか無いと、Tracker を作らず終了コード 1 で終わる', async (context) => {
+    it('Tracker が無く、取れなかった種類しか無いと、Tracker を作らずに partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-80')
       prepareSync()
       const github = await startGithub(listings({ dependabotFailure: failure(500, 'boom') }, []))
-      const result = await sync()
-      expect(result.code).toBe(1)
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'partial-failure', created: false })
       expect(restWrites(github.requests())).toEqual([])
     })
 
@@ -633,12 +653,13 @@ describe('tracker sync', () => {
       expect(graphqlOperations(github.requests())).toEqual([])
     })
 
-    it('終了コード 1 で終わる', async (context) => {
+    it('失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-84')
       prepareSync()
       await startGithub(unlistable())
-      const result = await sync()
-      expect(result.code).toBe(1)
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['detail']).toBe('could not list issues: GitHub API error: 500')
     })
   })
 
@@ -653,15 +674,27 @@ describe('tracker sync', () => {
       expect(graphqlOperations(github.requests())).toEqual([])
     })
 
-    it('終了コード 1 で終わる', async (context) => {
+    it('content-invalid の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-86')
       prepareSync()
       await startGithub(brokenMarkers())
-      const result = await sync()
-      expect(result.code).toBe(1)
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'content-invalid' })
     })
   })
+
   describe('source が使えない', () => {
+    it.for([
+      { name: 'source を省く', input: {}, id: 'PW-TRACKER-SYNC-91' },
+      { name: 'source に dependabot でも security でもない値を渡す', input: { source: 'foo' }, id: 'PW-TRACKER-SYNC-92' },
+    ])('$name と、invalid-input の失敗を返す', async (row, context) => {
+      await verifies(context, row.id)
+      const outcome = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', row.input)
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'invalid-input' })
+    })
+
     it('source を省くと、使い方の誤りとして終了コード 2 で終わる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-91')
       const result = await runInProcess(['tracker', 'sync'], TRACKER_COMMANDS)
@@ -687,7 +720,35 @@ describe('tracker sync', () => {
       expect(data).toEqual({ source: 'security', tracker: 12, created: true, added, removed: [], closed: false })
     })
 
-    it('既存の Tracker の行を足し外すと、足した alert と外した alert を返す', async () => {
+    it('open の Tracker と載せる alert が無いと、tracker を入れずに created を false にして成功を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-52')
+      prepareSync()
+      await startGithub(listings(NO_ALERTS, []))
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ source: 'security', created: false, added: [], removed: [], closed: false })
+    })
+
+    it('行の足し外しが無く本文だけが変わると、added と removed を空にして成功を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-57')
+      prepareSync()
+      await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY, 'medium'))
+      const outcome = await syncOutcome()
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ source: 'security', tracker: 5, created: false, added: [], removed: [], closed: false })
+    })
+
+    it('open の Tracker が複数あると、warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-69')
+      prepareSync()
+      await startGithub(severalTrackers())
+      const data = await syncTool()
+      expect(data['warnings']).toEqual(['multiple open Trackers; using #5 (lowest number) and leaving #9 open'])
+    })
+
+    it('既存の Tracker の行を足し外すと、足した alert を added に、外した alert を removed に入れる', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-54')
+      await verifies(context, 'PW-TRACKER-SYNC-55')
       prepareSync()
       const body = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 9))
       await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, body, 'medium'))
@@ -695,14 +756,16 @@ describe('tracker sync', () => {
       expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [{ kind: 'dependabot', number: 2 }], removed: [{ kind: 'code-scanning', number: 9 }], closed: false })
     })
 
-    it('本文が今と同じだと、足し外しを空にして返す', async () => {
+    it('本文が今と同じだと、added と removed を空にして成功を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-59')
       prepareSync()
       await startGithub([...listings(ONE_DEPENDABOT, [trackerIssue(5, BODY_WITH_ONE)]), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })])
       const data = await syncTool()
       expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [], removed: [], closed: false })
     })
 
-    it('dry_run で呼ぶと、作る予定の Tracker に足す alert と dryRun を返す', async () => {
+    it('dry_run で呼ぶと、作る予定の Tracker に足す alert と dryRun を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-71')
       freezeClock()
       prepareSync()
       await startGithub(listings({ dependabot: [dependabotAlert(1, 'high')], codeScanning: [codeScanningAlert(10)] }, []))
@@ -712,6 +775,8 @@ describe('tracker sync', () => {
 
     it('Tracker を作った後にボードへの追加が失敗すると、作った Tracker と足した alert を data に残して失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
+      await verifies(context, 'PW-TRACKER-SYNC-89')
+      await verifies(context, 'PW-TRACKER-SYNC-90')
       freezeClock()
       prepareSync()
       const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
@@ -730,8 +795,12 @@ describe('tracker sync', () => {
   })
 })
 
-// tracker_sync を source: security で、同じプロセスの中のクライアントから 1 回呼び、structuredContent を返す
+// tracker_sync を source: security で、同じプロセスの中のクライアントから 1 回呼ぶ
+async function syncOutcome(arguments_: Readonly<Record<string, unknown>> = {}): Promise<ToolOutcome> {
+  return await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'security', ...arguments_ })
+}
+
 async function syncTool(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Readonly<Record<string, unknown>>> {
-  const { structured } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'security', ...arguments_ })
+  const { structured } = await syncOutcome(arguments_)
   return structured
 }

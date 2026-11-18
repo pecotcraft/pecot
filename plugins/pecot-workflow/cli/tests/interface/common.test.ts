@@ -27,6 +27,7 @@ const state = { started: 0, cwd: process.cwd() }
 function sample(name: string, body: () => void | Promise<void>): CommandDefinition {
   return defineCommand({
     path: [name],
+    title: 'Test command',
     description: '見本のコマンド',
     input: z.object({}),
     output: z.strictObject({}),
@@ -43,6 +44,7 @@ function sample(name: string, body: () => void | Promise<void>): CommandDefiniti
 // 対象を決める引数を持たない見本。解決したリポジトリを標準出力に出す
 const TARGET = defineCommand({
   path: ['target'],
+  title: 'Test command',
   description: '対象を解決する',
   input: z.object({}),
   output: z.strictObject({}),

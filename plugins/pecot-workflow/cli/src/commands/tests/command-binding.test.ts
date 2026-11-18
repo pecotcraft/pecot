@@ -17,6 +17,7 @@ const readInput = z.object({
 
 const read = defineCommand({
   path: ['issue', 'read'],
+  title: 'Test command',
   description: 'Issue を読む',
   input: readInput,
   output: z.strictObject({}),
@@ -31,6 +32,7 @@ const read = defineCommand({
 
 const preflight = defineCommand({
   path: ['release', 'preflight'],
+  title: 'Test command',
   description: 'リリース前の確認',
   input: z.object({ version: z.string().optional(), directory: z.string(), mode: z.enum(['a', 'b']).optional() }),
   output: z.strictObject({}),
@@ -44,6 +46,7 @@ const namesInput = z.object({ names: z.array(z.string()) })
 
 const remove = defineCommand({
   path: ['worktree', 'remove'],
+  title: 'Test command',
   description: '消す',
   input: namesInput,
   output: z.strictObject({}),
@@ -59,6 +62,7 @@ const optionalStrings = z.array(z.string()).optional()
 
 const optionalFiles = defineCommand({
   path: ['quick'],
+  title: 'Test command',
   description: '任意の複数',
   input: z.object({ files: optionalStrings }),
   output: z.strictObject({}),
@@ -69,6 +73,7 @@ const optionalFiles = defineCommand({
 
 const ownRepository = defineCommand({
   path: ['issue', 'quick'],
+  title: 'Test command',
   description: '自分の repo を持つ',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
@@ -85,6 +90,7 @@ const ownRepository = defineCommand({
 
 const add = defineCommand({
   path: ['worktree', 'add'],
+  title: 'Test command',
   description: '作る',
   input: z.object({ allow_existing_branch: z.boolean().default(false), directory: z.string().optional() }),
   output: z.strictObject({}),
@@ -100,6 +106,7 @@ const add = defineCommand({
 
 const skipping = defineCommand({
   path: ['skipping'],
+  title: 'Test command',
   description: '名前が no_ で始まる入力',
   input: z.object({ no_copy: z.boolean().default(false) }),
   output: z.strictObject({}),
@@ -242,6 +249,7 @@ describe('runDefinition', () => {
   it('入力全体の誤りは input として扱う', async () => {
     const strict = defineCommand({
       path: ['x'],
+      title: 'Test command',
       description: '',
       input: z.object({ a: z.string().optional() }).refine(() => false, 'だめです'),
       output: z.strictObject({}),
@@ -256,6 +264,7 @@ describe('runDefinition', () => {
   it('run が投げた他の例外は握りつぶさない', async () => {
     const broken = defineCommand({
       path: ['x'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -270,6 +279,7 @@ describe('runDefinition', () => {
 describe('型の変換', () => {
   const typed = defineCommand({
     path: ['typed'],
+    title: 'Test command',
     description: '型',
     input: z.object({
       count: z.number().int().min(0).max(20).default(5),
@@ -317,6 +327,7 @@ describe('型の変換', () => {
   it('選択肢の項目は、選択肢を全部並べて誤りにする', async () => {
     const command = defineCommand({
       path: ['pick'],
+      title: 'Test command',
       description: '',
       input: z.object({ kind: z.enum(['task', 'bug']).optional(), tags: z.array(tagType).default([]) }),
       output: z.strictObject({}),
@@ -345,6 +356,7 @@ describe('否定形と包んだスキーマ', () => {
 
   const flags = defineCommand({
     path: ['flags'],
+    title: 'Test command',
     description: '旗',
     input: z.object({
       checkout: z.boolean().default(true),
@@ -377,6 +389,7 @@ describe('否定形と包んだスキーマ', () => {
   it('入力名が no_ で始まる真偽値は、付けると true になり、省くと既定値の false になる', async () => {
     const quick = defineCommand({
       path: ['quick'],
+      title: 'Test command',
       description: '起票する',
       input: z.object({ no_branch: z.boolean().default(false) }),
       output: z.strictObject({}),
@@ -445,6 +458,7 @@ describe('否定形と包んだスキーマ', () => {
 describe('名前が no_ で始まる旗', () => {
   const skip = defineCommand({
     path: ['skip'],
+    title: 'Test command',
     description: '省く',
     input: z.object({ no_issue_ref: z.boolean().default(false) }),
     output: z.strictObject({}),
@@ -495,6 +509,7 @@ describe('誤りの扱い', () => {
   it('入力の検証（parse）の誤りだけを使い方の誤りにする', async () => {
     const command = defineCommand({
       path: ['checked'],
+      title: 'Test command',
       description: '',
       input: checked,
       output: z.strictObject({}),
@@ -510,6 +525,7 @@ describe('誤りの扱い', () => {
   it('本体（run）が投げた context 無しの UsageError には、このコマンドの使い方を付ける', async () => {
     const command = defineCommand({
       path: ['issue', 'read'],
+      title: 'Test command',
       description: '',
       input: z.object({ issue_ref: z.string() }),
       output: z.strictObject({}),
@@ -524,6 +540,7 @@ describe('誤りの扱い', () => {
   it('本体（run）が投げた ZodError は、使い方の誤りにしない', async () => {
     const command = defineCommand({
       path: ['inner'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -541,6 +558,7 @@ describe('誤りの扱い', () => {
 describe('click と同じ文にそろえた使い方の誤り', () => {
   const flags = defineCommand({
     path: ['project', 'set'],
+    title: 'Test command',
     description: '設定する',
     input: z.object({ value: z.string(), yes: z.boolean(), checkout: z.boolean().default(true), branch: z.string().optional() }),
     output: z.strictObject({}),

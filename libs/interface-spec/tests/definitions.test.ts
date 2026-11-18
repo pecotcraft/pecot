@@ -357,3 +357,103 @@ describe('prose（人が書く欄の言語）', () => {
     expect(lines).toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
   })
 })
+
+async function withBoth(changeGenerated: (data: Record<string, unknown>) => void, changeAuthored: (data: Record<string, unknown>) => void): Promise<string[]> {
+  const plugin = await validPlugin()
+  if (plugin.generated.kind !== 'ok' || plugin.authored.kind !== 'ok') throw new Error('fixture must load')
+  const generated = record(clone(plugin.generated.data))
+  const authored = record(clone(plugin.authored.data))
+  changeGenerated(generated)
+  changeAuthored(authored)
+  return validateDefinitions([{ ...plugin, generated: { kind: 'ok', data: generated }, authored: { kind: 'ok', data: authored } }])
+    .map(finding => `${finding.file}|${finding.scope ?? ''}|${finding.field ?? ''}|${finding.reason}`)
+}
+
+// PW-ISSUE-CREATE に MCP の面を足す。cli を外すと MCP だけの項目になる。
+function withMcpSurface(hasCli: boolean, title?: string): (data: Record<string, unknown>) => void {
+  return (data) => {
+    const target = generatedEntry(data, 0)
+    const surfaces = record(target['surfaces'])
+    target['surfaces'] = { ...(hasCli && surfaces), mcp: { tool: 'issue_create' } }
+    if (!hasCli) delete target['cli']
+    target['mcp'] = { ...(title !== undefined && { title }), output: { type: 'object', properties: {}, additionalProperties: false } }
+  }
+}
+
+const TITLE = 'Create issues'
+
+function mcpExamples(examples: unknown[]): (data: Record<string, unknown>) => void {
+  return (data) => {
+    const target = entry(data, 'PW-ISSUE-CREATE')
+    target['mcp_output'] = { fields: {} }
+    target['examples'] = examples
+  }
+}
+
+describe('MCP の表示名と使用例', () => {
+  it('MCP の面を持つ項目に mcp.title が無いと、止める', async () => {
+    const lines = await withBoth(withMcpSurface(true), mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }]))
+    expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|mcp.title|is missing (give the tool a display name in English)`)
+  })
+
+  it('MCP の面を持つ項目の使用例が arguments の形で、キーが input にあれば、通る', async () => {
+    const lines = await withBoth(withMcpSurface(true, TITLE), mcpExamples([{ arguments: { title: 'x', message: 'y' }, note: 'An example' }]))
+    expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
+  })
+
+  it('MCP の面を持つ項目の使用例が run の形だと、止める', async () => {
+    const lines = await withBoth(withMcpSurface(true, TITLE), mcpExamples([{ run: 'pecot issue create a.md', note: 'An example' }]))
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call (write arguments instead of run)`)
+  })
+
+  it('使用例の arguments が input に無い名前を持つか、required が欠けると、止める', async () => {
+    const lines = await withBoth((data) => {
+      withMcpSurface(true, TITLE)(data)
+      record(generatedEntry(data, 0)['input'])['required'] = ['title']
+    }, mcpExamples([{ arguments: { mesage: 'y' }, note: 'An example' }]))
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0].arguments|unknown input name "mesage"`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0].arguments|is missing the required input "title"`)
+  })
+
+  it('MCP の面の無い項目の使用例が arguments の形だと、止める', async () => {
+    const lines = await withAuthored((data) => {
+      entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be a command line (write run instead of arguments; the entry has no MCP surface)`)
+  })
+})
+
+describe('CLI の節と終了コード', () => {
+  it('CLI の面の無い項目に cli_reference と終了コードがあると、止める', async () => {
+    const lines = await withBoth(withMcpSurface(false, TITLE), (data) => {
+      mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])(data)
+      entry(data, 'PW-ISSUE-CREATE')['cli_reference'] = { examples: [{ run: 'pecot issue create a.md', note: 'An example' }] }
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|cli_reference|is only for entries with a CLI surface (remove it)`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[0].code|is only for entries with a CLI surface (remove it)`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].code|is only for entries with a CLI surface (remove it)`)
+  })
+
+  it('cli_reference を持つ項目は、help.examples の run を cli_reference.examples と比べる', async () => {
+    const lines = await withBoth(withMcpSurface(true, TITLE), (data) => {
+      data['prose'] = 'ja'
+      const target = japanize(data)
+      target['examples'] = [{ arguments: { title: 'x' }, note: '例' }]
+      target['mcp_output'] = { fields: {} }
+      target['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: { title: 'Empty by default' } }
+      target['cli_reference'] = { examples: [{ run: 'pecot x', note: '例' }] }
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as cli_reference.examples`)
+  })
+
+  it('cli_reference を持たない MCP の項目は、help.examples を比べない', async () => {
+    const lines = await withBoth(withMcpSurface(true, TITLE), (data) => {
+      data['prose'] = 'ja'
+      const target = japanize(data)
+      target['examples'] = [{ arguments: { title: 'x' }, note: '例' }]
+      target['mcp_output'] = { fields: {} }
+      target['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: { title: 'Empty by default' } }
+    })
+    expect(lines.filter(line => line.includes('|help.examples|'))).toEqual([])
+  })
+})

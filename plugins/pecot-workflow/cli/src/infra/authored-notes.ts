@@ -38,6 +38,7 @@ const CONFLICTS_SCHEMA = z.object({ conflicts: NAMES_SCHEMA })
 const DEPENDENCY_SCHEMA = z.object({ requires: z.record(z.string(), NAMES_SCHEMA) })
 const CONSTRAINT_SCHEMA = z.union([CONFLICTS_SCHEMA, DEPENDENCY_SCHEMA])
 const EXAMPLE_SCHEMA = z.object({ run: z.string(), note: z.string() })
+const CALL_EXAMPLE_SCHEMA = z.object({ arguments: z.record(z.string(), z.unknown()), note: z.string() })
 
 const FILE_SCHEMA = z.object({ entries: z.record(z.string(), z.unknown()) })
 
@@ -47,9 +48,11 @@ const PROSE_SHAPE = {
   default_notes: z.record(z.string(), z.string()),
 }
 
-// help は --help に出す英語の文。日本語で書いた定義書では、同じ名前の 3 つの欄の代わりに読む
+// help は --help に出す英語の文。日本語で書いた定義書では、同じ名前の 3 つの欄の代わりに読む。
+// その定義書の examples は MCP の例（arguments）なので、help があるときは形を問わない
 const ENTRY_SCHEMA = z.object({
   ...PROSE_SHAPE,
+  examples: z.array(z.union([EXAMPLE_SCHEMA, CALL_EXAMPLE_SCHEMA])),
   constraints: z.array(CONSTRAINT_SCHEMA),
   help: z.object(PROSE_SHAPE).optional(),
 })
@@ -97,6 +100,8 @@ export function readAuthoredNotes(id: string, root: string = pluginRoot()): Note
   const parsed = ENTRY_SCHEMA.safeParse(entry)
   if (!parsed.success) return unreadable(file, `the fields of ${id} have the wrong shape`)
   const { constraints } = parsed.data
-  const { details, examples, default_notes: defaultNotes } = parsed.data.help ?? parsed.data
+  const { help } = parsed.data
+  const { details, default_notes: defaultNotes } = help ?? parsed.data
+  const examples = help?.examples ?? parsed.data.examples.filter(example => 'run' in example)
   return { kind: 'read', notes: { details, constraints, examples, defaultNotes: new Map(Object.entries(defaultNotes)) } }
 }

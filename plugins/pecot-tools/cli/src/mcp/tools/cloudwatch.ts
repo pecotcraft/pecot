@@ -29,7 +29,7 @@ export function cloudwatchTools(options: Readonly<ToolOptions> = {}): readonly T
   return [
     allowlistedTool({
       entry: CLOUDWATCH_GET_METRIC_STATISTICS,
-      title: 'Get metric statistics',
+      title: 'Get CloudWatch metric statistics',
       description: 'Gets statistics of one metric over a time range. Specify all dimensions exactly as when the metric was published, or the result is empty',
       inputSchema: z.object({
         namespace: z.string().describe('Metric namespace (e.g. AWS/SQS, AWS/Lambda)'),

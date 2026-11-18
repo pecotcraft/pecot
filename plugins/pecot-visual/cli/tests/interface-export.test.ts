@@ -53,6 +53,12 @@ describe('generated.json の書き出し', () => {
     expect(diffGenerated(buildGenerated(tools), buildGenerated(changed))).toEqual(['PV-SLIDE-THEME: input.properties.probe: added'])
   })
 
+  it('ツールの title は mcp.title に写り、変えると差の行に mcp.title が出る', () => {
+    const changed = tools.map(tool => tool.name === 'slide_theme' ? { ...tool, title: 'Probe title' } : tool)
+    expect(buildGenerated(tools).entries.find(entry => entry.name === 'slide_theme')?.mcp?.title).toBe(tools.find(tool => tool.name === 'slide_theme')?.title)
+    expect(diffGenerated(buildGenerated(tools), buildGenerated(changed))).toEqual([`PV-SLIDE-THEME: mcp.title: ${JSON.stringify(tools.find(tool => tool.name === 'slide_theme')?.title)} -> "Probe title"`])
+  })
+
   it('legacy と modern の世代で同じバイト列になる', async () => {
     const modernTools = await listTools('modern')
 

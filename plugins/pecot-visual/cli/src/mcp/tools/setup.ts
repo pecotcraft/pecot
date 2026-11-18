@@ -312,7 +312,7 @@ export function setupTool(
   return {
     name: 'runtime_setup',
     config: {
-      title: 'Prepare the runtime (runtime dependencies / Chromium download and OS libraries)',
+      title: 'Set up runtime',
       description: 'Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. '
         + 'Call it when slide_create / slide_convert / slide_sync fail with "runtime dependencies are not installed", '
         + 'or when drawio_export / slide_convert / drawio_create PNG output fails with "Playwright Chromium is not installed". '

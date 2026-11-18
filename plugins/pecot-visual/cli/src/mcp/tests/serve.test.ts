@@ -262,7 +262,7 @@ describe('runMcpServe', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const gated: ToolDefinition = {
       name: 'gated',
-      config: { description: '処理中の接続切断の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '処理中の接続切断の検証', inputSchema: z.object({}) },
       handler: async (_arguments, call) => {
         started.resolve(call.signal)
         await gate.promise

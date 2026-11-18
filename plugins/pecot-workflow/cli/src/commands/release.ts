@@ -232,6 +232,7 @@ const RELEASE_CHECK_OUTPUT = z.strictObject({
 
 const releaseCheckCommand = defineCommand({
   path: CHECK_PATH,
+  title: 'Check release readiness',
   description: 'Run the pre-release checks; for an nx repository only the alerts are checked',
   input: z.object({
     version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
@@ -296,6 +297,7 @@ const RELEASE_CREATE_OUTPUT = z.strictObject({
 
 const releaseCreateCommand = defineCommand({
   path: ['release', 'create'],
+  title: 'Create release',
   description: 'Create a GitHub release and its tag (the release notes come from the CHANGELOG)',
   input: z.object({
     version: z.string().describe('Release version (for example 0.6.1)'),
@@ -369,6 +371,7 @@ const RELEASE_MERGE_OUTPUT = z.strictObject({
 
 const releaseMergeCommand = defineCommand({
   path: ['release', 'merge'],
+  title: 'Merge release PR',
   description: 'Merge a release PR with a regular merge',
   input: z.object({
     pr_ref: z.string().describe('PR reference (owner/repo/123)'),
