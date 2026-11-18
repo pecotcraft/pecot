@@ -42,6 +42,7 @@
     "test-cli": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{projectRoot}/cli/**/*",
         "{projectRoot}/skills/w-help/references/board-sync-workflow.md",
         "!{projectRoot}/cli/tests/hooks/**",
@@ -113,6 +114,7 @@
     "test-skills": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{projectRoot}/skills/**/*",
         "{projectRoot}/agents/*.md",
         "{projectRoot}/hooks/templates/*.md",
@@ -145,6 +147,7 @@
     "test-hooks": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
         "pecotPluginTestGlobals",
@@ -243,6 +246,7 @@
         "pecotPluginNodeInputs",
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
         "{projectRoot}/interface/generated.json",
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",

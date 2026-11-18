@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import { configDefaults, defineConfig } from 'vitest/config'
 
 import { readBaseline } from './tests/parity/baseline.js'
@@ -12,6 +14,7 @@ export default defineConfig({
           name: 'cli',
           include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/output/**/*.test.ts', 'tests/parity/**/*.test.ts', 'tests/fake-github/**/*.test.ts', 'tests/interface/**/*.test.ts', 'tests/mcp/**/*.test.ts', 'tests/sandbox/**/*.test.ts'],
           exclude: ['node_modules/**', 'dist/**'],
+          setupFiles: [path.resolve(import.meta.dirname, '../../../libs/interface-spec/src/vitest/unique-titles.ts')],
         },
       },
       {
@@ -21,7 +24,7 @@ export default defineConfig({
           exclude: ['node_modules/**', 'dist/**'],
           // 子の shell を起動するので長めにする。$key の題を 40 字で切らない（JUnit の name を重ねないため）。
           testTimeout: 30_000,
-          setupFiles: ['tests/hooks/_helpers/setup.ts'],
+          setupFiles: ['tests/hooks/_helpers/setup.ts', path.resolve(import.meta.dirname, '../../../libs/interface-spec/src/vitest/unique-titles.ts')],
           taskTitleValueFormatTruncate: 0,
         },
       },
@@ -30,6 +33,7 @@ export default defineConfig({
           name: 'skills',
           include: ['tests/skills/**/*.test.ts'],
           exclude: ['node_modules/**', 'dist/**'],
+          setupFiles: [path.resolve(import.meta.dirname, '../../../libs/interface-spec/src/vitest/unique-titles.ts')],
         },
       },
     ],

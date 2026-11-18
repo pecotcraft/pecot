@@ -953,7 +953,7 @@ describe('worktree init', () => {
     }, reason: 'is a file.' },
   ]
 
-  it.for(DIRECTORY_ROWS)('-D が$nameと、使い方の枠で理由を出し、終了コード 2 で終わる', async (row) => {
+  it.for(DIRECTORY_ROWS)('-D が $name だと、使い方の枠で理由を出し、終了コード 2 で終わる', async (row) => {
     const directory = row.argument()
     const result = await pecot(['worktree', 'init', '-D', directory], { cwd: makeTemporaryDirectory() })
     expect(result.code).toBe(2)

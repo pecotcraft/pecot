@@ -12,6 +12,7 @@ import vitest from '@vitest/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
 import path from 'node:path'
 import { describeTitleConfig } from '../../../libs/interface-spec/src/eslint/describe-title.ts'
+import { tableKeyConfig } from '../../../libs/interface-spec/src/eslint/table-key.ts'
 
 const JA = String.raw`[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]`
 const NO_JA = '題に日本語が無い（.claude/rules/test-conventions.md）'
@@ -187,6 +188,8 @@ export default defineConfig(
   // tests/interface/ のいちばん外の describe の題が、定義書の name にあるかを確かめる。
   // 規則は libs/interface-spec/src/eslint/describe-title.ts にある。
   describeTitleConfig([path.resolve(import.meta.dirname, '../interface/generated.json')]),
+  // 表の題の $キー が、キーとして読める形かを確かめる。規則は libs/interface-spec/src/eslint/table-key.ts にある。
+  tableKeyConfig(['src/**/tests/**/*.ts', '**/*.test.ts']),
   {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     ...tsConfigs.disableTypeChecked,

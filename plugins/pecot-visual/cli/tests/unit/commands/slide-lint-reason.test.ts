@@ -19,7 +19,7 @@ describe('errorToReason', () => {
     [new ThemeDeclarationError('x', 'invalid-shape'), 'theme-invalid-shape'],
     [new ThemeDeclarationError('x', 'unknown-rule'), 'theme-unknown-rule'],
     [new Error('x'), 'unknown'],
-  ])('%s の reason を返す', (error, reason) => {
+  ])('%s の reason に %s を返す', (error, reason) => {
     expect(errorToReason(error)).toBe(reason)
   })
 })

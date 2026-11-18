@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -6,6 +8,7 @@ export default defineConfig({
     exclude: ['node_modules/**', 'dist/**'],
     // CI の 4 CPU の runner で、既定の 5 秒を超えたテストがあった（#131）。
     testTimeout: 30_000,
+    setupFiles: [path.resolve(import.meta.dirname, '../interface-spec/src/vitest/unique-titles.ts')],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

@@ -99,6 +99,7 @@
     "test-cli": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{projectRoot}/cli/**/*",
         "!{projectRoot}/cli/tests/bootstrap/**",
         "{projectRoot}/interface/**/*",
@@ -310,6 +311,7 @@
         "{workspaceRoot}/plugins/pecot-tools/package.json",
         "^production",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
         "{projectRoot}/interface/generated.json"
       ],
       "dependsOn": ["install", { "projects": ["text-rules"], "target": "build" }],

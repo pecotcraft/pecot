@@ -115,7 +115,7 @@ describe('確認の中止', () => {
 })
 
 describe('--version', () => {
-  it.each([['-v'], ['--version'], ['--repo', 'bad', '-v'], ['-v', '--repo', 'bad'], ['--show-repo', '-v']])('%s は pecot version を出して 0', async (...argv) => {
+  it.for([['-v'], ['--version'], ['--repo', 'bad', '-v'], ['-v', '--repo', 'bad'], ['--show-repo', '-v']].map(argv => ({ argv })))('$argv は pecot version を出して 0', async ({ argv }) => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'https://x.com' })
     expect(await run(argv)).toEqual({ code: 0, stdout: `pecot version ${manifestVersion()}\n`, stderr: '' })
   })

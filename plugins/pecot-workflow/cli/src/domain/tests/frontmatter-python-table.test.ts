@@ -47,7 +47,7 @@ describe('Python の出力との一致', () => {
     expect(run(parseFrontmatter, yamlText)).toEqual(CHANGED_ISSUE_OUTPUTS.get(yamlText) ?? recorded)
   })
 
-  it.each(OUTPUTS.comment)('コメントのフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
+  it.each(OUTPUTS.comment)('%$ 件目のコメントのフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
     expect(run(parseCommentContent, yamlText)).toEqual(expected)
   })
 

@@ -95,7 +95,7 @@ const prefixRows: readonly (readonly [string, string, string])[] = [
 ]
 
 describe('buildIssueTitle', () => {
-  it.for(prefixRows)('接頭辞を付ける %j', ([issueType, title, expected]) => {
+  it.for(prefixRows)('種類が $0 の $1 に接頭辞を付けると、$2 になる', ([issueType, title, expected]) => {
     expect(buildIssueTitle(issueType, title)).toBe(expected)
   })
 

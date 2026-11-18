@@ -110,7 +110,18 @@ export const describeTitleRule: Rule.RuleModule = {
   },
 }
 
-export const describeTitlePlugin = { rules: { 'describe-title': describeTitleRule } }
+function readVersion(): string {
+  const url = new URL('../../package.json', import.meta.url)
+  const data: unknown = JSON.parse(readFileSync(url, 'utf8'))
+  const version = isRecord(data) ? data['version'] : undefined
+  if (typeof version !== 'string') throw new TypeError(`package.json に文字列の version が無い: ${url.pathname}`)
+  return version
+}
+
+export const describeTitlePlugin = {
+  meta: { name: 'interface-spec', version: readVersion(), namespace: 'interface-spec' },
+  rules: { 'describe-title': describeTitleRule },
+}
 
 export interface DescribeTitleConfig {
   files: string[]

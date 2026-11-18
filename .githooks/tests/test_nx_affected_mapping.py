@@ -324,6 +324,19 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             "plugins/pecot-tools/cli/tests/diagnostics-cases.json",
             {"pecot-tools:test-cli", "githooks:test-checks"},
         ),
+        # vitest の題の重なりを止める setupFiles。読む vitest の設定を持つレーンだけに届く。
+        (
+            "libs/interface-spec/src/vitest/unique-titles.ts",
+            {
+                "interface-spec:test-unit",
+                "pecot-tools:test-cli",
+                "pecot-visual:test-cli",
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-hooks",
+                "pecot-workflow:test-skills",
+                "text-rules:test-unit",
+            },
+        ),
     ],
 )
 def test_out_of_lane_input_reruns_only_consumer_lane(
@@ -1050,6 +1063,17 @@ def test_graph_lanes_read_every_workspace_package_json(
         # describe の題の規則は、interface-spec の lint と、これを読む 4 つの lint に届く。
         (
             "libs/interface-spec/src/eslint/describe-title.ts",
+            {
+                "interface-spec:lint",
+                "interface-spec:lint-defs",
+                "pecot-tools:lint",
+                "pecot-visual:lint-cli",
+                "pecot-workflow:lint-cli",
+                "text-rules:lint",
+            },
+        ),
+        (
+            "libs/interface-spec/src/eslint/table-key.ts",
             {
                 "interface-spec:lint",
                 "interface-spec:lint-defs",

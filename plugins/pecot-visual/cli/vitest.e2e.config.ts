@@ -1,4 +1,5 @@
 import { availableParallelism } from 'node:os'
+import path from 'node:path'
 
 import { defineConfig } from 'vitest/config'
 
@@ -45,7 +46,7 @@ import { defineConfig } from 'vitest/config'
 //   そのため、直列化の根拠には含まれない。
 export default defineConfig({
   test: {
-    setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts'],
+    setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts', path.resolve(import.meta.dirname, '../../../libs/interface-spec/src/vitest/unique-titles.ts')],
     include: ['tests/e2e/**/*.test.ts'],
     testTimeout: 660_000,
     pool: 'forks',
