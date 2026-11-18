@@ -2,9 +2,7 @@
 
 import json
 import os
-import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 DOCS = Path(__file__).resolve().parent
@@ -109,19 +107,8 @@ iface_junit = (
 # 公開のサイトを作る run だけが付ける。JUnit が無いか読めないレーンがあると止める。
 iface_strict = os.environ.get("PECOT_SITE_STRICT") == "1"
 
-
-def _head() -> str | None:
-    try:
-        done = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    return done.stdout.strip() or None
-
-
-# 全ページの上の版の帯（_templates/header.html）。公開のサイトを作る run は PECOT_SITE_* で値を渡す。
-html_context = {"site": site_stamp(os.environ, ROOT, datetime.now(timezone.utc), _head()).context()}
+# リリース版でない側の知らせ（_templates/header.html）。公開のサイトを作る run は PECOT_SITE_SIDE・PECOT_SITE_PR を渡す。
+html_context = {"site": site_stamp(os.environ).context()}
 
 # コマンド・ツールごとのページを _generated/<plugin>/ に書く。テストは 1 ページで組むので切る。
 iface_pages = True

@@ -114,27 +114,9 @@
   text-align: center;
 }
 
-.pecot-site a,
-.pecot-build a {
+.pecot-site a {
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-/* 版の詳しい値。テーマのフッターの文と同じ大きさと色にする。 */
-.pecot-build {
-  padding-top: 1.5rem;
-  font-size: 0.875rem;
-  line-height: 1.75;
-  color: hsl(var(--muted-foreground));
-}
-
-.pecot-build p > span + span::before,
-.pecot-build nav > span + span::before {
-  content: " ・ ";
-}
-
-.pecot-site-sha {
-  font-family: var(--font-mono, ui-monospace, monospace);
 }
 
 /* 表は、包み（_ext/table_scroll.py）の中だけで横に送る。表の display は変えない。 */

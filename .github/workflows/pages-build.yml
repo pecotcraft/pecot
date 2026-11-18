@@ -39,7 +39,6 @@ jobs:
       pr: ${{ steps.decide.outputs.pr }}
       sha: ${{ steps.release.outputs.sha || steps.decide.outputs.sha }}
       artifact: ${{ steps.decide.outputs.artifact }}
-      built_at: ${{ steps.decide.outputs.built_at }}
       sources: ${{ steps.release.outputs.sources }}
     steps:
       # main 以外のブランチや、main という名前のタグからの手での起動は側を作らない。
@@ -88,7 +87,6 @@ jobs:
             echo "pr=$pr"
             echo "sha=$SHA"
             echo "artifact=$artifact"
-            echo "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
           echo "side=$side pr=$pr sha=$SHA build=$build"
 
@@ -127,16 +125,10 @@ jobs:
       PECOT_CI_BROWSER: "1"
       PECOT_SITE_STRICT: "1"
       PECOT_SITE_SIDE: ${{ needs.side.outputs.side }}
-      PECOT_SITE_SHA: ${{ needs.side.outputs.sha }}
-      PECOT_SITE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      PECOT_SITE_BUILT_AT: ${{ needs.side.outputs.built_at }}
       DEVCONTAINER_ENV: |
         PECOT_CI_BROWSER
         PECOT_SITE_STRICT
         PECOT_SITE_SIDE
-        PECOT_SITE_SHA
-        PECOT_SITE_RUN_URL
-        PECOT_SITE_BUILT_AT
     steps:
       # ref は step の出力でなく GitHub が決める値から取る（CodeQL の actions/cache-poisoning）。リリース版は release_build.py が取り出す。
       - name: Checkout

@@ -1,16 +1,16 @@
 {#- テーマのヘッダーに、版の知らせと左上のワードマークだけを足す。 -#}
 {% extends "!header.html" %}
-{#- Read the Docs の版の知らせと同じく、リリース版でない側でだけ 1 行の知らせを出す。版の詳しい値は footer.html に置く。 -#}
+{#- Read the Docs の版の知らせと同じく、リリース版でない側でだけ 1 行の知らせを出す。 -#}
 {%- block header_before %}
 {%- if site and site.notice %}
 <div class="pecot-site" data-side="{{ site.side|e }}" role="note">
   <div class="container pecot-site-row">
     <span>{{ site.notice|e }}</span>
     {%- if site.pr_url %}
-    <a href="{{ site.pr_url|e }}" rel="noopener">{{ site.pr_label|e }}</a>
+    <a href="{{ site.pr_url|e }}" rel="noopener">プルリクエストを開く</a>
     {%- endif %}
-    {%- if site.side != "local" %}
-    <a href="/pecot/">最新のリリース版を見る</a>
+    {%- if site.release_url %}
+    <a href="{{ site.release_url|e }}">最新のリリース版を見る</a>
     {%- endif %}
   </div>
 </div>

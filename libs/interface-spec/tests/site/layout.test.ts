@@ -47,7 +47,7 @@ function htmlPages(directory: string, prefix: string): string[] {
 
 beforeAll(async () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'interface-spec-site-'))
-  // 版の帯の PECOT_SITE_* は、手元の既定の値で作る。
+  // 版の知らせの PECOT_SITE_* は、手元の既定の値で作る。
   const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('PECOT_SITE_')))
   execFileSync('uv', ['run', '--locked', '--project', 'docs', 'sphinx-build', '-W', '-q', '-b', 'html', 'docs', directory], {
     cwd: PROJECT_ROOT,

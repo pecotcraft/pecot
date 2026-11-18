@@ -7,7 +7,6 @@ import os
 import re
 import runpy
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -27,11 +26,6 @@ from iface_defs import (  # noqa: E402
     render_sections,
 )
 from site_stamp import SiteStamp, SiteStampError, site_stamp  # noqa: E402
-
-FIXTURE_REPO = FIXTURES / "repo"
-STAMP_NOW = datetime(2026, 11, 17, 5, 12, 30, tzinfo=timezone.utc)
-STAMP_HEAD = "0123456789abcdef0123456789abcdef01234567"
-TAG_SHA = "abcdef0123456789abcdef0123456789abcdef01"
 
 
 @pytest.fixture(autouse=True)
@@ -96,7 +90,7 @@ def build(
         (src / name).parent.mkdir(parents=True, exist_ok=True)
         (src / name).write_text(text, encoding="utf-8")
     junit_map = {"sample": {lane: str(p) for lane, p in junit.items()}}
-    context = {"site": site_stamp(site or {}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()}
+    context = {"site": site_stamp(site or {}).context()}
     (src / "conf.py").write_text(
         "import runpy\n"
         f"_ns = runpy.run_path({str(DOCS / 'conf.py')!r})\n"
@@ -656,198 +650,64 @@ def test_strict_passes_when_every_lane_is_read(
 
 # ---------------------------------------------------------------- site_stamp
 
-PR_ENV = {
-    "PECOT_SITE_SIDE": "pr",
-    "PECOT_SITE_PR": "612",
-    "PECOT_SITE_SHA": "fedcba9876543210fedcba9876543210fedcba98",
-    "PECOT_SITE_BUILT_AT": "2026-11-17T14:12:00+09:00",
-    "PECOT_SITE_RUN_URL": "https://github.com/pecotcraft/pecot/actions/runs/1",
-}
-SIDES_BOTH_LINKED = [
-    {"label": "リリース版", "href": "/pecot/"},
-    {"label": "開発版", "href": "/pecot/dev/"},
-]
+PR_ENV = {"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "612"}
 
 
 def test_site_stamp_defaults_to_local() -> None:
-    assert site_stamp({}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD) == SiteStamp(
-        side="local",
-        pr=None,
-        sha=STAMP_HEAD,
-        built_at=STAMP_NOW,
-        run_url=None,
-        plugins=(("sample", "1.2.3"),),
-    )
-
-
-def test_local_context_has_no_commit_or_run_link_and_links_both_sides() -> None:
-    assert site_stamp({}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context() == {
-        "side": "local",
-        "label": "ローカル",
-        "sha": "0123456",
-        "notice": "これはローカルでビルドしたドキュメントです。",
-        "commit_url": None,
-        "plugins": "sample 1.2.3",
-        "built_at": "2026-11-17 05:12 UTC",
-        "built_at_iso": "2026-11-17T05:12:30Z",
-        "run_url": None,
-        "pr_label": None,
-        "pr_url": None,
-        "filled": None,
-        "dev_sha": None,
-        "dev_commit_url": None,
-        "sides": SIDES_BOTH_LINKED,
-    }
-
-
-def test_pr_context_reads_every_env_value() -> None:
-    assert site_stamp(PR_ENV, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context() == {
-        "side": "pr",
-        "label": "プルリクエスト #612",
-        "notice": "これはプルリクエスト #612 のプレビューです。",
-        "sha": "fedcba9",
-        "commit_url": "https://github.com/pecotcraft/pecot/commit/fedcba9876543210fedcba9876543210fedcba98",
-        "plugins": "sample 1.2.3",
-        "built_at": "2026-11-17 05:12 UTC",
-        "built_at_iso": "2026-11-17T05:12:00Z",
-        "run_url": "https://github.com/pecotcraft/pecot/actions/runs/1",
-        "pr_label": "プルリクエストを開く",
-        "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
-        "filled": None,
-        "dev_sha": None,
-        "dev_commit_url": None,
-        "sides": SIDES_BOTH_LINKED,
-    }
-
-
-DEV_SHA = "abc1234567890abc1234567890abc1234567890a"
-FILLED_ENV = {
-    "PECOT_SITE_FILLED": '["pecot-tools:test-cli","pecot-visual:test-cli"]',
-    "PECOT_SITE_DEV_SHA": DEV_SHA,
-}
-
-
-def test_pr_context_names_lanes_filled_from_dev() -> None:
-    stamp = site_stamp({**PR_ENV, **FILLED_ENV}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
-    assert (stamp.filled, stamp.dev_sha) == (
-        ("pecot-tools:test-cli", "pecot-visual:test-cli"),
-        DEV_SHA,
-    )
-    context = stamp.context()
-    assert (context["filled"], context["dev_sha"], context["dev_commit_url"]) == (
-        "pecot-tools・pecot-visual",
-        "abc1234",
-        f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}",
-    )
-
-
-def test_pr_context_with_no_filled_lane_has_no_dev_values() -> None:
-    env = {**PR_ENV, "PECOT_SITE_FILLED": "[]", "PECOT_SITE_DEV_SHA": DEV_SHA}
-    context = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()
-    assert (context["filled"], context["dev_sha"], context["dev_commit_url"]) == (None, None, None)
-
-
-@pytest.mark.parametrize("side", ["release", "dev", "local"])
-def test_filled_lanes_are_ignored_outside_pr(side: str) -> None:
-    env = {"PECOT_SITE_SIDE": side, "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}", **FILLED_ENV}
-    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
-    assert (stamp.filled, stamp.dev_sha) == ((), None)
-    assert stamp.context()["filled"] is None
+    assert site_stamp({}) == SiteStamp(side="local", pr=None)
 
 
 @pytest.mark.parametrize(
-    ("side", "label", "sides"),
+    ("env", "expected"),
     [
         (
-            "release",
-            "リリース版",
-            [{"label": "リリース版", "href": None}, {"label": "開発版", "href": "/pecot/dev/"}],
+            {},
+            {
+                "side": "local",
+                "notice": "これはローカルでビルドしたドキュメントです。",
+                "pr_url": None,
+                "release_url": None,
+            },
         ),
         (
-            "dev",
-            "開発版",
-            [{"label": "リリース版", "href": "/pecot/"}, {"label": "開発版", "href": None}],
+            {"PECOT_SITE_SIDE": "dev"},
+            {
+                "side": "dev",
+                "notice": "これは開発中のバージョンのドキュメントです。",
+                "pr_url": None,
+                "release_url": "/pecot/",
+            },
+        ),
+        (
+            PR_ENV,
+            {
+                "side": "pr",
+                "notice": "これはプルリクエスト #612 のプレビューです。",
+                "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
+                "release_url": "/pecot/",
+            },
+        ),
+        (
+            {"PECOT_SITE_SIDE": "release"},
+            {"side": "release", "notice": None, "pr_url": None, "release_url": None},
         ),
     ],
 )
-def test_current_side_is_text_only(side: str, label: str, sides: list[dict[str, Any]]) -> None:
-    env = {"PECOT_SITE_SIDE": side, "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    context = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()
-    assert (context["label"], context["sides"]) == (label, sides)
-    assert context["commit_url"] == f"https://github.com/pecotcraft/pecot/commit/{STAMP_HEAD}"
-
-
-def test_release_adds_each_tag_commit_to_its_version() -> None:
-    env = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
-    assert stamp.plugin_commits == (("sample", TAG_SHA),)
-    assert stamp.context()["plugins"] == "sample 1.2.3 (abcdef0)"
-
-
-def test_plugin_commits_are_ignored_outside_release() -> None:
-    env = {"PECOT_SITE_SIDE": "dev", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
-    assert stamp.plugin_commits == ()
-    assert stamp.context()["plugins"] == "sample 1.2.3"
-
-
-def test_sha_from_env_needs_no_head() -> None:
-    stamp = site_stamp({"PECOT_SITE_SHA": "abc"}, FIXTURE_REPO, STAMP_NOW, None)
-    assert stamp.sha == "abc"
-
-
-def test_plugin_versions_are_read_in_name_order(tmp_path: Path) -> None:
-    for name, version in [("zeta", "2.0.0"), ("alpha", "0.1.0")]:
-        manifest = tmp_path / "plugins" / name / ".claude-plugin" / "plugin.json"
-        manifest.parent.mkdir(parents=True)
-        manifest.write_text(json.dumps({"name": name[0], "version": version}), encoding="utf-8")
-    stamp = site_stamp({}, tmp_path, STAMP_NOW, STAMP_HEAD)
-    assert stamp.plugins == (("alpha", "0.1.0"), ("zeta", "2.0.0"))
-    assert stamp.context()["plugins"] == "alpha 0.1.0 \N{KATAKANA MIDDLE DOT} zeta 2.0.0"
+def test_site_context_per_side(env: dict[str, str], expected: dict[str, str | None]) -> None:
+    assert site_stamp(env).context() == expected
 
 
 @pytest.mark.parametrize(
-    ("env", "head", "names"),
+    ("env", "names"),
     [
-        ({"PECOT_SITE_SIDE": "pr"}, STAMP_HEAD, "PECOT_SITE_PR"),
-        ({"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "#612"}, STAMP_HEAD, "PECOT_SITE_PR"),
-        ({}, None, "PECOT_SITE_SHA"),
-        ({"PECOT_SITE_BUILT_AT": "yesterday"}, STAMP_HEAD, "PECOT_SITE_BUILT_AT"),
-        ({"PECOT_SITE_BUILT_AT": "2026-11-17T05:12:00"}, STAMP_HEAD, "PECOT_SITE_BUILT_AT"),
-        ({"PECOT_SITE_SIDE": "staging"}, STAMP_HEAD, "PECOT_SITE_SIDE"),
-        ({"PECOT_SITE_SIDE": "release"}, STAMP_HEAD, "PECOT_SITE_PLUGIN_COMMITS"),
-        (
-            {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": "sample=abc1234"},
-            STAMP_HEAD,
-            "PECOT_SITE_PLUGIN_COMMITS",
-        ),
-        (
-            {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"other={TAG_SHA}"},
-            STAMP_HEAD,
-            "PECOT_SITE_PLUGIN_COMMITS",
-        ),
-        ({**PR_ENV, "PECOT_SITE_FILLED": "pecot-tools:test-cli"}, STAMP_HEAD, "PECOT_SITE_FILLED"),
-        ({**PR_ENV, "PECOT_SITE_FILLED": '[""]'}, STAMP_HEAD, "PECOT_SITE_FILLED"),
-        ({**PR_ENV, "PECOT_SITE_FILLED": '{"a": 1}'}, STAMP_HEAD, "PECOT_SITE_FILLED"),
-        ({**PR_ENV, "PECOT_SITE_FILLED": '["a:b"]'}, STAMP_HEAD, "PECOT_SITE_DEV_SHA"),
-        (
-            {**PR_ENV, "PECOT_SITE_FILLED": '["a:b"]', "PECOT_SITE_DEV_SHA": "abc1234"},
-            STAMP_HEAD,
-            "PECOT_SITE_DEV_SHA",
-        ),
+        ({"PECOT_SITE_SIDE": "pr"}, "PECOT_SITE_PR"),
+        ({"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "#612"}, "PECOT_SITE_PR"),
+        ({"PECOT_SITE_SIDE": "staging"}, "PECOT_SITE_SIDE"),
     ],
 )
-def test_site_stamp_fails_on_bad_values(env: dict[str, str], head: str | None, names: str) -> None:
+def test_site_stamp_fails_on_bad_values(env: dict[str, str], names: str) -> None:
     with pytest.raises(SiteStampError, match=names):
-        site_stamp(env, FIXTURE_REPO, STAMP_NOW, head)
-
-
-def test_plugin_without_version_fails(tmp_path: Path) -> None:
-    manifest = tmp_path / "plugins" / "bare" / ".claude-plugin" / "plugin.json"
-    manifest.parent.mkdir(parents=True)
-    manifest.write_text('{"name": "bare"}', encoding="utf-8")
-    with pytest.raises(SiteStampError, match="bare"):
-        site_stamp({}, tmp_path, STAMP_NOW, STAMP_HEAD)
+        site_stamp(env)
 
 
 def notice_of(built: Built, page: str = "index.html") -> str | None:
@@ -855,33 +715,23 @@ def notice_of(built: Built, page: str = "index.html") -> str | None:
     return found.group(0) if found else None
 
 
-def build_info_of(built: Built, page: str = "index.html") -> str:
-    found = re.search(r'<div class="container pecot-build">[\s\S]*?</nav>', built.html(page))
-    assert found, "フッターに版の値が無い"
-    return found.group(0)
-
-
-def links_of(band: str) -> dict[str, str]:
+def links_of(notice: str) -> dict[str, str]:
     return {
         html.unescape(re.sub(r"<[^>]+>", "", text)).strip(): html.unescape(href)
-        for href, text in re.findall(r'<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)</a>', band)
+        for href, text in re.findall(r'<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)</a>', notice)
     }
 
 
-def text_of(band: str) -> str:
-    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", band))).strip()
+def text_of(notice: str) -> str:
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", notice))).strip()
 
 
-def test_local_page_has_notice_and_build_info(full: Built) -> None:
+def test_local_page_has_notice_without_links(full: Built) -> None:
     assert full.code == 0, full.warnings
     notice = notice_of(full)
     assert notice is not None
     assert text_of(notice) == "これはローカルでビルドしたドキュメントです。"
-    info = build_info_of(full)
-    assert text_of(info) == (
-        "ローカル コミット 0123456 sample 1.2.3 テスト実行日時 2026-11-17 05:12 UTC リリース版 開発版"
-    )
-    assert links_of(info) == {"リリース版": "/pecot/", "開発版": "/pecot/dev/"}
+    assert links_of(notice) == {}
 
 
 def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
@@ -889,38 +739,13 @@ def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFix
     assert built.code == 0, built.warnings
     notice = notice_of(built)
     assert notice is not None
-    assert (
-        text_of(notice)
-        == "これはプルリクエスト #612 のプレビューです。 プルリクエストを開く 最新のリリース版を見る"
+    assert text_of(notice) == (
+        "これはプルリクエスト #612 のプレビューです。 プルリクエストを開く 最新のリリース版を見る"
     )
     assert links_of(notice) == {
         "プルリクエストを開く": "https://github.com/pecotcraft/pecot/pull/612",
         "最新のリリース版を見る": "/pecot/",
     }
-    info = build_info_of(built)
-    assert text_of(info) == (
-        "プルリクエスト #612 コミット fedcba9 sample 1.2.3 テスト実行日時 2026-11-17 05:12 UTC "
-        "GitHub Actions の実行ログ リリース版 開発版"
-    )
-    assert links_of(info) == {
-        "fedcba9": "https://github.com/pecotcraft/pecot/commit/fedcba9876543210fedcba9876543210fedcba98",
-        "GitHub Actions の実行ログ": "https://github.com/pecotcraft/pecot/actions/runs/1",
-        "リリース版": "/pecot/",
-        "開発版": "/pecot/dev/",
-    }
-
-
-def test_pr_build_info_names_lanes_filled_from_dev(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    built = build(tmp_path, LANES, capfd, site={**PR_ENV, **FILLED_ENV})
-    assert built.code == 0, built.warnings
-    info = build_info_of(built)
-    assert (
-        "pecot-tools・pecot-visual のテストは、このプルリクエストでは実行していないため、開発版 abc1234 の結果を表示しています。"
-        in text_of(info)
-    )
-    assert links_of(info)["abc1234"] == f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}"
 
 
 def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
@@ -931,17 +756,13 @@ def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[s
     assert text_of(notice) == "これは開発中のバージョンのドキュメントです。 最新のリリース版を見る"
 
 
-def test_release_has_no_notice_and_shows_tag_commits(
+def test_release_has_no_notice_and_no_footer_values(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    built = build(tmp_path, LANES, capfd, site=site)
+    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "release"})
     assert built.code == 0, built.warnings
     assert notice_of(built) is None
-    info = build_info_of(built)
-    assert '/pecot/"' not in info
-    assert links_of(info)["開発版"] == "/pecot/dev/"
-    assert "sample 1.2.3 (abcdef0)" in info
+    assert "pecot-build" not in built.html("index.html")
 
 
 _COMMON = {

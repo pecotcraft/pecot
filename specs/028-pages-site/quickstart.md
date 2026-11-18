@@ -24,7 +24,7 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 
 期待:
 
-- どのページの上にも「これはローカルでビルドしたドキュメントです。」が出る。フッターに「ローカル」・手元の HEAD の短い ID・各プラグインの版・テスト実行日時が出る。実行ログへのリンクは出ない
+- どのページの上にも「これはローカルでビルドしたドキュメントです。」が出る
 - トップに、プラグインごとの状態ごとの件数がある
 - 項目の状態が、記号と文字で出る。落ちた項目に、ケースの名前と要旨がある
 - 一部のレーンだけ動かして作っても失敗しない。動かしていないプラグインの項目は「未実行」
@@ -55,7 +55,7 @@ uv run pytest .githooks/tests/test_pages_provenance.py .githooks/tests/test_page
 2. main への push で `pages-build.yml` が動き、その完了で `pages-deploy.yml` が動くことを、`gh run list -w pages-deploy.yml -L 1` で見る
 3. `https://pecotcraft.github.io/pecot/dev/` を開く
 
-期待: 上に開発版の知らせが出て、フッターの側が「開発版」、コミットがマージのコミット。「未実行」の項目が 0 件。`pages-store` の `dev/` だけが書き換わり、リリース版がまだ無ければ `/pecot/` に案内のページがある。
+期待: 上に開発版の知らせと「最新のリリース版を見る」が出る。「未実行」の項目が 0 件。`pages-store` の `dev/` だけが書き換わり、リリース版がまだ無ければ `/pecot/` に案内のページがある。
 
 時間（SC-001）: `gh run list -w pages-build.yml -L 1 --json createdAt` と `gh run list -w pages-deploy.yml -L 1 --json updatedAt` を見て、push から公開の終わりまでが 30 分以内であることを確かめる。
 
@@ -67,8 +67,8 @@ gh workflow run pages-build.yml --ref main -f side=release
 
 期待:
 
-- `https://pecotcraft.github.io/pecot/` の上に知らせが出ず、フッターの側が「リリース版」になる
-- フッターの各プラグインの版とコミットが、そのプラグインの最新のタグと、そのタグが指すコミットになる（`git tag -l '<plugin>-v*' | grep -Ev -- '-v[0-9]+\.[0-9]+\.[0-9]+-'` のうち、semver の最大値）
+- `https://pecotcraft.github.io/pecot/` の上に知らせが出ない
+- `pages-store` の `.pecot-store.json` のリリース版の各タグとコミットが、そのプラグインの最新のタグと、そのタグが指すコミットになる（`git tag -l '<plugin>-v*' | grep -Ev -- '-v[0-9]+\.[0-9]+\.[0-9]+-'` のうち、semver の最大値）
 - `/dev/` と `/pr/` は変わらない
 - 次の本番のリリースからは、release.yml が land の後に同じように起動する
 
@@ -85,11 +85,10 @@ gh workflow run pages-build.yml --ref main -f side=release
 期待:
 
 - status は、context が `pages / preview`、state が `success`、`target_url` が `https://pecotcraft.github.io/pecot/pr/<番号>/` で、付け先が PR の head の SHA
-- 開いたページの上に「これはプルリクエスト #<番号> のプレビューです。」と「プルリクエストを開く」のリンクが出て、フッターのコミットが head のコミットになる。変えた文言が出ている
-- ci が動かさなかったレーンのプラグインは、フッターに「このプルリクエストでは実行していないため、開発版 `<sha>` の結果を表示しています。」として出る
+- 開いたページの上に「これはプルリクエスト #<番号> のプレビューです。」と「プルリクエストを開く」のリンクが出る。変えた文言が出ている
 - `pages / preview` は、ci の `ci-result` の完了から 8 分以内に付く（research R14。run の時刻で見る）
-- 4 の後、同じ URL のフッターのコミットが新しい head のコミットになり、落としたテストが失敗として出る
-- 閉じてから 30 分以内に `/pr/<番号>/` が 404 になる（SC-007）。`/` と `/dev/` のフッターのコミットは変わらない
+- 4 の後、同じ URL で落としたテストが失敗として出る
+- 閉じてから 30 分以内に `/pr/<番号>/` が 404 になる（SC-007）。`/` と `/dev/` の中身は変わらない
 
 ## 6. 止まる場合
 

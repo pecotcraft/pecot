@@ -22,14 +22,8 @@ _ACTIONLINT = _REPO_ROOT / ".github/actionlint.yaml"
 _RULESETS = _REPO_ROOT / ".github/rulesets"
 _JUNIT_LANES = _REPO_ROOT / "libs/interface-spec/docs/junit-lanes.json"
 
-_SITE_ENV = (
-    "PECOT_SITE_STRICT",
-    "PECOT_SITE_SIDE",
-    "PECOT_SITE_SHA",
-    "PECOT_SITE_RUN_URL",
-    "PECOT_SITE_BUILT_AT",
-)
-_PR_SITE_ENV = (*_SITE_ENV, "PECOT_SITE_PR", "PECOT_SITE_FILLED", "PECOT_SITE_DEV_SHA")
+_SITE_ENV = ("PECOT_SITE_STRICT", "PECOT_SITE_SIDE")
+_PR_SITE_ENV = (*_SITE_ENV, "PECOT_SITE_PR")
 _SAME_REPO = "github.event.pull_request.head.repo.full_name == github.repository"
 _PREVIEW_IF = (
     "${{ !cancelled() && needs.verify.outputs.side == 'pr' && needs.store.result == 'success'"
@@ -433,9 +427,8 @@ def test_pages_preview_reads_head_and_both_junit_sources() -> None:
     assert "gh workflow run pages-build.yml --ref main -f side=dev" in explain["run"]
     collect = _step(_CI, "pages-preview", "Collect JUnit")
     assert collect["env"]["RAN"] == "${{ needs.lanes.outputs.lanes }}"
-    for flag in ("--ran", "--ci-dir", "--dev-dir", "--dev-sha", "--filled-out"):
+    for flag in ("--ran", "--ci-dir", "--dev-dir", "--dev-sha"):
         assert flag in collect["run"], flag
-    assert "PECOT_SITE_FILLED=" in collect["run"]
 
 
 def test_pages_preview_passes_site_env_into_container() -> None:
@@ -443,11 +436,6 @@ def test_pages_preview_passes_site_env_into_container() -> None:
     assert env["PECOT_SITE_SIDE"] == "pr"
     assert env["PECOT_SITE_STRICT"] == "1"
     assert env["PECOT_SITE_PR"] == "${{ github.event.pull_request.number }}"
-    assert env["PECOT_SITE_SHA"] == "${{ github.event.pull_request.head.sha }}"
-    # 合否を作ったのは ci の run。
-    assert env["PECOT_SITE_RUN_URL"] == (
-        "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-    )
     assert set(_PR_SITE_ENV) == set(env["DEVCONTAINER_ENV"].split())
 
 

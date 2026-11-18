@@ -355,7 +355,7 @@ def _main(tmp_path: Path, workspace: Path, runner: FakeRunner) -> tuple[int, Pat
         "GITHUB_WORKSPACE": str(workspace),
         "RUNNER_TEMP": str(temp),
         "GITHUB_STEP_SUMMARY": str(summary),
-        "DEVCONTAINER_ENV": "PECOT_SITE_STRICT\nPECOT_SITE_RUN_URL\nPECOT_SITE_BUILT_AT\n",
+        "DEVCONTAINER_ENV": "PECOT_SITE_STRICT\n",
         "PECOT_SITE_STRICT": "1",
     }
     rc = release_build.main(
@@ -453,19 +453,16 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
     docs = runner.calls.index(("exec", "pnpm exec nx run interface-spec:docs --skip-nx-cache"))
     env = runner.envs[docs]
     assert env["PECOT_SITE_SIDE"] == "release"
-    assert env["PECOT_SITE_SHA"] == B
-    assert env["PECOT_SITE_PLUGIN_COMMITS"] == f"a={A},b={B}"
     assert json.loads(env["PECOT_SITE_LANES"]) == _LANES
     assert env["PECOT_SITE_STRICT"] == "1"
     assert env["DEVCONTAINER_ENV"].split() == [
         "PECOT_SITE_STRICT",
-        "PECOT_SITE_RUN_URL",
-        "PECOT_SITE_BUILT_AT",
         "PECOT_SITE_SIDE",
-        "PECOT_SITE_SHA",
-        "PECOT_SITE_PLUGIN_COMMITS",
         "PECOT_SITE_LANES",
     ]
+    # 消した版の値を、もう渡さない。
+    assert "PECOT_SITE_SHA" not in env
+    assert "PECOT_SITE_PLUGIN_COMMITS" not in env
     # サイトを作る段の外では、PECOT_SITE_* を足さない。
     others = [e for i, e in enumerate(runner.envs) if i != docs]
     assert all("PECOT_SITE_SIDE" not in e for e in others)

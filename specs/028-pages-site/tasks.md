@@ -220,7 +220,7 @@ description: "Task list for 028-pages-site"
   pages-build.yml の `pull_request` の run は、閉じた PR の掃除だけを起こす
 - [x] T048 [US3] `.github/workflows/pages-build.yml` の `pull_request` を `closed` だけにし、開発版の artifact を 90 日残す。
   `pages-deploy.yml` は ci の run も受け、deploy に `queue: max` を足す
-- [x] T049 [US3] 版の帯を、リリース版でない側だけの 1 行の知らせ（`_templates/header.html`）と、フッターの版の値（`_templates/footer.html`）に分ける。
+- [x] T049 [US3] 版の帯をやめ、リリース版でない側だけの 1 行の知らせ（`_templates/header.html`）にする。コミット・版・時刻・実行は出さず、渡す環境変数も外す。
   本文の段落と箇条書きの 1 行を 50rem で止める（`_static/pecot.css`、`interface-spec:test-site`）
 
 **Checkpoint**: マージの後、同じリポのブランチから開いた PR に `pages / preview` が付き、`/pecot/pr/<番号>/` が開く。PR を閉じると、次の保管で消える

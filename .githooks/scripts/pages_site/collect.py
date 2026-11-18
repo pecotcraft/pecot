@@ -63,7 +63,6 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--ci-dir", type=Path)
     parser.add_argument("--dev-dir", type=Path)
     parser.add_argument("--dev-sha", default="")
-    parser.add_argument("--filled-out", type=Path)
     args = parser.parse_args(argv[1:])
     if args.ran is not None and (args.ci_dir is None or args.dev_dir is None):
         parser.error("--ran には --ci-dir と --dev-dir が要ります")
@@ -77,7 +76,6 @@ def main(argv: list[str]) -> int:
 
     rows: list[str] = []
     missing: list[str] = []
-    filled: list[str] = []
     for job in matrix(json.loads(args.lanes.read_text(encoding="utf-8"))):
         lane, junit = job["lane"], job["junit"]
         if ran is None:
@@ -104,18 +102,11 @@ def main(argv: list[str]) -> int:
         targets = [args.out / "junit" / junit]
         if ran is not None:
             targets.append(args.root / junit)
-            if lane not in ran:
-                filled.append(lane)
         for target in targets:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
         rows.append(
             f"| {lane} | {c['tests']} | {c['passed']} | {c['failure']} | {c['error']} | {c['skipped']} | {origin} |"
-        )
-
-    if args.filled_out is not None:
-        args.filled_out.write_text(
-            json.dumps(filled, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
         )
 
     print("## 側を作る run")

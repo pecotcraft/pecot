@@ -16,7 +16,7 @@ GitHub Pages の Actions 方式は、1 回の deploy でサイト全体を差し
 
 2026-11-17 の 2 回目の決め直し（#616）で、公開元・リリース版の定義・公開の段の安全の決まりを直した。理由は research.md の R1〜R6・R12・R13。
 
-テストの結果の出し方は、`iface_defs` 拡張を直して、状態を 5 つに分け、落ちたケースの要旨を出す。リリース版でない側ではページの上に 1 行の知らせを、全ページのフッターに版の値を出す。
+テストの結果の出し方は、`iface_defs` 拡張を直して、状態を 5 つに分け、落ちたケースの要旨を出す。リリース版でない側では、ページの上に 1 行の知らせを出す。
 
 調べた結果と判断の理由は [research.md](research.md) にある。
 
@@ -50,7 +50,7 @@ ci.yml と同じ形）
 | 原則 | 判断 | 理由 |
 |---|---|---|
 | I. DDD | 合格 | 状態の決め方（`outcome_of` など）は拡張の中の純粋な関数に置き、JUnit・JSON の読み込みと分ける。公開のスクリプトは、判定の部分（`provenance.py`・`release_sources.py`。API の応答を受けて決めるだけ）と、I/O の部分（`store.py`。artifact を取る・展開する・push する）を分ける |
-| II. TDD | 合格 | 5 つの状態・版の表示・`junit-lanes.json` の読み込みは pytest を先に書く。出どころの確かめ（RunProvenance）とリリース版の材料（ReleaseSources）は、GitHub の API の応答の実物の形を入力にしたテストで確かめる。モックは API を叩く境界だけ。workflow の形は `.githooks/tests` の pytest で確かめる。テストの通過とは別に、quickstart の手順を実物で動かす |
+| II. TDD | 合格 | 5 つの状態・版の知らせ・`junit-lanes.json` の読み込みは pytest を先に書く。出どころの確かめ（RunProvenance）とリリース版の材料（ReleaseSources）は、GitHub の API の応答の実物の形を入力にしたテストで確かめる。モックは API を叩く境界だけ。workflow の形は `.githooks/tests` の pytest で確かめる。テストの通過とは別に、quickstart の手順を実物で動かす |
 | III. 品質ゲート | 合格 | Python は pyright strict と ruff、workflow は actionlint・yamllint（既存の pre-commit）。`.githooks/scripts` の JS には型検査が無いので、新しい処理は JS で書かない。`.githooks/scripts/pages_site/` の Python は、`githooks-lint`（pyright strict）の範囲を広げてかける |
 | IV. YAGNI | 合格 | 過去のリリースは残さない。外部リンクの確認・PR 版の数の上限は作らない。保管ブランチ `pages-store` は、artifact が 90 日で消えるため、research R1 の決め直しで足した。プラグインの紹介の文章は書かない |
 | V. 本体優先 | 合格 | speckit の成果物はこの一式の作成だけ |
@@ -88,12 +88,11 @@ libs/interface-spec/
 │   ├── conf.py                   # 変更: iface_junit を junit-lanes.json から作る。PECOT_SITE_* を html_context へ
 │   ├── _ext/iface_defs.py        # 変更: 5 つの状態、落ちたケースの要旨、状態ごとの数、全体の合否、STRICT
 │   ├── _templates/header.html    # 変更: リリース版でない側の知らせ
-│   ├── _templates/footer.html    # 新規: 版の値と側の行き来
-│   ├── _static/pecot.css         # 変更: 知らせ・フッター・状態の記号の見た目
+│   ├── _static/pecot.css         # 変更: 知らせと状態の記号の見た目
 │   ├── index.rst                 # 変更: 全体の合否
 │   └── tests/test_iface_defs.py  # 変更: 上のテスト
 ├── project.json                  # 変更: docs の description を今の形に合わせる
-└── README.md                     # 変更: 公開サイト・版の表示・STRICT・CI の artifact の節を書き直す
+└── README.md                     # 変更: 公開サイト・版の知らせ・STRICT・CI の artifact の節を書き直す
 
 .github/workflows/
 ├── ci.yml                        # 変更（#590）: tests の JUnit を残し、PR 版を作る pages-preview の job を足す
@@ -134,7 +133,7 @@ README.md                                # 変更: 公開サイトへのリン�
 
 各段は、前の段が無いと確かめられないものを後ろに置く。
 
-1. **出し方**（US2・US4）: 5 つの状態・要旨・状態ごとの数・全体の合否・版の帯・`junit-lanes.json`・STRICT。手元の `interface-spec:docs` で確かめられる
+1. **出し方**（US2・US4）: 5 つの状態・要旨・状態ごとの数・全体の合否・版の知らせ・`junit-lanes.json`・STRICT。手元の `interface-spec:docs` で確かめられる
 2. **作る run**（US1 の前半）: `pages-build.yml`。PR の上で、`pull_request` の契機で PR 版の artifact ができることまで確かめられる
 3. **確かめて保管し公開する run**（US1）: `pages-deploy.yml` と、出どころの確かめ・保管のスクリプト、`pages-build.yml` の手での起動とリリース版、保管ブランチ・environment・ruleset の設定、release.yml の追加。`workflow_run` は既定のブランチの定義で動くので、公開の確かめは 2 と 3 がマージされた後になる
 4. **PR 版の公開**（US3）: 確かめと保管に PR 版と commit status を足す。PR 版の作り方を、ci の結果を使う形に改める（research R14）。確かめは 3 のマージの後
