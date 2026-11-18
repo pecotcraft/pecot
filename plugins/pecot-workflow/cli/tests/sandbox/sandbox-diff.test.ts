@@ -42,6 +42,8 @@ const FAKE_GH = [
 
 const BOARD_SYNC = 'name: pecot-board-sync\non: workflow_dispatch\njobs:\n  sync:\n    steps:\n      - run: npx -y @pecot/workflow-mcp@next\n'
 
+const REVIEW = 'name: pecot review\non: pull_request\njobs:\n  review:\n    steps:\n      - run: npx -y @pecot/workflow-mcp@next review finish\n'
+
 interface Check { context: string, integration_id?: number }
 interface Rule { type: string, parameters?: { required_status_checks?: Check[], [key: string]: unknown } }
 interface Ruleset {
@@ -145,7 +147,7 @@ class Side {
   readonly settings = repositorySettings()
   readonly rulesets: Ruleset[]
   board: Board
-  readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-board-sync.yml': BOARD_SYNC }
+  readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-review.yml': REVIEW }
 
   constructor(readonly repository: string, readonly project: number, rulesetId: number, workflowField: string) {
     this.rulesets = [makeRuleset(rulesetId, repository)]
@@ -275,6 +277,19 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
+  it.for(['pages-store', 'release-tags'])('このリポだけの運用の ruleset %s が検証用に無くても比べない（FR-008）', (name) => {
+    scene.this.rulesets.push({ ...makeRuleset(1, THIS), name })
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+  })
+
+  it('一覧に無い名前の ruleset が検証用に無いと、ruleset のずれに出す', () => {
+    scene.this.rulesets.push({ ...makeRuleset(1, THIS), name: 'other' })
+    const result = scene.run()
+    expect(result.status).toBe(1)
+    expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'ruleset other'])
+  })
+
   it('ボードの選択肢が 1 つ多いと、board-fields のずれに出す', () => {
     const field = find(scene.sandbox.fields(), f => f.name === 'pecot-workflow-sandbox')
     const names = (field.options ?? []).map(option => ({ name: option.name }))
@@ -315,6 +330,21 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const expectedThis = `blob ${blob(BOARD_SYNC)}、${String(line)} 行目: ${splitLines(BOARD_SYNC)[line - 1] ?? ''}`
     const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-board-sync.yml', expectedThis, expectedSandbox)))
+  })
+
+  it('pecot-review.yml の中身が違うと、ファイルの名前で両方の blob の sha と違う最初の行を出す', () => {
+    const other = REVIEW.replace('on: pull_request', 'on: push')
+    scene.sandbox.files['pecot-review.yml'] = other
+    const line = 2
+    const expectedThis = `blob ${blob(REVIEW)}、${String(line)} 行目: ${splitLines(REVIEW)[line - 1] ?? ''}`
+    const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, expectedSandbox)))
+  })
+
+  it('検証用に pecot-review.yml が無いと、検証用を「なし」としてずれに出す', () => {
+    delete scene.sandbox.files['pecot-review.yml']
+    const expectedThis = `blob ${blob(REVIEW)}、1 行目: ${splitLines(REVIEW)[0] ?? ''}`
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, 'なし')))
   })
 
   it('ci.yml は在るかどうかだけを比べる', () => {

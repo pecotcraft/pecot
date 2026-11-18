@@ -25,7 +25,7 @@
 | `compare` | 比べるなら `true`、比べないなら `false` |
 | `reason` | 比べない訳。`compare` が `false` のとき必須 |
 | `ignore` | 比べる項目の中で、読み飛ばすキーの一覧（`id`・`node_id`・日時など） |
-| `match` | 比べない項目が、読んだ値のどこに当たるか。`compare` が `false` の項目だけが持つ。`{"ruleset_rule_type": "code_scanning"}` はその種類の規則を外す。`{"board_field_name": "pecot-workflow-*"}` は、名前が形に合うボードの項目を `pecot-workflow-*` と読み替えてから、型と選択肢を比べる |
+| `match` | 比べない項目が、読んだ値のどこに当たるか。`compare` が `false` の項目だけが持つ。`{"ruleset_rule_type": "code_scanning"}` はその種類の規則を外す。`{"ruleset_name": ["pages-store", "release-tags"]}` は、その名前の ruleset を外す。`{"board_field_name": "pecot-workflow-*"}` は、名前が形に合うボードの項目を `pecot-workflow-*` と読み替えてから、型と選択肢を比べる |
 
 比べる項目は FR-001〜003、比べない項目は FR-004〜008 と同じにする。
 

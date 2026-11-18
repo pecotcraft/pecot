@@ -8,6 +8,8 @@ THIS_PROJECT=1
 SANDBOX_REPO="pecotcraft/pecot-sandbox"
 SANDBOX_PROJECT=3
 WORKFLOWS=".github/workflows"
+# 有無と中身を比べる workflow。比べる相手は、このリポの main にある同じファイル（FR-032）。
+COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-review.yml)
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 items_file="$script_dir/sandbox-diff-items.json"
@@ -50,7 +52,7 @@ ignore_of() {
 }
 
 match_of() {
-    jq -c --arg k "$1" '[.[] | select(.compare | not) | .match // {} | .[$k] // empty]' <<< "$items"
+    jq -c --arg k "$1" '[.[] | select(.compare | not) | .match // {} | .[$k] // empty] | flatten' <<< "$items"
 }
 
 compared() {
@@ -75,7 +77,8 @@ read_merge_settings() {
 read_rulesets() {
     local repo="$1" list id label k out="{}"
     api "repos/$repo/rulesets" --paginate "repos/$repo/rulesets?includes_parents=false"
-    list=$(jq -s 'add // []' <<< "$RESP")
+    list=$(jq -s --argjson skip "$(match_of ruleset_name)" \
+        'add // [] | map(select(.name as $n | $skip | index($n) | not))' <<< "$RESP")
     for id in $(jq -r '.[].id' <<< "$list"); do
         label="repos/$repo/rulesets/$id"
         api "$label" "$label"
@@ -117,20 +120,22 @@ read_board_fields() {
 }
 
 read_workflows() {
-    local repo="$1" label="repos/$1/contents/$WORKFLOWS" out
+    local repo="$1" label="repos/$1/contents/$WORKFLOWS" list out name file
     api "$label" "$label?ref=main"
     require "$label" "ファイルの一覧" 'if type == "array" then . else null end'
+    list="$RESP"
     out=$(jq -c --arg present "あり" '
         {"ci.yml": (if any(.[]; .name == "ci.yml") then $present else null end)}
-        | with_entries(select(.value != null))' <<< "$RESP")
-    if jq -e 'any(.[]; .name == "pecot-board-sync.yml")' <<< "$RESP" > /dev/null; then
-        label="$label/pecot-board-sync.yml"
-        api "$label" "$label?ref=main"
-        require "$label" content '.content'
-        require "$label" sha '.sha'
-        out=$(jq -c --argjson acc "$out" '
-            $acc + {"pecot-board-sync.yml": {sha, lines: (.content | gsub("\\s"; "") | @base64d | split("\n"))}}' <<< "$RESP")
-    fi
+        | with_entries(select(.value != null))' <<< "$list")
+    for name in "${COPIED_WORKFLOWS[@]}"; do
+        jq -e --arg n "$name" 'any(.[]; .name == $n)' <<< "$list" > /dev/null || continue
+        file="$label/$name"
+        api "$file" "$file?ref=main"
+        require "$file" content '.content'
+        require "$file" sha '.sha'
+        out=$(jq -c --argjson acc "$out" --arg n "$name" '
+            $acc + {($n): {sha, lines: (.content | gsub("\\s"; "") | @base64d | split("\n"))}}' <<< "$RESP")
+    done
     echo "$out"
 }
 
