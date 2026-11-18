@@ -130,7 +130,7 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login_status')
 
-    expect(structured).toMatchObject({ kind: 'invalid-input' })
+    expect(structured).toMatchObject({ kind: 'cuj-591-broken' })
     expect(String(structured['detail'])).toContain('aws_sso_login')
     expect(commandCallCount(instance)).toBe(0)
   })
