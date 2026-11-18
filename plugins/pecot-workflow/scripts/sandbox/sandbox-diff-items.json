@@ -53,6 +53,7 @@
     "id": "FR-008",
     "name": "repo-only-operations",
     "compare": false,
-    "reason": "利用者へ配らない。確かめる場所は、要るときに作る"
+    "reason": "利用者へ配らない。確かめる場所は、要るときに作る",
+    "match": { "ruleset_name": ["pages-store", "release-tags"] }
   }
 ]

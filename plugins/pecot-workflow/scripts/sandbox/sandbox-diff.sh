@@ -52,7 +52,7 @@ ignore_of() {
 }
 
 match_of() {
-    jq -c --arg k "$1" '[.[] | select(.compare | not) | .match // {} | .[$k] // empty]' <<< "$items"
+    jq -c --arg k "$1" '[.[] | select(.compare | not) | .match // {} | .[$k] // empty] | flatten' <<< "$items"
 }
 
 compared() {
@@ -77,7 +77,8 @@ read_merge_settings() {
 read_rulesets() {
     local repo="$1" list id label k out="{}"
     api "repos/$repo/rulesets" --paginate "repos/$repo/rulesets?includes_parents=false"
-    list=$(jq -s 'add // []' <<< "$RESP")
+    list=$(jq -s --argjson skip "$(match_of ruleset_name)" \
+        'add // [] | map(select(.name as $n | $skip | index($n) | not))' <<< "$RESP")
     for id in $(jq -r '.[].id' <<< "$list"); do
         label="repos/$repo/rulesets/$id"
         api "$label" "$label"

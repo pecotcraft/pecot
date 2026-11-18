@@ -277,6 +277,19 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
+  it.for(['pages-store', 'release-tags'])('このリポだけの運用の ruleset %s が検証用に無くても比べない（FR-008）', (name) => {
+    scene.this.rulesets.push({ ...makeRuleset(1, THIS), name })
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+  })
+
+  it('一覧に無い名前の ruleset が検証用に無いと、ruleset のずれに出す', () => {
+    scene.this.rulesets.push({ ...makeRuleset(1, THIS), name: 'other' })
+    const result = scene.run()
+    expect(result.status).toBe(1)
+    expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'ruleset other'])
+  })
+
   it('ボードの選択肢が 1 つ多いと、board-fields のずれに出す', () => {
     const field = find(scene.sandbox.fields(), f => f.name === 'pecot-workflow-sandbox')
     const names = (field.options ?? []).map(option => ({ name: option.name }))
