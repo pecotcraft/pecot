@@ -22,6 +22,7 @@
 .github/workflows/ci.yml
 .github/workflows/dependabot-commit.yml
 .github/workflows/pecot-board-sync.yml
+.github/workflows/pecot-review.yml
 .gitignore
 .gitlint
 .markdownlint-cli2.jsonc
@@ -89,6 +90,7 @@ plugins/pecot-workflow/agents/w-plan-reviewer.md
 plugins/pecot-workflow/cli/src/cli.ts
 plugins/pecot-workflow/cli/templates/comment/plan.md
 plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml
+plugins/pecot-workflow/cli/templates/workflow/pecot-review.yml
 plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-workflow/cli/tests/bootstrap/install-record.sh
 plugins/pecot-workflow/cli/tests/hooks/baseline-scripts.test.ts
