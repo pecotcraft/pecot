@@ -47,7 +47,7 @@
   white-space: nowrap;
 }
 
-/* 要件の表の合否（「未実行」など）を折り返さない。 */
+/* 要件の表のテスト結果（「未実行」など）を折り返さない。 */
 #content table.iface-behaviors td:nth-child(3) {
   white-space: nowrap;
 }

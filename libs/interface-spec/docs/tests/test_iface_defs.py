@@ -244,9 +244,9 @@ def test_outcomes(full: Built) -> None:
 
 def test_outcome_is_shown_with_symbol_and_text(full: Built) -> None:
     html = full.html()
-    for label in ("✓ 通った", "✗ 落ちた", "− 飛ばした", "– テストが無い"):
+    for label in ("✓ 成功", "✗ 失敗", "− スキップ", "– テストなし"):
         assert label in html
-    assert re.search(r'class="[^"]*iface-no-test[^"]*">– テストが無い<', html)
+    assert re.search(r'class="[^"]*iface-no-test[^"]*">– テストなし<', html)
 
 
 def test_missing_lane_makes_every_item_not_run(
@@ -366,10 +366,10 @@ def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixtu
     }
     # 並びは data-model.md の Outcome の表の順。0 件の状態は出さない。
     assert rows == {
-        "one run": ("_generated/sample/one-run.html", "– テストが無い 1・✓ 通った 2"),
+        "one run": ("_generated/sample/one-run.html", "– テストなし 1・✓ 成功 2"),
         "sample_two": (
             "_generated/sample/sample_two.html",
-            "– テストが無い 1・✗ 落ちた 1・✓ 通った 1",
+            "– テストなし 1・✗ 失敗 1・✓ 成功 1",
         ),
         "half entry": ("_generated/sample/half-entry.html", "—"),
     }
@@ -408,7 +408,7 @@ def test_overview_counts_states_per_plugin(
         (
             "reference/tools/sample.html",
             "sample",
-            "– テストが無い 2・✗ 落ちた 1・✓ 通った 3・− 飛ばした 1",
+            "– テストなし 2・✗ 失敗 1・✓ 成功 3・− スキップ 1",
         )
     ]
 
@@ -431,11 +431,11 @@ def test_same_case_in_two_junits_counts_once_and_heavier_wins(
     assert got["SM-TWO-01"] == "failed"
     assert got["SM-COMMON-01"] == "passed"
     html = built.html()
-    assert _list_items(html, "落ちたケース") == [
+    assert _list_items(html, "失敗したテスト") == [
         "SM-TWO-01 sample_two > 呼ぶと、2 つを返す（tests/sample.test.ts）: dup-fail",
         "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
     ]
-    assert "飛ばしたケース" not in html
+    assert "スキップしたテスト" not in html
 
 
 def test_same_case_with_different_ids_links_both_items(
@@ -528,7 +528,7 @@ def test_defs_with_unknown_id_warns(tmp_path: Path, capfd: pytest.CaptureFixture
     assert not {i for i in built.needs if i.startswith("SM-")}
 
 
-def test_page_with_only_defs_shows_verifies_links_and_failed(
+def test_requirement_rows_show_result_and_carry_the_id_without_test_ids(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     built = page_build(tmp_path, capfd, "SM-TWO")
@@ -540,7 +540,9 @@ def test_page_with_only_defs_shows_verifies_links_and_failed(
         for i in built.needs["SM-TWO-02"]["verifies_back"]
         if built.needs[i]["title"] == "test_broken"
     )
-    assert re.search(rf'<a [^>]*href="index\.html#{case_id}"', html, flags=re.S)
+    assert case_id not in html
+    assert re.search(r'<tr[^>]*id="SM-TWO-02"', html)
+    assert "<p>ID</p>" in html and "<p>テスト結果</p>" in html
 
 
 def _details(html: str) -> str:
@@ -570,7 +572,7 @@ def test_failed_cases_show_summary_and_fold_the_body(
     ]
     assert page_warnings == []
     html = built.html("page.html")
-    items = _list_items(html, "落ちたケース")
+    items = _list_items(html, "失敗したテスト")
     assert items == [
         "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
         "SM-TWO-02 sample_two > 読めないと、失敗を返す（tests/notes.test.ts）: expected ok to be ng",
@@ -592,7 +594,7 @@ def test_passed_item_lists_its_skipped_cases(
 ) -> None:
     built = page_build(tmp_path, capfd, "SM-TWO", {**LANES, "sample:test-notes": JUNIT_NOTES})
     assert outcomes_of(built)["SM-TWO-01"] == "passed"
-    assert _list_items(built.html("page.html"), "飛ばしたケース") == [
+    assert _list_items(built.html("page.html"), "スキップしたテスト") == [
         "SM-TWO-01 sample_two > 後で確かめる（tests/notes.test.ts）"
     ]
 

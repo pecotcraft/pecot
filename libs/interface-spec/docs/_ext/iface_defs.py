@@ -49,13 +49,13 @@ OUTCOMES = (NOT_RUN, NO_TEST, FAILED, PASSED, SKIPPED)
 # 記号と文字。表示は両方を出し、色に頼らない（FR-015）。
 OUTCOME_LABELS = {
     NOT_RUN: ("\N{QUESTION MARK}", "未実行"),
-    NO_TEST: ("\N{EN DASH}", "テストが無い"),
-    FAILED: ("\N{BALLOT X}", "落ちた"),
-    PASSED: ("\N{CHECK MARK}", "通った"),
-    SKIPPED: ("\N{MINUS SIGN}", "飛ばした"),
+    NO_TEST: ("\N{EN DASH}", "テストなし"),
+    FAILED: ("\N{BALLOT X}", "失敗"),
+    PASSED: ("\N{CHECK MARK}", "成功"),
+    SKIPPED: ("\N{MINUS SIGN}", "スキップ"),
 }
 
-_FAILED_RUBRIC = "落ちたケース"
+_FAILED_RUBRIC = "失敗したテスト"
 _FAILING = frozenset({"failed", "error"})
 _SKIPPING = frozenset({"skipped", "disabled"})
 
@@ -330,7 +330,7 @@ REFERENCE_DIR = "/reference/tools"
 
 
 def label(outcome: str) -> str:
-    """「✓ 通った」の形。"""
+    """「✓ 成功」の形。"""
     return " ".join(OUTCOME_LABELS[outcome])
 
 
@@ -803,7 +803,7 @@ class IfaceDefs(_Base):
 
     def _behavior_lead(self, behaviors: list[Behavior]) -> str:
         """表の前の 1 文。使う人に、動作を機能要件として決め、テストで確かめていることを伝える。"""
-        return f"次の {len(behaviors)} 件の機能要件を自動テストで検証しています。"
+        return f"次の {len(behaviors)} 件の要件を、自動テストで確かめています。"
 
     def _behavior_table(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
         lines = [
@@ -814,8 +814,7 @@ class IfaceDefs(_Base):
             "",
             "   * - ID",
             "     - 要件",
-            "     - 合否",
-            "     - テスト",
+            "     - テスト結果",
         ]
         for b in behaviors:
             outcome = collected.outcome(b.id)
@@ -823,7 +822,6 @@ class IfaceDefs(_Base):
                 f"   * - {_lit(b.id)}",
                 f"     - {_esc(b.statement)}",
                 f"     - :iface-{outcome}:`{label(outcome)}`",
-                f"     - :iface-tests:`{b.id}`" if b.id in collected.by_id else "     -",
             ]
         return [*lines, ""]
 
@@ -849,7 +847,7 @@ class IfaceDefs(_Base):
                 lines += [f"- {_lit(behavior_id)} {_esc(c.name)}（{_esc(c.classname)}）{tail}"]
             lines += [""]
         if skipped:
-            lines += [".. rubric:: 飛ばしたケース", ""]
+            lines += [".. rubric:: スキップしたテスト", ""]
             lines += [f"- {_lit(i)} {_esc(c.name)}（{_esc(c.classname)}）" for i, c in skipped]
             lines += [""]
         return lines
@@ -889,14 +887,18 @@ class IfaceDefs(_Base):
     def _anchored_nodes(
         self, parsed: list[nodes.Node], behaviors: list[Behavior], collected: Collected
     ) -> list[nodes.Node]:
-        """表の ID のセルに、振る舞いの ID をそのまま id として付ける。テストからのリンクの先になる。"""
-        pending = {b.id for b in behaviors}
-        for node in parsed:
-            for literal in node.findall(nodes.literal):
-                text = literal.astext()
-                if text in pending:
-                    literal["ids"].append(text)
-                    pending.discard(text)
+        """表の行に、振る舞いの ID をそのまま id として付ける。テストからのリンクの先になる。"""
+        tables = [
+            t
+            for node in parsed
+            for t in node.findall(nodes.table)
+            if "iface-behaviors" in t["classes"]
+        ]
+        rows = [
+            r for t in tables for body in t.findall(nodes.tbody) for r in body.findall(nodes.row)
+        ]
+        for b, row in zip(behaviors, rows, strict=False):
+            row["ids"].append(b.id)
         self._fold_details(parsed, behaviors, collected)
         return parsed
 
