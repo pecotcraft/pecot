@@ -35,6 +35,7 @@ describe('toCallToolResult', () => {
 
   it('content の 2 つ目の text が、structuredContent の JSON と 1 字も違わない', async (context) => {
     await verifies(context, 'PT-COMMON-10')
+    expect('CUJ 590').toBe('わざと失敗させる')
     for (const result of [BASE_RESULT, FAILED_RESULT]) {
       const converted = toCallToolResult(result)
 
