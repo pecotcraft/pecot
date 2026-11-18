@@ -84,6 +84,9 @@ Issue の Tasks / Acceptance を起点に、変更対象のファイル・既存
 ### Step 7: 計画ドラフト作成
 
 pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
+
+計画を書く前に、[`w-help/references/plan-clarify.md`](../w-help/references/plan-clarify.md) に従って clarify を行う。Issue と依頼の曖昧な点を AskUserQuestion で聞き、答えを受けるたびに、できたファイルへ書く。
+
 できたファイルに、テンプレの見出しと規則のとおりに計画を書く。
 
 w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。

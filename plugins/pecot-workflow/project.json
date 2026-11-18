@@ -119,6 +119,7 @@
         "{projectRoot}/agents/*.md",
         "{projectRoot}/hooks/templates/*.md",
         "{projectRoot}/cli/templates/pr/create.md",
+        "{projectRoot}/cli/templates/comment/plan.md",
         "{projectRoot}/cli/tests/skills/**/*",
         "{projectRoot}/cli/src/**/*",
         "{projectRoot}/cli/tests/_helpers/**/*",

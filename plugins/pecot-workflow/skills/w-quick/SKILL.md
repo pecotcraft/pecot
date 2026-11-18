@@ -66,6 +66,9 @@ git checkout feat/description
 ### Step 4: 計画ドラフト作成
 
 pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
+
+計画を書く前に、[`w-help/references/plan-clarify.md`](../w-help/references/plan-clarify.md) に従って clarify を行う。Issue と依頼の曖昧な点を AskUserQuestion で聞き、答えを受けるたびに、できたファイルへ書く。
+
 できたファイルに、テンプレの見出しと規則のとおりに計画を書く。
 
 変更対象は作業中の worktree の remote のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
