@@ -782,6 +782,7 @@ export const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $rep
               }
               body
               createdAt
+              url
             }
           }
         }

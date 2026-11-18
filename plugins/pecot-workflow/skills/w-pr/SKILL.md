@@ -123,11 +123,13 @@ CI が通ったら、PR に付いたレビューの指摘に対応する。自�
 
 対応する指摘は、次の 2 つから読む。
 
-- PR の未解決のスレッドのうち、先頭が `^\*\*(R\d+/)?F-\d+` に一致するもの
+- PR の未解決のスレッドのうち、先頭が `^\*\*F-\d+` に一致するもの
 - 後ろに `review-resolution` の無い `review-findings`
 
 pecot-workflow の MCP ツール `pr_show` で、PR のコメントを読む（`reviews: true`）。
 指摘が無ければ、その旨を伝えて終える。
+
+最新の `review-findings` の Disposition で「直った」とされた F-NN は、採否を聞かない。スレッドを resolve する対象にし、`review-resolution` の Applied に書く。
 
 #### F-NN とスレッド ID の対応表
 
@@ -206,7 +208,7 @@ gh api --hostname <対象ホスト> graphql \
 
 対応表のクエリを引き直し、次をすべて満たすスレッドを、採用分・対応不要分とも 1 リクエストで resolve する。
 
-- 先頭コメントが `^\*\*(R\d+/)?F-\d+` に一致する
+- 先頭コメントが `^\*\*F-\d+` に一致する
 - `isResolved` が false
 - 今回の対応表に載っている
 

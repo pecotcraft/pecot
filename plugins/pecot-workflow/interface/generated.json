@@ -3438,12 +3438,20 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "url": {
+                          "description": "URL of the comment",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
                         "author",
                         "body",
-                        "created_at"
+                        "created_at",
+                        "url"
                       ],
                       "additionalProperties": false
                     },

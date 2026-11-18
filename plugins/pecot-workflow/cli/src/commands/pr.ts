@@ -966,6 +966,7 @@ const REVIEW_COMMENT_JSON = z.strictObject({
   author: z.string().nullable().describe('Login of the author (null when deleted)'),
   body: z.string().describe('Body of the comment'),
   created_at: z.string().nullable().describe('Creation time'),
+  url: z.string().nullable().describe('URL of the comment'),
 })
 
 const REVIEW_THREAD_JSON = z.strictObject({

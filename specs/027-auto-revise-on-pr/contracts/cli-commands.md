@@ -121,7 +121,7 @@
   - 権限を読めないときは、`warning` の行を出して書く。止まったことが PR に残らないほうが困る
 
 - 止まったことを知らせるコメントは、`cli/templates/comment/review-stopped.md` から作る。中身は [data-model.md](../data-model.md) の「止まったことを知らせるコメント」のとおりだ
-- 止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントの有無から決める。`--since` が無いか空なら「分からない」と書く
+- 止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` のインラインコメントの有無から決める。`--since` が無いか空なら「分からない」と書く
 - 目印には、環境変数 `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` を入れる。re-run では run の ID が変わらないためだ。`GITHUB_RUN_ID` が無ければ、目印を付けずに書く
 - 目印を探すのは、bot のコメントだけだ。人が目印を書き込んで、記録を消せないようにする
 - 合言葉は、環境変数 `PECOT_REVIEW_TRIGGER_PHRASE` から読む。無ければ `@pecotbot review` だ

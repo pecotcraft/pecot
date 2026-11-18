@@ -1705,7 +1705,7 @@ const FULL_SAMPLE: PullRequestSample = {
 const REVIEW_SAMPLE: PullRequestSample = {
   state: 'OPEN',
   reviews: [{ state: 'CHANGES_REQUESTED', author: { login: 'reviewer' }, body: '直してください。', submittedAt: '2026-01-02T03:04:05Z' }],
-  threads: [{ isResolved: false, path: 'src/a.ts', line: 10, comments: { nodes: [{ author: { login: 'reviewer' }, body: '名前を直す', createdAt: '2026-01-02T03:04:05Z' }] } }],
+  threads: [{ isResolved: false, path: 'src/a.ts', line: 10, comments: { nodes: [{ author: { login: 'reviewer' }, body: '名前を直す', createdAt: '2026-01-02T03:04:05Z', url: 'https://github.com/acme/demo/pull/21#discussion_r1' }] } }],
 }
 
 describe('pr show', () => {
@@ -1769,7 +1769,7 @@ describe('pr show', () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout).toContain('### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n')
-    expect(result.stdout).toContain('### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02):\n> 名前を直す\n')
+    expect(result.stdout).toContain('### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02) https://github.com/acme/demo/pull/21#discussion_r1:\n> 名前を直す\n')
   })
 
   it.for([
@@ -1827,7 +1827,7 @@ describe('pr show', () => {
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
     expect(JSON.parse(result.stdout)).toMatchObject({
       reviews: [{ state: 'CHANGES_REQUESTED', author: 'reviewer', body: '直してください。', submitted_at: '2026-01-02T03:04:05Z' }],
-      review_threads: [{ is_resolved: false, path: 'src/a.ts', line: 10, comments: [{ author: 'reviewer', body: '名前を直す', created_at: '2026-01-02T03:04:05Z' }] }],
+      review_threads: [{ is_resolved: false, path: 'src/a.ts', line: 10, comments: [{ author: 'reviewer', body: '名前を直す', created_at: '2026-01-02T03:04:05Z', url: 'https://github.com/acme/demo/pull/21#discussion_r1' }] }],
     })
   })
 

@@ -135,8 +135,8 @@ export interface ReviewCommentReading {
   readonly createdAt: string
 }
 
-// w-review の指摘のインラインコメントの先頭。`**F-NN**` か、2 巡目以降の `**R<巡>/F-NN**`
-const FINDING_HEAD = /^\*\*(?:R\d+\/F|F)-\d+\*\*/u
+// w-review の指摘のインラインコメントの先頭 `**F-NN**`
+const FINDING_HEAD = /^\*\*F-\d+\*\*/u
 
 /**
 止まった場所。since より後に作られた指摘のインラインコメントがあれば after-inline。since が無ければ unknown

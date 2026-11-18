@@ -172,7 +172,7 @@ describe('getPullRequestWithReviews', () => {
     ] },
     reviewThreads: { nodes: [
       { isResolved: false, path: 'a.py', line: 10, comments: { nodes: [
-        { author: { login: 'r1' }, body: 'fix', createdAt: '2026-01-01T00:00:00Z' },
+        { author: { login: 'r1' }, body: 'fix', createdAt: '2026-01-01T00:00:00Z', url: 'https://github.com/owner/repo/pull/9#discussion_r1' },
         { author: JSON_NULL, body: JSON_NULL },
         JSON_NULL,
       ] } },
@@ -203,8 +203,8 @@ describe('getPullRequestWithReviews', () => {
       ],
       review_threads: [
         { is_resolved: false, path: 'a.py', line: 10, comments: [
-          { author: 'r1', body: 'fix', created_at: '2026-01-01T00:00:00Z' },
-          { author: JSON_NULL, body: '', created_at: JSON_NULL },
+          { author: 'r1', body: 'fix', created_at: '2026-01-01T00:00:00Z', url: 'https://github.com/owner/repo/pull/9#discussion_r1' },
+          { author: JSON_NULL, body: '', created_at: JSON_NULL, url: JSON_NULL },
         ] },
         { is_resolved: true, path: JSON_NULL, line: JSON_NULL, comments: [] },
       ],
