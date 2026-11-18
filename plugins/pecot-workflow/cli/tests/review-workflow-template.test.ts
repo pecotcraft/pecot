@@ -270,13 +270,14 @@ describe('review のワークフローの雛形', () => {
     ])
   })
 
-  it('PECOT_REVIEW_WEB_ACCESS が false でないとき、Context7 を足し、WebSearch と Context7 のツールを許す', () => {
+  it('PECOT_REVIEW_WEB_ACCESS が false でないとき、Context7 を足し、WebSearch・docs.github.com・Context7 のツールを許す', () => {
     expect(claudeArguments).toContain('${{ vars.PECOT_REVIEW_WEB_ACCESS != \'false\' && format(\'--mcp-config \'\'{0}\'\'\', secrets.CONTEXT7_API_KEY != \'\' && env.PECOT_REVIEW_CONTEXT7_WITH_KEY || env.PECOT_REVIEW_CONTEXT7) || \'\' }}')
-    expect(claudeArguments).toContain('${{ vars.PECOT_REVIEW_WEB_ACCESS != \'false\' && \',WebSearch,mcp__context7__resolve-library-id,mcp__context7__query-docs\' || \'\' }}')
+    expect(claudeArguments).toContain('${{ vars.PECOT_REVIEW_WEB_ACCESS != \'false\' && \',WebSearch,WebFetch(domain:docs.github.com),mcp__context7__resolve-library-id,mcp__context7__query-docs\' || \'\' }}')
   })
 
-  it('WebFetch を許可に書かず、組み込みの文書のドメインだけを読ませる', () => {
-    expect(claudeArguments).not.toMatch(/--allowedTools "[^"]*WebFetch/)
+  it('WebFetch は docs.github.com だけをドメインつきで許し、全ドメインを許さない', () => {
+    const allowed = /--allowedTools "([^"]*)"/.exec(claudeArguments)?.[1] ?? ''
+    expect(Array.from(allowed.matchAll(/WebFetch[^,']*/g), match => match[0])).toEqual(['WebFetch(domain:docs.github.com)'])
   })
 
   it('PECOT_REVIEW_WEB_ACCESS が false のとき、WebFetch と WebSearch を拒否する', () => {

@@ -512,6 +512,6 @@ v1.0.278 の `src/entrypoints/run.ts`・`src/github/token.ts`・`base-action/src
 | 項目 | 扱い |
 |---|---|
 | ターン・時間の初期値 | 60 ターン・30 分のまま変えない。検証用の成功した 9 回（2026-11-18、review 2・action v1.0.278）は、最大 13 ターン・モデルの実行 30 秒・job 2 分だった。検証の PR は 1〜2 ファイルの小さなものなので、大きな PR の余裕として下げない |
-| w-reviewer に、公式の文書を調べる手段を許すか | 許す（2026-11-18 のユーザーの判断、#657。前は許さないと決めていた）。`[tech]` の標準との適合は、仕様の文を読まないと果たせない。Context7 は、雛形の `--mcp-config` で OAuth でない URL につなぐ。キーは任意の secret にする。`WebSearch` は許し、`WebFetch` は Claude Code に組み込みの文書のドメインだけにして、仕込まれた指示（FR-027）で任意のページを読ませない。クエリに差分の文が入るのは受け入れ、変数 `PECOT_REVIEW_WEB_ACCESS` で止められるようにする |
+| w-reviewer に、公式の文書を調べる手段を許すか | 許す（2026-11-18 のユーザーの判断、#657。前は許さないと決めていた）。`[tech]` の標準との適合は、仕様の文を読まないと果たせない。Context7 は、雛形の `--mcp-config` で OAuth でない URL につなぐ。キーは任意の secret にする。`WebSearch` は許し、`WebFetch` は Claude Code に組み込みの文書のドメインと `docs.github.com`（組み込みに無い）だけにして、仕込まれた指示（FR-027）で任意のページを読ませない。クエリに差分の文が入るのは受け入れ、変数 `PECOT_REVIEW_WEB_ACCESS` で止められるようにする |
 | 許した bot の PR で、action の制限のもとで動くか | 動く。名前で許した Dependabot の PR（run 44238560353）と、許していない Dependabot の PR に人が合言葉で起こしたとき（run 44231845794）の両方で、指摘の一覧まで投稿した。Dependabot が起こす run は、Dependabot の secret に置いた認証を使う |
 | プラグインの hooks が人のいない実行を止めるか | 止めない。検証用の 9 回とも、指摘の投稿まで進んだ |

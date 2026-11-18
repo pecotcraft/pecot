@@ -140,7 +140,7 @@ Claude の App を使う構成では、雛形のファイルを足す・変え�
 |---|---|
 | Context7 | ライブラリ・フレームワークの文書 |
 | `WebSearch` | 検索の結果の題と URL。ページの中身は読まない |
-| `WebFetch` | Claude Code が承認なしで読ませる、組み込みの文書のドメインのページだけ |
+| `WebFetch` | `docs.github.com` と、Claude Code が承認なしで読ませる組み込みの文書のドメインのページだけ |
 
 `WebFetch` で読むドメインは、雛形の `pecot-review:allowed-tools` の行で足します。`PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` に `WebFetch(domain:example.com)` の形で書きます。PR に仕込まれた指示で読まされても困らない、信頼できるドメインだけを足します。
 
