@@ -540,6 +540,29 @@ assert_contains "--dev でも監査の pass を出す" "監査 pass（high 以�
 assert_eq "--dev の記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
 stop_mock
 
+# --- 6c. --dev は high を警告にとどめ、件数を記録に残す (#658) ---
+
+start_mock "$TMP/image-size-high.json" case6c
+run_audit case6c --dist="$(new_dist case6c)" --runtime-dist="$(new_runtime_dist case6c)" --exceptions="$EXC_EMPTY" \
+    --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
+assert_eq "--dev は high があっても exit 0" "0" "$RC"
+assert_contains "--dev は high を警告として出す" "WARNING: 永続層: high 以上の脆弱なパッケージ 1 件" "$ERR"
+assert_contains "--dev の警告に脆弱なパッケージ名を出す" "image-size (high)" "$ERR"
+assert_contains "--dev の警告に advisory の URL を出す" "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr" "$ERR"
+assert_contains "--dev は high を残して続行した旨を出す" "開発版: high 以上 1 件を警告して続行" "$OUT"
+assert_eq "--dev の記録に永続層の high 件数が入る" "1" "$(record_field runtime.vulnerabilities.high)"
+stop_mock
+
+# --- 6d. --dev でも、監査結果が得られなければ止める ---
+
+start_mock "$TMP/no-advisory.json" case6d
+run_audit case6d --dist="$(new_dist case6d)" --runtime-dist="$(new_runtime_dist case6d)" --exceptions="$EXC_EMPTY" \
+    --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
+assert_eq "--dev でもカナリア不検出で exit 1" "1" "$RC"
+assert_contains "--dev でも未実施として中止する" "監査未実施のため中止" "$ERR"
+assert_eq "--dev の未実施では記録を残さない" "__ABSENT__" "$(record_field head)"
+stop_mock
+
 # --- 7. moderate だけなら pass する（判定境界の下側）---
 
 start_mock "$TMP/moderate.json" case7

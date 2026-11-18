@@ -28,6 +28,7 @@
 #   --plans-dir=<dir>  version plan の探索先。既定は <repo>/.nx/version-plans。テスト用。
 #   --dev              version plan の有無とリリースタグを見ずに監査する（開発版の build 用）。
 #                      手順 1（探索先の確認・release group の解決・plan とタグの判定）を飛ばす。
+#                      high 以上は止めずに警告し、記録を書いて pass で終える (#658)。
 #   --audit-record=<path>
 #                      監査記録の書き出し先。既定は <repo>/.nx/release-audit/pecotv-audit.json で、
 #                      env PECOTV_AUDIT_RECORD でも指定できる。
@@ -497,22 +498,29 @@ for excepted_file in "$DIST_EXCEPTED_FILE" "$RUNTIME_EXCEPTED_FILE"; do
     fi
 done
 
-if [ $((DIST_BLOCKING + RUNTIME_BLOCKING)) -gt 0 ]; then
+BLOCKING_TOTAL=$((DIST_BLOCKING + RUNTIME_BLOCKING))
+if [ "$BLOCKING_TOTAL" -gt 0 ]; then
+    # 開発版は直した版の無い advisory で止めない (#658)。件数は記録に残り、本番の publish が拒む。
+    if [ "$DEV" = true ]; then LEVEL=WARNING; else LEVEL=ERROR; fi
     if [ "$DIST_BLOCKING" -gt 0 ]; then
-        echo "ERROR: ${LABEL_DIST}: high 以上の脆弱なパッケージ ${DIST_BLOCKING} 件" >&2
+        echo "${LEVEL}: ${LABEL_DIST}: high 以上の脆弱なパッケージ ${DIST_BLOCKING} 件" >&2
         cat "$DIST_BLOCKING_FILE" >&2
     fi
     if [ "$RUNTIME_BLOCKING" -gt 0 ]; then
-        echo "ERROR: ${LABEL_RUNTIME}: high 以上の脆弱なパッケージ ${RUNTIME_BLOCKING} 件" >&2
+        echo "${LEVEL}: ${LABEL_RUNTIME}: high 以上の脆弱なパッケージ ${RUNTIME_BLOCKING} 件" >&2
         cat "$RUNTIME_BLOCKING_FILE" >&2
     fi
-    exit 1
+    if [ "$DEV" = false ]; then
+        exit 1
+    fi
 fi
 
-# 記録は、監査が pass したときだけ書く。
-# high 以上を検出して中止した場合と、監査が未実施で中止した場合は書かない。
-# 記録は処理の先頭で消してあるので、どちらの場合も記録が無い状態になる。
+# 中止したときは記録を書かない。記録は先頭で消してあるので、publish は「記録なし」で止まる。
 write_audit_record pass "$HEAD_SHA" "$REGISTRY" "$DIST_SUMMARY_JSON" "$RUNTIME_SUMMARY_JSON"
 
-echo "==> 監査 pass（high 以上なし）"
+if [ "$BLOCKING_TOTAL" -gt 0 ]; then
+    echo "==> 監査 pass（開発版: high 以上 ${BLOCKING_TOTAL} 件を警告して続行）"
+else
+    echo "==> 監査 pass（high 以上なし）"
+fi
 exit 0

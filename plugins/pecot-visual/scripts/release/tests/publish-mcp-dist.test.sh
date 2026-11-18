@@ -415,6 +415,20 @@ else
     fail "監査記録との一致を出力しない ($(log_tail dryrun.log 2))"
 fi
 
+# 1-4. high の残る記録でも、dry-run（開発版の tgz 作り）は警告して通る (#658)。本実行の拒否は 9-2 で確かめる。
+write_audit_record "$DIST_FP" "$REPO_HEAD" 0 2
+if bash "$PUBLISH" --dry-run --skip-build --out-dir="$TMP/dist-dev-high" > "$TMP/dryrun-high.log" 2>&1; then
+    pass "high の残る記録でも dry-run が正常終了する"
+else
+    fail "high の残る記録で dry-run が失敗した ($(log_tail dryrun-high.log 3))"
+fi
+if grep -qF "WARNING: 監査記録に high 以上の脆弱性が残っています (2 件)" "$TMP/dryrun-high.log"; then
+    pass "high の残る記録の dry-run は件数を警告する"
+else
+    fail "high の残る記録の dry-run が警告を出さない ($(log_tail dryrun-high.log 2))"
+fi
+write_audit_record "$DIST_FP" "$REPO_HEAD" 0
+
 # dry-run は npm pack まで実行し、gh の 3 つは表示だけにする。
 assert_eq "dry-run は gh を呼ばない" "0" "$(gh_call_count)"
 # dry-run の表示は、タグの版が nx の上げる前の値であることを添える。
