@@ -202,12 +202,12 @@ Phase 5 の T035 に含めた。w-revise の引き継ぎの分岐は足さない
 
 **前提**: Phase 6 と Phase 7（どちらも main に入っている。CLI は、npm の `@next` に出た開発版を使う）
 
-- [ ] T048 検証用で、`pecot workflow install review` から quickstart.md の「導入を確かめる」を流す。雛形の後始末の step が、公開した `@pecot/workflow-mcp` の `review finish` を打てることを見る
+- [x] T048 検証用で、`pecot workflow install review` から quickstart.md の「導入を確かめる」を流す。雛形の後始末の step が、公開した `@pecot/workflow-mcp` の `review finish` を打てることを見る
   - シナリオ 14 の、始めてから最初の自動レビューが起きるまでの時間を測り、30 分以内であることを見る。T047 では、配られたプラグインと CLI が自動レビューに届かないため測らない
-- [ ] T049 quickstart.md のシナリオ 1〜13 と 15〜18 を、検証用で流す。実際に投稿するシナリオ 1・3・6 は main が流す。結果を、シナリオごとに PR の説明に書く
+- [x] T049 quickstart.md のシナリオ 1〜13 と 15〜18 を、検証用で流す。実際に投稿するシナリオ 1・3・6 は main が流す。結果を、シナリオごとに PR の説明に書く
 - [x] T050 T049 の実行の記録から、かかったターンと時間を読む。`p-w/cli/templates/workflow/pecot-review.yml` の既定値を直し、版の目印を上げる。w-reviewer に公式の文書を調べる手段を許すかを決め、`spec/research.md` の「残した判断」に結果を書く
 - [x] T051 quickstart.md の「実行の記録で見ること」の 4 つを、T049 の run で確かめる。トークンと secret の値が、ログとコメントに出ていないことを見る
-- [ ] T052 このリポに導入する。`pecot workflow install review` で `.github/workflows/pecot-review.yml` を置き、Claude の App と secret を用意する。App のインストールと secret の登録は、ユーザーが行う。`pecot workflow doctor review` が通ることを見る
+- [x] T052 このリポに導入する。`pecot workflow install review` で `.github/workflows/pecot-review.yml` を置き、Claude の App と secret を用意する。App のインストールと secret の登録は、ユーザーが行う。`pecot workflow doctor review` が通ることを見る
 - [ ] T053 このリポで PR を 1 つ作り、指摘が載ることを見る。fork からの PR で起動しないことは、検証用の結果（シナリオ 7）で代える（#638 に分けた）
 
 ---
