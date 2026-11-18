@@ -1,4 +1,4 @@
-"""公開の版（SiteStamp）。すべてのページの上の帯に出す値を、環境変数とリポジトリから決める。"""
+"""公開の版（SiteStamp）。上の知らせとフッターに出す値を、環境変数とリポジトリから決める。"""
 
 from __future__ import annotations
 
@@ -11,9 +11,14 @@ from pathlib import Path
 from typing import Any, cast
 
 GITHUB = "https://github.com/pecotcraft/pecot"
-SIDE_LABELS = {"release": "リリース版", "dev": "開発版", "local": "手元"}
+SIDE_LABELS = {"release": "リリース版", "dev": "開発版", "local": "ローカル"}
 # 側の行き来のリンク。公開サイトの絶対パスなので、手元で開くと行き先は無い。
 SIDE_LINKS = (("release", "リリース版", "/pecot/"), ("dev", "開発版", "/pecot/dev/"))
+# リリース版では出さない。
+NOTICES = {
+    "dev": "これは開発中のバージョンのドキュメントです。",
+    "local": "これはローカルでビルドしたドキュメントです。",
+}
 SIDES = ("release", "dev", "pr", "local")
 
 
@@ -37,7 +42,7 @@ class SiteStamp:
 
     @property
     def label(self) -> str:
-        return f"PR #{self.pr}" if self.side == "pr" else SIDE_LABELS[self.side]
+        return f"プルリクエスト #{self.pr}" if self.side == "pr" else SIDE_LABELS[self.side]
 
     def context(self) -> dict[str, Any]:
         """テンプレートに渡す値。Sphinx が設定を pickle するので、文字列と None と list だけで組む。"""
@@ -54,9 +59,18 @@ class SiteStamp:
             "built_at": self.built_at.strftime("%Y-%m-%d %H:%M UTC"),
             "built_at_iso": self.built_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "run_url": self.run_url,
-            "pr_label": f"PR #{self.pr} を開く" if self.side == "pr" else None,
+            "notice": (
+                f"これはプルリクエスト #{self.pr} のプレビューです。"
+                if self.side == "pr"
+                else NOTICES.get(self.side)
+            ),
+            "pr_label": "プルリクエストを開く" if self.side == "pr" else None,
             "pr_url": f"{GITHUB}/pull/{self.pr}" if self.side == "pr" else None,
-            "filled": ", ".join(self.filled) if self.filled else None,
+            "filled": (
+                "・".join(dict.fromkeys(n.split(":")[0] for n in self.filled))
+                if self.filled
+                else None
+            ),
             "dev_sha": self.dev_sha[:7] if self.filled and self.dev_sha else None,
             "dev_commit_url": (
                 f"{GITHUB}/commit/{self.dev_sha}" if self.filled and self.dev_sha else None

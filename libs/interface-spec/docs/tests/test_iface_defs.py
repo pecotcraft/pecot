@@ -683,8 +683,9 @@ def test_site_stamp_defaults_to_local() -> None:
 def test_local_context_has_no_commit_or_run_link_and_links_both_sides() -> None:
     assert site_stamp({}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context() == {
         "side": "local",
-        "label": "手元",
+        "label": "ローカル",
         "sha": "0123456",
+        "notice": "これはローカルでビルドしたドキュメントです。",
         "commit_url": None,
         "plugins": "sample 1.2.3",
         "built_at": "2026-11-17 05:12 UTC",
@@ -702,14 +703,15 @@ def test_local_context_has_no_commit_or_run_link_and_links_both_sides() -> None:
 def test_pr_context_reads_every_env_value() -> None:
     assert site_stamp(PR_ENV, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context() == {
         "side": "pr",
-        "label": "PR #612",
+        "label": "プルリクエスト #612",
+        "notice": "これはプルリクエスト #612 のプレビューです。",
         "sha": "fedcba9",
         "commit_url": "https://github.com/pecotcraft/pecot/commit/fedcba9876543210fedcba9876543210fedcba98",
         "plugins": "sample 1.2.3",
         "built_at": "2026-11-17 05:12 UTC",
         "built_at_iso": "2026-11-17T05:12:00Z",
         "run_url": "https://github.com/pecotcraft/pecot/actions/runs/1",
-        "pr_label": "PR #612 を開く",
+        "pr_label": "プルリクエストを開く",
         "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
         "filled": None,
         "dev_sha": None,
@@ -733,7 +735,7 @@ def test_pr_context_names_lanes_filled_from_dev() -> None:
     )
     context = stamp.context()
     assert (context["filled"], context["dev_sha"], context["dev_commit_url"]) == (
-        "pecot-tools:test-cli, pecot-visual:test-cli",
+        "pecot-tools・pecot-visual",
         "abc1234",
         f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}",
     )
@@ -848,9 +850,14 @@ def test_plugin_without_version_fails(tmp_path: Path) -> None:
         site_stamp({}, tmp_path, STAMP_NOW, STAMP_HEAD)
 
 
-def band_of(built: Built, page: str = "index.html") -> str:
-    found = re.search(r'<div class="pecot-site"[\s\S]*?</nav>', built.html(page))
-    assert found, "版の帯が無い"
+def notice_of(built: Built, page: str = "index.html") -> str | None:
+    found = re.search(r'<div class="pecot-site"[\s\S]*?</div>\s*</div>', built.html(page))
+    return found.group(0) if found else None
+
+
+def build_info_of(built: Built, page: str = "index.html") -> str:
+    found = re.search(r'<div class="container pecot-build">[\s\S]*?</nav>', built.html(page))
+    assert found, "フッターに版の値が無い"
     return found.group(0)
 
 
@@ -865,52 +872,76 @@ def text_of(band: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", band))).strip()
 
 
-def test_local_band_is_on_the_page(full: Built) -> None:
+def test_local_page_has_notice_and_build_info(full: Built) -> None:
     assert full.code == 0, full.warnings
-    band = band_of(full)
-    assert text_of(band) == ("手元 0123456 sample 1.2.3 2026-11-17 05:12 UTC リリース版 開発版")
-    assert links_of(band) == {"リリース版": "/pecot/", "開発版": "/pecot/dev/"}
+    notice = notice_of(full)
+    assert notice is not None
+    assert text_of(notice) == "これはローカルでビルドしたドキュメントです。"
+    info = build_info_of(full)
+    assert text_of(info) == (
+        "ローカル コミット 0123456 sample 1.2.3 テスト実行日時 2026-11-17 05:12 UTC リリース版 開発版"
+    )
+    assert links_of(info) == {"リリース版": "/pecot/", "開発版": "/pecot/dev/"}
 
 
-def test_pr_band_links_commit_run_and_pr(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
     built = build(tmp_path, LANES, capfd, site=PR_ENV)
     assert built.code == 0, built.warnings
-    band = band_of(built)
-    assert text_of(band) == (
-        "PR #612 fedcba9 sample 1.2.3 2026-11-17 05:12 UTC "
-        "この合否を作った実行 PR #612 を開く リリース版 開発版"
+    notice = notice_of(built)
+    assert notice is not None
+    assert (
+        text_of(notice)
+        == "これはプルリクエスト #612 のプレビューです。 プルリクエストを開く 最新のリリース版を見る"
     )
-    assert links_of(band) == {
+    assert links_of(notice) == {
+        "プルリクエストを開く": "https://github.com/pecotcraft/pecot/pull/612",
+        "最新のリリース版を見る": "/pecot/",
+    }
+    info = build_info_of(built)
+    assert text_of(info) == (
+        "プルリクエスト #612 コミット fedcba9 sample 1.2.3 テスト実行日時 2026-11-17 05:12 UTC "
+        "GitHub Actions の実行ログ リリース版 開発版"
+    )
+    assert links_of(info) == {
         "fedcba9": "https://github.com/pecotcraft/pecot/commit/fedcba9876543210fedcba9876543210fedcba98",
-        "この合否を作った実行": "https://github.com/pecotcraft/pecot/actions/runs/1",
-        "PR #612 を開く": "https://github.com/pecotcraft/pecot/pull/612",
+        "GitHub Actions の実行ログ": "https://github.com/pecotcraft/pecot/actions/runs/1",
         "リリース版": "/pecot/",
         "開発版": "/pecot/dev/",
     }
 
 
-def test_pr_band_names_lanes_filled_from_dev(
+def test_pr_build_info_names_lanes_filled_from_dev(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     built = build(tmp_path, LANES, capfd, site={**PR_ENV, **FILLED_ENV})
     assert built.code == 0, built.warnings
-    band = band_of(built)
+    info = build_info_of(built)
     assert (
-        "開発版 abc1234 の合否で埋めたレーン: pecot-tools:test-cli, pecot-visual:test-cli"
-        in text_of(band)
+        "pecot-tools・pecot-visual のテストは、このプルリクエストでは実行していないため、開発版 abc1234 の結果を表示しています。"
+        in text_of(info)
     )
-    assert links_of(band)["abc1234"] == f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}"
+    assert links_of(info)["abc1234"] == f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}"
 
 
-def test_release_band_shows_its_own_side_as_text(
+def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "dev"})
+    assert built.code == 0, built.warnings
+    notice = notice_of(built)
+    assert notice is not None
+    assert text_of(notice) == "これは開発中のバージョンのドキュメントです。 最新のリリース版を見る"
+
+
+def test_release_has_no_notice_and_shows_tag_commits(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
     built = build(tmp_path, LANES, capfd, site=site)
     assert built.code == 0, built.warnings
-    assert '/pecot/"' not in band_of(built)
-    assert links_of(band_of(built))["開発版"] == "/pecot/dev/"
-    assert "sample 1.2.3 (abcdef0)" in band_of(built)
+    assert notice_of(built) is None
+    info = build_info_of(built)
+    assert '/pecot/"' not in info
+    assert links_of(info)["開発版"] == "/pecot/dev/"
+    assert "sample 1.2.3 (abcdef0)" in info
 
 
 _COMMON = {

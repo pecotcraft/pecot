@@ -97,51 +97,44 @@
   margin: 0.125rem 0 0;
 }
 
-/* 版の帯。どの側・どのコミットの合否かを、すべてのページの上に出す。狭い画面では折り返す。 */
+/* リリース版でない側の知らせ。Read the Docs の版の知らせと同じく、1 行の文を真ん中に置く。 */
 .pecot-site {
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--muted));
-  font-size: 0.75rem;
-  line-height: 1.5;
+  font-size: 0.875rem;
 }
 
 .pecot-site-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  justify-content: center;
   gap: 0.25rem 1rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  text-align: center;
+}
+
+.pecot-site a,
+.pecot-build a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 版の詳しい値。テーマのフッターの文と同じ大きさと色にする。 */
+.pecot-build {
+  padding-top: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.75;
   color: hsl(var(--muted-foreground));
 }
 
-.pecot-site-side {
-  color: hsl(var(--foreground));
-  font-weight: 600;
+.pecot-build p > span + span::before,
+.pecot-build nav > span + span::before {
+  content: " ・ ";
 }
 
 .pecot-site-sha {
   font-family: var(--font-mono, ui-monospace, monospace);
-}
-
-.pecot-site a {
-  text-decoration: underline;
-  text-decoration-color: hsl(var(--ring));
-  text-underline-offset: 2px;
-}
-
-.pecot-site a:hover {
-  color: hsl(var(--foreground));
-}
-
-.pecot-site-sides {
-  display: flex;
-  gap: 0.75rem;
-  margin-left: auto;
-}
-
-.pecot-site-sides [aria-current] {
-  color: hsl(var(--foreground));
 }
 
 /* 表は、包み（_ext/table_scroll.py）の中だけで横に送る。表の display は変えない。 */

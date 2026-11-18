@@ -1,36 +1,17 @@
-{#- テーマのヘッダーに、版の帯と左上のワードマークだけを足す。 -#}
+{#- テーマのヘッダーに、版の知らせと左上のワードマークだけを足す。 -#}
 {% extends "!header.html" %}
-{#- 帯の値は conf.py の html_context["site"]（_ext/site_stamp.py）が決める。 -#}
+{#- Read the Docs の版の知らせと同じく、リリース版でない側でだけ 1 行の知らせを出す。版の詳しい値は footer.html に置く。 -#}
 {%- block header_before %}
-{%- if site %}
-<div class="pecot-site" data-side="{{ site.side|e }}">
+{%- if site and site.notice %}
+<div class="pecot-site" data-side="{{ site.side|e }}" role="note">
   <div class="container pecot-site-row">
-    <strong class="pecot-site-side">{{ site.label|e }}</strong>
-    {%- if site.commit_url %}
-    <a class="pecot-site-sha" href="{{ site.commit_url|e }}" rel="noopener">{{ site.sha|e }}</a>
-    {%- else %}
-    <span class="pecot-site-sha">{{ site.sha|e }}</span>
-    {%- endif %}
-    <span>{{ site.plugins|e }}</span>
-    <time datetime="{{ site.built_at_iso|e }}">{{ site.built_at|e }}</time>
-    {%- if site.run_url %}
-    <a href="{{ site.run_url|e }}" rel="noopener">この合否を作った実行</a>
-    {%- endif %}
+    <span>{{ site.notice|e }}</span>
     {%- if site.pr_url %}
     <a href="{{ site.pr_url|e }}" rel="noopener">{{ site.pr_label|e }}</a>
     {%- endif %}
-    {%- if site.filled %}
-    <span class="pecot-site-filled">開発版 <a class="pecot-site-sha" href="{{ site.dev_commit_url|e }}" rel="noopener">{{ site.dev_sha|e }}</a> の合否で埋めたレーン: {{ site.filled|e }}</span>
+    {%- if site.side != "local" %}
+    <a href="/pecot/">最新のリリース版を見る</a>
     {%- endif %}
-    <nav class="pecot-site-sides" aria-label="公開の側">
-      {%- for s in site.sides %}
-      {%- if s.href %}
-      <a href="{{ s.href|e }}">{{ s.label|e }}</a>
-      {%- else %}
-      <span aria-current="true">{{ s.label|e }}</span>
-      {%- endif %}
-      {%- endfor %}
-    </nav>
   </div>
 </div>
 {%- endif %}

@@ -92,7 +92,7 @@
   - `pages-store` の大きさが 900 MB を超えたら、run の summary に警告を書く
 - **Rationale**:
   - 1 回目の形は、artifact を 90 日で消える置き場所にし、リリース版だけを自動で作り直していた。開発版と PR 版も push が 90 日無ければ消えるのに、そこを補っていなかった。保管が消えなければ、作り直しの仕組みは要らない
-  - 案内のページを置けば、帯の行き来のリンク（`/pecot/`・`/pecot/dev/`）が切れない（SC-006）
+  - 案内のページを置けば、フッターの行き来のリンク（`/pecot/`・`/pecot/dev/`）が切れない（SC-006）
 - **artifact が消えたとき**:
   - 保管の job が 7 日より長く落ち続けると、その間の側は失われる
   - 開発版・リリース版は、`pages-build.yml` の手での起動で作り直せる
@@ -149,11 +149,11 @@
 ## R8. 版と実行の表示
 
 - **Decision**: サイトを作るときに、環境変数（`PECOT_SITE_SIDE`・`PECOT_SITE_SHA`・`PECOT_SITE_RUN_URL`・`PECOT_SITE_BUILT_AT`・`PECOT_SITE_PR`）を `conf.py` が読み、`html_context` に渡す。
-  テンプレートの `header.html` が、すべてのページの上に版の帯を出す。
+  テンプレートの `header.html` が、リリース版でない側でだけページの上に 1 行の知らせを出し、`footer.html` がすべてのページのフッターに版の値を出す（2026-11-18、#590 で帯から改めた。Read the Docs の版の知らせと、テーマのフッターの「Last updated」の形に合わせる）。
   各プラグインの版は、各プラグインの `.claude-plugin/plugin.json` の `version` から読む。`package.json` の `version` は pnpm の workspace のための `0.0.0` で、nx release は上げない。
-  リリース版では、プラグインごとの版とタグのコミットを帯に出す（R13）。
-  手元では、環境変数が無ければ `git rev-parse` と今の時刻で埋め、側を「手元」と出す
-- **Rationale**: FR-012・FR-013・FR-019・FR-021・FR-025。テーマの既存のテンプレート（`_templates/header.html`）を使えば、全ページに 1 か所で出せる
+  リリース版では、プラグインごとの版とタグのコミットをフッターに出す（R13）。
+  手元では、環境変数が無ければ `git rev-parse` と今の時刻で埋め、側を「ローカル」と出す
+- **Rationale**: FR-012・FR-013・FR-019・FR-021・FR-025。テーマの既存のテンプレート（`_templates/header.html`・`footer.html`）を使えば、全ページに 1 か所で出せる。版の値を 1 行の帯に並べた形は、値が多く折り返して読みにくかったので、よく見る形に改めた
 - **Alternatives considered**: 版の情報をトップだけに出す。SC-004（どのページからも 1 クリック）を満たさない
 
 ## R9. 状態の 5 つの区別
@@ -231,7 +231,7 @@
   - PR 版は、ci.yml の tests の後の job（`pages-preview`）で作る。テストは動かさない
   - ci が動かしたレーンは、同じ run の tests が残した JUnit を使う。ci が動かさなかったレーンは、保管中の開発版の run の artifact の JUnit で埋める
   - ci が動かしたのに JUnit が無いレーンは、開発版で埋めずに失敗する
-  - 開発版で埋めたレーンと開発版のコミットを、帯と job summary に出す
+  - 開発版で埋めたレーンと開発版のコミットを、フッターと job summary に出す
   - 開発版の artifact は 90 日残す。PR 版が、保管中の開発版の JUnit を取れるようにするため
   - pages-build.yml の `pull_request` は、閉じた PR の掃除を起こす `closed` だけにする
 - **Rationale**:
@@ -243,7 +243,7 @@
   - tests の JUnit は nx の outputs に入っているので、キャッシュに当たったレーンでも作業ツリーに戻る
 - **トレードオフ**:
   - ci の `pull_request` の run は、PR を main に merge したコミットでテストを動かす。サイトは head で作るので、main が進んでいると、合否と中身のコミットが少しずれる
-  - 開発版で埋めたレーンは、その PR のコミットの結果ではない。そのことを帯に出して、読み違えを防ぐ
+  - 開発版で埋めたレーンは、その PR のコミットの結果ではない。そのことをフッターに出して、読み違えを防ぐ
 - **Alternatives considered**:
   - pages-build のレーンを matrix で並べる: 7〜8 分に縮むが、テストを 2 回動かすことは残る
   - nx のリモートキャッシュで ci の結果を取り込む: pages-build と ci は同時に始まるので、同じ push のキャッシュはまだ無い。今回の push で変わったレーンは 2 回動く

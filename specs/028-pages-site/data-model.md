@@ -6,7 +6,7 @@
 
 | 欄 | 値 | 決まり |
 |---|---|---|
-| `kind` | `release` / `dev` / `pr` / `local` | `local` は手元で作ったときだけ。公開の流れには出ない。spec の「側」は公開サイトの 3 種で、`local` は帯の表示のためだけの値 |
+| `kind` | `release` / `dev` / `pr` / `local` | `local` は手元で作ったときだけ。公開の流れには出ない。spec の「側」は公開サイトの 3 種で、`local` は版の表示のためだけの値 |
 | `pr` | PR の番号 | `kind` が `pr` のときだけ持つ |
 | `path` | 公開サイトと `pages-store` の中の置き場所 | `release` は `/`、`dev` は `/dev/`、`pr` は `/pr/<番号>/` |
 
@@ -18,24 +18,24 @@
 
 ## 公開の版（SiteStamp）
 
-各側の、すべてのページの上の帯に出す情報。サイトを作るときに 1 つ決める。
+各側の、すべてのページのフッターと上の知らせに出す情報。サイトを作るときに 1 つ決める。出し方は contracts/pages.md の「版の表示」。
 
 | 欄 | 出どころ | 手元で作るとき |
 |---|---|---|
 | `side` | `PECOT_SITE_SIDE` | `local` |
 | `pr` | `PECOT_SITE_PR` | 無し |
-| `sha` | `PECOT_SITE_SHA`（帯には先頭 7 文字）。リリース版では骨組みのコミット | `git rev-parse HEAD` |
+| `sha` | `PECOT_SITE_SHA`（表示は先頭 7 文字）。リリース版では骨組みのコミット | `git rev-parse HEAD` |
 | `plugins` | 各プラグインの `.claude-plugin/plugin.json` の `version`（nx release が上げる版） | 同じ |
 | `plugin_commits` | `PECOT_SITE_PLUGIN_COMMITS`（`<plugin>=<40 桁の SHA>` をカンマでつなぐ）。リリース版だけ | 無し |
 | `built_at` | `PECOT_SITE_BUILT_AT`（合否を作った run の開始時刻、UTC） | 今の時刻 |
-| `run_url` | `PECOT_SITE_RUN_URL`（作る run の URL） | 無し（帯にリンクを出さない） |
+| `run_url` | `PECOT_SITE_RUN_URL`（作る run の URL） | 無し（実行ログへのリンクを出さない） |
 
 決まり:
 
 - `sha` が取れないときは、サイトを作らずに失敗する
-- `side` が `pr` なら `pr` は必須。帯に PR の番号と PR へのリンクを出す
-- `side` が `release` なら `plugin_commits` は必須で、`plugins` のすべてのプラグインを持つ。帯には、プラグインごとに版とタグのコミット（先頭 7 文字）を出す
-- 帯は、リリース版と開発版を行き来するリンクを持つ。PR 版の帯にも、この 2 つへのリンクを置く。PR 版どうしのリンクは置かない（FR-025）
+- `side` が `pr` なら `pr` は必須。上の知らせに PR の番号と PR へのリンクを出す
+- `side` が `release` なら `plugin_commits` は必須で、`plugins` のすべてのプラグインを持つ。フッターには、プラグインごとに版とタグのコミット（先頭 7 文字）を出す
+- フッターは、リリース版と開発版を行き来するリンクを持つ。PR 版のフッターにも、この 2 つへのリンクを置く。PR 版どうしのリンクは置かない（FR-025）
 
 ## 合否のレーン（JunitLane）
 
