@@ -181,6 +181,14 @@ claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 
 プラグインは、環境変数 `CLAUDE_CODE_PLUGIN_DIRS` で渡します。マーケットプレイスの登録とインストール済みのプラグインは変えないので、worktree ごとに別の版で起動できます。
 
+レイアウトにある worktree をまとめて起動するときは、ホストで `pecot-open.sh`・`pecot-open-mobile.sh` に `--rc` を付けます。新しく作るペイン（セッション）ごとに、その worktree で `pecot-rc.sh` が動きます。止めるときは、そのペインで Ctrl-C を押します。
+
+```bash
+.devcontainer/tmux/pecot-open.sh --layout parallel-a --rc
+```
+
+1 つのフォルダーで動かせる Remote Control は 1 つだけです。同じ worktree を 2 回置いたレイアウトでは、後のペインの起動が止まります。
+
 #### GitHub Copilot CLI
 
 ```bash

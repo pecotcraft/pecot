@@ -7,6 +7,7 @@
 #   ./pecot-open.sh -v wt1                       # wt1 / layout=default / session=pecot-wt1-default。
 #   ./pecot-open.sh --layout parallel-a           # session=pecot-base-parallel-a。
 #   ./pecot-open.sh -v wt1 --layout parallel-a foo # variant=wt1、layout=parallel-a、session=foo。
+#   ./pecot-open.sh --layout parallel-a --rc      # 各ペインで、その worktree の Remote Control を起動する。
 #   ./pecot-open.sh --list-layouts               # 利用可能なレイアウト一覧を表示する。
 #
 # -v / --variant <name> で base 以外のワークツリーを指定できる（layout エントリが
@@ -27,11 +28,12 @@ LAYOUTS_DIR="$SCRIPT_DIR/layouts"
 
 usage() {
     cat >&2 <<'EOF'
-Usage: pecot-open.sh [-v|--variant <name>] [-l|--layout <name>] [session-name]
+Usage: pecot-open.sh [-v|--variant <name>] [-l|--layout <name>] [--rc] [session-name]
        pecot-open.sh --list-layouts
 
   -v, --variant <name>  variant 名（例: base, wt1, wt2）。省略時は base。
   -l, --layout <name>   レイアウト名（layouts/<name>.conf）。省略時は default。
+      --rc              新しく作るペインで .devcontainer/scripts/pecot-rc.sh を起動する。
       --list-layouts    利用可能なレイアウトを一覧表示して終了。
   session-name          tmux セッション名。省略時は `pecot-<variant>-<layout>`。
 EOF
@@ -56,9 +58,14 @@ list_layouts() {
 
 VARIANT="base"
 LAYOUT="default"
+RC=0
 POSITIONAL=()
 while (( $# > 0 )); do
     case "$1" in
+        --rc)
+            RC=1
+            shift
+            ;;
         -v|--variant)
             if (( $# < 2 )); then
                 echo "Error: $1 にはバリアント名が必要です" >&2
@@ -278,6 +285,9 @@ dir_for() {
 
 if ctmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo "既存セッション '$SESSION_NAME' にアタッチします"
+    if (( RC )); then
+        echo "既存セッションのペインでは Remote Control を起動しません" >&2
+    fi
     ctmux_attach "$SESSION_NAME"
 fi
 
@@ -308,5 +318,12 @@ build_panes() {
 }
 
 build_panes
+
+# 各ペインの作業ディレクトリは worktree のルートなので、同じ相対パスで足りる。
+if (( RC )); then
+    while read -r pane; do
+        ctmux send-keys -t "$pane" .devcontainer/scripts/pecot-rc.sh Enter
+    done < <(ctmux list-panes -t "$SESSION_NAME" -F '#{pane_id}')
+fi
 
 ctmux_attach "$SESSION_NAME"

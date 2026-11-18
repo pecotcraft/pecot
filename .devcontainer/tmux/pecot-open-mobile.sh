@@ -6,6 +6,7 @@
 #   ./pecot-open-mobile.sh -v wt1                  # wt1 / layout=default / prefix=pecot-wt1-default:。
 #   ./pecot-open-mobile.sh --layout parallel-a      # base / prefix=pecot-base-parallel-a:。
 #   ./pecot-open-mobile.sh -v wt1 --layout parallel-a # wt1 / prefix=pecot-wt1-parallel-a:。
+#   ./pecot-open-mobile.sh --layout parallel-a --rc # 各セッションで、その worktree の Remote Control を起動する。
 #   ./pecot-open-mobile.sh --list-layouts           # 利用可能なレイアウト一覧を表示する。
 #
 # 各エントリ（レイアウト内の各 REPOS エントリ）ごとに別セッションを作成し、先頭にアタッチする。
@@ -26,11 +27,12 @@ LAYOUTS_DIR="$SCRIPT_DIR/layouts"
 
 usage() {
     cat >&2 <<'EOF'
-Usage: pecot-open-mobile.sh [-v|--variant <name>] [-l|--layout <name>]
+Usage: pecot-open-mobile.sh [-v|--variant <name>] [-l|--layout <name>] [--rc]
        pecot-open-mobile.sh --list-layouts
 
   -v, --variant <name>  variant 名（例: base, wt1, wt2）。省略時は base。
   -l, --layout <name>   レイアウト名（layouts/<name>.conf）。省略時は default。
+      --rc              新しく作るセッションで .devcontainer/scripts/pecot-rc.sh を起動する。
       --list-layouts    利用可能なレイアウトを一覧表示して終了。
 EOF
 }
@@ -54,8 +56,13 @@ list_layouts() {
 
 VARIANT="base"
 LAYOUT="default"
+RC=0
 while (( $# > 0 )); do
     case "$1" in
+        --rc)
+            RC=1
+            shift
+            ;;
         -v|--variant)
             if (( $# < 2 )); then
                 echo "Error: $1 にはバリアント名が必要です" >&2
@@ -283,9 +290,15 @@ for i in "${!REPOS[@]}"; do
     session="${SESSION_NAMES[$i]}"
     if ctmux has-session -t "$(target_for "$session")" 2>/dev/null; then
         echo "既存セッション '$session' を再利用します"
+        if (( RC )); then
+            echo "既存セッション '$session' では Remote Control を起動しません" >&2
+        fi
     else
         ctmux new-session -d -s "$session" -c "$(dir_for "$entry")" bash
         echo "セッション '$session' を作成しました"
+        if (( RC )); then
+            ctmux send-keys -t "$(target_for "$session"):" .devcontainer/scripts/pecot-rc.sh Enter
+        fi
     fi
 done
 
