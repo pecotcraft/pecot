@@ -186,6 +186,15 @@ describe('w-review の手順', () => {
     for (const word of ['AskUserQuestion', 'resolveReviewThread', 'review-resolution', 'w-implementer']) expect(text).not.toContain(word)
   })
 
+  it('Step 1 の前に、引数の project を pecot-workflow の MCP ツールへ渡す文がある', () => {
+    const lines = text.split('\n')
+    const start = lines.indexOf('## 手順')
+    const preamble = lines.slice(start, headings[0]?.line).join('\n')
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
+    expect(preamble).toContain('渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。')
+  })
+
   it('Step 1 は、載せ直しを行わない', () => {
     expect(sectionBody(text, numberIndex(headings, 1))).not.toContain('pr_restack')
   })

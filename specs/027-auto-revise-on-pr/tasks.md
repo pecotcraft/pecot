@@ -154,7 +154,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [x] T036 [US1] エージェント w-reviewer を w-plan-reviewer に改め、計画のレビューだけに使う。視点の印は `[tech]`・`[cuj]` の 2 つにする
 - [x] T037 [P] [US1] `p-w/skills/w-help/`・`p-w/README.md` の表と参照の、w-revise・w-reviewer の行を直す。`review-findings` の Disposition を表にし、F-NN をリンクにする
 - [x] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。結果を PR の説明に書く
-  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く（#640 に分けた）
+  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く（#640 で、変数 `PECOT_REVIEW_PROJECT` と `prompt` の引数 `project=<名前>` に決めた）
 
 ---
 

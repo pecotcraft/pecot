@@ -7,7 +7,7 @@ w-review を起こすのは、自動レビューのワークフローだけだ�
 
 | スキル | 起点 | 行うこと |
 |---|---|---|
-| w-review | ワークフローの `/pecot-w:w-review <PR>` | Step 1 PR の情報 → Step 2 前の指摘が直ったか（2 巡目以降） → Step 3 main のレビュー → Step 4 指摘の投稿。投稿したら終わる |
+| w-review | ワークフローの `/pecot-w:w-review <PR>`。変数 `PECOT_REVIEW_PROJECT` があれば `project=<名前>` が続き、w-review はその名前を pecot の MCP ツールの `project` に渡す | Step 1 PR の情報 → Step 2 前の指摘が直ったか（2 巡目以降） → Step 3 main のレビュー → Step 4 指摘の投稿。投稿したら終わる |
 | w-pr | 開発者の PC の `/pecot-w:w-pr` | PR の作成 → CI の待ち → Step 5 レビューの指摘への対応（採否の確認・修正・CUJ の再実行・resolve・`review-resolution`） |
 
 PR を出した開発者は、CI と自動レビューを待つ間も手を止めない。レビューのコメントが付いたら考える工程は、PR を出して CI を待つ w-pr の側にある。

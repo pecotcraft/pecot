@@ -203,6 +203,11 @@ describe('review のワークフローの雛形', () => {
     }
   })
 
+  it('prompt は、変数 PECOT_REVIEW_PROJECT のあるときだけ、末尾に project=<名前> を足す', () => {
+    const prompt = text(reviewInputs['prompt'])
+    expect(prompt.endsWith('${{ vars.PECOT_REVIEW_PROJECT != \'\' && format(\' project={0}\', vars.PECOT_REVIEW_PROJECT) || \'\' }}')).toBe(true)
+  })
+
   it('job の permissions は contents: read・pull-requests: write・id-token: write だけになる', () => {
     expect(job.permissions).toEqual({ 'contents': 'read', 'pull-requests': 'write', 'id-token': 'write' })
   })
@@ -363,6 +368,7 @@ describe('自動レビューの導入の説明', () => {
       'PECOT_AGENT_APP_PRIVATE_KEY',
       'PECOT_REVIEW_ALLOWED_BOTS',
       'PECOT_REVIEW_MAX_TURNS',
+      'PECOT_REVIEW_PROJECT',
       'PECOT_REVIEW_TIMEOUT_MINUTES',
       'PECOT_REVIEW_TRIGGER_PHRASE',
     ])
@@ -378,6 +384,11 @@ describe('自動レビューの導入の説明', () => {
       expect(row, `${name} の行が説明の表に無い`).toBeDefined()
       expect(row).toContain(`\`${value}\``)
     }
+  })
+
+  it('変数 PECOT_REVIEW_PROJECT が、説明の「変えられる値」の表にある', () => {
+    const rows = markdownSection(document, '### 変えられる値').split('\n')
+    expect(rows.some(line => line.startsWith('| `PECOT_REVIEW_PROJECT` |'))).toBe(true)
   })
 
   it('利用者が足す行の印の名前が、説明に出てくる', () => {
