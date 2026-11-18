@@ -3565,7 +3565,7 @@ entries:
         closing_issues: 'PR が閉じる Issue の配列です。要素は `number` と `title` を持ちます。'
         referenced_issues: '本文の Refs が指す Issue のうち、`closing_issues` に無いものの配列です。要素は `number` と `title` を持ち、`title` はいつも空です。'
         reviews: 'レビューの配列です。要素は `state` と `author` を持ちます。`author` は、削除されたユーザーなら `null` です。`body` と `submitted_at` は、`reviews` を付けたときだけ入ります。'
-        review_threads: '行コメントのスレッドの配列です。`reviews` を付けたときだけ入ります。要素は `is_resolved`・`path`・`line`・`comments` を持ちます。`comments` の要素は `author`・`body`・`created_at` を持ちます。'
+        review_threads: '行コメントのスレッドの配列です。`reviews` を付けたときだけ入ります。要素は `is_resolved`・`path`・`line`・`comments` を持ちます。`comments` の要素は `author`・`body`・`created_at`・`url` を持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -5524,7 +5524,7 @@ entries:
       - '`is_error` が真で `terminal_reason` が `api_error` なら、`failed` として書きます。`result` の文か `errors` に `authentication_error` があれば、トークンを作り直す手順を添えます。'
       - '次に、自動レビューの step が `failure` で `github_token` が無ければ、`setup-missing` にします。Claude の GitHub App を入れる手順を添えます。'
       - 'ほかの `failure` は `failed` として書きます。step が `failure` で `conclusion` が空なら、`GITHUB_ACTOR` の権限を読み、`admin` か `write` でなければ書きません。'
-      - '止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` か `**R<巡>/F-NN**` のインラインコメントがあるかで決めます。`--since` が無ければ「分からない」と書きます。'
+      - '止まった場所は、`--since` より後に作られ、先頭が `**F-NN**` のインラインコメントがあるかで決めます。`--since` が無ければ「分からない」と書きます。'
       - '本文の末尾に、`GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` を入れた、画面に出ない目印の行を付けます。同じ目印を持つ bot のコメントがあれば、書きません。'
       - '閉じている PR には書きません。プロジェクトの設定は読まず、ホストは `github.com` です。'
       - '本文は、テンプレート `review-stopped` を埋めて作ります。トークンの値と secret の値を書きません。'

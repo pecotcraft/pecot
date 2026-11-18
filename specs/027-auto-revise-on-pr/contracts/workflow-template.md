@@ -54,6 +54,12 @@ job の `if` に、`github.event_name` で始まる `pull_request` と `issue_co
 `author_association` の `COLLABORATOR` は read・triage の招待も含み、`MEMBER` はリポへの権限を問わない。
 このため `if` は runner を使わない前段の絞りにとどめ、PR の確かめの step が `collaborators/<login>/permission` の `role_name` を読み、`admin`・`maintain`・`write` でなければ後の step を飛ばす。
 ここで止めないと、action が step を失敗にし、後始末が「止まった」と PR に書く。
+
+PR の確かめの step は、head のコミットの時刻が合言葉のコメントの時刻より後なら、後の step を飛ばす。
+コメントを書いた人が見ていないコミットを、その依頼でレビューしないためだ。
+CodeQL の `actions/untrusted-checkout/high` と `actions/untrusted-checkout-toctou/high` は、`issue_comment` の checkout に、権限の確かめとこの時刻の確かめの両方を求める。
+時刻は、`date -d` で `*_at` を読む 2 行で比べる（CodeQL が確かめと認める形）。
+
 `prompt` を渡す形では、action は合言葉を確かめないので、合言葉の判定は `if` だけが持つ（research の R15）。
 
 合言葉の判定の式は、次の形にする。`P` は `vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review'` だ。GitHub Actions の式に正規表現が無いので、区切りを 4 つの比べ方で表す。式の文字列に改行の書き方が無いので、改行は `fromJSON` で作る。
@@ -176,7 +182,7 @@ diff は `gh pr diff` で読む。`pr_show` は本文とレビューしか返さ
 許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で書き換えのツールを渡さないことと、`default` のモードで規則の無いコマンドが拒まれることだ（FR-011）。
 自前の App のときは、トークンの権限も境界になる。
 
-pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、Phase 5 で `prompt` への渡し方と合わせて決める。
+pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、#640 で `prompt` への渡し方と合わせて決める。
 
 ## 版の目印
 

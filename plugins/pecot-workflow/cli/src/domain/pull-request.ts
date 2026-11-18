@@ -244,7 +244,7 @@ export interface ReviewThreadView {
   readonly is_resolved: boolean
   readonly path: string | null
   readonly line: number | null
-  readonly comments: readonly { readonly author: string | null, readonly body: string, readonly created_at: string | null }[]
+  readonly comments: readonly { readonly author: string | null, readonly body: string, readonly created_at: string | null, readonly url: string | null }[]
 }
 
 export interface PullRequestWithReviewsView extends PullRequestView {
@@ -319,7 +319,8 @@ export function formatReviewThreadsMarkdown(threads: readonly ReviewThreadView[]
     for (const comment of thread.comments) {
       const author = comment.author === null || comment.author === '' ? '(unknown)' : comment.author
       const date = datePart(comment.created_at)
-      lines.push(`**@${author}**${date === '' ? '' : ` (${date})`}:`)
+      const url = comment.url === null || comment.url === '' ? '' : ` ${comment.url}`
+      lines.push(`**@${author}**${date === '' ? '' : ` (${date})`}${url}:`)
       const body = pythonStrip(comment.body)
       if (body !== '') lines.push(...body.split('\n').map(line => `> ${line}`))
       lines.push('')

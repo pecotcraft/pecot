@@ -91,7 +91,7 @@ node <このスキルの base directory>/scripts/board-url.cjs
 
 ### Step 5: 自動レビューを入れる（任意）
 
-PR を作ると GitHub Actions の上で w-revise のレビューを回すワークフローを、カレントリポに入れるかを決める。
+PR を作ると GitHub Actions の上で w-review のレビューを回すワークフローを、カレントリポに入れるかを決める。
 
 1. pecot-workflow の MCP ツール `workflow_doctor`（`name: "review"`）を使い、雛形が置かれているかを見る
    - 見るのは、`items` のうち `name` が `.github/workflows/pecot-review.yml` の項目

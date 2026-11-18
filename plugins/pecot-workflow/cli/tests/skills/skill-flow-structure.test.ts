@@ -170,8 +170,8 @@ describe('w-review の手順', () => {
   const text = readSkill('w-review')
   const headings = stepHeadings(text)
 
-  it('Step は 1〜3 だけで、採否を聞く・直す・resolve する Step を持たない', () => {
-    expect(headings.map(heading => heading.number)).toEqual([1, 2, 3])
+  it('Step は 1〜4 だけで、採否を聞く・直す・resolve する Step を持たない', () => {
+    expect(headings.map(heading => heading.number)).toEqual([1, 2, 3, 4])
     for (const word of ['AskUserQuestion', 'resolveReviewThread', 'review-resolution', 'w-implementer']) expect(text).not.toContain(word)
   })
 
@@ -179,8 +179,14 @@ describe('w-review の手順', () => {
     expect(sectionBody(text, numberIndex(headings, 1))).not.toContain('pr_restack')
   })
 
-  it('Step 2 は、main が視点の参照に従ってレビューし、サブエージェントを起こさない', () => {
-    const body = sectionBody(text, numberIndex(headings, 2))
+  it('2 巡目以降は、前の指摘が直ったかを先に見て、F-NN を振り直さない', () => {
+    expect(sectionBody(text, numberIndex(headings, 2))).toContain('F-NN ごとに、直ったか・直っていないかを決める')
+    expect(sectionBody(text, numberIndex(headings, 4))).toContain('番号は PR の中の通し番号にし、振り直さない。')
+    expect(text).not.toMatch(/R\d+\/F-/u)
+  })
+
+  it('Step 3 は、main が視点の参照に従ってレビューし、サブエージェントを起こさない', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
     expect(body).toContain('main が diff をレビューする')
     const link = 'references/review-viewpoints.md'
     expect(body).toContain(link)
@@ -188,21 +194,21 @@ describe('w-review の手順', () => {
     for (const word of ['`Agent`', '`SendMessage`', 'w-plan-reviewer', 'cuj-run.md']) expect(body).not.toContain(word)
   })
 
-  it('Step 3 のインラインコメントは、レビューの指摘に視点の印を付け、外部のレビュアーの指摘には付けない', () => {
-    const body = sectionBody(text, numberIndex(headings, 3))
+  it('Step 4 のインラインコメントは、レビューの指摘に視点の印を付け、外部のレビュアーの指摘には付けない', () => {
+    const body = sectionBody(text, numberIndex(headings, 4))
     expect(body).toContain('`**F-NN** [視点の印]` で始める')
     for (const mark of ['`[tech]`', '`[cuj]`']) expect(body).toContain(mark)
     expect(body).toContain('外部のレビュアーの指摘には印を付けない')
   })
 
-  it('Step 3 は、インラインコメントを action の MCP ツールで投稿し、gh を使わない', () => {
-    const body = sectionBody(text, numberIndex(headings, 3))
+  it('Step 4 は、インラインコメントを action の MCP ツールで投稿し、gh を使わない', () => {
+    const body = sectionBody(text, numberIndex(headings, 4))
     expect(body).toContain('`create_inline_comment`')
     expect(text).not.toMatch(/\bgh (api|auth)\b/u)
   })
 
-  it('Step 3 は、投稿で終わる', () => {
-    expect(sectionBody(text, numberIndex(headings, 3))).toContain('投稿したら終わる。採否は聞かず、コードは直さない。')
+  it('Step 4 は、投稿で終わる', () => {
+    expect(sectionBody(text, numberIndex(headings, 4))).toContain('投稿したら終わる。採否は聞かず、コードは直さない。スレッドの resolve もしない。')
   })
 })
 

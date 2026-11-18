@@ -22,15 +22,27 @@ diff は `gh pr diff <PR番号> --repo <owner/repo>` で読む。長い diff が
 
 紐づいた Issue があれば、pecot-workflow の MCP ツール `issue_show` を使って、それも読む。
 
-### Step 2: diff をレビュー
+前の自動レビューの `review-findings` は、`gh pr view <PR番号> --repo <owner/repo> --comments` で読む。あれば、この実行は 2 巡目以降になる。
+
+### Step 2: 前の指摘が直ったかを見る（2 巡目以降）
+
+前の `review-findings` の Disposition に並ぶ F-NN のうち、スレッドが未解決のものと、インラインでないものを、今の diff で確かめる。
+
+- F-NN ごとに、直ったか・直っていないかを決める
+- 直ったかの判断は、指摘の要旨と今のコードで行う。前の指摘を書き直さない
+- Resolved 済みのスレッドの F-NN は見ない
+
+1 巡目は、この Step を飛ばす。
+
+### Step 3: diff をレビュー
 
 Step 1 の情報で、main が diff をレビューする。視点・返し方・調べ方は [レビューの視点](references/review-viewpoints.md) に従う。
 
-Resolved 済みの既存スレッドは対象に含めない。
+前の指摘と同じ趣旨のものは、新しい指摘にしない。Step 2 の結果に含める。
 
-### Step 3: 指摘を採番し、インラインコメントと `review-findings` に振り分けて投稿
+### Step 4: 指摘を採番し、インラインコメントと `review-findings` に振り分けて投稿
 
-レビューの指摘と既存の外部レビューコメントをまとめ、`F-01` から連番を振る。
+新しい指摘と、まだ番号の無い外部レビューコメントに、F-NN の続きの番号を振る。1 巡目は `F-01` から振る。2 巡目以降は、前の `review-findings` とスレッドにある最大の番号の次から振る。番号は PR の中の通し番号にし、振り直さない。
 
 投稿先は次のとおり。外部レビュアーの指摘は投稿し直さず、`review-findings` の Disposition の表に、F-NN を元スレッドへのリンクにして並べるだけにする。
 
@@ -49,11 +61,13 @@ action に同梱の MCP ツール `create_inline_comment` で、1 件ずつ投�
 
 テンプレを取り、ガイドに従って書いて投稿する。General にはインラインにできなかった指摘だけを書く。Disposition は表にして全 F-NN を 1 行ずつ並べ、F-NN の欄をコメントへのリンクにする。URL を裸で書かない。指摘が 0 件でも、0 件の文言で投稿する。
 
+2 巡目以降は、Step 2 で見た前の F-NN も Disposition に並べる。
+
+- F-NN の欄は、前のスレッドのコメントへのリンクにする。URL は `pr_show` の行コメントの `url` から取る
+- 直ったものは、想定する方針の欄を「直った」にする
+- 直っていないものは「対応」にする
+
 1. pecot-workflow の MCP ツール `issue_comment` を使って、PR 宛てのテンプレのファイルを作り、ガイドを読む。入力は `prepare: true`・`template: "review-findings"`
 2. 書いた本文を、`issue_comment` で投稿する。入力は `template: "review-findings"` と、本文を入れた `message`
 
-投稿したら終わる。採否は聞かず、コードは直さない。
-
-## 注意
-
-- 2 巡目以降は F-NN を `F-01` から振り直し、本文は `**R2/F-01**` の形で始める。前のラウンドで開いた未解決スレッドと同じ趣旨の指摘は、新しく投稿せず、Disposition の表でそのスレッドへのリンクにする。
+投稿したら終わる。採否は聞かず、コードは直さない。スレッドの resolve もしない。

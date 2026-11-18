@@ -249,8 +249,8 @@ const FULL: PullRequestWithReviewsView = {
   ],
   review_threads: [
     { is_resolved: true, path: 'a.ts', line: 12, comments: [
-      { author: 'alice', body: '行1\n行2\n', created_at: '2026-11-02T00:00:00Z' },
-      { author: JSON_NULL, body: '', created_at: JSON_NULL },
+      { author: 'alice', body: '行1\n行2\n', created_at: '2026-11-02T00:00:00Z', url: 'https://github.com/o/r/pull/7#discussion_r1' },
+      { author: JSON_NULL, body: '', created_at: JSON_NULL, url: JSON_NULL },
     ] },
     { is_resolved: false, path: JSON_NULL, line: 0, comments: [] },
   ],
@@ -292,7 +292,7 @@ describe('formatPullRequestWithReviewsMarkdown', () => {
       + '**Closing Issues:**\n  - #7 T7\n    → details: issue show o/r/7\n\n'
       + '**Referenced Issues:**\n  - #8\n    → details: issue show o/r/8\n  - #9 T9\n    → details: issue show o/r/9\n\n'
       + '---\n\n本文\n\n---\n\n## Reviews\n\n### @alice (APPROVED) - 2026-11-01\n\nOK\n\n### @(unknown) (COMMENTED)\n\n### @bob (COMMENTED)\n\n'
-      + '---\n\n## Line Comments\n\n### `a.ts:12` [Resolved]\n\n**@alice** (2026-11-02):\n> 行1\n> 行2\n\n**@(unknown)**:\n\n### `(unknown file)` [Open]\n',
+      + '---\n\n## Line Comments\n\n### `a.ts:12` [Resolved]\n\n**@alice** (2026-11-02) https://github.com/o/r/pull/7#discussion_r1:\n> 行1\n> 行2\n\n**@(unknown)**:\n\n### `(unknown file)` [Open]\n',
     )
   })
 
@@ -309,7 +309,7 @@ describe('formatReviewsMarkdown と formatReviewThreadsMarkdown', () => {
 
   it('author が空文字でも不明として出す', () => {
     expect(formatReviewsMarkdown([{ state: 'COMMENTED', author: '', body: '', submitted_at: '' }])).toBe('## Reviews\n\n### @(unknown) (COMMENTED)\n')
-    expect(formatReviewThreadsMarkdown([{ is_resolved: false, path: '', line: JSON_NULL, comments: [{ author: '', body: '', created_at: '' }] }]))
+    expect(formatReviewThreadsMarkdown([{ is_resolved: false, path: '', line: JSON_NULL, comments: [{ author: '', body: '', created_at: '', url: '' }] }]))
       .toBe('## Line Comments\n\n### `(unknown file)` [Open]\n\n**@(unknown)**:\n')
   })
 

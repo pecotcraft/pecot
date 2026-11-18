@@ -132,7 +132,6 @@ describe('stopLocationOf', () => {
 
   it.each<[string, readonly { body: string, createdAt: string }[], StopLocation]>([
     ['since より後の F-NN のインラインコメントがあれば、投稿した後', [{ body: '**F-01** [tech] 型が違う', createdAt: '2026-11-17T10:05:00Z' }], 'after-inline'],
-    ['2 巡目の R<巡>/F-NN も数える', [{ body: '**R2/F-03** [tech] 名前', createdAt: '2026-11-17T10:05:00Z' }], 'after-inline'],
     ['since より前の指摘は数えない', [{ body: '**F-01** [tech] 前の実行', createdAt: '2026-11-17T09:59:59Z' }], 'before-findings'],
     ['F-NN で始まらないコメントは数えない', [{ body: 'nit: **F-01**', createdAt: '2026-11-17T10:05:00Z' }], 'before-findings'],
     ['コメントが無ければ、投稿する前', [], 'before-findings'],

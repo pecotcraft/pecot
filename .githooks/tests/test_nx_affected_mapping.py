@@ -929,6 +929,11 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
             "plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml",
             _GITHOOKS_CHECKS,
         ),
+        (".github/workflows/pecot-review.yml", _GITHOOKS_CHECKS),
+        (
+            "plugins/pecot-workflow/cli/templates/workflow/pecot-review.yml",
+            _GITHOOKS_CHECKS,
+        ),
         ("plugins/pecot-workflow/scripts/ci/run-tests.sh", _GITHOOKS_CHECKS),
         ("plugins/pecot-workflow/scripts/ci/run-lint.sh", _GITHOOKS_CHECKS),
         ("pyproject.toml", _GITHOOKS_CHECKS),

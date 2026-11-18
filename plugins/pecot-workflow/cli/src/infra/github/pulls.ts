@@ -66,6 +66,7 @@ export interface ReviewThreadComment {
   readonly author: string | null
   readonly body: string
   readonly created_at: string | null
+  readonly url: string | null
 }
 
 export interface ReviewThread {
@@ -346,6 +347,7 @@ export class PullsApi extends IssuesApi {
           author: loginOrNull(jsonField(comment, 'author')),
           body: requiredTextOrEmpty(jsonField(comment, 'body')),
           created_at: stringOrNull(jsonField(comment, 'createdAt')),
+          url: stringOrNull(jsonField(comment, 'url')),
         })),
       })),
     }
