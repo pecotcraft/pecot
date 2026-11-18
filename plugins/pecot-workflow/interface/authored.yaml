@@ -3723,7 +3723,7 @@ entries:
         statement: '`reviews` を付けて行のコメントがあると、`review_threads` に入れます'
       - id: PW-PR-SHOW-07
         pattern: event
-        statement: 'CLI では、`--reviews` を付けると、関連 Issue ごとに `issue show` の案内を Markdown に足します。結果の項目には入りません'
+        statement: 'CLI では、`reviews` を付けると、関連 Issue ごとに `issue show` の案内を Markdown に足します。結果の項目には入りません'
       - id: PW-PR-SHOW-08
         pattern: event
         statement: '`json` を付けて呼ぶと、同じ内容を JSON にします。結果の項目は、`json` を省いたときと同じです'
