@@ -672,18 +672,22 @@ def _lane_outputs(root: Path, project: str, target: str) -> list[str]:
 
 def load_junit_lanes(path: Path, root: Path) -> dict[str, dict[str, str]]:
     """junit-lanes.json を読み、プラグインごとの「target → JUnit の絶対パス」にする。決まりに反したら ValueError。"""
+    return junit_lanes_table(_load_json(path), root, path.name)
+
+
+def junit_lanes_table(lanes: object, root: Path, name: str) -> dict[str, dict[str, str]]:
+    """junit-lanes.json と同じ形の値を load_junit_lanes と同じ決まりで読む。name はエラーの文に出す出どころ。"""
     table: dict[str, dict[str, str]] = {}
     seen_targets: set[str] = set()
     seen_junits: set[str] = set()
-    lanes: object = _load_json(path)
     if not isinstance(lanes, list):
-        raise ValueError(f"{path.name}: レーンの配列ではありません")
+        raise ValueError(f"{name}: レーンの配列ではありません")
     for i, raw in enumerate(cast("list[Any]", lanes), start=1):
         lane = cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
         plugin, target, junit = (lane.get(k) for k in ("plugin", "target", "junit"))
         if not (isinstance(plugin, str) and isinstance(target, str) and isinstance(junit, str)):
-            raise ValueError(f"{path.name} #{i}: plugin・target・junit の文字列が要ります")
-        where = f"{path.name} #{i} {target} ({junit})"
+            raise ValueError(f"{name} #{i}: plugin・target・junit の文字列が要ります")
+        where = f"{name} #{i} {target} ({junit})"
         project, sep, name = target.partition(":")
         if not sep or not project or not name or ":" in name:
             raise ValueError(f"{where}: target は <project>:<target> の形にします")

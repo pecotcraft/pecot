@@ -5,6 +5,7 @@ import html
 import json
 import os
 import re
+import runpy
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +31,7 @@ from site_stamp import SiteStamp, SiteStampError, site_stamp  # noqa: E402
 FIXTURE_REPO = FIXTURES / "repo"
 STAMP_NOW = datetime(2026, 11, 17, 5, 12, 30, tzinfo=timezone.utc)
 STAMP_HEAD = "0123456789abcdef0123456789abcdef01234567"
+TAG_SHA = "abcdef0123456789abcdef0123456789abcdef01"
 
 
 @pytest.fixture(autouse=True)
@@ -715,9 +717,24 @@ def test_pr_context_reads_every_env_value() -> None:
     ],
 )
 def test_current_side_is_text_only(side: str, label: str, sides: list[dict[str, Any]]) -> None:
-    context = site_stamp({"PECOT_SITE_SIDE": side}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()
+    env = {"PECOT_SITE_SIDE": side, "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
+    context = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()
     assert (context["label"], context["sides"]) == (label, sides)
     assert context["commit_url"] == f"https://github.com/pecotcraft/pecot/commit/{STAMP_HEAD}"
+
+
+def test_release_adds_each_tag_commit_to_its_version() -> None:
+    env = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
+    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
+    assert stamp.plugin_commits == (("sample", TAG_SHA),)
+    assert stamp.context()["plugins"] == "sample 1.2.3 (abcdef0)"
+
+
+def test_plugin_commits_are_ignored_outside_release() -> None:
+    env = {"PECOT_SITE_SIDE": "dev", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
+    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
+    assert stamp.plugin_commits == ()
+    assert stamp.context()["plugins"] == "sample 1.2.3"
 
 
 def test_sha_from_env_needs_no_head() -> None:
@@ -744,6 +761,17 @@ def test_plugin_versions_are_read_in_name_order(tmp_path: Path) -> None:
         ({"PECOT_SITE_BUILT_AT": "yesterday"}, STAMP_HEAD, "PECOT_SITE_BUILT_AT"),
         ({"PECOT_SITE_BUILT_AT": "2026-11-17T05:12:00"}, STAMP_HEAD, "PECOT_SITE_BUILT_AT"),
         ({"PECOT_SITE_SIDE": "staging"}, STAMP_HEAD, "PECOT_SITE_SIDE"),
+        ({"PECOT_SITE_SIDE": "release"}, STAMP_HEAD, "PECOT_SITE_PLUGIN_COMMITS"),
+        (
+            {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": "sample=abc1234"},
+            STAMP_HEAD,
+            "PECOT_SITE_PLUGIN_COMMITS",
+        ),
+        (
+            {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"other={TAG_SHA}"},
+            STAMP_HEAD,
+            "PECOT_SITE_PLUGIN_COMMITS",
+        ),
     ],
 )
 def test_site_stamp_fails_on_bad_values(env: dict[str, str], head: str | None, names: str) -> None:
@@ -803,10 +831,12 @@ def test_pr_band_links_commit_run_and_pr(tmp_path: Path, capfd: pytest.CaptureFi
 def test_release_band_shows_its_own_side_as_text(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "release"})
+    site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
+    built = build(tmp_path, LANES, capfd, site=site)
     assert built.code == 0, built.warnings
     assert '/pecot/"' not in band_of(built)
     assert links_of(band_of(built))["開発版"] == "/pecot/dev/"
+    assert "sample 1.2.3 (abcdef0)" in band_of(built)
 
 
 _COMMON = {
@@ -963,6 +993,23 @@ def test_junit_lanes_reject_broken_lanes(
     path = _lanes_repo(tmp_path, lanes, outputs)
     with pytest.raises(ValueError, match=re.escape(message)):
         load_junit_lanes(path, tmp_path)
+
+
+def test_conf_takes_lanes_from_site_lanes_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    lanes = [_lane("pecot-tools:test-cli", "plugins/pecot-tools/cli/test-results/junit.xml")]
+    monkeypatch.setenv("PECOT_SITE_LANES", json.dumps(lanes))
+    conf = runpy.run_path(str(DOCS / "conf.py"))
+    assert conf["iface_junit"] == {
+        "pecot-tools": {
+            "pecot-tools:test-cli": str(REPO / "plugins/pecot-tools/cli/test-results/junit.xml")
+        }
+    }
+
+
+def test_conf_names_site_lanes_env_when_it_is_broken(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PECOT_SITE_LANES", json.dumps({"lanes": []}))
+    with pytest.raises(ValueError, match="PECOT_SITE_LANES"):
+        runpy.run_path(str(DOCS / "conf.py"))
 
 
 def test_junit_lanes_reject_non_array_file(tmp_path: Path) -> None:

@@ -162,5 +162,8 @@ verify の job が、artifact を展開したツリーに対して確かめる�
 - 書き換えるのは、受けた側のディレクトリと `.pecot-store.json` だけ。リリース版の `/` を書き換えるときは、`/dev/` と `/pr/` を残す
 - 保管のたびに、閉じた PR の側を消す。開いている PR の番号の一覧は、verify（`pull-requests: read` を持つ）が API から求めて出力にする。store は、その一覧に無い `pr/<番号>/` を消す。store は API を読まない
 - 案内のページは、ある方の側へのリンクを持つ
+- 開発版を書き換える前に、取った `.pecot-store.json` の開発版の SHA が、受けた SHA の祖先（同じを含む）かを git で確かめ直す。違えば書き換えない。verify と store の間に、新しい開発版が先に保管されることがあるため
+- `.pecot-store.json` は公開されない。`upload-pages-artifact` が `.` で始まるファイルを除くため
+- 書き換えが無ければ push しない
 - コミットは毎回 1 つの orphan のコミットにして、`--force-with-lease=<取ったときの SHA>` で push する。断られたら取り直してやり直す
 - 全体の大きさが 900 MB を超えたら、run の summary に警告を書く（上限は 1 GB）

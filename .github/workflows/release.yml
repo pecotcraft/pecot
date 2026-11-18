@@ -161,6 +161,17 @@ jobs:
             fi
           env: *release-env
 
+      # タグのコミットが main の祖先になるのは land の後。nx が落ちても land が済めば起こす。
+      - name: Trigger pages release build
+        if: ${{ !cancelled() && !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if grep -q '^landed:' .pecot/tmp/release/land.log 2> /dev/null; then
+            gh workflow run pages-build.yml --repo "$REPO" --ref main -f side=release
+          fi
+
       # GITHUB_STEP_SUMMARY はコンテナの中から書けないため、ログをここでまとめる。
       - name: Write job summary
         if: always()

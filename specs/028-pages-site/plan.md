@@ -29,7 +29,7 @@ Python 3（`.githooks/scripts/pages_site/` のレーンの一覧・リリース�
 actions/configure-pages・actions/upload-pages-artifact v5・actions/deploy-pages v5・actions/upload-artifact・actions/download-artifact v8（SHA で固定する。
 ci.yml と同じ形）
 
-**Storage**: 側の HTML は、保管ブランチ `pages-store`（deploy key と ruleset で守る）。作る run の artifact は受け渡しのためだけで、`retention-days: 7`
+**Storage**: 側の HTML は、保管ブランチ `pages-store`（専用の GitHub App と ruleset で守る）。作る run の artifact は受け渡しのためだけで、`retention-days: 7`
 
 **Testing**: pytest（`libs/interface-spec/docs/tests` の拡張のテスト、`.githooks/tests` の workflow の形と組み立てのスクリプトのテスト）。actionlint（pre-commit の既存の hook）
 
@@ -59,7 +59,7 @@ ci.yml と同じ形）
 Phase 1 の後の再確認（2026-11-17 の 2 回目）: 合格。
 contracts の権限は job ごとに最小にした。
 信頼できない中身を扱う verify の job（`contents: read`・`actions: read`・`pull-requests: read`）と、書き込む job を分けた。
-書き込む job は、保管（environment `pages-store` の deploy key）・公開（`pages: write`・`id-token: write`）・status（`statuses: write`）の 3 つ。
+書き込む job は、保管（environment `pages-store` の App の秘密鍵）・公開（`pages: write`・`id-token: write`）・status（`statuses: write`）の 3 つ。
 `actions: write` はどの job にも持たせない。
 
 ## Project Structure
@@ -115,8 +115,8 @@ libs/interface-spec/
     └── test_pages_store.py       # 新規: SideCheck と StoreLayout
 
 保管ブランチ・environment・ruleset（リポの管理者の設定。ファイルではない）
-├── pages-store ブランチと、その ruleset（bypass は DeployKey）
-├── deploy key（書き込みのできるものは 1 本だけ）
+├── pages-store ブランチと、その ruleset（bypass は pages-store の App）
+├── pages-store の App（Contents: write だけ、このリポにだけ入れる）
 ├── environment pages-store・github-pages（デプロイ先は main のブランチだけ）
 └── リリースのタグ（*-v*）の ruleset（bypass は PECOT_BOT の App）
 

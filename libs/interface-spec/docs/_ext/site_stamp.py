@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -28,6 +29,8 @@ class SiteStamp:
     built_at: datetime
     run_url: str | None
     plugins: tuple[tuple[str, str], ...]
+    # リリース版だけ持つ。plugins と同じ順の (名前, タグのコミット)。
+    plugin_commits: tuple[tuple[str, str], ...] = ()
 
     @property
     def label(self) -> str:
@@ -35,12 +38,16 @@ class SiteStamp:
 
     def context(self) -> dict[str, Any]:
         """テンプレートに渡す値。Sphinx が設定を pickle するので、文字列と None と list だけで組む。"""
+        commits = dict(self.plugin_commits)
         return {
             "side": self.side,
             "label": self.label,
             "sha": self.sha[:7],
             "commit_url": None if self.side == "local" else f"{GITHUB}/commit/{self.sha}",
-            "plugins": " \N{KATAKANA MIDDLE DOT} ".join(f"{n} {v}" for n, v in self.plugins),
+            "plugins": " \N{KATAKANA MIDDLE DOT} ".join(
+                f"{n} {v} ({commits[n][:7]})" if n in commits else f"{n} {v}"
+                for n, v in self.plugins
+            ),
             "built_at": self.built_at.strftime("%Y-%m-%d %H:%M UTC"),
             "built_at_iso": self.built_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "run_url": self.run_url,
@@ -75,14 +82,40 @@ def site_stamp(env: Mapping[str, str], root: Path, now: datetime, head: str | No
         raise SiteStampError(
             "コミットが決まりません。PECOT_SITE_SHA を付けるか、git のリポジトリで作ってください"
         )
+    plugins = _plugin_versions(root)
+    commits = _plugin_commits(get("PECOT_SITE_PLUGIN_COMMITS"), side, plugins)
     return SiteStamp(
         side=side,
         pr=pr,
         sha=sha,
         built_at=_built_at(get("PECOT_SITE_BUILT_AT"), now),
         run_url=get("PECOT_SITE_RUN_URL"),
-        plugins=_plugin_versions(root),
+        plugins=plugins,
+        plugin_commits=commits,
     )
+
+
+def _plugin_commits(
+    value: str | None, side: str, plugins: tuple[tuple[str, str], ...]
+) -> tuple[tuple[str, str], ...]:
+    if side != "release":
+        return ()
+    if value is None:
+        raise SiteStampError("PECOT_SITE_SIDE=release には PECOT_SITE_PLUGIN_COMMITS が要ります")
+    commits: dict[str, str] = {}
+    for item in value.split(","):
+        name, sep, sha = item.strip().partition("=")
+        if not sep or not name or not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise SiteStampError(
+                f"PECOT_SITE_PLUGIN_COMMITS は <plugin>=<40 桁の SHA> をカンマでつなぎます: {item}"
+            )
+        commits[name] = sha
+    names = [n for n, _ in plugins]
+    if sorted(commits) != sorted(names):
+        raise SiteStampError(
+            f"PECOT_SITE_PLUGIN_COMMITS のプラグインが {', '.join(names)} とそろいません: {value}"
+        )
+    return tuple((n, commits[n]) for n in names)
 
 
 def _built_at(value: str | None, now: datetime) -> datetime:

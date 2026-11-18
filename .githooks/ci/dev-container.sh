@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ci.yml と devcontainer-image.yml が、ホストの runner で dev container の取得・起動・実行を担う。
-# サブコマンド: prefetch / up / exec -- <cmd> / restore-owner / install-cli / tag / publish。
+# サブコマンド: prefetch / up / exec -- <cmd> / give-owner / restore-owner / install-cli / tag / publish。
 # 状態は $RUNNER_TEMP/pecot-dc/ に置く。コンテナに渡す env は COMMON_ENV と、job 固有の追加分 DEVCONTAINER_ENV（空白か改行区切り）。
 
 set -euo pipefail
@@ -166,8 +166,7 @@ cmd_up() {
     export PECOT_CI_IMAGE="$IMAGE"
     echo "$IMAGE_LOCAL" > "$STATE/image-local"
     write_override
-    # --update-remote-user-uid-default never と対で、イメージの vscode の UID が 1000 である前提。
-    sudo chown -R 1000:1000 "$GITHUB_WORKSPACE"
+    cmd_give_owner
     remote_env_args
     out=$(devcontainer up --workspace-folder "$GITHUB_WORKSPACE" --override-config "$OVERRIDE" \
         --update-remote-user-uid-default never "${REMOTE_ENV[@]}") || {
@@ -260,6 +259,11 @@ cmd_publish() {
     devcontainer build "${args[@]}"
 }
 
+# --update-remote-user-uid-default never と対で、イメージの vscode の UID が 1000 である前提。
+cmd_give_owner() {
+    sudo chown -R 1000:1000 "$GITHUB_WORKSPACE"
+}
+
 cmd_restore_owner() {
     sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
 }
@@ -270,12 +274,13 @@ case "$sub" in
     prefetch) cmd_prefetch ;;
     up) cmd_up ;;
     exec) cmd_exec "$@" ;;
+    give-owner) cmd_give_owner ;;
     restore-owner) cmd_restore_owner ;;
     install-cli) cmd_install_cli ;;
     tag) image_ref ;;
     publish) cmd_publish "$@" ;;
     *)
-        echo "使い方: dev-container.sh prefetch|up|exec -- <cmd>|restore-owner|install-cli|tag|publish" >&2
+        echo "使い方: dev-container.sh prefetch|up|exec -- <cmd>|give-owner|restore-owner|install-cli|tag|publish" >&2
         echo "        publish の引数: [--push] [--latest] [--no-cache] [--base <branch>]" >&2
         exit 2
         ;;

@@ -1,5 +1,8 @@
-# actionlint 1.7.12 は GitHub の文書にある concurrency.queue を知らない（rhysd/actionlint#654）。対応版が出たら消す。
+# actionlint 1.7.12 は GitHub の文書にある concurrency.queue を知らない（rhysd/actionlint#654）。対応版が出たら消す（#529）。
 paths:
   .github/workflows/publish-npm.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'
+  .github/workflows/pages-deploy.yml:
     ignore:
       - 'unexpected key "queue" for "concurrency" section'

@@ -74,6 +74,9 @@ _EXEMPT: dict[str, str] = {
     "PECOT_SITE_STRICT": (
         "interface-spec の docs だけが読み、docs は cache しない。test-unit のビルドは conf.py の値を上書きする"
     ),
+    "PECOT_SITE_LANES": (
+        "PECOT_SITE_STRICT と同じく docs だけが読む。test-unit のテストは外の PECOT_SITE_* を毎回外す"
+    ),
     "PECOT_WORKFLOW_SKIP_INSTALL": (
         "test-cli・test-hooks・lint-cli の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ。"
         "install を nx の別 target に分ける"
