@@ -158,9 +158,10 @@ action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、actio
 | `Read`・`Glob`・`Grep` | コードを読む |
 | `mcp__plugin_pecot-w_pecot-workflow__pr_show`・`issue_show`・`issue_comment` | w-review の Step 1〜3 |
 | `mcp__github_inline_comment__create_inline_comment` | インラインコメントの投稿。action に同梱のツールで、公式の PR レビューの例と同じだ |
+| `Bash(gh pr diff:*)`・`Bash(gh pr view:*)` | PR の diff と情報を読む。公式の PR レビューの例と同じだ（#633） |
 | `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` | 利用者が足す許可。job の `env` に印のコメントで囲んで置き、`--allowedTools` の末尾に、空でないときだけ足す。初期は空 |
 
-diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないので、手元の `git diff` と `git log` では base との差を出せない。
+diff は `gh pr diff` で読む。`pr_show` は本文とレビューしか返さない。checkout は履歴を 1 つしか取らないので、手元の `git diff` と `git log` では base との差を出せない。
 
 `--allowedTools` は、確認なしに使えるツールの一覧として働く。一覧に無い MCP ツールは拒まれるが、確認の要らないツール（`Skill`、読み取りだけの `Bash` のコマンド）は、一覧に無くても使える（research の R5）。
 このため、使わせないツールは `--disallowedTools` に書く。ここに書いたツールは、サブエージェントでも使えない。
@@ -169,8 +170,10 @@ diff は `pr_show` で読む。checkout は履歴を 1 つしか取らないの�
 - `AskUserQuestion`
 - `Agent`。w-review はサブエージェントを起こさない（`contracts/skill-flow.md`）
 - `WebFetch`・`WebSearch`
+- `Bash(git clone:*)`。pecot-w の hook が、`.pecot/work/<数字>/reviewer/` への clone に allow を返す。deny の規則は hook の allow より優先される
+- `Read(//proc/**)`。`/proc/self/environ` から環境変数のトークンを読ませない
 
-許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で、書き換えのツールと `Bash` を渡さないことだ（FR-011）。
+許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で書き換えのツールを渡さないことと、`default` のモードで規則の無いコマンドが拒まれることだ（FR-011）。
 自前の App のときは、トークンの権限も境界になる。
 
 pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、Phase 5 で `prompt` への渡し方と合わせて決める。
@@ -206,7 +209,8 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | `github_token` と `PECOT_GITHUB_COM_TOKEN` が、発行したトークンが無いときに Claude の App と `GITHUB_TOKEN` に落ちる式を持つ | 式の文字列を探す |
 | job に `timeout-minutes` と `concurrency` がある | キーの有無を見る |
 | `claude_args` に `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` がある | 文字列を探す |
-| 許可リストに `Bash`・`Edit`・`Write` が無く、`--disallowedTools` にある | 文字列を探す |
+| 許可リストに `Edit`・`Write` が無く、`--disallowedTools` にある。`Bash` の許可は `gh pr diff`・`gh pr view` の規則だけ | 文字列を探す |
+| `--disallowedTools` に `Bash(git clone:*)`・`Read(//proc/**)` がある | 文字列を探す |
 | 許可リストに、マージ・クローズ・リリースのツール（`pr_merge`・`release_create` など）が無い | 文字列を探す |
 | 後始末の step が `if: always()` を持つ | キーの値を見る |
 | 後始末の step が、`JOB_STATUS`・`REVIEW_OUTCOME`・`REVIEW_CONCLUSION`・`REVIEW_HAS_TOKEN` を `env` で受け、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |

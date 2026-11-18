@@ -18,6 +18,8 @@ when_to_use: "自動レビューのワークフローが PR をレビューす�
 
 pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを読む（`reviews: true`）。
 
+diff は `gh pr diff <PR番号> --repo <owner/repo>` で読む。長い diff がファイルとして渡されたときは、そのファイルを `Read` で読む。
+
 紐づいた Issue があれば、pecot-workflow の MCP ツール `issue_show` を使って、それも読む。
 
 ### Step 2: diff をレビュー

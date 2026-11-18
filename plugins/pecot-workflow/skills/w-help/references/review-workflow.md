@@ -27,7 +27,7 @@ pecot-workflow の MCP ツール `workflow_install`（`name: "review"`）で、�
 [Claude の GitHub App](https://github.com/apps/claude) を、雛形を置くリポに入れます。Claude Code の `/install-github-app` からも入れられます。
 
 - インラインコメントは、この App のトークンで投稿する
-- App のトークンは Contents・Issues・Pull requests の write を持ち、絞れない。エージェントには、書き換えのツールと `Bash` を渡さないことで、リポを書き換えさせない
+- App のトークンは Contents・Issues・Pull requests の write を持ち、絞れない。エージェントには、書き換えのツールを渡さず、`Bash` は PR を読む `gh pr diff`・`gh pr view` だけを許すことで、リポを書き換えさせない
 - 権限を絞りたいときは、「自前の GitHub App」の節の手順を足す
 
 ### 3. モデルの認証の secret を登録する
@@ -219,6 +219,6 @@ github.com で確かめた構成です。GHES では確かめていません。
 | 利用者が足す行の印 | `# pecot-<名前>:<囲み>:begin` と `# pecot-<名前>:<囲み>:end` のコメントで囲む。`workflow_install` の `force` は、囲みの中の行を消す前に出す |
 | 起動する人の確かめ | fork・draft・許していない bot の PR では動かない。コメントでの起動は、`author_association` と、書いた人の権限（admin・maintain・write）の両方を見る |
 | 許可するツール | `--allowedTools` に、使うツールだけを並べる。これは確認なしで使えるツールの一覧で、境界にはならない |
-| 拒否するツール | 書き換えのツール・`Bash`・`Agent` を `--disallowedTools` に書く。リポを書き換えさせない境界は、こちらが持つ |
+| 拒否するツール | 書き換えのツール・`Agent` を `--disallowedTools` に書く。権限のモードは `default` にし、規則の無いコマンドを拒ませる。プラグインの hook が allow を返すコマンド（`git clone`）と、環境変数を読める `/proc` は、拒否の規則で塞ぐ |
 | 上限 | ターンと時間の上限を、変数で変えられる既定値として持つ |
 | 止まったとき | 後始末の step が `if: always()` で動き、止まったことを PR に 1 つだけ書く |
