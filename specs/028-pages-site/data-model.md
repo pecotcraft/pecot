@@ -118,17 +118,20 @@
 2. main の祖先の定義で動いた `workflow_dispatch` の run に限り、`dev` か `release` かを、その run が上げた側の artifact の名前（`pages-side-dev`・`pages-side-release`）で決める。2 つとも有るか、どちらも無いときは捨てる
    - run の API には、起動の入力（`side`）が無い。そのため、API の項目だけでは 2 つを分けられない
    - その定義は main に入ったレビュー済みのものなので、名前を信じてよい
-   - `push` の run は開発版、`pull_request` の run は PR 版に決まり、名前は使わない
+   - `push` の run は開発版、ci.yml の `pull_request` の run は PR 版に決まり、名前は使わない
+   - PR 版では、1 で決めた PR の番号から作った `pages-side-pr-<番号>` が、その run の artifact に無ければ捨てる。ci の `pages-preview` が動かなかった run（PR 版を作れなかった run）を、ここで落とす
 
-| 側 | `path` | `event` | `head_repository` | `head_sha` | PR |
-|---|---|---|---|---|---|
-| 開発版 | `.github/workflows/pages-build.yml` | `push` か `workflow_dispatch` | このリポ | main の祖先。保管中の開発版の SHA を祖先に持つ | 見ない |
-| リリース版 | 同上 | `workflow_dispatch` | このリポ | main の祖先。API から求め直した ReleaseSources が、artifact の `release-sources.json` と一致する | 見ない |
-| PR 版 | 同上 | `pull_request` | このリポ | その PR の今の head と一致する | 下の決まり |
+| 側 | `path` | `event` | `conclusion` | `head_repository` | `head_sha` | PR |
+|---|---|---|---|---|---|---|
+| 開発版 | `.github/workflows/pages-build.yml` | `push` か `workflow_dispatch` | `success` | このリポ | main の祖先。保管中の開発版の SHA を祖先に持つ | 見ない |
+| リリース版 | 同上 | `workflow_dispatch` | `success` | このリポ | main の祖先。API から求め直した ReleaseSources が、artifact の `release-sources.json` と一致する | 見ない |
+| PR 版 | `.github/workflows/ci.yml` | `pull_request` | `success` か `failure` | このリポ | その PR の今の head と一致する | 下の決まり |
 
 決まり:
 
-- すべての側で、`conclusion` は `success` に限る
+- 開発版とリリース版は、pages-build.yml の run からだけ受ける。PR の作者は自分のブランチの ci.yml を書き換えられるので、ci.yml の `pull_request` 以外の event の run は捨てる
+- PR 版の `conclusion` に `failure` を含めるのは、テストが落ちた PR でも、落ちた合否を PR 版で見せるため。ci の run は、テストが 1 件落ちると `failure` になる
+- pages-build.yml の `pull_request` の run は、閉じた PR の掃除だけを起こす。PR が開いていれば捨てる
 - main の祖先かは、`GET /repos/{owner}/{repo}/compare/{head_sha}...main` の `behind_by == 0` で決める
 - `head_branch` では、ブランチを判定しない。タグで動いた run では、`head_branch` にタグ名が入るため
 - 開発版で、保管中の開発版と同じ SHA の run（再実行）は受ける。保管中の SHA を祖先に持たない run（古い run）は捨てる

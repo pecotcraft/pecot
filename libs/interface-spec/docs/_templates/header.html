@@ -19,6 +19,9 @@
     {%- if site.pr_url %}
     <a href="{{ site.pr_url|e }}" rel="noopener">{{ site.pr_label|e }}</a>
     {%- endif %}
+    {%- if site.filled %}
+    <span class="pecot-site-filled">開発版 <a class="pecot-site-sha" href="{{ site.dev_commit_url|e }}" rel="noopener">{{ site.dev_sha|e }}</a> の合否で埋めたレーン: {{ site.filled|e }}</span>
+    {%- endif %}
     <nav class="pecot-site-sides" aria-label="公開の側">
       {%- for s in site.sides %}
       {%- if s.href %}

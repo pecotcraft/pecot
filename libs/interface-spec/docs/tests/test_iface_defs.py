@@ -692,6 +692,9 @@ def test_local_context_has_no_commit_or_run_link_and_links_both_sides() -> None:
         "run_url": None,
         "pr_label": None,
         "pr_url": None,
+        "filled": None,
+        "dev_sha": None,
+        "dev_commit_url": None,
         "sides": SIDES_BOTH_LINKED,
     }
 
@@ -708,8 +711,46 @@ def test_pr_context_reads_every_env_value() -> None:
         "run_url": "https://github.com/pecotcraft/pecot/actions/runs/1",
         "pr_label": "PR #612 を開く",
         "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
+        "filled": None,
+        "dev_sha": None,
+        "dev_commit_url": None,
         "sides": SIDES_BOTH_LINKED,
     }
+
+
+DEV_SHA = "abc1234567890abc1234567890abc1234567890a"
+FILLED_ENV = {
+    "PECOT_SITE_FILLED": '["pecot-tools:test-cli","pecot-visual:test-cli"]',
+    "PECOT_SITE_DEV_SHA": DEV_SHA,
+}
+
+
+def test_pr_context_names_lanes_filled_from_dev() -> None:
+    stamp = site_stamp({**PR_ENV, **FILLED_ENV}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
+    assert (stamp.filled, stamp.dev_sha) == (
+        ("pecot-tools:test-cli", "pecot-visual:test-cli"),
+        DEV_SHA,
+    )
+    context = stamp.context()
+    assert (context["filled"], context["dev_sha"], context["dev_commit_url"]) == (
+        "pecot-tools:test-cli, pecot-visual:test-cli",
+        "abc1234",
+        f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}",
+    )
+
+
+def test_pr_context_with_no_filled_lane_has_no_dev_values() -> None:
+    env = {**PR_ENV, "PECOT_SITE_FILLED": "[]", "PECOT_SITE_DEV_SHA": DEV_SHA}
+    context = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()
+    assert (context["filled"], context["dev_sha"], context["dev_commit_url"]) == (None, None, None)
+
+
+@pytest.mark.parametrize("side", ["release", "dev", "local"])
+def test_filled_lanes_are_ignored_outside_pr(side: str) -> None:
+    env = {"PECOT_SITE_SIDE": side, "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}", **FILLED_ENV}
+    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
+    assert (stamp.filled, stamp.dev_sha) == ((), None)
+    assert stamp.context()["filled"] is None
 
 
 @pytest.mark.parametrize(
@@ -783,6 +824,15 @@ def test_plugin_versions_are_read_in_name_order(tmp_path: Path) -> None:
             STAMP_HEAD,
             "PECOT_SITE_PLUGIN_COMMITS",
         ),
+        ({**PR_ENV, "PECOT_SITE_FILLED": "pecot-tools:test-cli"}, STAMP_HEAD, "PECOT_SITE_FILLED"),
+        ({**PR_ENV, "PECOT_SITE_FILLED": '[""]'}, STAMP_HEAD, "PECOT_SITE_FILLED"),
+        ({**PR_ENV, "PECOT_SITE_FILLED": '{"a": 1}'}, STAMP_HEAD, "PECOT_SITE_FILLED"),
+        ({**PR_ENV, "PECOT_SITE_FILLED": '["a:b"]'}, STAMP_HEAD, "PECOT_SITE_DEV_SHA"),
+        (
+            {**PR_ENV, "PECOT_SITE_FILLED": '["a:b"]', "PECOT_SITE_DEV_SHA": "abc1234"},
+            STAMP_HEAD,
+            "PECOT_SITE_DEV_SHA",
+        ),
     ],
 )
 def test_site_stamp_fails_on_bad_values(env: dict[str, str], head: str | None, names: str) -> None:
@@ -837,6 +887,19 @@ def test_pr_band_links_commit_run_and_pr(tmp_path: Path, capfd: pytest.CaptureFi
         "リリース版": "/pecot/",
         "開発版": "/pecot/dev/",
     }
+
+
+def test_pr_band_names_lanes_filled_from_dev(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, site={**PR_ENV, **FILLED_ENV})
+    assert built.code == 0, built.warnings
+    band = band_of(built)
+    assert (
+        "開発版 abc1234 の合否で埋めたレーン: pecot-tools:test-cli, pecot-visual:test-cli"
+        in text_of(band)
+    )
+    assert links_of(band)["abc1234"] == f"https://github.com/pecotcraft/pecot/commit/{DEV_SHA}"
 
 
 def test_release_band_shows_its_own_side_as_text(

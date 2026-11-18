@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
@@ -22,9 +23,14 @@ from store import side_check
 
 _HERE = Path(__file__).resolve().parent
 STORE_BRANCH = "pages-store"
-PHASE5 = "PR 版の保管は Phase 5 から（#590）。この run の側は保管しない"
 
 Api = Callable[[str], object | None]
+
+
+@dataclass(frozen=True)
+class StoredDev:
+    run_id: str | None
+    sha: str | None
 
 
 def gh_api(path: str) -> object | None:
@@ -45,14 +51,21 @@ def _list(value: object) -> list[object]:
     return cast("list[object]", value) if isinstance(value, list) else []
 
 
-def stored_dev_sha(api: Api, repo: str) -> str | None:
+def stored_dev(api: Api, repo: str) -> StoredDev:
+    """pages-store の .pecot-store.json の dev の記録。無い値は None。"""
     content = _dict(api(f"repos/{repo}/contents/.pecot-store.json?ref={STORE_BRANCH}"))
     raw = content.get("content")
     if not isinstance(raw, str):
-        return None
-    record = _dict(json.loads(base64.b64decode(raw)))
-    sha = _dict(record.get("dev")).get("sha")
-    return sha if isinstance(sha, str) else None
+        return StoredDev(run_id=None, sha=None)
+    dev = _dict(_dict(json.loads(base64.b64decode(raw))).get("dev"))
+    run_id, sha = dev.get("run_id"), dev.get("sha")
+    # store.py は run_id を文字列で書くが、数で書かれていても読む。
+    if isinstance(run_id, int) and not isinstance(run_id, bool):
+        run_id = str(run_id)
+    return StoredDev(
+        run_id=run_id if isinstance(run_id, str) else None,
+        sha=sha if isinstance(sha, str) else None,
+    )
 
 
 def judge(api: Api, repo: str, run_id: str) -> tuple[Verdict, list[int]]:
@@ -72,7 +85,7 @@ def judge(api: Api, repo: str, run_id: str) -> tuple[Verdict, list[int]]:
         )
         if isinstance(n := _dict(a).get("name"), str)
     ]
-    stored = None if pull_event else stored_dev_sha(api, repo)
+    stored = None if pull_event else stored_dev(api, repo).sha
     stored_vs_head = (
         api(f"repos/{repo}/compare/{stored}...{head_sha}") if stored and head_sha else None
     )
@@ -138,8 +151,6 @@ def main(argv: list[str]) -> int:
 
     verdict, opened = judge(gh_api, args.repo, args.run_id)
     side, reason = verdict.side, verdict.reason
-    if side == "pr":
-        side, reason = None, PHASE5
     if side is not None and verdict.artifact is not None:
         raw = args.out.parent / "pages-raw"
         shutil.rmtree(raw, ignore_errors=True)

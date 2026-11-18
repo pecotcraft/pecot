@@ -11,7 +11,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/pages_site"))
 
-from provenance import WORKFLOW_PATH, Verdict, decide, open_prs, pr_candidates  # noqa: E402
+from provenance import (  # noqa: E402
+    BUILD_PATH,
+    CI_PATH,
+    Verdict,
+    decide,
+    open_prs,
+    pr_candidates,
+)
 
 REPO = "pecotcraft/pecot"
 API = "https://api.github.com/repos"
@@ -41,7 +48,7 @@ def _run(
     run: dict[str, Any] = {
         "id": 44214079368,
         "name": "pages-build",
-        "path": WORKFLOW_PATH,
+        "path": BUILD_PATH,
         "event": event,
         "status": "completed",
         "conclusion": "success",
@@ -206,7 +213,8 @@ def test_release_does_not_look_at_stored_dev_sha() -> None:
 @pytest.mark.parametrize(
     "over",
     [
-        {"path": ".github/workflows/ci.yml"},
+        {"path": ".github/workflows/ci.yaml"},
+        {"path": ".github/workflows/pages-deploy.yml"},
         {"path": ".github/workflows/pages-build.yaml"},
         {"head_repository": {"full_name": "someone/pecot", "fork": True}},
         {"head_repository": None},
@@ -232,38 +240,110 @@ def test_other_events_are_dropped(event: str) -> None:
     assert _accepted(verdict) == DROPPED
 
 
-# PR 版
+# PR 版（ci.yml の pull_request の run から受ける）
 
 
-def test_pull_request_run_is_pr_side() -> None:
-    run = _run("pull_request", head_branch="feat/x/5", pull_requests=[_run_pr(5)])
-    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5)})
-    assert _accepted(verdict) == ("pr", 5, HEAD, "pages-side-pr-5", False)
+def _ci_run(*prs: dict[str, Any], **over: Any) -> dict[str, Any]:
+    pulls = list(prs) if prs else [_run_pr(5)]
+    run = _run("pull_request", pull_requests=pulls, path=CI_PATH, name="ci", head_branch="feat/x/5")
+    run.update(over)
+    return run
 
 
-def test_pull_request_ignores_artifact_names() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
-    verdict = _decide(
-        run, head_vs_main=None, artifact_names=["pages-side-release"], pulls={5: _pull(5)}
+def _decide_ci(
+    run: dict[str, Any],
+    *,
+    artifact_names: list[str] | None = None,
+    pulls: dict[int, dict[str, Any]] | None = None,
+) -> Verdict:
+    return _decide(
+        run,
+        head_vs_main=None,
+        artifact_names=["pages-side-pr-5"] if artifact_names is None else artifact_names,
+        pulls={5: _pull(5)} if pulls is None else pulls,
     )
-    assert _accepted(verdict) == ("pr", 5, HEAD, "pages-side-pr-5", False)
+
+
+PR5 = ("pr", 5, HEAD, "pages-side-pr-5", False)
+
+
+@pytest.mark.parametrize("conclusion", ["success", "failure"])
+def test_ci_pull_request_run_is_pr_side(conclusion: str) -> None:
+    # テストが落ちた PR でも、落ちた合否を PR 版で見せる。
+    assert _accepted(_decide_ci(_ci_run(conclusion=conclusion))) == PR5
+
+
+@pytest.mark.parametrize(
+    "conclusion", ["cancelled", "timed_out", "skipped", "action_required", None]
+)
+def test_ci_run_with_other_conclusion_is_dropped(conclusion: str | None) -> None:
+    assert _accepted(_decide_ci(_ci_run(conclusion=conclusion))) == DROPPED
+
+
+@pytest.mark.parametrize(
+    "names", [[], ["pages-junit-pecot-tools-test-cli"], ["pages-side-pr-6"], ["pages-side-dev"]]
+)
+def test_ci_run_without_its_pr_artifact_is_dropped(names: list[str]) -> None:
+    verdict = _decide_ci(_ci_run(), artifact_names=names)
+    assert (verdict.side, verdict.artifact, verdict.closed_pr) == (None, None, False)
+    assert "pages-side-pr-5" in verdict.reason
+
+
+@pytest.mark.parametrize(
+    "event", ["push", "merge_group", "workflow_dispatch", "pull_request_target"]
+)
+def test_ci_runs_other_than_pull_request_are_dropped(event: str) -> None:
+    # PR の作者は自分のブランチの ci.yml を書き換えられるので、ci.yml から開発版・リリース版は受けない。
+    run = _ci_run(event=event, head_branch="main")
+    verdict = _decide(
+        run,
+        artifact_names=["pages-side-dev", "pages-side-release", "pages-side-pr-5"],
+        pulls={5: _pull(5)},
+    )
+    assert _accepted(verdict) == DROPPED
+
+
+def test_ci_run_from_fork_is_dropped() -> None:
+    run = _ci_run(head_repository={"full_name": "someone/pecot", "fork": True})
+    assert _accepted(_decide_ci(run)) == DROPPED
 
 
 def test_pull_request_does_not_need_main_ancestor() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
-    verdict = _decide(run, head_vs_main=NOT_IN_MAIN, pulls={5: _pull(5)})
+    verdict = _decide(
+        _ci_run(),
+        head_vs_main=NOT_IN_MAIN,
+        artifact_names=["pages-side-pr-5"],
+        pulls={5: _pull(5)},
+    )
     assert verdict.side == "pr"
 
 
+def test_build_run_of_open_pull_request_is_dropped() -> None:
+    # PR 版は ci.yml の run から作る。pages-build.yml の PR の run は閉じた PR の掃除だけ起こす。
+    run = _run("pull_request", pull_requests=[_run_pr(5)])
+    verdict = _decide(
+        run, head_vs_main=None, artifact_names=["pages-side-pr-5"], pulls={5: _pull(5)}
+    )
+    assert (verdict.side, verdict.pr, verdict.artifact, verdict.closed_pr) == (None, 5, None, False)
+
+
+def test_closed_pull_request_of_build_run_only_triggers_cleanup() -> None:
+    run = _run("pull_request", pull_requests=[_run_pr(5)])
+    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5, state="closed")})
+    assert (verdict.side, verdict.pr, verdict.artifact, verdict.closed_pr) == (None, 5, None, True)
+
+
+def test_closed_pull_request_of_ci_run_only_triggers_cleanup() -> None:
+    verdict = _decide_ci(_ci_run(), pulls={5: _pull(5, state="closed")})
+    assert (verdict.side, verdict.pr, verdict.artifact, verdict.closed_pr) == (None, 5, None, True)
+
+
 def test_pr_candidates_filter_base_repo_and_head_sha() -> None:
-    run = _run(
-        "pull_request",
-        pull_requests=[
-            _run_pr(5),
-            _run_pr(6, base="someone/pecot"),
-            _run_pr(7, base="pecotcraft/other"),
-            _run_pr(8, head_sha=OTHER),
-        ],
+    run = _ci_run(
+        _run_pr(5),
+        _run_pr(6, base="someone/pecot"),
+        _run_pr(7, base="pecotcraft/other"),
+        _run_pr(8, head_sha=OTHER),
     )
     assert pr_candidates(run, REPO) == [5]
 
@@ -273,54 +353,47 @@ def test_pr_candidates_need_url_not_only_name() -> None:
     fork_base = {"id": 9, "url": f"{API}/someone/pecot", "name": "pecot"}
     pull = _run_pr(5)
     pull["base"]["repo"] = fork_base
-    assert pr_candidates(_run("pull_request", pull_requests=[pull]), REPO) == []
+    assert pr_candidates(_ci_run(pull), REPO) == []
 
 
 def test_pull_request_from_other_repo_base_only_is_dropped() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(6, base="someone/pecot")])
-    assert _accepted(_decide(run, head_vs_main=None, pulls={6: _pull(6)})) == DROPPED
+    run = _ci_run(_run_pr(6, base="someone/pecot"))
+    verdict = _decide_ci(run, artifact_names=["pages-side-pr-6"], pulls={6: _pull(6)})
+    assert _accepted(verdict) == DROPPED
 
 
 @pytest.mark.parametrize("prs", [[], [_run_pr(5), _run_pr(6)]])
 def test_pull_request_not_narrowed_to_one_is_dropped(prs: list[dict[str, Any]]) -> None:
-    run = _run("pull_request", pull_requests=prs)
-    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5), 6: _pull(6)})
+    run = _ci_run(pull_requests=prs)
+    verdict = _decide_ci(
+        run, artifact_names=["pages-side-pr-5", "pages-side-pr-6"], pulls={5: _pull(5), 6: _pull(6)}
+    )
     assert _accepted(verdict) == DROPPED
 
 
 def test_pull_request_with_other_repo_pr_still_narrows_to_one() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5), _run_pr(6, base="someone/pecot")])
-    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5)})
-    assert _accepted(verdict) == ("pr", 5, HEAD, "pages-side-pr-5", False)
+    run = _ci_run(_run_pr(5), _run_pr(6, base="someone/pecot"))
+    assert _accepted(_decide_ci(run)) == PR5
 
 
 def test_pull_request_whose_head_moved_is_dropped() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
-    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5, head_sha=OTHER)})
+    verdict = _decide_ci(_ci_run(), pulls={5: _pull(5, head_sha=OTHER)})
     assert (verdict.side, verdict.closed_pr, verdict.artifact) == (None, False, None)
 
 
 def test_pull_request_whose_pull_base_is_other_repo_is_dropped() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
-    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5, base="someone/pecot")})
+    verdict = _decide_ci(_ci_run(), pulls={5: _pull(5, base="someone/pecot")})
     assert (verdict.side, verdict.closed_pr) == (None, False)
 
 
 def test_pull_request_without_pull_response_is_dropped() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
-    assert (_decide(run, head_vs_main=None, pulls={}).side) is None
-
-
-def test_closed_pull_request_only_triggers_cleanup() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
-    verdict = _decide(run, head_vs_main=None, pulls={5: _pull(5, state="closed")})
-    assert (verdict.side, verdict.pr, verdict.artifact, verdict.closed_pr) == (None, 5, None, True)
+    assert _decide_ci(_ci_run(), pulls={}).side is None
 
 
 def test_decide_does_not_change_inputs() -> None:
-    run = _run("pull_request", pull_requests=[_run_pr(5)])
+    run = _ci_run()
     before = copy.deepcopy(run)
-    _decide(run, head_vs_main=None, pulls={5: _pull(5)})
+    _decide_ci(run)
     assert run == before
 
 
@@ -329,6 +402,9 @@ def test_reason_is_one_line() -> None:
         _decide(_run("push")),
         _decide(_run("push"), head_vs_main=NOT_IN_MAIN),
         _decide(_run("workflow_dispatch")),
+        _decide_ci(_ci_run()),
+        _decide_ci(_ci_run(), artifact_names=[]),
+        _decide_ci(_ci_run(event="push")),
     ):
         assert verdict.reason
         assert "\n" not in verdict.reason

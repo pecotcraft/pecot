@@ -76,21 +76,27 @@ gh workflow run pages-build.yml --ref main -f side=release
 
 `pages-deploy.yml` は `workflow_run` で動くので、既定のブランチの定義で動く。PR 版の確かめは、PR 版の組み立てがマージされてからになる。
 
-1. 同じリポのブランチから、`libs/interface-spec/docs/` の文言を 1 か所変えた PR を開く
-2. PR の checks に `pages / preview` が付くのを待ち、Details を開く
+1. 同じリポのブランチから、`libs/interface-spec/docs/` の文言を 1 か所変えた draft の PR を開く
+2. PR の checks に `pages / preview` が付くのを待つ
+3. `gh api repos/pecotcraft/pecot/commits/<head の SHA>/statuses` で、その status を読み、Details を開く
+4. 合否のレーンのテストが 1 件落ちるコミットを push し、新しい head に `pages / preview` が付くのを待つ
+5. PR を閉じる
 
 期待:
 
-- `https://pecotcraft.github.io/pecot/pr/<番号>/` が開き、帯が「PR #<番号>」と head のコミット
-- 変えた文言が出ている
-- head に push すると、同じ URL の中身が新しいコミットに変わる。push から公開の終わりまでが 30 分以内（SC-007。3 と同じく run の時刻で見る）
-- PR を閉じると、次の保管で `/pr/<番号>/` が 404 になる。`/` と `/dev/` は変わらない
+- status は、context が `pages / preview`、state が `success`、`target_url` が `https://pecotcraft.github.io/pecot/pr/<番号>/` で、付け先が PR の head の SHA
+- 開いたページの帯が「PR #<番号>」と head のコミットで、「PR #<番号> を開く」のリンクが出る。変えた文言が出ている
+- ci が動かさなかったレーンは、帯に「開発版 `<sha>` の合否で埋めたレーン」として出る
+- `pages / preview` は、ci の `ci-result` の完了から 8 分以内に付く（research R14。run の時刻で見る）
+- 4 の後、同じ URL の帯が新しい head のコミットになり、落としたテストが失敗として出る
+- 閉じてから 30 分以内に `/pr/<番号>/` が 404 になる（SC-007）。`/` と `/dev/` の帯のコミットは変わらない
 
 ## 6. 止まる場合
 
 | 起こすこと | 期待 |
 |---|---|
-| 合否のレーン 1 つの target を壊した PR を出し、JUnit が残らないようにする | 作る run が失敗し、PR 版は前のまま |
-| 同じリポのブランチの PR で、`pages-build.yml` を書き換え、`pages-side-dev` の名前で artifact を上げる | `pages-deploy.yml` の verify が、run の `event` が `pull_request` なので PR 版と判定し、`pages-side-pr-<番号>` が無いとして捨てる。`pages-store` の `dev/` と `pr/<番号>/` は変わらず、summary に判定と捨てた理由が出る |
+| 合否のレーン 1 つの target を壊した PR を出し、JUnit が残らないようにする | ci の `pages-preview` が、ci が動かしたレーンの JUnit が無いとして失敗し、PR 版は前のまま。開発版の結果では埋めない |
+| 同じリポのブランチの PR で、`ci.yml` を書き換え、`pages-side-dev` の名前で artifact を上げる | `pages-deploy.yml` の verify が、run の `path` が ci.yml で `event` が `pull_request` なので PR 版の候補とし、`pages-side-pr-<番号>` が無いとして捨てる。`pages-store` の `dev/` と `pr/<番号>/` は変わらず、summary に判定と捨てた理由が出る |
+| 同じリポのブランチの PR で、`ci.yml` に `push` の契機を足し、そのブランチへの push で `pages-side-dev` を上げる | verify が、ci.yml の run は `pull_request` だけを受けるとして捨てる。開発版は pages-build.yml の run からしか受けない |
 | `main` という名前のタグを main に無いコミットへ付け、そのタグで `pages-build.yml` を `side=dev` で起こした run | 作る run の side の job が、`github.ref` が `refs/heads/main` でないとして失敗する。verify も、`head_sha` が main の祖先でないとして捨てる。このリポにタグは作らず、タグで動いた run の応答の形（`head_branch` にタグ名が入る）を入力にした `test_pages_provenance.py` で確かめる |
-| 保管の job が 7 日より長く落ち続けた | その間の側の artifact は消える。開発版とリリース版は `gh workflow run pages-build.yml --ref main -f side=<dev か release>` で作り直す。PR 版は、その PR へ次に push したときに作り直される |
+| 保管の job が 7 日より長く落ち続けた | その間のリリース版と PR 版の artifact は消える（開発版は 90 日残る）。開発版とリリース版は `gh workflow run pages-build.yml --ref main -f side=<dev か release>` で作り直す。PR 版は、その PR へ次に push したときに作り直される |

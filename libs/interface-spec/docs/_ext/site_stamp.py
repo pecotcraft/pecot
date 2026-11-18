@@ -31,6 +31,9 @@ class SiteStamp:
     plugins: tuple[tuple[str, str], ...]
     # リリース版だけ持つ。plugins と同じ順の (名前, タグのコミット)。
     plugin_commits: tuple[tuple[str, str], ...] = ()
+    # PR 版だけ持つ。ci が動かさず、開発版の合否で埋めたレーンと、その開発版のコミット。
+    filled: tuple[str, ...] = ()
+    dev_sha: str | None = None
 
     @property
     def label(self) -> str:
@@ -53,6 +56,11 @@ class SiteStamp:
             "run_url": self.run_url,
             "pr_label": f"PR #{self.pr} を開く" if self.side == "pr" else None,
             "pr_url": f"{GITHUB}/pull/{self.pr}" if self.side == "pr" else None,
+            "filled": ", ".join(self.filled) if self.filled else None,
+            "dev_sha": self.dev_sha[:7] if self.filled and self.dev_sha else None,
+            "dev_commit_url": (
+                f"{GITHUB}/commit/{self.dev_sha}" if self.filled and self.dev_sha else None
+            ),
             "sides": [
                 {"label": label, "href": None if side == self.side else href}
                 for side, label, href in SIDE_LINKS
@@ -84,6 +92,7 @@ def site_stamp(env: Mapping[str, str], root: Path, now: datetime, head: str | No
         )
     plugins = _plugin_versions(root)
     commits = _plugin_commits(get("PECOT_SITE_PLUGIN_COMMITS"), side, plugins)
+    filled, dev_sha = _filled(get("PECOT_SITE_FILLED"), get("PECOT_SITE_DEV_SHA"), side)
     return SiteStamp(
         side=side,
         pr=pr,
@@ -92,7 +101,32 @@ def site_stamp(env: Mapping[str, str], root: Path, now: datetime, head: str | No
         run_url=get("PECOT_SITE_RUN_URL"),
         plugins=plugins,
         plugin_commits=commits,
+        filled=filled,
+        dev_sha=dev_sha,
     )
+
+
+def _filled(
+    value: str | None, dev_sha: str | None, side: str
+) -> tuple[tuple[str, ...], str | None]:
+    if side != "pr" or value is None:
+        return (), None
+    try:
+        data: Any = json.loads(value)
+    except ValueError:
+        data = None
+    if not isinstance(data, list) or not all(
+        isinstance(n, str) and n for n in cast("list[Any]", data)
+    ):
+        raise SiteStampError(f"PECOT_SITE_FILLED はレーンの名前の JSON の配列です: {value}")
+    names = tuple(cast("list[str]", data))
+    if not names:
+        return (), None
+    if dev_sha is None or not re.fullmatch(r"[0-9a-f]{40}", dev_sha):
+        raise SiteStampError(
+            f"PECOT_SITE_FILLED があるときは PECOT_SITE_DEV_SHA に 40 桁の SHA が要ります: {dev_sha}"
+        )
+    return names, dev_sha
 
 
 def _plugin_commits(

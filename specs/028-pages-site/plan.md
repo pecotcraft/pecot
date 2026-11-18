@@ -37,7 +37,7 @@ ci.yml と同じ形）
 
 **Project Type**: リポの運用の仕組み（workflow とスクリプト）と、配布しないライブラリ（`libs/interface-spec`）の文書サイト
 
-**Performance Goals**: push・リリース・PR の push から 30 分以内に該当の側が変わる（SC-001・SC-007）。合否のレーンは 1 つの job で順に動かし、開発版・PR 版で 12 分前後。リリース版は依存を入れ直す分だけ延びる
+**Performance Goals**: push・リリース・PR の push から 30 分以内に該当の側が変わる（SC-001・SC-007）。開発版は、合否のレーンを 1 つの job で順に動かして 12 分前後。PR 版はテストを動かさず ci の結果を使い、ci の tests の完了から 3 分前後でできる（research R14）。リリース版は依存を入れ直す分だけ延びる
 
 **Constraints**: 公開サイト全体で 1 GB 以内（今の 1 つの側は約 14 MB）。deploy は 10 分以内。fork の PR では作らない。`pull_request_target` を使わない。手での起動は任意の SHA を受けない。`actions: write` をどの job にも持たせない
 
@@ -95,7 +95,8 @@ libs/interface-spec/
 └── README.md                     # 変更: 公開サイト・帯・STRICT・CI の artifact の節を書き直す
 
 .github/workflows/
-├── pages-build.yml               # 新規（#588）・変更: 側を作る。job を side と build の 2 つにし、手での起動とリリース版を足す
+├── ci.yml                        # 変更（#590）: tests の JUnit を残し、PR 版を作る pages-preview の job を足す
+├── pages-build.yml               # 新規（#588）・変更: 開発版とリリース版を作る。job を side と build の 2 つにし、手での起動とリリース版を足す。PR では closed だけを受ける
 ├── pages-deploy.yml              # 新規: 確かめて保管し、公開する（verify・store・deploy・preview-status）
 └── release.yml                   # 変更: 本番の land の後に pages-build を起こす
 
@@ -135,7 +136,7 @@ README.md                                # 変更: 公開サイトへのリン�
 1. **出し方**（US2・US4）: 5 つの状態・要旨・状態ごとの数・全体の合否・版の帯・`junit-lanes.json`・STRICT。手元の `interface-spec:docs` で確かめられる
 2. **作る run**（US1 の前半）: `pages-build.yml`。PR の上で、`pull_request` の契機で PR 版の artifact ができることまで確かめられる
 3. **確かめて保管し公開する run**（US1）: `pages-deploy.yml` と、出どころの確かめ・保管のスクリプト、`pages-build.yml` の手での起動とリリース版、保管ブランチ・environment・ruleset の設定、release.yml の追加。`workflow_run` は既定のブランチの定義で動くので、公開の確かめは 2 と 3 がマージされた後になる
-4. **PR 版の公開**（US3）: 確かめと保管に PR 版と commit status を足す。確かめは 3 のマージの後
+4. **PR 版の公開**（US3）: 確かめと保管に PR 版と commit status を足す。PR 版の作り方を、ci の結果を使う形に改める（research R14）。確かめは 3 のマージの後
 5. **文書**: README・CONTRIBUTING・interface-spec の README
 
 ## Complexity Tracking

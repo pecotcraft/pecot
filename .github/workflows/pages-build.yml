@@ -1,13 +1,14 @@
 name: pages-build
 
-# 公開サイトの 1 つの側（release / dev / pr）を作り、artifact に上げる。確かめと公開は pages-deploy.yml が行う。
+# 公開サイトのリリース版か開発版を作り、artifact に上げる。PR 版は ci.yml の pages-preview が作る。確かめと公開は pages-deploy.yml が行う。
 # 契機と出力の決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
 
 on:
   push:
     branches: [main]
+  # 閉じた PR の掃除を pages-deploy.yml に起こさせるためだけに動く。
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [closed]
   workflow_dispatch:
     inputs:
       side:
@@ -50,17 +51,14 @@ jobs:
           echo "::error::workflow_dispatch must run on refs/heads/main: $REF"
           exit 1
 
-      # closed の PR は pages-deploy.yml を起こすためだけに成功で終わる。fork の PR は作らない。
+      # 閉じた PR の run は何も作らずに成功で終わる。
       - name: Decide side and commit
         id: decide
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_SIDE: ${{ inputs.side }}
-          PR_ACTION: ${{ github.event.action }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          REPO: ${{ github.repository }}
           PUSH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -70,9 +68,7 @@ jobs:
             side="pr"
             pr=$PR_NUMBER
             SHA=$PR_HEAD_SHA
-            if [ "$PR_ACTION" = "closed" ] || [ "$PR_HEAD_REPO" != "$REPO" ]; then
-              build=false
-            fi
+            build=false
           elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             side=$INPUT_SIDE
             SHA=$PUSH_SHA
@@ -125,14 +121,12 @@ jobs:
     timeout-minutes: 120
     env:
       SIDE: ${{ needs.side.outputs.side }}
-      PR: ${{ needs.side.outputs.pr }}
       SHA: ${{ needs.side.outputs.sha }}
       SOURCES: ${{ needs.side.outputs.sources }}
       # Chromium を使う pecot-visual のレーンも同じ job で動かす。
       PECOT_CI_BROWSER: "1"
       PECOT_SITE_STRICT: "1"
       PECOT_SITE_SIDE: ${{ needs.side.outputs.side }}
-      PECOT_SITE_PR: ${{ needs.side.outputs.pr }}
       PECOT_SITE_SHA: ${{ needs.side.outputs.sha }}
       PECOT_SITE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       PECOT_SITE_BUILT_AT: ${{ needs.side.outputs.built_at }}
@@ -140,7 +134,6 @@ jobs:
         PECOT_CI_BROWSER
         PECOT_SITE_STRICT
         PECOT_SITE_SIDE
-        PECOT_SITE_PR
         PECOT_SITE_SHA
         PECOT_SITE_RUN_URL
         PECOT_SITE_BUILT_AT
@@ -149,7 +142,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -178,7 +171,7 @@ jobs:
         if: env.SIDE != 'release'
         run: |
           python3 .githooks/scripts/pages_site/collect.py --out "$RUNNER_TEMP/pages-side" \
-            --side "$SIDE" --pr "$PR" --sha "$SHA" >> "$GITHUB_STEP_SUMMARY"
+            --side "$SIDE" --sha "$SHA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build site
         if: env.SIDE != 'release'
@@ -202,10 +195,11 @@ jobs:
         if: env.SIDE != 'release'
         run: tar -C libs/interface-spec/docs/_build -cf "$RUNNER_TEMP/pages-side/site.tar" .
 
+      # ci.yml の pages-preview が開発版の JUnit で PR 版を埋めるので、開発版はこのリポの上限まで残す。
       - name: Upload side
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ needs.side.outputs.artifact }}
           path: ${{ runner.temp }}/pages-side/
-          retention-days: 7
+          retention-days: ${{ needs.side.outputs.side == 'dev' && 90 || 7 }}
           if-no-files-found: error
