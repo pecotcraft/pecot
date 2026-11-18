@@ -515,7 +515,7 @@ describe('issue block', () => {
         wait: 'stack',
         change: 'added',
         moves: [],
-        warnings: ['the Blocked option is not on the board, so #7 was not moved\nhint: run project_init to add the Blocked option to the board'],
+        warnings: ['the Blocked option is not on the board, so #7 was not moved\n  hint: call project_init to add the Blocked option to the board'],
       })
     })
 
@@ -600,7 +600,7 @@ describe('issue block', () => {
         wait: 'stack',
         change: 'added',
         moves: [],
-        warnings: [`could not move #7: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`],
+        warnings: [`could not move #7: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`],
       })
     })
 
@@ -703,7 +703,7 @@ describe('issue block', () => {
       const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
       expect(outcome.isError).toBe(true)
-      expect(outcome.structured).toEqual({ kind: 'content-invalid', detail: 'Waits for merge of #7 is malformed: not a list item: plain text; fix the section in the Issue body and run the command again' })
+      expect(outcome.structured).toEqual({ kind: 'content-invalid', detail: 'Waits for merge of #7 is malformed: not a list item: plain text; fix the section in the Issue body and call the tool again' })
       expect(writes(github)).toEqual([])
     })
 
@@ -782,7 +782,7 @@ describe('issue block', () => {
     })
 
     it.for([
-      { name: '本文の書き込みが失敗した', wait: { wait: 'merge', reason: 'x' }, rules: (): ResponseRule[] => [targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), { match: { method: 'PATCH', path: '/repos/acme/demo/issues/7' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }], detail: /^could not update the body of #7; blocked-by #5 was added, run the command again to write the section: GitHub API error: 502$/u },
+      { name: '本文の書き込みが失敗した', wait: { wait: 'merge', reason: 'x' }, rules: (): ResponseRule[] => [targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), { match: { method: 'PATCH', path: '/repos/acme/demo/issues/7' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }], detail: /^could not update the body of #7; blocked-by #5 was added, call the tool again to write the section: GitHub API error: 502$/u },
       { name: 'GitHub API がエラーを返した', wait: {}, rules: (): ResponseRule[] => [{ match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }], detail: /^could not read blocked-by of #7: /u },
     ])('$name とき、失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-22')

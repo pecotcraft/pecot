@@ -583,7 +583,7 @@ describe('worktree add', () => {
     leaveDevcontainer()
     const result = await tool('worktree_add', { directory: repository })
     expect(result.isError).toBe(true)
-    expect(detailOf(result)).toMatch(/^this command must run inside a devcontainer\n/u)
+    expect(detailOf(result)).toMatch(/^this tool must run inside a devcontainer\n/u)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
@@ -704,7 +704,7 @@ describe('worktree add', () => {
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
-  it('git worktree add に失敗すると、git の文を detail に入れて失敗を返す', async (context) => {
+  it('git worktree add に失敗すると、git の理由の行を detail に、git の出力の全文を log に入れて失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKTREE-ADD-47')
     await verifies(context, 'PW-WORKTREE-ADD-48')
     const { repository, root } = createProject()
@@ -712,7 +712,8 @@ describe('worktree add', () => {
     writeTree(occupied, { 'file.txt': 'x' })
     const result = await tool('worktree_add', { directory: repository, path: occupied })
     expect(result.isError).toBe(true)
-    expect(detailOf(result)).toMatch(/^failed to create the worktree: .*\n.*fatal: '.+occupied' already exists/u)
+    expect(detailOf(result)).toMatch(/^failed to create the worktree: fatal: '.+occupied' already exists$/u)
+    expect(result.structured['log']).toMatch(/^Preparing worktree .*\nfatal: '.+occupied' already exists\n$/u)
   })
 
   it('worktree を作った後に worktree-config.json を読めないと、worktree とブランチを残し、kind が config-invalid の失敗を返す', async (context) => {
@@ -921,7 +922,7 @@ describe('worktree init', () => {
     leaveDevcontainer()
     const result = await tool('worktree_init', { directory: repository })
     expect(result.isError).toBe(true)
-    expect(detailOf(result)).toMatch(/^this command must run inside a devcontainer\n/u)
+    expect(detailOf(result)).toMatch(/^this tool must run inside a devcontainer\n/u)
     expect(existsSync(configPaths(repository).config)).toBe(false)
   })
 
@@ -1304,7 +1305,7 @@ describe('worktree link', () => {
     leaveDevcontainer()
     const result = await tool('worktree_link', { directory: worktree })
     expect(result.isError).toBe(true)
-    expect(detailOf(result)).toMatch(/^this command must run inside a devcontainer\n/u)
+    expect(detailOf(result)).toMatch(/^this tool must run inside a devcontainer\n/u)
     expect(existsSync(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
   })
 
@@ -1541,7 +1542,7 @@ describe('worktree remove', () => {
     leaveDevcontainer()
     const result = await tool('worktree_remove', { directory: repository, name: 'wt1' })
     expect(result.isError).toBe(true)
-    expect(detailOf(result)).toMatch(/^this command must run inside a devcontainer\n/u)
+    expect(detailOf(result)).toMatch(/^this tool must run inside a devcontainer\n/u)
     expect(existsSync(worktree)).toBe(true)
   })
 

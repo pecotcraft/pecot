@@ -404,7 +404,7 @@ describe('issue unblock', () => {
         by: 'acme/demo/5',
         change: 'removed',
         moves: [],
-        warnings: [`could not move #7: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`],
+        warnings: [`could not move #7: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`],
       })
     })
 
@@ -502,7 +502,7 @@ describe('issue unblock', () => {
         by: 'acme/demo/5',
         change: 'removed',
         moves: [{ issue: '#7', from: 'Blocked', to: 'Ready', reason: 'startable' }],
-        warnings: ['the Todo option is not on the board, so #7 was not moved\nhint: run project_init to add the Todo option to the board'],
+        warnings: ['the Todo option is not on the board, so #7 was not moved\n  hint: call project_init to add the Todo option to the board'],
       })
     })
 

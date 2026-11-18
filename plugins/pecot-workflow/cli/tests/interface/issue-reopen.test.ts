@@ -618,7 +618,7 @@ describe('issue reopen', () => {
 
     it.for([
       { name: 'active が設定に無い', id: 'PW-ISSUE-REOPEN-12', options: { missingStatus: 'active' }, status: 'active', warning: 'status \'active\' is not configured in the project' },
-      { name: 'blocked が設定に無い', id: 'PW-ISSUE-REOPEN-20', options: {}, status: 'blocked', warning: 'status \'blocked\' is not configured in the project\nhint: run project_init to add the Blocked option to the board' },
+      { name: 'blocked が設定に無い', id: 'PW-ISSUE-REOPEN-20', options: {}, status: 'blocked', warning: 'status \'blocked\' is not configured in the project\n  hint: call project_init to add the Blocked option to the board' },
     ])('$name とき、warnings に入れて reopen する', async (row, context) => {
       await verifies(context, 'PW-ISSUE-REOPEN-12')
       await verifies(context, row.id)
@@ -641,7 +641,7 @@ describe('issue reopen', () => {
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toEqual([
-        `could not set Issue acme/demo/7 status ready: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+        `could not set Issue acme/demo/7 status ready: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
       ])
       expect(github.requests().map(request => labelOf(request)).slice(-2)).toEqual([PATCH, COMMENT])
     })

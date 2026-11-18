@@ -35,7 +35,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
-import { commandHint, hinted, inputHint, inputNameHint } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -475,7 +475,7 @@ export async function connectToProject(output: Output, config: ProjectConfig, ow
 */
 export function notConfiguredMessage(status: string): string | HintedText {
   const base = `status '${status}' is not configured in the project`
-  return status === 'blocked' ? hinted`${base}\nhint: run ${commandHint(['project', 'init'])} to add the Blocked option to the board` : base
+  return status === 'blocked' ? hinted`${base}\nhint: ${RUN} ${commandHint(['project', 'init'])} to add the Blocked option to the board` : base
 }
 
 /**

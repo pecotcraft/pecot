@@ -2,7 +2,7 @@
 import type { ProjectConfig } from '../domain/config.js'
 import { configSourcePath, projectNameOf } from '../infra/config-store.js'
 import type { GitHubAPIError } from '../infra/github/errors.js'
-import { commandHint, hinted, joinHinted, placeholder } from './command-hint.js'
+import { commandHint, hinted, joinHinted, placeholder, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 
 /**
@@ -16,7 +16,7 @@ export interface FieldHintState {
 function rereadOptionsHint(config: ProjectConfig): HintedText {
   const configPath = configSourcePath(config)
   const project = configPath === undefined ? placeholder('PROJECT') : projectNameOf(configPath)
-  return hinted`hint: if the board options were recreated, run ${commandHint(['project', 'activate'], { project })} to read their IDs again`
+  return hinted`hint: if the board options were recreated, ${RUN} ${commandHint(['project', 'activate'], { project })} to read their IDs again`
 }
 
 /**

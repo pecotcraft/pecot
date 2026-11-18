@@ -245,6 +245,7 @@ export const ABORTED_EXIT_CODE = 1
 */
 export function reportAborted(io: CommandIo): number {
   io.stderr('Aborted.\n')
+  io.error?.('Aborted.')
   return ABORTED_EXIT_CODE
 }
 
@@ -257,7 +258,10 @@ export function isConfirmed(io: CommandIo, text: string): boolean {
     io.stderr(`${text} [y/N]:`)
     io.stdout(' ')
     const line = io.readLine?.()
-    if (line === undefined) throw new AbortedError()
+    if (line === undefined) {
+      io.error?.(text)
+      throw new AbortedError()
+    }
     switch (line.trim().toLowerCase()) {
       case 'y':
       case 'yes': { return true }

@@ -21,7 +21,7 @@ describe('worktree_link', () => {
     const outcome = await runScenario(scenario, mcp)
     const golden = readGolden('worktree-link-state-overwrite-eof')
     expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toEqual({ ...golden, stdout: '', stderr: mcpViewOfStderr(golden.stderr, golden.exitCode) })
+    expect(outcome.golden).toEqual({ ...golden, stdout: '', stderr: mcpViewOfStderr(golden.stderr.replace(' [y/N]:', '\n'), golden.exitCode) })
     expect(outcome.golden).toMatchObject({ exitCode: 1 })
     expect(outcome.golden.stderr).toMatch(/Aborted\.\n$/u)
   })

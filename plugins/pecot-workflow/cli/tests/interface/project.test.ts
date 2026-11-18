@@ -1081,7 +1081,7 @@ describe('board show', () => {
         const result = await infoTool([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
         expectClean(result)
         expect(result.structured['mismatches']).toBe(2)
-        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; run board_sync (dry_run: true to preview) to fix'])
+        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; call board_sync (dry_run: true to preview) to fix'])
       })
 
       it('Active と In Review の Issue は、前提を読まず、readiness を null にする', async (context) => {
@@ -1265,7 +1265,7 @@ describe('board show', () => {
       await verifies(context, 'PW-BOARD-SHOW-10')
       const result = await show({}, [], { config: false })
       expect(result.isError).toBe(true)
-      expect(result.structured).toEqual({ kind: 'no-active-project', detail: 'no active project\n  run: project_activate with project: <PROJECT>' })
+      expect(result.structured).toEqual({ kind: 'no-active-project', detail: 'no active project\n  call project_activate with project: <PROJECT>' })
     })
 
     it('ボードの取得で GitHub API がエラーを返すと、失敗を返す', async (context) => {
@@ -1553,7 +1553,7 @@ describe('project activate', () => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-17')
       const result = await tool('project_activate', { project: CONFIG_NAME, host: 'github.com' }, [projectFields(), ...syncRules()])
       expect(result.isError).toBe(false)
-      expect(result.structured['warnings']).toEqual([`host: "github.com" differs from the config file host (${DEFAULT_HOST})\nusing the config file host`])
+      expect(result.structured['warnings']).toEqual([`host: "github.com" differs from the config file host (${DEFAULT_HOST})\n  using the config file host`])
     })
 
     it('進行の欄に必須の値が欠けていると、kind が not-initialized の失敗を返す', async (context) => {
@@ -1829,7 +1829,7 @@ describe('project set', () => {
       await verifies(context, 'PW-PROJECT-SET-04')
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new' }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toMatchObject({ key: 'aggregation_repo', value: 'acme/new', previous: 'acme/roadmap', change: 'update', configPath: path.join(result.directory, CONFIG_FILE) })
-      expect(result.structured['warnings']).toEqual(['overwriting aggregation_repo: acme/roadmap -> acme/new\npass yes: true to omit this hint'])
+      expect(result.structured['warnings']).toEqual(['overwriting aggregation_repo: acme/roadmap -> acme/new\n  pass yes: true to omit this hint'])
     })
 
     it('yes を付けて上書きすると、上書きの知らせから確認の案内を省く', async (context) => {

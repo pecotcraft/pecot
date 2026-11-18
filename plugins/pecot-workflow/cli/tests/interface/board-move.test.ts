@@ -357,7 +357,7 @@ describe('board move', () => {
       const outcome = await move({ issue_ref: 'acme/demo/7', status: 'blocked' })
 
       expect(outcome.isError).toBe(true)
-      expect(outcome.structured).toEqual({ kind: 'status-not-configured', detail: 'status \'blocked\' is not configured in the project\n  hint: run project_init to add the Blocked option to the board' })
+      expect(outcome.structured).toEqual({ kind: 'status-not-configured', detail: 'status \'blocked\' is not configured in the project\n  hint: call project_init to add the Blocked option to the board' })
     })
 
     it.for([
@@ -385,7 +385,7 @@ describe('board move', () => {
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toEqual({
         kind: 'github-api',
-        detail: `could not set Issue acme/demo/7 status active: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+        detail: `could not set Issue acme/demo/7 status active: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
       })
     })
 

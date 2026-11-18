@@ -72,7 +72,7 @@ describe('workflow install', () => {
     const result = await install({ force: true }, { [DESTINATION]: WITH_USER_LINE })
     expect(result.isError).toBe(false)
     expect(result.read(DESTINATION)).toBe(BUNDLED)
-    expect(result.structured).toMatchObject({ removedLines: [USER_LINE], warnings: [`these lines between the markers will be removed:\n${USER_LINE}`] })
+    expect(result.structured).toMatchObject({ removedLines: [USER_LINE], warnings: [`these lines between the markers will be removed:\n  ${USER_LINE}`] })
   })
 
   it('check を付けて呼び、版が同梱の雛形と同じなら、何も書かずに upToDate を true にして成功を返す', async (context) => {

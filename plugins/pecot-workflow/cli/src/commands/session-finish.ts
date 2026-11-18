@@ -25,7 +25,7 @@ import { isFileNotFound } from '../infra/os-error.js'
 import { removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
 import type { BoardContext } from './board-judgment.js'
-import { commandHint, hinted } from './command-hint.js'
+import { commandHint, hinted, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { createReadinessCache, judgeAssuming } from './issue-readiness.js'
@@ -212,7 +212,7 @@ function isClosedReflected(judged: JudgedIssue, heads: readonly IssueReference[]
 function waitingCheck(source: Readonly<WaitingSource>, heads: readonly IssueReference[], isDryRun: boolean, cache: ReadinessCache, home: RepositoryReference | undefined): WaitingCheck {
   const { client, config, pullRequest } = source
   const names = heads.map(head => displayReference(head, home)).join(', ')
-  const unconfirmed = (name: string): HintedText => hinted`could not confirm that GitHub reflects the close of ${names} in the readiness of ${name}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`
+  const unconfirmed = (name: string): HintedText => hinted`could not confirm that GitHub reflects the close of ${names} in the readiness of ${name}; its column was not moved; ${RUN} ${commandHint(['board', 'sync'])} later to move it`
   if (!isDryRun) return { isReflected: judged => isClosedReflected(judged, heads), unconfirmed }
   // dry-run では Issue を閉じていないので、閉じた後を置き換えで作る
   return {
@@ -251,7 +251,7 @@ async function updateWaitingIssues(context: Readonly<FinishContext>, source: Rea
     const lower = heads.filter(head => prerequisiteOf(result, head)?.wait === 'stack').map(head => displayReference(head, home)).join(', ')
     const [branch] = result.target.branches
     record.restack.push({ issue: name, ...branch !== undefined && { branch } })
-    out.warning(hinted`${name} is stacked on ${lower}; run ${commandHint(RESTACK_PATH)} in the working directory of ${branch ?? 'its branch'}`)
+    out.warning(hinted`${name} is stacked on ${lower}; ${RUN} ${commandHint(RESTACK_PATH)} in the working directory of ${branch ?? 'its branch'}`)
   }
 }
 

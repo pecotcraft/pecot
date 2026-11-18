@@ -204,7 +204,7 @@ describe('ツールの呼び出し', () => {
 
   it('確認が要るのに入力が無いと、detail が Aborted. の失敗を返す', async () => {
     const result = await call('ask')
-    expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Aborted.', warnings: [] })
+    expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Overwrite?\nAborted.', warnings: [] })
   })
 
   it('本体が使い方の誤りを投げると、CLI の Usage と枠を付けず、例外の文だけを detail にして invalid-input の失敗にする', async () => {

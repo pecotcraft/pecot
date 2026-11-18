@@ -23,7 +23,7 @@ import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder, surfaceText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient, makeClient } from './github-client.js'
@@ -94,7 +94,7 @@ function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference 
   const repositoryConfig = findRepository(config, owner, repository)
   if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
     if (packageName !== undefined || options.version !== undefined) {
-      stopWith(out, hinted`the version argument and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\nrun it without arguments (Nx Release decides the version)`, 'invalid-input')
+      stopWith(out, hinted`the version argument and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\n${surfaceText('run it without arguments', 'call the tool without them')} (Nx Release decides the version)`, 'invalid-input')
     }
     return { config, owner, repository, repositoryConfig, changelogPath: resolveChangelogPath(gitRoot, repositoryConfig.changelog_file), tagPrefix: undefined }
   }
@@ -168,7 +168,7 @@ async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus
     return true
   }
   const listing = status.openNumbers.map(number => `\n#${String(number)}`).join('')
-  out.error(`${name} has ${String(status.openCount)} open ${status.openCount === 1 ? 'alert' : 'alerts'}${listing}\n→ ${status.alertsUrl}\nclose them (fixed, or dismissed with a reason) and run again`)
+  out.error(hinted`${name} has ${String(status.openCount)} open ${status.openCount === 1 ? 'alert' : 'alerts'}${listing}\n→ ${status.alertsUrl}\nclose them (fixed, or dismissed with a reason) and ${surfaceText('run again', 'call the tool again')}`)
   return false
 }
 

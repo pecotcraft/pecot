@@ -18,7 +18,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
 import type { BoardContext, JudgedTarget } from './board-judgment.js'
 import { mapWithLimit } from './board-view.js'
-import { commandHint, hinted } from './command-hint.js'
+import { commandHint, hinted, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { apiFailureMessage } from './github-client.js'
 import type { BoardMoveLine } from './issue-board.js'
@@ -208,7 +208,7 @@ export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubCli
   const head = createIssueReference(created.repository, created.issueNumber)
   const check: WaitingCheck = {
     isReflected: judged => created.pullRequest === undefined || (prerequisiteOf(judged, head)?.issue.pullRequests.some(pullRequest => pullRequest.number === created.pullRequest) ?? false),
-    unconfirmed: name => hinted`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${name}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`,
+    unconfirmed: name => hinted`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${name}; its column was not moved; ${RUN} ${commandHint(['board', 'sync'])} later to move it`,
   }
   await moveIssuesWaitingFor(context, { heads: [head], check, isDryRun: false, cache: createReadinessCache(), fieldHint }, moves)
   return moves

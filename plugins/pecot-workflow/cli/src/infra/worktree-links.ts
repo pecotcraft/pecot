@@ -15,7 +15,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { commandHint, formatHinted, hinted } from '../domain/command-hint.js'
+import { commandHint, formatHinted, hinted, RUN } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
 import { PecotError, InvalidValueError } from '../domain/errors.js'
 import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
@@ -323,7 +323,7 @@ function splitLines(text: string): readonly string[] {
 export function loadCopyExcludeSpec(mainWorktree: string, diagnostics: Diagnostics): GitIgnoreSpec {
   const file = path.join(mainWorktree, WORKTREE_IGNORE_FILENAME)
   if (!existsSync(file)) {
-    throw new WorktreeConfigError(hinted`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run ${commandHint(['worktree', 'init'])} to generate the template`)
+    throw new WorktreeConfigError(hinted`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  ${RUN} ${commandHint(['worktree', 'init'])} to generate the template`)
   }
 
   const rawLines = splitLines(readTextFile(file))

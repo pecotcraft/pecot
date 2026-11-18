@@ -644,7 +644,7 @@ describe('session show', () => {
         branch: 'feat/demo/7',
         repository: 'acme/demo',
         activeIssue: { reference: 'acme/demo/7' },
-        warnings: ['cannot read the active Issue: acme/demo is not in any project config\navailable: ghes.example.com_acme_board_acme'],
+        warnings: ['cannot read the active Issue: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme'],
       })
     })
 

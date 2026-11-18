@@ -36,7 +36,7 @@ import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-
 import { createOutput, DRY_RUN_FIELD, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
-import { commandHint, hinted, hintedTextOf, inputHint, placeholder } from './command-hint.js'
+import { commandHint, hinted, hintedTextOf, inputHint, placeholder, RUN_COLON } from './command-hint.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { PROJECT_INPUT, stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
@@ -402,7 +402,7 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
   try {
     ensureDevcontainerEnvironment()
     const configFile = findWorktreeConfigFile(input.directory)
-    if (configFile === undefined) stopWith(out, hinted`worktree config not found\nrun: ${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`, 'not-initialized')
+    if (configFile === undefined) stopWith(out, hinted`worktree config not found\n${RUN_COLON}${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`, 'not-initialized')
     const config = loadConfig(configFile)
     const mainWorktree = findMainWorktree(input.directory)
     const projectRoot = detectProjectRoot(input.directory)
