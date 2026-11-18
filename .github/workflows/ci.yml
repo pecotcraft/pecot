@@ -3,8 +3,6 @@ name: ci
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: ["feat/pages-site-docs/591"]
   merge_group:
     types: [checks_requested]
 
@@ -467,21 +465,3 @@ jobs:
           LANES_JSON: ${{ needs.lanes.outputs.lanes }}
           GH_TOKEN: ${{ github.token }}
         run: .githooks/ci/check-ci-result.sh
-
-  # #591 CUJ 5 の確かめ。push の run が pages-side-dev を上げても、pages-deploy の verify が捨てることを見る。後で戻す。
-  cuj-push-side:
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Make dummy side
-        run: |
-          mkdir -p "$RUNNER_TEMP/pages-side"
-          tar -cf "$RUNNER_TEMP/pages-side/site.tar" -T /dev/null
-
-      - name: Upload side
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pages-side-dev
-          path: ${{ runner.temp }}/pages-side/
-          retention-days: 1
