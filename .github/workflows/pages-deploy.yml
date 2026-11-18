@@ -91,23 +91,26 @@ jobs:
           name: pages-verified
           path: ${{ runner.temp }}/pages-verified
 
-      # github.com の鍵は GitHub が公開している値（docs「GitHub's SSH key fingerprints」）。
-      - name: Set up deploy key
-        env:
-          DEPLOY_KEY: ${{ secrets.PAGES_STORE_DEPLOY_KEY }}
-        run: |
-          set -euo pipefail
-          umask 077
-          mkdir -p "$RUNNER_TEMP/ssh"
-          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/ssh/key"
-          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$RUNNER_TEMP/ssh/known_hosts"
+      # pages-store の ruleset の bypass は、この App だけ。client ID と秘密鍵は environment pages-store にだけ置く。
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PAGES_STORE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PAGES_STORE_APP_PRIVATE_KEY }}
+          permission-contents: write
 
+      # トークンは URL に入れず、actions/checkout と同じ extraheader で渡す。
       - name: Store side
         id: publish
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
-          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/ssh/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts -o StrictHostKeyChecking=yes"
-          args=(--remote-url "git@github.com:$REPO.git" --open-prs "$OPEN_PRS" --run-id "$RUN_ID" --history . --main-ref origin/main --workdir "$RUNNER_TEMP/pages-store")
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          args=(--remote-url "https://github.com/$REPO.git" --open-prs "$OPEN_PRS" --run-id "$RUN_ID" --history . --main-ref origin/main --workdir "$RUNNER_TEMP/pages-store")
           if [ -n "$SIDE" ]; then
             args+=(--side "$SIDE" --sha "$HEAD_SHA" --tar "$RUNNER_TEMP/pages-verified/site.tar")
             [ -z "$PR" ] || args+=(--pr "$PR")
@@ -116,10 +119,6 @@ jobs:
             args+=(--side none)
           fi
           python3 .githooks/scripts/pages_site/store.py publish "${args[@]}" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Remove deploy key
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/ssh"
 
   deploy:
     needs: [verify, store]

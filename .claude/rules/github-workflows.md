@@ -26,7 +26,7 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `pages-build.yml`: 公開サイトの 1 つの側（リリース版・開発版・PR 版）を作り、artifact に上げる。合否のレーンを全部 devcontainer で動かし、JUnit がそろわないと失敗する
   - 手での起動は `side`（`release`・`dev`）を取り、main からだけ動く。release.yml の本番が land の後に `side=release` で起こす
 - `pages-deploy.yml`: `pages-build.yml` の完了で動き、run の出どころを API で確かめる。保管ブランチ `pages-store` のその側だけを差し替え、GitHub Pages に公開する
-  - `pages-store` へは environment `pages-store` の deploy key でだけ書く。手での起動は `pages-store` の今の中身を公開し直す
+  - `pages-store` へは専用の App（秘密鍵は environment `pages-store`）でだけ書く。手での起動は `pages-store` の今の中身を公開し直す
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる

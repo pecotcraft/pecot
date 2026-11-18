@@ -83,7 +83,7 @@ job と権限:
 | job | 権限・environment | すること |
 |---|---|---|
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
-| store | `contents: read`。environment `pages-store` | deploy key で `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
+| store | `contents: read`。environment `pages-store` | pages-store の App のトークンで `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
 | deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）。environment `github-pages` | `pages-store` を `configure-pages` v6 → `upload-pages-artifact` v5 → `deploy-pages` v5 で公開する |
 | preview-status | `statuses: write` | PR 版を保管したとき、PR の head のコミットに commit status を付ける |
 
@@ -126,9 +126,9 @@ job summary:
 
 | 対象 | 決まり |
 |---|---|
-| `pages-store` ブランチ | ruleset で作成・更新・削除を止める。bypass は `actor_type: DeployKey`・`bypass_mode: always` |
-| deploy key | 書き込みのできる deploy key は、このリポに 1 本だけ置く。DeployKey の bypass は、リポのすべての deploy key に当たり、1 本に絞れないため |
-| environment `pages-store` | secret に deploy key の秘密鍵を置く。デプロイ先は「Selected branches and tags」で、種類をブランチにした `main` だけ |
+| `pages-store` ブランチ | ruleset で作成・更新・削除を止める。bypass は pages-store の App（`actor_type: Integration`）・`bypass_mode: always` だけ |
+| pages-store の App | 権限は Contents: write だけ、Webhook なし、このリポにだけ入れる。リリースの App（PECOT_BOT）は使わない。PECOT_BOT は main とタグにも書けるため |
+| environment `pages-store` | 変数 `PAGES_STORE_APP_CLIENT_ID` と secret `PAGES_STORE_APP_PRIVATE_KEY` を置く。デプロイ先は「Selected branches and tags」で、種類をブランチにした `main` だけ |
 | environment `github-pages` | デプロイ先は、種類をブランチにした `main` だけ |
 | リリースのタグ | ruleset で `*-v*` の作成・更新・削除を止める。bypass は PECOT_BOT の App（`actor_type: Integration`）だけ。`text-rules-v*` にも当たる |
 | GitHub Pages | 公開元は「GitHub Actions」 |

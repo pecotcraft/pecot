@@ -5,9 +5,9 @@ URL と workflow の入出力は [contracts/pages.md](contracts/pages.md)、状�
 ## 前提
 
 - GitHub Pages の公開元を「GitHub Actions」にしてある（Settings → Pages → Build and deployment → Source）
-- 保管ブランチ・environment・deploy key・ruleset を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定してある
+- 保管ブランチ・environment・pages-store の App・ruleset を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定してある
   - environment `github-pages`・`pages-store` のデプロイ先は、種類をブランチにした `main` だけ
-  - `pages-store` の ruleset の bypass は DeployKey、リリースのタグの ruleset の bypass は PECOT_BOT の App
+  - `pages-store` の ruleset の bypass は pages-store の App、リリースのタグの ruleset の bypass は PECOT_BOT の App
 - 公開の運用は、このリポだけで動く。検証用（`pecotcraft/pecot-sandbox`）に確かめる場所は作らない（`plugins/pecot-workflow/CONTRIBUTING.md` の「このリポだけの運用」）
 
 ## 1. 手元で、公開と同じ出し方を見る（US4）

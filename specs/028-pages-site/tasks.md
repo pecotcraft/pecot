@@ -182,7 +182,7 @@ description: "Task list for 028-pages-site"
   PR 版の run は、verify が「保管は Phase 5 から」と summary に書いて捨てる（T039 で保管に替える）。
   `.github/actionlint.yaml` の `paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ `queue` の除外を付ける。#529 の対象にも加える
 - [x] T035 [US1] `.github/workflows/release.yml` の本番の land の成功の後に、App のトークンで `pages-build.yml` を `side=release` で起こす段を足す。dry-run では打たない
-- [x] T036 [US1] 保管ブランチ・environment・deploy key・ruleset と、GitHub Pages の公開元を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定する。
+- [x] T036 [US1] 保管ブランチ・environment・pages-store の App・ruleset と、GitHub Pages の公開元を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定する。
   リポの管理者の操作なので、マージの前にユーザーに打ってもらうコマンドを PR に書く。
   `pages-store` の初回の作成も含める
 
@@ -297,4 +297,4 @@ Task: "帯と状態の見た目を libs/interface-spec/docs/_static/pecot.css �
 
 - [P] tasks = different files, no dependencies
 - workflow の `workflow_dispatch` と `workflow_run` は、既定のブランチの定義で動く。PR のブランチで直しても、その PR の上では動かない
-- 保管ブランチ・environment・deploy key・ruleset・Pages の設定（T036）は、リポの管理者の操作。エージェントは、打つコマンドを示して利用者に打ってもらう
+- 保管ブランチ・environment・pages-store の App・ruleset・Pages の設定（T036）は、リポの管理者の権限の操作。App の作成と秘密鍵の発行だけは画面で行う

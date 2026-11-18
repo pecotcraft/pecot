@@ -19,7 +19,7 @@
   |---|---|
   | ブランチから公開（Deploy from a branch） | ビルドに 1 時間 10 回の soft limit があり、PR の push が続くと超える。Jekyll を外す `.nojekyll` が要る。environment の保護を使えない |
   | Actions だけ（1 回目の案） | artifact は最長 90 日で消え、開発版・PR 版も push が止まれば消える。毎回すべての側を集め直す。別の run の artifact を選ぶので、出どころを偽られる |
-  | 保管はブランチ、公開は Actions（採る案） | 保管ブランチと、それを守る仕組み（deploy key・ruleset・environment）が要る。この組み合わせには公式の参照実装が無い |
+  | 保管はブランチ、公開は Actions（採る案） | 保管ブランチと、それを守る仕組み（専用の GitHub App・ruleset・environment）が要る。この組み合わせには公式の参照実装が無い |
 
   - 採る案では、側は消えない。書き換えるのは、その側のディレクトリだけで済む（FR-020）
   - 公開は公式の action の形なので、10 回の soft limit を受けない。docs「GitHub Pages limits」の次の文が根拠
@@ -62,7 +62,7 @@
   - 保管して公開する run は、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直す。PR 版か、main の祖先の定義で動いた run かは API の項目から決め、artifact の名前や中身からは決めない。項目は data-model.md の RunProvenance
   - run の API には起動の入力（`side`）が無いので、手での起動の開発版とリリース版は API の項目では分けられない。main の祖先の定義（レビュー済み）が上げた artifact の名前で分ける
   - job を 4 つに分け、各 job に要る権限だけを持たせる（contracts の `pages-deploy.yml`）。信頼できない tar を扱う job（verify）は書き込みの権限を持たない
-  - `pages-store` に書けるのは、environment `pages-store` の secret の deploy key だけにする
+  - `pages-store` に書けるのは、pages-store 専用の GitHub App だけにする。秘密鍵は environment `pages-store` の secret に置く。GitHub は、deploy key より GitHub App を勧める（docs「Managing deploy keys」）。deploy key は期限が無く、org の設定で止められている
 - **Rationale**:
   - PR の作者は、PR のブランチの workflow の定義を書き換えられる。artifact の名前を偽れば、1 回目の形ではリリース版・開発版をすり替えられた
   - fork の PR の run は、初回の承認の後、2 回目からは承認なしで動く

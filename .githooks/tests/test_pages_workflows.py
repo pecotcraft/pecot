@@ -253,14 +253,20 @@ def test_verify_reads_the_run_from_main_and_keeps_artifact_outside_the_tree() ->
     assert '--out "$RUNNER_TEMP/pages-verified"' in step["run"]
 
 
-def test_store_uses_deploy_key_from_environment_only() -> None:
-    step = _step(_DEPLOY, "store", "Set up deploy key")
-    assert step["env"] == {"DEPLOY_KEY": "${{ secrets.PAGES_STORE_DEPLOY_KEY }}"}
-    assert "StrictHostKeyChecking=yes" in _step(_DEPLOY, "store", "Store side")["run"]
-    assert _step(_DEPLOY, "store", "Remove deploy key")["if"] == "always()"
-    assert "PAGES_STORE_DEPLOY_KEY" not in _DEPLOY.read_text(encoding="utf-8").replace(
-        step["env"]["DEPLOY_KEY"], ""
-    )
+def test_store_writes_with_the_pages_store_app_from_environment_only() -> None:
+    (token,) = _uses(_DEPLOY, "store", "actions/create-github-app-token")
+    assert token["with"] == {
+        "client-id": "${{ vars.PAGES_STORE_APP_CLIENT_ID }}",
+        "private-key": "${{ secrets.PAGES_STORE_APP_PRIVATE_KEY }}",
+        "permission-contents": "write",
+    }
+    text = _DEPLOY.read_text(encoding="utf-8")
+    assert text.count("PAGES_STORE_APP_PRIVATE_KEY") == 1
+    store = _step(_DEPLOY, "store", "Store side")
+    assert store["env"] == {"GH_TOKEN": "${{ steps.app-token.outputs.token }}"}
+    # トークンを remote の URL に入れない。
+    assert '--remote-url "https://github.com/$REPO.git"' in store["run"]
+    assert "::add-mask::" in store["run"]
 
 
 def test_deploy_publishes_pages_store() -> None:
@@ -315,13 +321,16 @@ def _ruleset(name: str) -> dict[str, Any]:
     return json.loads((_RULESETS / f"{name}.json").read_text(encoding="utf-8"))
 
 
-def test_pages_store_ruleset_lets_only_deploy_keys_write() -> None:
+def test_pages_store_ruleset_lets_only_the_pages_store_app_write() -> None:
     data = _ruleset("pages-store")
     assert data["target"] == "branch"
     assert data["conditions"]["ref_name"]["include"] == ["refs/heads/pages-store"]
-    assert data["bypass_actors"] == [
-        {"actor_id": None, "actor_type": "DeployKey", "bypass_mode": "always"}
-    ]
+    (actor,) = data["bypass_actors"]
+    assert actor["actor_type"] == "Integration"
+    assert actor["bypass_mode"] == "always"
+    # リリースの App（PECOT_BOT）とは別の App にする。main とタグに書ける鍵を store の job に渡さない。
+    release_app_ids = {a["actor_id"] for a in _ruleset("release-tags")["bypass_actors"]}
+    assert isinstance(actor["actor_id"], int) and actor["actor_id"] not in release_app_ids
     assert {r["type"] for r in data["rules"]} == {"creation", "update", "deletion"}
 
 
