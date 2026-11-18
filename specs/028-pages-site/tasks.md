@@ -131,7 +131,7 @@ description: "Task list for 028-pages-site"
 
 ### Tests for User Story 1（確かめて保管し、公開する run）
 
-- [ ] T024 [P] [US1] `.githooks/tests/test_pages_provenance.py` に、`.githooks/scripts/pages_site/provenance.py` の RunProvenance の判定のテストを書く。
+- [x] T024 [P] [US1] `.githooks/tests/test_pages_provenance.py` に、`.githooks/scripts/pages_site/provenance.py` の RunProvenance の判定のテストを書く。
   入力は GitHub の REST の応答（workflow run・compare・pull）の実物の形。
   確かめること: data-model.md の RunProvenance の表と決まりのとおり。
   開発版は `push` と `workflow_dispatch` を受け、main の祖先でない `head_sha`（`head_branch` に `main` という名前のタグが入った run を含む）を捨てる。
@@ -142,17 +142,17 @@ description: "Task list for 028-pages-site"
   `push` と `pull_request` の run では、artifact の名前（`pages-side-dev` など）を判定に使わない。
   main の祖先の定義で動いた `workflow_dispatch` の run だけ、artifact の名前で `dev` か `release` かを決め、名前が 1 つに決まらなければ捨てる。
   開いている PR の番号の一覧を出す（store の掃除に使う）
-- [ ] T025 [P] [US1] `.githooks/tests/test_pages_release.py` に、`.githooks/scripts/pages_site/release_sources.py` の ReleaseSources のテストを書く。
+- [x] T025 [P] [US1] `.githooks/tests/test_pages_release.py` に、`.githooks/scripts/pages_site/release_sources.py` の ReleaseSources のテストを書く。
   プレリリースの接尾辞のあるタグを除いた semver の最大値を選ぶ。
   `skeleton` はほかのすべてのタグのコミットを祖先に持つもので、無ければ失敗する。
   タグのコミットが main の祖先でなければ失敗する。
   各プラグインのレーンを、そのタグのコミットの `junit-lanes.json` から取る
-- [ ] T026 [P] [US1] `.githooks/tests/test_pages_store.py` に、`.githooks/scripts/pages_site/store.py` のテストを書く。
+- [x] T026 [P] [US1] `.githooks/tests/test_pages_store.py` に、`.githooks/scripts/pages_site/store.py` のテストを書く。
   SideCheck: 絶対パス・`..`・シンボリックリンク・通常のファイルとディレクトリ以外を含む側を捨てる。側の中の内部リンクが切れた側を捨てる。
   StoreLayout: 受けた側のディレクトリと `.pecot-store.json` だけを書き換える。リリース版を書き換えても `dev/`・`pr/` が残る。
   リリース版か開発版が無いとき、案内のページを置く。組んだ全体で、側の間の行き来のリンクが切れていない。
   900 MB を超えたら summary に警告を書く
-- [ ] T027 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-deploy.yml` と、直した `pages-build.yml` の形のテストを足す。
+- [x] T027 [P] [US1] `.githooks/tests/test_pages_workflows.py` に、`pages-deploy.yml` と、直した `pages-build.yml` の形のテストを足す。
   `pages-deploy.yml`: 契機は `workflow_run`（`pages-build.yml` の completed）と `workflow_dispatch`。
   verify・store・deploy の 3 つの job の権限と environment が contracts の表のとおり。どの job にも `actions: write` が無い。
   store の concurrency が `group: pages-store`・`cancel-in-progress: false`・`queue: max`、deploy が `group: pages`・`cancel-in-progress: false`。
@@ -160,29 +160,29 @@ description: "Task list for 028-pages-site"
   `pages-build.yml`: `workflow_dispatch` の入力が `side`（`release`・`dev`）だけ。job が side と build の 2 つ。権限が `contents: read` だけ。側の artifact が `retention-days: 7`。
   side の job が、`workflow_dispatch` で `github.ref` が `refs/heads/main` でないときに失敗する。
   `.github/actionlint.yaml` の `paths` に `pages-deploy.yml` の除外がある
-- [ ] T028 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）で land が成功した後にだけ、App のトークンで `gh workflow run pages-build.yml -f side=release` を打つ段があるテストを足す。
+- [x] T028 [P] [US1] `.githooks/tests/test_release_workflow.py` に、本番（`dry-run=false`）で land が成功した後にだけ、App のトークンで `gh workflow run pages-build.yml -f side=release` を打つ段があるテストを足す。
   release の job に `actions: write` が無いことも確かめる
 
 ### Implementation for User Story 1（確かめて保管し、公開する run）
 
-- [ ] T029 [US1] `.githooks/scripts/pages_site/provenance.py` を作る。API の応答から RunProvenance を判定する純粋な処理だけを置く
-- [ ] T030 [US1] `.githooks/scripts/pages_site/release_sources.py` を作る。タグと main から ReleaseSources を決める
-- [ ] T031 [US1] `.githooks/scripts/pages_site/store.py` を作る。
+- [x] T029 [US1] `.githooks/scripts/pages_site/provenance.py` を作る。API の応答から RunProvenance を判定する純粋な処理だけを置く
+- [x] T030 [US1] `.githooks/scripts/pages_site/release_sources.py` を作る。タグと main から ReleaseSources を決める
+- [x] T031 [US1] `.githooks/scripts/pages_site/store.py` を作る。
   SideCheck、`pages-store` の差し替え・案内のページ・行き来のリンクの確かめ・大きさの警告、job summary を置く。
   push は `--force-with-lease=<取ったときの SHA>` で、断られたら取り直してやり直す
-- [ ] T032 [US1] `.github/workflows/pages-build.yml` を直す。
+- [x] T032 [US1] `.github/workflows/pages-build.yml` を直す。
   job を side と build の 2 つにし、build は dev container を 1 回だけ立ててレーンを順に動かし、続けてサイトを作る。
   `workflow_dispatch`（`side` だけ。main からの起動に限り、開発版は `github.sha` で作る）を足す。
   リリース版（T030 の ReleaseSources、`PECOT_SITE_PLUGIN_COMMITS`、`release-sources.json`）を、contracts の「リリース版の build」の順で足す。
   側の artifact に JUnit を入れ、`retention-days: 7` にする。レーンごとの artifact はやめる
-- [ ] T033 [US1] `libs/interface-spec/docs/_ext/site_stamp.py` と `_templates/header.html` に、リリース版のプラグインごとのタグのコミット（`PECOT_SITE_PLUGIN_COMMITS`）を足す。
+- [x] T033 [US1] `libs/interface-spec/docs/_ext/site_stamp.py` と `_templates/header.html` に、リリース版のプラグインごとのタグのコミット（`PECOT_SITE_PLUGIN_COMMITS`）を足す。
   `conf.py` に、STRICT と `iface_junit` が使うレーンの一覧を外から受け取る口を足す（リリース版で、各タグから集めた一覧を渡す）。
   テストは `libs/interface-spec/docs/tests/` に先に書く
-- [ ] T034 [US1] `.github/workflows/pages-deploy.yml` を書く。verify・store・deploy の 3 つの job を、contracts の表のとおりの権限・environment・concurrency で置く。
+- [x] T034 [US1] `.github/workflows/pages-deploy.yml` を書く。verify・store・deploy の 3 つの job を、contracts の表のとおりの権限・environment・concurrency で置く。
   PR 版の run は、verify が「保管は Phase 5 から」と summary に書いて捨てる（T039 で保管に替える）。
   `.github/actionlint.yaml` の `paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ `queue` の除外を付ける。#529 の対象にも加える
-- [ ] T035 [US1] `.github/workflows/release.yml` の本番の land の成功の後に、App のトークンで `pages-build.yml` を `side=release` で起こす段を足す。dry-run では打たない
-- [ ] T036 [US1] 保管ブランチ・environment・deploy key・ruleset と、GitHub Pages の公開元を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定する。
+- [x] T035 [US1] `.github/workflows/release.yml` の本番の land の成功の後に、App のトークンで `pages-build.yml` を `side=release` で起こす段を足す。dry-run では打たない
+- [x] T036 [US1] 保管ブランチ・environment・deploy key・ruleset と、GitHub Pages の公開元を、contracts の「保管ブランチ・environment・ruleset」の表のとおりに設定する。
   リポの管理者の操作なので、マージの前にユーザーに打ってもらうコマンドを PR に書く。
   `pages-store` の初回の作成も含める
 

@@ -1,0 +1,156 @@
+name: pages-deploy
+
+# pages-build.yml の run を確かめ、保管ブランチ pages-store のその側だけを差し替えて、GitHub Pages に公開する。
+# 決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
+
+on:
+  workflow_run:
+    workflows: [pages-build]
+    types: [completed]
+  # pages-store の今の中身を公開し直すだけ。
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  verify:
+    if: ${{ github.event_name == 'workflow_run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      side: ${{ steps.verify.outputs.side }}
+      pr: ${{ steps.verify.outputs.pr }}
+      head_sha: ${{ steps.verify.outputs.head_sha }}
+      open_prs: ${{ steps.verify.outputs.open_prs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      # artifact は作業ツリーの外に取り、中身は実行しない。
+      - name: Verify run
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          python3 .githooks/scripts/pages_site/verify.py --run-id "$RUN_ID" --repo "$REPO" \
+            --out "$RUNNER_TEMP/pages-verified" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verified side
+        if: steps.verify.outputs.side != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-verified
+          path: ${{ runner.temp }}/pages-verified/
+          retention-days: 1
+          if-no-files-found: error
+
+  # 合わない run と closed の PR の run でも、閉じた PR の掃除のために動く。
+  store:
+    needs: verify
+    if: ${{ github.event_name == 'workflow_run' && needs.verify.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    environment: pages-store
+    concurrency:
+      group: pages-store
+      cancel-in-progress: false
+      queue: max
+    outputs:
+      changed: ${{ steps.publish.outputs.changed }}
+    env:
+      SIDE: ${{ needs.verify.outputs.side }}
+      PR: ${{ needs.verify.outputs.pr }}
+      HEAD_SHA: ${{ needs.verify.outputs.head_sha }}
+      OPEN_PRS: ${{ needs.verify.outputs.open_prs }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download verified side
+        if: env.SIDE != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pages-verified
+          path: ${{ runner.temp }}/pages-verified
+
+      # github.com の鍵は GitHub が公開している値（docs「GitHub's SSH key fingerprints」）。
+      - name: Set up deploy key
+        env:
+          DEPLOY_KEY: ${{ secrets.PAGES_STORE_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/ssh/key"
+          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$RUNNER_TEMP/ssh/known_hosts"
+
+      - name: Store side
+        id: publish
+        run: |
+          set -euo pipefail
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/ssh/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts -o StrictHostKeyChecking=yes"
+          args=(--remote-url "git@github.com:$REPO.git" --open-prs "$OPEN_PRS" --run-id "$RUN_ID" --history . --main-ref origin/main --workdir "$RUNNER_TEMP/pages-store")
+          if [ -n "$SIDE" ]; then
+            args+=(--side "$SIDE" --sha "$HEAD_SHA" --tar "$RUNNER_TEMP/pages-verified/site.tar")
+            [ -z "$PR" ] || args+=(--pr "$PR")
+            [ ! -f "$RUNNER_TEMP/pages-verified/release-sources.json" ] || args+=(--sources "$RUNNER_TEMP/pages-verified/release-sources.json")
+          else
+            args+=(--side none)
+          fi
+          python3 .githooks/scripts/pages_site/store.py publish "${args[@]}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove deploy key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ssh"
+
+  deploy:
+    needs: [verify, store]
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.store.outputs.changed == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: pages-store
+          persist-credentials: false
+
+      - name: Setup Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

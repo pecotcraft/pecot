@@ -1,5 +1,6 @@
 """インタフェース定義書の HTML 表示の Sphinx 設定。"""
 
+import json
 import os
 import subprocess
 import sys
@@ -10,7 +11,7 @@ DOCS = Path(__file__).resolve().parent
 ROOT = DOCS.parents[2]
 sys.path.insert(0, str(DOCS / "_ext"))
 
-from iface_defs import load_junit_lanes  # noqa: E402
+from iface_defs import junit_lanes_table, load_junit_lanes  # noqa: E402
 from site_stamp import site_stamp  # noqa: E402
 
 project = "pecot"
@@ -93,8 +94,13 @@ tr_case_id_length = 8
 
 # iface_defs 拡張の設定。テストはこれらを差し替える。
 iface_root = str(ROOT)
-# 合否のレーンは junit-lanes.json が正。後の段の workflow の matrix も同じファイルから作る。
-iface_junit = load_junit_lanes(DOCS / "junit-lanes.json", ROOT)
+# 合否のレーンは junit-lanes.json が正。リリース版は各タグから集めた一覧を PECOT_SITE_LANES（JSON）で渡す。
+_SITE_LANES = os.environ.get("PECOT_SITE_LANES")
+iface_junit = (
+    junit_lanes_table(json.loads(_SITE_LANES), ROOT, "PECOT_SITE_LANES")
+    if _SITE_LANES
+    else load_junit_lanes(DOCS / "junit-lanes.json", ROOT)
+)
 # 公開のサイトを作る run だけが付ける。JUnit が無いか読めないレーンがあると止める。
 iface_strict = os.environ.get("PECOT_SITE_STRICT") == "1"
 

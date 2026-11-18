@@ -49,7 +49,7 @@ job:
 
 1. プラグインごとに、そのタグのコミットを取り出し、依存を入れ直す。そのタグの `junit-lanes.json` にある、そのプラグインのレーンを動かす。JUnit は作業ツリーの外へ移す
 2. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替えてから、1 の JUnit を元の場所に戻す
-3. サイトを作る。STRICT と `iface_junit` は、1 で各タグから集めたレーンの一覧で動かす。`conf.py` は、その一覧を受け取る口を持つ（`skeleton` の `junit-lanes.json` は使わない）
+3. サイトを作る。STRICT と `iface_junit` は、1 で各タグから集めたレーンの一覧で動かす。`conf.py` は、その一覧を `PECOT_SITE_LANES`（junit-lanes.json と同じ形の JSON）で受け取る（`skeleton` の `junit-lanes.json` は使わない）
 
 - `PECOT_SITE_SHA` は `skeleton`、`PECOT_SITE_PLUGIN_COMMITS` は各タグのコミット
 - 依存の入れ直しの分だけ、開発版・PR 版より時間がかかる（research R6）
@@ -84,12 +84,13 @@ job と権限:
 |---|---|---|
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
 | store | `contents: read`。environment `pages-store` | deploy key で `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
-| deploy | `pages: write`・`id-token: write`。environment `github-pages` | `pages-store` を `configure-pages` → `upload-pages-artifact` → `deploy-pages` で公開する |
+| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）。environment `github-pages` | `pages-store` を `configure-pages` v6 → `upload-pages-artifact` v5 → `deploy-pages` v5 で公開する |
 | preview-status | `statuses: write` | PR 版を保管したとき、PR の head のコミットに commit status を付ける |
 
 - `actions: write` は、どの job にも持たせない
 - verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA・開いている PR の番号の一覧）だけを使う
 - 受けた run が RunProvenance に合わないときは、verify が理由を summary に書き、store に側を渡さない。closed の PR の run と、合わない run でも、store は閉じた PR の掃除をする
+- store は、`pages-store` を書き換えて push したかを出力 `changed` にする。deploy は、`changed` が真のときと、`workflow_dispatch` のときだけ動く。`workflow_dispatch` では verify と store は動かない
 
 concurrency:
 

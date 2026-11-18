@@ -1,4 +1,4 @@
-"""落とした pages-junit-<slug> の JUnit を各レーンの junit のパスに置き、job summary の markdown を出す。
+"""作業ツリーの各レーンの JUnit を側の artifact の置き場所へ写し、job summary の markdown を出す。
 
 JUnit が無いか読めないレーンがあれば、その名前を標準エラーに出して 1 で終わる。
 """
@@ -17,6 +17,7 @@ from lanes import DEFAULT_LANES, matrix
 _REPO = Path(__file__).resolve().parents[3]
 # サイトの iface_defs.py の _RESULT_ELEMENT と同じ区分で数える。
 _KINDS = ("failure", "error", "skipped")
+_LABELS = {"release": "リリース版", "dev": "開発版"}
 
 
 def count(path: Path) -> dict[str, int]:
@@ -29,15 +30,15 @@ def count(path: Path) -> dict[str, int]:
 
 
 def _side_label(side: str, pr: str) -> str:
-    return f"PR #{pr}" if side == "pr" else side
+    return f"PR #{pr}" if side == "pr" else _LABELS.get(side, side)
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--downloaded", type=Path, required=True)
     parser.add_argument("--side", required=True)
     parser.add_argument("--pr", default="")
     parser.add_argument("--sha", required=True)
+    parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--lanes", type=Path, default=DEFAULT_LANES)
     parser.add_argument("--root", type=Path, default=_REPO)
     args = parser.parse_args(argv[1:])
@@ -45,8 +46,7 @@ def main(argv: list[str]) -> int:
     rows: list[str] = []
     missing: list[str] = []
     for job in matrix(json.loads(args.lanes.read_text(encoding="utf-8"))):
-        junit = Path(job["junit"])
-        source = args.downloaded / f"pages-junit-{job['slug']}" / junit.name
+        source = args.root / job["junit"]
         if not source.is_file():
             missing.append(job["lane"])
             rows.append(f"| {job['lane']} | JUnit 無し |")
@@ -57,7 +57,7 @@ def main(argv: list[str]) -> int:
             missing.append(job["lane"])
             rows.append(f"| {job['lane']} | JUnit を読めない |")
             continue
-        target = args.root / junit
+        target = args.out / "junit" / job["junit"]
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         rows.append(

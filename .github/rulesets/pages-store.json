@@ -1,0 +1,13 @@
+{
+  "name": "pages-store",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/pages-store"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [{ "actor_id": null, "actor_type": "DeployKey", "bypass_mode": "always" }],
+  "rules": [{ "type": "creation" }, { "type": "update" }, { "type": "deletion" }]
+}

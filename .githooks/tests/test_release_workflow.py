@@ -80,6 +80,65 @@ def test_no_japanese_in_shell() -> None:
             assert not re.search(r"[^\x00-\x7f]", text), step["name"]
 
 
+def test_release_job_has_no_actions_write() -> None:
+    wf = _workflow()
+    assert wf["permissions"] == {"contents": "read", "packages": "read"}
+    assert "permissions" not in wf["jobs"]["release"]
+
+
+def test_pages_release_build_is_triggered_after_land_in_production_only() -> None:
+    names = [s.get("name") for s in _steps()]
+    step = _step("Trigger pages release build")
+    assert names.index("Run release") < names.index("Trigger pages release build")
+    assert names.index("Trigger pages release build") < names.index("Write job summary")
+    # nx が落ちても land が済んでいれば起こすので、step の成否ではなく land.log を見る。
+    assert step["if"] == "${{ !cancelled() && !inputs.dry-run }}"
+    assert step["env"]["GH_TOKEN"] == "${{ steps.app-token.outputs.token }}"
+    assert "grep -q '^landed:' .pecot/tmp/release/land.log" in step["run"]
+    assert (
+        'gh workflow run pages-build.yml --repo "$REPO" --ref main -f side=release' in step["run"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("land_log", "called"),
+    [
+        ("landed: abc1234 (fast-forward)\n", True),
+        ("skipped: no release commit\n", False),
+        ("error: merge conflict (branch: release/run-1-1)\n", False),
+        (None, False),
+    ],
+    ids=["landed", "skipped", "error", "no-log"],
+)
+def test_pages_release_build_trigger_reads_land_log(
+    tmp_path: Path, land_log: str | None, called: bool
+) -> None:
+    if land_log is not None:
+        (tmp_path / ".pecot/tmp/release").mkdir(parents=True)
+        (tmp_path / ".pecot/tmp/release/land.log").write_text(land_log, encoding="utf-8")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "gh-calls"
+    gh = bin_dir / "gh"
+    gh.write_text(f'#!/bin/sh\necho "$*" >> {calls}\n', encoding="utf-8")
+    gh.chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REPO": "o/r"}
+    result = subprocess.run(
+        ["bash", "-e", "-c", _step("Trigger pages release build")["run"]],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    if called:
+        assert calls.read_text(encoding="utf-8") == (
+            "workflow run pages-build.yml --repo o/r --ref main -f side=release\n"
+        )
+    else:
+        assert not calls.exists()
+
+
 def test_land_script_is_executable() -> None:
     assert _LAND.is_file()
     assert _LAND.stat().st_mode & stat.S_IXUSR

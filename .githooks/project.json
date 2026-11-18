@@ -96,6 +96,10 @@
         "{projectRoot}/tests/test_push_range_env_isolation.py",
         "{projectRoot}/tests/test_pages_lanes.py",
         "{projectRoot}/tests/test_pages_collect.py",
+        "{projectRoot}/tests/test_pages_provenance.py",
+        "{projectRoot}/tests/test_pages_release.py",
+        "{projectRoot}/tests/test_pages_store.py",
+        "{projectRoot}/tests/test_pages_verify.py",
         "{projectRoot}/scripts/pages_site/**/*",
         "{workspaceRoot}/libs/interface-spec/docs/junit-lanes.json",
         "{projectRoot}/ci/**/*",
@@ -111,10 +115,10 @@
         }
       ],
       "metadata": {
-        "description": "CI のスクリプト（run-pr-checks・run-affected-*・キャッシュ・dev-container・pages_site/lanes.py）のテスト。"
+        "description": "CI のスクリプト（run-pr-checks・run-affected-*・キャッシュ・dev-container・pages_site）のテスト。"
       },
       "options": {
-        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py .githooks/tests/test_pages_lanes.py .githooks/tests/test_pages_collect.py",
+        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py .githooks/tests/test_pages_lanes.py .githooks/tests/test_pages_collect.py .githooks/tests/test_pages_provenance.py .githooks/tests/test_pages_release.py .githooks/tests/test_pages_store.py .githooks/tests/test_pages_verify.py",
         "cwd": "."
       }
     },
@@ -154,9 +158,11 @@
         "{workspaceRoot}/.github/workflows/pecot-board-sync.yml",
         "{workspaceRoot}/.github/workflows/publish-npm.yml",
         "{workspaceRoot}/.github/workflows/pages-build.yml",
+        "{workspaceRoot}/.github/workflows/pages-deploy.yml",
+        "{workspaceRoot}/.github/actionlint.yaml",
         "{workspaceRoot}/plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml",
         "{workspaceRoot}/.nx/nx-release/src/dependabot-plans.js",
-        "{workspaceRoot}/.github/rulesets/main.json",
+        "{workspaceRoot}/.github/rulesets/*.json",
         "{workspaceRoot}/.github/board-sync/**/*",
         "{workspaceRoot}/.github/plugin/marketplace.json",
         "{workspaceRoot}/.claude-plugin/marketplace.json",
