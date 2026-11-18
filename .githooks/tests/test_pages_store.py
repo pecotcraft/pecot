@@ -605,7 +605,8 @@ def test_publish_cli_release_with_sources(scene: dict[str, Path | str]) -> None:
             "--history",
             str(scene["history"]),
             "--workdir",
-            str(tmp),
+            # pages-deploy.yml は、まだ無いディレクトリを渡す。
+            str(tmp / "not-yet" / "work"),
         ],
         capture_output=True,
         text=True,

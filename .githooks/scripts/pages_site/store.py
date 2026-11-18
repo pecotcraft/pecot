@@ -609,6 +609,8 @@ def main(argv: list[str]) -> int:
         extract(args.tar, args.dest)
         return 0
 
+    if args.workdir is not None:
+        Path(args.workdir).mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=args.workdir) as tmp:
         result = publish(
             PublishOptions(
