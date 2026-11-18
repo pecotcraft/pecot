@@ -60,7 +60,7 @@
         "description": "install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 25 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。plugin.json、.mcp.json、bin/ などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
       },
       "options": {
-        "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
+        "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli && rm -f cli/test-results/junit.xml",
         "cwd": "plugins/pecot-tools"
       }
     },
