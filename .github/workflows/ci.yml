@@ -320,7 +320,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # 公開サイトの PR 版を、tests の JUnit と開発版の JUnit で作る。テストは動かさない。
   version-plan:
     runs-on: ubuntu-latest
     timeout-minutes: 45

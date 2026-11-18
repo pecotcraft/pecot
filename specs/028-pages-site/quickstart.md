@@ -97,4 +97,4 @@ gh workflow run pages-build.yml --ref main -f side=release
 | 同じリポのブランチの PR で、`pages-build.yml` の `push` の契機にそのブランチを足し、push で `pages-side-dev` を上げる | verify が、`head_sha` が main の祖先でないとして捨てる |
 | 同じリポのブランチの PR で、`ci.yml` から `pages-side-pr-<番号>` を上げる | `pages-deploy.yml` は ci の run では起きない。起きても、verify が `path` で捨てる |
 | `main` という名前のタグを main に無いコミットへ付け、そのタグで `pages-build.yml` を `side=dev` で起こした run | 作る run の side の job が、`github.ref` が `refs/heads/main` でないとして失敗する。verify も、`head_sha` が main の祖先でないとして捨てる。このリポにタグは作らず、タグで動いた run の応答の形（`head_branch` にタグ名が入る）を入力にした `test_pages_provenance.py` で確かめる |
-| 保管の job が 7 日より長く落ち続けた | その間のリリース版と PR 版の artifact は消える（開発版は 90 日残る）。開発版とリリース版は `gh workflow run pages-build.yml --ref main -f side=<dev か release>` で作り直す。PR 版は、その PR へ次に push したときに作り直される |
+| 保管の job が 7 日より長く落ち続けた | その間の artifact は、どの側のものも消える。開発版とリリース版は `gh workflow run pages-build.yml --ref main -f side=<dev か release>` で作り直す。PR 版は、その PR へ次に push したときに作り直される |
