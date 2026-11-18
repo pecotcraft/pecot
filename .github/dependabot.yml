@@ -50,6 +50,19 @@ updates:
       github-actions-minor-patch:
         update-types: ["minor", "patch"]
 
+  # .devcontainer/Dockerfile のベースイメージ（tag と digest で固定。tag は版でないので digest だけが上がる）
+  - package-ecosystem: "docker"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(repo)"
+
   # pecot-visual のリリース監査（plugins/pecot-visual/scripts/release/audit-mcp-dist.sh）が使う canary。
   # 用途は「監査先が advisory を返すこと」の確認。
   # minimist 1.2.5 は意図して置いた脆弱依存で、更新されると検出確認が成立しなくなる。

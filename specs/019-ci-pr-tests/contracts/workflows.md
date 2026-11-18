@@ -37,7 +37,7 @@ job は次のとおり。必須チェックは `ci-result` と `version-plan` �
 | 項目 | 約束 |
 |---|---|
 | 起動 | `main` への push のうち `.devcontainer/**` と workflow 自身が変わったもの、`pull_request`（`.devcontainer/**` と workflow 自身が変わったもの。build だけで push しない）、週 1 回の schedule、`workflow_dispatch` |
-| 権限 | `contents: read`・`packages: write` |
+| 権限 | workflow は `contents: read`。`pull_request` の job `build` は `contents: read` だけ、それ以外の job `publish` は `contents: read`・`packages: write` |
 | 成果物 | `ghcr.io/pecotcraft/pecot-devcontainer:latest`（public） |
 
 ## dependabot-auto-merge.yml（自動マージ）

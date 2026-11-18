@@ -149,6 +149,8 @@
         "{workspaceRoot}/.github/workflows/ci.yml",
         "{workspaceRoot}/.github/workflows/dependabot-commit.yml",
         "{workspaceRoot}/.github/workflows/devcontainer-image.yml",
+        "{workspaceRoot}/.github/dependabot.yml",
+        "{workspaceRoot}/.devcontainer/Dockerfile",
         "{workspaceRoot}/.github/workflows/release.yml",
         "{workspaceRoot}/.github/workflows/dependabot-auto-merge.yml",
         "{workspaceRoot}/.github/workflows/pecot-board-sync.yml",

@@ -1,6 +1,7 @@
 """dependabot-commit.yml・dependabot-auto-merge.yml・devcontainer-image.yml の静的な確認。
 
 これらは Dependabot の PR か main への push でしか動かない。退行を merge 前に止めるため、構造を固定する。
+CI のイメージの定義（Dockerfile のベースイメージと、それを追う dependabot.yml）も同じく固定する。
 """
 
 from __future__ import annotations
@@ -97,11 +98,34 @@ def test_image_workflow_skips_only_the_app_push_run_of_dependabot_prs() -> None:
 
 
 def test_image_workflow_derives_publish_args_from_event_and_ref() -> None:
-    steps = _workflow("devcontainer-image.yml")["jobs"]["build"]["steps"]
+    steps = _workflow("devcontainer-image.yml")["jobs"]["publish"]["steps"]
     run = _step(steps, "Build and push image")["run"]
     assert "dev-container.sh publish" in run
-    assert re.search(r"\$GITHUB_EVENT_NAME\" != pull_request \]; then\n\s+args\+=\(--push\)", run)
+    assert "args=(--push)" in run
     assert re.search(r"\$GITHUB_REF\" = refs/heads/main \]; then\n\s+args\+=\(--latest\)", run)
     assert re.search(r"\$NO_CACHE\" = true \]; then\n\s+args\+=\(--no-cache\)", run)
     env = _step(steps, "Build and push image")["env"]
     assert "github.event_name == 'schedule'" in env["NO_CACHE"]
+
+
+def test_image_workflow_gives_packages_write_only_to_the_non_pr_job() -> None:
+    wf = _workflow("devcontainer-image.yml")
+    assert wf["permissions"] == {"contents": "read"}
+    build, publish = wf["jobs"]["build"], wf["jobs"]["publish"]
+    assert "github.event_name == 'pull_request' &&" in build["if"]
+    assert "packages" not in build["permissions"]
+    for step in build["steps"]:
+        assert "--push" not in step.get("run", "")
+        assert "login-action" not in step.get("uses", "")
+    assert publish["if"] == "${{ github.event_name != 'pull_request' }}"
+    assert publish["permissions"]["packages"] == "write"
+
+
+def test_devcontainer_base_image_is_pinned_and_followed_by_dependabot() -> None:
+    dockerfile = (_REPO_ROOT / ".devcontainer/Dockerfile").read_text(encoding="utf-8")
+    assert re.search(r"^FROM \S+:\S+@sha256:[0-9a-f]{64}$", dockerfile, re.MULTILINE)
+    config = yaml.safe_load((_REPO_ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
+    assert any(
+        u["package-ecosystem"] == "docker" and u["directory"] == "/.devcontainer"
+        for u in config["updates"]
+    )
