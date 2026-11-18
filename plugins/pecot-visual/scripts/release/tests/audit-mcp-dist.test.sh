@@ -1368,6 +1368,17 @@ for variant in a b; do
     stop_mock
 done
 
+# --- 既定の audit-exceptions.json が、例外リストの形を満たす ---
+#
+# ほかのケースは一時ファイルの例外を渡すので、実在のファイルの書き損じはここでだけ止まる。
+REAL_EXC_RC=0
+REAL_EXC_OUT="$(SUMMARY_JS="$SUMMARY_JS" EXC="$RELEASE_DIR/audit-exceptions.json" node --input-type=module -e '
+import { pathToFileURL } from "node:url"
+const { loadExceptions } = await import(pathToFileURL(process.env.SUMMARY_JS).href)
+loadExceptions(process.env.EXC)
+' 2>&1)" || REAL_EXC_RC=$?
+assert_eq "既定の audit-exceptions.json を loadExceptions が読める ($REAL_EXC_OUT)" "0" "$REAL_EXC_RC"
+
 # --- 28. テストはリポジトリ本体の監査記録に触れない ---
 #
 # 既定パスの記録が、本テストの fixture 由来の指紋を持たないことだけを見る。
