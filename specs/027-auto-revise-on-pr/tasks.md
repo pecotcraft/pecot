@@ -130,7 +130,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [x] T029 [US1] 結果の決め方と、テンプレートの本文の埋め方を `p-w/cli/src/domain/review-finish.ts` に書く。frontmatter のテンプレートの種類には足さない
 - [x] T030 [US1] `p-w/cli/src/commands/review-finish.ts` を書く。グループ `review` を `names.ts` に、定義の配列を `registry.ts` に足す。MCP ツール `review_finish` は、registry の定義から出る。w-help の `references/commands.md` に行を足す
 - [x] T031 [US1] `p-w/interface/authored.yaml` に項目と振る舞いの項目を書き、`p-w/interface/generated.json` を書き出し直す。T025・T026 のテストに `verifies` を足す
-- [ ] T032 [US1] T025〜T027 のテストを通す。検証用の PR で、このフェーズの Independent Test を流す。結果を PR の説明に書く
+- [x] T032 [US1] T025〜T027 のテストを通す。検証用の PR で、このフェーズの Independent Test を流す。結果を PR の説明に書く
 
 ---
 
@@ -153,8 +153,8 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [x] T035 [US3] `p-w/skills/w-pr/SKILL.md` に Step 5「レビューの指摘に対応」を足す。中身は旧 w-revise の Step 4〜6 で、対応する指摘は PR の未解決の F-NN のスレッドと、`review-resolution` の無い `review-findings` から読む
 - [x] T036 [US1] エージェント w-reviewer を w-plan-reviewer に改め、計画のレビューだけに使う。視点の印は `[tech]`・`[cuj]` の 2 つにする
 - [x] T037 [P] [US1] `p-w/skills/w-help/`・`p-w/README.md` の表と参照の、w-revise・w-reviewer の行を直す。`review-findings` の Disposition を表にし、F-NN をリンクにする
-- [ ] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。結果を PR の説明に書く
-  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く
+- [x] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。結果を PR の説明に書く
+  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く（#640 に分けた）
 
 ---
 
@@ -205,10 +205,10 @@ Phase 5 の T035 に含めた。w-revise の引き継ぎの分岐は足さない
 - [ ] T048 検証用で、`pecot workflow install review` から quickstart.md の「導入を確かめる」を流す。雛形の後始末の step が、公開した `@pecot/workflow-mcp` の `review finish` を打てることを見る
   - シナリオ 14 の、始めてから最初の自動レビューが起きるまでの時間を測り、30 分以内であることを見る。T047 では、配られたプラグインと CLI が自動レビューに届かないため測らない
 - [ ] T049 quickstart.md のシナリオ 1〜13 と 15〜18 を、検証用で流す。実際に投稿するシナリオ 1・3・6 は main が流す。結果を、シナリオごとに PR の説明に書く
-- [ ] T050 T049 の実行の記録から、かかったターンと時間を読む。`p-w/cli/templates/workflow/pecot-review.yml` の既定値を直し、版の目印を上げる。w-reviewer に公式の文書を調べる手段を許すかを決め、`spec/research.md` の「残した判断」に結果を書く
-- [ ] T051 quickstart.md の「実行の記録で見ること」の 4 つを、T049 の run で確かめる。トークンと secret の値が、ログとコメントに出ていないことを見る
+- [x] T050 T049 の実行の記録から、かかったターンと時間を読む。`p-w/cli/templates/workflow/pecot-review.yml` の既定値を直し、版の目印を上げる。w-reviewer に公式の文書を調べる手段を許すかを決め、`spec/research.md` の「残した判断」に結果を書く
+- [x] T051 quickstart.md の「実行の記録で見ること」の 4 つを、T049 の run で確かめる。トークンと secret の値が、ログとコメントに出ていないことを見る
 - [ ] T052 このリポに導入する。`pecot workflow install review` で `.github/workflows/pecot-review.yml` を置き、Claude の App と secret を用意する。App のインストールと secret の登録は、ユーザーが行う。`pecot workflow doctor review` が通ることを見る
-- [ ] T053 このリポで PR を 1 つ作り、指摘が載ることを見る。fork からの PR で起動しないことは、検証用の結果（シナリオ 7）で代える
+- [ ] T053 このリポで PR を 1 つ作り、指摘が載ることを見る。fork からの PR で起動しないことは、検証用の結果（シナリオ 7）で代える（#638 に分けた）
 
 ---
 
