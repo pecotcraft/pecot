@@ -125,6 +125,9 @@ Claude の App を使う構成では、雛形のファイルを足す・変え�
 | `PECOT_REVIEW_ALLOWED_BOTS` | `[]` | PR をレビューする bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限 |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | job の時間の上限。分 |
+| `PECOT_REVIEW_PROJECT` | 空 | レビューで使うプロジェクトの設定の名前。`.pecot/config/projects/` のファイル名から `.json` を除いて書く |
+
+`PECOT_REVIEW_PROJECT` は、リポが 2 つ以上のプロジェクトの設定に入っているときに置きます。置かないと、pecot の MCP ツールが設定を選べず、レビューが止まります。設定が 1 つのリポでは要りません。
 
 雛形を上書きしても、変数は消えません。
 

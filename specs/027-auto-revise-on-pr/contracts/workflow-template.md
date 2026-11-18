@@ -23,6 +23,7 @@
 | `PECOT_REVIEW_ALLOWED_BOTS` | 空 | 起動を許す bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限。サブエージェントの中のやり取りは数えない |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | 時間の上限。分 |
+| `PECOT_REVIEW_PROJECT` | 空 | プロジェクトの設定の名前。リポが 2 つ以上の設定に入っているときに置く。`.pecot/config/projects/` のファイル名から `.json` を除いたもの |
 
 先頭の `env` に置かないのは、job の `if` が `env` を読めないためだ。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
 `jobs.<job_id>.timeout-minutes` と `jobs.<job_id>.concurrency` も、`vars` を読める。
@@ -119,7 +120,7 @@ action はすべて SHA で固定し、版をコメントに書く。
 | `github_token` | 自前の App のトークン。トークンの step を飛ばしたときは空になり、action が Claude の App のトークンを受け取る |
 | `plugin_marketplaces` | `https://github.com/pecotcraft/pecot.git` |
 | `plugins` | `pecot-w@pecot` |
-| `prompt` | `/pecot-w:w-review <github.repository>/<PR番号>` |
+| `prompt` | `/pecot-w:w-review <github.repository>/<PR番号>`。変数 `PECOT_REVIEW_PROJECT` があるときだけ、末尾に `project=<名前>` を足す（下の式） |
 | `allowed_bots` | 許す bot の一覧。`*` は使わない |
 | `claude_args` | `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` |
 
@@ -138,7 +139,16 @@ anthropic_federation_rule_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.
 - `track_progress`。追跡コメントの付く別のモードに切り替わる
 - `restrict_untrusted_prs`。初期値の有効のままにする
 
-`prompt` に、PR の本文・タイトル・ブランチ名・コメントを式で埋め込まない。渡すのは、リポの名前と PR の番号だけだ。
+`prompt` に、PR の本文・タイトル・ブランチ名・コメントを式で埋め込まない。渡すのは、リポの名前と PR の番号と、変数 `PECOT_REVIEW_PROJECT` の値だけだ。
+変数を置けるのは、リポの設定を変えられる人だけなので、合言葉の変数と同じ信頼の範囲に入る。
+
+プロジェクトの設定の名前は、`prompt` の末尾に次の式で足す。変数が無いと式は空の文字列になり、`prompt` は変数を足す前と同じになる。
+
+```text
+${{ vars.PECOT_REVIEW_PROJECT != '' && format(' project={0}', vars.PECOT_REVIEW_PROJECT) || '' }}
+```
+
+w-review は、引数の `project=<名前>` を、`pr_show`・`issue_show`・`issue_comment` の `project` に渡す（`contracts/skill-flow.md`）。
 
 action の外の step と、環境変数 `PECOT_GITHUB_COM_TOKEN` には、次のトークンを渡す。
 
@@ -182,7 +192,8 @@ diff は `gh pr diff` で読む。`pr_show` は本文とレビューしか返さ
 許可リストは境界ではない。Claude の App のトークンは、Contents・Issues・Pull requests の write を持つ。リポの内容を書き換えさせないのは、`--disallowedTools` で書き換えのツールを渡さないことと、`default` のモードで規則の無いコマンドが拒まれることだ（FR-011）。
 自前の App のときは、トークンの権限も境界になる。
 
-pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数でプロジェクトを指定する。#579 はツールに `project` の引数を足しただけで、変数の名前を決めていない。指定の渡し方は、#640 で `prompt` への渡し方と合わせて決める。
+pecot の MCP ツールは、`.active` の無い checkout でも、対象のリポからプロジェクトの設定を決める（#579）。リポが複数のボードに入っている利用者は、変数 `PECOT_REVIEW_PROJECT` でプロジェクトを指定する。雛形が、その名前を `prompt` の引数で w-review に渡す（#640）。
+MCP サーバが環境変数から読む形にしないのは、全部のツールが読む入力を CLI に足すことになり、手元のセッションの挙動も変わるためだ。
 
 ## 版の目印
 
@@ -210,6 +221,7 @@ pecot の MCP ツールは、`.active` の無い checkout でも、対象のリ�
 | `classify_inline_comments` が `"false"` | キーの値を見る |
 | `issue_comment` の run に、PR の確かめの後で 👀 のリアクションを付ける step がある | step の `if` と `run` を見る |
 | `prompt` に `github.event.pull_request.body`・`title`・`head.ref` の式が無い | 文字列を探す |
+| `prompt` の末尾が、変数 `PECOT_REVIEW_PROJECT` のあるときだけ `project=<名前>` を足す式になっている | 式の文字列を比べる |
 | job の `permissions` が `contents: read`・`pull-requests: write`・`id-token: write` だけ | 読み込んだ値を比べる |
 | トークンの発行の step が、変数 `PECOT_AGENT_APP_CLIENT_ID` のあるときだけ動き、渡す権限が Pull requests の write と Contents の read だけ | step の `if` と `with` のキーを比べる |
 | `github_token` と `PECOT_GITHUB_COM_TOKEN` が、発行したトークンが無いときに Claude の App と `GITHUB_TOKEN` に落ちる式を持つ | 式の文字列を探す |

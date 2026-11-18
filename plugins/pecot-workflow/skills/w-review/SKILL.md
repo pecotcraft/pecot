@@ -12,6 +12,8 @@ when_to_use: "自動レビューのワークフローが PR をレビューす�
 
 ## 手順
 
+引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。
+
 ### Step 1: PR 情報を取得
 
 引数の PR の本文・diff・既存レビューを読む。
