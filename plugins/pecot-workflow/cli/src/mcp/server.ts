@@ -9,7 +9,7 @@ import { parseOwnerRepository } from '../domain/repository-resolver.js'
 import { resolveApiUrlOverride } from '../infra/github/client.js'
 import { cancelledBy } from '../infra/process-run.js'
 import { usageOf, withUsage } from '../commands/command-binding.js'
-import { createOutput } from '../commands/output.js'
+import { AbortedError, createOutput } from '../commands/output.js'
 import { exitCodeOfFailure } from '../commands/failure.js'
 import type { FailureKind } from '../commands/failure-kind.js'
 import { isRecord } from '../commands/input-schema.js'
@@ -104,7 +104,7 @@ function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Prepara
 function unavailableResult(reason: string): CallToolResult {
   const collected = collectIo()
   createOutput(false, collected.io).error(reason)
-  return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'session-directory-unresolved' })
+  return toToolResult({ exitCode: 1, stdout: collected.stdout(), kind: 'session-directory-unresolved', errors: collected.errors() })
 }
 
 function unexpectedMessage(error: unknown): string {
@@ -134,8 +134,8 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
       options.reportCancelled?.(error.message)
       return toAbortedResult()
     }
-    // 使い方の誤りは枠で出すので、error の行の代わりに例外の文の 1 行目を message にする
-    if (error instanceof UsageError) message = error.message.split('\n', 1)[0]
+    // 使い方の誤りと確認の中止は error の行を出さないので、例外の文を message にする
+    if (error instanceof UsageError || error instanceof AbortedError) message = error.message
     try {
       exitCode = exitCodeOfFailure(error, collected.io, width)
     }
@@ -163,11 +163,12 @@ function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo,
   const outcome = {
     exitCode: ended.exitCode,
     stdout,
-    stderr,
     kind: ended.kind ?? collected.kind(),
     message: ended.message,
     resultLine: collected.resultLine(),
     warnings: collected.warnings(),
+    errors: collected.errors(),
+    log: collected.log(),
   }
   const raw = collected.data()
   if (ended.exitCode === 0) {
@@ -176,7 +177,7 @@ function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo,
     options.reportUnexpected?.(parsed.error, { stdout, stderr })
     // 書き込みが済んだ後の食い違いもありうるので、呼び直さないよう伝える。項目は失敗と同じく省略可の形で検証して残す
     const message = `the command finished, but its data does not match the output schema: ${issuesMessage(parsed.error)}; the operation may already be done, so do not call it again`
-    return toToolResult({ ...outcome, exitCode: 1, stderr: '', kind: 'other', message, data: partialData(definition, raw, stdout, stderr, options) })
+    return toToolResult({ ...outcome, exitCode: 1, errors: [], kind: 'other', message, data: partialData(definition, raw, stdout, stderr, options) })
   }
   return toToolResult({ ...outcome, data: partialData(definition, raw, stdout, stderr, options) })
 }

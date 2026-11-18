@@ -4,6 +4,7 @@ import { ConfigError } from '../domain/config.js'
 import { PecotError, InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from '../infra/github/errors.js'
 import { OsError } from '../infra/os-error.js'
+import { logOf } from '../domain/git-output.js'
 import { hintedTextOf } from './command-hint.js'
 import type { FailureKind } from './failure-kind.js'
 import { AbortedError, createOutput, reportAborted } from './output.js'
@@ -20,7 +21,10 @@ export function isReportableFailure(error: unknown): error is Error {
 }
 
 export function reportFailure(error: Readonly<Error>, io: CommandIo): void {
-  createOutput(false, io).error(hintedTextOf(error) ?? error.message)
+  const out = createOutput(false, io)
+  const log = logOf(error)
+  if (log !== undefined) out.log(log)
+  out.error(hintedTextOf(error) ?? error.message)
 }
 
 // 子クラスを親より先に並べる

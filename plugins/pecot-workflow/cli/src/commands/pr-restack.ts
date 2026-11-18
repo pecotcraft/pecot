@@ -33,8 +33,9 @@ import type { PullRequestForFinish } from '../infra/github/pulls.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
-import { commandHint, hinted } from './command-hint.js'
+import { commandHint, hinted, RUN_COLON, runAgain } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
+import { gitFailureText } from '../domain/git-output.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { apiFailureMessage, createGitHubClient } from './github-client.js'
@@ -85,8 +86,8 @@ function stopOnConflict(out: RestackOutput, cwd: string, progress: Readonly<Rest
   out.result({ branch: progress.branch, base: progress.ontoBranch, outcome: 'conflict', conflicts: [...conflicts] })
   // 衝突したファイルが無いのに止まるのは、解いた結果が空のコミットになったとき
   const message = conflicts.length === 0
-    ? hinted`the rebase stopped without conflicted files (a commit may have become empty)\nskip the commit with: ${SKIP_COMMAND}, then run: ${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`
-    : hinted`conflict in ${conflicts.join(', ')}\nresolve the conflicts and git add the files, then run: ${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`
+    ? hinted`the rebase stopped without conflicted files (a commit may have become empty)\nskip the commit with: ${SKIP_COMMAND}, then ${RUN_COLON}${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`
+    : hinted`conflict in ${conflicts.join(', ')}\nresolve the conflicts and git add the files, then ${RUN_COLON}${commandHint(RESTACK_PATH, { continue: true })}\nor go back to the position before the restack: ${commandHint(RESTACK_PATH, { abort: true })}`
   return stopWith(out, message, 'git-conflict', CONFLICT_EXIT_CODE)
 }
 
@@ -113,10 +114,10 @@ function describePushFailure(push: Readonly<Extract<PushResult, { pushed: false 
   const unchanged = `${branch} is restacked locally and the base record is unchanged`
   switch (push.reason) {
     case 'timed-out': {
-      return hinted`push timed out after ${String(PUSH_TIMEOUT_MILLISECONDS / MILLISECONDS_PER_SECOND)} seconds\n${unchanged}\npush the branch yourself: ${FORCE_PUSH_COMMAND} ${remote} ${branch}\nthen run: ${commandHint(RESTACK_PATH)}`
+      return hinted`push timed out after ${String(PUSH_TIMEOUT_MILLISECONDS / MILLISECONDS_PER_SECOND)} seconds\n${unchanged}\npush the branch yourself: ${FORCE_PUSH_COMMAND} ${remote} ${branch}\nthen ${RUN_COLON}${commandHint(RESTACK_PATH)}`
     }
     case 'rejected': {
-      return hinted`push was rejected: ${push.stderr.trim()}\n${unchanged}\nrun again: ${commandHint(RESTACK_PATH)}`
+      return hinted`push was rejected: ${push.stderr.trim()}\n${unchanged}\n${runAgain(commandHint(RESTACK_PATH))}`
     }
   }
 }
@@ -128,7 +129,7 @@ async function finishRestack(out: RestackOutput, cwd: string, progress: Readonly
   if (leaseSha !== undefined && remoteOnlyCommits(cwd, progress, remoteBranch).length > 0) {
     resetHardTo(cwd, progress.originalSha)
     removeFlag(FLAG_PECOT_RESTACK)
-    stopWith(out, hinted`${remoteBranch} has commits that are not in ${branch}\n${branch} is back at the position before the restack\nrebase or merge them into ${branch} first, then run again: ${commandHint(RESTACK_PATH)}`, 'git-unresolved')
+    stopWith(out, hinted`${remoteBranch} has commits that are not in ${branch}\n${branch} is back at the position before the restack\nrebase or merge them into ${branch} first, then ${runAgain(commandHint(RESTACK_PATH))}`, 'git-unresolved')
   }
   const isSynced = isSyncedWithRemote(cwd, progress)
   if (isSynced) resetHardTo(cwd, remoteBranch)
@@ -217,7 +218,7 @@ async function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' |
     && currentBranch(cwd) === reading.progress.branch && mergeBase(cwd, 'HEAD', reading.progress.ontoSha) === reading.progress.ontoSha
   if (reading.kind === 'none' || (!isRebasing && !isRebased)) {
     if (!isDryRun) removeFlag(FLAG_PECOT_RESTACK)
-    return stopWith(out, hinted`no restack in progress\nto restack the branch, run: ${commandHint(RESTACK_PATH)}`, 'invalid-input', USAGE_EXIT_CODE)
+    return stopWith(out, hinted`no restack in progress\nto restack the branch, ${RUN_COLON}${commandHint(RESTACK_PATH)}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   const { progress } = reading
   if (isDryRun) {
@@ -332,7 +333,10 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   }
   if (!input.check && hasUncommittedChanges(cwd)) stopWith(out, 'working tree has uncommitted changes', 'preflight-failed', UNCOMMITTED_EXIT_CODE)
   const fetchResult = await fetchOnce()
-  if (!fetchResult.succeeded) stopWith(out, `cannot fetch ${remote}: ${fetchResult.stderr.trim()}`, 'git-unresolved')
+  if (!fetchResult.succeeded) {
+    out.log(fetchResult.stderr)
+    stopWith(out, gitFailureText(`cannot fetch ${remote}: `, fetchResult.stderr.trim()), 'git-unresolved')
+  }
 
   const target: StackedTarget = { remote, owner: location.owner, repository: location.repository, reading, developBranch }
   const relinkTarget: RelinkTarget = { owner: location.owner, repository: location.repository, host: config.host, developBranch }

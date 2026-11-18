@@ -75,6 +75,14 @@ export interface Output<D extends object = Record<string, unknown>> {
   readonly warning: (message: string | HintedText) => void
   readonly error: (message: string | HintedText) => void
   /**
+  標準エラーに書かず、MCP の失敗の detail にだけ文を渡す。error の行を出さずに止まるコマンドが使う
+  */
+  readonly detail: (message: string | HintedText) => void
+  /**
+  子プロセスの生の出力を、MCP の失敗の log にだけ渡す
+  */
+  readonly log: (text: string) => void
+  /**
   value が未設定なら `unknown` と出す
   */
   readonly count: (label: string, value: number | undefined) => void
@@ -98,6 +106,8 @@ export interface Output<D extends object = Record<string, unknown>> {
 warning の行の前置き。MCP の側はこれで stderr から warning の文を拾う
 */
 export const WARNING_PREFIX = 'warning: '
+
+export const ERROR_PREFIX = 'error: '
 
 /**
 末尾の改行を取り除き、2 行目以降の先頭に空白 2 つを付け、末尾に改行を 1 つ付ける
@@ -126,10 +136,19 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
     warning: (message) => {
       const text = render(message)
       io.stderr(formatMessage(WARNING_PREFIX, text))
-      io.warning?.(text.replace(/\n+$/, ''))
+      io.warning?.(formatMessage('', text).trimEnd())
     },
     error: (message) => {
-      io.stderr(formatMessage('error: ', render(message)))
+      const text = render(message)
+      io.stderr(formatMessage(ERROR_PREFIX, text))
+      io.error?.(formatMessage('', text).trimEnd())
+    },
+    detail: (message) => {
+      const text = formatMessage('', render(message)).trimEnd()
+      if (text !== '') io.error?.(text)
+    },
+    log: (text) => {
+      if (text.trim() !== '') io.log?.(text)
     },
     count: (label, value) => {
       io.stderr(`count: ${label}: ${value === undefined ? 'unknown' : String(value)}\n`)

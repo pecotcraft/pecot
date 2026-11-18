@@ -4,7 +4,7 @@ import { createOutput } from '../../commands/output.js'
 import { outputSchemaIssues } from '../../../tests/_helpers/mcp-client.js'
 import { z } from 'zod'
 
-import { COMMON_OUTPUT_PROPERTIES, collectIo, detailOf, splitWarnings, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from '../result.js'
+import { COMMON_OUTPUT_PROPERTIES, collectIo, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from '../result.js'
 
 describe('collectIo', () => {
   it('stdout と stderr に書いた文字列を、書いた順につなげて返す', () => {
@@ -58,53 +58,62 @@ const OUTPUT = z.strictObject({ name: z.string() })
 
 describe('toToolResult', () => {
   it('成功はツールの項目を structuredContent の最上位に置き、結果の行を文の text にし、isError を付けない', () => {
-    const result = toToolResult({ exitCode: 0, stdout: '', stderr: 'warning: w\ncreated: branch b/1\nset: x\n', resultLine: 'created: branch b/1', data: { name: 'n' } })
+    const result = toToolResult({ exitCode: 0, stdout: '', resultLine: 'created: branch b/1', data: { name: 'n' } })
     expect(result).toEqual({ content: contentOf('created: branch b/1', { name: 'n' }), structuredContent: { name: 'n' } })
   })
 
   it('成功で結果の行が無ければ、stdout の最初の空でない行を文にする', () => {
-    const result = toToolResult({ exitCode: 0, stdout: '\n  Board: Demo\nrow\n', stderr: 'deleted: 1 archived items\n' })
+    const result = toToolResult({ exitCode: 0, stdout: '\n  Board: Demo\nrow\n' })
     expect(result.content).toEqual(contentOf('Board: Demo', {}))
   })
 
   it('成功で結果の行と stdout のどちらも無ければ、文の text を省き、JSON の text だけを返す', () => {
-    const result = toToolResult({ exitCode: 0, stdout: '', stderr: 'warning: w\n', warnings: ['w'] })
+    const result = toToolResult({ exitCode: 0, stdout: '', warnings: ['w'] })
     expect(result).toEqual({ content: contentOf(undefined, { warnings: ['w'] }), structuredContent: { warnings: ['w'] } })
   })
 
   it('成功の structuredContent に、ok・exitCode・data・artifacts・message・kind・detail が無い', () => {
-    const result = toToolResult({ exitCode: 0, stdout: 'x\n', stderr: '', data: { name: 'n' } })
+    const result = toToolResult({ exitCode: 0, stdout: 'x\n', data: { name: 'n' } })
     expect(Object.keys(result.structuredContent ?? {})).toEqual(['name'])
   })
 
-  it('失敗は kind と、warning を除いた error の行から後の全文の detail を最上位に置き、detail を文の text にして、isError を付ける', () => {
-    const result = toToolResult({ exitCode: 1, stdout: '', stderr: 'warning: w\nerror: not found\n  hint: x\nerror: second\n', kind: 'not-on-board', warnings: ['w'] })
-    const structured = { kind: 'not-on-board', detail: 'not found\n  hint: x\nerror: second', warnings: ['w'] }
+  it('失敗は kind と、失敗の文を改行でつないだ detail を最上位に置き、detail を文の text にして、isError を付ける', () => {
+    const result = toToolResult({ exitCode: 1, stdout: '', errors: ['not found\n  hint: x', 'second'], kind: 'not-on-board', warnings: ['w'] })
+    const structured = { kind: 'not-on-board', detail: 'not found\n  hint: x\nsecond', warnings: ['w'] }
     expect(result).toEqual({ content: contentOf(structured.detail, structured), structuredContent: structured, isError: true })
   })
 
+  it('失敗で子プロセスの出力があれば、log に置く', () => {
+    const result = toToolResult({ exitCode: 1, stdout: '', errors: ['failed: fatal: x'], log: 'Preparing\nfatal: x\n', kind: 'other' })
+    expect(result.structuredContent).toEqual({ kind: 'other', detail: 'failed: fatal: x', log: 'Preparing\nfatal: x\n' })
+  })
+
+  it('成功では、log を置かない', () => {
+    expect(toToolResult({ exitCode: 0, stdout: '', log: 'x' }).structuredContent).toEqual({})
+  })
+
   it('失敗では、途中まで進んだ項目を kind・detail と並べて置き、reason を置かない', () => {
-    const result = toToolResult({ exitCode: 1, stdout: '', stderr: 'error: half\n', kind: 'github-api', data: { name: 'x' } })
+    const result = toToolResult({ exitCode: 1, stdout: '', errors: ['half'], kind: 'github-api', data: { name: 'x' } })
     expect(result.structuredContent).toEqual({ kind: 'github-api', detail: 'half', name: 'x' })
   })
 
   it('失敗で名前が無ければ other にし、detail と文が空なら JSON の text だけを返す', () => {
-    const result = toToolResult({ exitCode: 3, stdout: '', stderr: '' })
+    const result = toToolResult({ exitCode: 3, stdout: '' })
     expect(result).toEqual({ content: contentOf(undefined, { kind: 'other', detail: '' }), structuredContent: { kind: 'other', detail: '' }, isError: true })
   })
 
-  it('失敗で error の行が無ければ、warning を除いた stderr の全部を detail にする', () => {
-    expect(toToolResult({ exitCode: 1, stdout: '', stderr: 'Aborted.\n', kind: 'aborted' }).structuredContent).toEqual({ kind: 'aborted', detail: 'Aborted.' })
+  it('失敗の文が無ければ、渡された message を detail にする', () => {
+    expect(toToolResult({ exitCode: 2, stdout: '', kind: 'invalid-input', message: 'Missing argument' }).structuredContent).toEqual({ kind: 'invalid-input', detail: 'Missing argument' })
   })
 
-  it('warning を除いた stderr が空なら、渡された message を detail にする', () => {
-    expect(toToolResult({ exitCode: 2, stdout: '', stderr: 'warning: w\n', kind: 'invalid-input', message: 'Missing argument' }).structuredContent).toEqual({ kind: 'invalid-input', detail: 'Missing argument' })
+  it('失敗の文があれば、message より先に使う', () => {
+    expect(toToolResult({ exitCode: 1, stdout: '', errors: ['e'], message: 'm' }).structuredContent).toEqual({ kind: 'other', detail: 'e' })
   })
 
   it('成功と失敗の structuredContent は、どちらも outputSchema に合い、どちらでもない値と未知の項目は合わない', async () => {
     const schema = toolOutputSchema(OUTPUT)
-    const failure = toToolResult({ exitCode: 1, stdout: 'a', stderr: 'error: b\n', kind: 'github-api' })
-    const success = toToolResult({ exitCode: 0, stdout: '', stderr: '', data: { name: 'n' }, warnings: ['w'] })
+    const failure = toToolResult({ exitCode: 1, stdout: 'a', errors: ['b'], kind: 'github-api' })
+    const success = toToolResult({ exitCode: 0, stdout: '', data: { name: 'n' }, warnings: ['w'] })
     expect(await outputSchemaIssues(schema, failure.structuredContent)).toEqual([])
     expect(await outputSchemaIssues(schema, success.structuredContent)).toEqual([])
     expect(await outputSchemaIssues(schema, {})).not.toEqual([])
@@ -152,47 +161,41 @@ describe('toAbortedResult', () => {
   })
 })
 
-describe('collectIo の項目・warnings', () => {
-  it('result の項目を浅く重ね、warning の文を前置きなしで残す', () => {
+describe('collectIo の項目・warnings・errors・log', () => {
+  it('error の文を、前置きなしで、続きの行の字下げを残して集め、標準エラーの行は拾わない', () => {
+    const collected = collectIo()
+    const out = createOutput(false, collected.io)
+    out.error('first\nhint: x')
+    out.done({ verb: 'add', target: 'y' })
+    out.error('second')
+    expect(collected.errors()).toEqual(['first\n  hint: x', 'second'])
+    expect(collected.stderr()).toBe('error: first\n  hint: x\nadded: y\nerror: second\n')
+  })
+
+  it('detail と log は、標準エラーへ書かずに集める', () => {
+    const collected = collectIo()
+    const out = createOutput(false, collected.io)
+    out.detail('only for mcp')
+    out.log('a\n')
+    out.log('  ')
+    out.log('b\n')
+    expect(collected.errors()).toEqual(['only for mcp'])
+    expect(collected.log()).toBe('a\n\nb\n')
+    expect(collected.stderr()).toBe('')
+  })
+
+  it('log を受けていなければ、undefined を返す', () => {
+    expect(collectIo().log()).toBeUndefined()
+  })
+
+  it('result の項目を浅く重ね、warning の文を前置きなしで、続きの行の字下げを残して集める', () => {
     const collected = collectIo()
     const first = createOutput<{ a: number, b: string[] }>(false, collected.io)
     first.result({ a: 1, b: ['x'] })
     createOutput<{ b: string[] }>(false, collected.io).result({ b: ['y'] })
     first.warning('two\nlines')
     expect(collected.data()).toEqual({ a: 1, b: ['y'] })
-    expect(collected.warnings()).toEqual(['two\nlines'])
+    expect(collected.warnings()).toEqual(['two\n  lines'])
     expect(collected.stderr()).toBe('warning: two\n  lines\n')
-  })
-})
-
-describe('splitWarnings', () => {
-  it('warning の行と、その後の空白 2 つで始まる行を 1 つの文にし、ほかの行と分ける', () => {
-    expect(splitWarnings('created: x\nwarning: a\n  b\nerror: e\n  hint: h\nwarning: c\n')).toEqual({
-      warnings: ['a\nb', 'c'],
-      rest: ['created: x', 'error: e', '  hint: h', ''],
-    })
-  })
-})
-
-describe('detailOf', () => {
-  it('error の行が無ければ、warning を除いた stderr の全部を返し、それも空なら message を返す', () => {
-    expect(detailOf('warning: w\n╭ Usage ╮\n│ x │\n', 'm')).toBe('╭ Usage ╮\n│ x │')
-    expect(detailOf('warning: w\n', 'm')).toBe('m')
-  })
-
-  it('error の行の前に結果の行があると、error の行から後だけを返す', () => {
-    expect(detailOf('created: issue #12\nadded: issue #12 to the board\nerror: cannot set the status\n', 'm')).toBe('cannot set the status')
-  })
-
-  it('error の行の後に片付けの行があると、片付けの行も返す', () => {
-    expect(detailOf('error: push failed\nremoved: worktree /w/a\n', 'm')).toBe('push failed\nremoved: worktree /w/a')
-  })
-
-  it('error の続きに hint の行があると、字下げを保って返す', () => {
-    expect(detailOf('error: not ready\n  hint: run pecot board show\n', 'm')).toBe('not ready\n  hint: run pecot board show')
-  })
-
-  it('warning が error の行の間に挟まると、warning とその続きの行だけを除く', () => {
-    expect(detailOf('error: first\nwarning: slow API\n  retrying\nerror: second\n', 'm')).toBe('first\nerror: second')
   })
 })

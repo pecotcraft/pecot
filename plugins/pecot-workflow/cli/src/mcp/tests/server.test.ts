@@ -204,16 +204,14 @@ describe('ツールの呼び出し', () => {
 
   it('確認が要るのに入力が無いと、detail が Aborted. の失敗を返す', async () => {
     const result = await call('ask')
-    expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Overwrite? [y/N]:Aborted.', warnings: [] })
+    expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Aborted.', warnings: [] })
   })
 
-  it('本体が投げた context の無い使い方の誤りには、コマンドの使い方を detail に付けて invalid-input の失敗にする', async () => {
+  it('本体が使い方の誤りを投げると、CLI の Usage と枠を付けず、例外の文だけを detail にして invalid-input の失敗にする', async () => {
     const result = await call('bad_parameter')
     const structured = outcomeOf(result)
     expect(structured.isError).toBe(true)
-    expect(structured.detail).toContain('Usage: ')
-    expect(structured.detail).toContain('bad parameter')
-    expect(structured.detail).toContain('Invalid value for x')
+    expect(structured.detail).toBe('Invalid value for x')
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
   })
 
@@ -471,7 +469,7 @@ describe('入力の検証の誤り', () => {
     } })
     const result = await client.callTool({ name: 'noisy', arguments: {} })
     expect(reported).toEqual([{ stdout: 'half\n', stderr: 'warn\n' }])
-    expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'warn' })
+    expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'boom' })
   })
 
   it('引数が無くても、空の入力として検証する', async () => {

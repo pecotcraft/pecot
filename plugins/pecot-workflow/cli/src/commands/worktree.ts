@@ -58,6 +58,7 @@ const dryRunInput = z.boolean().default(false).describe('Show what would happen 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
 function reportRuntimeError(out: Readonly<Output>, error: unknown): never {
   if (!(error instanceof WorktreeRuntimeError)) throw error
+  if (error.log !== undefined) out.log(error.log)
   return stopWith(out, hintedTextOf(error) ?? error.message, error.failure)
 }
 

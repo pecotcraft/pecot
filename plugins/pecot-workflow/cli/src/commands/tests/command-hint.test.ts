@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { formatHint, formatHinted, hintedTextOf } from '../../domain/command-hint.js'
-import { commandHint, globalRepositoryHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from '../command-hint.js'
+import { commandHint, globalRepositoryHint, hinted, inputHint, inputNameHint, joinHinted, placeholder, RUN, RUN_COLON, runAgain, surfaceText } from '../command-hint.js'
 import '../registry.js'
 
 describe('formatHint のコマンド', () => {
@@ -103,5 +103,31 @@ describe('hintedTextOf', () => {
     expect(hintedTextOf(withNumbers)).toBeUndefined()
     expect(hintedTextOf(new Error('x'))).toBeUndefined()
     expect(hintedTextOf('x')).toBeUndefined()
+  })
+})
+
+describe('出し先で変わる文', () => {
+  it('surfaceText は、CLI と MCP で別の文になる', () => {
+    const text = hinted`fix it and ${surfaceText('run the command', 'call the tool')} again`
+    expect(formatHinted(text, 'cli')).toBe('fix it and run the command again')
+    expect(formatHinted(text, 'mcp')).toBe('fix it and call the tool again')
+  })
+
+  it('RUN_COLON は、CLI では run: とコマンド、MCP では call とツール名になる', () => {
+    const text = hinted`then ${RUN_COLON}${commandHint(['pr', 'restack'], { continue: true })}`
+    expect(formatHinted(text, 'cli')).toBe('then run: pecot pr restack --continue')
+    expect(formatHinted(text, 'mcp')).toBe('then call pr_restack with continue: true')
+  })
+
+  it('RUN は、文の中の動詞を CLI では run、MCP では call にする', () => {
+    const text = hinted`${RUN} ${commandHint(['board', 'sync'])} later`
+    expect(formatHinted(text, 'cli')).toBe('run pecot board sync later')
+    expect(formatHinted(text, 'mcp')).toBe('call board_sync later')
+  })
+
+  it('runAgain は、CLI では run again: とコマンド、MCP では call とツール名と again になる', () => {
+    const text = hinted`push was rejected\n${runAgain(commandHint(['pr', 'restack']))}`
+    expect(formatHinted(text, 'cli')).toBe('push was rejected\nrun again: pecot pr restack')
+    expect(formatHinted(text, 'mcp')).toBe('push was rejected\ncall pr_restack again')
   })
 })

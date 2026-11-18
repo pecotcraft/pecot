@@ -13,8 +13,9 @@ import { BaseError } from '../domain/errors.js'
 import { existsSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { commandHint, formatHinted, hinted, inputHint, inputNameHint } from '../domain/command-hint.js'
+import { commandHint, formatHinted, hinted, inputHint, inputNameHint, RUN, surfaceText } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
+import { gitFailureText } from '../domain/git-output.js'
 import { getDevelopBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { pythonStrip } from '../domain/python-format.js'
@@ -52,12 +53,17 @@ export type WorktreeFailure = 'config-invalid' | 'git-unresolved' | 'no-active-p
 export class WorktreeRuntimeError extends BaseError {
   readonly hintedText: HintedText | undefined
   readonly failure: WorktreeFailure
+  /**
+  git の生の出力。MCP の失敗の log になる
+  */
+  readonly log: string | undefined
 
   // message は CLI の形。MCP では最上位が hintedText から描き直す
-  constructor(message: string | HintedText, options: Readonly<ErrorOptions & { readonly failure?: WorktreeFailure }> = {}) {
+  constructor(message: string | HintedText, options: Readonly<ErrorOptions & { readonly failure?: WorktreeFailure, readonly log?: string }> = {}) {
     super(formatHinted(message, 'cli'), options.cause === undefined ? undefined : { cause: options.cause })
     this.hintedText = typeof message === 'string' ? undefined : message
     this.failure = options.failure ?? 'other'
+    this.log = options.log
   }
 }
 
@@ -81,12 +87,15 @@ devcontainer 外（host 直接）での実行はサポート外。プロジェ�
 */
 export function ensureDevcontainerEnvironment(dockerEnvironmentFile = '/.dockerenv'): void {
   if (existsSync(dockerEnvironmentFile) || isSet(process.env['REMOTE_CONTAINERS']) || isSet(process.env['CODESPACES']) || isSet(process.env['DEVCONTAINER'])) return
-  throw new WorktreeRuntimeError(
-    'this command must run inside a devcontainer\n'
+  throw new WorktreeRuntimeError([
+    surfaceText('this command', 'this tool'),
+    ' must run inside a devcontainer\n'
     + 'the current environment does not have the mount layout pecot expects '
     + '(/workspaces/<project>/base/<repo>)\n'
-    + 'prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and run it again',
-  )
+    + 'prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and ',
+    RUN,
+    ' it again',
+  ])
 }
 
 // 結果の型
@@ -153,7 +162,7 @@ export function getWorktreeList(cwd?: string): readonly WorktreeInfo[] {
 export function findMainWorktree(cwd: string): string {
   const result = runGit(['worktree', 'list', '--porcelain'], { cwd })
   const main = result.exitCode === 0 ? parsePorcelain(result.stdout)[0] : undefined
-  if (main === undefined) throw new WorktreeRuntimeError(`cannot get the worktree list: ${result.stderr}`)
+  if (main === undefined) throw new WorktreeRuntimeError(gitFailureText('cannot get the worktree list: ', result.stderr), { log: result.stderr })
   return normalizePath(main.path)
 }
 
@@ -186,7 +195,7 @@ export function isWorktreeEnvironment(cwd: string): boolean {
     commonDirectory = runGit(['rev-parse', '--git-common-dir'], { cwd, check: true }).stdout
   }
   catch (error: unknown) {
-    if (error instanceof GitCommandError) throw new WorktreeRuntimeError(`not a git repository: ${error.stderr.trim()}`, { cause: error })
+    if (error instanceof GitCommandError) throw new WorktreeRuntimeError(gitFailureText('not a git repository: ', error.stderr.trim()), { cause: error, log: error.stderr })
     throw error
   }
   // 相対パスは、cwd ではなくこのプロセスの作業ディレクトリ基準で解決する（Python の Path.resolve() と同じ）
@@ -379,7 +388,7 @@ const NO_REMOTE_MESSAGE = 'cannot get the repository information: check that a g
 function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnostics): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
   const configPath = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
   if (!existsSync(configPath)) {
-    throw new WorktreeRuntimeError(hinted`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run ${commandHint(['worktree', 'init'])} to generate the template`, { failure: 'not-initialized' })
+    throw new WorktreeRuntimeError(hinted`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  ${RUN} ${commandHint(['worktree', 'init'])} to generate the template`, { failure: 'not-initialized' })
   }
   try {
     return { configPath, spec: loadCopyExcludeSpec(mainWorktree, diagnostics) }
@@ -418,7 +427,7 @@ function loadWorktreeConfigOrRaise(configPath: string): WorktreeConfig {
   }
   catch (error: unknown) {
     if (error instanceof WorktreeConfigError) {
-      throw new WorktreeRuntimeError(`failed to load the worktree config: ${normalizePath(configPath)}: ${error.message}\n  fix the config file and run it again`, { cause: error, failure: 'config-invalid' })
+      throw new WorktreeRuntimeError(hinted`failed to load the worktree config: ${normalizePath(configPath)}: ${error.message}\n  fix the config file and ${RUN} it again`, { cause: error, failure: 'config-invalid' })
     }
     throw error
   }
@@ -584,7 +593,7 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, base: R
   if (!hasBranch && baseBranch !== '') gitArguments.push('--track', `${remote}/${baseBranch}`)
 
   const result = runGit(gitArguments, { cwd })
-  if (result.exitCode !== 0) throw new WorktreeRuntimeError(`failed to create the worktree: ${result.stderr}`)
+  if (result.exitCode !== 0) throw new WorktreeRuntimeError(gitFailureText('failed to create the worktree: ', result.stderr), { log: result.stderr })
 }
 
 // worktree の記録。ディレクトリが無い、toplevel が別（.git の消えた跡）なら空。GIT_* は外して読む
@@ -635,9 +644,9 @@ export function removeWorktree(cwd: string, name: string, diagnostics: Diagnosti
     const reason = pythonStrip(removed.stderr)
     // git の文は CLI の `--force` を案内するので、MCP でも打てる形の案内を添える
     if (options.isForced !== true && reason.includes('contains modified or untracked files')) {
-      throw new WorktreeRuntimeError(hinted`failed to remove the worktree: ${reason}\nhint: to remove it with its changes, pass ${inputHint(['worktree', 'remove'], 'force')}`)
+      throw new WorktreeRuntimeError(hinted`${gitFailureText('failed to remove the worktree: ', reason)}\nhint: to remove it with its changes, pass ${inputHint(['worktree', 'remove'], 'force')}`, { log: removed.stderr })
     }
-    throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
+    throw new WorktreeRuntimeError(gitFailureText('failed to remove the worktree: ', removed.stderr), { log: removed.stderr })
   }
 
   // 3. ブランチ削除（ローカルブランチ）

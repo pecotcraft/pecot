@@ -45,7 +45,16 @@ export interface GlobalRepositoryHint {
   readonly value: HintValue | undefined
 }
 
-export type Hint = CommandHint | InputHint | GlobalRepositoryHint
+/**
+出し先ごとに違う文。案内の動詞（run / call）や、MCP では出さない行に使う
+*/
+export interface SurfaceText {
+  readonly kind: 'text'
+  readonly cli: string
+  readonly mcp: string
+}
+
+export type Hint = CommandHint | InputHint | GlobalRepositoryHint | SurfaceText
 
 /**
 文字列と案内を並べた文。描くときに案内を出し先の形にする
@@ -97,6 +106,27 @@ export function placeholder(name: string): HintPlaceholder {
   return { placeholder: name }
 }
 
+export function surfaceText(cli: string, mcp: string): SurfaceText {
+  return { kind: 'text', cli, mcp }
+}
+
+/**
+案内の動詞。文の中で `run <案内>` と書く所に置く。MCP では call
+*/
+export const RUN = surfaceText('run', 'call')
+
+/**
+案内の前置き。CLI は `run: <コマンド>`、MCP は `call <ツール>`
+*/
+export const RUN_COLON = surfaceText('run: ', 'call ')
+
+/**
+もう一度呼ぶ案内。CLI は `run again: <コマンド>`、MCP は `call <ツール> again`
+*/
+export function runAgain(hint: CommandHint): HintedText {
+  return [surfaceText('run again: ', 'call '), hint, surfaceText('', ' again')]
+}
+
 function isHint(value: unknown): value is Hint {
   return typeof value === 'object' && value !== null && 'kind' in value
 }
@@ -104,10 +134,11 @@ function isHint(value: unknown): value is Hint {
 /**
 タグ付きテンプレートで HintedText を作る。`hinted\`run: ${commandHint(['project', 'init'])}\``
 */
-export function hinted(strings: TemplateStringsArray, ...values: readonly (string | number | Hint)[]): HintedText {
+export function hinted(strings: TemplateStringsArray, ...values: readonly (string | number | Hint | HintedText)[]): HintedText {
   return strings.flatMap((text, index): (string | Hint)[] => {
     const value = values.at(index)
     if (index >= values.length) return [text]
+    if (isHintedText(value)) return [text, ...value]
     return [text, isHint(value) ? value : String(value)]
   })
 }
@@ -191,6 +222,7 @@ function formatCommand(hint: CommandHint, surface: HintSurface): string {
 */
 export function formatHint(hint: Hint, surface: HintSurface): string {
   if (hint.kind === 'command') return formatCommand(hint, surface)
+  if (hint.kind === 'text') return surface === 'mcp' ? hint.mcp : hint.cli
   if (hint.kind === 'input') assertInput(shapeOf(hint.path), hint.name)
   const name = hint.kind === 'input' ? hint.name : 'repo'
   const { value } = hint
