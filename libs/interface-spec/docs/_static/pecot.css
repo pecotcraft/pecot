@@ -155,6 +155,19 @@
   overflow-x: auto;
 }
 
+/* 文の 1 行を約 50 字（GitHub Docs・MDN と同じ程度）で止める。表とコードは列いっぱいを使う。 */
+#content p,
+#content li,
+#content dl {
+  max-width: 50rem;
+}
+
+#content table p,
+#content table li,
+#content table dl {
+  max-width: none;
+}
+
 /* ツール名のような切れ目の無い題が、狭い画面で横にはみ出さないよう、要るときだけ語の途中で折る。 */
 #content h1,
 #content h2,

@@ -105,6 +105,19 @@ describe('公開サイトの見た目', () => {
     expect(Object.values(gaps).every(gap => gap < 0)).toBe(true)
   })
 
+  it.for(WIDE)('幅 %s px で、段落と箇条書きの 1 行は 50rem を超えない', async (width) => {
+    const widths: Record<string, number> = {}
+    for (const page of site().pages) {
+      const tab = await open(width, page)
+      const widest = await tab.evaluate(() => Math.max(0, ...[...document.querySelectorAll('#content p, #content li')]
+        .filter(element => element.closest('table') === null)
+        .map(element => element.getBoundingClientRect().width)))
+      await tab.close()
+      if (widest > 800 + 1) widths[page] = Math.round(widest)
+    }
+    expect(widths).toEqual({})
+  })
+
   it('見出しのリンクはテーマのアイコンで、文字の ¶ を出さない', async () => {
     const broken: Record<string, number> = {}
     for (const page of site().pages) {
