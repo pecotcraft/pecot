@@ -81,6 +81,15 @@ describe.each(['w-active', 'w-quick'])('%s の手順', (name) => {
     expect(titleIndex(headings, 'ブランチ切り替え')).toBeLessThan(titleIndex(headings, '調査'))
   })
 
+  it('計画ドラフトの Step は、利用者の判断が要る点の基準を持ち、計画の投稿より前に AskUserQuestion で聞く', () => {
+    const draft = titleIndex(headings, '計画ドラフト')
+    const draftBody = sectionBody(text, draft)
+    expect(draft).toBeLessThan(titleIndex(headings, '計画の投稿'))
+    expect(draftBody).toContain('次のどちらかに当たる点は、利用者の判断が要る。AskUserQuestion で聞き、答えを計画に書いてから')
+    expect(draftBody).toContain('- 依頼と Issue の記述だけでは案を絞れず、選ぶ案で利用者に見える結果が変わる')
+    expect(draftBody).toContain('- Issue の記述と違うことをする')
+  })
+
   it('EnterPlanMode を呼ばない、という注意を手順に書かない', () => {
     expect(text).not.toContain('EnterPlanMode を呼ばない')
   })

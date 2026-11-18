@@ -68,7 +68,10 @@ git checkout feat/description
 pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
 できたファイルに、テンプレの見出しと規則のとおりに計画を書く。
 
-利用者の判断が要る点は、AskUserQuestion で聞く。答えを計画に書いてから Step 5 へ進む。
+次のどちらかに当たる点は、利用者の判断が要る。AskUserQuestion で聞き、答えを計画に書いてから Step 5 へ進む。
+
+- 依頼と Issue の記述だけでは案を絞れず、選ぶ案で利用者に見える結果が変わる
+- Issue の記述と違うことをする
 
 変更対象は作業中の worktree の remote のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 

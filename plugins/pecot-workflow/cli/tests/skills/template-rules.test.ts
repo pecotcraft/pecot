@@ -143,6 +143,12 @@ describe('plan テンプレート', () => {
     expect(files).toContain('| 実装者 | モデル | 担当 |')
   })
 
+  it('利用者の判断が要る点は聞いて決めてから書かせ、「判断を仰ぐ点」を書く欄を持たない', () => {
+    expect(writingRules(PLAN_TEMPLATE)).toContain('利用者の判断が要る点は、利用者に聞いて決めてから書く。決まっていない点を計画に残さない')
+    expect(body(PLAN_TEMPLATE)).toContain('利用者に聞いて決めた点')
+    expect(readPluginFile(PLAN_TEMPLATE)).not.toContain('判断を仰ぐ点')
+  })
+
   it('Claude Code の plan mode の標準 5 項目の置き場を書く', () => {
     expect(writingRules(PLAN_TEMPLATE)).toContain('標準 5 項目')
   })

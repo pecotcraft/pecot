@@ -86,7 +86,10 @@ Issue の Tasks / Acceptance を起点に、変更対象のファイル・既存
 pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
 できたファイルに、テンプレの見出しと規則のとおりに計画を書く。
 
-利用者の判断が要る点は、AskUserQuestion で聞く。答えを計画に書いてから Step 8 へ進む。
+次のどちらかに当たる点は、利用者の判断が要る。AskUserQuestion で聞き、答えを計画に書いてから Step 8 へ進む。
+
+- 依頼と Issue の記述だけでは案を絞れず、選ぶ案で利用者に見える結果が変わる
+- Issue の記述と違うことをする
 
 w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。
 tasks.md のチェックはタスクの単位の進捗で、並行で進められるタスクを探すときに読む。この PR のマージでフェーズの Issue が閉じるのと同時に、tasks.md のチェックもそろう。
