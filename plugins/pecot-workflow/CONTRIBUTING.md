@@ -237,6 +237,7 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 | リリース（`release.yml`・`publish-npm.yml`） | `gh workflow run release.yml --ref main` の dry-run で案を見ます。配布ツリーは `publish-mcp-dist.sh --dry-run` で作ります。workflow の形は `.githooks/tests/test_release_workflow.py`・`test_publish_npm_workflow.py` |
 | 依存の更新と脆弱性の通知（`dependabot-*.yml`・`security-alerts.yml`） | `.githooks/tests/test_dependabot_commit_workflow.py`。Tracker を作る `pecot tracker sync` は検証用で実行できます |
 | workflow を外から起動する仕組み（`.github/board-sync/` の Lambda と Scheduler） | `.github/board-sync/handler.test.mjs`（`.githooks/tests/test_board_sync.py` から実行） |
+| 公開サイト（`pages-build.yml`・`pages-deploy.yml`・保管ブランチ `pages-store`） | workflow の形と判定は `.githooks/tests/test_pages_*.py`。公開はマージの後に実物で確かめます。手順は `specs/028-pages-site/quickstart.md`、起動とやり直しは `.claude/rules/pages-site.md` |
 
 利用者へ配るもの（workflow・Lambda など）を新しく作ったときは、検証用に確かめる場所を作ります。
 

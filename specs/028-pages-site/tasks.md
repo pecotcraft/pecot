@@ -232,12 +232,12 @@ description: "Task list for 028-pages-site"
 
 **Purpose**: 公開サイトの案内と、保守者の手順
 
-- [ ] T042 [P] `README.md` に、公開サイトへのリンクを足す（FR-011）。README の全面的な書き直しはしない
-- [ ] T043 [P] `libs/interface-spec/README.md` を書き直す。
+- [x] T042 [P] `README.md` に、公開サイトへのリンクを足す（FR-011）。README の全面的な書き直しはしない
+- [x] T043 [P] `libs/interface-spec/README.md` を書き直す。
   「定義書と合否の HTML」に版の帯と `PECOT_SITE_STRICT` を足し、「CI の artifact に上げない理由」を、公開の流れが全レーンを動かす今の形に直す。
   保管ブランチ・environment・ruleset の設定と、公開の流れの起動・やり直しの方法を書く（FR-010）
-- [ ] T044 [P] `plugins/pecot-workflow/CONTRIBUTING.md` の「このリポだけの運用」の表に、公開サイト（`pages-build.yml`・`pages-deploy.yml`・`pages-store`）の行を足す。確かめ方は `.githooks/tests/test_pages_*.py` と、マージの後の実物
-- [ ] T045 quickstart.md の 1〜6 を通して動かし、結果を PR に書く。3 と 5 では、push から公開の終わりまでの時間を run の時刻で測り、30 分以内（SC-001・SC-007）であることを書く
+- [x] T044 [P] `plugins/pecot-workflow/CONTRIBUTING.md` の「このリポだけの運用」の表に、公開サイト（`pages-build.yml`・`pages-deploy.yml`・`pages-store`）の行を足す。確かめ方は `.githooks/tests/test_pages_*.py` と、マージの後の実物
+- [x] T045 quickstart.md の 1〜6 を通して動かし、結果を PR に書く。3 と 5 では、push から公開の終わりまでの時間を run の時刻で測り、30 分以内（SC-001・SC-007）であることを書く
 
 ---
 

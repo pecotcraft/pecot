@@ -27,9 +27,17 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 
 `_generated/<plugin>/*.rst` は build のたびに定義書から書き直す。定義書から消えた項目のページは消える。
 
-- JUnit が無くても作れる。合否は「未実行」になる
-- 読む JUnit は `docs/conf.py` の `iface_junit` に並べている
+- 手元で作ったサイトは、どのページの上にも、ローカルでビルドしたことを伝える 1 行の知らせを出す
+- JUnit が無くても作れる。JUnit の無いレーンを持つプラグインの項目は「未実行」になる
+- 読む JUnit は `docs/junit-lanes.json` に並べている。合否のレーンを足す・外すときは、このファイルを直す
+- 前に動かしたレーンの JUnit が残っていれば、それを読む。今の結果だけで作るときは、先に `junit-lanes.json` の `junit` のファイルを消す
 - 項目の ID を書いたテスト（`verifies`）だけが、項目につながる。定義書に無い ID のケースは落とす
+
+JUnit がそろっていることを確かめて作るときは、`PECOT_SITE_STRICT=1` を付けます。JUnit が無いか読めないレーンがあると、その名前を出して止まります。公開サイトを作る run は、これを付けて動きます。
+
+```bash
+PECOT_SITE_STRICT=1 pnpm exec nx run interface-spec:docs
+```
 
 ### 見た目のテスト（`test-site`）
 
@@ -45,11 +53,15 @@ pnpm exec nx run interface-spec:test-site
 
 Chromium は pecot-visual と同じ版の playwright のものを使います。devcontainer は作るときに入れています。
 
-### CI の artifact に上げない理由
+ページを足すときは、次のとおりにします。
 
-CI は affected のレーンだけを matrix の job に分けて動かすので、1 つの job に全レーンの JUnit がそろいません。
-そろわない JUnit で作った HTML は、動かなかったレーンの項目を「未実行」と出し、読む人を誤らせます。
-全量を集める job を足す案は、全レーンを毎回動かすことになるので採りません。
+- 見出しが 1 段で目次の無いページには、rst の先頭に `:notoc: true` を付ける。付け忘れると、右の空欄の測りで落ちる
+- 見出しが 2 段以上あり、右に目次が出るページには付けない
+- `search.html` はテーマのテンプレートのページで、印を付けられない。右の空欄の測りからだけ外している（`tests/site/layout.test.ts` の `NO_NOTOC`）。¶ とはみ出しは測る
+
+### 公開サイト
+
+同じサイトを <https://pecotcraft.github.io/pecot/> で公開しています。公開の起動・やり直しと管理者の設定は `.claude/rules/pages-site.md` にあります。
 
 ## 名前の語彙（`names`）
 
