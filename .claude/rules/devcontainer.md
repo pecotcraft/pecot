@@ -14,6 +14,8 @@ paths:
 - tag は `def-<key>` と、main だけの `latest`。`<key>` は `.githooks/ci/dev-container.sh tag` が出す
   - `<key>` は、イメージに入るファイル（`Dockerfile`・`devcontainer.json`・`devcontainer-lock.json`・`features/`）の hash
 - tag が無いと、CI の job ごとに build して 1 本 5〜29 分かかる。これらのファイルを変える PR は、merge queue の前に `gh workflow run devcontainer-image.yml --ref <ブランチ>` で tag を載せる。main 以外の ref は既存の tag を上書きしない
+- `devcontainer-image.yml` の PR の run は build だけの job で動き、`packages: write` を持たない。push は手での起動・main への push・schedule の job が行う
+- `Dockerfile` のベースイメージは tag と digest で固定する。digest の更新は dependabot（`docker`）の PR で見る
 - devcontainer CLI の版は `dev-container.sh` の 1 か所で、dependabot は追わない。手で上げる
 
 ## awscli（2.39.4）

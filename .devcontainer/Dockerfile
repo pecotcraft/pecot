@@ -1,24 +1,16 @@
 # syntax=docker/dockerfile:1
-FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04
+FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04@sha256:b377a08d19467bcc08180cb95098448cac31c1a8423e287ce709a9eb09e14762
 
 LABEL org.opencontainers.image.source=https://github.com/pecotcraft/pecot
 
-# fontconfig は明示的に入れる。base:ubuntu イメージには fc-cache の無い版もある。
-# libreoffice-impress/calc・poppler-utils: PPTX→PDF 変換と PDF テキスト抽出のため (#165)。
-# pptx 変換自体は impress だけで足りる (draw は impress の Depends)。calc が要るのは
-# evidence-xlsx 系 E2E のため。--no-install-recommends は付けない。
-# pdftotext が日本語を抽出するのに必要な poppler-data は、recommends 経由でしか入らない。
+# libreoffice・poppler-utils は PPTX→PDF 変換と PDF の抽出のため (#165)。
+# --no-install-recommends を付けない。日本語の抽出に要る poppler-data は recommends でしか入らない。
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y shellcheck tmux fontconfig fonts-noto-cjk fonts-inter fonts-crosextra-carlito libreoffice-impress libreoffice-calc poppler-utils \
   && rm -rf /var/lib/apt/lists/*
 
-# PPTX が要求するフォントのファミリー名と、コンテナの deb 実体は一致しない。
-# "Noto Sans JP" の deb 配布は "Noto Sans CJK JP" のみで、
-# theme 既定の Calibri Light は metric alias の対象外になる。
-# alias が無いと fontconfig は WenQuanYi Zen Hei へフォールバックする。
-# その結果、LibreOffice の PDF 変換でフォントが崩れる (#728)。
-# 日本語は weak alias だと LibreOffice が Noto Sans CJK SC (簡体字グリフ) を選ぶ。
-# そのため strong prefer にする。
+# PPTX のフォント名を deb の実体へ寄せる。無いと PDF 変換でフォントが崩れる (#728)。
+# weak alias だと LibreOffice が Noto Sans CJK SC (簡体字) を選ぶため strong にする。
 RUN <<'EOF'
 set -e
 cat >/etc/fonts/local.conf <<'XML'
