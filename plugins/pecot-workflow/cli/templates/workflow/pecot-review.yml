@@ -1,4 +1,4 @@
-# pecot-workflow-template: review 2
+# pecot-workflow-template: review 3
 #
 # Place this file at .github/workflows/pecot-review.yml in your repository.
 #
@@ -115,18 +115,24 @@ jobs:
           GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
           PR: ${{ github.event.issue.number }}
           COMMENTER: ${{ github.event.comment.user.login }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
         run: |
           pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")
           role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENTER/permission" --jq .role_name)
           head=$(jq -r '.head.repo.full_name // ""' <<< "$pr")
           draft=$(jq -r .draft <<< "$pr")
           state=$(jq -r .state <<< "$pr")
+          sha=$(jq -r .head.sha <<< "$pr")
+          COMMIT_AT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha" --jq .commit.committer.date)
+          # A commit pushed after the comment was not seen by the commenter, so it is not reviewed.
+          commit_time=$(date -d "$COMMIT_AT" +%s)
+          comment_time=$(date -d "$COMMENT_AT" +%s)
           ok=false
-          if [ "$head" = "$GITHUB_REPOSITORY" ] && [ "$draft" = false ] && [ "$state" = open ]; then
+          if [ "$head" = "$GITHUB_REPOSITORY" ] && [ "$draft" = false ] && [ "$state" = open ] && [ "$commit_time" -le "$comment_time" ]; then
             case "$role" in admin|maintain|write) ok=true ;; esac
           fi
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
-          echo "sha=$(jq -r .head.sha <<< "$pr")" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge the request
         if: ${{ github.event_name == 'issue_comment' && steps.pr.outputs.ok == 'true' }}

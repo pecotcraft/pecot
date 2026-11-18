@@ -132,6 +132,14 @@ describe('review のワークフローの雛形', () => {
     expect(checkPr.run).toContain('admin|maintain|write) ok=true')
   })
 
+  it('PR の確かめは、合言葉のコメントより後のコミットが head なら通さない', () => {
+    expect(checkPr.env?.['COMMENT_AT']).toBe('${{ github.event.comment.created_at }}')
+    // CodeQL の CommentVsHeadDateCheck は、`date -d` で *_at を読む 2 つのコマンドを確かめと認める
+    expect(checkPr.run).toContain('commit_time=$(date -d "$COMMIT_AT" +%s)')
+    expect(checkPr.run).toContain('comment_time=$(date -d "$COMMENT_AT" +%s)')
+    expect(checkPr.run).toContain('[ "$commit_time" -le "$comment_time" ]')
+  })
+
   it('PR の確かめは、API の失敗をプロセス置換で握りつぶさない', () => {
     expect(checkPr.run).not.toContain('< <(')
     expect(checkPr.run).toContain('pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")')

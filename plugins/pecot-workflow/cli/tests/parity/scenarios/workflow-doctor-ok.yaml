@@ -7,7 +7,7 @@ setup:
   repo:
     files:
       .github/workflows/pecot-review.yml: |
-        # pecot-workflow-template: review 2
+        # pecot-workflow-template: review 3
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:
