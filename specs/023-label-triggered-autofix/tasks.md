@@ -85,7 +85,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 
 - [ ] T008 [P] [US1] `p-w/cli/src/domain/tests/` に、判定の失敗するテストを書く。入力は Issue・コメント・イベントの値だ
   - `spec/data-model.md` の「種類の決まり方」の表の 7 行を、1 行ずつ確かめる
-  - 「対象外の条件」の表を、1 行ずつ確かめる。進行の欄は、Backlog・Pending・Archived の 3 つを別々に確かめる
+  - 「対象外の条件」の表を、1 行ずつ確かめる。進行の欄は、Backlog・Pending・Blocked・Archived の 4 つを別々に確かめる
   - ボードに無い Issue は、`kind` が `start` で `proceed` が真になる
   - ラベルを付けた人の `role_name` が `admin`・`maintain`・`write` でなければ、`proceed` は偽で、何も書かない
   - CI を直した回数は、`result=ci-fix-pushed` の目印を持つコメントの数で数える

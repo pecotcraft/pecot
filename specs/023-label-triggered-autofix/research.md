@@ -281,11 +281,10 @@ Issue の本文は、action のサニタイズを通らない。そこで次の 
 | user 所有のボード | 初版の対象にしない |
 | GitHub Copilot CLI での無人の実行 | 対象にしない |
 
-未決の判断が 3 つある。この改訂では決めない。spec の改訂か、ユーザーの判断が要る。
+未決の判断が 2 つある。この改訂では決めない。spec の改訂か、ユーザーの判断が要る。
 
 | 項目 | 内容 |
 |---|---|
-| `Blocked` の Issue | 進行の欄が `Blocked` の Issue に起動ラベルが付いたときの扱い。spec の FR-013 と用語の表が、`Blocked` を知らない |
 | CI を直した回数 | 数え始め、`ci-passed` の後に同じブランチの CI が終わったときの扱い、1 回の push で `workflow_run` が複数届くときの扱い |
 | ruleset の確かめ | main への push を止める ruleset があるかを、`workflow doctor auto` が確かめるか（FR-029） |
 

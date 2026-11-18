@@ -56,6 +56,7 @@
 | sub-issue を持つ | sub-issue の数 |
 | PR に付いたラベル | イベントの `issue.pull_request` |
 | 進行の欄が Backlog・Pending・Archived | 進行の欄の値 |
+| 進行の欄が Blocked | 進行の欄の値。理由のコメントに、待っている前提を書く |
 | 人が着手している | 進行の欄が Active か In Review で、Issue に自動処理の結果のコメントが 1 つも無い |
 | ラベルを付けた人に書き込み権限が無い | `sender` の `collaborators/<login>/permission` の `role_name` が、`admin`・`maintain`・`write` のどれでもない。何も書かずに止める |
 
