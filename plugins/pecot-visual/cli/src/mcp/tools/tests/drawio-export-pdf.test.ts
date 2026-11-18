@@ -19,7 +19,10 @@ import type * as ChromiumModule from '../../../infra/playwright/chromium.js'
 import type { ToolCallContext } from '../../server.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
-import { drawioExportTool } from '../drawio.js'
+import { drawioExportTool as drawioExportDefinition } from '../drawio.js'
+import { withOutputCheck } from './_output.js'
+
+const drawioExportTool = withOutputCheck(drawioExportDefinition)
 
 const EMBED_SVG = '<svg xmlns="http://www.w3.org/2000/svg" style="color-scheme: light dark;" width="201px" height="121px"><g/></svg>'
 const PDF_BYTES = Buffer.from('%PDF-1.4 stub')

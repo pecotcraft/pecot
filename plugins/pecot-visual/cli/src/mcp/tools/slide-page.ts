@@ -1,14 +1,5 @@
-// slide_page ツール。指定レイアウトのスケルトンページを talk-dir の pages/ 配下に生成し、
-// そのレイアウトの使い方 (参照 yaml 全文 + includes) を応答で返す。
-//
-// 対応する CLI サブコマンドは持たない (`slide_dev` / `runtime_setup` と同じ MCP 専用ツール)。
-// 目的はエージェントの「`pages/_references/<layout>.yaml` を Read してから手書きする」ルートを
-// 1 回の呼び出しに畳むことなので、CLI から使う需要が無い。
-//
-// 参照 yaml は `slide theme` と同じ解釈（executeSlideTheme）で探す。
-// talk-dir の references/ が先、次にテーマの references/ で、lint の no-unknown-props などが読む場所と同じ。
-// レイアウト名の一致確認も executeSlideTheme が返す一覧に通す。
-// `_` 始まりと status: hidden の除外規則を書き写すと片方だけ古くなるため、実装は 1 本に保つ。
+// slide_page ツール。レイアウトのスケルトンページを pages/ に書き、参照 yaml と includes を返す。
+// 参照 yaml とレイアウト名は executeSlideTheme で引く。除外規則を書き写すと片方だけ古くなるため。
 
 // 開くのは引数で受けた talk-dir の下の pages/ と、executeSlideTheme が返した参照 yaml の絶対パス、参照 yaml が宣言した include 名だけ。
 /* eslint-disable security/detect-non-literal-fs-filename */
@@ -34,10 +25,29 @@ import type { ToolDefinition } from '../server.js'
 import {
   captureCommandOutput,
   formatError,
-  TOOL_OUTPUT_SCHEMA,
+  optionalFields,
+  PATH_REJECTION_OUTPUT_SHAPE,
+  toolOutputFields,
   WINDOWS_PATH_NOTE,
+  withPresence,
   type CommandOutput,
 } from './_shared.js'
+import { LAYOUT_CATALOG_OUTPUT_SHAPE } from './slide.js'
+
+const slidePageShape = {
+  event: z.string().describe('slide.page.done on success, slide.page.error on failure (omitted when a path argument is rejected)'),
+  layout: z.string().describe('Layout name of the generated page (success only)'),
+  category: z.string().describe('Category ID of the layout (success only)'),
+  deprecated: z.boolean().describe('Whether the layout is deprecated (success only)'),
+  path: z.string().describe('Absolute path of the written page (success only)'),
+  skeleton: z.string().describe('Frontmatter written to the page (success only)'),
+  reference: z.string().describe('Full text of the reference yaml of the layout (success only)'),
+  includes: z.record(z.string(), z.string()).describe(
+    'Full text of the shared yaml files the reference yaml includes, keyed by name (success only; empty when none)',
+  ),
+  ...optionalFields(withPresence(LAYOUT_CATALOG_OUTPUT_SHAPE, 'failure only, kind unknown-layout')),
+}
+const slidePageOutput = toolOutputFields(slidePageShape, PATH_REJECTION_OUTPUT_SHAPE)
 
 /**
 生成するページの拡張子。省略された `file` にはこれを補う。
@@ -375,7 +385,7 @@ export function slidePageTool(
         + '(passing an unknown name returns categories and layouts in the response). '
         + 'The generated page must be registered separately as a src: entry in slides.md.',
       inputSchema: slidePageInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slidePageOutput,
       // talk-dir 配下の読み取りと 1 ファイルの書き込みだけで、ネットワークには到達しない。
       annotations: { openWorldHint: false },
     },

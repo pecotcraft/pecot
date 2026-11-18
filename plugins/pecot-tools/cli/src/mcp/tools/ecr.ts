@@ -6,6 +6,7 @@ import { ECR_DESCRIBE_IMAGES } from '../../domain/allowlist.js'
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsObjects,
   COMMON_INPUT_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
   type ToolOptions,
@@ -35,6 +36,9 @@ export function ecrTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        imageDetails: awsObjects('ImageDetail objects of the ECR DescribeImages response'),
+      },
     }, options),
   ]
 }

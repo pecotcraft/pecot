@@ -428,9 +428,9 @@ def _constraint(item: object) -> str:
 
 
 MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
-MCP_FIELDS_OPEN = "このほかの項目も返します（型を閉じていません）。"
+COMMON_OUTPUT_TITLE = "全ツールに共通の項目"
 # structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
-_MCP_COMMON = frozenset({"kind", "detail", "log", "warnings"})
+_MCP_COMMON = ("kind", "detail", "log", "warnings")
 
 
 def _mcp_output(entry: dict[str, Any]) -> list[str]:
@@ -447,17 +447,44 @@ def _mcp_output(entry: dict[str, Any]) -> list[str]:
         for name, spec in properties.items()
         if name not in _MCP_COMMON
     ]
-    lines = _table("MCP の結果の項目", ["項目名", "型", "説明"], rows)
-    if body.get("additionalProperties") is not False:
-        return lines + _para(MCP_FIELDS_OPEN)
-    return lines or _para(MCP_FIELDS_EMPTY)
+    lines = _table("MCP の結果の項目", ["項目名", "型", "説明"], rows) or _para(MCP_FIELDS_EMPTY)
+    plugin = entry.get(PLUGIN_KEY)
+    if plugin is None:
+        return lines
+    target = f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label(str(plugin))}>`"
+    return [*lines, f"失敗の種別や警告は、\\ {target}\\ の項目で返します。", ""]
+
+
+# render_sections へ渡す項目の、プラグインの名前を載せるキー。定義書の欄ではない。
+PLUGIN_KEY = "_plugin"
+
+
+def common_output_label(plugin: str) -> str:
+    """プラグインのページの、共通の項目の節のラベル。"""
+    return f"iface-common-output-{plugin}"
+
+
+def common_output_rows(generated: dict[str, Any], authored: dict[str, Any]) -> list[list[str]]:
+    """共通の項目の表の行。説明は common_mcp_output、型は最初の MCP ツールの mcp.output から取る。"""
+    common = _get(authored, "common_mcp_output.fields")
+    written = cast("dict[str, str]", common) if isinstance(common, dict) else {}
+    entries = cast("list[dict[str, Any]]", generated.get("entries", []))
+    outputs = [o for o in (_get(g, "mcp.output") for g in entries) if o is not _MISSING]
+    properties, _ = _schema(outputs[0] if outputs else None)
+    return [
+        [name, _type(properties.get(name, {})), written[name]]
+        for name in _MCP_COMMON
+        if name in written
+    ]
 
 
 def _output(entry: dict[str, Any]) -> list[str]:
     output = cast("dict[str, Any]", entry.get("output", {}))
     lines: list[str] = []
+    # 標準出力の文は、CLI の面を持つ項目だけに出す。surfaces の無い entry は CLI として扱う
+    has_cli = "cli" in cast("dict[str, Any]", entry.get("surfaces", {"cli": {}}))
     if output.get("format") == "none":
-        lines += _para("標準出力には何も出しません。")
+        lines += _para("標準出力には何も出しません。") if has_cli else []
     elif output.get("description"):
         lines += _para(output["description"])
     properties, _ = _schema(output.get("schema"))
@@ -559,6 +586,7 @@ class Plan:
     commands: list[Command] = field(default_factory=lambda: [])
     behaviors: list[Behavior] = field(default_factory=lambda: [])
     warnings: list[str] = field(default_factory=lambda: [])
+    common_output: list[list[str]] = field(default_factory=lambda: [])
 
     @property
     def ids(self) -> frozenset[str]:
@@ -582,7 +610,8 @@ def _label(raw: object, default: str) -> str:
 
 
 def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
-    plan = Plan()
+    plan = Plan(common_output=common_output_rows(generated, authored))
+    plugin = {PLUGIN_KEY: generated["plugin"]} if "plugin" in generated else {}
     entries = cast("dict[str, dict[str, Any]]", authored.get("entries", {}))
     for g in cast("list[dict[str, Any]]", generated.get("entries", [])):
         gid = str(g.get("id", "?"))
@@ -591,7 +620,7 @@ def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
             plan.warnings.append(f"{gid}: authored.yaml に項目が無いため、飛ばしました")
             continue
         try:
-            sections = render_sections({**g, **a})
+            sections = render_sections({**g, **a, **plugin})
             command = Command(
                 id=gid,
                 name=str(g["name"]),
@@ -982,7 +1011,19 @@ class IfaceIndex(_Base):
         lines = [".. list-table::", "   :header-rows: 1", "   :widths: 22 50 8 20", ""]
         for row in [["名前", "説明", "型", "状態"], *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
-        return self.parse_text_to_nodes("\n".join(lines))
+        if plan.common_output:
+            lines += [
+                "",
+                f".. _{common_output_label(plugin)}:",
+                "",
+                COMMON_OUTPUT_TITLE,
+                "-" * (len(COMMON_OUTPUT_TITLE) * 2),
+                "",
+                "どのツールも、ツールごとの項目と並べて、次の項目を結果の最上位で返します。",
+                "",
+                *_table("", ["項目名", "型", "説明"], plan.common_output),
+            ]
+        return self.parse_text_to_nodes("\n".join(lines), allow_section_headings=True)
 
 
 class IfaceOverview(_Base):

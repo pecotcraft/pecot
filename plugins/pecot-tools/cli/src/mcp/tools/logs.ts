@@ -11,6 +11,7 @@ import {
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsObjects,
   COMMON_INPUT_SHAPE,
   LIMIT_NEXT_TOKEN_PAGINATION_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
@@ -47,6 +48,9 @@ export function logsTools(options: Readonly<ToolOptions> = {}): readonly ToolDef
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        logGroups: awsObjects('LogGroup objects of the CloudWatch Logs DescribeLogGroups response'),
+      },
     }, options),
     allowlistedTool({
       entry: LOGS_DESCRIBE_LOG_STREAMS,
@@ -60,6 +64,9 @@ export function logsTools(options: Readonly<ToolOptions> = {}): readonly ToolDef
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        logStreams: awsObjects('LogStream objects of the CloudWatch Logs DescribeLogStreams response'),
+      },
     }, options),
     allowlistedTool({
       entry: LOGS_GET_LOG_EVENTS,
@@ -72,6 +79,11 @@ export function logsTools(options: Readonly<ToolOptions> = {}): readonly ToolDef
         ...LIMIT_NEXT_TOKEN_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        events: awsObjects('OutputLogEvent objects of the CloudWatch Logs GetLogEvents response'),
+        nextForwardToken: z.string().describe('Token for the next events in the forward direction. Pass it as next_token to continue (CloudWatch Logs GetLogEvents response)'),
+        nextBackwardToken: z.string().describe('Token for the next events in the backward direction (CloudWatch Logs GetLogEvents response)'),
+      },
     }, options),
     allowlistedTool({
       entry: LOGS_FILTER_LOG_EVENTS,
@@ -86,6 +98,10 @@ export function logsTools(options: Readonly<ToolOptions> = {}): readonly ToolDef
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        events: awsObjects('FilteredLogEvent objects of the CloudWatch Logs FilterLogEvents response'),
+        searchedLogStreams: awsObjects('SearchedLogStream objects of the CloudWatch Logs FilterLogEvents response (no longer supported by AWS; an empty list)'),
+      },
     }, options),
   ]
 }

@@ -7,10 +7,67 @@ import { doesFileExist, isDirectory } from '../../infra/local-file.js'
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsTimestamp,
   COMMON_INPUT_SHAPE,
   type PreExecutionRejection,
+  type ResponseShape,
   type ToolOptions,
 } from './_shared.js'
+
+function getObject(description: string): string {
+  return `${description} (S3 GetObject response)`
+}
+
+/**
+GetObject の応答の最上位のキー。Body は awscli が outfile に書き、出力から外す。
+*/
+const GET_OBJECT_RESPONSE: ResponseShape = {
+  DeleteMarker: z.boolean().describe(getObject('Whether the object is a delete marker')),
+  AcceptRanges: z.string().describe(getObject('Range unit the object accepts')),
+  Expiration: z.string().describe(getObject('Expiration by the lifecycle rule')),
+  Restore: z.string().describe(getObject('Restore state of an archived object')),
+  LastModified: awsTimestamp(getObject('Last modified time')),
+  ContentLength: z.number().describe(getObject('Body size in bytes')),
+  ETag: z.string().describe(getObject('Entity tag')),
+  ChecksumCRC32: z.string().describe(getObject('CRC32 checksum')),
+  ChecksumCRC32C: z.string().describe(getObject('CRC32C checksum')),
+  ChecksumCRC64NVME: z.string().describe(getObject('CRC64NVME checksum')),
+  ChecksumSHA1: z.string().describe(getObject('SHA1 checksum')),
+  ChecksumSHA256: z.string().describe(getObject('SHA256 checksum')),
+  ChecksumSHA512: z.string().describe(getObject('SHA512 checksum')),
+  ChecksumMD5: z.string().describe(getObject('MD5 checksum')),
+  ChecksumXXHASH64: z.string().describe(getObject('XXHASH64 checksum')),
+  ChecksumXXHASH3: z.string().describe(getObject('XXHASH3 checksum')),
+  ChecksumXXHASH128: z.string().describe(getObject('XXHASH128 checksum')),
+  ChecksumType: z.string().describe(getObject('Checksum type')),
+  MissingMeta: z.number().describe(getObject('Number of metadata entries not returned in headers')),
+  VersionId: z.string().describe(getObject('Version ID')),
+  CacheControl: z.string().describe(getObject('Cache-Control header')),
+  ContentDisposition: z.string().describe(getObject('Content-Disposition header')),
+  ContentEncoding: z.string().describe(getObject('Content-Encoding header')),
+  ContentLanguage: z.string().describe(getObject('Content-Language header')),
+  ContentRange: z.string().describe(getObject('Range of the returned part')),
+  ContentType: z.string().describe(getObject('Content-Type header')),
+  Expires: z.string().describe(getObject('Expires header')),
+  WebsiteRedirectLocation: z.string().describe(getObject('Website redirect location')),
+  ServerSideEncryption: z.string().describe(getObject('Server-side encryption algorithm')),
+  Metadata: z.record(z.string(), z.string()).describe(getObject('User-defined metadata')),
+  SSECustomerAlgorithm: z.string().describe(getObject('SSE-C algorithm')),
+  SSECustomerKeyMD5: z.string().describe(getObject('MD5 of the SSE-C key')),
+  SSEKMSKeyId: z.string().describe(getObject('KMS key ID used for encryption')),
+  BucketKeyEnabled: z.boolean().describe(getObject('Whether an S3 Bucket Key is used')),
+  StorageClass: z.string().describe(getObject('Storage class')),
+  RequestCharged: z.string().describe(getObject('Whether the requester was charged')),
+  ReplicationStatus: z.string().describe(getObject('Replication status')),
+  PartsCount: z.number().describe(getObject('Number of parts of a multipart object')),
+  TagCount: z.number().describe(getObject('Number of tags')),
+  ObjectLockMode: z.string().describe(getObject('Object Lock mode')),
+  ObjectLockRetainUntilDate: awsTimestamp(getObject('Object Lock retention end')),
+  ObjectLockLegalHoldStatus: z.string().describe(getObject('Object Lock legal hold status')),
+  ObjectLockEventHold: z.string().describe(getObject('Object Lock event hold')),
+  ObjectLockEventHoldDurationDays: z.number().describe(getObject('Object Lock event hold duration in days')),
+  ObjectLockEventHoldDurationYears: z.number().describe(getObject('Object Lock event hold duration in years')),
+}
 
 /**
 書き出し先を指す入力の名前。ツールごとに 1 つだけ持つ。
@@ -103,6 +160,7 @@ export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefin
       }),
       reject: rejectExistingTarget('outfile'),
       fileOf: fileOfTarget('outfile'),
+      responseShape: GET_OBJECT_RESPONSE,
     }, options),
   ]
 }

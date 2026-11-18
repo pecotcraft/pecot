@@ -46,6 +46,7 @@ import { useInstalledChromiumCache } from '../../../../tests/_helpers/chromium-c
 import { seedDependencyRoot } from '../../../../tests/_helpers/dependency-probes.js'
 import { copyFixtureTheme, FIXTURE_THEMES } from '../../../../tests/_helpers/theme-fixtures.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { expectDeclaredOutput, withOutputCheck } from './_output.js'
 import { snapshotTree } from './tree-snapshot.js'
 import {
   slideConvertTool,
@@ -75,7 +76,9 @@ async function call(
   tool: ToolDefinition,
   arguments_: Readonly<Record<string, unknown>>,
 ): Promise<CallToolResult> {
-  return await tool.handler(arguments_, TOOL_CALL)
+  const result = await tool.handler(arguments_, TOOL_CALL)
+  await expectDeclaredOutput(tool, result)
+  return result
 }
 
 function structuredOf(result: CallToolResult): Record<string, unknown> {
@@ -340,7 +343,7 @@ function createConvertTool(pipeline: SlidevPptxPipeline): ToolDefinition {
     ensureThemeLinked: () => Promise.resolve({ theme: { directory: '/theme-root' } }),
     readThemeDeclaration: () => Promise.resolve({ declaration: DEFAULT_THEME_DECLARATION, warnings: [] }),
   }
-  return slideConvertTool(() => dependencies)
+  return withOutputCheck(slideConvertTool(() => dependencies))
 }
 
 describe('slideTools', () => {
@@ -521,7 +524,7 @@ describe('slide_sync', () => {
     expect(dataOf(result)['invalidPaths']).toEqual(['dir=relative/talk'])
   })
 
-  it('node_modules_only の同期に成功すると slide.sync.done を返す', async () => {
+  it('node_modules_only の同期に成功すると slide.sync.done を返し、テーマを参照しない talk-dir では theme と migration が null になる', async () => {
     const talk = makeTalkDirectory('talk-sync')
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, node_modules_only: true })
     const structured = structuredOf(result)
@@ -531,6 +534,8 @@ describe('slide_sync', () => {
       event: 'slide.sync.done',
       dir: talk,
       nodeModulesOnly: true,
+      theme: null,
+      migration: null,
     })
   })
 
@@ -558,6 +563,7 @@ describe('slide_sync', () => {
       event: 'slide.sync.done',
       nodeModulesOnly: false,
       theme: { name: THEME_NAME, spec, directory },
+      migration: null,
     })
   })
 

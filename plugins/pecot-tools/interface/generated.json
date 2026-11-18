@@ -34,8 +34,14 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "QueryExecution": {
+              "additionalProperties": {},
+              "description": "QueryExecution object of the Athena GetQueryExecution response",
+              "properties": {},
+              "type": "object"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -44,12 +50,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -110,8 +131,22 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
+            "ResultSet": {
+              "additionalProperties": {},
+              "description": "ResultSet object (Rows and ResultSetMetadata) of the Athena GetQueryResults response",
+              "properties": {},
+              "type": "object"
+            },
+            "UpdateCount": {
+              "description": "Number of rows changed by a DML statement (Athena GetQueryResults response)",
+              "type": "number"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -120,12 +155,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -192,8 +246,12 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "QueryExecutionId": {
+              "description": "ID of the started query (Athena StartQueryExecution response)",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -202,12 +260,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -353,8 +426,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "Datapoints": {
+              "description": "Datapoint objects of the CloudWatch GetMetricStatistics response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "Label": {
+              "description": "Metric label (CloudWatch GetMetricStatistics response)",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -363,12 +449,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -456,8 +557,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
+            "Reservations": {
+              "description": "Reservation objects of the EC2 DescribeInstances response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -466,12 +580,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -564,22 +697,54 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
+            },
+            "imageDetails": {
+              "description": "ImageDetail objects of the ECR DescribeImages response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
             },
             "kind": {
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -634,8 +799,211 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "Architectures": {
+              "description": "Instruction set architectures (Lambda GetFunctionConfiguration response)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "CapacityProviderConfig": {
+              "additionalProperties": {},
+              "description": "CapacityProviderConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "CodeSha256": {
+              "description": "SHA256 hash of the deployment package (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "CodeSize": {
+              "description": "Deployment package size in bytes (Lambda GetFunctionConfiguration response)",
+              "type": "number"
+            },
+            "ConfigSha256": {
+              "description": "SHA256 hash of the function configuration (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "DeadLetterConfig": {
+              "additionalProperties": {},
+              "description": "DeadLetterConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "Description": {
+              "description": "Function description (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "DurableConfig": {
+              "additionalProperties": {},
+              "description": "DurableConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "Environment": {
+              "additionalProperties": {},
+              "description": "EnvironmentResponse object with the environment variables (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "EphemeralStorage": {
+              "additionalProperties": {},
+              "description": "EphemeralStorage object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "FileSystemConfigs": {
+              "description": "FileSystemConfig objects (Lambda GetFunctionConfiguration response)",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "FunctionArn": {
+              "description": "Function ARN (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "FunctionName": {
+              "description": "Function name (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "Handler": {
+              "description": "Handler that Lambda calls (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "ImageConfigResponse": {
+              "additionalProperties": {},
+              "description": "ImageConfigResponse object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "KMSKeyArn": {
+              "description": "KMS key ARN (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "LastModified": {
+              "description": "Last update time (ISO 8601) (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "LastUpdateStatus": {
+              "description": "Status of the last update (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "LastUpdateStatusReason": {
+              "description": "Reason for the last update status (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "LastUpdateStatusReasonCode": {
+              "description": "Reason code for the last update status (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "Layers": {
+              "description": "Layer objects (Lambda GetFunctionConfiguration response)",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "LoggingConfig": {
+              "additionalProperties": {},
+              "description": "LoggingConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "MasterArn": {
+              "description": "ARN of the main function of a Lambda@Edge function (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "MemorySize": {
+              "description": "Memory in MB (Lambda GetFunctionConfiguration response)",
+              "type": "number"
+            },
+            "PackageType": {
+              "description": "Deployment package type (Zip or Image) (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "RevisionId": {
+              "description": "Latest revision ID (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "Role": {
+              "description": "Execution role ARN (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "Runtime": {
+              "description": "Runtime identifier (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "RuntimeConfig": {
+              "additionalProperties": {},
+              "description": "FunctionRuntimeConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "RuntimeVersionConfig": {
+              "additionalProperties": {},
+              "description": "RuntimeVersionConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "SigningJobArn": {
+              "description": "Signing job ARN (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "SigningProfileVersionArn": {
+              "description": "Signing profile version ARN (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "SnapStart": {
+              "additionalProperties": {},
+              "description": "SnapStartResponse object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "State": {
+              "description": "Current state of the function (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "StateReason": {
+              "description": "Reason for the current state (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "StateReasonCode": {
+              "description": "Reason code for the current state (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "TenancyConfig": {
+              "additionalProperties": {},
+              "description": "TenancyConfig object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "Timeout": {
+              "description": "Timeout in seconds (Lambda GetFunctionConfiguration response)",
+              "type": "number"
+            },
+            "TracingConfig": {
+              "additionalProperties": {},
+              "description": "TracingConfigResponse object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
+            "Version": {
+              "description": "Function version (Lambda GetFunctionConfiguration response)",
+              "type": "string"
+            },
+            "VpcConfig": {
+              "additionalProperties": {},
+              "description": "VpcConfigResponse object (Lambda GetFunctionConfiguration response)",
+              "properties": {},
+              "type": "object"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -644,12 +1012,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -711,8 +1094,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "EventSourceMappings": {
+              "description": "EventSourceMappingConfiguration objects of the Lambda ListEventSourceMappings response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -721,12 +1117,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -780,8 +1195,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "Functions": {
+              "description": "FunctionConfiguration objects of the Lambda ListFunctions response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -790,12 +1218,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -853,8 +1300,12 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -863,12 +1314,40 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "logGroups": {
+              "description": "LogGroup objects of the CloudWatch Logs DescribeLogGroups response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -946,8 +1425,12 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -956,12 +1439,40 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "logStreams": {
+              "description": "LogStream objects of the CloudWatch Logs DescribeLogStreams response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1049,22 +1560,63 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
+            },
+            "events": {
+              "description": "FilteredLogEvent objects of the CloudWatch Logs FilterLogEvents response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
             },
             "kind": {
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "searchedLogStreams": {
+              "description": "SearchedLogStream objects of the CloudWatch Logs FilterLogEvents response (no longer supported by AWS; an empty list)",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1147,22 +1699,54 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
             },
+            "events": {
+              "description": "OutputLogEvent objects of the CloudWatch Logs GetLogEvents response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
             "kind": {
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
+            },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextBackwardToken": {
+              "description": "Token for the next events in the backward direction (CloudWatch Logs GetLogEvents response)",
+              "type": "string"
+            },
+            "nextForwardToken": {
+              "description": "Token for the next events in the forward direction. Pass it as next_token to continue (CloudWatch Logs GetLogEvents response)",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1220,8 +1804,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "DBClusters": {
+              "description": "DBCluster objects of the RDS DescribeDBClusters response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1230,12 +1827,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1293,8 +1909,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "DBInstances": {
+              "description": "DBInstance objects of the RDS DescribeDBInstances response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1303,12 +1932,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1405,8 +2053,21 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "Events": {
+              "description": "Event objects of the RDS DescribeEvents response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1415,12 +2076,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1481,22 +2161,60 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "lines"
+              ]
+            },
+            {
+              "required": [
+                "output",
+                "truncated"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ],
           "properties": {
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "file": {
+              "description": "Local absolute path the object was written to (success only)",
               "type": "string"
             },
             "kind": {
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1544,7 +2262,26 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "lines"
+              ]
+            },
+            {
+              "required": [
+                "output",
+                "truncated"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ],
           "properties": {
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
@@ -1554,12 +2291,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1633,22 +2385,233 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "AcceptRanges": {
+              "description": "Range unit the object accepts (S3 GetObject response)",
+              "type": "string"
+            },
+            "BucketKeyEnabled": {
+              "description": "Whether an S3 Bucket Key is used (S3 GetObject response)",
+              "type": "boolean"
+            },
+            "CacheControl": {
+              "description": "Cache-Control header (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumCRC32": {
+              "description": "CRC32 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumCRC32C": {
+              "description": "CRC32C checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumCRC64NVME": {
+              "description": "CRC64NVME checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumMD5": {
+              "description": "MD5 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumSHA1": {
+              "description": "SHA1 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumSHA256": {
+              "description": "SHA256 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumSHA512": {
+              "description": "SHA512 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumType": {
+              "description": "Checksum type (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumXXHASH128": {
+              "description": "XXHASH128 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumXXHASH3": {
+              "description": "XXHASH3 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ChecksumXXHASH64": {
+              "description": "XXHASH64 checksum (S3 GetObject response)",
+              "type": "string"
+            },
+            "ContentDisposition": {
+              "description": "Content-Disposition header (S3 GetObject response)",
+              "type": "string"
+            },
+            "ContentEncoding": {
+              "description": "Content-Encoding header (S3 GetObject response)",
+              "type": "string"
+            },
+            "ContentLanguage": {
+              "description": "Content-Language header (S3 GetObject response)",
+              "type": "string"
+            },
+            "ContentLength": {
+              "description": "Body size in bytes (S3 GetObject response)",
+              "type": "number"
+            },
+            "ContentRange": {
+              "description": "Range of the returned part (S3 GetObject response)",
+              "type": "string"
+            },
+            "ContentType": {
+              "description": "Content-Type header (S3 GetObject response)",
+              "type": "string"
+            },
+            "DeleteMarker": {
+              "description": "Whether the object is a delete marker (S3 GetObject response)",
+              "type": "boolean"
+            },
+            "ETag": {
+              "description": "Entity tag (S3 GetObject response)",
+              "type": "string"
+            },
+            "Expiration": {
+              "description": "Expiration by the lifecycle rule (S3 GetObject response)",
+              "type": "string"
+            },
+            "Expires": {
+              "description": "Expires header (S3 GetObject response)",
+              "type": "string"
+            },
+            "LastModified": {
+              "description": "Last modified time (S3 GetObject response)",
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "Metadata": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "User-defined metadata (S3 GetObject response)",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "MissingMeta": {
+              "description": "Number of metadata entries not returned in headers (S3 GetObject response)",
+              "type": "number"
+            },
+            "ObjectLockEventHold": {
+              "description": "Object Lock event hold (S3 GetObject response)",
+              "type": "string"
+            },
+            "ObjectLockEventHoldDurationDays": {
+              "description": "Object Lock event hold duration in days (S3 GetObject response)",
+              "type": "number"
+            },
+            "ObjectLockEventHoldDurationYears": {
+              "description": "Object Lock event hold duration in years (S3 GetObject response)",
+              "type": "number"
+            },
+            "ObjectLockLegalHoldStatus": {
+              "description": "Object Lock legal hold status (S3 GetObject response)",
+              "type": "string"
+            },
+            "ObjectLockMode": {
+              "description": "Object Lock mode (S3 GetObject response)",
+              "type": "string"
+            },
+            "ObjectLockRetainUntilDate": {
+              "description": "Object Lock retention end (S3 GetObject response)",
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "PartsCount": {
+              "description": "Number of parts of a multipart object (S3 GetObject response)",
+              "type": "number"
+            },
+            "ReplicationStatus": {
+              "description": "Replication status (S3 GetObject response)",
+              "type": "string"
+            },
+            "RequestCharged": {
+              "description": "Whether the requester was charged (S3 GetObject response)",
+              "type": "string"
+            },
+            "Restore": {
+              "description": "Restore state of an archived object (S3 GetObject response)",
+              "type": "string"
+            },
+            "SSECustomerAlgorithm": {
+              "description": "SSE-C algorithm (S3 GetObject response)",
+              "type": "string"
+            },
+            "SSECustomerKeyMD5": {
+              "description": "MD5 of the SSE-C key (S3 GetObject response)",
+              "type": "string"
+            },
+            "SSEKMSKeyId": {
+              "description": "KMS key ID used for encryption (S3 GetObject response)",
+              "type": "string"
+            },
+            "ServerSideEncryption": {
+              "description": "Server-side encryption algorithm (S3 GetObject response)",
+              "type": "string"
+            },
+            "StorageClass": {
+              "description": "Storage class (S3 GetObject response)",
+              "type": "string"
+            },
+            "TagCount": {
+              "description": "Number of tags (S3 GetObject response)",
+              "type": "number"
+            },
+            "VersionId": {
+              "description": "Version ID (S3 GetObject response)",
+              "type": "string"
+            },
+            "WebsiteRedirectLocation": {
+              "description": "Website redirect location (S3 GetObject response)",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
+              "type": "string"
+            },
+            "file": {
+              "description": "Local absolute path the object was written to (success only)",
               "type": "string"
             },
             "kind": {
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1703,8 +2666,84 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "ActionAfterCompletion": {
+              "description": "Action after the schedule completes (NONE or DELETE) (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "Arn": {
+              "description": "Schedule ARN (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "CreationDate": {
+              "description": "Creation time (EventBridge Scheduler GetSchedule response)",
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "Description": {
+              "description": "Schedule description (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "EndDate": {
+              "description": "Time before which the schedule can invoke its target (EventBridge Scheduler GetSchedule response)",
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "FlexibleTimeWindow": {
+              "additionalProperties": {},
+              "description": "FlexibleTimeWindow object (EventBridge Scheduler GetSchedule response)",
+              "properties": {},
+              "type": "object"
+            },
+            "GroupName": {
+              "description": "Schedule group name (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "KmsKeyArn": {
+              "description": "Customer managed KMS key ARN (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "LastModificationDate": {
+              "description": "Last modification time (EventBridge Scheduler GetSchedule response)",
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "Name": {
+              "description": "Schedule name (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "ScheduleExpression": {
+              "description": "Schedule expression (at, rate, or cron) (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "ScheduleExpressionTimezone": {
+              "description": "Timezone of the schedule expression (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "StartDate": {
+              "description": "Time after which the schedule can invoke its target (EventBridge Scheduler GetSchedule response)",
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "State": {
+              "description": "ENABLED or DISABLED (EventBridge Scheduler GetSchedule response)",
+              "type": "string"
+            },
+            "Target": {
+              "additionalProperties": {},
+              "description": "Target object (EventBridge Scheduler GetSchedule response)",
+              "properties": {},
+              "type": "object"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1713,12 +2752,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1788,8 +2842,45 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "Schedules"
+              ]
+            },
+            {
+              "required": [
+                "lines"
+              ]
+            },
+            {
+              "required": [
+                "output",
+                "truncated"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ],
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
+            "Schedules": {
+              "description": "ScheduleSummary objects of the EventBridge Scheduler ListSchedules response",
+              "items": {
+                "additionalProperties": {},
+                "properties": {},
+                "type": "object"
+              },
+              "type": "array"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1798,12 +2889,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1864,8 +2974,18 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "Attributes": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Map of attribute names to values (SQS GetQueueAttributes response)",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1874,12 +2994,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1937,8 +3072,19 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "NextToken": {
+              "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+              "type": "string"
+            },
+            "QueueUrls": {
+              "description": "Queue URLs (SQS ListQueues response)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -1947,12 +3093,31 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "nextToken": {
+              "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+              "type": "string"
+            },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -1991,7 +3156,21 @@
           "readOnlyHint": false
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "state",
+                "profile"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ],
           "properties": {
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
@@ -2005,8 +3184,34 @@
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "profile": {
+              "description": "Profile being authenticated. Empty when the awscli default resolution applies. Returned on success and on failed / timed-out",
+              "type": "string"
+            },
+            "state": {
+              "description": "State of the device authorization. Returned on success and on failed / timed-out",
+              "enum": [
+                "pending",
+                "completed",
+                "failed",
+                "timed-out"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "description": "Code to enter at verificationUrl (success only, once awscli has printed it)",
+              "type": "string"
+            },
+            "verificationUrl": {
+              "description": "URL to open in a browser to approve (success only, once awscli has printed it)",
+              "type": "string"
+            },
+            "verificationUrlComplete": {
+              "description": "URL with the code filled in; no code entry is needed (success only, once awscli has printed it)",
+              "type": "string"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -2045,7 +3250,20 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "state"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ],
           "properties": {
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
@@ -2059,8 +3277,34 @@
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "awscli output when the state is completed, only the beginning when it exceeds the limit",
+              "type": "string"
+            },
+            "state": {
+              "description": "State of the device authorization. Returned on success and on failed / timed-out",
+              "enum": [
+                "pending",
+                "completed",
+                "failed",
+                "timed-out"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "description": "Code to enter at verificationUrl (success only, once awscli has printed it)",
+              "type": "string"
+            },
+            "verificationUrl": {
+              "description": "URL to open in a browser to approve (success only, once awscli has printed it)",
+              "type": "string"
+            },
+            "verificationUrlComplete": {
+              "description": "URL with the code filled in; no code entry is needed (success only, once awscli has printed it)",
+              "type": "string"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },
@@ -2104,8 +3348,20 @@
           "readOnlyHint": true
         },
         "output": {
-          "additionalProperties": {},
+          "additionalProperties": false,
           "properties": {
+            "Account": {
+              "description": "AWS account ID that owns the calling entity (STS GetCallerIdentity)",
+              "type": "string"
+            },
+            "Arn": {
+              "description": "ARN of the calling entity (STS GetCallerIdentity)",
+              "type": "string"
+            },
+            "UserId": {
+              "description": "Unique identifier of the calling entity (STS GetCallerIdentity)",
+              "type": "string"
+            },
             "detail": {
               "description": "Full text of the failure and how to recover (failure only)",
               "type": "string"
@@ -2114,12 +3370,27 @@
               "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
               "type": "string"
             },
+            "lines": {
+              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "log": {
               "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
               "type": "string"
             },
+            "output": {
+              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+              "type": "string"
+            },
+            "truncated": {
+              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+              "type": "boolean"
+            },
             "warnings": {
-              "description": "Warnings raised during the run (omitted when there are none)",
+              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
               "items": {
                 "type": "string"
               },

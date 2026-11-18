@@ -13,6 +13,11 @@ export function stsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
       title: 'Get caller identity',
       description: 'Returns the account ID, user ID, and ARN of the current credentials. Use it to check that authentication works',
       inputSchema: z.object({ ...COMMON_INPUT_SHAPE }),
+      responseShape: {
+        UserId: z.string().describe('Unique identifier of the calling entity (STS GetCallerIdentity)'),
+        Account: z.string().describe('AWS account ID that owns the calling entity (STS GetCallerIdentity)'),
+        Arn: z.string().describe('ARN of the calling entity (STS GetCallerIdentity)'),
+      },
     }, options),
   ]
 }

@@ -54,6 +54,14 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
   ]],
 ]
 
+// valid の fixture の authored.yaml を書き換える
+async function withCommon(plugin: string, replace: (text: string) => string): Promise<string> {
+  const root = await materialize('valid')
+  const file = path.join(root, plugin, 'authored.yaml')
+  await writeFile(file, replace(await readFile(file, 'utf8')))
+  return root
+}
+
 describe('validateRepository', () => {
   it.each(CASES)('fixture %s を検証すると、失敗の行を過不足なく決まった順で返す', async (name, expected) => {
     expect(await validateRepository(await materialize(name))).toEqual(expected)
@@ -113,7 +121,9 @@ describe('validateRepository', () => {
       anyOf: [{ required: ['lines'] }, { required: ['kind', 'detail'] }],
     }
 
-    // PT-AWS-S3-LS の mcp.output を差し替え、authored.yaml の entry の diagnostics の前に mcp_output を足す
+    const EMPTY_FIELDS = '    mcp_output:\n      fields: {}\n'
+
+    // PT-AWS-S3-LS の mcp.output を差し替え、entry の mcp_output を書き換える。無い entry では diagnostics の前に足す
     async function withMcpOutput(mcpOutput: string, entry = 'PT-AWS-S3-LS', output: object = LS_OUTPUT): Promise<string> {
       const root = await materialize('valid')
       const generatedFile = path.join(root, PT, 'generated.json')
@@ -127,7 +137,9 @@ describe('validateRepository', () => {
       const original = await readFile(file, 'utf8')
       const start = original.indexOf(`  ${entry}:\n`)
       const at = original.indexOf('    diagnostics:', start)
-      await writeFile(file, `${original.slice(0, at)}${mcpOutput}${original.slice(at)}`)
+      const head = original.slice(0, at)
+      const kept = head.endsWith(EMPTY_FIELDS) ? head.slice(0, -EMPTY_FIELDS.length) : head
+      await writeFile(file, `${kept}${mcpOutput}${original.slice(at)}`)
       return root
     }
 
@@ -145,27 +157,62 @@ describe('validateRepository', () => {
     })
 
     it('MCP の面を持たない項目に書くと、消すよう報告する', async () => {
-      const root = await withMcpOutput('    mcp_output:\n      fields:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE', { type: 'object', properties: { lines: { type: 'array' }, ...COMMON } })
+      const root = await withMcpOutput('    mcp_output:\n      fields:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE', { type: 'object', properties: COMMON, additionalProperties: false })
       expect(await validateRepository(root)).toEqual([
         `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)`,
       ])
     })
 
-    it('最上位が閉じた型の項目が mcp_output を書いていないと、書くよう報告する', async () => {
+    it('MCP の面を持つ項目が mcp_output を書いていないと、書くよう報告する', async () => {
       const root = await withMcpOutput('')
       expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (the tool fields in mcp.output are a closed type; write each field, or an empty fields when it returns none)`,
+        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (write each tool field in mcp.output, or an empty fields when it returns none)`,
       ])
     })
 
-    it('最上位が閉じていない型の項目は、mcp_output を書かなくてよい', async () => {
-      const root = await withMcpOutput('', 'PT-AWS-S3-LS', { type: 'object', properties: { lines: { type: 'array' }, ...COMMON } })
-      expect(await validateRepository(root)).toEqual([])
+    const NOT_CLOSED = `error: ${PT}/generated.json: PT-AWS-S3-LS: mcp.output: is not a closed type (declare every field the tool returns and set additionalProperties to false)`
+
+    it('最上位が閉じていない型の項目は、止める', async () => {
+      const root = await withMcpOutput('    mcp_output:\n      fields:\n        lines: The listed keys.\n', 'PT-AWS-S3-LS', { type: 'object', properties: { lines: { type: 'array' }, ...COMMON } })
+      expect(await validateRepository(root)).toEqual([NOT_CLOSED])
     })
 
-    it('成功の項目が anyOf の枝の中にだけあり、最上位が閉じていない型なら、mcp_output を求めない', async () => {
-      const root = await withMcpOutput('', 'PT-AWS-S3-LS', { type: 'object', properties: COMMON, anyOf: [{ type: 'object', properties: { lines: { type: 'array' } }, additionalProperties: false }] })
-      expect(await validateRepository(root)).toEqual([])
+    it('anyOf の枝だけが閉じていて、最上位が閉じていない型の項目は、止める', async () => {
+      const root = await withMcpOutput(EMPTY_FIELDS, 'PT-AWS-S3-LS', { type: 'object', properties: COMMON, anyOf: [{ type: 'object', properties: { lines: { type: 'array' } }, additionalProperties: false }] })
+      expect(await validateRepository(root)).toEqual([NOT_CLOSED])
+    })
+  })
+
+  describe('common_mcp_output', () => {
+    const FIELDS = 'common_mcp_output:\n  fields:\n    kind: The failure kind.\n    detail: The failure text.\n    log: The raw output of the aws command.\n    warnings: The warning messages.\n'
+
+    it('MCP の面を持つ項目があるプラグインで欠けていると、書くよう報告する', async () => {
+      const root = await withCommon(PT, text => text.replace(FIELDS, ''))
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PT}/authored.yaml: common_mcp_output: is missing (write kind, detail, log and warnings in fields)`,
+      ])
+    })
+
+    it('共通の 4 項目と食い違うと、足りないキーと余るキーを報告する', async () => {
+      const root = await withCommon(PT, text => text.replace('    log: The raw output of the aws command.\n', '    lines: The listed keys.\n'))
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PT}/authored.yaml: common_mcp_output.fields: has "lines" that is not a common field (remove it)`,
+        `error: ${PT}/authored.yaml: common_mcp_output.fields: is missing "log"`,
+      ])
+    })
+
+    it('説明の言語が prose と違うと、報告する', async () => {
+      const root = await withCommon(PT, text => text.replace('The failure kind.', '失敗の種別です。'))
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PT}/authored.yaml: common_mcp_output.fields.kind: contains Japanese text (write English)`,
+      ])
+    })
+
+    it('MCP の面を持つ項目が無いプラグインに書くと、消すよう報告する', async () => {
+      const root = await withCommon(PW, text => `${text}${FIELDS}`)
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PW}/authored.yaml: common_mcp_output: is only for plugins with an MCP surface (remove it)`,
+      ])
     })
   })
 

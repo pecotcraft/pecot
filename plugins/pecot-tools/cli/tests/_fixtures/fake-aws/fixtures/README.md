@@ -15,6 +15,8 @@
 | 失敗 | `no-credentials` / `profile-not-found` / `sso-token-expired` / `invalid-token` / `invalid-input` / `s3-cp-no-credentials` | 実 awscli 2.36.40 の出力（採取日 2026-09-07）|
 | 失敗 | `access-denied` / `resource-not-found` | **仮置き**。実アカウントが要るため未採取。`aws: [ERROR]: An error occurred (<Code>) when calling the <Op> operation: …` の骨格だけ実採取に合わせ、エラーコードと終了コードは research R4 の表から転記 |
 | 成功 | `sts-get-caller-identity` / `s3-ls` / `paginated` / `sequence` | 手書き。実 API の応答形に合わせた最小データ |
+| 成功 | `paginated-schedules` | 手書き。`paginated` に、`aws_scheduler_list_schedules` が必ず返す `Schedules` を足した形 |
+| 成功 | `undeclared-key` | **合成**。`sts-get-caller-identity` に、ツールが宣言していない最上位のキーを 1 つ足した形 |
 | SSO | `sso-login` / `sso-login.no-config` | 実 awscli 2.36.40 の出力（採取日 2026-09-07）。`sso-login.stdout` は start URL と認証コードをダミー（`example.awsapps.com` / `ABCD-EFGH`）へ置換済み |
 | SSO | `sso-login.after` | 実 awscli 2.36.40 の出力（採取日 2026-09-07）。承認後に続く成功行で、`.pecot/work/1055/capture/sso-login.completed.real.stdout` の末尾行と一致する（start URL はダミーへ置換）|
 | SSO | `sso-login.cached` | **合成**。prompt を出さずに exit 0 で終わる場合。2.36.40 は `--use-device-code` 指定時にキャッシュトークンの有無に依らず毎回デバイスフローへ入る。そのため実機では観測されず、防御用の分岐のテストに置いている |

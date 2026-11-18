@@ -1,6 +1,4 @@
-// evidence 系の MCP ツール定義 (evidence_create)。
-//
-// ハンドラは既存 CLI と同じ executeEvidenceCreate を呼び、CLI の `--json` が出すオブジェクトをそのまま項目として返す。
+// evidence 系の MCP ツール定義 (evidence_create)。CLI の `--json` が出すオブジェクトをそのまま項目として返す。
 
 import path from 'node:path'
 
@@ -17,7 +15,14 @@ import {
 import { failureKindOf } from '../../domain/_shared/failure-kind.js'
 import { parsePathArguments, toCallToolResult, withoutCommonFailureFields } from '../result.js'
 import type { ToolDefinition } from '../server.js'
-import { captureCommandOutput, failureDetailOf, TOOL_OUTPUT_SCHEMA, WINDOWS_PATH_NOTE } from './_shared.js'
+import {
+  captureCommandOutput,
+  failureDetailOf,
+  PATH_REJECTION_OUTPUT_SHAPE,
+  TEXT_VIOLATION_OUTPUT_SHAPE,
+  toolOutputFields,
+  WINDOWS_PATH_NOTE,
+} from './_shared.js'
 
 const evidenceCreateInput = z.object({
   input_path: z.string().describe('Absolute path of the EvidenceSpec JSON. ' + WINDOWS_PATH_NOTE),
@@ -25,6 +30,18 @@ const evidenceCreateInput = z.object({
     'Absolute path of the xlsx to write. If omitted, evidence.xlsx in the same directory as input_path. ' + WINDOWS_PATH_NOTE,
   ),
 })
+
+const evidenceCreateShape = {
+  event: z.string().describe('result on success, evidence.create.error on failure (omitted when a path argument is rejected)'),
+  outPath: z.string().describe('Absolute path of the written xlsx (success only)'),
+  items: z.number().describe('Number of images placed (success only)'),
+  annotations: z.number().describe('Number of annotations added (success only)'),
+  skipped: z.array(z.strictObject({
+    path: z.string().describe('Path of the image as written in the spec'),
+    reason: z.enum(['not-found', 'unsupported-format', 'unreadable']).describe('Why the image was skipped'),
+  })).describe('Images that were skipped (success only; empty when none)'),
+}
+const evidenceCreateOutput = toolOutputFields(evidenceCreateShape, TEXT_VIOLATION_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
 
 /**
 out_path 省略時の既定。
@@ -85,7 +102,7 @@ export const evidenceCreateTool: ToolDefinition = {
       + ' Places the images listed in the spec in order and adds annotations.'
       + ' Before generating, it checks the title, captions and annotations against the text rules and generates nothing if there is a violation.',
     inputSchema: evidenceCreateInput,
-    outputSchema: TOOL_OUTPUT_SCHEMA,
+    outputSchema: evidenceCreateOutput,
     // ローカルの spec / 画像を読んで xlsx を書くだけでネットワークには到達しない。
     annotations: { openWorldHint: false },
   },

@@ -135,6 +135,10 @@ export const authoredFileSchema = z.strictObject({
   environment: z.array(environmentVariable),
   entries: z.record(z.string(), authoredEntrySchema),
   common_behaviors: z.array(behaviorSchema),
+  // MCP の structuredContent の、全ツールに共通の項目（kind・detail・log・warnings）の説明。
+  common_mcp_output: z.strictObject({
+    fields: z.record(z.string(), authoredText),
+  }).optional(),
 })
 
 export const targetsSchema = z.strictObject({

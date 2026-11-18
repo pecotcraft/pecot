@@ -11,6 +11,8 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      fields: {}
     diagnostics: default
     environment: []
     exit_status:
@@ -39,6 +41,8 @@ entries:
     stdin: none
     output:
       format: none
+    mcp_output:
+      fields: {}
     diagnostics: default
     environment: []
     exit_status:
@@ -64,3 +68,9 @@ common_behaviors:
   - id: PW-COMMON-01
     pattern: ubiquitous
     statement: 常に、失敗を isError が真の結果で返す
+common_mcp_output:
+  fields:
+    kind: The failure kind.
+    detail: The failure text.
+    log: The raw output of the aws command.
+    warnings: The warning messages.

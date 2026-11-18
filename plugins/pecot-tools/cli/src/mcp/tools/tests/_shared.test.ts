@@ -17,14 +17,14 @@ import type { AllowlistEntry, FailureKind } from '../../../domain/allowlist.js'
 import { OUTPUT_LIMIT_BYTES, resetAwscliProbe } from '../../../infra/awscli.js'
 import { toCallToolResult, type ExecutionResult } from '../../result.js'
 import type { ToolDefinition } from '../../server.js'
-import { closeMcp, connectMcp } from '../../tests/_client.js'
+import { closeMcp, connectMcp, outputJsonSchemaOf, outputSchemaIssues } from '../../tests/_client.js'
 import {
   allowlistedTool,
   COMMON_INPUT_SHAPE,
+  COMMON_OUTPUT_SHAPE,
   executeAllowlisted,
   LIMIT_NEXT_TOKEN_PAGINATION_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
-  TOOL_OUTPUT_SCHEMA,
   TOOL_TIMEOUT_MS,
 } from '../_shared.js'
 import { type FakeAws, useFakeAws } from '../../../../tests/_helpers/fake-aws.js'
@@ -75,6 +75,43 @@ const FETCH_ENTRY: AllowlistEntry = {
 
 const CONTEXT = { signal: new AbortController().signal }
 
+const IDENTITY_RESPONSE_SHAPE = {
+  UserId: z.string().describe('User ID'),
+  Account: z.string().describe('Account ID'),
+  Arn: z.string().describe('ARN'),
+}
+
+const IDENTITY_KEYS: ReadonlySet<string> = new Set(['UserId', 'Account', 'Arn'])
+
+/**
+list-functions 相当のツール定義。outputSchema を確かめるのに使う。
+*/
+const LIST_TOOL = allowlistedTool({
+  entry: LIST_ENTRY,
+  title: 'List functions',
+  description: 'Lists functions',
+  inputSchema: z.object(COMMON_INPUT_SHAPE),
+  responseShape: { Functions: z.array(z.looseObject({})).describe('Functions') },
+})
+
+/**
+list-functions 相当で、Functions を必ず返すと宣言したツール定義。anyOf の枝を確かめるのに使う。
+*/
+const REQUIRED_LIST_TOOL = allowlistedTool({
+  entry: LIST_ENTRY,
+  title: 'List functions',
+  description: 'Lists functions',
+  inputSchema: z.object(COMMON_INPUT_SHAPE),
+  responseShape: { Functions: z.array(z.looseObject({})).describe('Functions') },
+  responseRequired: ['Functions'],
+})
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod 由来の型のため
+function propertyNamesOf(tool: Readonly<ToolDefinition>): readonly string[] {
+  const properties = outputJsonSchemaOf(tool)['properties']
+  return properties instanceof Object ? Object.keys(properties) : []
+}
+
 /**
 何も拒否しない reject。空の関数本体だと「拒否しないことを意図している」と読めない。
 */
@@ -124,8 +161,8 @@ describe('共通スキーマ', () => {
     expect(Object.keys(LIMIT_NEXT_TOKEN_PAGINATION_SHAPE)).toEqual(['limit', 'next_token', 'start_from_head'])
   })
 
-  it('outputSchema は共通の 4 項目だけに名前を持たせる', () => {
-    expect(Object.keys(TOOL_OUTPUT_SCHEMA.shape)).toEqual(['kind', 'detail', 'log', 'warnings'])
+  it('全ツールの outputSchema に並べる共通の項目は 4 つ', () => {
+    expect(Object.keys(COMMON_OUTPUT_SHAPE)).toEqual(['kind', 'detail', 'log', 'warnings'])
   })
 
   it('既定の制限時間は 120 秒', async (context) => {
@@ -313,10 +350,10 @@ describe('executeAllowlisted', () => {
     fakeAws.install({ fixture: 'access-denied' })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
-    const parsed = TOOL_OUTPUT_SCHEMA.safeParse(toCallToolResult(result).structuredContent)
+    const content = toCallToolResult(result).structuredContent
 
-    expect(parsed.error?.issues ?? []).toEqual([])
-    expect(parsed.success).toBe(true)
+    expect(await outputSchemaIssues(LIST_TOOL, content)).toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, content)).toEqual([])
   })
 
   it('失敗のときは、最上位に kind と detail を置き、reason と stderr を載せない', async () => {
@@ -340,10 +377,57 @@ describe('executeAllowlisted', () => {
     for (const key of ['ok', 'exitCode', 'data', 'artifacts', 'message']) expect(content).not.toHaveProperty(key)
   })
 
-  it('outputSchema は共通の 4 項目を任意で持ち、ほかの項目も通す', () => {
-    expect(TOOL_OUTPUT_SCHEMA.safeParse({ Account: '1' }).success).toBe(true)
-    expect(TOOL_OUTPUT_SCHEMA.safeParse({ Account: '1' }).success).toBe(true)
-    expect(TOOL_OUTPUT_SCHEMA.safeParse({ log: 1 }).success).toBe(false)
+  it('必須を言えないツールの outputSchema は、宣言した項目を任意で通し、宣言に無い項目と型の違う項目を拒む', async () => {
+    expect(await outputSchemaIssues(LIST_TOOL, {})).toEqual([])
+    expect(await outputSchemaIssues(LIST_TOOL, { Functions: [], NextToken: 't', nextToken: 't' })).toEqual([])
+    expect(await outputSchemaIssues(LIST_TOOL, { lines: [] })).toEqual([])
+    expect(await outputSchemaIssues(LIST_TOOL, { Account: '1' })).not.toEqual([])
+    expect(await outputSchemaIssues(LIST_TOOL, { log: 1 })).not.toEqual([])
+  })
+
+  it('必須を宣言したツールの outputSchema は、成功の形のどれか、または kind と detail を求める', async () => {
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { Functions: [] })).toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { lines: [] })).toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { output: 'x', truncated: true })).toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { kind: 'timeout', detail: 'd' })).toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, {})).not.toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { NextToken: 't', nextToken: 't' })).not.toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { output: 'x' })).not.toEqual([])
+    expect(await outputSchemaIssues(REQUIRED_LIST_TOOL, { kind: 'timeout' })).not.toEqual([])
+  })
+
+  it('宣言したキーだけを残し、落としたキーの名前を warnings に 1 行で入れる', async () => {
+    await withFixtureDirectory(async (directory) => {
+      writeFileSync(path.join(directory, 'extra.stdout'), '{"UserId":"u","Account":"1","Arn":"a","NewKey":1,"Other":{}}\n')
+      fakeAws.install({ fixture: 'extra', fixtureDir: directory })
+
+      const result = await executeAllowlisted(IDENTITY_ENTRY, {}, CONTEXT, { responseKeys: IDENTITY_KEYS })
+
+      expect(result.data).toEqual({
+        UserId: 'u',
+        Account: '1',
+        Arn: 'a',
+        warnings: ['Dropped undeclared top-level keys: NewKey, Other'],
+      })
+    })
+  })
+
+  it('落とすキーが無ければ warnings を足さない', async () => {
+    fakeAws.install()
+
+    const result = await executeAllowlisted(IDENTITY_ENTRY, {}, CONTEXT, { responseKeys: IDENTITY_KEYS })
+
+    expect(result.data).not.toHaveProperty('warnings')
+    expect(Object.keys(result.data).every(key => IDENTITY_KEYS.has(key))).toBe(true)
+  })
+
+  it('宣言したキーで絞っても、NextToken を nextToken へ転記する', async () => {
+    fakeAws.install({ fixture: 'paginated' })
+
+    const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, { responseKeys: new Set(['Functions', 'NextToken']) })
+
+    expect(result.data).toMatchObject({ NextToken: 'eyJuZXh0IjogMX0=', nextToken: 'eyJuZXh0IjogMX0=' })
+    expect(result.data).not.toHaveProperty('warnings')
   })
 
   it('上限を超える出力は先頭を残して truncated を立てる', async (context) => {
@@ -509,19 +593,87 @@ describe('file', () => {
 })
 
 describe('allowlistedTool', () => {
-  const SPEC = {
+  const BASE_SPEC = {
     title: '呼び出し元 ID の確認',
     description: '現在の認証情報が示すアカウントを返す',
     inputSchema: z.object(COMMON_INPUT_SHAPE),
   }
+  const SPEC = { ...BASE_SPEC, responseShape: IDENTITY_RESPONSE_SHAPE }
 
   it('ツール名は許可リストのエントリ名を使う', () => {
     expect(allowlistedTool({ entry: IDENTITY_ENTRY, ...SPEC }).name).toBe('aws_sts_get_caller_identity')
   })
 
-  it('outputSchema は全ツールで共通', () => {
-    expect(allowlistedTool({ entry: IDENTITY_ENTRY, ...SPEC }).config.outputSchema)
-      .toBe(TOOL_OUTPUT_SCHEMA)
+  it('JSON を出すツールの outputSchema は、応答のキー・awscli の出力の項目・共通の 4 項目を並べる', () => {
+    const tool = allowlistedTool({ entry: IDENTITY_ENTRY, ...SPEC })
+
+    expect(propertyNamesOf(tool)).toEqual(['UserId', 'Account', 'Arn', 'lines', 'output', 'truncated', 'kind', 'detail', 'log', 'warnings'])
+    expect(outputJsonSchemaOf(tool)['additionalProperties']).toBe(false)
+  })
+
+  it('JSON を出すツールは、responseRequired があるときだけ anyOf を置く', () => {
+    expect(outputJsonSchemaOf(allowlistedTool({ entry: IDENTITY_ENTRY, ...SPEC }))).not.toHaveProperty('anyOf')
+    expect(outputJsonSchemaOf(REQUIRED_LIST_TOOL)['anyOf']).toEqual([
+      { required: ['Functions'] },
+      { required: ['lines'] },
+      { required: ['output', 'truncated'] },
+      { required: ['kind', 'detail'] },
+    ])
+  })
+
+  it('JSON を出さないツールは、lines か output と truncated か kind と detail を anyOf で求める', () => {
+    const listing = allowlistedTool({ entry: LS_ENTRY, ...BASE_SPEC })
+
+    expect(outputJsonSchemaOf(listing)['anyOf']).toEqual([
+      { required: ['lines'] },
+      { required: ['output', 'truncated'] },
+      { required: ['kind', 'detail'] },
+    ])
+  })
+
+  it('responseRequired のキーが responseShape に無いと、定義を作らず例外を投げる', () => {
+    expect(() => allowlistedTool({ entry: IDENTITY_ENTRY, ...SPEC, responseRequired: ['Missing'] }))
+      .toThrow('responseRequired has keys not in responseShape: Missing')
+  })
+
+  it('max-items のツールは NextToken と nextToken を、fileOf を持つツールは file を足す', () => {
+    const fetching = allowlistedTool({
+      entry: FETCH_ENTRY,
+      title: 'Fetch',
+      description: 'Fetches an object',
+      inputSchema: z.object(COMMON_INPUT_SHAPE),
+      fileOf: () => '/var/data/report.json',
+    })
+
+    expect(propertyNamesOf(LIST_TOOL)).toEqual(['Functions', 'NextToken', 'lines', 'output', 'truncated', 'nextToken', 'kind', 'detail', 'log', 'warnings'])
+    expect(propertyNamesOf(fetching)).toEqual(['lines', 'output', 'truncated', 'file', 'kind', 'detail', 'log', 'warnings'])
+  })
+
+  it('JSON を出すツールに responseShape が無いと、定義を作らずに例外を投げる', () => {
+    expect(() => allowlistedTool({ entry: IDENTITY_ENTRY, ...BASE_SPEC }))
+      .toThrow('responseShape is required exactly when the command has JSON output')
+  })
+
+  it('JSON を出さないツールに responseShape があると、定義を作らずに例外を投げる', () => {
+    expect(() => allowlistedTool({ entry: LS_ENTRY, ...SPEC }))
+      .toThrow('responseShape is required exactly when the command has JSON output')
+  })
+
+  it('ハンドラが、宣言に無い最上位のキーを落として warnings に名前を出す', async () => {
+    await withFixtureDirectory(async (directory) => {
+      writeFileSync(path.join(directory, 'extra.stdout'), '{"UserId":"u","Account":"1","Arn":"a","NewKey":1}\n')
+      fakeAws.install({ fixture: 'extra', fixtureDir: directory })
+
+      const result = await callTool(allowlistedTool({ entry: IDENTITY_ENTRY, ...SPEC }), {})
+
+      expect(result['isError']).toBeUndefined()
+      expect(result['structuredContent']).toEqual({
+        UserId: 'u',
+        Account: '1',
+        Arn: 'a',
+        warnings: ['Dropped undeclared top-level keys: NewKey'],
+      })
+    })
   })
 
   const ANNOTATION_CASES: readonly {

@@ -6,10 +6,39 @@ import { SCHEDULER_GET_SCHEDULE, SCHEDULER_LIST_SCHEDULES } from '../../domain/a
 import type { ToolDefinition } from '../server.js'
 import {
   allowlistedTool,
+  awsObject,
+  awsObjects,
+  awsTimestamp,
   COMMON_INPUT_SHAPE,
   MAX_ITEMS_PAGINATION_SHAPE,
+  type ResponseShape,
   type ToolOptions,
 } from './_shared.js'
+
+function schedule(description: string): string {
+  return `${description} (EventBridge Scheduler GetSchedule response)`
+}
+
+/**
+GetSchedule の応答の最上位のキー。
+*/
+const GET_SCHEDULE_RESPONSE: ResponseShape = {
+  ActionAfterCompletion: z.string().describe(schedule('Action after the schedule completes (NONE or DELETE)')),
+  Arn: z.string().describe(schedule('Schedule ARN')),
+  CreationDate: awsTimestamp(schedule('Creation time')),
+  Description: z.string().describe(schedule('Schedule description')),
+  EndDate: awsTimestamp(schedule('Time before which the schedule can invoke its target')),
+  FlexibleTimeWindow: awsObject(schedule('FlexibleTimeWindow object')),
+  GroupName: z.string().describe(schedule('Schedule group name')),
+  KmsKeyArn: z.string().describe(schedule('Customer managed KMS key ARN')),
+  LastModificationDate: awsTimestamp(schedule('Last modification time')),
+  Name: z.string().describe(schedule('Schedule name')),
+  ScheduleExpression: z.string().describe(schedule('Schedule expression (at, rate, or cron)')),
+  ScheduleExpressionTimezone: z.string().describe(schedule('Timezone of the schedule expression')),
+  StartDate: awsTimestamp(schedule('Time after which the schedule can invoke its target')),
+  State: z.string().describe(schedule('ENABLED or DISABLED')),
+  Target: awsObject(schedule('Target object')),
+}
 
 /**
 一覧の絞り込みに使うスケジュールグループ名。未指定なら全グループが対象で、get-schedule の default とは意味が違う。
@@ -36,6 +65,10 @@ export function schedulerTools(options: Readonly<ToolOptions> = {}): readonly To
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        Schedules: awsObjects('ScheduleSummary objects of the EventBridge Scheduler ListSchedules response'),
+      },
+      responseRequired: ['Schedules'],
     }, options),
     allowlistedTool({
       entry: SCHEDULER_GET_SCHEDULE,
@@ -46,6 +79,7 @@ export function schedulerTools(options: Readonly<ToolOptions> = {}): readonly To
         group_name: GET_GROUP_NAME_INPUT,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: GET_SCHEDULE_RESPONSE,
     }, options),
   ]
 }

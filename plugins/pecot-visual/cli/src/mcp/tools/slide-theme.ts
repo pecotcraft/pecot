@@ -1,9 +1,4 @@
-// slide_theme ツール。talk-dir が参照するテーマの宣言とレイアウトの一覧を返す。
-//
-// 対応する CLI は `pecotv slide theme`。実処理と `--json` の data 組み立ては
-// commands/slidev-project/theme.ts の executeSlideTheme が持つ単一実装を共有する。
-// ここに置くのは引数の写像と ToolResult への正規化だけ。
-// 読み取りだけで、ネットワークには出ない。
+// slide_theme ツール。talk-dir が参照するテーマの宣言とレイアウトの一覧を返す (`pecotv slide theme` 相当)。
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { z } from 'zod'
@@ -17,12 +12,60 @@ import type { SlideThemeDependencies } from '../../commands/slidev-project/theme
 import { failureKindOf } from '../../domain/_shared/failure-kind.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
-import { formatError, TOOL_OUTPUT_SCHEMA, WINDOWS_PATH_NOTE } from './_shared.js'
+import { formatError, PATH_REJECTION_OUTPUT_SHAPE, toolOutputFields, WINDOWS_PATH_NOTE, withPresence } from './_shared.js'
+import { LAYOUT_CATALOG_OUTPUT_SHAPE } from './slide.js'
 
 const slideThemeInput = z.object({
   dir: z.string()
     .describe('Absolute path of the talk-dir whose theme to inspect. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
 })
+
+const sizeOutput = z.strictObject({ width: z.number(), height: z.number() })
+const severityOutput = z.enum(['error', 'warn', 'off'])
+const panelsOutput = z.record(z.string(), sizeOutput).describe('Panel size of the diagram per layout name')
+const rulesOutput = z.record(z.string(), severityOutput).describe('Severity per lint rule ID')
+
+const declarationFontsOutput = z.strictObject({
+  body: z.array(z.string()),
+  heading: z.array(z.string()),
+  eastAsian: z.string().optional(),
+})
+const markerLayoutsOutput = z.array(z.string())
+
+const slideThemeShape = {
+  event: z.string().describe('slide.theme.done on success, slide.theme.error on failure (omitted when a path argument is rejected)'),
+  theme: z.strictObject({
+    name: z.string().describe('Package name of the theme'),
+    spec: z.string().describe('Theme specification in the dependencies of package.json'),
+    declared: z.boolean().describe('Whether the theme has pecot-theme.json'),
+    directory: z.string().describe('Absolute path of the theme root'),
+    linked: z.boolean().describe('Whether the theme was found in node_modules directly under the talk-dir'),
+  }).describe('Theme the talk-dir references (success only)'),
+  declaration: z.strictObject({
+    schema: z.number(),
+    slide: sizeOutput,
+    fonts: declarationFontsOutput,
+    fontSizes: z.strictObject({
+      heading: z.number(),
+      headingSm: z.number(),
+      body: z.number(),
+      bodySm: z.number(),
+      label: z.number(),
+    }),
+    pptx: z.strictObject({ eastAsianFont: z.string().optional(), linkColor: z.string().optional() }),
+    lint: z.strictObject({ rules: rulesOutput }),
+    layouts: z.strictObject({ references: z.string() }),
+    drawio: z.strictObject({ panels: panelsOutput, markerLayouts: markerLayoutsOutput }),
+  }).describe('Theme declaration with omitted items filled with defaults (success only)'),
+  ...withPresence(LAYOUT_CATALOG_OUTPUT_SHAPE, 'success only'),
+  lint: z.strictObject({
+    referencesDirectories: z.array(z.string()).describe('Directories searched for reference yaml, in priority order'),
+    panels: panelsOutput,
+    markerLayouts: markerLayoutsOutput.describe('Layout names that have marker cells'),
+    rules: rulesOutput,
+  }).describe('Input passed to the deck lint (success only)'),
+}
+const slideThemeOutput = toolOutputFields(slideThemeShape, PATH_REJECTION_OUTPUT_SHAPE)
 
 /**
 `pecotv slide theme` 相当。
@@ -39,7 +82,7 @@ export function slideThemeTool(
         + 'The declaration covers fonts, font sizes, PPTX fonts and link colors, and lint rules. '
         + 'Skills use it to obtain theme values.',
       inputSchema: slideThemeInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slideThemeOutput,
       // 読み取りのみで何も書き換えず、ネットワークにも到達しない。
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

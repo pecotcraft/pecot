@@ -1,31 +1,5 @@
-// runtime_setup ツール。実行時依存 (永続層) と Playwright Chromium を明示的に取得する。
-//
-// `pecotv mcp` は MCP クライアントの接続タイムアウト (Claude Code の MCP_TIMEOUT は既定
-// 30000ms) に収めるため、起動時に何も取得しない。また、モデルが呼ぶツールの側から 120MB 級の
-// ダウンロードを通知なしに始めることも避けている。
-// そのぶん「取得する」という操作を明示的に呼べる口として本ツールを置く。
-//
-// 取得対象は 2 つある。
-// - 実行時依存 (@slidev/cli / dom-to-pptx / @slidev/parser と、実行時依存の manifest が
-//   宣言するテーマの peer)。単体配布ルートでは npx が起動のたびに node_modules を作り直すため、
-//   これらを起動層に載せられない。データ置き場の `mcp-dist/` へ置いて永続させる。
-//   置き場は `PLUGIN_DATA` で選べる。
-//   既定は `$XDG_DATA_HOME/pecot/pecot-visual/mcp-dist`、無ければ `~/.local/share/pecot/pecot-visual/mcp-dist`。
-//   プラグインルートでは同梱されているので取得済み判定で通過する。
-// - Playwright Chromium。従来どおり `~/.cache/ms-playwright` へ置く。
-//   取得後に、起動に要る OS のライブラリを確かめ、足りなければ入れる。
-//   参照: #1217、infra/playwright/host-dependencies.ts。bin/pecotv の bootstrap と同じルート。
-//
-// 実行時依存を先に取るのは、取得ロックの置き場所 (installLockPath) が依存ルートの
-// node_modules だからで、先に作っておくと chromium 側もロック付きで走れる。
-//
-// 対応する CLI サブコマンドは持たない。
-// CLI 側の chromium 取得ルートは bin/pecotv の bootstrap (`pecotv drawio url` 等の初回実行) と setup.sh にある。
-// そちらは #543 の設計どおり、同期取得・失敗時 fatal のまま変えていない。
-//
-// 取得中の無音対策は不要。
-// progress ハートビートは createMcpServer が全ツール一律で送っている (src/mcp/server.ts の startProgressHeartbeat)。
-// そのため本ツールが長時間動いている間、クライアントの idle timer はリセットされ続ける。
+// runtime_setup ツール。実行時依存と Chromium を明示的に取得する。MCP の接続タイムアウトを守るため、起動では取得しない。
+// 実行時依存を先に取るのは、取得ロック (installLockPath) が依存ルートの node_modules に置かれるため。
 
 import { z } from 'zod'
 
@@ -47,11 +21,31 @@ import {
   chromiumInstallFailureDetail,
   runtimeDefaultDependencies,
   tlsCertificateHint,
-  TOOL_OUTPUT_SCHEMA,
+  toolOutputFields,
   type ChromiumDependencies,
   type RuntimeDependencies,
   withSpawnOutput,
 } from './_shared.js'
+
+function stageOutput(subject: string): z.ZodObject {
+  return z.strictObject({
+    installed: z.boolean().describe(`Whether ${subject} are in place after this run`),
+    downloaded: z.boolean().describe(`Whether this run downloaded or installed ${subject}`),
+    durationMs: z.number().describe('Time spent on this stage in milliseconds (0 when skipped)'),
+    location: z.string().optional().describe('Where they are placed (omitted when it cannot be determined)'),
+    detail: z.string().optional().describe('Why the stage failed, or what it installed'),
+  })
+}
+
+const setupShape = {
+  event: z.string().describe('setup.done when something was downloaded, setup.skipped when everything was already in place, setup.error on failure'),
+  runtime: stageOutput('the runtime dependencies').describe('Result of the runtime dependencies stage'),
+  chromium: stageOutput('Playwright Chromium files').describe('Result of the Playwright Chromium stage'),
+  hostDeps: stageOutput('the OS libraries required to launch Chromium').describe(
+    'Result of the OS libraries stage (omitted when Chromium could not be placed)',
+  ),
+}
+const setupOutput = toolOutputFields(setupShape)
 
 /**
 取得 1 種類ぶんの結果。data / message の組み立てを 2 系統で共通化する。
@@ -67,7 +61,7 @@ interface StageOutcome {
 
 interface StageFailure {
   readonly label: string
-  readonly reason: FailureKind
+  readonly kind: FailureKind
   readonly stage: StageOutcome
 }
 
@@ -285,16 +279,16 @@ export function setupTool(
     // 片方だけを見ると、もう片方の理由が <系統>.detail にしか残らず detail から
     // 消えるため、失敗した系統を全て畳んで載せる。
     const failures = [
-      ...(runtime.installed ? [] : [{ label: 'runtime dependencies', reason: 'runtime-install-failed', stage: runtime } satisfies StageFailure]),
-      ...(chromium.installed ? [] : [{ label: 'Playwright Chromium', reason: 'chromium-install-failed', stage: chromium } satisfies StageFailure]),
+      ...(runtime.installed ? [] : [{ label: 'runtime dependencies', kind: 'runtime-install-failed', stage: runtime } satisfies StageFailure]),
+      ...(chromium.installed ? [] : [{ label: 'Playwright Chromium', kind: 'chromium-install-failed', stage: chromium } satisfies StageFailure]),
       ...(hostDependencies === undefined || hostDependencies.installed
         ? []
-        : [{ label: 'Chromium OS libraries', reason: 'chromium-host-deps-missing', stage: hostDependencies } satisfies StageFailure]),
+        : [{ label: 'Chromium OS libraries', kind: 'chromium-host-deps-missing', stage: hostDependencies } satisfies StageFailure]),
     ]
     // OS ライブラリの失敗は「取得」ではなく「足りない」ことを案内するため、取得の失敗と分ける。
     // その detail は足りないライブラリと入れるコマンドまで書いた文なので、前置きを付けずに載せる。
-    const acquisitionFailures = failures.filter(failure => failure.reason !== 'chromium-host-deps-missing')
-    const hostDependenciesDetail = failures.find(failure => failure.reason === 'chromium-host-deps-missing')?.stage.detail
+    const acquisitionFailures = failures.filter(failure => failure.kind !== 'chromium-host-deps-missing')
+    const hostDependenciesDetail = failures.find(failure => failure.kind === 'chromium-host-deps-missing')?.stage.detail
     const detail = [
       ...(acquisitionFailures.length === 0
         ? []
@@ -304,12 +298,11 @@ export function setupTool(
     ].join(' / ')
     const result: ToolResult = withSpawnOutput({
       ok: false,
-      // reason (runtime_setup の項目) は失敗した段をカンマでつなぐ。kind には最初に失敗した段の名前を入れる。
-      kind: failures[0]?.reason ?? 'unknown',
+      // kind には最初に失敗した段の名前を入れる。ほかの失敗した段は、各段の installed で読める。
+      kind: failures[0]?.kind ?? 'unknown',
       detail,
       data: {
         event: 'setup.error',
-        reason: failures.map(failure => failure.reason).join(','),
         ...data,
       },
     }, mergeSpawned(failures.map(failure => failure.stage.spawned)))
@@ -329,7 +322,7 @@ export function setupTool(
         + 'It skips what is already installed, so it finishes quickly and is safe to call repeatedly.',
       // 引数を取らないツールは空の z.object を渡す (src/mcp/server.ts の ToolConfig)。
       inputSchema: z.object({}),
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: setupOutput,
       // Claude Code は annotations から自動承認の可否を組み立てるため、既定値と同じでも
       // 明示する。ダウンロードでファイルシステムを書き換え (destructive)、外部ホストへ
       // 到達する (openWorld)。読み取り専用ではないので readOnlyHint は立てない。

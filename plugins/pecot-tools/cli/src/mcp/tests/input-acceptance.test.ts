@@ -18,7 +18,7 @@ import {
   connectSpied,
   negotiatedVersionOf,
   PROTOCOL_ERAS,
-  SPY_RESULT,
+  spyResultOf,
   type ProtocolEra,
   type SpiedMcp,
 } from './_client.js'
@@ -533,7 +533,23 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       const called = await mcp.client.callTool({ name: 'aws_sts_get_caller_identity', arguments: {} })
 
       expect(called.isError).toBeUndefined()
-      expect(called.structuredContent).toEqual(toCallToolResult(SPY_RESULT).structuredContent)
+      expect(called.structuredContent).toEqual(toCallToolResult(spyResultOf('aws_sts_get_caller_identity')).structuredContent)
+    })
+
+    it.for(TOOL_CASES)('$name の成功の結果が宣言に無い項目を持つと、Output validation error で拒まれる', async ({ name, minimal }) => {
+      const tool = allTools().find(item => item.name === name)
+      if (tool === undefined) throw new Error(`${name} が公開されていません`)
+      const extra = toCallToolResult({ ok: true, data: { undeclared: 1 }, message: 'extra' })
+      const violating = await connectMcp([{ ...tool, handler: () => Promise.resolve(extra) }], { era })
+      try {
+        const called = await violating.client.callTool({ name, arguments: { ...minimal } })
+
+        expect(called.isError).toBe(true)
+        expect(JSON.stringify(called.content)).toContain('Output validation error')
+      }
+      finally {
+        await closeMcp(violating)
+      }
     })
 
     it('失敗結果 (isError + structuredContent) も検証を通ってクライアントへ届く', async () => {

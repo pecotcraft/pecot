@@ -27,6 +27,9 @@ export function sqsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        QueueUrls: z.array(z.string()).describe('Queue URLs (SQS ListQueues response)'),
+      },
     }, options),
     allowlistedTool({
       entry: SQS_GET_QUEUE_ATTRIBUTES,
@@ -37,6 +40,9 @@ export function sqsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         attribute_names: ATTRIBUTE_NAMES_INPUT,
         ...COMMON_INPUT_SHAPE,
       }),
+      responseShape: {
+        Attributes: z.record(z.string(), z.string()).describe('Map of attribute names to values (SQS GetQueueAttributes response)'),
+      },
     }, options),
   ]
 }

@@ -18,9 +18,11 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(DOCS / "_ext"))
 
 from iface_defs import (  # noqa: E402
+    COMMON_OUTPUT_TITLE,
     MCP_FIELDS_EMPTY,
-    MCP_FIELDS_OPEN,
+    PLUGIN_KEY,
     Case,
+    common_output_label,
     load_junit_lanes,
     outcome_of,
     render_sections,
@@ -838,7 +840,7 @@ def test_mcp_fields_table_uses_authored_text_and_skips_common_fields() -> None:
     assert "     - true" in text
     for name in ("kind", "detail", "log", "warnings", "artifacts"):
         assert f"``{name}``" not in text
-    assert MCP_FIELDS_OPEN.split("（")[0] not in text
+    assert COMMON_OUTPUT_TITLE not in text
 
 
 def test_mcp_without_tool_fields_says_there_is_nothing() -> None:
@@ -848,11 +850,44 @@ def test_mcp_without_tool_fields_says_there_is_nothing() -> None:
     assert "項目名" not in text
 
 
-def test_mcp_open_output_says_other_fields_are_returned() -> None:
-    text = _output_section(_mcp_entry({}, closed=False))
-    assert MCP_FIELDS_OPEN == "このほかの項目も返します（型を閉じていません）。"
-    assert MCP_FIELDS_OPEN in text
-    assert MCP_FIELDS_EMPTY not in text
+def test_stdout_sentence_is_only_for_entries_with_a_cli_surface() -> None:
+    entry = _mcp_entry({"branch": {"type": "string"}})
+    assert "標準出力" not in _output_section(entry)
+    both = {**entry, "surfaces": {"cli": {"path": ["sample"]}, "mcp": {"tool": "sample_tool"}}}
+    assert "標準出力には何も出しません。" in _output_section(both)
+
+
+def test_mcp_output_links_to_common_fields_of_the_plugin() -> None:
+    entry = {**_mcp_entry({"branch": {"type": "string"}}), PLUGIN_KEY: "sample"}
+    text = _output_section(entry)
+    assert f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label('sample')}>`" in text
+    assert "型を閉じていません" not in text
+
+
+def test_index_has_common_fields_section_linked_from_tool_page(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    assert built.code == 0, built.warnings
+    anchor = common_output_label("sample")
+    found = re.search(rf'<section id="{anchor}">([\s\S]*?)</section>', built.html())
+    assert found
+    section = text_of(found.group(1))
+    assert COMMON_OUTPUT_TITLE in section
+    for name, text in {
+        "kind": "失敗の種別です。",
+        "detail": "失敗の文です。",
+        "log": "子プロセスの出力です。",
+        "warnings": "警告の文です。",
+    }.items():
+        assert name in section
+        assert text in section
+    page = built.html("_generated/sample/sample_two.html")
+    assert f'href="../../index.html#{anchor}"' in page
+    assert (
+        '<code class="docutils literal notranslate"><span class="pre">kind</span></code>'
+        not in page
+    )
 
 
 # ---------------------------------------------------------------- junit-lanes.json

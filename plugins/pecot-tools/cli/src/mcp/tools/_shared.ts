@@ -5,7 +5,7 @@
 
 import { z } from 'zod'
 
-import type { ToolAnnotations } from '@modelcontextprotocol/server'
+import type { StandardSchemaWithJSON, ToolAnnotations } from '@modelcontextprotocol/server'
 
 import {
   PROFILE_PATTERN,
@@ -18,6 +18,7 @@ import { classifyFailure } from '../../domain/failure.js'
 import { redactSecrets } from '../../domain/redact.js'
 import { ensureAwscli, OUTPUT_LIMIT_BYTES, runAwscli } from '../../infra/awscli.js'
 import type { LoginRegistry } from '../../infra/sso/login-registry.js'
+import { standardOutputSchema, toolOutputSchema, type SuccessRequired } from '../output-schema.js'
 import { limitOutput, toCallToolResult, type ExecutionResult } from '../result.js'
 import type { ToolCallContext, ToolDefinition } from '../server.js'
 
@@ -60,17 +61,72 @@ export const LIMIT_NEXT_TOKEN_PAGINATION_SHAPE = {
   start_from_head: z.boolean().default(false).describe('If true, returns the oldest events first'),
 }
 
-const WARNINGS_SCHEMA = z.array(z.string()).optional().describe('Warnings raised during the run (omitted when there are none)')
-
 /**
-全ツール共通の outputSchema。最上位は awscli の JSON 出力か行の配列なので、開いた object にする。名前を持つのは共通の 4 項目だけ。
+全ツールの outputSchema に並べる共通の 4 項目。
 */
-export const TOOL_OUTPUT_SCHEMA = z.looseObject({
+export const COMMON_OUTPUT_SHAPE = {
   kind: z.string().optional().describe('Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds'),
   detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
   log: z.string().optional().describe('Redacted awscli output, only the beginning when it exceeds the limit (failure only)'),
-  warnings: WARNINGS_SCHEMA,
-})
+  warnings: z.array(z.string()).optional()
+    .describe('Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)'),
+}
+
+/**
+awscli の出力から pecot-tools が作る項目。JSON のツールも、出力を JSON の object として読めないと lines を返す。
+*/
+const AWSCLI_OUTPUT_SHAPE = {
+  lines: z.array(z.string()).optional()
+    .describe('Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only'),
+  output: z.string().optional()
+    .describe('Beginning of the redacted output when it exceeds the limit (success only, together with truncated)'),
+  truncated: z.boolean().optional()
+    .describe('true when the output exceeded the limit and output holds only its beginning (success only)'),
+}
+
+const NEXT_TOKEN_OUTPUT_SHAPE = {
+  NextToken: z.string().optional()
+    .describe('Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken'),
+  nextToken: z.string().optional()
+    .describe('Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result'),
+}
+
+const FILE_OUTPUT_SHAPE = {
+  file: z.string().optional().describe('Local absolute path the object was written to (success only)'),
+}
+
+/**
+AWS の応答の最上位のキーごとの型。入れ子の中は AWS が決める形なので開いたまま宣言する。
+*/
+export type ResponseShape = Readonly<Record<string, z.ZodType>>
+
+/**
+AWS の日時。awscli の出力は ISO 8601 の文字列だが、`cli_timestamp_format = none` の設定があると epoch 秒の数になる。
+*/
+export function awsTimestamp(description: string): z.ZodType {
+  return z.union([z.string(), z.number()]).describe(description)
+}
+
+/**
+AWS が中身を決める object 1 つ。
+*/
+export function awsObject(description: string): z.ZodType {
+  return z.looseObject({}).describe(description)
+}
+
+/**
+AWS が中身を決める object の配列。
+*/
+export function awsObjects(description: string): z.ZodType {
+  return z.array(z.looseObject({})).describe(description)
+}
+
+/**
+落としたキーを知らせる warnings の 1 行。
+*/
+function droppedKeysWarning(keys: readonly string[]): string {
+  return `Dropped undeclared top-level keys: ${keys.join(', ')}`
+}
 
 /**
 失敗種別ごとの再試行方法。detail の後半に載せる。
@@ -120,6 +176,10 @@ export interface ExecuteOptions {
   成功時に file の項目へ載せる書き出し先。切り詰めの有無に依らず適用する。
   */
   readonly fileOf?: (arguments_: Readonly<Record<string, unknown>>) => string | undefined
+  /**
+  JSON 出力のうち残す最上位のキー。無ければ絞らない。
+  */
+  readonly responseKeys?: ReadonlySet<string>
 }
 
 /**
@@ -143,6 +203,15 @@ export interface AllowlistedToolSpec {
   readonly inputSchema: z.ZodObject
   readonly reject?: ExecuteOptions['reject']
   readonly fileOf?: ExecuteOptions['fileOf']
+  /**
+  AWS の応答の最上位のキー（API リファレンスの Response Syntax）。awscli の JSON を出すツールだけが持つ。
+  awscli のページングが足す NextToken は allowlistedTool が足すので、ここには書かない。
+  */
+  readonly responseShape?: ResponseShape
+  /**
+  AWS の応答で必ず返る最上位のキー。根拠は awscli 同梱の botocore のモデルの出力の shape の required。
+  */
+  readonly responseRequired?: readonly string[]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -180,14 +249,33 @@ function failureMessage(toolName: string, kind: FailureKind): string {
 }
 
 /**
-成功時の data。JSON 出力はそのまま、非 JSON 出力は行配列にする。
+宣言したキーだけを残す。outputSchema は閉じているので、宣言に無いキーを返すと SDK が呼び出しごと止めるため。
 */
-function successData(entry: Readonly<AllowlistEntry>, stdout: string): Record<string, unknown> {
+function keepDeclaredKeys(
+  parsed: Readonly<Record<string, unknown>>,
+  responseKeys: ReadonlySet<string> | undefined,
+): Record<string, unknown> {
+  if (responseKeys === undefined) return { ...parsed }
+
+  const dropped = Object.keys(parsed).filter(key => !responseKeys.has(key))
+  const kept = Object.fromEntries(Object.entries(parsed).filter(([key]) => responseKeys.has(key)))
+  return dropped.length === 0 ? kept : { ...kept, warnings: [droppedKeysWarning(dropped)] }
+}
+
+/**
+成功時の data。JSON 出力は宣言したキーを、非 JSON 出力は行配列にする。
+*/
+function successData(
+  entry: Readonly<AllowlistEntry>,
+  stdout: string,
+  responseKeys: ReadonlySet<string> | undefined,
+): Record<string, unknown> {
   const parsed = entry.jsonOutput ? parseJsonOutput(stdout) : undefined
   if (parsed === undefined) return { lines: toLines(stdout) }
 
+  const data = keepDeclaredKeys(parsed, responseKeys)
   const nextToken = parsed['NextToken']
-  return typeof nextToken === 'string' && entry.pagination === 'max-items' ? { ...parsed, nextToken } : parsed
+  return typeof nextToken === 'string' && entry.pagination === 'max-items' ? { ...data, nextToken } : data
 }
 
 /**
@@ -268,7 +356,7 @@ export async function executeAllowlisted(
 
   return {
     ok: true,
-    data: { ...successData(entry, limited.text), ...filePart },
+    data: { ...successData(entry, limited.text, options.responseKeys), ...filePart },
     message: `${entry.toolName} succeeded`,
   }
 }
@@ -285,16 +373,57 @@ function annotationsOf(entry: Readonly<AllowlistEntry>): ToolAnnotations {
 }
 
 /**
+AWS の応答のキーのうち、残す最上位のキー。max-items のツールは awscli が足す NextToken も残す。
+*/
+function responseShapeOf(spec: Readonly<AllowlistedToolSpec>): Record<string, z.ZodType> {
+  if (spec.entry.jsonOutput !== (spec.responseShape !== undefined)) {
+    throw new TypeError(`${spec.entry.toolName}: responseShape is required exactly when the command has JSON output`)
+  }
+  const undeclared = (spec.responseRequired ?? []).filter(key => !Object.hasOwn(spec.responseShape ?? {}, key))
+  if (undeclared.length > 0) {
+    throw new TypeError(`${spec.entry.toolName}: responseRequired has keys not in responseShape: ${undeclared.join(', ')}`)
+  }
+  const optional = Object.fromEntries(Object.entries(spec.responseShape ?? {}).map(([key, type]) => [key, type.optional()]))
+  return spec.entry.pagination === 'max-items' ? { ...optional, NextToken: NEXT_TOKEN_OUTPUT_SHAPE.NextToken } : optional
+}
+
+/**
+成功の形ごとの必須項目。JSON のツールは、AWS の応答で必ず返るキーを言えるときだけ枝を置く（言えなければ `{}` の成功もありうる）。
+*/
+function successRequiredOf(spec: Readonly<AllowlistedToolSpec>): SuccessRequired {
+  const awscliOutput = [['lines'], ['output', 'truncated']]
+  if (!spec.entry.jsonOutput) return awscliOutput
+  const required = spec.responseRequired ?? []
+  return required.length > 0 ? [required, ...awscliOutput] : []
+}
+
+/**
+ツール 1 件の outputSchema。AWS の応答のキー・pecot-tools が足す項目・共通の 4 項目を、閉じた object に並べる。
+*/
+function outputSchemaOf(spec: Readonly<AllowlistedToolSpec>, responseShape: Readonly<Record<string, z.ZodType>>): StandardSchemaWithJSON {
+  const output = z.strictObject({
+    ...responseShape,
+    ...AWSCLI_OUTPUT_SHAPE,
+    ...(spec.entry.pagination === 'max-items' && { nextToken: NEXT_TOKEN_OUTPUT_SHAPE.nextToken }),
+    ...(spec.fileOf !== undefined && FILE_OUTPUT_SHAPE),
+    ...COMMON_OUTPUT_SHAPE,
+  })
+  return standardOutputSchema(toolOutputSchema(output, successRequiredOf(spec)))
+}
+
+/**
 許可リストのエントリ 1 件を MCP ツール定義にする。zod の検証は SDK が済ませるので、ハンドラで再 parse しない。
 */
 export function allowlistedTool(
   spec: Readonly<AllowlistedToolSpec>,
   options: Readonly<ToolOptions> = {},
 ): ToolDefinition {
+  const responseShape = responseShapeOf(spec)
   const executeOptions: ExecuteOptions = {
     ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
     ...(spec.reject !== undefined && { reject: spec.reject }),
     ...(spec.fileOf !== undefined && { fileOf: spec.fileOf }),
+    ...(spec.entry.jsonOutput && { responseKeys: new Set(Object.keys(responseShape)) }),
   }
 
   return {
@@ -303,7 +432,7 @@ export function allowlistedTool(
       title: spec.title,
       description: spec.description,
       inputSchema: spec.inputSchema,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: outputSchemaOf(spec, responseShape),
       annotations: annotationsOf(spec.entry),
     },
     handler: async (arguments_: Readonly<Record<string, unknown>>, call: ToolCallContext) =>

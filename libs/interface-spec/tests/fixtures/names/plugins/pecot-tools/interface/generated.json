@@ -69,7 +69,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "annotations": {
           "readOnlyHint": false,
@@ -122,7 +123,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "annotations": {
           "readOnlyHint": true,

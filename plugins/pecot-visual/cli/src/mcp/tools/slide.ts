@@ -1,6 +1,4 @@
 // MCP ツール定義のうち slide 系 4 件 (slide_create / slide_convert / slide_sync / slide_lint)。
-//
-// 各ハンドラは CLI コマンドの execute<Cmd>() を呼び、結果を ToolResult に写すだけにする。
 // deps はハンドラ内で組み立てる (既定 deps は CLAUDE_PLUGIN_ROOT 未設定で throw し、top-level だと tools/list ごと落ちる)。
 
 import path from 'node:path'
@@ -47,10 +45,14 @@ import {
   ensureChromium,
   ensureRuntimeDependencies,
   formatError,
+  MISSING_RUNTIME_OUTPUT_SHAPE,
   normalizeThemeArgument,
+  optionalFields,
+  PATH_REJECTION_OUTPUT_SHAPE,
   runtimeDefaultDependencies,
-  TOOL_OUTPUT_SCHEMA,
+  toolOutputFields,
   WINDOWS_PATH_NOTE,
+  withPresence,
   type RuntimeDependencies,
 } from './_shared.js'
 
@@ -70,6 +72,148 @@ function failureResult(
     data: { event, ...extra },
   }
 }
+
+/**
+見せ方の分類とレイアウトの一覧。slide_create・slide_sync・slide_page・slide_theme が返す。
+*/
+export const LAYOUT_CATALOG_OUTPUT_SHAPE = {
+  categories: z.array(z.strictObject({
+    id: z.string().describe('Category ID that layouts[].category refers to'),
+    label: z.string().describe('Display name of the category'),
+    question: z.string().describe('Question that tells when to choose the category'),
+  })).describe('Presentation categories declared by the theme'),
+  layouts: z.array(z.strictObject({
+    layout: z.string().describe('Layout name'),
+    description: z.string().describe('What the layout is for'),
+    category: z.string().describe('Category ID (uncategorized when unset or unknown)'),
+    deprecated: z.boolean().describe('Whether the layout is deprecated (not to be chosen)'),
+    filename: z.string().describe('File name of the reference yaml'),
+  })).describe('Selectable layouts (hidden layouts are excluded)'),
+}
+
+const slideLintViolationsOutput = z.array(z.strictObject({
+  file: z.string().describe('Path relative to the talk-dir (absolute when outside it)'),
+  line: z.number(),
+  column: z.number(),
+  rule: z.string().describe('Rule ID'),
+  message: z.string(),
+}))
+
+/**
+lint の集計。slide_lint では成功のとき必ず入り、slide_create・slide_sync の lint では実行できたときだけ入る。
+*/
+const slideLintSummaryShape = {
+  outcome: z.enum(['clean', 'violations', 'no-target']).describe(
+    'clean (no violations), violations (some found), no-target (no file to lint)',
+  ),
+  lintedFileCount: z.number().describe('Number of files linted'),
+  errorCount: z.number().describe('Number of errors'),
+  warningCount: z.number().describe('Number of warnings'),
+  violations: slideLintViolationsOutput.describe('Violations found'),
+  skippedSymlinkDirectories: z.array(z.string()).describe(
+    'Symlinked directories under pages/ that were not linted (relative to the talk-dir)',
+  ),
+}
+
+const deckLintOutput = z.strictObject({
+  skipped: z.boolean().describe('Whether the lint could not run (the generation or sync still succeeds)'),
+  detail: z.string().optional().describe('Why the lint could not run (only when skipped)'),
+  ...optionalFields(slideLintSummaryShape),
+}).describe('Lint result of the whole deck (success only)')
+
+const slideCreateShape = {
+  event: z.string().describe(
+    'slide.create.done on success; slide.create.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)',
+  ),
+  projectDir: z.string().describe('Absolute path of the generated talk-dir (success only)'),
+  theme: z.strictObject({
+    name: z.string().describe('Package name of the theme'),
+    spec: z.string().describe('Theme specification written to the dependencies of package.json'),
+  }).describe('Theme the talk-dir references (success only)'),
+  ...withPresence(LAYOUT_CATALOG_OUTPUT_SHAPE, 'success only'),
+  lint: deckLintOutput,
+}
+const slideCreateOutput = toolOutputFields(slideCreateShape, MISSING_RUNTIME_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
+
+const pipelineErrorsOutput = z.array(z.strictObject({
+  level: z.string().describe('slide or element'),
+  slideNumber: z.number().optional(),
+  selector: z.string().optional().describe('CSS selector of the element (element level only)'),
+  message: z.string(),
+}))
+
+const perSlideTimingOutput = z.strictObject({
+  key: z.string().describe('Step, as <slide> or <slide>/<click>'),
+  elapsedMs: z.number(),
+  cache: z.enum(['hit', 'miss']).optional(),
+  phases: z.record(z.string(), z.number()).optional().describe('Time per phase in milliseconds (converted steps only)'),
+})
+
+const slideConvertShape = {
+  event: z.string().describe(
+    'slide.convert.done on success; slide.convert.error, runtime-dependencies.unavailable or chromium.unavailable on failure '
+    + '(omitted when a path argument is rejected)',
+  ),
+  input: z.string().describe('Absolute path of the converted Slidev project (success only)'),
+  output: z.string().describe('Absolute path of the written .pptx (success only)'),
+  durationMs: z.number().describe('Time the conversion took in milliseconds (success only)'),
+  errors: pipelineErrorsOutput.describe(
+    'Conversion errors per slide or element (empty when none). Element-level errors do not fail the call. '
+    + 'Returned on success and on slide.convert.error',
+  ),
+  animationTimingRemovedSlides: z.number().describe(
+    'Number of slides whose p:timing from decorative CSS animations was removed (success only)',
+  ),
+  timings: z.strictObject({
+    scan: z.number(),
+    phase1: z.number(),
+    phase2: z.number(),
+    perSlide: z.array(perSlideTimingOutput),
+    outer: z.strictObject({
+      cleanBuild: z.number(),
+      slidevBuild: z.number(),
+      pipeline: z.number(),
+      mergeAndPostprocess: z.number(),
+    }),
+    singlePass: z.looseObject({}).optional().describe('Timing of the single-pass route (only when it was tried)'),
+  }).optional().describe('Time spent per stage in milliseconds (success only, when measured)'),
+  cache: z.strictObject({
+    enabled: z.boolean().describe('Whether the diff cache was used'),
+    hits: z.number(),
+    misses: z.number(),
+    invalidated: z.enum(['none', 'all:env', 'all:manifest', 'all:key', 'all:error', 'partial']).describe('How existing cache entries were invalidated'),
+  }).optional().describe('Diff cache result (success only, when the cache was handled)'),
+}
+const slideConvertOutput = toolOutputFields(slideConvertShape, MISSING_RUNTIME_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
+
+const slideSyncShape = {
+  event: z.string().describe(
+    'slide.sync.done on success; slide.sync.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)',
+  ),
+  dir: z.string().describe('Absolute path of the synced talk-dir (success only)'),
+  nodeModulesTarget: z.string().describe('Where node_modules of the talk-dir links to (success only)'),
+  nodeModulesOnly: z.boolean().describe('Whether only node_modules was relinked (success only)'),
+  theme: z.strictObject({
+    name: z.string().describe('Package name of the theme'),
+    spec: z.string().describe('Theme specification in the dependencies of package.json'),
+    directory: z.string().describe('Absolute path of the theme root'),
+  }).nullable().describe('Theme the talk-dir references, or null when it references none (success only)'),
+  migration: z.strictObject({
+    removed: z.array(z.string()).describe('Names of the files from the template that were deleted'),
+  }).nullable().describe('Result of moving a pre-migration talk-dir onto the theme, or null when it was not moved (success only)'),
+  ...withPresence(LAYOUT_CATALOG_OUTPUT_SHAPE, 'success only'),
+  lint: deckLintOutput,
+}
+const slideSyncOutput = toolOutputFields(slideSyncShape, MISSING_RUNTIME_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
+
+const slideLintShape = {
+  event: z.string().describe(
+    'slide.lint.done or slide.lint.violations on success, slide.lint.error on failure (omitted when a path argument is rejected)',
+  ),
+  dir: z.string().describe('Absolute path of the linted talk-dir (success only)'),
+  ...withPresence(slideLintSummaryShape, 'success only'),
+}
+const slideLintOutput = toolOutputFields(slideLintShape, PATH_REJECTION_OUTPUT_SHAPE)
 
 const slideCreateInput = z.object({
   project_dir: z.string()
@@ -101,7 +245,7 @@ export function slideCreateTool(
         + 'Returns the presentation categories (categories) and the list of selectable layouts (layouts). '
         + 'Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).',
       inputSchema: slideCreateInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slideCreateOutput,
       // git でテーマを取得するため、ネットワークに到達しうる。openWorldHint は明示しない（SDK の既定）。
     },
     handler: async (arguments_: Readonly<Record<string, unknown>>): Promise<CallToolResult> => {
@@ -189,7 +333,7 @@ export function slideConvertTool(
       title: 'Convert Slidev to PPTX',
       description: 'Converts a Slidev project to PPTX. The duration is proportional to the number of slides (just under 30 seconds for 55 slides).',
       inputSchema: slideConvertInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slideConvertOutput,
     },
     handler: async (
       arguments_: Readonly<Record<string, unknown>>,
@@ -297,7 +441,7 @@ export function slideSyncTool(
         + 'Returns the presentation categories (categories), the list of selectable layouts (layouts), '
         + 'and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.',
       inputSchema: slideSyncInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slideSyncOutput,
       // theme を渡したときと、node_modules_only・移行済みの talk-dir の通常の sync は、テーマを git で取得しうるため、ネットワークに到達しうる。
       // openWorldHint は明示しない（SDK の既定）。
     },
@@ -377,7 +521,7 @@ export function slideLintTool(
       description: 'Lints the whole talk-dir (pages/**/*.md and slides.md) '
         + 'and returns the list of violations. The call itself succeeds even with violations; outcome is violations when any are found.',
       inputSchema: slideLintInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slideLintOutput,
       // 読み取りのみで何も書き換えず、ネットワークにも到達しない。
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

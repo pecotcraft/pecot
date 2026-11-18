@@ -1,4 +1,4 @@
-// 11 ツール共通の outputSchema・出力捕捉・エラー整形・実行時ガード。
+// 11 ツールが共有する outputSchema の項目・出力捕捉・エラー整形・実行時ガード。
 // ハンドラは inputSchema と同じ z.object で引数を parse し直して型を得る (`as` を使わないため)。
 
 import path from 'node:path'
@@ -39,22 +39,72 @@ export const WINDOWS_PATH_NOTE
   = String.raw`Windows-style paths (C:\... / \\wsl.localhost\<distro>\...) are accepted and `
     + 'converted to an absolute path under /mnt/<drive>/ or inside WSL.'
 
-const WARNINGS_SCHEMA = z.array(z.string()).optional().describe(
-  'Warnings raised during the run (omitted when there are none). '
-  + 'Beyond 100 warnings or 64KB, the last item tells how many were omitted',
-)
+/**
+パス引数を拒んだときの項目 (parsePathArguments が作る)。パス引数を持つツールに混ぜる。
+*/
+export const PATH_REJECTION_OUTPUT_SHAPE = {
+  invalidPaths: z.array(z.string()).optional().describe(
+    'Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)',
+  ),
+  convertedPaths: z.record(z.string(), z.strictObject({
+    from: z.string().describe('Value that was passed'),
+    to: z.string().describe('Path it was converted to'),
+  })).optional().describe(
+    'Windows-style path arguments converted before the rejection, keyed by parameter name '
+    + '(failure only, kind invalid-path; omitted when nothing was converted)',
+  ),
+}
 
 /**
-全ツール共通の outputSchema。ツールごとの項目は形が違うため開いた object にし、共通の 4 項目だけ名前を持たせる。
+実行時依存か Chromium が無くて止めたときの項目 (ensureRuntimeDependencies・ensureChromium が作る)。
 */
-export const TOOL_OUTPUT_SCHEMA = z.looseObject({
-  kind: z.string().optional().describe('Failure kind (failure only)'),
-  detail: z.string().optional().describe('Full text of the failure and how to recover (failure only)'),
-  log: z.string().optional().describe(
-    'Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation',
+export const MISSING_RUNTIME_OUTPUT_SHAPE = {
+  expectedAt: z.string().optional().describe(
+    'Where the missing runtime dependencies or Playwright Chromium are expected '
+    + '(failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)',
   ),
-  warnings: WARNINGS_SCHEMA,
-})
+}
+
+/**
+文面の違反で生成を止めたときの項目。drawio_create と evidence_create に混ぜる。
+*/
+export const TEXT_VIOLATION_OUTPUT_SHAPE = {
+  violations: z.array(z.strictObject({
+    item: z.string().describe('Where the text is'),
+    ruleId: z.string().describe('ID of the violated rule'),
+    message: z.string().describe('What is wrong'),
+    text: z.string().describe('The checked text'),
+  })).optional().describe('Text rule violations (failure only, kind text-violation)'),
+}
+
+/**
+複数のツールが使う項目の組の説明に、そのツールでいつ入るか (例: `success only`) を足す。
+*/
+// zod のスキーマは readonly の型を持たない。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+export function withPresence(shape: Readonly<Record<string, z.ZodType>>, presence: string): Record<string, z.ZodType> {
+  return Object.fromEntries(Object.entries(shape).map(
+    ([key, schema]) => [key, schema.describe(`${schema.description ?? ''} (${presence})`)],
+  ))
+}
+
+/**
+複数のツールが使う項目の組を、そのツールでは省略可にする (例: 失敗のときだけ入る)。
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+export function optionalFields(shape: Readonly<Record<string, z.ZodType>>): Record<string, z.ZodType> {
+  return Object.fromEntries(Object.entries(shape).map(([key, schema]) => [key, schema.optional()]))
+}
+
+/**
+ツールの項目と失敗の項目の組を、宣言に無い項目を拒む object にする。共通の 4 項目と anyOf は result.ts の toolOutputSchema が足す。
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+export function toolOutputFields(...shapes: readonly Readonly<z.ZodRawShape>[]): z.ZodObject {
+  const merged: z.ZodRawShape = {}
+  for (const shape of shapes) Object.assign(merged, shape)
+  return z.strictObject(merged)
+}
 
 /**
 捕捉した stdout / stderr の文字列。warnings を省くと stderr から取る。

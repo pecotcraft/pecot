@@ -10,13 +10,46 @@ import {
   type LoginRegistry,
   type SsoLoginSession,
 } from '../../infra/sso/login-registry.js'
+import { standardOutputSchema, toolOutputSchema } from '../output-schema.js'
 import { limitOutput, toCallToolResult, type ExecutionResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import {
+  COMMON_OUTPUT_SHAPE,
   PROFILE_INPUT_SHAPE,
-  TOOL_OUTPUT_SCHEMA,
   type ToolOptions,
 } from './_shared.js'
+
+/**
+promptData が返す項目と state。2 件が共通に返す。
+*/
+const SSO_SESSION_OUTPUT_SHAPE = {
+  state: z.enum(['pending', 'completed', 'failed', 'timed-out']).optional()
+    .describe('State of the device authorization. Returned on success and on failed / timed-out'),
+  verificationUrl: z.string().optional()
+    .describe('URL to open in a browser to approve (success only, once awscli has printed it)'),
+  verificationUrlComplete: z.string().optional()
+    .describe('URL with the code filled in; no code entry is needed (success only, once awscli has printed it)'),
+  userCode: z.string().optional()
+    .describe('Code to enter at verificationUrl (success only, once awscli has printed it)'),
+}
+
+const LOGIN_OUTPUT = z.strictObject({
+  ...SSO_SESSION_OUTPUT_SHAPE,
+  profile: z.string().optional()
+    .describe('Profile being authenticated. Empty when the awscli default resolution applies. Returned on success and on failed / timed-out'),
+  ...COMMON_OUTPUT_SHAPE,
+})
+
+const STATUS_OUTPUT = z.strictObject({
+  ...SSO_SESSION_OUTPUT_SHAPE,
+  output: z.string().optional()
+    .describe('awscli output when the state is completed, only the beginning when it exceeds the limit'),
+  ...COMMON_OUTPUT_SHAPE,
+})
+
+// 成功は、開始なら state と profile、状態確認なら state を必ず返す。
+const LOGIN_OUTPUT_SCHEMA = standardOutputSchema(toolOutputSchema(LOGIN_OUTPUT, [['state', 'profile']]))
+const STATUS_OUTPUT_SCHEMA = standardOutputSchema(toolOutputSchema(STATUS_OUTPUT, [['state']]))
 
 /**
 SSO 専用の失敗種別ごとの再試行方法。共通表は「aws_sso_login を実行」と案内するので、SSO 自身の失敗に使うと循環する。
@@ -209,7 +242,7 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         description: 'Starts AWS SSO device authorization and returns the verification URL and code immediately. It does not wait for completion, so '
           + 'check with aws_sso_login_status after the user approves',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),
-        outputSchema: TOOL_OUTPUT_SCHEMA,
+        outputSchema: LOGIN_OUTPUT_SCHEMA,
         annotations: LOGIN_ANNOTATIONS,
       },
       handler: async (arguments_: Readonly<Record<string, unknown>>) =>
@@ -222,7 +255,7 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
         description: 'Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. '
           + 'Does not run awscli',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),
-        outputSchema: TOOL_OUTPUT_SCHEMA,
+        outputSchema: STATUS_OUTPUT_SCHEMA,
         annotations: STATUS_ANNOTATIONS,
       },
       handler: (arguments_: Readonly<Record<string, unknown>>) =>

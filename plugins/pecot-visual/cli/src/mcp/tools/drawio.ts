@@ -1,11 +1,5 @@
 // drawio 系 MCP ツール (drawio_create / drawio_export)。
-//
-// ハンドラは対応する CLI コマンドから抽出した execute<Cmd>() をそのまま呼ぶ。
-// `--json` の data 組み立ては commands 側に一本化してある。
-// そのため、ここに残るのは「MCP の引数 → CLI のオプション」と「実行結果 → ToolResult」の写像だけになる。
-//
-// deps はハンドラ内で毎回組み立てる。既定 deps ファクトリは CLAUDE_PLUGIN_ROOT 未設定で throw する。
-// module top-level で評価すると、サーバ起動と tools/list がまとめて落ちる。
+// deps はハンドラ内で組み立てる。既定 deps は CLAUDE_PLUGIN_ROOT 未設定で throw し、top-level だと tools/list ごと落ちる。
 
 import { z } from 'zod'
 
@@ -36,8 +30,11 @@ import {
   ensureChromium,
   failureDetailOf,
   formatError,
+  MISSING_RUNTIME_OUTPUT_SHAPE,
   normalizeThemeArgument,
-  TOOL_OUTPUT_SCHEMA,
+  PATH_REJECTION_OUTPUT_SHAPE,
+  TEXT_VIOLATION_OUTPUT_SHAPE,
+  toolOutputFields,
   WINDOWS_PATH_NOTE,
 } from './_shared.js'
 
@@ -61,6 +58,53 @@ const drawioExportInput = z.object({
   print_hash: z.boolean().describe('Compute only the composite hash used for staleness checks, without exporting').default(false),
   pdf: z.boolean().describe('Whether to also write a PDF as a sibling file (<out_path with the extension replaced by .pdf>) alongside the SVG').default(true),
 })
+
+const drawioThemeFontsOutput = z.strictObject({
+  body: z.array(z.string()).describe('Body fonts the labels are checked against'),
+  eastAsian: z.string().optional().describe('East Asian font (omitted when the theme does not declare one)'),
+})
+
+const drawioThemeOutput = z.strictObject({
+  source: z.enum(['talk-dir', 'option', 'default']).describe(
+    'Where the theme came from: talk-dir (ancestor talk-dir of the diagram), option (theme argument), default (built-in default)',
+  ),
+  name: z.string().optional().describe('Package name of the theme (omitted for the built-in default)'),
+  fonts: drawioThemeFontsOutput.describe('Fonts the labels are checked against'),
+  fontSizes: z.strictObject({
+    heading: z.number(),
+    headingSm: z.number(),
+    body: z.number(),
+    bodySm: z.number(),
+    label: z.number(),
+  }).optional().describe('Font sizes (px) the labels are checked against (only when the theme came from a talk-dir or the theme argument)'),
+})
+
+const drawioCreateShape = {
+  event: z.string().describe('drawio.url.done on success, drawio.url.error on failure (omitted when a path argument is rejected)'),
+  url: z.string().optional().describe('Generated draw.io URL (success only, when out_path is omitted)'),
+  file: z.string().optional().describe('Absolute path of the written viewer HTML (success only, when out_path is given)'),
+  png: z.string().nullable().optional().describe(
+    'Absolute path of the written PNG, or null when writing it failed (success only, when out_path is given and png is true)',
+  ),
+  pngFailed: z.boolean().optional().describe('Whether writing the PNG failed (success only, when out_path is given and png is true)'),
+  theme: drawioThemeOutput.describe('Theme the font and font size were checked against (success only)'),
+}
+const drawioCreateOutput = toolOutputFields(drawioCreateShape, TEXT_VIOLATION_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
+
+const drawioExportShape = {
+  event: z.string().describe(
+    'drawio.export.done after exporting, drawio.export.hash with print_hash, drawio.export.error or chromium.unavailable on failure '
+    + '(omitted when a path argument is rejected)',
+  ),
+  file: z.string().describe('Absolute path of the written SVG; with print_hash, the absolute path of the input (success only)'),
+  sourceSha256: z.string().describe('Composite hash of the input and the referenced icons, used for staleness checks (success only)'),
+  icons: z.number().describe('Number of icon:// references resolved (success only)'),
+  pdf: z.string().nullable().optional().describe(
+    'Absolute path of the written PDF, or null when no PDF was written (pdf is false or writing it failed; success only, not with print_hash)',
+  ),
+  pdfFailed: z.boolean().optional().describe('Whether writing the PDF failed (success only, not with print_hash)'),
+}
+const drawioExportOutput = toolOutputFields(drawioExportShape, MISSING_RUNTIME_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
 
 /**
 message 末尾の警告件数サフィックス。drawio_create / drawio_export で表記を揃える。
@@ -241,7 +285,7 @@ export const drawioCreateTool: ToolDefinition = {
     title: 'Output a drawio diagram as a deliverable',
     description: 'Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in theme.',
     inputSchema: drawioCreateInput,
-    outputSchema: TOOL_OUTPUT_SCHEMA,
+    outputSchema: drawioCreateOutput,
   },
   handler: handleDrawioCreate,
 }
@@ -252,7 +296,7 @@ export const drawioExportTool: ToolDefinition = {
     title: 'drawio SVG / PDF export',
     description: 'Exports drawio XML to a static SVG and a sibling PDF. Set pdf: false to suppress the PDF. With print_hash, it exports nothing and returns only the composite hash used for staleness checks. It does not check the diagram text, so pass a .drawio that has gone through drawio_create.',
     inputSchema: drawioExportInput,
-    outputSchema: TOOL_OUTPUT_SCHEMA,
+    outputSchema: drawioExportOutput,
   },
   handler: handleDrawioExport,
 }

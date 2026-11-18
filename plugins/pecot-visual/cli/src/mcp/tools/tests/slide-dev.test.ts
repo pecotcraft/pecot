@@ -35,6 +35,7 @@ import type { EnsureThemeLinkedResult } from '../../../commands/slidev-project/l
 import { ThemeFetchError } from '../../../domain/slidev-theme/store-layout.js'
 import { ThemeResolveError } from '../../../domain/slidev-theme/talk-theme.js'
 import { slideDevTool } from '../slide-dev.js'
+import { withOutputCheck } from './_output.js'
 import type { EnsureThemeLinked } from '../slide-dev.js'
 import type { RuntimeDependencies } from '../_shared.js'
 
@@ -667,7 +668,7 @@ function toolWith(
   registry: DevServerRegistry,
   ensureThemeLinked: EnsureThemeLinked = () => Promise.resolve(NOT_RELINKED),
 ): ReturnType<typeof slideDevTool> {
-  return slideDevTool(() => registry, installedRuntimeDependencies, () => ensureThemeLinked)
+  return withOutputCheck(slideDevTool(() => registry, installedRuntimeDependencies, () => ensureThemeLinked))
 }
 
 const NOT_RELINKED: EnsureThemeLinkedResult = {
@@ -778,7 +779,7 @@ describe('slideDevTool', () => {
   it('既定の張り直しは、テーマを参照しない talk-dir (slides.md に theme が無い) を theme-none で止める', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-08')
     // 3 つ目の引数を省き、既定の ensureTalkThemeLinked (実ファイルを読む) を通す。
-    const tool = slideDevTool(() => unusedRegistry(), installedRuntimeDependencies)
+    const tool = withOutputCheck(slideDevTool(() => unusedRegistry(), installedRuntimeDependencies))
 
     const result = await tool.handler({ dir: talkDirectory, stop: false }, CALL)
 
@@ -1062,7 +1063,7 @@ describe('slideDevTool', () => {
     // 環境で「動いているサーバを止められない」行き止まりになる。
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(559).child }))
     await toolWith(registry).handler({ dir: talkDirectory, stop: false }, CALL)
-    const tool = slideDevTool(() => registry, () => runtimeDependencies(false))
+    const tool = withOutputCheck(slideDevTool(() => registry, () => runtimeDependencies(false)))
 
     const result = await tool.handler({ dir: talkDirectory, stop: true }, CALL)
 

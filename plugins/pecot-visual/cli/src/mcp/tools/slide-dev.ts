@@ -1,12 +1,5 @@
 // slide_dev ツール。talk-dir の Slidev dev サーバを起動し、ブラウザで開ける URL を返す。
-//
-// 対応する CLI サブコマンドは持たない (`runtime_setup` と同じ MCP 専用ツール)。dev サーバの寿命は
-// MCP サーバプロセスに紐づくため、CLI から起動しても呼び出しの終了と同時に落ちるだけで
-// 意味を持たない。プレビュールートを MCP 一本に絞る #1023 の決定にも沿う。
-//
-// 実処理は src/mcp/dev-server-registry.ts が持つ。ここに置くのは引数の写像・実行前ガード・
-// ToolResult への正規化だけで、他のツールが commands/ の execute<Cmd>() を呼ぶ位置に
-// レジストリが入る形になる。
+// dev サーバの寿命が MCP サーバに紐づくため CLI を持たない。実処理は src/mcp/dev-server-registry.ts。
 
 // 参照するのは引数で受けた talk-dir と、その直下の固定名 (slides.md / node_modules) のみ。
 /* eslint-disable security/detect-non-literal-fs-filename */
@@ -33,8 +26,10 @@ import type { ToolResult } from '../result.js'
 import type { ToolDefinition, ToolCallContext } from '../server.js'
 import {
   ensureRuntimeDependencies,
+  MISSING_RUNTIME_OUTPUT_SHAPE,
+  PATH_REJECTION_OUTPUT_SHAPE,
   runtimeDefaultDependencies,
-  TOOL_OUTPUT_SCHEMA,
+  toolOutputFields,
   WINDOWS_PATH_NOTE,
   type RuntimeDependencies,
   withCapturedOutput,
@@ -72,6 +67,20 @@ const slideDevInput = z.object({
   stop: z.boolean().default(false)
     .describe('Stop the dev server of the talk-dir when true (arguments other than dir have no effect when stopping)'),
 })
+
+const slideDevShape = {
+  event: z.string().describe(
+    'slide.dev.started, slide.dev.reused or slide.dev.stopped on success; '
+    + 'slide.dev.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)',
+  ),
+  dir: z.string().describe('Absolute path of the talk-dir (on success, and on failure with slide.dev.error)'),
+  url: z.string().optional().describe('URL that opens the preview in a browser (success only, when started or reused)'),
+  port: z.number().optional().describe('Port the server listens on (success only; when stopping, only if a server was running)'),
+  reused: z.boolean().optional().describe('Whether the running server was returned as it is (success only, when started or reused)'),
+  pid: z.number().optional().describe('Process ID of the dev server, for stopping it by hand (success only, when known)'),
+  stopped: z.boolean().optional().describe('Whether a running server was stopped (success only, with stop: true)'),
+}
+const slideDevOutput = toolOutputFields(slideDevShape, MISSING_RUNTIME_OUTPUT_SHAPE, PATH_REJECTION_OUTPUT_SHAPE)
 
 /**
 talk-dir の不備 1 件。spawn 前に返すため、reason は起動失敗系と混在しない名前にする。
@@ -263,7 +272,7 @@ export function slideDevTool(
         + 'Set stop: true to stop it. '
         + 'The server runs only while the MCP server process is alive; the preview ends with the session.',
       inputSchema: slideDevInput,
-      outputSchema: TOOL_OUTPUT_SCHEMA,
+      outputSchema: slideDevOutput,
       // annotations は明示しない。
       // `--remote` で全インタフェースに LISTEN するため、openWorldHint: false の明示基準に反する。
       // その基準は、ネットワークに到達しないことが確定していること。

@@ -28,31 +28,13 @@ entries:
       - 'クエリの実行 1 件の状態（`QUEUED`・`RUNNING`・`SUCCEEDED`・`FAILED`・`CANCELLED` のどれか）と統計を返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        QueryExecution: 'クエリの実行の情報です。状態・統計・結果の置き場を持ちます。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -106,31 +88,16 @@ entries:
       - 終わったクエリの結果の行を、1 回の呼び出しで 1 ページずつ返します。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        ResultSet: 'クエリの結果です。行と、列の情報を持ちます。'
+        UpdateCount: 'DML の文が変えた行の数です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -194,31 +161,13 @@ entries:
       - '終わったかどうかは、`aws_athena_get_query_execution` で確かめます。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        QueryExecutionId: '始めたクエリの ID です。`aws_athena_get_query_execution` などに渡します。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -298,31 +247,14 @@ entries:
       - パーセンタイルの統計は公開していません。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        Datapoints: '統計の値の配列です。期間ごとに 1 要素です。'
+        Label: 'メトリクスのラベルです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -384,31 +316,15 @@ entries:
       - 複数のフィルタを渡すと、すべてに合うインスタンスだけを返します。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        Reservations: '予約の配列です。要素の `Instances` に、インスタンスが並びます。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -475,31 +391,15 @@ entries:
       - active のイメージだけを返します。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        imageDetails: 'イメージの詳細の配列です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -562,31 +462,53 @@ entries:
       - 'Lambda の関数 1 つの設定を返します。`qualifier` を渡すと、そのバージョンかエイリアスの設定を返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        Architectures: '命令セットのアーキテクチャの配列です。'
+        CapacityProviderConfig: 'キャパシティプロバイダーの設定です。'
+        CodeSha256: 'デプロイパッケージの SHA256 ハッシュです。'
+        CodeSize: 'デプロイパッケージの大きさです。単位はバイトです。'
+        ConfigSha256: '関数の設定の SHA256 ハッシュです。'
+        DeadLetterConfig: 'デッドレターキューの設定です。'
+        Description: '関数の説明です。'
+        DurableConfig: '永続実行の設定です。'
+        Environment: '環境変数の設定です。'
+        EphemeralStorage: '一時領域（`/tmp`）の大きさの設定です。'
+        FileSystemConfigs: '接続したファイルシステムの設定の配列です。'
+        FunctionArn: '関数の ARN です。'
+        FunctionName: '関数の名前です。'
+        Handler: 'Lambda が呼ぶハンドラです。'
+        ImageConfigResponse: 'コンテナイメージの設定です。'
+        KMSKeyArn: '暗号化に使う KMS キーの ARN です。'
+        LastModified: '最後に更新した日時です。ISO 8601 の文字列です。'
+        LastUpdateStatus: '最後の更新の状況です。'
+        LastUpdateStatusReason: '最後の更新が今の状況になった理由です。'
+        LastUpdateStatusReasonCode: '最後の更新が今の状況になった理由のコードです。'
+        Layers: 'レイヤーの配列です。'
+        LoggingConfig: 'ログの出力先と形式の設定です。'
+        MasterArn: 'Lambda@Edge の関数のとき、元の関数の ARN です。'
+        MemorySize: 'メモリの大きさです。単位は MB です。'
+        PackageType: 'デプロイパッケージの種類です。`Zip` か `Image` です。'
+        RevisionId: '最新のリビジョンの ID です。'
+        Role: '実行ロールの ARN です。'
+        Runtime: 'ランタイムの識別子です。'
+        RuntimeConfig: 'ランタイムの設定です。'
+        RuntimeVersionConfig: 'ランタイムのバージョンの設定です。'
+        SigningJobArn: '署名ジョブの ARN です。'
+        SigningProfileVersionArn: '署名プロファイルのバージョンの ARN です。'
+        SnapStart: 'SnapStart の設定です。'
+        State: '関数の今の状態です。'
+        StateReason: '今の状態になった理由です。'
+        StateReasonCode: '今の状態になった理由のコードです。'
+        TenancyConfig: 'テナント分離の設定です。'
+        Timeout: 'タイムアウトの秒数です。'
+        TracingConfig: 'X-Ray のトレースの設定です。'
+        Version: '関数のバージョンです。'
+        VpcConfig: 'VPC の設定です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -646,31 +568,15 @@ entries:
       - '`event_source_arn` と `function_name` は、片方だけを渡すことも、両方を渡すこともできます。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        EventSourceMappings: 'イベントソースマッピングの配列です。'
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -727,31 +633,15 @@ entries:
       - '続きのページが残っているときは、`nextToken` を返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        Functions: '関数の設定の配列です。'
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -808,31 +698,15 @@ entries:
       - CloudWatch Logs のロググループを一覧にします。名前の接頭辞で絞り込めます。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        logGroups: 'ロググループの配列です。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -893,31 +767,15 @@ entries:
       - '`LastEventTime` の降順で並べると、最新のストリームが先頭になります。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        logStreams: 'ログストリームの配列です。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -985,31 +843,16 @@ entries:
       - ロググループのイベントを、フィルタパターンで検索します。全部のストリームか、選んだストリームが対象です。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        events: '条件に合ったログイベントの配列です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        searchedLogStreams: '調べたログストリームの配列です。AWS は今この項目を埋めず、空の配列を返します。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1074,31 +917,15 @@ entries:
       - '続きを取得するには、応答の `nextForwardToken` を `next_token` に渡します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        events: 'ログイベントの配列です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextBackwardToken: '古い向きに続きを取るトークンです。'
+        nextForwardToken: '新しい向きに続きを取るトークンです。続きを取るときは、この値を `next_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1155,31 +982,15 @@ entries:
       - 'RDS の DB クラスターを一覧にします。`db_cluster_identifier` を渡すと、そのクラスター 1 つを返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        DBClusters: 'DB クラスターの配列です。'
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1236,31 +1047,15 @@ entries:
       - 'RDS の DB インスタンスを一覧にします。`db_instance_identifier` を渡すと、そのインスタンス 1 つを返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        DBInstances: 'DB インスタンスの配列です。'
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1329,31 +1124,15 @@ entries:
       - '`duration` は、`start_time`・`end_time` のどちらとも一緒に渡せません。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        Events: 'イベントの配列です。'
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1418,32 +1197,13 @@ entries:
       - '書いたファイルの絶対パスは、`file` に入ります。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        file: '書き出したローカルファイルの絶対パスです。'
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        file: '書き出した先のローカルの絶対パスです。成功のときだけ入ります。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が上限を超えなかったときに入ります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、`lines` は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1514,61 +1274,12 @@ entries:
       - 'このコマンドは JSON を出しません。出力は、1 行を 1 要素にして `lines` へ入れます。'
     stdin: none
     output:
-      format: json
-      description: '結果は JSON のオブジェクトです。awscli が出した行は、`lines` に並びます。'
+      format: none
+    mcp_output:
       fields:
-        artifacts: 書き出したローカルのファイルの絶対パスです。
-        kind: 失敗の種別です。成功したときは、この項目はありません。
-        data: 'awscli が出した行の配列（`lines`）です。`warnings` は、ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。失敗のときは、`reason`（`kind` と同じ値）、`detail`（`message` と同じ文）、秘匿化した awscli の出力 `log`（上限を超えると先頭だけ）が入ります。`log` を切り詰めたときは、`message` の末尾で知らせます。'
-        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
-        message: 結果を 1 行にまとめた文です。
-        ok: '成功なら `true`、失敗なら `false` です。'
-      schema:
-        additionalProperties: false
-        properties:
-          artifacts:
-            description: Absolute paths of the local files written
-            items:
-              type: string
-            type: array
-          data:
-            additionalProperties: {}
-            description: awscli JSON output, or an array of lines
-            properties:
-              detail:
-                description: Full text of the failure and how to recover (failure only)
-                type: string
-              log:
-                description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-                type: string
-              reason:
-                description: Failure kind, the same value as kind (failure only)
-                type: string
-              warnings:
-                description: Warnings raised during the run (omitted when there are none)
-                items:
-                  type: string
-                type: array
-            type: object
-          exitCode:
-            description: Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)
-            type: number
-          kind:
-            description: Failure kind (omitted on success)
-            type: string
-          message:
-            description: One-line summary for the calling agent
-            type: string
-          ok:
-            description: Whether the awscli run succeeded
-            type: boolean
-        required:
-          - ok
-          - exitCode
-          - data
-          - artifacts
-          - message
-        type: object
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が上限を超えなかったときに入ります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、`lines` は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1633,32 +1344,58 @@ entries:
       - '書いたファイルの絶対パスは、`file` に入ります。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        file: '書き出したローカルファイルの絶対パスです。'
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        AcceptRanges: '受け付ける範囲の単位です。'
+        BucketKeyEnabled: 'S3 バケットキーを使うかどうかです。'
+        CacheControl: '`Cache-Control` ヘッダーの値です。'
+        ChecksumCRC32: 'CRC32 のチェックサムです。'
+        ChecksumCRC32C: 'CRC32C のチェックサムです。'
+        ChecksumCRC64NVME: 'CRC64NVME のチェックサムです。'
+        ChecksumMD5: 'MD5 のチェックサムです。'
+        ChecksumSHA1: 'SHA1 のチェックサムです。'
+        ChecksumSHA256: 'SHA256 のチェックサムです。'
+        ChecksumSHA512: 'SHA512 のチェックサムです。'
+        ChecksumType: 'チェックサムの種類です。'
+        ChecksumXXHASH128: 'XXHASH128 のチェックサムです。'
+        ChecksumXXHASH3: 'XXHASH3 のチェックサムです。'
+        ChecksumXXHASH64: 'XXHASH64 のチェックサムです。'
+        ContentDisposition: '`Content-Disposition` ヘッダーの値です。'
+        ContentEncoding: '`Content-Encoding` ヘッダーの値です。'
+        ContentLanguage: '`Content-Language` ヘッダーの値です。'
+        ContentLength: '本体の大きさです。単位はバイトです。'
+        ContentRange: '返した部分の範囲です。'
+        ContentType: '`Content-Type` ヘッダーの値です。'
+        DeleteMarker: '削除マーカーかどうかです。'
+        ETag: 'エンティティタグです。'
+        Expiration: 'ライフサイクルのルールで消える予定です。'
+        Expires: '`Expires` ヘッダーの値です。'
+        LastModified: '最後に変えた日時です。ISO 8601 の文字列か、epoch 秒の数です。'
+        Metadata: '利用者が付けたメタデータです。名前から値への対応です。'
+        MissingMeta: 'ヘッダーに載らなかったメタデータの数です。'
+        ObjectLockEventHold: 'イベントホールドの状態です。'
+        ObjectLockEventHoldDurationDays: 'イベントホールドの期間の日数です。'
+        ObjectLockEventHoldDurationYears: 'イベントホールドの期間の年数です。'
+        ObjectLockLegalHoldStatus: 'リーガルホールドの状態です。'
+        ObjectLockMode: 'オブジェクトロックのモードです。'
+        ObjectLockRetainUntilDate: 'オブジェクトロックで保持する期限の日時です。ISO 8601 の文字列か、epoch 秒の数です。'
+        PartsCount: 'マルチパートのオブジェクトのパートの数です。'
+        ReplicationStatus: 'レプリケーションの状態です。'
+        RequestCharged: 'リクエストした側に課金したかどうかです。'
+        Restore: 'アーカイブから戻す処理の状態です。'
+        SSECustomerAlgorithm: 'SSE-C の暗号化の方式です。'
+        SSECustomerKeyMD5: 'SSE-C の鍵の MD5 です。'
+        SSEKMSKeyId: '暗号化に使った KMS キーの ID です。'
+        ServerSideEncryption: 'サーバー側の暗号化の方式です。'
+        StorageClass: 'ストレージクラスです。'
+        TagCount: 'タグの数です。'
+        VersionId: 'オブジェクトのバージョンの ID です。'
+        WebsiteRedirectLocation: 'ウェブサイトのリダイレクト先です。'
+        file: '書き出した先のローカルの絶対パスです。成功のときだけ入ります。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1726,31 +1463,27 @@ entries:
       - EventBridge Scheduler のスケジュール 1 つの定義を返します。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        ActionAfterCompletion: 'スケジュールが終わった後の動作です。`NONE` か `DELETE` です。'
+        Arn: 'スケジュールの ARN です。'
+        CreationDate: '作った日時です。ISO 8601 の文字列か、epoch 秒の数です。'
+        Description: 'スケジュールの説明です。'
+        EndDate: 'ターゲットを呼べる期間の終わりの日時です。ISO 8601 の文字列か、epoch 秒の数です。'
+        FlexibleTimeWindow: '呼び出しをずらせる幅の設定です。'
+        GroupName: 'スケジュールグループの名前です。'
+        KmsKeyArn: '暗号化に使う KMS キーの ARN です。'
+        LastModificationDate: '最後に変えた日時です。ISO 8601 の文字列か、epoch 秒の数です。'
+        Name: 'スケジュールの名前です。'
+        ScheduleExpression: 'スケジュールの式です。`at`・`rate`・`cron` のどれかの形です。'
+        ScheduleExpressionTimezone: 'スケジュールの式のタイムゾーンです。'
+        StartDate: 'ターゲットを呼べる期間の始めの日時です。ISO 8601 の文字列か、epoch 秒の数です。'
+        State: '`ENABLED` か `DISABLED` です。'
+        Target: 'ターゲットの設定です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1807,31 +1540,15 @@ entries:
       - EventBridge Scheduler のスケジュールを一覧にします。グループ・名前の接頭辞・状態で絞り込めます。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        Schedules: 'スケジュールの概要の配列です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1889,31 +1606,13 @@ entries:
       - '`attribute_names` を省くと、すべての属性を返します。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        Attributes: '属性の名前から値への対応です。値はどれも文字列です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -1970,31 +1669,15 @@ entries:
       - リージョンの SQS のキューの URL を一覧にします。名前の接頭辞で絞り込めます。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        NextToken: 'awscli が足す続きのトークンです。`max_items` で結果が切れたときだけ入ります。値は `nextToken` と同じです。'
+        QueueUrls: 'キューの URL の配列です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        nextToken: '`max_items` で結果が切れたときだけ入ります。続きを取るときは、この値を `starting_token` に渡します。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -2049,31 +1732,14 @@ entries:
       - '終わったかどうかは、`aws_sso_login_status` で確かめます。'
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        profile: '認可するプロファイルです。awscli の決め方に任せたときは空です。成功のときと、`failed`・`timed-out` の失敗のときに入ります。'
+        state: '認可の状態です。`pending`・`completed`・`failed`・`timed-out` のどれかです。成功のときと、`failed`・`timed-out` の失敗のときに入ります。'
+        userCode: '`verificationUrl` の画面で入れるコードです。成功して、awscli がコードを出した後に入ります。'
+        verificationUrl: '承認のためにブラウザで開く URL です。成功して、awscli が URL を出した後に入ります。'
+        verificationUrlComplete: 'コードを埋めた URL です。開くと、コードを入れずに承認できます。成功して、awscli が URL を出した後に入ります。'
     diagnostics: default
     environment: []
     exit_status:
@@ -2138,31 +1804,14 @@ entries:
       - awscli は起動しません。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        output: '`state` が `completed` のときの awscli の出力です。上限を超えると、先頭だけが残ります。'
+        state: '認可の状態です。`pending`・`completed`・`failed`・`timed-out` のどれかです。成功のときと、`failed`・`timed-out` の失敗のときに入ります。'
+        userCode: '`verificationUrl` の画面で入れるコードです。成功して、awscli がコードを出した後に入ります。'
+        verificationUrl: '承認のためにブラウザで開く URL です。成功して、awscli が URL を出した後に入ります。'
+        verificationUrlComplete: 'コードを埋めた URL です。開くと、コードを入れずに承認できます。成功して、awscli が URL を出した後に入ります。'
     diagnostics: default
     environment: []
     exit_status:
@@ -2221,31 +1870,15 @@ entries:
       - プロファイルから決まる ID の、アカウント・ユーザー ID・ARN を返します。
     stdin: none
     output:
-      format: json
-      description: 結果は JSON のオブジェクトです。
+      format: none
+    mcp_output:
       fields:
-        kind: '失敗の種別です。成功したときは入りません。'
-        detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
-        log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
-        warnings: 'ほかのプラグインと形をそろえるための項目で、pecot-tools では入りません。'
-      schema:
-        additionalProperties: {}
-        properties:
-          detail:
-            description: Full text of the failure and how to recover (failure only)
-            type: string
-          kind:
-            description: "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds"
-            type: string
-          log:
-            description: Redacted awscli output, only the beginning when it exceeds the limit (failure only)
-            type: string
-          warnings:
-            description: Warnings raised during the run (omitted when there are none)
-            items:
-              type: string
-            type: array
-        type: object
+        Account: '呼び出した ID が属する AWS アカウントの ID です。'
+        Arn: '呼び出した ID の ARN です。'
+        UserId: '呼び出した ID の一意の識別子です。'
+        lines: '出力を 1 行ずつに分けた配列です。成功して、出力が JSON のオブジェクトでないときに入ります。空の出力と、警告だけの出力が当たります。'
+        output: '秘匿化した出力の先頭です。成功して、出力が上限を超えたときだけ入ります。このとき、AWS の応答の項目は入りません。'
+        truncated: '出力が上限を超えたときだけ、`true` で入ります。このとき `output` は出力の先頭だけを持ちます。'
     diagnostics: default
     environment: []
     exit_status:
@@ -2286,6 +1919,12 @@ entries:
       - id: PT-AWS-STS-GET-CALLER-IDENTITY-01
         pattern: event
         statement: '引数なしで呼ぶと、awscli の `sts get-caller-identity` を実行し、JSON 出力の項目を結果の最上位に載せた成功の応答を返します'
+common_mcp_output:
+  fields:
+    kind: '失敗の種別です。失敗のときだけ入ります。`not-allowed` と `invalid-input` は、awscli を動かす前に拒んだ失敗です。ほかに `timeout`・`awscli-missing` と、awscli の失敗の種別があります。'
+    detail: '失敗の文と案内の全文です。失敗のときだけ入ります。'
+    log: '秘匿化した awscli の出力です。失敗のときだけ入ります。上限を超えると先頭だけ残り、切り詰めたときは `detail` の末尾で知らせます。'
+    warnings: '実行中に出た警告の文の配列です。警告が無いときは入りません。awscli の JSON の出力に、ツールが宣言していない最上位のキーがあると、そのキーを落とします。落としたキーの名前は、警告の 1 行で知らせます。'
 common_behaviors:
   - id: PT-COMMON-01
     pattern: unwanted
@@ -2332,3 +1971,6 @@ common_behaviors:
   - id: PT-COMMON-15
     pattern: ubiquitous
     statement: '常に、出力中の `AKIA` または `ASIA` で始まるアクセスキー ID を `[redacted]` にします'
+  - id: PT-COMMON-16
+    pattern: unwanted
+    statement: 'もし awscli の JSON の出力に、ツールが宣言していない最上位のキーがあるなら、そのキーを外して成功を返し、外したキーの名前を `warnings` で知らせます'

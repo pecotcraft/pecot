@@ -23,6 +23,7 @@ import { snapshotTree } from './tree-snapshot.js'
 import type { ToolCallContext } from '../../server.js'
 import { slideDevTool } from '../slide-dev.js'
 import { slideConvertTool, slideCreateTool, slideSyncTool } from '../slide.js'
+import { withOutputCheck } from './_output.js'
 import { ensureRuntimeDependencies, RUNTIME_ROOT_PLACEHOLDER, type RuntimeDependencies } from '../_shared.js'
 
 // src/mcp/tools/tests → cli/
@@ -108,7 +109,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     const projectDirectory = path.join(CLI_ROOT, 'tests', 'fixtures', 'not-created-yet')
     const tool = slideCreateTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
-    const result = await tool.handler({ project_dir: projectDirectory, theme: THEME_SPEC, force: false }, CALL)
+    const result = await withOutputCheck(tool).handler({ project_dir: projectDirectory, theme: THEME_SPEC, force: false }, CALL)
 
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['kind']).toBe('runtime-dependencies-not-installed')
@@ -124,7 +125,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     const talk = path.join(CLI_ROOT, 'tests', 'fixtures', 'minimal-slidev')
     const before = snapshotTree(talk)
 
-    const result = await tool.handler({ dir: talk, node_modules_only: false }, CALL)
+    const result = await withOutputCheck(tool).handler({ dir: talk, node_modules_only: false }, CALL)
 
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['kind']).toBe('runtime-dependencies-not-installed')
@@ -138,7 +139,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     // ガードが後ろにあると、@slidev/cli を解決できない環境で子プロセスの起動エラーに化ける。
     const tool = slideDevTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
-    const result = await tool.handler({ dir: path.join(CLI_ROOT, 'tests', 'fixtures'), stop: false }, CALL)
+    const result = await withOutputCheck(tool).handler({ dir: path.join(CLI_ROOT, 'tests', 'fixtures'), stop: false }, CALL)
 
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['kind']).toBe('runtime-dependencies-not-installed')
@@ -164,7 +165,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     for (const [index, [name, toolArguments]] of calls.entries()) {
       const tool = tools.at(index)
       if (tool === undefined) throw new Error('calls と tools の対応が崩れている')
-      const result = await tool.handler(toolArguments, CALL)
+      const result = await withOutputCheck(tool).handler(toolArguments, CALL)
 
       expect(result.isError).toBe(true)
       expect(structuredOf(result)['kind']).toBe('runtime-dependencies-not-installed')
@@ -190,7 +191,7 @@ describe('slide_convert への接続', () => {
       () => fakeRuntimeDependencies(false),
     )
 
-    const result = await tool.handler({ project_dir: projectDirectory }, CALL)
+    const result = await withOutputCheck(tool).handler({ project_dir: projectDirectory }, CALL)
 
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['kind']).toBe('runtime-dependencies-not-installed')
@@ -206,7 +207,7 @@ describe('slide_convert への接続', () => {
       () => fakeRuntimeDependencies(false),
     )
 
-    const result = await tool.handler({ project_dir: 'relative/dir' }, CALL)
+    const result = await withOutputCheck(tool).handler({ project_dir: 'relative/dir' }, CALL)
 
     expect(dataOf(result)).toHaveProperty('invalidPaths')
     expect(structuredOf(result)['kind']).toBe('invalid-path')
