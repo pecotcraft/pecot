@@ -1,3 +1,16 @@
+## 0.2.9 (2026-11-18)
+
+### 🩹 Fixes
+
+- `.textlintignore`（textlint の標準の除外ファイル）で外したファイルを、`pecot-text-lint` が飛ばすようになった。 ([#566](https://github.com/pecotcraft/pecot/pull/566), [#555](https://github.com/pecotcraft/pecot/issues/555))
+  pecot-visual の書くたびの text lint も、リポのルートの `.textlintignore` に従う。
+
+- 表を回すテストの題の **`$キー` が読めない形**だと lint が止め、**同じファイルで題が重なる**とテストが止める。 ([#626](https://github.com/pecotcraft/pecot/pull/626), [#606](https://github.com/pecotcraft/pecot/issues/606))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.8 (2026-11-16)
 
 ### 🩹 Fixes

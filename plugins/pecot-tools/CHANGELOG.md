@@ -1,3 +1,19 @@
+## 3.0.2 (2026-11-18)
+
+### 🩹 Fixes
+
+- 表を回すテストの題の **`$キー` が読めない形**だと lint が止め、**同じファイルで題が重なる**とテストが止める。 ([#626](https://github.com/pecotcraft/pecot/pull/626), [#606](https://github.com/pecotcraft/pecot/issues/606))
+- MCP ツールの出力の型を、ツールごとの**閉じた型**にした。 ([#654](https://github.com/pecotcraft/pecot/pull/654), [#644](https://github.com/pecotcraft/pecot/issues/644))
+  pecot-tools は、宣言に無い AWS のキーを外して `warnings` で知らせる。
+  `runtime_setup` は、失敗のときに `reason` を返さない。
+
+- S3 のオブジェクトをファイルに書き出す `aws_s3_cp` と `aws_s3api_get_object` を除いた。 ([#665](https://github.com/pecotcraft/pecot/pull/665), [#663](https://github.com/pecotcraft/pecot/issues/663))
+  S3 は、`aws_s3_ls` でバケットとオブジェクトの一覧だけを引ける。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 3.0.1 (2026-11-17)
 
 ### 🩹 Fixes
