@@ -55,7 +55,7 @@ SIGTERM で 143、SIGINT で 130 を返します（`src/mcp/serve.ts`）。
 
 ## ツールと失敗種別
 
-公開する 26 ツールの一覧（対応する awscli コマンド・種別・読取専用・ページング）と、失敗した応答の
+公開する 24 ツールの一覧（対応する awscli コマンド・種別・読取専用・ページング）と、失敗した応答の
 `kind` 9 値の一覧は
 [../scripts/release/mcp-dist-README.md](../scripts/release/mcp-dist-README.md) にあります。
 このファイルは npm のパッケージ `@pecot/tools-mcp` の README として配布され、両方の一覧の原本です。

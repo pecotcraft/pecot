@@ -1,31 +1,13 @@
-// 拒否 4 系統（S3 の方向・Athena の変更系 / 複文・`-` 始まりの値・既存ファイルの上書き）が
-// awscli を 1 度も起動せずに失敗することを固定する（SC-002）。
-//
-// 判定は偽 awscli の呼び出しログの生値が空であること。`--version` の確認呼び出しすら
-// 記録されていなければ、子プロセスが 1 本も起きていない。
-//
-// 応答は 3 群に分かれる（SDK v2 で確認済み）。
-//   - 未登録のツール名はハンドラに到達せず、JSON-RPC エラー -32602 で callTool が reject する。
-//   - inputSchema で表せる違反（型・範囲・列挙・書式）はハンドラに到達しない。
-//     isError: true で、SDK が `Input validation error: …` の text だけを返す。
-//     structuredContent は付かない。
-//   - 許可リスト側の規則（先頭 '-'・排他・shorthand の項目・上書き・Athena のクエリ内容）では、
-//     ハンドラが ExecutionResult を返す。structuredContent に kind（not-allowed / invalid-input）と detail が付く。
-//     （この群も isError: true）。
-// 呼び出し元から見える形が違うので、どちらの群に入るかをここで固定する。
+// 拒否（Athena の変更系 / 複文・`-` 始まりの値・排他など）が awscli を起動せずに失敗することを固定する（SC-002）。
+// 応答が「-32602」「inputSchema 違反の text」「structuredContent の kind」のどの群に入るかも、ここで固定する。
 
-/* eslint-disable security/detect-non-literal-fs-filename -- 扱うのは mkdtemp の戻り値だけ */
-
-import { rmSync, writeFileSync } from 'node:fs'
-
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { resetAwscliProbe } from '../../src/infra/awscli.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from '../../src/mcp/tests/_client.js'
 import { allTools } from '../../src/mcp/tools/index.js'
 import { useFakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
-import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { verifies } from '../_helpers/verifies.js'
 
 /**
@@ -40,20 +22,6 @@ const INVALID_PARAMS_CODE = -32_602
 
 const fakeAws = useFakeAws()
 const mcp: { connected: ConnectedMcp | undefined } = { connected: undefined }
-/**
-既存ファイルの上書き規則を突くための作業ディレクトリ。
-*/
-const workDirectory = useTemporaryDirectory('pecot-tools-reject-', { hook: 'all' })
-const existingFile = (): string => workDirectory('report.json')
-
-beforeAll(() => {
-  writeFileSync(existingFile(), '{}\n')
-})
-
-afterAll(() => {
-  rmSync(workDirectory(), { recursive: true, force: true })
-})
-
 beforeEach(async () => {
   resetAwscliProbe()
   fakeAws.install()
@@ -112,66 +80,6 @@ async function expectSchemaError(
 
   return result.content.map(part => (part.type === 'text' ? part.text : '')).join('\n')
 }
-
-describe('S3 の方向（research R7）', () => {
-  it('取得元にローカルパスを渡すと invalid-input で拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-04')
-    const structured = await expectIsError('aws_s3_cp', {
-      s3_uri: '/var/data/report.json',
-      local_path: '/var/data/copy.json',
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('s3_uri')
-  })
-
-  it('書き出し先に S3 URI を渡すと invalid-input で拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-05')
-    const structured = await expectIsError('aws_s3_cp', {
-      s3_uri: 's3://example-bucket/report.json',
-      local_path: 's3://example-bucket/copy.json',
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('local_path')
-  })
-
-  it('s3api の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-05')
-    const structured = await expectIsError('aws_s3api_get_object', {
-      bucket: 'example-bucket',
-      key: 'report.json',
-      outfile: 'data/report.json',
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('absolute path')
-  })
-
-  it('s3api の書き出し先に S3 URI を渡すと、invalid-input で拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-05')
-    const structured = await expectIsError('aws_s3api_get_object', {
-      bucket: 'example-bucket',
-      key: 'report.json',
-      outfile: 's3://example-bucket/copy.json',
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('outfile')
-    expect(structured['detail']).toContain('s3://')
-  })
-
-  it('s3_cp の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-05')
-    const structured = await expectIsError('aws_s3_cp', {
-      s3_uri: 's3://example-bucket/report.json',
-      local_path: 'data/report.json',
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('local_path')
-  })
-})
 
 describe('Athena の変更系・複文（research R6）', () => {
   const NOT_ALLOWED: readonly (readonly [string, string])[] = [
@@ -266,11 +174,7 @@ describe('Athena の変更系・複文（research R6）', () => {
 describe('`-` 始まりの値（research R3）', () => {
   it('位置引数は `--flag=value` の逃がし先が無いので拒否する', async (context) => {
     await verifies(context, 'PT-COMMON-05')
-    const structured = await expectIsError('aws_s3api_get_object', {
-      bucket: 'example-bucket',
-      key: 'report.json',
-      outfile: '--endpoint-url',
-    })
+    const structured = await expectIsError('aws_s3_ls', { s3_uri: '--endpoint-url' })
 
     expect(structured['kind']).toBe('invalid-input')
     expect(structured['detail']).toContain('\'-\'')
@@ -389,91 +293,6 @@ describe('shorthand-list の項目値', () => {
   })
 })
 
-describe('既存ファイルの上書き（research R7 の Edge Case）', () => {
-  it('aws_s3_cp は overwrite 無しで既存の local_path を拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-02')
-    const structured = await expectIsError('aws_s3_cp', {
-      s3_uri: 's3://example-bucket/report.json',
-      local_path: existingFile(),
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('overwrite')
-  })
-
-  it('aws_s3api_get_object は overwrite 無しで既存の outfile を拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-02')
-    const structured = await expectIsError('aws_s3api_get_object', {
-      bucket: 'example-bucket',
-      key: 'report.json',
-      outfile: existingFile(),
-    })
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('overwrite')
-  })
-
-  it('overwrite: true なら既存でも実行する', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-06')
-    const result = await client().callTool({
-      name: 'aws_s3_cp',
-      arguments: {
-        s3_uri: 's3://example-bucket/report.json',
-        local_path: existingFile(),
-        overwrite: true,
-      },
-    })
-
-    expect(result.isError).toBeUndefined()
-    const structured = result.structuredContent
-    if (!isRecord(structured)) throw new Error('structuredContent がありません')
-    expect(structured['file']).toBe(existingFile())
-    expect(callLog().some(call => call[0] === 's3' && call[1] === 'cp' && call.includes(existingFile()))).toBe(true)
-  })
-
-  it.for([
-    {
-      name: 'aws_s3_cp',
-      args: () => ({
-        s3_uri: 's3://example-bucket/report.json',
-        local_path: workDirectory(),
-        overwrite: true,
-      }),
-      id: 'PT-AWS-S3-CP-03',
-    },
-    {
-      name: 'aws_s3api_get_object',
-      args: () => ({
-        bucket: 'example-bucket',
-        key: 'report.json',
-        outfile: workDirectory(),
-        overwrite: true,
-      }),
-      id: 'PT-AWS-S3API-GET-OBJECT-03',
-    },
-  ])('$name は書き出し先がディレクトリなら overwrite に依らず拒否する', async ({ name, args, id }, context) => {
-    await verifies(context, id)
-    // overwrite: true で通すと `aws s3 cp s3://b/k /dir` が /dir/k を書き、file に載る
-    // 書き出し先（/dir）と実体がずれる。
-    const structured = await expectIsError(name, args())
-
-    expect(structured['kind']).toBe('invalid-input')
-    expect(structured['detail']).toContain('must not be a directory')
-  })
-
-  it('書き出し先が存在しなければ実行する', async () => {
-    const result = await client().callTool({
-      name: 'aws_s3_cp',
-      arguments: {
-        s3_uri: 's3://example-bucket/report.json',
-        local_path: workDirectory('not-yet.json'),
-      },
-    })
-
-    expect(result.isError).toBeUndefined()
-  })
-})
-
 describe('排他指定', () => {
   it('log_stream_names と log_stream_name_prefix の併用を拒否する', async (context) => {
     await verifies(context, 'PT-AWS-LOGS-FILTER-LOG-EVENTS-02')
@@ -570,10 +389,7 @@ describe('inputSchema 段階で落ちる違反', () => {
     const notAllowed = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'DROP TABLE orders',
     })
-    const invalidInput = await expectIsError('aws_s3_cp', {
-      s3_uri: '/var/data/report.json',
-      local_path: '/var/data/copy.json',
-    })
+    const invalidInput = await expectIsError('aws_s3_ls', { s3_uri: '/var/data/' })
 
     expect(notAllowed['kind']).toBe('not-allowed')
     expect(invalidInput['kind']).toBe('invalid-input')
@@ -600,12 +416,6 @@ describe('許可リストの書式の規則', () => {
       tool: 'aws_rds_describe_events',
       args: { start_time: '2026-09-01T00:00:00' },
       ids: ['PT-COMMON-14', 'PT-AWS-RDS-DESCRIBE-EVENTS-03'],
-    },
-    {
-      name: 's3api の range が bytes= で始まらないとき',
-      tool: 'aws_s3api_get_object',
-      args: { bucket: 'example-bucket', key: 'report.json', outfile: '/var/data/out.bin', range: '0-1023' },
-      ids: ['PT-COMMON-14', 'PT-AWS-S3API-GET-OBJECT-04'],
     },
     {
       name: 's3 ls の s3_uri が s3:// で始まらないとき',

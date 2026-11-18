@@ -1,4 +1,4 @@
-// tools/list に載る 26 ツールの契約テスト。入力・出力・annotations の期待値は interface/generated.json が持つ。
+// tools/list に載る 24 ツールの契約テスト。入力・出力・annotations の期待値は interface/generated.json が持つ。
 // ここでは、generated.json に写らない性質と、全ツール共通の規約を確かめる。
 
 import { readFileSync } from 'node:fs'
@@ -53,7 +53,6 @@ const SUCCESS_REQUIRED: Readonly<Record<string, readonly (readonly string[])[]>>
   aws_sso_login: [['state', 'profile']],
   aws_sso_login_status: [['state']],
   aws_s3_ls: AWSCLI_OUTPUT_REQUIRED,
-  aws_s3_cp: AWSCLI_OUTPUT_REQUIRED,
   // 根拠は awscli 同梱の botocore のモデルで、ListSchedules の出力の shape が Schedules を required に持つ。
   aws_scheduler_list_schedules: [['Schedules'], ...AWSCLI_OUTPUT_REQUIRED],
 }
@@ -97,8 +96,8 @@ describe('MCP ツール契約 (tools/list)', () => {
   }
 
   it('tools/list のツール名の集合が generated.json の項目と一致する', () => {
-    // 26 はツールを足す人が直す値。generated.json を書き出し直しても、直し忘れはここで止まる。
-    expect(listed).toHaveLength(26)
+    // 24 はツールを足す人が直す値。generated.json を書き出し直しても、直し忘れはここで止まる。
+    expect(listed).toHaveLength(24)
     const listedNames = listed.map(tool => tool.name)
     const generatedNames = GENERATED_TOOLS.map(tool => tool.name)
 

@@ -19,7 +19,7 @@ const ENTRY: AllowlistEntry = {
 }
 
 /**
-contracts/mcp-tools.md の表のうち、awscli コマンドを包む 24 件を表の順で並べたもの。
+contracts/mcp-tools.md の表のうち、awscli コマンドを包む 22 件を表の順で並べたもの。
 
 契約表の先頭にある SSO の 2 件は許可リストに入れない。
 awscli を 1 回起動して出力を返す形ではなく、tests/integration/real-awscli.test.ts が全件を実 awscli へ通すため。
@@ -41,8 +41,6 @@ const CONTRACT_ORDER: readonly string[] = [
   'aws_athena_get_query_execution',
   'aws_athena_get_query_results',
   'aws_s3_ls',
-  'aws_s3_cp',
-  'aws_s3api_get_object',
   'aws_rds_describe_events',
   'aws_rds_describe_db_clusters',
   'aws_rds_describe_db_instances',
@@ -137,7 +135,7 @@ describe('ALLOWLIST', () => {
   it('高レベル s3 コマンドだけが JSON 出力を持たない', () => {
     const withoutJson = ALLOWLIST.filter(entry => !entry.jsonOutput).map(entry => entry.toolName)
 
-    expect(withoutJson).toEqual(['aws_s3_ls', 'aws_s3_cp'])
+    expect(withoutJson).toEqual(['aws_s3_ls'])
   })
 })
 

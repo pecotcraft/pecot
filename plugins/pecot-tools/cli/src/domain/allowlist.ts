@@ -38,8 +38,6 @@ export type InputKind
     | 'integer'
     | 'boolean'
     | 'enum'
-    | 'abs-path'
-    | 's3-uri'
     | 's3-list-uri'
     | 'shorthand'
     | 'shorthand-list'
@@ -69,7 +67,7 @@ export interface ShorthandElementPart {
 入力 1 項目の宣言。
 
 `awsFlag` を持つ項目は `--flag value`、`positional` を持つ項目は指定順の位置引数として渡す。
-どちらも持たない項目（`overwrite` 等）は検証だけに使い、awscli の引数には現れない。
+どちらも持たない項目（athena の `database` 等）は、そのままでは awscli の引数に現れない。
 */
 export interface InputSpec {
   readonly name: string
@@ -117,9 +115,9 @@ export interface AllowlistEntry {
   readonly toolName: string
   readonly service: string
   readonly subcommand: string
-  readonly kind: 'read' | 'fetch' | 'execute' | 'auth'
+  readonly kind: 'read' | 'execute' | 'auth'
   /**
-  `--output json` を付与するか（`s3 ls` / `s3 cp` は高レベルコマンドのため false）。
+  `--output json` を付与するか（`s3 ls` は高レベルコマンドのため false）。
   */
   readonly jsonOutput: boolean
   readonly pagination: 'none' | 'max-items' | 'limit-next-token'
@@ -527,44 +525,7 @@ export const S3_LS: AllowlistEntry = {
   ],
 }
 
-/**
-`s3 cp <s3_uri> <local_path>`。
-
-入力は「取得元は S3、書き出し先はローカル」の 2 項目に固定されている。
-そのため、アップロード方向は検証で弾くまでもなく表現できない（research R7）。
-*/
-export const S3_CP: AllowlistEntry = {
-  toolName: 'aws_s3_cp',
-  service: 's3',
-  subcommand: 'cp',
-  kind: 'fetch',
-  jsonOutput: false,
-  pagination: 'none',
-  inputs: [
-    { name: 's3_uri', kind: 's3-uri', required: true, positional: 0 },
-    { name: 'local_path', kind: 'abs-path', required: true, positional: 1 },
-    { name: 'overwrite', kind: 'boolean', required: false, default: false },
-  ],
-}
-
-export const S3API_GET_OBJECT: AllowlistEntry = {
-  toolName: 'aws_s3api_get_object',
-  service: 's3api',
-  subcommand: 'get-object',
-  kind: 'fetch',
-  jsonOutput: true,
-  pagination: 'none',
-  inputs: [
-    { name: 'bucket', kind: 'string', required: true, awsFlag: '--bucket' },
-    { name: 'key', kind: 'string', required: true, awsFlag: '--key' },
-    { name: 'outfile', kind: 'abs-path', required: true, positional: 0 },
-    { name: 'version_id', kind: 'string', required: false, awsFlag: '--version-id' },
-    { name: 'range', kind: 'string', required: false, awsFlag: '--range', pattern: /^bytes=/ },
-    { name: 'overwrite', kind: 'boolean', required: false, default: false },
-  ],
-}
-
-const S3_ENTRIES: readonly AllowlistEntry[] = [S3_LS, S3_CP, S3API_GET_OBJECT]
+const S3_ENTRIES: readonly AllowlistEntry[] = [S3_LS]
 
 /**
 イベントを引ける発生元の種別（`--source-type` の候補。awscli 2.36.40）。

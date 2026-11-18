@@ -106,8 +106,6 @@ SSO で認証するときは、開始と完了確認の 2 つのツールを順�
 | `aws_athena_get_query_execution` | `athena get-query-execution` | read | true | - |
 | `aws_athena_get_query_results` | `athena get-query-results` | read | true | max-items |
 | `aws_s3_ls` | `s3 ls` | read | true | - |
-| `aws_s3_cp` | `s3 cp <s3_uri> <local_path>` | fetch | false | - |
-| `aws_s3api_get_object` | `s3api get-object` | fetch | false | - |
 | `aws_rds_describe_events` | `rds describe-events` | read | true | max-items |
 | `aws_rds_describe_db_clusters` | `rds describe-db-clusters` | read | true | max-items |
 | `aws_rds_describe_db_instances` | `rds describe-db-instances` | read | true | max-items |

@@ -85,7 +85,7 @@ describe('buildArguments', () => {
   })
 
   it('jsonOutput が false でも --no-cli-pager は常に付ける', () => {
-    // 高レベルコマンド（s3 ls / s3 cp）は --output json を受け付けない。
+    // 高レベルコマンド（s3 ls）は --output json を受け付けない。
     expect(buildArguments(entryOf({ service: 's3', subcommand: 'ls', jsonOutput: false }), {})).toEqual([
       's3', 'ls', '--no-cli-pager',
     ])
@@ -121,17 +121,17 @@ describe('buildArguments', () => {
   it('位置引数を index 順にフラグより先へ置く', () => {
     // string-list の nargs は貪欲なので、位置引数を後ろに置くと awscli の argparse が取り違える。
     const entry = entryOf({
-      service: 's3api',
-      subcommand: 'get-object',
+      service: 'svc',
+      subcommand: 'op',
       inputs: [
-        bareInput({ name: 'outfile', kind: 'abs-path', positional: 1 }),
+        bareInput({ name: 'second', positional: 1 }),
         inputOf({ name: 'bucket', awsFlag: '--bucket' }),
         bareInput({ name: 'first', positional: 0 }),
       ],
     })
 
-    expect(buildArguments(entry, { outfile: '/var/data/out.json', bucket: 'b', first: 'x' })).toEqual([
-      's3api', 'get-object', 'x', '/var/data/out.json', '--bucket', 'b', '--output', 'json', '--no-cli-pager',
+    expect(buildArguments(entry, { second: 'y', bucket: 'b', first: 'x' })).toEqual([
+      'svc', 'op', 'x', 'y', '--bucket', 'b', '--output', 'json', '--no-cli-pager',
     ])
   })
 
@@ -350,21 +350,6 @@ describe('validateInput', () => {
 
     expect(validateInput(entry, { names: ['ok', '--debug'] })?.message).toContain('\'-\'')
     expect(validateInput(entry, { names: ['ok', 'fine'] })).toBeUndefined()
-  })
-
-  it('abs-path は絶対パスだけを受ける', () => {
-    const entry = entryOf({ inputs: [inputOf({ name: 'outfile', kind: 'abs-path' })] })
-
-    expect(validateInput(entry, { outfile: '/var/data/a.json' })).toBeUndefined()
-    expect(validateInput(entry, { outfile: 'relative/a.json' })?.message).toContain('must be an absolute path')
-  })
-
-  it('s3-uri はバケットとキーの双方を求める', () => {
-    const entry = entryOf({ inputs: [inputOf({ name: 's3_uri', kind: 's3-uri' })] })
-
-    expect(validateInput(entry, { s3_uri: 's3://bucket/key.txt' })).toBeUndefined()
-    expect(validateInput(entry, { s3_uri: 's3://bucket' })?.message).toContain('s3://')
-    expect(validateInput(entry, { s3_uri: '/local/path' })?.message).toContain('s3://')
   })
 
   it('integer は整数と min / max を見る', () => {
