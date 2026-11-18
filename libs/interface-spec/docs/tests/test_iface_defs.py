@@ -168,20 +168,29 @@ def test_body_follows_page_section_order(full: Built) -> None:
     assert description < content.index("Skip the check") < exit_status
 
 
-SECTION_TITLES = ["使用例", "前提条件", "引数", "出力", "エラー", "環境変数"]
+SECTION_TITLES = ["使用例", "引数", "出力", "エラー"]
 
 
 def _heading(title: str) -> str:
     return f"**{title}**"
 
 
-def test_every_section_heading_appears_in_order_even_when_empty(full: Built) -> None:
-    for need_id in ("SM-ONE", "SM-TWO"):
-        content: str = full.needs[need_id]["content"]
-        positions = [content.index(_heading(title)) for title in SECTION_TITLES]
-        assert positions == sorted(positions)
+def test_sections_appear_in_order_and_empty_ones_are_left_out(full: Built) -> None:
+    content: str = full.needs["SM-ONE"]["content"]
+    positions = [content.index(_heading(title)) for title in SECTION_TITLES]
+    assert positions == sorted(positions)
     body: str = full.needs["SM-TWO"]["content"]
-    assert f"{_heading('使用例')}\n\nありません。" in body.replace("\r", "")
+    assert "ありません。" not in body
+    for title in ("前提条件", "環境変数", "使用例"):
+        assert _heading(title) not in body, title
+
+
+def test_prerequisites_join_the_description_and_environment_is_not_shown(full: Built) -> None:
+    content: str = full.needs["SM-ONE"]["content"]
+    assert content.index("Stops at the first failure.") < content.index("Needs the sample runtime.")
+    assert content.index("Needs the sample runtime.") < content.index(_heading("使用例"))
+    assert "SAMPLE_HOME" not in content
+    assert _heading("前提条件") not in content and _heading("環境変数") not in content
 
 
 def test_page_headings_run_through_requirements_in_one_order(
@@ -189,11 +198,15 @@ def test_page_headings_run_through_requirements_in_one_order(
 ) -> None:
     built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
-    # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、実物の全ページで「機能要件」が付き、並びは 1 通りになる。
+    # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、どのページも「機能要件」で終わる。
     for page in ("one-run", "sample_two"):
         html = built.html(f"_generated/sample/{page}.html")
         headings = re.findall(r"<h2>(.*?)<a ", html, flags=re.S)
-        assert headings == [*SECTION_TITLES, "機能要件"], page
+        present = [t for t in SECTION_TITLES if t in headings]
+        assert headings == [*present, "機能要件"], page
+    assert "使用例" in re.findall(
+        r"<h2>(.*?)<a ", built.html("_generated/sample/one-run.html"), flags=re.S
+    )
 
 
 def test_failures_table_always_has_three_columns(full: Built) -> None:
@@ -202,7 +215,7 @@ def test_failures_table_always_has_three_columns(full: Built) -> None:
     assert "target-missing" in filled
     empty: str = full.needs["SM-TWO"]["content"]
     assert "エラー名" not in empty
-    assert f"{_heading('エラー')}\n\nありません。" in empty.replace("\r", "")
+    assert _heading("エラー") not in empty
 
 
 def test_every_table_is_wrapped_in_a_scroll_region(full: Built) -> None:

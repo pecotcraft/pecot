@@ -312,7 +312,6 @@ def _fields(pairs: list[tuple[str, object]]) -> list[str]:
 
 
 _MISSING = object()
-_NONE = "ありません。"
 
 
 def _get(data: dict[str, Any], dotted: str) -> object:
@@ -493,27 +492,20 @@ def _failures(entry: dict[str, Any]) -> tuple[str, list[str]]:
     return "エラー", lines
 
 
-def _prerequisites(entry: dict[str, Any]) -> list[str]:
-    items = cast("list[str]", entry.get("prerequisites", []))
-    return [*(f"- {_esc(text)}" for text in items), ""] if items else []
-
-
-def _environment(entry: dict[str, Any]) -> list[str]:
-    env = cast("list[dict[str, str]]", entry.get("environment", []))
-    return _table("", ["変数名", "説明"], [[e["name"], e["effect"]] for e in env])
-
-
 def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
-    """項目のページの節。見出しは、いつも同じ順で返す。中身の無い節は「ありません。」の 1 行にする。
+    """項目のページの節。見出しは、いつも同じ順で返す。中身の無い節は出さない（Azure CLI・AWS CLI のリファレンスと同じ）。
+
+    前提条件は、冒頭の説明の後ろに文として足す。コマンドのリファレンスは、前提条件の節を持たないため。
+    定義書の environment は、使う人が設定するものではないので出さない。
 
     構文と引数の書き方は、Azure CLI のリファレンスに合わせる。
     見出しが空の節は、冒頭の説明と構文で、見出しを付けずに出す。
     """
-    details = [
-        line
-        for text in cast("list[str]", entry.get("details", []))
-        for line in (_esc(text, link=True), "")
+    texts = [
+        *(_esc(text, link=True) for text in cast("list[str]", entry.get("details", []))),
+        *(_esc(text) for text in cast("list[str]", entry.get("prerequisites", []))),
     ]
+    details = [line for text in texts for line in (text, "")]
     constraints = cast("list[object]", entry.get("constraints", []))
     arguments = _parameters(entry)
     if arguments and constraints:
@@ -522,17 +514,11 @@ def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
     sections = [
         ("", details),
         ("使用例", _examples(entry)),
-        ("前提条件", _prerequisites(entry)),
         ("引数", arguments),
         ("出力", _output(entry)),
         (failure_title, failures),
-        ("環境変数", _environment(entry)),
     ]
-    return [
-        (title, lines or ([_NONE, ""] if title else []))
-        for title, lines in sections
-        if title or lines
-    ]
+    return [(title, lines) for title, lines in sections if lines]
 
 
 def render_body(sections: list[tuple[str, list[str]]]) -> list[str]:
