@@ -171,6 +171,16 @@ claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 
 起動後に `/mcp` を開き、`plugin:pecot-w:pecot-workflow` が 1 つだけであることを確かめます。2 つあるときは、インストール済みの pecot-w を `/plugin` で無効にしてから起動し直します。
 
+#### Remote Control
+
+`claude remote-control` は `--plugin-dir` を受け付けません。作業ツリーのルートで次を打つと、その作業ツリーの pecot-w・pecot-t・pecot-v を読み込んで起動します。後ろのオプションは `claude remote-control` にそのまま渡ります。
+
+```bash
+.devcontainer/scripts/pecot-rc.sh --spawn worktree
+```
+
+プラグインは、環境変数 `CLAUDE_CODE_PLUGIN_DIRS` で渡します。マーケットプレイスの登録とインストール済みのプラグインは変えないので、worktree ごとに別の版で起動できます。
+
 #### GitHub Copilot CLI
 
 ```bash
