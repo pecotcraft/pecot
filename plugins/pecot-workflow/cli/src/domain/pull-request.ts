@@ -407,6 +407,38 @@ diverged の直し方。fast-forward でない push は拒まれるので、取�
 export const DIVERGED_FIX_HINT: HintedText = hinted`${PULL_REBASE_COMMAND}, or ${FORCE_PUSH_COMMAND} if you rewrote pushed commits`
 
 /**
+PR の head。`owner:branch` は、同じネットワークの別のリポ（fork）のブランチ（GitHub の Pulls API の head の形）
+*/
+export interface HeadReference {
+  /**
+  fork の owner。`:` の無い head では undefined
+  */
+  readonly owner: string | undefined
+  readonly branch: string
+}
+
+/**
+head を owner とブランチ名に分ける。git のブランチ名に `:` は使えないので、最初の `:` で分ける。
+owner かブランチ名が空なら undefined
+*/
+export function parseHeadReference(head: string): HeadReference | undefined {
+  const index = head.indexOf(':')
+  if (index === -1) return head === '' ? undefined : { owner: undefined, branch: head }
+  const owner = head.slice(0, index)
+  const branch = head.slice(index + 1)
+  return owner === '' || branch === '' ? undefined : { owner, branch }
+}
+
+/**
+fork のブランチの push の直し方。上流の無いブランチでも fork へ向くよう、remote とブランチ名を明示する
+*/
+export function forkPushFixHint(remote: string, branch: string, isDiverged: boolean): HintedText {
+  return isDiverged
+    ? hinted`${PULL_REBASE_COMMAND} ${remote} ${branch}, or ${FORCE_PUSH_COMMAND} ${remote} ${branch} if you rewrote pushed commits`
+    : hinted`git push ${remote} ${branch}`
+}
+
+/**
 積んだブランチが diverged のときの直し方。載せ直しが要るか、載せ直し済みで push と記録の書き直しが残れば pr restack、
 要らなければ diverged の直し方、決められなければ pr restack --check
 */

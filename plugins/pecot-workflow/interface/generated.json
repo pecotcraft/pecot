@@ -2673,7 +2673,7 @@
           },
           "head": {
             "type": "string",
-            "description": "Head branch (default: the current branch)"
+            "description": "Head branch, or owner:branch for a branch of a fork (default: the current branch)"
           },
           "message": {
             "type": "string",
@@ -2779,7 +2779,7 @@
               "maximum": 9007199254740991
             },
             "head": {
-              "description": "Head branch of the PR (omitted on prepare)",
+              "description": "Head branch of the PR, owner:branch for a branch of a fork (omitted on prepare)",
               "type": "string"
             },
             "base": {

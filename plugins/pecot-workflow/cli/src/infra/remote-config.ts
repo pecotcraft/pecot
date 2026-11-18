@@ -1,4 +1,5 @@
 // git の remote のリポから、プロジェクトの設定を選ぶ。origin を先に、残りの remote を git remote の順に当てる
+import type { RemoteLocation } from '../domain/git-url.js'
 import { ValidationFailure } from '../domain/python-format.js'
 import { createRepositoryReference } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
@@ -24,11 +25,26 @@ function repositoryOf(cwd: string, remote: string): RepositoryReference | undefi
   }
 }
 
-function readRemoteRepositories(cwd: string): readonly { readonly remote: string, readonly repository: RepositoryReference }[] {
+function orderedRemotes(cwd: string): readonly string[] {
   const remotes = listRemotes(cwd) ?? []
-  const ordered = remotes.includes('origin') ? ['origin', ...remotes.filter(remote => remote !== 'origin')] : remotes
+  return remotes.includes('origin') ? ['origin', ...remotes.filter(remote => remote !== 'origin')] : remotes
+}
+
+/**
+URL を読める remote と、その host・owner・repository。origin を先に、残りを git remote の順に並べる
+*/
+export function readRemoteLocations(cwd: string): readonly { readonly remote: string, readonly location: RemoteLocation }[] {
+  const read: { readonly remote: string, readonly location: RemoteLocation }[] = []
+  for (const remote of orderedRemotes(cwd)) {
+    const location = remoteRepository(cwd, remote)
+    if (location !== undefined) read.push({ remote, location })
+  }
+  return read
+}
+
+function readRemoteRepositories(cwd: string): readonly { readonly remote: string, readonly repository: RepositoryReference }[] {
   const read: { readonly remote: string, readonly repository: RepositoryReference }[] = []
-  for (const remote of ordered) {
+  for (const remote of orderedRemotes(cwd)) {
     const repository = repositoryOf(cwd, remote)
     if (repository !== undefined) read.push({ remote, repository })
   }

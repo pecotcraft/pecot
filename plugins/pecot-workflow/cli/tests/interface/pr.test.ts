@@ -140,6 +140,21 @@ function lowerPullRequests(nodes: readonly Record<string, unknown>[], times = 1)
   return graphql('ListPullRequestsByHead', data, { variables: { headRefName: LOWER }, times })
 }
 
+const FORK_OWNER = 'someone'
+const FORK_HEAD = `${FORK_OWNER}:${BRANCH}`
+
+// 偽の ssh は remotes/<owner>/<repo>.git に向けるので、そこに fork の bare を置き、fork の名前で足す
+function addForkRemote(workspace: Readonly<Workspace>, host = HOST): void {
+  const bare = path.join(workspace.root, 'remotes', FORK_OWNER, `${REPOSITORY}.git`)
+  mkdirSync(bare, { recursive: true })
+  workspace.git(['init', '-q', '--bare', bare])
+  workspace.git(['remote', 'add', 'fork', `git@${host}:${FORK_OWNER}/${REPOSITORY}.git`])
+}
+
+function forkArguments(): string[] {
+  return messageArguments(['--head', FORK_HEAD], BODY_WITHOUT_REFERENCE)
+}
+
 function commitFile(workspace: Readonly<Workspace>, file: string, content: string): void {
   writeFileSync(path.join(workspace.directory, file), content)
   workspace.git(['add', file])
@@ -745,6 +760,80 @@ describe('pr create', () => {
     const result = await workspace.run(messageArguments())
     expect(result.code).toBe(2)
     expect(result.stderr).toBe('error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n')
+  })
+
+  it('owner:branch の head のブランチが owner の fork に push 済みなら、その head で PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-80')
+    const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+    addForkRemote(workspace)
+    workspace.git(['push', '-q', 'fork', BRANCH])
+    const result = await workspace.run(forkArguments())
+    expect(result.code).toBe(0)
+    expect(postedBody(workspace)['head']).toBe(FORK_HEAD)
+  })
+
+  it('owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-84')
+    const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+    addForkRemote(workspace)
+    workspace.git(['push', '-q', 'fork', BRANCH])
+    await workspace.run(forkArguments())
+    expect(String(postedBody(workspace)['body']).endsWith('Closes #12')).toBe(true)
+  })
+
+  it.for([
+    { name: 'fork に無い', scene: 'absent', expected: 'fork/feat/demo/12 does not exist (not pushed) (fix: git push fork feat/demo/12)' },
+    { name: '未 push のコミットがある', scene: 'ahead', expected: '1 unpushed commits (fix: git push fork feat/demo/12)' },
+    { name: 'fork とずれた', scene: 'diverged', expected: 'diverged: local is 1 commits ahead, fork/feat/demo/12 is 1 ahead (fix: git pull --rebase fork feat/demo/12, or git push --force-with-lease fork feat/demo/12 if you rewrote pushed commits)' },
+  ])('owner:branch の head のブランチが $name と、remote とブランチ名を示した直し方を出して終了コード 2 で止まる', async (row, context) => {
+    await verifies(context, 'PW-PR-CREATE-81')
+    const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+    addForkRemote(workspace)
+    if (row.scene !== 'absent') workspace.git(['push', '-q', 'fork', BRANCH])
+    if (row.scene === 'ahead') commitFile(workspace, 'ahead.txt', 'ahead\n')
+    else if (row.scene === 'diverged') workspace.git(['commit', '-q', '--amend', '-m', 'amended'])
+    const result = await workspace.run(forkArguments())
+    expect(result.code).toBe(2)
+    expect(lines(result.stderr)).toContain(`warning: Push Status: ${row.expected}`)
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
+  })
+
+  it.for([
+    { name: 'fork の remote が無い', host: undefined },
+    { name: 'owner の remote が別のホストにしか無い', host: 'github.com' },
+  ])('owner:branch の head で $name と、owner と remote の足し方を出して終了コード 2 で止まる', async (row, context) => {
+    await verifies(context, 'PW-PR-CREATE-82')
+    const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+    if (row.host !== undefined) addForkRemote(workspace, row.host)
+    const result = await workspace.run(forkArguments())
+    expect(result.code).toBe(2)
+    expect(lines(result.stderr)).toContain(`warning: Push Status: no git remote points to a repository of someone on ${HOST} (fix: git remote add fork https://${HOST}/someone/demo.git)`)
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
+  })
+
+  it.for([':feat/demo/12', 'someone:'])('head が %s のように owner かブランチ名を欠くと、終了コード 1 で止まる', async (head, context) => {
+    await verifies(context, 'PW-PR-CREATE-83')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    const result = await workspace.run(messageArguments(['--head', head]))
+    expect(result).toMatchObject({ code: 1, stderr: `error: invalid head: ${head} (expected: branch or owner:branch)\n` })
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
+  })
+
+  it('--head で今と別のブランチを指すと、そのブランチの push を確かめる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-85')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    workspace.git(['branch', 'feat/demo/other'])
+    const result = await workspace.run(messageArguments(['--head', 'feat/demo/other']))
+    expect(result.code).toBe(2)
+    expect(lines(result.stderr)).toContain('warning: Push Status: origin/feat/demo/other does not exist (not pushed) (fix: git push)')
+  })
+
+  it('owner が作り先と同じ head は、作り先のリポの remote で push を確かめる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-86')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    const result = await workspace.run(messageArguments(['--head', `acme:${BRANCH}`]))
+    expect(result.code).toBe(0)
+    expect(postedBody(workspace)['head']).toBe(`acme:${BRANCH}`)
   })
 
   it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row, context) => {
@@ -1487,6 +1576,14 @@ describe('pr create', () => {
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
       expect(result.structured).toEqual(CREATED)
+    })
+
+    it('head に owner:branch を渡すと、fork のブランチで PR を作り、その head を返す', async () => {
+      const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+      addForkRemote(workspace)
+      workspace.git(['push', '-q', 'fork', BRANCH])
+      const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, head: FORK_HEAD })
+      expect(result.structured).toEqual({ ...CREATED, head: FORK_HEAD })
     })
 
     it('待っている Issue の列を動かすと、その Issue を moves に返す', async () => {
