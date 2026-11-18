@@ -197,8 +197,8 @@ jobs:
       CHECKS_LANE: ${{ matrix.lane }}
       CHECKS_SLUG: ${{ matrix.slug }}
       PECOT_CI_NX_CACHE: /workspaces/base/pecot/.pecot/tmp/ci/nx-remote
-      # Chromium を使うテストは pecot-visual だけにある。別のレーンに足すときは、この条件も直す。
-      PECOT_CI_BROWSER: ${{ startsWith(matrix.lane, 'pecot-visual:') && '1' || '0' }}
+      # Chromium を使うテストは、pecot-visual と interface-spec:test-site にある。別のレーンに足すときは、この条件も直す。
+      PECOT_CI_BROWSER: ${{ (startsWith(matrix.lane, 'pecot-visual:') || matrix.lane == 'interface-spec:test-site') && '1' || '0' }}
       # 共通の名前は dev-container.sh が渡す。ここには job 固有の名前だけを書く。
       DEVCONTAINER_ENV: |
         CHECKS_LANE

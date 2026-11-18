@@ -31,6 +31,7 @@
 .pre-commit-config.yaml
 .textlintignore
 README.md
+libs/interface-spec/docs/_static/pecot.css
 libs/interface-spec/package.json
 libs/interface-spec/src/cli.ts
 libs/interface-spec/src/domain/diff.ts

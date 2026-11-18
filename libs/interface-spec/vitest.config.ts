@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
-    exclude: ['node_modules/**', 'tests/fixtures/**'],
+    exclude: ['node_modules/**', 'tests/fixtures/**', 'tests/site/**'],
     setupFiles: ['src/vitest/unique-titles.ts'],
     // CI の 4 CPU の runner で、既定の 5 秒を超えたテストがあった（#131）。
     testTimeout: 30_000,

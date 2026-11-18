@@ -86,7 +86,8 @@
       "executor": "nx:noop",
       "cache": false,
       "dependsOn": [
-        "test-unit"
+        "test-unit",
+        "test-site"
       ],
       "metadata": {
         "description": "CI と manual の stage の nx-affected-tests が起動するターゲット。レーン（test-*）を dependsOn で束ねる。"
@@ -111,6 +112,35 @@
       },
       "options": {
         "command": "pnpm exec vitest run --coverage && uv run --locked --project docs pytest docs/tests -q",
+        "cwd": "libs/interface-spec"
+      }
+    },
+    "test-site": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/docs/**/*",
+        "!{projectRoot}/docs/_build/**/*",
+        "!{projectRoot}/docs/.venv/**/*",
+        "!{projectRoot}/docs/_generated/**/*",
+        "!{projectRoot}/docs/tests/**/*",
+        "{projectRoot}/tests/site/**/*",
+        "{projectRoot}/vitest.site.config.ts",
+        "{projectRoot}/package.json",
+        "{projectRoot}/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/plugins/*/interface/generated.json",
+        "{workspaceRoot}/plugins/*/interface/authored.yaml",
+        "{workspaceRoot}/.github/assets/**/*",
+        "runtime",
+        "env"
+      ],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "定義書のサイトをビルドし、Chromium で全ページを開いて見た目の崩れ（目次の無いページの右の空欄・見出しの ¶・幅 390px のはみ出し）を測る。Chromium は pecot-visual と同じ playwright の版のものを使う。"
+      },
+      "options": {
+        "command": "pnpm exec vitest run --config vitest.site.config.ts",
         "cwd": "libs/interface-spec"
       }
     },

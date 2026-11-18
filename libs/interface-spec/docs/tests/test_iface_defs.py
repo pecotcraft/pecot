@@ -211,6 +211,17 @@ def test_failures_table_always_has_three_columns(full: Built) -> None:
     assert f"{_heading('エラー')}\n\nありません。" in empty.replace("\r", "")
 
 
+def test_every_table_is_wrapped_in_a_scroll_region(full: Built) -> None:
+    html = full.html()
+    tables = html.count("<table")
+    assert tables > 0
+    # テーマの後処理（BeautifulSoup）が属性の順を並べ替えるので、順を問わずに見る。
+    # 表の id の目印（空の span）が、包みと表の間に入ることがある。
+    wrappers = re.findall(r"<div([^>]*)>\s*(?:<span[^>]*></span>\s*)*<table", html)
+    expected = ['class="pecot-table-scroll"', 'role="region"', 'tabindex="0"', 'aria-label="']
+    assert len([w for w in wrappers if all(a in w for a in expected)]) == tables
+
+
 def test_outcomes(full: Built) -> None:
     # レーンがそろっているので、つながるケースが 0 件の項目は no-test、すべて skipped の項目は skipped。
     assert outcomes_of(full) == {
