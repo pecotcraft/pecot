@@ -13,7 +13,9 @@ import {
   formatReviewsMarkdown,
   formatReviewThreadsMarkdown,
   hasIssueReference,
+  forkPushFixHint,
   isReleasePullRequest,
+  parseHeadReference,
   pickLowerPullRequest,
   pushFixHintOf,
   SCREENSHOT_MISSING_ERROR,
@@ -335,6 +337,28 @@ describe('hasStatusChanges と hasStashEntries', () => {
     ['stash@{0}: WIP', true],
   ])('hasStashEntries(%j) は %s', (list, expected) => {
     expect(hasStashEntries(list)).toBe(expected)
+  })
+})
+
+describe('parseHeadReference', () => {
+  it.for([
+    { head: 'feat/x/12', expected: { owner: undefined, branch: 'feat/x/12' } },
+    { head: 'someone:feat/x/12', expected: { owner: 'someone', branch: 'feat/x/12' } },
+    { head: ':feat/x/12', expected: undefined },
+    { head: 'someone:', expected: undefined },
+    { head: '', expected: undefined },
+  ])('head が $head なら、$expected に分ける', ({ head, expected }) => {
+    expect(parseHeadReference(head)).toEqual(expected)
+  })
+})
+
+describe('forkPushFixHint', () => {
+  it('ずれていなければ、remote とブランチ名を付けた git push を案内する', () => {
+    expect(formatHinted(forkPushFixHint('fork', 'feat/x', false), 'cli')).toBe('git push fork feat/x')
+  })
+
+  it('ずれていれば、remote とブランチ名を付けた取り込みか lease 付きの上書きを案内する', () => {
+    expect(formatHinted(forkPushFixHint('fork', 'feat/x', true), 'cli')).toBe('git pull --rebase fork feat/x, or git push --force-with-lease fork feat/x if you rewrote pushed commits')
   })
 })
 

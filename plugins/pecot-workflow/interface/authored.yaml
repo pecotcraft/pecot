@@ -2620,7 +2620,8 @@ entries:
         - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
         - In a repository whose release type is nx, also stops with exit status 3 when the title scope differs from the scope of the changed nx projects.
         - "For a stacked base, the changed files of the scope come from the diff between the commit of the base record and the head when the PR of the layer below is merged, and from the diff against the branch of the layer below while that PR is open. The scope hint of --prepare comes from the commit of the record."
-        - Unless --dry-run is given, runs the same checks as pr check on the current directory and stops with exit status 2 when they find a warning. The fix of the Push Status warning on a stacked branch that has diverged is decided as in pr check.
+        - Unless --dry-run is given, runs the same checks as pr check on the current directory and stops with exit status 2 when they find a warning. The Push Status check looks at the head branch. The fix of the Push Status warning on a stacked branch that has diverged is decided as in pr check.
+        - "A head of the form owner:branch names a branch of a fork. Its push is checked on the git remote that points to a repository of that owner on the host of the config, and the fix names that remote and the branch. When the owner is the owner of the target repository, only the remote of the target repository is checked; a fork in the same organization is not supported."
         - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
         - "With --dry-run and an open PR of the layer below, also writes the line dry-run: would add the new PR to the stack of PR #<below>."
         - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
@@ -2633,7 +2634,7 @@ entries:
         - run: 'pecot pr create -m "<body>" -t "feat: add a report" -b develop -r example-org/my-repo'
           note: Create a PR from the command line.
       default_notes:
-        head: The current branch. The related Issue is the number that ends the head branch name.
+        head: The current branch. owner:branch names a branch of a fork. The related Issue is the number that ends the branch name.
         repo: With -m, the repository of the git remote that points to a repository in a project config, checking origin first. With a file, the repository in the front matter.
         project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: PR（プルリクエスト）を作ります。
@@ -2642,7 +2643,7 @@ entries:
       draft: 'ドラフトの PR として作るかどうかです。'
       dry_run: '検証だけを行うかどうかです。事前の確認を飛ばし、PR は作りません。'
       file: 'フロントマター付きの Markdown ファイルのパスです。'
-      head: 'head ブランチです。'
+      head: 'head ブランチです。fork のブランチは `owner:branch` の形で渡します。'
       message: 'PR の本文です。コマンドラインから直接渡します。'
       no_issue_ref: '関連する Issue の自動の設定を飛ばすかどうかです。ブランチ名から番号を取り出さず、本文へ足さず、検証もしません。'
       prepare: 'テンプレートを作業用のディレクトリにコピーするかどうかです。'
@@ -2802,7 +2803,7 @@ entries:
     prerequisites:
       - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `--project` で選びます。'
       - 'ホストの GitHub トークンが要ります。'
-      - 'head ブランチを push 済みにし、作業ツリーの変更を無くしておきます。'
+      - 'head ブランチを push 済みにし、作業ツリーの変更を無くしておきます。fork のブランチは、その owner の fork を指す remote に push しておきます。'
     idempotent: false
     examples:
       - run: pecot pr create --prepare
@@ -2812,7 +2813,7 @@ entries:
       - run: "pecot pr create -m \"<body>\" -t \"feat: add a report\" -b develop -r example-org/my-repo"
         note: 'コマンドラインから PR を作ります。'
     default_notes:
-      head: '省くと、今のブランチです。関連する Issue は、head ブランチ名の末尾の番号の Issue です。'
+      head: '省くと、今のブランチです。`owner:branch` は fork のブランチです。関連する Issue は、ブランチ名の末尾の番号の Issue です。'
       repo: '省くと、`-m` では、プロジェクトの設定にあるリポジトリを指す remote（`origin` を先に見ます）のリポジトリです。ファイルでは、フロントマターのリポジトリです。'
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
@@ -3047,6 +3048,27 @@ entries:
       - id: PW-PR-CREATE-79
         pattern: unwanted
         statement: 'もし作業中の Issue の種類を GitHub から読めないなら、`--prepare` では `Closes` を空のままにし、`warning` の行を出して、テンプレのコピーを書きます'
+      - id: PW-PR-CREATE-80
+        pattern: event
+        statement: '`owner:branch` の head を渡すと、そのブランチが owner の fork を指す remote に push 済みのとき、その head で PR を作ります'
+      - id: PW-PR-CREATE-81
+        pattern: unwanted
+        statement: 'もし `owner:branch` の head のブランチが fork に無いか、fork とずれているなら、remote とブランチ名を示した直し方を出し、PR を作らずに終了コード 2 で止まります'
+      - id: PW-PR-CREATE-82
+        pattern: unwanted
+        statement: 'もし設定のホストに、`owner:branch` の owner の fork を指す remote が無いなら、`git remote add` の直し方を出して、終了コード 2 で止まります'
+      - id: PW-PR-CREATE-83
+        pattern: unwanted
+        statement: 'もし head の owner かブランチ名が空なら、PR を作らずに終了コード 1 で止まります'
+      - id: PW-PR-CREATE-84
+        pattern: event
+        statement: '`owner:branch` の head を渡すと、ブランチ名の末尾の番号の `Closes` を本文に足します'
+      - id: PW-PR-CREATE-85
+        pattern: event
+        statement: '`--head` で今と別のブランチを指すと、PR を作る前に、そのブランチの push を確かめます'
+      - id: PW-PR-CREATE-86
+        pattern: event
+        statement: 'head の owner に作り先のリポの owner を書くと、作り先のリポを指す remote で push を確かめます'
   PW-PR-MERGE:
     help:
       details:

@@ -19,8 +19,8 @@ import type { RemoteLocation } from '../domain/git-url.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
 import { jsonField } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
-import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBase, describeBaseStop, describePushStatus, DIVERGED_FIX_HINT, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, pickLowerPullRequest, pushFixHintOf, validatePullRequestContent } from '../domain/pull-request.js'
-import type { PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
+import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBase, describeBaseStop, describePushStatus, DIVERGED_FIX_HINT, forkPushFixHint, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, parseHeadReference, pickLowerPullRequest, pushFixHintOf, validatePullRequestContent } from '../domain/pull-request.js'
+import type { HeadReference, PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { RESTACK_PATH } from '../domain/restack.js'
@@ -42,7 +42,7 @@ import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
-import { findConfigForRemotes } from '../infra/remote-config.js'
+import { findConfigForRemotes, readRemoteLocations } from '../infra/remote-config.js'
 import { kindOfFailure } from './failure.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
@@ -163,6 +163,10 @@ interface TitleScopeQuery {
   readonly title: string
   readonly base: string
   readonly head: string
+  /**
+  差分を求める git の参照。fork の head（`owner:branch`）ではブランチ名の部分
+  */
+  readonly headBranch: string
   readonly directory: string
   readonly template: string
   readonly developBranch: string | undefined
@@ -175,7 +179,7 @@ async function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<
   if (isReleasePullRequest(template, base, head, developBranch, releaseBranch)) return []
   const target = nxScopeTarget(config, owner, repository, base, directory, query.stacked)
   if (target === undefined) return []
-  const expected = await expectedTitleScope(target, head, out)
+  const expected = await expectedTitleScope(target, query.headBranch, out)
   if (expected === undefined || expected.length === 0) return []
   const given = parseTitleScope(title)
   if (given !== undefined && new Set(given).size === new Set(expected).size && given.every(scope => expected.includes(scope))) return []
@@ -188,7 +192,7 @@ async function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<
 const PR_CREATE_OUTPUT = z.strictObject({
   url: z.string().optional().describe('URL of the created PR (omitted on dry_run and prepare)'),
   number: z.int().optional().describe('Number of the created PR (omitted on dry_run and prepare, or when the response has none)'),
-  head: z.string().optional().describe('Head branch of the PR (omitted on prepare)'),
+  head: z.string().optional().describe('Head branch of the PR, owner:branch for a branch of a fork (omitted on prepare)'),
   base: z.string().optional().describe('Base branch of the PR. On prepare, the base filled into the draft (omitted when it was not filled)'),
   title: z.string().optional().describe('Title of the PR (omitted on prepare)'),
   inReview: z.int().optional().describe('Issue number whose status was set to In Review (omitted when not set)'),
@@ -267,6 +271,10 @@ function resolveHeadBranch(head: string | undefined, directory: string, out: Rea
   return current === undefined || current === '' ? stopWith(out, 'cannot determine the head branch', 'git-unresolved') : current
 }
 
+function requireHeadReference(head: string, out: Readonly<Output>): HeadReference {
+  return parseHeadReference(head) ?? stopWith(out, `invalid head: ${head} (expected: branch or owner:branch)`, 'invalid-input')
+}
+
 async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
   try {
     const kind = await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber)
@@ -291,6 +299,7 @@ interface PullRequestDraft {
   readonly title: string
   readonly body: string
   readonly head: string
+  readonly headReference: HeadReference
   readonly base: string
   readonly isDraft: boolean
   readonly isRelease: boolean
@@ -387,10 +396,49 @@ interface PreflightBase {
   readonly lowerPullRequest: KnownLowerPullRequest | undefined
 }
 
-async function runPreflightChecksOrExit(directory: string, base: Readonly<PreflightBase>, config: Readonly<ProjectConfig>, client: () => GitHubClient, out: Readonly<Output>): Promise<void> {
+function isSameName(left: string, right: string): boolean {
+  return left.toLowerCase() === right.toLowerCase()
+}
+
+// owner のある head は、host と owner の合う remote。owner が作り先と同じなら、作り先そのものを指す remote だけ（同じ org の fork は head_repo が要るので扱わない）
+function pushRemoteFor(head: Readonly<HeadReference>, target: RepositoryReference, host: string, directory: string, primary: string): string | undefined {
+  const { owner } = head
+  if (owner === undefined) return primary
+  const isTargetOwner = isSameName(owner, target.owner)
+  return readRemoteLocations(directory).find(({ location }) =>
+    isSameName(location.host, host) && isSameName(location.owner, owner) && (!isTargetOwner || isSameName(location.repository, target.repository)),
+  )?.remote
+}
+
+function hasLocalBranch(directory: string, branch: string): boolean {
+  return gitStdout(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], { cwd: directory }) !== undefined
+}
+
+interface PushCheck {
+  readonly push: PushStatus
+  readonly fixHint: HintedText | undefined
+}
+
+async function checkHeadPush(draft: Readonly<PullRequestDraft>, context: Readonly<PullRequestContext>, input: Readonly<{ directory: string, base: PreflightBase, config: ProjectConfig, client: () => GitHubClient, out: Output }>): Promise<PushCheck> {
+  const { directory, base, config, client, out } = input
+  const head = draft.headReference
+  const remote = pushRemoteFor(head, draft.location, config.host, directory, context.remoteName)
+  if (remote === undefined) {
+    const owner = head.owner ?? ''
+    return { push: { isPushed: false, message: `no git remote points to a repository of ${owner} on ${config.host}`, isDiverged: false }, fixHint: hinted`git remote add fork https://${config.host}/${owner}/${draft.location.repository}.git` }
+  }
+  if (!hasLocalBranch(directory, head.branch)) {
+    return { push: { isPushed: false, message: `local branch ${head.branch} does not exist`, isDiverged: false }, fixHint: hinted`git fetch ${remote} ${head.branch}:${head.branch}` }
+  }
+  const push = getPushStatus(head.branch, directory, remote)
+  if (push.isPushed) return { push, fixHint: undefined }
+  if (head.owner !== undefined) return { push, fixHint: forkPushFixHint(remote, head.branch, push.isDiverged) }
+  return { push, fixHint: await pushFixHintFor(push, base.reading, { config, location: context.location, directory, remote, client, lowerPullRequest: base.lowerPullRequest, signal: out.signal }) }
+}
+
+async function runPreflightChecksOrExit(directory: string, draft: Readonly<PullRequestDraft>, base: Readonly<PreflightBase>, config: Readonly<ProjectConfig>, client: () => GitHubClient, out: Readonly<Output>): Promise<void> {
   const context = validatePullRequestContext(directory, out)
-  const push = getPushStatus(context.currentBranch, directory, context.remoteName)
-  const pushFixHint = await pushFixHintFor(push, base.reading, { config, location: context.location, directory, remote: context.remoteName, client, lowerPullRequest: base.lowerPullRequest, signal: out.signal })
+  const { push, fixHint: pushFixHint } = await checkHeadPush(draft, context, { directory, base, config, client, out })
   const warnings = collectPreflightWarnings({ gitStatus: getGitStatus(directory), stashList: getStashList(directory), isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
   if (warnings.length === 0) return
   out.error('preflight found warnings; fix them before creating a PR')
@@ -458,7 +506,7 @@ async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<Pr
 }
 
 async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => GitHubClient, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, base: Readonly<PreflightBase>, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  await runPreflightChecksOrExit(directory, base, config, client, out)
+  await runPreflightChecksOrExit(directory, draft, base, config, client, out)
   let created: JsonObject
   try {
     created = await client().createPullRequest(draft.location.owner, draft.location.repository, draft.title, draft.body, draft.head, draft.base, draft.isDraft)
@@ -475,10 +523,10 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   out.result({ head: draft.head, base: draft.base, title: draft.title, ...pullRequest !== undefined && { number: pullRequest }, ...typeof url === 'string' && { url } })
   // in_review と待ちの Issue の書き込みで、選択肢の ID を読み直す案内を 1 回だけ出す
   const fieldHint: FieldHintState = { hasHinted: false }
-  const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.head, out, fieldHint)
+  const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.headReference.branch, out, fieldHint)
   if (inReview !== undefined) out.result({ inReview })
   if (stackOn !== undefined) out.result({ stack: await registerStack(client(), draft.location, stackOn, pullRequest, out) })
-  const issueNumber = extractIssueNumberFromBranch(draft.head)
+  const issueNumber = extractIssueNumberFromBranch(draft.headReference.branch)
   const moves: BoardMoveLine[] = []
   try {
     if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out, moves, fieldHint)
@@ -500,6 +548,7 @@ interface ValidatedInput {
   readonly title: string
   readonly base: string
   readonly head: string
+  readonly headReference: HeadReference
   readonly isDraft: boolean
   readonly body: string
   readonly screenshot: string | undefined
@@ -603,7 +652,7 @@ function stackedScopeOf(reading: BaseReading | undefined, use: Readonly<PullRequ
 
 // 検証して、dry-run なら計画を出し、そうでなければ投稿する。file と -m の両方がここを通る
 async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  const { config, directory, template, location, title, head } = input
+  const { config, directory, template, location, title, head, headReference } = input
   const client = lazyClient(config, out)
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   const releaseBranch = getReleaseBranch(config, location.owner, location.repository)
@@ -627,18 +676,18 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
       stackedBase: use?.stackedBase,
     }),
     ...baseErrors,
-    ...await titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template, developBranch, releaseBranch, stacked }, out),
+    ...await titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, headBranch: headReference.branch, directory, template, developBranch, releaseBranch, stacked }, out),
   ]
   exitOnValidationErrors(errors, out)
 
   const isRelease = template === 'release'
-  const draft: PullRequestDraft = { location, title, body: input.body, head, base, isDraft: input.isDraft, isRelease }
+  const draft: PullRequestDraft = { location, title, body: input.body, head, headReference, base, isDraft: input.isDraft, isRelease }
   if (!input.dryRun) {
     await submitPullRequest(config, client, directory, draft, use?.stackOn, { reading: input.reading, lowerPullRequest: decided.lowerPullRequest }, out)
     return
   }
   out.planned(createOperation(draft))
-  const issueNumber = extractIssueNumberFromBranch(head)
+  const issueNumber = extractIssueNumberFromBranch(headReference.branch)
   if (!isRelease && issueNumber !== undefined) out.planned(inReviewOperation(issueNumber))
   if (use?.stackOn !== undefined) out.planned({ verb: 'add', target: `the new PR to the stack of PR #${String(use.stackOn)}` })
   out.result({ head, base, title, ...use?.stackOn !== undefined && { stack: { lower: use.stackOn } } })
@@ -670,10 +719,11 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   const location = requireRepository(frontmatter.repository, out)
   const config = requireConfigFor(out, location, input.project, PR_CREATE_PATH).config
   const head = resolveHeadBranch(frontmatter.head, directory, out)
+  const headReference = requireHeadReference(head, out)
   const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 
   let body = parsed.body
-  const issueNumber = extractIssueNumberFromBranch(head)
+  const issueNumber = extractIssueNumberFromBranch(headReference.branch)
   if (input.template !== 'release' && !input.noIssueRef && isPositive(issueNumber)) {
     body = await appendCloseUnlessEpic(config, location, body, issueNumber, out)
   }
@@ -687,6 +737,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
     title: frontmatter.title,
     base: frontmatter.base,
     head,
+    headReference,
     isDraft: frontmatter.draft,
     body,
     screenshot: frontmatter.screenshot,
@@ -724,10 +775,11 @@ function directTarget(input: Readonly<DirectModeInput>, directory: string, out: 
 async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
   const { location, config } = directTarget(input, directory, out)
   const head = resolveHeadBranch(input.head, directory, out)
+  const headReference = requireHeadReference(head, out)
   const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
 
   let body = input.message
-  const issueNumber = extractIssueNumberFromBranch(head)
+  const issueNumber = extractIssueNumberFromBranch(headReference.branch)
   if (input.template !== 'release' && !input.noIssueRef && isPositive(issueNumber)) {
     body = appendIssueCloseIfNeeded(body, issueNumber)
   }
@@ -741,6 +793,7 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
     title: input.title,
     base: input.base,
     head,
+    headReference,
     isDraft: input.isDraft,
     body,
     screenshot: input.screenshot,
@@ -844,7 +897,7 @@ const CreateInputSchema = z.strictObject({
   message: z.string().optional().describe('PR body, given directly'),
   title: z.string().optional().describe('PR title (required with -m)'),
   base: z.string().optional().describe('Base branch (required with -m)'),
-  head: z.string().optional().describe('Head branch (default: the current branch)'),
+  head: z.string().optional().describe('Head branch, or owner:branch for a branch of a fork (default: the current branch)'),
   draft: z.boolean().default(false).describe('Create as a draft PR'),
   prepare: z.boolean().default(false).describe('Copy the template to the work directory'),
   dry_run: z.boolean().default(false).describe('Validate only (skip the early preflight check, do not create the PR)'),
