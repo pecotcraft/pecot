@@ -7,7 +7,6 @@ import os
 import re
 import runpy
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -27,11 +26,6 @@ from iface_defs import (  # noqa: E402
     render_sections,
 )
 from site_stamp import SiteStamp, SiteStampError, site_stamp  # noqa: E402
-
-FIXTURE_REPO = FIXTURES / "repo"
-STAMP_NOW = datetime(2026, 11, 17, 5, 12, 30, tzinfo=timezone.utc)
-STAMP_HEAD = "0123456789abcdef0123456789abcdef01234567"
-TAG_SHA = "abcdef0123456789abcdef0123456789abcdef01"
 
 
 @pytest.fixture(autouse=True)
@@ -96,7 +90,7 @@ def build(
         (src / name).parent.mkdir(parents=True, exist_ok=True)
         (src / name).write_text(text, encoding="utf-8")
     junit_map = {"sample": {lane: str(p) for lane, p in junit.items()}}
-    context = {"site": site_stamp(site or {}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()}
+    context = {"site": site_stamp(site or {}).context()}
     (src / "conf.py").write_text(
         "import runpy\n"
         f"_ns = runpy.run_path({str(DOCS / 'conf.py')!r})\n"
@@ -174,20 +168,29 @@ def test_body_follows_page_section_order(full: Built) -> None:
     assert description < content.index("Skip the check") < exit_status
 
 
-SECTION_TITLES = ["使用例", "前提条件", "引数", "出力", "エラー", "環境変数"]
+SECTION_TITLES = ["使用例", "引数", "出力", "エラー"]
 
 
 def _heading(title: str) -> str:
     return f"**{title}**"
 
 
-def test_every_section_heading_appears_in_order_even_when_empty(full: Built) -> None:
-    for need_id in ("SM-ONE", "SM-TWO"):
-        content: str = full.needs[need_id]["content"]
-        positions = [content.index(_heading(title)) for title in SECTION_TITLES]
-        assert positions == sorted(positions)
+def test_sections_appear_in_order_and_empty_ones_are_left_out(full: Built) -> None:
+    content: str = full.needs["SM-ONE"]["content"]
+    positions = [content.index(_heading(title)) for title in SECTION_TITLES]
+    assert positions == sorted(positions)
     body: str = full.needs["SM-TWO"]["content"]
-    assert f"{_heading('使用例')}\n\nありません。" in body.replace("\r", "")
+    assert "ありません。" not in body
+    for title in ("前提条件", "環境変数", "使用例"):
+        assert _heading(title) not in body, title
+
+
+def test_prerequisites_join_the_description_and_environment_is_not_shown(full: Built) -> None:
+    content: str = full.needs["SM-ONE"]["content"]
+    assert content.index("Stops at the first failure.") < content.index("Needs the sample runtime.")
+    assert content.index("Needs the sample runtime.") < content.index(_heading("使用例"))
+    assert "SAMPLE_HOME" not in content
+    assert _heading("前提条件") not in content and _heading("環境変数") not in content
 
 
 def test_page_headings_run_through_requirements_in_one_order(
@@ -195,11 +198,15 @@ def test_page_headings_run_through_requirements_in_one_order(
 ) -> None:
     built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
-    # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、実物の全ページで「機能要件」が付き、並びは 1 通りになる。
+    # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、どのページも「機能要件」で終わる。
     for page in ("one-run", "sample_two"):
         html = built.html(f"_generated/sample/{page}.html")
         headings = re.findall(r"<h2>(.*?)<a ", html, flags=re.S)
-        assert headings == [*SECTION_TITLES, "機能要件"], page
+        present = [t for t in SECTION_TITLES if t in headings]
+        assert headings == [*present, "機能要件"], page
+    assert "使用例" in re.findall(
+        r"<h2>(.*?)<a ", built.html("_generated/sample/one-run.html"), flags=re.S
+    )
 
 
 def test_failures_table_always_has_three_columns(full: Built) -> None:
@@ -208,7 +215,7 @@ def test_failures_table_always_has_three_columns(full: Built) -> None:
     assert "target-missing" in filled
     empty: str = full.needs["SM-TWO"]["content"]
     assert "エラー名" not in empty
-    assert f"{_heading('エラー')}\n\nありません。" in empty.replace("\r", "")
+    assert _heading("エラー") not in empty
 
 
 def test_every_table_is_wrapped_in_a_scroll_region(full: Built) -> None:
@@ -237,9 +244,9 @@ def test_outcomes(full: Built) -> None:
 
 def test_outcome_is_shown_with_symbol_and_text(full: Built) -> None:
     html = full.html()
-    for label in ("✓ 通った", "✗ 落ちた", "− 飛ばした", "– テストが無い"):
+    for label in ("✓ 成功", "✗ 失敗", "− スキップ", "– テストなし"):
         assert label in html
-    assert re.search(r'class="[^"]*iface-no-test[^"]*">– テストが無い<', html)
+    assert re.search(r'class="[^"]*iface-no-test[^"]*">– テストなし<', html)
 
 
 def test_missing_lane_makes_every_item_not_run(
@@ -359,10 +366,10 @@ def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixtu
     }
     # 並びは data-model.md の Outcome の表の順。0 件の状態は出さない。
     assert rows == {
-        "one run": ("_generated/sample/one-run.html", "– テストが無い 1・✓ 通った 2"),
+        "one run": ("_generated/sample/one-run.html", "– テストなし 1・✓ 成功 2"),
         "sample_two": (
             "_generated/sample/sample_two.html",
-            "– テストが無い 1・✗ 落ちた 1・✓ 通った 1",
+            "– テストなし 1・✗ 失敗 1・✓ 成功 1",
         ),
         "half entry": ("_generated/sample/half-entry.html", "—"),
     }
@@ -401,7 +408,7 @@ def test_overview_counts_states_per_plugin(
         (
             "reference/tools/sample.html",
             "sample",
-            "– テストが無い 2・✗ 落ちた 1・✓ 通った 3・− 飛ばした 1",
+            "– テストなし 2・✗ 失敗 1・✓ 成功 3・− スキップ 1",
         )
     ]
 
@@ -424,11 +431,11 @@ def test_same_case_in_two_junits_counts_once_and_heavier_wins(
     assert got["SM-TWO-01"] == "failed"
     assert got["SM-COMMON-01"] == "passed"
     html = built.html()
-    assert _list_items(html, "落ちたケース") == [
+    assert _list_items(html, "失敗したテスト") == [
         "SM-TWO-01 sample_two > 呼ぶと、2 つを返す（tests/sample.test.ts）: dup-fail",
         "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
     ]
-    assert "飛ばしたケース" not in html
+    assert "スキップしたテスト" not in html
 
 
 def test_same_case_with_different_ids_links_both_items(
@@ -521,7 +528,7 @@ def test_defs_with_unknown_id_warns(tmp_path: Path, capfd: pytest.CaptureFixture
     assert not {i for i in built.needs if i.startswith("SM-")}
 
 
-def test_page_with_only_defs_shows_verifies_links_and_failed(
+def test_requirement_rows_show_result_and_carry_the_id_without_test_ids(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     built = page_build(tmp_path, capfd, "SM-TWO")
@@ -533,7 +540,9 @@ def test_page_with_only_defs_shows_verifies_links_and_failed(
         for i in built.needs["SM-TWO-02"]["verifies_back"]
         if built.needs[i]["title"] == "test_broken"
     )
-    assert re.search(rf'<a [^>]*href="index\.html#{case_id}"', html, flags=re.S)
+    assert case_id not in html
+    assert re.search(r'<tr[^>]*id="SM-TWO-02"', html)
+    assert "<p>ID</p>" in html and "<p>テスト結果</p>" in html
 
 
 def _details(html: str) -> str:
@@ -563,7 +572,7 @@ def test_failed_cases_show_summary_and_fold_the_body(
     ]
     assert page_warnings == []
     html = built.html("page.html")
-    items = _list_items(html, "落ちたケース")
+    items = _list_items(html, "失敗したテスト")
     assert items == [
         "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
         "SM-TWO-02 sample_two > 読めないと、失敗を返す（tests/notes.test.ts）: expected ok to be ng",
@@ -585,7 +594,7 @@ def test_passed_item_lists_its_skipped_cases(
 ) -> None:
     built = page_build(tmp_path, capfd, "SM-TWO", {**LANES, "sample:test-notes": JUNIT_NOTES})
     assert outcomes_of(built)["SM-TWO-01"] == "passed"
-    assert _list_items(built.html("page.html"), "飛ばしたケース") == [
+    assert _list_items(built.html("page.html"), "スキップしたテスト") == [
         "SM-TWO-01 sample_two > 後で確かめる（tests/notes.test.ts）"
     ]
 
@@ -656,198 +665,133 @@ def test_strict_passes_when_every_lane_is_read(
 
 # ---------------------------------------------------------------- site_stamp
 
-PR_ENV = {
-    "PECOT_SITE_SIDE": "pr",
-    "PECOT_SITE_PR": "612",
-    "PECOT_SITE_SHA": "fedcba9876543210fedcba9876543210fedcba98",
-    "PECOT_SITE_BUILT_AT": "2026-11-17T14:12:00+09:00",
-    "PECOT_SITE_RUN_URL": "https://github.com/pecotcraft/pecot/actions/runs/1",
-}
-SIDES_BOTH_LINKED = [
-    {"label": "リリース版", "href": "/pecot/"},
-    {"label": "開発版", "href": "/pecot/dev/"},
-]
+PR_ENV = {"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "612"}
 
 
 def test_site_stamp_defaults_to_local() -> None:
-    assert site_stamp({}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD) == SiteStamp(
-        side="local",
-        pr=None,
-        sha=STAMP_HEAD,
-        built_at=STAMP_NOW,
-        run_url=None,
-        plugins=(("sample", "1.2.3"),),
-    )
-
-
-def test_local_context_has_no_commit_or_run_link_and_links_both_sides() -> None:
-    assert site_stamp({}, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context() == {
-        "side": "local",
-        "label": "手元",
-        "sha": "0123456",
-        "commit_url": None,
-        "plugins": "sample 1.2.3",
-        "built_at": "2026-11-17 05:12 UTC",
-        "built_at_iso": "2026-11-17T05:12:30Z",
-        "run_url": None,
-        "pr_label": None,
-        "pr_url": None,
-        "sides": SIDES_BOTH_LINKED,
-    }
-
-
-def test_pr_context_reads_every_env_value() -> None:
-    assert site_stamp(PR_ENV, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context() == {
-        "side": "pr",
-        "label": "PR #612",
-        "sha": "fedcba9",
-        "commit_url": "https://github.com/pecotcraft/pecot/commit/fedcba9876543210fedcba9876543210fedcba98",
-        "plugins": "sample 1.2.3",
-        "built_at": "2026-11-17 05:12 UTC",
-        "built_at_iso": "2026-11-17T05:12:00Z",
-        "run_url": "https://github.com/pecotcraft/pecot/actions/runs/1",
-        "pr_label": "PR #612 を開く",
-        "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
-        "sides": SIDES_BOTH_LINKED,
-    }
+    assert site_stamp({}) == SiteStamp(side="local", pr=None)
 
 
 @pytest.mark.parametrize(
-    ("side", "label", "sides"),
+    ("env", "expected"),
     [
         (
-            "release",
-            "リリース版",
-            [{"label": "リリース版", "href": None}, {"label": "開発版", "href": "/pecot/dev/"}],
+            {},
+            {
+                "side": "local",
+                "notice": "これはローカルでビルドしたドキュメントです。",
+                "pr_url": None,
+                "release_url": None,
+            },
         ),
         (
-            "dev",
-            "開発版",
-            [{"label": "リリース版", "href": "/pecot/"}, {"label": "開発版", "href": None}],
+            {"PECOT_SITE_SIDE": "dev"},
+            {
+                "side": "dev",
+                "notice": "これは開発中のバージョンのドキュメントです。",
+                "pr_url": None,
+                "release_url": "/pecot/",
+            },
+        ),
+        (
+            PR_ENV,
+            {
+                "side": "pr",
+                "notice": "これはプルリクエスト #612 のプレビューです。",
+                "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
+                "release_url": "/pecot/",
+            },
+        ),
+        (
+            {"PECOT_SITE_SIDE": "release"},
+            {"side": "release", "notice": None, "pr_url": None, "release_url": None},
         ),
     ],
 )
-def test_current_side_is_text_only(side: str, label: str, sides: list[dict[str, Any]]) -> None:
-    env = {"PECOT_SITE_SIDE": side, "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    context = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD).context()
-    assert (context["label"], context["sides"]) == (label, sides)
-    assert context["commit_url"] == f"https://github.com/pecotcraft/pecot/commit/{STAMP_HEAD}"
-
-
-def test_release_adds_each_tag_commit_to_its_version() -> None:
-    env = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
-    assert stamp.plugin_commits == (("sample", TAG_SHA),)
-    assert stamp.context()["plugins"] == "sample 1.2.3 (abcdef0)"
-
-
-def test_plugin_commits_are_ignored_outside_release() -> None:
-    env = {"PECOT_SITE_SIDE": "dev", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    stamp = site_stamp(env, FIXTURE_REPO, STAMP_NOW, STAMP_HEAD)
-    assert stamp.plugin_commits == ()
-    assert stamp.context()["plugins"] == "sample 1.2.3"
-
-
-def test_sha_from_env_needs_no_head() -> None:
-    stamp = site_stamp({"PECOT_SITE_SHA": "abc"}, FIXTURE_REPO, STAMP_NOW, None)
-    assert stamp.sha == "abc"
-
-
-def test_plugin_versions_are_read_in_name_order(tmp_path: Path) -> None:
-    for name, version in [("zeta", "2.0.0"), ("alpha", "0.1.0")]:
-        manifest = tmp_path / "plugins" / name / ".claude-plugin" / "plugin.json"
-        manifest.parent.mkdir(parents=True)
-        manifest.write_text(json.dumps({"name": name[0], "version": version}), encoding="utf-8")
-    stamp = site_stamp({}, tmp_path, STAMP_NOW, STAMP_HEAD)
-    assert stamp.plugins == (("alpha", "0.1.0"), ("zeta", "2.0.0"))
-    assert stamp.context()["plugins"] == "alpha 0.1.0 \N{KATAKANA MIDDLE DOT} zeta 2.0.0"
+def test_site_context_per_side(env: dict[str, str], expected: dict[str, str | None]) -> None:
+    assert site_stamp(env).context() == expected
 
 
 @pytest.mark.parametrize(
-    ("env", "head", "names"),
+    ("env", "names"),
     [
-        ({"PECOT_SITE_SIDE": "pr"}, STAMP_HEAD, "PECOT_SITE_PR"),
-        ({"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "#612"}, STAMP_HEAD, "PECOT_SITE_PR"),
-        ({}, None, "PECOT_SITE_SHA"),
-        ({"PECOT_SITE_BUILT_AT": "yesterday"}, STAMP_HEAD, "PECOT_SITE_BUILT_AT"),
-        ({"PECOT_SITE_BUILT_AT": "2026-11-17T05:12:00"}, STAMP_HEAD, "PECOT_SITE_BUILT_AT"),
-        ({"PECOT_SITE_SIDE": "staging"}, STAMP_HEAD, "PECOT_SITE_SIDE"),
-        ({"PECOT_SITE_SIDE": "release"}, STAMP_HEAD, "PECOT_SITE_PLUGIN_COMMITS"),
-        (
-            {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": "sample=abc1234"},
-            STAMP_HEAD,
-            "PECOT_SITE_PLUGIN_COMMITS",
-        ),
-        (
-            {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"other={TAG_SHA}"},
-            STAMP_HEAD,
-            "PECOT_SITE_PLUGIN_COMMITS",
-        ),
+        ({"PECOT_SITE_SIDE": "pr"}, "PECOT_SITE_PR"),
+        ({"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "#612"}, "PECOT_SITE_PR"),
+        ({"PECOT_SITE_SIDE": "staging"}, "PECOT_SITE_SIDE"),
     ],
 )
-def test_site_stamp_fails_on_bad_values(env: dict[str, str], head: str | None, names: str) -> None:
+def test_site_stamp_fails_on_bad_values(env: dict[str, str], names: str) -> None:
     with pytest.raises(SiteStampError, match=names):
-        site_stamp(env, FIXTURE_REPO, STAMP_NOW, head)
+        site_stamp(env)
 
 
-def test_plugin_without_version_fails(tmp_path: Path) -> None:
-    manifest = tmp_path / "plugins" / "bare" / ".claude-plugin" / "plugin.json"
-    manifest.parent.mkdir(parents=True)
-    manifest.write_text('{"name": "bare"}', encoding="utf-8")
-    with pytest.raises(SiteStampError, match="bare"):
-        site_stamp({}, tmp_path, STAMP_NOW, STAMP_HEAD)
+def notice_of(built: Built, page: str = "index.html") -> str | None:
+    found = re.search(r'<div class="pecot-site"[\s\S]*?</div>\s*</div>', built.html(page))
+    return found.group(0) if found else None
 
 
-def band_of(built: Built, page: str = "index.html") -> str:
-    found = re.search(r'<div class="pecot-site"[\s\S]*?</nav>', built.html(page))
-    assert found, "版の帯が無い"
-    return found.group(0)
-
-
-def links_of(band: str) -> dict[str, str]:
+def links_of(notice: str) -> dict[str, str]:
     return {
         html.unescape(re.sub(r"<[^>]+>", "", text)).strip(): html.unescape(href)
-        for href, text in re.findall(r'<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)</a>', band)
+        for href, text in re.findall(r'<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)</a>', notice)
     }
 
 
-def text_of(band: str) -> str:
-    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", band))).strip()
+def text_of(notice: str) -> str:
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", notice))).strip()
 
 
-def test_local_band_is_on_the_page(full: Built) -> None:
+def test_local_page_has_notice_without_links(full: Built) -> None:
     assert full.code == 0, full.warnings
-    band = band_of(full)
-    assert text_of(band) == ("手元 0123456 sample 1.2.3 2026-11-17 05:12 UTC リリース版 開発版")
-    assert links_of(band) == {"リリース版": "/pecot/", "開発版": "/pecot/dev/"}
+    notice = notice_of(full)
+    assert notice is not None
+    assert text_of(notice) == "これはローカルでビルドしたドキュメントです。"
+    assert links_of(notice) == {}
 
 
-def test_pr_band_links_commit_run_and_pr(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
     built = build(tmp_path, LANES, capfd, site=PR_ENV)
     assert built.code == 0, built.warnings
-    band = band_of(built)
-    assert text_of(band) == (
-        "PR #612 fedcba9 sample 1.2.3 2026-11-17 05:12 UTC "
-        "この合否を作った実行 PR #612 を開く リリース版 開発版"
+    notice = notice_of(built)
+    assert notice is not None
+    assert text_of(notice) == (
+        "これはプルリクエスト #612 のプレビューです。 プルリクエストを開く 最新のリリース版を見る"
     )
-    assert links_of(band) == {
-        "fedcba9": "https://github.com/pecotcraft/pecot/commit/fedcba9876543210fedcba9876543210fedcba98",
-        "この合否を作った実行": "https://github.com/pecotcraft/pecot/actions/runs/1",
-        "PR #612 を開く": "https://github.com/pecotcraft/pecot/pull/612",
-        "リリース版": "/pecot/",
-        "開発版": "/pecot/dev/",
+    assert links_of(notice) == {
+        "プルリクエストを開く": "https://github.com/pecotcraft/pecot/pull/612",
+        "最新のリリース版を見る": "/pecot/",
     }
 
 
-def test_release_band_shows_its_own_side_as_text(
+def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "dev"})
+    assert built.code == 0, built.warnings
+    notice = notice_of(built)
+    assert notice is not None
+    assert text_of(notice) == "これは開発中のバージョンのドキュメントです。 最新のリリース版を見る"
+
+
+def test_release_has_no_notice_and_no_footer_values(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_PLUGIN_COMMITS": f"sample={TAG_SHA}"}
-    built = build(tmp_path, LANES, capfd, site=site)
+    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "release"})
     assert built.code == 0, built.warnings
-    assert '/pecot/"' not in band_of(built)
-    assert links_of(band_of(built))["開発版"] == "/pecot/dev/"
-    assert "sample 1.2.3 (abcdef0)" in band_of(built)
+    assert notice_of(built) is None
+    assert "pecot-build" not in built.html("index.html")
+
+
+def test_footer_has_logo_links_and_copyright(full: Built) -> None:
+    assert full.code == 0, full.warnings
+    found = re.search(r"<footer[\s\S]*?</footer>", full.html("index.html"))
+    assert found
+    footer = found.group(0)
+    assert "pecot-icon-light.svg" in footer
+    assert links_of(footer) == {
+        "": "#",  # ロゴは画像だけのリンクで、トップでは自分を指す
+        "GitHub": "https://github.com/pecotcraft/pecot",
+        "ライセンス": "https://github.com/pecotcraft/pecot/blob/main/LICENSE",
+    }
+    assert "© 2026 pecotcraft" in text_of(footer)
 
 
 _COMMON = {

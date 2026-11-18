@@ -6,7 +6,7 @@
 
 | 欄 | 値 | 決まり |
 |---|---|---|
-| `kind` | `release` / `dev` / `pr` / `local` | `local` は手元で作ったときだけ。公開の流れには出ない。spec の「側」は公開サイトの 3 種で、`local` は帯の表示のためだけの値 |
+| `kind` | `release` / `dev` / `pr` / `local` | `local` は手元で作ったときだけ。公開の流れには出ない。spec の「側」は公開サイトの 3 種で、`local` は版の知らせのためだけの値 |
 | `pr` | PR の番号 | `kind` が `pr` のときだけ持つ |
 | `path` | 公開サイトと `pages-store` の中の置き場所 | `release` は `/`、`dev` は `/dev/`、`pr` は `/pr/<番号>/` |
 
@@ -16,26 +16,19 @@
 - `dev`: main への push のたびに中身を差し替える。消えない
 - `pr`: 同じリポの PR が開いたときに現れる。head への push で中身を差し替え、PR が閉じた後の保管で消える
 
-## 公開の版（SiteStamp）
+## 版の知らせ（SiteStamp）
 
-各側の、すべてのページの上の帯に出す情報。サイトを作るときに 1 つ決める。
+リリース版でない側の、ページの上の知らせを決める値。出し方は contracts/pages.md の「版の知らせ」。
 
 | 欄 | 出どころ | 手元で作るとき |
 |---|---|---|
 | `side` | `PECOT_SITE_SIDE` | `local` |
 | `pr` | `PECOT_SITE_PR` | 無し |
-| `sha` | `PECOT_SITE_SHA`（帯には先頭 7 文字）。リリース版では骨組みのコミット | `git rev-parse HEAD` |
-| `plugins` | 各プラグインの `.claude-plugin/plugin.json` の `version`（nx release が上げる版） | 同じ |
-| `plugin_commits` | `PECOT_SITE_PLUGIN_COMMITS`（`<plugin>=<40 桁の SHA>` をカンマでつなぐ）。リリース版だけ | 無し |
-| `built_at` | `PECOT_SITE_BUILT_AT`（合否を作った run の開始時刻、UTC） | 今の時刻 |
-| `run_url` | `PECOT_SITE_RUN_URL`（作る run の URL） | 無し（帯にリンクを出さない） |
 
 決まり:
 
-- `sha` が取れないときは、サイトを作らずに失敗する
-- `side` が `pr` なら `pr` は必須。帯に PR の番号と PR へのリンクを出す
-- `side` が `release` なら `plugin_commits` は必須で、`plugins` のすべてのプラグインを持つ。帯には、プラグインごとに版とタグのコミット（先頭 7 文字）を出す
-- 帯は、リリース版と開発版を行き来するリンクを持つ。PR 版の帯にも、この 2 つへのリンクを置く。PR 版どうしのリンクは置かない（FR-025）
+- `side` が `pr` なら `pr` は必須。上の知らせに PR の番号と PR へのリンクを出す
+- 開発版と PR 版の知らせは、最新のリリース版（`/pecot/`）へのリンクを持つ。PR 版どうしのリンクは置かない（FR-025）
 
 ## 合否のレーン（JunitLane）
 
@@ -60,15 +53,15 @@
 | 状態 | 表示 | 記号 | 条件（上から順に当てる） |
 |---|---|---|---|
 | `not-run` | 未実行 | `?` | そのプラグインの合否のレーンのうち、JUnit が無いものがある |
-| `no-test` | テストが無い | `–` | JUnit はそろっているが、項目につながるケースが 0 件 |
-| `failed` | 落ちた | `✗` | つながるケースに failed か error が 1 つでもある |
-| `passed` | 通った | `✓` | つながるケースに passed が 1 つ以上あり、ほかは passed か skipped |
-| `skipped` | 飛ばした | `−` | つながるケースがすべて skipped |
+| `no-test` | テストなし | `–` | JUnit はそろっているが、項目につながるケースが 0 件 |
+| `failed` | 失敗 | `✗` | つながるケースに failed か error が 1 つでもある |
+| `passed` | 成功 | `✓` | つながるケースに passed が 1 つ以上あり、ほかは passed か skipped |
+| `skipped` | スキップ | `−` | つながるケースがすべて skipped |
 
 決まり:
 
 - 公開の流れで作るサイトでは、`not-run` は現れない（JUnit が欠けたら作る run が失敗するため）
-- `passed` で、一部のケースが skipped のときは、項目のページで飛ばしたケースを示す
+- `passed` で、一部のケースが skipped のときは、項目のページでスキップしたテストを示す
 - 表示は記号と文字の両方を出す。色は補いにだけ使う（FR-015）
 
 ## 落ちたケースの要旨（FailureNote）
@@ -118,17 +111,20 @@
 2. main の祖先の定義で動いた `workflow_dispatch` の run に限り、`dev` か `release` かを、その run が上げた側の artifact の名前（`pages-side-dev`・`pages-side-release`）で決める。2 つとも有るか、どちらも無いときは捨てる
    - run の API には、起動の入力（`side`）が無い。そのため、API の項目だけでは 2 つを分けられない
    - その定義は main に入ったレビュー済みのものなので、名前を信じてよい
-   - `push` の run は開発版、`pull_request` の run は PR 版に決まり、名前は使わない
+   - `push` の run は開発版、ci.yml の `pull_request` の run は PR 版に決まり、名前は使わない
+   - PR 版では、1 で決めた PR の番号から作った `pages-side-pr-<番号>` が、その run の artifact に無ければ捨てる。ci の `pages-preview` が動かなかった run（PR 版を作れなかった run）を、ここで落とす
 
-| 側 | `path` | `event` | `head_repository` | `head_sha` | PR |
-|---|---|---|---|---|---|
-| 開発版 | `.github/workflows/pages-build.yml` | `push` か `workflow_dispatch` | このリポ | main の祖先。保管中の開発版の SHA を祖先に持つ | 見ない |
-| リリース版 | 同上 | `workflow_dispatch` | このリポ | main の祖先。API から求め直した ReleaseSources が、artifact の `release-sources.json` と一致する | 見ない |
-| PR 版 | 同上 | `pull_request` | このリポ | その PR の今の head と一致する | 下の決まり |
+| 側 | `path` | `event` | `conclusion` | `head_repository` | `head_sha` | PR |
+|---|---|---|---|---|---|---|
+| 開発版 | `.github/workflows/pages-build.yml` | `push` か `workflow_dispatch` | `success` | このリポ | main の祖先。保管中の開発版の SHA を祖先に持つ | 見ない |
+| リリース版 | 同上 | `workflow_dispatch` | `success` | このリポ | main の祖先。API から求め直した ReleaseSources が、artifact の `release-sources.json` と一致する | 見ない |
+| PR 版 | `.github/workflows/ci.yml` | `pull_request` | `success` か `failure` | このリポ | その PR の今の head と一致する | 下の決まり |
 
 決まり:
 
-- すべての側で、`conclusion` は `success` に限る
+- 開発版とリリース版は、pages-build.yml の run からだけ受ける。PR の作者は自分のブランチの ci.yml を書き換えられるので、ci.yml の `pull_request` 以外の event の run は捨てる
+- PR 版の `conclusion` に `failure` を含めるのは、テストが落ちた PR でも、落ちた合否を PR 版で見せるため。ci の run は、テストが 1 件落ちると `failure` になる
+- pages-build.yml の `pull_request` の run は、閉じた PR の掃除だけを起こす。PR が開いていれば捨てる
 - main の祖先かは、`GET /repos/{owner}/{repo}/compare/{head_sha}...main` の `behind_by == 0` で決める
 - `head_branch` では、ブランチを判定しない。タグで動いた run では、`head_branch` にタグ名が入るため
 - 開発版で、保管中の開発版と同じ SHA の run（再実行）は受ける。保管中の SHA を祖先に持たない run（古い run）は捨てる

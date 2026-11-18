@@ -21,7 +21,7 @@ from typing import Protocol, TextIO
 from release_sources import ReleaseSources, ReleaseSourcesError, from_json
 
 CONTAINER_ROOT = "/workspaces/base/pecot"
-SITE_ENV = ("PECOT_SITE_SIDE", "PECOT_SITE_SHA", "PECOT_SITE_PLUGIN_COMMITS", "PECOT_SITE_LANES")
+SITE_ENV = ("PECOT_SITE_SIDE", "PECOT_SITE_LANES")
 # --update-remote-user-uid-default never のため、コンテナの vscode の UID は 1000（dev-container.sh の up と同じ前提）。
 
 
@@ -141,10 +141,6 @@ class Build:
     def site_env(self) -> dict[str, str]:
         env = dict(self.env)
         env["PECOT_SITE_SIDE"] = "release"
-        env["PECOT_SITE_SHA"] = self.sources.skeleton
-        env["PECOT_SITE_PLUGIN_COMMITS"] = ",".join(
-            f"{plugin}={commit}" for plugin, commit in sorted(self.sources.commits.items())
-        )
         env["PECOT_SITE_LANES"] = json.dumps(
             self.sources.lanes, ensure_ascii=False, separators=(",", ":")
         )

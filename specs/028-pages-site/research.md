@@ -6,6 +6,8 @@
 1 回目の形（Actions だけで公開し、側を artifact に置く）の欠陥は、#588 の作業中に見つかった。
 根拠の文書の写しは `.pecot/work/588/tech-advisor/docs/` にある。
 
+2026-11-18 の 3 回目の決め直し（#590）で、PR 版を ci の結果から作る形に改め、R3・R5・R6 を直して R14 を足した。
+
 ## R1. 公開元と公開の形
 
 - **Decision**: 保管はブランチ、公開は Actions とする
@@ -58,7 +60,8 @@
 ## R3. 出どころの確かめと、権限の分け方
 
 - **Decision**:
-  - PR 版は `pull_request`（同じリポのブランチだけ）の run で作り、artifact に上げるだけにする
+  - PR 版は、ci.yml の `pull_request`（同じリポのブランチだけ）の run の `pages-preview` の job で作り、artifact に上げるだけにする（R14）
+  - 開発版とリリース版は pages-build.yml の run からだけ受け、PR 版は ci.yml の `pull_request` の run からだけ受ける。PR の作者は自分のブランチの ci.yml も pages-build.yml も書き換えられるが、run の `path` と `event` は偽れない
   - 保管して公開する run は、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直す。PR 版か、main の祖先の定義で動いた run かは API の項目から決め、artifact の名前や中身からは決めない。項目は data-model.md の RunProvenance
   - run の API には起動の入力（`side`）が無いので、手での起動の開発版とリリース版は API の項目では分けられない。main の祖先の定義（レビュー済み）が上げた artifact の名前で分ける
   - job を 4 つに分け、各 job に要る権限だけを持たせる（contracts の `pages-deploy.yml`）。信頼できない tar を扱う job（verify）は書き込みの権限を持たない
@@ -89,7 +92,7 @@
   - `pages-store` の大きさが 900 MB を超えたら、run の summary に警告を書く
 - **Rationale**:
   - 1 回目の形は、artifact を 90 日で消える置き場所にし、リリース版だけを自動で作り直していた。開発版と PR 版も push が 90 日無ければ消えるのに、そこを補っていなかった。保管が消えなければ、作り直しの仕組みは要らない
-  - 案内のページを置けば、帯の行き来のリンク（`/pecot/`・`/pecot/dev/`）が切れない（SC-006）
+  - 案内のページを置けば、知らせの「最新のリリース版を見る」（`/pecot/`）が切れない（SC-006）
 - **artifact が消えたとき**:
   - 保管の job が 7 日より長く落ち続けると、その間の側は失われる
   - 開発版・リリース版は、`pages-build.yml` の手での起動で作り直せる
@@ -105,8 +108,9 @@
   |---|---|---|
   | main への push | 開発版を作る | 作る run の完了の `workflow_run` で起きる |
   | `release.yml` の本番の land が成功した後 | release.yml が App のトークンで `side=release` の `workflow_dispatch` を起こす | 同上 |
-  | 同じリポの PR の opened・synchronize・reopened | PR 版を作る | 同上 |
-  | 同じリポの PR の closed | 作らずに終わる | 同上。保管中の閉じた PR の側を消す |
+  | 同じリポの PR の opened・synchronize・reopened | 動かない。PR 版は ci.yml の `pages-preview` が作る（R14） | ci の run の完了の `workflow_run` で起きる。PR 版を公開し、`pages / preview` を付ける |
+  | 同じリポの PR の closed | 作らずに終わる | 作る run の完了の `workflow_run` で起きる。保管中の閉じた PR の側を消す |
+  | merge queue の ci | — | 動かない（verify の `if` で止める） |
   | 手での起動 | `workflow_dispatch`。入力は `side`（`release`・`dev`）だけ | 公開だけのやり直しは `pages-deploy.yml` の `workflow_dispatch` |
 
 - **Rationale**:
@@ -120,7 +124,7 @@
 
 ## R6. 合否のレーンを動かす方法
 
-- **Decision**: 作る run は、合否のレーンとサイトの作成を 1 つの job で行う
+- **Decision**: 開発版を作る run は、合否のレーンとサイトの作成を 1 つの job で行う（PR 版は R14）
   - dev container を 1 回だけ立て、`junit-lanes.json` のレーンを順に `nx run <project>:<target>` で動かす
   - テストが落ちても次のレーンへ進み、続けてサイトを作る
   - JUnit が無いレーンが 1 つでもあれば、その job は失敗する
@@ -128,11 +132,11 @@
 - **Rationale**:
   - PR の CI と同じ dev container（`.githooks/ci/dev-container.sh`）で動かせば、手元・CI・公開で合否がずれない
   - matrix にすると、レーンの数だけランナーを使い、コンテナの起動もその数だけ繰り返す
-  - 2026-11-17 の run の値（job ごと、コンテナの起動を含む）は、レーンが 1.2〜4.8 分、サイトが 1.9 分。開発版・PR 版は 1 つの job で順に動かしても 12 分前後で、30 分に収まる
+  - 2026-11-17 の run の値（job ごと、コンテナの起動を含む）は、レーンが 1.2〜4.8 分、サイトが 1.9 分。開発版は 1 つの job で順に動かしても 12 分前後で、30 分に収まる
   - リリース版は、タグのコミットと `skeleton` のコミットを替えるたびに依存を入れ直す（contracts の「リリース版の build」）。その分だけ 12 分より延びる。値は #589 の run で測る
 - **Alternatives considered**:
   - レーンごとに matrix の job を立てる: #588 で入れた形。job は side・レーン 4 本・site の 6 つで、うちレーンの 4 台がそれぞれコンテナを立てる
-  - PR の CI の JUnit を流用する: affected のレーンしかそろわないので、spec の FR-003 に反する
+  - 開発版で PR の CI の JUnit を流用する: main への push では ci が動かない。PR 版では流用する（R14）
 
 ## R7. 合否のレーンの定め
 
@@ -144,17 +148,15 @@
 
 ## R8. 版と実行の表示
 
-- **Decision**: サイトを作るときに、環境変数（`PECOT_SITE_SIDE`・`PECOT_SITE_SHA`・`PECOT_SITE_RUN_URL`・`PECOT_SITE_BUILT_AT`・`PECOT_SITE_PR`）を `conf.py` が読み、`html_context` に渡す。
-  テンプレートの `header.html` が、すべてのページの上に版の帯を出す。
-  各プラグインの版は、各プラグインの `.claude-plugin/plugin.json` の `version` から読む。`package.json` の `version` は pnpm の workspace のための `0.0.0` で、nx release は上げない。
-  リリース版では、プラグインごとの版とタグのコミットを帯に出す（R13）。
-  手元では、環境変数が無ければ `git rev-parse` と今の時刻で埋め、側を「手元」と出す
-- **Rationale**: FR-012・FR-013・FR-019・FR-021・FR-025。テーマの既存のテンプレート（`_templates/header.html`）を使えば、全ページに 1 か所で出せる
-- **Alternatives considered**: 版の情報をトップだけに出す。SC-004（どのページからも 1 クリック）を満たさない
+- **Decision**: サイトを作るときに、環境変数（`PECOT_SITE_SIDE`・`PECOT_SITE_PR`）を `conf.py` が読み、`html_context` に渡す。
+  テンプレートの `header.html` が、リリース版でない側でだけページの上に 1 行の知らせと、最新のリリース版へのリンクを出す。Read the Docs の版の知らせと同じ形にする。コミット・プラグインの版・時刻・実行へのリンクは出さない（2026-11-18、#590 で帯から改めた）。
+  手元では、環境変数が無ければ側を「ローカル」と出す
+- **Rationale**: FR-012・FR-019・FR-021・FR-025。テーマの既存のテンプレート（`_templates/header.html`）を使えば、全ページに 1 か所で出せる。コミット・版・時刻・実行を並べた帯は、ほかのドキュメントのサイトに無く、読む人の判断にも使わないので外した
+- **Alternatives considered**: 版の値をフッターに出す。ほかのドキュメントのサイトでも出しておらず、要る情報が無い
 
 ## R9. 状態の 5 つの区別
 
-- **Decision**: `outcome_of` を、通った・落ちた・飛ばした・テストが無い・未実行の 5 つにする。決め方は data-model.md の「振る舞いの状態」
+- **Decision**: `outcome_of` を、成功・失敗・スキップ・テストなし・未実行の 5 つにする。決め方は data-model.md の「振る舞いの状態」
 - **Rationale**: FR-014。今は、飛ばしたケースを含む項目と、つながるケースが無い項目を、どちらも「未実行」にしている。spec はこの 2 つを未実行と分ける
 - **Alternatives considered**: 飛ばしたものを「通った」に含める。確かめていない項目を通ったと出すことになる
 
@@ -220,3 +222,28 @@
 - **Alternatives considered**:
   - Latest のリリースのコミットで作る: 1 回目の定義。上の欠陥がある
   - プラグインごとに別のサイトを作る: 全体の合否（FR-018）と、プラグインをまたぐ骨組みを 1 か所に出せない
+
+## R14. PR 版の合否は ci の結果を使う
+
+- **Decision**:
+  - PR 版は、ci.yml の tests の後の job（`pages-preview`）で作る。テストは動かさない
+  - ci が動かしたレーンは、同じ run の tests が残した JUnit を使う。ci が動かさなかったレーンは、保管中の開発版の run の artifact の JUnit で埋める
+  - ci が動かしたのに JUnit が無いレーンは、開発版で埋めずに失敗する
+  - 開発版で埋めたレーンと開発版のコミットを、job summary に出す
+  - 開発版の artifact は 90 日残す。PR 版が、保管中の開発版の JUnit を取れるようにするため
+  - pages-build.yml の `pull_request` は、閉じた PR の掃除を起こす `closed` だけにする
+- **Rationale**:
+  - 2 回目の形では、PR 版の作る run が 4 本のレーンを順に全部動かしていた。#630 では 12 分かかり、うち 9.5 分がレーンだった
+  - 同じ PR で ci の tests も変更の届いたレーンを動かしていて、テストを 2 回動かしていた
+  - PR 版はレビューの間に画面を見るためにあるので、ci の結果と同じころにできないと役に立たない
+  - ci が動かさなかったレーンは、PR の変更が届いていないので、main の結果と同じになる。開発版が PR の base より新しいときは、その分だけ main の結果になる
+  - 落ちたレーンを開発版の合格で隠さないよう、ci が動かしたレーンは ci の JUnit だけを使う
+  - tests の JUnit は nx の outputs に入っているので、キャッシュに当たったレーンでも作業ツリーに戻る
+- **トレードオフ**:
+  - ci の `pull_request` の run は、PR を main に merge したコミットでテストを動かす。サイトは head で作るので、main が進んでいると、合否と中身のコミットが少しずれる
+  - 開発版で埋めたレーンは、その PR のコミットの結果ではない。ページには出さず、job summary の「出どころ」の列で分かるようにする
+- **Alternatives considered**:
+  - pages-build のレーンを matrix で並べる: 7〜8 分に縮むが、テストを 2 回動かすことは残る
+  - nx のリモートキャッシュで ci の結果を取り込む: pages-build と ci は同時に始まるので、同じ push のキャッシュはまだ無い。今回の push で変わったレーンは 2 回動く
+  - PR 版を ci の完了の `workflow_run` で作る: 既定のブランチの文脈で PR のコード（`conf.py`・`_ext`）を動かすことになる（pwn request）
+  - 開発版で埋めたことを job summary だけに出す: PR 版を見る人に届かない

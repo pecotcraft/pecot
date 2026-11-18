@@ -24,7 +24,8 @@ entries:
       - target: file
         kind: write
         what: Writes the result file.
-    prerequisites: []
+    prerequisites:
+      - Needs the sample runtime.
     idempotent: true
     examples:
       - run: sample one run x

@@ -12,29 +12,26 @@
 
 各側の中のページの相対パスは、`sphinx-build` の出力と同じ（例: `reference/index.html`、`_generated/pecot-workflow/issue-show.html`）。側をまたいでも、同じページは同じ相対パスにある。
 
-## 版の帯（すべてのページ）
+## 版の知らせ
 
-| 出すもの | 例 |
-|---|---|
-| 側の名前 | 「リリース版」「開発版」「PR #612」「手元」 |
-| コミット | `abc1234`（GitHub のコミットのページへのリンク。手元はリンク無し）。リリース版では骨組みのコミット |
-| プラグインの版 | `pecot-workflow 8.0.0 ・ pecot-visual 3.0.1 ・ pecot-tools 3.0.1`。リリース版では、各版にタグのコミット（先頭 7 文字）を添える |
-| 合否を作った時刻 | `2026-11-17 05:12 UTC` |
-| 実行へのリンク | 「この合否を作った実行」（作る run の URL。手元は出さない） |
-| 側の行き来 | 「リリース版」「開発版」へのリンク。今の側は文字だけ |
-| PR へのリンク | PR 版だけ。「PR #612 を開く」 |
+Read the Docs の版の知らせと同じく、リリース版でない側でだけ、ページの上に 1 行の知らせを出す。コミット・プラグインの版・時刻・実行へのリンクは出さない（2026-11-18、#590 で帯から改めた）。
 
-## `pages-build.yml`（側を作る）
+| 側 | 文 | リンク |
+|---|---|---|
+| 開発版 | 「これは開発中のバージョンのドキュメントです。」 | 「最新のリリース版を見る」（`/pecot/`） |
+| PR 版 | 「これはプルリクエスト #612 のプレビューです。」 | 「プルリクエストを開く」・「最新のリリース版を見る」 |
+| 手元 | 「これはローカルでビルドしたドキュメントです。」 | 無し |
+
+## `pages-build.yml`（開発版とリリース版を作る）
 
 | 契機 | 入力 | 作る側 |
 |---|---|---|
 | `push`（`main`） | — | `dev`（その push のコミット） |
-| `pull_request`（opened・synchronize・reopened）、head が同じリポ | — | `pr`（PR の番号。head のコミット） |
-| `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こすためだけに成功で終わる） |
+| `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こし、閉じた PR を掃除させるためだけに成功で終わる） |
 | `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は `github.sha`（起動した run のコミット）。`release` は ReleaseSources（data-model.md） |
 
 - `workflow_dispatch` では、side の job は `github.ref == 'refs/heads/main'` でなければ失敗する。main 以外のブランチや、`main` という名前のタグで起動された run は、側を作らない
-- 開発版は、起動の後に main の HEAD を求め直さない。帯のコミットと `.pecot-store.json` を、run の `head_sha` とそろえるため
+- 開発版は、起動の後に main の HEAD を求め直さない。作る中身と `.pecot-store.json` を、run の `head_sha` とそろえるため
 
 job:
 
@@ -45,20 +42,21 @@ job:
 
 リリース版の build:
 
-開発版・PR 版と同じく 1 つの job で、次の順に作る。依存はコンテナを作ったときのコミットで 1 回だけ入るので、コミットを替えるたびに入れ直す。
+開発版と同じく 1 つの job で、次の順に作る。依存はコンテナを作ったときのコミットで 1 回だけ入るので、コミットを替えるたびに入れ直す。
 
 1. プラグインごとに、そのタグのコミットを取り出し、依存を入れ直す。そのタグの `junit-lanes.json` にある、そのプラグインのレーンを動かす。JUnit は作業ツリーの外へ移す
 2. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替えてから、1 の JUnit を元の場所に戻す
 3. サイトを作る。STRICT と `iface_junit` は、1 で各タグから集めたレーンの一覧で動かす。`conf.py` は、その一覧を `PECOT_SITE_LANES`（junit-lanes.json と同じ形の JSON）で受け取る（`skeleton` の `junit-lanes.json` は使わない）
 
-- `PECOT_SITE_SHA` は `skeleton`、`PECOT_SITE_PLUGIN_COMMITS` は各タグのコミット
-- 依存の入れ直しの分だけ、開発版・PR 版より時間がかかる（research R6）
+- 依存の入れ直しの分だけ、開発版より時間がかかる（research R6）
 
 出力:
 
 | 出力 | 中身 |
 |---|---|
-| artifact `pages-side-<side>`（PR は `pages-side-pr-<番号>`） | 1 つの側の HTML のツリーの tar と、レーンごとの JUnit。リリース版は `release-sources.json` も入れる。`retention-days: 7` |
+| artifact `pages-side-<side>` | 1 つの側の HTML のツリーの tar と、レーンごとの JUnit（`junit/<junit のパス>`）。リリース版は `release-sources.json` も入れる。`retention-days` は開発版が 90、リリース版が 7 |
+
+- 開発版を 90 日（このリポの上限）残すのは、PR 版が、保管中の開発版の JUnit で埋めるため（research R14）
 | job summary | 側・コミット・レーンごとの合否の数 |
 
 失敗の条件:
@@ -71,11 +69,42 @@ job:
 
 concurrency は `pages-build-<side>-<PR の番号か ref>` で、`cancel-in-progress: true`（同じ側は後に起動したものだけを残す）。
 
+## `ci.yml` の `pages-preview`（PR 版を作る）
+
+PR 版は、ci の tests が残した JUnit で作り、テストを動かし直さない（research R14）。
+
+| 項目 | 決まり |
+|---|---|
+| 動くとき | `pull_request` で、head が同じリポ。merge queue と fork の PR では動かない |
+| needs | `lanes`・`tests`。`!cancelled()` で、tests が落ちても動く。tests が 0 本で飛ばされても動く |
+| 必須のチェック | `ci-result` の needs に入れない。PR 版の失敗でマージを止めない |
+| 中身のコミット | PR の head（`github.event.pull_request.head.sha`） |
+| 権限 | ci.yml の既定（`contents: read`・`actions: read`・`packages: read`・`pull-requests: read`）。書き込みの権限と secret は持たない |
+
+tests の job が残すもの:
+
+- 合否のレーン（`junit-lanes.json` にあるもの）の JUnit を、`$RUNNER_TEMP/pages-junit/<junit のパス>` に写して、artifact `pages-junit-<slug>` に上げる
+- 写すのは `Restore workspace owner` の後で、テストが落ちても写す（`if: always()`）
+- upload の `path` はディレクトリにする。ファイルを渡すと、upload-artifact が共通の親を根にして階層を消すため
+- `retention-days: 1`・`overwrite: true`
+
+合否の集め方:
+
+| レーン | JUnit の取り元 |
+|---|---|
+| ci の `lanes` の一覧にある | 同じ run の `pages-junit-<slug>`。無ければ失敗する（落ちたレーンを開発版の合格で隠さない） |
+| 一覧に無い | `pages-store` の `.pecot-store.json` の `dev.run_id` の run の `pages-side-dev` の `junit/`。無ければ失敗する |
+
+- 開発版で埋めたレーンは、job summary の「出どころ」の列に出す
+- 開発版の記録か artifact が無いときは、`gh workflow run pages-build.yml --ref main -f side=dev` で作り直す案内を出して失敗する
+
+出力は artifact `pages-side-pr-<番号>`（`overwrite: true`・`retention-days: 7`）。中身は `pages-build.yml` の側の artifact と同じ形。
+
 ## `pages-deploy.yml`（確かめて保管し、公開する）
 
 | 契機 | 条件 |
 |---|---|
-| `workflow_run`（`pages-build.yml` の completed） | 既定のブランチの文脈で動く。受けた run を RunProvenance（data-model.md）で確かめる |
+| `workflow_run`（`pages-build.yml` と `ci.yml` の completed） | 既定のブランチの文脈で動く。受けた run を RunProvenance（data-model.md）で確かめる。`merge_group` の ci の run では動かない |
 | `workflow_dispatch` | 入力なし。`pages-store` の今の中身を公開し直すだけ |
 
 job と権限:
@@ -85,7 +114,7 @@ job と権限:
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
 | store | `contents: read`。environment `pages-store` | pages-store の App のトークンで `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
 | deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）。environment `github-pages` | `pages-store` を `configure-pages` v6 → `upload-pages-artifact` v5 → `deploy-pages` v5 で公開する |
-| preview-status | `statuses: write` | PR 版を保管したとき、PR の head のコミットに commit status を付ける |
+| preview-status | `statuses: write` | PR 版を保管し、deploy が成功したか、`changed` が偽で deploy を飛ばしたとき、PR の head のコミットに commit status を付ける。開いたときに中身があるように、deploy の後に付ける |
 
 - `actions: write` は、どの job にも持たせない
 - verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA・開いている PR の番号の一覧）だけを使う
@@ -97,8 +126,9 @@ concurrency:
 | job | concurrency |
 |---|---|
 | store | `group: pages-store`・`cancel-in-progress: false`・`queue: max`（待っている保管を消さない） |
-| deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値） |
+| deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
 
+- deploy の `queue: max` は、ci の run のたびに deploy が起きるため。既定の `queue: single` では、待っている deploy が後から来た deploy に取り消され、その PR 版の status が付かない
 - `queue` は actionlint 1.7.12 が知らない。`.github/actionlint.yaml` の除外は path ごとなので、`paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ除外を付ける。#529（除外を消す Issue）の対象にも加える
 
 commit status:

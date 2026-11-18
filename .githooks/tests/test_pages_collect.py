@@ -1,4 +1,4 @@
-"""pages_site/collect.py のテスト。作業ツリーの JUnit を側の artifact へ写し、レーンごとの数を job summary に書く。"""
+"""pages_site/collect.py のテスト。JUnit を側の artifact へ写し、レーンごとの数と出どころを job summary に書く。"""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def _drop(root: Path, junit: str, body: str) -> None:
     target.write_text(body, encoding="utf-8")
 
 
-def _run(lanes: Path, out: Path, root: Path) -> subprocess.CompletedProcess[str]:
+def _run(lanes: Path, out: Path, root: Path, *extra: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             sys.executable,
@@ -75,6 +75,7 @@ def _run(lanes: Path, out: Path, root: Path) -> subprocess.CompletedProcess[str]
             "12",
             "--sha",
             "0123456789abcdef0123456789abcdef01234567",
+            *extra,
         ],
         capture_output=True,
         text=True,
@@ -94,8 +95,9 @@ def test_copies_each_junit_into_the_side_and_counts(scene: tuple[Path, Path, Pat
     assert (out / "junit/plugins/b/cli/test-results/junit-b.xml").read_text(
         encoding="utf-8"
     ) == _NESTED
-    assert "| a:test-cli | 4 | 2 | 1 | 0 | 1 |" in result.stdout
-    assert "| b:test-cli | 3 | 1 | 1 | 1 | 0 |" in result.stdout
+    assert "| a:test-cli | 4 | 2 | 1 | 0 | 1 | この run |" in result.stdout
+    assert "| b:test-cli | 3 | 1 | 1 | 1 | 0 | この run |" in result.stdout
+    assert "| レーン | tests | passed | failures | errors | skipped | 出どころ |" in result.stdout
 
 
 def test_summary_names_side_and_commit(scene: tuple[Path, Path, Path]) -> None:
@@ -133,3 +135,109 @@ def test_unreadable_junit_counts_as_missing(scene: tuple[Path, Path, Path]) -> N
     assert result.returncode == 1
     assert "b:test-cli" in result.stderr
     assert "| b:test-cli | JUnit を読めない |" in result.stdout
+
+
+# --ran（ci.yml の pages-preview）: ci が動かしたレーンは ci の JUnit、ほかは開発版の JUnit で埋める
+
+_DEV_SHA = "fedcba9876543210fedcba9876543210fedcba98"
+_A = "plugins/a/cli/test-results/junit.xml"
+_B = "plugins/b/cli/test-results/junit-b.xml"
+
+
+def _run_pr(scene: tuple[Path, Path, Path], ran: str) -> subprocess.CompletedProcess[str]:
+    lanes, out, root = scene
+    return _run(
+        lanes,
+        out,
+        root,
+        "--ran",
+        ran,
+        "--ci-dir",
+        str(root.parent / "ci"),
+        "--dev-dir",
+        str(root.parent / "dev"),
+        "--dev-sha",
+        _DEV_SHA,
+    )
+
+
+def test_mixes_ci_and_dev_junit(scene: tuple[Path, Path, Path]) -> None:
+    lanes, out, root = scene
+    _drop(root.parent / "ci", _A, _FLAT)
+    _drop(root.parent / "dev", f"junit/{_B}", _NESTED)
+    # ci が動かしたレーンでも、作業ツリーの古い JUnit は使わない。
+    _drop(root, _A, _NESTED)
+
+    result = _run_pr(scene, json.dumps([{"lane": "a:test-cli", "slug": "a-test-cli"}]))
+
+    assert result.returncode == 0, result.stderr
+    for base in (out / "junit", root):
+        assert (base / _A).read_text(encoding="utf-8") == _FLAT
+        assert (base / _B).read_text(encoding="utf-8") == _NESTED
+    assert "| a:test-cli | 4 | 2 | 1 | 0 | 1 | この PR の ci |" in result.stdout
+    assert "| b:test-cli | 3 | 1 | 1 | 1 | 0 | 開発版 fedcba9 |" in result.stdout
+
+
+def test_lanes_without_junit_entry_in_ran_are_ignored(scene: tuple[Path, Path, Path]) -> None:
+    _, _, root = scene
+    _drop(root.parent / "dev", f"junit/{_A}", _FLAT)
+    _drop(root.parent / "dev", f"junit/{_B}", _FLAT)
+
+    result = _run_pr(scene, json.dumps([{"lane": "a:test-skills", "slug": "x"}]))
+
+    assert result.returncode == 0, result.stderr
+    assert "| a:test-cli | 4 | 2 | 1 | 0 | 1 | 開発版 fedcba9 |" in result.stdout
+    assert "| b:test-cli | 4 | 2 | 1 | 0 | 1 | 開発版 fedcba9 |" in result.stdout
+
+
+@pytest.mark.parametrize("ran", ["", "[]"])
+def test_no_ran_lanes_fills_everything_from_dev(scene: tuple[Path, Path, Path], ran: str) -> None:
+    _, _, root = scene
+    _drop(root.parent / "dev", f"junit/{_A}", _FLAT)
+    _drop(root.parent / "dev", f"junit/{_B}", _FLAT)
+
+    result = _run_pr(scene, ran)
+
+    assert result.returncode == 0, result.stderr
+    assert "| a:test-cli | 4 | 2 | 1 | 0 | 1 | 開発版 fedcba9 |" in result.stdout
+    assert "| b:test-cli | 4 | 2 | 1 | 0 | 1 | 開発版 fedcba9 |" in result.stdout
+
+
+def test_ran_lane_without_ci_junit_fails_without_filling(scene: tuple[Path, Path, Path]) -> None:
+    _, out, root = scene
+    # 開発版にあっても、ci が動かしたレーンを開発版の合格で隠さない。
+    _drop(root.parent / "dev", f"junit/{_A}", _FLAT)
+    _drop(root.parent / "dev", f"junit/{_B}", _FLAT)
+
+    result = _run_pr(scene, json.dumps([{"lane": "a:test-cli"}]))
+
+    assert result.returncode == 1
+    assert "a:test-cli" in result.stderr
+    assert "| a:test-cli | ci の JUnit 無し |" in result.stdout
+    assert not (out / "junit" / _A).exists()
+    assert not (root / _A).exists()
+
+
+def test_lane_missing_in_dev_fails(scene: tuple[Path, Path, Path]) -> None:
+    _, _, root = scene
+    _drop(root.parent / "ci", _A, _FLAT)
+
+    result = _run_pr(scene, json.dumps([{"lane": "a:test-cli"}]))
+
+    assert result.returncode == 1
+    assert "b:test-cli" in result.stderr
+    assert "| b:test-cli | 開発版にこのレーンの JUnit 無し |" in result.stdout
+
+
+@pytest.mark.parametrize("ran", ["{}", '["a:test-cli"]', '[{"slug": "a"}]', "not json"])
+def test_bad_ran_fails(scene: tuple[Path, Path, Path], ran: str) -> None:
+    result = _run_pr(scene, ran)
+    assert result.returncode == 1
+    assert "ERROR" in result.stderr
+
+
+def test_ran_needs_ci_and_dev_dirs(scene: tuple[Path, Path, Path]) -> None:
+    lanes, out, root = scene
+    result = _run(lanes, out, root, "--ran", "[]")
+    assert result.returncode == 2
+    assert "--ci-dir" in result.stderr

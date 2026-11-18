@@ -1,11 +1,11 @@
 name: pages-deploy
 
-# pages-build.yml の run を確かめ、保管ブランチ pages-store のその側だけを差し替えて、GitHub Pages に公開する。
+# pages-build.yml・ci.yml の run を確かめ、保管ブランチ pages-store のその側だけを差し替えて、GitHub Pages に公開する。
 # 決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
 
 on:
   workflow_run:
-    workflows: [pages-build]
+    workflows: [pages-build, ci]
     types: [completed]
   # pages-store の今の中身を公開し直すだけ。
   workflow_dispatch:
@@ -13,8 +13,9 @@ on:
 permissions: {}
 
 jobs:
+  # merge queue の ci の run は側を持たないので、verify から動かさない。
   verify:
-    if: ${{ github.event_name == 'workflow_run' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event != 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -132,9 +133,11 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    # ci の run のたびに deploy が起きるので、待っている deploy を取り消さずに並べる。
     concurrency:
       group: pages
       cancel-in-progress: false
+      queue: max
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -153,3 +156,26 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # 開いたときに中身があるように、deploy の後で付ける。変更が無く deploy を飛ばしたときも付ける。
+  preview-status:
+    needs: [verify, store, deploy]
+    if: ${{ !cancelled() && needs.verify.outputs.side == 'pr' && needs.store.result == 'success' && (needs.deploy.result == 'success' || (needs.deploy.result == 'skipped' && needs.store.outputs.changed != 'true')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Set preview status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.verify.outputs.pr }}
+          HEAD_SHA: ${{ needs.verify.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$REPO/statuses/$HEAD_SHA" \
+            -f state=success \
+            -f context="pages / preview" \
+            -f target_url="https://pecotcraft.github.io/pecot/pr/$PR/" \
+            -f description="PR preview is published"

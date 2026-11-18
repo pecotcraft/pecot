@@ -1,4 +1,4 @@
-"""pages_site/verify.py のテスト。API の応答をつないで provenance に渡すことと、artifact の中身の確かめ。
+"""pages_site/verify.py・dev_side.py のテスト。API の応答をつないで provenance に渡すことと、artifact の中身の確かめ。
 
 判定そのものは test_pages_provenance.py が確かめる。
 """
@@ -16,8 +16,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/pages_site"))
 
+import dev_side  # noqa: E402
+import verify  # noqa: E402
 from provenance import Verdict  # noqa: E402
-from verify import PHASE5, check_side, judge, stored_dev_sha  # noqa: E402
+from verify import StoredDev, check_side, judge, stored_dev  # noqa: E402
 
 REPO = "pecotcraft/pecot"
 HEAD = "1" * 40
@@ -38,8 +40,10 @@ def _run(event: str = "push", **extra: object) -> dict[str, object]:
     }
 
 
-def _store_file(dev_sha: str) -> dict[str, object]:
-    body = json.dumps({"release": None, "dev": {"sha": dev_sha}, "pr": {}}).encode()
+def _store_file(dev_sha: str, run_id: object = "55") -> dict[str, object]:
+    body = json.dumps(
+        {"release": None, "dev": {"sha": dev_sha, "run_id": run_id}, "pr": {}}
+    ).encode()
     return {"content": base64.b64encode(body).decode()}
 
 
@@ -67,10 +71,24 @@ def _responses(run: dict[str, object], **extra: object) -> dict[str, object]:
     }
 
 
-def test_stored_dev_sha_reads_pecot_store_json_on_pages_store() -> None:
-    api = FakeApi({f"repos/{REPO}/contents/.pecot-store.json?ref=pages-store": _store_file(STORED)})
-    assert stored_dev_sha(api, REPO) == STORED
-    assert stored_dev_sha(FakeApi({}), REPO) is None
+_STORE_PATH = f"repos/{REPO}/contents/.pecot-store.json?ref=pages-store"
+
+
+@pytest.mark.parametrize(
+    ("run_id", "expected"), [("55", "55"), (55, "55"), (None, None), (True, None)]
+)
+def test_stored_dev_reads_pecot_store_json_on_pages_store(
+    run_id: object, expected: str | None
+) -> None:
+    api = FakeApi({_STORE_PATH: _store_file(STORED, run_id)})
+    assert stored_dev(api, REPO) == StoredDev(run_id=expected, sha=STORED)
+
+
+def test_stored_dev_without_record_is_empty() -> None:
+    assert stored_dev(FakeApi({}), REPO) == StoredDev(run_id=None, sha=None)
+    empty = base64.b64encode(json.dumps({"release": None, "dev": None, "pr": {}}).encode())
+    api = FakeApi({_STORE_PATH: {"content": empty.decode()}})
+    assert stored_dev(api, REPO) == StoredDev(run_id=None, sha=None)
 
 
 def test_judge_compares_the_stored_dev_with_the_head() -> None:
@@ -163,5 +181,95 @@ def test_check_side_compares_release_sources_with_the_recomputed_ones(
         assert seen == ["origin/main"]
 
 
-def test_pr_runs_are_not_stored_until_phase5() -> None:
-    assert "Phase 5" in PHASE5
+def _ci_pr_run() -> dict[str, object]:
+    pull = {
+        "number": 5,
+        "head": {"sha": HEAD},
+        "base": {"repo": {"url": f"https://api.github.com/repos/{REPO}", "name": "pecot"}},
+    }
+    return _run(
+        "pull_request",
+        path=".github/workflows/ci.yml",
+        head_branch="feat/x/5",
+        conclusion="failure",
+        pull_requests=[pull],
+    )
+
+
+def test_pr_side_is_downloaded_checked_and_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    api = FakeApi(
+        _responses(
+            _ci_pr_run(),
+            **{
+                f"repos/{REPO}/actions/runs/7/artifacts?per_page=100": {
+                    "artifacts": [{"name": "pages-side-pr-5"}]
+                },
+                f"repos/{REPO}/pulls/5": {
+                    "state": "open",
+                    "head": {"sha": HEAD},
+                    "base": {"repo": {"full_name": REPO}},
+                },
+            },
+        )
+    )
+    downloads: list[tuple[str, str]] = []
+
+    def download(repo: str, run_id: str, artifact: str, dest: Path) -> None:
+        downloads.append((run_id, artifact))
+        dest.mkdir(parents=True)
+        _tar(dest / "site.tar", {"./index.html": "pr"})
+
+    monkeypatch.setattr(verify, "gh_api", api)
+    monkeypatch.setattr(verify, "download", download)
+    output = tmp_path / "output"
+    output.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    out = tmp_path / "verified"
+
+    code = verify.main(["verify.py", "--run-id", "7", "--repo", REPO, "--out", str(out)])
+
+    assert code == 0
+    assert downloads == [("7", "pages-side-pr-5")]
+    assert (out / "site.tar").is_file()
+    assert output.read_text(encoding="utf-8") == (f"side=pr\npr=5\nhead_sha={HEAD}\nopen_prs=[3]\n")
+    assert "- 側: pr" in capsys.readouterr().out
+
+
+# dev_side.py（ci.yml の pages-preview が開発版の run を探す）
+
+
+def test_dev_side_writes_run_id_and_sha(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    output = tmp_path / "output"
+    output.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    api = FakeApi({_STORE_PATH: _store_file(STORED, "55")})
+    assert dev_side.main(["dev_side.py", "--repo", REPO], api) == 0
+    assert output.read_text(encoding="utf-8") == f"run_id=55\nsha={STORED}\n"
+    assert api.paths == [_STORE_PATH]
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        None,
+        _store_file(STORED, None),
+        _store_file(STORED, "55\nsha=evil"),
+        _store_file("abc1234", "55"),
+    ],
+    ids=["no-store", "no-run-id", "run-id-not-number", "short-sha"],
+)
+def test_dev_side_without_a_usable_record_fails_with_rebuild_hint(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    content: dict[str, object] | None,
+) -> None:
+    output = tmp_path / "output"
+    output.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    api = FakeApi({_STORE_PATH: content} if content is not None else {})
+    assert dev_side.main(["dev_side.py", "--repo", REPO], api) == 1
+    assert output.read_text(encoding="utf-8") == ""
+    assert "gh workflow run pages-build.yml --ref main -f side=dev" in capsys.readouterr().err

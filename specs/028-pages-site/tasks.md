@@ -194,23 +194,35 @@ description: "Task list for 028-pages-site"
 
 **Goal**: 開いている同じリポの PR の PR 版を `/pr/<番号>/` に保管し、PR の head のコミットに URL の commit status を付ける。PR が閉じたら、次の保管で消す
 
-**Independent Test**: quickstart.md の「5. PR 版」と「6. 止まる場合」の 2 行目
+**Independent Test**: quickstart.md の「5. PR 版」と「6. 止まる場合」の 1〜3 行目
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] `.githooks/tests/test_pages_store.py` に、PR 版の保管のテストを足す。
+- [x] T037 [P] [US3] `.githooks/tests/test_pages_store.py` に、PR 版の保管のテストを足す。
   `/pr/<番号>/` だけを書き換える。保管のたびに、verify が出した開いている PR の番号の一覧に無い `pr/<番号>/` を消す。
   closed の契機の run と、RunProvenance に合わない run でも、掃除はする
-- [ ] T038 [P] [US3] `.githooks/tests/test_pages_workflows.py` に、preview-status の job のテストを足す。
+- [x] T038 [P] [US3] `.githooks/tests/test_pages_workflows.py` に、preview-status の job のテストを足す。
   job が verify・store・deploy・preview-status の 4 つになる。preview-status の権限は `statuses: write` だけ。context は `pages / preview` で、必須のチェックの名前（`ci-result`・`version-plan`）と重ならない。
   `pages / preview` を付ける job は `pages-deploy.yml` の preview-status だけで、ほかの workflow に無い（research R12）。
   `target_url` は `https://pecotcraft.github.io/pecot/pr/<番号>/`、付け先は verify が決めた PR の head のコミット
 
 ### Implementation for User Story 3
 
-- [ ] T039 [US3] `.githooks/scripts/pages_site/store.py` に、PR 版の保管と閉じた PR の掃除を足す。T034 で捨てていた PR 版の run を、保管に替える
-- [ ] T040 [US3] `.github/workflows/pages-deploy.yml` に preview-status の job を足す
-- [ ] T041 [US3] `libs/interface-spec/docs/_templates/header.html` の PR 版の帯に、PR の番号と PR へのリンクを出す。PR 版どうしのリンクは置かない（FR-025）
+- [x] T039 [US3] `.githooks/scripts/pages_site/store.py` に、PR 版の保管と閉じた PR の掃除を足す。T034 で捨てていた PR 版の run を、保管に替える
+- [x] T040 [US3] `.github/workflows/pages-deploy.yml` に preview-status の job を足す
+- [x] T041 [US3] `libs/interface-spec/docs/_templates/header.html` の PR 版の帯に、PR の番号と PR へのリンクを出す。PR 版どうしのリンクは置かない（FR-025）
+
+2026-11-18 の 3 回目の決め直し（#590）で、PR 版を ci の結果から作る T046〜T048 を足した。理由は research.md の R14。
+
+- [x] T046 [US3] `.github/workflows/ci.yml` の tests の job に、合否のレーンの JUnit を `pages-junit-<slug>` に残す段を足す。
+  tests の後に `pages-preview` の job を足し、ci の JUnit と開発版の JUnit で PR 版を作る。`.githooks/scripts/pages_site/collect.py`・`dev_side.py` と帯の「開発版で埋めたレーン」も足す
+- [x] T047 [US3] `.githooks/scripts/pages_site/provenance.py` で、PR 版を ci.yml の `pull_request` の run からだけ受ける。
+  pages-build.yml の `pull_request` の run は、閉じた PR の掃除だけを起こす
+- [x] T048 [US3] `.github/workflows/pages-build.yml` の `pull_request` を `closed` だけにし、開発版の artifact を 90 日残す。
+  `pages-deploy.yml` は ci の run も受け、deploy に `queue: max` を足す
+- [x] T049 [US3] 版の帯をやめ、リリース版でない側だけの 1 行の知らせ（`_templates/header.html`）にする。コミット・版・時刻・実行は出さず、渡す環境変数も外す。
+  GitHub と同じく、ヘッダーを画面の幅いっぱいに広げ、フッターはロゴ・「© 2026 pecotcraft」・リンクを真ん中に寄せる（`_templates/footer.html`）。
+  本文の段落と箇条書きの 1 行を 50rem で止める（`_static/pecot.css`、`interface-spec:test-site`）
 
 **Checkpoint**: マージの後、同じリポのブランチから開いた PR に `pages / preview` が付き、`/pecot/pr/<番号>/` が開く。PR を閉じると、次の保管で消える
 

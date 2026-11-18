@@ -694,3 +694,37 @@ def test_publish_cli_refuses_unsafe_tar(scene: dict[str, Path | str]) -> None:
     assert output == "changed=false\n"
     assert "  - `./link`: シンボリックリンクです" in result.stdout
     assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
+
+
+def test_publish_pr_changes_only_its_dir_and_record_and_drops_closed_prs(
+    scene: dict[str, Path | str],
+) -> None:
+    # T037: PR 版の保管は pr/N/ と記録だけを変え、開いていない PR の pr/N/ を消す。
+    assert store.publish(_opts(scene, side="dev", sha=scene["c1"], open_prs=[5, 12])).code == 0
+    assert store.publish(_opts(scene, side="pr", pr=5, sha=scene["c0"], open_prs=[5, 12])).code == 0
+    before = _remote_files(scene)
+    meta_before = json.loads(before[".pecot-store.json"])
+    assert "pr/5/index.html" in before
+
+    code, summary, changed = store.publish(
+        _opts(scene, side="pr", pr=12, sha=scene["c2"], run_id="300", open_prs=[12])
+    )
+
+    assert (code, changed) == (0, True)
+    after = _remote_files(scene)
+    outside_pr = {
+        k: v for k, v in after.items() if not k.startswith("pr/") and k != ".pecot-store.json"
+    }
+    assert outside_pr == {
+        k: v for k, v in before.items() if not k.startswith("pr/") and k != ".pecot-store.json"
+    }
+    assert sorted(k for k in after if k.startswith("pr/")) == [
+        "pr/12/index.html",
+        "pr/12/sub/page.html",
+    ]
+    meta = json.loads(after[".pecot-store.json"])
+    assert (meta["release"], meta["dev"]) == (meta_before["release"], meta_before["dev"])
+    assert list(meta["pr"]) == ["12"]
+    assert (meta["pr"]["12"]["sha"], meta["pr"]["12"]["run_id"]) == (scene["c2"], "300")
+    assert "- 側: PR #12" in summary
+    assert "- 消した PR の側: #5" in summary

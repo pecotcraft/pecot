@@ -47,7 +47,7 @@
   white-space: nowrap;
 }
 
-/* 要件の表の合否（「未実行」など）を折り返さない。 */
+/* 要件の表のテスト結果（「未実行」など）を折り返さない。 */
 #content table.iface-behaviors td:nth-child(3) {
   white-space: nowrap;
 }
@@ -97,50 +97,61 @@
   margin: 0.125rem 0 0;
 }
 
-/* 版の帯。どの側・どのコミットの合否かを、すべてのページの上に出す。狭い画面では折り返す。 */
+/* リリース版でない側の知らせ。Read the Docs の版の知らせと同じく、1 行の文を真ん中に置く。 */
 .pecot-site {
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--muted));
-  font-size: 0.75rem;
-  line-height: 1.5;
+  font-size: 0.875rem;
 }
 
 .pecot-site-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  justify-content: center;
   gap: 0.25rem 1rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  color: hsl(var(--muted-foreground));
-}
-
-.pecot-site-side {
-  color: hsl(var(--foreground));
-  font-weight: 600;
-}
-
-.pecot-site-sha {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  text-align: center;
 }
 
 .pecot-site a {
   text-decoration: underline;
-  text-decoration-color: hsl(var(--ring));
   text-underline-offset: 2px;
 }
 
-.pecot-site a:hover {
-  color: hsl(var(--foreground));
+/* GitHub と同じく、ヘッダーは外枠の上限を外し、画面の幅いっぱいに広げる。 */
+header .container:not(.pecot-site-row) {
+  max-width: none;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
-.pecot-site-sides {
+/* フッター。GitHub と同じく、ロゴ・著作権・リンクを真ん中に寄せる。 */
+.pecot-footer {
   display: flex;
-  gap: 0.75rem;
-  margin-left: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 2rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
 }
 
-.pecot-site-sides [aria-current] {
+.pecot-footer-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.pecot-footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.pecot-footer-links a:hover {
   color: hsl(var(--foreground));
 }
 
@@ -153,6 +164,19 @@
 #content table.genindextable {
   display: block;
   overflow-x: auto;
+}
+
+/* 文の 1 行を約 50 字（GitHub Docs・MDN と同じ程度）で止める。表とコードは列いっぱいを使う。 */
+#content p,
+#content li,
+#content dl {
+  max-width: 50rem;
+}
+
+#content table p,
+#content table li,
+#content table dl {
+  max-width: none;
 }
 
 /* ツール名のような切れ目の無い題が、狭い画面で横にはみ出さないよう、要るときだけ語の途中で折る。 */
@@ -168,4 +192,9 @@
     white-space: normal;
     overflow-wrap: break-word;
   }
+}
+
+/* 左の目次の長い名前は、pecot.js が `_` の後ろに折り返しの位置を足す。それでも収まらないときだけ語の途中で折る。 */
+#left-sidebar a {
+  overflow-wrap: anywhere;
 }
