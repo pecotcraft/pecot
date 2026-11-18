@@ -59,76 +59,9 @@ Chromium は pecot-visual と同じ版の playwright のものを使います。
 - 見出しが 2 段以上あり、右に目次が出るページには付けない
 - `search.html` はテーマのテンプレートのページで、印を付けられない。右の空欄の測りからだけ外している（`tests/site/layout.test.ts` の `NO_NOTOC`）。¶ とはみ出しは測る
 
-## 公開サイト
+### 公開サイト
 
-サイトは GitHub Pages で公開しています。公開元は保管ブランチ `pages-store` の全体で、3 つの側を持ちます。
-
-| 側 | URL | 作られるとき | 中身 |
-|---|---|---|---|
-| リリース版 | <https://pecotcraft.github.io/pecot/> | 本番のリリースの後 | プラグインごとの最新のタグの定義書と、そのタグで動かしたテストの合否 |
-| 開発版 | <https://pecotcraft.github.io/pecot/dev/> | main への push | その push のコミットの定義書と、合否のレーンを全部動かした結果 |
-| PR 版 | `https://pecotcraft.github.io/pecot/pr/<番号>/` | 同じリポのブランチの PR への push | PR の head の定義書と、ci の tests が残した JUnit の合否 |
-
-- リリース版でない側は、ページの上に 1 行の知らせを出す。開発版と PR 版の知らせには、リリース版へのリンクがある
-- リリース版・開発版がまだ無いときは、その URL に案内のページが出る
-- URL と workflow の入出力の決まりは [`specs/028-pages-site/contracts/pages.md`](../../specs/028-pages-site/contracts/pages.md) が正
-
-### PR 版の見方
-
-- PR の checks に付く `pages / preview` の Details から開く。付くのは、ci の完了の後に PR 版が公開されてから
-- PR 版はテストを動かし直さない。ci が動かさなかったレーンは、開発版の JUnit で埋める。埋めたレーンは、ci の `pages-preview` の job summary の「出どころ」の列に出る。ページの上では見分けられない
-- PR 版の失敗は `ci-result` に入らないので、マージを止めない
-- PR をマージするか閉じると、次の保管で `pr/<番号>/` が消える
-- fork の PR と merge queue では、PR 版を作らない
-
-### 公開の流れ
-
-1. 側を作る。開発版とリリース版は `pages-build.yml`、PR 版は `ci.yml` の `pages-preview` が作り、artifact `pages-side-<側>` に上げる
-2. その run の完了で `pages-deploy.yml` が動く。verify が run の出どころを GitHub の API で確かめ、store が `pages-store` のその側だけを差し替え、deploy が GitHub Pages に公開する
-3. PR 版では、公開の後に preview-status が PR の head へ `pages / preview` を付ける
-
-公開されないときは、`pages-deploy.yml` の run の verify の job summary を読みます。受けた run・側・採否と、捨てたときの理由が出ます。
-側を作る run が失敗しているときは、その run の job summary とログを読みます。合否のレーンのテストが落ちただけでは失敗にならず、JUnit が残らなかったときに失敗します。
-
-### 起動とやり直し
-
-| したいこと | 打つもの |
-|---|---|
-| 開発版を作り直す | `gh workflow run pages-build.yml --ref main -f side=dev` |
-| リリース版を作り直す | `gh workflow run pages-build.yml --ref main -f side=release` |
-| `pages-store` の今の中身を公開し直す | `gh workflow run pages-deploy.yml --ref main` |
-| PR 版を作り直す | その PR へ push する |
-
-- `pages-build.yml` の手での起動は、`--ref main` でだけ側を作る。ほかのブランチやタグで起こすと失敗する
-- リリース版は、本番のリリース（`release.yml` の `dry-run=false`）の land の後に、release.yml が同じ起動を打つ。普段は手で起こさない
-- リリース版は、プラグインごとの最新のタグ（プレリリースを除く）から作る。どれかのタグのコミットに `docs/junit-lanes.json` が無いと、そのタグの名前を出して止まる
-- artifact は、開発版が 90 日、リリース版と PR 版が 7 日で消える。保管が終わっていれば、消えても公開は変わらない
-- PR 版が「開発版の artifact が無い」で止まったら、開発版を作り直してから、その PR へ push する
-- 保管の job が落ち続けて artifact が消えたら、開発版とリリース版を上の起動で作り直す。PR 版は、次の push で作り直される
-- 確かめの手順は [`specs/028-pages-site/quickstart.md`](../../specs/028-pages-site/quickstart.md)
-
-### 管理者の設定
-
-リポの管理者が、次を設定しています。作り直すときも、この値にします。
-
-| 対象 | 場所 | 値 |
-|---|---|---|
-| GitHub Pages | Settings → Pages → Build and deployment → Source | 「GitHub Actions」 |
-| `pages-store` の ruleset | `.github/rulesets/pages-store.json` | 作成・更新・削除を止める。bypass は pages-store の App だけ |
-| リリースのタグの ruleset | `.github/rulesets/release-tags.json` | `*-v*` の作成・更新・削除を止める。bypass は PECOT_BOT の App だけ |
-| pages-store の App | org の Settings → Developer settings → GitHub Apps → `pecotcraft-pages-store` | 権限は Contents: write だけ。Webhook なし。このリポにだけ入れる |
-| environment `pages-store` | Settings → Environments → `pages-store` | 変数 `PAGES_STORE_APP_CLIENT_ID` と secret `PAGES_STORE_APP_PRIVATE_KEY`。Deployment branches and tags は「Selected branches and tags」で、種類が Branch の `main` だけ |
-| environment `github-pages` | Settings → Environments → `github-pages` | Deployment branches and tags は、種類が Branch の `main` だけ |
-
-- ruleset を変えるときは、JSON を直してから次のコマンドで入れる。id は `gh api repos/pecotcraft/pecot/rulesets` で読む
-
-  ```bash
-  gh api -X PUT repos/pecotcraft/pecot/rulesets/<id> --input .github/rulesets/<名前>.json
-  ```
-
-- environment のデプロイ先の種類を Tag にしない。`main` という名前のタグが通る
-- `pages-store` へ書くのは pages-store の App だけにする。リリースの App（PECOT_BOT）は main とタグにも書けるので、使わない
-- App の秘密鍵を作り直したら、environment `pages-store` の secret を入れ替える。リポの secret には置かない
+同じサイトを <https://pecotcraft.github.io/pecot/> で公開しています。公開の起動・やり直しと管理者の設定は `.claude/rules/pages-site.md` にあります。
 
 ## 名前の語彙（`names`）
 
