@@ -512,7 +512,7 @@ async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, confi
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, suffix: config.workflow_suffix, isDryRun }))
+    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, suffix: config.workflow_suffix, ...SYNC_FOR_ACTIVATE, isDryRun }))
   })
 }
 
@@ -561,10 +561,12 @@ async function activateByReference(out: Readonly<Output<ActivateData>>, client: 
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
     stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
-  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, isDryRun }))
+  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, ...SYNC_FOR_ACTIVATE, isDryRun }))
 }
 
 const ACTIVATE_PATH = ['project', 'activate']
+// 中身が同じ設定ファイルは書かず、change を unchanged にしたうえでアクティブにする
+const SYNC_FOR_ACTIVATE = { skipIfUnchanged: true, activateIfUnchanged: true }
 const LINK_PATH = ['project', 'link']
 
 const ACTIVATE_OUTPUT = z.strictObject({

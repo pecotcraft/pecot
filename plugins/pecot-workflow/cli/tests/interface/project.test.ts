@@ -1037,6 +1037,19 @@ describe('project activate', () => {
     expectClean(byPath)
   })
 
+  it('同期した中身が既存の設定ファイルと同じだと、書き換えずに change を unchanged にし、アクティブにする', async (context) => {
+    await verifies(context, 'PW-PROJECT-ACTIVATE-25')
+    const first = await activateByNumber()
+    const again = await activateByNumber({ config: savedConfig(first) })
+    expect(again.code).toBe(0)
+    expectClean(again)
+    expect(again.stderr).toBe(`set: active project to ${NAME}\n`)
+    expect(again.read(CONFIG_FILE)).toBe(first.read(CONFIG_FILE))
+    expect(again.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
+    const data = await tool('project_activate', { ...owned, project: '1' }, [projectFields(), ...syncRules()], { config: savedConfig(first) })
+    expect(data.structured).toMatchObject({ change: 'unchanged', project: NAME })
+  })
+
   it('suffix の違う進行の欄が複数あるボードでも、渡した設定ファイルの workflow_suffix の欄で同期する', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-24')
     const other = { id: 'PVTSSF_other', name: 'pecot-workflow-other', options: options(WORKFLOW_NAMES) }

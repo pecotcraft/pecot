@@ -3836,6 +3836,9 @@ entries:
       - id: PW-PROJECT-ACTIVATE-24
         pattern: event
         statement: '設定ファイルのパスかファイル名を渡すと、その設定ファイルの `workflow_suffix` の進行の欄で同期します'
+      - id: PW-PROJECT-ACTIVATE-25
+        pattern: event
+        statement: '同期した中身が既存の設定ファイルと同じだと、ファイルを書き換えずに `change` を `unchanged` にし、そのプロジェクトをアクティブにします'
   PW-PROJECT-CREATE:
     help:
       details:
