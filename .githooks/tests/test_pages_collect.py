@@ -137,7 +137,7 @@ def test_unreadable_junit_counts_as_missing(scene: tuple[Path, Path, Path]) -> N
     assert "| b:test-cli | JUnit を読めない |" in result.stdout
 
 
-# --ran（ci.yml の pages-preview）: ci が動かしたレーンは ci の JUnit、ほかは開発版の JUnit で埋める
+# --ran: ci が動かしたレーンは ci の JUnit、ほかは開発版の JUnit で埋める
 
 _DEV_SHA = "fedcba9876543210fedcba9876543210fedcba98"
 _A = "plugins/a/cli/test-results/junit.xml"

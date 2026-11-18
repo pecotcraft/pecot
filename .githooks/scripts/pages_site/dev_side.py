@@ -1,6 +1,6 @@
-"""ci.yml の pages-preview の job。保管中の開発版の run_id と sha を GITHUB_OUTPUT に書く。
+"""保管中の開発版の run_id と sha を GITHUB_OUTPUT に書く。今は呼ぶ workflow が無い（#648）。片付けは #645。
 
-PR 版は、ci が動かさなかったレーンをこの run の artifact pages-side-dev の JUnit で埋める。
+開発版の run の artifact pages-side-dev の JUnit で、PR が動かさなかったレーンを埋めるためのもの。
 """
 
 from __future__ import annotations

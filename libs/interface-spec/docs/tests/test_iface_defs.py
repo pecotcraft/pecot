@@ -82,6 +82,7 @@ def build(
     pages: bool = False,
     strict: bool = False,
     site: dict[str, str] | None = None,
+    results: bool = True,
 ) -> Built:
     src = tmp_path / "src"
     src.mkdir(exist_ok=True)
@@ -99,6 +100,7 @@ def build(
         f"iface_junit = {junit_map!r}\n"
         f"iface_pages = {pages!r}\n"
         f"iface_strict = {strict!r}\n"
+        f"iface_results = {results!r}\n"
         f"html_context = {context!r}\n"
         f"templates_path = [{str(DOCS / '_templates')!r}]\n",
         encoding="utf-8",
@@ -414,6 +416,58 @@ def test_overview_counts_states_per_plugin(
 
 
 DEFS_ONLY = "Sample\n======\n\n.. iface-defs:: sample\n"
+
+
+# ---------------------------------------------------------------- iface_results が偽（公開のサイト）
+
+
+def test_without_results_requirement_tables_have_no_result_column(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    # JUnit があっても読まない。
+    built = build(tmp_path, LANES, capfd, files={"index.rst": DEFS_ONLY}, results=False)
+    assert built.code == 0
+    html = built.html()
+    heads = re.findall(r"<thead>(.*?)</thead>", html, flags=re.S)
+    behaviors = [h for h in heads if "要件" in h]
+    assert behaviors
+    for head in behaviors:
+        assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["ID", "要件"]
+    for word in ("テスト結果", "未実行", "成功", "失敗したテスト", "スキップしたテスト"):
+        assert word not in html, word
+    assert 'id="SM-ONE-01"' in html
+
+
+def test_without_results_index_and_overview_have_no_counts(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    index = OVERVIEW_INDEX.replace("Top\n===\n", "Top\n===\n\n.. iface-index:: sample\n")
+    built = build(
+        tmp_path,
+        LANES,
+        capfd,
+        files={"index.rst": index, "reference/tools/sample.rst": DEFS_ONLY},
+        pages=True,
+        results=False,
+    )
+    assert built.code == 0
+    html = built.html()
+    (head,) = re.findall(r"<thead>(.*?)</thead>", html, flags=re.S)
+    assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["名前", "説明", "型"]
+    for word in ("状態", "未実行", "機能要件の状態ごとの数"):
+        assert word not in html, word
+
+
+@pytest.mark.parametrize(("value", "excluded"), [(None, True), ("0", True), ("1", False)])
+def test_conf_shows_results_and_report_pages_only_with_env(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, excluded: bool
+) -> None:
+    monkeypatch.delenv("PECOT_SITE_RESULTS", raising=False)
+    if value is not None:
+        monkeypatch.setenv("PECOT_SITE_RESULTS", value)
+    conf = runpy.run_path(str(DOCS / "conf.py"))
+    assert conf["iface_results"] is (not excluded)
+    assert ("development" in conf["exclude_patterns"]) is excluded
 
 
 def test_same_case_in_two_junits_counts_once_and_heavier_wins(

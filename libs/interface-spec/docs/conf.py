@@ -28,7 +28,11 @@ extensions = [
     "iface_defs",
     "table_scroll",
 ]
+# テストの合否と、テストレポートのページ（development/）は、PECOT_SITE_RESULTS=1 のときだけ出す。公開のサイトを作る run は渡さない。
+iface_results = os.environ.get("PECOT_SITE_RESULTS") == "1"
 exclude_patterns = ["_build", "_generated/junit", ".venv", "tests", "_ext"]
+if not iface_results:
+    exclude_patterns.append("development")
 html_theme = "sphinxawesome_theme"
 # ヘッダーに置くものは、テーマが用意している設定項目だけで決める。
 _GITHUB_ICON = (
@@ -56,7 +60,6 @@ html_theme_options = {
         "はじめに": "introduction",
         "ガイド": "guides/index",
         "リファレンス": "reference/index",
-        "開発者向け": "development/index",
     },
     "extra_header_link_icons": {
         "GitHub": {"link": "https://github.com/pecotcraft/pecot", "icon": _GITHUB_ICON},
@@ -107,7 +110,7 @@ iface_junit = (
     if _SITE_LANES
     else load_junit_lanes(DOCS / "junit-lanes.json", ROOT)
 )
-# 公開のサイトを作る run だけが付ける。JUnit が無いか読めないレーンがあると止める。
+# 付けると、JUnit が無いか読めないレーンがあるときに止める。合否を出すときにだけ使う。
 iface_strict = os.environ.get("PECOT_SITE_STRICT") == "1"
 
 # リリース版でない側の知らせ（_templates/header.html）。公開のサイトを作る run は PECOT_SITE_SIDE・PECOT_SITE_PR を渡す。

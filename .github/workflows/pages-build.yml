@@ -1,14 +1,14 @@
 name: pages-build
 
-# 公開サイトのリリース版か開発版を作り、artifact に上げる。PR 版は ci.yml の pages-preview が作る。確かめと公開は pages-deploy.yml が行う。
+# 公開サイトの 1 つの側（リリース版・開発版・PR 版）を作り、artifact に上げる。テストは動かさない。確かめと公開は pages-deploy.yml が行う。
 # 契機と出力の決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
 
 on:
   push:
     branches: [main]
-  # 閉じた PR の掃除を pages-deploy.yml に起こさせるためだけに動く。
+  # closed は、閉じた PR の掃除を pages-deploy.yml に起こさせるためだけに動く。
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
     inputs:
       side:
@@ -26,8 +26,6 @@ concurrency:
 
 env:
   PECOT_NX_CI: "1"
-  PECOTV_E2E_CEILING_SCALE: "3"
-  PECOT_NX_PARALLEL: "2"
 
 jobs:
   side:
@@ -50,14 +48,17 @@ jobs:
           echo "::error::workflow_dispatch must run on refs/heads/main: $REF"
           exit 1
 
-      # 閉じた PR の run は何も作らずに成功で終わる。
+      # 閉じた PR と fork の PR の run は、何も作らずに成功で終わる。
       - name: Decide side and commit
         id: decide
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_SIDE: ${{ inputs.side }}
+          PR_ACTION: ${{ github.event.action }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
           PUSH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -67,7 +68,9 @@ jobs:
             side="pr"
             pr=$PR_NUMBER
             SHA=$PR_HEAD_SHA
-            build=false
+            if [ "$PR_ACTION" = "closed" ] || [ "$PR_HEAD_REPO" != "$REPO" ]; then
+              build=false
+            fi
           elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             side=$INPUT_SIDE
             SHA=$PUSH_SHA
@@ -116,25 +119,22 @@ jobs:
     needs: side
     if: ${{ needs.side.outputs.build == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     env:
       SIDE: ${{ needs.side.outputs.side }}
-      SHA: ${{ needs.side.outputs.sha }}
       SOURCES: ${{ needs.side.outputs.sources }}
-      # Chromium を使う pecot-visual のレーンも同じ job で動かす。
-      PECOT_CI_BROWSER: "1"
-      PECOT_SITE_STRICT: "1"
       PECOT_SITE_SIDE: ${{ needs.side.outputs.side }}
+      PECOT_SITE_PR: ${{ needs.side.outputs.pr }}
       DEVCONTAINER_ENV: |
-        PECOT_CI_BROWSER
-        PECOT_SITE_STRICT
         PECOT_SITE_SIDE
+        PECOT_SITE_PR
     steps:
       # ref は step の出力でなく GitHub が決める値から取る（CodeQL の actions/cache-poisoning）。リリース版は release_build.py が取り出す。
+      # PR 版は、merge のコミットでなく PR の head で作る。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -143,27 +143,6 @@ jobs:
 
       - name: Start dev container
         run: .githooks/ci/dev-container.sh up
-
-      # テストが落ちても次のレーンへ進む。合否は JUnit に残り、JUnit が欠けたら次の Collect JUnit が落ちる。
-      - name: Run lanes
-        if: env.SIDE != 'release'
-        run: |
-          set -euo pipefail
-          for lane in $(python3 .githooks/scripts/pages_site/lanes.py | jq -r '.[].lane'); do
-            echo "::group::$lane"
-            rc=0
-            # shellcheck disable=SC2016
-            PAGES_LANE=$lane DEVCONTAINER_ENV="$DEVCONTAINER_ENV PAGES_LANE" .githooks/ci/dev-container.sh exec -- \
-              'cd /workspaces/base/pecot && pnpm exec nx run "$PAGES_LANE" --skip-nx-cache' || rc=$?
-            [ "$rc" = 0 ] || echo "::warning::$lane exited with $rc"
-            echo "::endgroup::"
-          done
-
-      - name: Collect JUnit
-        if: env.SIDE != 'release'
-        run: |
-          python3 .githooks/scripts/pages_site/collect.py --out "$RUNNER_TEMP/pages-side" \
-            --side "$SIDE" --sha "$SHA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build site
         if: env.SIDE != 'release'
@@ -185,13 +164,15 @@ jobs:
 
       - name: Pack site
         if: env.SIDE != 'release'
-        run: tar -C libs/interface-spec/docs/_build -cf "$RUNNER_TEMP/pages-side/site.tar" .
+        run: |
+          mkdir -p "$RUNNER_TEMP/pages-side"
+          tar -C libs/interface-spec/docs/_build -cf "$RUNNER_TEMP/pages-side/site.tar" .
 
-      # ci.yml の pages-preview が開発版の JUnit で PR 版を埋めるので、開発版はこのリポの上限まで残す。
       - name: Upload side
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ needs.side.outputs.artifact }}
           path: ${{ runner.temp }}/pages-side/
-          retention-days: ${{ needs.side.outputs.side == 'dev' && 90 || 7 }}
+          retention-days: 7
+          overwrite: true
           if-no-files-found: error

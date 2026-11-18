@@ -22,11 +22,14 @@ Read the Docs の版の知らせと同じく、リリース版でない側でだ
 | PR 版 | 「これはプルリクエスト #612 のプレビューです。」 | 「プルリクエストを開く」・「最新のリリース版を見る」 |
 | 手元 | 「これはローカルでビルドしたドキュメントです。」 | 無し |
 
-## `pages-build.yml`（開発版とリリース版を作る）
+## `pages-build.yml`（3 つの側を作る）
+
+どの側も、テストを動かさず、テストの結果を待たずに作る（2026-11-18、#648 で改めた）。合否を出す env（`PECOT_SITE_RESULTS`・`PECOT_SITE_STRICT`）は渡さない。
 
 | 契機 | 入力 | 作る側 |
 |---|---|---|
 | `push`（`main`） | — | `dev`（その push のコミット） |
+| `pull_request`（opened・synchronize・reopened） | — | `pr`（PR の head のコミット）。head が同じリポの PR だけ。fork の PR では作らずに成功で終わる |
 | `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こし、閉じた PR を掃除させるためだけに成功で終わる） |
 | `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は `github.sha`（起動した run のコミット）。`release` は ReleaseSources（data-model.md） |
 
@@ -38,30 +41,23 @@ job:
 | job | すること |
 |---|---|
 | side | 側とコミットを決める。リリース版では ReleaseSources を決め、タグのコミットが main の祖先でなければ失敗する |
-| build | dev container を 1 回だけ立て、レーンを順に動かし（テストが落ちても次へ進む）、続けてサイトを作る |
+| build | dev container を立て、サイトを作る。PR 版は、merge のコミットでなく PR の head で作る |
 
 リリース版の build:
 
-開発版と同じく 1 つの job で、次の順に作る。依存はコンテナを作ったときのコミットで 1 回だけ入るので、コミットを替えるたびに入れ直す。
+開発版と同じく 1 つの job で、次の順に作る。
 
-1. プラグインごとに、そのタグのコミットを取り出し、依存を入れ直す。そのタグの `junit-lanes.json` にある、そのプラグインのレーンを動かす。JUnit は作業ツリーの外へ移す
-2. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替えてから、1 の JUnit を元の場所に戻す
-3. サイトを作る。STRICT と `iface_junit` は、1 で各タグから集めたレーンの一覧で動かす。`conf.py` は、その一覧を `PECOT_SITE_LANES`（junit-lanes.json と同じ形の JSON）で受け取る（`skeleton` の `junit-lanes.json` は使わない）
-
-- 依存の入れ直しの分だけ、開発版より時間がかかる（research R6）
+1. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替える
+2. サイトを作る。`conf.py` は、各タグから集めたレーンの一覧を `PECOT_SITE_LANES`（junit-lanes.json と同じ形の JSON）で受け取る（`skeleton` の `junit-lanes.json` は使わない）。この一覧が、サイトに載せるプラグインを決める
 
 出力:
 
 | 出力 | 中身 |
 |---|---|
-| artifact `pages-side-<side>` | 1 つの側の HTML のツリーの tar と、レーンごとの JUnit（`junit/<junit のパス>`）。リリース版は `release-sources.json` も入れる。`retention-days` は開発版が 90、リリース版が 7 |
-
-- 開発版を 90 日（このリポの上限）残すのは、PR 版が、保管中の開発版の JUnit で埋めるため（research R14）
-| job summary | 側・コミット・レーンごとの合否の数 |
+| artifact `pages-side-<side>`（PR 版は `pages-side-pr-<番号>`） | 1 つの側の HTML のツリーの tar。リリース版は `release-sources.json` も入れる。`retention-days` は 7、`overwrite: true` |
 
 失敗の条件:
 
-- 合否のレーンのうち、JUnit を残さなかったものがある（テストが落ちただけなら失敗にしない）
 - `sphinx-build -W` が警告を出した
 - リリース版で、タグのコミットが main の祖先でない、または `skeleton` が決まらない
 
@@ -69,42 +65,23 @@ job:
 
 concurrency は `pages-build-<side>-<PR の番号か ref>` で、`cancel-in-progress: true`（同じ側は後に起動したものだけを残す）。
 
-## `ci.yml` の `pages-preview`（PR 版を作る）
+## `ci.yml`（サイトを作らない）
 
-PR 版は、ci の tests が残した JUnit で作り、テストを動かし直さない（research R14）。
-
-| 項目 | 決まり |
-|---|---|
-| 動くとき | `pull_request` で、head が同じリポ。merge queue と fork の PR では動かない |
-| needs | `lanes`・`tests`。`!cancelled()` で、tests が落ちても動く。tests が 0 本で飛ばされても動く |
-| 必須のチェック | `ci-result` の needs に入れない。PR 版の失敗でマージを止めない |
-| 中身のコミット | PR の head（`github.event.pull_request.head.sha`） |
-| 権限 | ci.yml の既定（`contents: read`・`actions: read`・`packages: read`・`pull-requests: read`）。書き込みの権限と secret は持たない |
+ci.yml は公開サイトを作らない。`pages-preview` の job は消した（2026-11-18、#648）。`pages-deploy.yml` は `workflow_run` で起きるので、ci.yml の中で PR 版を作ると、公開が ci の run の終わり（テストの終わり）を待つため。
 
 tests の job が残すもの:
 
-- 合否のレーン（`junit-lanes.json` にあるもの）の JUnit を、`$RUNNER_TEMP/pages-junit/<junit のパス>` に写して、artifact `pages-junit-<slug>` に上げる
+- 合否のレーン（`junit-lanes.json` にあるもの）の JUnit を、`$RUNNER_TEMP/pages-junit/<junit のパス>` に写して、artifact `pages-junit-<slug>` に上げる。同じリポの PR でだけ上げる
+- 今は読む job が無い。テストレポートの載せ替え（#645）が使うか、片付ける
 - 写すのは `Restore workspace owner` の後で、テストが落ちても写す（`if: always()`）
 - upload の `path` はディレクトリにする。ファイルを渡すと、upload-artifact が共通の親を根にして階層を消すため
 - `retention-days: 1`・`overwrite: true`
-
-合否の集め方:
-
-| レーン | JUnit の取り元 |
-|---|---|
-| ci の `lanes` の一覧にある | 同じ run の `pages-junit-<slug>`。無ければ失敗する（落ちたレーンを開発版の合格で隠さない） |
-| 一覧に無い | `pages-store` の `.pecot-store.json` の `dev.run_id` の run の `pages-side-dev` の `junit/`。無ければ失敗する |
-
-- 開発版で埋めたレーンは、job summary の「出どころ」の列に出す
-- 開発版の記録か artifact が無いときは、`gh workflow run pages-build.yml --ref main -f side=dev` で作り直す案内を出して失敗する
-
-出力は artifact `pages-side-pr-<番号>`（`overwrite: true`・`retention-days: 7`）。中身は `pages-build.yml` の側の artifact と同じ形。
 
 ## `pages-deploy.yml`（確かめて保管し、公開する）
 
 | 契機 | 条件 |
 |---|---|
-| `workflow_run`（`pages-build.yml` と `ci.yml` の completed） | 既定のブランチの文脈で動く。受けた run を RunProvenance（data-model.md）で確かめる。`merge_group` の ci の run では動かない |
+| `workflow_run`（`pages-build.yml` の completed） | 既定のブランチの文脈で動く。受けた run を RunProvenance（data-model.md）で確かめる |
 | `workflow_dispatch` | 入力なし。`pages-store` の今の中身を公開し直すだけ |
 
 job と権限:
@@ -128,7 +105,7 @@ concurrency:
 | store | `group: pages-store`・`cancel-in-progress: false`・`queue: max`（待っている保管を消さない） |
 | deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
 
-- deploy の `queue: max` は、ci の run のたびに deploy が起きるため。既定の `queue: single` では、待っている deploy が後から来た deploy に取り消され、その PR 版の status が付かない
+- deploy の `queue: max` は、PR への push のたびに deploy が起きるため。既定の `queue: single` では、待っている deploy が後から来た deploy に取り消され、その PR 版の status が付かない
 - `queue` は actionlint 1.7.12 が知らない。`.github/actionlint.yaml` の除外は path ごとなので、`paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ除外を付ける。#529（除外を消す Issue）の対象にも加える
 
 commit status:
@@ -175,4 +152,6 @@ job summary:
 ## 手元の作り方（`interface-spec:docs`）
 
 - 今の target のまま使う。`PECOT_SITE_*` が無ければ、側は「手元」で、コミットは手元の HEAD
-- `PECOT_SITE_STRICT=1` のときだけ、合否のレーンの JUnit が欠けたら失敗する。作る run はこれを付ける。手元の既定は付けない
+- 何も付けなければ、公開サイトと同じく定義書だけを作る。JUnit は読まない
+- `PECOT_SITE_RESULTS=1` を付けると、合否とテストレポートのページ（`development/`）も作る。JUnit が欠けたレーンのプラグインは「未実行」になる
+- `PECOT_SITE_RESULTS=1` と `PECOT_SITE_STRICT=1` を付けると、合否のレーンの JUnit が欠けたら失敗する

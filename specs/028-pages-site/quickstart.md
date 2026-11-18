@@ -16,8 +16,8 @@ URL と workflow の入出力は [contracts/pages.md](contracts/pages.md)、状�
 # 合否のレーンを動かす（junit-lanes.json の target を全部）
 pnpm exec nx run-many -t test-cli test-hooks --projects=pecot-workflow,pecot-tools,pecot-visual
 
-# サイトを作る
-pnpm exec nx run interface-spec:docs
+# サイトを作る。PECOT_SITE_RESULTS=1 を付けないと、公開サイトと同じく定義書だけになる
+PECOT_SITE_RESULTS=1 pnpm exec nx run interface-spec:docs
 
 python3 -m http.server -d libs/interface-spec/docs/_build
 ```
@@ -30,7 +30,7 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 - 一部のレーンだけ動かして作っても失敗しない。動かしていないプラグインの項目は「未実行」
 
 ```bash
-PECOT_SITE_STRICT=1 pnpm exec nx run interface-spec:docs
+PECOT_SITE_RESULTS=1 PECOT_SITE_STRICT=1 pnpm exec nx run interface-spec:docs
 ```
 
 期待: JUnit が欠けたレーンがあれば、そのレーンの名前を出して失敗する。
@@ -79,23 +79,22 @@ gh workflow run pages-build.yml --ref main -f side=release
 1. 同じリポのブランチから、`libs/interface-spec/docs/` の文言を 1 か所変えた draft の PR を開く
 2. PR の checks に `pages / preview` が付くのを待つ
 3. `gh api repos/pecotcraft/pecot/commits/<head の SHA>/statuses` で、その status を読み、Details を開く
-4. 合否のレーンのテストが 1 件落ちるコミットを push し、新しい head に `pages / preview` が付くのを待つ
-5. PR を閉じる
+4. PR を閉じる
 
 期待:
 
 - status は、context が `pages / preview`、state が `success`、`target_url` が `https://pecotcraft.github.io/pecot/pr/<番号>/` で、付け先が PR の head の SHA
 - 開いたページの上に「これはプルリクエスト #<番号> のプレビューです。」と「プルリクエストを開く」のリンクが出る。変えた文言が出ている
-- `pages / preview` は、ci の `ci-result` の完了から 8 分以内に付く（research R14。run の時刻で見る）
-- 4 の後、同じ URL で落としたテストが失敗として出る
+- `pages / preview` は、ci の tests の終わりを待たずに付く（research R15。run の時刻で見る）
+- 開いたサイトに、合否の表示とテストレポートのページが無い
 - 閉じてから 30 分以内に `/pr/<番号>/` が 404 になる（SC-007）。`/` と `/dev/` の中身は変わらない
 
 ## 6. 止まる場合
 
 | 起こすこと | 期待 |
 |---|---|
-| 合否のレーン 1 つの target を壊した PR を出し、JUnit が残らないようにする | ci の `pages-preview` が、ci が動かしたレーンの JUnit が無いとして失敗し、PR 版は前のまま。開発版の結果では埋めない |
-| 同じリポのブランチの PR で、`ci.yml` を書き換え、`pages-side-dev` の名前で artifact を上げる | `pages-deploy.yml` の verify が、run の `path` が ci.yml で `event` が `pull_request` なので PR 版の候補とし、`pages-side-pr-<番号>` が無いとして捨てる。`pages-store` の `dev/` と `pr/<番号>/` は変わらず、summary に判定と捨てた理由が出る |
-| 同じリポのブランチの PR で、`ci.yml` に `push` の契機を足し、そのブランチへの push で `pages-side-dev` を上げる | verify が、ci.yml の run は `pull_request` だけを受けるとして捨てる。開発版は pages-build.yml の run からしか受けない |
+| 同じリポのブランチの PR で、`pages-build.yml` を書き換え、`pages-side-dev` の名前で artifact を上げる | `pages-deploy.yml` の verify が、`event` が `pull_request` なので PR 版の候補とし、`pages-side-pr-<番号>` が無いとして捨てる。`pages-store` の `dev/` と `pr/<番号>/` は変わらず、summary に判定と捨てた理由が出る |
+| 同じリポのブランチの PR で、`pages-build.yml` の `push` の契機にそのブランチを足し、push で `pages-side-dev` を上げる | verify が、`head_sha` が main の祖先でないとして捨てる |
+| 同じリポのブランチの PR で、`ci.yml` から `pages-side-pr-<番号>` を上げる | `pages-deploy.yml` は ci の run では起きない。起きても、verify が `path` で捨てる |
 | `main` という名前のタグを main に無いコミットへ付け、そのタグで `pages-build.yml` を `side=dev` で起こした run | 作る run の side の job が、`github.ref` が `refs/heads/main` でないとして失敗する。verify も、`head_sha` が main の祖先でないとして捨てる。このリポにタグは作らず、タグで動いた run の応答の形（`head_branch` にタグ名が入る）を入力にした `test_pages_provenance.py` で確かめる |
 | 保管の job が 7 日より長く落ち続けた | その間のリリース版と PR 版の artifact は消える（開発版は 90 日残る）。開発版とリリース版は `gh workflow run pages-build.yml --ref main -f side=<dev か release>` で作り直す。PR 版は、その PR へ次に push したときに作り直される |

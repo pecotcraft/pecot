@@ -16,7 +16,7 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, TextIO
+from typing import Protocol
 
 from release_sources import ReleaseSources, ReleaseSourcesError, from_json
 
@@ -26,9 +26,7 @@ SITE_ENV = ("PECOT_SITE_SIDE", "PECOT_SITE_LANES")
 
 
 class Runner(Protocol):
-    def __call__(
-        self, argv: Sequence[str], *, env: Mapping[str, str], stdout: TextIO | None = None
-    ) -> int: ...
+    def __call__(self, argv: Sequence[str], *, env: Mapping[str, str]) -> int: ...
 
 
 class BuildError(RuntimeError):
@@ -43,15 +41,10 @@ class Build:
     out: Path
     env: Mapping[str, str]
     run: Runner
-    summary: TextIO
 
     @property
     def tools(self) -> Path:
         return self.temp / "pages-release-tools"
-
-    @property
-    def junit_store(self) -> Path:
-        return self.temp / "pages-release-junit"
 
     def _must(self, argv: Sequence[str], env: Mapping[str, str] | None = None) -> None:
         rc = self.run(argv, env=env or self.env)
@@ -80,28 +73,6 @@ class Build:
         shutil.copy2(
             self.workspace / ".githooks/ci/dev-container.sh", self.tools / "dev-container.sh"
         )
-        for script in (self.workspace / ".githooks/scripts/pages_site").glob("*.py"):
-            shutil.copy2(script, self.tools / script.name)
-
-    def run_plugin_lanes(self, plugin: str) -> None:
-        lanes = [lane for lane in self.sources.lanes if lane["plugin"] == plugin]
-        self._checkout(self.sources.commits[plugin])
-        for lane in lanes:
-            (self.workspace / lane["junit"]).unlink(missing_ok=True)
-        for lane in lanes:
-            target = lane["target"]
-            rc = self.run(
-                self._exec(f"pnpm exec nx run {shlex.quote(target)} --skip-nx-cache"), env=self.env
-            )
-            if rc != 0:
-                print(f"::warning::{target} exited with {rc}")
-        self._restore_owner()
-        for lane in lanes:
-            source = self.workspace / lane["junit"]
-            if source.is_file():
-                dest = self.junit_store / lane["junit"]
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(source, dest)
 
     def assemble(self) -> None:
         self._checkout(self.sources.skeleton)
@@ -110,33 +81,6 @@ class Build:
         for plugin, commit in sorted(self.sources.commits.items()):
             self._must([*git, "rm", "-r", "-q", "--ignore-unmatch", f"plugins/{plugin}"])
             self._must([*git, "checkout", commit, "--", f"plugins/{plugin}"])
-        for lane in self.sources.lanes:
-            stored = self.junit_store / lane["junit"]
-            if stored.is_file():
-                dest = self.workspace / lane["junit"]
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(stored, dest)
-
-    def collect(self) -> None:
-        lanes_file = self.temp / "pages-release-lanes.json"
-        lanes_file.write_text(json.dumps(self.sources.lanes, ensure_ascii=False), encoding="utf-8")
-        argv = [
-            "python3",
-            str(self.tools / "collect.py"),
-            "--lanes",
-            str(lanes_file),
-            "--side",
-            "release",
-            "--sha",
-            self.sources.skeleton,
-            "--root",
-            str(self.workspace),
-            "--out",
-            str(self.out),
-        ]
-        rc = self.run(argv, env=self.env, stdout=self.summary)
-        if rc != 0:
-            raise BuildError(f"JUnit のそろわないレーンがあり、collect.py は {rc} で終わりました")
 
     def site_env(self) -> dict[str, str]:
         env = dict(self.env)
@@ -144,9 +88,8 @@ class Build:
         env["PECOT_SITE_LANES"] = json.dumps(
             self.sources.lanes, ensure_ascii=False, separators=(",", ":")
         )
-        env["DEVCONTAINER_ENV"] = "\n".join(
-            part for part in (env.get("DEVCONTAINER_ENV", "").strip(), *SITE_ENV) if part
-        )
+        names = dict.fromkeys([*env.get("DEVCONTAINER_ENV", "").split(), *SITE_ENV])
+        env["DEVCONTAINER_ENV"] = "\n".join(names)
         return env
 
     def build_site(self) -> None:
@@ -166,20 +109,15 @@ class Build:
 
     def all(self) -> None:
         self._copy_tools()
-        for plugin in sorted(self.sources.commits):
-            self.run_plugin_lanes(plugin)
         self.assemble()
-        self.collect()
         self.build_site()
         self.pack()
 
 
 def _subprocess_runner(cwd: Path) -> Runner:
-    def run(argv: Sequence[str], *, env: Mapping[str, str], stdout: TextIO | None = None) -> int:
+    def run(argv: Sequence[str], *, env: Mapping[str, str]) -> int:
         sys.stdout.flush()
-        return subprocess.run(
-            list(argv), cwd=cwd, env=dict(env), stdout=stdout, check=False
-        ).returncode
+        return subprocess.run(list(argv), cwd=cwd, env=dict(env), check=False).returncode
 
     return run
 
@@ -201,8 +139,6 @@ def main(
     except (OSError, ValueError) as error:
         print(f"ERROR: {args.sources}: {error}", file=sys.stderr)
         return 1
-    summary_path = env.get("GITHUB_STEP_SUMMARY")
-    summary = open(summary_path, "a", encoding="utf-8") if summary_path else sys.stdout
     try:
         Build(
             sources=sources,
@@ -211,14 +147,10 @@ def main(
             out=args.out.resolve(),
             env=env,
             run=runner or _subprocess_runner(Path(workspace)),
-            summary=summary,
         ).all()
     except (BuildError, ReleaseSourcesError, OSError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
-    finally:
-        if summary is not sys.stdout:
-            summary.close()
     return 0
 
 

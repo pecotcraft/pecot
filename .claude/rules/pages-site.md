@@ -16,11 +16,11 @@ paths:
 |---|---|---|
 | リリース版 | `https://pecotcraft.github.io/pecot/` | 本番のリリースの land の後（release.yml が起こす） |
 | 開発版 | `https://pecotcraft.github.io/pecot/dev/` | main への push |
-| PR 版 | `https://pecotcraft.github.io/pecot/pr/<番号>/` | 同じリポのブランチの PR の ci の完了 |
+| PR 版 | `https://pecotcraft.github.io/pecot/pr/<番号>/` | 同じリポのブランチの PR を開いたときと、push のたび。ci の tests は待たない |
 
 - リリース版・開発版がまだ無いときは、その URL に案内のページが出る
 - PR 版は、PR の checks の `pages / preview` の Details から開く。マージかクローズの後の保管で消える
-- PR 版で、ci が動かさなかったレーンは開発版の JUnit で埋まる。埋めたレーンは、ci の `pages-preview` の job summary の「出どころ」の列にだけ出る
+- どの側も `pages-build.yml` がテストを動かさずに作り、定義書だけを載せる。テストの合否とテストレポートのページは載せない（#648。テスト結果は #645 で Allure Report に替える）
 
 ## 起動とやり直し
 
@@ -40,9 +40,8 @@ paths:
     python3 .githooks/scripts/pages_site/verify.py --run-id <run> --repo pecotcraft/pecot --out <作業ディレクトリ>
     ```
 
-- 側を作る run は、合否のレーンのテストが落ちただけでは失敗しない。JUnit が残らなかったときに失敗する
-- artifact は、開発版が 90 日、リリース版と PR 版が 7 日で消える。保管が終わっていれば、消えても公開は変わらない
-- PR 版が「開発版の artifact が無い」で止まったら、開発版を作り直してから、その PR へ push する
+- 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき
+- artifact は、どの側のものも 7 日で消える。保管が終わっていれば、消えても公開は変わらない
 - 保管の job が落ち続けて artifact が消えたら、開発版とリリース版を上の起動で作り直す
 
 ## 管理者の設定

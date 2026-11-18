@@ -224,6 +224,11 @@ description: "Task list for 028-pages-site"
   GitHub と同じく、ヘッダーを画面の幅いっぱいに広げ、フッターはロゴ・「© 2026 pecotcraft」・リンクを真ん中に寄せる（`_templates/footer.html`）。
   本文の段落と箇条書きの 1 行を 50rem で止める（`_static/pecot.css`、`interface-spec:test-site`）
 
+2026-11-18 の 4 回目の決め直し（#648）で、公開の流れからテストを外す T050 を足した。T046〜T048 の形は、これで改まる。理由は research.md の R15。
+
+- [x] T050 [US3] PR 版を `pages-build.yml` の `pull_request` の run で作り、ci.yml の `pages-preview` を消す。どの側もレーンを動かさず、合否を出さない。
+  `provenance.py` は pages-build.yml の run だけを受ける。合否の表示は `PECOT_SITE_RESULTS=1` のときだけ出す（`conf.py`・`_ext/iface_defs.py`）
+
 **Checkpoint**: マージの後、同じリポのブランチから開いた PR に `pages / preview` が付き、`/pecot/pr/<番号>/` が開く。PR を閉じると、次の保管で消える
 
 ---

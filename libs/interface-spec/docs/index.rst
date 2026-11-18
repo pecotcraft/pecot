@@ -5,8 +5,6 @@ pecot
 
 Claude Code 向けのプラグインのマーケットプレイスです。
 
-プラグインごとの、機能要件の状態ごとの数です。
-
 .. iface-overview::
 
 - :doc:`introduction`
@@ -14,7 +12,6 @@ Claude Code 向けのプラグインのマーケットプレイスです。
 - :doc:`guides/index`
 - :doc:`reference/index`
 - :doc:`troubleshooting`
-- :doc:`development/index`
 
 .. toctree::
    :hidden:
@@ -25,4 +22,3 @@ Claude Code 向けのプラグインのマーケットプレイスです。
    guides/index
    reference/index
    troubleshooting
-   development/index

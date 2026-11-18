@@ -30,7 +30,7 @@
 
 ## ドキュメント
 
-使い方、コマンドと MCP ツールのインタフェース定義、テスト結果は、[公開サイト](https://pecotcraft.github.io/pecot/)で読めます。
+使い方と、コマンドと MCP ツールのインタフェース定義は、[公開サイト](https://pecotcraft.github.io/pecot/)で読めます。
 
 ## セットアップ
 

@@ -2,7 +2,8 @@
 
 --ran が無いときは作業ツリーの JUnit を集める（pages-build.yml）。
 --ran があるときは、ci が動かしたレーンを --ci-dir から、ほかを開発版の --dev-dir/junit から取る。
-取った JUnit は作業ツリーにも写す（ci.yml の pages-preview）。
+取った JUnit は作業ツリーにも写す。
+今は呼ぶ workflow が無い（#648）。片付けは #645。
 JUnit が無いか読めないレーンがあれば、その名前を標準エラーに出して 1 で終わる。
 """
 

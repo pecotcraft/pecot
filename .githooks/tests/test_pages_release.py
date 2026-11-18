@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import io
 import json
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TextIO
 
 import pytest
 
@@ -274,33 +272,18 @@ _LANES = [_lane("a", "test-cli"), _lane("a", "test-hooks"), _lane("b", "test-cli
 
 
 class FakeRunner:
-    """外のコマンドを記録する。nx run のレーンでは、作業ツリーへ JUnit を書いたことにする。"""
+    """外のコマンドを記録する。"""
 
     def __init__(self, workspace: Path, *, fail: Mapping[str, int] | None = None) -> None:
         self.workspace = workspace
         self.fail = dict(fail or {})
         self.calls: list[tuple[str, ...]] = []
         self.envs: list[dict[str, str]] = []
-        self.junit_at_collect: list[str] = []
 
-    def __call__(
-        self, argv: Sequence[str], *, env: Mapping[str, str], stdout: TextIO | None = None
-    ) -> int:
+    def __call__(self, argv: Sequence[str], *, env: Mapping[str, str]) -> int:
         call = self._short(argv)
         self.calls.append(call)
         self.envs.append(dict(env))
-        if call[0] == "exec" and "nx run " in call[1] and "interface-spec:docs" not in call[1]:
-            target = call[1].split("nx run ")[1].split()[0]
-            lane = next(lane for lane in _LANES if lane["target"] == target)
-            path = self.workspace / lane["junit"]
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(f"<testsuites name='{target}'/>", encoding="utf-8")
-        if call[0] == "collect":
-            assert stdout is not None
-            stdout.write("## summary\n")
-            self.junit_at_collect = sorted(
-                str(p.relative_to(self.workspace)) for p in self.workspace.rglob("*.xml")
-            )
         text = " ".join(call)
         return next((rc for key, rc in self.fail.items() if key in text), 0)
 
@@ -312,8 +295,6 @@ class FakeRunner:
             return (args[1],)
         if args[0] == "git":
             return ("git", *args[3:])
-        if args[0] == "python3":
-            return ("collect", *args[2:])
         return tuple(args)
 
 
@@ -322,13 +303,6 @@ def workspace(tmp_path: Path) -> Path:
     ws = tmp_path / "ws"
     (ws / ".githooks/ci").mkdir(parents=True)
     (ws / ".githooks/ci/dev-container.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-    (ws / ".githooks/scripts/pages_site").mkdir(parents=True)
-    for name in ("collect.py", "lanes.py"):
-        (ws / ".githooks/scripts/pages_site" / name).write_text("", encoding="utf-8")
-    # 前の run の JUnit が残っていても、レーンの前に消す。
-    stale = ws / "plugins/b/cli/test-results/test-cli.xml"
-    stale.parent.mkdir(parents=True)
-    stale.write_text("stale", encoding="utf-8")
     return ws
 
 
@@ -349,14 +323,13 @@ def _sources_file(tmp_path: Path) -> Path:
 
 
 def _main(tmp_path: Path, workspace: Path, runner: FakeRunner) -> tuple[int, Path, Path]:
-    temp, out, summary = tmp_path / "runner-temp", tmp_path / "out", tmp_path / "summary.md"
+    temp, out = tmp_path / "runner-temp", tmp_path / "out"
     temp.mkdir()
     env = {
         "GITHUB_WORKSPACE": str(workspace),
         "RUNNER_TEMP": str(temp),
-        "GITHUB_STEP_SUMMARY": str(summary),
-        "DEVCONTAINER_ENV": "PECOT_SITE_STRICT\n",
-        "PECOT_SITE_STRICT": "1",
+        "DEVCONTAINER_ENV": "PECOT_SITE_SIDE\nPECOT_SITE_PR\n",
+        "PECOT_SITE_SIDE": "release",
     }
     rc = release_build.main(
         ["release_build.py", "--sources", str(_sources_file(tmp_path)), "--out", str(out)],
@@ -369,72 +342,31 @@ def _main(tmp_path: Path, workspace: Path, runner: FakeRunner) -> tuple[int, Pat
 def test_build_runs_steps_in_order(
     tmp_path: Path, workspace: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    runner = FakeRunner(workspace, fail={"nx run a:test-hooks": 3})
+    runner = FakeRunner(workspace)
     rc, temp, out = _main(tmp_path, workspace, runner)
 
     assert rc == 0, capsys.readouterr().err
     ws = str(workspace)
-    install = ("exec", "pnpm install --frozen-lockfile")
     expected: list[tuple[str, ...]] = [
-        # 1. プラグインごとに、タグのコミットでそのプラグインのレーンを動かす（名前順）
-        ("restore-owner",),
-        ("git", "checkout", "--force", A),
-        ("give-owner",),
-        install,
-        ("exec", "pnpm exec nx run a:test-cli --skip-nx-cache"),
-        ("exec", "pnpm exec nx run a:test-hooks --skip-nx-cache"),
-        ("restore-owner",),
+        # 1. skeleton に各プラグインのタグの中身を重ねる。テストのレーンは動かさない
         ("restore-owner",),
         ("git", "checkout", "--force", B),
         ("give-owner",),
-        install,
-        ("exec", "pnpm exec nx run b:test-cli --skip-nx-cache"),
-        ("restore-owner",),
-        # 2. skeleton に各プラグインのタグの中身を重ねる
-        ("restore-owner",),
-        ("git", "checkout", "--force", B),
-        ("give-owner",),
-        install,
+        ("exec", "pnpm install --frozen-lockfile"),
         ("restore-owner",),
         ("git", "rm", "-r", "-q", "--ignore-unmatch", "plugins/a"),
         ("git", "checkout", A, "--", "plugins/a"),
         ("git", "rm", "-r", "-q", "--ignore-unmatch", "plugins/b"),
         ("git", "checkout", B, "--", "plugins/b"),
-        # 3. JUnit をそろえて写す
-        (
-            "collect",
-            "--lanes",
-            str(temp / "pages-release-lanes.json"),
-            "--side",
-            "release",
-            "--sha",
-            B,
-            "--root",
-            ws,
-            "--out",
-            str(out),
-        ),
-        # 4. サイトを作る
+        # 2. サイトを作る
         ("give-owner",),
         ("exec", "pnpm exec nx run interface-spec:docs --skip-nx-cache"),
-        # 5. 包む
+        # 3. 包む
         ("restore-owner",),
         ("tar", "-C", f"{ws}/libs/interface-spec/docs/_build", "-cf", f"{out}/site.tar", "."),
     ]
     assert runner.calls == expected
 
-    # レーンの JUnit は、collect の時点で元の場所に戻っている。落ちたレーンは warning を出して続ける。
-    assert runner.junit_at_collect == [
-        "plugins/a/cli/test-results/test-cli.xml",
-        "plugins/a/cli/test-results/test-hooks.xml",
-        "plugins/b/cli/test-results/test-cli.xml",
-    ]
-    assert "<testsuites name='b:test-cli'/>" == (
-        workspace / "plugins/b/cli/test-results/test-cli.xml"
-    ).read_text(encoding="utf-8")
-    assert "::warning::a:test-hooks exited with 3" in capsys.readouterr().out
-    assert json.loads((temp / "pages-release-lanes.json").read_text(encoding="utf-8")) == _LANES
-    assert (tmp_path / "summary.md").read_text(encoding="utf-8") == "## summary\n"
     assert json.loads((out / "release-sources.json").read_text(encoding="utf-8")) == {
         "tags": {"b": "b-v2.0.0", "a": "a-v1.0.0"},
         "commits": {"b": B, "a": A},
@@ -442,7 +374,6 @@ def test_build_runs_steps_in_order(
     }
     # 呼ぶスクリプトは、作業ツリーの外の写しを使う。
     assert (temp / "pages-release-tools/dev-container.sh").is_file()
-    assert (temp / "pages-release-tools/collect.py").is_file()
 
 
 def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> None:
@@ -454,30 +385,20 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
     env = runner.envs[docs]
     assert env["PECOT_SITE_SIDE"] == "release"
     assert json.loads(env["PECOT_SITE_LANES"]) == _LANES
-    assert env["PECOT_SITE_STRICT"] == "1"
+    # 合否を出す env は渡さない。
+    assert "PECOT_SITE_STRICT" not in env
+    assert "PECOT_SITE_RESULTS" not in env
     assert env["DEVCONTAINER_ENV"].split() == [
-        "PECOT_SITE_STRICT",
         "PECOT_SITE_SIDE",
+        "PECOT_SITE_PR",
         "PECOT_SITE_LANES",
     ]
     # 消した版の値を、もう渡さない。
     assert "PECOT_SITE_SHA" not in env
     assert "PECOT_SITE_PLUGIN_COMMITS" not in env
-    # サイトを作る段の外では、PECOT_SITE_* を足さない。
+    # サイトを作る段の外では、レーンの一覧を足さない。
     others = [e for i, e in enumerate(runner.envs) if i != docs]
-    assert all("PECOT_SITE_SIDE" not in e for e in others)
-
-
-def test_build_stops_when_collect_fails(
-    tmp_path: Path, workspace: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    runner = FakeRunner(workspace, fail={"--side release": 1})
-    rc, _, out = _main(tmp_path, workspace, runner)
-
-    assert rc == 1
-    assert "JUnit のそろわないレーンがあり" in capsys.readouterr().err
-    assert runner.calls[-1][0] == "collect"
-    assert not (out / "release-sources.json").exists()
+    assert all("PECOT_SITE_LANES" not in e for e in others)
 
 
 @pytest.mark.parametrize(
@@ -517,21 +438,3 @@ def test_build_requires_runner_env(tmp_path: Path, capsys: pytest.CaptureFixture
     )
     assert rc == 1
     assert "GITHUB_WORKSPACE と RUNNER_TEMP" in capsys.readouterr().err
-
-
-def test_collect_writes_summary_to_given_stream(tmp_path: Path, workspace: Path) -> None:
-    runner = FakeRunner(workspace)
-    buffer = io.StringIO()
-    build = release_build.Build(
-        sources=release_sources.from_json(
-            json.loads(_sources_file(tmp_path).read_text(encoding="utf-8"))
-        ),
-        workspace=workspace,
-        temp=tmp_path,
-        out=tmp_path / "out",
-        env={},
-        run=runner,
-        summary=buffer,
-    )
-    build.collect()
-    assert buffer.getvalue() == "## summary\n"
