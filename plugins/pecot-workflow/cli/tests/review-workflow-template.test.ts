@@ -231,14 +231,32 @@ describe('review のワークフローの雛形', () => {
     expect(claudeArguments).not.toContain('#')
   })
 
-  it('Bash・Edit・Write は許可に無く、拒否にある', () => {
+  it('Edit・Write を拒否し、Bash は PR を読む gh の規則だけを許す', () => {
     const allowed = toolList('--allowedTools')
     const disallowed = toolList('--disallowedTools')
-    for (const tool of ['Bash', 'Edit', 'Write']) {
+    for (const tool of ['Edit', 'Write']) {
       expect(allowed.filter(entry => entry.startsWith(tool))).toEqual([])
       expect(disallowed).toContain(tool)
     }
-    expect(disallowed).toEqual(['Bash', 'Edit', 'Write', 'NotebookEdit', 'AskUserQuestion', 'Agent', 'WebFetch', 'WebSearch'])
+    expect(allowed.filter(entry => entry.startsWith('Bash'))).toEqual(['Bash(gh pr diff:*)', 'Bash(gh pr view:*)'])
+    for (const prefix of ['Bash(gh api', 'Bash(git', 'Bash(gh pr comment']) {
+      expect(allowed.filter(entry => entry.startsWith(prefix))).toEqual([])
+    }
+    expect(disallowed).not.toContain('Bash')
+  })
+
+  it('hook が allow を返す clone と、環境変数を読める /proc を拒否する', () => {
+    expect(toolList('--disallowedTools')).toEqual([
+      'Edit',
+      'Write',
+      'NotebookEdit',
+      'AskUserQuestion',
+      'Agent',
+      'WebFetch',
+      'WebSearch',
+      'Bash(git clone:*)',
+      'Read(//proc/**)',
+    ])
   })
 
   it('許可は契約のツールだけで、マージ・クローズ・リリースのツールを含まない', () => {
@@ -252,6 +270,8 @@ describe('review のワークフローの雛形', () => {
       `${pecot}issue_show`,
       `${pecot}issue_comment`,
       'mcp__github_inline_comment__create_inline_comment',
+      'Bash(gh pr diff:*)',
+      'Bash(gh pr view:*)',
     ])
     for (const tool of allowed) expect(tool).not.toMatch(/merge|close|release|session_finish|branch_delete/)
   })
