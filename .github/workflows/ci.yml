@@ -268,8 +268,8 @@ jobs:
 
       - *restore-owner
 
-      # pages-preview が PR 版の合否に使う。JUnit は dev container の中で書かれるので、持ち主を戻した後に写す。
-      # PR 版の失敗で tests を落とさない。欠けた JUnit は pages-preview の Collect JUnit が止める。
+      # 合否のレーンの JUnit を artifact に残す。今は読む job が無く、テストレポートの載せ替え（#645）が使う。
+      # JUnit は dev container の中で書かれるので、持ち主を戻した後に写す。写せなくても tests を落とさない。
       - name: Stage JUnit
         if: always()
         continue-on-error: true
@@ -319,98 +319,6 @@ jobs:
           path: .pecot/tmp/ci/nx-upload/
           retention-days: 7
           if-no-files-found: ignore
-
-  # 公開サイトの PR 版を、tests の JUnit と開発版の JUnit で作る。テストは動かさない。
-  # ci-result の needs に入れず、PR 版の失敗でマージを止めない。確かめと公開は pages-deploy.yml が行う。
-  pages-preview:
-    needs: [lanes, tests]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.lanes.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      PR: ${{ github.event.pull_request.number }}
-      SHA: ${{ github.event.pull_request.head.sha }}
-      PECOT_SITE_STRICT: "1"
-      PECOT_SITE_SIDE: pr
-      PECOT_SITE_PR: ${{ github.event.pull_request.number }}
-      DEVCONTAINER_ENV: |
-        PECOT_SITE_STRICT
-        PECOT_SITE_SIDE
-        PECOT_SITE_PR
-    steps:
-      # PR 版の中身は、ci がテストした merge のコミットでなく PR の head に合わせる。
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-
-      - *prefetch
-
-      - name: Download lane JUnit
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: pages-junit-*
-          merge-multiple: true
-          path: ${{ runner.temp }}/pages-junit
-
-      - name: Find dev side
-        id: dev
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: python3 .githooks/scripts/pages_site/dev_side.py --repo "$REPO"
-
-      - name: Download dev JUnit
-        id: devdl
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: pages-side-dev
-          run-id: ${{ steps.dev.outputs.run_id }}
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/pages-dev
-
-      - name: Explain missing dev side
-        if: failure() && steps.devdl.outcome == 'failure'
-        env:
-          DEV_RUN_ID: ${{ steps.dev.outputs.run_id }}
-        run: |
-          echo "::error::pages-side-dev of run $DEV_RUN_ID is not available. Rebuild the dev side: gh workflow run pages-build.yml --ref main -f side=dev"
-          exit 1
-
-      - name: Collect JUnit
-        env:
-          RAN: ${{ needs.lanes.outputs.lanes }}
-          DEV_SHA: ${{ steps.dev.outputs.sha }}
-        run: |
-          set -euo pipefail
-          python3 .githooks/scripts/pages_site/collect.py --out "$RUNNER_TEMP/pages-side" \
-            --side pr --pr "$PR" --sha "$SHA" --ran "$RAN" \
-            --ci-dir "$RUNNER_TEMP/pages-junit" --dev-dir "$RUNNER_TEMP/pages-dev" --dev-sha "$DEV_SHA" \
-            >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Start dev container
-        run: .githooks/ci/dev-container.sh up
-
-      - name: Build site
-        run: |
-          # shellcheck disable=SC2016
-          .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && pnpm exec nx run interface-spec:docs --skip-nx-cache'
-
-      - *restore-owner
-
-      - name: Pack site
-        run: tar -C libs/interface-spec/docs/_build -cf "$RUNNER_TEMP/pages-side/site.tar" .
-
-      - name: Upload side
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pages-side-pr-${{ github.event.pull_request.number }}
-          path: ${{ runner.temp }}/pages-side/
-          retention-days: 7
-          overwrite: true
-          if-no-files-found: error
 
   version-plan:
     runs-on: ubuntu-latest

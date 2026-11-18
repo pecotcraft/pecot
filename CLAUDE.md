@@ -15,7 +15,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 - `test` target は全量実行（`nx run-many -t test`）の起点で、入力を持たない。`nx affected -t test` は 0 件で成功するので、チェックはレーン名を列挙して `nx affected` で要求する
 - lint は pecot-visual・pecot-workflow が `lint-*` のレーン、interface-spec が `lint`・`lint-defs`、ほかは `lint` 1 つ
-- `interface-spec` の `docs` は、定義書と合否の HTML を作る target で、`nx affected` では動かない。CI では、公開サイトを作る `pages-build.yml` と ci の `pages-preview` だけが動かす。手順は `libs/interface-spec/README.md`
+- `interface-spec` の `docs` は、定義書の HTML を作る target で、ci でも `nx affected` でも動かない。公開サイトを作る `pages-build.yml` だけが動かす。手順は `libs/interface-spec/README.md`
 
 ## プラグイン製品としての前提
 

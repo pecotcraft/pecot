@@ -181,7 +181,7 @@ def test_check_side_compares_release_sources_with_the_recomputed_ones(
         assert seen == ["origin/main"]
 
 
-def _ci_pr_run() -> dict[str, object]:
+def _pr_build_run() -> dict[str, object]:
     pull = {
         "number": 5,
         "head": {"sha": HEAD},
@@ -189,9 +189,9 @@ def _ci_pr_run() -> dict[str, object]:
     }
     return _run(
         "pull_request",
-        path=".github/workflows/ci.yml",
+        path=".github/workflows/pages-build.yml",
         head_branch="feat/x/5",
-        conclusion="failure",
+        conclusion="success",
         pull_requests=[pull],
     )
 
@@ -201,7 +201,7 @@ def test_pr_side_is_downloaded_checked_and_output(
 ) -> None:
     api = FakeApi(
         _responses(
-            _ci_pr_run(),
+            _pr_build_run(),
             **{
                 f"repos/{REPO}/actions/runs/7/artifacts?per_page=100": {
                     "artifacts": [{"name": "pages-side-pr-5"}]
@@ -237,7 +237,7 @@ def test_pr_side_is_downloaded_checked_and_output(
     assert "- 側: pr" in capsys.readouterr().out
 
 
-# dev_side.py（ci.yml の pages-preview が開発版の run を探す）
+# dev_side.py（開発版の run を探す。今は呼ぶ workflow が無い）
 
 
 def test_dev_side_writes_run_id_and_sha(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

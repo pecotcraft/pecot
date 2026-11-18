@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import cast
 
 BUILD_PATH = ".github/workflows/pages-build.yml"
-CI_PATH = ".github/workflows/ci.yml"
 
 ARTIFACT_DEV = "pages-side-dev"
 ARTIFACT_RELEASE = "pages-side-release"
@@ -137,35 +136,17 @@ def _dispatch_side(artifact_names: list[str]) -> str | None:
     return "dev" if has_dev else "release"
 
 
-def _decide_ci(
+def _decide_build_pr(
     run: Mapping[str, object],
     repo: str,
     head_sha: str,
     artifact_names: list[str],
     pulls: Mapping[int, Mapping[str, object]],
 ) -> Verdict:
-    # PR の作者は自分のブランチの ci.yml を書き換えられるので、ci.yml からは PR 版だけを受ける。
-    event = _str(run, "event")
-    if event != "pull_request":
-        return _drop(f"ci.yml の event {event} の run は受けません")
-    conclusion = _str(run, "conclusion")
-    if conclusion not in ("success", "failure"):
-        return _drop(f"run の conclusion が success・failure ではありません（{conclusion}）")
+    # PR の作者は自分のブランチの pages-build.yml を書き換えられるので、pull_request の run からは PR 版だけを受ける。
     verdict = _decide_pr(run, repo, head_sha, pulls)
     if verdict.side == "pr" and verdict.artifact not in artifact_names:
         return _drop(f"PR 版: run に {verdict.artifact} がありません", pr=verdict.pr)
-    return verdict
-
-
-def _decide_build_pr(
-    run: Mapping[str, object], repo: str, head_sha: str, pulls: Mapping[int, Mapping[str, object]]
-) -> Verdict:
-    verdict = _decide_pr(run, repo, head_sha, pulls)
-    if verdict.side == "pr":
-        return _drop(
-            f"PR 版: #{verdict.pr} は ci.yml の run から作ります（pages-build の run は掃除だけ）",
-            pr=verdict.pr,
-        )
     return verdict
 
 
@@ -181,15 +162,11 @@ def decide(
 ) -> Verdict:
     """受けた run を、どの側として受けるか（捨てるか）決める。"""
     path = _str(run, "path")
-    if path not in (BUILD_PATH, CI_PATH):
-        return _drop(f"workflow の path が {BUILD_PATH}・{CI_PATH} のどちらでもありません")
+    if path != BUILD_PATH:
+        return _drop(f"workflow の path が {BUILD_PATH} ではありません")
     if not _same_repo(_str(run, "head_repository", "full_name"), repo):
         return _drop("head_repository がこのリポではありません")
     head_sha = _str(run, "head_sha")
-    if path == CI_PATH:
-        if head_sha is None:
-            return _drop("run に head_sha がありません")
-        return _decide_ci(run, repo, head_sha, artifact_names, pulls)
     if _str(run, "conclusion") != "success":
         return _drop(f"run の conclusion が success ではありません（{_str(run, 'conclusion')}）")
     if head_sha is None:
@@ -198,7 +175,7 @@ def decide(
     # head_branch は判定に使わない（タグで動いた run はタグ名が入る）。
     event = _str(run, "event")
     if event == "pull_request":
-        return _decide_build_pr(run, repo, head_sha, pulls)
+        return _decide_build_pr(run, repo, head_sha, artifact_names, pulls)
     if event == "push":
         side = "dev"
     elif event == "workflow_dispatch":

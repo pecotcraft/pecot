@@ -713,6 +713,8 @@ class _Base(SphinxDirective):
 
     def _collect(self, plugin: str, known: frozenset[str]) -> Collected:
         lanes = _config_junit(self.config, plugin)
+        if not self.config.iface_results:
+            return Collected(missing=list(lanes))
         for path in lanes.values():
             self.env.note_dependency(str(path))
         return collect(lanes, known)
@@ -806,6 +808,7 @@ class IfaceDefs(_Base):
         return f"次の {len(behaviors)} 件の要件を、自動テストで確かめています。"
 
     def _behavior_table(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
+        results = bool(self.config.iface_results)
         lines = [
             ".. list-table::",
             "   :header-rows: 1",
@@ -814,15 +817,13 @@ class IfaceDefs(_Base):
             "",
             "   * - ID",
             "     - 要件",
-            "     - テスト結果",
+            *(["     - テスト結果"] if results else []),
         ]
         for b in behaviors:
-            outcome = collected.outcome(b.id)
-            lines += [
-                f"   * - {_lit(b.id)}",
-                f"     - {_esc(b.statement)}",
-                f"     - :iface-{outcome}:`{label(outcome)}`",
-            ]
+            lines += [f"   * - {_lit(b.id)}", f"     - {_esc(b.statement)}"]
+            if results:
+                outcome = collected.outcome(b.id)
+                lines += [f"     - :iface-{outcome}:`{label(outcome)}`"]
         return [*lines, ""]
 
     def _case_notes(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
@@ -830,6 +831,8 @@ class IfaceDefs(_Base):
 
         本文は _fold_details がノードで足す。rst に入れると、本文の記号が rst として読まれるため。
         """
+        if not self.config.iface_results:
+            return []
         failed = self._failed_cases(behaviors, collected)
         skipped = [
             (b.id, c)
@@ -970,26 +973,35 @@ class IfaceIndex(_Base):
             return [collected.outcome(b.id) for b in plan.behaviors if b.belongs == belongs]
 
         base = f"/{PAGES_DIR.as_posix()}/{plugin}"
+        results = bool(self.config.iface_results)
         rows: list[list[str]] = [
             [
                 f":doc:`{_esc(c.name)} <{base}/{c.slug}>`",
                 _esc(c.description),
                 _esc(", ".join(c.tags)),
-                _esc(_summary(outcomes(c.id))),
+                *([_esc(_summary(outcomes(c.id)))] if results else []),
             ]
             for c in plan.commands
         ]
-        lines = [".. list-table::", "   :header-rows: 1", "   :widths: 22 50 8 20", ""]
-        for row in [["名前", "説明", "型", "状態"], *rows]:
+        widths = "22 50 8 20" if results else "25 65 10"
+        head = ["名前", "説明", "型", *(["状態"] if results else [])]
+        lines = [".. list-table::", "   :header-rows: 1", f"   :widths: {widths}", ""]
+        for row in [head, *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
         return self.parse_text_to_nodes("\n".join(lines))
 
 
 class IfaceOverview(_Base):
-    """``iface-overview``。iface_junit のプラグインごとに、リファレンスのページへのリンクと状態ごとの数を出す。"""
+    """``iface-overview``。iface_junit のプラグインごとに、リファレンスのページへのリンクと状態ごとの数を出す。
+
+    iface_results が偽のときは、何も出さない。
+    """
 
     def run(self) -> list[nodes.Node]:
-        lines = [".. list-table::", "   :header-rows: 1", "   :widths: auto", ""]
+        if not self.config.iface_results:
+            return []
+        lines = ["プラグインごとの、機能要件の状態ごとの数です。", ""]
+        lines += [".. list-table::", "   :header-rows: 1", "   :widths: auto", ""]
         lines += ["   * - プラグイン", "     - 状態"]
         # 版の帯と同じく、プラグインの名前の順に並べる。
         for plugin in sorted(cast("dict[str, Any]", self.config.iface_junit)):
@@ -1170,6 +1182,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value("iface_pages", False, "env", types=[bool])
     app.add_config_value("iface_terms", {}, "env", types=[dict])
     app.add_config_value("iface_strict", False, "env", types=[bool])
+    app.add_config_value("iface_results", False, "env", types=[bool])
     app.connect("config-inited", _load_terms)
     app.connect("builder-inited", check_strict)
     app.connect("builder-inited", write_pages)

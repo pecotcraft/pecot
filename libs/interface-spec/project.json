@@ -151,7 +151,7 @@
         "install"
       ],
       "metadata": {
-        "description": "定義書とテストの合否の HTML を docs/_build に作る。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。PR の必須のレーンではない。 読む JUnit は docs/junit-lanes.json で決める。 PECOT_SITE_STRICT=1 を付けると、JUnit が無いか読めないレーンがあるとき、その名前を出して止まる。 ページの上の版の知らせは、PECOT_SITE_SIDE・PECOT_SITE_PR で決まる。渡さなければ、ローカルの知らせが出る。"
+        "description": "定義書の HTML を docs/_build に作る。公開サイト（pages-build.yml）もこれで作る。PR の必須のレーンではない。 PECOT_SITE_RESULTS=1 を付けると、JUnit を読んでテストの合否も出す。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。 読む JUnit は docs/junit-lanes.json で決める。 PECOT_SITE_STRICT=1 も付けると、JUnit が無いか読めないレーンがあるとき、その名前を出して止まる。 ページの上の版の知らせは、PECOT_SITE_SIDE・PECOT_SITE_PR で決まる。渡さなければ、ローカルの知らせが出る。"
       },
       "options": {
         "commands": [

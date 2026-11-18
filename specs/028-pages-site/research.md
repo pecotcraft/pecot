@@ -8,6 +8,8 @@
 
 2026-11-18 の 3 回目の決め直し（#590）で、PR 版を ci の結果から作る形に改め、R3・R5・R6 を直して R14 を足した。
 
+2026-11-18 の 4 回目の決め直し（#648）で、公開の流れからテストを外し、R15 を足した。R6・R14 と、R3・R5・R13 のうちテストの実行と JUnit に触れる部分は、R15 が置き換える。
+
 ## R1. 公開元と公開の形
 
 - **Decision**: 保管はブランチ、公開は Actions とする
@@ -247,3 +249,19 @@
   - nx のリモートキャッシュで ci の結果を取り込む: pages-build と ci は同時に始まるので、同じ push のキャッシュはまだ無い。今回の push で変わったレーンは 2 回動く
   - PR 版を ci の完了の `workflow_run` で作る: 既定のブランチの文脈で PR のコード（`conf.py`・`_ext`）を動かすことになる（pwn request）
   - 開発版で埋めたことを job summary だけに出す: PR 版を見る人に届かない
+
+## R15. 公開の流れはテストを待たず、定義書だけを載せる
+
+- **Decision**:
+  - どの側も、`pages-build.yml` がテストを動かさずに作る。JUnit は集めず、合否を出す env は渡さない
+  - PR 版は、`pages-build.yml` の `pull_request`（opened・synchronize・reopened）の run で作る。ci.yml の `pages-preview` は消す
+  - `pages-deploy.yml` は `pages-build.yml` の run だけを受ける。`pull_request` の run は PR 版にしか使わない
+  - 合否を描く作り（`iface_defs.py`・`junit-lanes.json`・`collect.py`・ci の tests が残す JUnit）は消さない。手元で `PECOT_SITE_RESULTS=1` を付けたときだけ出す
+- **Rationale**:
+  - 公開サイトで確かめたいのは定義書で、PR 版は push の直後に要る。R14 の形では、#646 で push から `pages / preview` まで 7 分かかった
+  - `pages-deploy.yml` は `workflow_run` で起きる。ci.yml の中で PR 版を作る限り、needs から tests を外しても、公開は ci の run の終わりを待つ
+  - テスト結果は Allure Report に替える（#645）。サイトからのリンクは、それができてから足す。PR ごとでなくてよい
+  - JUnit 無しで今までの形のまま作ると、全項目が「未実行」と出て、読む人を誤らせる
+- **Alternatives considered**:
+  - 合否の表示・テストレポートのページ・JUnit の受け渡しをまとめて消す: #645 の載せ替えで使う材料と、手元で合否を読む手段まで無くなる
+  - ci.yml の `pages-preview` の needs から tests を外すだけ: 公開が ci の run の終わりを待つので、速くならない

@@ -1,4 +1,4 @@
-"""公開サイトの workflow（pages-build.yml・pages-deploy.yml・ci.yml の PR 版）と ruleset の静的な確かめ。
+"""公開サイトの workflow（pages-build.yml・pages-deploy.yml）・ci.yml の JUnit の残し方・ruleset の静的な確かめ。
 
 契機・権限・concurrency・artifact の決まりは specs/028-pages-site/contracts/pages.md にある。
 pages-deploy.yml は workflow_run で main の定義だけが動き、マージの後でないと確かめられないため、形をここで固定する。
@@ -22,8 +22,6 @@ _ACTIONLINT = _REPO_ROOT / ".github/actionlint.yaml"
 _RULESETS = _REPO_ROOT / ".github/rulesets"
 _JUNIT_LANES = _REPO_ROOT / "libs/interface-spec/docs/junit-lanes.json"
 
-_SITE_ENV = ("PECOT_SITE_STRICT", "PECOT_SITE_SIDE")
-_PR_SITE_ENV = (*_SITE_ENV, "PECOT_SITE_PR")
 _SAME_REPO = "github.event.pull_request.head.repo.full_name == github.repository"
 _PREVIEW_IF = (
     "${{ !cancelled() && needs.verify.outputs.side == 'pr' && needs.store.result == 'success'"
@@ -67,8 +65,8 @@ def _all_steps(path: Path) -> list[dict[str, Any]]:
 def test_build_triggers() -> None:
     on = _load(_BUILD)[True]
     assert on["push"] == {"branches": ["main"]}
-    # PR 版は ci.yml の pages-preview が作る。閉じた PR の run は掃除を起こすためだけにある。
-    assert on["pull_request"] == {"types": ["closed"]}
+    # closed の run は、閉じた PR の掃除を起こすためだけにある。
+    assert on["pull_request"] == {"types": ["opened", "synchronize", "reopened", "closed"]}
     inputs = on["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"side"}
     assert inputs["side"]["type"] == "choice"
@@ -91,24 +89,22 @@ def test_dispatch_outside_main_fails_before_anything_else() -> None:
     assert "exit 1" in first["run"]
 
 
-def test_side_builds_nothing_for_pull_requests() -> None:
+def test_side_builds_nothing_for_closed_and_fork_pull_requests() -> None:
     step = next(s for s in _steps(_BUILD, "side") if s.get("id") == "decide")
     env = step["env"]
     assert env["PR_HEAD_SHA"] == "${{ github.event.pull_request.head.sha }}"
+    assert env["PR_ACTION"] == "${{ github.event.action }}"
+    assert env["PR_HEAD_REPO"] == "${{ github.event.pull_request.head.repo.full_name }}"
+    assert env["REPO"] == "${{ github.repository }}"
     # 手での起動の開発版は、起動した run のコミット（github.sha）で作る。
     assert env["PUSH_SHA"] == "${{ github.sha }}"
     assert env["INPUT_SIDE"] == "${{ inputs.side }}"
     pull_branch = step["run"].split('if [ "$EVENT_NAME" = "pull_request" ]; then', 1)[1]
     pull_branch = pull_branch.split("elif", 1)[0]
-    assert "build=false" in pull_branch
+    assert (
+        'if [ "$PR_ACTION" = "closed" ] || [ "$PR_HEAD_REPO" != "$REPO" ]; then\n    build=false\n'
+    ) in pull_branch
     assert '[[ "$SHA" =~ ^[0-9a-f]{40}$ ]]' in step["run"]
-
-
-def test_build_job_does_not_build_pr_sides() -> None:
-    env = _job(_BUILD, "build")["env"]
-    assert "PECOT_SITE_PR" not in env
-    assert "PECOT_SITE_PR" not in env["DEVCONTAINER_ENV"].split()
-    assert "pull_request" not in yaml.safe_dump(_job(_BUILD, "build"), allow_unicode=True)
 
 
 def test_release_resolves_sources_from_full_history() -> None:
@@ -122,15 +118,22 @@ def test_release_resolves_sources_from_full_history() -> None:
     assert outputs["sources"] == "${{ steps.release.outputs.sources }}"
 
 
-def test_build_runs_lanes_in_order_then_site_in_one_job() -> None:
+def test_build_makes_the_site_without_running_tests() -> None:
     names = [s["name"] for s in _steps(_BUILD, "build")]
-    assert names.index("Start dev container") < names.index("Run lanes")
-    assert names.index("Run lanes") < names.index("Collect JUnit") < names.index("Build site")
-    lanes = _step(_BUILD, "build", "Run lanes")
-    assert "lanes.py" in lanes["run"]
-    assert "--skip-nx-cache" in lanes["run"]
-    # テストが落ちても次のレーンへ進む。
-    assert "|| rc=$?" in lanes["run"]
+    assert names == [
+        "Checkout",
+        "Start pulling dev container image",
+        "Start dev container",
+        "Build site",
+        "Build release side",
+        "Restore workspace owner",
+        "Pack site",
+        "Upload side",
+    ]
+    runs = "\n".join(s.get("run", "") for s in _all_steps(_BUILD))
+    assert re.findall(r"nx run \S+", runs) == ["nx run interface-spec:docs"]
+    for word in ("lanes.py", "collect.py", "run-pr-checks.sh"):
+        assert word not in runs, word
     release = _step(_BUILD, "build", "Build release side")
     assert release["if"] == "env.SIDE == 'release'"
     assert "release_build.py" in release["run"]
@@ -138,11 +141,14 @@ def test_build_runs_lanes_in_order_then_site_in_one_job() -> None:
 
 def test_build_passes_site_env_into_container() -> None:
     env = _job(_BUILD, "build")["env"]
-    assert env["PECOT_SITE_STRICT"] == "1"
-    assert env["PECOT_CI_BROWSER"] == "1"
-    for name in _SITE_ENV:
-        assert name in env, name
-    assert {*_SITE_ENV, "PECOT_CI_BROWSER"} <= set(env["DEVCONTAINER_ENV"].split())
+    assert env["PECOT_SITE_SIDE"] == "${{ needs.side.outputs.side }}"
+    assert env["PECOT_SITE_PR"] == "${{ needs.side.outputs.pr }}"
+    assert env["DEVCONTAINER_ENV"].split() == ["PECOT_SITE_SIDE", "PECOT_SITE_PR"]
+    # 合否を出す env は、どの workflow も渡さない。
+    for path in (_BUILD, _CI, _DEPLOY):
+        text = path.read_text(encoding="utf-8")
+        assert "PECOT_SITE_STRICT" not in text, path.name
+        assert "PECOT_SITE_RESULTS" not in text, path.name
 
 
 def test_build_permissions_are_contents_read_only() -> None:
@@ -160,7 +166,7 @@ def test_build_concurrency_keeps_only_the_latest_per_side() -> None:
     assert concurrency["cancel-in-progress"] is True
 
 
-def test_build_keeps_dev_side_for_ninety_days_and_release_for_seven() -> None:
+def test_build_uploads_one_side_for_seven_days() -> None:
     uploads = [
         s for s in _all_steps(_BUILD) if s.get("uses", "").startswith("actions/upload-artifact@")
     ]
@@ -168,17 +174,17 @@ def test_build_keeps_dev_side_for_ninety_days_and_release_for_seven() -> None:
     (upload,) = uploads
     assert upload["with"]["name"] == "${{ needs.side.outputs.artifact }}"
     assert upload["with"]["path"] == "${{ runner.temp }}/pages-side/"
-    # 開発版は PR 版の埋め合わせに使うので、このリポの上限の 90 日残す。
-    assert upload["with"]["retention-days"] == (
-        "${{ needs.side.outputs.side == 'dev' && 90 || 7 }}"
-    )
+    assert upload["with"]["retention-days"] == 7
+    # PR 版は、同じ run をやり直しても上げられる。
+    assert upload["with"]["overwrite"] is True
     assert upload["with"]["if-no-files-found"] == "error"
 
 
 def test_checkout_refs_come_from_github_not_step_outputs() -> None:
     # step の出力の SHA を checkout すると、CodeQL の actions/cache-poisoning が手での起動で止める。
+    # PR 版は、merge のコミットでなく PR の head で作る。
     (build,) = _uses(_BUILD, "build", "actions/checkout")
-    assert build["with"]["ref"] == "${{ github.sha }}"
+    assert build["with"]["ref"] == "${{ github.event.pull_request.head.sha || github.sha }}"
     (side,) = _uses(_BUILD, "side", "actions/checkout")
     assert side["with"]["ref"] == "${{ github.sha }}"
 
@@ -194,7 +200,8 @@ def test_build_restores_owner_always() -> None:
 
 def test_deploy_triggers() -> None:
     on = _load(_DEPLOY)[True]
-    assert on["workflow_run"] == {"workflows": ["pages-build", "ci"], "types": ["completed"]}
+    # ci の run を待つと、PR 版がテストの終わりまで出ない。
+    assert on["workflow_run"] == {"workflows": ["pages-build"], "types": ["completed"]}
     assert on["workflow_dispatch"] is None
     assert set(on) == {"workflow_run", "workflow_dispatch"}
 
@@ -234,7 +241,7 @@ def test_deploy_concurrency() -> None:
         "cancel-in-progress": False,
         "queue": "max",
     }
-    # ci の run のたびに deploy が起きる。既定の queue: single では待っている deploy が取り消される。
+    # PR への push のたびに deploy が起きる。既定の queue: single では待っている deploy が取り消される。
     assert _job(_DEPLOY, "deploy")["concurrency"] == {
         "group": "pages",
         "cancel-in-progress": False,
@@ -243,10 +250,7 @@ def test_deploy_concurrency() -> None:
 
 
 def test_deploy_job_conditions() -> None:
-    assert _job(_DEPLOY, "verify")["if"] == (
-        "${{ github.event_name == 'workflow_run'"
-        " && github.event.workflow_run.event != 'merge_group' }}"
-    )
+    assert _job(_DEPLOY, "verify")["if"] == "${{ github.event_name == 'workflow_run' }}"
     store = _job(_DEPLOY, "store")
     assert store["needs"] == "verify"
     assert store["if"] == (
@@ -347,7 +351,7 @@ def test_actionlint_ignores_queue_for_pages_deploy() -> None:
     assert paths[".github/workflows/pages-deploy.yml"] == paths[".github/workflows/publish-npm.yml"]
 
 
-# ---------------------------------------------------------------- ci.yml の PR 版
+# ---------------------------------------------------------------- ci.yml
 
 
 def test_tests_stage_junit_after_restoring_owner() -> None:
@@ -367,76 +371,12 @@ def test_tests_upload_junit_as_directory_for_same_repo_prs() -> None:
     assert upload["with"]["path"] == "${{ runner.temp }}/pages-junit/"
     assert upload["with"]["name"] == "pages-junit-${{ matrix.slug }}"
     assert upload["with"]["retention-days"] == 1
+    assert upload["with"]["overwrite"] is True
 
 
-def test_pr_side_uploads_overwrite() -> None:
-    assert _step(_CI, "tests", "Upload JUnit")["with"]["overwrite"] is True
-    side = _step(_CI, "pages-preview", "Upload side")
-    assert side["with"]["overwrite"] is True
-    assert side["with"]["name"] == "pages-side-pr-${{ github.event.pull_request.number }}"
-    assert side["with"]["path"] == "${{ runner.temp }}/pages-side/"
-    assert side["with"]["if-no-files-found"] == "error"
-
-
-def test_pages_preview_runs_after_tests_for_same_repo_pull_requests_only() -> None:
-    job = _job(_CI, "pages-preview")
-    assert job["needs"] == ["lanes", "tests"]
-    assert job["if"] == (
-        "${{ !cancelled() && github.event_name == 'pull_request'"
-        f" && {_SAME_REPO} && needs.lanes.result == 'success' }}}}"
-    )
-
-
-def test_pages_preview_is_not_in_ci_result() -> None:
-    # PR 版の失敗でマージを止めない。
-    assert "pages-preview" not in _job(_CI, "ci-result")["needs"]
-
-
-def test_pages_preview_builds_the_site_without_running_tests() -> None:
-    names = [s.get("name") for s in _steps(_CI, "pages-preview")]
-    order = [
-        "Checkout",
-        "Download lane JUnit",
-        "Find dev side",
-        "Download dev JUnit",
-        "Collect JUnit",
-        "Start dev container",
-        "Build site",
-        "Pack site",
-        "Upload side",
-    ]
-    assert [n for n in names if n in order] == order
-    runs = "\n".join(s.get("run", "") for s in _steps(_CI, "pages-preview"))
-    assert "run-pr-checks.sh" not in runs
-    assert "lanes.py" not in runs
-    assert re.findall(r"nx run \S+", runs) == ["nx run interface-spec:docs"]
-
-
-def test_pages_preview_reads_head_and_both_junit_sources() -> None:
-    (checkout,) = _uses(_CI, "pages-preview", "actions/checkout")
-    assert checkout["with"]["ref"] == "${{ github.event.pull_request.head.sha }}"
-    lanes = _step(_CI, "pages-preview", "Download lane JUnit")
-    assert lanes["with"]["pattern"] == "pages-junit-*"
-    assert lanes["with"]["merge-multiple"] is True
-    dev = _step(_CI, "pages-preview", "Download dev JUnit")
-    assert dev["with"]["name"] == "pages-side-dev"
-    assert dev["with"]["run-id"] == "${{ steps.dev.outputs.run_id }}"
-    assert dev["with"]["github-token"] == "${{ github.token }}"
-    explain = _step(_CI, "pages-preview", "Explain missing dev side")
-    assert explain["if"] == "failure() && steps.devdl.outcome == 'failure'"
-    assert "gh workflow run pages-build.yml --ref main -f side=dev" in explain["run"]
-    collect = _step(_CI, "pages-preview", "Collect JUnit")
-    assert collect["env"]["RAN"] == "${{ needs.lanes.outputs.lanes }}"
-    for flag in ("--ran", "--ci-dir", "--dev-dir", "--dev-sha"):
-        assert flag in collect["run"], flag
-
-
-def test_pages_preview_passes_site_env_into_container() -> None:
-    env = _job(_CI, "pages-preview")["env"]
-    assert env["PECOT_SITE_SIDE"] == "pr"
-    assert env["PECOT_SITE_STRICT"] == "1"
-    assert env["PECOT_SITE_PR"] == "${{ github.event.pull_request.number }}"
-    assert set(_PR_SITE_ENV) == set(env["DEVCONTAINER_ENV"].split())
+def test_ci_does_not_build_the_site() -> None:
+    assert "pages-preview" not in _load(_CI)["jobs"]
+    assert "interface-spec:docs" not in _CI.read_text(encoding="utf-8")
 
 
 def test_junit_lanes_are_nx_outputs() -> None:
