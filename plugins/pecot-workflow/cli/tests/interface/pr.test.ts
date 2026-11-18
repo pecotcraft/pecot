@@ -404,15 +404,6 @@ describe('pr create', () => {
     expect(postedBody(workspace)['body']).toBe(`${BODY_BEFORE_CLOSES}\nCloses #34`)
   })
 
-  it('ファイルで作るとき末尾の番号の Issue の種別を読めないと、warning の行を出さずに Closes を足す', async () => {
-    const workspace = await pushedBranch({ github: [KIND_FAILURE, CREATED_RULE, ...AFTER_CREATE_RULES] })
-    const file = writePrFile(workspace, { body: BODY_WITHOUT_REFERENCE })
-    const result = await workspace.run(['pr', 'create', file])
-    expect(result.code).toBe(0)
-    expect(result.stderr).not.toContain('kind check')
-    expect(postedBody(workspace)['body']).toBe(`${BODY_WITHOUT_REFERENCE.trimEnd()}\n\nCloses #12`)
-  })
-
   it('ファイルを渡すと、フロントマターの値で PR を作る', async (context) => {
     await verifies(context, 'PW-PR-CREATE-09')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
@@ -474,6 +465,16 @@ describe('pr create', () => {
     const posted = postedBody(workspace)['body']
     expect(posted).toBe(`${body.trimEnd()}\n\nCloses #12`)
     expect(String(posted).endsWith('Closes #12')).toBe(true)
+  })
+
+  it('ファイルで作るとき末尾の番号の Issue の種別を読めないと、Closes を足さず、空の Closes # の行を消し、warning を出す', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-87')
+    const workspace = await pushedBranch({ github: [KIND_FAILURE, CREATED_RULE, ...AFTER_CREATE_RULES] })
+    const file = writePrFile(workspace, { body: `${BODY_WITH_REFERENCE_ONLY}Closes #\n` })
+    const result = await workspace.run(['pr', 'create', file])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(/^warning: Issue #12 at the end of the branch could not be read as an Epic or not; Closes not added, and the empty Closes line removed$/mu)
+    expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
   })
 
   it('ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない', async (context) => {
@@ -622,7 +623,7 @@ describe('pr create', () => {
       : ['pr', 'create', '-m', VALID_BODY, '-t', title, '-b', 'main', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run']
     const result = await workspace.run(argv)
     expect(result.code).toBe(3)
-    expect(result.stderr).toBe('error: PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)\n')
+    expect(lines(result.stderr).filter(line => !line.startsWith('warning: '))).toEqual(['error: PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)'])
   })
 
   it('検証に失敗すると、違反ごとに error の行を標準エラーに出す', async (context) => {

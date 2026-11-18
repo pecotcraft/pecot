@@ -2644,7 +2644,7 @@ entries:
         - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
         - With -m, the repository is --repo. When --repo is omitted, it is the repository of the git remote that points to a repository in a project config, checking origin first and then the others in git remote order.
         - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
-        - With a file, Closes is not appended when that Issue is an Epic, and an empty Closes # line is removed.
+        - With a file, Closes is not appended when that Issue is an Epic or its kind cannot be read, and an empty Closes # line is removed.
         - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
         - In a repository whose release type is nx, also stops with exit status 3 when the title scope differs from the scope of the changed nx projects.
         - "For a stacked base, the changed files of the scope come from the diff between the commit of the base record and the head when the PR of the layer below is merged, and from the diff against the branch of the layer below while that PR is open."
@@ -2702,7 +2702,7 @@ entries:
       - 'ファイルでは、リポジトリ・base・題・head・draft をフロントマターで決めます。同じ名前のオプションは無視します。'
       - '`-m` では、リポジトリは `--repo` です。`--repo` を省くと、プロジェクトの設定にあるリポジトリを指す remote のリポジトリです。remote は `origin` を先に見て、次に `git remote` の順で見ます。'
       - '本文が head ブランチ名の末尾の番号 N に触れていないと、本文に `Closes #N` を足します。テンプレートが `release` のときと、`--no-issue-ref` を付けたときは足しません。'
-      - 'ファイルでは、その Issue が Epic のときは `Closes` を足さず、番号の空いた `Closes #` の行を消します。'
+      - 'ファイルでは、その Issue が Epic か種別を読めないとき、`Closes` を足さずに番号の空いた `Closes #` の行を消します。'
       - '題・本文・base を確かめ、次のどれかが誤っていると終了コード 3 で止まります。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
       - 'リリースの種類が nx のリポジトリでは、題の scope が、変更した nx のプロジェクトの scope と違うときも、終了コード 3 で止まります。'
       - '積んだ base の scope は、下の段の PR がマージ済みなら、記録のコミットから head までの差分で求めます。開いている間は、下の段のブランチとの差分で求めます。'
@@ -3061,6 +3061,9 @@ entries:
       - id: PW-PR-CREATE-86
         pattern: event
         statement: 'head の owner に作り先のリポの owner を書くと、作り先のリポを指す remote で push を確かめます'
+      - id: PW-PR-CREATE-87
+        pattern: unwanted
+        statement: 'もしファイルで作るとき末尾の番号の Issue の種別を読めないなら、`Closes` を足さず、番号の空いた `Closes #` の行を消し、`warning` の行を標準エラーに出します'
   PW-PR-MERGE:
     help:
       details:

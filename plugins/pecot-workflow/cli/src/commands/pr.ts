@@ -278,21 +278,25 @@ function requireHeadReference(head: string, out: Readonly<Output>): HeadReferenc
 const EMPTY_CLOSES_PATTERN = /^Closes #[ \t]*$/mu
 const EMPTY_CLOSES_LINE_PATTERN = /^Closes #[ \t]*(?:\n|$)/mu
 
-async function isEpicOrUnknown(config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, out: Readonly<Output>): Promise<boolean> {
+// Epic か。種別を読めなければ unreadable
+async function epicOrUnreadable(config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, out: Readonly<Output>): Promise<'epic' | 'other' | 'unreadable'> {
   try {
-    return isEpicIssue(await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber))
+    return isEpicIssue(await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber)) ? 'epic' : 'other'
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return false
+    if (error instanceof GitHubAPIError) return 'unreadable'
     throw error
   }
 }
 
-// 空の `Closes #` の行を作業中の Issue の番号で埋め、本文に番号が無ければ足す。Epic なら空の行を消し、足さない
+// 空の `Closes #` の行を作業中の Issue の番号で埋め、本文に番号が無ければ足す。
+// Epic か種別を読めないときは、Epic を閉じないよう、空の行を消して足さない
 async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
-  if (await isEpicOrUnknown(config, location, issueNumber, out)) {
+  const kind = await epicOrUnreadable(config, location, issueNumber, out)
+  if (kind !== 'other') {
     const hasEmptyLine = EMPTY_CLOSES_PATTERN.test(body)
-    out.warning(`Issue #${String(issueNumber)} at the end of the branch is an Epic; Closes not added${hasEmptyLine ? ', and the empty Closes line removed' : ''}`)
+    const reason = kind === 'epic' ? 'is an Epic' : 'could not be read as an Epic or not'
+    out.warning(`Issue #${String(issueNumber)} at the end of the branch ${reason}; Closes not added${hasEmptyLine ? ', and the empty Closes line removed' : ''}`)
     return hasEmptyLine ? body.replace(EMPTY_CLOSES_LINE_PATTERN, '').trimEnd() : body
   }
   return appendIssueCloseIfNeeded(body.replace(EMPTY_CLOSES_PATTERN, () => `Closes #${String(issueNumber)}`), issueNumber)
