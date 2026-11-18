@@ -110,7 +110,7 @@ run_mcp_exchange() {
   rm -f "$fifo"
 }
 
-# stdout の全行が JSON-RPC で、tools/list が契約の 26 件を表の順で返していることを見る。
+# stdout の全行が JSON-RPC で、tools/list が契約の 24 件を表の順で返していることを見る。
 # 非 JSON 行（bootstrap の進捗が混入する等）があれば JSON.parse が throw して失敗する。
 assert_json_rpc_stdout() {
   local stdout_file="$1"; local label="$2"
@@ -127,8 +127,8 @@ assert_json_rpc_stdout() {
     }
     const listed = messages.find((message) => message.id === 2);
     const tools = listed && listed.result && listed.result.tools;
-    if (!Array.isArray(tools) || tools.length !== 26) {
-      console.error(`tools/list did not return 26 tools: ${Array.isArray(tools) ? tools.length : "none"}`);
+    if (!Array.isArray(tools) || tools.length !== 24) {
+      console.error(`tools/list did not return 24 tools: ${Array.isArray(tools) ? tools.length : "none"}`);
       process.exit(1);
     }
     if (tools[0].name !== "aws_sso_login") {
