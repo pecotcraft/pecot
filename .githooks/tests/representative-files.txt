@@ -4,7 +4,7 @@
 .devcontainer/features/playwright-deps/install.sh
 .devcontainer/scripts/install-git-hooks.sh
 .devcontainer/scripts/post-create.sh
-.devcontainer/tmux/pecot-open.sh
+.devcontainer/tmux/tmux.conf
 .githooks/ci/run-affected-tests.sh
 .githooks/ci/run-pr-checks.sh
 .githooks/lib/mcp-publish-common.sh
