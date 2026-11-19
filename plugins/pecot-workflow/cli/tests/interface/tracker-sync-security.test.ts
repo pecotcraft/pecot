@@ -243,8 +243,8 @@ describe('tracker sync', () => {
       expect(outcome.structured).toMatchObject({ kind: 'partial-failure' })
       expect(outcome.structured['detail']).toBe([
         `could not set status backlog of Tracker #12: ${STALE_OPTION_TEXT}`,
-        '  hint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
-        `error: could not set priority medium of Tracker #12: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
+        `could not set priority medium of Tracker #12: ${STALE_OPTION_TEXT}`,
       ].join('\n'))
     })
 
@@ -609,7 +609,7 @@ describe('tracker sync', () => {
       expect(outcome.isError).toBe(true)
       expect(restPaths(github.requests())).toEqual([TRACKER_5])
       expect(outcome.structured).toMatchObject({ kind: 'partial-failure', added: [{ kind: 'dependabot', number: 1 }] })
-      expect(String(outcome.structured['detail']).split('\n', 1)[0]).toBe('could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: GitHub API error: 500 boom')
+      expect(outcome.structured['detail']).toBe('could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: GitHub API error: 500 boom')
     })
 
     it('Tracker が無く、取れなかった種類しか無いと、Tracker を作らずに partial-failure の失敗を返す', async (context) => {

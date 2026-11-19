@@ -486,8 +486,8 @@ describe('tracker sync', () => {
     expect(outcome.structured).toMatchObject({ kind: 'partial-failure' })
     expect(outcome.structured['detail']).toBe([
       `could not set status backlog of Tracker #100: ${STALE_OPTION_TEXT}`,
-      '  hint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
-      `error: could not set priority medium of Tracker #100: ${STALE_OPTION_TEXT}`,
+      '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
+      `could not set priority medium of Tracker #100: ${STALE_OPTION_TEXT}`,
     ].join('\n'))
   })
 

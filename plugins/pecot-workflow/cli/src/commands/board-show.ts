@@ -11,7 +11,7 @@ import { getActiveConfigPath } from '../infra/config-store.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputHint } from './command-hint.js'
+import { commandHint, hinted, inputHint, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
@@ -25,7 +25,7 @@ const SYNC_PATH = ['board', 'sync']
 
 function mismatchNote(count: number): HintedText {
   const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
-  return hinted`${subject} in a column or Status that does not match its judgment; run ${commandHint(SYNC_PATH)} (${inputHint(SYNC_PATH, 'dry_run')} to preview) to fix`
+  return hinted`${subject} in a column or Status that does not match its judgment; ${RUN} ${commandHint(SYNC_PATH)} (${inputHint(SYNC_PATH, 'dry_run')} to preview) to fix`
 }
 
 const boardShowCommand = defineCommand({

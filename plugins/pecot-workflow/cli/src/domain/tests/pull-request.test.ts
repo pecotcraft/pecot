@@ -27,6 +27,7 @@ import type { PullRequestBaseDecision, PullRequestContentOptions, PullRequestSli
 import type { PullRequestReadout } from '../issue-readout.js'
 import '../../commands/registry.js'
 import { formatHinted } from '../command-hint.js'
+import type { HintSurface } from '../command-hint.js'
 import { JSON_NULL } from '../json-null.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
@@ -493,10 +494,14 @@ describe('pickLowerPullRequest', () => {
 })
 
 describe('describeBaseStop', () => {
-  it('下の段の PR が無いとき、止めた理由と直し方の 2 行を返す', () => {
-    expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' })).toEqual([
+  const surfaces: readonly { readonly name: string, readonly surface: HintSurface, readonly again: string }[] = [
+    { name: 'cli', surface: 'cli', again: 'run pr create again' },
+    { name: 'mcp', surface: 'mcp', again: 'call pr_create again' },
+  ]
+  it.for(surfaces)('下の段の PR が無いとき、止めた理由と、出し先 $name の形の直し方の 2 行を返す', ({ surface, again }) => {
+    expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' }).map(line => formatHinted(line, surface))).toEqual([
       'base branch feat/a/11 has no open PR',
-      'reopen the PR of feat/a/11, or create a new one, then run pr create again',
+      `reopen the PR of feat/a/11, or create a new one, then ${again}`,
     ])
   })
 

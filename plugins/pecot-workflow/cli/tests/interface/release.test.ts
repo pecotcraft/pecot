@@ -472,7 +472,7 @@ describe('release check', () => {
         commitCount: 1,
         skipped: [],
         dependabotAlerts: { enabled: true, openCount: 2, maxSeverity: 'critical', alertsUrl: ALERTS_URL },
-        warnings: [`2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n#1 (minimatch, medium)\n#2 (glob, critical)\n→ ${ALERTS_URL}`],
+        warnings: [`2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n  #1 (minimatch, medium)\n  #2 (glob, critical)\n  → ${ALERTS_URL}`],
       })
     })
 

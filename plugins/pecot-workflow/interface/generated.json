@@ -268,7 +268,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -383,7 +383,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -788,7 +788,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -922,7 +922,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -1041,7 +1041,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -1228,7 +1228,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -1389,7 +1389,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false
@@ -1751,7 +1751,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false
@@ -1875,7 +1875,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -2298,7 +2298,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -2467,7 +2467,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -2616,7 +2616,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -2895,7 +2895,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false
@@ -3021,7 +3021,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -3189,7 +3189,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -3500,7 +3500,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -3662,7 +3662,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false
@@ -3784,7 +3784,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -3877,7 +3877,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4030,7 +4030,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4192,7 +4192,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4286,7 +4286,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4406,7 +4406,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4547,7 +4547,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4669,7 +4669,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4817,7 +4817,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -4935,7 +4935,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -5069,7 +5069,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -5287,7 +5287,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -5521,7 +5521,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -5715,7 +5715,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false
@@ -5851,7 +5851,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6039,7 +6039,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6166,7 +6166,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6312,7 +6312,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6481,7 +6481,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6587,7 +6587,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6735,7 +6735,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,
@@ -6861,7 +6861,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Warning messages, without the \"warning: \" prefix (omitted when there is none)"
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
           "additionalProperties": false,

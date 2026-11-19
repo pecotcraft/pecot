@@ -660,7 +660,7 @@ describe('session finish', () => {
         deletedBranches: [],
         readinessChanges: [{ issue: '#13', from: 'stackable on #12', to: 'startable' }, { issue: '#14', from: 'stackable on #12', to: 'startable' }],
         restack: [{ issue: '#14', branch: UPPER }],
-        warnings: [`#14 is stacked on #12; run pr_restack in the working directory of ${UPPER}`],
+        warnings: [`#14 is stacked on #12; call pr_restack in the working directory of ${UPPER}`],
       })
     })
 
@@ -721,7 +721,7 @@ describe('session finish', () => {
       await verifies(context, 'PW-SESSION-FINISH-35')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       const outcome = await finishTool(workspace, { delete_branch: true, skip_local_cleanup: true })
-      expect(outcome.structured['warnings']).toStrictEqual([`#14 is stacked on #12; run pr_restack in the working directory of ${UPPER}`])
+      expect(outcome.structured['warnings']).toStrictEqual([`#14 is stacked on #12; call pr_restack in the working directory of ${UPPER}`])
       expect(restRequests(workspace, 'DELETE')).toMatchObject([{ path: `/repos/acme/demo/git/refs/heads/${BRANCH}` }])
     })
 

@@ -1597,6 +1597,7 @@ describe('pr create', () => {
     })
 
     it('本文の検証に失敗すると、違反の文を data.detail に入れて content-invalid を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-26')
       await verifies(context, 'PW-PR-CREATE-28')
       await verifies(context, 'PW-PR-CREATE-32')
       await verifies(context, 'PW-PR-CREATE-34')
@@ -1606,7 +1607,7 @@ describe('pr create', () => {
       expect(result).toMatchObject({ isError: true, structured: { kind: 'content-invalid' } })
       expect(result.structured).toEqual({
         kind: 'content-invalid',
-        detail: 'missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nerror: base branch must be main (given: develop)',
+        detail: 'missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nbase branch must be main (given: develop)',
       })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
     })
@@ -1618,7 +1619,7 @@ describe('pr create', () => {
         const result = await createTool(workspace, { prepare: true })
         expect(result.isError).toBe(false)
         expect(existsSync(String(result.structured['file']))).toBe(true)
-        expect(result.structured['warnings']).toContain('acme/demo is not in any project config\navailable: (none)')
+        expect(result.structured['warnings']).toContain('acme/demo is not in any project config\n  available: (none)')
       })
 
       it('設定とトークンの無い clone で prepare を付けると、Closes を空のままにして warnings に入れ、テンプレのコピーを書く', async (context) => {
@@ -2157,7 +2158,7 @@ describe('pr create', () => {
         await verifies(context, 'PW-PR-CREATE-57')
         const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests(row.nodes), ...SUBMIT_RULES] })
         const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
-        expect(result.structured).toEqual({ kind: 'pr-state', detail: `base branch ${LOWER} has no open PR\n  reopen the PR of ${LOWER}, or create a new one, then run pr create again` })
+        expect(result.structured).toEqual({ kind: 'pr-state', detail: `base branch ${LOWER} has no open PR\n  reopen the PR of ${LOWER}, or create a new one, then call pr_create again` })
         expect(restRequests(workspace, 'POST')).toStrictEqual([])
       })
 
@@ -2203,7 +2204,7 @@ describe('pr create', () => {
         const result = await createTool(workspace, MESSAGE_ARGUMENTS)
         expect(result.isError).toBe(false)
         expect(result.structured['warnings']).toEqual([
-          `status update of Issue #12 failed: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+          `status update of Issue #12 failed: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
           `could not move #13: ${STALE_OPTION_TEXT}`,
         ])
       })
@@ -2215,7 +2216,7 @@ describe('pr create', () => {
         const result = await settleWithFakeDelays(createTool(workspace, MESSAGE_ARGUMENTS))
         expect(result.isError).toBe(false)
         expect(result.structured['moves']).toEqual([])
-        expect(result.structured['warnings']).toEqual(['could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run board_sync later to move it'])
+        expect(result.structured['warnings']).toEqual(['could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; call board_sync later to move it'])
       })
 
       it.for([
@@ -2270,7 +2271,7 @@ describe('pr create', () => {
         const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
         expect(result.structured).toEqual({
           kind: 'git-unresolved',
-          detail: `.pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  run pr create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
+          detail: `.pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
         })
         expect(restRequests(workspace, 'POST')).toStrictEqual([])
       })
@@ -2288,7 +2289,7 @@ describe('pr create', () => {
         expect(String(result.structured['detail']).split('\n')).toStrictEqual([
           `.pecot-base records ${LOWER} at ${recorded.slice(0, 7)}, which is not in the history of ${BRANCH}`,
           `  ${BRANCH} is already restacked; rewrite the record with: pr_restack`,
-          `  run pr create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
+          `  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
         ])
       })
 
@@ -3054,7 +3055,7 @@ describe('pr check', () => {
       await verifies(context, 'PW-COMMON-19')
       const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
       const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
-      expect(result).toMatchObject({ isError: true, structured: { kind: 'preflight-failed' } })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'preflight-failed', detail: 'preflight found warnings; fix them before creating a PR' } })
       expect(result.structured).toMatchObject({ currentBranch: BRANCH, pushed: true })
       expect(result.structured['gitStatus']).toContain('Untracked files:\n\tmemo.txt\n')
       expect(result.structured['warnings']).toEqual(['Git Status: modified or untracked files (fix: commit)'])
@@ -3215,7 +3216,7 @@ describe('pr check', () => {
       workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
       const result = await checkTool(workspace)
       expect(result.structured['baseBranch']).toBe('origin/main')
-      expect(result.structured['warnings']).toEqual([`base branch ${LOWER} is on origin, but origin/${LOWER} is not fetched; compared with the develop branch\nrun: git fetch origin ${LOWER}`])
+      expect(result.structured['warnings']).toEqual([`base branch ${LOWER} is on origin, but origin/${LOWER} is not fetched; compared with the develop branch\n  run: git fetch origin ${LOWER}`])
     })
 
     it('積んだ base の記録の形が誤っていると、kind が content-invalid の失敗を返す', async (context) => {

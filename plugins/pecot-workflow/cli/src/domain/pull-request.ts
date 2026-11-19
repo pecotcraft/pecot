@@ -1,7 +1,7 @@
 // PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr show` の Markdown の整形、preflight の警告の判定。
 // 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
 
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, surfaceText } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { PYTHON_LINE_BREAK, parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
@@ -194,13 +194,13 @@ export function pickLowerPullRequest(pullRequests: readonly PullRequestReadout[]
 /**
 止めた理由の文（`error: ` の前置きを含まない）。下の段の PR が無いときは、直し方の行を続ける
 */
-export function describeBaseStop(stop: Readonly<PullRequestBaseStop>): readonly string[] {
+export function describeBaseStop(stop: Readonly<PullRequestBaseStop>): readonly (string | HintedText)[] {
   switch (stop.reason) {
     case 'malformed': {
       return [`.pecot-base is malformed: ${stop.content}`]
     }
     case 'no-open-pr': {
-      return [`base branch ${stop.branch} has no open PR`, `reopen the PR of ${stop.branch}, or create a new one, then run pr create again`]
+      return [`base branch ${stop.branch} has no open PR`, hinted`reopen the PR of ${stop.branch}, or create a new one, then ${surfaceText('run pr create again', 'call pr_create again')}`]
     }
     case 'lower-open': {
       return [`base branch must be ${stop.branch} while its PR #${String(stop.pullRequest)} is open (given: ${stop.base})`]

@@ -38,9 +38,17 @@ export interface CommandIo {
   */
   readonly data?: (fields: Readonly<Record<string, unknown>>) => void
   /**
-  warning の文（`warning: ` の前置きと字下げを除いたもの）を受け取る。MCP だけが渡す
+  warning の文（`warning: ` の前置きを除き、続きの行の字下げは残したもの）を受け取る。MCP だけが渡す
   */
   readonly warning?: (text: string) => void
+  /**
+  失敗の文（`error: ` の前置きを除き、続きの行の字下げは残したもの）を受け取る。MCP だけが渡す
+  */
+  readonly error?: (text: string) => void
+  /**
+  子プロセスの生の出力を受け取る。MCP だけが渡す
+  */
+  readonly log?: (text: string) => void
 }
 
 /**

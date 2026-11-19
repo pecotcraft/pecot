@@ -7657,7 +7657,7 @@ entries:
         statement: 'もし同じ名前のブランチが別の upstream で既にあり `allow_existing_branch` が無いなら、失敗を返します'
       - id: PW-WORKTREE-ADD-47
         pattern: unwanted
-        statement: 'もし `git worktree add` に失敗したなら、git の文を `detail` に入れます'
+        statement: 'もし `git worktree add` に失敗したなら、git の理由の行（`fatal:` か `error:` の行から後）を `detail` に、git の出力の全文を `log` に入れます'
       - id: PW-WORKTREE-ADD-48
         pattern: unwanted
         statement: 'もし `git worktree add` に失敗したなら、失敗を返します'
@@ -8359,7 +8359,7 @@ common_behaviors:
     statement: 'もし MCP のツールが失敗したなら、`isError` を `true` にし、`kind`・`detail` と、止まる前に進んだ項目を最上位に入れて返します'
   - id: PW-COMMON-19
     pattern: event
-    statement: 'MCP のツールが warning を出すと、`warning: ` の前置きを除いた文を `warnings` に入れて返します'
+    statement: 'MCP のツールが warning を出すと、`warning: ` の前置きを除いた文を `warnings` に入れて返します。文の続きの行は、空白 2 つで字下げします'
   - id: PW-COMMON-20
     pattern: event
     statement: 'MCP のツールがファイルやディレクトリを作ると、その絶対パスを、ツールごとの項目（`file`・`path`・`configPath` など）に入れて返します'
@@ -8378,9 +8378,18 @@ common_behaviors:
   - id: PW-COMMON-25
     pattern: event
     statement: '子プロセスを待つ MCP のツールが取り消されると、子プロセスをその子ごと止め、コマンドの続きを動かしません'
+  - id: PW-COMMON-26
+    pattern: unwanted
+    statement: 'もし MCP のツールの失敗の文が 2 つ以上あるなら、どの文にも `error: ` の前置きを付けずに、改行でつないで `detail` に入れます'
+  - id: PW-COMMON-27
+    pattern: unwanted
+    statement: 'もし MCP のツールが失敗の `detail` で次に呼ぶツールを案内するなら、CLI のコマンドでなく、ツール名と入力名で `call <ツール>` と書きます'
+  - id: PW-COMMON-28
+    pattern: unwanted
+    statement: 'もし MCP のツールが使い方の誤りで失敗したなら、CLI の Usage の行と枠を付けずに、誤りの文だけを `detail` に入れます'
 common_mcp_output:
   fields:
     kind: '失敗の種別です。失敗のときだけ入ります。'
-    detail: '失敗の全文です。エラーの文と、それに続く案内の行が入ります。失敗のときだけ入ります。'
+    detail: '失敗の全文です。エラーの文と、それに続く案内の行が入ります。案内は、ツール名と入力名で書いてあります。失敗のときだけ入ります。'
     log: '子プロセスの出力です。失敗のときだけ入り、出力を取れなかったときは入りません。'
-    warnings: '警告の文の配列です。先頭の `warning: ` は外してあります。警告が無いときは入りません。'
+    warnings: '警告の文の配列です。先頭の `warning: ` は外してあります。文の続きの行は、空白 2 つで字下げしてあります。警告が無いときは入りません。'

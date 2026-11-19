@@ -16,7 +16,7 @@ import { createOutput, DRY_RUN_FIELD } from './output.js'
 import type { Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, joinHinted } from './command-hint.js'
+import { commandHint, hinted, joinHinted, surfaceText } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -39,11 +39,7 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
   if (current.owner === owner && current.repository === repository) return
   stopWith(
     out,
-    `the repository of the work Issue (${owner}/${repository}) differs from `
-    + `the CWD git remote (${repositoryFullName(current)})\n`
-    + 'move to the worktree of the target repository and run again:\n'
-    + `<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\n`
-    + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree',
+    hinted`the repository of the work Issue (${owner}/${repository}) differs from the CWD git remote (${repositoryFullName(current)})\nmove to the worktree of the target repository and ${surfaceText('run again', 'call the tool again')}:\n<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\ncreate one with /pecot-w:w-worktree-add only if the repository has no worktree`,
     'repo-mismatch',
     USAGE_EXIT_CODE,
   )

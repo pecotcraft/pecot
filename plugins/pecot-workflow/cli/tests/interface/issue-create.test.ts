@@ -1178,7 +1178,7 @@ describe('issue create', () => {
       expect(workflowWrites(github)).toEqual([expect.objectContaining({ optionId: 'o7' })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toEqual([
-        `could not set status blocked of Issue acme/demo/13: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+        `could not set status blocked of Issue acme/demo/13: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
       ])
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13` }])
     })
@@ -1390,7 +1390,7 @@ describe('issue create', () => {
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toEqual([
-        `could not set status ready of Issue acme/demo/12: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+        `could not set status ready of Issue acme/demo/12: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
         `could not set priority high of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
         `could not set size s of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
       ])
@@ -1531,6 +1531,7 @@ describe('issue create', () => {
     })
 
     it('parent_epic の形が誤っているとき、受け付ける形を detail に入れて、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-28')
       await verifies(context, 'PW-ISSUE-CREATE-43')
       setUpIssueProject()
 
@@ -1540,6 +1541,7 @@ describe('issue create', () => {
       expect(outcome.structured['kind']).toBe('invalid-input')
       expect(outcome.structured['detail']).toContain('could not resolve parent_epic: invalid reference: abc')
       expect(outcome.structured['detail']).toContain('- full: \'owner/repo/N\'')
+      expect(outcome.structured['detail']).not.toMatch(/Usage:|[╭│╰]/u)
     })
 
     it('message に title と repo を渡すと、status を省けば型の既定の status を設定して Issue を 1 件作る', async (context) => {
@@ -1664,7 +1666,7 @@ describe('issue create', () => {
       const outcome = await createTool({ title: '大きな仕事', type: 'epic', repo: 'acme/other', message: EPIC_BODY })
 
       expect(outcome.isError).toBe(false)
-      expect(outcome.structured['warnings']).toEqual(['repo: "acme/other" differs from aggregation_repo (acme/demo)\ncontinuing as an exception for an Epic in an implementation repo'])
+      expect(outcome.structured['warnings']).toEqual(['repo: "acme/other" differs from aggregation_repo (acme/demo)\n  continuing as an exception for an Epic in an implementation repo'])
     })
 
     it('Epic の作り先を決められないとき、kind が repo-setting-missing の失敗を返す', async (context) => {

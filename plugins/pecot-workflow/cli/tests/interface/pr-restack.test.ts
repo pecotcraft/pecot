@@ -900,7 +900,7 @@ describe('pr restack', () => {
         const outcome = await callTool(workspace, {})
         expect(outcome.isError).toBe(false)
         expect(outcome.structured).toMatchObject({ branch: UPPER, base: 'main', outcome: 'restacked', pushed: true })
-        expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^cannot relink PR #21 to its closing Issues: [^\n]+\nto link them, save the body of PR #21 again on GitHub without changes$/u)])
+        expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^cannot relink PR #21 to its closing Issues: [^\n]+\n {2}to link them, save the body of PR #21 again on GitHub without changes$/u)])
         expect(workspace.read(BASE_FILE)).toBe(`main ${head(workspace, 'origin/main')}`)
       })
 
@@ -920,7 +920,7 @@ describe('pr restack', () => {
         const outcome = await callTool(workspace, {})
         expect(outcome.structured).toStrictEqual({
           kind: 'git-conflict',
-          detail: 'conflict in upper.txt\n  resolve the conflicts and git add the files, then run: pr_restack with continue: true\n  or go back to the position before the restack: pr_restack with abort: true',
+          detail: 'conflict in upper.txt\n  resolve the conflicts and git add the files, then call pr_restack with continue: true\n  or go back to the position before the restack: pr_restack with abort: true',
           branch: UPPER,
           base: LOWER,
           outcome: 'conflict',
@@ -1036,13 +1036,14 @@ describe('pr restack', () => {
 
       it.for([{ flag: 'continue' }, { flag: 'abort' }])('途中の記録が無いのに $flag を付けると、利用者が始めた rebase を動かさずに kind が invalid-input の失敗を返す', async (row, context) => {
         await verifies(context, 'PW-PR-RESTACK-14')
+        await verifies(context, 'PW-COMMON-27')
         const workspace = await openStacked()
         makeConflict(workspace)
         workspace.git(['fetch', 'origin'])
         expect(() => workspace.git(['rebase', `origin/${LOWER}`])).toThrow(Error)
         const stopped = head(workspace)
         const outcome = await callTool(workspace, { [row.flag]: true })
-        expect(outcome.structured).toStrictEqual({ kind: 'invalid-input', detail: 'no restack in progress\n  to restack the branch, run: pr_restack' })
+        expect(outcome.structured).toStrictEqual({ kind: 'invalid-input', detail: 'no restack in progress\n  to restack the branch, call pr_restack' })
         expect(head(workspace)).toBe(stopped)
         expect(workspace.exists(path.join('.git', 'rebase-merge'))).toBe(true)
       })
@@ -1064,7 +1065,7 @@ describe('pr restack', () => {
         const outcome = await callTool(workspace, {})
         expect(outcome.structured).toStrictEqual({
           kind: 'git-unresolved',
-          detail: `origin/${UPPER} has commits that are not in ${UPPER}\n  ${UPPER} is back at the position before the restack\n  rebase or merge them into ${UPPER} first, then run again: pr_restack`,
+          detail: `origin/${UPPER} has commits that are not in ${UPPER}\n  ${UPPER} is back at the position before the restack\n  rebase or merge them into ${UPPER} first, then call pr_restack again`,
         })
         expect(head(workspace)).toBe(before)
         expect(workspace.remoteGit(['rev-parse', UPPER]).trim()).toBe(remote)
@@ -1099,7 +1100,7 @@ describe('pr restack', () => {
         }
         expect(outcome.structured).toStrictEqual({
           kind: 'git-unresolved',
-          detail: `push timed out after 600 seconds\n  ${UPPER} is restacked locally and the base record is unchanged\n  push the branch yourself: git push --force-with-lease origin ${UPPER}\n  then run: pr_restack`,
+          detail: `push timed out after 600 seconds\n  ${UPPER} is restacked locally and the base record is unchanged\n  push the branch yourself: git push --force-with-lease origin ${UPPER}\n  then call pr_restack`,
         })
         expect(workspace.read(BASE_FILE)).toBe(record)
       })

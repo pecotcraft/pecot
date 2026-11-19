@@ -21,7 +21,7 @@ import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN, RUN_COLON } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
@@ -562,7 +562,7 @@ async function activateByReference(out: Readonly<Output<ActivateData>>, client: 
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
+    stopWith(out, hinted`project "${title}" is not initialized\n${RUN_COLON}${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
   reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, isDryRun }))
 }
@@ -683,7 +683,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
   }
   if (edit.changelog_file !== undefined) {
     if (packages !== undefined && packages.length > 0) {
-      stopWith(out, hinted`this repository has packages set\nrun with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`, 'invalid-input')
+      stopWith(out, hinted`this repository has packages set\n${RUN} with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`, 'invalid-input')
     }
     changelogFile = edit.changelog_file
   }

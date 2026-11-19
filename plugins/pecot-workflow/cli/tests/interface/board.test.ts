@@ -513,7 +513,7 @@ describe('board sync', () => {
         deletedArchived: 0,
         kind: 'partial-failure',
         detail: 'could not write 1 Issue to the board',
-        warnings: [`could not move #1: ${SERVER_ERROR.replace('\n  ', '\n')}`],
+        warnings: [`could not move #1: ${SERVER_ERROR}`],
       })
       expect(writes(result)).toHaveLength(2)
     })
@@ -529,7 +529,7 @@ describe('board sync', () => {
         kind: 'partial-failure',
         detail: 'could not write 2 Issues to the board',
         warnings: [
-          `could not move #1: ${STALE_OPTION_TEXT}\nhint: if the board options were recreated, run project_activate with project: "${ACTIVE_PROJECT}" to read their IDs again`,
+          `could not move #1: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "${ACTIVE_PROJECT}" to read their IDs again`,
           `could not move #3: ${STALE_OPTION_TEXT}`,
         ],
       })
@@ -648,7 +648,7 @@ describe('board sync', () => {
       await verifies(context, 'PW-BOARD-SYNC-21')
       const result = await syncTool({}, { config: false })
       expect(result.isError).toBe(true)
-      expect(result.structured).toEqual({ kind: 'no-active-project', detail: 'no active project\n  run: project_activate with project: <PROJECT>' })
+      expect(result.structured).toEqual({ kind: 'no-active-project', detail: 'no active project\n  call project_activate with project: <PROJECT>' })
     })
 
     it('設定の JSON が読めないと、kind が config-invalid の失敗を返す', async (context) => {
@@ -719,7 +719,7 @@ describe('board show', () => {
         { id: 'PVTI_1', workflow: 'Ready', title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'blocked', stackOn: null, reason: 'not-in-review', text: 'blocked by #9 (not in review: #9 (not started))' } },
       ] },
       mismatches: 1,
-      warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run board_sync (dry_run: true to preview) to fix'],
+      warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; call board_sync (dry_run: true to preview) to fix'],
     }
 
     it('json を省くと、--json の中身に release_type・packages と列の合わない件数を足して返す', async (context) => {
