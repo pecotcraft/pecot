@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Get CloudWatch metric statistics
+================================================================
+
+.. iface-defs:: pecot-tools PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS

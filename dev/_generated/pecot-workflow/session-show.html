@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html :class="{ 'dark' : darkMode === true }" data-content_root="../../" lang="ja" x-data="{ darkMode: $persist(window.matchMedia('(prefers-color-scheme: dark)').matches), activeSection: ''}">
+<head>
+<script>
+    (function () {
+      // Set initial color scheme
+      if ((localStorage.getItem("_x_darkMode") === "true") || (window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      }
+
+      // Watch for media preference changes
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+        localStorage.setItem("_x_darkMode", event.matches);
+        document.documentElement.classList.toggle("dark", event.matches);
+      });
+    })();
+  </script>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="#ffffff" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="#030711" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Show session | pecot</title>
+<meta content="Show session | pecot" property="og:title"/>
+<meta content="Show session | pecot" name="twitter:title"/>
+<link href="../../_static/pygments.css?v=e72c8e07" rel="stylesheet" type="text/css"/>
+<link href="../../_static/theme.css?v=009055c6" rel="stylesheet" type="text/css"/>
+<link href="../../_static/graphviz.css?v=4ae1632d" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-design.min.css?v=6a604523" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-data-viewer/jsonview.bundle.css?v=f6ef2277" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_core.css?v=f5b60a78" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_links.css?v=2150a916" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_style.css?v=92936fa5" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/needstable.css?v=7b67799e" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/modern.css?v=c1bc121d" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-test-results/common.css?v=b776391d" rel="stylesheet" type="text/css"/>
+<link href="../../_static/pecot.css?v=8d1297e0" rel="stylesheet" type="text/css"/>
+<link href="../../_static/awesome-sphinx-design.css?v=b41b1d54" rel="stylesheet" type="text/css"/>
+<link href="../../_static/pecot-icon-light.svg" rel="icon"/>
+<link href="../../search.html" rel="search" title="検索"/>
+<link href="../../genindex.html" rel="index" title="索引"/>
+<link href="session-start.html" rel="next" title="Start Issue branch"/>
+<link href="session-finish.html" rel="prev" title="Clean up after merge"/>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-xs border-border bg-background/90 backdrop-blur">
+<div class="pecot-site" data-side="dev" role="note">
+<div class="container pecot-site-row">
+<span>これは開発中のバージョンのドキュメントです。</span>
+<a href="/pecot/">最新のリリース版を見る</a>
+</div>
+</div><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a aria-label="pecot" class="flex items-center mr-6" href="../../index.html">
+<img alt="pecot" class="h-6 w-auto dark:hidden" height="24" src="../../_static/pecot-wordmark-light.svg"/>
+<img alt="pecot" class="h-6 w-auto hidden dark:block" height="24" src="../../_static/pecot-wordmark-dark.svg"/>
+</a><nav class="flex items-center gap-6 text-sm font-medium">
+<a class="transition-colors hover:text-foreground/80 text-foreground/60" href="../../introduction.html">はじめに</a>
+<a class="transition-colors hover:text-foreground/80 text-foreground/60" href="../../guides/index.html">ガイド</a>
+<a class="transition-colors hover:text-foreground/80 text-foreground/60" href="../../reference/index.html">リファレンス</a>
+</nav></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" fill="currentColor" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 gap-2 sm:gap-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="../../search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+<kbd class="pointer-events-none absolute right-1.5 top-2 hidden h-5 select-none text-muted-foreground items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex group-hover:bg-accent group-hover:text-accent-foreground">
+<span class="text-xs">⌘</span>
+    K
+  </kbd>
+</form>
+</div>
+<nav class="flex items-center gap-1">
+<a href="https://github.com/pecotcraft/pecot" rel="noopener nofollow" title="Visit GitHub">
+<div class="inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent hover:text-accent-foreground h-9 w-9">
+<svg aria-hidden="true" fill="currentColor" height="20" viewbox="0 0 16 16"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
+</div>
+</a>
+<button @click="darkMode = !darkMode" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent hover:text-accent-foreground h-9 w-9" title="Toggle color scheme" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0" fill="currentColor" height="16" viewbox="0 96 960 960" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100" fill="currentColor" height="16" viewbox="0 96 960 960" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="justify-start text-sm md:!hidden bg-background" href="../../index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="../../_static/pecot-icon-dark.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="../../_static/pecot-icon-light.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">pecot</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="flex md:hidden flex-col font-medium mt-4">
+<a href="../../introduction.html">はじめに</a>
+<a href="../../guides/index.html">ガイド</a>
+<a href="../../reference/index.html">リファレンス</a>
+</nav><nav class="table w-full min-w-full my-6 lg:my-8">
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">はじめに</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">インストール</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../guides/index.html">ガイド</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/index.html">リファレンス<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/index.html">インタフェース定義<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l3 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-workflow.html">pecot-workflow<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-workflow-common.html">共通仕様</a></li>
+<li class="toctree-l4 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-workflow-tools.html">ツール一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="board-add.html">Add Issue to board</a></li>
+<li class="toctree-l5"><a class="reference internal" href="board-move.html">Move Issue on board</a></li>
+<li class="toctree-l5"><a class="reference internal" href="board-show.html">Show board dashboard</a></li>
+<li class="toctree-l5"><a class="reference internal" href="board-sync.html">Sync board columns</a></li>
+<li class="toctree-l5"><a class="reference internal" href="branch-delete.html">Delete remote branch</a></li>
+<li class="toctree-l5"><a class="reference internal" href="issue-block.html">Set Issue blocker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="issue-comment.html">Comment on Issue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="issue-create.html">Create Issues</a></li>
+<li class="toctree-l5"><a class="reference internal" href="issue-reopen.html">Reopen Issue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="issue-show.html">Get Issue details</a></li>
+<li class="toctree-l5"><a class="reference internal" href="issue-unblock.html">Remove Issue blocker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pr-check.html">Check PR readiness</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pr-create.html">Create PR</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pr-merge.html">Merge PR</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pr-restack.html">Restack branch</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pr-show.html">Get PR details</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-activate.html">Activate project</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-create.html">Create project</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-get.html">Get project config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-init.html">Initialize project fields</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-link.html">Link repository to project</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-list.html">List projects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-search.html">Search projects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-set.html">Set project config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="project-unset.html">Clear project config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="release-check.html">Check release readiness</a></li>
+<li class="toctree-l5"><a class="reference internal" href="release-create.html">Create release</a></li>
+<li class="toctree-l5"><a class="reference internal" href="release-merge.html">Merge release PR</a></li>
+<li class="toctree-l5"><a class="reference internal" href="review-finish.html">Finish automated review</a></li>
+<li class="toctree-l5"><a class="reference internal" href="session-finish.html">Clean up after merge</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Show session</a></li>
+<li class="toctree-l5"><a class="reference internal" href="session-start.html">Start Issue branch</a></li>
+<li class="toctree-l5"><a class="reference internal" href="tracker-sync.html">Sync Tracker list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="workflow-doctor.html">Check workflow setup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="workflow-install.html">Install workflow template</a></li>
+<li class="toctree-l5"><a class="reference internal" href="worktree-add.html">Add worktree</a></li>
+<li class="toctree-l5"><a class="reference internal" href="worktree-init.html">Initialize worktree config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="worktree-link.html">Update worktree symlinks</a></li>
+<li class="toctree-l5"><a class="reference internal" href="worktree-remove.html">Remove worktree</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-tools.html">pecot-tools<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-tools-common.html">共通仕様</a></li>
+<li class="toctree-l4" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-tools-tools.html">ツール一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_athena_get_query_execution.html">Get Athena query status</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_athena_get_query_results.html">Get Athena query results</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_athena_start_query_execution.html">Start Athena query</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_cloudwatch_get_metric_statistics.html">Get CloudWatch metric statistics</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_ec2_describe_instances.html">List EC2 instances</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_ecr_describe_images.html">List ECR images</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_lambda_get_function_configuration.html">Get Lambda function config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_lambda_list_event_source_mappings.html">List event source mappings</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_lambda_list_functions.html">List Lambda functions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_describe_log_groups.html">List log groups</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_describe_log_streams.html">List log streams</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_filter_log_events.html">Search log events</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_get_log_events.html">Get log events</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_rds_describe_db_clusters.html">List DB clusters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_rds_describe_db_instances.html">List DB instances</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_rds_describe_events.html">List RDS events</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_s3_ls.html">List S3 contents</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_scheduler_get_schedule.html">Get schedule details</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_scheduler_list_schedules.html">List schedules</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sqs_get_queue_attributes.html">Get SQS queue attributes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sqs_list_queues.html">List SQS queues</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sso_login.html">Start SSO login</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sso_login_status.html">Get SSO login status</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sts_get_caller_identity.html">Get caller identity</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-visual.html">pecot-visual<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-visual-common.html">共通仕様</a></li>
+<li class="toctree-l4" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-visual-tools.html">ツール一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/drawio_create.html">Create draw.io diagram</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/drawio_export.html">Export draw.io diagram</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/evidence_create.html">Create evidence workbook</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/runtime_setup.html">Set up runtime</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_convert.html">Convert Slidev to PPTX</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_create.html">Create Slidev deck</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_dev.html">Start Slidev preview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_lint.html">Lint Slidev deck</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_page.html">Create Slidev page</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_sync.html">Sync Slidev deck</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_theme.html">Get Slidev theme</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/file-formats/index.html">ファイル形式<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l3"><a class="reference internal" href="../../reference/file-formats/evidence-spec.html">EvidenceSpec</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">トラブルシューティング</a></li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="../../index.html">
+<span class="hidden md:inline">pecot</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/index.html">リファレンス</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/tools/index.html">インタフェース定義</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/tools/pecot-workflow.html">pecot-workflow</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/tools/pecot-workflow-tools.html">ツール一覧</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">Show session</span>
+</nav>
+<div id="content" role="main">
+<section id="show-session">
+<h1>Show session<a class="headerlink" href="#show-session" title="Link to this heading"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
+<span id="PW-SESSION-SHOW"></span><p class="iface-tool-name"><code class="docutils literal notranslate"><span class="pre">session_show</span></code></p>
+<p class="iface-lead">セッションのブランチ、リポジトリ、作業中の Issue を出します。</p>
+<p>今のブランチ、remote の <code class="docutils literal notranslate"><span class="pre">origin</span></code>（無ければ最初の remote）のリポジトリ、セッションの作業中の Issue を返します。</p>
+<p>ブランチと、remote の <code class="docutils literal notranslate"><span class="pre">origin</span></code>（無ければ最初の remote）のリポジトリは、<code class="docutils literal notranslate"><span class="pre">directory</span></code> で読みます。</p>
+<p>作業中の Issue は <code class="docutils literal notranslate"><span class="pre">owner/repo#N</span></code> です。<code class="docutils literal notranslate"><span class="pre">owner/repo</span></code> はその remote のリポジトリで、<code class="docutils literal notranslate"><span class="pre">N</span></code> はブランチ名の最後のスラッシュより後ろにある末尾の番号です。remote を読めないか URL の形が合わないとき、ブランチ名の最後の区切りが数字だけでないとき、番号が 0 のとき、detached HEAD のときは、作業中の Issue はありません。</p>
+<p>古い版の <code class="docutils literal notranslate"><span class="pre">.pecot/state/.pecot-active</span></code> が残っていても読みません。</p>
+<p>作業中の Issue は、<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> の <code class="docutils literal notranslate"><span class="pre">reference</span></code> に入れます。作業中の Issue が無ければ、<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> を入れません。</p>
+<p>作業中の Issue があるときは、GitHub から読んだ Issue の題・状態を <code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に入れます。</p>
+<p>Issue の本文は、結果に入れません。CLI では、Markdown の Active Issue の節に本文を続けます。</p>
+<p>Issue を GitHub から読めないときは、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に入れ、<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に題と状態を入れません。</p>
+<p>作業中の Issue を読めて、プロジェクトのルートの <code class="docutils literal notranslate"><span class="pre">.pecot/state/.pecot-base</span></code> が積んだ先の Issue を指すときは、<code class="docutils literal notranslate"><span class="pre">stack</span></code> を入れます。<code class="docutils literal notranslate"><span class="pre">stack</span></code> には、ブランチ・Issue・その PR を入れます。PR は、fork からではない open の PR です。それが無ければ最新の PR です。PR が無いか読めないときは、<code class="docutils literal notranslate"><span class="pre">pullRequest</span></code> を入れません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">stack</span></code> の <code class="docutils literal notranslate"><span class="pre">needsRestack</span></code> は、載せ直しが要るかです。下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときが <code class="docutils literal notranslate"><span class="pre">true</span></code> です。ただし、ブランチが新しい base の上に載り終えていれば <code class="docutils literal notranslate"><span class="pre">false</span></code> です（<code class="docutils literal notranslate"><span class="pre">pr_restack</span></code> と同じ判断です）。</p>
+<p><code class="docutils literal notranslate"><span class="pre">needsRestack</span></code> は、<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span></code> をせずに remote へ尋ねて決めます。remote に届かないときは、入れません。下の段のブランチが消えていて PR がマージされていないときも、入れません。</p>
+<p>アクティブな Issue の着手の判定が <code class="docutils literal notranslate"><span class="pre">blocked</span></code> のときは、<code class="docutils literal notranslate"><span class="pre">stack</span></code> に <code class="docutils literal notranslate"><span class="pre">readiness</span></code> も入れます。</p>
+<p>今のブランチを base にした、同じリポジトリの open の PR があれば、PR ごとの項目を <code class="docutils literal notranslate"><span class="pre">stackedAbove</span></code> に入れます。積んで着手していない作業ディレクトリでも入れます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">.pecot/state/.pecot-base</span></code> の記録は、<code class="docutils literal notranslate"><span class="pre">directory</span></code> の git リポジトリの toplevel のものを読みます。プロジェクトのルートの記録を、別の worktree や clone の作業には使いません。</p>
+<p>記録が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、その base を <code class="docutils literal notranslate"><span class="pre">stack</span></code> に入れます。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。求めるときに読んだ判定は、<code class="docutils literal notranslate"><span class="pre">readiness</span></code> にも使います。</p>
+<p><code class="docutils literal notranslate"><span class="pre">stack</span></code> は、作業中の Issue の題と状態と同じ設定とクライアントで読みます。<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に題と状態が入らないときは、<code class="docutils literal notranslate"><span class="pre">stack</span></code> も入れません。</p>
+<p>このツールは診断用です。読めない値は省き、失敗を返しません。</p>
+<p>何も書き込みません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">project</span></code> で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。</p>
+<section id="id1">
+<h2>使用例<a class="headerlink" href="#id1" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id1'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p>今のリポジトリのブランチ・リポジトリ・作業中の Issue を返します。</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="p">{</span>
+</span><span id="line-2"><span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"session_show"</span><span class="p">,</span>
+</span><span id="line-3"><span class="w">  </span><span class="nt">"arguments"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="line-4"><span class="w">    </span><span class="nt">"directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"."</span>
+</span><span id="line-5"><span class="w">  </span><span class="p">}</span>
+</span><span id="line-6"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+</section>
+<section id="id2">
+<h2>引数<a class="headerlink" href="#id2" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id2'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<dl class="std mcparg">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">directory</span></span></dt>
+<dd><p>対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>必須</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="std mcparg">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">project</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">.pecot/config/projects</span></code> の下にある、プロジェクトの設定の名前です。<code class="docutils literal notranslate"><span class="pre">.json</span></code> を付けずに渡します。省くと、対象のリポを含む設定を使います。 省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>省略可</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="id3">
+<h2>出力<a class="headerlink" href="#id3" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id3'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div aria-label="MCP の結果の項目" class="pecot-table-scroll" role="region" tabindex="0">
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">MCP の結果の項目</span><a class="headerlink" href="#id6" title="Link to this table"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>項目名</p></th>
+<th class="head"><p>型</p></th>
+<th class="head"><p>説明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">branch</span></code></p></td>
+<td><p>string</p></td>
+<td><p>今のブランチです。読めないときは入りません。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">repository</span></code></p></td>
+<td><p>string</p></td>
+<td><p>git remote のリポジトリです。<code class="docutils literal notranslate"><span class="pre">owner/repo</span></code> の形です。読めないときは入りません。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">activeIssue</span></code></p></td>
+<td><p>object</p></td>
+<td><p>セッションの作業中の Issue です。無いときは入りません。<code class="docutils literal notranslate"><span class="pre">reference</span></code>（<code class="docutils literal notranslate"><span class="pre">owner/repo/N</span></code>。<code class="docutils literal notranslate"><span class="pre">issue_ref</span></code> にそのまま渡せる形）を持ちます。<code class="docutils literal notranslate"><span class="pre">title</span></code> と <code class="docutils literal notranslate"><span class="pre">state</span></code>（<code class="docutils literal notranslate"><span class="pre">OPEN</span></code> か <code class="docutils literal notranslate"><span class="pre">CLOSED</span></code>）は、GitHub から読めたときだけ入ります。本文は入りません。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stack</span></code></p></td>
+<td><p>object</p></td>
+<td><p>作業を積んでいる先です。積んでいないときは入りません。<code class="docutils literal notranslate"><span class="pre">branch</span></code>（積んでいる先の base ブランチ）と <code class="docutils literal notranslate"><span class="pre">stackedOn</span></code>（積んでいる Issue。<code class="docutils literal notranslate"><span class="pre">owner/repo/N</span></code>）を持ちます。<code class="docutils literal notranslate"><span class="pre">pullRequest</span></code>（<code class="docutils literal notranslate"><span class="pre">number</span></code> と <code class="docutils literal notranslate"><span class="pre">state</span></code>）は、base ブランチの PR があり、読めたときだけ入ります。<code class="docutils literal notranslate"><span class="pre">needsRestack</span></code> は、載せ直しが要るかで、決められたときだけ入ります。<code class="docutils literal notranslate"><span class="pre">readiness</span></code> は、作業中の Issue が blocked のときだけ入ります。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stackedAbove</span></code></p></td>
+<td><p>array</p></td>
+<td><p>今のブランチを base にした、同じリポジトリの open の PR の一覧です。<code class="docutils literal notranslate"><span class="pre">number</span></code> と <code class="docutils literal notranslate"><span class="pre">branch</span></code>（head のブランチ）を持ちます。無いときと読めないときは入りません。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>エラーと警告の項目については、共通仕様の<a class="reference internal" href="../../reference/tools/pecot-workflow-common.html#iface-common-output-pecot-workflow"><span class="std std-ref">出力</span></a>を参照してください。</p>
+</section>
+<section id="id4">
+<h2>エラー<a class="headerlink" href="#id4" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id4'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div aria-label="表" class="pecot-table-scroll" role="region" tabindex="0">
+<table class="iface-errors docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>エラー名</p></th>
+<th class="head"><p>説明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">invalid-input</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">directory</span></code> が無いか、無いパス・ファイル・読めないディレクトリのどれかです。ほかの引数の誤りも含みます。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">project-root-not-found</span></code></p></td>
+<td><p>プロジェクトのルートを決められません。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">other</span></code></p></td>
+<td><p>ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">session-directory-unresolved</span></code></p></td>
+<td><p>MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>ブランチ・リポジトリ・アクティブな Issue を読めないときも、成功を返します。作業中の Issue があり、選んだ設定ファイルの内容が不正なときも同じです。</p>
+</section>
+<section id="id5">
+<h2>機能要件<a class="headerlink" href="#id5" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id5'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p>次の 36 件の要件を、自動テストで確かめています。</p>
+<div aria-label="表" class="pecot-table-scroll" role="region" tabindex="0">
+<table class="iface-behaviors docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>要件</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even" id="PW-SESSION-SHOW-01"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-01</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">directory</span></code> を渡して呼ぶと、ブランチ・リポジトリ・作業中の Issue を返します。CLI では、Markdown で標準出力に出し、フラグの表は出しません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-02"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-02</span></code></p></td>
+<td><p>remote のリポジトリが読めてブランチ名の末尾が番号だと、<code class="docutils literal notranslate"><span class="pre">owner/repo#N</span></code> を作業中の Issue として <code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に入れます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-05"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-05</span></code></p></td>
+<td><p>作業中の Issue があると、GitHub から読んだ Issue の題名・状態を <code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に入れます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-06"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-06</span></code></p></td>
+<td><p>読んだ Issue に本文があると、結果には入れず、CLI では本文を Active Issue の節に続けて出します</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-07"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-07</span></code></p></td>
+<td><p>もしブランチ名を読めないなら、<code class="docutils literal notranslate"><span class="pre">branch</span></code> を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-08"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-08</span></code></p></td>
+<td><p>もしブランチ名を読めないなら、処理を続けます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-09"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-09</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">origin</span></code>（無ければ最初の remote）のリポジトリを読めないなら、<code class="docutils literal notranslate"><span class="pre">repository</span></code> を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-10"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-10</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">origin</span></code>（無ければ最初の remote）のリポジトリを読めないなら、処理を続けます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-11"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-11</span></code></p></td>
+<td><p>もしブランチ名の末尾が番号でないなら、<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-12"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-12</span></code></p></td>
+<td><p>もしブランチ名の末尾が番号でないなら、処理を続けます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-15"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-15</span></code></p></td>
+<td><p>もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に題と状態を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-16"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-16</span></code></p></td>
+<td><p>もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-17"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-17</span></code></p></td>
+<td><p>もし作業中の Issue があるのに Issue を GitHub から読めないなら、<code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> に題と状態を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-18"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-18</span></code></p></td>
+<td><p>もし作業中の Issue があるのに Issue を GitHub から読めないなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-19"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-19</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">directory</span></code> を省いたなら、<code class="docutils literal notranslate"><span class="pre">kind</span></code> が <code class="docutils literal notranslate"><span class="pre">invalid-input</span></code> の失敗を返します</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-20"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-20</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">directory</span></code> が無いパス・ファイル・読めないディレクトリなら、<code class="docutils literal notranslate"><span class="pre">kind</span></code> が <code class="docutils literal notranslate"><span class="pre">invalid-input</span></code> の失敗を返します</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-21"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-21</span></code></p></td>
+<td><p>もし作業中の Issue があり、選んだ設定ファイルの形式が不正なら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-22"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-22</span></code></p></td>
+<td><p>もし作業中の Issue があり、選んだ設定ファイルの形式が不正なら、成功を返します</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-23"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-23</span></code></p></td>
+<td><p>積んで着手した作業ディレクトリの間、積んだ先の Issue とその PR を <code class="docutils literal notranslate"><span class="pre">stack</span></code> に入れます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-24"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-24</span></code></p></td>
+<td><p>着手中の Issue の判定が <code class="docutils literal notranslate"><span class="pre">blocked</span></code> の間、<code class="docutils literal notranslate"><span class="pre">stack</span></code> に <code class="docutils literal notranslate"><span class="pre">readiness</span></code> を入れます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-25"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-25</span></code></p></td>
+<td><p>もし base のブランチの PR を読めないなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れ、<code class="docutils literal notranslate"><span class="pre">stack</span></code> に <code class="docutils literal notranslate"><span class="pre">pullRequest</span></code> を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-26"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-26</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">.pecot-base</span></code> の形が誤っているなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れ、<code class="docutils literal notranslate"><span class="pre">stack</span></code> を入れません</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-27"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-27</span></code></p></td>
+<td><p>もし着手中の Issue の判定を読めないなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れ、<code class="docutils literal notranslate"><span class="pre">stack</span></code> の base のブランチは入れます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-28"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-28</span></code></p></td>
+<td><p>積んで着手した作業ディレクトリの間、<code class="docutils literal notranslate"><span class="pre">stack</span></code> に <code class="docutils literal notranslate"><span class="pre">needsRestack</span></code> を入れます。下の段の remote の先頭が記録の位置と違うか、下の段の PR がマージ済みなら <code class="docutils literal notranslate"><span class="pre">true</span></code> です</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-29"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-29</span></code></p></td>
+<td><p>今のブランチを base にした open の PR がある間、PR ごとの項目を <code class="docutils literal notranslate"><span class="pre">stackedAbove</span></code> に入れます。積んで着手していない作業ディレクトリでも入れます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-30"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-30</span></code></p></td>
+<td><p>もし今のブランチを base にした PR を読めないなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れ、<code class="docutils literal notranslate"><span class="pre">stackedAbove</span></code> を入れません</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-31"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-31</span></code></p></td>
+<td><p>もし古い版の <code class="docutils literal notranslate"><span class="pre">.pecot-active</span></code> が残っているなら、その内容を読まずに、remote とブランチ名から作業中の Issue を求めます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-32"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-32</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">directory</span></code> の git リポジトリの toplevel がプロジェクトのルートと違うなら、<code class="docutils literal notranslate"><span class="pre">.pecot-base</span></code> の積んだ記録を <code class="docutils literal notranslate"><span class="pre">stack</span></code> に使いません</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-33"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-33</span></code></p></td>
+<td><p>もし remote のリポジトリを読めないか URL の形が合わないなら、ブランチ名の末尾が番号でも <code class="docutils literal notranslate"><span class="pre">activeIssue</span></code> を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-34"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-34</span></code></p></td>
+<td><p>ブランチが新しい base の上に載り終えていて、base の記録だけが古い間、<code class="docutils literal notranslate"><span class="pre">stack</span></code> の <code class="docutils literal notranslate"><span class="pre">needsRestack</span></code> を <code class="docutils literal notranslate"><span class="pre">false</span></code> にします</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-35"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-35</span></code></p></td>
+<td><p>記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、求めた base を <code class="docutils literal notranslate"><span class="pre">stack</span></code> に入れます</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-36"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-36</span></code></p></td>
+<td><p>もし記録が無く、作業中の Issue の判定が blocked なら、<code class="docutils literal notranslate"><span class="pre">cannot</span> <span class="pre">infer</span> <span class="pre">the</span> <span class="pre">stacked</span> <span class="pre">base</span></code> の知らせを <code class="docutils literal notranslate"><span class="pre">warnings</span></code> に入れ、<code class="docutils literal notranslate"><span class="pre">stack</span></code> を入れません</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-37"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-37</span></code></p></td>
+<td><p>もし記録が無く、判定は stackable でも、下の段の変更をブランチに持たないなら、<code class="docutils literal notranslate"><span class="pre">stack</span></code> を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-38"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-38</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">directory</span></code> の worktree に積んだ記録がある間、toplevel がプロジェクトのルートと違っても、判定から求めずに、その記録で <code class="docutils literal notranslate"><span class="pre">stack</span></code> を入れます</p></td>
+</tr>
+<tr class="row-even" id="PW-SESSION-SHOW-39"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-39</span></code></p></td>
+<td><p>もし作業中の Issue のリポを含む設定が無いか、使う設定が決まらないなら、<code class="docutils literal notranslate"><span class="pre">warnings</span></code> に 1 つ入れ、成功を返します</p></td>
+</tr>
+<tr class="row-odd" id="PW-SESSION-SHOW-40"><td><p><code class="docutils literal notranslate"><span class="pre">PW-SESSION-SHOW-40</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">project</span></code> に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] h-full overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#id1'" class="reference internal" href="#id1">使用例</a></li>
+<li><a :data-current="activeSection === '#id2'" class="reference internal" href="#id2">引数</a></li>
+<li><a :data-current="activeSection === '#id3'" class="reference internal" href="#id3">出力</a></li>
+<li><a :data-current="activeSection === '#id4'" class="reference internal" href="#id4">エラー</a></li>
+<li><a :data-current="activeSection === '#id5'" class="reference internal" href="#id5">機能要件</a></li>
+</ul>
+<dl class="iface-about pt-6">
+<dt class="font-medium">ID</dt>
+<dd class="font-mono text-xs text-muted-foreground">PW-SESSION-SHOW</dd>
+<dt class="font-medium">Group</dt>
+<dd class="text-muted-foreground">pecot-workflow</dd>
+<dt class="font-medium">Interface</dt>
+<dd class="text-muted-foreground">MCP</dd>
+</dl></div>
+</aside>
+</main>
+</div>
+</div><footer class="border-t border-border">
+<div class="container pecot-footer">
+<div class="pecot-footer-brand">
+<a aria-label="pecot" href="../../index.html">
+<img alt="pecot" class="h-6 w-6 dark:hidden" height="24" src="../../_static/pecot-icon-light.svg"/>
+<img alt="pecot" class="h-6 w-6 hidden dark:block" height="24" src="../../_static/pecot-icon-dark.svg"/>
+</a>
+<span>© 2026 pecotcraft</span>
+</div>
+<nav aria-label="関連リンク" class="pecot-footer-links">
+<a href="https://github.com/pecotcraft/pecot" rel="noopener">GitHub</a>
+<a href="https://github.com/pecotcraft/pecot/blob/main/LICENSE" rel="noopener">ライセンス</a>
+</nav>
+</div>
+</footer>
+</div>
+<script src="../../_static/jquery.js?v=5d32c60e"></script>
+<script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+<script src="../../_static/documentation_options.js?v=c033477b"></script>
+<script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+<script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+<script defer="defer" src="../../_static/theme.js?v=49cc6205"></script>
+<script src="../../_static/translations.js?v=4755f45a"></script>
+<script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+<script src="../../_static/sphinx-data-viewer/jsonview.bundle.js?v=18cd53c5"></script>
+<script src="../../_static/sphinx-data-viewer/jsonview_loader.js?v=f7ff7e7d"></script>
+<script src="../../_static/sphinx-needs/libs/html/sphinx_needs_collapse.js?v=dca66431"></script>
+<script src="../../_static/pecot.js?v=db60a368"></script>
+</body>
+</html>

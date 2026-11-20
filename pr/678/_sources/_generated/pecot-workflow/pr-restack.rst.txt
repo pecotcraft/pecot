@@ -1,0 +1,8 @@
+:iface-id: PW-PR-RESTACK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Restack branch
+============================
+
+.. iface-defs:: pecot-workflow PW-PR-RESTACK

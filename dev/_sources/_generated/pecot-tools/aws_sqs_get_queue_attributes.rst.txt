@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-SQS-GET-QUEUE-ATTRIBUTES
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Get SQS queue attributes
+================================================
+
+.. iface-defs:: pecot-tools PT-AWS-SQS-GET-QUEUE-ATTRIBUTES

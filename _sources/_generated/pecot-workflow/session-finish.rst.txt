@@ -1,0 +1,8 @@
+:iface-id: PW-SESSION-FINISH
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+session finish
+============================
+
+.. iface-defs:: pecot-workflow PW-SESSION-FINISH

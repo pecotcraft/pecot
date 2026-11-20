@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-RDS-DESCRIBE-EVENTS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_rds_describe_events
+==============================================
+
+.. iface-defs:: pecot-tools PT-AWS-RDS-DESCRIBE-EVENTS

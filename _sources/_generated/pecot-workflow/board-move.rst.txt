@@ -1,0 +1,8 @@
+:iface-id: PW-BOARD-MOVE
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+board move
+====================
+
+.. iface-defs:: pecot-workflow PW-BOARD-MOVE

@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-EC2-DESCRIBE-INSTANCES
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+List EC2 instances
+====================================
+
+.. iface-defs:: pecot-tools PT-AWS-EC2-DESCRIBE-INSTANCES

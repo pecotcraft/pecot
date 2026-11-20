@@ -1,0 +1,8 @@
+:iface-id: PW-WORKTREE-LINK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Update worktree symlinks
+================================================
+
+.. iface-defs:: pecot-workflow PW-WORKTREE-LINK

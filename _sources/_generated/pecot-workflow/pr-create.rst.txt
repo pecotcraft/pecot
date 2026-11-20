@@ -1,0 +1,8 @@
+:iface-id: PW-PR-CREATE
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+pr create
+==================
+
+.. iface-defs:: pecot-workflow PW-PR-CREATE

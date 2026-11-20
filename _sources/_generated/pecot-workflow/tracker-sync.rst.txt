@@ -1,0 +1,8 @@
+:iface-id: PW-TRACKER-SYNC
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+tracker sync
+========================
+
+.. iface-defs:: pecot-workflow PW-TRACKER-SYNC

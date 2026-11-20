@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-SQS-LIST-QUEUES
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_sqs_list_queues
+======================================
+
+.. iface-defs:: pecot-tools PT-AWS-SQS-LIST-QUEUES

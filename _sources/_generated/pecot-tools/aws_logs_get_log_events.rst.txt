@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-LOGS-GET-LOG-EVENTS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_logs_get_log_events
+==============================================
+
+.. iface-defs:: pecot-tools PT-AWS-LOGS-GET-LOG-EVENTS

@@ -1,0 +1,8 @@
+:iface-id: PW-BOARD-SYNC
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+board sync
+====================
+
+.. iface-defs:: pecot-workflow PW-BOARD-SYNC

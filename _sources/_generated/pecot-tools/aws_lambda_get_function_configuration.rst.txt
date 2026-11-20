@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_lambda_get_function_configuration
+==========================================================================
+
+.. iface-defs:: pecot-tools PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION

@@ -1,0 +1,8 @@
+:iface-id: PV-SLIDE-PAGE
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+slide_page
+====================
+
+.. iface-defs:: pecot-visual PV-SLIDE-PAGE

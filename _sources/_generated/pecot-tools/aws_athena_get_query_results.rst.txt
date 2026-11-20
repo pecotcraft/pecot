@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-ATHENA-GET-QUERY-RESULTS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_athena_get_query_results
+========================================================
+
+.. iface-defs:: pecot-tools PT-AWS-ATHENA-GET-QUERY-RESULTS

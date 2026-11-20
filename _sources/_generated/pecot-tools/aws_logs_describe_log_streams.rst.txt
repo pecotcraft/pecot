@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_logs_describe_log_streams
+==========================================================
+
+.. iface-defs:: pecot-tools PT-AWS-LOGS-DESCRIBE-LOG-STREAMS

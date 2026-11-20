@@ -1,0 +1,8 @@
+:iface-id: PV-SLIDE-CREATE
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+slide_create
+========================
+
+.. iface-defs:: pecot-visual PV-SLIDE-CREATE

@@ -1,0 +1,8 @@
+:iface-id: PW-WORKTREE-REMOVE
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+worktree remove
+==============================
+
+.. iface-defs:: pecot-workflow PW-WORKTREE-REMOVE

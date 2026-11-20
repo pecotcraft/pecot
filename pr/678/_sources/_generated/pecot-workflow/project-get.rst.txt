@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-GET
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Get project config
+====================================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-GET

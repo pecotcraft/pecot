@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-SET
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+project set
+======================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-SET

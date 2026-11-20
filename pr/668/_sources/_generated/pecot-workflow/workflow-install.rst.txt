@@ -1,0 +1,8 @@
+:iface-id: PW-WORKFLOW-INSTALL
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Install workflow template
+==================================================
+
+.. iface-defs:: pecot-workflow PW-WORKFLOW-INSTALL

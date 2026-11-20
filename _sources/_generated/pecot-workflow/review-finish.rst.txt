@@ -1,0 +1,8 @@
+:iface-id: PW-REVIEW-FINISH
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+review finish
+==========================
+
+.. iface-defs:: pecot-workflow PW-REVIEW-FINISH

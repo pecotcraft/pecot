@@ -1,0 +1,8 @@
+:iface-id: PW-SESSION-START
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+session start
+==========================
+
+.. iface-defs:: pecot-workflow PW-SESSION-START

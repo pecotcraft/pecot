@@ -1,0 +1,8 @@
+:iface-id: PW-RELEASE-CREATE
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+release create
+============================
+
+.. iface-defs:: pecot-workflow PW-RELEASE-CREATE

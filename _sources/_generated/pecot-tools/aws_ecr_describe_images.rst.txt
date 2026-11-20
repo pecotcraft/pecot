@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-ECR-DESCRIBE-IMAGES
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_ecr_describe_images
+==============================================
+
+.. iface-defs:: pecot-tools PT-AWS-ECR-DESCRIBE-IMAGES

@@ -1,0 +1,8 @@
+:iface-id: PV-SLIDE-THEME
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+slide_theme
+======================
+
+.. iface-defs:: pecot-visual PV-SLIDE-THEME

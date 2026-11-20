@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-COMMENT
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+issue comment
+==========================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-COMMENT

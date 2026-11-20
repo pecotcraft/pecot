@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-S3-LS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_s3_ls
+==================
+
+.. iface-defs:: pecot-tools PT-AWS-S3-LS

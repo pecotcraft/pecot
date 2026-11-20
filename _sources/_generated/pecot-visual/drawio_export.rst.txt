@@ -1,0 +1,8 @@
+:iface-id: PV-DRAWIO-EXPORT
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+drawio_export
+==========================
+
+.. iface-defs:: pecot-visual PV-DRAWIO-EXPORT

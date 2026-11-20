@@ -1,0 +1,8 @@
+:iface-id: PW-PR-SHOW
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+pr show
+==============
+
+.. iface-defs:: pecot-workflow PW-PR-SHOW

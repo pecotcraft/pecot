@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-ATHENA-START-QUERY-EXECUTION
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_athena_start_query_execution
+================================================================
+
+.. iface-defs:: pecot-tools PT-AWS-ATHENA-START-QUERY-EXECUTION

@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-RDS-DESCRIBE-DB-INSTANCES
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+List DB instances
+==================================
+
+.. iface-defs:: pecot-tools PT-AWS-RDS-DESCRIBE-DB-INSTANCES

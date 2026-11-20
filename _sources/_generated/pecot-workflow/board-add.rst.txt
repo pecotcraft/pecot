@@ -1,0 +1,8 @@
+:iface-id: PW-BOARD-ADD
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+board add
+==================
+
+.. iface-defs:: pecot-workflow PW-BOARD-ADD

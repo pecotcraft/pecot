@@ -1,0 +1,8 @@
+:iface-id: PW-BRANCH-DELETE
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+branch delete
+==========================
+
+.. iface-defs:: pecot-workflow PW-BRANCH-DELETE

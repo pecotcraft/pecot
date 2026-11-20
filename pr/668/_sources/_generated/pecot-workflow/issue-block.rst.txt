@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-BLOCK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Set Issue blocker
+==================================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-BLOCK

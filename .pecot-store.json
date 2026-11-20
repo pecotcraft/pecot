@@ -1,0 +1,37 @@
+{
+  "dev": {
+    "run_id": "44731571881",
+    "sha": "ca82755fa0252d34aed72d5b5458ab92fbe62799",
+    "stored_at": "2026-11-20T11:57:53Z"
+  },
+  "pr": {
+    "668": {
+      "run_id": "44734194535",
+      "sha": "3114b7e5e88e9fd3f484c3c76f2d869adc2f0685",
+      "stored_at": "2026-11-20T12:17:14Z"
+    },
+    "678": {
+      "run_id": "44735019082",
+      "sha": "731439a5f85af7a6683d1e996f8eb447776a3e89",
+      "stored_at": "2026-11-20T12:23:04Z"
+    }
+  },
+  "release": {
+    "run_id": "44310306101",
+    "sha": "7de87fe149f6c6050c2ac40776532636b7787961",
+    "sources": {
+      "commits": {
+        "pecot-tools": "7de87fe149f6c6050c2ac40776532636b7787961",
+        "pecot-visual": "7de87fe149f6c6050c2ac40776532636b7787961",
+        "pecot-workflow": "7de87fe149f6c6050c2ac40776532636b7787961"
+      },
+      "skeleton": "7de87fe149f6c6050c2ac40776532636b7787961",
+      "tags": {
+        "pecot-tools": "pecot-tools-v3.0.2",
+        "pecot-visual": "pecot-visual-v3.0.2",
+        "pecot-workflow": "pecot-workflow-v9.0.0"
+      }
+    },
+    "stored_at": "2026-11-18T13:08:59Z"
+  }
+}

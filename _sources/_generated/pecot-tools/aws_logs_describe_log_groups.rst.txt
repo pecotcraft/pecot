@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-LOGS-DESCRIBE-LOG-GROUPS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_logs_describe_log_groups
+========================================================
+
+.. iface-defs:: pecot-tools PT-AWS-LOGS-DESCRIBE-LOG-GROUPS

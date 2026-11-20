@@ -1,0 +1,8 @@
+:iface-id: PW-RELEASE-CHECK
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+release check
+==========================
+
+.. iface-defs:: pecot-workflow PW-RELEASE-CHECK

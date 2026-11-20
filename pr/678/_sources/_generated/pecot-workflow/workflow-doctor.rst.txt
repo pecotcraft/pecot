@@ -1,0 +1,8 @@
+:iface-id: PW-WORKFLOW-DOCTOR
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Check workflow setup
+========================================
+
+.. iface-defs:: pecot-workflow PW-WORKFLOW-DOCTOR

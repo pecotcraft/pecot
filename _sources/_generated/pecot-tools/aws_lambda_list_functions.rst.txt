@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-LAMBDA-LIST-FUNCTIONS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+aws_lambda_list_functions
+==================================================
+
+.. iface-defs:: pecot-tools PT-AWS-LAMBDA-LIST-FUNCTIONS

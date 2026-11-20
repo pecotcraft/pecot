@@ -1,0 +1,8 @@
+:iface-id: PW-PR-MERGE
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+pr merge
+================
+
+.. iface-defs:: pecot-workflow PW-PR-MERGE

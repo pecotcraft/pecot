@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-UNSET
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Clear project config
+========================================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-UNSET

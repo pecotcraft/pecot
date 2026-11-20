@@ -1,0 +1,8 @@
+:iface-id: PV-RUNTIME-SETUP
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+runtime_setup
+==========================
+
+.. iface-defs:: pecot-visual PV-RUNTIME-SETUP

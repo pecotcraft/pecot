@@ -1,0 +1,8 @@
+:iface-id: PV-SLIDE-DEV
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+slide_dev
+==================
+
+.. iface-defs:: pecot-visual PV-SLIDE-DEV

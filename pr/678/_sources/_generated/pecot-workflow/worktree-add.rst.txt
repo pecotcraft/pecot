@@ -1,0 +1,8 @@
+:iface-id: PW-WORKTREE-ADD
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Add worktree
+========================
+
+.. iface-defs:: pecot-workflow PW-WORKTREE-ADD

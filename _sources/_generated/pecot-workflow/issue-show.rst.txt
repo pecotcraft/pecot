@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-SHOW
+:iface-plugin: pecot-workflow
+:iface-kind: CLI・MCP
+
+issue show
+====================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-SHOW
