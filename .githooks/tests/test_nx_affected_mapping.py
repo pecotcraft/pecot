@@ -116,7 +116,7 @@ def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -
         # プロジェクト外の一般ファイル。どの namedInputs にも載らない。
         ".pecot/config/.worktreeignore",
         # CI で使わない .devcontainer のファイル。sharedGlobals に載せていない。
-        ".devcontainer/tmux/pecot-open.sh",
+        ".devcontainer/tmux/tmux.conf",
         ".devcontainer/scripts/install-git-hooks.sh",
     ],
 )
