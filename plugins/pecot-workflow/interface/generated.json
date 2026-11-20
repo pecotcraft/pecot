@@ -5119,7 +5119,7 @@
           "dry_run": {
             "type": "boolean",
             "default": false,
-            "description": "Read the PR and return the comment that would be posted in body, without posting it"
+            "description": "Read the PR and show the comment that would be posted without posting it (in body of the MCP result)"
           },
           "ensure": {
             "type": "boolean",

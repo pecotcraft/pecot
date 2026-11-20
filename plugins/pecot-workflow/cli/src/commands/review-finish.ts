@@ -53,7 +53,7 @@ const InputSchema = z.object({
   review_outcome: z.enum(['success', 'failure', 'cancelled', 'skipped']).optional().describe('Outcome of the automated review step (required with ensure)'),
   review_conclusion: z.string().optional().describe('The conclusion output of claude-code-action; empty when Claude Code did not run (required with ensure, may be empty)'),
   review_has_token: z.enum(['true', 'false']).optional().describe('Whether claude-code-action output a github_token (required with ensure; never the token itself)'),
-  dry_run: z.boolean().default(false).describe('Read the PR and return the comment that would be posted in body, without posting it'),
+  dry_run: z.boolean().default(false).describe('Read the PR and show the comment that would be posted without posting it (in body of the MCP result)'),
 })
 
 const OUTPUT = z.strictObject({
