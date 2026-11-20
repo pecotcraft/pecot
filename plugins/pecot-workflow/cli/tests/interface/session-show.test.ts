@@ -604,7 +604,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN', body: '' },
         stackedAbove: [{ number: 40, branch: 'feat/demo/8' }, { number: 42, branch: 'feat/demo/10' }],
       })
     })
@@ -660,7 +660,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN' },
+        activeIssue: { reference: 'acme/demo/7', title: 't', state: 'OPEN', body: '' },
         stack: { branch: 'feat/3', stackedOn: 'acme/demo/3', pullRequest: { number: 30, state: 'CLOSED' }, readiness: 'blocked by #3 (not in review: #3 (not started))' },
       })
     })
@@ -692,7 +692,7 @@ describe('session show', () => {
       expect(outcome.structured).toEqual({
         branch: 'feat/demo/7',
         repository: 'acme/demo',
-        activeIssue: { reference: 'acme/demo/7', title: '閉じた Issue', state: 'CLOSED' },
+        activeIssue: { reference: 'acme/demo/7', title: '閉じた Issue', state: 'CLOSED', body: '' },
       })
     })
 
@@ -700,15 +700,15 @@ describe('session show', () => {
     const STACKED = { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
     const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
 
-    it('directory を渡すと、ブランチ・リポジトリ・作業中の Issue を返し、Issue の本文は入れない', async (context) => {
+    it('directory を渡すと、ブランチ・リポジトリ・作業中の Issue を返し、Issue の本文を activeIssue の body に入れる', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-01')
       await verifies(context, 'PW-SESSION-SHOW-06')
       const { repository } = prepareSession()
-      await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n' }), stackedAbove()])
+      await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n本文の 2 行目\n' }), stackedAbove()])
 
       const outcome = await showTool(repository)
 
-      expect(outcome.structured).toEqual({ branch: 'feat/demo/7', repository: 'acme/demo', activeIssue: { reference: 'acme/demo/7', title: '見本の Issue', state: 'OPEN' } })
+      expect(outcome.structured).toEqual({ branch: 'feat/demo/7', repository: 'acme/demo', activeIssue: { reference: 'acme/demo/7', title: '見本の Issue', state: 'OPEN', body: '本文の 1 行目\n本文の 2 行目\n' } })
     })
 
     it('ブランチ名を読めないと、branch を入れずに続ける', async (context) => {

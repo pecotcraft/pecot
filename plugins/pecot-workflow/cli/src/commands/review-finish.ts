@@ -53,7 +53,7 @@ const InputSchema = z.object({
   review_outcome: z.enum(['success', 'failure', 'cancelled', 'skipped']).optional().describe('Outcome of the automated review step (required with ensure)'),
   review_conclusion: z.string().optional().describe('The conclusion output of claude-code-action; empty when Claude Code did not run (required with ensure, may be empty)'),
   review_has_token: z.enum(['true', 'false']).optional().describe('Whether claude-code-action output a github_token (required with ensure; never the token itself)'),
-  dry_run: z.boolean().default(false).describe('Read the PR and show the comment that would be posted without posting it'),
+  dry_run: z.boolean().default(false).describe('Read the PR and show the comment that would be posted without posting it (in body of the MCP result)'),
 })
 
 const OUTPUT = z.strictObject({
@@ -62,6 +62,7 @@ const OUTPUT = z.strictObject({
   location: z.enum(['before-findings', 'after-inline', 'unknown']).optional().describe('Where the review stopped (absent when skipped)'),
   skipped: SKIP_REASON_SCHEMA.optional().describe('Why no comment was written (absent when written)'),
   commentUrl: z.string().optional().describe('URL of the comment written (absent when skipped or on dry_run)'),
+  body: z.string().optional().describe('Body of the comment that would be posted (only on dry_run)'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -252,7 +253,7 @@ async function finish(out: FinishOutput, input: Readonly<Input>, globalRepositor
   const pullRequest = `${target.owner}/${target.repository}/${String(target.number)}`
   const created: Operation = { verb: 'create', target: `stopped-review comment (${decision.result}) on ${displayOf(target)}` }
   if (input.dry_run) {
-    out.result({ pullRequest, result: decision.result, location })
+    out.result({ pullRequest, result: decision.result, location, body })
     out.planned(created)
     out.data(body)
     return

@@ -382,6 +382,22 @@ describe('review finish', () => {
       const outcome = await callToolOnce(REVIEW_COMMANDS, 'review_finish', { pr_ref: 'acme/demo/11', result: 'limit' })
 
       expect(outcome.structured).toMatchObject({ pullRequest: 'acme/demo/11', result: 'limit', location: 'unknown', commentUrl: COMMENT_URL })
+      expect(outcome.structured).not.toHaveProperty('body')
+    })
+
+    it('dry_run で呼ぶと、書くはずの本文を body に返し、コメントを書かない', async (context) => {
+      await verifies(context, 'PW-REVIEW-FINISH-16')
+      prepare()
+      const github = await startGithub([pullRequest(), comments()])
+
+      const outcome = await callToolOnce(REVIEW_COMMANDS, 'review_finish', { pr_ref: 'acme/demo/11', result: 'limit', dry_run: true })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toMatchObject({ pullRequest: 'acme/demo/11', result: 'limit', location: 'unknown', dryRun: true })
+      expect(outcome.structured).not.toHaveProperty('commentUrl')
+      expect(outcome.structured['body']).toEqual(expect.stringContaining('## Review stopped — 自動レビューがターンか時間の上限で止まった'))
+      expect(outcome.structured['body']).toEqual(expect.stringContaining('<!-- pecot-review-stopped run=500 attempt=1 -->'))
+      expect(hasPosted(github.requests())).toBe(false)
     })
   })
 })

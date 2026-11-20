@@ -34,6 +34,7 @@ const ACTIVE_ISSUE_DATA = z.strictObject({
   reference: z.string().describe('Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)'),
   title: z.string().optional().describe('Title of the Issue (omitted when it cannot be read from GitHub)'),
   state: z.string().optional().describe('State of the Issue, OPEN or CLOSED (omitted when it cannot be read from GitHub)'),
+  body: z.string().optional().describe('Body of the Issue, empty when it has none (omitted when it cannot be read from GitHub)'),
 })
 
 const BASE_PULL_REQUEST_DATA = z.strictObject({
@@ -114,7 +115,7 @@ async function readActiveIssue(directory: string, output: Output, project: strin
 
   const lines = ['', '## Active Issue', '', `#${String(issue.number)} ${issue.title} (${issue.state})`]
   if (issue.body !== '') lines.push('', issue.body)
-  return { label, data: { ...data, title: issue.title, state: issue.state }, read: { reference, config, client, lines } }
+  return { label, data: { ...data, title: issue.title, state: issue.state, body: issue.body }, read: { reference, config, client, lines } }
 }
 
 interface StackSection {
