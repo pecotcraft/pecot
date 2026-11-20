@@ -47,6 +47,7 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
   ['issue-show-usage', 'rejected'],
   ['issue-unblock-usage-without-by', 'rejected'],
   ['pr-check-usage', 'rejected'],
+  ['issue-check-usage', 'rejected'],
   ['project-init-usage', 'rejected'],
   ['project-search-usage', 'rejected'],
   ['project-set-usage', 'rejected'],
@@ -63,7 +64,7 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
 
 // 表を stdout に出すシナリオの、MCP の要約の文（content の 1 つ目の text）
 const TABLE_SUMMARIES: readonly { readonly id: string, readonly summary: string }[] = [
-  { id: 'issue-create-ok-dry-run-files', summary: 'dry-run: would create Issue in acme/demo from first.md' },
+  { id: 'issue-check-ok-files', summary: 'Plan:' },
   { id: 'session-show-ok', summary: '# Session status' },
   { id: 'session-show-ok-no-issue', summary: '# Session status' },
   { id: 'session-show-ok-python-state', summary: '# Session status' },

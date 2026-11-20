@@ -1,5 +1,5 @@
 {
-  "stdout": "=== Projects of acme (ghes.example.com) ===\n\n#    Title                                    URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1\n",
+  "stdout": "=== Projects of acme (ghes.example.com) ===\n\n#    Title                                    URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1 [INITIALIZED]\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -18,6 +18,24 @@
       "variables": {
         "owner": "acme",
         "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsOrg",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
       },
       "auth": "token"
     }

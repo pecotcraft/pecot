@@ -171,7 +171,21 @@ function checkGenerated(file: string, name: string, data: GeneratedFile): Findin
       ...nameRuleFindings(file, scope, entry.name, data.names),
     )
   }
-  return [...duplicateWordFindings(file, data.names), ...findings]
+  return [...duplicateWordFindings(file, data.names), ...findings, ...resourceFindings(file, data)]
+}
+
+function resourceFindings(file: string, data: GeneratedFile): Finding[] {
+  const findings: Finding[] = []
+  const seen = new Set<string>()
+  const resources = data.resources ?? []
+  for (const resource of resources) {
+    const scope = resource.uri
+    if (seen.has(scope)) findings.push({ file, scope, field: 'uri', reason: 'is defined more than once' })
+    seen.add(scope)
+    const texts: TextPair[] = [['name', resource.name], ...(resource.description === undefined ? [] : [['description', resource.description] as const])]
+    findings.push(...japaneseFindings(file, scope, texts))
+  }
+  return findings
 }
 
 function duplicateWordFindings(file: string, names: Names): Finding[] {
@@ -417,6 +431,21 @@ function commonMcpOutputFindings(file: string, authored: AuthoredFile, generated
   ]
 }
 
+// generated.json に resources があるプラグインは、resource ごとに summary を書く
+function authoredResourceFindings(file: string, authored: AuthoredFile, generated: GeneratedFile): Finding[] {
+  const written = authored.resources
+  if (generated.resources === undefined) {
+    return written === undefined ? [] : [{ file, field: 'resources', reason: 'is only for plugins with resources in generated.json (remove it)' }]
+  }
+  const expected = new Set(generated.resources.map(resource => resource.uri))
+  const items = written ?? {}
+  return [
+    ...expected.keys().filter(uri => !Object.hasOwn(items, uri)).map(uri => ({ file, scope: uri, reason: 'resource is missing (present in generated.json)' })),
+    ...Object.keys(items).filter(uri => !expected.has(uri)).map(uri => ({ file, scope: uri, reason: 'resource is not in generated.json (remove it)' })),
+    ...Object.entries(items).filter(([uri]) => expected.has(uri)).flatMap(([uri, item]) => japaneseFindings(file, uri, [['summary', item.summary]], authored.prose ?? 'en')),
+  ]
+}
+
 function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry, names: Names, prose: NonNullable<Prose>): Finding[] {
   const texts: TextPair[] = [
     ...(entry.summary === undefined ? [] : [['summary', entry.summary] as const]),
@@ -476,6 +505,7 @@ function checkAuthored(file: string, name: string, mode: PluginInput['mode'], au
   findings.push(
     ...behaviorFindings(file, authored.common_behaviors, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'),
     ...commonMcpOutputFindings(file, authored, generated),
+    ...authoredResourceFindings(file, authored, generated),
   )
   const byId = new Map(generated.entries.map(entry => [entry.id, entry]))
   // partial は generated.json にあって authored.yaml に無い項目を許す。

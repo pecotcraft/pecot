@@ -161,7 +161,6 @@ describe('issue create', () => {
   })
 
   it.for([
-    { name: '--prepare', argv: ['--prepare', '-m', MESSAGE, '-r', 'acme/demo'] },
     { name: 'ファイル', argv: ['-m', MESSAGE, '-r', 'acme/demo', 'a.md'] },
     { name: '--title', argv: ['-m', MESSAGE, '-r', 'acme/demo', '-t', '題'] },
   ])('$name と一緒に打ったとき、何も作らずに終了コード 2 で終わる', async (row) => {
@@ -171,7 +170,7 @@ describe('issue create', () => {
 
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: --freeform cannot be used with --prepare, --files or --title\n')
+    expect(result.stderr).toBe('error: --freeform cannot be used with --files or --title\n')
   })
 
   describe('MCP の呼び出し', () => {
@@ -262,9 +261,8 @@ describe('issue create', () => {
       { name: 'message が無い', id: 'PW-ISSUE-CREATE-67', arguments_: { repo: 'acme/demo' }, detail: 'message is required with freeform: true' },
       { name: 'message が空白だけ', id: 'PW-ISSUE-CREATE-67', arguments_: { message: '  \n ', repo: 'acme/demo' }, detail: 'message is required with freeform: true' },
       { name: 'repo が無い', id: 'PW-ISSUE-CREATE-68', arguments_: { message: MESSAGE }, detail: 'repo is required with freeform: true' },
-      { name: 'prepare と一緒に渡す', id: 'PW-ISSUE-CREATE-69', arguments_: { prepare: true, message: MESSAGE, repo: 'acme/demo' }, detail: 'freeform: true cannot be used with prepare: true, files or title' },
-      { name: 'files と一緒に渡す', id: 'PW-ISSUE-CREATE-69', arguments_: { files: ['a.md'], message: MESSAGE, repo: 'acme/demo' }, detail: 'freeform: true cannot be used with prepare: true, files or title' },
-      { name: 'title と一緒に渡す', id: 'PW-ISSUE-CREATE-69', arguments_: { title: '題', message: MESSAGE, repo: 'acme/demo' }, detail: 'freeform: true cannot be used with prepare: true, files or title' },
+      { name: 'files と一緒に渡す', id: 'PW-ISSUE-CREATE-69', arguments_: { files: ['a.md'], message: MESSAGE, repo: 'acme/demo' }, detail: 'freeform: true cannot be used with files or title' },
+      { name: 'title と一緒に渡す', id: 'PW-ISSUE-CREATE-69', arguments_: { title: '題', message: MESSAGE, repo: 'acme/demo' }, detail: 'freeform: true cannot be used with files or title' },
     ])('$name とき、何も作らずに kind が invalid-input の失敗を返す', async (row, context) => {
       await verifies(context, row.id)
       setUpIssueProject()
@@ -275,18 +273,6 @@ describe('issue create', () => {
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toEqual({ kind: 'invalid-input', detail: row.detail })
       expect(github.requests()).toEqual([])
-    })
-
-    it('dry_run を渡すと、Issue を作らずに、作る予定のリポジトリと題を plannedIssue に返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-71')
-      const project = setUpIssueProject()
-      const github = await startGithub([linkedRepositories()])
-
-      const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', dry_run: true })
-
-      expect(outcome.structured).toEqual({ plannedIssue: { owner: 'acme', repository: 'demo', title: `[Task] ${MESSAGE}` }, dryRun: true })
-      expect(github.requests().filter(request => request.type === 'rest')).toEqual([])
-      expect(hasQuickMode(project.root)).toBe(false)
     })
   })
 })

@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { boardShowData, boardShowResult } from '../../src/commands/board-view.js'
 import { parseProjectConfig } from '../../src/domain/config.js'
+import { TEMPLATE_RESOURCES, templateUri } from '../../src/mcp/templates.js'
 import { readDocuments, readPluginFile, toolInputs } from './_helpers/documents.js'
 
 interface Call {
@@ -19,8 +20,9 @@ const INLINE_TOOL = /^`([a-z][a-z_]*)`$/u
 const INLINE_INPUT = /^`([a-z][a-z_]*): (?:"|true\b|false\b|\[)[^`]*`$/u
 const FENCE = /^(`{3,}|~{3,})/u
 const BLOCK_INPUT = /^ {2}([a-z][a-z_]*):/u
-// 実数 108 件に近い下限（95% 程度の切りのよい数）。実数が大きく増えたら引き上げる
-const COUNT_FLOOR = 100
+// 実数 89 件に近い下限（95% 程度の切りのよい数）。実数が大きく増えたら引き上げる
+const COUNT_FLOOR = 85
+const TEMPLATE_URI = /pecot-template:\/\/[a-z]+\/[a-z-]+/gu
 
 /**
 本文から、ツールの呼び出しの入力名を集める。
@@ -88,7 +90,14 @@ describe('本文のツールの呼び出し', () => {
     expect(invalid).toEqual([])
   })
 
-  it('呼び出しを 100 件以上拾う（拾えない呼び出しがあれば失敗する）', () => {
+  it('本文に書いたテンプレートの resource の URI は、サーバが出す resource にある', () => {
+    const known = new Set(TEMPLATE_RESOURCES.map(template => templateUri(template)))
+    const references = readDocuments().flatMap(({ file, text }) => (text.match(TEMPLATE_URI) ?? []).map(uri => ({ file, uri })))
+    expect(references.length).toBeGreaterThan(0)
+    expect(references.filter(({ uri }) => !known.has(uri)).map(({ file, uri }) => `${file} ${uri}`)).toEqual([])
+  })
+
+  it('呼び出しを 85 件以上拾う（拾えない呼び出しがあれば失敗する）', () => {
     const tools = new Set(toolInputs().keys())
     const count = readDocuments().reduce((sum, { text }) => sum + collectCalls(text, tools).length, 0)
     expect(count).toBeGreaterThanOrEqual(COUNT_FLOOR)

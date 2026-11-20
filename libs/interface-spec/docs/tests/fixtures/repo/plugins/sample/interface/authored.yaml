@@ -95,3 +95,6 @@ common_mcp_output:
     detail: 失敗の文です。失敗のときだけ入ります。
     log: 子プロセスの出力です。失敗のときだけ入ります。
     warnings: 警告の文です。無いときは入りません。
+resources:
+  sample://note/one:
+    summary: 1 つ目のメモです。

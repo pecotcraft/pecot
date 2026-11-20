@@ -1,11 +1,11 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が決める。ここは解決と予約だけ */
+/* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が決める。ここは解決だけ */
 // pecot リポジトリ基準のパス解決。`.pecot/` 配下のパス定義の唯一の置き場。
-// projectRoot() でプロジェクトルートを解決し、一時ファイルの出力先を固定する。
+// projectRoot() でプロジェクトルートを解決する。
 
-import { closeSync, mkdirSync, openSync, realpathSync, unlinkSync } from 'node:fs'
+import { realpathSync } from 'node:fs'
 import path from 'node:path'
 
-import { PecotError, ProjectRootNotFoundError } from '../domain/errors.js'
+import { ProjectRootNotFoundError } from '../domain/errors.js'
 import { gitToplevel } from './git.js'
 import { isFileNotFound, hasErrorCode } from './os-error.js'
 
@@ -19,7 +19,7 @@ export const WORK_DIR = `${PECOT_DIR}/work`
 export const CONFIG_DIR = `${PECOT_DIR}/config`
 // CLI / hooks 専用の一時ファイル置き場
 export const TMP_DIR = `${PECOT_DIR}/tmp`
-// CLI が生成する一時ファイルの出力先
+// MCP の instructions が案内する、テンプレートの写しの置き場
 export const OUTPUT_DIR = `${TMP_DIR}/output`
 
 // .pecot/ 配下の生成物を git 管理外にする ignore（hook と pecot worktree が生成）
@@ -33,11 +33,6 @@ export const WORKTREE_IGNORE_FILENAME = `${CONFIG_DIR}/.worktreeignore`
 export const HOOKS_CONFIG_FILENAME = `${CONFIG_DIR}/hooks-config.json`
 // アクティブなプロジェクト設定のポインタ
 export const ACTIVE_PROJECT_FILENAME = `${CONFIG_DIR}/projects/.active`
-
-/**
-候補名を使い切っても出力パスを予約できなかった
-*/
-export class OutputPathReservationError extends PecotError {}
 
 /**
 パス文字列を Python の Path と同じ形にする（空のセグメントと `.` を落とし、末尾のスラッシュを落とす）
@@ -99,99 +94,6 @@ export function projectRoot(options: Readonly<ProjectRootOptions> = {}): string 
   if (toplevel !== undefined) return toplevel
 
   throw new ProjectRootNotFoundError('project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable')
-}
-
-/**
-出力ディレクトリ（`{プロジェクトルート}/.pecot/tmp/output`）
-*/
-export function outputDirectory(options: Readonly<ProjectRootOptions> = {}): string {
-  return path.join(projectRoot(options), OUTPUT_DIR)
-}
-
-export interface ReserveOptions {
-  /**
-  試行する候補名の数。既定は 60
-  */
-  readonly maxAttempts?: number | undefined
-  /**
-  現在時刻。省略すると new Date()（テストで固定するために差し替える）
-  */
-  readonly now?: (() => Date) | undefined
-}
-
-/**
-`YYYYMMDD-HHMMSS`（ローカル時刻）。reserveOutputPath の nameFor に渡す形
-*/
-export function formatTimestamp(milliseconds: number): string {
-  const date = new Date(milliseconds)
-  const two = (value: number): string => String(value).padStart(2, '0')
-  return `${String(date.getFullYear())}${two(date.getMonth() + 1)}${two(date.getDate())}-${two(date.getHours())}${two(date.getMinutes())}${two(date.getSeconds())}`
-}
-
-/**
-outputDirectory 配下に空ファイルを排他作成して返す。
-nameFor には `YYYYMMDD-HHMMSS` 形式の文字列を渡し、返ってきた名前で作る。既に同名があれば 1 秒進めた候補で再試行する。
-時刻は生成物の一意性と生成順の目安であり、実時刻の記録ではない。衝突した分だけ実時刻より先に進む。
-候補をすべて使い切ったら OutputPathReservationError
-*/
-export function reserveOutputPath(output: string, nameFor: (timestamp: string) => string, options: Readonly<ReserveOptions> = {}): string {
-  const { maxAttempts = 60, now = () => new Date() } = options
-  mkdirSync(output, { recursive: true })
-  const baseMilliseconds = now().getTime()
-  let candidate = output
-  for (let offset = 0; offset < maxAttempts; offset += 1) {
-    const timestamp = formatTimestamp(baseMilliseconds + offset * 1000)
-    candidate = path.join(output, nameFor(timestamp))
-    try {
-      const descriptor = openSync(candidate, 'wx')
-      closeSync(descriptor)
-    }
-    catch (error: unknown) {
-      if (hasErrorCode(error) && error.code === 'EEXIST') continue
-      throw error
-    }
-    return candidate
-  }
-  throw new OutputPathReservationError(`could not reserve an output path: all ${String(maxAttempts)} candidate names are in use (last candidate: ${candidate})`)
-}
-
-/**
-reserveOutputPath で予約したパスを本文に渡し、本文が例外を投げたら予約を撤去する。
-予約から書き込みまでの間で異常終了しても、0 バイトのファイルを出力先へ残さない。正常に終われば何もしない
-*/
-export function withReservedOutputPath<T>(output: string, nameFor: (timestamp: string) => string, body: (reserved: string) => T, options: Readonly<ReserveOptions> = {}): T {
-  const reserved = reserveOutputPath(output, nameFor, options)
-  try {
-    return body(reserved)
-  }
-  catch (error: unknown) {
-    removeQuietly(reserved)
-    throw error
-  }
-}
-
-/**
-withReservedOutputPath の、本文が非同期のもの
-*/
-export async function withReservedOutputPathAsync<T>(output: string, nameFor: (timestamp: string) => string, body: (reserved: string) => Promise<T>, options: Readonly<ReserveOptions> = {}): Promise<T> {
-  const reserved = reserveOutputPath(output, nameFor, options)
-  try {
-    return await body(reserved)
-  }
-  catch (error: unknown) {
-    removeQuietly(reserved)
-    throw error
-  }
-}
-
-// 後始末の失敗は握る。本文が投げた元の例外を隠さないため
-function removeQuietly(target: string): void {
-  try {
-    unlinkSync(target)
-  }
-  catch {
-    // 撤去できなくても、元の例外を優先する
-  }
 }
 
 function normalizedDataDirectory(raw: string | undefined): string | undefined {

@@ -20,6 +20,8 @@ const generatedText = readFileSync(path.join(directory, 'generated.json'), 'utf8
 const generated = generatedSchema.parse(JSON.parse(generatedText))
 
 const WRITING_KINDS: ReadonlySet<string> = new Set(['write', 'destructive'])
+// 予行を別の check のコマンドが担う項目と、その check の項目
+const CHECKED_ELSEWHERE: ReadonlyMap<string, string> = new Map([['PW-ISSUE-CREATE', 'PW-ISSUE-CHECK']])
 const OLD_NAMES: readonly string[] = ['issue', 'repo_ref', 'owner_repo', 'branch_name', 'plan']
 
 type Target = 'issue' | 'pr' | 'repo' | 'branch'
@@ -73,12 +75,19 @@ function hasInput(id: string, name: string): boolean {
 }
 
 describe('定義書の入力名', () => {
-  it('write か destructive の effects を持つ項目は、入力に dry_run を持つ', () => {
+  it('write か destructive の effects を持つ項目は、予行を check の項目が担うものを除き、入力に dry_run を持つ', () => {
     const writing = Object.entries(authored.entries)
       .filter(([, entry]) => entry.effects.some(effect => WRITING_KINDS.has(effect.kind)))
       .map(([id]) => id)
     expect(writing.length).toBeGreaterThan(20)
-    expect(writing.filter(id => !hasInput(id, 'dry_run'))).toEqual([])
+    expect(writing.filter(id => !hasInput(id, 'dry_run') && !CHECKED_ELSEWHERE.has(id))).toEqual([])
+  })
+
+  it('予行を check の項目が担う項目は、dry_run を持たず、その check の項目は書き込まない', () => {
+    for (const [id, check] of CHECKED_ELSEWHERE) {
+      expect(hasInput(id, 'dry_run')).toBe(false)
+      expect(Object.entries(authored.entries).find(([key]) => key === check)?.[1].effects.map(effect => effect.kind)).toEqual(['read', 'read'])
+    }
   })
 
   it('Issue・PR・リポ・操作するブランチを指す入力の名前は、対象ごとに 1 つ（issue_ref・pr_ref・repo・branch）で、役割の名前は例外の一覧にある', () => {

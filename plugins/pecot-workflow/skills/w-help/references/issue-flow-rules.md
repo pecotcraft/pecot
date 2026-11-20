@@ -82,7 +82,7 @@ aggregation_repo が同じ場合のみ意図通り動く。
 
 | キー | 内容 |
 |---|---|
-| `issue` | 必須。同じ一括投稿のファイルのキー（`suffix`）、または `owner/repo/N` |
+| `issue` | 必須。同じ一括投稿のファイルのキー（ファイル名から拡張子を除いたもの）、または `owner/repo/N` |
 | `wait` | `stack`（既定）か `merge` |
 | `reason` | `wait: merge` のとき必須。前提の表の `理由` の文をそのまま写す。改行しない |
 
@@ -123,7 +123,7 @@ security alert の Tracker は、このテンプレを通らない。本文は p
 
 各テンプレ本文の `<!-- フィールド: -->` ブロックには、このファイルへの参照行が入っている。
 このファイルの場所は `skills/w-help/references/issue-flow-rules.md`。
-CLI が生成した prepared file を見れば、AI は判定基準に辿り着ける。
+テンプレートの resource を写したファイルを見れば、AI は判定基準に辿り着ける。
 
 ### 起票時の既定 status
 

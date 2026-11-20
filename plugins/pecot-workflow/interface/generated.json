@@ -1252,18 +1252,18 @@
       }
     },
     {
-      "id": "PW-ISSUE-COMMENT",
-      "name": "issue comment",
-      "description": "Post a comment on an Issue",
+      "id": "PW-ISSUE-CHECK",
+      "name": "issue check",
+      "description": "Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything",
       "surfaces": {
         "cli": {
           "path": [
             "issue",
-            "comment"
+            "check"
           ]
         },
         "mcp": {
-          "tool": "issue_comment"
+          "tool": "issue_check"
         }
       },
       "hidden": false,
@@ -1271,245 +1271,21 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be posted or written without changing anything"
-          },
-          "file": {
-            "type": "string",
-            "description": "Path of a Markdown file with frontmatter"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (owner/repo/123 form, required with -m)"
-          },
-          "message": {
-            "type": "string",
-            "description": "Comment body"
-          },
-          "prepare": {
-            "type": "boolean",
-            "default": false,
-            "description": "Copy a template to the work directory"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          },
-          "template": {
-            "type": "string",
-            "enum": [
-              "plan",
-              "merge-diff",
-              "review-findings",
-              "review-resolution",
-              "precede-notify"
-            ],
-            "description": "Template type (required with --prepare and -m; plan/merge-diff/review-findings/review-resolution/precede-notify)"
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "file"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "issue_ref": [
-            "--issue-ref",
-            "-i"
-          ],
-          "message": [
-            "--message",
-            "-m"
-          ],
-          "prepare": [
-            "--prepare",
-            "-p"
-          ],
-          "project": [
-            "--project"
-          ],
-          "template": [
-            "--template",
-            "-t"
-          ]
-        }
-      },
-      "mcp": {
-        "title": "Comment on Issue",
-        "output": {
-          "type": "object",
-          "properties": {
-            "issue": {
-              "description": "Issue commented on (owner/repo/N; omitted with prepare)",
-              "type": "string"
-            },
-            "commentUrl": {
-              "description": "URL of the comment created or updated (omitted on dry_run, with prepare, or when GitHub returned no URL)",
-              "type": "string"
-            },
-            "change": {
-              "description": "Whether the comment was created or updated (omitted with prepare)",
-              "type": "string",
-              "enum": [
-                "created",
-                "updated"
-              ]
-            },
-            "file": {
-              "description": "Absolute path of the file written: the template copied with prepare, or the file whose comment_url was written back after posting from it (omitted otherwise)",
-              "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-    {
-      "id": "PW-ISSUE-CREATE",
-      "name": "issue create",
-      "description": "Create Issues from Markdown files with frontmatter",
-      "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "create"
-          ]
-        },
-        "mcp": {
-          "tool": "issue_create"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be created without writing anything (with files: the progression table and stackable chains)"
-          },
           "files": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Path of a Markdown file with frontmatter (several for a batch post)"
-          },
-          "freeform": {
-            "type": "boolean",
-            "default": false,
-            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)"
-          },
-          "label": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Label (can be given several times)"
-          },
-          "message": {
-            "type": "string",
-            "description": "Issue body (direct posting mode)"
-          },
-          "order": {
-            "type": "integer",
-            "description": "Order number of the subtask (used with parent_epic)"
-          },
-          "parent_epic": {
-            "type": "string",
-            "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
-          },
-          "prepare": {
-            "type": "boolean",
-            "default": false,
-            "description": "Copy a template to the work directory"
-          },
-          "priority": {
-            "type": "string",
-            "description": "Priority (high/medium/low)"
+            "description": "Path of a Markdown file with frontmatter (several for a batch, in the order to post)"
           },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          },
-          "repo": {
-            "type": "string",
-            "description": "Repository (owner/repo form; required with -m / --prepare unless epic)"
-          },
-          "size": {
-            "type": "string",
-            "description": "Size (xs/s/m/l)"
-          },
-          "status": {
-            "type": "string",
-            "description": "Status (backlog/pending/ready/active/in_review/archived)"
-          },
-          "suffix": {
-            "type": "string",
-            "description": "Suffix of the output file name (only with --prepare)"
-          },
-          "template": {
-            "type": "string",
-            "enum": [
-              "task",
-              "bug",
-              "epic",
-              "tracker",
-              "task-implement"
-            ],
-            "default": "task",
-            "description": "Template type (with --prepare: task/bug/epic/tracker/task-implement)"
-          },
-          "title": {
-            "type": "string",
-            "description": "Issue title (direct posting mode, required with -m)"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "task",
-              "bug",
-              "epic",
-              "tracker"
-            ],
-            "default": "task",
-            "description": "Issue type (task/bug/epic/tracker)"
           }
         },
-        "required": [],
+        "required": [
+          "files"
+        ],
         "additionalProperties": false
       },
       "cli": {
@@ -1517,134 +1293,24 @@
           "files"
         ],
         "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "freeform": [
-            "--freeform"
-          ],
-          "label": [
-            "--label",
-            "-l"
-          ],
-          "message": [
-            "--message",
-            "-m"
-          ],
-          "order": [
-            "--order"
-          ],
-          "parent_epic": [
-            "--parent-epic"
-          ],
-          "prepare": [
-            "--prepare",
-            "-p"
-          ],
-          "priority": [
-            "--priority"
-          ],
           "project": [
             "--project"
-          ],
-          "repo": [
-            "--repo",
-            "-r"
-          ],
-          "size": [
-            "--size"
-          ],
-          "status": [
-            "--status"
-          ],
-          "suffix": [
-            "--suffix",
-            "-s"
-          ],
-          "template": [
-            "--template"
-          ],
-          "title": [
-            "--title",
-            "-t"
-          ],
-          "type": [
-            "--type"
           ]
         }
       },
       "mcp": {
-        "title": "Create Issues",
+        "title": "Check Issue files",
         "output": {
           "type": "object",
           "properties": {
-            "issues": {
-              "description": "Issues created, in the order of creation (also kept on a failure after some were created)",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "owner": {
-                    "type": "string",
-                    "description": "Owner of the repository of the Issue"
-                  },
-                  "repository": {
-                    "type": "string",
-                    "description": "Name of the repository of the Issue"
-                  },
-                  "number": {
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991,
-                    "description": "Issue number"
-                  },
-                  "url": {
-                    "type": "string",
-                    "description": "URL of the Issue"
-                  },
-                  "status": {
-                    "description": "Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)",
-                    "type": "string",
-                    "enum": [
-                      "backlog",
-                      "blocked",
-                      "ready"
-                    ]
-                  },
-                  "parent": {
-                    "description": "Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "owner",
-                  "repository",
-                  "number",
-                  "url"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "stackableChains": {
-              "description": "Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)",
-              "type": "array",
-              "items": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
             "plan": {
-              "description": "Progression table of the files (only on dry_run with files)",
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "file": {
                     "type": "string",
-                    "description": "Key of the file (the --prepare suffix, else the file stem)"
+                    "description": "Key of the file (the file name without the extension)"
                   },
                   "order": {
                     "description": "Order number in the title (omitted without a parent Epic)",
@@ -1699,34 +1365,161 @@
                   "approach"
                 ],
                 "additionalProperties": false
+              },
+              "description": "Progression table of the files, in the order given"
+            },
+            "stackableChains": {
+              "description": "Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)",
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             },
-            "plannedIssue": {
-              "description": "Issue that would be created (only on dry_run with message or freeform)",
-              "type": "object",
-              "properties": {
-                "owner": {
-                  "type": "string",
-                  "description": "Owner of the repository"
-                },
-                "repository": {
-                  "type": "string",
-                  "description": "Name of the repository"
-                },
-                "title": {
-                  "type": "string",
-                  "description": "Title of the Issue"
-                }
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
               },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
               "required": [
-                "owner",
-                "repository",
-                "title"
+                "plan"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-COMMENT",
+      "name": "issue comment",
+      "description": "Post a comment on an Issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "comment"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_comment"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be posted or written without changing anything"
+          },
+          "file": {
+            "type": "string",
+            "description": "Path of a Markdown file with frontmatter"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (owner/repo/123 form, required with -m)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Comment body"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "merge-diff",
+              "review-findings",
+              "review-resolution",
+              "precede-notify"
+            ],
+            "description": "Template type the message is checked against (required with -m; plan/merge-diff/review-findings/review-resolution/precede-notify)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "file"
+        ],
+        "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "issue_ref": [
+            "--issue-ref",
+            "-i"
+          ],
+          "message": [
+            "--message",
+            "-m"
+          ],
+          "project": [
+            "--project"
+          ],
+          "template": [
+            "--template",
+            "-t"
+          ]
+        }
+      },
+      "mcp": {
+        "title": "Comment on Issue",
+        "output": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Issue commented on (owner/repo/N)"
+            },
+            "commentUrl": {
+              "description": "URL of the comment created or updated (omitted on dry_run, or when GitHub returned no URL)",
+              "type": "string"
+            },
+            "change": {
+              "type": "string",
+              "enum": [
+                "created",
+                "updated"
               ],
-              "additionalProperties": false
+              "description": "Whether the comment was (on dry_run, would be) created or updated"
             },
             "file": {
-              "description": "Absolute path of the template file copied (only with prepare)",
+              "description": "Absolute path of the file whose comment_url was written back after posting from it (omitted otherwise)",
               "type": "string"
             },
             "dryRun": {
@@ -1754,7 +1547,257 @@
               "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "issue",
+                "change"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-CREATE",
+      "name": "issue create",
+      "description": "Create Issues from Markdown files with frontmatter",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "create"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_create"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Path of a Markdown file with frontmatter (several for a batch post)"
+          },
+          "freeform": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)"
+          },
+          "label": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Label (can be given several times)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Issue body (direct posting mode)"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Order number of the subtask (used with parent_epic)"
+          },
+          "parent_epic": {
+            "type": "string",
+            "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority (high/medium/low)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository (owner/repo form; required with -m unless epic)"
+          },
+          "size": {
+            "type": "string",
+            "description": "Size (xs/s/m/l)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status (backlog/pending/ready/active/in_review/archived)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title (direct posting mode, required with -m)"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "bug",
+              "epic",
+              "tracker"
+            ],
+            "default": "task",
+            "description": "Issue type (task/bug/epic/tracker)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "files"
+        ],
+        "flags": {
+          "freeform": [
+            "--freeform"
+          ],
+          "label": [
+            "--label",
+            "-l"
+          ],
+          "message": [
+            "--message",
+            "-m"
+          ],
+          "order": [
+            "--order"
+          ],
+          "parent_epic": [
+            "--parent-epic"
+          ],
+          "priority": [
+            "--priority"
+          ],
+          "project": [
+            "--project"
+          ],
+          "repo": [
+            "--repo",
+            "-r"
+          ],
+          "size": [
+            "--size"
+          ],
+          "status": [
+            "--status"
+          ],
+          "title": [
+            "--title",
+            "-t"
+          ],
+          "type": [
+            "--type"
+          ]
+        }
+      },
+      "mcp": {
+        "title": "Create Issues",
+        "output": {
+          "type": "object",
+          "properties": {
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "description": "Owner of the repository of the Issue"
+                  },
+                  "repository": {
+                    "type": "string",
+                    "description": "Name of the repository of the Issue"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Issue number"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "URL of the Issue"
+                  },
+                  "status": {
+                    "description": "Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)",
+                    "type": "string",
+                    "enum": [
+                      "backlog",
+                      "blocked",
+                      "ready"
+                    ]
+                  },
+                  "parent": {
+                    "description": "Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "owner",
+                  "repository",
+                  "number",
+                  "url"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Issues created, in the order of creation (also kept on a failure after some were created)"
+            },
+            "stackableChains": {
+              "description": "Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)",
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "issues"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
         }
       }
     },
@@ -2696,11 +2739,6 @@
             "default": false,
             "description": "Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)"
           },
-          "prepare": {
-            "type": "boolean",
-            "default": false,
-            "description": "Copy the template to the work directory"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
@@ -2753,10 +2791,6 @@
           "no_issue_ref": [
             "--no-issue-ref"
           ],
-          "prepare": [
-            "--prepare",
-            "-p"
-          ],
           "project": [
             "--project"
           ],
@@ -2782,26 +2816,26 @@
           "type": "object",
           "properties": {
             "url": {
-              "description": "URL of the created PR (omitted on dry_run and prepare)",
+              "description": "URL of the created PR (omitted on dry_run)",
               "type": "string"
             },
             "number": {
-              "description": "Number of the created PR (omitted on dry_run and prepare, or when the response has none)",
+              "description": "Number of the created PR (omitted on dry_run, or when the response has none)",
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
             },
             "head": {
-              "description": "Head branch of the PR, owner:branch for a branch of a fork (omitted on prepare)",
-              "type": "string"
+              "type": "string",
+              "description": "Head branch of the PR, owner:branch for a branch of a fork"
             },
             "base": {
-              "description": "Base branch of the PR. On prepare, the base filled into the draft (omitted when it was not filled)",
-              "type": "string"
+              "type": "string",
+              "description": "Base branch of the PR"
             },
             "title": {
-              "description": "Title of the PR (omitted on prepare)",
-              "type": "string"
+              "type": "string",
+              "description": "Title of the PR"
             },
             "inReview": {
               "description": "Issue number whose status was set to In Review (omitted when not set)",
@@ -2836,7 +2870,7 @@
               "additionalProperties": false
             },
             "moves": {
-              "description": "Issues waiting for this PR whose column or Status was written (omitted on dry_run and prepare)",
+              "description": "Issues waiting for this PR whose column or Status was written (omitted on dry_run)",
               "type": "array",
               "items": {
                 "type": "object",
@@ -2869,10 +2903,6 @@
                 "additionalProperties": false
               }
             },
-            "file": {
-              "description": "Absolute path of the draft file written on prepare",
-              "type": "string"
-            },
             "dryRun": {
               "description": "true on dry_run (nothing was changed)",
               "type": "boolean",
@@ -2898,7 +2928,22 @@
               "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "head",
+                "base",
+                "title"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
         }
       }
     },
@@ -3566,10 +3611,12 @@
           },
           "project": {
             "type": "string",
-            "description": "Project number or name, or config file path/file name"
+            "description": "Project number or name, or config file path/file name (list the candidates with project search)"
           }
         },
-        "required": [],
+        "required": [
+          "project"
+        ],
         "additionalProperties": false
       },
       "cli": {
@@ -3601,44 +3648,17 @@
               "type": "string"
             },
             "configPath": {
-              "description": "Path of the project config file",
-              "type": "string"
+              "type": "string",
+              "description": "Path of the project config file"
             },
             "change": {
-              "description": "What happened to the config file",
               "type": "string",
               "enum": [
                 "create",
                 "update",
                 "unchanged"
-              ]
-            },
-            "candidates": {
-              "description": "Initialized projects of the owner, given only when no project was named (nothing was activated)",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "number": {
-                    "description": "Project number",
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
-                  },
-                  "title": {
-                    "description": "Project title",
-                    "type": "string"
-                  },
-                  "active": {
-                    "type": "boolean",
-                    "description": "Whether this project is the active one"
-                  }
-                },
-                "required": [
-                  "active"
-                ],
-                "additionalProperties": false
-              }
+              ],
+              "description": "What happened to the config file"
             },
             "dryRun": {
               "description": "true on dry_run (nothing was changed)",
@@ -3665,7 +3685,21 @@
               "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "configPath",
+                "change"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
         }
       }
     },
@@ -4309,7 +4343,7 @@
     {
       "id": "PW-PROJECT-SEARCH",
       "name": "project search",
-      "description": "Search projects through the GitHub API",
+      "description": "Search projects through the GitHub API, and show which are initialized and which is active",
       "surfaces": {
         "cli": {
           "path": [
@@ -4383,6 +4417,14 @@
                   "url": {
                     "description": "Project URL (omitted when GitHub did not return it)",
                     "type": "string"
+                  },
+                  "initialized": {
+                    "description": "Whether project init has set up the fields (omitted without a number, or when the fields could not be read)",
+                    "type": "boolean"
+                  },
+                  "active": {
+                    "description": "Whether this project is the active one (omitted without a number)",
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -6881,6 +6923,92 @@
           ]
         }
       }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "pecot-template://comment/plan",
+      "name": "comment/plan",
+      "title": "Plan comment",
+      "description": "Template of the plan comment posted on an Issue before implementation (issue_comment)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://comment/merge-diff",
+      "name": "comment/merge-diff",
+      "title": "Merge diff comment",
+      "description": "Template of the comment on how the merged result differs from the plan (issue_comment)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://comment/review-findings",
+      "name": "comment/review-findings",
+      "title": "Review findings comment",
+      "description": "Template of the review findings comment posted on a PR (issue_comment)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://comment/review-resolution",
+      "name": "comment/review-resolution",
+      "title": "Review resolution comment",
+      "description": "Template of the comment on how the review findings were addressed (issue_comment)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://comment/precede-notify",
+      "name": "comment/precede-notify",
+      "title": "Precede notice comment",
+      "description": "Template of the comment telling a waiting Issue that its prerequisite was merged (issue_comment)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://issue/task",
+      "name": "issue/task",
+      "title": "Task Issue",
+      "description": "Template of a task Issue (issue_create)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://issue/bug",
+      "name": "issue/bug",
+      "title": "Bug Issue",
+      "description": "Template of a bug Issue (issue_create)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://issue/epic",
+      "name": "issue/epic",
+      "title": "Epic Issue",
+      "description": "Template of an Epic Issue (issue_create)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://issue/tracker",
+      "name": "issue/tracker",
+      "title": "Tracker Issue",
+      "description": "Template of a tracker Issue (issue_create)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://issue/task-implement",
+      "name": "issue/task-implement",
+      "title": "Implementation task Issue",
+      "description": "Template of a task Issue for one phase of an implementation plan (issue_create)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://pr/create",
+      "name": "pr/create",
+      "title": "Pull request",
+      "description": "Template of a pull request; leave base empty to let pr_create choose it (pr_create)",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "pecot-template://pr/release",
+      "name": "pr/release",
+      "title": "Release pull request",
+      "description": "Template of a release pull request (pr_create with template release)",
+      "mimeType": "text/markdown"
     }
   ]
 }

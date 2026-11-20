@@ -8,7 +8,6 @@ import { ReferenceParseError } from '../domain/reference-parser.js'
 import { AmbiguousRepositoryError } from '../domain/repository-resolver.js'
 import { GitCommandError } from '../infra/git.js'
 import { OsError } from '../infra/os-error.js'
-import { OutputPathReservationError } from '../infra/paths.js'
 
 describe('PecotError', () => {
   it('Error であり、メッセージを持つ', () => {
@@ -31,7 +30,6 @@ describe('PecotError', () => {
 describe('独自例外は PecotError を継承する', () => {
   it.each([
     ['ProjectRootNotFoundError', ProjectRootNotFoundError],
-    ['OutputPathReservationError', OutputPathReservationError],
     ['ConfigError', ConfigError],
     ['ReferenceParseError', ReferenceParseError],
     ['AmbiguousRepositoryError', AmbiguousRepositoryError],

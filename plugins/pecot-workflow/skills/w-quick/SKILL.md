@@ -65,7 +65,7 @@ git checkout feat/description
 
 ### Step 4: 計画ドラフト作成
 
-pecot-workflow の MCP ツール `issue_comment` を使って、plan テンプレのファイルを作る（`prepare: true`・`template: "plan"`）。
+pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、plan テンプレのファイルを作る。frontmatter の `issue_ref` には、起票した Issue を書く。
 
 計画を書く前に、[`w-help/references/plan-clarify.md`](../w-help/references/plan-clarify.md) に従って clarify を行う。Issue と依頼の曖昧な点を AskUserQuestion で聞き、答えを受けるたびに、できたファイルへ書く。
 

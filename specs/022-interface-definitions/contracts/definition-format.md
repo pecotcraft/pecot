@@ -84,6 +84,31 @@ MCP ツールへの読み替えは、このリポの決めだ。POSIX の規格�
 | MCP ツールの出力と注釈 | `tools/list` の `outputSchema` を `mcp.output` に、`annotations` を `mcp.annotations` に入れる |
 | MCP ツールの表示名 | `tools/list` の Tool の最上位の `title` を `mcp.title` に入れる。MCP の面を持つ項目では必須。英語で、4 語以内が目安。`annotations.title` は使わない |
 
+### `resources`
+
+MCP サーバが静的な resource を出すプラグインは、最上位に `resources` を持つ。出さないプラグインは欄を省く。
+
+```json
+{
+  "resources": [
+    {
+      "uri": "pecot-template://issue/task",
+      "name": "issue-task",
+      "title": "Task issue",
+      "description": "The body template of a task issue.",
+      "mimeType": "text/markdown"
+    }
+  ]
+}
+```
+
+| 決め | 内容 |
+|---|---|
+| 要素の欄 | `resources/list` の `Resource` のうち `uri`・`name`・`title`・`description`・`mimeType`。`uri`・`name` は必ず書き、ほかは実装が持つときだけ書く |
+| 並び | 書き出す側の順（`resources/list` の順） |
+| `uri` | ファイルの中で重ならない |
+| `name`・`description` の言語 | 英語。実装の文字列をそのまま入れる |
+
 ### 決定性の決め
 
 書き出しは、Python（typer）と Node（`CommandSpec`）のどちらからでも、同じ実装から同じバイト列を出す。
@@ -258,6 +283,24 @@ common_mcp_output:
 
 `requires` のキーの引数を渡すときは、値に並べた引数がすべて要る。
 
+### `resources`
+
+`generated.json` の resource ごとに、日本語の説明を書く欄だ。キーは `uri` にする。
+
+```yaml
+resources:
+  pecot-template://issue/task:
+    summary: タスクの Issue の本文のテンプレート
+```
+
+| 決め | 中身 |
+|---|---|
+| キー | `generated.json` の `resources` の `uri` と、同じ集まりにする |
+| `summary` | resource の説明の文。言語は `prose` に従う。空白だけは空とみなす |
+| 省いたとき | `generated.json` に `resources` があるプラグインは、欠けた `uri` ごとに `error` になる。`resources` が無いプラグインは、書くと `error` になる |
+
+プラグインのリソース一覧のページは、この欄の `summary`（無ければ `generated.json` の `description`）を説明の列に出す。
+
 ## 振る舞いの項目の文の型
 
 文は EARS の 5 つの型のどれかで書く。主語（コマンド・ツールの名前）は書かず、項目の ID で補う。日本語の形は、このリポの規約だ。
@@ -321,6 +364,10 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | `common_mcp_output.fields` のキーが足りない・余る | `error: <file>: common_mcp_output.fields: is missing "log"`、`error: <file>: common_mcp_output.fields: has "lines" that is not a common field (remove it)` |
 | MCP の面の無いプラグインの `common_mcp_output` | `error: <file>: common_mcp_output: is only for plugins with an MCP surface (remove it)` |
 | MCP の面の無い項目の `mcp_output` | `error: <file>: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)` |
+| `resources` の `uri` が重なる | `error: <file>: pecot-template://issue/task: uri: is defined more than once` |
+| `authored.yaml` の `resources` の欠け | `error: <file>: pecot-template://pr/default: resource is missing (present in generated.json)` |
+| `generated.json` に無い resource | `error: <file>: pecot-template://issue/old: resource is not in generated.json (remove it)` |
+| resource の無いプラグインの `resources` | `error: <file>: resources: is only for plugins with resources in generated.json (remove it)` |
 | 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
 | CLI の面の無い項目の終了コード | `error: <file>: PT-AWS-S3-LS: exit_status[0].code: is only for entries with a CLI surface (remove it)` |
 | CLI の面の無い項目の `cli_reference` | `error: <file>: PT-AWS-S3-LS: cli_reference: is only for entries with a CLI surface (remove it)` |
@@ -362,6 +409,8 @@ error: plugins/pecot-workflow/interface/generated.json is stale
   PW-PR-CREATE: input.properties.draft.default: false -> true
   run: plugins/pecot-workflow/scripts/interface/export.py --write
 ```
+
+ファイルの先頭部（`format`・`plugin`・`prefix`・`names`）と `resources` の差は、項目の ID の代わりに `file:` を付けた行に出す（例: `file: resources[1]: added`）。
 
 差の行の代わりに出す行と、ファイル全体の失敗は次のとおり。どれも終了コード 1 で、最後に `run:` の行を出す。
 

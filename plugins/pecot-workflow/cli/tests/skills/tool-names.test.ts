@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest'
 
 import { COMMAND_GROUPS } from '../../src/commands/names.js'
 import { COMMANDS } from '../../src/commands/registry.js'
-import { RENAMED_COMMANDS } from '../../src/commands/renamed-commands.js'
 import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 
@@ -18,20 +17,12 @@ const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:60', 'skil
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'workflow_dispatch'])
 
-// main のツール名。古いコマンド名の空白とハイフンを _ にした形（create_branch・project_info）。
-const OLD_TOOL_NAMES = Array.from(RENAMED_COMMANDS.keys(), name => name.replaceAll(/[ -]/gu, '_'))
-const OLD_TOOLS = OLD_TOOL_NAMES.join('|')
 const GROUP_WORDS = COMMAND_GROUPS.map(group => group.name).join('|')
-// 1 語目がグループの語の名前と、main のツール名を拾う。pecot-workflow__ の続きは除く。
-// eslint-disable-next-line security/detect-non-literal-regexp -- 語は COMMAND_GROUPS と古い名前の表から作る
-const TOOL_LIKE = new RegExp(String.raw`(?<![\w-])(?:(?:${GROUP_WORDS})_[a-z_]+|${OLD_TOOLS})\b`, 'gu')
-// 古いツール名を、ツールとして書いた形。入力名として書いた `delete_branch: true` は拾わない。
-const TOOL_NOUN = 'ツール'
-const CALL_WORDS = ['を呼', 'で呼', 'を使', TOOL_NOUN, 'の呼び出し'].join('|')
-// eslint-disable-next-line security/detect-non-literal-regexp -- 語は古い名前の表から作る
-const OLD_TOOL_CALL = new RegExp(String.raw`${TOOL_NOUN}\s*\x60?(?:${OLD_TOOLS})\x60?(?![\w:])|\x60?(?:${OLD_TOOLS})\x60?\s*(?:${CALL_WORDS})`, 'u')
-// 今と古いコマンドの名前の全体。グループの語だけの形を除く。
-const TOP_WORDS = [...new Set([...COMMANDS.map(command => command.path.join(' ')), ...RENAMED_COMMANDS.keys()])].toSorted(compareStrings).map(name => name.replaceAll(' ', String.raw`\s+`)).join('|')
+// 1 語目がグループの語の名前を拾う。pecot-workflow__ の続きは除く。
+// eslint-disable-next-line security/detect-non-literal-regexp -- 語は COMMAND_GROUPS から作る
+const TOOL_LIKE = new RegExp(String.raw`(?<![\w-])(?:${GROUP_WORDS})_[a-z_]+\b`, 'gu')
+// コマンドの名前の全体。グループの語だけの形を除く。
+const TOP_WORDS = [...new Set(COMMANDS.map(command => command.path.join(' ')))].toSorted(compareStrings).map(name => name.replaceAll(' ', String.raw`\s+`)).join('|')
 // deny の hook の起動形を拾う。起動形は pecot・$PECOT・${PECOT}・.../bin/pecot で、クオート付きを含む。
 // 後ろに `--repo <値>` があってもよい。その後ろに、サブコマンドか `--help`・`--version` が来る形を拾う。
 // eslint-disable-next-line security/detect-non-literal-regexp -- サブコマンドの語は COMMANDS から作る
@@ -72,16 +63,6 @@ describe('本文のツール名', () => {
 
   it('ツールでない語の一覧は、どれもツール名らしい語の式に合う', () => {
     expect([...NOT_TOOLS].filter(word => word.match(TOOL_LIKE)?.[0] !== word)).toEqual([])
-  })
-
-  it('古いツール名を、ツールとして本文に書かない', () => {
-    const offenders: string[] = []
-    for (const { file, text } of documents) {
-      for (const [index, line] of text.split('\n').entries()) {
-        if (OLD_TOOL_CALL.test(line)) offenders.push(`${file}:${String(index + 1)}`)
-      }
-    }
-    expect(offenders).toEqual([])
   })
 
   it('古い入力名と古いツール名を、本文に書かない', () => {
@@ -172,12 +153,8 @@ describe('`pecot <サブコマンド>` の検出式', () => {
     'pecot --repo o/r tracker sync security',
     'cd x && pecot --help',
     'pecot --version',
-    'pecot create-branch acme/demo/1 feat/x',
-    'pecot delete-branch acme/demo feat/x',
-    'pecot add-to-project acme/demo/1',
-    'pecot update-issue-status acme/demo/1 ready',
-    'pecot dependabot sync',
-    '$PECOT security sync --dry-run',
+    'pecot branch delete acme/demo feat/x',
+    '$PECOT tracker sync security --dry-run',
     'pecot workflow doctor review',
   ]
   const allowed = [
@@ -200,18 +177,6 @@ describe('`pecot <サブコマンド>` の検出式', () => {
 
   it('拾ってはいけない見本を、拾わない', () => {
     expect(allowed.filter(sample => CLI_FORM.test(sample))).toEqual([])
-  })
-})
-
-describe('古いツール名をツールとして書いた形の検出式', () => {
-  it('ツールとして書いた見本を、全部拾う', () => {
-    const denied = ['delete_branch を呼ぶ', '`delete_branch` を呼ぶ', 'ツール `delete_branch` で消す', 'ツール delete_branch', '`create_branch` ツール', 'dependabot_sync を使う']
-    expect(denied.filter(sample => !OLD_TOOL_CALL.test(sample))).toEqual([])
-  })
-
-  it('入力名として書いた見本を、拾わない', () => {
-    const allowed = ['`session_finish` を `delete_branch: true` で呼ぶ', '- `delete_branch`: リモートブランチを削除する', '`delete_branch` は付けない', 'ツール `session_finish` の `delete_branch`']
-    expect(allowed.filter(sample => OLD_TOOL_CALL.test(sample))).toEqual([])
   })
 })
 

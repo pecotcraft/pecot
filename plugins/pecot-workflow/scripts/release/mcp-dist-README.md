@@ -81,11 +81,12 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 ## ツール
 
 ツール名は `<対象>_<動詞>` の形です。
+Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
 
 | ツール | 内容 |
 |---|---|
 | `project_list` | 使えるプロジェクトを一覧する |
-| `project_search` | GitHub API でプロジェクトを検索する |
+| `project_search` | GitHub API でプロジェクトを検索する（初期化済みか・有効かも出す） |
 | `project_init` | 既存のプロジェクトに pecot-workflow のフィールドを足す |
 | `project_create` | プロジェクトを新規に作る |
 | `project_activate` | 初期化済みのプロジェクトを有効にする |
@@ -97,7 +98,8 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
 | `board_move` | Issue 番号でボードのステータスを更新する |
 | `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`dry_run`・`project` を取る） |
-| `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る。`dry_run: true` は作らずに予定だけ出す） |
+| `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る） |
+| `issue_check` | `issue_create` に渡すファイルを確かめ、作らずに番号・前提・進め方の表を出す |
 | `issue_show` | Issue の詳細を必要な項目だけ取得する |
 | `issue_comment` | Issue にコメントを投稿する |
 | `issue_block` | Issue に前提（blocked by）を付ける。付いている前提の種類と理由を変えるのにも使う |

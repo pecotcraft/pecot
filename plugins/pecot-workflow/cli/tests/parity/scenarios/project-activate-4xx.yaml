@@ -2,7 +2,7 @@
 id: project-activate-4xx
 command:
   path: [project, activate]
-  args: [--host, ghes.example.com]
+  args: [board, --host, ghes.example.com]
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

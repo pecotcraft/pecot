@@ -1,12 +1,12 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 // pr の 3 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { installFakeExecutable, installFakeGh, prependToPath } from '../../src/tests/_helpers/fake-executables.js'
+import { installFakeExecutable, prependToPath } from '../../src/tests/_helpers/fake-executables.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
@@ -24,6 +24,7 @@ import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { PecotError } from '../../src/domain/errors.js'
 import { compareStrings } from '../../src/domain/python-format.js'
+import { templateFile } from '../../src/infra/template-store.js'
 import { ProjectsApi } from '../../src/infra/github/projects.js'
 
 useIsolatedEnvironment()
@@ -88,7 +89,6 @@ const IN_REVIEW_RULES: ResponseRuleList = [
   graphql('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_1' } } }),
 ]
 // 種別の問い合わせが 500 を返したときの warning。httpx の文言が 2 行に分かれ、suffix は 2 行目の末尾に付く
-const KIND_WARNING_FILL = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; fill Closes by hand\n/mu
 // head の Issue #12 を待つ Issue は無い
 const NO_WAITING_RULE = graphql('GetIssueBlockingReferences', { repository: { issue: { blocking: { totalCount: 0, nodes: [] } } } }, { variables: { number: 12 } })
 const AFTER_CREATE_RULES: ResponseRuleList = [...IN_REVIEW_RULES, NO_WAITING_RULE]
@@ -346,172 +346,72 @@ const MESSAGE_WITHOUT_REPOSITORY = { message: VALID_BODY, title: TITLE, base: 'm
 const CREATED = { head: BRANCH, base: 'main', title: TITLE, number: 21, inReview: 12, moves: [], url: PULL_URL }
 
 describe('pr create', () => {
-  it('--prepare を付けて打つと、テンプレのコピーを .pecot/tmp/output/ に書く', async () => {
-    const workspace = await pushedBranch({ github: [NOT_EPIC_RULE] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
+  it('default のテンプレのファイルで base を空のまま打つと、develop_branch を base にして PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-03')
+    const workspace = await pushedBranch({ config: { developBranch: 'develop' }, github: SUBMIT_RULES })
+    const file = writePrFile(workspace, { base: '' })
+    const result = await workspace.run(['pr', 'create', file])
+    expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
+    expect(postedBody(workspace)).toMatchObject({ base: 'develop', head: BRANCH })
+  })
+
+  it('default のテンプレのファイルで base を空のまま打ち、develop_branch が無いと、PR を作らずに終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-38')
+    const workspace = await pushedBranch({ config: NO_DEVELOP_BRANCH, github: SUBMIT_RULES })
+    const file = writePrFile(workspace, { base: '' })
+    const result = await workspace.run(['pr', 'create', file])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: develop_branch is not set\n/u)
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
+  })
+
+  it('default のテンプレのファイルで末尾の Closes # を空のまま打つと、head ブランチ名の末尾の番号を入れて PR を作る', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-05')
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    const file = writePrFile(workspace, { body: `${BODY_BEFORE_CLOSES}\nCloses #\n` })
+    const result = await workspace.run(['pr', 'create', file])
     expect(result.code).toBe(0)
-    const written = result.stdout.trim()
-    expect(path.dirname(written)).toBe(path.join(workspace.directory, '.pecot', 'tmp', 'output'))
-    const content = readFileSync(written, 'utf8')
-    expect(content).toMatch(/^---\ntitle: ""\nrepository: ""\nbase: "main"\n/u)
-    expect(content).toContain('## Summary')
-    expect(content).toContain('## Verified')
+    expect(postedBody(workspace)['body']).toBe(`${BODY_BEFORE_CLOSES}\nCloses #12`)
   })
 
-  it('--prepare で対象のリポを含む設定が無いと、止めずに warning を標準エラーに出す', async () => {
-    const workspace = await pushedBranch({ config: false })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
+  it('head ブランチ名の末尾の番号の Issue が Epic のときにファイルで作ると、番号の空いた Closes # の行を消す', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-06')
+    const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
+    const file = writePrFile(workspace, { body: `${BODY_WITH_REFERENCE_ONLY}Closes #\n` })
+    const result = await workspace.run(['pr', 'create', file])
     expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(/^warning: acme\/demo is not in any project config\n {2}available: \(none\)\n/u)
-    expect(existsSync(result.stdout.trim())).toBe(true)
+    expect(result.stderr).toContain('warning: Issue #12 at the end of the branch is an Epic; Closes not added, and the empty Closes line removed\n')
+    expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
   })
 
-  it('設定とトークンの無い clone で --prepare を付けて打つと、Closes を空のままにして warning を出し、テンプレのコピーを書く', async () => {
-    const bin = makeTemporaryDirectory()
-    installFakeGh(bin)
-    prependToPath(bin)
-    // 設定が無いのでホストは github.com になる
-    const workspace = await pushedBranch({ config: false })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain('warning: kind check of Issue #12 failed: authentication error: could not get a GitHub API token\n')
-    expect(result.stderr).toContain('gh auth login -h github.com')
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #$/mu)
-    expect(existsSync(path.join(workspace.directory, '.pecot/config'))).toBe(false)
-    expect(workspace.requests()).toEqual([])
-  })
-
-  it('--prepare を付けて打つと、書いたテンプレのパスを標準出力に出す', async () => {
-    const workspace = await pushedBranch({ github: [NOT_EPIC_RULE] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.stdout).toMatch(/^\S+\/\.pecot\/tmp\/output\/pr-create-[\w-]+\.md\n$/u)
-    expect(existsSync(result.stdout.trim())).toBe(true)
-  })
-
-  it('default のテンプレで --prepare を付けて打つと、コピーの base に develop_branch を入れる', async () => {
-    const workspace = await pushedBranch({ config: { developBranch: 'develop' }, github: [NOT_EPIC_RULE] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^base: "develop"$/mu)
-    expect(result.stderr).toContain('set: base to develop\n')
-  })
-
-  it('nx のリポジトリで --prepare を付けて打つと、タイトルの行に scope の目安をコメントで足す', async () => {
-    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
-    const workspace = await openWorkspace({ ...NX_OPTIONS, github: [NOT_EPIC_RULE] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^title: "" {2}# expected scope: p-w$/mu)
-    expect(result.stderr).toContain('set: title scope hint to p-w\n')
-  })
-
-  it('remote が upstream だけでも、--prepare のコピーに base の設定と scope の目安を入れる', async () => {
-    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
-    const workspace = await openWorkspace({ ...NX_OPTIONS, github: [NOT_EPIC_RULE] })
-    workspace.git(['remote', 'rename', 'origin', 'upstream'])
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    const content = readFileSync(result.stdout.trim(), 'utf8')
-    expect(content).toMatch(/^base: "main"$/mu)
-    expect(content).toMatch(/^title: "" {2}# expected scope: p-w$/mu)
-    expect(result.stderr).toContain('set: base to main\n')
-    expect(result.stderr).toContain('set: title scope hint to p-w\n')
-  })
-
-  it('default のテンプレで --prepare を付けて打つと、末尾の Closes に、remote とブランチ名から求めた作業中の Issue の番号を入れる', async () => {
-    const workspace = await openWorkspace({
-      worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n` } }],
-      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
-    })
-    const worktree = path.join(workspace.root, 'wt1', REPOSITORY)
-    expect(readdirSync(path.join(worktree, '.pecot/state'))).toEqual(['.pecot-base'])
-    const result = await workspace.run(['pr', 'create', '--prepare'], worktree)
-    expect(result.code).toBe(0)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
-    expect(result.stderr).toContain('set: Closes to #34\n')
-  })
-
-  it('.pecot/state/ の無い clone で紐づいたブランチにいるとき --prepare を付けて打つと、Closes にブランチの番号を入れる', async () => {
+  it('.pecot/state/ の無い clone で紐づいたブランチにいるときファイルで作ると、Closes にブランチの番号を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-68')
     const workspace = await openWorkspace({
       branches: [{ name: 'feat/demo/34' }],
-      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
+      github: [prerequisitesRule({ number: 34 }), graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } }), CREATED_RULE, ...IN_REVIEW_RULES],
     })
     const clone = path.join(workspace.root, 'clone', REPOSITORY)
     workspace.git(['clone', '-q', '-b', 'feat/demo/34', workspace.git(['remote', 'get-url', 'origin']).trim(), clone])
+    cpSync(path.join(workspace.directory, '.pecot', 'config'), path.join(clone, '.pecot', 'config'), { recursive: true })
     expect(existsSync(path.join(clone, '.pecot/state'))).toBe(false)
-    const result = await workspace.run(['pr', 'create', '--prepare'], clone)
+    const file = writePrFile(workspace, { title: 'feat(demo): #34 見本の変更', body: `${BODY_BEFORE_CLOSES}\nCloses #\n` })
+    const result = await workspace.run(['pr', 'create', file], clone)
     expect(result.code).toBe(0)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
-    expect(result.stderr).toContain('set: Closes to #34\n')
+    expect(postedBody(workspace)).toMatchObject({ head: 'feat/demo/34', body: `${BODY_BEFORE_CLOSES}\nCloses #34` })
   })
 
-  it('別の番号の古い .pecot-active が残っていても読まず、Closes にブランチの番号を入れる', async () => {
+  it('別の番号の古い .pecot-active が残っていても読まず、Closes にブランチの番号を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-67')
     const workspace = await openWorkspace({
       branch: 'feat/demo/34',
+      branches: [{ name: 'feat/demo/34' }],
       files: { [stateFile('.pecot-active')]: 'acme/demo/99\n' },
-      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
+      github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } }), CREATED_RULE],
     })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #34$/mu)
-    expect(result.stderr).toContain('set: Closes to #34\n')
-    expect(operationsOf(workspace)).toEqual(['GetIssueKind'])
-  })
-
-  it('ブランチ名の末尾が番号でなければ、古い .pecot-active があっても Closes を空のままにする', async () => {
-    const workspace = await openWorkspace({
-      branch: 'feat/demo/other',
-      files: { [stateFile('.pecot-active')]: 'acme/demo/34\n' },
-    })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #\s*$/mu)
-    expect(result.stderr).not.toContain('set: Closes')
-    expect(workspace.requests()).toEqual([])
-  })
-
-  it('着手中の Issue が Epic のときに --prepare を付けて打つと、Closes を空のままにする', async () => {
-    const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 3 }))] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #\s*$/mu)
-  })
-
-  it('着手中の Issue が Epic のときに --prepare を付けて打つと、warning の行を標準エラーに出す', async () => {
-    const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, issueType: 'Epic' }))] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.stderr).toContain('warning: Issue #12 is an Epic; Closes left empty\n')
-  })
-
-  it('Issue の種別を読めないまま --prepare を付けて打つと、warning の行を出して Closes を空のままにする', async () => {
-    const workspace = await pushedBranch({ github: [KIND_FAILURE] })
-    const result = await workspace.run(['pr', 'create', '--prepare'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toMatch(KIND_WARNING_FILL)
-    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #\s*$/mu)
-    expect(result.stderr).not.toContain('set: Closes')
-  })
-
-  it('ファイルで作るとき末尾の番号の Issue の種別を読めないと、warning の行を出さずに Closes を足す', async () => {
-    const workspace = await pushedBranch({ github: [KIND_FAILURE, CREATED_RULE, ...AFTER_CREATE_RULES] })
-    const file = writePrFile(workspace, { body: BODY_WITHOUT_REFERENCE })
+    const file = writePrFile(workspace, { title: 'feat(demo): #34 見本の変更', body: `${BODY_BEFORE_CLOSES}\nCloses #\n` })
     const result = await workspace.run(['pr', 'create', file])
     expect(result.code).toBe(0)
-    expect(result.stderr).not.toContain('kind check')
-    expect(postedBody(workspace)['body']).toBe(`${BODY_WITHOUT_REFERENCE.trimEnd()}\n\nCloses #12`)
-  })
-
-  it('--prepare とファイルを一緒に渡すと、PR を作らずにテンプレのコピーだけを書く', async () => {
-    const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const file = writePrFile(workspace)
-    const before = readFileSync(file, 'utf8')
-    const outputDirectory = path.join(workspace.directory, '.pecot', 'tmp', 'output')
-    const result = await workspace.run(['pr', 'create', '--prepare', file])
-    expect(result.code).toBe(0)
-    expect(readFileSync(file, 'utf8')).toBe(before)
-    expect(readdirSync(outputDirectory).map(name => path.join(outputDirectory, name))).toStrictEqual([result.stdout.trim()])
-    expect(result.stdout).toMatch(/\/\.pecot\/tmp\/output\/pr-create-[\w-]+\.md\n$/u)
-    expect(restRequests(workspace, 'POST')).toStrictEqual([])
-    expect(result.stderr).not.toContain('created:')
+    expect(postedBody(workspace)['body']).toBe(`${BODY_BEFORE_CLOSES}\nCloses #34`)
   })
 
   it('ファイルを渡すと、フロントマターの値で PR を作る', async () => {
@@ -570,7 +470,18 @@ describe('pr create', () => {
     expect(String(posted).endsWith('Closes #12')).toBe(true)
   })
 
-  it('ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない', async () => {
+  it('ファイルで作るとき末尾の番号の Issue の種別を読めないと、Closes を足さず、空の Closes # の行を消し、warning を出す', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-87')
+    const workspace = await pushedBranch({ github: [KIND_FAILURE, CREATED_RULE, ...AFTER_CREATE_RULES] })
+    const file = writePrFile(workspace, { body: `${BODY_WITH_REFERENCE_ONLY}Closes #\n` })
+    const result = await workspace.run(['pr', 'create', file])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(/^warning: Issue #12 at the end of the branch could not be read as an Epic or not; Closes not added, and the empty Closes line removed$/mu)
+    expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
+  })
+
+  it('ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-16')
     const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
     const file = writePrFile(workspace, { body: BODY_WITH_REFERENCE_ONLY })
     const result = await workspace.run(['pr', 'create', file])
@@ -700,7 +611,7 @@ describe('pr create', () => {
       : ['pr', 'create', '-m', VALID_BODY, '-t', title, '-b', 'main', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run']
     const result = await workspace.run(argv)
     expect(result.code).toBe(3)
-    expect(result.stderr).toBe('error: PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)\n')
+    expect(lines(result.stderr).filter(line => !line.startsWith('warning: '))).toEqual(['error: PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)'])
   })
 
   it('検証に失敗すると、違反ごとに error の行を標準エラーに出す', async () => {
@@ -908,11 +819,12 @@ describe('pr create', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: --template must be \'default\' or \'release\' (given: invalid)\n' })
   })
 
-  it('--prepare・ファイル・-m のどれも渡さないと、終了コード 1 で終わる', async () => {
+  it('ファイルと -m のどちらも渡さないと、終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-43')
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create --message <body> --title <title> --base <base-branch>\n')
+    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pecot pr create <path>\n  pecot pr create --message <body> --title <title> --base <base-branch>\n')
   })
 
   it.for([
@@ -994,16 +906,9 @@ describe('pr create', () => {
   })
 
   describe('積んだ base', () => {
-    it('積んだ base の記録があるときに --prepare を付けて打つと、通信せずにコピーの base に下の段のブランチを入れる', async () => {
-      const workspace = await pushedBranch({ files: STACKED_RECORD, github: [NOT_EPIC_RULE] })
-      const result = await workspace.run(['pr', 'create', '--prepare'])
-      expect(result.code).toBe(0)
-      expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^base: "feat\/demo\/11"$/mu)
-      expect(result.stderr).toContain(`set: base to ${LOWER}\n`)
-      expect(operationsOf(workspace)).toStrictEqual(['GetIssueKind'])
-    })
-
-    it('下の段の PR が開いているときに打つと、base を下の段のブランチにして PR を作り、新しいスタックに登録する', async () => {
+    it('下の段の PR が開いているときに打つと、base を下の段のブランチにして PR を作り、新しいスタックに登録する', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-50')
+      await verifies(context, 'PW-PR-CREATE-51')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
       const result = await workspace.run(stackedArguments())
       expect(result).toStrictEqual({
@@ -1053,10 +958,11 @@ describe('pr create', () => {
       expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
     })
 
-    it('--prepare で作ったファイルの題と本文を埋めて投稿すると、base を下の段のブランチにして PR を作り、スタックに登録する', async () => {
+    it('テンプレを写したファイルの題と本文を埋め、base を空のまま投稿すると、base を下の段のブランチにして PR を作り、スタックに登録する', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-49')
+      await verifies(context, 'PW-PR-CREATE-50')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [NOT_EPIC_RULE, lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
-      const prepared = await workspace.run(['pr', 'create', '--prepare'])
-      const file = prepared.stdout.trim()
+      const file = workspace.scratch('pr.md', readFileSync(templateFile('pr', 'create'), 'utf8'))
       const [frontmatter = ''] = readFileSync(file, 'utf8').split(/\n---\n/u, 1)
       const filled = frontmatter
         .replace(/^title: ""/mu, () => `title: "${TITLE}"`)
@@ -1269,16 +1175,14 @@ describe('pr create', () => {
     })
 
     it.for([
-      { name: '--prepare', mode: 'prepare' },
       { name: 'ファイルの投稿', mode: 'file' },
       { name: '-m の投稿', mode: 'message' },
     ])('積んだ base の記録の形が誤っていると、$name でも終了コード 1 で終わる', async (row) => {
       const workspace = await pushedBranch({ files: MALFORMED_RECORD, github: SUBMIT_RULES })
-      const argv = row.mode === 'prepare' ? ['pr', 'create', '--prepare'] : (row.mode === 'file' ? ['pr', 'create', writePrFile(workspace)] : messageArguments())
+      const argv = row.mode === 'file' ? ['pr', 'create', writePrFile(workspace)] : messageArguments()
       const result = await workspace.run(argv)
       expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: .pecot-base is malformed: garbage\n' })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
-      expect(workspace.exists('.pecot/tmp/output')).toBe(false)
     })
 
     it.for([
@@ -1549,15 +1453,10 @@ describe('pr create', () => {
       expect(result.structured).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
     })
 
-    it('prepare で呼ぶと、書いたファイルのパスと埋めた base を返す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-01')
-      await verifies(context, 'PW-PR-CREATE-02')
-      await verifies(context, 'PW-COMMON-20')
-      const workspace = await pushedBranch({ github: [NOT_EPIC_RULE] })
-      const result = await callTool(workspace, 'pr_create', { prepare: true })
-      const outputDirectory = path.join(workspace.directory, '.pecot', 'tmp', 'output')
-      const [written] = readdirSync(outputDirectory).map(name => path.join(outputDirectory, name))
-      expect(result.structured).toEqual({ base: 'main', file: written })
+    it('base が空のファイルを dry_run で渡すと、決めた base を返す', async () => {
+      const workspace = await pushedBranch({ config: { developBranch: 'develop' }, github: [NOT_EPIC_RULE] })
+      const result = await callTool(workspace, 'pr_create', { file: writePrFile(workspace, { base: '' }), dry_run: true })
+      expect(result.structured).toEqual({ head: BRANCH, base: 'develop', title: TITLE, dryRun: true })
     })
 
     it('PR を作った後に応答の html_url が無いと、作った PR の値を data に残して失敗を返す', async (context) => {
@@ -1613,113 +1512,6 @@ describe('pr create', () => {
     })
 
     describe('MCP の呼び出し', () => {
-      it('prepare で対象のリポを含む設定が無いと、止めずに warnings へ入れ、テンプレのコピーを書く', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-78')
-        const workspace = await pushedBranch({ config: false })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(existsSync(String(result.structured['file']))).toBe(true)
-        expect(result.structured['warnings']).toContain('acme/demo is not in any project config\n  available: (none)')
-      })
-
-      it('設定とトークンの無い clone で prepare を付けると、Closes を空のままにして warnings に入れ、テンプレのコピーを書く', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-79')
-        const bin = makeTemporaryDirectory()
-        installFakeGh(bin)
-        prependToPath(bin)
-        const workspace = await pushedBranch({ config: false })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(result.structured['warnings']).toContainEqual(expect.stringMatching(/^kind check of Issue #12 failed: authentication error: could not get a GitHub API token/u))
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^Closes #$/mu)
-        expect(workspace.requests()).toEqual([])
-      })
-
-      it('Issue の種別を読めないまま prepare を付けると、warnings に入れて Closes を空のままにする', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-79')
-        const workspace = await pushedBranch({ github: [KIND_FAILURE] })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(result.structured['warnings']).toEqual([expect.stringMatching(/^kind check of Issue #12 failed: GraphQL query error: .+; fill Closes by hand$/su)])
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^Closes #\s*$/mu)
-      })
-
-      it('default のテンプレで prepare を付けると、コピーの base に develop_branch を入れ、結果の base に返す', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-03')
-        const workspace = await pushedBranch({ config: { developBranch: 'develop' }, github: [NOT_EPIC_RULE] })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.structured['base']).toBe('develop')
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^base: "develop"$/mu)
-      })
-
-      it('nx のリポジトリで prepare を付けると、タイトルの行に scope の目安をコメントで足す', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-04')
-        installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
-        const workspace = await openWorkspace({ ...NX_OPTIONS, github: [NOT_EPIC_RULE] })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^title: "" {2}# expected scope: p-w$/mu)
-      })
-
-      it('worktree で prepare を付けると、末尾の Closes に、remote とブランチ名から求めた作業中の Issue の番号を入れる', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-05')
-        await verifies(context, 'PW-PR-CREATE-66')
-        const workspace = await openWorkspace({
-          worktrees: [{ name: 'wt1', branch: 'feat/demo/34', files: { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n` } }],
-          github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
-        })
-        const result = await callToolAt(path.join(workspace.root, 'wt1', REPOSITORY), 'pr_create', { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^Closes #34$/mu)
-      })
-
-      it('.pecot/state/ の無い clone で紐づいたブランチにいるとき prepare を付けると、Closes にブランチの番号を入れる', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-68')
-        const workspace = await openWorkspace({
-          branches: [{ name: 'feat/demo/34' }],
-          github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
-        })
-        const clone = path.join(workspace.root, 'clone', REPOSITORY)
-        workspace.git(['clone', '-q', '-b', 'feat/demo/34', workspace.git(['remote', 'get-url', 'origin']).trim(), clone])
-        const result = await callToolAt(clone, 'pr_create', { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^Closes #34$/mu)
-      })
-
-      it('別の番号の古い .pecot-active が残っていても読まず、Closes にブランチの番号を入れる', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-67')
-        const workspace = await openWorkspace({
-          branch: 'feat/demo/34',
-          files: { [stateFile('.pecot-active')]: 'acme/demo/99\n' },
-          github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } })],
-        })
-        const result = await createTool(workspace, { prepare: true })
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^Closes #34$/mu)
-        expect(operationsOf(workspace)).toEqual(['GetIssueKind'])
-      })
-
-      it('着手中の Issue が Epic のときに prepare を付けると、Closes を空のままにし、warnings に入れる', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-06')
-        await verifies(context, 'PW-PR-CREATE-07')
-        const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, issueType: 'Epic' }))] })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.isError).toBe(false)
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^Closes #\s*$/mu)
-        expect(result.structured['warnings']).toEqual(['Issue #12 is an Epic; Closes left empty'])
-      })
-
-      it('prepare と file を一緒に渡すと、PR を作らずにテンプレのコピーだけを書く', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-08')
-        const workspace = await pushedBranch({ github: SUBMIT_RULES })
-        const file = writePrFile(workspace)
-        const before = readFileSync(file, 'utf8')
-        const result = await createTool(workspace, { prepare: true, file })
-        expect(result.isError).toBe(false)
-        expect(readFileSync(file, 'utf8')).toBe(before)
-        expect(String(result.structured['file'])).toMatch(/\/\.pecot\/tmp\/output\/pr-create-[\w-]+\.md$/u)
-        expect(restRequests(workspace, 'POST')).toStrictEqual([])
-      })
-
       it('file を渡すと、フロントマターの値で PR を作る', async (context) => {
         await verifies(context, 'PW-PR-CREATE-09')
         const workspace = await pushedBranch({ github: SUBMIT_RULES })
@@ -1843,7 +1635,7 @@ describe('pr create', () => {
         const title = 'feat(pecot): #12 見本の変更'
         const arguments_ = row.mode === 'file' ? { file: writePrFile(workspace, { title }) } : { ...MESSAGE_ARGUMENTS, title }
         const result = await createTool(workspace, { ...arguments_, dry_run: true })
-        expect(result.structured).toEqual({ kind: 'content-invalid', detail: 'PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)' })
+        expect(result.structured).toMatchObject({ kind: 'content-invalid', detail: 'PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)' })
       })
 
       it('owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す', async (context) => {
@@ -1967,7 +1759,7 @@ describe('pr create', () => {
         expect(result.structured).toEqual({ kind: 'no-active-project', detail: `acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}` })
       })
 
-      it('対象のリポを含む設定が無いと、prepare の無いときは kind が repo-not-in-project の失敗を返す', async (context) => {
+      it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
         await verifies(context, 'PW-PR-CREATE-75')
         const workspace = await pushedBranch({ config: false })
         const result = await createTool(workspace, MESSAGE_ARGUMENTS)
@@ -2002,7 +1794,7 @@ describe('pr create', () => {
         expect(result.structured['kind']).toBe('invalid-input')
       })
 
-      it('prepare・file・message のどれも渡さないと、kind が invalid-input の失敗を返す', async (context) => {
+      it('file と message のどちらも渡さないと、kind が invalid-input の失敗を返す', async (context) => {
         await verifies(context, 'PW-PR-CREATE-43')
         const workspace = await pushedBranch()
         const result = await createTool(workspace, {})
@@ -2064,15 +1856,6 @@ describe('pr create', () => {
         const plain = mkdirIn(workspace, 'plain')
         const result = await callToolAt(plain, 'pr_create', { ...MESSAGE_ARGUMENTS, dry_run: true })
         expect(result.structured).toEqual({ kind: 'git-unresolved', detail: 'cannot determine the head branch' })
-      })
-
-      it('積んだ base の記録があるときに prepare を付けると、通信せずにコピーの base に下の段のブランチを入れる', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-49')
-        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [NOT_EPIC_RULE] })
-        const result = await createTool(workspace, { prepare: true })
-        expect(result.structured['base']).toBe(LOWER)
-        expect(readFileSync(String(result.structured['file']), 'utf8')).toMatch(/^base: "feat\/demo\/11"$/mu)
-        expect(operationsOf(workspace)).toStrictEqual(['GetIssueKind'])
       })
 
       it('積んだ記録で dry_run を付けると、下の段のブランチを base にし、stack の lower に下の段の PR の番号を入れる', async (context) => {
@@ -2171,13 +1954,12 @@ describe('pr create', () => {
       })
 
       it.for([
-        { name: 'prepare', mode: 'prepare' },
         { name: 'file の投稿', mode: 'file' },
         { name: 'message の投稿', mode: 'message' },
       ])('積んだ base の記録の形が誤っていると、$name でも kind が content-invalid の失敗を返す', async (row, context) => {
         await verifies(context, 'PW-PR-CREATE-59')
         const workspace = await pushedBranch({ files: MALFORMED_RECORD, github: SUBMIT_RULES })
-        const arguments_ = row.mode === 'prepare' ? { prepare: true } : (row.mode === 'file' ? { file: writePrFile(workspace) } : MESSAGE_ARGUMENTS)
+        const arguments_ = row.mode === 'file' ? { file: writePrFile(workspace) } : MESSAGE_ARGUMENTS
         const result = await createTool(workspace, arguments_)
         expect(result.structured).toEqual({ kind: 'content-invalid', detail: '.pecot-base is malformed: garbage' })
         expect(restRequests(workspace, 'POST')).toStrictEqual([])

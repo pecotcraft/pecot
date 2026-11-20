@@ -1,4 +1,4 @@
-# user のプロジェクトが 2 件ある。ListProjectsUser を 1 回受けて表を出す。
+# user のプロジェクトが 2 件ある。ListProjectsUser を 1 回受け、各プロジェクトのフィールドを読んで、初期化済みの印を付けた表を出す。
 id: project-search-ok
 command:
   path: [project, search]
@@ -13,3 +13,15 @@ github:
     respond:
       status: 200
       body: {"data": {"user": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}, {"number": 2, "title": "とても長いタイトルのプロジェクトで三十八文字を超えるので末尾が省略される例", "url": "https://ghes.example.com/users/acme/projects/2", "id": "PVT_2"}]}}}}
+  - match:
+      operation: GetProjectFieldsUser
+      variables: {owner: acme, projectNumber: 1}
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectV2": {"id": "PVT_1", "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "views": {"nodes": [{"number": 1}]}, "fields": {"nodes": [{"id": "PVTF_title", "name": "Title"}, {"id": "MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2", "name": "pecot-workflow-acme", "databaseId": 456, "options": [{"id": "o1", "name": "Backlog"}, {"id": "o2", "name": "Pending"}, {"id": "o3", "name": "Ready"}, {"id": "o4", "name": "Active"}, {"id": "o5", "name": "In Review"}, {"id": "o6", "name": "Archived"}]}, {"id": "PVTSSF_priority", "name": "pecot-priority", "options": [{"id": "p1", "name": "High"}, {"id": "p2", "name": "Medium"}, {"id": "p3", "name": "Low"}]}, {"id": "PVTSSF_size", "name": "pecot-size", "options": [{"id": "s1", "name": "XS"}, {"id": "s2", "name": "S"}, {"id": "s3", "name": "M"}, {"id": "s4", "name": "L"}]}]}}}}}
+  - match:
+      operation: GetProjectFieldsUser
+      variables: {owner: acme, projectNumber: 2}
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectV2": {"id": "PVT_2", "title": "plain", "url": "https://ghes.example.com/users/acme/projects/2", "views": {"nodes": []}, "fields": {"nodes": [{"id": "PVTF_title", "name": "Title"}]}}}}}

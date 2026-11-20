@@ -31,11 +31,12 @@ function compare(before: unknown, after: unknown, path: string, emit: Emit): voi
 // 2 つの generated.json の差を「項目の ID: 欄のパス: 変わり方」の行にする。項目が丸ごと増減したときの欄は entry。
 export function diffGenerated(before: Readonly<GeneratedFile>, after: Readonly<GeneratedFile>): string[] {
   const lines: string[] = []
-  for (const key of ['format', 'plugin', 'prefix', 'names'] as const) {
-    compare(before[key], after[key], key, (path, change) => {
-      lines.push(`file: ${path}: ${change}`)
-    })
+  const emitFile: Emit = (path, change) => {
+    lines.push(`file: ${path}: ${change}`)
   }
+  for (const key of ['format', 'plugin', 'prefix', 'names'] as const) compare(before[key], after[key], key, emitFile)
+  // resources は省ける欄。無いときは空の配列と比べ、要素ごとの added・removed にする。
+  compare(before.resources ?? [], after.resources ?? [], 'resources', emitFile)
   const beforeById = new Map(before.entries.map(entry => [entry.id, entry]))
   const afterById = new Map(after.entries.map(entry => [entry.id, entry]))
   for (const id of [...new Set([...beforeById.keys(), ...afterById.keys()])].toSorted(compareText)) {

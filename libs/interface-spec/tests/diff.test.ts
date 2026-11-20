@@ -64,6 +64,21 @@ describe('diffGenerated', () => {
   })
 })
 
+describe('diffGenerated の resources', () => {
+  const RESOURCE = { uri: 'pecot-template://issue/task', name: 'issue-task', mimeType: 'text/markdown' }
+
+  it('resources の追加・変更・削除を、file の行で報告する', () => {
+    const before = file([], { resources: [RESOURCE] })
+    const after = file([], { resources: [{ ...RESOURCE, mimeType: 'text/plain' }, { uri: 'pecot-template://pr/default', name: 'pr-default' }] })
+    expect(diffGenerated(before, after)).toEqual([
+      'file: resources[0].mimeType: "text/markdown" -> "text/plain"',
+      'file: resources[1]: added',
+    ])
+    expect(diffGenerated(before, file([]))).toEqual(['file: resources[0]: removed'])
+    expect(diffGenerated(file([]), before)).toEqual(['file: resources[0]: added'])
+  })
+})
+
 describe('formatStale', () => {
   it('差の行を字下げして error の行と run の行で挟む', () => {
     expect(formatStale('plugins/x/interface/generated.json', ['PW-A: entry: added', 'PW-B: entry: removed'], 'do --write')).toEqual([

@@ -34,6 +34,14 @@ describe('issuesToFindings', () => {
     expect(lines([issue], { code: input })).toEqual(['error: f.yaml: code: must be between 0 and 255'])
   })
 
+  it('resources の欄は、uri を項目の ID の位置に出す', () => {
+    const uri = 'pecot-template://issue/task'
+    const generated: Issue = { code: 'invalid_type', expected: 'string', path: ['resources', 0, 'name'], message: 'Invalid input', input: undefined }
+    expect(lines([generated], { resources: [{ uri }] }, 'generated')).toEqual([`error: f.yaml: ${uri}: name: field is missing`])
+    const authored: Issue = { code: 'too_small', origin: 'string', minimum: 1, inclusive: true, path: ['resources', uri, 'summary'], message: 'Too small', input: ' ' }
+    expect(lines([authored], { resources: { [uri]: { summary: ' ' } } })).toEqual([`error: f.yaml: ${uri}: summary: is empty`])
+  })
+
   it('判別子の無い invalid_union は、未知として扱う', () => {
     const issue: Issue = { code: 'invalid_union', errors: [], path: ['x'], message: 'Invalid input', input: 1 }
     expect(lines([issue], { x: 1 })).toEqual(['error: f.yaml: x: unknown validation issue (invalid_union): Invalid input'])
