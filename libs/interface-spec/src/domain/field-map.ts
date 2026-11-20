@@ -17,7 +17,7 @@ export interface BorrowedRow {
 
 // contracts/definition-format.md「欄が従う枠組み」の 2 つの表。欄は schema.ts の項目の欄のパスで書く。
 export const POSIX_MAP: readonly PosixRow[] = [
-  { section: 'NAME', fields: ['id', 'name', 'description', 'summary'], writer: '書き出し。summary は人', mcp: 'Tool の name・description' },
+  { section: 'NAME', fields: ['id', 'name', 'description', 'summary', 'mcp.title'], writer: '書き出し。summary は人', mcp: 'Tool の name・title・description' },
   {
     section: 'SYNOPSIS',
     fields: ['surfaces.cli.path', 'cli.positional', 'cli.flags', 'constraints', 'surfaces.mcp.tool'],
@@ -44,7 +44,7 @@ export const POSIX_MAP: readonly PosixRow[] = [
   { section: 'STDERR', fields: ['diagnostics'], writer: '人', mcp: '失敗の結果に入る文言' },
   { section: 'EXIT STATUS', fields: ['exit_status'], writer: '人', mcp: '失敗の種別' },
   { section: 'CONSEQUENCES OF ERRORS', fields: ['on_error'], writer: '人', mcp: '同じ' },
-  { section: 'EXAMPLES', fields: ['examples', 'help.examples'], writer: '人', mcp: '同じ' },
+  { section: 'EXAMPLES', fields: ['examples', 'help.examples', 'cli_reference.examples'], writer: '人', mcp: 'examples が tools/call の arguments。CLI の例は help と cli_reference' },
   { section: 'FUTURE DIRECTIONS', fields: ['deprecated'], writer: '書き出し', mcp: '同じ' },
   { section: 'CHANGE HISTORY', fields: [], writer: '欄にしない。各プラグインの CHANGELOG が担う', mcp: '—' },
 ]

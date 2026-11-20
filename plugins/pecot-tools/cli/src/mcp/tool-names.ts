@@ -29,7 +29,6 @@ export const TOOL_SERVICES: readonly ToolNameWord[] = [
   { word: 'logs', meaning: 'Amazon CloudWatch Logs' },
   { word: 'rds', meaning: 'Amazon RDS' },
   { word: 's3', meaning: 'Amazon S3 (high-level commands)' },
-  { word: 's3api', meaning: 'Amazon S3 (API commands)' },
   { word: 'scheduler', meaning: 'Amazon EventBridge Scheduler' },
   { word: 'sqs', meaning: 'Amazon SQS' },
   { word: 'sso', meaning: 'AWS IAM Identity Center sign-in' },

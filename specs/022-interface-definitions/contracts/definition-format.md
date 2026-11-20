@@ -10,7 +10,7 @@
 
 | POSIX の節 | 定義書の欄 | 書き手 | MCP ツールでの読み替え |
 |---|---|---|---|
-| NAME | `id`・`name`・`description` | 書き出し | Tool の `name`・`description` |
+| NAME | `id`・`name`・`description`・`mcp.title` | 書き出し | Tool の `name`・`title`・`description` |
 | SYNOPSIS | `surfaces.cli.path`・`cli.positional`・`cli.flags`・`constraints` | 書き出し。`constraints` は人 | `surfaces.mcp.tool` |
 | DESCRIPTION | `details` | 人 | 同じ |
 | OPTIONS・OPERANDS | `input`・`default_notes` | 書き出し。`default_notes` は人 | Tool の `inputSchema` |
@@ -22,7 +22,7 @@
 | STDERR | `diagnostics` | 人 | 失敗の結果に入る文言 |
 | EXIT STATUS | `exit_status` | 人 | 失敗の種別（`isError` が真になる条件） |
 | CONSEQUENCES OF ERRORS | `on_error` | 人 | 同じ |
-| EXAMPLES | `examples` | 人 | 同じ |
+| EXAMPLES | `examples`・`cli_reference.examples` | 人 | `examples` は `tools/call` の `arguments`。CLI の例は `help.examples` と `cli_reference.examples` |
 | FUTURE DIRECTIONS | `deprecated` | 書き出し | 同じ |
 | CHANGE HISTORY | 欄にしない。各プラグインの CHANGELOG が担う | — | — |
 
@@ -82,6 +82,7 @@ MCP ツールへの読み替えは、このリポの決めだ。POSIX の規格�
 | root のオプション | `pecot` の直後に置くオプション（`--repo`・`--show-repo`・`--version` など）は項目にしない。`input` には、コマンド自身の引数だけを入れる |
 | `cli.flags` の並び | 長い名前（宣言の順）、短い名前、否定形（`--no-checkout` など）の順 |
 | MCP ツールの出力と注釈 | `tools/list` の `outputSchema` を `mcp.output` に、`annotations` を `mcp.annotations` に入れる |
+| MCP ツールの表示名 | `tools/list` の Tool の最上位の `title` を `mcp.title` に入れる。MCP の面を持つ項目では必須。英語で、4 語以内が目安。`annotations.title` は使わない |
 
 ### `resources`
 
@@ -196,7 +197,43 @@ common_behaviors:
     statement: もし知らないオプションを渡したなら、使い方のエラーを出して終了コード 2 で終わる
 ```
 
-欄ごとの型・言語・使わないときの値は [data-model.md](../data-model.md) にある。`mcp_output` のほかの欄は省けない。
+欄ごとの型・言語・使わないときの値は [data-model.md](../data-model.md) にある。`mcp_output`・`cli_reference`・`help` のほかの欄は省けない。
+
+### `examples` と `cli_reference`
+
+`examples` は、項目の面で形が変わる。
+
+| 項目 | `examples` の要素 |
+|---|---|
+| MCP の面を持つ | `arguments`（`tools/call` の `params` の `arguments`）と `note`。キーは `input.properties` にあり、`input.required` を全部持つ |
+| MCP の面を持たない | `run`（コマンドの行）と `note` |
+
+```yaml
+    examples:
+      - arguments:
+          issue_ref: example-org/my-repo/123
+          status: backlog
+        note: Issue をボードに足し、Status を `backlog` にします。
+```
+
+表示は、ツール名を `name` に入れた `tools/call` の `params` の形（`{"name": ..., "arguments": {...}}`）で描く。
+
+`cli_reference` は、CLI の節をページに出す項目だけが持つ。GitHub Actions から CLI で呼ぶ項目に書く。
+
+```yaml
+    cli_reference:
+      examples:
+        - run: pecot board sync --dry-run
+          note: 書かずに、する予定を出します。
+```
+
+| 決め | 内容 |
+|---|---|
+| 持てる項目 | CLI の面（`surfaces.cli`）を持つ項目だけ |
+| ページの表示 | 持つ項目だけが「コマンド」の節と、エラーの表の「終了コード」の列を出す。持たない項目は、標準入力・標準出力・標準エラーも出さない |
+| `help.examples` との関係 | `prose: ja` で `cli_reference` を持つ項目は、`help.examples` の `run` を `cli_reference.examples` と同じ順・同じ値にする。持たない MCP の項目は比べない。MCP の面の無い項目は `examples` と比べる |
+
+`exit_status[].code` は、CLI の面を持つ項目だけが書ける。
 
 ### `mcp_output`
 
@@ -332,6 +369,13 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | `generated.json` に無い resource | `error: <file>: pecot-template://issue/old: resource is not in generated.json (remove it)` |
 | resource の無いプラグインの `resources` | `error: <file>: resources: is only for plugins with resources in generated.json (remove it)` |
 | 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
+| CLI の面の無い項目の終了コード | `error: <file>: PT-AWS-S3-LS: exit_status[0].code: is only for entries with a CLI surface (remove it)` |
+| CLI の面の無い項目の `cli_reference` | `error: <file>: PT-AWS-S3-LS: cli_reference: is only for entries with a CLI surface (remove it)` |
+| `mcp.title` の書き忘れ | `error: <file>: PT-AWS-S3-LS: mcp.title: is missing (give the tool a display name in English)` |
+| MCP の面を持つ項目の `run` の使用例 | `error: <file>: PT-AWS-S3-LS: examples[0]: must be an MCP call (write arguments instead of run)` |
+| MCP の面の無い項目の `arguments` の使用例 | `error: <file>: PW-ISSUE-CREATE: examples[0]: must be a command line (write run instead of arguments; the entry has no MCP surface)` |
+| 使用例の引数の名前 | `error: <file>: PT-AWS-S3-LS: examples[0].arguments: unknown input name "pth"`、`error: <file>: PT-AWS-S3-LS: examples[0].arguments: is missing the required input "path"` |
+| CLI の例のずれ | `error: <file>: PW-BOARD-SYNC: help.examples: must have the same run values, in the same order, as cli_reference.examples` |
 | 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: x: unknown validation issue (not_multiple_of): Invalid number: must be a multiple of 5` |
 
 並べ方は、ファイル・行・項目の ID・欄・理由の順で、同じ入力からはいつも同じ順になる。

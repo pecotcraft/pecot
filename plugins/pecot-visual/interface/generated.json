@@ -239,7 +239,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Create draw.io diagram"
       },
       "name": "drawio_create",
       "surfaces": {
@@ -387,7 +388,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Export draw.io diagram"
       },
       "name": "drawio_export",
       "surfaces": {
@@ -569,7 +571,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Create evidence workbook"
       },
       "name": "evidence_create",
       "surfaces": {
@@ -733,7 +736,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Set up runtime"
       },
       "name": "runtime_setup",
       "surfaces": {
@@ -1055,7 +1059,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Convert Slidev to PPTX"
       },
       "name": "slide_convert",
       "surfaces": {
@@ -1341,7 +1346,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Create Slidev deck"
       },
       "name": "slide_create",
       "surfaces": {
@@ -1481,7 +1487,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Start Slidev preview"
       },
       "name": "slide_dev",
       "surfaces": {
@@ -1658,7 +1665,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Lint Slidev deck"
       },
       "name": "slide_lint",
       "surfaces": {
@@ -1881,7 +1889,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Create Slidev page"
       },
       "name": "slide_page",
       "surfaces": {
@@ -2213,7 +2222,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Sync Slidev deck"
       },
       "name": "slide_sync",
       "surfaces": {
@@ -2661,7 +2671,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Slidev theme"
       },
       "name": "slide_theme",
       "surfaces": {

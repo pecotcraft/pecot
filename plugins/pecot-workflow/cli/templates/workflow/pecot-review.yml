@@ -1,10 +1,14 @@
-# pecot-workflow-template: review 3
+# pecot-workflow-template: review 5
 #
 # Place this file at .github/workflows/pecot-review.yml in your repository.
 #
 # This workflow runs the pecot w-review skill on a pull request with claude-code-action.
 # It posts inline comments and a list of findings. It never pushes, merges, or closes.
 # It reads the PR with gh pr diff and gh pr view. Other commands that need approval are denied.
+# It looks up public docs with Context7 and WebSearch.
+# WebFetch reads docs.github.com and the documentation sites that Claude Code allows without approval.
+# To trust more sites, add WebFetch(domain:example.com) to the allowed-tools lines below.
+# Search queries and URLs may carry text from the diff.
 # It starts when a PR is opened or marked ready for review.
 # To review again, comment "@pecotbot review" on the PR.
 # The phrase must be the whole comment, or be followed by a space or a new line.
@@ -33,6 +37,11 @@
 #     Write it as a JSON array, for example ["my-app[bot]"].
 #   PECOT_REVIEW_MAX_TURNS limits the turns of the main agent. The default is 60.
 #   PECOT_REVIEW_TIMEOUT_MINUTES limits the job time in minutes. The default is 30.
+#   PECOT_REVIEW_PROJECT names the pecot project config to use. The default is unset.
+#     Set it when the repository is in two or more configs under .pecot/config/projects.
+#     Write the file name without .json.
+#   PECOT_REVIEW_WEB_ACCESS set to "false" stops Context7, WebSearch, and WebFetch. The default is "true".
+# Optional secret CONTEXT7_API_KEY raises the Context7 rate limit. Without it, Context7 runs without a key.
 #
 # Runs started by Dependabot read Dependabot secrets, not Actions secrets.
 # To review Dependabot PRs, add "dependabot[bot]" to PECOT_REVIEW_ALLOWED_BOTS.
@@ -90,6 +99,11 @@ jobs:
       # Tools that your preparation steps need, separated by commas.
       PECOT_REVIEW_EXTRA_ALLOWED_TOOLS: ""
       # pecot-review:allowed-tools:end
+      # Claude Code expands ${CONTEXT7_API_KEY} from the Review step.
+      PECOT_REVIEW_CONTEXT7: '{"mcpServers":{"context7":{"type":"http","url":"https://mcp.context7.com/mcp"}}}'
+      PECOT_REVIEW_CONTEXT7_WITH_KEY: >-
+        {"mcpServers":{"context7":{"type":"http","url":"https://mcp.context7.com/mcp",
+        "headers":{"Authorization":"Bearer ${CONTEXT7_API_KEY}"}}}}
     steps:
       # The finish step names where the review stopped from the inline comments posted after this time.
       - name: Record the start time
@@ -170,6 +184,7 @@ jobs:
         uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # The action takes either a token or Workload Identity Federation, not both.
@@ -184,12 +199,13 @@ jobs:
           plugin_marketplaces: https://github.com/pecotcraft/pecot.git
           plugins: pecot-w@pecot
           allowed_bots: ${{ join(fromJSON(vars.PECOT_REVIEW_ALLOWED_BOTS || '[]'), ',') }}
-          prompt: /pecot-w:w-review ${{ github.repository }}/${{ github.event.pull_request.number || github.event.issue.number }}
+          prompt: /pecot-w:w-review ${{ github.repository }}/${{ github.event.pull_request.number || github.event.issue.number }}${{ vars.PECOT_REVIEW_PROJECT != '' && format(' project={0}', vars.PECOT_REVIEW_PROJECT) || '' }}
           claude_args: >-
             --permission-mode default
             --max-turns ${{ vars.PECOT_REVIEW_MAX_TURNS || '60' }}
-            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
-            --disallowedTools "Edit,Write,NotebookEdit,AskUserQuestion,Agent,WebFetch,WebSearch,Bash(git clone:*),Read(//proc/**)"
+            ${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && format('--mcp-config ''{0}''', secrets.CONTEXT7_API_KEY != '' && env.PECOT_REVIEW_CONTEXT7_WITH_KEY || env.PECOT_REVIEW_CONTEXT7) || '' }}
+            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && ',WebSearch,WebFetch(domain:docs.github.com),mcp__context7__resolve-library-id,mcp__context7__query-docs' || '' }}${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --disallowedTools "Edit,Write,NotebookEdit,AskUserQuestion,Agent${{ vars.PECOT_REVIEW_WEB_ACCESS == 'false' && ',WebFetch,WebSearch' || '' }},Bash(git clone:*),Read(//proc/**)"
 
       # The dist-tag after the package name decides the version. @latest is the newest release,
       # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.

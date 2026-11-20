@@ -21,7 +21,7 @@ import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN, RUN_COLON } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
@@ -131,6 +131,7 @@ const LIST_OUTPUT = z.strictObject({
 
 const listCommand = defineCommand({
   path: ['project', 'list'],
+  title: 'List projects',
   description: 'List available projects',
   input: z.strictObject({}),
   output: LIST_OUTPUT,
@@ -206,6 +207,7 @@ async function searchRow(out: Readonly<Output>, client: Readonly<GitHubClient>, 
 
 const searchCommand = defineCommand({
   path: ['project', 'search'],
+  title: 'Search projects',
   description: 'Search projects through the GitHub API, and show which are initialized and which is active',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
@@ -387,6 +389,7 @@ const INIT_OUTPUT = z.strictObject({
 
 const initCommand = defineCommand({
   path: ['project', 'init'],
+  title: 'Initialize project fields',
   description: 'Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
@@ -430,6 +433,7 @@ const CREATE_OUTPUT = z.strictObject({
 
 const projectCreationCommand = defineCommand({
   path: ['project', 'create'],
+  title: 'Create project',
   description: 'Create a new project (to add the fields to an existing project, use project init)',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
@@ -559,7 +563,7 @@ async function activateByReference(out: Readonly<Output<ActivateData>>, client: 
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
+    stopWith(out, hinted`project "${title}" is not initialized\n${RUN_COLON}${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
   reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, ...SYNC_FOR_ACTIVATE, isDryRun }))
 }
@@ -585,6 +589,7 @@ function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<Sync
 
 const activateCommand = defineCommand({
   path: ['project', 'activate'],
+  title: 'Activate project',
   description: 'Activate an initialized project',
   input: z.strictObject({
     project: z.string().describe('Project number or name, or config file path/file name (list the candidates with project search)'),
@@ -672,7 +677,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
   }
   if (edit.changelog_file !== undefined) {
     if (packages !== undefined && packages.length > 0) {
-      stopWith(out, hinted`this repository has packages set\nrun with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`, 'invalid-input')
+      stopWith(out, hinted`this repository has packages set\n${RUN} with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`, 'invalid-input')
     }
     changelogFile = edit.changelog_file
   }
@@ -724,6 +729,7 @@ const LINK_OUTPUT = z.strictObject({
 
 const projectLinkCommand = defineCommand({
   path: ['project', 'link'],
+  title: 'Link repository to project',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
   description: 'Add or update a repository in the project config',
@@ -904,6 +910,7 @@ const CONFIG_KEY_OPERATIONS: Readonly<Record<ConfigKey, ConfigKeyOperations>> = 
 
 const projectSetCommand = defineCommand({
   path: ['project', 'set'],
+  title: 'Set project config',
   description: 'Set a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({
     key: CONFIG_KEY,
@@ -923,6 +930,7 @@ const projectSetCommand = defineCommand({
 
 const projectUnsetCommand = defineCommand({
   path: ['project', 'unset'],
+  title: 'Clear project config',
   description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo',
   input: z.strictObject({ key: CONFIG_KEY, dry_run: dryRunInput }),
   output: UNSET_OUTPUT,
@@ -937,6 +945,7 @@ const projectUnsetCommand = defineCommand({
 
 const projectGetCommand = defineCommand({
   path: ['project', 'get'],
+  title: 'Get project config',
   description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({ key: CONFIG_KEY }),
   output: GET_OUTPUT,

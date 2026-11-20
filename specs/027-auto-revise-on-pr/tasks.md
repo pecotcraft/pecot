@@ -154,7 +154,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 - [x] T036 [US1] エージェント w-reviewer を w-plan-reviewer に改め、計画のレビューだけに使う。視点の印は `[tech]`・`[cuj]` の 2 つにする
 - [x] T037 [P] [US1] `p-w/skills/w-help/`・`p-w/README.md` の表と参照の、w-revise・w-reviewer の行を直す。`review-findings` の Disposition を表にし、F-NN をリンクにする
 - [x] T038 [US1] T033 のテストを通す。このフェーズの Independent Test を、検証用の PR で main が流す。結果を PR の説明に書く
-  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く（#640 に分けた）
+  - リポが複数のボードに入っている利用者のプロジェクトの指定を、`prompt` への渡し方と合わせて決め、`spec/contracts/workflow-template.md` に書く（#640 で、変数 `PECOT_REVIEW_PROJECT` と `prompt` の引数 `project=<名前>` に決めた）
 
 ---
 
@@ -220,10 +220,10 @@ Phase 5 の T035 に含めた。w-revise の引き継ぎの分岐は足さない
 
 **前提**: Phase 8（共通の部分の形が、検証用での試行の後に決まる）
 
-- [ ] T054 `specs/023-label-triggered-autofix/research.md` を直す。R2 の認証の名前、R8 の導入のコマンド、R10 の版の目印を、この spec の形に合わせる。`allowed_bots` の名前の形と、権限のモードの既定が変わったことを書く
-- [ ] T055 `specs/023-label-triggered-autofix/plan.md` と `contracts/` を直す。Python の CLI の前提を TypeScript の今の構成に直し、雛形の一覧に行を足す形にする
-- [ ] T056 `specs/023-label-triggered-autofix/tasks.md` を、T054・T055 に合わせて直す。作り直しになる範囲が広いときは、ユーザーに伝えて、tasks の工程のやり直しを仰ぐ
-- [ ] T057 Epic #315 の本文の GAP を、共通の部分ができた後の差に直す
+- [x] T054 `specs/023-label-triggered-autofix/research.md` を直す。R2 の認証の名前、R8 の導入のコマンド、R10 の版の目印を、この spec の形に合わせる。`allowed_bots` の名前の形と、権限のモードの既定が変わったことを書く
+- [x] T055 `specs/023-label-triggered-autofix/plan.md` と `contracts/` を直す。Python の CLI の前提を TypeScript の今の構成に直し、雛形の一覧に行を足す形にする
+- [x] T056 `specs/023-label-triggered-autofix/tasks.md` を、T054・T055 に合わせて直す。作り直しになる範囲が広いときは、ユーザーに伝えて、tasks の工程のやり直しを仰ぐ
+- [x] T057 Epic #315 の本文の GAP を、共通の部分ができた後の差に直す
 
 ---
 

@@ -82,7 +82,7 @@ export function lambdaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
     }, options),
     allowlistedTool({
       entry: LAMBDA_GET_FUNCTION_CONFIGURATION,
-      title: 'Get Lambda function configuration',
+      title: 'Get Lambda function config',
       description: 'Returns the configuration of one function (runtime, handler, environment variables, timeout, etc.)',
       inputSchema: z.object({
         function_name: z.string().describe('Function name, partial ARN, or full ARN'),

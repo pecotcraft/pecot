@@ -18,6 +18,7 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(DOCS / "_ext"))
 
 from iface_defs import (  # noqa: E402
+    COMMAND_TITLE,
     COMMON_OUTPUT_TITLE,
     MCP_FIELDS_EMPTY,
     PLUGIN_KEY,
@@ -363,7 +364,7 @@ def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixtu
         name: (href, counts)
         for href, name, counts in re.findall(
             r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>'
-            r"(?:\s*<td>.*?</td>){2}\s*<td><p>([^<]*)</p></td>",
+            r"(?:\s*<td>.*?</td>){3}\s*<td><p>([^<]*)</p></td>",
             html,
             flags=re.S,
         )
@@ -371,7 +372,7 @@ def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixtu
     # 並びは data-model.md の Outcome の表の順。0 件の状態は出さない。
     assert rows == {
         "one run": ("_generated/sample/one-run.html", "– テストなし 1・✓ 成功 2"),
-        "sample_two": (
+        "Sample two": (
             "_generated/sample/sample_two.html",
             "– テストなし 1・✗ 失敗 1・✓ 成功 1",
         ),
@@ -455,7 +456,7 @@ def test_without_results_index_and_overview_have_no_counts(
     assert built.code == 0
     html = built.html()
     (head,) = re.findall(r"<thead>(.*?)</thead>", html, flags=re.S)
-    assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["名前", "説明", "型"]
+    assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["表示名", "ツール名", "説明", "型"]
     for word in ("状態", "未実行", "機能要件の状態ごとの数"):
         assert word not in html, word
 
@@ -904,11 +905,60 @@ def test_mcp_without_tool_fields_says_there_is_nothing() -> None:
     assert "項目名" not in text
 
 
-def test_stdout_sentence_is_only_for_entries_with_a_cli_surface() -> None:
+_BOTH = {"cli": {"path": ["sample", "run"]}, "mcp": {"tool": "sample_tool"}}
+_CLI_REFERENCE = {"examples": [{"run": "pecot sample run x --force", "note": "x を動かします。"}]}
+
+
+def _both_entry(**extra: Any) -> dict[str, Any]:
+    """CLI と MCP の両方の面を持つ項目。extra に cli_reference などを足す。"""
+    return {
+        **_mcp_entry({"branch": {"type": "string"}}),
+        "surfaces": _BOTH,
+        "input": {
+            "type": "object",
+            "properties": {"target": {"type": "string"}, "force": {"type": "boolean"}},
+            "required": ["target"],
+        },
+        "cli": {"positional": ["target"], "flags": {"force": ["--force", "-f"]}},
+        "exit_status": [{"kind": "target-missing", "code": 2, "when": "対象がありません。"}],
+        "examples": [{"arguments": {"target": "x", "force": True}, "note": "x を動かします。"}],
+        **extra,
+    }
+
+
+def test_stdout_sentence_is_not_in_the_output_of_mcp_entries() -> None:
     entry = _mcp_entry({"branch": {"type": "string"}})
     assert "標準出力" not in _output_section(entry)
-    both = {**entry, "surfaces": {"cli": {"path": ["sample"]}, "mcp": {"tool": "sample_tool"}}}
-    assert "標準出力には何も出しません。" in _output_section(both)
+    assert "標準出力" not in _output_section(_both_entry())
+    assert "標準出力" not in _output_section(_both_entry(cli_reference=_CLI_REFERENCE))
+
+
+def test_mcp_arguments_use_mcparg_and_examples_are_tools_call_params() -> None:
+    sections = dict(render_sections(_both_entry()))
+    arguments = "\n".join(sections["引数"])
+    assert ".. mcparg:: target" in arguments and ".. mcparg:: force" in arguments
+    assert ".. option::" not in arguments
+    assert "--force" not in arguments
+    examples = "\n".join(sections["使用例"])
+    assert ".. code-block:: json" in examples
+    body = examples.split(".. code-block:: json", 1)[1]
+    assert json.loads(body) == {"name": "sample_tool", "arguments": {"target": "x", "force": True}}
+
+
+def test_exit_code_column_and_command_section_are_only_for_cli_reference() -> None:
+    plain = dict(render_sections(_both_entry()))
+    assert "終了コード" not in "\n".join(plain["エラー"])
+    assert COMMAND_TITLE not in plain
+    referenced = dict(render_sections(_both_entry(cli_reference=_CLI_REFERENCE)))
+    assert "終了コード" in "\n".join(referenced["エラー"])
+    command = "\n".join(referenced[COMMAND_TITLE])
+    assert "pecot sample run <target> [options]" in command
+    assert ".. program:: pecot sample run" in command
+    assert ".. option:: --force, -f" in command and ".. option:: <target>" in command
+    assert "pecot sample run x --force" in command
+    assert "標準出力には何も出しません。" in command
+    titles = [title for title, _ in render_sections(_both_entry(cli_reference=_CLI_REFERENCE))]
+    assert titles[-1] == COMMAND_TITLE
 
 
 def test_mcp_output_links_to_common_fields_of_the_plugin() -> None:
@@ -1122,3 +1172,17 @@ def test_lane_targets_have_no_default_outputs() -> None:
                 assert "outputs" not in value, (
                     f"nx.json の targetDefaults['{key}'] が {lane['target']} に outputs を足す"
                 )
+
+
+def test_tool_page_title_is_the_display_name_with_the_tool_name_below(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    assert built.code == 0
+    page = built.html("_generated/sample/sample_two.html")
+    assert re.search(r"<h1>Sample two<a ", page)
+    assert re.search(r'<p class="iface-tool-name">.*sample_two', page)
+    # 表示名の無い CLI だけの項目は、name を題にして、添え書きを出さない
+    one = built.html("_generated/sample/one-run.html")
+    assert re.search(r"<h1>one run<a ", one)
+    assert "iface-tool-name" not in one

@@ -38,9 +38,17 @@ export interface CommandIo {
   */
   readonly data?: (fields: Readonly<Record<string, unknown>>) => void
   /**
-  warning の文（`warning: ` の前置きと字下げを除いたもの）を受け取る。MCP だけが渡す
+  warning の文（`warning: ` の前置きを除き、続きの行の字下げは残したもの）を受け取る。MCP だけが渡す
   */
   readonly warning?: (text: string) => void
+  /**
+  失敗の文（`error: ` の前置きを除き、続きの行の字下げは残したもの）を受け取る。MCP だけが渡す
+  */
+  readonly error?: (text: string) => void
+  /**
+  子プロセスの生の出力を受け取る。MCP だけが渡す
+  */
+  readonly log?: (text: string) => void
 }
 
 /**
@@ -72,6 +80,10 @@ export interface CommandSpec<Input extends z.ZodObject, Output extends z.ZodObje
   `['issue', 'create']`、`['board', 'add']`。決まりは `<対象> <動詞>` の 2 語で、どちらも英小文字だけ（names.ts の commandNameViolations）
   */
   readonly path: readonly string[]
+  /**
+  MCP の Tool の最上位の title（表示名）。英語・4 語以内
+  */
+  readonly title: string
   /**
   typer の help の 1 行目と同じ文
   */
@@ -136,6 +148,7 @@ export interface PreparedCommand {
 export interface CommandDefinition {
   readonly path: readonly string[]
   readonly toolName: string
+  readonly title: string
   readonly description: string
   /**
   グローバルの repo を足した入力
@@ -248,6 +261,7 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
   return {
     path: spec.path,
     toolName: toolNameOf(spec.path),
+    title: spec.title,
     description: spec.description,
     input,
     output: spec.output,

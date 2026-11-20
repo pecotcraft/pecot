@@ -29,7 +29,7 @@ export interface InterfaceEntry {
   readonly deprecated: false
   readonly input: InputSchema
   readonly cli: { readonly positional: readonly string[], readonly flags: Readonly<Record<string, readonly string[]>> }
-  readonly mcp: { readonly output: unknown }
+  readonly mcp: { readonly title: string, readonly output: unknown }
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
@@ -68,7 +68,7 @@ function entryOf(command: CommandDefinition): InterfaceEntry {
     deprecated: false,
     input,
     cli: { positional: command.positional, flags: flagsOf(command, Object.keys(input.properties)) },
-    mcp: { output: outputOf(command) },
+    mcp: { title: command.title, output: outputOf(command) },
   }
 }
 

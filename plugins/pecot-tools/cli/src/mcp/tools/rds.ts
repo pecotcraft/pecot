@@ -32,7 +32,7 @@ export function rdsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
   return [
     allowlistedTool({
       entry: RDS_DESCRIBE_EVENTS,
-      title: 'Get RDS events',
+      title: 'List RDS events',
       description: 'Returns the event history of DB instances and clusters (stop, start, failover, etc.). Without a range, covers the last 1 hour; events are retained for 14 days',
       inputSchema: z.object({
         source_identifier: z.string().optional()

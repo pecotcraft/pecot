@@ -14,7 +14,7 @@
 
 ## MCP ツール
 
-MCP サーバ `pecot-tools` が、`aws_<service>_<subcommand>` のツールを 26 件公開します。
+MCP サーバ `pecot-tools` が、`aws_<service>_<subcommand>` のツールを 24 件公開します。
 ツール名は、awscli の `<service> <subcommand>` の `-` を `_` に置き換えた形です。
 許可リストに無いコマンド・S3 へのアップロード方向の指定・Athena の変更系クエリは、
 awscli を起動する前に拒否します。

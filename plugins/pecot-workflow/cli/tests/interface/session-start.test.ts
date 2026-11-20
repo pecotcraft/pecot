@@ -109,8 +109,7 @@ describe('session start', () => {
     { flag: '--force-overwrite-active' },
     { flag: '-X' },
     { flag: '-F' },
-  ])('$flag を付けて打つと、未知のオプションとして終了コード 2 で終わり、ブランチを作らない', async ({ flag }, context) => {
-    await verifies(context, 'PW-SESSION-START-37')
+  ])('$flag を付けて打つと、未知のオプションとして終了コード 2 で終わり、ブランチを作らない', async ({ flag }) => {
     const result = await create({ github: [] }, ['session', 'start', 'acme/demo/7', 'feat', flag])
     expect(result.code).toBe(2)
     expect(result.stderr).toContain(`No such option: ${flag}`)
@@ -146,15 +145,13 @@ describe('session start', () => {
     expect(result.read(ACTIVE)).toBeUndefined()
   })
 
-  it('作業ディレクトリがすでにあっても、ブランチを作って作業ディレクトリの created の行を出す', async (context) => {
-    await verifies(context, 'PW-SESSION-START-11')
+  it('作業ディレクトリがすでにあっても、ブランチを作って作業ディレクトリの created の行を出す', async () => {
     const result = await create({ files: { '.pecot/work/7/keep': 'x' } })
     expect(result.code).toBe(0)
     expect(result.stderr).toBe(`${CREATED}${STATUS_SET}${TARGET_SET}`)
   })
 
-  it('ブランチを作ると、created の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-SESSION-START-09')
+  it('ブランチを作ると、created の行を標準エラーに出す', async () => {
     const result = await create()
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(`${CREATED}${STATUS_SET}${TARGET_SET}`)
@@ -166,14 +163,12 @@ describe('session start', () => {
     expect(result.stderr).toContain(STATUS_SET)
   })
 
-  it('作業ディレクトリを作ると、created の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-SESSION-START-11')
+  it('作業ディレクトリを作ると、created の行を標準エラーに出す', async () => {
     const result = await create()
     expect(result.stderr).toContain(TARGET_SET)
   })
 
-  it('ボード上の Issue の Status を active にできないと、warning の行を標準エラーに出してブランチは作ったままにする', async (context) => {
-    await verifies(context, 'PW-SESSION-START-16')
+  it('ボード上の Issue の Status を active にできないと、warning の行を標準エラーに出してブランチは作ったままにする', async () => {
     const failing: ResponseRule = { match: { operation: 'GetIssueProjectItems' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), failing] })
     expect(result.code).toBe(0)
@@ -183,8 +178,7 @@ describe('session start', () => {
     expect(result.stderr).not.toContain('set: Issue')
   })
 
-  it('選択肢の ID が古くて Status を active にできないと、warning の行に project activate の案内を添える', async (context) => {
-    await verifies(context, 'PW-SESSION-START-16')
+  it('選択肢の ID が古くて Status を active にできないと、warning の行に project activate の案内を添える', async () => {
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), projectItems(), staleOptionUpdate()] })
     expect(result.code).toBe(0)
     expectClean(result)
@@ -196,8 +190,7 @@ describe('session start', () => {
     expect(result.stderr).not.toContain(STATUS_SET)
   })
 
-  it('ボードの項目を読めずに Status を active にできないときは、warning に ID を読み直す案内を添えない', async (context) => {
-    await verifies(context, 'PW-SESSION-START-16')
+  it('ボードの項目を読めずに Status を active にできないときは、warning に ID を読み直す案内を添えない', async () => {
     const failing: ResponseRule = { match: { operation: 'GetIssueProjectItems' }, respond: { status: 200, body: { errors: [{ type: 'VALIDATION', message: 'bad item' }] } }, times: 1 }
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), failing] })
     expect(result.code).toBe(0)
@@ -205,8 +198,7 @@ describe('session start', () => {
     expect(result.stderr).not.toContain('hint:')
   })
 
-  it('Issue がボードに載っていないと、Status を変えずに warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-SESSION-START-16')
+  it('Issue がボードに載っていないと、Status を変えずに warning の行を標準エラーに出す', async () => {
     const empty = graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), empty] })
     expect(result.code).toBe(0)
@@ -214,16 +206,14 @@ describe('session start', () => {
     expect(result.stderr).toContain('warning: could not set Issue acme/demo/7 status active: the Issue is not on the project board\n')
   })
 
-  it('設定に workflow の active が無いと、Status を変えずに warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-SESSION-START-16')
+  it('設定に workflow の active が無いと、Status を変えずに warning の行を標準エラーに出す', async () => {
     const result = await create({ config: projectConfig({ workflowOptions: { backlog: 'o1' } }), github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), projectItems()] })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain('warning: could not set Issue acme/demo/7 status active: the workflow status field has no \'active\' option\n')
   })
 
-  it('作業対象を記録できないと、warning の行を標準エラーに出して終了コード 0 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-17')
+  it('作業対象を記録できないと、warning の行を標準エラーに出して終了コード 0 で終わる', async () => {
     // 状態ディレクトリの場所にファイルを置くと、書けない
     const result = await create({ files: { '.pecot/state': 'not a directory' } }, ['session', 'start', 'acme/demo/7', 'feat'])
     expect(result.code).toBe(0)
@@ -233,16 +223,14 @@ describe('session start', () => {
     expect(result.stderr).not.toContain('created: work directory')
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-18')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
     const result = await create({ files: ambiguousFiles(), github: [] })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
     expect(result.requests).toEqual([])
   })
 
-  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-41')
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
     const result = await create({ config: otherRepositoryConfig(), github: [] })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n')
@@ -266,16 +254,14 @@ describe('session start', () => {
   it.for([
     { reference: '7', message: 'error: the short form \'N\' is not accepted here: use the full form \'owner/repo/N\'\n' },
     { reference: 'invalid-format', message: 'error: invalid reference: invalid-format\n  accepted forms:\n    - full: \'owner/repo/N\'\n    - short: \'N\' (with a base repository)\n' },
-  ])('Issue の参照が $reference でフル形式でないと、終了コード 2 で終わる', async ({ reference, message }, context) => {
-    await verifies(context, 'PW-SESSION-START-19')
+  ])('Issue の参照が $reference でフル形式でないと、終了コード 2 で終わる', async ({ reference, message }) => {
     const result = await create({ github: [] }, ['session', 'start', reference, 'feat'])
     expect(result.code).toBe(2)
     expect(result.stderr).toBe(message)
     expect(result.requests).toEqual([])
   })
 
-  it('作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違うと、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-20')
+  it('作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違うと、終了コード 2 で終わる', async () => {
     const result = await create({ remote: { owner: 'other', name: 'tree' }, github: [] })
     expect(result.code).toBe(2)
     expect(result.stderr).toBe([
@@ -288,8 +274,7 @@ describe('session start', () => {
     expect(result.requests).toEqual([])
   })
 
-  it('--base を省いて develop_branch も設定していないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-22')
+  it('--base を省いて develop_branch も設定していないと、終了コード 1 で終わる', async () => {
     const result = await create({ config: projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] }), github: [linkedRepositories(), noPrerequisites()] })
     expect(result.code).toBe(1)
     expectClean(result)
@@ -302,8 +287,7 @@ describe('session start', () => {
     expect(requestLabels(result.requests)).toEqual(['GetLinkedRepositoriesUser', 'GetIssuePrerequisites'])
   })
 
-  it('Issue のリポジトリがプロジェクトに登録されていないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-23')
+  it('Issue のリポジトリがプロジェクトに登録されていないと、終了コード 1 で終わる', async () => {
     const unlinked = graphqlRule('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes: [] } } } })
     const result = await create({ github: [unlinked] })
     expect(result.code).toBe(1)
@@ -312,8 +296,7 @@ describe('session start', () => {
     expect(requestLabels(result.requests)).toEqual(['GetLinkedRepositoriesUser'])
   })
 
-  it('ブランチの作成までの GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-24')
+  it('ブランチの作成までの GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const notFound = restRule('GET', '/repos/acme/demo/git/ref/heads/main', 404, { message: 'Not Found' })
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), notFound] })
     expect(result.code).toBe(1)
@@ -323,8 +306,7 @@ describe('session start', () => {
     expect(result.read(TITLE)).toBeUndefined()
   })
 
-  it('ブランチの作成の mutation が GraphQL の errors を返すと、ステータスの更新へ進まず終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-24')
+  it('ブランチの作成の mutation が GraphQL の errors を返すと、ステータスの更新へ進まず終了コード 1 で終わる', async () => {
     const rejected: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { errors: [{ type: 'UNPROCESSABLE', message: 'Ref already exists' }] } }, times: 1 }
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), rejected] })
     expect(result.code).toBe(1)
@@ -336,17 +318,14 @@ describe('session start', () => {
     expect(result.read(TITLE)).toBeUndefined()
   })
 
-  it('--repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-25')
+  it('--repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async () => {
     const result = await create({ github: [] }, ['--repo', 'other/tree', 'session', 'start', 'acme/demo/7', 'feat'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --repo other/tree differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote\n')
     expect(result.requests).toEqual([])
   })
 
-  it('--repo を省いて git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-SESSION-START-26')
-    await verifies(context, 'PW-SESSION-START-27')
+  it('--repo を省いて git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async () => {
     const result = await create({ remote: false, github: [] })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
@@ -396,7 +375,10 @@ describe('session start', () => {
   describe('MCP の data', () => {
     const ARGUMENTS = { issue_ref: 'acme/demo/7', branch: 'feat' }
 
-    it('ブランチを作ると、作ったブランチ・リポジトリ・base・作業 Issue・作業ディレクトリの絶対パスを data に返す', async () => {
+    it('ブランチを作ると、作ったブランチ・リポジトリ・base・作業 Issue・作業ディレクトリの絶対パスを data に返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-09')
+      await verifies(context, 'PW-SESSION-START-10')
+      await verifies(context, 'PW-SESSION-START-11')
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: succeeding() })
       expectClean(result)
       expect(result.isError).toBe(false)
@@ -409,14 +391,16 @@ describe('session start', () => {
       })
     })
 
-    it('前提の PR に積んで作ると、積んだ先の Issue の番号を stackedOn に返す', async () => {
+    it('前提の PR に積んで作ると、積んだ先の Issue の番号を stackedOn に返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-29')
       const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: judged({ blockedBy: [inReview] }, 'feat/3') })
       expectClean(result)
       expect(result.structured).toMatchObject({ branch: 'feat/7', base: 'feat/3', stackedOn: 3 })
     })
 
-    it('dry_run で打つと、作る予定のブランチと dryRun を data に返し、作業ディレクトリを返さない', async () => {
+    it('dry_run で打つと、作る予定のブランチと dryRun を data に返し、作業ディレクトリを返さない', async (context) => {
+      await verifies(context, 'PW-SESSION-START-36')
       const result = await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, dry_run: true }, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main')] })
       expectClean(result)
       expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', dryRun: true })
@@ -433,20 +417,144 @@ describe('session start', () => {
       expect(result.requests).toEqual([])
     })
 
-    it('Status を active にできないと、warning を data.warnings に返し、ブランチの data は返す', async () => {
+    it('Status を active にできないと、warning を data.warnings に返し、ブランチの data は返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-16')
       const empty = graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), empty] })
       expectClean(result)
       expect(result.structured).toMatchObject({ branch: 'feat/7', warnings: ['could not set Issue acme/demo/7 status active: the Issue is not on the project board'] })
     })
 
-    it('ブランチを作れないと、失敗の kind と detail を返し、成功の項目を返さない', async () => {
+    it('ブランチを作れないと、失敗の kind と detail を返し、成功の項目を返さない', async (context) => {
+      await verifies(context, 'PW-SESSION-START-24')
       const notFound = restRule('GET', '/repos/acme/demo/git/ref/heads/main', 404, { message: 'Not Found' })
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: [linkedRepositories(), noPrerequisites(), issueNode(), notFound] })
       expectClean(result)
       expect(result).toMatchObject({ isError: true, structured: { kind: 'github-not-found' } })
       expect(Object.keys(result.structured).toSorted((left, right) => left.localeCompare(right))).toEqual(['detail', 'kind'])
       expect(result.structured['detail']).toMatch(/^could not create branch feat\/7 in acme\/demo: resource not found: /u)
+    })
+
+    const start = async (extra: Partial<CommandRun> & { arguments?: Record<string, unknown> } = {}): Promise<Awaited<ReturnType<typeof runTool>>> => {
+      const { arguments: toolArguments = {}, ...rest } = extra
+      return await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, ...toolArguments }, github: succeeding(), ...rest })
+    }
+    const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
+
+    it('作業ディレクトリがすでにあっても、そのパスを workDirectory に入れる', async (context) => {
+      await verifies(context, 'PW-SESSION-START-11')
+      const result = await start({ files: { '.pecot/work/7/keep': 'x' } })
+      expect(result.structured['workDirectory']).toBe(path.join(result.directory, '.pecot/work/7'))
+    })
+
+    it('選択肢の ID が古くて Status を active にできないと、warnings に project_activate の案内を添える', async (context) => {
+      await verifies(context, 'PW-SESSION-START-16')
+      const result = await start({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), projectItems(), staleOptionUpdate()] })
+      expectClean(result)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not set Issue acme\/demo\/7 status active: [\s\S]*project_activate/u)])
+    })
+
+    it('作業対象を記録できないと、warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-SESSION-START-17')
+      const result = await start({ files: { '.pecot/state': 'not a directory' } })
+      expectClean(result)
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not record the work target: /u)])
+    })
+
+    it('リポを含む設定が 2 つあってアクティブな設定がどれでもないと、候補と project の案内を detail に入れ、no-active-project で失敗する', async (context) => {
+      await verifies(context, 'PW-SESSION-START-18')
+      const result = await start({ files: ambiguousFiles(), github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+      expect(result.structured['detail']).toContain('choose one with project: <NAME>')
+      expect(result.structured['detail']).toContain(`available: ${AMBIGUOUS_MESSAGE}`)
+    })
+
+    it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-41')
+      const result = await start({ config: otherRepositoryConfig(), github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'repo-not-in-project' } })
+      expect(result.requests).toEqual([])
+    })
+
+    it.for([{ reference: '7' }, { reference: 'invalid-format' }])('issue_ref が $reference でフル形式でないと、kind が invalid-input の失敗を返す', async ({ reference }, context) => {
+      await verifies(context, 'PW-SESSION-START-19')
+      const result = await start({ arguments: { issue_ref: reference }, github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.requests).toEqual([])
+    })
+
+    it('セッションのディレクトリの git remote のリポジトリが Issue のリポジトリと違うと、kind が repo-mismatch の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-20')
+      const result = await start({ remote: { owner: 'other', name: 'tree' }, github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'repo-mismatch' } })
+      expect(result.requests).toEqual([])
+    })
+
+    it('base を省いて develop_branch も設定していないと、kind が repo-setting-missing の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-22')
+      const result = await start({ config: projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] }), github: [linkedRepositories(), noPrerequisites()] })
+      expectClean(result)
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'repo-setting-missing' } })
+    })
+
+    it('Issue のリポジトリがプロジェクトに登録されていないと、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-23')
+      const unlinked = graphqlRule('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes: [] } } } })
+      const result = await start({ github: [unlinked] })
+      expectClean(result)
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'repo-not-in-project', detail: 'acme/demo is not in the project' } })
+    })
+
+    it('repo が今の git remote のリポジトリと食い違うと、kind が repo-mismatch の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-25')
+      const result = await start({ arguments: { repo: 'other/tree' }, github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'repo-mismatch' } })
+      expect(result.requests).toEqual([])
+    })
+
+    it('repo を省いて git の外で呼ぶと、the repository is ambiguous で始まる detail を入れ、kind が git-unresolved の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-26')
+      await verifies(context, 'PW-SESSION-START-27')
+      const result = await start({ remote: false, github: [] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+      expect(result.structured['detail']).toMatch(/^the repository is ambiguous\n/u)
+    })
+
+    it('着手の判定が blocked だと、ブランチを作らず、理由と直し方を detail に入れ、kind が not-ready の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-31')
+      await verifies(context, 'PW-SESSION-START-32')
+      const result = await start({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [{ number: 3, title: '未着手' }] })] })
+      expectClean(result)
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'not-ready' } })
+      expect(result.structured['detail']).toContain('#7 is blocked by #3 (not in review: #3 (not started))')
+      expect(result.structured['detail']).toContain('issue_unblock')
+      expect(requestLabels(result.requests)).not.toContain('CreateLinkedBranch')
+    })
+
+    it('stackable の判定で base の値と積む先が違うと、ブランチを作らず、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-33')
+      const result = await start({ arguments: { base: 'release' }, github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] })
+      expectClean(result)
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.read(BASE)).toBeUndefined()
+    })
+
+    it('前提を読めないと、ブランチを作らず、kind が dependency-unreadable の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-34')
+      const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+      const result = await start({ github: [linkedRepositories(), failing] })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'dependency-unreadable' } })
+      expect(result.read(TITLE)).toBeUndefined()
+    })
+
+    it('積む先のブランチが判定の後に無くなると、積む先が見つからない旨を detail に入れ、kind が git-unresolved の失敗を返す', async (context) => {
+      await verifies(context, 'PW-SESSION-START-35')
+      const gone = restRule('GET', '/repos/acme/demo/git/ref/heads/feat/3', 404, { message: 'Not Found' })
+      const result = await start({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] }), issueNode(), gone] })
+      expectClean(result)
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
+      expect(result.structured['detail']).toMatch(/^base branch feat\/3 of #3 not found: /u)
     })
   })
   describe('着手の判定', () => {
@@ -457,7 +565,6 @@ describe('session start', () => {
 
     it('前提の PR が 1 本に積めると、その PR のブランチの先頭からブランチを作り、created の行に積んだ先を付ける', async (context) => {
       await verifies(context, 'PW-SESSION-START-28')
-      await verifies(context, 'PW-SESSION-START-29')
       const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') })
       expect(result.code).toBe(0)
       expectClean(result)
@@ -482,8 +589,7 @@ describe('session start', () => {
       expect(result.stderr).toContain(STACKED)
     })
 
-    it('積む先と違う --base を付けると、ブランチを作らず終了コード 2 で終わる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-33')
+    it('積む先と違う --base を付けると、ブランチを作らず終了コード 2 で終わる', async () => {
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'release'])
       expect(result.code).toBe(2)
       expectClean(result)
@@ -492,9 +598,7 @@ describe('session start', () => {
       expect(result.read(BASE)).toBeUndefined()
     })
 
-    it('前提が 2 件で、1 件が merge 待ちなら、ブランチを作らず理由と直し方を出して終了コード 2 で終わる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-31')
-      await verifies(context, 'PW-SESSION-START-32')
+    it('前提が 2 件で、1 件が merge 待ちなら、ブランチを作らず理由と直し方を出して終了コード 2 で終わる', async () => {
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview, waiting], body: WAITS })] })
       expect(result.code).toBe(2)
       expectClean(result)
@@ -511,8 +615,7 @@ describe('session start', () => {
       expect(result.read(TITLE)).toBeUndefined()
     })
 
-    it('済んでいない前提が 1 件で merge 待ちなら、直し方にその Issue の参照を入れる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-31')
+    it('済んでいない前提が 1 件で merge 待ちなら、直し方にその Issue の参照を入れる', async () => {
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [waiting], body: WAITS })] })
       expect(result.code).toBe(2)
       expect(result.stderr).toBe([
@@ -524,9 +627,7 @@ describe('session start', () => {
       ].join('\n'))
     })
 
-    it('merge 待ち以外の理由で blocked なら、直し方は unblock の 1 行だけにする', async (context) => {
-      await verifies(context, 'PW-SESSION-START-31')
-      await verifies(context, 'PW-SESSION-START-32')
+    it('merge 待ち以外の理由で blocked なら、直し方は unblock の 1 行だけにする', async () => {
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [{ number: 3, title: '未着手' }] })] })
       expect(result.code).toBe(2)
       expect(result.stderr).toBe([
@@ -537,15 +638,13 @@ describe('session start', () => {
       ].join('\n'))
     })
 
-    it('blocked のときは、--base を付けても比べずに blocked で止まる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-32')
+    it('blocked のときは、--base を付けても比べずに blocked で止まる', async () => {
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [waiting], body: WAITS })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'release'])
       expect(result.code).toBe(2)
       expect(result.stderr).toContain('error: #7 is blocked by #4')
     })
 
-    it('前提を読めないと、ブランチを作らず終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-34')
+    it('前提を読めないと、ブランチを作らず終了コード 1 で終わる', async () => {
       const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
       const result = await create({ github: [linkedRepositories(), failing] })
       expect(result.code).toBe(1)
@@ -554,8 +653,7 @@ describe('session start', () => {
       expect(result.read(TITLE)).toBeUndefined()
     })
 
-    it('前提は読めても判定できないと、判定できない旨の error の行を出して終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-34')
+    it('前提は読めても判定できないと、判定できない旨の error の行を出して終了コード 1 で終わる', async () => {
       const config = projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] })
       const result = await create({ config, github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'main'])
       expect(result.code).toBe(1)
@@ -584,8 +682,7 @@ describe('session start', () => {
       expect(result.stderr).toBe(`warning: readiness is not checked: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required\n${CREATED}${STATUS_SET}${TARGET_SET}`)
     })
 
-    it('積む先のブランチが判定の後に無くなると、積む先が見つからない旨の error の行を出して終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-35')
+    it('積む先のブランチが判定の後に無くなると、積む先が見つからない旨の error の行を出して終了コード 1 で終わる', async () => {
       const gone = restRule('GET', '/repos/acme/demo/git/ref/heads/feat/3', 404, { message: 'Not Found' })
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] }), issueNode(), gone] })
       expect(result.code).toBe(1)
@@ -595,8 +692,7 @@ describe('session start', () => {
       expect(result.read(TITLE)).toBeUndefined()
     })
 
-    it('blocked の理由が diverged なら、直し方は unblock の行だけにする', async (context) => {
-      await verifies(context, 'PW-SESSION-START-32')
+    it('blocked の理由が diverged なら、直し方は unblock の行だけにする', async () => {
       const diverged = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3', base: 'feat/2' }] }
       const noPullRequests = graphqlRule('ListPullRequestsByHead', { repository: { pullRequests: { nodes: [], pageInfo: { hasNextPage: false } } } })
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [diverged] }), noPullRequests] })

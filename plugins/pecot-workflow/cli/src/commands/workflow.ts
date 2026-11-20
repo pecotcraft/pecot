@@ -63,6 +63,7 @@ function nextSteps(template: Readonly<WorkflowTemplate>): HintedText {
 
 const workflowInstallCommand = defineCommand({
   path: ['workflow', 'install'],
+  title: 'Install workflow template',
   description: 'Write a GitHub Actions workflow template of pecot into the repository',
   input: z.strictObject({
     name: NAME_INPUT,
@@ -154,6 +155,7 @@ async function readSettingNames(client: GitHubClient, owner: string, repository:
 
 const workflowDoctorCommand = defineCommand({
   path: ['workflow', 'doctor'],
+  title: 'Check workflow setup',
   description: 'Check that the repository has the workflow file and the settings it needs',
   input: z.strictObject({
     name: NAME_INPUT,

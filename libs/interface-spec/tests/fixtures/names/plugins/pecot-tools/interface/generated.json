@@ -51,6 +51,7 @@
         "additionalProperties": false
       },
       "mcp": {
+        "title": "Aws s3",
         "output": {
           "type": "object",
           "properties": {
@@ -105,6 +106,7 @@
         "additionalProperties": false
       },
       "mcp": {
+        "title": "Aws s4 ls",
         "output": {
           "type": "object",
           "properties": {

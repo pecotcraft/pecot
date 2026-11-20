@@ -203,6 +203,11 @@ describe('review のワークフローの雛形', () => {
     }
   })
 
+  it('prompt は、変数 PECOT_REVIEW_PROJECT のあるときだけ、末尾に project=<名前> を足す', () => {
+    const prompt = text(reviewInputs['prompt'])
+    expect(prompt.endsWith('${{ vars.PECOT_REVIEW_PROJECT != \'\' && format(\' project={0}\', vars.PECOT_REVIEW_PROJECT) || \'\' }}')).toBe(true)
+  })
+
   it('job の permissions は contents: read・pull-requests: write・id-token: write だけになる', () => {
     expect(job.permissions).toEqual({ 'contents': 'read', 'pull-requests': 'write', 'id-token': 'write' })
   })
@@ -260,11 +265,32 @@ describe('review のワークフローの雛形', () => {
       'NotebookEdit',
       'AskUserQuestion',
       'Agent',
-      'WebFetch',
-      'WebSearch',
       'Bash(git clone:*)',
       'Read(//proc/**)',
     ])
+  })
+
+  it('PECOT_REVIEW_WEB_ACCESS が false でないとき、Context7 を足し、WebSearch・docs.github.com・Context7 のツールを許す', () => {
+    expect(claudeArguments).toContain('${{ vars.PECOT_REVIEW_WEB_ACCESS != \'false\' && format(\'--mcp-config \'\'{0}\'\'\', secrets.CONTEXT7_API_KEY != \'\' && env.PECOT_REVIEW_CONTEXT7_WITH_KEY || env.PECOT_REVIEW_CONTEXT7) || \'\' }}')
+    expect(claudeArguments).toContain('${{ vars.PECOT_REVIEW_WEB_ACCESS != \'false\' && \',WebSearch,WebFetch(domain:docs.github.com),mcp__context7__resolve-library-id,mcp__context7__query-docs\' || \'\' }}')
+  })
+
+  it('WebFetch は docs.github.com だけをドメインつきで許し、全ドメインを許さない', () => {
+    const allowed = /--allowedTools "([^"]*)"/.exec(claudeArguments)?.[1] ?? ''
+    expect(Array.from(allowed.matchAll(/WebFetch[^,']*/g), match => match[0])).toEqual(['WebFetch(domain:docs.github.com)'])
+  })
+
+  it('PECOT_REVIEW_WEB_ACCESS が false のとき、WebFetch と WebSearch を拒否する', () => {
+    expect(claudeArguments).toContain('Agent${{ vars.PECOT_REVIEW_WEB_ACCESS == \'false\' && \',WebFetch,WebSearch\' || \'\' }},Bash(git clone:*)')
+  })
+
+  it('Context7 は OAuth でない URL につなぎ、キーは step の env の CONTEXT7_API_KEY から渡す', () => {
+    const withoutKey: unknown = JSON.parse(job.env?.['PECOT_REVIEW_CONTEXT7'] ?? '')
+    const withKey: unknown = JSON.parse(job.env?.['PECOT_REVIEW_CONTEXT7_WITH_KEY'] ?? '')
+    const server = { type: 'http', url: 'https://mcp.context7.com/mcp' }
+    expect(withoutKey).toEqual({ mcpServers: { context7: server } })
+    expect(withKey).toEqual({ mcpServers: { context7: { ...server, headers: { Authorization: 'Bearer ${CONTEXT7_API_KEY}' } } } })
+    expect(review.env?.['CONTEXT7_API_KEY']).toBe('${{ secrets.CONTEXT7_API_KEY }}')
   })
 
   it('許可は契約のツールだけで、マージ・クローズ・リリースのツールを含まない', () => {
@@ -285,7 +311,8 @@ describe('review のワークフローの雛形', () => {
   })
 
   it('利用者が足す許可は、job の env の変数から --allowedTools の末尾に足す', () => {
-    expect(job.env).toEqual({ PECOT_REVIEW_EXTRA_ALLOWED_TOOLS: '' })
+    expect(job.env?.['PECOT_REVIEW_EXTRA_ALLOWED_TOOLS']).toBe('')
+    expect(Object.keys(job.env ?? {})).toEqual(['PECOT_REVIEW_EXTRA_ALLOWED_TOOLS', 'PECOT_REVIEW_CONTEXT7', 'PECOT_REVIEW_CONTEXT7_WITH_KEY'])
     expect(claudeArguments).toContain('${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != \'\' && format(\',{0}\', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || \'\' }}"')
   })
 
@@ -352,9 +379,10 @@ describe('自動レビューの導入の説明', () => {
   })
 
   it('雛形の変数と secret の名前が、すべて説明に出てくる', () => {
-    const names = new Set(Array.from(active.matchAll(/\b(?:vars|secrets)\.([A-Z][A-Z_]+)/g), match => match[1] ?? ''))
+    const names = new Set(Array.from(active.matchAll(/\b(?:vars|secrets)\.([A-Z][A-Z0-9_]+)/g), match => match[1] ?? ''))
     expect([...names].toSorted((a, b) => a.localeCompare(b))).toEqual([
       'CLAUDE_CODE_OAUTH_TOKEN',
+      'CONTEXT7_API_KEY',
       'PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID',
       'PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID',
       'PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID',
@@ -363,8 +391,10 @@ describe('自動レビューの導入の説明', () => {
       'PECOT_AGENT_APP_PRIVATE_KEY',
       'PECOT_REVIEW_ALLOWED_BOTS',
       'PECOT_REVIEW_MAX_TURNS',
+      'PECOT_REVIEW_PROJECT',
       'PECOT_REVIEW_TIMEOUT_MINUTES',
       'PECOT_REVIEW_TRIGGER_PHRASE',
+      'PECOT_REVIEW_WEB_ACCESS',
     ])
     for (const name of names) expect(document).toContain(`\`${name}\``)
   })
@@ -378,6 +408,11 @@ describe('自動レビューの導入の説明', () => {
       expect(row, `${name} の行が説明の表に無い`).toBeDefined()
       expect(row).toContain(`\`${value}\``)
     }
+  })
+
+  it('変数 PECOT_REVIEW_PROJECT が、説明の「変えられる値」の表にある', () => {
+    const rows = markdownSection(document, '### 変えられる値').split('\n')
+    expect(rows.some(line => line.startsWith('| `PECOT_REVIEW_PROJECT` |'))).toBe(true)
   })
 
   it('利用者が足す行の印の名前が、説明に出てくる', () => {

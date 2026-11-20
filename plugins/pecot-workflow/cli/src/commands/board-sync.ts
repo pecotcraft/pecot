@@ -65,6 +65,7 @@ function deleteFailureMessage(failures: number): string {
 
 const boardSyncCommand = defineCommand({
   path: ['board', 'sync'],
+  title: 'Sync board columns',
   description: 'Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board',
   input: z.strictObject({
     dry_run: z.boolean().default(false).describe('Show the planned moves without writing to the board'),

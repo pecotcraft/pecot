@@ -9,7 +9,7 @@ import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from '
 import { gitRunnerFor, listRemotes } from '../infra/git.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
-import { WARNING_PREFIX } from './output.js'
+import { ERROR_PREFIX, WARNING_PREFIX } from './output.js'
 
 /**
 今の git remote を読む。git の外・remote 無しは undefined、URL から owner/repo を読めなければ UnreadableRemote
@@ -38,7 +38,7 @@ export function requireRepositoryMatch(
   cwd: string,
 ): RepositoryReference | undefined {
   const outcome = applyRepositoryPolicy({ explicit, resolved: readCurrentRepository(cwd), mode })
-  writeLines(io, outcome.stderr)
+  writeLines(io, outcome.stderr, outcome.kind === 'exit')
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted
 }
@@ -50,14 +50,28 @@ git の外・remote 無しなら、stderr に行を書いて CommandExit(1) を�
 */
 export function requireGitRemote(io: Readonly<CommandIo>, cwd: string): void {
   if ((listRemotes(cwd) ?? []).length > 0) return
-  writeLines(io, [AMBIGUOUS_REPOSITORY_LINE, '  run inside a git repository that has a remote'])
+  writeLines(io, [AMBIGUOUS_REPOSITORY_LINE, '  run inside a git repository that has a remote'], true)
   throw new CommandExit(1, 'git-unresolved')
 }
 
-function writeLines(io: Readonly<CommandIo>, lines: readonly (string | HintedText)[]): void {
+// 止まるときは、error の行とその続きの行を、前置きを除いた 1 つの文にして io.error に渡す
+function writeLines(io: Readonly<CommandIo>, lines: readonly (string | HintedText)[], isExit: boolean): void {
+  const failure: string[] = []
+  let isInWarning = false
   for (const line of lines) {
     const text = formatHinted(line, io.surface ?? 'cli')
     io.stderr(`${text}\n`)
-    if (text.startsWith(WARNING_PREFIX)) io.warning?.(text.slice(WARNING_PREFIX.length))
+    if (text.startsWith(WARNING_PREFIX)) {
+      isInWarning = true
+      io.warning?.(text.slice(WARNING_PREFIX.length))
+    }
+    else if (text.startsWith(ERROR_PREFIX)) {
+      isInWarning = false
+      failure.push(text.slice(ERROR_PREFIX.length))
+    }
+    else if (!isInWarning) {
+      failure.push(text)
+    }
   }
+  if (isExit && failure.length > 0) io.error?.(failure.join('\n'))
 }

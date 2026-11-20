@@ -1,3 +1,27 @@
+## 3.0.2 (2026-11-18)
+
+### 🩹 Fixes
+
+- GitHub Copilot CLI で、エージェントが使えるツールを**定義のとおり絞る**ようにした。 ([#563](https://github.com/pecotcraft/pecot/pull/563), [#551](https://github.com/pecotcraft/pecot/issues/551))
+  w-reviewer は編集のツールを使えず、`/agent` の警告も出ない。
+
+- `.textlintignore`（textlint の標準の除外ファイル）で外したファイルを、`pecot-text-lint` が飛ばすようになった。 ([#566](https://github.com/pecotcraft/pecot/pull/566), [#555](https://github.com/pecotcraft/pecot/issues/555))
+  pecot-visual の書くたびの text lint も、リポのルートの `.textlintignore` に従う。
+
+- domain のモジュールのコメントが、**憲法の条を番号ではなく名前（層の分離）**で指すように直した。 ([#601](https://github.com/pecotcraft/pecot/pull/601), [#596](https://github.com/pecotcraft/pecot/issues/596))
+- 表を回すテストの題の **`$キー` が読めない形**だと lint が止め、**同じファイルで題が重なる**とテストが止める。 ([#626](https://github.com/pecotcraft/pecot/pull/626), [#606](https://github.com/pecotcraft/pecot/issues/606))
+- MCP ツールの出力の型を、ツールごとの**閉じた型**にした。 ([#654](https://github.com/pecotcraft/pecot/pull/654), [#644](https://github.com/pecotcraft/pecot/issues/644))
+  pecot-tools は、宣言に無い AWS のキーを外して `warnings` で知らせる。
+  `runtime_setup` は、失敗のときに `reason` を返さない。
+
+- Slidev の実行に使う依存の picomatch（4.0.7 以下）に、修正版の無い advisory GHSA-fc5q-39xc-vjpf があります。 ([#666](https://github.com/pecotcraft/pecot/pull/666), [#664](https://github.com/pecotcraft/pecot/issues/664))
+  glob のパターンを外から渡せるときの ReDoS で、pecot-visual ではパターンがデッキと設定のファイルからだけ来るため、リリース監査の例外にしました。
+  修正版が出たら、依存を上げて例外を外します。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 3.0.1 (2026-11-17)
 
 ### 🩹 Fixes

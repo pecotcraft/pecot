@@ -1,3 +1,93 @@
+# 9.0.0 (2026-11-18)
+
+### 🚀 Features
+
+- `worktree add` の `wt9` までの上限をなくす。`wt1` から `wt9` までのセットがすべて使われていても、`wt10` 以降のセットを作る。 ([#558](https://github.com/pecotcraft/pecot/pull/558), [#556](https://github.com/pecotcraft/pecot/issues/556))
+- ワークフローの雛形をリポに置く `pecot workflow install` と、雛形と要る secret・変数がそろっているかを確かめる `pecot workflow doctor` を足す。 ([#615](https://github.com/pecotcraft/pecot/pull/615), [#569](https://github.com/pecotcraft/pecot/issues/569))
+- コマンド `review finish`（MCP ツール `review_finish`）を足す。 ([#605](https://github.com/pecotcraft/pecot/pull/605), [#570](https://github.com/pecotcraft/pecot/issues/570))
+  自動レビューが失敗・上限・設定の不足で止まったときだけ、止まったことを知らせるコメントを PR に 1 つ書く。
+
+- w-onboarding が、カレントリポに自動レビューのワークフローを入れるかを聞き、入れるなら雛形を置いて設定の順を示し、最後に確かめる。導入と運用の説明を w-help に足す。 ([#620](https://github.com/pecotcraft/pecot/pull/620), [#573](https://github.com/pecotcraft/pecot/issues/573))
+- 自動レビューの 2 巡目は、前の指摘が直ったかを先に書き、F-NN を PR の中の通し番号で振ります（`R2/F-01` の形をやめました）。 ([#642](https://github.com/pecotcraft/pecot/pull/642), [#574](https://github.com/pecotcraft/pecot/issues/574))
+  `pr show --reviews` の行コメントに `url` が加わりました。雛形（review 3）は、合言葉より後に push されたコミットをレビューしません。
+
+- `pr create` の head に **`owner:branch`** を渡すと、fork のブランチから PR を作れる。 ([#631](https://github.com/pecotcraft/pecot/pull/631), [#613](https://github.com/pecotcraft/pecot/issues/613))
+  作る前の確かめは、その owner の fork を指す remote に push 済みかを見て、足りなければ remote とブランチ名を添えた直し方を出す。
+  `--head` で今と別のブランチを指したときも、そのブランチの push を確かめる。
+
+- 自動レビューの雛形を `review 4` に上げ、変数 `PECOT_REVIEW_PROJECT` でプロジェクトの設定を指定できるようにしました。 ([#660](https://github.com/pecotcraft/pecot/pull/660), [#640](https://github.com/pecotcraft/pecot/issues/640))
+  リポが 2 つ以上の設定に入っているときに置くと、w-review がその設定で動きます。
+  `pecot workflow install review --force` で入れ直してください。
+
+
+### 🩹 Fixes
+
+- `issue reopen` で開き直した Issue が、ボードの自動化（Auto-close issue）で**閉じ直されることがある**不具合を修正。 ([#550](https://github.com/pecotcraft/pecot/pull/550), [#536](https://github.com/pecotcraft/pecot/issues/536))
+  ボードの組み込みの `Status` が `Done` なら、開き直す前に値を消す。消したかどうかを MCP の結果の `doneCleared` で返す。
+
+- w-onboarding と w-pr が本文に埋め込んでいたスクリプトを、スキルの `scripts/` に移した。 ([#559](https://github.com/pecotcraft/pecot/pull/559), [#548](https://github.com/pecotcraft/pecot/issues/548))
+  w-onboarding の兄弟リポの検出で、エージェントがスクリプトを動かして出力で決めるようになる。
+  使われていない w-onboarding の `open_browser.sh` を消した。
+
+- GitHub Copilot CLI で、エージェントが使えるツールを**定義のとおり絞る**ようにした。 ([#563](https://github.com/pecotcraft/pecot/pull/563), [#551](https://github.com/pecotcraft/pecot/issues/551))
+  w-reviewer は編集のツールを使えず、`/agent` の警告も出ない。
+
+- 前提の Issue が開いたまま PR がマージ済みのとき、着手の判定が `no PR` でなく **`PR merged, Issue open`** と出して止まる。 ([#560](https://github.com/pecotcraft/pecot/pull/560), [#553](https://github.com/pecotcraft/pecot/issues/553))
+  止める文に、Issue を閉じるか閉じてから打ち直す手当てを添える。
+
+- 検証用の設定の比べと片付けのスクリプトを、プラグインの `scripts/sandbox/` に移す。利用者の使い方は変わらない。 ([#578](https://github.com/pecotcraft/pecot/pull/578), [#562](https://github.com/pecotcraft/pecot/issues/562))
+- 自動レビューのワークフローの雛形 `pecot-review.yml` を、`cli/templates/workflow/` に同梱する。 ([#602](https://github.com/pecotcraft/pecot/pull/602), [#568](https://github.com/pecotcraft/pecot/issues/568))
+  雛形を置くコマンドはまだ無いので、利用者の動きは変わらない。
+
+- 設定とトークンの無い clone で `pr create --prepare` が止まらず、`Closes` を空のままテンプレートを書く。 ([#584](https://github.com/pecotcraft/pecot/pull/584), [#583](https://github.com/pecotcraft/pecot/issues/583))
+  `.pecot/config/` の無い clone では `.env` を作らず、`gh auth login` と起動前の環境変数で渡す案内を出す。
+
+- `pr restack` の push が、pre-push のフックを含めて **10 分まで待つ**。フックが 60 秒を超えるリポでも、push と base の記録の書き直しまで終わる。 ([#599](https://github.com/pecotcraft/pecot/pull/599), [#585](https://github.com/pecotcraft/pecot/issues/585))
+  時間切れで止まったときは、時間切れだと分かる文と、手で push してから打ち直す案内を出す。MCP から呼んだ push は、待つ間も要求の取り消しを受けて止まる。
+
+- MCP のツールが git・gh・`setup_command` を待つ間も、ping へ答えるようにした。 ([#610](https://github.com/pecotcraft/pecot/pull/610), [#593](https://github.com/pecotcraft/pecot/issues/593))
+  取り消すと、子プロセスへ SIGTERM を送り、残ればその子ごと止める。子は端末に入力を尋ねられなくなる。
+  `release` の ls-remote と `session finish` の `git pull` は、時間切れで止まる。
+
+- 積んだ PR の Issue が、下の段のマージの後も**ボードで In Progress にならず、閉じない**不具合を修正。 ([#604](https://github.com/pecotcraft/pecot/pull/604), [#603](https://github.com/pecotcraft/pecot/issues/603))
+  `pr restack` は開発ブランチへ載せ直した後、PR の本文を変えずに保存し直す。GitHub が `Closes` をリンクにする。
+  保存し直した PR の番号を、MCP の結果の `relinked` で返す。
+
+- 表を回すテストの題の **`$キー` が読めない形**だと lint が止め、**同じファイルで題が重なる**とテストが止める。 ([#626](https://github.com/pecotcraft/pecot/pull/626), [#606](https://github.com/pecotcraft/pecot/issues/606))
+- board sync・自動レビューの雛形の setup-node が、npm のキャッシュを戻さず保存もしなくなる。 ([#627](https://github.com/pecotcraft/pecot/pull/627), [#617](https://github.com/pecotcraft/pecot/issues/617))
+  置いた `pecot-board-sync.yml` の setup-node にも `package-manager-cache: false` を足す。
+
+- 自動レビューの雛形を `review 2` に上げ、w-review が `gh pr diff` で PR の diff を読むようにしました。 ([#635](https://github.com/pecotcraft/pecot/pull/635), [#633](https://github.com/pecotcraft/pecot/issues/633))
+  `pecot workflow install review --force` で入れ直してください。
+
+- 検証用の設定を比べるスクリプトが、自動レビューの workflow の写しも比べる。 ([#662](https://github.com/pecotcraft/pecot/pull/662), [#639](https://github.com/pecotcraft/pecot/issues/639))
+  このリポだけの運用の ruleset は比べない。利用者の使い方は変わらない。
+
+- w-quick と w-active は、計画を書く前に、Issue と依頼の曖昧な点を Spec Kit の clarify と同じ進め方で聞きます。 ([#653](https://github.com/pecotcraft/pecot/pull/653), [#649](https://github.com/pecotcraft/pecot/issues/649))
+  plan テンプレの Notes から「判断を仰ぐ点」を外し、聞いて決めた点を書く欄にしました。
+
+- フェーズの前提の種類を決める文に**試験環境**を足した。前提の変更を試験環境で動かして確かめられるなら「積める」になり、マージを待たずに着手できる。「マージを待つ」の例から、プラグインを外した。 ([#557](https://github.com/pecotcraft/pecot/pull/557), [#479](https://github.com/pecotcraft/pecot/issues/479))
+
+### ⚠️  Breaking Changes
+
+- w-e2e-planner を消し、計画の CUJ は main が w-help の「CUJ の流し方」に従って流すようにしました。w-e2e-planner を使う手順は、この形に替えてください。 ([#565](https://github.com/pecotcraft/pecot/pull/565), [#478](https://github.com/pecotcraft/pecot/issues/478))
+  CUJ に「流す先」の項目が加わり、外へ書き込む CUJ はプロジェクトの指示にある検証用で流します。
+  w-reviewer は、流す先の欠けと、検証用があるのに作業中のリポで流す計画を挙げます。
+
+- Issue・PR などのツールが `.active` ではなく、対象のリポを含むプロジェクトの設定を使う。 ([#581](https://github.com/pecotcraft/pecot/pull/581), [#579](https://github.com/pecotcraft/pecot/issues/579))
+  `.active` の無い checkout でも動き、候補が 2 つ以上で選べなければ `--project` を求める。
+  対象のリポを含まない設定では動かず、`.active` の切り替えで動かしていた使い方は止まる。
+
+- `w-revise` を `w-review` に改め、PR のレビューと指摘の投稿だけにした。指摘への対応は `w-pr` の Step 5 で行う。 ([#623](https://github.com/pecotcraft/pecot/pull/623), [#571](https://github.com/pecotcraft/pecot/issues/571))
+  エージェント `w-reviewer` は `w-plan-reviewer` に改め、計画のレビューだけに使う。
+
+- w-tech-advisor を除き、clone の置き場所を `.pecot/work/<番号>/reviewer/` に、設定キーを `reviewer-clone-allow` に改めた。 ([#564](https://github.com/pecotcraft/pecot/pull/564), [#552](https://github.com/pecotcraft/pecot/issues/552))
+  古いキー `tech-advisor-clone-allow` は読まないので、`false` にしていたなら新しいキーで書き直す。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 8.0.0 (2026-11-17)
 
 ### 🚀 Features

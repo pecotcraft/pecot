@@ -24,6 +24,8 @@ const NO_PACKAGE_FILES = { 'CHANGELOG.md': '# Changelog\n\n## [Unreleased]\n' }
 const USAGE_ERROR = 2
 const WITHOUT_RELEASE_BRANCH: ProjectOptions = { repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'develop' }] }
 
+interface CheckFailure { readonly name: string, readonly options: ProjectOptions, readonly input: Readonly<Record<string, unknown>>, readonly rules: readonly ResponseRule[], readonly kind: string, readonly detail: string, readonly id: string }
+
 function runPreflight(project: Readonly<Project>, arguments_: readonly string[] = [], rules: readonly ResponseRule[] = alertRules(), global: readonly string[] = []): ReturnType<typeof runRelease> {
   return runRelease(project, [...global, 'release', 'check', ...arguments_], rules)
 }
@@ -149,8 +151,7 @@ describe('release check', () => {
     expect(result.stderr).toContain('skipped: Dependabot alerts (feature disabled)\nskipped: code scanning (feature disabled)\nskipped: secret scanning (feature disabled)\n')
   })
 
-  it('open の Dependabot alert があると、件数と最も重い severity を添えた warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-06')
+  it('open の Dependabot alert があると、件数と最も重い severity を添えた warning の行を標準エラーに出す', async () => {
     const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] })
     const result = await runCounted(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(0)
@@ -170,8 +171,7 @@ describe('release check', () => {
     expect(result.stderr).not.toContain('commits to release')
   })
 
-  it('--repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-08')
+  it('--repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す', async () => {
     const result = await runCounted(project({ ...WITH_BRANCHES, repositories: [DEFAULT_REPOSITORY, OTHER] }), [], alertRules({}, 'acme/other'), ['--repo', 'acme/other'], 1, 'acme/other')
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: using --repo acme/other (current Git remote: acme/demo)\n')
@@ -192,8 +192,7 @@ describe('release check', () => {
   describe('Dependabot alert の状態を読めない', () => {
     const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 403, FORBIDDEN), rest('GET', '/repos/acme/demo/vulnerability-alerts', 204)] })
 
-    it('もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CHECK-11')
+    it('もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出す', async () => {
       const result = await runCounted(project(WITH_BRANCHES), [], rules)
       expect(result.stderr).toContain('warning: could not check Dependabot alerts. The release is not blocked.\n')
       expect(result.stderr).toContain('reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)')
@@ -208,8 +207,7 @@ describe('release check', () => {
     })
   })
 
-  it('もし open の code scanning alert があるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-13')
+  it('もし open の code scanning alert があるなら、終了コード 1 で終わる', async () => {
     const rules = alertRules({ code: [rest('GET', alertPath('code'), 200, [{ number: 10, rule: { severity: 'error' } }])] })
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(1)
@@ -217,8 +215,7 @@ describe('release check', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('もし open の secret scanning alert があるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-14')
+  it('もし open の secret scanning alert があるなら、終了コード 1 で終わる', async () => {
     const rules = alertRules({ secret: [rest('GET', alertPath('secret'), 200, [{ number: 5 }])] })
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(1)
@@ -230,8 +227,7 @@ describe('release check', () => {
     { kind: 'secret scanning', rules: alertRules({ secret: [rest('GET', alertPath('secret'), 404, NOT_FOUND), rest('GET', '/repos/acme/demo', 200, {})] }) },
   ]
 
-  it.for(undeterminable)('もし $kind の状態を判定できないなら、終了コード 1 で終わる', async ({ kind, rules }, context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-15')
+  it.for(undeterminable)('もし $kind の状態を判定できないなら、終了コード 1 で終わる', async ({ kind, rules }) => {
     const result = await runPreflight(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(1)
     expect(result.stderr).toContain(`error: could not check ${kind}: acme/demo: `)
@@ -271,15 +267,13 @@ describe('release check', () => {
     })
   })
 
-  it('もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-18')
+  it('もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ isGit: false }), [], [], ['--repo', 'acme/demo'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: could not find the root directory of the git repository\n')
   })
 
-  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-19')
+  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), [], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
@@ -287,8 +281,7 @@ describe('release check', () => {
     expect(result.stderr).toContain('available: ')
   })
 
-  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-42')
+  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ isActive: false }), [], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
@@ -300,30 +293,26 @@ describe('release check', () => {
     expect(result.code).toBe(0)
   })
 
-  it.for([{ arguments_: ['0.2.0'] }, { arguments_: ['--package', 'pkg-a'] }])('もし nx のリポジトリに $arguments_ を渡したなら、終了コード 1 で終わる', async ({ arguments_ }, context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-20')
+  it.for([{ arguments_: ['0.2.0'] }, { arguments_: ['--package', 'pkg-a'] }])('もし nx のリポジトリに $arguments_ を渡したなら、終了コード 1 で終わる', async ({ arguments_ }) => {
     const result = await runPreflight(project({ repositories: [{ ...DEFAULT_REPOSITORY, release_type: 'nx' }] }), arguments_, [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('the version argument and --package cannot be used when release_type is nx')
   })
 
-  it('もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-21')
+  it('もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ repositories: [PACKAGES], files: PACKAGE_FILES }), [], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('acme/demo is a monorepo')
     expect(result.stderr).toContain('available: pkg-a')
   })
 
-  it('もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-22')
+  it('もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ repositories: [PACKAGES], files: PACKAGE_FILES }), ['--package', 'unknown'], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('package \'unknown\' is not registered in acme/demo')
   })
 
-  it('もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-23')
+  it('もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project(), ['--package', 'pkg-a'], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('acme/demo has no packages configured')
@@ -332,8 +321,7 @@ describe('release check', () => {
   it.for([
     { kind: 'develop', repository: { owner: 'acme', name: 'demo', release_branch: 'release' } },
     { kind: 'release', repository: { owner: 'acme', name: 'demo', develop_branch: 'develop' } },
-  ])('もし $kind の branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async ({ kind, repository }, context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-24')
+  ])('もし $kind の branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async ({ kind, repository }) => {
     const result = await runPreflight(project({ repositories: [repository] }))
     expect(result.stderr).toContain(`error: ${kind}_branch is not set for acme/demo\n`)
     expect(result.stderr).toContain(`pecot project link acme/demo --${kind}-branch <branch>`)
@@ -342,51 +330,44 @@ describe('release check', () => {
   it.for([
     { kind: 'develop', repository: { owner: 'acme', name: 'demo', release_branch: 'release' } },
     { kind: 'release', repository: { owner: 'acme', name: 'demo', develop_branch: 'develop' } },
-  ])('もし $kind の branch を設定していないなら、終了コード 1 で終わる', async ({ repository }, context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-25')
+  ])('もし $kind の branch を設定していないなら、終了コード 1 で終わる', async ({ repository }) => {
     const result = await runPreflight(project({ repositories: [repository] }))
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
   })
 
-  it('もし CHANGELOG が無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-26')
+  it('もし CHANGELOG が無いなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ ...WITH_BRANCHES, files: { 'CHANGELOG.md': undefined } }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('CHANGELOG.md')
   })
 
-  it('もし版を省いて CHANGELOG に版が 1 つも無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-27')
+  it('もし版を省いて CHANGELOG に版が 1 つも無いなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ ...WITH_BRANCHES, files: NO_PACKAGE_FILES }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: ')
     expect(result.stdout).toBe('')
   })
 
-  it('もし渡した版が X.Y.Z の形でないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-28')
+  it('もし渡した版が X.Y.Z の形でないなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project(WITH_BRANCHES), ['1.2'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('1.2')
   })
 
-  it('もしタグがローカルに既にあるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-29')
+  it('もしタグがローカルに既にあるなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ ...WITH_BRANCHES, localTags: ['v0.2.0'] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: tag already exists locally: v0.2.0\n')
   })
 
-  it('もしタグが remote に既にあるなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-30')
+  it('もしタグが remote に既にあるなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ ...WITH_BRANCHES, remoteTags: ['v0.2.0'] }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: tag already exists on the remote: v0.2.0\n')
   })
 
-  it('もし <remote>/<release_branch> に無いコミットが <remote>/<develop_branch> から 1 つも見つからないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-31')
+  it('もし <remote>/<release_branch> に無いコミットが <remote>/<develop_branch> から 1 つも見つからないなら、終了コード 1 で終わる', async () => {
     const result = await runCounted(project(WITH_BRANCHES), [], alertRules(), [], 0)
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: no difference between origin/release and origin/develop: there is nothing to release\n')
@@ -420,43 +401,37 @@ describe('release check', () => {
     expect(result.stderr).not.toContain('    at ')
   })
 
-  it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-32')
+  it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async () => {
     const result = await runCounted(project(WITH_BRANCHES), ['9.9.9'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('9.9.9')
   })
 
-  it('もし git コマンドが失敗したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CHECK-33')
+  it('もし git コマンドが失敗したなら、終了コード 1 で終わる', async () => {
     const result = await runPreflight(project({ remote: 'none' }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: git command failed: git ls-remote --tags origin refs/tags/v0.2.0')
   })
 
   describe('--repo を省いて git の remote のリポジトリを読めない', () => {
-    it('もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CHECK-34')
+    it('もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す', async () => {
       const result = await runPreflight(projectWithBrokenRemote(WITH_BRANCHES), [], [])
       expect(result.stderr).toBe('error: could not read the repository from the git remote\n')
     })
 
-    it('もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-CHECK-35')
+    it('もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる', async () => {
       const result = await runPreflight(projectWithBrokenRemote(WITH_BRANCHES), [], [])
       expect(result.code).toBe(1)
     })
   })
 
   describe('--repo を省いて git の外で打った', () => {
-    it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CHECK-36')
+    it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async () => {
       const result = await runPreflight(project({ isGit: false }), [], [])
       expect(result.stderr).toContain('error: the repository is ambiguous\n')
     })
 
-    it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-CHECK-37')
+    it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async () => {
       const result = await runPreflight(project({ isGit: false }), [], [])
       expect(result.code).toBe(1)
     })
@@ -483,7 +458,11 @@ describe('release check', () => {
   })
 
   describe('MCP の data', () => {
-    it('チェックが通ると、版・タグ・リリースノート・コミット数と、Dependabot alert の件数を返す', async () => {
+    it('チェックが通ると、版・タグ・リリースノート・コミット数と、Dependabot alert の件数を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-05')
+      await verifies(context, 'PW-RELEASE-CHECK-06')
+      await verifies(context, 'PW-RELEASE-CHECK-09')
+      await verifies(context, 'PW-RELEASE-CHECK-10')
       const rules = [...alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] }), compareRule(1)]
       const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
       expect(result.structured).toEqual({
@@ -493,7 +472,7 @@ describe('release check', () => {
         commitCount: 1,
         skipped: [],
         dependabotAlerts: { enabled: true, openCount: 2, maxSeverity: 'critical', alertsUrl: ALERTS_URL },
-        warnings: [`2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n#1 (minimatch, medium)\n#2 (glob, critical)\n→ ${ALERTS_URL}`],
+        warnings: [`2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n  #1 (minimatch, medium)\n  #2 (glob, critical)\n  → ${ALERTS_URL}`],
       })
     })
 
@@ -514,13 +493,93 @@ describe('release check', () => {
       })
     })
 
-    it('alert が残って失敗しても、alert の結果を data に残す', async () => {
+    it('alert が残って失敗しても、alert の結果を data に残す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-14')
       const rules = alertRules({ secret: [rest('GET', alertPath('secret'), 200, [{ number: 5 }])] })
       const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
       expect(result.isError).toBe(true)
       const { detail, ...collected } = result.structured
       expect(collected).toEqual({ skipped: [], dependabotAlerts: { enabled: true, openCount: 0, alertsUrl: ALERTS_URL }, kind: 'preflight-failed' })
       expect(detail).toMatch(/^secret scanning has 1 open alert\n/u)
+    })
+
+    it('repo が今の git remote のリポジトリと食い違うと、warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-08')
+      const rules = [...alertRules({}, 'acme/other'), compareRule(1, 'acme/other')]
+      const result = await callTool(project({ ...WITH_BRANCHES, repositories: [DEFAULT_REPOSITORY, OTHER] }), 'release_check', { repo: 'acme/other' }, rules)
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual(['using repo acme/other (current Git remote: acme/demo)'])
+    })
+
+    it('Dependabot alert の状態を読めないと、warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-11')
+      const rules = [...alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 403, FORBIDDEN), rest('GET', '/repos/acme/demo/vulnerability-alerts', 204)] }), compareRule(1)]
+      const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not check Dependabot alerts\. The release is not blocked\.\n/u)])
+    })
+
+    const codeForbidden = [rest('GET', alertPath('code'), 403, FORBIDDEN)]
+    const openCode = [rest('GET', alertPath('code'), 200, [{ number: 10, rule: { severity: 'error' } }])]
+    const secretUnknown = [rest('GET', alertPath('secret'), 404, NOT_FOUND), rest('GET', '/repos/acme/demo', 200, {})]
+    const failedOnce = alertRules({ code: codeForbidden, secret: [rest('GET', alertPath('secret'), 200, [{ number: 5 }])] })
+    it.for<CheckFailure>([
+      { name: 'open の code scanning alert がある', options: WITH_BRANCHES, input: {}, rules: alertRules({ code: openCode }), kind: 'preflight-failed', detail: 'code scanning has 1 open alert', id: 'PW-RELEASE-CHECK-13' },
+      { name: 'code scanning の状態を判定できない', options: WITH_BRANCHES, input: {}, rules: alertRules({ code: codeForbidden }), kind: 'preflight-failed', detail: 'could not check code scanning: acme/demo: ', id: 'PW-RELEASE-CHECK-15' },
+      { name: 'secret scanning の状態を判定できない', options: WITH_BRANCHES, input: {}, rules: alertRules({ secret: secretUnknown }), kind: 'preflight-failed', detail: 'could not check secret scanning: acme/demo: ', id: 'PW-RELEASE-CHECK-15' },
+      { name: 'alert の確認が 1 つ失敗した', options: WITH_BRANCHES, input: {}, rules: failedOnce, kind: 'preflight-failed', detail: 'could not check code scanning', id: 'PW-RELEASE-CHECK-17' },
+      { name: 'git リポジトリのルートを見つけられない', options: { isGit: false }, input: { repo: 'acme/demo' }, rules: [], kind: 'git-unresolved', detail: 'could not find the root directory of the git repository', id: 'PW-RELEASE-CHECK-18' },
+      { name: 'nx のリポジトリに version を渡した', options: { repositories: [{ ...DEFAULT_REPOSITORY, release_type: 'nx' }] }, input: { version: '0.2.0' }, rules: [], kind: 'invalid-input', detail: 'cannot be used when release_type is nx', id: 'PW-RELEASE-CHECK-20' },
+      { name: 'nx のリポジトリに package を渡した', options: { repositories: [{ ...DEFAULT_REPOSITORY, release_type: 'nx' }] }, input: { package: 'pkg-a' }, rules: [], kind: 'invalid-input', detail: 'cannot be used when release_type is nx', id: 'PW-RELEASE-CHECK-20' },
+      { name: 'packages を設定したリポジトリに package を渡さない', options: { repositories: [PACKAGES], files: PACKAGE_FILES }, input: {}, rules: [], kind: 'invalid-input', detail: 'acme/demo is a monorepo', id: 'PW-RELEASE-CHECK-21' },
+      { name: 'package が設定に登録していないパッケージ名', options: { repositories: [PACKAGES], files: PACKAGE_FILES }, input: { package: 'unknown' }, rules: [], kind: 'invalid-input', detail: 'package \'unknown\' is not registered in acme/demo', id: 'PW-RELEASE-CHECK-22' },
+      { name: 'packages を設定していないリポジトリに package を渡した', options: {}, input: { package: 'pkg-a' }, rules: [], kind: 'invalid-input', detail: 'acme/demo has no packages configured', id: 'PW-RELEASE-CHECK-23' },
+      { name: 'develop_branch を設定していない', options: { repositories: [{ owner: 'acme', name: 'demo', release_branch: 'release' }] }, input: {}, rules: alertRules(), kind: 'repo-setting-missing', detail: 'set it with: project_link with repo: "acme/demo", develop_branch: <branch>', id: 'PW-RELEASE-CHECK-24' },
+      { name: 'release_branch を設定していない', options: { repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'develop' }] }, input: {}, rules: alertRules(), kind: 'repo-setting-missing', detail: 'set it with: project_link with repo: "acme/demo", release_branch: <branch>', id: 'PW-RELEASE-CHECK-25' },
+      { name: 'CHANGELOG が無い', options: { ...WITH_BRANCHES, files: { 'CHANGELOG.md': undefined } }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'CHANGELOG.md', id: 'PW-RELEASE-CHECK-26' },
+      { name: 'version を省いて CHANGELOG に版が 1 つも無い', options: { ...WITH_BRANCHES, files: NO_PACKAGE_FILES }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'CHANGELOG', id: 'PW-RELEASE-CHECK-27' },
+      { name: '渡した version が X.Y.Z の形でない', options: WITH_BRANCHES, input: { version: '1.2' }, rules: alertRules(), kind: 'other', detail: '1.2', id: 'PW-RELEASE-CHECK-28' },
+      { name: 'タグがローカルに既にある', options: { ...WITH_BRANCHES, localTags: ['v0.2.0'] }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'tag already exists locally: v0.2.0', id: 'PW-RELEASE-CHECK-29' },
+      { name: 'タグが remote に既にある', options: { ...WITH_BRANCHES, remoteTags: ['v0.2.0'] }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'tag already exists on the remote: v0.2.0', id: 'PW-RELEASE-CHECK-30' },
+      { name: 'develop_branch のコミットがすべて release_branch にある', options: WITH_BRANCHES, input: {}, rules: [...alertRules(), compareRule(0)], kind: 'preflight-failed', detail: 'there is nothing to release', id: 'PW-RELEASE-CHECK-31' },
+      { name: 'CHANGELOG に渡した版の節が無い', options: WITH_BRANCHES, input: { version: '9.9.9' }, rules: [...alertRules(), compareRule(1)], kind: 'preflight-failed', detail: '9.9.9', id: 'PW-RELEASE-CHECK-32' },
+      { name: 'git コマンドが失敗した', options: { remote: 'none' }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'git command failed: git ls-remote --tags origin refs/tags/v0.2.0', id: 'PW-RELEASE-CHECK-33' },
+      { name: 'git の外で repo を省いた', options: { isGit: false }, input: {}, rules: [], kind: 'git-unresolved', detail: 'the repository is ambiguous', id: 'PW-RELEASE-CHECK-37' },
+      { name: '対象のリポを含む設定が無い', options: { isActive: false }, input: {}, rules: [], kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config', id: 'PW-RELEASE-CHECK-42' },
+    ])('$name と、kind が $kind の失敗を返す', async ({ options, input, rules, kind, detail, id }, context) => {
+      await verifies(context, id)
+      const result = await callTool(project(options), 'release_check', input, rules)
+      expect(result).toMatchObject({ isError: true, structured: { kind } })
+      expect(result.structured['detail']).toContain(detail)
+    })
+
+    it('リポを含む設定が 2 つ以上あってアクティブな設定がどれでもないと、候補と project の案内を detail に入れ、no-active-project で失敗する', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-19')
+      const result = await callTool(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), 'release_check', {}, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+      expect(result.structured['detail']).toContain('choose one with project: <NAME>')
+      expect(result.structured['detail']).toContain('available: ')
+    })
+
+    it('repo を省いて git の remote のリポジトリを読めないと、読めない理由を detail に入れて、kind が git-unresolved の失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-34')
+      await verifies(context, 'PW-RELEASE-CHECK-35')
+      const result = await callTool(projectWithBrokenRemote(WITH_BRANCHES), 'release_check', {}, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved', detail: 'could not read the repository from the git remote' } })
+    })
+
+    it('repo を省いて git の外で呼ぶと、the repository is ambiguous で始まる detail を入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-36')
+      const result = await callTool(project({ isGit: false }), 'release_check', {}, [])
+      expect(result.structured['detail']).toMatch(/^the repository is ambiguous\n/u)
+    })
+
+    it('コミットの数を数えられないと、could not count the commits で始まる detail を入れて失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-39')
+      const rules = [...alertRules(), rest('GET', '/repos/acme/demo/compare/release...develop', 404, NOT_FOUND)]
+      const result = await callTool(project(WITH_BRANCHES), 'release_check', {}, rules)
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not count the commits from release to develop: /u)
     })
   })
 })
@@ -556,54 +615,46 @@ describe('release create', () => {
       expect(result.requests).toEqual([])
     })
 
-    it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CREATE-05')
+    it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async () => {
       const result = await runCreate(project(), ['0.2.0', '--dry-run'])
       expect(result.stderr).toBe('dry-run: would create release v0.2.0 on release\n')
     })
 
-    it('--dry-run を付けて打つと、リリースノートを標準出力に出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CREATE-06')
+    it('--dry-run を付けて打つと、リリースノートを標準出力に出す', async () => {
       const result = await runCreate(project(), ['0.2.0', '--dry-run'])
       expect(result.stdout).toBe(`${NOTES_0_2_0}\n`)
     })
   })
 
-  it('--repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-07')
+  it('--repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す', async () => {
     const result = await runCreate(project({ repositories: [DEFAULT_REPOSITORY, OTHER] }), ['0.2.0'], [releaseCreated('v0.2.0', 'v0.2.0', 'acme/other')], ['--repo', 'acme/other'])
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: using --repo acme/other (current Git remote: acme/demo)\n')
   })
 
-  it('リリースを作ると、リリースの URL を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-08')
+  it('リリースを作ると、リリースの URL を標準出力に出す', async () => {
     const result = await runCreate(project(), ['0.2.0'], [releaseCreated()])
     expect(result.stdout).toBe('https://ghes.example.com/acme/demo/releases/tag/v0.2.0\n')
   })
 
-  it('リリースを作ると、created の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-09')
+  it('リリースを作ると、created の行を標準エラーに出す', async () => {
     const result = await runCreate(project(), ['0.2.0'], [releaseCreated()])
     expect(result.stderr).toBe('created: release v0.2.0 on release\n')
   })
 
-  it('もし版が X.Y.Z の形でないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-10')
+  it('もし版が X.Y.Z の形でないなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project(), ['1.2'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('1.2')
   })
 
-  it('もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-11')
+  it('もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ isGit: false }), ['0.2.0'], [], ['--repo', 'acme/demo'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: could not find the root directory of the git repository\n')
   })
 
-  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-12')
+  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
@@ -611,8 +662,7 @@ describe('release create', () => {
     expect(result.stderr).toContain('available: ')
   })
 
-  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-29')
+  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ isActive: false }), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
@@ -625,97 +675,83 @@ describe('release create', () => {
     expect(result.stderr).toBe('dry-run: would create release v0.2.0 on release\n')
   })
 
-  it('もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-13')
+  it('もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ repositories: [PACKAGES], files: PACKAGE_FILES }), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('acme/demo is a monorepo')
   })
 
-  it('もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-14')
+  it('もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ repositories: [PACKAGES], files: PACKAGE_FILES }), ['0.2.0', '--package', 'unknown'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('package \'unknown\' is not registered in acme/demo')
   })
 
-  it('もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-15')
+  it('もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project(), ['0.2.0', '--package', 'pkg-a'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('acme/demo has no packages configured')
   })
 
-  it('もし CHANGELOG が無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-16')
+  it('もし CHANGELOG が無いなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ files: { 'CHANGELOG.md': undefined } }), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: CHANGELOG.md not found: /u)
   })
 
-  it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-17')
+  it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project(), ['9.9.9'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('9.9.9')
   })
 
-  it('もし release_branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-18')
+  it('もし release_branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async () => {
     const result = await runCreate(project(WITHOUT_RELEASE_BRANCH), ['0.2.0'])
     expect(result.stderr).toContain('error: release_branch is not set for acme/demo\n')
     expect(result.stderr).toContain('pecot project link acme/demo --release-branch <branch>')
   })
 
-  it('もし release_branch を設定していないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-19')
+  it('もし release_branch を設定していないなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project(WITHOUT_RELEASE_BRANCH), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.requests).toEqual([])
   })
 
-  it('もしリリースの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-20')
+  it('もしリリースの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project(), ['0.2.0'], [rest('POST', '/repos/acme/demo/releases', 422, { message: 'Validation Failed' })])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: could not create release v0.2.0 in acme/demo: GitHub API error: 422 Validation Failed\n')
   })
 
   describe('--repo を省いて git の remote のリポジトリを読めない', () => {
-    it('もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CREATE-21')
+    it('もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す', async () => {
       const result = await runCreate(projectWithBrokenRemote(), ['0.2.0'])
       expect(result.stderr).toBe('error: could not read the repository from the git remote\n')
     })
 
-    it('もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-CREATE-22')
+    it('もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる', async () => {
       const result = await runCreate(projectWithBrokenRemote(), ['0.2.0'])
       expect(result.code).toBe(1)
     })
   })
 
-  it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-23')
+  it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async () => {
     const result = await runCreate(project({ isGit: false }), ['0.2.0'])
     expect(result.stderr).toContain('error: the repository is ambiguous\n')
   })
 
-  it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-24')
+  it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ isGit: false }), ['0.2.0'])
     expect(result.code).toBe(1)
   })
 
-  it('もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-25')
+  it('もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ hasToken: false }), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: authentication error: could not get a GitHub API token/u)
   })
 
-  it('もし GitHub のトークンが見つからないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-CREATE-26')
+  it('もし GitHub のトークンが見つからないなら、終了コード 1 で終わる', async () => {
     const result = await runCreate(project({ hasToken: false }), ['0.2.0'])
     expect(result.code).toBe(1)
     expect(result.requests).toEqual([])
@@ -743,14 +779,84 @@ describe('release create', () => {
   })
 
   describe('MCP の data', () => {
-    it('リリースを作ると、タグ・URL・リリースノートを返す', async () => {
+    it('リリースを作ると、タグ・URL・リリースノートを返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-08')
+      await verifies(context, 'PW-RELEASE-CREATE-09')
       const result = await callTool(project(), 'release_create', { version: '0.2.0' }, [releaseCreated()])
       expect(result.structured).toEqual({ tag: 'v0.2.0', url: 'https://ghes.example.com/acme/demo/releases/tag/v0.2.0', releaseNotes: NOTES_0_2_0 })
     })
 
-    it('dry_run で呼ぶと、URL を省いて dryRun を返す', async () => {
+    it('dry_run で呼ぶと、URL を省いて dryRun を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-05')
+      await verifies(context, 'PW-RELEASE-CREATE-06')
       const result = await callTool(project(), 'release_create', { version: '0.2.0', dry_run: true }, [])
       expect(result.structured).toEqual({ tag: 'v0.2.0', releaseNotes: NOTES_0_2_0, dryRun: true })
+    })
+
+    it('repo が今の git remote のリポジトリと食い違うと、warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-07')
+      const result = await callTool(project({ repositories: [DEFAULT_REPOSITORY, OTHER] }), 'release_create', { version: '0.2.0', repo: 'acme/other' }, [releaseCreated('v0.2.0', 'v0.2.0', 'acme/other')])
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual(['using repo acme/other (current Git remote: acme/demo)'])
+    })
+
+    it.for([
+      { name: '版が X.Y.Z の形でない', options: {}, input: { version: '1.2' }, kind: 'invalid-input', detail: '1.2', id: 'PW-RELEASE-CREATE-10' },
+      { name: 'git リポジトリのルートを見つけられない', options: { isGit: false }, input: { repo: 'acme/demo' }, kind: 'git-unresolved', detail: 'could not find the root directory of the git repository', id: 'PW-RELEASE-CREATE-11' },
+      { name: 'packages を設定したリポジトリに package を渡さない', options: { repositories: [PACKAGES], files: PACKAGE_FILES }, input: {}, kind: 'invalid-input', detail: 'acme/demo is a monorepo', id: 'PW-RELEASE-CREATE-13' },
+      { name: 'package が設定に登録していないパッケージ名', options: { repositories: [PACKAGES], files: PACKAGE_FILES }, input: { package: 'unknown' }, kind: 'invalid-input', detail: 'package \'unknown\' is not registered in acme/demo', id: 'PW-RELEASE-CREATE-14' },
+      { name: 'packages を設定していないリポジトリに package を渡す', options: {}, input: { package: 'pkg-a' }, kind: 'invalid-input', detail: 'acme/demo has no packages configured', id: 'PW-RELEASE-CREATE-15' },
+      { name: 'CHANGELOG が無い', options: { files: { 'CHANGELOG.md': undefined } }, input: {}, kind: 'preflight-failed', detail: 'CHANGELOG.md not found: ', id: 'PW-RELEASE-CREATE-16' },
+      { name: 'CHANGELOG に渡した版の節が無い', options: {}, input: { version: '9.9.9' }, kind: 'preflight-failed', detail: '9.9.9', id: 'PW-RELEASE-CREATE-17' },
+      { name: 'release_branch を設定していない', options: WITHOUT_RELEASE_BRANCH, input: {}, kind: 'repo-setting-missing', detail: 'release_branch is not set for acme/demo', id: 'PW-RELEASE-CREATE-19' },
+      { name: 'git の外で repo を省く', options: { isGit: false }, input: {}, kind: 'git-unresolved', detail: 'the repository is ambiguous', id: 'PW-RELEASE-CREATE-24' },
+      { name: 'GitHub のトークンが見つからない', options: { hasToken: false }, input: {}, kind: 'github-auth', detail: 'could not get a GitHub API token', id: 'PW-RELEASE-CREATE-26' },
+      { name: '対象のリポを含む設定が無い', options: { isActive: false }, input: {}, kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config', id: 'PW-RELEASE-CREATE-29' },
+    ])('$name と、kind が $kind の失敗を返す', async ({ options, input, kind, detail, id }, context) => {
+      await verifies(context, id)
+      const result = await callTool(project(options), 'release_create', { version: '0.2.0', ...input }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind } })
+      expect(result.structured['detail']).toContain(detail)
+    })
+
+    it('リポを含む設定が 2 つ以上あってアクティブな設定がどれでもないと、候補と project の案内を detail に入れ、no-active-project で失敗する', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-12')
+      const result = await callTool(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), 'release_create', { version: '0.2.0' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+      expect(result.structured['detail']).toContain('acme/demo is in 2 project configs')
+      expect(result.structured['detail']).toContain('available: ')
+      expect(result.structured['detail']).toContain('choose one with project: <NAME>')
+    })
+
+    it('release_branch を設定していないと、設定の仕方を案内する文を detail に入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-18')
+      const result = await callTool(project(WITHOUT_RELEASE_BRANCH), 'release_create', { version: '0.2.0' }, [])
+      expect(result.structured['detail']).toContain('set it with: project_link with repo: "acme/demo", release_branch: <branch>')
+    })
+
+    it('リリースの作成で GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-20')
+      const result = await callTool(project(), 'release_create', { version: '0.2.0' }, [rest('POST', '/repos/acme/demo/releases', 422, { message: 'Validation Failed' })])
+      expect(result).toMatchObject({ isError: true, structured: { detail: 'could not create release v0.2.0 in acme/demo: GitHub API error: 422 Validation Failed' } })
+    })
+
+    it('repo を省いて git の remote のリポジトリを読めないと、読めない理由を detail に入れて、kind が git-unresolved の失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-21')
+      await verifies(context, 'PW-RELEASE-CREATE-22')
+      const result = await callTool(projectWithBrokenRemote(), 'release_create', { version: '0.2.0' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved', detail: 'could not read the repository from the git remote' } })
+    })
+
+    it('repo を省いて git の外で呼ぶと、the repository is ambiguous で始まる detail を入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-23')
+      const result = await callTool(project({ isGit: false }), 'release_create', { version: '0.2.0' }, [])
+      expect(result.structured['detail']).toMatch(/^the repository is ambiguous\n/u)
+    })
+
+    it('GitHub のトークンが見つからないと、トークンが見つからないことを detail に入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-25')
+      const result = await callTool(project({ hasToken: false }), 'release_create', { version: '0.2.0' }, [])
+      expect(result.structured['detail']).toMatch(/^authentication error: could not get a GitHub API token/u)
     })
   })
 })
@@ -787,8 +893,7 @@ describe('release merge', () => {
       expect(pathsOf(result)).not.toContain('PUT /repos/acme/demo/pulls/31/merge')
     })
 
-    it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-MERGE-05')
+    it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async () => {
       const result = await runMergeDryRun()
       expect(result.stderr).toBe('dry-run: would merge PR acme/demo/31 (develop -> release, merge commit)\n')
     })
@@ -800,14 +905,12 @@ describe('release merge', () => {
     })
   })
 
-  it('PR をマージすると、merged の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-07')
+  it('PR をマージすると、merged の行を標準エラーに出す', async () => {
     const result = await runMerge(project(), ['acme/demo/31'], [pullRequestResponse(), merged])
     expect(result.stderr).toBe('merged: PR acme/demo/31 (develop -> release, merge commit)\n')
   })
 
-  it('head ブランチを削除すると、deleted の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-08')
+  it('head ブランチを削除すると、deleted の行を標準エラーに出す', async () => {
     const result = await runMerge(project(), ['acme/demo/31', '-d'], [pullRequestResponse(), merged, deleted])
     expect(result.stderr).toContain('deleted: remote branch develop in acme/demo\n')
   })
@@ -815,36 +918,31 @@ describe('release merge', () => {
   describe('head ブランチを削除できない', () => {
     const failing = [pullRequestResponse(), merged, rest('DELETE', '/repos/acme/demo/git/refs/heads/develop', 422, { message: 'Reference does not exist' })]
 
-    it('もし head ブランチを削除できなかったなら、warning の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-MERGE-09')
+    it('もし head ブランチを削除できなかったなら、warning の行を標準エラーに出す', async () => {
       const result = await runMerge(project(), ['acme/demo/31', '-d'], failing)
       expect(result.stderr).toContain('warning: deleting remote branch develop failed: ')
     })
 
-    it('もし head ブランチを削除できなかったなら、終了コード 0 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-MERGE-10')
+    it('もし head ブランチを削除できなかったなら、終了コード 0 で終わる', async () => {
       const result = await runMerge(project(), ['acme/demo/31', '-d'], failing)
       expect(result.code).toBe(0)
     })
   })
 
   describe('--repo が今の git remote のリポジトリと食い違う', () => {
-    it('もし --repo が今の git remote のリポジトリと食い違うなら、error の行を標準エラーに出す', async (context) => {
-      await verifies(context, 'PW-RELEASE-MERGE-11')
+    it('もし --repo が今の git remote のリポジトリと食い違うなら、error の行を標準エラーに出す', async () => {
       const result = await runMergeMismatch()
       expect(result.stderr).toContain('error: --repo acme/other differs from the current Git remote (acme/demo)\n')
     })
 
-    it('もし --repo が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-RELEASE-MERGE-12')
+    it('もし --repo が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わる', async () => {
       const result = await runMergeMismatch()
       expect(result.code).toBe(1)
       expect(result.requests).toEqual([])
     })
   })
 
-  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-13')
+  it('もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、候補の名前と --project の案内を出して終了コード 1 で終わる', async () => {
     const result = await runMerge(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
@@ -852,8 +950,7 @@ describe('release merge', () => {
     expect(result.stderr).toContain('available: ')
   })
 
-  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-28')
+  it('もし対象のリポを含む設定が無いなら、repo-not-in-project の行を出して終了コード 1 で終わる', async () => {
     const result = await runMerge(project({ isActive: false }))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
@@ -866,87 +963,75 @@ describe('release merge', () => {
     expect(result.stderr).toBe('dry-run: would merge PR acme/demo/31 (develop -> release, merge commit)\n')
   })
 
-  it('もし PR の参照が owner/repo/N の形でないなら、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-14')
+  it('もし PR の参照が owner/repo/N の形でないなら、終了コード 2 で終わる', async () => {
     const result = await runMerge(project(), ['31'])
     expect(result.code).toBe(USAGE_ERROR)
     expect(result.stderr).toContain('use the full form \'owner/repo/N\'')
   })
 
-  it('もし PR が見つからないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-15')
+  it('もし PR が見つからないなら、終了コード 1 で終わる', async () => {
     const rule: ResponseRule = { match: { operation: 'GetPullRequestSlim' }, respond: { status: 200, text: '{"data":{"repository":{"pullRequest":null}}}' }, times: 1 }
     const result = await runMerge(project(), ['acme/demo/31'], [rule])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: PR acme/demo/31 not found\n')
   })
 
-  it('もし PR の取得で GitHub API がエラーを返したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-16')
+  it('もし PR の取得で GitHub API がエラーを返したなら、終了コード 1 で終わる', async () => {
     const rule: ResponseRule = { match: { operation: 'GetPullRequestSlim' }, respond: { status: 422, body: { message: 'Validation Failed' } }, times: 1 }
     const result = await runMerge(project(), ['acme/demo/31'], [rule])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: could not read PR acme/demo/31: ')
   })
 
-  it('もし PR が既にマージ済みなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-17')
+  it('もし PR が既にマージ済みなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project(), ['acme/demo/31'], [pullRequestResponse({ state: 'MERGED' })])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: PR #31 is already merged\n')
   })
 
-  it('もし PR が閉じているなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-18')
+  it('もし PR が閉じているなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project(), ['acme/demo/31'], [pullRequestResponse({ state: 'CLOSED' })])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: PR #31 is closed\n')
   })
 
-  it('もし PR に衝突があって --admin を付けていないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-19')
+  it('もし PR に衝突があって --admin を付けていないなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project(), ['acme/demo/31'], [pullRequestResponse({ mergeable: 'CONFLICTING' })])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: PR #31 has conflicts that must be resolved\n')
     expect(result.stderr).toContain('to try a forced merge, add --admin')
   })
 
-  it('もし release_branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-20')
+  it('もし release_branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す', async () => {
     const result = await runMerge(project(WITHOUT_RELEASE_BRANCH), ['acme/demo/31'], [pullRequestResponse()])
     expect(result.stderr).toContain('error: release_branch is not set for acme/demo\n')
     expect(result.stderr).toContain('pecot project link acme/demo --release-branch <branch>')
   })
 
-  it('もし release_branch を設定していないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-21')
+  it('もし release_branch を設定していないなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project(WITHOUT_RELEASE_BRANCH), ['acme/demo/31'], [pullRequestResponse()])
     expect(result.code).toBe(1)
   })
 
-  it('もし PR の base ブランチが release_branch でないなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-22')
+  it('もし PR の base ブランチが release_branch でないなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project(), ['acme/demo/31'], [pullRequestResponse({ base: 'main' })])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('the base branch of PR #31 does not match release_branch')
     expect(pathsOf(result)).not.toContain('PUT /repos/acme/demo/pulls/31/merge')
   })
 
-  it('もしマージで GitHub API がエラーを返したなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-23')
+  it('もしマージで GitHub API がエラーを返したなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project(), ['acme/demo/31'], [pullRequestResponse(), rest('PUT', '/repos/acme/demo/pulls/31/merge', 405, { message: 'Pull Request is not mergeable' })])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: could not merge PR acme/demo/31: GitHub API error: 405 Pull Request is not mergeable\n')
   })
 
-  it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-24')
+  it('もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す', async () => {
     const result = await runMerge(project({ isGit: false }))
     expect(result.stderr).toContain('error: the repository is ambiguous\n')
   })
 
-  it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-RELEASE-MERGE-25')
+  it('もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる', async () => {
     const result = await runMerge(project({ isGit: false }))
     expect(result.code).toBe(1)
   })
@@ -972,18 +1057,90 @@ describe('release merge', () => {
   })
 
   describe('MCP の data', () => {
-    it('マージして head ブランチを削除すると、PR・ブランチと deletedBranch を返す', async () => {
+    it('マージして head ブランチを削除すると、PR・ブランチと deletedBranch を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-07')
+      await verifies(context, 'PW-RELEASE-MERGE-08')
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, deleted])
       expect(result.structured).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: true })
     })
 
-    it('dry_run で呼ぶと、deletedBranch を false にして dryRun を返す', async () => {
+    it('dry_run で呼ぶと、deletedBranch を false にして dryRun を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-05')
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true, dry_run: true }, [pullRequestResponse()])
       expect(result.structured).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: false, dryRun: true })
     })
 
+    it('repo が今の git remote のリポジトリと食い違うと、食い違いを detail に入れ、kind が repo-mismatch の失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-11')
+      await verifies(context, 'PW-RELEASE-MERGE-12')
+      const result = await callTool(project({ repositories: [DEFAULT_REPOSITORY, OTHER] }), 'release_merge', { pr_ref: 'acme/other/31', repo: 'acme/other' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'repo-mismatch' } })
+      expect(result.structured['detail']).toMatch(/^repo acme\/other differs from the current Git remote \(acme\/demo\)\n/u)
+    })
+
+    it('リポを含む設定が 2 つ以上あってアクティブな設定がどれでもないと、候補と project の案内を detail に入れ、no-active-project で失敗する', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-13')
+      const result = await callTool(project({ extraProjects: { second: [DEFAULT_REPOSITORY] }, hasActiveMark: false }), 'release_merge', { pr_ref: 'acme/demo/31' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
+      expect(result.structured['detail']).toContain('choose one with project: <NAME>')
+      expect(result.structured['detail']).toContain('available: ')
+    })
+
+    const notFound: ResponseRule = { match: { operation: 'GetPullRequestSlim' }, respond: { status: 200, text: '{"data":{"repository":{"pullRequest":null}}}' }, times: 1 }
+    const unreadable: ResponseRule = { match: { operation: 'GetPullRequestSlim' }, respond: { status: 422, body: { message: 'Validation Failed' } }, times: 1 }
+    it.for([
+      { name: 'PR が見つからない', options: {}, pr_ref: 'acme/demo/31', rules: [notFound], kind: 'github-not-found', detail: 'PR acme/demo/31 not found', id: 'PW-RELEASE-MERGE-15' },
+      { name: 'PR が既にマージ済み', options: {}, pr_ref: 'acme/demo/31', rules: [pullRequestResponse({ state: 'MERGED' })], kind: 'pr-state', detail: 'PR #31 is already merged', id: 'PW-RELEASE-MERGE-17' },
+      { name: 'PR が閉じている', options: {}, pr_ref: 'acme/demo/31', rules: [pullRequestResponse({ state: 'CLOSED' })], kind: 'pr-state', detail: 'PR #31 is closed', id: 'PW-RELEASE-MERGE-18' },
+      { name: 'PR に衝突があって admin を付けない', options: {}, pr_ref: 'acme/demo/31', rules: [pullRequestResponse({ mergeable: 'CONFLICTING' })], kind: 'pr-state', detail: 'PR #31 has conflicts that must be resolved', id: 'PW-RELEASE-MERGE-19' },
+      { name: 'release_branch を設定していない', options: WITHOUT_RELEASE_BRANCH, pr_ref: 'acme/demo/31', rules: [pullRequestResponse()], kind: 'repo-setting-missing', detail: 'release_branch is not set for acme/demo', id: 'PW-RELEASE-MERGE-21' },
+      { name: 'PR の base ブランチが release_branch でない', options: {}, pr_ref: 'acme/demo/31', rules: [pullRequestResponse({ base: 'main' })], kind: 'pr-state', detail: 'the base branch of PR #31 does not match release_branch', id: 'PW-RELEASE-MERGE-22' },
+      { name: 'git の外で repo を省く', options: { isGit: false }, pr_ref: 'acme/demo/31', rules: [], kind: 'git-unresolved', detail: 'the repository is ambiguous', id: 'PW-RELEASE-MERGE-25' },
+      { name: '対象のリポを含む設定が無い', options: { isActive: false }, pr_ref: 'acme/demo/31', rules: [], kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config', id: 'PW-RELEASE-MERGE-28' },
+    ])('$name と、kind が $kind の失敗を返す', async ({ options, pr_ref, rules, kind, detail, id }, context) => {
+      await verifies(context, id)
+      const result = await callTool(project(options), 'release_merge', { pr_ref }, rules)
+      expect(result).toMatchObject({ isError: true, structured: { kind } })
+      expect(result.structured['detail']).toContain(detail)
+    })
+
+    it('pr_ref が owner/repo/N の形でないと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-14')
+      const result = await callTool(project(), 'release_merge', { pr_ref: '31' }, [])
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.structured['detail']).toContain('owner/repo/N')
+    })
+
+    it('PR の取得で GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-16')
+      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31' }, [unreadable])
+      expect(result.isError).toBe(true)
+      expect(result.structured['detail']).toMatch(/^could not read PR acme\/demo\/31: /u)
+    })
+
+    it('release_branch を設定していないと、設定の仕方を案内する文を detail に入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-20')
+      const result = await callTool(project(WITHOUT_RELEASE_BRANCH), 'release_merge', { pr_ref: 'acme/demo/31' }, [pullRequestResponse()])
+      expect(result.structured['detail']).toContain('set it with: project_link with repo: "acme/demo", release_branch: <branch>')
+    })
+
+    it('マージで GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-23')
+      const rejected = rest('PUT', '/repos/acme/demo/pulls/31/merge', 405, { message: 'Pull Request is not mergeable' })
+      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31' }, [pullRequestResponse(), rejected])
+      expect(result.isError).toBe(true)
+    })
+
+    it('repo を省いて git の外で呼ぶと、the repository is ambiguous で始まる detail を入れる', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-24')
+      const result = await callTool(project({ isGit: false }), 'release_merge', { pr_ref: 'acme/demo/31' }, [])
+      expect(result.structured['detail']).toMatch(/^the repository is ambiguous\n/u)
+    })
+
     it('マージの後に head ブランチを削除できないと、マージした PR と warning を data に返し、deletedBranch を false にする', async (context) => {
       await verifies(context, 'PW-COMMON-19')
+      await verifies(context, 'PW-RELEASE-MERGE-09')
+      await verifies(context, 'PW-RELEASE-MERGE-10')
       const failing = rest('DELETE', '/repos/acme/demo/git/refs/heads/develop', 422, { message: 'Reference does not exist' })
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, failing])
       expect(result.isError).toBe(false)

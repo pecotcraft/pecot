@@ -35,7 +35,8 @@ const ExampleSchema = z.object({ run: z.string(), note: z.string() })
 const StringMapSchema = z.record(z.string(), z.string())
 const ProseShape = { details: NamesSchema, examples: z.array(ExampleSchema), default_notes: StringMapSchema }
 // help は --help に出す英語の文。日本語で書いた定義書では、同じ名前の 3 つの欄の代わりに出る
-const AuthoredEntrySchema = z.object({ ...ProseShape, constraints: z.array(ConstraintSchema), help: z.object(ProseShape).optional() })
+const CallExampleSchema = z.object({ arguments: z.record(z.string(), z.unknown()), note: z.string() })
+const AuthoredEntrySchema = z.object({ ...ProseShape, examples: z.array(z.union([ExampleSchema, CallExampleSchema])), constraints: z.array(ConstraintSchema), help: z.object(ProseShape).optional() })
 const AuthoredSchema = z.object({ entries: z.record(z.string(), AuthoredEntrySchema) })
 
 type Entry = z.output<typeof EntrySchema>
@@ -66,8 +67,10 @@ function entryOf(definition: CommandDefinition): Entry {
 function notesOf(definition: CommandDefinition): AuthoredNotes | undefined {
   const entry = authoredById.get(interfaceIdOf(definition.path))
   if (entry === undefined) return undefined
-  const prose = entry.help ?? entry
-  return { details: prose.details, constraints: entry.constraints, examples: prose.examples, defaultNotes: new Map(Object.entries(prose.default_notes)) }
+  const { help } = entry
+  const prose = help ?? entry
+  const examples = help?.examples ?? entry.examples.filter(example => 'run' in example)
+  return { details: prose.details, constraints: entry.constraints, examples, defaultNotes: new Map(Object.entries(prose.default_notes)) }
 }
 
 async function helpOf(argv: readonly string[], width: number): Promise<string> {
@@ -302,6 +305,7 @@ function sampleCommand(description: string, argumentDescription: string | undefi
   const field = z.string()
   return defineCommand({
     path: ['sample'],
+    title: 'Test command',
     description,
     input: z.object({ name: argumentDescription === undefined ? field : field.describe(argumentDescription) }),
     output: z.strictObject({}),

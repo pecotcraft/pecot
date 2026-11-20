@@ -251,7 +251,7 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     {
       name: 'aws_sso_login_status',
       config: {
-        title: 'Check SSO login status',
+        title: 'Get SSO login status',
         description: 'Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. '
           + 'Does not run awscli',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),

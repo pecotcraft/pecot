@@ -265,7 +265,7 @@ export function slideDevTool(
   return {
     name: 'slide_dev',
     config: {
-      title: 'Start a Slidev preview',
+      title: 'Start Slidev preview',
       description: 'Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (url). '
         + 'The port can be set with port; if omitted, a free port from 3030 to 3034 is used. '
         + 'Calling again for the same talk-dir returns the running server as it is (reused: true). '

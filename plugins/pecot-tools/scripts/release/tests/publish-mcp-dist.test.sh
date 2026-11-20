@@ -534,11 +534,11 @@ process.stdout.write(value === undefined ? '' : String(value))
 " "$1" "$2"
 }
 
-# tools/list の期待値は契約書の表（26 件・先頭 aws_sso_login）。
+# tools/list の期待値は契約書の表（24 件・先頭 aws_sso_login）。
 # 契約書 contracts/mcp-tools.md は本リポには無い。
 # 実物は aist-roadmap 側の specs/012-awscli-mcp-server/contracts/mcp-tools.md にある。
 # 配布ツリーに TS ソースは含まれず、ここから参照できない。そのため写している（cli/tests/bootstrap/run.sh と同値）。
-EXPECTED_TOOL_COUNT=26
+EXPECTED_TOOL_COUNT=24
 EXPECTED_FIRST_TOOL="aws_sso_login"
 
 # 登録例と同じ引数なし起動と、`mcp` を明示した起動の双方を見る。前者は shim の argv 注入、

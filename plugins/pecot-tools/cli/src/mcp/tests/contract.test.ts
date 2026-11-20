@@ -1,4 +1,4 @@
-// tools/list に載る 26 ツールの契約テスト。入力・出力・annotations の期待値は interface/generated.json が持つ。
+// tools/list に載る 24 ツールの契約テスト。入力・出力・annotations の期待値は interface/generated.json が持つ。
 // ここでは、generated.json に写らない性質と、全ツール共通の規約を確かめる。
 
 import { readFileSync } from 'node:fs'
@@ -22,6 +22,7 @@ const generatedPath = path.resolve(import.meta.dirname, '../../../../interface/g
 interface GeneratedEntry {
   readonly name: string
   readonly surfaces: { readonly mcp: { readonly tool: string } }
+  readonly mcp?: { readonly title?: string }
 }
 
 function readGeneratedEntries(): readonly GeneratedEntry[] {
@@ -53,12 +54,11 @@ const SUCCESS_REQUIRED: Readonly<Record<string, readonly (readonly string[])[]>>
   aws_sso_login: [['state', 'profile']],
   aws_sso_login_status: [['state']],
   aws_s3_ls: AWSCLI_OUTPUT_REQUIRED,
-  aws_s3_cp: AWSCLI_OUTPUT_REQUIRED,
   // 根拠は awscli 同梱の botocore のモデルで、ListSchedules の出力の shape が Schedules を required に持つ。
   aws_scheduler_list_schedules: [['Schedules'], ...AWSCLI_OUTPUT_REQUIRED],
 }
 
-const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({ name: entry.surfaces.mcp.tool }))
+const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({ name: entry.surfaces.mcp.tool, title: entry.mcp?.title }))
 const REGION_TOOLS = GENERATED_TOOLS.filter(tool => !SSO_TOOL_NAMES.includes(tool.name))
 
 function patternOf(properties: Readonly<Record<string, unknown>>, name: string): unknown {
@@ -97,8 +97,8 @@ describe('MCP ツール契約 (tools/list)', () => {
   }
 
   it('tools/list のツール名の集合が generated.json の項目と一致する', () => {
-    // 26 はツールを足す人が直す値。generated.json を書き出し直しても、直し忘れはここで止まる。
-    expect(listed).toHaveLength(26)
+    // 24 はツールを足す人が直す値。generated.json を書き出し直しても、直し忘れはここで止まる。
+    expect(listed).toHaveLength(24)
     const listedNames = listed.map(tool => tool.name)
     const generatedNames = GENERATED_TOOLS.map(tool => tool.name)
 
@@ -208,11 +208,12 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(names.includes('NextToken')).toBe(entry?.pagination === 'max-items')
   })
 
-  it.each(GENERATED_TOOLS)('$name が title と description を持ち openWorldHint が true', ({ name }) => {
+  it.each(GENERATED_TOOLS)('$name が定義書の mcp.title と同じ最上位の title と description を持ち openWorldHint が true', ({ name, title }) => {
     const tool = toolOf(name)
 
-    // title は generated.json の形式に欄が無く、書き出しの対象外。ここで値の有無だけ確かめる。
-    expect(tool.title).toEqual(expect.stringMatching(/\S/))
+    expect(title).toEqual(expect.stringMatching(/\S/))
+    expect(tool.title).toBe(title)
+    expect(tool.annotations?.title).toBeUndefined()
     expect(tool.description).toEqual(expect.stringMatching(/\S/))
     expect(tool.annotations?.openWorldHint).toBe(true)
   })

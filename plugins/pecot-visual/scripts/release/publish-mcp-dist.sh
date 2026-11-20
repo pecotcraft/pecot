@@ -93,9 +93,13 @@ if [ "$AUDIT_SKIPPED" = false ]; then
         echo "       release commit を checkout して、audit-mcp-dist.sh を再実行してください" >&2
         exit 1
     fi
+    # dry-run は開発版の tgz 作りにも使うので通す (#658)。本番では監査が先に止まる。
     if [ "$RECORD_BLOCKING" -gt 0 ]; then
-        echo "ERROR: 監査記録に high 以上の脆弱性が残っています ($RECORD_BLOCKING 件)" >&2
-        exit 1
+        if [ "$DRY_RUN" = false ]; then
+            echo "ERROR: 監査記録に high 以上の脆弱性が残っています ($RECORD_BLOCKING 件)" >&2
+            exit 1
+        fi
+        echo "WARNING: 監査記録に high 以上の脆弱性が残っています ($RECORD_BLOCKING 件)。dry-run なので続けます" >&2
     fi
 fi
 

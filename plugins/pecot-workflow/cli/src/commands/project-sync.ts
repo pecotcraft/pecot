@@ -14,7 +14,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import type { GitHubAPIError } from '../infra/github/errors.js'
 import type { ProjectFieldOption } from '../infra/github/projects.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
-import { commandHint, hinted, placeholder } from './command-hint.js'
+import { commandHint, hinted, placeholder, RUN_COLON } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import type { Output } from './output.js'
@@ -168,7 +168,7 @@ async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitH
       out,
       hinted`project "${name}" has no pecot-workflow-* field
 required field: pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)
-run: ${commandHint(['project', 'init'], { owner, name, host, suffix: placeholder('suffix') })}`,
+${RUN_COLON}${commandHint(['project', 'init'], { owner, name, host, suffix: placeholder('suffix') })}`,
       'not-initialized',
     )
   }

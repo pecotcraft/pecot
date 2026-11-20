@@ -23,6 +23,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { PecotError } from '../../src/domain/errors.js'
+import { compareStrings } from '../../src/domain/python-format.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { ProjectsApi } from '../../src/infra/github/projects.js'
 
@@ -321,9 +322,13 @@ function writePrFile(workspace: Readonly<Workspace>, options: Readonly<FileOptio
 }
 
 // 作業リポジトリに入り、MCP のツールを同じプロセスの中のクライアントから 1 回呼ぶ
-async function callTool(workspace: Readonly<Workspace>, name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
+function callTool(workspace: Readonly<Workspace>, name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
+  return callToolAt(workspace.directory, name, arguments_)
+}
+
+async function callToolAt(directory: string, name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   const previous = process.cwd()
-  process.chdir(workspace.directory)
+  process.chdir(directory)
   try {
     return await callToolOnce(COMMANDS, name, arguments_)
   }
@@ -332,7 +337,12 @@ async function callTool(workspace: Readonly<Workspace>, name: string, arguments_
   }
 }
 
+function createTool(workspace: Readonly<Workspace>, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
+  return callTool(workspace, 'pr_create', arguments_)
+}
+
 const MESSAGE_ARGUMENTS = { message: VALID_BODY, title: TITLE, base: 'main', repo: 'acme/demo', screenshot: SCREENSHOT }
+const MESSAGE_WITHOUT_REPOSITORY = { message: VALID_BODY, title: TITLE, base: 'main', screenshot: SCREENSHOT }
 const CREATED = { head: BRANCH, base: 'main', title: TITLE, number: 21, inReview: 12, moves: [], url: PULL_URL }
 
 describe('pr create', () => {
@@ -404,8 +414,7 @@ describe('pr create', () => {
     expect(postedBody(workspace)['body']).toBe(`${BODY_BEFORE_CLOSES}\nCloses #34`)
   })
 
-  it('ファイルを渡すと、フロントマターの値で PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-09')
+  it('ファイルを渡すと、フロントマターの値で PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const file = writePrFile(workspace, { title: 'feat(demo): #12 ファイルの題', head: BRANCH })
     const result = await workspace.run(['pr', 'create', file])
@@ -414,8 +423,7 @@ describe('pr create', () => {
     expect(postedBody(workspace)['body']).toContain('## Summary — 見本の変更を取り込む')
   })
 
-  it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-10')
+  it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const file = writePrFile(workspace, { title: 'feat(demo): #12 ファイルの題' })
     const result = await workspace.run(['pr', 'create', file, '-m', '別の本文 #12', '-t', '別の題', '-b', 'main'])
@@ -424,39 +432,34 @@ describe('pr create', () => {
     expect(postedBody(workspace)['body']).not.toContain('別の本文')
   })
 
-  it('-m に -t と -b を付けて打つと、PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-11')
+  it('-m に -t と -b を付けて打つと、PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments())
     expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
     expect(postedBody(workspace)).toMatchObject({ title: TITLE, base: 'main', head: BRANCH, body: VALID_BODY })
   })
 
-  it('-m で --repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-12')
+  it('-m で --repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT])
     expect(result.code).toBe(0)
     expect(restRequests(workspace, 'POST', '/repos/acme/demo/pulls')).toHaveLength(1)
   })
 
-  it('--head を省いて打つと、今のブランチを head にする', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-13')
+  it('--head を省いて打つと、今のブランチを head にする', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     await workspace.run(messageArguments())
     expect(postedBody(workspace)['head']).toBe(BRANCH)
   })
 
-  it('--draft を付けて -m で打つと、ドラフトの PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-14')
+  it('--draft を付けて -m で打つと、ドラフトの PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments(['--draft']))
     expect(result.stderr).toContain(`created: draft PR acme/demo ${BRANCH} -> main: ${TITLE}\n`)
     expect(postedBody(workspace)['draft']).toBe(true)
   })
 
-  it.for([{ mode: 'file' }, { mode: 'message' }])('$mode の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-15')
+  it.for([{ mode: 'file' }, { mode: 'message' }])('$mode の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す', async (row) => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const body = BODY_WITHOUT_REFERENCE
     const argv = row.mode === 'file' ? ['pr', 'create', writePrFile(workspace, { body })] : messageArguments([], body)
@@ -486,16 +489,14 @@ describe('pr create', () => {
     expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
   })
 
-  it('ファイルで作るとき末尾の番号の Issue が Epic だと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-17')
+  it('ファイルで作るとき末尾の番号の Issue が Epic だと、warning の行を標準エラーに出す', async () => {
     const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
     const file = writePrFile(workspace, { body: BODY_WITH_REFERENCE_ONLY })
     const result = await workspace.run(['pr', 'create', file])
     expect(result.stderr).toContain('warning: Issue #12 at the end of the branch is an Epic; Closes not added\n')
   })
 
-  it('--no-issue-ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-18')
+  it('--no-issue-ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない', async () => {
     const workspace = await pushedBranch({ github: [CREATED_RULE, ...AFTER_CREATE_RULES] })
     const result = await workspace.run(messageArguments(['--no-issue-ref'], BODY_WITHOUT_REFERENCE))
     expect(result.code).toBe(0)
@@ -503,8 +504,7 @@ describe('pr create', () => {
     expect(operationsOf(workspace)).not.toContain('GetIssueKind')
   })
 
-  it('--template release を付けて打つと、リリース PR として検証する', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-19')
+  it('--template release を付けて打つと、リリース PR として検証する', async () => {
     const workspace = await pushedBranch({ config: { developBranch: 'develop', releaseBranch: 'main' } })
     const missing = await workspace.run(['pr', 'create', '-m', '本文だけ', '-t', 'release: v0.5.0', '-b', 'main', '--head', 'develop', '-r', 'acme/demo', '--template', 'release', '--dry-run'])
     expect(missing.code).toBe(3)
@@ -517,8 +517,7 @@ describe('pr create', () => {
     expect(valid).toMatchObject({ code: 0, stderr: 'dry-run: would create PR acme/demo develop -> main: release: v0.5.0 (release template)\n' })
   })
 
-  it('--dry-run を付けずに打つと、PR を作る前に pr check と同じ確認をする', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-20')
+  it('--dry-run を付けずに打つと、PR を作る前に pr check と同じ確認をする', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     const preflight = await workspace.run(['pr', 'check', '-D', workspace.directory])
     const warning = 'warning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n'
@@ -528,8 +527,7 @@ describe('pr create', () => {
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it('--dry-run を付けて打つと、PR を作らずに dry-run: would create の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-21')
+  it('--dry-run を付けて打つと、PR を作らずに dry-run: would create の行を標準エラーに出す', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments(['--dry-run']))
     expect(result).toStrictEqual({
@@ -540,8 +538,7 @@ describe('pr create', () => {
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it('--dry-run を付けて打つと、事前の確認をしない', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-22')
+  it('--dry-run を付けて打つと、事前の確認をしない', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await workspace.run(messageArguments(['--dry-run']))
     expect(result.code).toBe(0)
@@ -549,8 +546,7 @@ describe('pr create', () => {
     expect(result.stderr).not.toContain('warning:')
   })
 
-  it('PR を作ると、関連 Issue のボードの status を In Review にする', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-23')
+  it('PR を作ると、関連 Issue のボードの status を In Review にする', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments())
     expect(result.stderr).toContain('set: Issue #12 status to In Review\n')
@@ -559,62 +555,54 @@ describe('pr create', () => {
     ])
   })
 
-  it('PR を作ると、その URL を標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-25')
+  it('PR を作ると、その URL を標準出力に出す', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments())
     expect(result.stdout).toBe(`${PULL_URL}\n`)
   })
 
-  it('PR を作ると、created の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-26')
+  it('PR を作ると、created の行を標準エラーに出す', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments())
     expect(lines(result.stderr)).toStrictEqual([`created: PR acme/demo ${BRANCH} -> main: ${TITLE}`, 'set: Issue #12 status to In Review'])
   })
 
-  it('本文に Issue の参照 #N が無いと、終了コード 3 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-27')
+  it('本文に Issue の参照 #N が無いと、終了コード 3 で終わる', async () => {
     const workspace = await openWorkspace({ branch: 'feat/demo/other' })
     const result = await workspace.run(messageArguments(['--head', 'feat/demo/other', '--dry-run'], BODY_WITHOUT_REFERENCE))
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)\n')
   })
 
-  it('必須の節が足りないと、終了コード 3 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-28')
+  it('必須の節が足りないと、終了コード 3 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(messageArguments(['--dry-run'], '本文だけ #12'))
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: missing sections: ## Summary, ## Changes, ## Verified, ## Risks\n')
   })
 
-  it('使えない記法があると、終了コード 3 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-30')
+  it('使えない記法があると、終了コード 3 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(messageArguments(['--dry-run'], `${VALID_BODY}\n- [ ] 残タスク\n`))
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: disallowed syntax: checkbox syntax (- [ ] / 1. [ ]) is not allowed\n')
   })
 
-  it('Summary に画像も screenshot の理由も無いと、終了コード 3 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-31')
+  it('Summary に画像も screenshot の理由も無いと、終了コード 3 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'acme/demo', '--dry-run'])
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `--message`)\n')
   })
 
-  it('base が設定のブランチと違うと、終了コード 3 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-32')
+  it('base が設定のブランチと違うと、終了コード 3 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'develop', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run'])
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: base branch must be main (given: develop)\n')
   })
 
-  it.for([{ mode: 'file' }, { mode: 'message' }])('nx のリポジトリで scope が違うタイトルを $mode の形で渡すと、終了コード 3 で終わる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-33')
+  it.for([{ mode: 'file' }, { mode: 'message' }])('nx のリポジトリで scope が違うタイトルを $mode の形で渡すと、終了コード 3 で終わる', async (row) => {
     installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
     const workspace = await openWorkspace(NX_OPTIONS)
     const title = 'feat(pecot): #12 見本の変更'
@@ -626,8 +614,7 @@ describe('pr create', () => {
     expect(lines(result.stderr).filter(line => !line.startsWith('warning: '))).toEqual(['error: PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)'])
   })
 
-  it('検証に失敗すると、違反ごとに error の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-34')
+  it('検証に失敗すると、違反ごとに error の行を標準エラーに出す', async () => {
     const workspace = await openWorkspace({ branch: 'feat/demo/other' })
     const result = await workspace.run(['pr', 'create', '-m', '本文だけ', '-t', TITLE, '-b', 'develop', '-r', 'acme/demo', '--dry-run'])
     const errors = lines(result.stderr)
@@ -639,8 +626,7 @@ describe('pr create', () => {
     expect(errors[3]).toBe('error: base branch must be main (given: develop)')
   })
 
-  it('検証に失敗すると、PR を作らない', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-35')
+  it('検証に失敗すると、PR を作らない', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments([], '本文だけ #12'))
     expect(result.code).toBe(3)
@@ -648,16 +634,14 @@ describe('pr create', () => {
     expect(restRequests(workspace, 'PATCH')).toStrictEqual([])
   })
 
-  it('事前の確認が warning を出すと、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-36')
+  it('事前の確認が warning を出すと、終了コード 2 で終わる', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments())
     expect(result.code).toBe(2)
     expect(result.stderr).toBe('error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n')
   })
 
-  it('owner:branch の head のブランチが owner の fork に push 済みなら、その head で PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-80')
+  it('owner:branch の head のブランチが owner の fork に push 済みなら、その head で PR を作る', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     addForkRemote(workspace)
     workspace.git(['push', '-q', 'fork', BRANCH])
@@ -666,8 +650,7 @@ describe('pr create', () => {
     expect(postedBody(workspace)['head']).toBe(FORK_HEAD)
   })
 
-  it('owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-84')
+  it('owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     addForkRemote(workspace)
     workspace.git(['push', '-q', 'fork', BRANCH])
@@ -679,8 +662,7 @@ describe('pr create', () => {
     { name: 'fork に無い', scene: 'absent', expected: 'fork/feat/demo/12 does not exist (not pushed) (fix: git push fork feat/demo/12)' },
     { name: '未 push のコミットがある', scene: 'ahead', expected: '1 unpushed commits (fix: git push fork feat/demo/12)' },
     { name: 'fork とずれた', scene: 'diverged', expected: 'diverged: local is 1 commits ahead, fork/feat/demo/12 is 1 ahead (fix: git pull --rebase fork feat/demo/12, or git push --force-with-lease fork feat/demo/12 if you rewrote pushed commits)' },
-  ])('owner:branch の head のブランチが $name と、remote とブランチ名を示した直し方を出して終了コード 2 で止まる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-81')
+  ])('owner:branch の head のブランチが $name と、remote とブランチ名を示した直し方を出して終了コード 2 で止まる', async (row) => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     addForkRemote(workspace)
     if (row.scene !== 'absent') workspace.git(['push', '-q', 'fork', BRANCH])
@@ -695,8 +677,7 @@ describe('pr create', () => {
   it.for([
     { name: 'fork の remote が無い', host: undefined },
     { name: 'owner の remote が別のホストにしか無い', host: 'github.com' },
-  ])('owner:branch の head で $name と、owner と remote の足し方を出して終了コード 2 で止まる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-82')
+  ])('owner:branch の head で $name と、owner と remote の足し方を出して終了コード 2 で止まる', async (row) => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     if (row.host !== undefined) addForkRemote(workspace, row.host)
     const result = await workspace.run(forkArguments())
@@ -705,16 +686,14 @@ describe('pr create', () => {
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it.for([':feat/demo/12', 'someone:'])('head が %s のように owner かブランチ名を欠くと、終了コード 1 で止まる', async (head, context) => {
-    await verifies(context, 'PW-PR-CREATE-83')
+  it.for([':feat/demo/12', 'someone:'])('head が %s のように owner かブランチ名を欠くと、終了コード 1 で止まる', async (head) => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments(['--head', head]))
     expect(result).toMatchObject({ code: 1, stderr: `error: invalid head: ${head} (expected: branch or owner:branch)\n` })
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it('--head で今と別のブランチを指すと、そのブランチの push を確かめる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-85')
+  it('--head で今と別のブランチを指すと、そのブランチの push を確かめる', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     workspace.git(['branch', 'feat/demo/other'])
     const result = await workspace.run(messageArguments(['--head', 'feat/demo/other']))
@@ -722,16 +701,14 @@ describe('pr create', () => {
     expect(lines(result.stderr)).toContain('warning: Push Status: origin/feat/demo/other does not exist (not pushed) (fix: git push)')
   })
 
-  it('owner が作り先と同じ head は、作り先のリポの remote で push を確かめる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-86')
+  it('owner が作り先と同じ head は、作り先のリポの remote で push を確かめる', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments(['--head', `acme:${BRANCH}`]))
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['head']).toBe(`acme:${BRANCH}`)
   })
 
-  it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-69')
+  it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row) => {
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), NOT_EPIC_RULE])
     divergeStacked(workspace, row.scene)
     const result = await workspace.run(stackedArguments())
@@ -740,8 +717,7 @@ describe('pr create', () => {
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it('事前の確認が git のリポジトリでないなどの致命的な場合に当たると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-37')
+  it('事前の確認が git のリポジトリでないなどの致命的な場合に当たると、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
@@ -753,8 +729,7 @@ describe('pr create', () => {
   it.for([
     { title: 'develop_branch が設定に無い', config: NO_DEVELOP_BRANCH, argv: messageArguments(['--dry-run'], '本文だけ'), expected: 'error: develop_branch is not set\n  set it with:' },
     { title: 'release_branch が設定に無い', config: { developBranch: 'main' }, argv: ['pr', 'create', '-m', '本文だけ', '-t', 'release: v1', '-b', 'main', '--head', 'develop', '-r', 'acme/demo', '--template', 'release', '--dry-run'], expected: 'error: release_branch is not set\n  set it with:' },
-  ])('$title と、検証の前に終了コード 1 で終わる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-38')
+  ])('$title と、検証の前に終了コード 1 で終わる', async (row) => {
     const workspace = await pushedBranch({ config: row.config })
     const result = await workspace.run(row.argv)
     expect(result.code).toBe(1)
@@ -762,8 +737,7 @@ describe('pr create', () => {
     expect(result.stderr).not.toContain('missing sections')
   })
 
-  it('ボードの status を In Review にできないと、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-39')
+  it('ボードの status を In Review にできないと、warning の行を標準エラーに出す', async () => {
     const empty = graphql('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
     const workspace = await pushedBranch({ github: [CREATED_RULE, empty, NO_WAITING_RULE] })
     const result = await workspace.run(messageArguments(['--no-issue-ref']))
@@ -772,8 +746,7 @@ describe('pr create', () => {
     expect(result.stderr).toContain('warning: Issue #12 is not on the board; status not updated\n')
   })
 
-  it('ボードの status の更新で GitHub API がエラーを返すと、PR は作ったまま warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-39')
+  it('ボードの status の更新で GitHub API がエラーを返すと、PR は作ったまま warning の行を標準エラーに出す', async () => {
     const failing = rule({ operation: 'UpdateProjectItemField' }, { status: 500, body: { message: 'Server Error' } })
     const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), failing, NO_WAITING_RULE] })
     const result = await workspace.run(messageArguments())
@@ -786,30 +759,26 @@ describe('pr create', () => {
     expect(result.stderr).not.toContain('set: Issue #12 status')
   })
 
-  it('PR の作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-40')
+  it('PR の作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })] })
     const result = await workspace.run(messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR creation failed: GitHub API error: 422\n' })
     expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls'])
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-41')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
     const result = await workspace.run(messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
   })
 
-  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-75')
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ config: false })
     const result = await workspace.run(messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-76')
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES, files: ambiguousWorkspaceFiles() })
     const result = await workspace.run(messageArguments(['--project', SECOND_PROJECT]))
     expect(result.code).toBe(0)
@@ -823,8 +792,7 @@ describe('pr create', () => {
     expect(result.stdout).toBe(`${PULL_URL}\n`)
   })
 
-  it('-m で --repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-47')
+  it('-m で --repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES, config: { hasSecondRepository: true } })
     const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
     const result = await workspace.run(argv)
@@ -832,8 +800,7 @@ describe('pr create', () => {
     expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
   })
 
-  it('-m で --repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-77')
+  it('-m で --repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る', async () => {
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const originUrl = workspace.git(['remote', 'get-url', 'origin']).trim()
     workspace.git(['remote', 'rename', 'origin', 'upstream'])
@@ -846,8 +813,7 @@ describe('pr create', () => {
     expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
   })
 
-  it('--template が default でも release でもないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-42')
+  it('--template が default でも release でもないと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', '-m', 'test', '-t', 'test', '-b', 'main', '--template', 'invalid'])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: --template must be \'default\' or \'release\' (given: invalid)\n' })
@@ -864,15 +830,13 @@ describe('pr create', () => {
   it.for([
     { title: '-t', argv: ['pr', 'create', '-m', 'x', '-b', 'main'] },
     { title: '-b', argv: ['pr', 'create', '-m', 'x', '-t', 'x'] },
-  ])('-m に $title を渡さないと、終了コード 1 で終わる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-44')
+  ])('-m に $title を渡さないと、終了コード 1 で終わる', async (row) => {
     const workspace = await pushedBranch()
     const result = await workspace.run(row.argv)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: --title and --base (base branch) are required with --message\n' })
   })
 
-  it('ファイルと一緒に --screenshot を渡すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-45')
+  it('ファイルと一緒に --screenshot を渡すと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', writePrFile(workspace), '--screenshot', '理由'])
     expect(result.code).toBe(1)
@@ -882,8 +846,7 @@ describe('pr create', () => {
   it.for([
     { title: 'フロントマターが無い', content: '本文だけ\n', expected: 'error: frontmatter not found (does not start with ---)\n' },
     { title: 'repository が owner/repo の形でない', content: '---\ntitle: "x"\nrepository: "invalid"\nbase: "main"\nhead: ""\ndraft: false\n---\n\n本文\n', expected: 'error: repository is required (e.g. owner/repo)\n' },
-  ])('ファイルが次の形だと（$title）、終了コード 1 で終わる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-46')
+  ])('ファイルが次の形だと（$title）、終了コード 1 で終わる', async (row) => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', workspace.scratch('bad.md', row.content)])
     expect(result.code).toBe(1)
@@ -895,8 +858,7 @@ describe('pr create', () => {
   it.for([
     { title: 'git remote が無く --repo も無い', config: {}, repo: [], expected: 'error: specify the repository (--repo <owner/repo>)\n' },
     { title: '--repo が owner/repo の形でない', config: {}, repo: ['-r', 'invalid'], expected: 'error: invalid repository format: invalid (expected: owner/repo)\n' },
-  ])('-m で次の形だと（$title）、終了コード 1 で終わる', async (row, context) => {
-    await verifies(context, 'PW-PR-CREATE-47')
+  ])('-m で次の形だと（$title）、終了コード 1 で終わる', async (row) => {
     const workspace = await pushedBranch({ config: row.config })
     if (row.repo.length === 0) workspace.git(['remote', 'remove', 'origin'])
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', ...row.repo])
@@ -935,8 +897,7 @@ describe('pr create', () => {
     expect(lines(result.stderr)).toStrictEqual([`dry-run: would create PR acme/demo ${BRANCH} -> main: feat(pecot): #12 見本の変更`, 'dry-run: would set Issue #12 status to In Review'])
   })
 
-  it('head ブランチを決められないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-48')
+  it('head ブランチを決められないと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
@@ -960,8 +921,7 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'GET', STACKS_PATH)).toMatchObject([{ query: { pull_request: '20' } }])
     })
 
-    it('下の段がスタックに入っているときに PR を作ると、そのスタックの一番上に足す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-51')
+    it('下の段がスタックに入っているときに PR を作ると、そのスタックの一番上に足す', async () => {
       const existing = rule({ method: 'GET', path: STACKS_PATH, apiVersion: STACKS_VERSION }, { status: 200, body: [{ number: 5, pull_requests: [{ number: 19 }, { number: 20 }] }] })
       const added = rule({ method: 'POST', path: `${STACKS_PATH}/5/add`, apiVersion: STACKS_VERSION }, { status: 200, body: { number: 5, pull_requests: [{ number: 19 }, { number: 20 }, { number: 21 }] } })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, existing, added] })
@@ -975,8 +935,7 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'POST', STACKS_PATH)).toStrictEqual([])
     })
 
-    it('下の段の PR がスタックの一番上に無いと、追加を呼ばずに warning の行を出し、PR を残す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-60')
+    it('下の段の PR がスタックの一番上に無いと、追加を呼ばずに warning の行を出し、PR を残す', async () => {
       const existing = rule({ method: 'GET', path: STACKS_PATH, apiVersion: STACKS_VERSION }, { status: 200, body: [{ number: 5, pull_requests: [{ number: 20 }, { number: 22 }] }] })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, existing] })
       const result = await workspace.run(stackedArguments())
@@ -988,9 +947,7 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'POST', `${STACKS_PATH}/5/add`)).toStrictEqual([])
     })
 
-    it('積んだ記録で --dry-run を付けて打つと、下の段のブランチを base にした予定の行とスタックへの登録の予定の行を出し、スタックと待つ側を読まない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-50')
-      await verifies(context, 'PW-PR-CREATE-63')
+    it('積んだ記録で --dry-run を付けて打つと、下の段のブランチを base にした予定の行とスタックへの登録の予定の行を出し、スタックと待つ側を読まない', async () => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')])] })
       const result = await workspace.run(stackedArguments(['--dry-run']))
       expect(result).toStrictEqual({
@@ -1021,8 +978,7 @@ describe('pr create', () => {
       expect(postedBody(workspace)).toMatchObject({ base: LOWER, head: BRANCH })
     })
 
-    it('記録のコミットが今のブランチの履歴に無く、載せ直し済みとも決まらないと、pr restack を案内せずに、PR を作らずに終了コード 1 で終わる', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-65')
+    it('記録のコミットが今のブランチの履歴に無く、載せ直し済みとも決まらないと、pr restack を案内せずに、PR を作らずに終了コード 1 で終わる', async () => {
       const workspace = await pushedBranch({ github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
       const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
       const foreign = workspace.git(['commit-tree', tree, '-m', 'elsewhere']).trim()
@@ -1037,9 +993,7 @@ describe('pr create', () => {
       expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
     })
 
-    it('記録が別のブランチのもので、その下の段が今のブランチの履歴に無い位置へ動いていると、pr restack を案内しない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-65')
-      await verifies(context, 'PW-PR-CREATE-70')
+    it('記録が別のブランチのもので、その下の段が今のブランチの履歴に無い位置へ動いていると、pr restack を案内しない', async () => {
       const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES])
       const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
       const foreign = workspace.git(['commit-tree', tree, '-m', 'elsewhere']).trim()
@@ -1053,9 +1007,7 @@ describe('pr create', () => {
       ])
     })
 
-    it('下の段がマージされた後に手で載せ直すと、PR を作らずに、pr restack で記録を書き直す案内を出す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-65')
-      await verifies(context, 'PW-PR-CREATE-70')
+    it('下の段がマージされた後に手で載せ直すと、PR を作らずに、pr restack で記録を書き直す案内を出す', async () => {
       const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES])
       const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
       pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
@@ -1090,8 +1042,7 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'GET', STACKS_PATH)).toStrictEqual([])
     })
 
-    it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、URL を出す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-60')
+    it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、URL を出す', async () => {
       const dropped = rule({ method: 'GET', path: STACKS_PATH }, { status: 200, disconnect: true })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, dropped] })
       const result = await workspace.run(stackedArguments())
@@ -1112,8 +1063,7 @@ describe('pr create', () => {
       expect(operationsOf(workspace)).not.toContain('GetIssueBlockingReferences')
     })
 
-    it('下の段の PR がマージ済みのときにファイルで打つと、base を開発ブランチにして PR を作り、スタックに登録しない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-52')
+    it('下の段の PR がマージ済みのときにファイルで打つと、base を開発ブランチにして PR を作り、スタックに登録しない', async () => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES] })
       const result = await workspace.run(['pr', 'create', writePrFile(workspace, { base: LOWER })])
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
@@ -1121,9 +1071,7 @@ describe('pr create', () => {
       expect(operationsOf(workspace).filter(operation => operation.includes('/stacks'))).toStrictEqual([])
     })
 
-    it('開発ブランチから着手した記録で打つと、記録の無い startable の判定のときと同じ出力になり、判定を読まない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-53')
-      await verifies(context, 'PW-PR-CREATE-72')
+    it('開発ブランチから着手した記録で打つと、記録の無い startable の判定のときと同じ出力になり、判定を読まない', async () => {
       const plain = await pushedBranch({ baseRecord: false, github: [STARTABLE_RULE, ...SUBMIT_RULES] })
       const expected = await plain.run(messageArguments())
       const recorded = await pushedBranch({ files: { [stateFile('.pecot-base')]: `main ${RECORD_SHA}\n` }, github: SUBMIT_RULES })
@@ -1133,8 +1081,7 @@ describe('pr create', () => {
     })
 
     describe('記録が無い作業ディレクトリ', () => {
-      it('判定が stackable で下の段の上にあると、--dry-run で下の段を base にした PR とスタックへの登録を出す', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-71')
+      it('判定が stackable で下の段の上にあると、--dry-run で下の段を base にした PR とスタックへの登録を出す', async () => {
         const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
         const result = await workspace.run(stackedArguments(['--dry-run']))
         expect(result).toStrictEqual({
@@ -1144,8 +1091,7 @@ describe('pr create', () => {
         })
       })
 
-      it('下の段を進めた main の上へ載せ直して force-push した後も、下の段を base にする', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-71')
+      it('下の段を進めた main の上へ載せ直して force-push した後も、下の段を base にする', async () => {
         const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
         pushTo(workspace, 'origin/main', 'main', 'main.txt', 'main\n')
         workspace.git(['checkout', '-q', '-b', 'rebased-lower', `origin/${LOWER}`])
@@ -1158,15 +1104,13 @@ describe('pr create', () => {
         expect(lines(result.stderr)[0]).toBe(`dry-run: would create PR acme/demo ${BRANCH} -> ${LOWER}: ${TITLE}`)
       })
 
-      it('判定が stackable でも、ブランチが開発ブランチから分かれて下の段の変更を持たないと、develop_branch を base にする', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-72')
+      it('判定が stackable でも、ブランチが開発ブランチから分かれて下の段の変更を持たないと、develop_branch を base にする', async () => {
         const workspace = await pushedBranch({ baseRecord: false, branches: [{ name: BRANCH }, { name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github: [STACKABLE_RULE] })
         const result = await workspace.run(messageArguments(['--dry-run']))
         expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would create PR acme/demo ${BRANCH} -> main: ${TITLE}\ndry-run: would set Issue #12 status to In Review\n` })
       })
 
-      it('判定が blocked なら、--dry-run では warning を出し、develop_branch を base にする', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-74')
+      it('判定が blocked なら、--dry-run では warning を出し、develop_branch を base にする', async () => {
         const workspace = await pushedBranch({ baseRecord: false, github: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })] })
         const result = await workspace.run(messageArguments(['--dry-run']))
         expect(result.code).toBe(0)
@@ -1180,8 +1124,7 @@ describe('pr create', () => {
       it.for([
         { name: '判定が blocked', rules: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })], expected: /^error: cannot infer the stacked base: blocked by #11/u },
         { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], expected: /^error: cannot infer the stacked base: /u },
-      ])('$name とき、投稿では PR を作らずに error の行を出し、終了コード 1 で終わる', async (row, context) => {
-        await verifies(context, 'PW-PR-CREATE-73')
+      ])('$name とき、投稿では PR を作らずに error の行を出し、終了コード 1 で終わる', async (row) => {
         const workspace = await pushedBranch({ baseRecord: false, github: row.rules })
         const result = await workspace.run(messageArguments([]))
         expect(result.code).toBe(1)
@@ -1193,8 +1136,7 @@ describe('pr create', () => {
     it.for([
       { name: '--head で別のブランチを指す', record: 'stacked', mode: 'head' },
       { name: 'フロントマターの head で別のブランチを指す', record: 'malformed', mode: 'frontmatter' },
-    ])('$name ときは、記録を読まずに今までどおり動く', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-54')
+    ])('$name ときは、記録を読まずに今までどおり動く', async (row) => {
       const workspace = await pushedBranch({ files: row.record === 'stacked' ? STACKED_RECORD : MALFORMED_RECORD })
       const argv = row.mode === 'head'
         ? messageArguments(['--head', 'feat/demo/other', '--dry-run'])
@@ -1204,8 +1146,7 @@ describe('pr create', () => {
       expect(operationsOf(workspace)).toStrictEqual([])
     })
 
-    it('今のブランチから release のテンプレートで打つと、形の誤った記録があっても読まずに今までどおり動く', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-54')
+    it('今のブランチから release のテンプレートで打つと、形の誤った記録があっても読まずに今までどおり動く', async () => {
       const workspace = await pushedBranch({ files: MALFORMED_RECORD, config: { developBranch: 'develop', releaseBranch: 'main' } })
       const result = await workspace.run(['pr', 'create', '-m', RELEASE_BODY, '-t', 'release: v0.5.0', '-b', 'main', '-r', 'acme/demo', '--template', 'release', '--dry-run'])
       expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would create PR acme/demo ${BRANCH} -> main: release: v0.5.0 (release template)\n` })
@@ -1215,8 +1156,7 @@ describe('pr create', () => {
     it.for([
       { name: '下の段の PR が無い', nodes: [] },
       { name: '下の段の PR がマージされずに閉じた', nodes: [lowerPullRequest('CLOSED')] },
-    ])('$name とき、PR を作らずに直し方を添えた error の行を出し、終了コード 2 で終わる', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-57')
+    ])('$name とき、PR を作らずに直し方を添えた error の行を出し、終了コード 2 で終わる', async (row) => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests(row.nodes), ...SUBMIT_RULES] })
       const result = await workspace.run(stackedArguments())
       expect(result).toStrictEqual({
@@ -1227,8 +1167,7 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
     })
 
-    it('下の段の PR が開いているのに base に開発ブランチを渡すと、PR を作らずに終了コード 3 で終わる', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-58')
+    it('下の段の PR が開いているのに base に開発ブランチを渡すと、PR を作らずに終了コード 3 で終わる', async () => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
       const result = await workspace.run(messageArguments())
       expect(result).toStrictEqual({ code: 3, stdout: '', stderr: `error: base branch must be ${LOWER} while its PR #20 is open (given: main)\n` })
@@ -1238,8 +1177,7 @@ describe('pr create', () => {
     it.for([
       { name: 'ファイルの投稿', mode: 'file' },
       { name: '-m の投稿', mode: 'message' },
-    ])('積んだ base の記録の形が誤っていると、$name でも終了コード 1 で終わる', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-59')
+    ])('積んだ base の記録の形が誤っていると、$name でも終了コード 1 で終わる', async (row) => {
       const workspace = await pushedBranch({ files: MALFORMED_RECORD, github: SUBMIT_RULES })
       const argv = row.mode === 'file' ? ['pr', 'create', writePrFile(workspace)] : messageArguments()
       const result = await workspace.run(argv)
@@ -1259,8 +1197,7 @@ describe('pr create', () => {
         expected: /^warning: could not register stack: GitHub API error: 409 Conflict$/u,
       },
       { name: 'スタックの API が版を知らずに 400', rules: [rule({ method: 'GET', path: STACKS_PATH }, { status: 400, body: { message: 'Unsupported API version' } })], expected: /^warning: could not register stack: GitHub API error: 400 Unsupported API version$/u },
-    ])('$name とき、PR を作ったまま warning: could not register stack の行を出す', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-60')
+    ])('$name とき、PR を作ったまま warning: could not register stack の行を出す', async (row) => {
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, ...row.rules] })
       const result = await workspace.run(stackedArguments())
       expect(result.code).toBe(0)
@@ -1272,8 +1209,7 @@ describe('pr create', () => {
       ])
     })
 
-    it('下の段の PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-62')
+    it('下の段の PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる', async () => {
       installNx({
         'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] },
         'text-rules': { root: 'libs/text-rules', tags: ['scope:libs'] },
@@ -1301,8 +1237,7 @@ describe('pr create', () => {
       expect(failed).toStrictEqual({ code: 3, stdout: '', stderr: 'error: PR title scope must be p-w (given: libs,p-w; computed from the tags of the changed nx projects)\n' })
     })
 
-    it('下の段の PR が開いている間は、題の scope を remote の下の段のブランチから head までの差分で確かめる', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-62')
+    it('下の段の PR が開いている間は、題の scope を remote の下の段のブランチから head までの差分で確かめる', async () => {
       installNx({
         'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] },
         'text-rules': { root: 'libs/text-rules', tags: ['scope:libs'] },
@@ -1332,8 +1267,7 @@ describe('pr create', () => {
   })
 
   describe('待っている Issue', () => {
-    it('PR を作ると、head の Issue を待つ Issue の列を動かし、moved の行を In Review の行と URL の間に出す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-55')
+    it('PR を作ると、head の Issue を待つ Issue の列を動かし、moved の行を In Review の行と URL の間に出す', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       const result = await workspace.run(messageArguments())
       expect(result).toStrictEqual({
@@ -1343,9 +1277,7 @@ describe('pr create', () => {
       })
     })
 
-    it('選択肢の ID が古くて In Review と待つ Issue の列を書けないと、warning を 2 行出し、ID を読み直す案内を 1 回だけ添える', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-39')
-      await verifies(context, 'PW-PR-CREATE-61')
+    it('選択肢の ID が古くて In Review と待つ Issue の列を書けないと、warning を 2 行出し、ID を読み直す案内を 1 回だけ添える', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), staleOptionUpdate(2), waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true))] })
       const result = await workspace.run(messageArguments())
       expect(result).toStrictEqual({
@@ -1361,8 +1293,7 @@ describe('pr create', () => {
       })
     })
 
-    it('着手の跡がある待つ Issue は、列を動かさない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-56')
+    it('着手の跡がある待つ Issue は、列を動かさない', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule({ ...waitingTarget(true), branch: 'feat/demo/13' })] })
       const result = await workspace.run(messageArguments())
       expect(result.code).toBe(0)
@@ -1370,8 +1301,7 @@ describe('pr create', () => {
       expect(workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toHaveLength(1)
     })
 
-    it('待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かす', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-55')
+    it('待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かす', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       useFakeDelays()
       const result = await settleWithFakeDelays(workspace.run(messageArguments()))
@@ -1379,8 +1309,7 @@ describe('pr create', () => {
       expect(operationsOf(workspace).filter(operation => operation === 'GetIssuePrerequisites')).toHaveLength(2)
     })
 
-    it('読み直しても作った PR が判定に出なければ、board sync で後から直せる旨の warning の行を出して列を動かさない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-61')
+    it('読み直しても作った PR が判定に出なければ、board sync で後から直せる旨の warning の行を出して列を動かさない', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(false))] })
       useFakeDelays()
       const result = await settleWithFakeDelays(workspace.run(messageArguments()))
@@ -1389,8 +1318,7 @@ describe('pr create', () => {
       expect(result.stderr).not.toContain('moved:')
     })
 
-    it('待つ Issue があっても、ボードの全項目を読まず、待つ Issue の項目だけを読む', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-55')
+    it('待つ Issue があっても、ボードの全項目を読まず、待つ Issue の項目だけを読む', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       await workspace.run(messageArguments())
       expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls', 'GetIssueProjectItems', 'UpdateProjectItemField', 'GetIssueBlockingReferences', 'GetIssueBoardItem', 'GetIssuePrerequisites', 'UpdateProjectItemField'])
@@ -1402,8 +1330,7 @@ describe('pr create', () => {
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
     })
 
-    it('待つ Issue を全件読めなければ、読めた分を動かして warning の行を出す', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-61')
+    it('待つ Issue を全件読めなければ、読めた分を動かして warning の行を出す', async () => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(2), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       const result = await workspace.run(messageArguments())
       expect(result.code).toBe(0)
@@ -1416,8 +1343,7 @@ describe('pr create', () => {
       { name: '待つ Issue の読み取りの接続', rules: [rule({ operation: 'GetIssueBlockingReferences' }, { status: 200, disconnect: true })], expected: /^warning: could not read the Issues waiting for #12: /u },
       { name: '列の書き込みの接続', rules: [waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_13' } }, { status: 200, disconnect: true })], expected: /^warning: could not move #13: /u },
       { name: '列の書き込み', rules: [waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_13' } }, { status: 500, body: { message: 'boom' } })], expected: /^warning: could not move #13: GraphQL query error: /u },
-    ])('$name に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-61')
+    ])('$name に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる', async (row) => {
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, ...row.rules] })
       const result = await workspace.run(messageArguments())
       expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
@@ -1437,8 +1363,7 @@ describe('pr create', () => {
       { name: 'Issue', data: { repository: { issue: null } }, path: ['repository', 'issue'] },
       // eslint-disable-next-line unicorn/no-null -- 応答の形（リポが無いと null）
       { name: 'リポジトリ', data: { repository: null }, path: ['repository'] },
-    ])('head の番号の $name が PR のリポに無いと、何も出さずに飛ばす', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-64')
+    ])('head の番号の $name が PR のリポに無いと、何も出さずに飛ばす', async (row) => {
       const notFound = rule({ operation: 'GetIssueBlockingReferences' }, { status: 200, body: { data: row.data, errors: [{ type: 'NOT_FOUND', path: row.path, message: 'Could not resolve to an Issue with the number of 12.' }] } })
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, notFound] })
       const result = await workspace.run(messageArguments())
@@ -1453,13 +1378,21 @@ describe('pr create', () => {
   })
 
   describe('MCP の data', () => {
-    it('PR を作ると、URL・番号・ブランチ・題と、In Review にした Issue を返す', async () => {
+    it('PR を作ると、URL・番号・ブランチ・題と、In Review にした Issue を返す', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-11')
+      await verifies(context, 'PW-PR-CREATE-13')
+      await verifies(context, 'PW-PR-CREATE-23')
+      await verifies(context, 'PW-PR-CREATE-25')
+      await verifies(context, 'PW-PR-CREATE-26')
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
       expect(result.structured).toEqual(CREATED)
+      expect(workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toMatchObject([{ variables: { itemId: 'PVTI_1', fieldId: 'PVTSSF_workflow', optionId: 'o5' } }])
+      expect(postedBody(workspace)).toMatchObject({ title: TITLE, base: 'main', head: BRANCH, body: VALID_BODY })
     })
 
-    it('head に owner:branch を渡すと、fork のブランチで PR を作り、その head を返す', async () => {
+    it('head に owner:branch を渡すと、fork のブランチで PR を作り、その head を返す', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-80')
       const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
       addForkRemote(workspace)
       workspace.git(['push', '-q', 'fork', BRANCH])
@@ -1467,7 +1400,8 @@ describe('pr create', () => {
       expect(result.structured).toEqual({ ...CREATED, head: FORK_HEAD })
     })
 
-    it('待っている Issue の列を動かすと、その Issue を moves に返す', async () => {
+    it('待っている Issue の列を動かすと、その Issue を moves に返す', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-55')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       const result = await callTool(workspace, 'pr_create', MESSAGE_ARGUMENTS)
       expect(result.structured).toEqual({ ...CREATED, moves: [{ issue: '#13', from: 'Blocked', to: 'Ready', reason: 'stackable on #12' }] })
@@ -1504,13 +1438,16 @@ describe('pr create', () => {
       expect(detail).toBe('boom')
     })
 
-    it('積んだ PR を作ると、下の段の PR とスタックの番号を stack に返す', async () => {
+    it('積んだ PR を作ると、下の段の PR とスタックの番号を stack に返す', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-50')
+      await verifies(context, 'PW-PR-CREATE-51')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, base: LOWER })
       expect(result.structured).toEqual({ ...CREATED, base: LOWER, stack: { lower: 20, registered: true, number: 5 } })
     })
 
-    it('dry_run で呼ぶと、作る予定のブランチと題と dryRun を返す', async () => {
+    it('dry_run で呼ぶと、作る予定のブランチと題と dryRun を返す', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-21')
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, dry_run: true })
       expect(result.structured).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
@@ -1541,6 +1478,7 @@ describe('pr create', () => {
     })
 
     it('PR を作った後に列の移動が失敗すると、作った PR の値と warning を data に返し、inReview を返さない', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-39')
       await verifies(context, 'PW-COMMON-19')
       const failing = rule({ operation: 'UpdateProjectItemField' }, { status: 500, body: { message: 'Server Error' } })
       const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), failing, NO_WAITING_RULE] })
@@ -1557,15 +1495,635 @@ describe('pr create', () => {
       })
     })
 
-    it('本文の検証に失敗すると、違反の文を data.detail に入れて content-invalid を返す', async () => {
+    it('本文の検証に失敗すると、違反の文を data.detail に入れて content-invalid を返す', async (context) => {
+      await verifies(context, 'PW-COMMON-26')
+      await verifies(context, 'PW-PR-CREATE-28')
+      await verifies(context, 'PW-PR-CREATE-32')
+      await verifies(context, 'PW-PR-CREATE-34')
+      await verifies(context, 'PW-PR-CREATE-35')
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
       const result = await callTool(workspace, 'pr_create', { ...MESSAGE_ARGUMENTS, message: '本文だけ #12', base: 'develop' })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'content-invalid' } })
       expect(result.structured).toEqual({
         kind: 'content-invalid',
-        detail: 'missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nerror: base branch must be main (given: develop)',
+        detail: 'missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nbase branch must be main (given: develop)',
       })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
+    })
+
+    describe('MCP の呼び出し', () => {
+      it('file を渡すと、フロントマターの値で PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-09')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const file = writePrFile(workspace, { title: 'feat(demo): #12 ファイルの題', head: BRANCH })
+        const result = await createTool(workspace, { file })
+        expect(result.structured).toEqual({ ...CREATED, title: 'feat(demo): #12 ファイルの題' })
+        expect(postedBody(workspace)).toMatchObject({ title: 'feat(demo): #12 ファイルの題', head: BRANCH, base: 'main', draft: false })
+      })
+
+      it('file と message を一緒に渡すと、message の本文を使わずにファイルから PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-10')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const file = writePrFile(workspace, { title: 'feat(demo): #12 ファイルの題' })
+        const result = await createTool(workspace, { file, message: '別の本文 #12', title: '別の題', base: 'main' })
+        expect(result.isError).toBe(false)
+        expect(postedBody(workspace)).toMatchObject({ title: 'feat(demo): #12 ファイルの題' })
+        expect(postedBody(workspace)['body']).not.toContain('別の本文')
+      })
+
+      it('message で repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-12')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const result = await createTool(workspace, MESSAGE_WITHOUT_REPOSITORY)
+        expect(result.isError).toBe(false)
+        expect(restRequests(workspace, 'POST', '/repos/acme/demo/pulls')).toHaveLength(1)
+      })
+
+      it('draft を付けて message で呼ぶと、ドラフトの PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-14')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, draft: true })
+        expect(result.isError).toBe(false)
+        expect(postedBody(workspace)['draft']).toBe(true)
+      })
+
+      it.for([{ mode: 'file' }, { mode: 'message' }])('$mode の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-15')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const body = BODY_WITHOUT_REFERENCE
+        const arguments_ = row.mode === 'file' ? { file: writePrFile(workspace, { body }) } : { ...MESSAGE_ARGUMENTS, message: body }
+        const result = await createTool(workspace, arguments_)
+        expect(result.isError).toBe(false)
+        expect(postedBody(workspace)['body']).toBe(`${body.trimEnd()}\n\nCloses #12`)
+      })
+
+      it('file で作るとき末尾の番号の Issue が Epic だと、Closes を足さずに warnings へ入れる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-16')
+        await verifies(context, 'PW-PR-CREATE-17')
+        const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
+        const file = writePrFile(workspace, { body: BODY_WITH_REFERENCE_ONLY })
+        const result = await createTool(workspace, { file })
+        expect(result.isError).toBe(false)
+        expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
+        expect(result.structured['warnings']).toEqual(['Issue #12 at the end of the branch is an Epic; Closes not added'])
+      })
+
+      it('no_issue_ref を付けると、Closes を足さず、Issue の参照の確認もしない', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-18')
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...AFTER_CREATE_RULES] })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, message: BODY_WITHOUT_REFERENCE, no_issue_ref: true })
+        expect(result.isError).toBe(false)
+        expect(postedBody(workspace)['body']).toBe(BODY_WITHOUT_REFERENCE)
+        expect(operationsOf(workspace)).not.toContain('GetIssueKind')
+      })
+
+      it('template に release を渡すと、リリース PR として検証する', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-19')
+        const workspace = await pushedBranch({ config: { developBranch: 'develop', releaseBranch: 'main' } })
+        const release = { title: 'release: v0.5.0', head: 'develop', repo: 'acme/demo', template: 'release', dry_run: true }
+        const missing = await createTool(workspace, { ...release, message: '本文だけ', base: 'main' })
+        expect(missing.structured['kind']).toBe('content-invalid')
+        expect(missing.structured['detail']).toMatch(/^missing sections: ## Summary, ## Changes, ## Migration, ## Verified$/u)
+        const wrongBase = await createTool(workspace, { ...release, message: RELEASE_BODY, base: 'staging' })
+        expect(wrongBase.structured).toEqual({ kind: 'content-invalid', detail: 'release PR base branch must be main (given: staging)' })
+        const valid = await createTool(workspace, { ...release, message: RELEASE_BODY, base: 'main' })
+        expect(valid.structured).toEqual({ head: 'develop', base: 'main', title: 'release: v0.5.0', dryRun: true })
+      })
+
+      it('dry_run を付けずに呼ぶと、PR を作る前に pr_check と同じ確認をし、引っかかりを warnings に入れて kind が preflight-failed の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-20')
+        await verifies(context, 'PW-PR-CREATE-36')
+        const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.isError).toBe(true)
+        expect(result.structured['kind']).toBe('preflight-failed')
+        expect(result.structured['warnings']).toEqual(['Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)'])
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it('dry_run を付けると、事前の確認をしない', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-22')
+        const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, dry_run: true })
+        expect(result.structured).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
+      })
+
+      it.for([
+        { name: '本文に Issue の参照 #N が無い', id: 'PW-PR-CREATE-27', arguments_: { ...MESSAGE_ARGUMENTS, message: BODY_WITHOUT_REFERENCE, head: 'feat/demo/other' }, detail: 'PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)' },
+        { name: '使えない記法がある', id: 'PW-PR-CREATE-30', arguments_: { ...MESSAGE_ARGUMENTS, message: `${VALID_BODY}\n- [ ] 残タスク\n` }, detail: 'disallowed syntax: checkbox syntax (- [ ] / 1. [ ]) is not allowed' },
+        { name: 'base が設定のブランチと違う', id: 'PW-PR-CREATE-32', arguments_: { ...MESSAGE_ARGUMENTS, base: 'develop' }, detail: 'base branch must be main (given: develop)' },
+      ])('$name と、PR を作らずに kind が content-invalid の失敗を返す', async (row, context) => {
+        await verifies(context, row.id)
+        const workspace = await openWorkspace({ branch: 'feat/demo/other', branches: [{ name: BRANCH }] })
+        workspace.git(['checkout', '-q', BRANCH])
+        const result = await createTool(workspace, { ...row.arguments_, dry_run: true })
+        expect(result.structured).toEqual({ kind: 'content-invalid', detail: row.detail })
+      })
+
+      it('Summary に画像も screenshot の理由も無いと、kind が content-invalid の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-31')
+        const workspace = await pushedBranch()
+        const result = await createTool(workspace, { message: VALID_BODY, title: TITLE, base: 'main', repo: 'acme/demo', dry_run: true })
+        expect(result.structured['kind']).toBe('content-invalid')
+        expect(result.structured['detail']).toMatch(/^Summary has no image and `screenshot` gives no reason to omit one\./u)
+      })
+
+      it.for([{ mode: 'file' }, { mode: 'message' }])('nx のリポジトリで scope が違うタイトルを $mode の形で渡すと、kind が content-invalid の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-33')
+        installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
+        const workspace = await openWorkspace(NX_OPTIONS)
+        const title = 'feat(pecot): #12 見本の変更'
+        const arguments_ = row.mode === 'file' ? { file: writePrFile(workspace, { title }) } : { ...MESSAGE_ARGUMENTS, title }
+        const result = await createTool(workspace, { ...arguments_, dry_run: true })
+        expect(result.structured).toMatchObject({ kind: 'content-invalid', detail: 'PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)' })
+      })
+
+      it('owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-84')
+        const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+        addForkRemote(workspace)
+        workspace.git(['push', '-q', 'fork', BRANCH])
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, message: BODY_WITHOUT_REFERENCE, head: FORK_HEAD })
+        expect(result.isError).toBe(false)
+        expect(String(postedBody(workspace)['body']).endsWith('Closes #12')).toBe(true)
+      })
+
+      it.for([
+        { name: 'fork に無い', scene: 'absent', expected: 'fork/feat/demo/12 does not exist (not pushed) (fix: git push fork feat/demo/12)' },
+        { name: '未 push のコミットがある', scene: 'ahead', expected: '1 unpushed commits (fix: git push fork feat/demo/12)' },
+        { name: 'fork とずれた', scene: 'diverged', expected: 'diverged: local is 1 commits ahead, fork/feat/demo/12 is 1 ahead (fix: git pull --rebase fork feat/demo/12, or git push --force-with-lease fork feat/demo/12 if you rewrote pushed commits)' },
+      ])('owner:branch の head のブランチが $name と、直し方を warnings に入れて kind が preflight-failed の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-81')
+        const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+        addForkRemote(workspace)
+        if (row.scene !== 'absent') workspace.git(['push', '-q', 'fork', BRANCH])
+        if (row.scene === 'ahead') commitFile(workspace, 'ahead.txt', 'ahead\n')
+        else if (row.scene === 'diverged') workspace.git(['commit', '-q', '--amend', '-m', 'amended'])
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, message: BODY_WITHOUT_REFERENCE, head: FORK_HEAD })
+        expect(result.structured['kind']).toBe('preflight-failed')
+        expect(result.structured['warnings']).toContain(`Push Status: ${row.expected}`)
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it.for([
+        { name: 'fork の remote が無い', host: undefined },
+        { name: 'owner の remote が別のホストにしか無い', host: 'github.com' },
+      ])('owner:branch の head で $name と、git remote add の直し方を warnings に入れて kind が preflight-failed の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-82')
+        const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
+        if (row.host !== undefined) addForkRemote(workspace, row.host)
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, message: BODY_WITHOUT_REFERENCE, head: FORK_HEAD })
+        expect(result.structured['kind']).toBe('preflight-failed')
+        expect(result.structured['warnings']).toContain(`Push Status: no git remote points to a repository of someone on ${HOST} (fix: git remote add fork https://${HOST}/someone/demo.git)`)
+      })
+
+      it.for([':feat/demo/12', 'someone:'])('head が %s のように owner かブランチ名を欠くと、PR を作らずに kind が invalid-input の失敗を返す', async (head, context) => {
+        await verifies(context, 'PW-PR-CREATE-83')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, head })
+        expect(result.structured).toEqual({ kind: 'invalid-input', detail: `invalid head: ${head} (expected: branch or owner:branch)` })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it('head で今と別のブランチを指すと、そのブランチの push を確かめる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-85')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        workspace.git(['branch', 'feat/demo/other'])
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, head: 'feat/demo/other' })
+        expect(result.structured['kind']).toBe('preflight-failed')
+        expect(result.structured['warnings']).toContain('Push Status: origin/feat/demo/other does not exist (not pushed) (fix: git push)')
+      })
+
+      it('owner が作り先と同じ head は、作り先のリポの remote で push を確かめる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-86')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, head: `acme:${BRANCH}` })
+        expect(result.isError).toBe(false)
+        expect(postedBody(workspace)['head']).toBe(`acme:${BRANCH}`)
+      })
+
+      it.for(STACKED_CREATE_ROWS)('積んだ記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方を pr_check と同じに決める', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-69')
+        const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), NOT_EPIC_RULE])
+        divergeStacked(workspace, row.scene)
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
+        expect(result.structured['kind']).toBe('preflight-failed')
+        expect(toolFixes(result)).toStrictEqual([row.expected === 'pecot pr restack' ? 'pr_restack' : row.expected])
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it('事前の確認が git のリポジトリでないなどの致命的な場合に当たると、PR を作らずに失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-37')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const plain = mkdirIn(workspace, 'plain')
+        const result = await callToolAt(plain, 'pr_create', { ...MESSAGE_ARGUMENTS, head: BRANCH })
+        expect(result.structured).toEqual({ kind: 'git-unresolved', detail: 'not a git repository' })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it.for([
+        { title: 'develop_branch が設定に無い', config: NO_DEVELOP_BRANCH, arguments_: { ...MESSAGE_ARGUMENTS, message: '本文だけ', dry_run: true }, expected: /^develop_branch is not set\n {2}set it with:/u },
+        { title: 'release_branch が設定に無い', config: { developBranch: 'main' }, arguments_: { message: '本文だけ', title: 'release: v1', base: 'main', head: 'develop', repo: 'acme/demo', template: 'release', dry_run: true }, expected: /^release_branch is not set\n {2}set it with:/u },
+      ])('$title と、検証の前に kind が repo-setting-missing の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-38')
+        const workspace = await pushedBranch({ config: row.config })
+        const result = await createTool(workspace, row.arguments_)
+        expect(result.structured['kind']).toBe('repo-setting-missing')
+        expect(result.structured['detail']).toMatch(row.expected)
+        expect(result.structured['detail']).not.toContain('missing sections')
+      })
+
+      it('ボードの status を In Review にできないと、warnings に入れて PR を作ったまま成功を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-39')
+        const empty = graphql('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
+        const workspace = await pushedBranch({ github: [CREATED_RULE, empty, NO_WAITING_RULE] })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, no_issue_ref: true })
+        expect(result.isError).toBe(false)
+        expect(result.structured['url']).toBe(PULL_URL)
+        expect(result.structured['warnings']).toEqual(['Issue #12 is not on the board; status not updated'])
+      })
+
+      it('PR の作成で GitHub API がエラーを返すと、失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-40')
+        const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })] })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.isError).toBe(true)
+        expect(result.structured['kind']).toBe('github-api')
+        expect(result.structured['detail']).toBe('PR creation failed: GitHub API error: 422')
+      })
+
+      it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を入れて、kind が no-active-project の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-41')
+        const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.structured).toEqual({ kind: 'no-active-project', detail: `acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}` })
+      })
+
+      it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-75')
+        const workspace = await pushedBranch({ config: false })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.structured).toEqual({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: (none)' })
+      })
+
+      it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-76')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES, files: ambiguousWorkspaceFiles() })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, project: SECOND_PROJECT })
+        expect(result.structured).toEqual(CREATED)
+      })
+
+      it('message で repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポに PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-77')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES })
+        const originUrl = workspace.git(['remote', 'get-url', 'origin']).trim()
+        workspace.git(['remote', 'rename', 'origin', 'upstream'])
+        workspace.git(['remote', 'add', 'origin', 'https://ghes.example.com/someone/demo.git'])
+        workspace.git(['config', `url.${originUrl}.insteadOf`, 'https://ghes.example.com/someone/demo.git'])
+        workspace.git(['fetch', 'origin'])
+        const result = await createTool(workspace, MESSAGE_WITHOUT_REPOSITORY)
+        expect(result.isError).toBe(false)
+        expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
+      })
+
+      it('template が default でも release でもないと、kind が invalid-input の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-42')
+        const workspace = await pushedBranch()
+        const result = await createTool(workspace, { message: 'test', title: 'test', base: 'main', template: 'invalid' })
+        expect(result.isError).toBe(true)
+        expect(result.structured['kind']).toBe('invalid-input')
+      })
+
+      it('file と message のどちらも渡さないと、kind が invalid-input の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-43')
+        const workspace = await pushedBranch()
+        const result = await createTool(workspace, {})
+        expect(result.structured['kind']).toBe('invalid-input')
+        expect(result.structured['detail']).toMatch(/^missing arguments\n/u)
+      })
+
+      it.for([
+        { title: 'title', arguments_: { message: 'x', base: 'main' } },
+        { title: 'base', arguments_: { message: 'x', title: 'x' } },
+      ])('message に $title を渡さないと、kind が invalid-input の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-44')
+        const workspace = await pushedBranch()
+        const result = await createTool(workspace, row.arguments_)
+        expect(result.structured).toEqual({ kind: 'invalid-input', detail: 'title and base (base branch) are required with message' })
+      })
+
+      it('file と一緒に screenshot を渡すと、kind が invalid-input の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-45')
+        const workspace = await pushedBranch()
+        const result = await createTool(workspace, { file: writePrFile(workspace), screenshot: '理由' })
+        expect(result.structured['kind']).toBe('invalid-input')
+        expect(result.structured['detail']).toMatch(/^screenshot is for message; write the reason in the `screenshot` frontmatter field instead$/u)
+      })
+
+      it.for([
+        { title: 'フロントマターが無い', content: '本文だけ\n', detail: 'frontmatter not found (does not start with ---)' },
+        { title: 'repository が owner/repo の形でない', content: '---\ntitle: "x"\nrepository: "invalid"\nbase: "main"\nhead: ""\ndraft: false\n---\n\n本文\n', detail: 'repository is required (e.g. owner/repo)' },
+      ])('ファイルが次の形だと（$title）、PR を作らずに kind が content-invalid の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-46')
+        const workspace = await pushedBranch()
+        const result = await createTool(workspace, { file: workspace.scratch('bad.md', row.content) })
+        expect(result.structured).toEqual({ kind: 'content-invalid', detail: row.detail })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it.for([
+        { title: 'git remote が無く repo も無い', repo: undefined, detail: 'specify the repository (repo: <owner/repo>)' },
+        { title: 'repo が owner/repo の形でない', repo: 'invalid', detail: 'invalid repository format: invalid (expected: owner/repo)' },
+      ])('message で次の形だと（$title）、kind が invalid-input の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-47')
+        const workspace = await pushedBranch()
+        if (row.repo === undefined) workspace.git(['remote', 'remove', 'origin'])
+        const result = await createTool(workspace, { message: VALID_BODY, title: TITLE, base: 'main', ...row.repo !== undefined && { repo: row.repo } })
+        expect(result.structured).toEqual({ kind: 'invalid-input', detail: row.detail })
+      })
+
+      it('message で repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-47')
+        const workspace = await pushedBranch({ github: SUBMIT_RULES, config: { hasSecondRepository: true } })
+        const result = await createTool(workspace, MESSAGE_WITHOUT_REPOSITORY)
+        expect(result.isError).toBe(false)
+        expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
+      })
+
+      it('head ブランチを決められないと、kind が git-unresolved の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-48')
+        const workspace = await pushedBranch()
+        const plain = mkdirIn(workspace, 'plain')
+        const result = await callToolAt(plain, 'pr_create', { ...MESSAGE_ARGUMENTS, dry_run: true })
+        expect(result.structured).toEqual({ kind: 'git-unresolved', detail: 'cannot determine the head branch' })
+      })
+
+      it('積んだ記録で dry_run を付けると、下の段のブランチを base にし、stack の lower に下の段の PR の番号を入れる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-50')
+        await verifies(context, 'PW-PR-CREATE-63')
+        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')])] })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER, dry_run: true })
+        expect(result.structured).toEqual({ head: BRANCH, base: LOWER, title: TITLE, stack: { lower: 20 }, dryRun: true })
+        expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
+      })
+
+      it('下の段がスタックに入っているときに PR を作ると、そのスタックの一番上に足し、stack に返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-51')
+        const existing = rule({ method: 'GET', path: STACKS_PATH, apiVersion: STACKS_VERSION }, { status: 200, body: [{ number: 5, pull_requests: [{ number: 19 }, { number: 20 }] }] })
+        const added = rule({ method: 'POST', path: `${STACKS_PATH}/5/add`, apiVersion: STACKS_VERSION }, { status: 200, body: { number: 5, pull_requests: [{ number: 19 }, { number: 20 }, { number: 21 }] } })
+        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, existing, added] })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
+        expect(result.structured).toEqual({ ...CREATED, base: LOWER, stack: { lower: 20, registered: true, number: 5 } })
+        expect(restRequests(workspace, 'POST', `${STACKS_PATH}/5/add`)).toMatchObject([{ body: { pull_requests: [21] } }])
+      })
+
+      it('下の段の PR がマージ済みのときに file で呼ぶと、base を開発ブランチにして PR を作り、スタックに登録しない', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-52')
+        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES] })
+        const result = await createTool(workspace, { file: writePrFile(workspace, { base: LOWER }) })
+        expect(result.structured).toEqual(CREATED)
+        expect(operationsOf(workspace).filter(operation => operation.includes('/stacks'))).toStrictEqual([])
+      })
+
+      it('開発ブランチから着手した記録で呼ぶと、記録の無い startable の判定のときと同じ結果になり、判定を読まない', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-53')
+        await verifies(context, 'PW-PR-CREATE-72')
+        const plain = await pushedBranch({ baseRecord: false, github: [STARTABLE_RULE, ...SUBMIT_RULES] })
+        const expected = await createTool(plain, MESSAGE_ARGUMENTS)
+        const recorded = await pushedBranch({ files: { [stateFile('.pecot-base')]: `main ${RECORD_SHA}\n` }, github: SUBMIT_RULES })
+        const result = await createTool(recorded, MESSAGE_ARGUMENTS)
+        expect(result.structured).toEqual(expected.structured)
+        expect(result.structured).toEqual(CREATED)
+        expect(operationsOf(plain)).toStrictEqual(['GetIssuePrerequisites', ...operationsOf(recorded)])
+      })
+
+      it.for([
+        { name: 'head で別のブランチを指す', record: 'stacked', mode: 'head' },
+        { name: 'フロントマターの head で別のブランチを指す', record: 'malformed', mode: 'frontmatter' },
+      ])('$name ときは、記録を読まずに今までどおり動く', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-54')
+        const workspace = await pushedBranch({ files: row.record === 'stacked' ? STACKED_RECORD : MALFORMED_RECORD })
+        const arguments_ = row.mode === 'head' ? { ...MESSAGE_ARGUMENTS, head: 'feat/demo/other' } : { file: writePrFile(workspace, { head: 'feat/demo/other' }) }
+        const result = await createTool(workspace, { ...arguments_, dry_run: true })
+        expect(result.structured).toEqual({ head: 'feat/demo/other', base: 'main', title: TITLE, dryRun: true })
+        expect(operationsOf(workspace)).toStrictEqual([])
+      })
+
+      it('今のブランチから release のテンプレートで呼ぶと、形の誤った記録があっても読まずに今までどおり動く', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-54')
+        const workspace = await pushedBranch({ files: MALFORMED_RECORD, config: { developBranch: 'develop', releaseBranch: 'main' } })
+        const result = await createTool(workspace, { message: RELEASE_BODY, title: 'release: v0.5.0', base: 'main', repo: 'acme/demo', template: 'release', dry_run: true })
+        expect(result.structured).toEqual({ head: BRANCH, base: 'main', title: 'release: v0.5.0', dryRun: true })
+        expect(operationsOf(workspace)).toStrictEqual([])
+      })
+
+      it('待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かし、moves に入れる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-55')
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
+        useFakeDelays()
+        const result = await settleWithFakeDelays(createTool(workspace, MESSAGE_ARGUMENTS))
+        expect(result.structured['moves']).toEqual([MOVED_13])
+        expect(operationsOf(workspace).filter(operation => operation === 'GetIssuePrerequisites')).toHaveLength(2)
+      })
+
+      it('着手の跡がある待つ Issue は、列を動かさない', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-56')
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule({ ...waitingTarget(true), branch: 'feat/demo/13' })] })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.structured).toEqual(CREATED)
+        expect(workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toHaveLength(1)
+      })
+
+      it.for([
+        { name: '下の段の PR が無い', nodes: [] },
+        { name: '下の段の PR がマージされずに閉じた', nodes: [lowerPullRequest('CLOSED')] },
+      ])('$name とき、PR を作らずに kind が pr-state の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-57')
+        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests(row.nodes), ...SUBMIT_RULES] })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
+        expect(result.structured).toEqual({ kind: 'pr-state', detail: `base branch ${LOWER} has no open PR\n  reopen the PR of ${LOWER}, or create a new one, then call pr_create again` })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it('下の段の PR が開いているのに base に開発ブランチを渡すと、PR を作らずに kind が content-invalid の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-58')
+        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.structured).toEqual({ kind: 'content-invalid', detail: `base branch must be ${LOWER} while its PR #20 is open (given: main)` })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it.for([
+        { name: 'file の投稿', mode: 'file' },
+        { name: 'message の投稿', mode: 'message' },
+      ])('積んだ base の記録の形が誤っていると、$name でも kind が content-invalid の失敗を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-59')
+        const workspace = await pushedBranch({ files: MALFORMED_RECORD, github: SUBMIT_RULES })
+        const arguments_ = row.mode === 'file' ? { file: writePrFile(workspace) } : MESSAGE_ARGUMENTS
+        const result = await createTool(workspace, arguments_)
+        expect(result.structured).toEqual({ kind: 'content-invalid', detail: '.pecot-base is malformed: garbage' })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+        expect(workspace.exists('.pecot/tmp/output')).toBe(false)
+      })
+
+      it.for([
+        { name: '下の段の PR がスタックの一番上に無い', rules: [rule({ method: 'GET', path: STACKS_PATH, apiVersion: STACKS_VERSION }, { status: 200, body: [{ number: 5, pull_requests: [{ number: 20 }, { number: 22 }] }] })], expected: /^could not register stack: PR #20 is not the top of stack #5 \(top: PR #22\); PR #21 was not added$/u },
+        { name: 'スタックの作成が 422', rules: [NO_STACK_RULE, rule({ method: 'POST', path: STACKS_PATH }, { status: 422, body: { message: 'Validation Failed' } })], expected: /^could not register stack: GitHub API error: 422 Validation Failed$/u },
+        { name: 'スタックの読み取りで接続が切れる', rules: [rule({ method: 'GET', path: STACKS_PATH }, { status: 200, disconnect: true })], expected: /^could not register stack: \S/u },
+      ])('$name とき、PR を残して warnings に入れる', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-60')
+        const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, ...row.rules] })
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
+        expect(result.isError).toBe(false)
+        expect(result.structured['url']).toBe(PULL_URL)
+        expect(result.structured['warnings']).toEqual([expect.stringMatching(row.expected)])
+      })
+
+      it('選択肢の ID が古くて In Review と待つ Issue の列を書けないと、warnings を 2 件入れ、ID を読み直す project_activate の案内を 1 回だけ添える', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-39')
+        await verifies(context, 'PW-PR-CREATE-61')
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), staleOptionUpdate(2), waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true))] })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.isError).toBe(false)
+        expect(result.structured['warnings']).toEqual([
+          `status update of Issue #12 failed: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
+          `could not move #13: ${STALE_OPTION_TEXT}`,
+        ])
+      })
+
+      it('読み直しても作った PR が判定に出なければ、board_sync で後から直せる旨を warnings に入れて列を動かさない', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-61')
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(false))] })
+        useFakeDelays()
+        const result = await settleWithFakeDelays(createTool(workspace, MESSAGE_ARGUMENTS))
+        expect(result.isError).toBe(false)
+        expect(result.structured['moves']).toEqual([])
+        expect(result.structured['warnings']).toEqual(['could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; call board_sync later to move it'])
+      })
+
+      it.for([
+        { name: '待つ Issue を全件読めない', rules: [waitingRule(2), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE], expected: /^read 1 of 2 Issues waiting for #12; the rest were not moved$/u },
+        { name: '待つ Issue の読み取りに失敗する', rules: [rule({ operation: 'GetIssueBlockingReferences' }, { status: 500, body: { message: 'boom' } })], expected: /^could not read the Issues waiting for #12: GraphQL query error: /u },
+        { name: '列の書き込みの接続が切れる', rules: [waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_13' } }, { status: 200, disconnect: true })], expected: /^could not move #13: /u },
+      ])('$name と、PR を作ったまま warnings に入れて成功を返す', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-61')
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, ...row.rules] })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.isError).toBe(false)
+        expect(result.structured['url']).toBe(PULL_URL)
+        expect(result.structured['warnings']).toEqual([expect.stringMatching(row.expected)])
+      })
+
+      it('下の段の PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-62')
+        installNx({
+          'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] },
+          'text-rules': { root: 'libs/text-rules', tags: ['scope:libs'] },
+        })
+        const workspace = await openWorkspace({
+          commits: [{ message: 'nx', files: { 'nx.json': '{}\n' } }],
+          branch: LOWER,
+          branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'libs/text-rules/a.txt': 'x\n' } }] }],
+          config: { releaseType: 'nx' },
+          github: [lowerPullRequests([lowerPullRequest('MERGED')], 2)],
+        })
+        const sha = workspace.git(['rev-parse', 'HEAD']).trim()
+        workspace.git(['checkout', '-q', '-b', BRANCH])
+        mkdirSync(path.join(workspace.directory, 'plugins', 'pecot-workflow'), { recursive: true })
+        writeFileSync(path.join(workspace.directory, 'plugins', 'pecot-workflow', 'b.txt'), 'y\n')
+        workspace.git(['add', '-A', 'plugins'])
+        workspace.git(['commit', '-q', '-m', 'own'])
+        mkdirSync(path.join(workspace.directory, '.pecot', 'state'), { recursive: true })
+        writeFileSync(path.join(workspace.directory, '.pecot', 'state', '.pecot-base'), `${LOWER} ${sha} acme/demo#11\n`)
+        const stacked = { ...MESSAGE_ARGUMENTS, base: LOWER, dry_run: true }
+        const passed = await createTool(workspace, { ...stacked, title: 'feat(p-w): #12 見本の変更' })
+        expect(passed.structured).toEqual({ head: BRANCH, base: 'main', title: 'feat(p-w): #12 見本の変更', dryRun: true })
+        const failed = await createTool(workspace, { ...stacked, title: 'feat(libs,p-w): #12 見本の変更' })
+        expect(failed.structured).toEqual({ kind: 'content-invalid', detail: 'PR title scope must be p-w (given: libs,p-w; computed from the tags of the changed nx projects)' })
+      })
+
+      it('記録のコミットが今のブランチの履歴に無く、載せ直し済みとも決まらないと、pr_restack を案内せずに、PR を作らずに kind が git-unresolved の失敗を返す', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-65')
+        await verifies(context, 'PW-PR-CREATE-70')
+        const workspace = await pushedBranch({ github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
+        const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
+        const foreign = workspace.git(['commit-tree', tree, '-m', 'elsewhere']).trim()
+        mkdirSync(path.join(workspace.directory, '.pecot', 'state'), { recursive: true })
+        writeFileSync(path.join(workspace.directory, '.pecot', 'state', '.pecot-base'), `${LOWER} ${foreign} acme/demo#11\n`)
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
+        expect(result.structured).toEqual({
+          kind: 'git-unresolved',
+          detail: `.pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
+        })
+        expect(restRequests(workspace, 'POST')).toStrictEqual([])
+      })
+
+      it('下の段がマージされた後に手で載せ直すと、PR を作らずに、pr_restack で記録を書き直す案内を detail に入れる', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-65')
+        await verifies(context, 'PW-PR-CREATE-70')
+        const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES])
+        const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
+        pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
+        workspace.git(['rebase', '-q', '--onto', 'origin/main', recorded])
+        workspace.git(['push', '-q', '--force', 'origin', BRANCH])
+        const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
+        expect(result.structured['kind']).toBe('git-unresolved')
+        expect(String(result.structured['detail']).split('\n')).toStrictEqual([
+          `.pecot-base records ${LOWER} at ${recorded.slice(0, 7)}, which is not in the history of ${BRANCH}`,
+          `  ${BRANCH} is already restacked; rewrite the record with: pr_restack`,
+          `  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
+        ])
+      })
+
+      it.for([
+        // eslint-disable-next-line unicorn/no-null -- 応答の形（Issue が無いと null）
+        { name: 'Issue', data: { repository: { issue: null } }, path: ['repository', 'issue'] },
+        // eslint-disable-next-line unicorn/no-null -- 応答の形（リポが無いと null）
+        { name: 'リポジトリ', data: { repository: null }, path: ['repository'] },
+      ])('head の番号の $name が PR のリポに無いと、待っている Issue の確認を何も返さずに飛ばす', async (row, context) => {
+        await verifies(context, 'PW-PR-CREATE-64')
+        const notFound = rule({ operation: 'GetIssueBlockingReferences' }, { status: 200, body: { data: row.data, errors: [{ type: 'NOT_FOUND', path: row.path, message: 'Could not resolve to an Issue with the number of 12.' }] } })
+        const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, notFound] })
+        const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+        expect(result.structured).toEqual(CREATED)
+      })
+
+      describe('記録が無い作業ディレクトリ', () => {
+        it('判定が stackable で下の段の上にあると、dry_run で下の段を base にした PR とスタックへの登録を返す', async (context) => {
+          await verifies(context, 'PW-PR-CREATE-71')
+          const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
+          const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER, dry_run: true })
+          expect(result.structured).toEqual({ head: BRANCH, base: LOWER, title: TITLE, stack: { lower: 20 }, dryRun: true })
+        })
+
+        it('判定が stackable でも、ブランチが開発ブランチから分かれて下の段の変更を持たないと、develop_branch を base にする', async (context) => {
+          await verifies(context, 'PW-PR-CREATE-72')
+          const workspace = await pushedBranch({ baseRecord: false, branches: [{ name: BRANCH }, { name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github: [STACKABLE_RULE] })
+          const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, dry_run: true })
+          expect(result.structured).toEqual({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
+        })
+
+        it('判定が blocked なら、dry_run では warnings に入れ、develop_branch を base にする', async (context) => {
+          await verifies(context, 'PW-PR-CREATE-74')
+          const workspace = await pushedBranch({ baseRecord: false, github: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })] })
+          const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, dry_run: true })
+          expect(result.isError).toBe(false)
+          expect(result.structured).toMatchObject({ head: BRANCH, base: 'main', title: TITLE, dryRun: true })
+          expect(result.structured['warnings']).toEqual([expect.stringMatching(/^cannot infer the stacked base: blocked by #11/u)])
+        })
+
+        it.for([
+          { name: '判定が blocked', rules: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })], expected: /^cannot infer the stacked base: blocked by #11/u },
+          { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], expected: /^cannot infer the stacked base: /u },
+        ])('$name とき、投稿では PR を作らずに失敗を返す', async (row, context) => {
+          await verifies(context, 'PW-PR-CREATE-73')
+          const workspace = await pushedBranch({ baseRecord: false, github: row.rules })
+          const result = await createTool(workspace, MESSAGE_ARGUMENTS)
+          expect(result.isError).toBe(true)
+          expect(result.structured['detail']).toMatch(row.expected)
+          expect(operationsOf(workspace)).toStrictEqual(['GetIssuePrerequisites'])
+        })
+      })
     })
   })
 })
@@ -1587,8 +2145,7 @@ const REVIEW_SAMPLE: PullRequestSample = {
 }
 
 describe('pr show', () => {
-  it('PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-01')
+  it('PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す', async () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: '本文の 1 行目\n' }))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.code).toBe(0)
@@ -1614,8 +2171,7 @@ describe('pr show', () => {
   it.for([
     { title: 'closing issues', body: '本文\n', expected: '**Closing Issues:**\n  - #12 見本の Issue\n' },
     { title: '本文の参照 Issue', body: '本文\n\nRefs #3\n', expected: '**Referenced Issues:**\n  - #3\n' },
-  ])('関連 Issue がある PR を読むと、$title を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-SHOW-02')
+  ])('関連 Issue がある PR を読むと、$title を出す', async (row) => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: row.body }))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.stdout).toContain(row.expected)
@@ -1634,16 +2190,14 @@ describe('pr show', () => {
     ].join('\n'))
   })
 
-  it('レビューがある PR を読むと、レビューごとの author と状態を出す', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-03')
+  it('レビューがある PR を読むと、レビューごとの author と状態を出す', async () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.stdout).toContain('**Reviews:**\n  - reviewer: APPROVED\n')
     expect(result.stdout).toContain('**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2')
   })
 
-  it('--reviews を付けて打つと、レビューの本文と行のコメントを足して出す', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-04')
+  it('--reviews を付けて打つと、レビューの本文と行のコメントを足して出す', async () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout).toContain('### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n')
@@ -1653,8 +2207,7 @@ describe('pr show', () => {
   it.for([
     { title: 'レビューがあれば ## Reviews の節を出す', sample: REVIEW_SAMPLE, isShown: true },
     { title: 'レビューが無ければ ## Reviews の節を出さない', sample: { state: 'OPEN' }, isShown: false },
-  ])('--reviews を付けて打つと、$title', async (row, context) => {
-    await verifies(context, 'PW-PR-SHOW-05')
+  ])('--reviews を付けて打つと、$title', async (row) => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(row.sample))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout.includes('## Reviews\n')).toBe(row.isShown)
@@ -1663,8 +2216,7 @@ describe('pr show', () => {
   it.for([
     { title: '行のコメントがあれば ## Line Comments の節を出す', sample: REVIEW_SAMPLE, isShown: true },
     { title: '行のコメントが無ければ ## Line Comments の節を出さない', sample: { state: 'OPEN', reviews: REVIEW_SAMPLE.reviews ?? [], threads: [] }, isShown: false },
-  ])('--reviews を付けて打つと、$title', async (row, context) => {
-    await verifies(context, 'PW-PR-SHOW-06')
+  ])('--reviews を付けて打つと、$title', async (row) => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(row.sample))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
     expect(result.stdout.includes('## Line Comments\n')).toBe(row.isShown)
@@ -1678,8 +2230,7 @@ describe('pr show', () => {
     expect(result.stdout).toContain('  - #13 別の Issue\n    → details: issue show acme/demo/13\n')
   })
 
-  it('--json を付けて打つと、同じ内容を JSON で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-08')
+  it('--json を付けて打つと、同じ内容を JSON で標準出力に出す', async () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json'])
     expect(result.code).toBe(0)
@@ -1699,8 +2250,7 @@ describe('pr show', () => {
     })
   })
 
-  it('--json と --reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-09')
+  it('--json と --reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める', async () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
     expect(JSON.parse(result.stdout)).toMatchObject({
@@ -1713,8 +2263,7 @@ describe('pr show', () => {
     { title: '--repo（git の remote と違う値）', argv: ['--repo', 'acme/other', 'pr', 'show', '21'], remote: 'origin', expected: 'other' },
     { title: 'origin の remote', argv: ['pr', 'show', '21'], remote: 'origin', expected: 'demo' },
     { title: 'origin が無いときの upstream の remote', argv: ['pr', 'show', '21'], remote: 'upstream', expected: 'other' },
-  ])('短い形 N の参照を渡すと、$title で補って読む', async (row, context) => {
-    await verifies(context, 'PW-PR-SHOW-10')
+  ])('短い形 N の参照を渡すと、$title で補って読む', async (row) => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], config: { hasSecondRepository: true } })
     if (row.remote === 'upstream') {
       workspace.git(['remote', 'rename', 'origin', 'upstream'])
@@ -1725,8 +2274,7 @@ describe('pr show', () => {
     expect(workspace.requests()).toMatchObject([{ type: 'graphql', operation: 'GetPullRequestSlim', variables: { owner: 'acme', repo: row.expected, number: 21 } }])
   })
 
-  it('PR の参照の形が誤っていると、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-11')
+  it('PR の参照の形が誤っていると、終了コード 2 で終わる', async () => {
     const workspace = await openWorkspace()
     const result = await workspace.run(['pr', 'show', 'not-a-ref'])
     expect(result.code).toBe(2)
@@ -1734,24 +2282,21 @@ describe('pr show', () => {
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-12')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
     const workspace = await openWorkspace({ files: ambiguousWorkspaceFiles() })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-14')
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
     const workspace = await openWorkspace({ config: false })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-15')
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async () => {
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], files: ambiguousWorkspaceFiles() })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--project', SECOND_PROJECT])
     expect(result.code).toBe(0)
@@ -1763,8 +2308,7 @@ describe('pr show', () => {
     expect(result.code).toBe(0)
   })
 
-  it('GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-13')
+  it('GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
     const workspace = await openWorkspace({ github: [rule({ operation: 'GetPullRequestSlim' }, { status: 502, body: { message: 'Bad Gateway' } })] })
     const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
     expect(result.code).toBe(1)
@@ -1773,7 +2317,10 @@ describe('pr show', () => {
   })
 
   describe('MCP の data', () => {
-    it('json を省いても、--json と同じ中身を返す', async () => {
+    it('json を省いても、--json と同じ中身を返す', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-01')
+      await verifies(context, 'PW-PR-SHOW-03')
+      await verifies(context, 'PW-PR-SHOW-08')
       const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
       const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
       expect(result.structured).toEqual({
@@ -1792,11 +2339,98 @@ describe('pr show', () => {
       })
     })
 
-    it('reviews を付けると、--json --reviews と同じく、レビューの本文と行のコメントも返す', async () => {
+    it('reviews を付けると、--json --reviews と同じく、レビューの本文と行のコメントも返す', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-09')
       const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE), { times: 2 })] })
       const json = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
       const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21', reviews: true })
       expect(result.structured).toEqual(JSON.parse(json.stdout))
+    })
+
+    it('reviews を付けると、レビューの本文と日時を reviews に、行のコメントを review_threads に入れる', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-04')
+      await verifies(context, 'PW-PR-SHOW-05')
+      await verifies(context, 'PW-PR-SHOW-06')
+      const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21', reviews: true })
+      expect(result.isError).toBe(false)
+      expect(result.structured).toMatchObject({
+        reviews: [{ state: 'CHANGES_REQUESTED', author: 'reviewer', body: '直してください。', submitted_at: '2026-01-02T03:04:05Z' }],
+        review_threads: [{ is_resolved: false, path: 'src/a.ts', line: 10, comments: [{ author: 'reviewer', body: '名前を直す', created_at: '2026-01-02T03:04:05Z', url: 'https://github.com/acme/demo/pull/21#discussion_r1' }] }],
+      })
+    })
+
+    it('reviews を付けても、行のコメントが無ければ review_threads を空にする', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-06')
+      const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData({ state: 'OPEN', reviews: REVIEW_SAMPLE.reviews ?? [], threads: [] }))] })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21', reviews: true })
+      expect(result.structured['review_threads']).toEqual([])
+    })
+
+    it('関連 Issue がある PR を読むと、closes の Issue を closing_issues に、本文の参照を referenced_issues に入れる', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-02')
+      const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: '本文\n\nRefs #3\n' }))] })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
+      expect(result.structured).toMatchObject({ closing_issues: [{ number: 12, title: '見本の Issue' }], referenced_issues: [{ number: 3, title: '' }] })
+    })
+
+    it.for([
+      { title: 'repo（git の remote と違う値）', arguments_: { pr_ref: '21', repo: 'acme/other' }, remote: 'origin', expected: 'other' },
+      { title: 'origin の remote', arguments_: { pr_ref: '21' }, remote: 'origin', expected: 'demo' },
+      { title: 'origin が無いときの upstream の remote', arguments_: { pr_ref: '21' }, remote: 'upstream', expected: 'other' },
+    ])('短い形 N の参照を渡すと、$title で補って読む', async (row, context) => {
+      await verifies(context, 'PW-PR-SHOW-10')
+      const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], config: { hasSecondRepository: true } })
+      if (row.remote === 'upstream') {
+        workspace.git(['remote', 'rename', 'origin', 'upstream'])
+        workspace.git(['remote', 'set-url', 'upstream', `https://${HOST}/acme/other.git`])
+      }
+      const result = await callTool(workspace, 'pr_show', row.arguments_)
+      expect(result.isError).toBe(false)
+      expect(workspace.requests()).toMatchObject([{ type: 'graphql', operation: 'GetPullRequestSlim', variables: { owner: 'acme', repo: row.expected, number: 21 } }])
+    })
+
+    it('PR の参照の形が誤っていると、何も読まずに kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-11')
+      const workspace = await openWorkspace()
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'not-a-ref' })
+      expect(result.isError).toBe(true)
+      expect(result.structured['kind']).toBe('invalid-input')
+      expect(result.structured['detail']).toMatch(/^invalid reference: not-a-ref\n/u)
+      expect(workspace.requests()).toStrictEqual([])
+    })
+
+    it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を入れて、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-12')
+      const workspace = await openWorkspace({ files: ambiguousWorkspaceFiles() })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
+      expect(result.structured).toEqual({ kind: 'no-active-project', detail: `acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}` })
+      expect(workspace.requests()).toStrictEqual([])
+    })
+
+    it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-14')
+      const workspace = await openWorkspace({ config: false })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
+      expect(result.structured).toEqual({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: (none)' })
+      expect(workspace.requests()).toStrictEqual([])
+    })
+
+    it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-15')
+      const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], files: ambiguousWorkspaceFiles() })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21', project: SECOND_PROJECT })
+      expect(result.isError).toBe(false)
+      expect(result.structured['number']).toBe(21)
+    })
+
+    it('GitHub API がエラーを返すと、失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-SHOW-13')
+      const workspace = await openWorkspace({ github: [rule({ operation: 'GetPullRequestSlim' }, { status: 502, body: { message: 'Bad Gateway' } })] })
+      const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
+      expect(result.isError).toBe(true)
+      expect(result.structured['kind']).toBe('github-api')
+      expect(result.structured['detail']).toMatch(/^GraphQL query error: /u)
     })
   })
 })
@@ -1825,9 +2459,42 @@ function preflight(workspace: Readonly<Workspace>): ReturnType<Workspace['run']>
   return workspace.run(['pr', 'check', '-D', workspace.directory])
 }
 
+function checkTool(workspace: Readonly<Workspace>, extra: Readonly<Record<string, unknown>> = {}): Promise<ToolOutcome> {
+  return callTool(workspace, 'pr_check', { directory: workspace.directory, ...extra })
+}
+
+// MCP の warnings のうち、diverged の Push Status の文ごとの直し方
+function toolFixes(result: Readonly<ToolOutcome>): string[] {
+  const warnings = Array.isArray(result.structured['warnings']) ? result.structured['warnings'].map(String) : []
+  const prefix = 'Push Status: diverged: '
+  return warnings.filter(line => line.startsWith(prefix)).map(line => line.slice(line.lastIndexOf('(fix: ') + '(fix: '.length, -1))
+}
+
+function mkdirIn(workspace: Readonly<Workspace>, name: string): string {
+  const directory = path.join(workspace.root, name)
+  mkdirSync(directory)
+  return directory
+}
+
+function removeOrigin(workspace: Readonly<Workspace>): string {
+  workspace.git(['remote', 'remove', 'origin'])
+  return workspace.directory
+}
+
+function unbornRepository(workspace: Readonly<Workspace>): string {
+  const unborn = mkdirIn(workspace, 'unborn')
+  workspace.git(['init', '-q', '-b', 'main'], unborn)
+  workspace.git(['remote', 'add', 'origin', 'git@ghes.example.com:acme/demo.git'], unborn)
+  return unborn
+}
+
+function localRemote(workspace: Readonly<Workspace>): string {
+  workspace.git(['remote', 'set-url', 'origin', '/local/path/demo'])
+  return workspace.directory
+}
+
 describe('pr check', () => {
-  it('--directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-01')
+  it('--directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す', async () => {
     const workspace = await pushedBranch()
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
@@ -1868,16 +2535,14 @@ describe('pr check', () => {
     expect(result.stdout).toContain('=== .gitignore ===\n(read error)\n')
   })
 
-  it('warning があるときに打つと、11 の節を全部出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-02')
+  it('warning があるときに打つと、11 の節を全部出す', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
     expect(headingsOf(result.stdout)).toStrictEqual(SECTION_HEADINGS)
   })
 
-  it.for([{ remote: 'origin' }, { remote: 'upstream' }])('remote が $remote だけだと、Base Branch の節に <remote>/<develop_branch> を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-CHECK-03')
+  it.for([{ remote: 'origin' }, { remote: 'upstream' }])('remote が $remote だけだと、Base Branch の節に <remote>/<develop_branch> を出す', async (row) => {
     const workspace = await pushedBranch()
     if (row.remote !== 'origin') workspace.git(['remote', 'rename', 'origin', row.remote])
     const result = await preflight(workspace)
@@ -1890,8 +2555,7 @@ describe('pr check', () => {
     { name: '下の段のブランチが remote に無い', branches: [BRANCH], expected: 'origin/main' },
     { name: '下の段のブランチが remote から消え、手元に追跡参照が残っている', branches: [BRANCH, LOWER], remoteChange: 'delete', expected: 'origin/main' },
     { name: '下の段の追跡参照があり、remote に届かない', branches: [BRANCH, LOWER], remoteChange: 'unreachable', expected: `origin/${LOWER}` },
-  ])('積んだ base の記録があり、$name ときに打つと、Base Branch の節に $expected を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-CHECK-18')
+  ])('積んだ base の記録があり、$name ときに打つと、Base Branch の節に $expected を出す', async (row) => {
     const workspace = await pushedBranch({ branches: row.branches.map(name => ({ name })), files: STACKED_RECORD })
     if (row.remoteChange === 'delete') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
     else if (row.remoteChange === 'unreachable') {
@@ -1904,9 +2568,7 @@ describe('pr check', () => {
     expect(result.stdout).toContain(`=== Commits (vs ${row.expected}) ===\n`)
   })
 
-  it('積んだ base の記録があり、下の段のブランチが remote にあって手元に追跡参照が無いと、開発ブランチと比べて git fetch を案内する', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-18')
-    await verifies(context, 'PW-PR-CHECK-20')
+  it('積んだ base の記録があり、下の段のブランチが remote にあって手元に追跡参照が無いと、開発ブランチと比べて git fetch を案内する', async () => {
     const workspace = await pushedBranch({ branches: [{ name: BRANCH }, { name: LOWER }], files: STACKED_RECORD })
     workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
     const result = await preflight(workspace)
@@ -1918,22 +2580,19 @@ describe('pr check', () => {
     ])
   })
 
-  it('積んだ base の記録の形が誤っていると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-19')
+  it('積んだ base の記録の形が誤っていると、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ files: MALFORMED_RECORD })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: .pecot-base is malformed: garbage\n' })
   })
 
-  it('打つと、count: preflight warnings の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-04')
+  it('打つと、count: preflight warnings の行を標準エラーに出す', async () => {
     const workspace = await pushedBranch()
     const result = await preflight(workspace)
     expect(result.stderr).toBe('count: preflight warnings: 0\n')
   })
 
-  it('warning があるときに打つと、warning ごとに warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-05')
+  it('warning があるときに打つと、warning ごとに warning の行を標準エラーに出す', async () => {
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual([
@@ -1943,8 +2602,7 @@ describe('pr check', () => {
     ])
   })
 
-  it('常に、リポジトリとファイルを書き換えない', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-06')
+  it('常に、リポジトリとファイルを書き換えない', async () => {
     const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const snapshot = (): unknown => ({
       files: filesOf(workspace.directory),
@@ -1964,9 +2622,7 @@ describe('pr check', () => {
     { title: '未 push', kind: 'unpushed', expected: 'origin/feat/demo/12 does not exist (not pushed)' },
     { title: 'push 後に手元だけ進んだ', kind: 'ahead', expected: '1 unpushed commits' },
     { title: 'remote とずれた', kind: 'diverged', expected: `diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead` },
-  ])('ブランチが次の状態だと（$title）、Push Status の warning を数える', async (row, context) => {
-    await verifies(context, 'PW-PR-CHECK-07')
-    if (row.kind === 'diverged') await verifies(context, 'PW-PR-CHECK-22')
+  ])('ブランチが次の状態だと（$title）、Push Status の warning を数える', async (row) => {
     const workspace = row.kind === 'unpushed' ? await openWorkspace({ branch: BRANCH }) : await pushedBranch()
     if (row.kind !== 'unpushed') workspace.git(['commit', '--allow-empty', '-q', '-m', 'local'])
     if (row.kind === 'diverged') {
@@ -1978,8 +2634,7 @@ describe('pr check', () => {
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: ${row.expected} (fix: ${fix})`])
   })
 
-  it.for(STACKED_CHECK_ROWS)('積んだ記録があり、$name ときに打つと、Push Status の直し方に pr restack を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-CHECK-21')
+  it.for(STACKED_CHECK_ROWS)('積んだ記録があり、$name ときに打つと、Push Status の直し方に pr restack を出す', async (row) => {
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest(row.state)])])
     divergeStacked(workspace, row.scene)
     const result = await preflight(workspace)
@@ -1987,8 +2642,7 @@ describe('pr check', () => {
     expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
   })
 
-  it('積んだ記録があり、下の段のマージの後に手元だけを載せ直して remote とずれると、Push Status の直し方に pr restack を出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-24')
+  it('積んだ記録があり、下の段のマージの後に手元だけを載せ直して remote とずれると、Push Status の直し方に pr restack を出す', async () => {
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')])])
     const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
     pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
@@ -1999,8 +2653,7 @@ describe('pr check', () => {
     expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
   })
 
-  it('記録が無く、判定が stackable で下の段の上にあると、下の段の追跡参照と比べ、Commits の節に上の段のコミットだけを出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-25')
+  it('記録が無く、判定が stackable で下の段の上にあると、下の段の追跡参照と比べ、Commits の節に上の段のコミットだけを出す', async () => {
     const workspace = await openInferredUpper([STACKABLE_RULE])
     const result = await preflight(workspace)
     expect(result).toMatchObject({ code: 0, stderr: 'count: preflight warnings: 0\n' })
@@ -2008,8 +2661,7 @@ describe('pr check', () => {
     expect(result.stdout).toMatch(/=== Commits \(vs origin\/feat\/demo\/11\) ===\n[\da-f]+ change upper\.txt\n\n/u)
   })
 
-  it('記録が無く、判定が stackable で、下の段が自分のコミットを持たないまま上の段の祖先なら、下の段の追跡参照と比べる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-25')
+  it('記録が無く、判定が stackable で、下の段が自分のコミットを持たないまま上の段の祖先なら、下の段の追跡参照と比べる', async () => {
     const workspace = await openWorkspace({ baseRecord: false, branches: [{ name: LOWER }], github: [STACKABLE_RULE] })
     workspace.git(['checkout', '-q', '-b', BRANCH, `origin/${LOWER}`])
     commitFile(workspace, 'upper.txt', 'upper\n')
@@ -2022,8 +2674,7 @@ describe('pr check', () => {
     { name: '判定を読む GitHub が失敗を返す', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 500, body: { message: 'boom' } })], isTracked: true, expected: /^warning: cannot infer the stacked base: /u },
     { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], isTracked: true, expected: /^warning: cannot infer the stacked base: /u },
     { name: '下の段の追跡参照が無い', rules: [STACKABLE_RULE], isTracked: false, expected: /^warning: cannot infer the stacked base: origin\/feat\/demo\/11 is not found; fetch it with: git fetch$/u },
-  ])('記録が無く、$name と、warning の行を出し、develop_branch の追跡参照と比べる', async (row, context) => {
-    await verifies(context, 'PW-PR-CHECK-26')
+  ])('記録が無く、$name と、warning の行を出し、develop_branch の追跡参照と比べる', async (row) => {
     const workspace = await openInferredUpper(row.rules)
     if (!row.isTracked) workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
     const result = await preflight(workspace)
@@ -2032,16 +2683,14 @@ describe('pr check', () => {
     expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
   })
 
-  it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に取り込みか lease 付きの上書きを出す', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-22')
+  it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に取り込みか lease 付きの上書きを出す', async () => {
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'amended')
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: ${DIVERGED_FIX})`])
   })
 
-  it.for(UNDECIDED_ROWS)('積んだ記録があって remote とずれ、$name と、Push Status の直し方に pr restack --check を出す', async (row, context) => {
-    await verifies(context, 'PW-PR-CHECK-23')
+  it.for(UNDECIDED_ROWS)('積んだ記録があって remote とずれ、$name と、Push Status の直し方に pr restack --check を出す', async (row) => {
     const workspace = await openStackedUpper([row.cause === 'pull-request-unreadable' ? UNREADABLE_LOWER_RULE : lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'moved')
     if (row.cause === 'gone') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
@@ -2061,15 +2710,13 @@ describe('pr check', () => {
     expect(result.structured['warnings']).toStrictEqual([`Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 2 ahead (fix: pr_restack)`])
   })
 
-  it('未コミットの変更があると、Git Status の warning を数える', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-08')
+  it('未コミットの変更があると、Git Status の warning を数える', async () => {
     const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', 'warning: Git Status: modified or untracked files (fix: commit)'])
   })
 
-  it('stash に項目があると、Stash List の warning を数える', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-09')
+  it('stash に項目があると、Stash List の warning を数える', async () => {
     const workspace = await pushedBranch()
     writeFileSync(path.join(workspace.directory, 'README.md'), '変更\n')
     workspace.git(['stash', 'push', '-q'])
@@ -2078,8 +2725,7 @@ describe('pr check', () => {
     expect(result.stdout).toContain('=== Stash List ===\nstash@{0}: ')
   })
 
-  it('warning が 1 件以上あると、終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-10')
+  it('warning が 1 件以上あると、終了コード 2 で終わる', async () => {
     const dirty = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const dirtyResult = await preflight(dirty)
     expect(dirtyResult.code).toBe(2)
@@ -2088,8 +2734,7 @@ describe('pr check', () => {
     expect(cleanResult.code).toBe(0)
   })
 
-  it('git のリポジトリでないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-11')
+  it('git のリポジトリでないと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
@@ -2097,16 +2742,14 @@ describe('pr check', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: not a git repository\n' })
   })
 
-  it('git の remote が無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-12')
+  it('git の remote が無いと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     workspace.git(['remote', 'remove', 'origin'])
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: git remote not found\n' })
   })
 
-  it('現在のブランチを決められないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-13')
+  it('現在のブランチを決められないと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     const unborn = path.join(workspace.root, 'unborn')
     mkdirSync(unborn)
@@ -2116,30 +2759,26 @@ describe('pr check', () => {
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot determine the current branch\n' })
   })
 
-  it('remote のリポジトリを決められないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-13')
+  it('remote のリポジトリを決められないと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch()
     workspace.git(['remote', 'set-url', 'origin', '/local/path/demo'])
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot read repository info from the remote URL\n  check it with: git remote -v\n' })
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-14')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
   })
 
-  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-27')
+  it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ config: false })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-28')
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async () => {
     const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
     const result = await workspace.run(['pr', 'check', '-D', workspace.directory, '--project', SECOND_PROJECT])
     expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
@@ -2152,8 +2791,7 @@ describe('pr check', () => {
     expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
   })
 
-  it('develop_branch が設定に無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-15')
+  it('develop_branch が設定に無いと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ config: NO_DEVELOP_BRANCH })
     const result = await preflight(workspace)
     expect(result.code).toBe(1)
@@ -2161,15 +2799,13 @@ describe('pr check', () => {
     expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: pecot project link acme\/demo --develop-branch develop\n$/u)
   })
 
-  it('<remote>/<develop_branch> が無いと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-16')
+  it('<remote>/<develop_branch> が無いと、終了コード 1 で終わる', async () => {
     const workspace = await pushedBranch({ config: { developBranch: 'develop' } })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: branch origin/develop does not exist\n  check the remote branches with: git branch -r\n' })
   })
 
-  it('--directory を渡していないと、使い方のエラーを出して終了コード 2 で終わる', async (context) => {
-    await verifies(context, 'PW-PR-CHECK-17')
+  it('--directory を渡していないと、使い方のエラーを出して終了コード 2 で終わる', async () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'check'])
     expect(result.code).toBe(2)
@@ -2201,10 +2837,255 @@ describe('pr check', () => {
       await verifies(context, 'PW-COMMON-19')
       const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
       const result = await callTool(workspace, 'pr_check', { directory: workspace.directory })
-      expect(result).toMatchObject({ isError: true, structured: { kind: 'preflight-failed' } })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'preflight-failed', detail: 'preflight found warnings; fix them before creating a PR' } })
       expect(result.structured).toMatchObject({ currentBranch: BRANCH, pushed: true })
       expect(result.structured['gitStatus']).toContain('Untracked files:\n\tmemo.txt\n')
       expect(result.structured['warnings']).toEqual(['Git Status: modified or untracked files (fix: commit)'])
+    })
+
+    it('directory でリポジトリを指すと、プロセスの cwd が外でも、remote・ブランチ・base・worktree の項目を返し、warnings を入れない', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-01')
+      await verifies(context, 'PW-PR-CHECK-04')
+      const workspace = await pushedBranch()
+      const elsewhere = path.join(workspace.root, 'elsewhere')
+      mkdirSync(elsewhere)
+      const previous = process.cwd()
+      process.chdir(elsewhere)
+      let result: ToolOutcome
+      try {
+        result = await callToolOnce(COMMANDS, 'pr_check', { directory: workspace.directory })
+      }
+      finally {
+        process.chdir(previous)
+      }
+      expect(result.isError).toBe(false)
+      expect(result.structured).toMatchObject({ remoteUrl: 'git@ghes.example.com:acme/demo.git', currentBranch: BRANCH, pushed: true, pushStatus: `in sync with origin/${BRANCH}`, baseBranch: 'origin/main' })
+      expect(result.structured).not.toHaveProperty('warnings')
+    })
+
+    it('引っかかりがあるときに呼ぶと、失敗の結果にも集めた項目を全部入れ、1 件ごとの文を warnings に入れる', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-02')
+      await verifies(context, 'PW-PR-CHECK-04')
+      await verifies(context, 'PW-PR-CHECK-05')
+      await verifies(context, 'PW-PR-CHECK-07')
+      await verifies(context, 'PW-PR-CHECK-08')
+      await verifies(context, 'PW-PR-CHECK-10')
+      const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
+      const result = await checkTool(workspace)
+      expect(result.isError).toBe(true)
+      expect(Object.keys(result.structured).toSorted(compareStrings)).toEqual(['baseBranch', 'commits', 'currentBranch', 'detail', 'diffSummary', 'gitStatus', 'kind', 'pushStatus', 'pushed', 'remoteUrl', 'stashList', 'warnings', 'worktree'])
+      expect(result.structured['kind']).toBe('preflight-failed')
+      expect(result.structured['warnings']).toEqual([
+        'Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)',
+        'Git Status: modified or untracked files (fix: commit)',
+      ])
+    })
+
+    it.for([{ remote: 'origin' }, { remote: 'upstream' }])('remote が $remote だけだと、baseBranch に <remote>/<develop_branch> を入れる', async (row, context) => {
+      await verifies(context, 'PW-PR-CHECK-03')
+      const workspace = await pushedBranch()
+      if (row.remote !== 'origin') workspace.git(['remote', 'rename', 'origin', row.remote])
+      const result = await checkTool(workspace)
+      expect(result.structured).toMatchObject({ baseBranch: `${row.remote}/main`, pushStatus: `in sync with ${row.remote}/${BRANCH}` })
+    })
+
+    it('常に、リポジトリとファイルを書き換えない', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-06')
+      const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
+      const snapshot = (): unknown => ({
+        files: filesOf(workspace.directory),
+        head: workspace.git(['rev-parse', 'HEAD']),
+        status: workspace.git(['status', '--porcelain', '--ignored']),
+        branches: workspace.git(['branch', '-a']),
+        stash: workspace.git(['stash', 'list']),
+      })
+      const before = snapshot()
+      const result = await checkTool(workspace)
+      expect(result.isError).toBe(true)
+      expect(snapshot()).toStrictEqual(before)
+      expect(workspace.requests()).toStrictEqual([])
+    })
+
+    it.for([
+      { title: 'push 後に手元だけ進んだ', kind: 'ahead', expected: '1 unpushed commits (fix: git push)' },
+      { title: 'remote とずれた', kind: 'diverged', expected: `diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: ${DIVERGED_FIX})` },
+    ])('ブランチが次の状態だと（$title）、Push Status の文を warnings に入れる', async (row, context) => {
+      await verifies(context, 'PW-PR-CHECK-07')
+      await verifies(context, 'PW-PR-CHECK-22')
+      const workspace = await pushedBranch()
+      workspace.git(['commit', '--allow-empty', '-q', '-m', 'local'])
+      if (row.kind === 'diverged') {
+        workspace.advanceRemote(BRANCH)
+        workspace.git(['fetch', '-q', 'origin'])
+      }
+      const result = await checkTool(workspace)
+      expect(result.structured['warnings']).toEqual([`Push Status: ${row.expected}`])
+    })
+
+    it('積んだ記録があり、下の段が動かないまま手元だけを書き換えて remote とずれると、直し方に取り込みか lease 付きの上書きを示す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-22')
+      const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
+      divergeStacked(workspace, 'amended')
+      const result = await checkTool(workspace)
+      expect(result.structured['warnings']).toEqual([`Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: ${DIVERGED_FIX})`])
+    })
+
+    it.for(STACKED_CHECK_ROWS)('積んだ記録があり、$name ときに呼ぶと、Push Status の直し方に pr_restack を示す', async (row, context) => {
+      await verifies(context, 'PW-PR-CHECK-21')
+      const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest(row.state)])])
+      divergeStacked(workspace, row.scene)
+      const result = await checkTool(workspace)
+      expect(result.structured['kind']).toBe('preflight-failed')
+      expect(toolFixes(result)).toStrictEqual(['pr_restack'])
+    })
+
+    it('積んだ記録があり、下の段のマージの後に手元だけを載せ直して remote とずれると、Push Status の直し方に pr_restack を示す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-24')
+      const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')])])
+      const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
+      pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
+      workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+      workspace.git(['rebase', '-q', '--onto', 'origin/main', recorded])
+      const result = await checkTool(workspace)
+      expect(toolFixes(result)).toStrictEqual(['pr_restack'])
+    })
+
+    it.for(UNDECIDED_ROWS)('積んだ記録があって remote とずれ、$name と、Push Status の直し方に check を付けた pr_restack を示す', async (row, context) => {
+      await verifies(context, 'PW-PR-CHECK-23')
+      const workspace = await openStackedUpper([row.cause === 'pull-request-unreadable' ? UNREADABLE_LOWER_RULE : lowerPullRequests([lowerPullRequest('OPEN')])])
+      divergeStacked(workspace, 'moved')
+      if (row.cause === 'gone') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+      else if (row.cause === 'unreachable') {
+        const bare = workspace.remoteGit(['rev-parse', '--absolute-git-dir']).trim()
+        renameSync(bare, `${bare}.moved`)
+      }
+      const result = await checkTool(workspace)
+      expect(toolFixes(result)).toStrictEqual(['pr_restack with check: true'])
+    })
+
+    it('stash に項目があると、Stash List の文を warnings に入れ、stashList に一覧を入れる', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-09')
+      const workspace = await pushedBranch()
+      writeFileSync(path.join(workspace.directory, 'README.md'), '変更\n')
+      workspace.git(['stash', 'push', '-q'])
+      const result = await checkTool(workspace)
+      expect(result.structured['warnings']).toEqual(['Stash List: 1 stash entries (fix: check them)'])
+      expect(result.structured['stashList']).toMatch(/^stash@\{0\}: /u)
+    })
+
+    it.for([
+      { name: '積んだ base の記録があり、下の段のブランチが remote にある', branches: [BRANCH, LOWER], expected: `origin/${LOWER}` },
+      { name: '積んだ base の記録があり、下の段のブランチが remote に無い', branches: [BRANCH], expected: 'origin/main' },
+      { name: '下の段のブランチが remote から消え、手元に追跡参照が残っている', branches: [BRANCH, LOWER], remoteChange: 'delete', expected: 'origin/main' },
+      { name: '下の段の追跡参照があり、remote に届かない', branches: [BRANCH, LOWER], remoteChange: 'unreachable', expected: `origin/${LOWER}` },
+    ])('$name ときに呼ぶと、baseBranch に $expected を入れる', async (row, context) => {
+      await verifies(context, 'PW-PR-CHECK-18')
+      const workspace = await pushedBranch({ branches: row.branches.map(name => ({ name })), files: STACKED_RECORD })
+      if (row.remoteChange === 'delete') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
+      else if (row.remoteChange === 'unreachable') {
+        const bare = workspace.remoteGit(['rev-parse', '--absolute-git-dir']).trim()
+        renameSync(bare, `${bare}.moved`)
+      }
+      const result = await checkTool(workspace)
+      expect(result.isError).toBe(false)
+      expect(result.structured['baseBranch']).toBe(row.expected)
+    })
+
+    it('積んだ base の記録があり、下の段のブランチが remote にあって手元に追跡参照が無いと、開発ブランチと比べ、git fetch の案内を warnings に入れる', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-18')
+      await verifies(context, 'PW-PR-CHECK-20')
+      const workspace = await pushedBranch({ branches: [{ name: BRANCH }, { name: LOWER }], files: STACKED_RECORD })
+      workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
+      const result = await checkTool(workspace)
+      expect(result.structured['baseBranch']).toBe('origin/main')
+      expect(result.structured['warnings']).toEqual([`base branch ${LOWER} is on origin, but origin/${LOWER} is not fetched; compared with the develop branch\n  run: git fetch origin ${LOWER}`])
+    })
+
+    it('積んだ base の記録の形が誤っていると、kind が content-invalid の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-19')
+      const workspace = await pushedBranch({ files: MALFORMED_RECORD })
+      const result = await checkTool(workspace)
+      expect(result.structured).toEqual({ kind: 'content-invalid', detail: '.pecot-base is malformed: garbage' })
+    })
+
+    it('記録が無く、判定が stackable で下の段の上にあると、下の段の追跡参照と比べ、commits に上の段のコミットだけを入れる', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-25')
+      const workspace = await openInferredUpper([STACKABLE_RULE])
+      const result = await checkTool(workspace)
+      expect(result.isError).toBe(false)
+      expect(result.structured['baseBranch']).toBe(`origin/${LOWER}`)
+      expect(result.structured['commits']).toMatch(/^[\da-f]+ change upper\.txt$/u)
+    })
+
+    it.for([
+      { name: '判定を読む GitHub が失敗を返す', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 500, body: { message: 'boom' } })], isTracked: true, expected: /^cannot infer the stacked base: /u },
+      { name: '下の段の追跡参照が無い', rules: [STACKABLE_RULE], isTracked: false, expected: /^cannot infer the stacked base: origin\/feat\/demo\/11 is not found; fetch it with: git fetch$/u },
+    ])('記録が無く、$name と、理由を warnings に入れ、develop_branch の追跡参照と比べる', async (row, context) => {
+      await verifies(context, 'PW-PR-CHECK-26')
+      const workspace = await openInferredUpper(row.rules)
+      if (!row.isTracked) workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
+      const result = await checkTool(workspace)
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(row.expected)])
+      expect(result.structured['baseBranch']).toBe('origin/main')
+    })
+
+    it.for([
+      { name: 'git のリポジトリでない', id: 'PW-PR-CHECK-11', setUp: (workspace: Workspace): string => mkdirIn(workspace, 'plain'), detail: 'not a git repository' },
+      { name: 'git の remote が無い', id: 'PW-PR-CHECK-12', setUp: (workspace: Workspace): string => removeOrigin(workspace), detail: 'git remote not found' },
+      { name: '現在のブランチを決められない', id: 'PW-PR-CHECK-13', setUp: (workspace: Workspace): string => unbornRepository(workspace), detail: 'cannot determine the current branch' },
+      { name: 'remote のリポジトリを決められない', id: 'PW-PR-CHECK-13', setUp: (workspace: Workspace): string => localRemote(workspace), detail: 'cannot read repository info from the remote URL\n  check it with: git remote -v' },
+    ])('$name と、kind が git-unresolved の失敗を返す', async (row, context) => {
+      await verifies(context, row.id)
+      const workspace = await pushedBranch()
+      const directory = row.setUp(workspace)
+      const result = await callTool(workspace, 'pr_check', { directory })
+      expect(result.structured).toEqual({ kind: 'git-unresolved', detail: row.detail })
+    })
+
+    it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を入れて、kind が no-active-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-14')
+      const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
+      const result = await checkTool(workspace)
+      expect(result.structured).toEqual({ kind: 'no-active-project', detail: `acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}` })
+    })
+
+    it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-27')
+      const workspace = await pushedBranch({ config: false })
+      const result = await checkTool(workspace)
+      expect(result.structured).toEqual({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: (none)' })
+    })
+
+    it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-28')
+      const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
+      const result = await checkTool(workspace, { project: SECOND_PROJECT })
+      expect(result.isError).toBe(false)
+      expect(result.structured['baseBranch']).toBe('origin/main')
+    })
+
+    it('develop_branch が設定に無いと、kind が repo-setting-missing の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-15')
+      const workspace = await pushedBranch({ config: NO_DEVELOP_BRANCH })
+      const result = await checkTool(workspace)
+      expect(result.structured['kind']).toBe('repo-setting-missing')
+      expect(result.structured['detail']).toMatch(/^develop_branch is not set for acme\/demo\n/u)
+    })
+
+    it('<remote>/<develop_branch> が無いと、kind が git-unresolved の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-16')
+      const workspace = await pushedBranch({ config: { developBranch: 'develop' } })
+      const result = await checkTool(workspace)
+      expect(result.structured).toEqual({ kind: 'git-unresolved', detail: 'branch origin/develop does not exist\n  check the remote branches with: git branch -r' })
+    })
+
+    it('directory を渡していないと、kind が invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PR-CHECK-17')
+      const workspace = await pushedBranch()
+      const result = await callTool(workspace, 'pr_check', {})
+      expect(result.isError).toBe(true)
+      expect(result.structured['kind']).toBe('invalid-input')
     })
   })
 })

@@ -78,7 +78,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Athena query status"
       },
       "name": "aws_athena_get_query_execution",
       "surfaces": {
@@ -187,7 +188,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Athena query results"
       },
       "name": "aws_athena_get_query_results",
       "surfaces": {
@@ -288,7 +290,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Start Athena query"
       },
       "name": "aws_athena_start_query_execution",
       "surfaces": {
@@ -477,7 +480,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get CloudWatch metric statistics"
       },
       "name": "aws_cloudwatch_get_metric_statistics",
       "surfaces": {
@@ -612,7 +616,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List EC2 instances"
       },
       "name": "aws_ec2_describe_instances",
       "surfaces": {
@@ -752,7 +757,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List ECR images"
       },
       "name": "aws_ecr_describe_images",
       "surfaces": {
@@ -1040,7 +1046,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get Lambda function config"
       },
       "name": "aws_lambda_get_function_configuration",
       "surfaces": {
@@ -1149,7 +1156,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List event source mappings"
       },
       "name": "aws_lambda_list_event_source_mappings",
       "surfaces": {
@@ -1250,7 +1258,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List Lambda functions"
       },
       "name": "aws_lambda_list_functions",
       "surfaces": {
@@ -1355,7 +1364,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List log groups"
       },
       "name": "aws_logs_describe_log_groups",
       "surfaces": {
@@ -1480,7 +1490,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List log streams"
       },
       "name": "aws_logs_describe_log_streams",
       "surfaces": {
@@ -1624,7 +1635,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Search log events"
       },
       "name": "aws_logs_filter_log_events",
       "surfaces": {
@@ -1754,7 +1766,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get log events"
       },
       "name": "aws_logs_get_log_events",
       "surfaces": {
@@ -1859,7 +1872,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List DB clusters"
       },
       "name": "aws_rds_describe_db_clusters",
       "surfaces": {
@@ -1964,7 +1978,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List DB instances"
       },
       "name": "aws_rds_describe_db_instances",
       "surfaces": {
@@ -2108,126 +2123,13 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List RDS events"
       },
       "name": "aws_rds_describe_events",
       "surfaces": {
         "mcp": {
           "tool": "aws_rds_describe_events"
-        }
-      }
-    },
-    {
-      "deprecated": false,
-      "description": "Downloads one S3 object to a local absolute path, returned in file. Uploads and recursive copy are not exposed",
-      "hidden": false,
-      "id": "PT-AWS-S3-CP",
-      "input": {
-        "properties": {
-          "local_path": {
-            "description": "Local absolute path to write to",
-            "type": "string"
-          },
-          "overwrite": {
-            "default": false,
-            "description": "If true, overwrites the destination even if it already exists",
-            "type": "boolean"
-          },
-          "profile": {
-            "description": "AWS profile name. If omitted, the awscli default resolution applies",
-            "pattern": "^[\\w.-]+$",
-            "type": "string"
-          },
-          "region": {
-            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
-            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
-            "type": "string"
-          },
-          "s3_uri": {
-            "description": "Source (s3://bucket/key)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "s3_uri",
-          "local_path"
-        ],
-        "type": "object"
-      },
-      "mcp": {
-        "annotations": {
-          "destructiveHint": true,
-          "openWorldHint": true,
-          "readOnlyHint": false
-        },
-        "output": {
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "lines"
-              ]
-            },
-            {
-              "required": [
-                "output",
-                "truncated"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ],
-          "properties": {
-            "detail": {
-              "description": "Full text of the failure and how to recover (failure only)",
-              "type": "string"
-            },
-            "file": {
-              "description": "Local absolute path the object was written to (success only)",
-              "type": "string"
-            },
-            "kind": {
-              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
-              "type": "string"
-            },
-            "lines": {
-              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            "log": {
-              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-              "type": "string"
-            },
-            "output": {
-              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
-              "type": "string"
-            },
-            "truncated": {
-              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
-              "type": "boolean"
-            },
-            "warnings": {
-              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          "type": "object"
-        }
-      },
-      "name": "aws_s3_cp",
-      "surfaces": {
-        "mcp": {
-          "tool": "aws_s3_cp"
         }
       }
     },
@@ -2319,312 +2221,13 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List S3 contents"
       },
       "name": "aws_s3_ls",
       "surfaces": {
         "mcp": {
           "tool": "aws_s3_ls"
-        }
-      }
-    },
-    {
-      "deprecated": false,
-      "description": "Gets an object by bucket and key and returns its metadata as JSON, with the written path in file. Use version_id to pick a version and range for a partial download",
-      "hidden": false,
-      "id": "PT-AWS-S3API-GET-OBJECT",
-      "input": {
-        "properties": {
-          "bucket": {
-            "description": "Bucket name",
-            "type": "string"
-          },
-          "key": {
-            "description": "Object key",
-            "type": "string"
-          },
-          "outfile": {
-            "description": "Local absolute path to write to",
-            "type": "string"
-          },
-          "overwrite": {
-            "default": false,
-            "description": "If true, overwrites the destination even if it already exists",
-            "type": "boolean"
-          },
-          "profile": {
-            "description": "AWS profile name. If omitted, the awscli default resolution applies",
-            "pattern": "^[\\w.-]+$",
-            "type": "string"
-          },
-          "range": {
-            "description": "Byte range to get (bytes=0-1023)",
-            "type": "string"
-          },
-          "region": {
-            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
-            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
-            "type": "string"
-          },
-          "version_id": {
-            "description": "Version ID to get",
-            "type": "string"
-          }
-        },
-        "required": [
-          "bucket",
-          "key",
-          "outfile"
-        ],
-        "type": "object"
-      },
-      "mcp": {
-        "annotations": {
-          "destructiveHint": true,
-          "openWorldHint": true,
-          "readOnlyHint": false
-        },
-        "output": {
-          "additionalProperties": false,
-          "properties": {
-            "AcceptRanges": {
-              "description": "Range unit the object accepts (S3 GetObject response)",
-              "type": "string"
-            },
-            "BucketKeyEnabled": {
-              "description": "Whether an S3 Bucket Key is used (S3 GetObject response)",
-              "type": "boolean"
-            },
-            "CacheControl": {
-              "description": "Cache-Control header (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumCRC32": {
-              "description": "CRC32 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumCRC32C": {
-              "description": "CRC32C checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumCRC64NVME": {
-              "description": "CRC64NVME checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumMD5": {
-              "description": "MD5 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumSHA1": {
-              "description": "SHA1 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumSHA256": {
-              "description": "SHA256 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumSHA512": {
-              "description": "SHA512 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumType": {
-              "description": "Checksum type (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumXXHASH128": {
-              "description": "XXHASH128 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumXXHASH3": {
-              "description": "XXHASH3 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ChecksumXXHASH64": {
-              "description": "XXHASH64 checksum (S3 GetObject response)",
-              "type": "string"
-            },
-            "ContentDisposition": {
-              "description": "Content-Disposition header (S3 GetObject response)",
-              "type": "string"
-            },
-            "ContentEncoding": {
-              "description": "Content-Encoding header (S3 GetObject response)",
-              "type": "string"
-            },
-            "ContentLanguage": {
-              "description": "Content-Language header (S3 GetObject response)",
-              "type": "string"
-            },
-            "ContentLength": {
-              "description": "Body size in bytes (S3 GetObject response)",
-              "type": "number"
-            },
-            "ContentRange": {
-              "description": "Range of the returned part (S3 GetObject response)",
-              "type": "string"
-            },
-            "ContentType": {
-              "description": "Content-Type header (S3 GetObject response)",
-              "type": "string"
-            },
-            "DeleteMarker": {
-              "description": "Whether the object is a delete marker (S3 GetObject response)",
-              "type": "boolean"
-            },
-            "ETag": {
-              "description": "Entity tag (S3 GetObject response)",
-              "type": "string"
-            },
-            "Expiration": {
-              "description": "Expiration by the lifecycle rule (S3 GetObject response)",
-              "type": "string"
-            },
-            "Expires": {
-              "description": "Expires header (S3 GetObject response)",
-              "type": "string"
-            },
-            "LastModified": {
-              "description": "Last modified time (S3 GetObject response)",
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "Metadata": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "description": "User-defined metadata (S3 GetObject response)",
-              "propertyNames": {
-                "type": "string"
-              },
-              "type": "object"
-            },
-            "MissingMeta": {
-              "description": "Number of metadata entries not returned in headers (S3 GetObject response)",
-              "type": "number"
-            },
-            "ObjectLockEventHold": {
-              "description": "Object Lock event hold (S3 GetObject response)",
-              "type": "string"
-            },
-            "ObjectLockEventHoldDurationDays": {
-              "description": "Object Lock event hold duration in days (S3 GetObject response)",
-              "type": "number"
-            },
-            "ObjectLockEventHoldDurationYears": {
-              "description": "Object Lock event hold duration in years (S3 GetObject response)",
-              "type": "number"
-            },
-            "ObjectLockLegalHoldStatus": {
-              "description": "Object Lock legal hold status (S3 GetObject response)",
-              "type": "string"
-            },
-            "ObjectLockMode": {
-              "description": "Object Lock mode (S3 GetObject response)",
-              "type": "string"
-            },
-            "ObjectLockRetainUntilDate": {
-              "description": "Object Lock retention end (S3 GetObject response)",
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "PartsCount": {
-              "description": "Number of parts of a multipart object (S3 GetObject response)",
-              "type": "number"
-            },
-            "ReplicationStatus": {
-              "description": "Replication status (S3 GetObject response)",
-              "type": "string"
-            },
-            "RequestCharged": {
-              "description": "Whether the requester was charged (S3 GetObject response)",
-              "type": "string"
-            },
-            "Restore": {
-              "description": "Restore state of an archived object (S3 GetObject response)",
-              "type": "string"
-            },
-            "SSECustomerAlgorithm": {
-              "description": "SSE-C algorithm (S3 GetObject response)",
-              "type": "string"
-            },
-            "SSECustomerKeyMD5": {
-              "description": "MD5 of the SSE-C key (S3 GetObject response)",
-              "type": "string"
-            },
-            "SSEKMSKeyId": {
-              "description": "KMS key ID used for encryption (S3 GetObject response)",
-              "type": "string"
-            },
-            "ServerSideEncryption": {
-              "description": "Server-side encryption algorithm (S3 GetObject response)",
-              "type": "string"
-            },
-            "StorageClass": {
-              "description": "Storage class (S3 GetObject response)",
-              "type": "string"
-            },
-            "TagCount": {
-              "description": "Number of tags (S3 GetObject response)",
-              "type": "number"
-            },
-            "VersionId": {
-              "description": "Version ID (S3 GetObject response)",
-              "type": "string"
-            },
-            "WebsiteRedirectLocation": {
-              "description": "Website redirect location (S3 GetObject response)",
-              "type": "string"
-            },
-            "detail": {
-              "description": "Full text of the failure and how to recover (failure only)",
-              "type": "string"
-            },
-            "file": {
-              "description": "Local absolute path the object was written to (success only)",
-              "type": "string"
-            },
-            "kind": {
-              "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
-              "type": "string"
-            },
-            "lines": {
-              "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            "log": {
-              "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
-              "type": "string"
-            },
-            "output": {
-              "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
-              "type": "string"
-            },
-            "truncated": {
-              "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
-              "type": "boolean"
-            },
-            "warnings": {
-              "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          "type": "object"
-        }
-      },
-      "name": "aws_s3api_get_object",
-      "surfaces": {
-        "mcp": {
-          "tool": "aws_s3api_get_object"
         }
       }
     },
@@ -2780,7 +2383,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get schedule details"
       },
       "name": "aws_scheduler_get_schedule",
       "surfaces": {
@@ -2921,7 +2525,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List schedules"
       },
       "name": "aws_scheduler_list_schedules",
       "surfaces": {
@@ -3022,7 +2627,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get SQS queue attributes"
       },
       "name": "aws_sqs_get_queue_attributes",
       "surfaces": {
@@ -3125,7 +2731,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "List SQS queues"
       },
       "name": "aws_sqs_list_queues",
       "surfaces": {
@@ -3219,7 +2826,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Start SSO login"
       },
       "name": "aws_sso_login",
       "surfaces": {
@@ -3312,7 +2920,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get SSO login status"
       },
       "name": "aws_sso_login_status",
       "surfaces": {
@@ -3398,7 +3007,8 @@
             }
           },
           "type": "object"
-        }
+        },
+        "title": "Get caller identity"
       },
       "name": "aws_sts_get_caller_identity",
       "surfaces": {
@@ -3449,10 +3059,6 @@
         {
           "meaning": "Amazon S3 (high-level commands)",
           "word": "s3"
-        },
-        {
-          "meaning": "Amazon S3 (API commands)",
-          "word": "s3api"
         },
         {
           "meaning": "Amazon EventBridge Scheduler",

@@ -83,14 +83,7 @@ function categorize(result: Readonly<SpawnResult>): FailureKind {
 const isolatedHome = useTemporaryDirectory('pecot-tools-real-aws-')
 
 /**
-書き出し先を持つツールが実際にファイルを作らないことを見るためのパス。
-*/
-function outputPath(name: string): string {
-  return isolatedHome(name)
-}
-
-/**
-24 ツールぶんの代表引数。任意入力も含め、契約で公開している引数の並びを実 awscli に通す。
+22 ツールぶんの代表引数。任意入力も含め、契約で公開している引数の並びを実 awscli に通す。
 
 値は実在しない名前でよい。ここで見たいのは「構文として受理されるか」だけで、
 資格情報が無い以上リクエストは送られない。
@@ -166,14 +159,6 @@ function representativeArguments(): Readonly<Record<string, Readonly<Record<stri
       starting_token: 'token-1',
     },
     aws_s3_ls: { s3_uri: 's3://no-such-bucket/prefix/' },
-    aws_s3_cp: { s3_uri: 's3://no-such-bucket/report.json', local_path: outputPath('cp.json') },
-    aws_s3api_get_object: {
-      bucket: 'no-such-bucket',
-      key: 'report.json',
-      outfile: outputPath('get-object.json'),
-      version_id: '3sL4kqtJ',
-      range: 'bytes=0-1023',
-    },
     aws_rds_describe_events: {
       // duration は start_time / end_time と排他なので、期間指定の側だけを通す。
       source_identifier: 'no-such-instance',
@@ -218,14 +203,6 @@ function representativeArguments(): Readonly<Record<string, Readonly<Record<stri
     },
   }
 }
-
-/**
-書き出し先を持つツールと、その入力名。
-*/
-const OUTPUT_TOOLS: readonly { readonly name: string, readonly input: string }[] = [
-  { name: 'aws_s3_cp', input: 'local_path' },
-  { name: 'aws_s3api_get_object', input: 'outfile' },
-]
 
 describe('実 awscli', () => {
   beforeAll(() => {
@@ -369,27 +346,6 @@ describe('実 awscli', () => {
 
       expect(result.exitCode, `stderr: ${result.stderr}`).not.toBe(SYNTAX_ERROR_EXIT_CODE)
       expect(categorize(result), `stderr: ${result.stderr}`).not.toBe('invalid-input')
-    })
-  }
-
-  for (const target of OUTPUT_TOOLS) {
-    it(`${target.name} は認証に失敗した時点で書き出し先を作らない`, async (context) => {
-      skipWithoutAwscli(context)
-
-      const entry = findAllowlistEntry(target.name)
-      if (entry === undefined) throw new Error(`許可リストに ${target.name} がありません`)
-
-      const input = representativeArguments()[target.name] ?? {}
-
-      const destination = String(input[target.input])
-
-      const result = await runAwscli(
-        buildArguments(entry, input, { region: REGION }),
-        { timeoutMs: AWSCLI_TIMEOUT_MS },
-      )
-
-      expect(result.exitCode).not.toBe(0)
-      expect(existsSync(destination), `${destination} が作られた`).toBe(false)
     })
   }
 })

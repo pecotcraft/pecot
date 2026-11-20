@@ -36,7 +36,7 @@ import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-
 import { createOutput, DRY_RUN_FIELD, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
-import { commandHint, hinted, hintedTextOf, inputHint, placeholder } from './command-hint.js'
+import { commandHint, hinted, hintedTextOf, inputHint, placeholder, RUN_COLON } from './command-hint.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { PROJECT_INPUT, stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
@@ -58,6 +58,7 @@ const dryRunInput = z.boolean().default(false).describe('Show what would happen 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
 function reportRuntimeError(out: Readonly<Output>, error: unknown): never {
   if (!(error instanceof WorktreeRuntimeError)) throw error
+  if (error.log !== undefined) out.log(error.log)
   return stopWith(out, hintedTextOf(error) ?? error.message, error.failure)
 }
 
@@ -102,6 +103,7 @@ const ADD_OUTPUT = z.strictObject({
 
 const worktreeAddCommand = defineCommand({
   path: ['worktree', 'add'],
+  title: 'Add worktree',
   description: 'Create a new worktree',
   input: worktreeAddInput,
   output: ADD_OUTPUT,
@@ -159,6 +161,7 @@ const REMOVE_OUTPUT = z.strictObject({
 
 const worktreeRemoveCommand = defineCommand({
   path: ['worktree', 'remove'],
+  title: 'Remove worktree',
   description: 'Remove a worktree',
   input: worktreeRemoveInput,
   output: REMOVE_OUTPUT,
@@ -205,6 +208,7 @@ const INIT_OUTPUT = z.strictObject({
 
 const worktreeInitCommand = defineCommand({
   path: ['worktree', 'init'],
+  title: 'Initialize worktree config',
   description: 'Create the worktree config files in the main worktree',
   input: worktreeInitInput,
   output: INIT_OUTPUT,
@@ -311,6 +315,7 @@ type LinkEntry = NonNullable<LinkData['links']>[number]
 
 const worktreeLinkCommand = defineCommand({
   path: ['worktree', 'link'],
+  title: 'Update worktree symlinks',
   description: 'Apply or update symlinks in existing worktrees',
   input: worktreeLinkInput,
   output: LINK_OUTPUT,
@@ -397,7 +402,7 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
   try {
     ensureDevcontainerEnvironment()
     const configFile = findWorktreeConfigFile(input.directory)
-    if (configFile === undefined) stopWith(out, hinted`worktree config not found\nrun: ${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`, 'not-initialized')
+    if (configFile === undefined) stopWith(out, hinted`worktree config not found\n${RUN_COLON}${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`, 'not-initialized')
     const config = loadConfig(configFile)
     const mainWorktree = findMainWorktree(input.directory)
     const projectRoot = detectProjectRoot(input.directory)

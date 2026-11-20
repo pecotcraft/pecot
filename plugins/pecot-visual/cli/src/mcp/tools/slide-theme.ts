@@ -77,7 +77,7 @@ export function slideThemeTool(
   return {
     name: 'slide_theme',
     config: {
-      title: 'Slidev theme declaration',
+      title: 'Get Slidev theme',
       description: 'Returns the theme declaration referenced by a talk-dir and the list of layouts. '
         + 'The declaration covers fonts, font sizes, PPTX fonts and link colors, and lint rules. '
         + 'Skills use it to obtain theme values.',

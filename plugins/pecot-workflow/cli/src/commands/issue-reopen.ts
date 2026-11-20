@@ -166,6 +166,7 @@ const REOPEN_PATH = ['issue', 'reopen']
 
 const ISSUE_REOPEN = defineCommand({
   path: REOPEN_PATH,
+  title: 'Reopen Issue',
   description: 'Reopen a closed Issue (also sets the status on the board)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),

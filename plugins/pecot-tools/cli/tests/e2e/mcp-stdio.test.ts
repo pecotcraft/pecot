@@ -1,4 +1,4 @@
-// CUJ: MCP クライアントが `pecot-tools mcp` へ stdio で接続し、契約の 26 ツールを一覧して呼ぶ。
+// CUJ: MCP クライアントが `pecot-tools mcp` へ stdio で接続し、契約の 24 ツールを一覧して呼ぶ。
 //
 // 単体テストは InMemoryTransport 越しにしか見られない。
 // stdout 汚染（console.log の混入）と終了処理（stdin の EOF・SIGTERM）の退行を捕まえられるのは、
@@ -236,7 +236,7 @@ describe('pecot-tools mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('tools/list が契約表の 26 件を表の順で返す', async () => {
+  it('tools/list が契約表の 24 件を表の順で返す', async () => {
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })

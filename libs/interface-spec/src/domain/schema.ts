@@ -38,6 +38,8 @@ export const generatedEntrySchema = z.strictObject({
     flags: z.record(z.string(), z.array(z.string())),
   }).optional(),
   mcp: z.strictObject({
+    // Tool の最上位の title（表示名）。MCP の面を持つ項目で必須かは validate が確かめる。
+    title: z.string().optional(),
     output: jsonSchemaObject.optional(),
     annotations: annotations.optional(),
   }).optional(),
@@ -103,6 +105,10 @@ export const dependencyConstraintSchema = z.strictObject({ requires: z.record(z.
 // kind の要素は、終了コードが決まっていれば code に書く。
 export const exitKindSchema = z.strictObject({ kind: authoredText, code: z.int().min(0).max(255).optional(), when: authoredText })
 
+const runExample = z.strictObject({ run: authoredText, note: authoredText })
+// MCP の面を持つ項目の使用例。tools/call の params の arguments に当たる。
+const callExample = z.strictObject({ arguments: z.record(z.string(), z.unknown()), note: authoredText })
+
 export const authoredEntrySchema = z.strictObject({
   // summary と arguments は、実装の description と引数の説明（英語）に当たる日本語の文。
   summary: authoredText.optional(),
@@ -126,12 +132,14 @@ export const authoredEntrySchema = z.strictObject({
   })),
   prerequisites: z.array(authoredText),
   idempotent: z.boolean(),
-  examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
+  examples: z.array(z.union([runExample, callExample])),
+  // CLI の節をページに出す項目の、CLI の使用例。CLI の面を持つ項目だけが書ける。
+  cli_reference: z.strictObject({ examples: z.array(runExample).min(1) }).optional(),
   default_notes: z.record(z.string(), authoredText),
   // help は、CLI の --help に出す英語の文。prose が ja の定義書で、上の 3 つの欄の代わりに CLI が読む。
   help: z.strictObject({
     details: z.array(authoredText),
-    examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
+    examples: z.array(runExample),
     default_notes: z.record(z.string(), authoredText),
   }).optional(),
   behaviors: z.array(behaviorSchema).min(1),

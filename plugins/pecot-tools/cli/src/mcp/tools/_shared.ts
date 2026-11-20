@@ -91,10 +91,6 @@ const NEXT_TOKEN_OUTPUT_SHAPE = {
     .describe('Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result'),
 }
 
-const FILE_OUTPUT_SHAPE = {
-  file: z.string().optional().describe('Local absolute path the object was written to (success only)'),
-}
-
 /**
 AWS の応答の最上位のキーごとの型。入れ子の中は AWS が決める形なので開いたまま宣言する。
 */
@@ -173,10 +169,6 @@ export interface ExecuteOptions {
   */
   readonly reject?: (arguments_: Readonly<Record<string, unknown>>) => PreExecutionRejection | undefined
   /**
-  成功時に file の項目へ載せる書き出し先。切り詰めの有無に依らず適用する。
-  */
-  readonly fileOf?: (arguments_: Readonly<Record<string, unknown>>) => string | undefined
-  /**
   JSON 出力のうち残す最上位のキー。無ければ絞らない。
   */
   readonly responseKeys?: ReadonlySet<string>
@@ -202,7 +194,6 @@ export interface AllowlistedToolSpec {
   readonly description: string
   readonly inputSchema: z.ZodObject
   readonly reject?: ExecuteOptions['reject']
-  readonly fileOf?: ExecuteOptions['fileOf']
   /**
   AWS の応答の最上位のキー（API リファレンスの Response Syntax）。awscli の JSON を出すツールだけが持つ。
   awscli のページングが足す NextToken は allowlistedTool が足すので、ここには書かない。
@@ -341,33 +332,29 @@ export async function executeAllowlisted(
     }
   }
 
-  // 書き出し先は切り詰めの有無に依らず載せる。書き出しは awscli 側で完了しており、
-  // 応答の切り詰めは「出力が長い」ことしか意味しないため。
-  const file = options.fileOf?.(arguments_)
-  const filePart = file === undefined ? {} : { file }
   const limited = limitOutput(redactSecrets(result.stdout))
   if (limited.truncated) {
     return {
       ok: true,
-      data: { output: limited.text, truncated: true, ...filePart },
+      data: { output: limited.text, truncated: true },
       message: TRUNCATION_MESSAGE,
     }
   }
 
   return {
     ok: true,
-    data: { ...successData(entry, limited.text, options.responseKeys), ...filePart },
+    data: successData(entry, limited.text, options.responseKeys),
     message: `${entry.toolName} succeeded`,
   }
 }
 
 /**
-annotations を許可リストの kind から導く。destructiveHint は fetch だけ true（`overwrite: true` で既存ファイルを上書きするため）。
+annotations を許可リストの kind から導く。消す・上書きするツールは無いので、destructiveHint は false。
 */
 function annotationsOf(entry: Readonly<AllowlistEntry>): ToolAnnotations {
   return {
     readOnlyHint: entry.kind === 'read',
-    destructiveHint: entry.kind === 'fetch',
+    destructiveHint: false,
     openWorldHint: true,
   }
 }
@@ -405,7 +392,6 @@ function outputSchemaOf(spec: Readonly<AllowlistedToolSpec>, responseShape: Read
     ...responseShape,
     ...AWSCLI_OUTPUT_SHAPE,
     ...(spec.entry.pagination === 'max-items' && { nextToken: NEXT_TOKEN_OUTPUT_SHAPE.nextToken }),
-    ...(spec.fileOf !== undefined && FILE_OUTPUT_SHAPE),
     ...COMMON_OUTPUT_SHAPE,
   })
   return standardOutputSchema(toolOutputSchema(output, successRequiredOf(spec)))
@@ -422,7 +408,6 @@ export function allowlistedTool(
   const executeOptions: ExecuteOptions = {
     ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
     ...(spec.reject !== undefined && { reject: spec.reject }),
-    ...(spec.fileOf !== undefined && { fileOf: spec.fileOf }),
     ...(spec.entry.jsonOutput && { responseKeys: new Set(Object.keys(responseShape)) }),
   }
 

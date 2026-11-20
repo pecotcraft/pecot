@@ -11,6 +11,7 @@ const STRINGS = z.array(z.string())
 
 const demo = defineCommand({
   path: ['demo', 'run'],
+  title: 'Test command',
   description: 'Run the demo',
   input: z.object({
     target: z.string().describe('Target to run'),
@@ -38,6 +39,7 @@ const demo = defineCommand({
 
 const withRepository = defineCommand({
   path: ['own'],
+  title: 'Test command',
   description: 'Has its own repo',
   input: z.object({ repo: z.string().describe('Repository to use'), item: z.string().optional().describe('An item') }),
   hasOwnRepo: true,
@@ -49,6 +51,7 @@ const withRepository = defineCommand({
 
 const bare = defineCommand({
   path: ['bare'],
+  title: 'Test command',
   description: 'Does nothing',
   input: z.object({}),
   output: z.strictObject({}),
@@ -241,6 +244,7 @@ describe('commandHelpText', () => {
   it('全角の説明も、幅で数えて折り返す', () => {
     const wide = defineCommand({
       path: ['wide'],
+      title: 'Test command',
       description: '全角の説明を持つコマンド。幅が狭くても折り返して表示します。',
       input: z.object({ name: z.string().describe('名前をここに書いてください。長い説明は折り返されます。') }),
       output: z.strictObject({}),
@@ -280,6 +284,7 @@ describe('未対応の zod のキー', () => {
   it('JSON Schema の表に無いキーは、握らずに TypeError で伝える（help がスタックトレースになる）', () => {
     const unsupported = defineCommand({
       path: ['odd'],
+      title: 'Test command',
       description: 'Has a pattern',
       input: z.object({ code: z.string().regex(/^[a-z]+$/u).describe('Lowercase code') }),
       output: z.strictObject({}),
@@ -295,6 +300,7 @@ describe('未対応の zod のキー', () => {
 describe('選択肢の長いオプション', () => {
   const long = defineCommand({
     path: ['pick'],
+    title: 'Test command',
     description: 'Pick a template',
     input: z.object({
       template: z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution']).optional().describe('Template type'),

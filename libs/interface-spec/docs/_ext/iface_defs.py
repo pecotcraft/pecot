@@ -367,18 +367,40 @@ def _schema(value: object) -> tuple[dict[str, dict[str, Any]], list[str]]:
     return properties, cast("list[str]", body.get("required", []))
 
 
-def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required: bool) -> list[str]:
-    """引数 1 つ。Sphinx 標準の option で、名前・説明・項目（field list）の順に書く。"""
-    detail = cast("dict[str, Any]", entry.get("cli", {}))
+# MCP のツールの引数を書く object type。setup で登録する。
+MCP_ARG = "mcparg"
+
+
+def _surfaces(entry: dict[str, Any]) -> dict[str, Any]:
+    # surfaces の無い entry は CLI として扱う
+    return cast("dict[str, Any]", entry.get("surfaces", {"cli": {}}))
+
+
+def _tool(entry: dict[str, Any]) -> str | None:
+    tool = _get(entry, "surfaces.mcp.tool")
+    return str(tool) if isinstance(tool, str) else None
+
+
+def shows_cli(entry: dict[str, Any]) -> bool:
+    """CLI の面（標準入出力・終了コード・フラグ）をページに出すか。MCP の項目では cli_reference を持つものだけ。"""
+    return "cli_reference" in entry or "mcp" not in _surfaces(entry)
+
+
+def _flag_label(entry: dict[str, Any], name: str) -> str:
+    detail = cast("dict[str, Any]", entry.get("cli") or {})
     flags = cast("dict[str, list[str]]", detail.get("flags", {}))
+    if name in flags:
+        return ", ".join(flags[name])
+    return f"<{name}>" if name in cast("list[str]", detail.get("positional", [])) else name
+
+
+def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required: bool) -> list[str]:
+    """引数 1 つ。名前・説明・項目（field list）の順に書く。
+
+    MCP の引数は拡張の mcparg で書く。Sphinx の option は「command line argument or switch」用なので、CLI だけの項目に使う。
+    """
     written = cast("dict[str, str]", entry.get("arguments", {}))
     notes = cast("dict[str, str]", entry.get("default_notes", {}))
-    if name in flags:
-        label = ", ".join(flags[name])
-    elif name in cast("list[str]", detail.get("positional", [])):
-        label = f"<{name}>"
-    else:
-        label = name
     text = " ".join(
         t for t in (written.get(name, spec.get("description", "")), notes.get(name)) if t
     )
@@ -386,14 +408,18 @@ def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required:
         ("指定", "必須" if required else "省略可"),
         ("型", _type(spec) if "enum" not in spec else spec.get("type", "")),
     ]
-    if label != name and "mcp" in cast("dict[str, Any]", entry["surfaces"]):
-        rows.append(("MCP での名前", name))
     if "default" in spec:
         rows.append(("既定値", json.dumps(spec["default"], ensure_ascii=False)))
     if "enum" in spec:
         rows.append(("指定可能な値", ", ".join(str(v) for v in cast("list[Any]", spec["enum"]))))
     body = [_esc(text, link=True), "", *(f":{key}: {_esc(value)}" for key, value in rows), ""]
-    return [f".. option:: {label}", "", *(f"   {line}" if line else "" for line in body)]
+    # 同じ名前の引数は別のツールにもあるので、索引に載せない
+    head = (
+        [f".. {MCP_ARG}:: {name}", "   :no-index:"]
+        if "mcp" in _surfaces(entry)
+        else [f".. option:: {_flag_label(entry, name)}"]
+    )
+    return [*head, "", *(f"   {line}" if line else "" for line in body)]
 
 
 def _parameters(entry: dict[str, Any]) -> list[str]:
@@ -408,10 +434,25 @@ def _parameters(entry: dict[str, Any]) -> list[str]:
     ]
 
 
+def _call_block(tool: str, arguments: object) -> list[str]:
+    """tools/call の params の name と arguments（MCP の仕様の Calling Tools の形）。"""
+    text = json.dumps({"name": tool, "arguments": arguments}, ensure_ascii=False, indent=2)
+    return [".. code-block:: json", "", *(f"   {line}" for line in text.splitlines()), ""]
+
+
+def _run_examples(examples: list[dict[str, Any]]) -> list[str]:
+    return [line for e in examples for line in (*_para(e["note"]), *_code_block(e["run"]))]
+
+
 def _examples(entry: dict[str, Any]) -> list[str]:
+    tool = _tool(entry) or str(entry.get("name", ""))
     lines: list[str] = []
-    for example in cast("list[dict[str, str]]", entry.get("examples", [])):
-        lines += [*_para(example["note"]), *_code_block(example["run"])]
+    for example in cast("list[dict[str, Any]]", entry.get("examples", [])):
+        lines += _para(example["note"])
+        if "arguments" in example:
+            lines += _call_block(tool, example["arguments"])
+        else:
+            lines += _code_block(example["run"])
     return lines
 
 
@@ -429,6 +470,7 @@ def _constraint(item: object) -> str:
 
 
 MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
+COMMAND_TITLE = "コマンド"
 COMMON_OUTPUT_TITLE = "出力"
 # structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
 _MCP_COMMON = ("kind", "detail", "log", "warnings")
@@ -497,13 +539,12 @@ def resource_rows(generated: dict[str, Any], authored: dict[str, Any]) -> list[l
     return rows
 
 
-def _output(entry: dict[str, Any]) -> list[str]:
+def _stdout(entry: dict[str, Any]) -> list[str]:
+    """CLI の標準出力・標準入力・標準エラー。"""
     output = cast("dict[str, Any]", entry.get("output", {}))
     lines: list[str] = []
-    # 標準出力の文は、CLI の面を持つ項目だけに出す。surfaces の無い entry は CLI として扱う
-    has_cli = "cli" in cast("dict[str, Any]", entry.get("surfaces", {"cli": {}}))
     if output.get("format") == "none":
-        lines += _para("標準出力には何も出しません。") if has_cli else []
+        lines += _para("標準出力には何も出しません。") if "cli" in _surfaces(entry) else []
     elif output.get("description"):
         lines += _para(output["description"])
     properties, _ = _schema(output.get("schema"))
@@ -517,7 +558,6 @@ def _output(entry: dict[str, Any]) -> list[str]:
         for name, spec in properties.items()
     ]
     lines += _table("", ["項目名", "型", "説明"], rows)
-    lines += _mcp_output(entry)
     extra = [
         (label, entry[key])
         for key, label in (("stdin", "標準入力"), ("diagnostics", "標準エラー"))
@@ -526,11 +566,61 @@ def _output(entry: dict[str, Any]) -> list[str]:
     return lines + (_fields(extra) if extra else [])
 
 
+def _output(entry: dict[str, Any]) -> list[str]:
+    """出力の節。MCP の項目は結果の項目だけ。CLI の標準入出力は、CLI だけの項目に出す（cli_reference を持つ項目は「コマンド」の節に出す）。"""
+    cli_only = "mcp" not in _surfaces(entry)
+    return [*(_stdout(entry) if cli_only else []), *_mcp_output(entry)]
+
+
+def _command(entry: dict[str, Any]) -> list[str]:
+    """cli_reference を持つ MCP の項目の「コマンド」の節。構文・フラグ・使用例・標準入出力。"""
+    reference = entry.get("cli_reference")
+    path = _get(entry, "surfaces.cli.path")
+    if (
+        not isinstance(reference, dict)
+        or "mcp" not in _surfaces(entry)
+        or not isinstance(path, list)
+    ):
+        return []
+    program = " ".join(["pecot", *cast("list[str]", path)])
+    detail = cast("dict[str, Any]", entry.get("cli") or {})
+    positional = cast("list[str]", detail.get("positional", []))
+    flags = cast("dict[str, list[str]]", detail.get("flags", {}))
+    synopsis = " ".join(
+        [program, *(f"<{p}>" for p in positional), *(["[options]"] if flags else [])]
+    )
+    lines = [
+        *_para(
+            f"GitHub Actions からは、`{program}` コマンドで呼びます。引数は、次のフラグで渡します。"
+        ),
+        *_code_block(synopsis),
+        f".. program:: {program}",
+        "",
+    ]
+    for name in [*positional, *flags]:
+        lines += [
+            f".. option:: {_flag_label(entry, name)}",
+            "",
+            f"   引数 {_lit(name)} に当たります。",
+            "",
+        ]
+    lines += _run_examples(
+        cast("list[dict[str, Any]]", cast("dict[str, Any]", reference).get("examples", []))
+    )
+    return lines + _stdout(entry)
+
+
 def _failures(entry: dict[str, Any]) -> tuple[str, list[str]]:
-    """エラーの表。終了コードの決まっていない行は空にする。エラーの後に残る状態を、その下に書く。"""
+    """エラーの表。終了コードの列は CLI を出す項目だけに付け、決まっていない行は空にする。エラーの後に残る状態を、その下に書く。"""
     items = cast("list[dict[str, Any]]", entry.get("exit_status", []))
-    rows = [[e.get("kind", ""), e["when"], e.get("code", "")] for e in items]
-    lines = _table("", ["エラー名", "説明", "終了コード"], rows)
+    if shows_cli(entry):
+        lines = _table(
+            "",
+            ["エラー名", "説明", "終了コード"],
+            [[e.get("kind", ""), e["when"], e.get("code", "")] for e in items],
+        )
+    else:
+        lines = _table("", ["エラー名", "説明"], [[e.get("kind", ""), e["when"]] for e in items])
     if lines:
         lines.insert(1, "   :class: iface-errors")
     if "on_error" in entry and entry["on_error"] != _NOTHING["on_error"]:
@@ -563,6 +653,7 @@ def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
         ("引数", arguments),
         ("出力", _output(entry)),
         (failure_title, failures),
+        (COMMAND_TITLE, _command(entry)),
     ]
     return [(title, lines) for title, lines in sections if lines]
 
@@ -593,6 +684,13 @@ class Command:
     description: str = ""
     deprecated: bool = False
     sections: list[tuple[str, list[str]]] = field(default_factory=lambda: [])
+    # 表示名（MCP の Tool の title）と MCP のツール名。MCP の面の無い項目は name を使う。
+    title: str = ""
+    tool: str = ""
+
+    @property
+    def heading(self) -> str:
+        return self.title or self.name
 
     @property
     def slug(self) -> str:
@@ -643,15 +741,22 @@ def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
             plan.warnings.append(f"{gid}: authored.yaml に項目が無いため、飛ばしました")
             continue
         try:
-            sections = render_sections({**g, **a, **plugin})
+            merged = {**g, **a, **plugin}
+            sections = render_sections(merged)
+            surfaces = cast("dict[str, Any]", g["surfaces"])
+            # MCP の項目の CLI は、cli_reference を持つときだけ型に数える
+            tags = sorted(t for t in surfaces if t != "cli" or shows_cli(merged))
+            title = _get(g, "mcp.title")
             command = Command(
                 id=gid,
                 name=str(g["name"]),
-                tags=sorted(cast("dict[str, Any]", g["surfaces"])),
+                tags=tags,
                 body=render_body(sections),
                 description=str(a.get("summary") or g.get("description", "")),
                 deprecated=bool(g.get("deprecated", False)),
                 sections=sections,
+                title=title if isinstance(title, str) else "",
+                tool=_tool(g) or str(g["name"]),
             )
         except (KeyError, TypeError, ValueError) as error:
             plan.warnings.append(f"{gid}: 欄 {error} が欠けているか形が違うため、飛ばしました")
@@ -829,14 +934,18 @@ class IfaceDefs(_Base):
         top, sub = ("-", "-") if single else ("-", "~")
         lines: list[str] = []
         if not single:
-            lines += [_esc(command.name), top * (len(command.name) * 2 + 4), ""]
+            lines += [_esc(command.heading), top * (len(command.heading) * 2 + 4), ""]
+        if command.title:
+            # 題は表示名なので、呼ぶときの名前を題の下に添える
+            lines += [".. rst-class:: iface-tool-name", "", _lit(command.tool), ""]
         lines += [
             ".. rst-class:: iface-lead",
             "",
             _esc(command.description, link=True),
             "",
         ]
-        lines += [f".. program:: {command.name}", ""]
+        if "mcp" not in command.tags:
+            lines += [f".. program:: {command.name}", ""]
         if command.deprecated:
             lines += [".. warning::", "", "   このツールは非推奨です。", ""]
         for title, body in command.sections:
@@ -1005,6 +1114,11 @@ class IfaceDefs(_Base):
         return created
 
 
+def _kind_order(tag: str) -> int:
+    """型の並び。MCP を先に、CLI を後にする。"""
+    return 0 if tag == "mcp" else 1
+
+
 def _summary(outcomes: list[str]) -> str:
     """振る舞いの状態を「✓ 通った 12・✗ 落ちた 1」の形に数える。0 件の状態は出さない。"""
     parts = [f"{label(o)} {outcomes.count(o)}" for o in OUTCOMES if o in outcomes]
@@ -1026,17 +1140,19 @@ class IfaceIndex(_Base):
 
         base = f"/{PAGES_DIR.as_posix()}/{plugin}"
         results = bool(self.config.iface_results)
+        kinds = {"cli": "CLI", "mcp": "MCP"}
         rows: list[list[str]] = [
             [
-                f":doc:`{_esc(c.name)} <{base}/{c.slug}>`",
+                f":doc:`{_esc(c.heading)} <{base}/{c.slug}>`",
+                _lit(c.tool),
                 _esc(c.description),
-                _esc(", ".join(c.tags)),
+                _esc("・".join(kinds.get(t, t) for t in sorted(c.tags, key=_kind_order))),
                 *([_esc(_summary(outcomes(c.id)))] if results else []),
             ]
             for c in plan.commands
         ]
-        widths = "22 50 8 20" if results else "25 65 10"
-        head = ["名前", "説明", "型", *(["状態"] if results else [])]
+        widths = "18 20 40 8 14" if results else "20 22 48 10"
+        head = ["表示名", "ツール名", "説明", "型", *(["状態"] if results else [])]
         lines = [".. list-table::", "   :header-rows: 1", f"   :widths: {widths}", ""]
         for row in [head, *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
@@ -1133,10 +1249,10 @@ def write_pages(app: Sphinx) -> None:
                 # 文書の先頭の field list は、Sphinx がページの付帯情報として読む。右の欄に出す。
                 f":iface-id: {c.id}",
                 f":iface-plugin: {plugin}",
-                f":iface-kind: {'・'.join(kinds.get(t, t) for t in c.tags)}",
+                f":iface-kind: {'・'.join(kinds.get(t, t) for t in sorted(c.tags, key=_kind_order))}",
                 "",
-                c.name,
-                "=" * (len(c.name) * 2),
+                c.heading,
+                "=" * (len(c.heading) * 2),
                 "",
                 f".. iface-defs:: {plugin} {c.id}",
                 "",
@@ -1263,6 +1379,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_role("iface-tests", _tests_role)
     for name in ("iface-tag", *(f"iface-{o}" for o in OUTCOMES)):
         app.add_role(name, _class_role(name))
+    app.add_object_type(MCP_ARG, MCP_ARG, objname="MCP のツールの引数")
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
     app.add_directive("iface-common-output", IfaceCommonOutput)

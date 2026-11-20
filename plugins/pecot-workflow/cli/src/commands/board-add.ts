@@ -29,6 +29,7 @@ const BOARD_ADD_OUTPUT = z.strictObject({
 
 const BOARD_ADD = defineCommand({
   path: ['board', 'add'],
+  title: 'Add Issue to board',
   description: 'Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),

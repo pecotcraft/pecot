@@ -5,10 +5,10 @@ import { ALLOWLIST } from '../../../domain/allowlist.js'
 import { allTools } from '../index.js'
 
 describe('allTools', () => {
-  it('SSO の 2 件に続けて許可リストの 24 件を同じ並びで公開する', () => {
+  it('SSO の 2 件に続けて許可リストの 22 件を同じ並びで公開する', () => {
     // 並びの元は「SSO 2 件 + 許可リスト」。契約表との突き合わせは
     // src/mcp/tests/contract.test.ts が持つ。
-    expect(allTools()).toHaveLength(26)
+    expect(allTools()).toHaveLength(24)
     expect(allTools().map(tool => tool.name)).toEqual([
       ...SSO_TOOL_NAMES,
       ...ALLOWLIST.map(entry => entry.toolName),

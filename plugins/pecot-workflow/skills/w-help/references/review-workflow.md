@@ -125,8 +125,28 @@ Claude の App を使う構成では、雛形のファイルを足す・変え�
 | `PECOT_REVIEW_ALLOWED_BOTS` | `[]` | PR をレビューする bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限 |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | job の時間の上限。分 |
+| `PECOT_REVIEW_PROJECT` | 空 | レビューで使うプロジェクトの設定の名前。`.pecot/config/projects/` のファイル名から `.json` を除いて書く |
+| `PECOT_REVIEW_WEB_ACCESS` | `true` | `false` にすると、外の文書を引かない |
+
+`PECOT_REVIEW_PROJECT` は、リポが 2 つ以上のプロジェクトの設定に入っているときに置きます。置かないと、pecot の MCP ツールが設定を選べず、レビューが止まります。設定が 1 つのリポでは要りません。
 
 雛形を上書きしても、変数は消えません。
+
+### 外の文書を引く
+
+自動レビューは、指摘の根拠に、外の公式の文書を引きます。
+
+| 手段 | 読めるもの |
+|---|---|
+| Context7 | ライブラリ・フレームワークの文書 |
+| `WebSearch` | 検索の結果の題と URL。ページの中身は読まない |
+| `WebFetch` | `docs.github.com` と、Claude Code が承認なしで読ませる組み込みの文書のドメインのページだけ |
+
+`WebFetch` で読むドメインは、雛形の `pecot-review:allowed-tools` の行で足します。`PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` に `WebFetch(domain:example.com)` の形で書きます。PR に仕込まれた指示で読まされても困らない、信頼できるドメインだけを足します。
+
+検索の語と URL には、diff の文の入ることがあります。private のリポでコードを外へ出したくないときは、変数 `PECOT_REVIEW_WEB_ACCESS` を `false` にします。
+
+Context7 は、API キーが無くても使えます。キーを使うと、回数の上限が上がります。Context7 でキーを作り、secret `CONTEXT7_API_KEY` に置きます。
 
 ### bot の PR をレビューする
 

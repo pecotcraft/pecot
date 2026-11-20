@@ -68,6 +68,7 @@ describe('toolNameOf', () => {
 describe('defineCommand', () => {
   const definition = defineCommand({
     path: ['issue', 'read'],
+    title: 'Test command',
     description: 'Issue を読む',
     input: z.object({ issue_ref: z.string(), comment_limit: z.number().default(5) }),
     output: z.strictObject({}),
@@ -116,6 +117,7 @@ describe('defineCommand', () => {
   it('shortFlags が無ければ空', () => {
     const plain = defineCommand({
       path: ['pr', 'read'],
+      title: 'Test command',
       description: 'PR を読む',
       input: z.object({}),
       output: z.strictObject({}),
@@ -131,6 +133,7 @@ describe('defineCommand', () => {
     const received: unknown[] = []
     const own = defineCommand({
       path: ['own'],
+      title: 'Test command',
       description: '',
       hasOwnRepo: true,
       input: z.object({ repo: z.string().optional(), name: z.string() }),
@@ -154,6 +157,7 @@ describe('defineCommand', () => {
     const received: unknown[] = []
     const strict = defineCommand({
       path: ['strict'],
+      title: 'Test command',
       description: '',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined, 'a か b が要ります'),
       output: z.strictObject({}),
@@ -183,6 +187,7 @@ describe('defineCommand', () => {
   it('aliases を持てる。無ければ空', () => {
     const aliased = defineCommand({
       path: ['al'],
+      title: 'Test command',
       description: '',
       input: z.object({ allow_existing_branch: z.boolean().default(false) }),
       output: z.strictObject({}),
@@ -198,6 +203,7 @@ describe('defineCommand', () => {
   it('短いオプションと別名を同じ入力に持つと作れない', () => {
     expect(() => defineCommand({
       path: ['both'],
+      title: 'Test command',
       description: '',
       input: z.object({ force: z.boolean().default(false) }),
       output: z.strictObject({}),
@@ -212,6 +218,7 @@ describe('defineCommand', () => {
   it('negations を持てる', () => {
     const negated = defineCommand({
       path: ['neg'],
+      title: 'Test command',
       description: '',
       input: z.object({ checkout: z.boolean().default(true) }),
       output: z.strictObject({}),
@@ -226,6 +233,7 @@ describe('defineCommand', () => {
   it('入力 no_x の `--no-x` と入力 x の否定形 `--no-x` が並んだら作れない', () => {
     expect(() => defineCommand({
       path: ['dup'],
+      title: 'Test command',
       description: '',
       input: z.object({ x: z.boolean().default(true), no_x: z.boolean().default(false) }),
       output: z.strictObject({}),
@@ -239,6 +247,7 @@ describe('defineCommand', () => {
   it('入力 x の否定形 `--no-x` だけなら作れる', () => {
     const command = defineCommand({
       path: ['ok'],
+      title: 'Test command',
       description: '',
       input: z.object({ x: z.boolean().default(true) }),
       output: z.strictObject({}),
@@ -253,6 +262,7 @@ describe('defineCommand', () => {
   it('path が空なら作れない', () => {
     expect(() => defineCommand({
       path: [],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -265,6 +275,7 @@ describe('defineCommand', () => {
   it.for(['reason', 'detail', 'warnings', 'log'])('output が共通の項目の名前 %s を持つと作れない', (key) => {
     expect(() => defineCommand({
       path: ['x'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({ name: z.string(), [key]: z.string() }),
@@ -279,6 +290,7 @@ describe('findCommand', () => {
   it('path が一致するコマンドを返し、一致しなければ undefined を返す', () => {
     const command = defineCommand({
       path: ['pr', 'read'],
+      title: 'Test command',
       description: '',
       input: z.object({}),
       output: z.strictObject({}),

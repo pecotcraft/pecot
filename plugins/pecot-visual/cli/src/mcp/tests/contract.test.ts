@@ -24,7 +24,7 @@
 //
 // FR-011 の相対パス規約は、Windows 形式の事前変換を挟む (#1094)。原本は未追従。
 
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -78,6 +78,16 @@ interface ToolContract {
 
 const TRANSITION_TYPES = ['fade', 'morph']
 const MORPH_OPTIONS = ['byObject', 'byWord', 'byChar']
+
+const generatedPath = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
+
+// ツール名に当たる定義書の項目の mcp.title を返す
+function generatedTitleOf(tool: string): unknown {
+  const parsed: unknown = JSON.parse(readFileSync(generatedPath, 'utf8'))
+  const entries: unknown[] = isRecord(parsed) && Array.isArray(parsed['entries']) ? parsed['entries'] : []
+  const entry = entries.find(item => isRecord(item) && isRecord(item['surfaces']) && isRecord(item['surfaces']['mcp']) && item['surfaces']['mcp']['tool'] === tool)
+  return isRecord(entry) && isRecord(entry['mcp']) ? entry['mcp']['title'] : undefined
+}
 
 const TOOL_CONTRACTS: readonly ToolContract[] = [
   {
@@ -673,11 +683,12 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(annotations.openWorldHint === false).toBe(!contract.openWorld)
   })
 
-  it.each(TOOL_CONTRACTS)('$name が title と description を持つ', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name が定義書の mcp.title と同じ最上位の title と description を持つ', (contract) => {
     const tool = toolOf(contract.name)
-    // title はツール一覧の見出しとして 11 件横並びで出るため、1 件でも欠けると並びが崩れる。
-    expect(typeof tool.title).toBe('string')
-    expect(tool.title).not.toBe('')
+    const title = generatedTitleOf(contract.name)
+    expect(title).toEqual(expect.stringMatching(/\S/))
+    expect(tool.title).toBe(title)
+    expect(tool.annotations?.title).toBeUndefined()
     expect(typeof tool.description).toBe('string')
     expect(tool.description).not.toBe('')
   })

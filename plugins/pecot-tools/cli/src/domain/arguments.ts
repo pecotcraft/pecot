@@ -2,7 +2,7 @@
 // 先頭 '-' の値は原則拒否し、例外の string は `--flag=value` の 1 トークンで渡す（research R3）。
 
 import { PROFILE_INPUT, REGION_INPUT, type AllowlistEntry, type InputSpec } from './allowlist.js'
-import { validateLocalPath, validateS3ListUri, validateS3Uri } from './s3-input.js'
+import { validateS3ListUri } from './s3-input.js'
 
 /**
 shorthand の値に混入すると構文になる文字。`,` や `=` で契約外のキーを足せるため、組み立て前に弾く。
@@ -98,12 +98,6 @@ kind 固有の書式検証。述部を返す関数は s3-input.ts が持つ（�
 */
 function kindPredicate(kind: InputSpec['kind'], value: string): string | undefined {
   switch (kind) {
-    case 'abs-path': {
-      return validateLocalPath(value)
-    }
-    case 's3-uri': {
-      return validateS3Uri(value)
-    }
     case 's3-list-uri': {
       return validateS3ListUri(value)
     }
@@ -251,8 +245,6 @@ function validateShorthandList(
 function validateValue(spec: Readonly<InputSpec>, value: unknown): InvalidInput | undefined {
   switch (spec.kind) {
     case 'string':
-    case 'abs-path':
-    case 's3-uri':
     case 's3-list-uri': {
       return typeof value === 'string' ? validateStringValue(spec, value) : invalid(`${spec.name} must be a string`)
     }

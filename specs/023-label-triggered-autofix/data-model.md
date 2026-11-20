@@ -7,7 +7,7 @@
 
 ```text
 導入先のリポ
-├── ワークフローの雛形（1 つ）          .github/workflows/pecot-auto.yml
+├── ワークフローの雛形（1 つ）          .github/workflows/pecot-auto.yml（`workflow install auto` が書く）
 ├── プロジェクトの設定（1 つ）          .pecot/config/projects/<名前>.json
 └── Issue *
     ├── 起動ラベル（0 か 1）
@@ -22,18 +22,18 @@
 
 ## 自動処理の実行
 
-1 つの Issue に対する 1 回の run を指す。保存はしない。`pecot auto gate` がイベントから組み立てる。
+1 つの Issue に対する 1 回の run を指す。保存はしない。`auto gate` がイベントから組み立てる。
 
 | 欄 | 型 | 決め |
 |---|---|---|
 | `issue` | 文字列 | `owner/repo/N` の形 |
+| `number` | 整数 | Issue の番号。同時実行のグループが使う |
 | `kind` | `start`・`resume`・`ci-fix`・`ci-passed` | 下の表で決まる |
 | `proceed` | 真偽値 | 偽なら、エージェントを起こさない |
 | `reason` | 文字列 | `proceed` が偽のときの理由。英語の 1 行 |
 | `branch` | 文字列 | 既にあるブランチ。無ければ空 |
 | `pr` | 整数 | 既にある PR の番号。無ければ 0 |
 | `ci_attempts` | 整数 | これまでに CI を直した回数 |
-| `template_outdated` | 真偽値 | 置かれた雛形の版が、CLI の持つ版より古い |
 
 種類は、次の表で決まる。
 
@@ -56,7 +56,11 @@
 | sub-issue を持つ | sub-issue の数 |
 | PR に付いたラベル | イベントの `issue.pull_request` |
 | 進行の欄が Backlog・Pending・Archived | 進行の欄の値 |
+| 進行の欄が Blocked | 進行の欄の値。理由のコメントに、待っている前提を書く |
 | 人が着手している | 進行の欄が Active か In Review で、Issue に自動処理の結果のコメントが 1 つも無い |
+| ラベルを付けた人に書き込み権限が無い | `sender` の `collaborators/<login>/permission` の `role_name` が、`admin`・`maintain`・`write` のどれでもない。何も書かずに止める |
+
+- 書き込み権限の無い人が付けた起動ラベルは、何も書かずに止めるので、ラベルは残る
 
 進めるのは 3 つの場合だけだ。
 
@@ -87,7 +91,7 @@ Backlog と Pending は、ボードの上にしか無い値だ。ボードに無
 | `setup-missing` | 設定が足りずに止まった | 変えない | 書かない | 外す |
 
 - `out-of-scope` と `setup-missing` は、着手していないので待ちの値を書かない
-- 進行の欄を書くのは、既存の `pecot create-branch` と `pecot pr create` だけだ。`pecot auto` のコマンドは書かない
+- 進行の欄を書くのは、既存の `session_start`（MCP ツール）と `pr_create` だけだ。`auto` のコマンドは書かない
 
 ## 既定の Status の遷移
 
@@ -103,11 +107,21 @@ Needs Attention <──(finish: question・failed・limit)──
 
 | 書く時点 | 書くコマンド | 前の値 | 後の値 |
 |---|---|---|---|
-| 人の対応を待って終わる | `pecot auto finish` | Todo または In Progress | Needs Attention |
-| 起動し直す。PR が無い | `pecot auto start` | Needs Attention | Todo |
-| 起動し直す。PR がある | `pecot auto start` | Needs Attention | In Progress |
+| 人の対応を待って終わる | `auto finish` | Todo または In Progress | Needs Attention |
+| 起動し直す。PR が無い | `auto start` | Needs Attention | Todo |
+| 起動し直す。PR がある | `auto start` | Needs Attention | In Progress |
 
-前の値が Needs Attention でなければ、`start` は何も書かない。
+前の値が Needs Attention でなければ、`auto start` は何も書かない。
+
+### 自動処理が書いた札か
+
+`auto start` が戻すのは、自動処理が書いた `Needs Attention` だけだ。pecot の判定（`board_sync` など）が置いた `Needs Attention` は戻さない。
+
+| 決め | 内容 |
+|---|---|
+| 決め方 | 今の札が `Needs Attention` で、Issue の最後の結果のコメントが、待ちの値を書く結果（`question`・`failed`・`limit`）の目印を持つとき、自動処理が書いたとする |
+| 渡す先 | 既存の判定 `decideBoardMove` の入力 `labelWrittenByAutomation`（`cli/src/domain/board-move.ts`）。今は、呼ぶ側 3 か所が `false` 固定だ |
+| 見る目印 | bot のコメントの目印だけ。人が目印を書き込んで、札を戻させないようにする |
 
 ## 結果のコメント
 
@@ -115,43 +129,66 @@ Issue に残すコメント。テンプレートは `cli/templates/comment/auto-
 
 | 欄 | 決め |
 |---|---|
-| 目印 | 本文の先頭の HTML コメント。`<!-- pecot-auto: result=<結果> run=<run の ID> branch=<ブランチ> -->` |
+| 目印 | 本文の先頭の HTML コメント。`<!-- pecot-auto: result=<結果> run=<run の ID> attempt=<試行> branch=<ブランチ> -->`。`run` と `attempt` は、環境変数 `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` から作る |
 | 見出し | 結果を 1 行で書く |
 | 本文 | 結果ごとに要るものだけを書く。質問、落ちたテスト、落ちているチェック、足りない設定 |
 | 実行の記録 | run の URL |
 | 次の手 | 人がすることを 1 行で書く。答えを書いて起動ラベルを付け直す、など |
-| 雛形の更新 | 雛形が古いときだけ、更新のコマンドを 1 行で書く |
 
 - CI を直した回数は、`result=ci-fix-pushed` の目印を持つコメントの数で数える
-- 同じ run の目印を持つコメントが既にあれば、`finish --ensure` は何も書かない
+- 同じ run・同じ試行の目印を持つコメントが既にあれば、`auto finish --ensure` は何も書かない
+- 目印を探すのは、bot のコメントだけだ。人が目印を書き込んで、記録を消せないようにする
 
 ## プロジェクトの設定に足すキー
 
-`.pecot/config/projects/<名前>.json` の `project.fields` に、`status` を足す。
+`.pecot/config/projects/<名前>.json` の `project.fields.status` は、実装済みだ（#376・#404）。今あるキーは次のとおりだ。
 
 | 欄 | 型 | 決め |
 |---|---|---|
 | `status.id` | 文字列 | 既定の Status のフィールドの ID |
+| `status.options.needs_attention` | 文字列 | 待ちの値 `Needs Attention` の選択肢の ID |
 | `status.options.todo` | 文字列 | 選択肢の ID |
-| `status.options.in_progress` | 文字列 | 選択肢の ID |
-| `status.options.done` | 文字列 | 選択肢の ID |
-| `status.options.waiting` | 文字列 | 待ちの値の選択肢の ID |
 
-- `status` が無い設定は、今までどおり読める。`pecot auto` のコマンドだけが、`pecot project init` の打ち直しを求める
+足すのは `status.options.in_progress` だけだ。`auto start` が、PR のある Issue の札を In Progress に戻すのに要る。`LABEL_CONFIG_KEYS` にも `In Progress` を足す。
+
+- `status` が無い設定は、今までどおり読める。`auto` のコマンドだけが、`pecot project init` の打ち直しを求める
 - 選択肢は名前で探す。利用者が既定の Status の値の名前を変えていると見つからない。そのときは、見つからない名前を出して止まる
+
+## 雛形の一覧の `auto` の行
+
+`cli/src/domain/workflow-template.ts` の `WORKFLOW_TEMPLATES` に足す行だ。欄は、spec 027 の data-model の「雛形の一覧」に、`auto` が足す 3 つを加えたものだ。
+
+| 欄 | 値 |
+|---|---|
+| 名前 | `auto` |
+| 雛形のファイル | `cli/templates/workflow/pecot-auto.yml` |
+| 置き先 | `.github/workflows/pecot-auto.yml` |
+| 要る変数と secret | 下の「エージェント用の認証」のうち、App の変数と secret の両方と、モデルの認証 |
+| 確かめの種類（足す） | 起動ラベル・設定の `fields.status`・待ちの値・ボードの既定の自動化・CI のワークフローの名前（[contracts/cli-commands.md](contracts/cli-commands.md)） |
+| 導入の後の案内（足す） | App の作成、変数と secret の登録、起動ラベルの作成、CI の名前の記入 |
+| Claude の App の項目を出すか（足す） | 出さない |
+
+## エージェント用の認証
+
+名前は、spec 027 の data-model の「エージェント用の認証」と同じだ。この自動処理は自前の App を必須にする。
+
+| 名前 | 種類 | この自動処理での扱い |
+|---|---|---|
+| `PECOT_AGENT_APP_CLIENT_ID` | 変数 | 必須 |
+| `PECOT_AGENT_APP_PRIVATE_KEY` | secret | 必須 |
+| `CLAUDE_CODE_OAUTH_TOKEN` | secret | モデルの認証。既定 |
+| `PECOT_AGENT_ANTHROPIC_*`（4 つ） | 変数 | secret が無いときの Workload Identity Federation |
 
 ## ワークフローの雛形が持つ値
 
 | 値 | 既定値 | 決まる時点 |
 |---|---|---|
-| 版の目印 | CLI の持つ版 | 書き出しのとき |
-| 起動ラベルの名前 | `pecot-auto` | 書き出しのとき。利用者が変えられる |
-| CI のワークフローの名前 | 無い | 書き出しのとき。利用者が選ぶ |
-| プロジェクトの設定の名前 | 有効な設定の名前 | 書き出しのとき |
-| App の変数と secret の名前 | `PECOT_AUTO_APP_CLIENT_ID`・`PECOT_AUTO_APP_PRIVATE_KEY` | 固定 |
-| モデルの認証の secret の名前 | `ANTHROPIC_API_KEY` | 固定 |
-| ターンの上限 | 80 | 利用者が変えられる |
-| 時間の上限 | 30 分 | 利用者が変えられる |
-| CI を直す回数の上限 | 3 | 利用者が変えられる |
+| 版の目印 | `# pecot-workflow-template: auto <版>`。CLI の持つ版 | 書き出しのとき |
+| 起動ラベルの名前 | 変数 `PECOT_AUTO_LABEL`。既定 `pecot-auto` | 利用者が変えられる |
+| CI のワークフローの名前 | 仮の名前 | 利用者が、印の囲みの中に書く |
+| ターンの上限 | 変数 `PECOT_AUTO_MAX_TURNS`。既定 80 | 利用者が変えられる |
+| 時間の上限 | 変数 `PECOT_AUTO_TIMEOUT_MINUTES`。既定 30 分 | 利用者が変えられる |
+| CI を直す回数の上限 | 変数 `PECOT_AUTO_MAX_CI_ATTEMPTS`。既定 3 | 利用者が変えられる |
+| 複数のボードに入ったリポでの指定 | #640 が決める変数 | #640 の決めで足す |
 | 利用者の準備の step | 空 | 利用者が足す |
-| 利用者のテストのコマンドの許可 | 空 | 利用者が足す |
+| 利用者のテストのコマンドの許可 | 空。`PECOT_AUTO_EXTRA_ALLOWED_TOOLS` | 利用者が足す |

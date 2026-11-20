@@ -19,7 +19,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, RUN, surfaceText } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
@@ -81,12 +81,12 @@ async function ensureLinked(out: Output, config: ProjectConfig, client: GitHubCl
   await ensureRepositoryInProject(out, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
 }
 
-async function wrapped<T>(out: Output, context: string, run: () => Promise<T>): Promise<T> {
+async function wrapped<T>(out: Output, context: string | HintedText, run: () => Promise<T>): Promise<T> {
   try {
     return await run()
   }
   catch (error: unknown) {
-    return stopWith(out, `${context}: ${apiFailureMessage(error)}`, kindOfFailure(error))
+    return stopWith(out, hinted`${context}: ${apiFailureMessage(error)}`, kindOfFailure(error))
   }
 }
 
@@ -96,7 +96,7 @@ function isOptionAvailable(config: ProjectConfig, field: string, key: string): b
 }
 
 function hintFor(value: MissingValue): HintedText {
-  return hinted`hint: run ${commandHint(['project', 'init'])} to add the ${value} option to the board`
+  return hinted`hint: ${RUN} ${commandHint(['project', 'init'])} to add the ${value} option to the board`
 }
 
 function boardMoveInput(judged: JudgedIssue, config: ProjectConfig, hasPrerequisites: boolean): BoardMoveInput {
@@ -228,7 +228,7 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
   const decision = decideBlock({ body: read.body, home, by, wait: input.wait, reason, isLinked: linked !== undefined })
   const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait }
   if (decision.kind === 'malformed') {
-    stopWith(out, `Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and run the command again`, 'content-invalid', CONTENT_EXIT_CODE)
+    stopWith(out, hinted`Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and ${surfaceText('run the command again', 'call the tool again')}`, 'content-invalid', CONTENT_EXIT_CODE)
   }
   else if (decision.kind === 'unchanged') {
     out.result({ ...result, change: 'unchanged', ...!input.dry_run && { moves: [] } })
@@ -260,7 +260,7 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
     out.done(operation)
   }
   if (decision.body !== read.body) {
-    const message = `could not update the body of ${name}${decision.kind === 'add' ? `; blocked-by ${byName} was added, run the command again to write the section` : ''}`
+    const message = hinted`could not update the body of ${name}${decision.kind === 'add' ? hinted`; blocked-by ${byName} was added, ${surfaceText('run the command again', 'call the tool again')} to write the section` : ''}`
     await wrapped(out, message, async () => {
       await client.updateIssueBody(targetIssue.owner, targetIssue.repository, targetIssue.number, decision.body)
     })
@@ -339,6 +339,7 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
 
 const ISSUE_BLOCK = defineCommand({
   path: BLOCK_PATH,
+  title: 'Set Issue blocker',
   description: 'Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),
@@ -361,6 +362,7 @@ const ISSUE_BLOCK = defineCommand({
 
 const ISSUE_UNBLOCK = defineCommand({
   path: UNBLOCK_PATH,
+  title: 'Remove Issue blocker',
   description: 'Remove a blocked-by (prerequisite) from an Issue',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),

@@ -161,8 +161,12 @@ function checkGenerated(file: string, name: string, data: GeneratedFile): Findin
     if (entry.surfaces.mcp !== undefined && entry.mcp?.output?.['additionalProperties'] !== false) {
       findings.push({ file, scope, field: 'mcp.output', reason: 'is not a closed type (declare every field the tool returns and set additionalProperties to false)' })
     }
+    const title = entry.mcp?.title
+    if (entry.surfaces.mcp !== undefined && (title === undefined || title.trim() === '')) {
+      findings.push({ file, scope, field: 'mcp.title', reason: 'is missing (give the tool a display name in English)' })
+    }
     findings.push(
-      ...japaneseFindings(file, scope, [['name', entry.name], ['description', entry.description], ...inputDescriptions(entry.input, 'input')]),
+      ...japaneseFindings(file, scope, [['name', entry.name], ['description', entry.description], ...(title === undefined ? [] : [['mcp.title', title] as const]), ...inputDescriptions(entry.input, 'input')]),
       ...inputNameFindings(file, scope, entry),
       ...nameRuleFindings(file, scope, entry.name, data.names),
     )
@@ -321,13 +325,56 @@ function helpFindings(file: string, scope: string, entry: AuthoredEntry, generat
     ...Object.entries(help.default_notes).map(([name, text]) => [`help.default_notes.${name}`, text] as const),
   ]
   const findings = japaneseFindings(file, scope, texts)
-  if (!hasSameNames(help.examples.map(example => example.run), entry.examples.map(example => example.run))) {
-    findings.push(finding('must have the same run values, in the same order, as examples', 'help.examples'))
+  // MCP の面を持つ項目の examples は MCP の例なので、CLI の例は cli_reference にあるときだけ比べる。
+  const cliExamples = entry.cli_reference?.examples ?? (generated.surfaces.mcp === undefined ? runExamples(entry) : undefined)
+  if (cliExamples !== undefined && !hasSameNames(help.examples.map(example => example.run), cliExamples.map(example => example.run))) {
+    const source = entry.cli_reference === undefined ? 'examples' : 'cli_reference.examples'
+    findings.push(finding(`must have the same run values, in the same order, as ${source}`, 'help.examples'))
   }
   if (!hasSameNames(Object.keys(help.default_notes).toSorted(compareText), Object.keys(entry.default_notes).toSorted(compareText))) {
     findings.push(finding('must have the same input names as default_notes', 'help.default_notes'))
   }
   return findings
+}
+
+type Example = AuthoredEntry['examples'][number]
+type RunExample = Extract<Example, { run: string }>
+
+function runExamples(entry: AuthoredEntry): RunExample[] {
+  return entry.examples.filter((example): example is RunExample => 'run' in example)
+}
+
+// MCP の面を持つ項目の使用例は arguments の形で、キーは input にあり、required を全部持つ。面の無い項目は run の形。
+function exampleFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+  const hasMcp = generated.surfaces.mcp !== undefined
+  const known = new Set(Object.keys(generated.input.properties))
+  const listed: unknown = generated.input['required']
+  const required = Array.isArray(listed) ? listed.filter((name): name is string => typeof name === 'string') : []
+  return entry.examples.flatMap((example, index): Finding[] => {
+    const field = `examples[${String(index)}]`
+    if (!('arguments' in example)) {
+      return hasMcp ? [{ file, scope, field, reason: 'must be an MCP call (write arguments instead of run)' }] : []
+    }
+    if (!hasMcp) return [{ file, scope, field, reason: 'must be a command line (write run instead of arguments; the entry has no MCP surface)' }]
+    const names = Object.keys(example.arguments)
+    return [
+      ...names.filter(name => !known.has(name)).map(name => ({ file, scope, field: `${field}.arguments`, reason: `unknown input name ${quote(name)}` })),
+      ...required.filter(name => !names.includes(name)).map(name => ({ file, scope, field: `${field}.arguments`, reason: `is missing the required input ${quote(name)}` })),
+    ]
+  })
+}
+
+// CLI の節（cli_reference）と終了コード（exit_status[].code）は、CLI の面を持つ項目だけが持つ。
+function cliOnlyFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+  if (generated.surfaces.cli !== undefined) return []
+  const codes = entry.exit_status.entries().filter(([, element]) => {
+    const parsed = exitKindSchema.safeParse(element)
+    return parsed.success && parsed.data.code !== undefined
+  }).map(([index]) => index).toArray()
+  return [
+    ...(entry.cli_reference === undefined ? [] : [{ file, scope, field: 'cli_reference', reason: 'is only for entries with a CLI surface (remove it)' }]),
+    ...codes.map(index => ({ file, scope, field: `exit_status[${String(index)}].code`, reason: 'is only for entries with a CLI surface (remove it)' })),
+  ]
 }
 
 function readOnlyWordOf(name: string, names: Names): string | undefined {
@@ -415,11 +462,14 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...entry.effects.map((effect, index) => [`effects[${String(index)}].what`, effect.what] as const),
     ...entry.prerequisites.map((text, index) => [`prerequisites[${String(index)}]`, text] as const),
     ...entry.examples.map((example, index) => [`examples[${String(index)}].note`, example.note] as const),
+    ...(entry.cli_reference?.examples ?? []).map((example, index) => [`cli_reference.examples[${String(index)}].note`, example.note] as const),
     ...Object.entries(entry.default_notes).map(([name, text]) => [`default_notes.${name}`, text] as const),
   ]
   return [
     ...japaneseFindings(file, id, texts.filter(([field, text]) => FIXED_VALUES[field] !== text), prose),
     ...helpFindings(file, id, entry, generated, prose),
+    ...exampleFindings(file, id, entry, generated),
+    ...cliOnlyFindings(file, id, entry, generated),
     ...namesFindings(file, id, entry, generated),
     ...annotationFindings(file, id, entry, generated),
     ...readOnlyFindings(file, id, entry, generated, names),

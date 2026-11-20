@@ -60,19 +60,6 @@ const LS_ENTRY: AllowlistEntry = {
   inputs: [],
 }
 
-const FETCH_ENTRY: AllowlistEntry = {
-  toolName: 'aws_s3_cp',
-  service: 's3',
-  subcommand: 'cp',
-  kind: 'fetch',
-  jsonOutput: false,
-  pagination: 'none',
-  inputs: [
-    { name: 's3_uri', kind: 's3-uri', required: true, positional: 0 },
-    { name: 'local_path', kind: 'abs-path', required: true, positional: 1 },
-  ],
-}
-
 const CONTEXT = { signal: new AbortController().signal }
 
 const IDENTITY_RESPONSE_SHAPE = {
@@ -537,61 +524,6 @@ describe('実行前拒否 (reject)', () => {
   })
 })
 
-describe('file', () => {
-  it('成功のとき、fileOf の戻り値を file に載せる', async () => {
-    fakeAws.install({ fixture: 's3-cp' })
-
-    const result = await executeAllowlisted(
-      FETCH_ENTRY,
-      { s3_uri: 's3://bucket/report.json', local_path: '/var/data/report.json' },
-      CONTEXT,
-      { fileOf: arguments_ => String(arguments_['local_path']) },
-    )
-
-    expect(result.ok).toBe(true)
-    expect(result.data['file']).toBe('/var/data/report.json')
-  })
-
-  it('出力が切り詰められても、file は載せる', async () => {
-    // 書き出しは awscli 側で終わっている。応答の切り詰めは出力が長いことしか意味しない。
-    await withFixtureDirectory(async (directory) => {
-      writeFileSync(path.join(directory, 'huge.stdout'), 'x'.repeat(OUTPUT_LIMIT_BYTES + 1024))
-      fakeAws.install({ fixture: 'huge', fixtureDir: directory })
-
-      const result = await executeAllowlisted(
-        FETCH_ENTRY,
-        { s3_uri: 's3://bucket/report.json', local_path: '/var/data/report.json' },
-        CONTEXT,
-        { fileOf: () => '/var/data/report.json' },
-      )
-
-      expect(result.data).toMatchObject({ truncated: true, file: '/var/data/report.json' })
-    })
-  })
-
-  it('fileOf が無ければ、file を載せない', async () => {
-    fakeAws.install()
-
-    const result = await executeAllowlisted(IDENTITY_ENTRY, {}, CONTEXT)
-
-    expect(result.data).not.toHaveProperty('file')
-  })
-
-  it('失敗のときは、fileOf があっても file を載せない', async () => {
-    fakeAws.install({ fixture: 's3-cp-no-credentials' })
-
-    const result = await executeAllowlisted(
-      FETCH_ENTRY,
-      { s3_uri: 's3://bucket/report.json', local_path: '/var/data/report.json' },
-      CONTEXT,
-      { fileOf: () => '/var/data/report.json' },
-    )
-
-    expect(result.ok).toBe(false)
-    expect(toCallToolResult(result).structuredContent).not.toHaveProperty('file')
-  })
-})
-
 describe('allowlistedTool', () => {
   const BASE_SPEC = {
     title: '呼び出し元 ID の確認',
@@ -636,17 +568,8 @@ describe('allowlistedTool', () => {
       .toThrow('responseRequired has keys not in responseShape: Missing')
   })
 
-  it('max-items のツールは NextToken と nextToken を、fileOf を持つツールは file を足す', () => {
-    const fetching = allowlistedTool({
-      entry: FETCH_ENTRY,
-      title: 'Fetch',
-      description: 'Fetches an object',
-      inputSchema: z.object(COMMON_INPUT_SHAPE),
-      fileOf: () => '/var/data/report.json',
-    })
-
+  it('max-items のツールは NextToken と nextToken を足す', () => {
     expect(propertyNamesOf(LIST_TOOL)).toEqual(['Functions', 'NextToken', 'lines', 'output', 'truncated', 'nextToken', 'kind', 'detail', 'log', 'warnings'])
-    expect(propertyNamesOf(fetching)).toEqual(['lines', 'output', 'truncated', 'file', 'kind', 'detail', 'log', 'warnings'])
   })
 
   it('JSON を出すツールに responseShape が無いと、定義を作らずに例外を投げる', () => {
@@ -682,8 +605,6 @@ describe('allowlistedTool', () => {
     readonly destructiveHint: boolean
   }[] = [
     { kind: 'read', readOnlyHint: true, destructiveHint: false },
-    // fetch だけ destructiveHint が true。overwrite: true はローカルの既存ファイルを戻せない形で壊す。
-    { kind: 'fetch', readOnlyHint: false, destructiveHint: true },
     { kind: 'execute', readOnlyHint: false, destructiveHint: false },
     { kind: 'auth', readOnlyHint: false, destructiveHint: false },
   ]
@@ -752,7 +673,7 @@ describe('MCP サーバ経由の並行実行', () => {
 
     const tool: ToolDefinition = {
       name: 'aws_sts_get_caller_identity',
-      config: { description: '並行上限の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '並行上限の検証', inputSchema: z.object({}) },
       handler: async (_arguments, call) => {
         const result = await executeAllowlisted(IDENTITY_ENTRY, {}, call)
         return { content: [{ type: 'text', text: String(result.ok) }] }

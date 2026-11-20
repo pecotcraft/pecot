@@ -39,7 +39,7 @@ import { resolveRealPath } from '../infra/paths.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { readTextFile } from '../infra/text-file.js'
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder, surfaceText } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { findConfigForRemotes, readRemoteLocations } from '../infra/remote-config.js'
@@ -65,6 +65,7 @@ export { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 // 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
 const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
+const PREFLIGHT_FAILED = 'preflight found warnings; fix them before creating a PR'
 // 下の段の PR が開いておらず、マージもされていない
 const NO_OPEN_BASE_EXIT_CODE = 2
 
@@ -455,7 +456,7 @@ async function runPreflightChecksOrExit(directory: string, draft: Readonly<PullR
   const { push, fixHint: pushFixHint } = await checkHeadPush(draft, context, { directory, base, config, client, out })
   const warnings = collectPreflightWarnings({ gitStatus: getGitStatus(directory), stashList: getStashList(directory), isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
   if (warnings.length === 0) return
-  out.error('preflight found warnings; fix them before creating a PR')
+  out.error(PREFLIGHT_FAILED)
   printPreflightWarnings(out, warnings)
   throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
 }
@@ -573,7 +574,7 @@ interface ValidatedInput {
 }
 
 export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output>): void {
-  if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'), 'content-invalid')
+  if (reading.kind === 'malformed') stopWith(out, joinHinted(describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content })), 'content-invalid')
 }
 
 // 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
@@ -586,7 +587,7 @@ async function readBaseRecordFor(head: string, input: Readonly<{ template: strin
     return stopWith(out, joinHinted([
       `cannot infer the stacked base: ${base.unresolved}`,
       'the PR is not created, since a PR to the develop branch can include the changes of the layer below',
-      'fix the cause and run again, or run pr create in the work directory where session start wrote .pecot/state/.pecot-base',
+      hinted`fix the cause and ${surfaceText('run again, or run pr create', 'call it again, or call pr_create')} in the work directory where ${surfaceText('session start', 'session_start')} wrote .pecot/state/.pecot-base`,
     ]), 'git-unresolved')
   }
   warnUnresolved(base, out)
@@ -600,7 +601,7 @@ async function readBaseRecordFor(head: string, input: Readonly<{ template: strin
   return stopWith(out, joinHinted([
     `.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}`,
     ...isRestacked ? [hinted`${head} is already restacked; rewrite the record with: ${commandHint(RESTACK_PATH)}`] : [],
-    hinted`run pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`,
+    hinted`${surfaceText('run pr create', 'call pr_create')} on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`,
   ]), 'git-unresolved')
 }
 
@@ -649,12 +650,12 @@ async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubC
 }
 
 // 下の段の PR が開いているのに開発ブランチを渡したときは、内容の検証の失敗と一緒に出す（終了コード 3）
-function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { readonly use: PullRequestBaseUse | undefined, readonly errors: readonly string[] } {
+function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { readonly use: PullRequestBaseUse | undefined, readonly errors: readonly (string | HintedText)[] } {
   if (decision.kind === 'use') return { use: decision, errors: [] }
   const lines = describeBaseStop(decision)
   if (decision.reason === 'lower-open') return { use: undefined, errors: lines }
-  if (decision.reason === 'malformed') return stopWith(out, lines.join('\n'), 'content-invalid')
-  return stopWith(out, lines.join('\n'), 'pr-state', NO_OPEN_BASE_EXIT_CODE)
+  if (decision.reason === 'malformed') return stopWith(out, joinHinted(lines), 'content-invalid')
+  return stopWith(out, joinHinted(lines), 'pr-state', NO_OPEN_BASE_EXIT_CODE)
 }
 
 // 下の段がマージ済みなら記録のコミットから、開いていてそのブランチへ作るならそのブランチから、題の scope を比べる
@@ -1106,11 +1107,14 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
   const warnings = collectPreflightWarnings({ gitStatus, stashList, isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
   out.count('preflight warnings', warnings.length)
   printPreflightWarnings(out, warnings)
-  if (warnings.length > 0) throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
+  if (warnings.length === 0) return
+  out.detail(PREFLIGHT_FAILED)
+  throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
 }
 
 const prCreate = defineCommand({
   path: PR_CREATE_PATH,
+  title: 'Create PR',
   description: 'Create a PR (pull request)',
   input: CreateInputSchema,
   output: PR_CREATE_OUTPUT,
@@ -1126,6 +1130,7 @@ const prCreate = defineCommand({
 
 const prShow = defineCommand({
   path: ['pr', 'show'],
+  title: 'Get PR details',
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
   input: ShowInputSchema,
   output: PR_SHOW_OUTPUT,
@@ -1140,6 +1145,7 @@ const prShow = defineCommand({
 
 const prCheck = defineCommand({
   path: ['pr', 'check'],
+  title: 'Check PR readiness',
   description: 'Show all the information to check before creating a PR',
   input: CheckInputSchema,
   output: PR_CHECK_OUTPUT,

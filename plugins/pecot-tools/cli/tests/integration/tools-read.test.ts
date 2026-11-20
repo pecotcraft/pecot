@@ -55,12 +55,6 @@ const MINIMAL_ARGUMENTS: Readonly<Record<string, Readonly<Record<string, unknown
   aws_athena_get_query_execution: { query_execution_id: 'b1c2d3e4' },
   aws_athena_get_query_results: { query_execution_id: 'b1c2d3e4' },
   aws_s3_ls: {},
-  aws_s3_cp: { s3_uri: 's3://example-bucket/report.json', local_path: '/var/data/report.json' },
-  aws_s3api_get_object: {
-    bucket: 'example-bucket',
-    key: 'report.json',
-    outfile: '/var/data/report.json',
-  },
   aws_rds_describe_events: {},
   aws_rds_describe_db_clusters: {},
   aws_rds_describe_db_instances: {},
@@ -141,17 +135,6 @@ const EXPECTED_ARGUMENTS: Readonly<Record<string, readonly string[]>> = {
     '--output', 'json', '--no-cli-pager',
   ],
   aws_s3_ls: ['s3', 'ls', '--no-cli-pager'],
-  aws_s3_cp: [
-    's3', 'cp',
-    's3://example-bucket/report.json', '/var/data/report.json',
-    '--no-cli-pager',
-  ],
-  aws_s3api_get_object: [
-    's3api', 'get-object', '/var/data/report.json',
-    '--bucket', 'example-bucket',
-    '--key', 'report.json',
-    '--output', 'json', '--no-cli-pager',
-  ],
   aws_rds_describe_events: ['rds', 'describe-events', '--output', 'json', '--no-cli-pager'],
   aws_rds_describe_db_clusters: ['rds', 'describe-db-clusters', '--output', 'json', '--no-cli-pager'],
   aws_rds_describe_db_instances: ['rds', 'describe-db-instances', '--output', 'json', '--no-cli-pager'],
@@ -188,8 +171,6 @@ const HAPPY_PATH_IDS: Readonly<Record<string, readonly string[]>> = {
   aws_athena_get_query_execution: ['PT-AWS-ATHENA-GET-QUERY-EXECUTION-01'],
   aws_athena_get_query_results: ['PT-AWS-ATHENA-GET-QUERY-RESULTS-01'],
   aws_s3_ls: [],
-  aws_s3_cp: [],
-  aws_s3api_get_object: ['PT-AWS-S3API-GET-OBJECT-01'],
   aws_rds_describe_events: ['PT-AWS-RDS-DESCRIBE-EVENTS-01'],
   aws_rds_describe_db_clusters: ['PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-01'],
   aws_rds_describe_db_instances: ['PT-AWS-RDS-DESCRIBE-DB-INSTANCES-01'],
@@ -633,38 +614,11 @@ describe('引数の組み立て', () => {
   it('s3 系は位置引数を先に置き --output json を付けない', async () => {
     const instance = fakeAws.install()
 
-    await call('aws_s3_cp', {
-      s3_uri: 's3://example-bucket/report.json',
-      local_path: '/var/data/report.json',
-    })
     await call('aws_s3_ls', { s3_uri: 's3://example-bucket/logs/' })
 
     expect(commandCalls(instance)).toEqual([
-      ['s3', 'cp', 's3://example-bucket/report.json', '/var/data/report.json', '--no-cli-pager'],
       ['s3', 'ls', 's3://example-bucket/logs/', '--no-cli-pager'],
     ])
-  })
-
-  it('aws_s3api_get_object は outfile を位置引数、その他をフラグにする', async () => {
-    const instance = fakeAws.install()
-
-    await call('aws_s3api_get_object', {
-      bucket: 'example-bucket',
-      key: 'report.json',
-      outfile: '/var/data/report.json',
-      version_id: '3sL4kqtJ',
-      range: 'bytes=0-1023',
-    })
-
-    expect(commandCalls(instance)).toEqual([[
-      's3api', 'get-object', '/var/data/report.json',
-      '--bucket', 'example-bucket',
-      '--key', 'report.json',
-      '--version-id', '3sL4kqtJ',
-      '--range', 'bytes=0-1023',
-      '--output', 'json',
-      '--no-cli-pager',
-    ]])
   })
 })
 
@@ -728,18 +682,6 @@ describe('応答の中身', () => {
     const structured = await callMinimal('aws_athena_get_query_execution')
 
     expect(structured).not.toHaveProperty('nextToken')
-  })
-
-  it('書き出し先を file に載せる', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-01')
-    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-01')
-    fakeAws.install()
-
-    const copied = await callMinimal('aws_s3_cp')
-    const fetched = await callMinimal('aws_s3api_get_object')
-
-    expect(copied['file']).toBe('/var/data/report.json')
-    expect(fetched['file']).toBe('/var/data/report.json')
   })
 
   it('JSON に宣言外の最上位のキーがあると、そのキーを落として warnings に名前を出す', async (context) => {
@@ -812,10 +754,7 @@ describe('失敗種別', () => {
   it('高レベル s3 コマンドの exit 1 も stderr から種別を決める', async () => {
     fakeAws.install({ fixture: 's3-cp-no-credentials' })
 
-    const result = await call('aws_s3_cp', {
-      s3_uri: 's3://example-bucket/report.json',
-      local_path: '/var/data/report.json',
-    })
+    const result = await call('aws_s3_ls', { s3_uri: 's3://example-bucket/' })
 
     expect(result.structured).toMatchObject({ kind: 'auth-missing' })
   })

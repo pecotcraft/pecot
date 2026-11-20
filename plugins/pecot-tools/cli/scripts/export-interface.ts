@@ -85,6 +85,7 @@ export function buildGenerated(tools: readonly Tool[]): GeneratedFile {
     deprecated: false,
     input: tool.inputSchema,
     mcp: {
+      ...(tool.title !== undefined && { title: tool.title }),
       ...(tool.outputSchema !== undefined && { output: tool.outputSchema }),
       ...(tool.annotations !== undefined && { annotations: tool.annotations }),
     },

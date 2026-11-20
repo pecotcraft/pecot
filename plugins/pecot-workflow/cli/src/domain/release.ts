@@ -1,7 +1,10 @@
 // リリース前チェック（preflight）。git は GitRunner を受けて呼ぶ。CHANGELOG は内容（文字列）を受ける。
 
 import { changelogFileName, changelogNotFoundMessage, extractVersionReleaseNotes, getLatestVersion, validateSemver, VersionNotFoundError } from './changelog.js'
+import { formatHinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { PecotError } from './errors.js'
+import { gitFailureText } from './git-output.js'
 import type { GitRunner } from './git-runner.js'
 import { pythonStrip } from './python-format.js'
 
@@ -68,8 +71,23 @@ function runGit(git: GitRunner, arguments_: readonly string[]): string {
   return pythonStrip(result.stdout)
 }
 
+/**
+git の失敗。CLI は標準エラーの全文、MCP は理由の行だけを文に入れ、全文は log に持つ
+*/
+export class GitFailedError extends ReleaseError {
+  readonly hintedText: HintedText
+  readonly log: string
+
+  constructor(arguments_: readonly string[], stderr: string) {
+    const text: HintedText = gitFailureText(`git command failed: git ${arguments_.join(' ')}\n`, pythonStrip(stderr))
+    super(formatHinted(text, 'cli'))
+    this.hintedText = text
+    this.log = stderr
+  }
+}
+
 function gitFailed(arguments_: readonly string[], stderr: string): ReleaseError {
-  return new ReleaseError(`git command failed: git ${arguments_.join(' ')}\n${pythonStrip(stderr)}`)
+  return new GitFailedError(arguments_, stderr)
 }
 
 function determineVersion(options: PreflightOptions, changelogContent: string): string {

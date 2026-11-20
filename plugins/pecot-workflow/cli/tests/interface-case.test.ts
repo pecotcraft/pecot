@@ -24,6 +24,7 @@ const STARTING_DIRECTORY = process.cwd()
 // 設定を読み、git のブランチを出し、3 秒待って Issue を 2 回作る見本
 const SAMPLE = defineCommand({
   path: ['sample'],
+  title: 'Test command',
   description: '準備の確認用',
   input: z.object({}),
   output: z.strictObject({}),

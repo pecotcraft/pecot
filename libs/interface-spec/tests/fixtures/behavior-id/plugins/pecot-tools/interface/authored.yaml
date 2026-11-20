@@ -27,7 +27,9 @@ entries:
       - An AWS profile with S3 access is configured.
     idempotent: true
     examples:
-      - run: aws_s3_cp source=s3://bucket/a destination=./a
+      - arguments:
+          source: s3://bucket/a
+          destination: ./a
         note: Download one object.
     default_notes: {}
     behaviors:
@@ -57,7 +59,8 @@ entries:
       - An AWS profile with S3 access is configured.
     idempotent: true
     examples:
-      - run: aws_s3_ls path=s3://bucket/
+      - arguments:
+          path: s3://bucket/
         note: List a bucket.
     default_notes: {}
     behaviors:

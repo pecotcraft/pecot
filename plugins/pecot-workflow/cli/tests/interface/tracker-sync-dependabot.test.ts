@@ -1,4 +1,4 @@
-// tracker sync dependabot の振る舞い（PW-TRACKER-SYNC-01〜46）を、runCli をプロセス内で呼んで確かめる。GitHub は偽サーバにする。
+// tracker sync dependabot の振る舞い（PW-TRACKER-SYNC-01〜46）を、runCli と MCP のツールをプロセス内で呼んで確かめる。GitHub は偽サーバにする。
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TRACKER_COMMANDS } from '../../src/commands/tracker.js'
@@ -23,6 +23,7 @@ import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -44,8 +45,8 @@ interface Run {
   readonly github: RunningGithub
 }
 
-async function sync(rules: readonly ResponseRule[], argv: readonly string[] = [], setup?: Readonly<SyncSetup>): Promise<Run> {
-  prepareSync(setup)
+async function sync(rules: readonly ResponseRule[], argv: readonly string[] = []): Promise<Run> {
+  prepareSync()
   const github = await startGithub(rules)
   const result = await runInProcess(['tracker', 'sync', 'dependabot', ...argv], TRACKER_COMMANDS)
   return { result, github }
@@ -324,33 +325,34 @@ describe('tracker sync', () => {
     expect(stderrAfterCounts(result)).toBe('dry-run: would remove PR #1 from Tracker #9\ndry-run: would close Tracker #9\n')
   })
 
-  it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と --project の案内を出して終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と project の案内を detail に入れて失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-33')
-    const { result, github } = await sync([], [], { ambiguous: true })
-    expect(result.code).toBe(FAILURE_CODE)
-    expect(result.stderr).toContain('error: acme/demo is in 2 project configs\n')
-    expect(result.stderr).toContain('--project <NAME>')
+    const { outcome, github } = await syncToolRun([], {}, { ambiguous: true })
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured['detail']).toContain('acme/demo is in 2 project configs')
+    expect(outcome.structured['detail']).toContain('choose one with project: <NAME>')
     expect(github.requests()).toEqual([])
   })
 
-  it('対象のリポを含む設定が無いと、repo-not-in-project の行を出して終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が無いと、repo-not-in-project の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-95')
-    const { result, github } = await sync([], [], { repositories: ['other'] })
-    expect(result.code).toBe(FAILURE_CODE)
-    expect(result.stderr).toContain('error: acme/demo is not in any project config\n')
+    const { outcome, github } = await syncToolRun([], {}, { repositories: ['other'] })
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured).toMatchObject({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme' })
     expect(github.requests()).toEqual([])
   })
 
-  it('--project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
+  it('project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-96')
-    const { result } = await sync(listings([], []), ['--dry-run', '--project', 'second'], { ambiguous: true })
-    expect(result.code).toBe(0)
+    const { outcome } = await syncToolRun(listings([], []), { dry_run: true, project: 'second' }, { ambiguous: true })
+    expect(outcome.isError).toBe(false)
   })
 
-  it('--repo を省いて git の remote のリポジトリを読めないと、終了コード 1 で終わる', async (context) => {
+  it('repo を省いて git の remote のリポジトリを読めないと、git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-34')
-    const { result, github } = await sync([], [], { hasRemote: false })
-    expect(result).toEqual({ code: FAILURE_CODE, stdout: '', stderr: 'error: could not read the repository from the git remote\n' })
+    const { outcome, github } = await syncToolRun([], {}, { hasRemote: false })
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured).toMatchObject({ kind: 'git-unresolved', detail: 'could not read the repository from the git remote' })
     expect(github.requests()).toEqual([])
   })
 
@@ -369,10 +371,16 @@ describe('tracker sync', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('GitHub のトークンが見つからないと、終了コード 1 で終わる', async (context) => {
+  it('GitHub のトークンが見つからないと、理由を detail に入れて github-auth の失敗を返す', async (context) => {
+    await verifies(context, 'PW-TRACKER-SYNC-35')
     await verifies(context, 'PW-TRACKER-SYNC-36')
-    const { result, github } = await syncWithoutToken()
-    expect(result.code).toBe(FAILURE_CODE)
+    const project = prepareSync()
+    setEnvironment({ [project.tokenVariable]: undefined })
+    const github = await startGithub([])
+    const outcome = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', dry_run: true })
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured).toMatchObject({ kind: 'github-auth' })
+    expect(outcome.structured['detail']).toContain('authentication error: could not get a GitHub API token')
     expect(github.requests()).toEqual([])
   })
 
@@ -391,11 +399,11 @@ describe('tracker sync', () => {
   it.for([
     { name: 'PR の一覧', rules: [failedRule({ operation: 'ListOpenPullRequests' })] },
     { name: 'Issue の一覧', rules: [pullRequestList([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })] },
-  ])('$name を取れないと、終了コード 1 で終わる', async (row, context) => {
+  ])('$name を取れないと、失敗を返す', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-38')
-    const { result } = await sync(row.rules)
-    expect(result.code).toBe(FAILURE_CODE)
-    expect(result.stdout).toBe('')
+    const { outcome } = await syncToolRun(row.rules)
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured['detail']).toMatch(/^could not list pull requests or issues: /u)
   })
 
   async function syncWithBrokenMarkers(): Promise<Run> {
@@ -410,10 +418,11 @@ describe('tracker sync', () => {
     expect(labelsOf(github)).toEqual(READS)
   })
 
-  it('使う Tracker の本文に list-begin と list-end の印が 1 組だけ無いと、終了コード 1 で終わる', async (context) => {
+  it('使う Tracker の本文に list-begin と list-end の印が 1 組だけ無いと、content-invalid の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-40')
-    const { result } = await syncWithBrokenMarkers()
-    expect(result.code).toBe(FAILURE_CODE)
+    const { outcome } = await syncToolRun(listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, '<!-- pecot-dependabot-pr: tracker -->')]))
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured).toMatchObject({ kind: 'content-invalid' })
   })
 
   async function syncWithFailedRewrite(): Promise<Run> {
@@ -427,11 +436,11 @@ describe('tracker sync', () => {
     expect(labelsOf(github).filter(label => label.startsWith('PATCH'))).toEqual(['PATCH /repos/acme/demo/issues/9'])
   })
 
-  it('Tracker の本文の書き直しに失敗すると、終了コード 1 で終わる', async (context) => {
+  it('Tracker の本文の書き直しに失敗すると、partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-42')
-    const { result } = await syncWithFailedRewrite()
-    expect(result.code).toBe(FAILURE_CODE)
-    expect(result.stderr).not.toContain('removed:')
+    const { outcome } = await syncToolRun([...listings([], withOthers(TRACKER_WITH_OLD_ROW)), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9' }, 422)])
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured).toMatchObject({ kind: 'partial-failure', detail: 'could not update Tracker #9 body: GitHub API error: 422', closed: false })
   })
 
   async function syncWithFailedClose(): Promise<Run> {
@@ -439,16 +448,10 @@ describe('tracker sync', () => {
     return await sync(rules)
   }
 
-  it('表を none に書き直した後で Tracker を閉じられないと、次の実行でやり直す旨の error の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-TRACKER-SYNC-43')
-    const { result } = await syncWithFailedClose()
-    expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}removed: PR #1 from Tracker #9\nerror: could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500\n`)
-  })
-
-  it('表を none に書き直した後で Tracker を閉じられないと、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-TRACKER-SYNC-44')
+  it('CLI で、表を none に書き直した後で Tracker を閉じられないと、次の実行でやり直す旨の error の行を出して終了コード 1 で終わる', async () => {
     const { result } = await syncWithFailedClose()
     expect(result.code).toBe(FAILURE_CODE)
+    expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}removed: PR #1 from Tracker #9\nerror: could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500\n`)
   })
 
   async function syncWithFailedBoard(): Promise<Run> {
@@ -457,22 +460,38 @@ describe('tracker sync', () => {
     return await sync(rules)
   }
 
-  it('Tracker の作成かボードへの追加に失敗すると、Tracker の error の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-TRACKER-SYNC-45')
+  it('CLI で、Tracker の作成かボードへの追加に失敗すると、Tracker の error の行を標準エラーに出す', async () => {
     const created = await syncWithFailedBoard()
     expect(stderrAfterCounts(created.result)).toBe(`created: Tracker "${TODAY_TITLE}"\nadded: PR #2 to new Tracker (major)\nerror: Tracker: ${graphqlServerError(created.github.url)}\n`)
     const creation = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'POST', path: '/repos/acme/demo/issues' })])
     expect(stderrAfterCounts(creation.result)).toBe('error: Tracker: GitHub API error: 500\n')
   })
 
-  it('Tracker の作成かボードへの追加に失敗すると、終了コード 1 で終わる', async (context) => {
+  it('Tracker の作成かボードへの追加に失敗すると、Tracker の失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
+    await verifies(context, 'PW-TRACKER-SYNC-45')
     await verifies(context, 'PW-TRACKER-SYNC-46')
-    const { result } = await syncWithFailedBoard()
-    expect(result.code).toBe(FAILURE_CODE)
+    const [nodeId] = boardRules(100, { priority: 'medium', onlyIfEmpty: false })
+    const board = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })])
+    expect(board.outcome.isError).toBe(true)
+    expect(board.outcome.structured).toMatchObject({ kind: 'partial-failure', detail: `Tracker: ${graphqlServerError(board.github.url)}` })
+    const creation = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'POST', path: '/repos/acme/demo/issues' })])
+    expect(creation.outcome.structured).toMatchObject({ kind: 'partial-failure', detail: 'Tracker: GitHub API error: 500' })
   })
 
-  it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async (context) => {
+  it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの失敗と ID を読み直す案内を 1 回だけ detail に入れて partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-93')
+    const added = boardRules(100, { priority: 'medium', onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
+    const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate(2)])
+    expect(outcome.isError).toBe(true)
+    expect(outcome.structured).toMatchObject({ kind: 'partial-failure' })
+    expect(outcome.structured['detail']).toBe([
+      `could not set status backlog of Tracker #100: ${STALE_OPTION_TEXT}`,
+      '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
+      `could not set priority medium of Tracker #100: ${STALE_OPTION_TEXT}`,
+    ].join('\n'))
+  })
+
+  it('CLI で、選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出す', async () => {
     const added = boardRules(100, { priority: 'medium', onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
     const { result } = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate(2)])
     expect(result.code).toBe(FAILURE_CODE)
@@ -486,9 +505,7 @@ describe('tracker sync', () => {
     ].join('\n'))
   })
 
-  it('open の Tracker のボード登録に失敗すると、error の行を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-TRACKER-SYNC-45')
-    await verifies(context, 'PW-TRACKER-SYNC-46')
+  it('CLI で、open の Tracker のボード登録に失敗すると、error の行を出して終了コード 1 で終わる', async () => {
     const [nodeId] = boardRules(9, { priority: 'medium', onlyIfEmpty: true })
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })]
     const { result, github } = await sync(rules)
@@ -510,24 +527,52 @@ describe('tracker sync', () => {
       expect(data).toEqual({ source: 'dependabot', tracker: 100, created: true, added: [PR_2], removed: [], closed: false })
     })
 
-    it('表の行を足し外すと、足した PR と外した PR を返す', async () => {
+    it('open の Tracker も判断を待つ PR も無いと、tracker を入れずに created を false にして成功を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-06')
+      const { outcome } = await syncToolRun(listings([pullRequest({ number: 3, name: 'lodash' })]))
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ source: 'dependabot', created: false, added: [], removed: [], closed: false })
+    })
+
+    it('行の足し外しが無く本文だけが変わると、added と removed を空にして成功を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-19')
+      const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [], closed: false })
+    })
+
+    it('書き直した本文が今の本文と同じだと、added と removed を空にして成功を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-21')
+      const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [], closed: false })
+    })
+
+    it('表の行を足し外すと、足した PR を added に、外した PR を removed に入れる', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-16')
+      await verifies(context, 'PW-TRACKER-SYNC-17')
       const existing = trackerBody([[1, 'Bump old', 'failed']])
       const data = await syncTool([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
       expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [PR_2], removed: [{ kind: 'pull-request', number: 1 }], closed: false })
     })
 
-    it('表が none になって Tracker を閉じると、closed を true にして返す', async () => {
+    it('表が none になって Tracker を閉じると、closed を true にし、open の Tracker が複数あれば warnings に 1 つ入れる', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-24')
+      await verifies(context, 'PW-TRACKER-SYNC-30')
       const data = await syncTool([...listings([], CLOSING_ISSUES), ...CLOSING])
       expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [{ kind: 'pull-request', number: 1 }], closed: true, warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'] })
     })
 
-    it('dry_run で呼ぶと、作る予定の Tracker に足す PR と dryRun を返す', async () => {
+    it('dry_run で呼ぶと、作る予定の Tracker に足す PR と dryRun を返す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-32')
       const data = await syncTool(listings([pullRequest({ number: 2, ...MAJOR })]), { dry_run: true })
       expect(data).toEqual({ source: 'dependabot', created: true, added: [PR_2], removed: [], closed: false, dryRun: true })
     })
 
     it('表を書き直した後で Tracker を閉じられないと、外した PR を data に残し、closed を false にして失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
+      await verifies(context, 'PW-TRACKER-SYNC-43')
+      await verifies(context, 'PW-TRACKER-SYNC-44')
       const rules = [...listings([], withOthers(TRACKER_WITH_OLD_ROW)), patched(9, { body: trackerBody([]) }), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9', body: { state: 'closed' } })]
       const data = await syncTool(rules)
       expect(data).toEqual({
@@ -545,10 +590,20 @@ describe('tracker sync', () => {
   })
 })
 
-// tracker_sync を source: dependabot で、同じプロセスの中のクライアントから 1 回呼び、structuredContent を返す
+interface ToolRun {
+  readonly outcome: ToolOutcome
+  readonly github: RunningGithub
+}
+
+// tracker_sync を source: dependabot で、同じプロセスの中のクライアントから 1 回呼ぶ
+async function syncToolRun(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}, setup?: Readonly<SyncSetup>): Promise<ToolRun> {
+  prepareSync(setup)
+  const github = await startGithub(rules)
+  const outcome = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', ...arguments_ })
+  return { outcome, github }
+}
+
 async function syncTool(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}): Promise<Readonly<Record<string, unknown>>> {
-  prepareSync()
-  await startGithub(rules)
-  const { structured } = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', ...arguments_ })
-  return structured
+  const { outcome } = await syncToolRun(rules, arguments_)
+  return outcome.structured
 }

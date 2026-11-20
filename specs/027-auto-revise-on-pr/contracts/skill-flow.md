@@ -7,16 +7,17 @@ w-review を起こすのは、自動レビューのワークフローだけだ�
 
 | スキル | 起点 | 行うこと |
 |---|---|---|
-| w-review | ワークフローの `/pecot-w:w-review <PR>` | Step 1 PR の情報 → Step 2 前の指摘が直ったか（2 巡目以降） → Step 3 main のレビュー → Step 4 指摘の投稿。投稿したら終わる |
+| w-review | ワークフローの `/pecot-w:w-review <PR>`。変数 `PECOT_REVIEW_PROJECT` があれば `project=<名前>` が続き、w-review はその名前を pecot の MCP ツールの `project` に渡す | Step 1 PR の情報 → Step 2 前の指摘が直ったか（2 巡目以降） → Step 3 main のレビュー → Step 4 指摘の投稿。投稿したら終わる |
 | w-pr | 開発者の PC の `/pecot-w:w-pr` | PR の作成 → CI の待ち → Step 5 レビューの指摘への対応（採否の確認・修正・CUJ の再実行・resolve・`review-resolution`） |
 
 PR を出した開発者は、CI と自動レビューを待つ間も手を止めない。レビューのコメントが付いたら考える工程は、PR を出して CI を待つ w-pr の側にある。
 
 ## w-review
 
-- Step 1 は、PR の本文・diff・既存のレビューと、紐づいた Issue を読む。載せ直しはしない。レビューは PR を変えない
-- Step 2 は、main が diff を自分でレビューする。サブエージェントは起こさない。視点は `references/review-viewpoints.md` が持つ。印は `[tech]`・`[cuj]` の 2 つ
-- Step 3 は、採番・投稿先の振り分け・インラインコメント・`review-findings` を投稿する。インラインコメントは、action に同梱の MCP ツール `create_inline_comment` で投稿する。ファイル単位の指摘は General 節に回す
+- Step 1 は、PR の本文・diff・既存のレビューと、PR が閉じる Issue（`closing_issues`）を読む。Issue はコメントを 20 件まで読み、計画のコメントを探す（#657）。載せ直しはしない。レビューは PR を変えない
+- Step 2 は、2 巡目以降に、前の指摘が直ったかを見る
+- Step 3 は、main が diff を自分でレビューする。サブエージェントは起こさない。視点は `references/review-viewpoints.md` が持つ。印は `[tech]`・`[cuj]` の 2 つ。計画を読めたときは、計画と照らした違いも `[tech]` で指摘する
+- Step 4 は、採番・投稿先の振り分け・インラインコメント・`review-findings` を投稿する。インラインコメントは、action に同梱の MCP ツール `create_inline_comment` で投稿する。ファイル単位の指摘は General 節に回す
 - 投稿したら終わる。採否を聞かず、コードを直さず、resolve と `review-resolution` の投稿をしない
 
 人のいない実行で終わりを PR に知らせるのは、ワークフローの後始末の step（`review finish --ensure`）だ。w-review は `review_finish` を呼ばない。

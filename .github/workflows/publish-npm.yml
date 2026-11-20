@@ -248,7 +248,7 @@ jobs:
       # out-dir はリポの外に置く決まりで、ホストから見えない。tgz だけを共有のディレクトリへ書く。
       # npm はリポの中だと devEngines で止まるので、out-dir に移ってから pack する。
       # --dry-run の attach-mcp-tgz.sh は gh の案を表示するだけだ。Release への添付と dispatch は行わない。
-      # visual の配布は監査記録を要る。--dev は version plan を見ずに監査する。
+      # visual の配布は監査記録を要る。--dev は version plan を見ずに監査し、high 以上は警告にとどめる。
       - name: Build dev package
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:

@@ -6,7 +6,7 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { ambiguousMessage, configLookupFailure, findConfigFor, listProjectConfigNames, loadActiveConfig, loadNamedConfig, unknownProjectMessage } from '../infra/config-store.js'
 import type { FoundConfig } from '../infra/config-store.js'
 import { CommandExit } from './command-definition.js'
-import { commandHint, hinted, placeholder } from './command-hint.js'
+import { commandHint, hinted, placeholder, RUN_COLON } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { FailureKind } from './failure-kind.js'
 import type { Output } from './output.js'
@@ -14,7 +14,7 @@ import type { Output } from './output.js'
 /**
 アクティブなプロジェクトが無いときの案内
 */
-export const NO_ACTIVE_PROJECT: HintedText = hinted`no active project\nrun: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`
+export const NO_ACTIVE_PROJECT: HintedText = hinted`no active project\n${RUN_COLON}${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`
 
 /**
 error の行を出して、原因の名前と指定の終了コード（既定は 1）で止める

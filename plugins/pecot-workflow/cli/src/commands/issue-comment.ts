@@ -187,6 +187,7 @@ const COMMENT_PATH = ['issue', 'comment']
 
 const ISSUE_COMMENT = defineCommand({
   path: COMMENT_PATH,
+  title: 'Comment on Issue',
   description: 'Post a comment on an Issue',
   input: z.object({
     file: z.string().optional().describe('Path of a Markdown file with frontmatter'),

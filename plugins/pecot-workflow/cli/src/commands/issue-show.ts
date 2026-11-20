@@ -240,6 +240,7 @@ async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, c
 
 const ISSUE_SHOW = defineCommand({
   path: ['issue', 'show'],
+  title: 'Get Issue details',
   description: 'Fetch Issue details efficiently (GraphQL, only the needed fields)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),

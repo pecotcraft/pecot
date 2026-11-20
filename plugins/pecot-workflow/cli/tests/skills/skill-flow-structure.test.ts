@@ -184,6 +184,15 @@ describe('w-review の手順', () => {
     for (const word of ['AskUserQuestion', 'resolveReviewThread', 'review-resolution', 'w-implementer']) expect(text).not.toContain(word)
   })
 
+  it('Step 1 の前に、引数の project を pecot-workflow の MCP ツールへ渡す文がある', () => {
+    const lines = text.split('\n')
+    const start = lines.indexOf('## 手順')
+    const preamble = lines.slice(start, headings[0]?.line).join('\n')
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
+    expect(preamble).toContain('渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。')
+  })
+
   it('Step 1 は、載せ直しを行わない', () => {
     expect(sectionBody(text, numberIndex(headings, 1))).not.toContain('pr_restack')
   })
@@ -192,6 +201,19 @@ describe('w-review の手順', () => {
     expect(sectionBody(text, numberIndex(headings, 2))).toContain('F-NN ごとに、直ったか・直っていないかを決める')
     expect(sectionBody(text, numberIndex(headings, 4))).toContain('番号は PR の中の通し番号にし、振り直さない。')
     expect(text).not.toMatch(/R\d+\/F-/u)
+  })
+
+  it('Step 1 は、PR が閉じる Issue をコメント 20 件まで読み、計画が無ければ照らす手順を飛ばす', () => {
+    const body = sectionBody(text, numberIndex(headings, 1))
+    for (const phrase of ['`closing_issues`', '`comment_limit: 20`', '`## Plan` と `## PECOT-Workflow`', '計画と照らす手順を飛ばしてレビューを続ける']) expect(body).toContain(phrase)
+  })
+
+  it('視点の参照は、[tech] の節の下に計画と照らす節を持つ', () => {
+    const viewpoints = readPluginFile('skills/w-review/references/review-viewpoints.md')
+    const tech = viewpoints.indexOf('## [tech] ')
+    expect(tech).toBeGreaterThanOrEqual(0)
+    expect(viewpoints.indexOf('### 計画と照らす', tech)).toBeGreaterThan(tech)
+    expect(sectionBody(text, numberIndex(headings, 3))).toContain('「計画と照らす」')
   })
 
   it('Step 3 は、main が視点の参照に従ってレビューし、サブエージェントを起こさない', () => {

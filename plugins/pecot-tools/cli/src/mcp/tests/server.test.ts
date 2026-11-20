@@ -17,7 +17,7 @@ text ブロック 1 件だけを返す最小のツール定義。
 function echoTool(name: string, text: string): ToolDefinition {
   return {
     name,
-    config: { description: `${name} テスト用`, inputSchema: z.object({}) },
+    config: { title: 'Test tool', description: `${name} テスト用`, inputSchema: z.object({}) },
     handler: () => Promise.resolve({ content: [{ type: 'text', text }] }),
   }
 }
@@ -116,7 +116,7 @@ describe('createMcpServer', () => {
     let received: ToolCallContext | undefined
     const probe: ToolDefinition = {
       name: 'probe',
-      config: { description: '呼び出し文脈の受け渡しの検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '呼び出し文脈の受け渡しの検証', inputSchema: z.object({}) },
       handler: (_arguments, call) => {
         received = call
         return Promise.resolve({ content: [] })
@@ -138,7 +138,7 @@ describe('createMcpServer', () => {
     const started: PromiseWithResolvers<AbortSignal> = Promise.withResolvers()
     const hanging: ToolDefinition = {
       name: 'hanging',
-      config: { description: 'キャンセル伝播の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'キャンセル伝播の検証', inputSchema: z.object({}) },
       handler: async (_arguments, call) => {
         started.resolve(call.signal)
         await new Promise<void>((resolve) => {
@@ -177,7 +177,7 @@ describe('createMcpServer', () => {
     let peak = 0
     const slow: ToolDefinition = {
       name: 'slow',
-      config: { description: '並行上限の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '並行上限の検証', inputSchema: z.object({}) },
       handler: async () => {
         const gate: PromiseWithResolvers<void> = Promise.withResolvers()
         gates.push(gate)
@@ -217,7 +217,7 @@ describe('createMcpServer', () => {
   it('toCallToolResult の変換結果が client.callTool まで往復する', async () => {
     const failing: ToolDefinition = {
       name: 'failing',
-      config: { description: 'ExecutionResult 変換の往復検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'ExecutionResult 変換の往復検証', inputSchema: z.object({}) },
       handler: () => Promise.resolve(toCallToolResult({
         ok: false,
         kind: 'permission-denied',
@@ -252,7 +252,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const gated: ToolDefinition = {
       name: 'gated',
-      config: { description: 'progress 通知の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'progress 通知の検証', inputSchema: z.object({}) },
       handler: async () => {
         await gate.promise
         return { content: [] }
@@ -285,7 +285,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const hanging: ToolDefinition = {
       name: 'hanging',
-      config: { description: 'キャンセル後の progress 停止の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'キャンセル後の progress 停止の検証', inputSchema: z.object({}) },
       handler: async () => {
         await gate.promise
         return { content: [] }
@@ -319,7 +319,7 @@ describe('createMcpServer の progress ハートビート', () => {
   it('progressToken の無い呼び出しには通知を送らない', async () => {
     const probe: ToolDefinition = {
       name: 'probe',
-      config: { description: 'progressToken 不在時の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'progressToken 不在時の検証', inputSchema: z.object({}) },
       handler: () => Promise.resolve({ content: [] }),
     }
 
@@ -344,6 +344,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const cancelled: ToolDefinition = {
       name: 'cancelled',
       config: {
+        title: 'Test tool',
         description: '呼び出し前のキャンセルの検証',
         inputSchema: z.object({}).refine(async () => {
           validating.resolve()

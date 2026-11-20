@@ -20,7 +20,7 @@ export function sqsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
   return [
     allowlistedTool({
       entry: SQS_LIST_QUEUES,
-      title: 'List queues',
+      title: 'List SQS queues',
       description: 'Lists SQS queue URLs. Narrow by name prefix with queue_name_prefix',
       inputSchema: z.object({
         queue_name_prefix: z.string().optional().describe('Queue name prefix'),
@@ -33,7 +33,7 @@ export function sqsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     }, options),
     allowlistedTool({
       entry: SQS_GET_QUEUE_ATTRIBUTES,
-      title: 'Get queue attributes',
+      title: 'Get SQS queue attributes',
       description: 'Returns the attributes of one queue (backlog counts, visibility timeout, dead-letter queue settings, etc.)',
       inputSchema: z.object({
         queue_url: z.string().describe('Queue URL (starts with https://)'),

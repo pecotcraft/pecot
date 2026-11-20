@@ -51,7 +51,7 @@ text ブロック 1 件だけを返す最小のツール定義。
 function echoTool(name: string): ToolDefinition {
   return {
     name,
-    config: { description: `${name} テスト用`, inputSchema: z.object({}) },
+    config: { title: 'Test tool', description: `${name} テスト用`, inputSchema: z.object({}) },
     handler: () => Promise.resolve({ content: [{ type: 'text', text: 'ok' }] }),
   }
 }
@@ -150,7 +150,7 @@ describe('createMcpServer', () => {
     let received: ToolCallContext | undefined
     const probe: ToolDefinition = {
       name: 'probe',
-      config: { description: '呼び出し文脈の受け渡しの検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '呼び出し文脈の受け渡しの検証', inputSchema: z.object({}) },
       handler: (_arguments, call) => {
         received = call
         return Promise.resolve({ content: [] })
@@ -173,7 +173,7 @@ describe('createMcpServer', () => {
       const started: PromiseWithResolvers<AbortSignal> = Promise.withResolvers()
       const hanging: ToolDefinition = {
         name: 'hanging',
-        config: { description: 'キャンセル伝播の検証', inputSchema: z.object({}) },
+        config: { title: 'Test tool', description: 'キャンセル伝播の検証', inputSchema: z.object({}) },
         handler: async (_arguments, call) => {
           started.resolve(call.signal)
           await new Promise<void>((resolve) => {
@@ -210,7 +210,7 @@ describe('createMcpServer', () => {
       const started: PromiseWithResolvers<void> = Promise.withResolvers()
       const hanging: ToolDefinition = {
         name: 'hanging',
-        config: { description: 'キュー占有側', inputSchema: z.object({}) },
+        config: { title: 'Test tool', description: 'キュー占有側', inputSchema: z.object({}) },
         handler: async (_arguments, call) => {
           started.resolve()
           await new Promise<void>((resolve) => {
@@ -251,7 +251,7 @@ describe('createMcpServer', () => {
     const events: string[] = []
     const slow: ToolDefinition = {
       name: 'slow',
-      config: { description: '直列性の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '直列性の検証', inputSchema: z.object({}) },
       handler: async () => {
         events.push('start')
         running += 1
@@ -287,7 +287,7 @@ describe('createMcpServer', () => {
     await verifies(context, 'PV-COMMON-06')
     const failing: ToolDefinition = {
       name: 'failing',
-      config: { description: 'ToolResult 変換の往復検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'ToolResult 変換の往復検証', inputSchema: z.object({}) },
       handler: () => Promise.resolve(toCallToolResult({
         ok: false,
         kind: 'export-failed',
@@ -338,7 +338,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const gated: ToolDefinition = {
       name: 'gated',
-      config: { description: 'progress 通知の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'progress 通知の検証', inputSchema: z.object({}) },
       handler: async () => {
         await gate.promise
         return { content: [] }
@@ -376,7 +376,7 @@ describe('createMcpServer の progress ハートビート', () => {
     // 時点で占有を解くため、「デキュー前に 2 発以上」が実時間に依存せず決まる。
     const occupier: ToolDefinition = {
       name: 'occupier',
-      config: { description: 'キュー占有側', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'キュー占有側', inputSchema: z.object({}) },
       handler: async () => {
         await occupied.promise
         return { content: [] }
@@ -385,7 +385,7 @@ describe('createMcpServer の progress ハートビート', () => {
     // 万一 2 件の到着順が入れ替わっても占有が解けるようにしておく (ハングではなく assert で落とす)。
     const waiter: ToolDefinition = {
       name: 'waiter',
-      config: { description: 'キュー待機側', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'キュー待機側', inputSchema: z.object({}) },
       handler: () => {
         occupied.resolve()
         return Promise.resolve({ content: [] })
@@ -416,7 +416,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const gated: ToolDefinition = {
       name: 'gated',
-      config: { description: '既定の周期の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '既定の周期の検証', inputSchema: z.object({}) },
       handler: async () => {
         await gate.promise
         return { content: [] }
@@ -458,7 +458,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const reporter: ToolDefinition = {
       name: 'gated',
-      config: { description: 'reportProgress の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'reportProgress の検証', inputSchema: z.object({}) },
       handler: async (_arguments, _call, context) => {
         context?.reportProgress('変換 3/10 (30%)')
         await gate.promise
@@ -492,7 +492,7 @@ describe('createMcpServer の progress ハートビート', () => {
     let late: ((message: string) => void) | undefined
     const probe: ToolDefinition = {
       name: 'probe',
-      config: { description: '完了後の報告の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: '完了後の報告の検証', inputSchema: z.object({}) },
       handler: (_arguments, _call, context) => {
         late = context?.reportProgress
         return Promise.resolve({ content: [] })
@@ -532,7 +532,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const finished: PromiseWithResolvers<void> = Promise.withResolvers()
     const hanging: ToolDefinition = {
       name: 'hanging',
-      config: { description: 'キャンセル後の通知の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'キャンセル後の通知の検証', inputSchema: z.object({}) },
       handler: async (_arguments, call, context) => {
         started.resolve()
         await new Promise<void>((resolve) => {
@@ -581,7 +581,7 @@ describe('createMcpServer の progress ハートビート', () => {
     const errors: Error[] = []
     const probe: ToolDefinition = {
       name: 'probe',
-      config: { description: 'progressToken 不在時の検証', inputSchema: z.object({}) },
+      config: { title: 'Test tool', description: 'progressToken 不在時の検証', inputSchema: z.object({}) },
       handler: (_arguments, _call, context) => {
         // token が無ければ報告しても何も送らない。
         context?.reportProgress('送られない報告')

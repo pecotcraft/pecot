@@ -61,6 +61,7 @@
         "properties": {}
       },
       "mcp": {
+        "title": "Sample two",
         "output": {
           "type": "object",
           "properties": {

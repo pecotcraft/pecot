@@ -66,8 +66,7 @@ const HEAD = '## #7 見本の Issue\n\n**State:** OPEN\n\n'
 const BODY = '---\n\n本文の 1 行目\n'
 
 describe('issue show', () => {
-  it('Issue の参照を渡すと、見出し・状態・本文を Markdown で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-01')
+  it('Issue の参照を渡すと、見出し・状態・本文を Markdown で標準出力に出す', async () => {
     setUpProject()
     const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
 
@@ -80,8 +79,7 @@ describe('issue show', () => {
   it.for([
     { name: '同じリポジトリの親', parent: { number: 3, title: '親の Epic', state: 'OPEN', repository: { name: 'demo', owner: { login: 'acme' } } }, line: '**Parent:** #3 親の Epic (OPEN)' },
     { name: '別のリポジトリの親', parent: { number: 3, title: '親の Epic', state: 'CLOSED', repository: { name: 'other', owner: { login: 'acme' } } }, line: '**Parent:** acme/other#3 親の Epic (CLOSED)' },
-  ])('$name がある Issue を読むと、親 Issue を出す', async ({ parent, line }, context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-02')
+  ])('$name がある Issue を読むと、親 Issue を出す', async ({ parent, line }) => {
     setUpProject()
     await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent })])
 
@@ -90,8 +88,7 @@ describe('issue show', () => {
     expect(result.stdout).toBe(`${HEAD}${line}\n\n${BODY}`)
   })
 
-  it('リンクされたブランチがある Issue を読むと、そのブランチを出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-03')
+  it('リンクされたブランチがある Issue を読むと、そのブランチを出す', async () => {
     setUpProject()
     await startGithub([prerequisitesRule({ number: 7 }), issueRule({ branches: ['feat/7', 'fix/7'] })])
 
@@ -100,8 +97,7 @@ describe('issue show', () => {
     expect(result.stdout).toBe(`${HEAD}**Branches:**\n  - \`feat/7\`\n  - \`fix/7\`\n\n${BODY}`)
   })
 
-  it('リンクされた PR がある Issue を読むと、重複を除いた PR を出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-04')
+  it('リンクされた PR がある Issue を読むと、重複を除いた PR を出す', async () => {
     setUpProject()
     const timeline = [
       { subject: { number: 11, title: '機能の追加', state: 'MERGED' } },
@@ -115,8 +111,7 @@ describe('issue show', () => {
     expect(result.stdout).toBe(`${HEAD}**Linked PRs:**\n  - #11 機能の追加 (MERGED)\n  - #12 不具合の修正 (OPEN)\n\n${BODY}`)
   })
 
-  it('sub-issue がある Issue を読むと、sub-issue を出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-05')
+  it('sub-issue がある Issue を読むと、sub-issue を出す', async () => {
     setUpProject()
     await startGithub([prerequisitesRule({ number: 7 }), issueRule({ subIssues: [{ number: 8, state: 'OPEN', title: '子の Issue' }, { number: 9, state: 'CLOSED', title: '終えた子' }] })])
 
@@ -125,8 +120,7 @@ describe('issue show', () => {
     expect(result.stdout).toBe(`${HEAD}**Sub-issues:**\n  - #8 子の Issue (OPEN)\n  - #9 終えた子 (CLOSED)\n\n${BODY}`)
   })
 
-  it('コメントがある Issue を読むと、--comment-limit 件までのコメントを件数と一緒に出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-06')
+  it('コメントがある Issue を読むと、--comment-limit 件までのコメントを件数と一緒に出す', async () => {
     setUpProject()
     const comments = {
       totalCount: 3,
@@ -148,8 +142,7 @@ describe('issue show', () => {
     expect(slimRequests(github)).toMatchObject([{ variables: { commentLimit: 2 } }])
   })
 
-  it('--comment-limit 0 を渡すと、コメントを出さない', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-07')
+  it('--comment-limit 0 を渡すと、コメントを出さない', async () => {
     setUpProject()
     const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule({ comments: { totalCount: 4, nodes: [] } })])
 
@@ -159,8 +152,7 @@ describe('issue show', () => {
     expect(slimRequests(github)).toMatchObject([{ variables: { commentLimit: 0 } }])
   })
 
-  it('--json を渡すと、同じ内容を JSON で標準出力に出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-08')
+  it('--json を渡すと、同じ内容を JSON で標準出力に出す', async () => {
     setUpProject()
     await startGithub([prerequisitesRule({ number: 7 }), issueRule({
       comments: { totalCount: 1, nodes: [{ author: { login: 'reviewer' }, createdAt: '2026-01-02T03:04:05Z', body: 'コメントの本文' }] },
@@ -189,8 +181,7 @@ describe('issue show', () => {
     }, undefined, 2)}\n`)
   })
 
-  it('短い形 N の参照を --repo で補って読む', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-09')
+  it('短い形 N の参照を --repo で補って読む', async () => {
     setUpProject()
     const github = await startGithub([issueRule({ number: 5 }), prerequisitesRule({ number: 5 })])
 
@@ -200,8 +191,7 @@ describe('issue show', () => {
     expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
   })
 
-  it('短い形 N の参照を --repo なしで渡すと、git の remote で補って読む', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-09')
+  it('短い形 N の参照を --repo なしで渡すと、git の remote で補って読む', async () => {
     setUpProject()
     const repository = enterGitRepository()
     gitForTest(repository, ['remote', 'add', 'origin', 'https://ghes.example.com/acme/demo.git'])
@@ -232,8 +222,7 @@ describe('issue show', () => {
   it.for([
     { name: '参照が owner/repo/N の形でない', reference: 'invalid-format' },
     { name: '参照が # で始まる', reference: '#5' },
-  ])('Issue の参照の形が誤っている（$name）とき、API を呼ばずに終了コード 2 で終わる', async ({ reference }, context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-10')
+  ])('Issue の参照の形が誤っている（$name）とき、API を呼ばずに終了コード 2 で終わる', async ({ reference }) => {
     setUpProject()
     const github = await startGithub([])
 
@@ -252,8 +241,7 @@ describe('issue show', () => {
     { name: '下限を下回る -1', limit: '-1', message: '-1 is not in the range 0<=x<=20.' },
     { name: '整数でない -0.5', limit: '-0.5', message: '\'-0.5\' is not a valid int range.' },
     { name: '数でない many', limit: 'many', message: '\'many\' is not a valid int range.' },
-  ])('--comment-limit が $name のとき、API を呼ばずに終了コード 2 で終わる', async ({ limit, message }, context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-11')
+  ])('--comment-limit が $name のとき、API を呼ばずに終了コード 2 で終わる', async ({ limit, message }) => {
     setUpProject()
     const github = await startGithub([])
 
@@ -265,8 +253,7 @@ describe('issue show', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-12')
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async () => {
     makeAmbiguous(setUpProject())
     const github = await startGithub([])
 
@@ -276,8 +263,7 @@ describe('issue show', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-23')
+  it('対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる', async () => {
     setUpProject({ repositories: ['other'] })
 
     const result = await read('acme/demo/7')
@@ -285,8 +271,7 @@ describe('issue show', () => {
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-24')
+  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async () => {
     makeAmbiguous(setUpProject())
     await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
 
@@ -308,8 +293,7 @@ describe('issue show', () => {
     { name: 'HTTP 401', rule: { status: 401, body: { message: 'Bad credentials' } } },
     { name: 'HTTP 404', rule: { status: 404, body: { message: 'Not Found' } } },
     { name: 'HTTP 500', rule: { status: 500, body: { message: 'failure' } } },
-  ])('GitHub API が $name を返したとき、終了コード 1 で終わる', async ({ rule }, context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-13')
+  ])('GitHub API が $name を返したとき、終了コード 1 で終わる', async ({ rule }) => {
     setUpProject()
     await startGithub([{ match: { operation: 'GetIssueSlim' }, respond: rule, times: 1 }])
 
@@ -320,8 +304,7 @@ describe('issue show', () => {
     expect(result.stderr).toMatch(/^error: could not read Issue acme\/demo\/7: /u)
   })
 
-  it('Issue が無くて GitHub API が 200 と GraphQL の errors を返したとき、その内容を添えて終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-ISSUE-SHOW-13')
+  it('Issue が無くて GitHub API が 200 と GraphQL の errors を返したとき、その内容を添えて終了コード 1 で終わる', async () => {
     setUpProject()
     const errors = [{ type: 'NOT_FOUND', path: ['repository', 'issue'], locations: [{ line: 3, column: 5 }], message: 'Could not resolve to an Issue with the number of 7.' }]
 
@@ -360,9 +343,13 @@ describe('issue show', () => {
     const parent = { number: 3, title: '親の Epic', state: 'OPEN', repository: { name: 'demo', owner: { login: 'acme' } } }
     const subIssues = [{ number: 8, state: 'OPEN', title: '子の Issue' }, { number: 9, state: 'CLOSED', title: '済んだ子' }]
 
-    it('json を付けずに読むと、--json と同じ中身を data に返す', async () => {
+    it('json を付けずに読むと、--json と同じ中身を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-01')
+      await verifies(context, 'PW-ISSUE-SHOW-02')
+      await verifies(context, 'PW-ISSUE-SHOW-05')
+      await verifies(context, 'PW-ISSUE-SHOW-15')
       setUpProject()
-      await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues }), prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues })])
+      const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues }), prerequisitesRule({ number: 7 }), issueRule({ parent, subIssues })])
 
       const outcome = await show({ issue_ref: 'acme/demo/7' })
       const cli = await read('acme/demo/7', '--json')
@@ -374,9 +361,12 @@ describe('issue show', () => {
         sub_issues: subIssues,
         readiness: { kind: 'startable' },
       })
+      expect(outcome.structured).toMatchObject({ number: 7, title: '見本の Issue', state: 'OPEN', body: '本文の 1 行目\n', blockedBy: [] })
+      expect(slimRequests(github)[0]).toMatchObject({ variables: { owner: 'acme', repo: 'demo', number: 7, commentLimit: 5 } })
     })
 
-    it('json を付けて読んでも、付けないときと同じ data を返す', async () => {
+    it('json を付けて読んでも、付けないときと同じ data を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-08')
       setUpProject()
       await startGithub([prerequisitesRule({ number: 7 }), issueRule(), prerequisitesRule({ number: 7 }), issueRule()])
 
@@ -386,7 +376,9 @@ describe('issue show', () => {
       expect(withJson.structured).toEqual(plain.structured)
     })
 
-    it('前提のある Issue を読むと、blockedBy と blocked の判定を data に返す', async () => {
+    it('前提のある Issue を読むと、blockedBy と blocked の判定を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-14')
+      await verifies(context, 'PW-ISSUE-SHOW-17')
       setUpProject()
       const blockedBy = [{ number: 4, title: '待つ前提' }]
       await startGithub([issueRule(), prerequisitesRule({ number: 7, blockedBy, body: '## Waits for merge\n- #4: 公開後に確かめる\n' })])
@@ -399,15 +391,183 @@ describe('issue show', () => {
       })
     })
 
-    it('前提を読めないと、blockedBy と readiness を null にし、warning を data.warnings に返す', async () => {
+    it('前提を読めないと、blockedBy と readiness を null にし、warning を data.warnings に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-18')
       setUpProject()
       await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
       const outcome = await show({ issue_ref: 'acme/demo/7' })
 
       expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toMatchObject({ blockedBy: null, readiness: null })
+      expect(outcome.structured).toMatchObject({ number: 7, title: '見本の Issue', blockedBy: null, readiness: null })
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^could not read blocked-by of #7: /u)])
+    })
+
+    it('リンクされたブランチと PR がある Issue を読むと、ブランチを linked_branches に、重複を除いた PR を linked_prs に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-03')
+      await verifies(context, 'PW-ISSUE-SHOW-04')
+      setUpProject()
+      const timeline = [
+        { subject: { number: 11, title: '機能の追加', state: 'MERGED' } },
+        { source: { number: 12, title: '不具合の修正', state: 'OPEN' } },
+        { subject: { number: 11, title: '機能の追加', state: 'MERGED' } },
+      ]
+      await startGithub([prerequisitesRule({ number: 7 }), issueRule({ branches: ['feat/7', 'fix/7'], timeline })])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.structured).toMatchObject({
+        linked_branches: ['feat/7', 'fix/7'],
+        linked_prs: [{ number: 11, title: '機能の追加', state: 'MERGED' }, { number: 12, title: '不具合の修正', state: 'OPEN' }],
+      })
+    })
+
+    it('別のリポジトリの親がある Issue を読むと、親のリポジトリを parent に入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-02')
+      setUpProject()
+      const other = { number: 3, title: '親の Epic', state: 'CLOSED', repository: { name: 'other', owner: { login: 'acme' } } }
+      await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent: other })])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.structured['parent']).toEqual({ number: 3, title: '親の Epic', state: 'CLOSED', owner: 'acme', repo: 'other' })
+    })
+
+    it('コメントがある Issue を読むと、comment_limit 件までのコメントを comments に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-06')
+      setUpProject()
+      const comments = {
+        totalCount: 3,
+        nodes: [
+          { author: { login: 'reviewer' }, createdAt: '2026-01-02T03:04:05Z', body: '1 件目' },
+          { author: undefined, createdAt: '2026-02-03T00:00:00Z', body: '2 件目' },
+        ],
+      }
+      const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule({ comments })])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7', comment_limit: 2 })
+
+      expect(outcome.structured['comments']).toEqual({
+        total_count: 3,
+        nodes: [
+          { author: 'reviewer', created_at: '2026-01-02T03:04:05Z', body: '1 件目' },
+          { author: 'ghost', created_at: '2026-02-03T00:00:00Z', body: '2 件目' },
+        ],
+      })
+      expect(slimRequests(github)).toMatchObject([{ variables: { commentLimit: 2 } }])
+    })
+
+    it('comment_limit に 0 を渡すと、コメントを返さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-07')
+      setUpProject()
+      const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule({ comments: { totalCount: 4, nodes: [] } })])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7', comment_limit: 0 })
+
+      expect(outcome.structured['comments']).toEqual({ total_count: 4, nodes: [] })
+      expect(slimRequests(github)).toMatchObject([{ variables: { commentLimit: 0 } }])
+    })
+
+    it('短い形 N の参照を repo で補って読む', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-09')
+      setUpProject()
+      const github = await startGithub([issueRule({ number: 5 }), prerequisitesRule({ number: 5 })])
+
+      const outcome = await show({ issue_ref: '5', repo: 'acme/demo' })
+
+      expect(outcome.isError).toBe(false)
+      expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
+    })
+
+    it('短い形 N の参照を repo なしで渡すと、git の remote で補って読む', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-09')
+      setUpProject()
+      const repository = enterGitRepository()
+      gitForTest(repository, ['remote', 'add', 'origin', 'https://ghes.example.com/acme/demo.git'])
+      const github = await startGithub([issueRule({ number: 5 }), prerequisitesRule({ number: 5 })])
+
+      const outcome = await show({ issue_ref: '5' })
+
+      expect(outcome.isError).toBe(false)
+      expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
+    })
+
+    it.for([
+      { name: '参照が owner/repo/N の形でない', reference: 'invalid-format' },
+      { name: '参照が # で始まる', reference: '#5' },
+    ])('Issue の参照の形が誤っている（$name）とき、API を呼ばずに kind が invalid-input の失敗を返す', async ({ reference }, context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-10')
+      setUpProject()
+      const github = await startGithub([])
+
+      const outcome = await show({ issue_ref: reference })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toEqual({ kind: 'invalid-input', detail: `invalid reference: ${reference}\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)` })
+      expect(github.requests()).toEqual([])
+    })
+
+    it.for([
+      { name: '上限を超える 21', limit: 21 },
+      { name: '下限を下回る -1', limit: -1 },
+    ])('comment_limit が $name のとき、API を呼ばずに kind が invalid-input の失敗を返す', async ({ limit }, context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-11')
+      setUpProject()
+      const github = await startGithub([])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7', comment_limit: limit })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['kind']).toBe('invalid-input')
+      expect(github.requests()).toEqual([])
+    })
+
+    it('対象のリポを含む設定が 2 つあり .active も選べないとき、kind が no-active-project の失敗に候補と project の案内を入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-12')
+      makeAmbiguous(setUpProject())
+      const github = await startGithub([])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toEqual({ kind: 'no-active-project', detail: 'acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second' })
+      expect(github.requests()).toEqual([])
+    })
+
+    it('対象のリポを含む設定が無いとき、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-23')
+      setUpProject({ repositories: ['other'] })
+
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toEqual({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme' })
+    })
+
+    it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async (context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-24')
+      makeAmbiguous(setUpProject())
+      await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7', project: SECOND_PROJECT })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toMatchObject({ number: 7, title: '見本の Issue' })
+    })
+
+    it.for([
+      { name: 'HTTP 401', rule: { status: 401, body: { message: 'Bad credentials' } } },
+      { name: 'HTTP 404', rule: { status: 404, body: { message: 'Not Found' } } },
+      { name: 'HTTP 500', rule: { status: 500, body: { message: 'failure' } } },
+    ])('GitHub API が $name を返したとき、失敗を返す', async ({ rule }, context) => {
+      await verifies(context, 'PW-ISSUE-SHOW-13')
+      setUpProject()
+      await startGithub([{ match: { operation: 'GetIssueSlim' }, respond: rule, times: 1 }])
+
+      const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['detail']).toMatch(/^could not read Issue acme\/demo\/7: /u)
     })
   })
 
@@ -422,8 +582,7 @@ describe('issue show', () => {
       ...extra,
     })
 
-    it('前提がある Issue を読むと、Parent の下に Blocked by と Readiness の 2 行を出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-14')
+    it('前提がある Issue を読むと、Parent の下に Blocked by と Readiness の 2 行を出す', async () => {
       setUpProject()
       await startGithub([issueRule(), prerequisitesRule(dependent())])
 
@@ -438,8 +597,7 @@ describe('issue show', () => {
       expect(result.stderr).toBe('')
     })
 
-    it('前提が無い Issue を読むと、2 行を出さない', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-15')
+    it('前提が無い Issue を読むと、2 行を出さない', async () => {
       setUpProject()
       await startGithub([issueRule(), prerequisitesRule({ number: 7 })])
 
@@ -448,8 +606,7 @@ describe('issue show', () => {
       expect(result.stdout).toBe(`${HEAD}${BODY}`)
     })
 
-    it('本文の節にあって blocked by に無い Issue があると、warning を出して読み続ける', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-16')
+    it('本文の節にあって blocked by に無い Issue があると、warning を出して読み続ける', async () => {
       setUpProject()
       await startGithub([issueRule(), prerequisitesRule(dependent({ body: '## Waits for merge\n- #4: 理由\n- #9: 外した前提\n' }))])
 
@@ -460,8 +617,7 @@ describe('issue show', () => {
       expect(result.stdout).toContain('**Readiness:** blocked by #3, #4 (waits for merge)')
     })
 
-    it('本文の節が読めないと、warning を出し、前提をすべて merge 待ちにする', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-16')
+    it('本文の節が読めないと、warning を出し、前提をすべて merge 待ちにする', async () => {
       setUpProject()
       await startGithub([issueRule(), prerequisitesRule(dependent({ body: '## Waits for merge\n\nbroken\n' }))])
 
@@ -471,8 +627,7 @@ describe('issue show', () => {
       expect(result.stdout).toContain('#3 Base (OPEN, wait: merge)')
     })
 
-    it('--json を渡すと、blockedBy と readiness を足す', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-17')
+    it('--json を渡すと、blockedBy と readiness を足す', async () => {
       setUpProject()
       await startGithub([issueRule(), prerequisitesRule(dependent())])
 
@@ -488,8 +643,7 @@ describe('issue show', () => {
       })
     })
 
-    it('前提を読めないと、warning を出し、今までの出力に 2 行を足さない', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-18')
+    it('前提を読めないと、warning を出し、今までの出力に 2 行を足さない', async () => {
       setUpProject()
       await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -500,8 +654,7 @@ describe('issue show', () => {
       expect(result.stderr).toMatch(/^warning: could not read blocked-by of #7: GraphQL query error: Server error '500/u)
     })
 
-    it('前提を読めないとき、--json は blockedBy と readiness を null にする', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-18')
+    it('前提を読めないとき、--json は blockedBy と readiness を null にする', async () => {
       setUpProject()
       await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -510,8 +663,7 @@ describe('issue show', () => {
       expect(JSON.parse(result.stdout)).toMatchObject({ blockedBy: null, readiness: null })
     })
 
-    it('依存関係に対応しない GHES では、warning を出し、今までの出力に 2 行を足さない', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-21')
+    it('依存関係に対応しない GHES では、warning を出し、今までの出力に 2 行を足さない', async () => {
       setUpProject()
       const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       await startGithub([issueRule(), unsupported])
@@ -523,8 +675,7 @@ describe('issue show', () => {
       expect(JSON.parse(result.stdout)).toMatchObject({ number: 7, title: '見本の Issue', blockedBy: null, readiness: null })
     })
 
-    it('develop_branch が無いリポジトリで済んでいない前提があると、前提を出し、Readiness を unknown にする', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-19')
+    it('develop_branch が無いリポジトリで済んでいない前提があると、前提を出し、Readiness を unknown にする', async () => {
       setUpProject({ files: { '.pecot/config/projects/ghes.example.com_acme_board_acme.json': withoutDevelopBranch() } })
       await startGithub([issueRule(), prerequisitesRule(dependent())])
 
@@ -539,8 +690,7 @@ describe('issue show', () => {
       expect(result.stdout).toBe(`${HEAD}${lines.join('\n')}\n\n${BODY}`)
     })
 
-    it('develop_branch が無いとき、--json は前提を出し、readiness を null にする', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-19')
+    it('develop_branch が無いとき、--json は前提を出し、readiness を null にする', async () => {
       setUpProject({ files: { '.pecot/config/projects/ghes.example.com_acme_board_acme.json': withoutDevelopBranch() } })
       await startGithub([issueRule(), prerequisitesRule(dependent())])
 
@@ -552,8 +702,7 @@ describe('issue show', () => {
       })
     })
 
-    it('base を引き足す API が失敗すると、warning を出し、前提と Readiness: unknown を出して止まらない', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-20')
+    it('base を引き足す API が失敗すると、warning を出し、前提と Readiness: unknown を出して止まらない', async () => {
       setUpProject()
       const diverged = { number: 7, blockedBy: [{ number: 3, title: 'Base', column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, base: 'feat/2' }] }] }
       await startGithub([issueRule(), prerequisitesRule(diverged), { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
@@ -565,8 +714,7 @@ describe('issue show', () => {
       expect(result.stdout).toContain('**Blocked by:** #3 Base (OPEN, in review)\n**Readiness:** unknown (GraphQL query error')
     })
 
-    it('前提の件数が 0 の Issue を読むと、前提を読まずに startable を出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-SHOW-22')
+    it('前提の件数が 0 の Issue を読むと、前提を読まずに startable を出す', async () => {
       setUpProject()
       const github = await startGithub([issueRule({ blockedByCount: 0 })])
 
@@ -574,6 +722,75 @@ describe('issue show', () => {
 
       expect(JSON.parse(result.stdout)).toMatchObject({ blockedBy: [], readiness: { kind: 'startable', text: 'startable' } })
       expect(github.requests().map(request => request.type === 'graphql' ? request.operation : '')).toEqual(['GetIssueSlim'])
+    })
+
+    describe('MCP の呼び出し', () => {
+      async function show(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
+        return await callToolOnce(ISSUE_SHOW_COMMANDS, 'issue_show', argumentsOfTool)
+      }
+
+      it.for([
+        { name: '節にあって blocked by に無い Issue がある', body: '## Waits for merge\n- #4: 理由\n- #9: 外した前提\n', warning: /^Waits for merge of #7 lists #9, which is not a blocked-by of it$/u, wait: 'stack' },
+        { name: '節が読めない', body: '## Waits for merge\n\nbroken\n', warning: /^Waits for merge of #7 is malformed: .+$/u, wait: 'merge' },
+      ])('本文の $name とき、warnings に入れて読み続ける', async (row, context) => {
+        await verifies(context, 'PW-ISSUE-SHOW-16')
+        setUpProject()
+        await startGithub([issueRule(), prerequisitesRule(dependent({ body: row.body }))])
+
+        const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+        expect(outcome.isError).toBe(false)
+        expect(outcome.structured['warnings']).toEqual([expect.stringMatching(row.warning)])
+        expect(outcome.structured['blockedBy']).toMatchObject([{ number: 3, wait: row.wait }, { number: 4, wait: 'merge' }])
+      })
+
+      it('develop_branch が無いリポジトリで済んでいない前提があると、blockedBy に前提を入れ、readiness を null にして warnings に入れる', async (context) => {
+        await verifies(context, 'PW-ISSUE-SHOW-19')
+        setUpProject({ files: { '.pecot/config/projects/ghes.example.com_acme_board_acme.json': withoutDevelopBranch() } })
+        await startGithub([issueRule(), prerequisitesRule(dependent())])
+
+        const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+        expect(outcome.structured).toMatchObject({ blockedBy: [{ number: 3, wait: 'stack' }, { number: 4, wait: 'merge' }], readiness: null })
+        expect(outcome.structured['warnings']).toEqual(['could not judge readiness of #7: develop_branch is not set for acme/demo'])
+      })
+
+      it('base を引き足す API が失敗すると、warnings に入れ、blockedBy に前提を入れて readiness を null にする', async (context) => {
+        await verifies(context, 'PW-ISSUE-SHOW-20')
+        setUpProject()
+        const diverged = { number: 7, blockedBy: [{ number: 3, title: 'Base', column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, base: 'feat/2' }] }] }
+        await startGithub([issueRule(), prerequisitesRule(diverged), { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+        const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+        expect(outcome.isError).toBe(false)
+        expect(outcome.structured).toMatchObject({ blockedBy: [{ number: 3 }], readiness: null })
+        expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^could not judge readiness of #7: GraphQL query error: Server error '500/u)])
+      })
+
+      it('依存関係に対応しない GHES では、warnings に入れ、blockedBy と readiness を null にする', async (context) => {
+        await verifies(context, 'PW-ISSUE-SHOW-21')
+        setUpProject()
+        const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+        await startGithub([issueRule(), unsupported])
+
+        const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+        expect(outcome.isError).toBe(false)
+        expect(outcome.structured).toMatchObject({ number: 7, blockedBy: null, readiness: null })
+        expect(outcome.structured['warnings']).toEqual(['could not read blocked-by of #7: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'])
+      })
+
+      it('前提の件数が 0 の Issue を読むと、前提を読まずに startable を返す', async (context) => {
+        await verifies(context, 'PW-ISSUE-SHOW-22')
+        setUpProject()
+        const github = await startGithub([issueRule({ blockedByCount: 0 })])
+
+        const outcome = await show({ issue_ref: 'acme/demo/7' })
+
+        expect(outcome.structured).toMatchObject({ blockedBy: [], readiness: { kind: 'startable', text: 'startable' } })
+        expect(github.requests().map(request => request.type === 'graphql' ? request.operation : '')).toEqual(['GetIssueSlim'])
+      })
     })
   })
 })

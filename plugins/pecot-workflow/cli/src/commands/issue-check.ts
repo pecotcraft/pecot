@@ -70,6 +70,7 @@ function printPlan(output: Readonly<Output<IssueCheckData>>, context: Readonly<B
 
 const ISSUE_CHECK = defineCommand({
   path: CHECK_PATH,
+  title: 'Check Issue files',
   description: 'Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything',
   input: z.object({
     files: FILES_SCHEMA,

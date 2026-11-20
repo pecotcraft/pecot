@@ -60,7 +60,7 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
   return [
     allowlistedTool({
       entry: ATHENA_START_QUERY_EXECUTION,
-      title: 'Start query execution',
+      title: 'Start Athena query',
       description: 'Starts a read-only query (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) and returns query_execution_id. Mutating queries and multiple statements are rejected before running. Wait for completion with aws_athena_get_query_execution, then fetch results with aws_athena_get_query_results',
       inputSchema: z.object({
         query_string: z.string().describe('Read-only query to run. Give a single statement that starts with SELECT / WITH / SHOW / DESCRIBE / EXPLAIN (no enclosing parentheses)'),
@@ -77,7 +77,7 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
     }, options),
     allowlistedTool({
       entry: ATHENA_GET_QUERY_EXECUTION,
-      title: 'Get query execution status',
+      title: 'Get Athena query status',
       description: 'Returns the query execution state (QUEUED / RUNNING / SUCCEEDED / FAILED / CANCELLED) and statistics',
       inputSchema: z.object({
         query_execution_id: z.string().describe('ID returned by aws_athena_start_query_execution'),
@@ -89,7 +89,7 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
     }, options),
     allowlistedTool({
       entry: ATHENA_GET_QUERY_RESULTS,
-      title: 'Get query results',
+      title: 'Get Athena query results',
       description: 'Returns the result rows of a completed query. For many rows, split with max_items and starting_token',
       inputSchema: z.object({
         query_execution_id: z.string().describe('ID returned by aws_athena_start_query_execution'),

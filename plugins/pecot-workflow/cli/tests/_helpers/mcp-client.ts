@@ -91,13 +91,21 @@ export type Settle = <T>(pending: Promise<T>) => Promise<T>
 
 const awaitAsIs: Settle = async pending => await pending
 
+// 偽のタイマーを進めると SDK の要求の期限（既定 60 秒）も進むため、待つツールでは期限を長くする
+const FAKE_DELAY_REQUEST_TIMEOUT = 24 * 60 * 60 * 1000
+
 /**
-commands から MCP のサーバを作り、同じプロセスの中のクライアントからツールを 1 回呼んで、成否と structuredContent を返す。cwd は呼ぶ側が決める
+commands から MCP のサーバを作り、同じプロセスの中のクライアントからツールを 1 回呼んで、成否と structuredContent を返す。cwd は呼ぶ側が決める。
+失敗の detail が空か、行が `error: ` で始まれば例外（実物のコマンドの失敗は、どれも読める文を持つ）
 */
 export async function callToolOnce(commands: readonly CommandDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolOutcome> {
   const connected = await connectInMemory(createMcpServer(commands))
   try {
-    return toolOutcomeOf(await settle(connected.client.callTool({ name, arguments: { ...arguments_ } })))
+    const outcome = toolOutcomeOf(await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT })))
+    const detail = outcome.structured['detail']
+    if (outcome.isError && (typeof detail !== 'string' || detail.trim() === '')) throw new Error(`${name}: 失敗の detail が空です`)
+    if (typeof detail === 'string' && /^error: /mu.test(detail)) throw new Error(`${name}: detail の行が error: で始まります: ${detail}`)
+    return outcome
   }
   finally {
     await connected.close()
