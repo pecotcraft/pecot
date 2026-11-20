@@ -5806,7 +5806,7 @@ entries:
         statement: '`result` に `reviewed` を渡して呼ぶと、書かずに `pullRequest` と `skipped` だけを結果に返します'
       - id: PW-REVIEW-FINISH-16
         pattern: optional
-        statement: '`dry_run` が有効なら、PR を読み、コメントを書かず、`dryRun` を `true` にし、書くはずの本文を `body` に入れます。CLI では、本文を標準出力に出します'
+        statement: '`dry_run` が有効なら、PR を読んでもコメントを書かず、`dryRun` を `true` にします。書くはずの本文は `body` に入れ、CLI では標準出力に出します'
       - id: PW-REVIEW-FINISH-17
         pattern: event
         statement: '起動した人の権限を読めないと、`warnings` に 1 つ入れて、コメントを書きます'
