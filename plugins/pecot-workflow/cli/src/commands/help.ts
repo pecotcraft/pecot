@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は readonly にできない */
 // ルートとグループの説明。枠を使わず、コマンドごとの --help と同じ「見出し + 字下げした 2 列」の書式で出す（help-layout.ts）。
 // 節は Usage、説明、Options、Commands の順。中身の無い節は出さない。
+import { cliTextOf } from './command-help.js'
 import { definitionSection, HELP_OPTION, helpWidth, paragraph, usageLines } from './help-layout.js'
 import type { DefinitionRow } from './help-layout.js'
 import { COMMAND_GROUPS } from './names.js'
@@ -32,7 +33,7 @@ function entriesOf(path: readonly string[], commands: readonly CommandDefinition
     .filter(command => command.path.length > level + 1 && path.every((segment, index) => command.path.at(index) === segment))
     .map(command => command.path.slice(level, level + 1).join(''))
   return [
-    ...direct.map(command => ({ name: command.path.slice(level, level + 1).join(''), description: command.description })),
+    ...direct.map(command => ({ name: command.path.slice(level, level + 1).join(''), description: cliTextOf(command, command.description) })),
     ...[...new Set(groups)].map(name => ({ name, description: groupHelp(name) })),
   ]
 }

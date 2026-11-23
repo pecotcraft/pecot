@@ -963,8 +963,8 @@ const ISSUE_CREATE = defineCommand({
   input: z.object({
     files: FILES_SCHEMA,
     message: z.string().optional().describe('Issue body (direct posting mode)'),
-    title: z.string().optional().describe('Issue title (direct posting mode, required with -m)'),
-    repo: z.string().optional().describe('Repository (owner/repo form; required with -m unless epic)'),
+    title: z.string().optional().describe('Issue title (direct posting mode, required with `message`)'),
+    repo: z.string().optional().describe('Repository (owner/repo form; required with `message` unless epic)'),
     type: ISSUE_TYPE_SCHEMA,
     status: z.string().optional().describe('Status (backlog/pending/ready/active/in_review/archived)'),
     priority: z.string().optional().describe('Priority (high/medium/low)'),

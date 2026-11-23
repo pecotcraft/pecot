@@ -343,7 +343,7 @@ const ISSUE_BLOCK = defineCommand({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),
     by: z.string().describe('The Issue to wait for (`owner/repo/N`; another repository is allowed)'),
     wait: z.enum(['stack', 'merge']).default('stack').describe('stack (build on its branch) or merge (wait until it is merged)'),
-    reason: z.string().optional().describe('Why it waits for the merge (required with --wait merge)'),
+    reason: z.string().optional().describe('Why it waits for the merge (required when `wait` is merge)'),
     project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
