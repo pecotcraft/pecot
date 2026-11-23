@@ -183,6 +183,8 @@ claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 
 プラグインは、環境変数 `CLAUDE_CODE_PLUGIN_DIRS` で渡します。マーケットプレイスの登録とインストール済みのプラグインは変えないので、worktree ごとに別の版で起動できます。
 
+新しいセッションは auto モードで始まります。設定ファイルの `permissions.defaultMode` では auto を既定にできないので、`pecot-rc.sh` が `--permission-mode auto` を渡します。別のモードで始めたいときは、`--permission-mode <モード>` を付けて打ちます。
+
 レイアウトにある worktree をまとめて起動するときは、ホストで `pecot-open.sh`・`pecot-open-mobile.sh` に `--rc` を付けます。新しく作るペイン（セッション）ごとに、その worktree で `pecot-rc.sh` が動きます。止めるときは、そのペインで Ctrl-C を押します。
 
 ```bash

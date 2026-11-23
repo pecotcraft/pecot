@@ -6,6 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".devcontainer" / "scripts" / "pecot-rc.sh"
 
@@ -47,10 +49,35 @@ def test_passes_worktree_plugins_and_args_from_subdirectory(tmp_path: Path) -> N
     )
 
     lines = result.stdout.splitlines()
-    assert lines[:5] == ["remote-control", "--spawn", "worktree", "--name", "a b"]
-    assert lines[5] == "DIRS=" + ":".join(
+    assert lines[:7] == [
+        "remote-control",
+        "--permission-mode",
+        "auto",
+        "--spawn",
+        "worktree",
+        "--name",
+        "a b",
+    ]
+    assert lines[7] == "DIRS=" + ":".join(
         str(repo / "plugins" / name) for name in ("pecot-workflow", "pecot-tools", "pecot-visual")
     )
+
+
+@pytest.mark.parametrize("mode_args", [["--permission-mode", "plan"], ["--permission-mode=plan"]])
+def test_keeps_permission_mode_given_by_caller(tmp_path: Path, mode_args: list[str]) -> None:
+    env = _fake_claude(tmp_path)
+    repo = _git_repo(tmp_path / "wt")
+
+    result = subprocess.run(
+        ["bash", str(_SCRIPT), "--spawn", "worktree", *mode_args],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.splitlines()[:-1] == ["remote-control", "--spawn", "worktree", *mode_args]
 
 
 def test_stops_outside_git_worktree(tmp_path: Path) -> None:

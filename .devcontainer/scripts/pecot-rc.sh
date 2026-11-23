@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 作業ツリーの pecot-w・pecot-t・pecot-v を読み込んで claude remote-control を起動する。引数はそのまま渡す。
 # remote-control は --plugin-dir を受け付けないので、同じ働きの CLAUDE_CODE_PLUGIN_DIRS で渡す。
+# 設定ファイルの permissions.defaultMode では auto を既定にできないので、--permission-mode が無ければ auto を渡す。
 set -euo pipefail
 
 if ! root="$(git rev-parse --show-toplevel 2> /dev/null)"; then
@@ -8,5 +9,12 @@ if ! root="$(git rev-parse --show-toplevel 2> /dev/null)"; then
   exit 1
 fi
 
+mode=(--permission-mode auto)
+for arg in "$@"; do
+  case "$arg" in
+    --permission-mode | --permission-mode=*) mode=() ;;
+  esac
+done
+
 export CLAUDE_CODE_PLUGIN_DIRS="$root/plugins/pecot-workflow:$root/plugins/pecot-tools:$root/plugins/pecot-visual"
-exec claude remote-control "$@"
+exec claude remote-control "${mode[@]}" "$@"
