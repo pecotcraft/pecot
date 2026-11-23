@@ -1,11 +1,13 @@
 // 配布する自動レビューのワークフローの雛形が、specs/027-auto-revise-on-pr/contracts/workflow-template.md の形を保つことを確かめる。
 // actionlint は pre-commit が掛ける（.pre-commit-config.yaml の actionlint-system が雛形も対象にする）。
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
+import { stoppedMarker } from '../src/domain/review-finish.js'
 import { markdownSection } from './_helpers/markdown-section.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -57,6 +59,8 @@ const reviewInputs = review.with ?? {}
 const claudeArguments = text(reviewInputs['claude_args'])
 const finish = steps.find(step => step.run?.includes('review finish') === true) ?? {}
 const checkPr = steps.find(step => step.id === 'pr') ?? {}
+const checkFirst = steps.find(step => step.id === 'first') ?? {}
+const laterCondition = '${{ (github.event_name == \'pull_request\' && steps.first.outputs.ok != \'false\') || steps.pr.outputs.ok == \'true\' }}'
 
 // job の if を、event_name の比べで始まる 2 つの枝に分ける。
 function branch(event: string): string {
@@ -88,9 +92,9 @@ describe('review のワークフローの雛形', () => {
     expect(workflow.on).not.toHaveProperty('pull_request_target')
   })
 
-  it('契機は pull_request の opened・ready_for_review と、issue_comment の created だけになる', () => {
+  it('契機は pull_request の opened・ready_for_review・synchronize と、issue_comment の created だけになる', () => {
     expect(Object.keys(workflow.on).toSorted((a, b) => a.localeCompare(b))).toEqual(['issue_comment', 'pull_request'])
-    expect(workflow.on['pull_request']?.types).toEqual(['opened', 'ready_for_review'])
+    expect(workflow.on['pull_request']?.types).toEqual(['opened', 'ready_for_review', 'synchronize'])
     expect(workflow.on['issue_comment']?.types).toEqual(['created'])
   })
 
@@ -123,6 +127,48 @@ describe('review のワークフローの雛形', () => {
     for (const step of afterCheck) {
       if (step === finish) continue
       expect(step.if, `${step.name ?? ''} が PR の確かめの結果を見ない`).toContain('steps.pr.outputs.ok == \'true\'')
+    }
+  })
+
+  it('前のレビューの確かめは、synchronize の run だけで動き、トークンと PR の番号を env で受ける', () => {
+    expect(checkFirst.if).toBe('${{ github.event.action == \'synchronize\' }}')
+    expect(steps.indexOf(checkFirst)).toBeGreaterThan(steps.indexOf(stepUsing('actions/create-github-app-token')))
+    expect(checkFirst.env).toEqual({ GH_TOKEN: '${{ steps.token.outputs.token || github.token }}', PR: '${{ github.event.pull_request.number }}' })
+    expect(checkFirst.run).toContain('gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments"')
+    expect(checkFirst.run).toContain('echo "ok=$ok" >> "$GITHUB_OUTPUT"')
+  })
+
+  it('前のレビューの確かめは、API の失敗を握りつぶすパイプとプロセス置換を使わない', () => {
+    expect(checkFirst.run).not.toContain('${{')
+    expect(checkFirst.run).not.toContain('< <(')
+    expect(checkFirst.run?.replace(/--jq '[^']*'/, '')).not.toContain('|')
+  })
+
+  it('前のレビューの確かめの jq は、Bot の指摘の一覧と止まったことのコメントだけを拾う', () => {
+    const filter = /--jq '([^']*)'/.exec(checkFirst.run ?? '')?.[1] ?? ''
+    const comments = [
+      { id: 1, user: { type: 'Bot' }, body: '\n## Findings — 先頭に改行がある' },
+      { id: 2, user: { type: 'Bot' }, body: `止まった\n\n${stoppedMarker({ runId: '9', attempt: '1' })}\n` },
+      { id: 3, user: { type: 'User' }, body: '## Findings — 人が書いた' },
+      { id: 4, user: { type: 'Bot' }, body: '## Resolution — 関係の無いコメント' },
+      { id: 5, user: { type: 'User' }, body: stoppedMarker({ runId: '9', attempt: '1' }) },
+    ]
+    const found = execFileSync('jq', ['-r', filter], { input: JSON.stringify(comments), encoding: 'utf8' })
+    expect(found.trim().split('\n')).toEqual(['1', '2'])
+  })
+
+  it('前のレビューの確かめが探す文字列は、指摘の一覧のテンプレートと止まったことの目印の書き出しと一致する', () => {
+    const findings = readFileSync(path.join(pluginRoot, 'cli/templates/comment/review-findings.md'), 'utf8')
+    const heading = /^## \S+/mu.exec(findings.replace(/<!--[\s\S]*?-->/u, ''))?.[0]
+    expect(heading).toBe('## Findings')
+    expect(checkFirst.run).toContain('test("\\\\A\\\\s*## Findings")')
+    expect(stoppedMarker({ runId: '1', attempt: '1' }).startsWith('<!-- pecot-review-stopped ')).toBe(true)
+    expect(checkFirst.run).toContain('contains("<!-- pecot-review-stopped ")')
+  })
+
+  it('Checkout から Review までの step は、前のレビューの跡で飛ばす run と、通らなかった合言葉の run で動かない', () => {
+    for (const action of ['actions/checkout', 'actions/setup-node', 'anthropics/claude-code-action']) {
+      expect(stepUsing(action).if).toBe(laterCondition)
     }
   })
 
@@ -228,11 +274,12 @@ describe('review のワークフローの雛形', () => {
     expect(checkPr.env?.['GH_TOKEN']).toBe(fallback)
   })
 
-  it('job に timeout-minutes と、PR の番号ごとの concurrency がある', () => {
+  it('job に timeout-minutes と、PR の番号ごとの concurrency があり、待ちの job を取り消さない', () => {
     expect(job).toHaveProperty('timeout-minutes')
     expect(job.concurrency).toEqual({
       'group': 'pecot-review-${{ github.event.pull_request.number || github.event.issue.number }}',
       'cancel-in-progress': false,
+      'queue': 'max',
     })
   })
 
@@ -325,8 +372,8 @@ describe('review のワークフローの雛形', () => {
     }
   })
 
-  it('後始末の step は if: always() で動き、式を run に埋め込まない', () => {
-    expect(finish.if).toBe('${{ always() }}')
+  it('後始末の step は、前のレビューの跡で飛ばした run のほかは if: always() で動き、式を run に埋め込まない', () => {
+    expect(finish.if).toBe('${{ always() && steps.first.outputs.ok != \'false\' }}')
     expect(finish.run).not.toContain('${{')
     expect(finish.run).toContain('"$GITHUB_REPOSITORY/$PR" --ensure --job-status "$JOB_STATUS" --review-outcome "$REVIEW_OUTCOME" --review-conclusion "$REVIEW_CONCLUSION" --review-has-token "$REVIEW_HAS_TOKEN"')
   })

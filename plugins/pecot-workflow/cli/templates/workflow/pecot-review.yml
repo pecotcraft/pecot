@@ -1,4 +1,4 @@
-# pecot-workflow-template: review 5
+# pecot-workflow-template: review 6
 #
 # Place this file at .github/workflows/pecot-review.yml in your repository.
 #
@@ -10,6 +10,10 @@
 # To trust more sites, add WebFetch(domain:example.com) to the allowed-tools lines below.
 # Search queries and URLs may carry text from the diff.
 # It starts when a PR is opened or marked ready for review.
+# GitHub does not run it while the PR has a merge conflict.
+# So a push also starts it, but only when the PR has no review from this workflow yet.
+# A PR that had a conflict when it was opened is reviewed on the push that resolves it.
+# If a change on the base branch resolves the conflict, no event comes. Comment the phrase below.
 # To review again, comment "@pecotbot review" on the PR.
 # The phrase must be the whole comment, or be followed by a space or a new line.
 # Only people with write access can start it, and the job checks their permission.
@@ -49,11 +53,13 @@
 #
 # Keep your own lines between the pecot-review:*:begin and :end markers.
 # `pecot workflow install review --force` shows them before it overwrites this file.
+#
+# actionlint 1.7.12 does not know concurrency.queue yet and reports it. GitHub accepts it.
 name: pecot review
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize]
   issue_comment:
     types: [created]
 
@@ -90,6 +96,8 @@ jobs:
     concurrency:
       group: pecot-review-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: false
+      # The default queue keeps one pending job, so a push would cancel a waiting "@pecotbot review".
+      queue: max
     permissions:
       contents: read
       pull-requests: write
@@ -119,6 +127,19 @@ jobs:
           private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
           permission-pull-requests: write
           permission-contents: read
+
+      # A push reviews only a PR that has no review yet, such as one opened with a merge conflict.
+      # Count the findings lists and the stopped notices that bots posted. People cannot forge them.
+      - name: Check for an earlier review
+        id: first
+        if: ${{ github.event.action == 'synchronize' }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          found=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --jq '.[] | select(.user.type == "Bot" and ((.body | test("\\A\\s*## Findings")) or (.body | contains("<!-- pecot-review-stopped ")))) | .id')
+          if [ -z "$found" ]; then ok=true; else ok=false; fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
 
       # issue_comment events carry neither the head repository nor the draft flag, so read the PR.
       # author_association also passes read-only collaborators, so read the commenter's permission.
@@ -158,7 +179,7 @@ jobs:
 
       # Read the PR head, not the merge ref, so that review lines match the diff.
       - name: Checkout
-        if: ${{ github.event_name == 'pull_request' || steps.pr.outputs.ok == 'true' }}
+        if: ${{ (github.event_name == 'pull_request' && steps.first.outputs.ok != 'false') || steps.pr.outputs.ok == 'true' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || steps.pr.outputs.sha }}
@@ -166,7 +187,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        if: ${{ github.event_name == 'pull_request' || steps.pr.outputs.ok == 'true' }}
+        if: ${{ (github.event_name == 'pull_request' && steps.first.outputs.ok != 'false') || steps.pr.outputs.ok == 'true' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.22.1"
@@ -180,7 +201,7 @@ jobs:
 
       - name: Review
         id: claude
-        if: ${{ github.event_name == 'pull_request' || steps.pr.outputs.ok == 'true' }}
+        if: ${{ (github.event_name == 'pull_request' && steps.first.outputs.ok != 'false') || steps.pr.outputs.ok == 'true' }}
         uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
@@ -211,7 +232,7 @@ jobs:
       # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.
       # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Finish
-        if: ${{ always() }}
+        if: ${{ always() && steps.first.outputs.ok != 'false' }}
         env:
           PR: ${{ github.event.pull_request.number || github.event.issue.number }}
           JOB_STATUS: ${{ job.status }}

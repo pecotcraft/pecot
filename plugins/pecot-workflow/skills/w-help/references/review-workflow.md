@@ -55,6 +55,16 @@ pecot-workflow の MCP ツール `workflow_doctor`（`name: "review"`）で、�
 
 入れた後に PR を作るか、draft の PR を ready にすると、最初のレビューが始まります。
 
+## コンフリクトしていた PR
+
+GitHub は、base とコンフリクトしている PR では、PR を作ったときと ready にしたときのワークフローを動かしません。雛形は、PR への push でも起動し、まだ自動レビューの付いていない PR だけをレビューします。
+
+- 開いた時点でコンフリクトしていた PR は、コンフリクトを解いた push で最初のレビューが始まる
+- 自動レビューの跡は、bot が付けた指摘の一覧と、止まったことを知らせるコメントで見る。跡のある PR への push では、job は動くがレビューを飛ばす
+- base の側の変更でコンフリクトが消えたときは、PR のイベントが起きない。合言葉で起動する
+- 雛形を入れる前からある PR のうち、自動レビューの付いていないものは、入れた後の最初の push でレビューが始まる
+- 雛形を変えた PR はレビューが飛ばされて跡が残らないので、push のたびに job が動く。かかるのは runner の時間だけで、モデルは呼ばない
+
 ## 合言葉
 
 PR に合言葉のコメントを書くと、もう一度レビューが始まります。既定の合言葉は `@pecotbot review` です。
@@ -205,6 +215,10 @@ secret の有無だけで切り替わります。雛形は書き換えません�
 |---|---|
 | `pecot-review:allowed-tools` | レビューの準備に要るツールの許可。job の `env` の `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` にカンマ区切りで書く |
 | `pecot-review:prepare` | 依存のインストールなど、レビューの前に動かす step。上の step と同じ `if` を付ける |
+
+版 6 で、上の step の `if` が変わりました。版 5 から更新するときは、`pecot-review:prepare` に足した step の `if` も、上の step と同じ式に直します。直さないと、レビューを飛ばす push の run でも、足した step が動きます。
+
+雛形は、job の `concurrency` に `queue: max` を書きます。actionlint 1.7.12 はこの項目を知らず、`unexpected key "queue"` を出します。GitHub は受け付けるので、actionlint の設定でこのファイルの指摘を外します。
 
 後始末の step は、npm の最新の正式版の `@pecot/workflow-mcp` を取ります。major が上がると、互換の無い変更も次の実行から入ります。`@latest` を `@<major>` か `@<版>` に替えると、取る版を留められます。
 

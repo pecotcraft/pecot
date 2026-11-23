@@ -7,10 +7,15 @@
 
 | 契機 | 型 |
 |---|---|
-| `pull_request` | `opened`・`ready_for_review` |
+| `pull_request` | `opened`・`ready_for_review`・`synchronize` |
 | `issue_comment` | `created`。合言葉での起動し直し |
 
-ほかの契機は持たない。`pull_request_target`・`synchronize`・`edited` を書かない（FR-003、FR-021）。
+ほかの契機は持たない。`pull_request_target`・`edited` を書かない（FR-003、FR-021）。
+
+`synchronize` は、まだ自動レビューの付いていない PR の最初のレビューのためだけに置く（FR-003）。
+GitHub は、コンフリクトのある PR では `pull_request` のワークフローを動かさない。開いた時点か ready にした時点でコンフリクトしていた PR は、解いた push の `synchronize` だけが届く。
+前の自動レビューの跡がある PR では、`synchronize` の run は「前のレビューの確かめ」の step の後の step と後始末を飛ばす。
+base の側の変更でコンフリクトが消えたときは PR のイベントが起きず、合言葉で起こす。
 `issue_comment` は、既定のブランチの雛形で動く。PR のブランチで変えた雛形は、コメントの run では使われない。
 
 ## 利用者が変える値
@@ -41,7 +46,7 @@
 | 項目 | 決め |
 |---|---|
 | 時間の上限 | `timeout-minutes` に、変数と既定値の式を書く |
-| 同時実行 | job に書く。`group: pecot-review-<PR番号>`、`cancel-in-progress: false`。PR の番号は `github.event.pull_request.number \|\| github.event.issue.number` |
+| 同時実行 | job に書く。`group: pecot-review-<PR番号>`、`cancel-in-progress: false`、`queue: max`。PR の番号は `github.event.pull_request.number \|\| github.event.issue.number`。既定の `queue: single` は待ちを 1 つしか持たず、後から並んだ push の run が、待っている合言葉の run を取り消す（FR-024）。actionlint 1.7.12 は `queue` を知らないので、このリポの `.github/actionlint.yaml` で外す |
 | `permissions` | `contents: read`・`pull-requests: write`・`id-token: write`。`pull-requests: write` は、`GITHUB_TOKEN` で PR に書くためだ。`id-token: write` は、Claude の App のトークンの引き換えと、Workload Identity Federation のためだ |
 
 ### 動く条件
@@ -83,13 +88,14 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | step | 中身 |
 |---|---|
 | トークン | 変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ。`actions/create-github-app-token` で、`permission-pull-requests: write` と `permission-contents: read` だけを渡す。無いときは飛ばし、Claude の App を使う |
+| 前のレビューの確かめ | `synchronize` の run だけ（`id: first`）。PR の Issue コメントのうち、Bot が書いたもので、本文が先頭の空白を除いて `## Findings` で始まるか、`<!-- pecot-review-stopped` を含むものを探す。無ければ `ok=true`、あれば `ok=false` を出力する。`gh api --paginate` の結果を変数に代入して読み、パイプとプロセス置換を使わない。API の失敗は step の失敗にする |
 | PR の確かめ | `issue_comment` の run だけ。PR と書いた人の権限を読み、fork・draft・閉じた PR か、書いた人が `admin`・`maintain`・`write` でなければ、後の step を飛ばす。読んだ PR の `head.sha` を出力する。API の失敗は step の失敗にする |
 | 受け付けの印 | `issue_comment` の run で、PR の確かめを通ったときだけ。合言葉のコメントに 👀 のリアクションを付ける（FR-035）。付けられなくても、レビューは続ける |
 | checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`ref` に、`pull_request` の run は `github.event.pull_request.head.sha`、`issue_comment` の run は PR の確かめの step が出力した `head.sha` を渡す。既定の merge の ref では、base の変更で指摘の行が head の diff とずれる。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
 | Node | `actions/setup-node`。`package-manager-cache: false` を渡す。job が secret を持つので、PR の `package.json` が npm を指しても、npm のキャッシュを戻さず保存もしない。キャッシュが要る利用者は、利用者の準備の囲みで `actions/cache` を使う。setup-node は囲みの外にあり、`cache` を足しても雛形の上書きで消える |
 | 利用者の準備 | 開始と終了の印のコメント 2 行だけ。step は `uses` か `run` を要するので、空の step は置かない |
 | 自動レビュー | claude-code-action。入力は下の表 |
-| 後始末 | `if: always()` で `pecot review finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
+| 後始末 | `if: always() && steps.first.outputs.ok != 'false'` で `pecot review finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
 
 後始末の step が渡す値:
 
@@ -167,6 +173,7 @@ ${{ steps.token.outputs.token || github.token }}
 Claude の App のトークンは、ワークフローのファイルが既定のブランチと同じ中身のときだけ受け取れる。
 PR のブランチで雛形を変えた PR では、action がレビューを飛ばし、step は成功で終わる。
 このとき、自動レビューの step の `outcome` は `success` で、action の出力 `conclusion` は空になる。後始末は、これを止まったこととして扱わない（`contracts/cli-commands.md`、research の R9）。
+この PR には自動レビューの跡が残らないので、push のたびに `synchronize` の run が checkout から後始末まで動く。モデルは呼ばれず、かかるのは runner の時間だけだ。
 action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、action の `outputs` に無く、呼ぶ側から読めない。
 自前の App のときは、この確かめは無い。
 
@@ -221,7 +228,8 @@ MCP サーバが環境変数から読む形にしないのは、全部のツー�
 |---|---|
 | YAML として読める | 雛形を読み込む |
 | `pull_request_target` が無い | キーの有無を見る |
-| 契機が `pull_request` の 2 つの型と、`issue_comment` の `created` だけ | 読み込んだ `on` を比べる |
+| 契機が `pull_request` の 3 つの型と、`issue_comment` の `created` だけ | 読み込んだ `on` を比べる |
+| 前のレビューの確かめの step が `synchronize` の run だけで動き、jq が Bot の指摘の一覧と止まったことの目印だけを拾う。checkout から自動レビューまでの `if` と後始末の `if` が、その出力を見る | `run` の jq を試しのコメントにかけ、`if` の文字列を見る |
 | job の `if` が `pull_request` と `issue_comment` の 2 つの枝に分かれ、`pull_request` の枝に fork・draft・bot の判定、`issue_comment` の枝に合言葉と区切りの 4 つの比べ方・`author_association`・bot の判定がある | 枝ごとに式の文字列を探す |
 | `issue_comment` の run に、PR の確かめの step があり、checkout の `ref` が `pull_request` の `head.sha` かその step の `head.sha` の出力を読む | step の `if` と `with` を見る |
 | PR の確かめの step が、書いた人の権限を読み、`admin`・`maintain`・`write` のときだけ通す。API の失敗をプロセス置換で握りつぶさない | `env` と `run` の文字列を見る |
