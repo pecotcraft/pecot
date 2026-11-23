@@ -2,7 +2,7 @@
 name: w-pr
 description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
-  Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings the user adopts. Triggers: "create PR", "submit for review", "address review comments".
+  Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs (use w-merge).
 allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment, Bash(gh api:*), Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
@@ -10,7 +10,7 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 # プルリクエスト作成
 
-現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。CI を待ち、PR に付いたレビューの指摘のうち、利用者が採ったものを直します。
+現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。CI を待ち、PR に付いたレビューの指摘の採否を自分で決めて対応し、終わってから報告します。直さない指摘には、理由を返信します。
 
 ## 手順
 
@@ -129,7 +129,7 @@ CI が通ったら、PR に付いたレビューの指摘に対応する。自�
 pecot-workflow の MCP ツール `pr_show` で、PR のコメントを読む（`reviews: true`）。
 指摘が無ければ、その旨を伝えて終える。
 
-最新の `review-findings` の Disposition で「直った」とされた F-NN は、採否を聞かない。スレッドを resolve する対象にし、`review-resolution` の Applied に書く。
+最新の `review-findings` の Disposition で「直った」とされた F-NN は、採否を決める対象にしない。スレッドを resolve する対象にし、`review-resolution` の Applied に書く。
 
 #### F-NN とスレッド ID の対応表
 
@@ -158,21 +158,23 @@ gh api --hostname <対象ホスト> graphql \
   -f owner=<owner> -f repo=<repo> -F number=<PR番号>
 ```
 
-#### 対応可否をユーザーに一括確認
+#### 採否を決める
 
-`review-findings` のコメントの URL を示し、AskUserQuestion で次の 3 択（と Other）を出す。指摘ごとには聞かない。
+採否を利用者に聞かない。main が F-NN ごとに「対応」か「対応不要」かを決め、対応を終えてから報告する。
 
-| label | description |
-|---|---|
-| すべて対応 | F-01 から F-NN まで全件を修正 |
-| 一部のみ対応 | Other 自由入力で採用する F-NN をカンマ区切り指定（例: `F-01, F-03`） |
-| 対応なし | すべての指摘を「ユーザー判断で対応不要」として report に記録 |
+- 既定は「対応」にする。指摘の示す箇所と仕様を読んで確かめてから直す
+- 「対応不要」にするのは、次のどれかに当たるときだけにする
+  - 指摘が事実と違う
+  - 直すと、承認された計画や Issue の決めた仕様・挙動と食い違う
+  - `review-findings` の Disposition が「対応不要」で、その理由に同意する
+- 「対応不要」の理由には、確かめた根拠（読んだコード・仕様の文・計画）を添える
+- 保留や別 Issue への先送りにしない
 
 指摘が 0 件の `review-findings` なら、`review-resolution` を 0 件の文言で投稿し、この後の修正と resolve を飛ばす。
 
 #### 採用分を直し、main がコミット
 
-まず、選択に関わらず次の 2 つを行う。
+まず、次の 2 つを行う。
 
 1. resource `pecot-template://comment/review-resolution` を読み、PR 宛てのテンプレのファイルを作る。frontmatter の `issue_ref` には PR を書く。Decision 節と Declined 節を埋める。
 
@@ -183,7 +185,7 @@ gh api --hostname <対象ホスト> graphql \
      -F in_reply_to=<databaseId> -f 'body=返信本文'
    ```
 
-「対応なし」ならここで「スレッドを一括 resolve」へ進む。採用分があれば、main が直すことを基本にする。
+「対応」の F-NN が無ければ、ここで「スレッドを一括 resolve」へ進む。採用分があれば、main が直すことを基本にする。
 
 委譲するかは、w-help の [サブエージェントの使い方](../w-help/references/subagent-usage.md) の「実装と修正を委譲する条件」で決める。当たらなければ main が直し、w-implementer を起こさない。
 
@@ -230,7 +232,7 @@ gh api --hostname <対象ホスト> graphql -f query='
 
 書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。投稿には `issue_comment` を使う。
 
-チャットには `review-resolution` の本文をそのまま示す。
+対応を終えたら、チャットに `review-resolution` の本文をそのまま示して報告する。
 
 修正を push したら、Step 4 に戻って CI を待つ。
 
@@ -238,7 +240,7 @@ gh api --hostname <対象ホスト> graphql -f query='
 
 #### 注意
 
-- 採否はユーザーの判断で決める。指摘を盲目的に適用しない。
+- 採否は main が決め、途中で利用者に確かめない。「対応不要」にした F-NN は、スレッドの返信と Declined に理由を残す。
 - 返信と resolve は、`**F-NN**` で始まるスレッドに限る。
 
 マージは `/pecot-w:w-merge` を使用する。
