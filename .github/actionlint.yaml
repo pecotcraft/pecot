@@ -6,3 +6,9 @@ paths:
   .github/workflows/pages-deploy.yml:
     ignore:
       - 'unexpected key "queue" for "concurrency" section'
+  .github/workflows/pecot-review.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'
+  plugins/pecot-workflow/cli/templates/workflow/pecot-review.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'

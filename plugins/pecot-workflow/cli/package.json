@@ -39,6 +39,9 @@
     "ignoreDependencies": [
       "typescript7"
     ],
+    "ignoreBinaries": [
+      "jq"
+    ],
     "ignoreExportsUsedInFile": true,
     "rules": {
       "catalogReferences": "off"
