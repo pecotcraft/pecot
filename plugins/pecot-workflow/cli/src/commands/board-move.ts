@@ -19,12 +19,11 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 
 const BOARD_MOVE_OUTPUT = z.strictObject({
   issue: z.string().describe('Issue (owner/repo/N)'),
-  status: z.string().describe('Status set on the board (on dry_run, to be set)'),
-  dryRun: DRY_RUN_FIELD,
+  status: z.string().describe('Status set on the board'),
 })
 
 const BOARD_MOVE = defineCommand({

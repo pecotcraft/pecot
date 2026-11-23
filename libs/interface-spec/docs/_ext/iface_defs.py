@@ -597,13 +597,16 @@ def _command(entry: dict[str, Any]) -> list[str]:
         f".. program:: {program}",
         "",
     ]
+    # cli.only の入力は MCP の引数に無いので、cli_reference.options の説明を出す
+    only = cast("dict[str, Any]", detail.get("only", {}))
+    options = cast("dict[str, str]", cast("dict[str, Any]", reference).get("options", {}))
     for name in [*positional, *flags]:
-        lines += [
-            f".. option:: {_flag_label(entry, name)}",
-            "",
-            f"   引数 {_lit(name)} に当たります。",
-            "",
-        ]
+        text = (
+            _esc(options.get(name, ""), link=True)
+            if name in only
+            else f"引数 {_lit(name)} に当たります。"
+        )
+        lines += [f".. option:: {_flag_label(entry, name)}", "", f"   {text}", ""]
     lines += _run_examples(
         cast("list[dict[str, Any]]", cast("dict[str, Any]", reference).get("examples", []))
     )

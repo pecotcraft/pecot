@@ -91,7 +91,7 @@ describe('本文のツール名', () => {
 
   it('古い入力名の検出式は、古い入力を拾い、今の入力を拾わない', () => {
     expect(['`repo_ref: "o/r"`', '`owner_repo` | x', '`branch_name: "feat/x"`', '`issue_quick` を呼ぶ', '`plan: true`', '`issue: "o/r/1"`'].filter(sample => !OLD_INPUT_NAMES.test(sample))).toEqual([])
-    expect(['`repo: "o/r"`', '`branch: "feat/x"`', '`dry_run: true`', '`issue_ref: "o/r/1"`'].filter(sample => OLD_INPUT_NAMES.test(sample))).toEqual([])
+    expect(['`repo: "o/r"`', '`branch: "feat/x"`', '`delete_branch: true`', '`issue_ref: "o/r/1"`'].filter(sample => OLD_INPUT_NAMES.test(sample))).toEqual([])
   })
 
   it('ツールでない語の一覧は、どれも本文のどこかに出る', () => {

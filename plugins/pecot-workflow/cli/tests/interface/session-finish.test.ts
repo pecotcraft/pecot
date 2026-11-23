@@ -691,21 +691,13 @@ describe('session finish', () => {
       expect(outcome.structured).toEqual({ closedIssues: [12], skippedIssues: [{ number: 10, reason: 'epic' }], deletedBranches: [], readinessChanges: [], restack: [] })
     })
 
-    it('dry_run で打つと、close する予定の Issue・消す予定のブランチ・切り替える先と dryRun を data に返す', async (context) => {
+    it('CLI で --dry-run を付けると、何も変えずに、close・ブランチの削除・切り替えの予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-12')
       const workspace = await cleanupBranch({ github: mergedRules() })
 
-      const outcome = await finishTool(workspace, { delete_branch: true, dry_run: true })
+      const result = await workspace.run(['session', 'finish', 'acme/demo/21', '--delete-branch', '--dry-run'])
 
-      expect(outcome.structured).toEqual({
-        closedIssues: [12],
-        skippedIssues: [],
-        deletedBranches: [{ branch: BRANCH, location: 'remote' }, { branch: BRANCH, location: 'local' }],
-        readinessChanges: [],
-        restack: [],
-        currentBranch: 'main',
-        dryRun: true,
-      })
+      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: 'count: Issues to close: 1\ndry-run: would close Issue #12\ndry-run: would delete remote branch feat/demo/12\ndry-run: would set current branch to main\ndry-run: would update main from origin/main\ndry-run: would delete local branch feat/demo/12\n' })
       expect(currentBranch(workspace)).toBe(BRANCH)
       expect([...restRequests(workspace, 'PATCH'), ...restRequests(workspace, 'DELETE')]).toStrictEqual([])
     })
@@ -782,12 +774,13 @@ describe('session finish', () => {
       expect(operationsOf(workspace)).not.toContain('UpdateProjectItemField')
     })
 
-    it('dry_run だと、閉じる予定の Issue を済んだものとして判定し、列を書かずに判定の変化を readinessChanges に入れる', async (context) => {
+    it('CLI で --dry-run を付けると、閉じる予定の Issue を済んだものとして判定し、列を書かずに判定の変化を標準出力に出す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-37')
       const github = [...mergedRules({}, [kindRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), waitingTarget(13, MERGED_UNCLOSED_12)]
       const workspace = await openWorkspace({ github })
-      const outcome = await finishTool(workspace, { dry_run: true, skip_local_cleanup: true })
-      expect(outcome.structured['readinessChanges']).toStrictEqual([{ issue: '#13', from: 'stackable on #12', to: 'startable' }])
+      const result = await workspace.run(['session', 'finish', 'acme/demo/21', '--dry-run', '--skip-local-cleanup'])
+      expect(result.code).toBe(0)
+      expect(result.stdout).toBe('Readiness changed:\n- #13 stackable on #12 -> startable\n')
       expect(operationsOf(workspace)).not.toContain('UpdateProjectItemField')
     })
 

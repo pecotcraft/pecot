@@ -366,25 +366,14 @@ describe('issue unblock', () => {
       expect(requestLabels(github.requests())).toEqual(['GetLinkedRepositoriesUser', 'GetIssueBlockedByReferences'])
     })
 
-    it('dry_run で付いていない前提を外すと、moves を入れずに unchanged と dryRun を data に返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
-      prepareDependencyProject()
-      await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
-
-      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', dry_run: true })
-
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'unchanged', dryRun: true })
-    })
-
-    it('dry_run で打つと、書き込みを送らずに、外す予定の removed と dryRun を data に返す', async (context) => {
+    it('CLI で --dry-run を付けると、書き込みを送らずに、外す予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-08')
-      await verifies(context, 'PW-ISSUE-UNBLOCK-18')
       prepareDependencyProject()
       const github = await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }])])
 
-      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', dry_run: true })
+      const result = await unblock('acme/demo/7', '--by', 'acme/demo/5', '--dry-run')
 
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', change: 'removed', dryRun: true })
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would remove blocked-by #5 from #7\n' })
       expect(writes(github)).toEqual([])
     })
 

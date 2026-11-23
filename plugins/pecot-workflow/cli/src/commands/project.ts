@@ -25,7 +25,7 @@ import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN, RUN_CO
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import type { OptionSpec, SyncedProjectConfig } from './project-sync.js'
 import {
@@ -384,7 +384,6 @@ const INIT_ROW = z.strictObject({
 
 const INIT_OUTPUT = z.strictObject({
   fields: z.array(INIT_ROW).describe('The workflow, priority and size fields, plus the Status field when its options were looked at'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const initCommand = defineCommand({
@@ -407,7 +406,6 @@ const initCommand = defineCommand({
     const { owner, name, host, suffix } = input
     // 認証の失敗を、フィールドの初期化の失敗に包まないため
     const client = await createAuthenticatedGitHubClient(out, host)
-    if (input.dry_run) out.result({})
     const mark = fieldReporter((fields) => {
       out.result({ fields })
     })
@@ -424,11 +422,10 @@ const initCommand = defineCommand({
 // project create
 
 const CREATE_OUTPUT = z.strictObject({
-  number: z.int().optional().describe('Number of the created project (omitted on dry_run)'),
-  url: z.string().optional().describe('URL of the created project (omitted on dry_run)'),
+  number: z.int().optional().describe('Number of the created project (omitted when the response has none)'),
+  url: z.string().optional().describe('URL of the created project (omitted when the response has none)'),
   title: z.string().describe('Title of the project'),
   owner: z.string().describe('Project owner'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const projectCreationCommand = defineCommand({
@@ -574,10 +571,9 @@ const SYNC_FOR_ACTIVATE = { skipIfUnchanged: true, activateIfUnchanged: true }
 const LINK_PATH = ['project', 'link']
 
 const ACTIVATE_OUTPUT = z.strictObject({
-  project: z.string().optional().describe('Name of the project config that was (on dry_run, would be) made active'),
+  project: z.string().optional().describe('Name of the project config that was made active'),
   configPath: z.string().describe('Path of the project config file'),
   change: z.enum(['create', 'update', 'unchanged']).describe('What happened to the config file'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type ActivateData = z.input<typeof ACTIVATE_OUTPUT>
@@ -724,7 +720,6 @@ const LINK_OUTPUT = z.strictObject({
   projectNumber: z.int().describe('Number of the active project'),
   change: z.enum(['create', 'update']).describe('create: the repository was added to the config; update: its entry was changed'),
   configPath: z.string().describe('Path of the project config file'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const projectLinkCommand = defineCommand({
@@ -828,11 +823,10 @@ const GET_OUTPUT = z.strictObject({
 
 const SET_OUTPUT = z.strictObject({
   key: CONFIG_KEY_FIELD,
-  value: z.string().describe('Value of the key after the command (on dry_run, after it would run)'),
+  value: z.string().describe('Value of the key after the command'),
   previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
   change: z.enum(['create', 'update', 'unchanged']).describe('create: the key was not set; update: its value was replaced; unchanged: it already had the value'),
   configPath: z.string().describe('Path of the project config file'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const UNSET_OUTPUT = z.strictObject({
@@ -840,7 +834,6 @@ const UNSET_OUTPUT = z.strictObject({
   previous: z.string().optional().describe('Value before the command (omitted when the key was not set)'),
   change: z.enum(['delete', 'unchanged']).describe('delete: the key was cleared; unchanged: it was not set'),
   configPath: z.string().describe('Path of the project config file'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type GetData = z.input<typeof GET_OUTPUT>

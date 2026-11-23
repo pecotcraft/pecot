@@ -166,7 +166,13 @@ function checkGenerated(file: string, name: string, data: GeneratedFile): Findin
       findings.push({ file, scope, field: 'mcp.title', reason: 'is missing (give the tool a display name in English)' })
     }
     findings.push(
-      ...japaneseFindings(file, scope, [['name', entry.name], ['description', entry.description], ...(title === undefined ? [] : [['mcp.title', title] as const]), ...inputDescriptions(entry.input, 'input')]),
+      ...japaneseFindings(file, scope, [
+        ['name', entry.name],
+        ['description', entry.description],
+        ...(title === undefined ? [] : [['mcp.title', title] as const]),
+        ...inputDescriptions(entry.input, 'input'),
+        ...inputDescriptions(entry.cli?.only ?? {}, 'cli.only'),
+      ]),
       ...inputNameFindings(file, scope, entry),
       ...nameRuleFindings(file, scope, entry.name, data.names),
     )
@@ -218,15 +224,30 @@ function nameRuleFindings(file: string, scope: string, name: string, names: Name
   return findings
 }
 
+function cliOnlyNames(entry: GeneratedEntry): string[] {
+  return Object.keys(entry.cli?.only ?? {})
+}
+
 function inputNameFindings(file: string, scope: string, entry: GeneratedEntry): Finding[] {
-  const known = new Set(Object.keys(entry.input.properties))
+  const input = new Set(Object.keys(entry.input.properties))
+  const only = cliOnlyNames(entry)
+  const known = new Set([...input, ...only])
+  const flags = Object.keys(entry.cli?.flags ?? {})
   const references = [
     ...(entry.cli?.positional ?? []).map(name => ['cli.positional', name] as const),
-    ...Object.keys(entry.cli?.flags ?? {}).map(name => ['cli.flags', name] as const),
+    ...flags.map(name => ['cli.flags', name] as const),
   ]
-  return references.filter(([, name]) => !known.has(name)).map(([field, name]) => ({
-    file, scope, field, reason: `unknown input name ${quote(name)}`,
-  }))
+  return [
+    ...references.filter(([, name]) => !known.has(name)).map(([field, name]) => ({
+      file, scope, field, reason: `unknown input name ${quote(name)}`,
+    })),
+    ...only.filter(name => input.has(name)).map(name => ({
+      file, scope, field: 'cli.only', reason: `${quote(name)} is also in input (remove it from one; input is the MCP input)`,
+    })),
+    ...only.filter(name => !flags.includes(name)).map(name => ({
+      file, scope, field: 'cli.only', reason: `${quote(name)} is not in cli.flags (give the CLI-only input a flag)`,
+    })),
+  ]
 }
 
 function annotationFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
@@ -348,6 +369,7 @@ function runExamples(entry: AuthoredEntry): RunExample[] {
 function exampleFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
   const hasMcp = generated.surfaces.mcp !== undefined
   const known = new Set(Object.keys(generated.input.properties))
+  const only = new Set(cliOnlyNames(generated))
   const listed: unknown = generated.input['required']
   const required = Array.isArray(listed) ? listed.filter((name): name is string => typeof name === 'string') : []
   return entry.examples.flatMap((example, index): Finding[] => {
@@ -358,10 +380,39 @@ function exampleFindings(file: string, scope: string, entry: AuthoredEntry, gene
     if (!hasMcp) return [{ file, scope, field, reason: 'must be a command line (write run instead of arguments; the entry has no MCP surface)' }]
     const names = Object.keys(example.arguments)
     return [
-      ...names.filter(name => !known.has(name)).map(name => ({ file, scope, field: `${field}.arguments`, reason: `unknown input name ${quote(name)}` })),
+      ...names.filter(name => !known.has(name)).map(name => ({
+        file, scope, field: `${field}.arguments`, reason: only.has(name) ? cliOnlyReason(name) : `unknown input name ${quote(name)}`,
+      })),
       ...required.filter(name => !names.includes(name)).map(name => ({ file, scope, field: `${field}.arguments`, reason: `is missing the required input ${quote(name)}` })),
     ]
   })
+}
+
+function cliOnlyReason(name: string): string {
+  return `${quote(name)} is in cli.only (remove it; only the CLI takes it)`
+}
+
+// cli.only の入力は MCP の欄に書かない。CLI の節（cli_reference）を持つ項目は、cli_reference.options にその説明を書く。
+function cliOnlyInputFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+  const only = cliOnlyNames(generated)
+  const listed = (field: string, names: readonly string[]): Finding[] => names.filter(name => only.includes(name)).map(name => ({
+    file, scope, field, reason: cliOnlyReason(name),
+  }))
+  const findings = [
+    ...listed('arguments', Object.keys(entry.arguments ?? {})),
+    ...listed('mcp_output.fields', Object.keys(entry.mcp_output?.fields ?? {})),
+  ]
+  const reference = entry.cli_reference
+  if (reference === undefined) return findings
+  const options = Object.keys(reference.options ?? {})
+  const finding = (reason: string): Finding => ({ file, scope, field: 'cli_reference.options', reason })
+  const missing = only.filter(name => !options.includes(name))
+  const unknown = options.filter(name => !only.includes(name))
+  return [
+    ...findings,
+    ...(missing.length === 0 ? [] : [finding(`is missing ${missing.map(name => quote(name)).join(', ')} (present in cli.only)`)]),
+    ...(unknown.length === 0 ? [] : [finding(`has ${unknown.map(name => quote(name)).join(', ')} not in cli.only (remove it)`)]),
+  ]
 }
 
 // CLI の節（cli_reference）と終了コード（exit_status[].code）は、CLI の面を持つ項目だけが持つ。
@@ -463,6 +514,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...entry.prerequisites.map((text, index) => [`prerequisites[${String(index)}]`, text] as const),
     ...entry.examples.map((example, index) => [`examples[${String(index)}].note`, example.note] as const),
     ...(entry.cli_reference?.examples ?? []).map((example, index) => [`cli_reference.examples[${String(index)}].note`, example.note] as const),
+    ...Object.entries(entry.cli_reference?.options ?? {}).map(([name, text]) => [`cli_reference.options.${name}`, text] as const),
     ...Object.entries(entry.default_notes).map(([name, text]) => [`default_notes.${name}`, text] as const),
   ]
   return [
@@ -470,6 +522,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...helpFindings(file, id, entry, generated, prose),
     ...exampleFindings(file, id, entry, generated),
     ...cliOnlyFindings(file, id, entry, generated),
+    ...cliOnlyInputFindings(file, id, entry, generated),
     ...namesFindings(file, id, entry, generated),
     ...annotationFindings(file, id, entry, generated),
     ...readOnlyFindings(file, id, entry, generated, names),

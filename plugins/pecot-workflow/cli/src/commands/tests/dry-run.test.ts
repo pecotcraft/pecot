@@ -85,7 +85,8 @@ describe('board', () => {
 })
 
 describe('issue', () => {
-  it('issue reopen に dry_run を渡すと、アーカイブ済みの項目でも書かずに、開き直し・アーカイブの解除・Status・コメントを予行の行に出す', async () => {
+  it('issue reopen に dry_run を渡すと、アーカイブ済みの項目でも書かずに、開き直し・アーカイブの解除・Status・コメントを予行の行に出す', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-21')
     const result = await dryRun(['issue', 'reopen', 'acme/demo/7', '-c', '理由', '-n'], [linked('demo'), projectItem(true)])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -99,7 +100,8 @@ describe('issue', () => {
     ].join('\n'))
   })
 
-  it('issue comment のファイルの形に dry_run を渡すと、コメントを投稿せず、ファイルに comment_url を書かない', async () => {
+  it('issue comment のファイルの形に dry_run を渡すと、コメントを投稿せず、ファイルに comment_url を書かない', async (context) => {
+    await verifies(context, 'PW-ISSUE-COMMENT-28')
     const content = commentFileContent()
     const result = await dryRun(['issue', 'comment', 'note.md', '-n'], [linked('demo')], { files: { 'note.md': content } })
     expect(result.code).toBe(0)
@@ -108,7 +110,8 @@ describe('issue', () => {
     expect(result.read('note.md')).toBe(content)
   })
 
-  it('issue comment の -m に dry_run を渡すと、コメントを投稿せず、予行の行だけ出す', async () => {
+  it('issue comment の -m に dry_run を渡すと、コメントを投稿せず、予行の行だけ出す', async (context) => {
+    await verifies(context, 'PW-ISSUE-COMMENT-29')
     const result = await dryRun(['issue', 'comment', '-t', 'merge-diff', '-i', 'acme/demo/7', '-m', MERGE_DIFF_BODY, '-n'], [])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -256,7 +259,8 @@ function projectWithWorktree(): { readonly repository: string, readonly worktree
 }
 
 describe('worktree', () => {
-  it('worktree remove に dry_run を渡すと、worktree とブランチを残して予行の行を出す', async () => {
+  it('worktree remove に dry_run を渡すと、worktree とブランチを残して予行の行を出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-REMOVE-26')
     const { repository, worktree } = projectWithWorktree()
     const result = await dryRun(['worktree', 'remove', 'wt1', '-D', repository, '-n'], [], { environment: { DEVCONTAINER: '1' } })
     expect(result.code).toBe(0)
@@ -265,7 +269,8 @@ describe('worktree', () => {
     expect(gitForTest(repository, ['branch', '--list', '--format=%(refname:short)', 'wt1']).trim()).toBe('wt1')
   })
 
-  it('worktree init に dry_run を渡すと、設定ファイルを書かずに予行の行を出す', async () => {
+  it('worktree init に dry_run を渡すと、設定ファイルを書かずに予行の行を出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-INIT-19')
     const { repository } = projectWithWorktree()
     const result = await dryRun(['worktree', 'init', '-D', repository, '-n'], [], { environment: { DEVCONTAINER: '1' } })
     expect(result.code).toBe(0)
@@ -275,5 +280,6 @@ describe('worktree', () => {
       '',
     ].join('\n'))
     expect(existsSync(path.join(repository, '.pecot/config/worktree-config.json'))).toBe(false)
+    expect(existsSync(path.join(repository, '.pecot/config/.worktreeignore'))).toBe(false)
   })
 })

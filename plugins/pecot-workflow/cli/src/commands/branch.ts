@@ -10,7 +10,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation } from './output.js'
 import { requireGitRemote } from './repository-match.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
@@ -18,8 +18,7 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 const BRANCH_DELETE_OUTPUT = z.strictObject({
   branch: z.string().describe('Name of the remote branch'),
   repository: z.string().describe('Repository of the branch (owner/repo)'),
-  deleted: z.boolean().describe('Whether the remote branch was deleted (false on dry_run)'),
-  dryRun: DRY_RUN_FIELD,
+  deleted: z.boolean().describe('Whether the remote branch was deleted'),
 })
 
 const branchDeleteCommand = defineCommand({

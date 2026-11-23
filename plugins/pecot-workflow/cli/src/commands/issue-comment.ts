@@ -31,7 +31,7 @@ import {
   runWithExit,
 } from './issue-shared.js'
 import type { IssueTarget } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 
 const TEMPLATE_SCHEMA = z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'])
@@ -42,10 +42,9 @@ const COMMENT_URL_PATTERN = /^https?:\/\/(?<host>[^/]+)\/(?<owner>[^/]+)\/(?<rep
 
 const ISSUE_COMMENT_OUTPUT = z.strictObject({
   issue: z.string().describe('Issue commented on (owner/repo/N)'),
-  commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted on dry_run, or when GitHub returned no URL)'),
-  change: z.enum(['created', 'updated']).describe('Whether the comment was (on dry_run, would be) created or updated'),
+  commentUrl: z.string().optional().describe('URL of the comment created or updated (omitted when GitHub returned no URL)'),
+  change: z.enum(['created', 'updated']).describe('Whether the comment was created or updated'),
   file: z.string().optional().describe('Absolute path of the file whose comment_url was written back after posting from it (omitted otherwise)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type CommentOutput = Output<z.input<typeof ISSUE_COMMENT_OUTPUT>>

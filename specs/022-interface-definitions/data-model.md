@@ -30,7 +30,8 @@
 | `deprecated` | 真偽値 | 実装が非推奨と宣言していれば真 |
 | `input` | JSON Schema の object | 引数の名前・型・必須か・既定値・許可値・説明 |
 | `cli.positional` | 文字列の配列 | `input` のうち、CLI で位置引数になるものの順 |
-| `cli.flags` | 対応表 | `input` の名前から、CLI のオプションの名前（`--title`・`-t`）へ |
+| `cli.flags` | 対応表 | `input` と `cli.only` の名前から、CLI のオプションの名前（`--title`・`-t`）へ |
+| `cli.only` | 対応表 | CLI だけが受け取る入力の名前から、その JSON Schema へ。MCP の `inputSchema`（`input`）には入れない。無い項目では省く |
 | `mcp.output` | JSON Schema の object | MCP ツールの `outputSchema`。CLI だけの項目には無い |
 | `mcp.annotations` | 対応表 | MCP ツールの annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
 | `mcp.title` | 文字列 | MCP ツールの Tool の最上位の `title`（表示名）。英語。MCP の面を持つ項目では必須 |
@@ -56,7 +57,7 @@
 | `prerequisites` | 文字列の配列 | 英語 | `[]` | 呼ぶ側が満たす事前条件（認証、設定ファイルなど） |
 | `idempotent` | 真偽値 | — | 必ず書く | 同じ入力で 2 回呼んだ結果が、1 回と同じなら真 |
 | `examples` | 配列 | 英語 | 必ず書く | 呼び出しの例と、その説明。MCP の面を持つ項目は `arguments`（`tools/call` の引数）、持たない項目は `run`（コマンドの行） |
-| `cli_reference` | 対象 | `prose` に従う | 省く | CLI の節をページに出す項目の、CLI の使用例（`examples` の `run` と `note`）。CLI の面を持つ項目だけに書く |
+| `cli_reference` | 対象 | `prose` に従う | 省く | CLI の節をページに出す項目の、CLI の使用例（`examples` の `run` と `note`）と、`cli.only` の入力の説明（`options`）。CLI の面を持つ項目だけに書く |
 | `default_notes` | 対応表 | 英語 | `{}` | 既定値が実行時に決まる引数の、決まり方 |
 | `behaviors` | 配列 | 日本語 | 必ず書く | 振る舞いの項目。1 つ以上 |
 

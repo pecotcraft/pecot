@@ -42,12 +42,12 @@ describe('workflow install', () => {
     expect(result.structured).toMatchObject({ path: DESTINATION, version: BUNDLED_VERSION })
   })
 
-  it('dry_run を付けて呼ぶと、何も書かずに、written を false、dryRun を true にして成功を返す', async (context) => {
+  it('CLI で --dry-run を付けると、何も書かずに、書く予定を dry-run の行に出して 0 で終わる', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-03')
-    const result = await install({ dry_run: true })
-    expect(result.isError).toBe(false)
+    const result = await runCommand({ argv: ['workflow', 'install', 'review', '--dry-run'], config: false, github: [] })
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe(`dry-run: would create ${DESTINATION}\n`)
     expect(result.read(DESTINATION)).toBeUndefined()
-    expect(result.structured).toMatchObject({ written: false, dryRun: true })
   })
 
   it('置き先にファイルのあるとき force を付けずに呼ぶと、何も書かずに already-exists の失敗を返す', async (context) => {
@@ -105,11 +105,19 @@ describe('workflow install', () => {
     expect(result.structured['detail']).toContain('available: review')
   })
 
-  it.for([{ flag: 'force' }, { flag: 'dry_run' }])('check と $flag を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (row, context) => {
+  it('check と force を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-10')
-    const result = await install({ check: true, [row.flag]: true })
+    const result = await install({ check: true, force: true })
     expect(result.isError).toBe(true)
-    expect(result.structured).toMatchObject({ kind: 'invalid-input' })
+    expect(result.structured).toMatchObject({ kind: 'invalid-input', detail: 'check cannot be used with force' })
+    expect(result.read(DESTINATION)).toBeUndefined()
+  })
+
+  it('CLI で --check と --dry-run を一緒に付けると、何も書かずに使い方の誤りで止まる', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-10')
+    const result = await runCommand({ argv: ['workflow', 'install', 'review', '--check', '--dry-run'], config: false, github: [] })
+    expect(result.code).toBe(2)
+    expect(result.stderr).toBe('error: --check cannot be used with --force or --dry-run\n')
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 

@@ -267,7 +267,8 @@ describe('pr restack', () => {
     expect(workspace.git(['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe(UPPER)
   })
 
-  it('--dry-run を付けると、載せ直しと push をせずに、する予定を dry-run の行で出す', async () => {
+  it('--dry-run を付けると、載せ直しと push をせずに、する予定を dry-run の行で出す', async (context) => {
+    await verifies(context, 'PW-PR-RESTACK-22')
     const workspace = await openStacked({ github: [lowerPullRequests('OPEN')] })
     workspace.advanceRemote(LOWER)
     const before = head(workspace)
@@ -1141,19 +1142,6 @@ describe('pr restack', () => {
         const workspace = await openStacked({ github: [lowerPullRequests('OPEN')], files: ambiguousWorkspaceFiles() })
         const outcome = await callTool(workspace, { check: true, project: SECOND_PROJECT })
         expect(outcome.structured).toStrictEqual({ branch: UPPER, base: LOWER, outcome: 'up-to-date' })
-      })
-
-      it('dry_run を付けると、載せ直し・push・記録の書き込みをせずに、する予定を返して dryRun を true にする', async (context) => {
-        await verifies(context, 'PW-PR-RESTACK-22')
-        const workspace = await openStacked({ github: [lowerPullRequests('OPEN')] })
-        workspace.advanceRemote(LOWER)
-        const before = head(workspace)
-        const record = workspace.read(BASE_FILE)
-        rejectPushes(workspace)
-        const outcome = await callTool(workspace, { dry_run: true })
-        expect(outcome.structured).toStrictEqual({ branch: UPPER, base: LOWER, outcome: 'needs-restack', cause: 'base-moved', dryRun: true })
-        expect(head(workspace)).toBe(before)
-        expect(workspace.read(BASE_FILE)).toBe(record)
       })
 
       it('下の段がマージ済みで push が拒まれた後に呼び直すと、rebase をせずに push し、outcome を restacked にする', async (context) => {

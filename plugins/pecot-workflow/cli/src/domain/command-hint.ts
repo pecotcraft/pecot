@@ -69,6 +69,10 @@ export interface HintCommandShape {
   readonly positional: readonly string[]
   readonly inputs: readonly string[]
   /**
+  inputs のうち CLI だけが受け取るもの。MCP の案内では名指しできない
+  */
+  readonly cliOnly: readonly string[]
+  /**
   偽なら、入力 repo はグローバルの `--repo` で、CLI ではコマンド名の前に出す
   */
   readonly hasOwnRepo: boolean
@@ -108,6 +112,13 @@ export function placeholder(name: string): HintPlaceholder {
 
 export function surfaceText(cli: string, mcp: string): SurfaceText {
   return { kind: 'text', cli, mcp }
+}
+
+/**
+CLI の側だけに出す文。CLI だけの入力（dry_run）の案内に使い、MCP では空になる
+*/
+export function cliOnlyText(text: HintedText): SurfaceText {
+  return surfaceText(formatHinted(text, 'cli'), '')
 }
 
 /**
@@ -156,10 +167,11 @@ function shapeOf(path: readonly string[]): HintCommandShape {
   return shape
 }
 
-function assertInput(shape: HintCommandShape, name: string): void {
+function assertInput(shape: HintCommandShape, name: string, surface: HintSurface): void {
   // 自分の --repo を持たないコマンドの repo は、グローバルの --repo
   if (name === 'repo' && !shape.hasOwnRepo) return
   if (!shape.inputs.includes(name)) throw new TypeError(`案内の入力 '${name}' が '${shape.path.join(' ')}' の定義に無い`)
+  if (surface === 'mcp' && shape.cliOnly.includes(name)) throw new TypeError(`案内の入力 '${name}' は '${shape.path.join(' ')}' の CLI だけの入力で、MCP に出せない`)
 }
 
 function isList(value: HintValue): value is readonly string[] {
@@ -204,7 +216,7 @@ function formatCommand(hint: CommandHint, surface: HintSurface): string {
   const shape = shapeOf(hint.path)
   const values = new Map(Object.entries(hint.input))
   const names = Object.keys(hint.input)
-  for (const name of names) assertInput(shape, name)
+  for (const name of names) assertInput(shape, name, surface)
   const ordered = [...shape.positional.filter(name => names.includes(name)), ...names.filter(name => !shape.positional.includes(name))]
   const valueOf = (name: string): HintValue => values.get(name) ?? ''
   if (surface === 'mcp') {
@@ -223,7 +235,7 @@ function formatCommand(hint: CommandHint, surface: HintSurface): string {
 export function formatHint(hint: Hint, surface: HintSurface): string {
   if (hint.kind === 'command') return formatCommand(hint, surface)
   if (hint.kind === 'text') return surface === 'mcp' ? hint.mcp : hint.cli
-  if (hint.kind === 'input') assertInput(shapeOf(hint.path), hint.name)
+  if (hint.kind === 'input') assertInput(shapeOf(hint.path), hint.name, surface)
   const name = hint.kind === 'input' ? hint.name : 'repo'
   const { value } = hint
   switch (surface) {

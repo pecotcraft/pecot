@@ -411,20 +411,6 @@ describe('board sync', () => {
       expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
     })
 
-    it('dry_run で呼ぶと、札を変える予定も moves に入れて dryRun を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-09')
-      const rules = [rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), rateLimit(100)]
-      const result = await tool('board_sync', { dry_run: true }, rules)
-      expect(result.structured).toEqual({
-        moves: [
-          { issue: '#1', from: 'Ready', to: 'Blocked', label: 'Needs Attention', reason: 'blocked by #5 (closed without merge: #5)' },
-          { issue: '#3', label: 'Todo', reason: 'startable' },
-        ],
-        deletedArchived: 0,
-        dryRun: true,
-      })
-    })
-
     it('20 件を超えた Archived を削除すると、その件数を deletedArchived に返す', async (context) => {
       await verifies(context, 'PW-BOARD-SYNC-28')
       const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02'), rateLimit(130)])
@@ -659,15 +645,6 @@ describe('board sync', () => {
       expect(result.structured['detail']).toMatch(/^invalid config file: [^\n]+$/u)
       expect(result.requests).toEqual([])
     })
-
-    it('dry_run を付けると、Archived の項目を削除せず、削除する予定の件数を deletedArchived に入れる', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-29')
-      const rules = withPoints(board(...archivedItems(22), olderBacklog()))
-      const result = await tool('board_sync', { dry_run: true }, rules)
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 2, dryRun: true })
-      expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
-    })
   })
 })
 
@@ -677,11 +654,6 @@ describe('board add', () => {
       const result = await tool('board_add', { issue_ref: 'acme/demo/7' }, [linkedRepositories(), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
       expect(result.structured).toEqual({ issue: 'acme/demo/7', added: true, status: 'ready' })
     })
-
-    it('dry_run で呼ぶと、足す予定の Issue・Status と dryRun を返す', async () => {
-      const result = await tool('board_add', { issue_ref: 'acme/demo/7', status: 'active', dry_run: true }, [linkedRepositories(), issueNodeId()])
-      expect(result.structured).toEqual({ issue: 'acme/demo/7', added: true, status: 'active', dryRun: true })
-    })
   })
 })
 
@@ -690,12 +662,6 @@ describe('board move', () => {
     it('Status を設定すると、その Issue と Status を返す', async () => {
       const result = await tool('board_move', { issue_ref: 'acme/demo/7', status: 'in_review' }, [linkedRepositories(), boardItems(), fieldUpdated('o5')])
       expect(result.structured).toEqual({ issue: 'acme/demo/7', status: 'in_review' })
-    })
-
-    it('dry_run で呼ぶと、設定する予定の Status と dryRun を返し、フィールドを書かない', async () => {
-      const result = await tool('board_move', { issue_ref: 'acme/demo/7', status: 'in_review', dry_run: true }, [linkedRepositories(), boardItems()])
-      expect(result.structured).toEqual({ issue: 'acme/demo/7', status: 'in_review', dryRun: true })
-      expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
     })
   })
 })
@@ -719,7 +685,7 @@ describe('board show', () => {
         { id: 'PVTI_1', workflow: 'Ready', title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'blocked', stackOn: null, reason: 'not-in-review', text: 'blocked by #9 (not in review: #9 (not started))' } },
       ] },
       mismatches: 1,
-      warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; call board_sync (dry_run: true to preview) to fix'],
+      warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; call board_sync to fix'],
     }
 
     it('json を省くと、--json の中身に release_type・packages と列の合わない件数を足して返す', async (context) => {

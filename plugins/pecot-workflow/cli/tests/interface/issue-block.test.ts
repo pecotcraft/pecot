@@ -545,26 +545,25 @@ describe('issue block', () => {
       expect(requestLabels(github.requests())).toEqual(['GetLinkedRepositoriesUser', 'GetIssueBlockedByReferences'])
     })
 
-    it('dry_run で既に付いている前提を打つと、moves を入れずに unchanged と dryRun を data に返す', async (context) => {
+    it('CLI で既に付いている前提に --dry-run を付けると、何も書かずに、変えない予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-08')
-      await verifies(context, 'PW-ISSUE-BLOCK-24')
       prepareDependencyProject()
-      await startGithub([bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }])])
+      const github = await startGithub([bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }])])
 
-      const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: 'main の版が要る', dry_run: true })
+      const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'main の版が要る', '--dry-run')
 
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'unchanged', dryRun: true })
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would leave blocked-by #5 on #7 unchanged\n' })
+      expect(writes(github)).toEqual([])
     })
 
-    it('dry_run で打つと、付ける予定の added と dryRun を data に返す', async (context) => {
+    it('CLI で --dry-run を付けると、書き込みを送らずに、付ける予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-08')
-      await verifies(context, 'PW-ISSUE-BLOCK-24')
       prepareDependencyProject()
       const github = await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {})])
 
-      const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', dry_run: true })
+      const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--dry-run')
 
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'stack', change: 'added', dryRun: true })
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would add blocked-by #5 to #7\n' })
       expect(writes(github)).toEqual([])
     })
 

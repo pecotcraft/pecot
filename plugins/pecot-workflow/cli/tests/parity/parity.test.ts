@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { cliEntry, builtCliProblem } from './built-cli.js'
-import { readToolShape, toolInputOf } from './mcp-input.js'
+import { hasCliOnlyInput, readToolShape, toolInputOf } from './mcp-input.js'
 import { mcpViewOfStderr } from './mcp-view.js'
 import { runScenario } from './run.js'
 import type { Launcher, Outcome } from './run.js'
@@ -71,9 +71,11 @@ const TABLE_SUMMARIES: readonly { readonly id: string, readonly summary: string 
 ]
 
 // global-*: --help・--version・--show-repo・未知のコマンド・引数なしは、ツールの呼び出しに写せない。
-// 標準入力を使う 3 件: MCP のツールは標準入力を持たない
+// 標準入力を使う 3 件: MCP のツールは標準入力を持たない。--dry-run など CLI だけの入力を使うシナリオも写せない
 function isMcpMappable(id: string): boolean {
-  return !id.startsWith('global-') && !MCP_USAGE_EXCLUDED.has(id) && !MCP_UNMAPPABLE_STDIN.has(id)
+  if (id.startsWith('global-') || MCP_USAGE_EXCLUDED.has(id) || MCP_UNMAPPABLE_STDIN.has(id)) return false
+  const { command } = readScenario(id)
+  return !hasCliOnlyInput(readToolShape(command.path), command.args)
 }
 
 function excludedBy(reason: 'unmappable' | 'rejected'): readonly string[] {

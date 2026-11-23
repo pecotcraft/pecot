@@ -12,7 +12,7 @@ const Names = z.array(z.string())
 const PropertySchema = z.looseObject({ type: z.string() })
 const SurfacesSchema = z.object({ cli: z.object({ path: Names }) })
 const InputSchema = z.object({ properties: z.record(z.string(), PropertySchema) })
-const CliSchema = z.object({ positional: Names, flags: z.record(z.string(), Names) })
+const CliSchema = z.object({ positional: Names, flags: z.record(z.string(), Names), only: z.record(z.string(), z.unknown()).optional() })
 const EntrySchema = z.object({ surfaces: SurfacesSchema, input: InputSchema, cli: CliSchema })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 
@@ -42,6 +42,23 @@ function isNegationOf(flag: string, flags: readonly string[]): boolean {
 function flagTargets(shape: Readonly<ToolShape>): ReadonlyMap<string, FlagTarget> {
   const entries = Object.entries(shape.cli.flags).flatMap(([field, flags]) => flags.map((flag): [string, FlagTarget] => [flag, { field, isNegation: isNegationOf(flag, flags) }]))
   return new Map(entries)
+}
+
+function isCliOnly(shape: Readonly<ToolShape>, field: string): boolean {
+  return Object.hasOwn(shape.cli.only ?? {}, field)
+}
+
+/**
+argv が、CLI だけの入力（cli.only。dry_run など）のフラグを含むか。含む argv は MCP の入力に写せない
+*/
+export function hasCliOnlyInput(shape: Readonly<ToolShape>, argv: readonly string[]): boolean {
+  const targets = flagTargets(shape)
+  const separator = argv.indexOf('--')
+  const options = separator === -1 ? argv : argv.slice(0, separator)
+  return options.some((token) => {
+    const field = targets.get(token.split('=', 1)[0] ?? token)?.field
+    return field !== undefined && isCliOnly(shape, field)
+  })
 }
 
 function typeOf(shape: Readonly<ToolShape>, field: string): string {
@@ -103,6 +120,7 @@ function parseFlags(shape: Readonly<ToolShape>, argv: readonly string[]): Parsed
     const flag = equals === -1 ? token : token.slice(0, equals)
     const inlineValue = equals === -1 ? undefined : token.slice(equals + 1)
     const target = targetOf(targets, flag)
+    if (isCliOnly(shape, target.field)) throw new Error(`CLI だけの入力のフラグは、MCP の入力に写せません: ${flag}`)
     if (target.field !== 'repo' && typeOf(shape, target.field) === 'boolean') {
       if (inlineValue !== undefined) throw new Error(`${flag} は値を取らないフラグです: ${token}`)
       Reflect.set(input, target.field, !target.isNegation)
@@ -120,7 +138,7 @@ function parseFlags(shape: Readonly<ToolShape>, argv: readonly string[]): Parsed
 /**
 argv（コマンド名より後ろ）を、ツールの入力にする。位置引数は cli.positional の順に入れ、最後が配列ならその先を全部集める。
 フラグは cli.flags で入力の名前に引き、値を取らない真偽値は true（否定形は false）。グローバルの --repo は repo。
-写せない argv（未知のフラグ・負数に見える語・余った位置引数・真偽値への値など）は例外にする
+写せない argv（未知のフラグ・CLI だけの入力のフラグ・負数に見える語・余った位置引数・真偽値への値など）は例外にする
 */
 export function toolInputOf(shape: Readonly<ToolShape>, argv: readonly string[]): Readonly<ToolInput> {
   const { input, positional } = parseFlags(shape, argv)

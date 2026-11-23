@@ -615,12 +615,14 @@ describe('release create', () => {
       expect(result.requests).toEqual([])
     })
 
-    it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async () => {
+    it('--dry-run を付けて打つと、作る予定のタグを予定の行で標準エラーに出す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-05')
       const result = await runCreate(project(), ['0.2.0', '--dry-run'])
       expect(result.stderr).toBe('dry-run: would create release v0.2.0 on release\n')
     })
 
-    it('--dry-run を付けて打つと、リリースノートを標準出力に出す', async () => {
+    it('--dry-run を付けて打つと、リリースノートを標準出力に出す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CREATE-06')
       const result = await runCreate(project(), ['0.2.0', '--dry-run'])
       expect(result.stdout).toBe(`${NOTES_0_2_0}\n`)
     })
@@ -786,13 +788,6 @@ describe('release create', () => {
       expect(result.structured).toEqual({ tag: 'v0.2.0', url: 'https://ghes.example.com/acme/demo/releases/tag/v0.2.0', releaseNotes: NOTES_0_2_0 })
     })
 
-    it('dry_run で呼ぶと、URL を省いて dryRun を返す', async (context) => {
-      await verifies(context, 'PW-RELEASE-CREATE-05')
-      await verifies(context, 'PW-RELEASE-CREATE-06')
-      const result = await callTool(project(), 'release_create', { version: '0.2.0', dry_run: true }, [])
-      expect(result.structured).toEqual({ tag: 'v0.2.0', releaseNotes: NOTES_0_2_0, dryRun: true })
-    })
-
     it('repo が今の git remote のリポジトリと食い違うと、warnings に 1 つ入れる', async (context) => {
       await verifies(context, 'PW-RELEASE-CREATE-07')
       const result = await callTool(project({ repositories: [DEFAULT_REPOSITORY, OTHER] }), 'release_create', { version: '0.2.0', repo: 'acme/other' }, [releaseCreated('v0.2.0', 'v0.2.0', 'acme/other')])
@@ -893,7 +888,8 @@ describe('release merge', () => {
       expect(pathsOf(result)).not.toContain('PUT /repos/acme/demo/pulls/31/merge')
     })
 
-    it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async () => {
+    it('--dry-run を付けて打つと、PR の head と base を予定の行で標準エラーに出す', async (context) => {
+      await verifies(context, 'PW-RELEASE-MERGE-05')
       const result = await runMergeDryRun()
       expect(result.stderr).toBe('dry-run: would merge PR acme/demo/31 (develop -> release, merge commit)\n')
     })
@@ -1042,7 +1038,7 @@ describe('release merge', () => {
       const cli = await runMerge(projectWithBareOrigin(), ['acme/demo/31', '--dry-run'], [pullRequestResponse()], ['--repo', 'acme/demo'])
       expect(cli.code).toBe(0)
       expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
-      const result = await callTool(projectWithBareOrigin(), 'release_merge', { pr_ref: 'acme/demo/31', dry_run: true, repo: 'acme/demo' }, [pullRequestResponse()])
+      const result = await callTool(projectWithBareOrigin(), 'release_merge', { pr_ref: 'acme/demo/31', repo: 'acme/demo' }, [pullRequestResponse(), merged])
       expect(result.isError).toBe(false)
       expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
     })
@@ -1062,12 +1058,6 @@ describe('release merge', () => {
       await verifies(context, 'PW-RELEASE-MERGE-08')
       const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true }, [pullRequestResponse(), merged, deleted])
       expect(result.structured).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: true })
-    })
-
-    it('dry_run で呼ぶと、deletedBranch を false にして dryRun を返す', async (context) => {
-      await verifies(context, 'PW-RELEASE-MERGE-05')
-      const result = await callTool(project(), 'release_merge', { pr_ref: 'acme/demo/31', delete_branch: true, dry_run: true }, [pullRequestResponse()])
-      expect(result.structured).toEqual({ pullRequest: 'acme/demo/31', head: 'develop', base: 'release', deletedBranch: false, dryRun: true })
     })
 
     it('repo が今の git remote のリポジトリと食い違うと、食い違いを detail に入れ、kind が repo-mismatch の失敗を返す', async (context) => {

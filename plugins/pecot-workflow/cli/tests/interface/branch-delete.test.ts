@@ -135,12 +135,12 @@ describe('branch delete', () => {
       expect(requestLabels(result.requests)).toContain('DELETE /repos/acme/demo/git/refs/heads/feat/7')
     })
 
-    it('dry_run で打つと、何も削除せず、deleted を false にして dryRun を返す', async (context) => {
+    it('CLI で --dry-run を付けると、何も削除せず、削除する予定を dry-run の行に出して 0 で終わる', async (context) => {
       await verifies(context, 'PW-BRANCH-DELETE-03')
       await verifies(context, 'PW-BRANCH-DELETE-06')
-      const result = await tool({ ...ARGUMENTS, dry_run: true }, { github: [repository()] })
-      expect(result.isError).toBe(false)
-      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: false, dryRun: true })
+      const result = await remove({ github: [repository()] }, ['branch', 'delete', 'acme/demo', 'feat/7', '--dry-run'])
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('dry-run: would delete remote branch feat/7 in acme/demo\n')
       expect(requestLabels(result.requests)).toEqual(['GET /repos/acme/demo'])
     })
 

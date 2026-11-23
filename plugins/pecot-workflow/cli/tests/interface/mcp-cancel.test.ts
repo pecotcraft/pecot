@@ -255,7 +255,7 @@ it('pr_create の題の scope の確認が nx graph を待つ間、ping に答�
   await verifies(context, 'PW-COMMON-25')
   const workspace = await openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx')
-  const arguments_ = { message: 'body\n\nCloses #12\n', title: 'feat(demo): #12 変更', base: 'main', repo: 'acme/demo', screenshot: '撮らない', dry_run: true }
+  const arguments_ = { message: 'body\n\nCloses #12\n', title: 'feat(demo): #12 変更', base: 'main', repo: 'acme/demo', screenshot: '撮らない' }
   expect(await pingAndCancel({ name: 'pr_create', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
 })
 

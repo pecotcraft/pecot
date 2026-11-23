@@ -4,7 +4,7 @@ import { BORROWED_MAP, POSIX_MAP, definedFields, mappedFields } from '../src/dom
 describe('field map', () => {
   it('エントリの schema の全フィールドを、一覧にする', () => {
     expect(definedFields()).toEqual([
-      'arguments', 'behaviors', 'cli.flags', 'cli.positional', 'cli_reference.examples', 'constraints', 'default_notes', 'deprecated', 'description', 'details',
+      'arguments', 'behaviors', 'cli.flags', 'cli.only', 'cli.positional', 'cli_reference.examples', 'cli_reference.options', 'constraints', 'default_notes', 'deprecated', 'description', 'details',
       'diagnostics', 'effects', 'environment', 'examples', 'exit_status', 'help.default_notes', 'help.details', 'help.examples', 'hidden', 'id', 'idempotent',
       'input',
       'mcp.annotations', 'mcp.output', 'mcp.title', 'mcp_output.fields', 'name', 'on_error', 'output', 'prerequisites', 'stdin', 'summary', 'surfaces.cli.path', 'surfaces.mcp.tool',

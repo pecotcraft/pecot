@@ -114,7 +114,7 @@ describe('tools/list', () => {
     { name: 'issue_comment', required: ['issue', 'change'] },
     { name: 'issue_create', required: ['issues'] },
     { name: 'issue_check', required: ['plan'] },
-    { name: 'pr_create', required: ['head', 'base', 'title'] },
+    { name: 'pr_create', required: ['url', 'head', 'base', 'title', 'moves'] },
     { name: 'project_activate', required: ['configPath', 'change'] },
   ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
     const { client } = await connect()
@@ -135,6 +135,13 @@ describe('tools/list', () => {
     expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(COMMANDS.map(() => false))
   })
 
+  it('どのツールの入力にも dry_run が無く、どの outputSchema にも dryRun が無い', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    expect(tools.filter(tool => Object.hasOwn(tool.inputSchema.properties ?? {}, 'dry_run')).map(tool => tool.name)).toEqual([])
+    expect(tools.filter(tool => Object.hasOwn(OutputSchemaShape.parse(tool.outputSchema).properties, 'dryRun')).map(tool => tool.name)).toEqual([])
+  })
+
   it('全ツールが入力 repo（文字列）を持つ', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
@@ -149,6 +156,13 @@ describe('入力の検証の誤り', () => {
     const result = await client.callTool({ name: 'issue_create', arguments: { message: 'm', repo: 'acme/demo', bogus: true } })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' })
+  })
+
+  it('CLI だけの入力 dry_run を渡すと、コマンドを呼ばずに、dry_run を名指しして isError で返す', async () => {
+    const { client } = await connect()
+    const result = await client.callTool({ name: 'board_move', arguments: { issue_ref: 'acme/demo/7', status: 'active', dry_run: true } })
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'dry_run\'' })
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {

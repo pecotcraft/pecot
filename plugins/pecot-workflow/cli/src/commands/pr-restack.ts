@@ -39,7 +39,7 @@ import { gitFailureText } from '../domain/git-output.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { apiFailureMessage, createGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { primaryRemote, stopOnMalformedRecord, validatePullRequestContext } from './pr.js'
 import { readRestackDecision } from './restack-reading.js'
@@ -56,12 +56,11 @@ const PR_RESTACK_OUTPUT = z.strictObject({
   branch: z.string().describe('Branch that is restacked'),
   base: z.string().describe('Base branch after the restack (the develop branch when the lower PR is merged)'),
   outcome: z.enum(['up-to-date', 'needs-restack', 'restacked', 'synced', 'conflict', 'aborted']).describe('What happened, or with check, what a restack would do'),
-  cause: z.enum(['base-moved', 'base-merged']).optional().describe('Why a restack is needed (only with check or dry_run, when one is needed)'),
+  cause: z.enum(['base-moved', 'base-merged']).optional().describe('Why a restack is needed (only with check, when one is needed)'),
   pullRequest: z.int().optional().describe('Merged PR of the lower branch (only when the cause is base-merged)'),
   pushed: z.boolean().optional().describe('Whether the branch was pushed (only when restacked)'),
   conflicts: z.array(z.string()).optional().describe('Files with conflicts (only on conflict)'),
   relinked: z.int().optional().describe('Open PR whose body was saved again so that GitHub links its closing Issues (only after a restack onto the develop branch)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type PrRestackData = z.input<typeof PR_RESTACK_OUTPUT>

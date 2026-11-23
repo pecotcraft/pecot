@@ -46,7 +46,7 @@ import { findConfigForRemotes, readRemoteLocations } from '../infra/remote-confi
 import { kindOfFailure } from './failure.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
@@ -191,19 +191,18 @@ async function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<
 // pr create
 
 const PR_CREATE_OUTPUT = z.strictObject({
-  url: z.string().optional().describe('URL of the created PR (omitted on dry_run)'),
-  number: z.int().optional().describe('Number of the created PR (omitted on dry_run, or when the response has none)'),
+  url: z.string().describe('URL of the created PR'),
+  number: z.int().optional().describe('Number of the created PR (omitted when the response has none)'),
   head: z.string().describe('Head branch of the PR, owner:branch for a branch of a fork'),
   base: z.string().describe('Base branch of the PR'),
   title: z.string().describe('Title of the PR'),
   inReview: z.int().optional().describe('Issue number whose status was set to In Review (omitted when not set)'),
   stack: z.strictObject({
     lower: z.int().describe('PR number of the lower stage the new PR is stacked on'),
-    registered: z.boolean().optional().describe('Whether the new PR was registered to the stack (omitted on dry_run)'),
+    registered: z.boolean().describe('Whether the new PR was registered to the stack'),
     number: z.int().optional().describe('Stack number (omitted when not registered)'),
   }).optional().describe('Stack of the PR (omitted when the PR is not stacked)'),
-  moves: z.array(BOARD_MOVE_JSON).optional().describe('Issues waiting for this PR whose column or Status was written (omitted on dry_run)'),
-  dryRun: DRY_RUN_FIELD,
+  moves: z.array(BOARD_MOVE_JSON).describe('Issues waiting for this PR whose column or Status was written'),
 })
 
 type PrCreateData = z.input<typeof PR_CREATE_OUTPUT>
@@ -705,7 +704,6 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
   const issueNumber = extractIssueNumberFromBranch(headReference.branch)
   if (!isRelease && issueNumber !== undefined) out.planned(inReviewOperation(issueNumber))
   if (use?.stackOn !== undefined) out.planned({ verb: 'add', target: `the new PR to the stack of PR #${String(use.stackOn)}` })
-  out.result({ head, base, title, ...use?.stackOn !== undefined && { stack: { lower: use.stackOn } } })
 }
 
 function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {

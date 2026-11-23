@@ -33,7 +33,7 @@ import {
   WorktreeConfigError,
 } from '../infra/worktree-links.js'
 import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-links.js'
-import { createOutput, DRY_RUN_FIELD, isConfirmed } from './output.js'
+import { createOutput, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import { commandHint, hinted, hintedTextOf, inputHint, placeholder, RUN_COLON } from './command-hint.js'
@@ -94,11 +94,10 @@ const worktreeAddInput = z.object({
 
 const ADD_OUTPUT = z.strictObject({
   name: z.string().describe('Name of the worktree (the wtN it was numbered as)'),
-  path: z.string().describe('Absolute path of the worktree (on dry_run, where it would be)'),
+  path: z.string().describe('Absolute path of the worktree'),
   branch: z.string().describe('Branch checked out in the worktree'),
   base: z.string().describe('Base branch the worktree branch starts from'),
-  setupFailed: z.boolean().optional().describe('true when the setup command failed or timed out, false when it succeeded or was not run (omitted on dry_run)'),
-  dryRun: DRY_RUN_FIELD,
+  setupFailed: z.boolean().describe('true when the setup command failed or timed out, false when it succeeded or was not run'),
 })
 
 const worktreeAddCommand = defineCommand({
@@ -135,7 +134,7 @@ async function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & Global
     out.done(operation)
     out.data(result.path)
     const created = { name: result.name, path: result.path, branch: result.branch, base: result.baseBranch }
-    out.result(input.dry_run ? created : { ...created, setupFailed: result.setupResult !== undefined && result.setupResult.exitCode !== 0 })
+    out.result({ ...created, setupFailed: result.setupResult !== undefined && result.setupResult.exitCode !== 0 })
     if (result.linkedFiles.length > 0) countLinkResults(result.linkedFiles, out)
     if (result.copiedFiles.length > 0) countCopyResults(result.copiedFiles, out)
     return 0
@@ -154,9 +153,8 @@ const worktreeRemoveInput = z.object({
 })
 
 const REMOVE_OUTPUT = z.strictObject({
-  name: z.string().describe('Name of the worktree that was (on dry_run, would be) removed, as given'),
-  deletedBranch: z.boolean().describe('Whether the local branch was deleted (false when kept, when the deletion failed, and on dry_run)'),
-  dryRun: DRY_RUN_FIELD,
+  name: z.string().describe('Name of the worktree that was removed, as given'),
+  deletedBranch: z.boolean().describe('Whether the local branch was deleted (false when kept or when the deletion failed)'),
 })
 
 const worktreeRemoveCommand = defineCommand({
@@ -201,9 +199,8 @@ function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & Global
 const worktreeInitInput = z.object({ directory: directorySchema, dry_run: dryRunInput })
 
 const INIT_OUTPUT = z.strictObject({
-  configFile: z.string().describe('Absolute path of the worktree config file (on dry_run, where it would be)'),
-  ignoreFile: z.string().describe('Absolute path of the worktree ignore file (on dry_run, where it would be)'),
-  dryRun: DRY_RUN_FIELD,
+  configFile: z.string().describe('Absolute path of the worktree config file'),
+  ignoreFile: z.string().describe('Absolute path of the worktree ignore file'),
 })
 
 const worktreeInitCommand = defineCommand({
@@ -307,7 +304,6 @@ const LINK_ROW = z.strictObject({
 
 const LINK_OUTPUT = z.strictObject({
   links: z.array(LINK_ROW).describe('One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type LinkData = z.input<typeof LINK_OUTPUT>

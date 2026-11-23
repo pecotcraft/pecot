@@ -489,24 +489,23 @@ describe('pr merge', () => {
       expect(outcome.structured['detail']).toMatch(/^could not merge PR acme\/demo\/11: access denied/u)
     })
 
-    it('dry_run を付けると、PR とスタックを読み、要求を送らずに dryRun を true にして成功を返す', async (context) => {
+    it('CLI で --dry-run を付けると、PR とスタックを読み、要求を送らずに、マージする予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-PR-MERGE-14')
       prepareProject()
       const github = await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
-      const outcome = await mergeTool({ pr_ref: 'acme/demo/11', dry_run: true })
-      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', stack: { number: 3, size: 2 }, dryRun: true })
+      const outcome = await merge(['acme/demo/11', '--dry-run'])
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would merge PR #11 into main (stack #3, 1 of 2)\n' })
       expect(github.requests().some(request => request.type === 'rest' && request.method === 'PUT')).toBe(false)
     })
 
     it.for([
-      { state: 'CLOSED', detail: 'PR #11 is closed', dry_run: false },
-      { state: 'MERGED', detail: 'PR #11 is already merged', dry_run: false },
-      { state: 'CLOSED', detail: 'PR #11 is closed', dry_run: true },
-    ])('state が $state で dry_run が $dry_run なら、要求を送らずに kind が pr-state の失敗を返す', async (row, context) => {
+      { state: 'CLOSED', detail: 'PR #11 is closed' },
+      { state: 'MERGED', detail: 'PR #11 is already merged' },
+    ])('state が $state なら、要求を送らずに kind が pr-state の失敗を返す', async (row, context) => {
       await verifies(context, 'PW-PR-MERGE-15')
       prepareProject()
       const github = await startGithub([pullRequest({ state: row.state })])
-      const outcome = await mergeTool({ pr_ref: 'acme/demo/11', dry_run: row.dry_run })
+      const outcome = await mergeTool({ pr_ref: 'acme/demo/11' })
       expect(outcome.structured).toEqual({ kind: 'pr-state', detail: row.detail })
       expect(github.requests().map(request => labelOf(request))).toEqual(['GetPullRequestForMerge'])
     })
@@ -545,8 +544,8 @@ describe('pr merge', () => {
       const { project } = prepareProject()
       makeAmbiguous(project)
       await startGithub([pullRequest(), stacks([stackOf([11, 12])])])
-      const outcome = await mergeTool({ pr_ref: 'acme/demo/11', dry_run: true, project: SECOND_PROJECT })
-      expect(outcome.structured).toEqual({ pullRequest: 'acme/demo/11', base: 'main', stack: { number: 3, size: 2 }, dryRun: true })
+      const outcome = await merge(['acme/demo/11', '--dry-run', '--project', SECOND_PROJECT])
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would merge PR #11 into main (stack #3, 1 of 2)\n' })
     })
   })
 })

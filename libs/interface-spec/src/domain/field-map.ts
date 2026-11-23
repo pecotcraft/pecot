@@ -27,8 +27,8 @@ export const POSIX_MAP: readonly PosixRow[] = [
   { section: 'DESCRIPTION', fields: ['details', 'help.details'], writer: '人', mcp: '同じ' },
   {
     section: 'OPTIONS・OPERANDS',
-    fields: ['input', 'arguments', 'default_notes', 'help.default_notes'],
-    writer: '書き出し。arguments と default_notes は人',
+    fields: ['input', 'cli.only', 'arguments', 'cli_reference.options', 'default_notes', 'help.default_notes'],
+    writer: '書き出し。arguments・cli_reference.options・default_notes は人',
     mcp: 'Tool の inputSchema',
   },
   { section: 'STDIN', fields: ['stdin'], writer: '人', mcp: '常に none' },

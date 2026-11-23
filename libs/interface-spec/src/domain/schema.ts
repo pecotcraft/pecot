@@ -36,6 +36,8 @@ export const generatedEntrySchema = z.strictObject({
   cli: z.strictObject({
     positional: z.array(z.string()),
     flags: z.record(z.string(), z.array(z.string())),
+    // CLI だけが受け取る入力。値は input.properties の値と同じ JSON Schema。MCP の入力（input）には入れない。
+    only: z.record(z.string(), z.unknown()).optional(),
   }).optional(),
   mcp: z.strictObject({
     // Tool の最上位の title（表示名）。MCP の面を持つ項目で必須かは validate が確かめる。
@@ -134,7 +136,11 @@ export const authoredEntrySchema = z.strictObject({
   idempotent: z.boolean(),
   examples: z.array(z.union([runExample, callExample])),
   // CLI の節をページに出す項目の、CLI の使用例。CLI の面を持つ項目だけが書ける。
-  cli_reference: z.strictObject({ examples: z.array(runExample).min(1) }).optional(),
+  // options は、cli.only の入力ごとの説明。
+  cli_reference: z.strictObject({
+    examples: z.array(runExample).min(1),
+    options: z.record(z.string(), authoredText).optional(),
+  }).optional(),
   default_notes: z.record(z.string(), authoredText),
   // help は、CLI の --help に出す英語の文。prose が ja の定義書で、上の 3 つの欄の代わりに CLI が読む。
   help: z.strictObject({

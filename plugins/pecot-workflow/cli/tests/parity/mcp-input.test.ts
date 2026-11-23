@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { readToolShape, toolInputOf } from './mcp-input.js'
+import { hasCliOnlyInput, readToolShape, toolInputOf } from './mcp-input.js'
 import { readScenario, scenarioIds } from './scenario.js'
 
 describe('toolInputOf', () => {
@@ -78,13 +78,31 @@ describe('toolInputOf', () => {
     expect(() => readToolShape(['nope'])).toThrow('nope')
   })
 
-  it('global と usage を除く全シナリオの argv が、入力に写せる', () => {
+  it('CLI だけの入力のフラグは、長い形・短い形のどちらも例外にする', () => {
+    expect(() => toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', 'active', '--dry-run'])).toThrow('CLI だけの入力')
+    expect(() => toolInputOf(readToolShape(['board', 'move']), ['acme/demo/7', 'active', '-n'])).toThrow('CLI だけの入力')
+  })
+
+  it('global・usage・CLI だけの入力を使うものを除く全シナリオの argv が、入力に写せる', () => {
     const ids = scenarioIds().filter(id => !id.startsWith('global-') && !id.includes('usage'))
     expect(ids.length).toBeGreaterThan(100)
     for (const id of ids) {
       const scenario = readScenario(id)
       const shape = readToolShape(scenario.command.path)
+      if (hasCliOnlyInput(shape, scenario.command.args)) continue
       expect(() => toolInputOf(shape, scenario.command.args)).not.toThrow()
     }
+  })
+})
+
+describe('hasCliOnlyInput', () => {
+  it('CLI だけの入力のフラグを -- より前に含むときだけ真になる', () => {
+    const shape = readToolShape(['board', 'move'])
+    expect([
+      hasCliOnlyInput(shape, ['acme/demo/7', 'active', '--dry-run']),
+      hasCliOnlyInput(shape, ['acme/demo/7', 'active', '-n']),
+      hasCliOnlyInput(shape, ['acme/demo/7', 'active']),
+      hasCliOnlyInput(shape, ['--', 'acme/demo/7', '--dry-run']),
+    ]).toEqual([true, true, false, false])
   })
 })

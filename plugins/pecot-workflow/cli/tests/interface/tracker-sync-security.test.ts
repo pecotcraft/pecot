@@ -530,7 +530,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-TRACKER-SYNC-96')
       prepareSync({ ambiguous: true })
       await startGithub(listings({}, []))
-      const outcome = await syncOutcome({ dry_run: true, project: 'second' })
+      const outcome = await syncOutcome({ project: 'second' })
       expect(outcome.isError).toBe(false)
     })
 
@@ -557,7 +557,7 @@ describe('tracker sync', () => {
       const project = prepareSync()
       const github = await startGithub([])
       setEnvironment({ [project.tokenVariable]: undefined })
-      const outcome = await syncOutcome({ dry_run: true })
+      const outcome = await syncOutcome()
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toMatchObject({ kind: 'github-auth' })
       expect(outcome.structured['detail']).toContain('authentication error: could not get a GitHub API token')
@@ -764,15 +764,6 @@ describe('tracker sync', () => {
       expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [], removed: [], closed: false })
     })
 
-    it('dry_run で呼ぶと、作る予定の Tracker に足す alert と dryRun を返す', async (context) => {
-      await verifies(context, 'PW-TRACKER-SYNC-71')
-      freezeClock()
-      prepareSync()
-      await startGithub(listings({ dependabot: [dependabotAlert(1, 'high')], codeScanning: [codeScanningAlert(10)] }, []))
-      const data = await syncTool({ dry_run: true })
-      expect(data).toEqual({ source: 'security', created: true, added: [{ kind: 'dependabot', number: 1 }, { kind: 'code-scanning', number: 10 }], removed: [], closed: false, dryRun: true })
-    })
-
     it('Tracker を作った後にボードへの追加が失敗すると、作った Tracker と足した alert を data に残して失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
       await verifies(context, 'PW-TRACKER-SYNC-89')
@@ -800,7 +791,7 @@ async function syncOutcome(arguments_: Readonly<Record<string, unknown>> = {}): 
   return await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'security', ...arguments_ })
 }
 
-async function syncTool(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Readonly<Record<string, unknown>>> {
-  const { structured } = await syncOutcome(arguments_)
+async function syncTool(): Promise<Readonly<Record<string, unknown>>> {
+  const { structured } = await syncOutcome()
   return structured
 }

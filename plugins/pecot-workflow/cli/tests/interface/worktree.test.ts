@@ -420,13 +420,11 @@ describe('worktree add', () => {
     expect(gitForTest(result.stdout.trim(), ['rev-parse', 'HEAD']).trim()).toBe(gitForTest(repository, ['rev-parse', 'main']).trim())
   })
 
-  it('dry_run を付けて呼ぶと、何も作らず、予定のパスと dryRun を結果に入れる', async (context) => {
+  it('CLI で --dry-run を付けて打つと、worktree とブランチを作らない', async (context) => {
     await verifies(context, 'PW-WORKTREE-ADD-13')
-    await verifies(context, 'PW-WORKTREE-ADD-16')
-    await verifies(context, 'PW-WORKTREE-ADD-17')
     const { repository, root } = createProject()
-    const result = await tool('worktree_add', { directory: repository, dry_run: true })
-    expect(result.structured).toEqual({ name: 'wt1', path: path.join(root, 'wt1', 'demo'), branch: 'wt1', base: 'develop', dryRun: true })
+    const result = await pecot(['worktree', 'add', '-D', repository, '--dry-run'])
+    expect(result.code).toBe(0)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     expect(branches(repository)).not.toContain('wt1')
     expect(worktreePaths(repository)).toEqual([repository])
@@ -440,7 +438,9 @@ describe('worktree add', () => {
     expect(result.stdout).toBe(`${path.join(root, 'wt1', 'demo')}\n`)
   })
 
-  it('CLI で --dry-run を付けて打つと、予定の行を標準エラーに、予定のパスを標準出力に出す', async () => {
+  it('CLI で --dry-run を付けて打つと、予定の行を標準エラーに、予定のパスを標準出力に出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-ADD-16')
+    await verifies(context, 'PW-WORKTREE-ADD-17')
     const { repository, root } = createProject()
     const result = await pecot(['worktree', 'add', '-D', repository, '--dry-run'])
     expect(result.stderr).toBe(`dry-run: would create worktree wt1 at ${path.join(root, 'wt1', 'demo')} (branch wt1 from develop)\n`)
@@ -1016,17 +1016,6 @@ describe('worktree init', () => {
       const result = await tool('worktree_init', { directory: repository })
       expect(result.structured).toEqual({ configFile: files.config, ignoreFile: files.ignore })
     })
-
-    it('dry_run で呼ぶと、設定ファイルと ignore ファイルを書かず、書く予定のパスと dryRun を返す', async (context) => {
-      await verifies(context, 'PW-WORKTREE-INIT-19')
-      const { repository } = initialProject()
-      const files = configPaths(repository)
-      const result = await tool('worktree_init', { directory: repository, dry_run: true })
-      expect(result.isError).toBe(false)
-      expect(result.structured).toEqual({ configFile: files.config, ignoreFile: files.ignore, dryRun: true })
-      expect(existsSync(files.config)).toBe(false)
-      expect(existsSync(files.ignore)).toBe(false)
-    })
   })
 })
 
@@ -1125,14 +1114,14 @@ describe('worktree link', () => {
     expect(result.reads).toBe(0)
   })
 
-  it('dry_run を付けて呼ぶと、何も変えない', async (context) => {
+  it('CLI で --dry-run を付けて打つと、何も変えない', async (context) => {
     await verifies(context, 'PW-WORKTREE-LINK-11')
     const { worktree } = await linkedProject()
     const linkPath = path.join(worktree, 'CLAUDE.local.md')
     rmSync(linkPath, { force: true })
     writeFileSync(linkPath, 'mine')
-    const result = await tool('worktree_link', { directory: worktree, dry_run: true })
-    expect(result.isError).toBe(false)
+    const result = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
+    expect(result.code).toBe(0)
     expect(isSymlink(linkPath)).toBe(false)
     expect(readFileSync(linkPath, 'utf8')).toBe('mine')
   })
@@ -1176,7 +1165,8 @@ describe('worktree link', () => {
     expect(result.stderr).toContain(`skipped: symlink ${path.join(worktree, 'CLAUDE.local.md')} (${missing})\n`)
   })
 
-  it('CLI で --dry-run を付けて打つと、リンクごとの dry-run の予定の行を標準エラーに出す', async () => {
+  it('CLI で --dry-run を付けて打つと、リンクごとの dry-run の予定の行を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-LINK-16')
     const { project, worktree } = await linkedProject(['wt1'], { worktreeConfig: SECOND_LINK })
     rmSync(path.join(project.repository, 'second.md'))
     const result = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
@@ -1369,14 +1359,6 @@ describe('worktree link', () => {
       rmSync(path.join(project.repository, 'CLAUDE.local.md'))
       const result = await tool('worktree_link', { directory: worktree })
       expect(result.structured).toMatchObject({ links: [{ change: 'skip', reason: `target does not exist: ${path.join(project.repository, 'CLAUDE.local.md')}` }] })
-    })
-
-    it('dry_run で呼ぶと、予定の change と dryRun を返す', async (context) => {
-      await verifies(context, 'PW-WORKTREE-LINK-16')
-      const { project, worktree } = await linkedProject()
-      const result = await tool('worktree_link', { directory: worktree, dry_run: true })
-      expect(result.structured).toEqual({ links: [{ ...sharedLink(worktree, path.join(project.repository, 'CLAUDE.local.md')), change: 'create' }], dryRun: true })
-      expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
     })
 
     it('all を付けてサブの worktree が無いと、links を空の配列にして成功を返す', async (context) => {
@@ -1594,16 +1576,5 @@ describe('worktree remove', () => {
       expect(detailOf(result)).toContain('the repository is ambiguous')
       expect(detailOf(result)).toContain(UNREADABLE_REMOTE)
     })
-  })
-
-  it('dry_run を付けて呼ぶと、worktree とブランチを消さず、削除する予定の名前と dryRun を結果に入れて成功を返す', async (context) => {
-    await verifies(context, 'PW-WORKTREE-REMOVE-26')
-    const { repository } = createProject()
-    const worktree = await addWorktree()
-    const result = await tool('worktree_remove', { directory: repository, name: 'wt1', dry_run: true })
-    expect(result.isError).toBe(false)
-    expect(result.structured).toEqual({ name: 'wt1', deletedBranch: false, dryRun: true })
-    expect(existsSync(worktree)).toBe(true)
-    expect(branches(repository)).toContain('wt1')
   })
 })

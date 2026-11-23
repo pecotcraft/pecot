@@ -372,17 +372,6 @@ describe('issue comment', () => {
       ])
     })
 
-    it('message を dry_run で打つと、投稿せず、投稿する予定の Issue と dryRun を data に返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-COMMENT-29')
-      setUpProject()
-      const github = await startGithub([])
-
-      const outcome = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', dry_run: true })
-
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
-      expect(github.requests()).toEqual([])
-    })
-
     it('ファイルの本文がテンプレに合わないと、違反の文を detail に入れて content-invalid を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-COMMENT-16')
       await verifies(context, 'PW-ISSUE-COMMENT-17')
@@ -609,19 +598,6 @@ describe('issue comment', () => {
       expect(outcome.structured['kind']).toBe('invalid-input')
       expect(outcome.structured['detail']).toMatch(/^invalid reference: invalid-format\n/u)
       expect(github.requests()).toEqual([])
-    })
-
-    it('file を dry_run で打つと、投稿せず comment_url も書き戻さずに、投稿する予定と dryRun を返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-COMMENT-28')
-      const { file } = setUpCommentProject()
-      const github = await startGithub([linkedRepositories()])
-
-      const outcome = await commentTool({ file, dry_run: true })
-
-      expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'created', dryRun: true })
-      expect(github.requests()).toMatchObject([{ type: 'graphql', operation: 'GetLinkedRepositoriesUser' }])
-      expect(readFileSync(file, 'utf8')).toBe(commentFileContent())
     })
   })
 })

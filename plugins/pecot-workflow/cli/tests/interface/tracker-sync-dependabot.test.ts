@@ -344,7 +344,7 @@ describe('tracker sync', () => {
 
   it('project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-96')
-    const { outcome } = await syncToolRun(listings([], []), { dry_run: true, project: 'second' }, { ambiguous: true })
+    const { outcome } = await syncToolRun(listings([], []), { project: 'second' }, { ambiguous: true })
     expect(outcome.isError).toBe(false)
   })
 
@@ -377,7 +377,7 @@ describe('tracker sync', () => {
     const project = prepareSync()
     setEnvironment({ [project.tokenVariable]: undefined })
     const github = await startGithub([])
-    const outcome = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot', dry_run: true })
+    const outcome = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', { source: 'dependabot' })
     expect(outcome.isError).toBe(true)
     expect(outcome.structured).toMatchObject({ kind: 'github-auth' })
     expect(outcome.structured['detail']).toContain('authentication error: could not get a GitHub API token')
@@ -563,12 +563,6 @@ describe('tracker sync', () => {
       expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [{ kind: 'pull-request', number: 1 }], closed: true, warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'] })
     })
 
-    it('dry_run で呼ぶと、作る予定の Tracker に足す PR と dryRun を返す', async (context) => {
-      await verifies(context, 'PW-TRACKER-SYNC-32')
-      const data = await syncTool(listings([pullRequest({ number: 2, ...MAJOR })]), { dry_run: true })
-      expect(data).toEqual({ source: 'dependabot', created: true, added: [PR_2], removed: [], closed: false, dryRun: true })
-    })
-
     it('表を書き直した後で Tracker を閉じられないと、外した PR を data に残し、closed を false にして失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-18')
       await verifies(context, 'PW-TRACKER-SYNC-43')
@@ -603,7 +597,7 @@ async function syncToolRun(rules: readonly ResponseRule[], arguments_: Readonly<
   return { outcome, github }
 }
 
-async function syncTool(rules: readonly ResponseRule[], arguments_: Readonly<Record<string, unknown>> = {}): Promise<Readonly<Record<string, unknown>>> {
-  const { outcome } = await syncToolRun(rules, arguments_)
+async function syncTool(rules: readonly ResponseRule[]): Promise<Readonly<Record<string, unknown>>> {
+  const { outcome } = await syncToolRun(rules)
   return outcome.structured
 }

@@ -18,13 +18,12 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 
 const BOARD_ADD_OUTPUT = z.strictObject({
   issue: z.string().describe('Issue (owner/repo/N)'),
-  added: z.boolean().describe('true when the Issue is on the board (on dry_run, would be added)'),
+  added: z.boolean().describe('true when the Issue is on the board'),
   status: z.string().optional().describe('Status set on the board (omitted when status is empty)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const BOARD_ADD = defineCommand({
