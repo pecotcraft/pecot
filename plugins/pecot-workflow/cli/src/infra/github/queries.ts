@@ -1184,9 +1184,12 @@ const PROJECT_FIELD_VALUE_TYPES: readonly (readonly [string, string])[] = [
   ['ProjectV2ItemIssueFieldValue', ''],
 ]
 
+// Issue fields と同じ頃に入った型。Issue fields を持たない GHES の版のクエリには書かない
+const TYPES_WITH_ISSUE_FIELDS: ReadonlySet<string> = new Set(['ProjectV2ItemIssueFieldValue', 'ProjectV2ItemFieldMultiSelectValue'])
+
 function projectFieldValueSelections(hasIssueFields: boolean): string {
   return PROJECT_FIELD_VALUE_TYPES
-    .filter(([type]) => hasIssueFields || type !== 'ProjectV2ItemIssueFieldValue')
+    .filter(([type]) => hasIssueFields || !TYPES_WITH_ISSUE_FIELDS.has(type))
     .map(([type, value]) => `
               ... on ${type} {${value === '' ? '' : `\n                ${value}`}
                 field {
@@ -1321,6 +1324,13 @@ const ISSUE_FIELD_DEFINITIONS = `
       }
     }`
 
+const MULTI_SELECT_FIELD_OPTIONS = `
+          ... on ProjectV2MultiSelectField {
+            multiSelectOptions {
+              name
+            }
+          }`
+
 function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean): string {
   return `query ${name}($owner: String!, $repo: String!, $projectId: ID!) {
   project: node(id: $projectId) {
@@ -1342,12 +1352,7 @@ function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean
                 startDate
               }
             }
-          }
-          ... on ProjectV2MultiSelectField {
-            multiSelectOptions {
-              name
-            }
-          }
+          }${hasIssueFields ? MULTI_SELECT_FIELD_OPTIONS : ''}
           ... on ProjectV2SingleSelectField {
             options {
               name

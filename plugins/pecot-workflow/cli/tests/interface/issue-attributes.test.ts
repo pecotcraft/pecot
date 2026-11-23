@@ -201,6 +201,20 @@ describe('issue attributes', () => {
       expect(outcome.structured['warnings']).toStrictEqual(['could not read the Issue fields of acme/demo: Resource not accessible by integration'])
     })
 
+    it('ボードを読めない部分エラーでは、warnings に入れ、リポの定義を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-ATTRIBUTES-07')
+      setUp()
+      const errors = [{ type: 'INSUFFICIENT_SCOPES', path: ['project'], message: 'Your token has not been granted the required scopes' }]
+      await startGithub([issueFieldsProbeRule(), respond('GetIssueAttributeDefinitions', { data: { ...definitionsData(), project: null }, errors })])
+
+      const outcome = await attributes()
+
+      expect(outcome.isError).toBe(false)
+      expect(definitionsOf(outcome, 'project')).toStrictEqual([])
+      expect(definitionsOf(outcome, 'issue')).not.toStrictEqual([])
+      expect(outcome.structured['warnings']).toStrictEqual(['could not read the fields of the board: Your token has not been granted the required scopes'])
+    })
+
     it('Issue fields の無い GitHub Enterprise Server では、Issue fields と type を除いた定義を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-08')
       setUp()

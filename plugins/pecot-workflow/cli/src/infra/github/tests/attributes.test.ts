@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import type { ResponseRule } from '../../../../tests/fake-github/server.js'
 import { readAttributeDefinitions, readAttributeValues } from '../attributes.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
+import { QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS, QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS } from '../queries.js'
 import { graphqlData, graphqlRequests, rejection, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
@@ -174,6 +175,11 @@ describe('readAttributeDefinitions', () => {
 
     expect(definitions.map(definition => definition.name)).toStrictEqual(['Note', 'assignees', 'milestone', 'labels', 'parent', 'blocked_by'])
     expect(graphqlRequests(server).map(request => request.operation)).toStrictEqual(['HasIssueFields', 'GetIssueAttributeDefinitionsWithoutIssueFields'])
+  })
+
+  it('GHES 向けの版は、Issue fields と同じ頃に入った複数選択の型を問い合わせない', () => {
+    expect(QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS).not.toContain('MultiSelect')
+    expect(QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS).not.toContain('MultiSelect')
   })
 
   it('ラベルとマイルストーンに続きのページがあれば、続きも読む', async () => {

@@ -29,7 +29,7 @@ const DEFINITION_JSON = z.strictObject({
   source: SOURCE_JSON,
   kind: z.enum(ATTRIBUTE_KINDS).describe('Kind of the value'),
   options: z.array(OPTION_JSON).optional().describe('Values to choose from (only for the kinds with choices; assignees are not listed)'),
-  writable: z.boolean().describe('Whether pecot can write it (false for computed fields, the board columns moved by board_move, parent and blocked_by)'),
+  writable: z.boolean().describe('Whether the attribute takes a value set by a person or a tool (false for computed fields, the board columns moved by board_move, parent and blocked_by)'),
   unsupported_reason: z.string().optional().describe('GitHub type that pecot does not handle (only when kind is unsupported)'),
 })
 

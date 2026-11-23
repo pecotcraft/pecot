@@ -1166,7 +1166,7 @@
                   },
                   "writable": {
                     "type": "boolean",
-                    "description": "Whether pecot can write it (false for computed fields, the board columns moved by board_move, parent and blocked_by)"
+                    "description": "Whether the attribute takes a value set by a person or a tool (false for computed fields, the board columns moved by board_move, parent and blocked_by)"
                   },
                   "unsupported_reason": {
                     "description": "GitHub type that pecot does not handle (only when kind is unsupported)",

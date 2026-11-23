@@ -960,7 +960,7 @@ entries:
       description: '機能ごとに `- <name> (<source>, <kind>): <選べる値>` の行を並べた Markdown の箇条書きです。書けない機能は `<kind>` の後に `read-only` を、扱えない機能は `unsupported (<GitHub の種類>)` を出します。`--json` を付けると、`attributes` と `unsupported` を持つ JSON のオブジェクトです。'
     mcp_output:
       fields:
-        attributes: '機能の定義の配列です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`writable` を持ちます。`kind` の値は、ボードと Issue fields の種類の `single_select`・`multi_select`・`text`・`number`・`date`・`iteration` です。組み込みの機能の種類は `users`・`milestone`・`issue_type`・`labels`・`issue_ref`・`issue_refs` です。扱えない種類は `unsupported` です。選べる値のある `kind`（選択・Iteration・マイルストーン・Issue type・ラベル）は `options` を持ちます。`options` の要素は `name` を持ち、Iteration では `start_date`（`YYYY-MM-DD`）も持ちます。担当者は列挙しません。`kind` が `unsupported` の要素は、`unsupported_reason` に GitHub の種類を持ちます。キーは snake_case です。'
+        attributes: '機能の定義の配列です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`writable` を持ちます。`writable` は、人やツールが値を入れる機能かどうかで、GitHub が計算するフィールドなどは false です。`kind` の値は、ボードと Issue fields の種類の `single_select`・`multi_select`・`text`・`number`・`date`・`iteration` です。組み込みの機能の種類は `users`・`milestone`・`issue_type`・`labels`・`issue_ref`・`issue_refs` です。扱えない種類は `unsupported` です。選べる値のある `kind`（選択・Iteration・マイルストーン・Issue type・ラベル）は `options` を持ちます。`options` の要素は `name` を持ち、Iteration では `start_date`（`YYYY-MM-DD`）も持ちます。担当者は列挙しません。`kind` が `unsupported` の要素は、`unsupported_reason` に GitHub の種類を持ちます。キーは snake_case です。'
         unsupported: '`kind` が `unsupported` の機能の配列です。要素は `name`・`source`・`github_type` を持ちます。'
     diagnostics: 'ボードか Issue fields を読めないとき、一覧の続きを読まなかったときは、`warning` の行を出します。`--repo` が git remote と違うときも、`warning` の行を出します。'
     environment: []
@@ -2257,7 +2257,7 @@ entries:
     stdin: none
     output:
       format: text
-      description: '`## #<N> <title>` の見出しで始まる Markdown です。続けて、状態、親、Blocked by と Readiness の行、Attributes の節、紐づいたブランチ、紐づいた PR、sub-issue、本文、コメントを出します。Attributes の節は、機能ごとに `  - <name>: <value>` の行を並べます。`--json` を付けると、同じデータに `blockedBy`・`readiness`・`attributes`・`unsupported` を足した JSON のオブジェクトです。'
+      description: '`## #<N> <title>` の見出しで始まる Markdown です。続けて、状態、親、Blocked by と Readiness の行、Attributes の節、紐づいたブランチ、紐づいた PR、sub-issue、本文、コメントを出します。Attributes の節は、機能ごとに `  - <name>: <value>` の行を並べます。続けて、扱えない機能を `  - <name>: unsupported (<GitHub の種類>)` の行で並べます。`--json` を付けると、同じデータに `blockedBy`・`readiness`・`attributes`・`unsupported` を足した JSON のオブジェクトです。'
     mcp_output:
       fields:
         number: 'Issue の番号です。キーは snake_case です。'
