@@ -24,6 +24,7 @@
 | コマンド | 説明 |
 | --- | --- |
 | `issue block` | Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one |
+| `issue check` | Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything |
 | `issue comment` | Post a comment on an Issue |
 | `issue create` | Create Issues from Markdown files with frontmatter |
 | `issue reopen` | Reopen a closed Issue (also sets the status on the board) |
@@ -50,7 +51,7 @@
 | `project init` | Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist |
 | `project link` | Add or update a repository in the project config |
 | `project list` | List available projects |
-| `project search` | Search projects through the GitHub API |
+| `project search` | Search projects through the GitHub API, and show which are initialized and which is active |
 | `project set` | Set a key of the project config (aggregation_repo: the Epic aggregation repository) |
 | `project unset` | Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo |
 

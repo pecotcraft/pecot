@@ -13,7 +13,6 @@ import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand } from '../../../tests/_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../../../tests/_helpers/command-harness.js'
 import { commentFileContent, MERGE_DIFF_BODY } from '../../../tests/_helpers/issue-comment-case.js'
-import { TASK_BODY } from '../../../tests/_helpers/issue-create-case.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { prerequisitesRule } from '../../../tests/_helpers/prerequisites.js'
 import type { ResponseRule } from '../../../tests/fake-github/server.js'
@@ -23,7 +22,6 @@ useIsolatedEnvironment()
 type Json = Record<string, unknown>
 
 const SESSION_TITLE = '.pecot/state/.pecot-session-title'
-const OUTPUT_DIRECTORY = '.pecot/tmp/output'
 const BOARD_URL = `https://${DEFAULT_HOST}/users/acme/projects/1`
 
 const STATE = '.pecot/state'
@@ -115,43 +113,6 @@ describe('issue', () => {
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe('dry-run: would create comment on acme/demo/7\n')
-  })
-
-  it('issue comment の --prepare に dry_run を渡すと、テンプレートの写しを作らない', async () => {
-    const result = await dryRun(['issue', 'comment', '--prepare', '-t', 'plan', '-n'], [])
-    expect(result.code).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`dry-run: would create comment template plan in ${path.join(result.directory, OUTPUT_DIRECTORY)}\n`)
-    expect(existsSync(path.join(result.directory, OUTPUT_DIRECTORY)) ? readdirSync(path.join(result.directory, OUTPUT_DIRECTORY)) : []).toEqual([])
-  })
-
-  it('issue create の freeform に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async () => {
-    const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')])
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(requestLabels(result.requests)).toEqual(['GetLinkedRepositoriesUser'])
-    expect(result.stderr).toBe('dry-run: would create Issue in acme/demo: [Task] 一覧に 状態を 出す\n')
-  })
-
-  it('issue create の freeform に dry_run を渡すと、状態のファイルを作らない', async () => {
-    const result = await dryRun(['issue', 'create', '--freeform', '-r', 'acme/demo', '-m', '一覧に 状態を 出す', '-n'], [linked('demo')])
-    expect(result.code).toBe(0)
-    expect(Object.keys(snapshot(result.directory, STATE))).toEqual([])
-  })
-
-  it('issue create の -m に dry_run を渡すと、Issue を作らずに作成の予行の行だけ出す', async () => {
-    const result = await dryRun(['issue', 'create', '-t', '一覧に状態を出す', '-r', 'acme/demo', '-m', TASK_BODY, '-n'], [linked('demo')])
-    expect(result.code).toBe(0)
-    expectClean(result)
-    expect(result.stderr).toBe('dry-run: would create Issue in acme/demo: [Task] 一覧に状態を出す\n')
-  })
-
-  it('issue create の --prepare に dry_run を渡すと、テンプレートの写しを作らない', async () => {
-    const result = await dryRun(['issue', 'create', '--prepare', '-r', 'acme/demo', '-n'], [])
-    expect(result.code).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`dry-run: would create Issue template task in ${path.join(result.directory, OUTPUT_DIRECTORY)}\n`)
-    expect(existsSync(path.join(result.directory, OUTPUT_DIRECTORY)) ? readdirSync(path.join(result.directory, OUTPUT_DIRECTORY)) : []).toEqual([])
   })
 })
 

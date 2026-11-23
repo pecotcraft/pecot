@@ -69,9 +69,7 @@ describe.each(['w-active', 'w-quick'])('%s の手順', (name) => {
     const post = titleIndex(headings, '計画の投稿')
     const body = sectionBody(text, post)
     const draftBody = sectionBody(text, draft)
-    expect(draftBody).toContain('`issue_comment`')
-    expect(draftBody).toContain('`prepare: true`')
-    expect(draftBody).toContain('`template: "plan"`')
+    expect(draftBody).toContain('`pecot-template://comment/plan`')
     expect(draft).toBeLessThan(post)
     expect(post).toBeLessThan(titleIndex(headings, 'プランモード'))
     expect(body).toContain('`issue_comment` を使って、書いたファイルを Issue に投稿する')
@@ -329,17 +327,17 @@ describe('w-ready の手順', () => {
     expect(text).toContain('`order`・`status` は書かない')
   })
 
-  it('投稿の前に dry_run: true で確かめる', () => {
+  it('投稿の前に issue_check で確かめる', () => {
     const body = sectionBody(text, titleIndex(headings, '作成'))
-    const planned = body.indexOf('`dry_run: true`')
-    const posted = body.indexOf('（`dry_run` なし）')
+    const planned = body.indexOf('`issue_check`')
+    const posted = body.indexOf('`issue_create` を使って投稿する')
     expect(planned).toBeGreaterThanOrEqual(0)
     expect(posted).toBeGreaterThan(planned)
   })
 
-  it('dry_run では置く列を確かめさせない（dry_run の結果に列は無い）', () => {
+  it('issue_check では置く列を確かめさせない（issue_check の結果に列は無い）', () => {
     const body = sectionBody(text, titleIndex(headings, '作成'))
-    expect(body.slice(0, body.indexOf('（`dry_run` なし）'))).not.toContain('置く列')
+    expect(body.slice(0, body.indexOf('`issue_create` を使って投稿する'))).not.toContain('置く列')
   })
 
   it('完了報告に、置いた列と、Blocked のときに待つものを入れる', () => {
@@ -374,7 +372,7 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('表が無かった旨を伝える')
   })
 
-  it('Step 3 は、dry_run: true で確かめた番号・前提・進め方を、前提の表と並べて示す', () => {
+  it('Step 3 は、issue_check で確かめた番号・前提・進め方を、前提の表と並べて示す', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
     expect(body).toContain('結果の番号・前提・進め方を表にし')
     expect(body).toContain('積める並びも示す')
@@ -393,10 +391,10 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('前提を付け直すコマンドの行があれば、打たずにそのままユーザーへ示す')
   })
 
-  it('dry_run: true の呼び出しは、投稿の呼び出しより前にある', () => {
+  it('issue_check の呼び出しは、投稿の呼び出しより前にある', () => {
     const body = sectionBody(text, numberIndex(headings, 3))
-    const planned = body.indexOf('`dry_run: true`')
-    const posted = body.indexOf('（`dry_run` なし）')
+    const planned = body.indexOf('`issue_check`')
+    const posted = body.indexOf('`issue_create` を 1 回だけ使う')
     expect(planned).toBeGreaterThanOrEqual(0)
     expect(posted).toBeGreaterThan(planned)
     expect(body).toContain('合意を得てから投稿する')

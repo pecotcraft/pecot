@@ -7,37 +7,83 @@
       "id": "SM-ONE",
       "name": "one run",
       "description": "Runs one thing",
-      "surfaces": { "cli": { "path": ["one", "run"] } },
+      "surfaces": {
+        "cli": {
+          "path": [
+            "one",
+            "run"
+          ]
+        }
+      },
       "hidden": false,
       "deprecated": false,
       "input": {
         "type": "object",
         "properties": {
-          "target": { "type": "string", "description": "What to run" },
-          "force": { "type": "boolean", "description": "Skip the check" }
+          "target": {
+            "type": "string",
+            "description": "What to run"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Skip the check"
+          }
         },
-        "required": ["target"]
+        "required": [
+          "target"
+        ]
       },
-      "cli": { "positional": ["target"], "flags": { "force": ["--force", "-f"] } }
+      "cli": {
+        "positional": [
+          "target"
+        ],
+        "flags": {
+          "force": [
+            "--force",
+            "-f"
+          ]
+        }
+      }
     },
     {
       "id": "SM-TWO",
       "name": "sample_two",
       "description": "Reads two things",
-      "surfaces": { "mcp": { "tool": "sample_two" } },
+      "surfaces": {
+        "mcp": {
+          "tool": "sample_two"
+        }
+      },
       "hidden": false,
       "deprecated": false,
-      "input": { "type": "object", "properties": {} },
+      "input": {
+        "type": "object",
+        "properties": {}
+      },
       "mcp": {
         "title": "Sample two",
         "output": {
           "type": "object",
           "properties": {
-            "ok": { "type": "boolean", "description": "Whether it worked" },
-            "kind": { "type": "string" },
-            "detail": { "type": "string" },
-            "log": { "type": "string" },
-            "warnings": { "type": "array", "items": { "type": "string" } }
+            "ok": {
+              "type": "boolean",
+              "description": "Whether it worked"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            },
+            "log": {
+              "type": "string"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           },
           "additionalProperties": false
         }
@@ -47,19 +93,51 @@
       "id": "SM-BAD",
       "name": "bad entry",
       "description": "Has no authored entry",
-      "surfaces": { "cli": { "path": ["bad"] } },
+      "surfaces": {
+        "cli": {
+          "path": [
+            "bad"
+          ]
+        }
+      },
       "hidden": false,
       "deprecated": false,
-      "input": { "type": "object", "properties": {} }
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
     },
     {
       "id": "SM-HALF",
       "name": "half entry",
       "description": "Has a behavior without a statement",
-      "surfaces": { "cli": { "path": ["half"] } },
+      "surfaces": {
+        "cli": {
+          "path": [
+            "half"
+          ]
+        }
+      },
       "hidden": false,
       "deprecated": false,
-      "input": { "type": "object", "properties": {} }
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "sample://note/one",
+      "name": "note-one",
+      "description": "The first note.",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "sample://note/two",
+      "name": "note-two",
+      "description": "The second note.",
+      "mimeType": "text/markdown"
     }
   ]
 }

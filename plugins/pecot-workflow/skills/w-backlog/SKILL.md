@@ -46,7 +46,7 @@ Epic の作成先を決めるため、pecot-workflow の MCP ツール `project_
 
 ### Step 4: Epic Issueを作成
 
-1. pecot-workflow の MCP ツール `issue_create` を使って、Epic のテンプレートのファイルを作る（`prepare: true`・`template: "epic"`）
+1. pecot-workflow の MCP サーバの resource `pecot-template://issue/epic` を読み、Epic のテンプレートのファイルを作る
 2. できたファイルを編集する
    - YAMLフロントマターを設定する
    - Issue本文を記述する（テンプレ冒頭コメントの 読者:/書き方: に従う）

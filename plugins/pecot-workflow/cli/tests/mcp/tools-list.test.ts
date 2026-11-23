@@ -1,4 +1,4 @@
-// tools/list が、COMMANDS の 37 個と定義書の入力に一致し、入力の検証の誤りがコマンドを呼ばずに返ることを確かめる。
+// tools/list が、COMMANDS の全ツールと定義書の入力に一致し、入力の検証の誤りがコマンドを呼ばずに返ることを確かめる。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -54,10 +54,10 @@ afterEach(async () => {
 })
 
 describe('tools/list', () => {
-  it('COMMANDS と同じ 39 個の名前を、同じ並びで返す', async () => {
+  it('COMMANDS と同じ 40 個の名前を、同じ並びで返す', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools).toHaveLength(39)
+    expect(tools).toHaveLength(40)
     expect(tools.map(tool => tool.name)).toEqual(COMMANDS.map(command => command.toolName))
   })
 
@@ -110,6 +110,19 @@ describe('tools/list', () => {
     expect(schema.additionalProperties).toBe(false)
   })
 
+  it.for([
+    { name: 'issue_comment', required: ['issue', 'change'] },
+    { name: 'issue_create', required: ['issues'] },
+    { name: 'issue_check', required: ['plan'] },
+    { name: 'pr_create', required: ['head', 'base', 'title'] },
+    { name: 'project_activate', required: ['configPath', 'change'] },
+  ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const schema = tools.find(tool => tool.name === name)?.outputSchema
+    expect(schema).toMatchObject({ anyOf: [{ required }, { required: ['kind', 'detail'] }] })
+  })
+
   it('全ツールの outputSchema に、真偽値の true の schema が無い', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
@@ -136,13 +149,6 @@ describe('入力の検証の誤り', () => {
     const result = await client.callTool({ name: 'issue_create', arguments: { message: 'm', repo: 'acme/demo', bogus: true } })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' })
-  })
-
-  it('改名前の入力名を渡すと、新しい名前を添えて、コマンドを呼ばずに isError で返す', async () => {
-    const { client } = await connect()
-    const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'acme/demo/7', message: 'm', template: 'plan' } })
-    expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {

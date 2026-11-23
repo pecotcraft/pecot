@@ -167,6 +167,8 @@ const SEARCH_ROW = z.strictObject({
   number: z.int().optional().describe('Project number (omitted when GitHub did not return it)'),
   title: z.string().optional().describe('Project title (omitted when GitHub did not return it)'),
   url: z.string().optional().describe('Project URL (omitted when GitHub did not return it)'),
+  initialized: z.boolean().optional().describe('Whether project init has set up the fields (omitted without a number, or when the fields could not be read)'),
+  active: z.boolean().optional().describe('Whether this project is the active one (omitted without a number)'),
 })
 
 const SEARCH_OUTPUT = z.strictObject({
@@ -175,10 +177,38 @@ const SEARCH_OUTPUT = z.strictObject({
   projects: z.array(SEARCH_ROW).describe('Projects of the owner'),
 })
 
+type SearchRow = z.input<typeof SEARCH_ROW>
+
+// 初期化済みかは project activate と同じく workflow のフィールドの有無で決める。読めない行は initialized を省く
+async function searchRow(out: Readonly<Output>, client: Readonly<GitHubClient>, owner: string, project: Readonly<Record<string, JsonValue>>, activeNumber: number | undefined): Promise<SearchRow> {
+  const { number, title, url } = project
+  const row: SearchRow = {
+    ...typeof number === 'number' && { number },
+    ...typeof title === 'string' && { title },
+    ...typeof url === 'string' && { url },
+  }
+  if (typeof number !== 'number') return row
+  const isActive = activeNumber === number
+  let info: Readonly<Record<string, JsonValue>> | undefined
+  try {
+    info = await client.getProjectFields(owner, number)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    out.warning(`could not read the fields of project #${String(number)}: ${error.message}`)
+    return { ...row, active: isActive }
+  }
+  if (info === undefined || !isTruthy(info)) {
+    out.warning(`could not read the fields of project #${String(number)}`)
+    return { ...row, active: isActive }
+  }
+  return { ...row, initialized: hasWorkflowField(fieldNodesOf(info)), active: isActive }
+}
+
 const searchCommand = defineCommand({
   path: ['project', 'search'],
   title: 'Search projects',
-  description: 'Search projects through the GitHub API',
+  description: 'Search projects through the GitHub API, and show which are initialized and which is active',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
@@ -191,21 +221,23 @@ const searchCommand = defineCommand({
     const out = createOutput<z.input<typeof SEARCH_OUTPUT>>(false, io)
     const { owner, host } = input
     await guarded(out, 'list projects', async () => {
-      const projects = await createGitHubClient(out, host).listProjects(owner)
+      const client = createGitHubClient(out, host)
+      const projects = await client.listProjects(owner)
       if (projects.length === 0) stopWith(out, `no projects found for ${owner}`, 'project-not-found')
+      const activeNumber = activeProjectNumber(host, owner)
       const lines = [`=== Projects of ${owner} (${host}) ===`, '', `${padEndCodePoints('#', 4)} ${padEndCodePoints('Title', SEARCH_TITLE_WIDTH)} URL`, '-'.repeat(80)]
+      const rows: SearchRow[] = []
       for (const project of projects) {
+        const row = await searchRow(out, client, owner, project, activeNumber)
         const number = project['number'] === undefined ? '?' : textOf(project['number'])
         const rawTitle = project['title'] === undefined ? '(untitled)' : textOf(project['title'])
         const title = splitCodePoints(rawTitle).length > SEARCH_TITLE_LIMIT ? `${truncateCodePoints(rawTitle, 35)}...` : rawTitle
-        lines.push(`${padEndCodePoints(number, 4)} ${padEndCodePoints(title, SEARCH_TITLE_WIDTH)} ${project['url'] === undefined ? '' : textOf(project['url'])}`)
+        const marks = `${row.initialized === true ? ' [INITIALIZED]' : ''}${row.active === true ? ' [ACTIVE]' : ''}`
+        lines.push(`${padEndCodePoints(number, 4)} ${padEndCodePoints(title, SEARCH_TITLE_WIDTH)} ${project['url'] === undefined ? '' : textOf(project['url'])}${marks}`)
+        rows.push(row)
       }
       out.data(lines.join('\n'))
-      out.result({ owner, host, projects: projects.map(project => ({
-        ...typeof project['number'] === 'number' && { number: project['number'] },
-        ...typeof project['title'] === 'string' && { title: project['title'] },
-        ...typeof project['url'] === 'string' && { url: project['url'] },
-      })) })
+      out.result({ owner, host, projects: rows })
     })
     return 0
   },
@@ -484,7 +516,7 @@ async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, confi
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, suffix: config.workflow_suffix, isDryRun }))
+    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, suffix: config.workflow_suffix, ...SYNC_FOR_ACTIVATE, isDryRun }))
   })
 }
 
@@ -499,37 +531,6 @@ async function resolveActivationOwner(out: Readonly<Output>, client: Readonly<Gi
     throw error
   }
   return typeof login === 'string' && login !== '' ? login : stopWith(out, 'could not read the authenticated user', 'github-api')
-}
-
-// 一覧の表示モード。初期化済みのプロジェクトに [ACTIVE] を付ける
-async function echoInitializedProjects(out: Readonly<Output<ActivateData>>, client: Readonly<GitHubClient>, host: string, owner: string): Promise<void> {
-  const lines = [`=== Initialized projects (${host}/${owner}) ===`]
-  const initialized: JsonValue[] = []
-  const owned = await client.listProjects(owner)
-  for (const project of owned) {
-    const number = project['number']
-    if (number === undefined || number === null) continue
-    const projectInfo = await client.getProjectFields(owner, requireNumber(number, 'project.number'))
-    if (projectInfo === undefined || !isTruthy(projectInfo)) continue
-    if (hasWorkflowField(fieldNodesOf(projectInfo))) initialized.push(project)
-  }
-  if (initialized.length === 0) {
-    lines.push('  none')
-    out.data(lines.join('\n'))
-    out.result({ candidates: [] })
-    return
-  }
-  const activeNumber = activeProjectNumber(host, owner)
-  const candidates: { number?: number, title?: string, active: boolean }[] = []
-  for (const project of initialized) {
-    const number = jsonField(project, 'number')
-    const title = jsonField(project, 'title')
-    const isActive = activeNumber === number
-    lines.push(`  #${textOf(number)}: ${title === undefined ? '(untitled)' : textOf(title)}${isActive ? ' [ACTIVE]' : ''}`)
-    candidates.push({ ...typeof number === 'number' && { number }, ...typeof title === 'string' && { title }, active: isActive })
-  }
-  out.data(lines.join('\n'))
-  out.result({ candidates })
 }
 
 function activeProjectNumber(host: string, owner: string): number | undefined {
@@ -564,23 +565,18 @@ async function activateByReference(out: Readonly<Output<ActivateData>>, client: 
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
     stopWith(out, hinted`project "${title}" is not initialized\n${RUN_COLON}${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
-  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, isDryRun }))
+  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, ...SYNC_FOR_ACTIVATE, isDryRun }))
 }
 
 const ACTIVATE_PATH = ['project', 'activate']
+// 中身が同じ設定ファイルは書かず、change を unchanged にしたうえでアクティブにする
+const SYNC_FOR_ACTIVATE = { skipIfUnchanged: true, activateIfUnchanged: true }
 const LINK_PATH = ['project', 'link']
-
-const CANDIDATE_ROW = z.strictObject({
-  number: z.int().optional().describe('Project number'),
-  title: z.string().optional().describe('Project title'),
-  active: z.boolean().describe('Whether this project is the active one'),
-})
 
 const ACTIVATE_OUTPUT = z.strictObject({
   project: z.string().optional().describe('Name of the project config that was (on dry_run, would be) made active'),
-  configPath: z.string().optional().describe('Path of the project config file'),
-  change: z.enum(['create', 'update', 'unchanged']).optional().describe('What happened to the config file'),
-  candidates: z.array(CANDIDATE_ROW).optional().describe('Initialized projects of the owner, given only when no project was named (nothing was activated)'),
+  configPath: z.string().describe('Path of the project config file'),
+  change: z.enum(['create', 'update', 'unchanged']).describe('What happened to the config file'),
   dryRun: DRY_RUN_FIELD,
 })
 
@@ -596,7 +592,7 @@ const activateCommand = defineCommand({
   title: 'Activate project',
   description: 'Activate an initialized project',
   input: z.strictObject({
-    project: z.string().optional().describe('Project number or name, or config file path/file name'),
+    project: z.string().describe('Project number or name, or config file path/file name (list the candidates with project search)'),
     owner: z.string().optional().describe('Project owner (defaults to the authenticated user)'),
     host: z.string().optional().describe('GitHub host'),
     dry_run: dryRunInput,
@@ -609,7 +605,7 @@ const activateCommand = defineCommand({
     const out = createOutput<ActivateData>(input.dry_run, io)
     const { project, host } = input
     // --host の要らない形（設定ファイルのパスか名前）を先に見る
-    const configPath = project === undefined ? undefined : findConfigFileArgument(project)
+    const configPath = findConfigFileArgument(project)
     if (configPath !== undefined) {
       await activateFromConfigFile(out, configPath, host, input.dry_run)
       return 0
@@ -619,8 +615,8 @@ const activateCommand = defineCommand({
         stopWith(
           out,
           hinted`${inputNameHint(ACTIVATE_PATH, 'host')} is required
-example: ${commandHint(ACTIVATE_PATH, { host: 'github.com', owner: 'example-org' })}
-example: ${commandHint(ACTIVATE_PATH, { host: 'ghes.example.com', owner: 'example-org' })}
+example: ${commandHint(ACTIVATE_PATH, { project: '1', host: 'github.com', owner: 'example-org' })}
+example: ${commandHint(ACTIVATE_PATH, { project: 'example-project', host: 'ghes.example.com', owner: 'example-org' })}
 example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_example-project_example-org' })}`,
           'invalid-input',
         )
@@ -628,9 +624,7 @@ example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_e
       // 認証の失敗に、--owner を渡す案内を添えないため
       const client = await createAuthenticatedGitHubClient(out, host)
       const owner = await resolveActivationOwner(out, client, input.owner)
-      // 一覧は書き込まないので、dry_run でも data に dryRun を足さない
-      if (project === undefined) await echoInitializedProjects(createOutput<ActivateData>(false, io), client, host, owner)
-      else await activateByReference(out, client, { host, owner, project, isDryRun: input.dry_run })
+      await activateByReference(out, client, { host, owner, project, isDryRun: input.dry_run })
     })
     return 0
   },
