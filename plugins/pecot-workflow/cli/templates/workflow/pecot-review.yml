@@ -51,8 +51,10 @@
 #
 # The job summary of each run shows the model and the effort level that were used.
 # It also lists the tools that were called and the calls that were denied.
-# For each call it shows the main input cut to 200 characters, never tool output.
-# The input is a path, command, pattern, or URL. Some tools show a query or a reference.
+# For each call it shows one input field cut to 200 characters, never tool output.
+# The field is the first one found in this order: path, command, pattern, URL.
+# Then it looks for a query or a reference.
+# A call with none of these shows only the names of its input fields.
 # Any of these inputs, even in a denied call, can carry text that Claude wrote.
 #
 # Runs started by Dependabot read Dependabot secrets, not Actions secrets.
