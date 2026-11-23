@@ -31,7 +31,11 @@
 - **Decision**: vitest の設定のすべてに、reporter `allure-vitest/reporter` を足す。`resultsDir` は、レーンごとに分けた `<project>/test-results/<target>/allure-results` にする。既存の `junit` の reporter は残す
   - 対象の設定: `plugins/pecot-workflow/cli/vitest.config.ts`、`plugins/pecot-visual/cli/vitest.config.ts`・`vitest.e2e.config.ts`、`plugins/pecot-tools/cli/vitest.config.ts`・`vitest.e2e.config.ts`、`libs/interface-spec/vitest.config.ts`・`vitest.site.config.ts`、`libs/text-rules/vitest.config.ts`
   - プロジェクトとレーンは、reporter の `globalLabels` で `project`・`lane` のラベルとして渡す。値は、nx が task に渡す環境変数（`NX_TASK_TARGET_PROJECT`・`NX_TASK_TARGET_TARGET`）から決める
-  - `allure-vitest`・`allure-js-commons` は 3.15.0 に固定する
+  - `allure-vitest`・`allure-js-commons` は 3.15.0 に固定する。依存は、reporter を読むパッケージ（3 つのプラグインの `cli`・`libs/interface-spec`・`libs/text-rules`）の `package.json` に足す。`allure` の CLI だけは、ルートの `package.json` に足す
+  - 1 つのレーンがテストを何回かに分けて動かすときは、同じ結果のディレクトリへ書き足す。空にするのは、レーンの最初の 1 回だけにする
+    - `pecot-visual:test-cli`・`pecot-tools:test-cli`: vitest の後に e2e
+    - `interface-spec:test-unit`: vitest の後に pytest
+  - `pecot-workflow:test-hooks` の 2 回目（`env -i` で、1 回目と JUnit を比べるための実行）は、Allure の結果を残さない。同じテストが 2 回出るのを避ける。`env -i` では nx の環境変数も消えるので、ラベルも付かない
 - **Rationale**:
   - 文書の形は `reporters: [..., ["allure-vitest/reporter", { resultsDir }]]`。peerDependencies は `vitest >= 1.3.0` で、5.1.0 を含む
   - `globalLabels` は reporter の文書にある設定で、すべての結果に付く。`ALLURE_LABEL_<名前>` の環境変数は vitest の文書に無く（ソース）、pytest では使えないので、採らない
@@ -72,7 +76,7 @@
 - **Decision**: 履歴は、側ごとの 1 つのファイル `<側>/test-report/history.jsonl` として、保管ブランチ `pages-store` に置く。レポートを作る run が、公開中のファイルを読んで `historyPath` に渡し、足された後のファイルを、レポートと一緒に artifact で渡す
   - `historyLimit` は 20 にする
   - `historyBaseUrl` は設定しない
-  - 不安定なテストの判定は、既定のまま使う
+  - 不安定なテストの判定は、`flakyDetection: { includePassedTests: true }` にする。ほかの値（`historyDepth: 10`・`stabilizationPeriod: 5`）は既定のまま。既定では、最新の実行で落ちたテストにしか印が付かない
 - **Rationale**:
   - Allure 3 の履歴は、1 回の実行が 1 行の JSONL で、`historyPath` のファイルを読み、足す（文書の history-and-retries・how-it-works-history-files）。置き場所は自分で持ち越す。公式の GitHub Pages の手引きの Allure 3 の例は、履歴を持ち越していない
   - `historyLimit` の既定は無制限。Allure 2 が持つ数（20）に合わせる。不安定の判定が見るのは前の 10 件までなので、足りる
@@ -142,7 +146,11 @@
   - 信頼の境界は 028 のまま使う。書き込みは `pages-deploy.yml` の store の job だけが行う（FR-014）
   - 開発版は、古いコミットのレポートで新しいレポートを上書きしない（028 の `dev_is_newer` と同じ決まりを、レポートにも当てる）
 - **リリース版**: `release_sources.py` が、プラグインごとに最新のタグのコミットを決める。そのコミットに `report-lanes.json` があれば、結果を出せるタグと読む。`tests` の job は、そのコミットを取り出し、そのプラグインのレーンを動かす。libs と `.githooks` のレーンは、最も新しいタグのコミット（骨組み）で動かす
-- **履歴の競合**: 同じ側の run が重なると、後の run が、前の run の足した行を読まずに作ることがある。そのときは、履歴の 1 行が抜ける。レポートは最新のコミットのものが残るので、受け入れる
+- **同じ側の run の重なり**: concurrency は `test-report-<side>` で、`cancel-in-progress: false` にする。動いている run は取り消さず、後から来た run は待つ。待てるのは 1 つで、さらに来ると、待っていた run が新しい run に置き換わる（concurrency の既定の決まり）
+  - 全レーンの実行は、定義書のビルドより長い。取り消す形にすると、main への push が続く間、開発版のレポートが出ない
+  - 待っていた run が置き換わるので、すべてのコミットのレポートができるわけではない。履歴の行は、できたレポートの分だけ増える
+  - 前の run の保管（`pages-deploy.yml`）が終わる前に次の run が履歴を読むと、履歴の 1 行が抜ける。レポートは最新のコミットのものが残るので、受け入れる
+- **結果のコミット**: `tests` の job は、結果の artifact に、レーンと取り出したコミットを書いた `source.json` を入れる。`report` の job は、これを材料のコミットと比べる（FR-012）
 - **Alternatives considered**:
   - `ci.yml` の結果を使う: affected のレーンしか動かない（clarify の質問 1 で採らなかった）
   - `pages-build.yml` に足す: 定義書の公開がテストを待つ

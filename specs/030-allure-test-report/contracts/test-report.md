@@ -19,7 +19,7 @@
 
 | 残すもの | 置き場所 | 決まり |
 |---|---|---|
-| Allure の結果 | `report-lanes.json` の `results` | 動かす前に空にする。nx の `outputs` に入れる。git には入れない |
+| Allure の結果 | `report-lanes.json` の `results` | レーンの最初に 1 回だけ空にする。レーンの中の 2 つ目からの実行は書き足す。nx の `outputs` に入れる。git には入れない |
 | JUnit XML | 今の置き場所のまま | 今あるレーンだけ。中身は変えない |
 
 環境変数:
@@ -29,6 +29,7 @@
 | `PECOT_REPORT_SITE_URL` | `test-report.yml` | 側の URL。渡さなければ `http://localhost:8000/` |
 
 - 終了コード・カバレッジの閾値の判定は、今のまま
+- `pecot-workflow:test-hooks` の 2 回目（`env -i`）の実行は、Allure の結果を残さない
 
 ## `verifies`
 
@@ -58,7 +59,7 @@ verifies(context: TestContext, id: string): Promise<void>
 | job | すること |
 |---|---|
 | side | 側と ReportSources（data-model.md）を決める。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える |
-| tests | ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリを artifact `allure-results-<slug>` に上げる |
+| tests | ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
 | report | 全レーンの artifact を取り、ResultsCheck で確かめる。公開中の履歴を取る。`generate.py` でレポートを作り、レポートと履歴と `report-sources.json` を artifact `test-report-<side>` に上げる |
 
 出力:
@@ -76,7 +77,7 @@ verifies(context: TestContext, id: string): Promise<void>
 
 権限は、どの job も `contents: read` だけ。書き込みの権限と secret は持たない。
 
-concurrency は `test-report-<side>` で、`cancel-in-progress: true`（同じ側は、後に起動したものだけを残す）。
+concurrency は `test-report-<side>` で、`cancel-in-progress: false`。動いている run は取り消さず、後から来た run は待つ。待っている run は、さらに新しい run が来ると置き換わる。
 
 ## `pages-deploy.yml`（変える所）
 
@@ -93,7 +94,7 @@ verify（RunProvenance に足す決まり）:
 | head | main の祖先。開発版は、保管中のレポートのコミットより古くない |
 | 側 | `push` は開発版。`workflow_dispatch` は、上がっている `test-report-{dev,release}` の artifact が 1 つだけのとき、その側 |
 | リリース版の材料 | artifact の `report-sources.json` が、タグと main から決め直した値と同じ |
-| 中身 | SideCheck（安全でないパスが無い・`index.html` がある）。`history.jsonl` は、行ごとに JSON として読める |
+| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある・`history.jsonl` が行ごとに JSON として読める） |
 
 store:
 

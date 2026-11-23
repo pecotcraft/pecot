@@ -80,7 +80,9 @@ specs/030-allure-test-report/
 ### Source Code (repository root)
 
 ```text
-package.json                          # 変更: allure・allure-vitest・allure-js-commons を devDependencies に
+package.json                          # 変更: allure（CLI）を devDependencies に
+plugins/*/cli/package.json            # 変更: allure-vitest を devDependencies に
+libs/*/package.json                   # 変更: allure-vitest を。interface-spec には allure-js-commons も
 .gitignore                            # 変更: allure-results と、手元のレポートの出力
 
 libs/interface-spec/
@@ -167,7 +169,7 @@ specs/028-pages-site/spec.md          # 変更: この機能で取り下げた�
 5. **作る run**（US1）: `test-report.yml`。開発版とリリース版の材料の決め方。PR の上では、workflow の形のテストまで確かめられる
 6. **保管と公開**（US1・US3）: `pages-deploy.yml`・`provenance.py`・`store.py` の変更、履歴の持ち越し、サイトのリンクと案内のページ、`release.yml` の追加。`workflow_run` は既定のブランチの定義で動くので、公開の確かめは 5 と 6 がマージされた後になる
 7. **片付け**（US4）: 自前のテストレポート・合否を描く作り・`junit-lanes.json`・使わなくなったスクリプトとテスト・CI の JUnit の artifact を消す。028 の spec を改める
-8. **文書**: ルールファイル（`pages-site.md`・`github-workflows.md`）と interface-spec の README
+8. **実物の確かめと手順**: 公開した開発版のレポートを実物で確かめ、起動・やり直しの手順をルールファイル（`pages-site.md`）に書く。README などの文書の片付けは 7 に入れる
 
 ## Complexity Tracking
 
