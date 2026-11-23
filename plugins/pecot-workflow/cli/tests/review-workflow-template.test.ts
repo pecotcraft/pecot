@@ -159,7 +159,8 @@ describe('review のワークフローの雛形', () => {
 
   it('前のレビューの確かめが探す文字列は、指摘の一覧のテンプレートと止まったことの目印の書き出しと一致する', () => {
     const findings = readFileSync(path.join(pluginRoot, 'cli/templates/comment/review-findings.md'), 'utf8')
-    const heading = /^## \S+/mu.exec(findings.replace(/<!--[\s\S]*?-->/u, ''))?.[0]
+    // 書き方の説明のコメントの後ろにある、本文の最初の見出しを読む
+    const heading = /^## \S+/mu.exec(findings.slice(findings.indexOf('-->')))?.[0]
     expect(heading).toBe('## Findings')
     expect(checkFirst.run).toContain('test("\\\\A\\\\s*## Findings")')
     expect(stoppedMarker({ runId: '1', attempt: '1' }).startsWith('<!-- pecot-review-stopped ')).toBe(true)
