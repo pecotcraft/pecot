@@ -80,6 +80,16 @@ function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Reposito
   return { changelogPath: resolveChangelogPath(gitRoot, repositoryConfig?.changelog_file), tagPrefix: undefined }
 }
 
+function requireSemver(out: Readonly<Output>, version: string): void {
+  try {
+    validateSemver(version)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof InvalidVersionError)) throw error
+    stopWith(out, error.message, 'invalid-input')
+  }
+}
+
 function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string {
   return branch === undefined || branch === '' ? stopWith(out, hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch
 }
@@ -248,6 +258,7 @@ const releaseCheckCommand = defineCommand({
     const cwd = process.cwd()
     const context = loadReleaseContext(out, adopted, input.repo, input.package, input.project, CHECK_PATH, { version: input.version, nxAlertsOnly: true })
     const { config, owner, repository } = context
+    if (input.version !== undefined) requireSemver(out, input.version)
 
     const alerts = await checkAlerts(out, config, owner, repository)
     const { dependabot } = alerts
@@ -312,13 +323,7 @@ const releaseCreateCommand = defineCommand({
     const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
     const out = createOutput<z.input<typeof RELEASE_CREATE_OUTPUT>>(input.dry_run, io)
 
-    try {
-      validateSemver(input.version)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof InvalidVersionError)) throw error
-      return stopWith(out, error.message, 'invalid-input')
-    }
+    requireSemver(out, input.version)
 
     const context = loadReleaseContext(out, adopted, input.repo, input.package, input.project, ['release', 'create'])
     const { config, owner, repository, tagPrefix } = context
