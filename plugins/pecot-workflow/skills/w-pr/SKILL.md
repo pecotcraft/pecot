@@ -105,7 +105,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Step 4: CI を待って直す
 
-待つ前に、pecot-workflow の MCP ツール `pr_show` を使って、PR が base とコンフリクトしていないかを確かめる。コンフリクトしていたら、base の新しい先頭へ rebase してから待つ。
+待つ前に、pecot-workflow の MCP ツール `pr_show` を使って、PR が base とコンフリクトしていないかを確かめる。コンフリクトしていたら、スタックしたブランチでは `pr_restack` でスタックし直し、ほかのブランチでは base の新しい先頭へ rebase してから待つ。
 
 次のコマンドで CI を待ち、終わった後の結果だけを 1 回出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
 

@@ -3322,7 +3322,7 @@ entries:
         base: 'PR をマージした先の base ブランチです。'
         status: '結果です。`merged`（マージした）か `enqueued`（merge queue に入った）です。'
         stack: 'PR が一番下だったスタックです。`number`（スタックの番号）と `size`（この PR から上の PR の数）を持ちます。スタックの外の PR では入りません。'
-    diagnostics: '標準エラーに、結果の行を出します。マージしたときは `merged`、merge queue に入ったときは `added` です。スタックの一番下の PR では、`merged` の行にスタックの番号とPR の数が付きます。失敗ごとに `error` の行を出します。'
+    diagnostics: '標準エラーに、結果の行を出します。マージしたときは `merged`、merge queue に入ったときは `added` です。スタックの一番下の PR では、`merged` の行にスタックの番号と PR の数が付きます。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -3392,7 +3392,7 @@ entries:
         statement: 'スタックの外の PR を渡すと、読んだ head のコミットと squash でマージを頼み、結果の `status` を `merged` にします'
       - id: PW-PR-MERGE-02
         pattern: event
-        statement: 'スタックの一番下の PR を渡すと、スタックの番号とPR の数を結果の `stack` に入れます'
+        statement: 'スタックの一番下の PR を渡すと、スタックの番号と PR の数を結果の `stack` に入れます'
       - id: PW-PR-MERGE-03
         pattern: state
         statement: '親 PR がマージ済みでスタックの並びに残っている間、その子 PR を一番下として扱います'

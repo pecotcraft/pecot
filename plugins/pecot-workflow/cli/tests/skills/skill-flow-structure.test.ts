@@ -393,6 +393,11 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('前提の表と並べて')
   })
 
+  it('Step 3 は、前の版の tasks.md の「積める」を「スタックできる」と同じに扱う', () => {
+    const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('「積める」は「スタックできる」と同じに扱う')
+  })
+
   it('Step 3 は、失敗しても作った Issue があれば呼び直さないと書く', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
     expect(body).toContain('結果に作った Issue があれば、その Issue は作られている')

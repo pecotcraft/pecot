@@ -98,7 +98,7 @@ describe('pr merge', () => {
     expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
   })
 
-  it('スタックの一番下の PR をマージすると、スタックの番号とPR の数を添えた merged の行を出す', async () => {
+  it('スタックの一番下の PR をマージすると、スタックの番号と PR の数を添えた merged の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest(), stacks([stackOf([11, 12])]), requested(202, pending()), result(MERGED)])
 
@@ -398,7 +398,7 @@ describe('pr merge', () => {
       expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
     })
 
-    it('親 PR がマージ済みで並びに残っていても、一番下として扱い、残りのPR の数を stack に入れる', async (context) => {
+    it('親 PR がマージ済みで並びに残っていても、一番下として扱い、残りの PR の数を stack に入れる', async (context) => {
       await verifies(context, 'PW-PR-MERGE-03')
       prepareProject()
       await startGithub([pullRequest(), stacks([stackOf([10, 11, 12])]), pullRequest({ number: 10, state: 'MERGED' }), requested(202, pending()), result(MERGED)])
