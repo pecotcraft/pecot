@@ -26,6 +26,9 @@ const WithRepositorySchema = z.object({ properties: z.object({ repo: RepositoryS
 const OutputSchemaShape = z.looseObject({ type: z.literal('object'), properties: z.record(z.string(), z.unknown()), additionalProperties: z.unknown() })
 const ENVELOPE_NAMES: ReadonlySet<string> = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'reason'])
 
+// CLI のフラグ（--name・-m）。前は行頭・空白・括弧・バッククォート
+const CLI_FLAG = /(?:^|[\s(`])--?[a-z]/u
+
 // properties・items・anyOf などの下の schema の位置に、真偽値の true があるか（Claude Code がツールを拒む）
 function hasTrueSchema(schema: unknown): boolean {
   if (schema === true) return true
@@ -80,11 +83,20 @@ describe('tools/list', () => {
     expect(tools.map(tool => tool.description)).toEqual(COMMANDS.map(command => command.description))
   })
 
+  it.for([
+    { name: 'バッククォートの中の --repo', text: 'of `--repo`', expected: true },
+    { name: '括弧の中の -m', text: '(required with -m)', expected: true },
+    { name: '引数名', text: 'of `repo`, with `message`', expected: false },
+    { name: '語の中のハイフン', text: 'a non-empty owner/repo-name', expected: false },
+  ])('フラグの検出は、$name に $expected を返す', ({ text, expected }) => {
+    expect(CLI_FLAG.test(text)).toBe(expected)
+  })
+
   it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name・-m）が無い', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
     const flagged = tools.flatMap(({ name, description, inputSchema, outputSchema }) =>
-      stringsOf({ description, inputSchema, outputSchema }).filter(text => /(?:^|[\s(])--?[a-z]/u.test(text)).map(text => `${name}: ${text}`))
+      stringsOf({ description, inputSchema, outputSchema }).filter(text => CLI_FLAG.test(text)).map(text => `${name}: ${text}`))
     expect(flagged).toEqual([])
   })
 
