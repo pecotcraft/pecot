@@ -113,7 +113,7 @@ jobs:
       - name: Generate GitHub App token
         id: token
         if: ${{ vars.PECOT_AGENT_APP_CLIENT_ID != '' }}
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
           private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
@@ -181,7 +181,7 @@ jobs:
       - name: Review
         id: claude
         if: ${{ github.event_name == 'pull_request' || steps.pr.outputs.ok == 'true' }}
-        uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
           CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
