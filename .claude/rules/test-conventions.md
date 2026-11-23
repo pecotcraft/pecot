@@ -89,7 +89,8 @@ pecot-tools・pecot-visual の `vitest.e2e.config.ts` にも書いています�
 
 ## 項目へのつなぎ
 
-vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。`verifies` の関数は、各 project の `tests/_helpers/verifies.ts` にあります。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/` です。
+vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。テストは、各 project の `tests/_helpers/verifies.ts` から `verifies` を import します。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/` です。
+本体は `libs/interface-spec/src/vitest/verifies.ts` にあります。annotation を残し、nx のレーンの中では、Allure の `tms` のリンクと `tag` も残します。
 
 ```ts
 it('バケット名に大文字があると、awscli を呼ばずに入力エラーを返す', async (ctx) => {
