@@ -109,15 +109,15 @@ description: "Task list for 030-allure-test-report"
 - [ ] T015 [P] [US2] `libs/interface-spec/tests/verifies.test.ts` に、`verifies` のテストを先に書く。
   確かめること（contracts の `verifies`）: `context.annotate(id, 'verifies')` を呼ぶ、型 `tms`・名前が `id` のリンクを残す、`id` の tag を残す、2 つの ID を書くとリンクと tag を 2 つずつ持つ
 - [ ] T016 [P] [US2] `libs/interface-spec/tests/site/report-links.test.ts` に、絞り込みの URL のテストを先に書く。
-  2 つの ID の tag を持つ結果のディレクトリを一時ディレクトリに作り、`generate.py --local` でレポートを作る。Chromium で `index.html?tags=<ID>` を開き、その ID のテストだけが一覧に出ることを確かめる（research R6。Allure の版を上げて URL の形が変わると、ここで落ちる）。
-  `libs/interface-spec/project.json` の `test-site` の inputs に、`.githooks/scripts/test_report/**` を足す（`.claude/rules/nx-inputs.md`）
+  2 つの ID の tag を持つ結果のディレクトリを一時ディレクトリに作り、`generate.py` の `main()` を Python から `--local` で呼んでレポートを作る。Chromium で `index.html?tags=<ID>` を開き、その ID のテストだけが一覧に出ることを確かめる（research R6。Allure の版を上げて URL の形が変わると、ここで落ちる）。
+  `libs/interface-spec/project.json` の `test-site` の inputs に、テストが読む `.githooks/scripts/test_report/` の `generate.py`・`lanes.py`・`allurerc.mjs` を足す（`.claude/rules/nx-inputs.md`）
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] `libs/interface-spec/src/vitest/verifies.ts` を作る（T015 の後）。`allure-js-commons` の `tms`・`tag` を直接呼ぶ
+- [ ] T017 [US2] `libs/interface-spec/src/vitest/verifies.ts` を作る（T015 の後）。`allure-js-commons` の `tms`・`tag` を直接呼ぶ。reporter を足さない nx の外では、`annotate` だけを残す
 - [ ] T018 [US2] 3 つの `tests/_helpers/verifies.ts`（`plugins/pecot-workflow/cli/`・`plugins/pecot-visual/cli/`・`plugins/pecot-tools/cli/`）を、T017 の re-export にする。
   `plugins/pecot-workflow/cli/tests/_helpers/behavior-ids.ts` の `collectVerifiedIds()` と、`interface-spec:lint-defs` が今のまま通ることを確かめる
-- [ ] T019 [US2] `libs/interface-spec/docs/conf.py` で、sphinx-needs の permalink を有効にする（`needs_permalink_file`・`needs_permalink_data`・`needs_build_json`。sphinx-needs 9.2.0 の文書を読んでから決める）。
+- [ ] T019 [US2] sphinx-needs の permalink を確かめる。9.2.0 は `needs_permalink_file`・`needs_permalink_data` の既定で `permalink.html` を出し、`needs_build_json` は `conf.py` にもうあるので、`conf.py` は直さない。
   `libs/interface-spec/docs/tests/test_iface_defs.py` に、`permalink.html` ができ、定義書の項目の ID で引けることのテストを足す
 - [ ] T020 [US2] 実物で確かめる。`verifies` を書いたレーン（`pecot-tools:test-cli`）を動かしてレポートを作り、テストに要件の ID のリンクがあり、押すと手元のサイトの `permalink.html?id=<ID>` からその項目へ飛ぶことを確かめる。
   JUnit XML の `<property name="verifies">` が、変更の前と同じであることを確かめる（FR-007）

@@ -66,13 +66,15 @@
 
 - **Decision**: vitest の `verifies(ctx, id)` を 1 か所（`libs/interface-spec/src/vitest/verifies.ts`）にまとめる。
   今の `ctx.annotate(id, 'verifies')` に加えて、次の 2 つを呼ぶ。各プラグインの `tests/_helpers/verifies.ts` は、これを re-export する
-  - `allure.tms(id)`: テストから定義書の項目へのリンク。URL は reporter の `links.tms.urlTemplate` が作る
-  - `allure.tag(id)`: 定義書の項目からテストを絞り込むための目印（R6）
+  - `tms(id, id)`: テストから定義書の項目へのリンク。URL は reporter の `links.tms.urlTemplate` が作る。名前は `nameTemplate` に頼らず `id` を渡す
+  - `tag(id)`: 定義書の項目からテストを絞り込むための目印（R6）
+  - reporter を足さない nx の外では、この 2 つを呼ばない。`allure-js-commons` は、test runtime が無いと、呼ぶたびに警告を出す
 - **Rationale**:
   - 文書に「要件」の専用の項目は無い。外の管理の項目へのつながりには、リンクの型 `tms`（test management system）と `issue` がある。定義書の項目は、テストが確かめる対象なので `tms` を使う。独自のラベルは作らない（FR-005）
   - `links: { tms: { urlTemplate: "<定義書の URL>%s", nameTemplate: "%s" } }` は reporter の文書にある設定
   - 定義書の項目の URL は、ID だけからは決まらない（項目はコマンドごとのページにある）。
-    sphinx-needs の permalink（`permalink.html?id=<ID>`。9.2.0 の設定 `needs_permalink_file`・`needs_permalink_data`）を使い、`urlTemplate` を `<側の URL>permalink.html?id=%s` にする
+    sphinx-needs の permalink（`permalink.html?id=<ID>`。9.2.0 の設定 `needs_permalink_file`・`needs_permalink_data`）を使い、`urlTemplate` を `<側の URL>permalink.html?id=%s` にする。
+    permalink は、2 つの設定の既定のまま出る。`needs_build_json` は `conf.py` にもうある
   - 側の URL はテストを動かすときに決まるので、環境変数 `PECOT_REPORT_SITE_URL` で渡す。渡さなければ、手元の `http://localhost:8000/` にする
   - `verifies` の呼び方は変わらないので、約 1,470 か所の呼び出しを書き直さない（FR-006）。`annotate` を残すので、JUnit XML は変わらない（FR-007）
 - **Alternatives considered**:

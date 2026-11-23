@@ -34,8 +34,10 @@
 ## `verifies`
 
 ```ts
-verifies(context: TestContext, id: string): Promise<void>
+verifies(context: AnnotatingContext, id: string): Promise<void>
 ```
+
+`AnnotatingContext` は、vitest の `TestContext` のうち `annotate` だけを持つ形で、`TestContext` をそのまま渡せる。
 
 | 残すもの | 形 |
 |---|---|
@@ -45,6 +47,7 @@ verifies(context: TestContext, id: string): Promise<void>
 
 - 置き場所は `libs/interface-spec/src/vitest/verifies.ts`。各プラグインの `tests/_helpers/verifies.ts` は re-export する
 - 呼び方は変えない
+- nx のレーンの外（Allure の reporter を足さないとき）は、`annotate` だけを残す
 
 ## `test-report.yml`（テストを動かし、レポートを作る）
 
