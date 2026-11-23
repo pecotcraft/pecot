@@ -13,6 +13,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "allure-pytest==2.16.2",
   "pytest",
   "types-docutils",
   "types-PyYAML",

@@ -33,34 +33,33 @@ description: "Task list for 030-allure-test-report"
 
 **Purpose**: vitest と pytest の 12 本のレーンが、JUnit XML に加えて Allure の結果を残す。レーンの定めを 1 か所に置く（FR-001〜FR-004・FR-007、research R2・R3・R8）
 
-- [ ] T001 [P] `.githooks/tests/test_report_lanes.py` に、レーンの定めのテストを先に書く。
+- [x] T001 [P] `.githooks/tests/test_report_lanes.py` に、レーンの定めのテストを先に書く。
   確かめること（data-model.md の ReportLane）: nx の `test-*` の target（各 `project.json`）が `report-lanes.json` に全部ある、`results` と `excluded` はどちらか一方だけ、
   `results` はその target の nx の `outputs` にある、`results` の最後のディレクトリの名前は `allure-results`、`lanes.py` が matrix（`lane`・`slug`・`results`）の JSON を 1 行で出す
-- [ ] T002 [P] `libs/interface-spec/tests/allure-reporter.test.ts` に、reporter の設定を作る関数のテストを先に書く。
+- [x] T002 [P] `libs/interface-spec/tests/allure-reporter.test.ts` に、reporter の設定を作る関数のテストを先に書く。
   確かめること: `resultsDir` が `test-results/<target>/allure-results` になる、`globalLabels` が `project`・`lane` を持つ（値は `NX_TASK_TARGET_PROJECT`・`NX_TASK_TARGET_TARGET`）、
   `links.tms.urlTemplate` が `<PECOT_REPORT_SITE_URL>permalink.html?id=%s` で、渡さなければ `http://localhost:8000/` を使う
-- [ ] T003 依存を、範囲でなく固定の版で足し、`pnpm-lock.yaml` を作り直す。
+- [x] T003 依存を、範囲でなく固定の版で足し、`pnpm-lock.yaml` を作り直す。
   `allure` 3.33.0（CLI）はルートの `package.json`。
-  `allure-vitest` 3.15.0 は、reporter を読む 5 つのパッケージ（3 つのプラグインの `cli/package.json`・`libs/interface-spec/package.json`・`libs/text-rules/package.json`）。
-  `allure-js-commons` 3.15.0 は `libs/interface-spec/package.json`。
+  `allure-vitest` 3.15.0 と `allure-js-commons` 3.15.0 は、配布しない `libs/interface-spec/package.json` だけ（research R2。プラグインと text-rules の devDependencies は配布物の `runtime-lock.yaml` に写る）。
   knip が、足した依存を未使用と報告しないことを確かめる。
-  `.gitignore` に `allure-results` と `test-results/*/allure-results` を足す
-- [ ] T004 `.githooks/scripts/test_report/report-lanes.json` を作る。入れる 12 本と入れないレーンは research R8 の表のとおり。
+  `.gitignore` に `allure-results` を足す
+- [x] T004 `.githooks/scripts/test_report/report-lanes.json` を作る。入れる 12 本と入れないレーンは research R8 の表のとおり。
   `plugin` は、配布するプラグインのレーンだけが持つ
-- [ ] T005 `.githooks/scripts/test_report/lanes.py` と `pyrightconfig.json` を作る（T004 の後）。
+- [x] T005 `.githooks/scripts/test_report/lanes.py` と `pyrightconfig.json` を作る（T004 の後）。
   `.githooks/scripts/run-lint.sh` と `.pre-commit-config.yaml` の `githooks-lint` の `files` に `test_report/` を足し、pyright strict にかける
-- [ ] T006 `libs/interface-spec/src/vitest/allure-reporter.ts` を作る（T002・T003 の後）。reporter の設定（`resultsDir`・`globalLabels`・`links`）を返す
-- [ ] T007 vitest の 8 つの設定の `reporters` に、T006 の設定で `allure-vitest/reporter` を足す（T006 の後）。今の `junit` の reporter は残す。
+- [x] T006 `libs/interface-spec/src/vitest/allure-reporter.ts` を作る（T002・T003 の後）。reporter の設定（`resultsDir`・`globalLabels`・`links`）を返す
+- [x] T007 vitest の 8 つの設定の `reporters` に、T006 の設定で `allure-vitest/reporter` を足す（T006 の後）。今の `junit` の reporter は残す。
   対象: `plugins/pecot-workflow/cli/vitest.config.ts`、`plugins/pecot-visual/cli/vitest.config.ts`・`vitest.e2e.config.ts`、`plugins/pecot-tools/cli/vitest.config.ts`・`vitest.e2e.config.ts`、`libs/interface-spec/vitest.config.ts`・`vitest.site.config.ts`、`libs/text-rules/vitest.config.ts`。
   `pecot-workflow:test-hooks` の 2 回目（`plugins/pecot-workflow/scripts/ci/run-tests.sh` の `env -i` の実行）は、Allure の結果を残さない（research R2）
-- [ ] T008 pytest のレーンに `allure-pytest` 2.16.2 を足す。
+- [x] T008 pytest のレーンに `allure-pytest` 2.16.2 を足す。
   `libs/interface-spec/docs/pyproject.toml` の dev の依存と `uv.lock`、`.githooks/tests/run.sh` の `uvx --with`。どちらも `--alluredir <report-lanes.json の results>` を付ける。
   `libs/interface-spec/docs/tests/conftest.py`（新規）と `.githooks/tests/conftest.py` に、`project`・`lane` のラベルを付ける hook を足す
-- [ ] T009 12 本のレーンの nx の `outputs` に、結果のディレクトリを足す（T007・T008 の後）。
+- [x] T009 12 本のレーンの nx の `outputs` に、結果のディレクトリを足す（T007・T008 の後）。
   対象: `plugins/pecot-workflow/project.json`・`plugins/pecot-visual/project.json`・`plugins/pecot-tools/project.json`・`libs/text-rules/project.json`・`libs/interface-spec/project.json`・`.githooks/project.json`。
   レーンは、最初に 1 回だけ自分の結果のディレクトリを空にする。レーンの中の 2 つ目からの実行（`test-cli` の e2e、`interface-spec:test-unit` の pytest）は書き足す。
   `PECOT_REPORT_SITE_URL` を nx の入力に宣言する（`.claude/rules/nx-inputs.md`。`.githooks/tests/test_nx_env_inputs.py` が通ること）
-- [ ] T010 実物で確かめる（research R3・R7 の「実物で確かめる点」）。
+- [x] T010 実物で確かめる（research R3・R7 の「実物で確かめる点」）。
   `pnpm exec nx run githooks:test-nx-cache` を動かし、pytest-xdist の `-n auto` でも結果がテストの数だけ残ることを確かめる。残らなければ、原因を調べて利用者に伝える（`-n 0` に変えて済ませない）。
   `pnpm exec nx run pecot-tools:test-cli` を動かし、JUnit XML が変更の前と同じ中身であること、カバレッジの判定が変わらないこと、vitest と e2e の両方の結果が同じディレクトリに残ることを確かめる。
   `pnpm exec nx run pecot-workflow:test-hooks` を動かし、結果がテストの数だけ（2 倍でなく）残ること、JUnit の比べ（`compare-junit.ts`）が通ることを確かめる

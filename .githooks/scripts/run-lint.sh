@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # repo root
 
-# .githooks 配下の Python（gitlint/ と scripts/pages_site/）を pyright --strict で確認する。
+# .githooks 配下の Python（gitlint/・scripts/pages_site/・scripts/test_report/）を pyright --strict で確認する。
 # 構成は preflight → venv キャッシュ → pyright の順で、
 # plugins/pecot-workflow/scripts/ci/run-lint.sh を手本にしている。
 
@@ -43,5 +43,6 @@ uv pip install --quiet --python "$VENV_DIR/bin/python" "gitlint==$GITLINT_VERSIO
 # そのため cwd を / にして呼ぶ。パスは絶対パスで渡す。
 REPO_ROOT="$PWD"
 ( cd / && npx --yes pyright@1.1.410 --pythonpath "$REPO_ROOT/$VENV_DIR/bin/python" --project "$REPO_ROOT/.githooks/gitlint" )
-# pages_site は標準ライブラリだけを使うので、venv を渡さない。
+# pages_site と test_report は標準ライブラリだけを使うので、venv を渡さない。
 ( cd / && npx --yes pyright@1.1.410 --project "$REPO_ROOT/.githooks/scripts/pages_site" )
+( cd / && npx --yes pyright@1.1.410 --project "$REPO_ROOT/.githooks/scripts/test_report" )

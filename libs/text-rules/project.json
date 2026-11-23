@@ -74,10 +74,12 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "default",
         "runtime",
         "env"
       ],
+      "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
       "dependsOn": [
         "install",
         "build"
@@ -86,7 +88,7 @@
         "description": "vitest の単体テスト。カバレッジ閾値は 90%。"
       },
       "options": {
-        "command": "pnpm exec vitest run --coverage",
+        "command": "rm -rf test-results/test-unit/allure-results && pnpm exec vitest run --coverage",
         "cwd": "libs/text-rules"
       }
     },

@@ -14,6 +14,14 @@ if [ "${#targets[@]}" -eq 0 ]; then
     targets=("$TESTS_DIR")
 fi
 
+# nx のレーンから動いたときだけ、Allure の結果を残す。--clean-alluredir は xdist の worker も消すので使わない。
+report=()
+if [ -n "${NX_TASK_TARGET_TARGET:-}" ]; then
+    results="$(dirname "$TESTS_DIR")/test-results/$NX_TASK_TARGET_TARGET/allure-results"
+    rm -rf "$results"
+    report=(--alluredir "$results" -o "pecot_report_project=${NX_TASK_TARGET_PROJECT:-}" -o "pecot_report_lane=$NX_TASK_TARGET_TARGET")
+fi
+
 echo "==> pytest ${targets[*]}"
-uvx --python 3.12 --with pytest-xdist==3.8.0 --with packaging==26.3 --with pyyaml==6.0.3 \
-    pytest==9.2.0 "${targets[@]}" -q --import-mode=importlib -n auto -p no:cacheprovider
+uvx --python 3.12 --with pytest-xdist==3.8.0 --with packaging==26.3 --with pyyaml==6.0.3 --with allure-pytest==2.16.2 \
+    pytest==9.2.0 "${targets[@]}" "${report[@]}" -q --import-mode=importlib -n auto -p no:cacheprovider
