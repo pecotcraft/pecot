@@ -34,7 +34,7 @@ import { moveIssuesWaitingFor, prerequisiteOf } from './pr-waiting.js'
 import type { WaitingCheck } from './pr-waiting.js'
 import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
@@ -63,13 +63,12 @@ const RESTACK_DATA = z.strictObject({
 })
 
 const SESSION_FINISH_OUTPUT = z.strictObject({
-  closedIssues: z.array(z.int()).describe('Issue numbers this command closed (to be closed on dry_run); usually empty for a PR to the default branch, since GitHub closes them on merge'),
+  closedIssues: z.array(z.int()).describe('Issue numbers this command closed; usually empty for a PR to the default branch, since GitHub closes them on merge'),
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
-  deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted (to be deleted on dry_run)'),
+  deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted'),
   readinessChanges: z.array(READINESS_CHANGE_DATA).describe('Issues waiting for the closed Issues whose readiness changed by the merge'),
   restack: z.array(RESTACK_DATA).describe('Upper stacked Issues to restack with pr restack in their working directories'),
   currentBranch: z.string().optional().describe('Current branch after the local cleanup (omitted when the local cleanup was skipped)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type FinishData = z.input<typeof SESSION_FINISH_OUTPUT>

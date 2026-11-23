@@ -52,7 +52,7 @@ SDK に渡す入力のスキーマ。tools/list の形は定義書と同じ z.to
 SDK に zod を渡すと、検証の後に未知のキーを捨てた値が届き、未知のキーを誤りにできない
 */
 function passthroughSchema(definition: Readonly<CommandDefinition>): StandardSchemaWithJSON {
-  const jsonSchema = (): Record<string, unknown> => ({ ...z.toJSONSchema(definition.input, { io: 'input' }), additionalProperties: false })
+  const jsonSchema = (): Record<string, unknown> => ({ ...z.toJSONSchema(definition.mcpInput, { io: 'input' }), additionalProperties: false })
   return {
     '~standard': {
       version: 1,
@@ -73,7 +73,7 @@ function issuesMessage(error: Readonly<z.ZodError>): string {
 function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Preparation {
   // arguments が配列や null なら SDK が先に -32602 で断るので、ここに来る非 object は省略（undefined）だけ
   const input = isRecord(raw) ? raw : {}
-  const unknown = Object.keys(input).filter(key => !Object.hasOwn(definition.input.shape, key))
+  const unknown = Object.keys(input).filter(key => !Object.hasOwn(definition.mcpInput.shape, key))
   if (unknown.length > 0) {
     return rejected(`unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map(key => `'${key}'`).join(', ')}`)
   }

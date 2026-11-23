@@ -71,7 +71,8 @@ Issue の作成と作業の開始を 1 つのコマンドで行う動詞（以�
 
 - PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
 - 名前を変えても、古い名前の別名は作らない。古い名前は、知らない名前として止まる。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
-- 書き込むコマンド（effects に `write` か `destructive` を持つもの）には、入力 `dry_run`（CLI では `--dry-run`・`-n`）を付ける。予行でも入力の検証と読み取りは行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
+- 書き込むコマンド（effects に `write` か `destructive` を持つもの）には、CLI だけの入力 `dry_run`（`--dry-run`・`-n`）を付ける。予行でも入力の検証と読み取りは行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
+  - MCP のツールには出さない。定義書では `input` に入れず、`cli.only` に入る
   - 例外: 予行を別の check のコマンドが担うものは、`dry_run` を持たない（`issue create` の予行は `issue check`）
 
 ### 次の操作の案内

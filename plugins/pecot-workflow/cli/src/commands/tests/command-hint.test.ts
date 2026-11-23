@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { formatHint, formatHinted, hintedTextOf } from '../../domain/command-hint.js'
-import { commandHint, globalRepositoryHint, hinted, inputHint, inputNameHint, joinHinted, placeholder, RUN, RUN_COLON, runAgain, surfaceText } from '../command-hint.js'
+import { cliOnlyText, commandHint, globalRepositoryHint, hinted, inputHint, inputNameHint, joinHinted, placeholder, RUN, RUN_COLON, runAgain, surfaceText } from '../command-hint.js'
 import '../registry.js'
 
 describe('formatHint のコマンド', () => {
@@ -27,9 +27,9 @@ describe('formatHint のコマンド', () => {
     },
     {
       name: '真偽のオプション',
-      hint: commandHint(['board', 'sync'], { dry_run: true }),
-      cli: 'pecot board sync --dry-run',
-      mcp: 'board_sync with dry_run: true',
+      hint: commandHint(['pr', 'restack'], { continue: true }),
+      cli: 'pecot pr restack --continue',
+      mcp: 'pr_restack with continue: true',
     },
     {
       name: '空白を含む値',
@@ -56,7 +56,7 @@ describe('formatHint のコマンド', () => {
 describe('formatHint の入力', () => {
   it.for([
     { name: '値を持つ入力', hint: inputHint(['session', 'start'], 'base', 'main'), cli: '--base main', mcp: 'base: "main"' },
-    { name: '真偽の入力', hint: inputHint(['session', 'start'], 'dry_run'), cli: '--dry-run', mcp: 'dry_run: true' },
+    { name: '真偽の入力', hint: inputHint(['pr', 'restack'], 'continue'), cli: '--continue', mcp: 'continue: true' },
     { name: '名前だけの入力', hint: inputNameHint(['issue', 'comment'], 'issue_ref'), cli: '--issue-ref', mcp: 'issue_ref' },
     { name: 'グローバルの repo の名前', hint: globalRepositoryHint(), cli: '--repo', mcp: 'repo' },
     { name: 'グローバルの repo と値', hint: globalRepositoryHint(placeholder('owner/repo')), cli: '--repo <owner/repo>', mcp: 'repo: <owner/repo>' },
@@ -70,9 +70,17 @@ describe('案内の誤り', () => {
     { name: '定義に無いコマンド', make: () => commandHint(['issue', 'quick']), message: '案内のコマンド \'issue quick\' が定義に無い' },
     { name: '定義に無い入力', make: () => commandHint(['project', 'link'], { owner_repo: 'o/r' }), message: '案内の入力 \'owner_repo\' が \'project link\' の定義に無い' },
     { name: '定義に無い入力名', make: () => inputNameHint(['issue', 'comment'], 'issue'), message: '案内の入力 \'issue\' が \'issue comment\' の定義に無い' },
-    { name: '偽の真偽値', make: () => inputHint(['board', 'sync'], 'dry_run', false), message: '案内の入力 \'dry_run\' に false は出せない' },
+    { name: '偽の真偽値', make: () => inputHint(['pr', 'restack'], 'continue', false), message: '案内の入力 \'continue\' に false は出せない' },
   ])('$name を描くと、TypeError で止まる', ({ make, message }) => {
     expect(() => formatHint(make(), 'cli')).toThrow(new TypeError(message))
+  })
+
+  it.for([
+    { name: 'コマンドの案内', make: () => commandHint(['board', 'sync'], { dry_run: true }), cli: 'pecot board sync --dry-run' },
+    { name: '入力の案内', make: () => inputHint(['board', 'sync'], 'dry_run'), cli: '--dry-run' },
+  ])('CLI だけの入力を $name で MCP に描くと、TypeError で止まり、CLI には描ける', ({ make, cli }) => {
+    expect(formatHint(make(), 'cli')).toBe(cli)
+    expect(() => formatHint(make(), 'mcp')).toThrow(new TypeError('案内の入力 \'dry_run\' は \'board sync\' の CLI だけの入力で、MCP に出せない'))
   })
 })
 
@@ -84,9 +92,9 @@ describe('hinted と joinHinted', () => {
   })
 
   it('joinHinted は、文字列と案内の文を区切りでつなぐ', () => {
-    const text = joinHinted(['first', hinted`pass ${inputHint(['board', 'sync'], 'dry_run')}`])
-    expect(formatHinted(text, 'cli')).toBe('first\npass --dry-run')
-    expect(formatHinted(text, 'mcp')).toBe('first\npass dry_run: true')
+    const text = joinHinted(['first', hinted`pass ${inputHint(['pr', 'restack'], 'continue')}`])
+    expect(formatHinted(text, 'cli')).toBe('first\npass --continue')
+    expect(formatHinted(text, 'mcp')).toBe('first\npass continue: true')
   })
 
   it('文字列はそのまま返す', () => {
@@ -111,6 +119,12 @@ describe('出し先で変わる文', () => {
     const text = hinted`fix it and ${surfaceText('run the command', 'call the tool')} again`
     expect(formatHinted(text, 'cli')).toBe('fix it and run the command again')
     expect(formatHinted(text, 'mcp')).toBe('fix it and call the tool again')
+  })
+
+  it('cliOnlyText は、CLI では中の文を描き、MCP では空になる', () => {
+    const text = hinted`run ${commandHint(['board', 'sync'])}${cliOnlyText(hinted` (${inputHint(['board', 'sync'], 'dry_run')} to preview)`)}`
+    expect(formatHinted(text, 'cli')).toBe('run pecot board sync (--dry-run to preview)')
+    expect(formatHinted(text, 'mcp')).toBe('run board_sync')
   })
 
   it('RUN_COLON は、CLI では run: とコマンド、MCP では call とツール名になる', () => {

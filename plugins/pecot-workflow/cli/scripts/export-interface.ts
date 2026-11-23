@@ -28,7 +28,11 @@ export interface InterfaceEntry {
   readonly hidden: false
   readonly deprecated: false
   readonly input: InputSchema
-  readonly cli: { readonly positional: readonly string[], readonly flags: Readonly<Record<string, readonly string[]>> }
+  readonly cli: {
+    readonly positional: readonly string[]
+    readonly flags: Readonly<Record<string, readonly string[]>>
+    readonly only?: InputSchema['properties']
+  }
   readonly mcp: { readonly title: string, readonly output: unknown }
 }
 
@@ -58,7 +62,9 @@ function flagsOf(command: CommandDefinition, names: readonly string[]): Record<s
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function entryOf(command: CommandDefinition): InterfaceEntry {
   const name = command.path.join(' ')
-  const input = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name, command.hasOwnRepo)
+  const input = normalizeInput(z.toJSONSchema(command.mcpInput, { io: 'input' }), name, command.hasOwnRepo)
+  const all = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name, command.hasOwnRepo)
+  const only = Object.entries(all.properties).filter(([property]) => command.cliOnly.includes(property))
   return {
     id: interfaceIdOf(command.path),
     name,
@@ -67,7 +73,11 @@ function entryOf(command: CommandDefinition): InterfaceEntry {
     hidden: false,
     deprecated: false,
     input,
-    cli: { positional: command.positional, flags: flagsOf(command, Object.keys(input.properties)) },
+    cli: {
+      positional: command.positional,
+      flags: flagsOf(command, Object.keys(all.properties)),
+      ...only.length > 0 && { only: Object.fromEntries(only) },
+    },
     mcp: { title: command.title, output: outputOf(command) },
   }
 }

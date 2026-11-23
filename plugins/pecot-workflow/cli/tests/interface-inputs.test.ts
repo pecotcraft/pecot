@@ -1,4 +1,4 @@
-// 定義書の入力名の決まり。書き込む項目は dry_run を持つ。1 つの対象を指す入力名は 1 つだけにする
+// 定義書の入力名の決まり。書き込む項目は CLI だけの入力に dry_run を持ち、MCP の入力には持たない。1 つの対象を指す入力名は 1 つだけにする
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -10,7 +10,8 @@ import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/s
 
 const propertySchema = z.object({ description: z.string().optional() })
 const inputSchema = z.object({ properties: z.record(z.string(), propertySchema) })
-const entrySchema = z.object({ id: z.string(), input: inputSchema })
+const cliSchema = z.object({ only: z.record(z.string(), z.unknown()).optional() })
+const entrySchema = z.object({ id: z.string(), input: inputSchema, cli: cliSchema.optional() })
 const generatedSchema = z.object({ entries: z.array(entrySchema) })
 
 const directory = path.resolve(import.meta.dirname, '../../interface')
@@ -74,18 +75,26 @@ function hasInput(id: string, name: string): boolean {
   return Object.keys(generated.entries.find(entry => entry.id === id)?.input.properties ?? {}).includes(name)
 }
 
+function hasCliOnlyDryRun(id: string): boolean {
+  return Object.keys(generated.entries.find(entry => entry.id === id)?.cli?.only ?? {}).includes('dry_run')
+}
+
 describe('定義書の入力名', () => {
-  it('write か destructive の effects を持つ項目は、予行を check の項目が担うものを除き、入力に dry_run を持つ', () => {
+  it('どの項目も、MCP の入力に dry_run を持たない', () => {
+    expect(generated.entries.filter(entry => hasInput(entry.id, 'dry_run')).map(entry => entry.id)).toEqual([])
+  })
+
+  it('write か destructive の effects を持つ項目は、予行を check の項目が担うものを除き、CLI だけの入力に dry_run を持つ', () => {
     const writing = Object.entries(authored.entries)
       .filter(([, entry]) => entry.effects.some(effect => WRITING_KINDS.has(effect.kind)))
       .map(([id]) => id)
     expect(writing.length).toBeGreaterThan(20)
-    expect(writing.filter(id => !hasInput(id, 'dry_run') && !CHECKED_ELSEWHERE.has(id))).toEqual([])
+    expect(writing.filter(id => !hasCliOnlyDryRun(id) && !CHECKED_ELSEWHERE.has(id))).toEqual([])
   })
 
   it('予行を check の項目が担う項目は、dry_run を持たず、その check の項目は書き込まない', () => {
     for (const [id, check] of CHECKED_ELSEWHERE) {
-      expect(hasInput(id, 'dry_run')).toBe(false)
+      expect(hasInput(id, 'dry_run') || hasCliOnlyDryRun(id)).toBe(false)
       expect(Object.entries(authored.entries).find(([key]) => key === check)?.[1].effects.map(effect => effect.kind)).toEqual(['read', 'read'])
     }
   })

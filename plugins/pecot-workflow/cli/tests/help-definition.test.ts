@@ -25,7 +25,7 @@ const MAX_INLINE_CHOICES = 24
 const NamesSchema = z.array(z.string())
 const PropertySchema = z.looseObject({})
 const InputSchema = z.object({ properties: z.record(z.string(), PropertySchema), required: NamesSchema })
-const CliSchema = z.object({ positional: NamesSchema, flags: z.record(z.string(), NamesSchema) })
+const CliSchema = z.object({ positional: NamesSchema, flags: z.record(z.string(), NamesSchema), only: z.record(z.string(), PropertySchema).optional() })
 const EntrySchema = z.object({ id: z.string(), description: z.string(), input: InputSchema, cli: CliSchema })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 
@@ -132,7 +132,7 @@ interface ExpectedRow {
 }
 
 function propertyOf(entry: Entry, name: string): Property {
-  return new Map(Object.entries(entry.input.properties)).get(name) ?? {}
+  return new Map(Object.entries({ ...entry.input.properties, ...entry.cli.only })).get(name) ?? {}
 }
 
 function flagsOf(entry: Entry, name: string): readonly string[] {
@@ -263,7 +263,8 @@ function expectHelpMatchesDefinition(definition: CommandDefinition, text: string
   const notes = notesOf(definition)
   const sections = sectionsOf(text)
   const positional = entry.cli.positional.map(name => positionalRow(entry, name, notes))
-  const options = Object.keys(entry.input.properties).filter(name => !entry.cli.positional.includes(name)).map(name => optionRow(entry, name, notes))
+  // CLI の --help には、MCP に出さない cli.only の入力も並ぶ
+  const options = Object.keys({ ...entry.input.properties, ...entry.cli.only }).filter(name => !entry.cli.positional.includes(name)).map(name => optionRow(entry, name, notes))
   expect(unwrapped(sections.get('Usage') ?? [])).toBe(['Usage: pecot', ...definition.path, '[OPTIONS]', ...positional.map(row => row.name)].join(' '))
   expect(unwrapped(sections.get('Description') ?? [])).toBe(normalized(cliText(entry, entry.description)))
 

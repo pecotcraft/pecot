@@ -72,6 +72,10 @@ export class CommandExit extends BaseError {
 const GLOBAL_SHAPE = { repo: z.string().optional().describe('Target repository, given explicitly as \'owner/repo\'') }
 const RESERVED_OUTPUT_KEYS: readonly string[] = ['reason', 'detail', 'warnings', 'log']
 const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
+/**
+CLI だけが受け取る入力。MCP では、書き込みの前の確認をホストのツールの承認が担うので、予行を出さない
+*/
+const CLI_ONLY_INPUTS: readonly string[] = ['dry_run']
 
 export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
@@ -154,6 +158,14 @@ export interface CommandDefinition {
   グローバルの repo を足した入力
   */
   readonly input: z.ZodObject
+  /**
+  CLI だけが受け取る入力の名前。MCP のツールの入力と、定義書の input には出さない
+  */
+  readonly cliOnly: readonly string[]
+  /**
+  MCP のツールの入力。input から cliOnly を除いたもの
+  */
+  readonly mcpInput: z.ZodObject
   /**
   MCP の成功の data の型
   */
@@ -250,6 +262,9 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
     if (spec.shortFlags !== undefined && Object.hasOwn(spec.shortFlags, name)) throw new TypeError(`${name}: 短いオプションと別名は併用できません`)
   }
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
+  const cliOnly = CLI_ONLY_INPUTS.filter(name => Object.hasOwn(input.shape, name))
+  // omit() は全体の refine を持つ入力で例外になるので、shape から組み直す
+  const mcpInput = z.strictObject(Object.fromEntries(Object.entries(input.shape).filter(([name]) => !cliOnly.includes(name))))
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
     // 検証は spec.input で行う（全体の refine を保つ）。グローバルの repo は strictObject が拒むので外し、別に検証する。
     // 自分の repo を持つコマンドは、repo も spec.input が検証する
@@ -264,6 +279,8 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
     title: spec.title,
     description: spec.description,
     input,
+    cliOnly,
+    mcpInput,
     output: spec.output,
     positional: spec.positional,
     hasOwnRepo: hasOwnRepository,

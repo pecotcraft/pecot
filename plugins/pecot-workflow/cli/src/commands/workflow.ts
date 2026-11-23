@@ -12,13 +12,13 @@ import type { ActionsScope } from '../infra/github/repos.js'
 import { readBundledWorkflow, readInstalledWorkflow, writeWorkflow } from '../infra/workflow-file.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputNameHint, joinHinted } from './command-hint.js'
+import { cliOnlyText, commandHint, hinted, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { kindOfFailure } from './failure.js'
 import { apiFailureMessage, createGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -43,10 +43,9 @@ const INSTALL_OUTPUT = z.strictObject({
   path: z.string().describe('Path of the workflow file from the repository root'),
   version: z.number().describe('Version of the bundled template'),
   installedVersion: z.number().optional().describe('Version of the file already in the repository; omitted when there is no file or no version marker'),
-  written: z.boolean().describe('Whether the file was written (false on check and dry_run)'),
+  written: z.boolean().describe('Whether the file was written (false on check)'),
   upToDate: z.boolean().optional().describe('With check: whether the file in the repository has the version of the bundled template'),
   removedLines: z.array(z.string()).optional().describe('With force: lines you added between the begin and end markers, which the bundled template replaces'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const INSTALL_PATH = ['workflow', 'install']
@@ -80,7 +79,7 @@ const workflowInstallCommand = defineCommand({
     await Promise.resolve()
     const out = createOutput<z.input<typeof INSTALL_OUTPUT>>(input.dry_run, io)
     if (input.check && (input.force || input.dry_run)) {
-      const message = hinted`${inputNameHint(INSTALL_PATH, 'check')} cannot be used with ${inputNameHint(INSTALL_PATH, 'force')} or ${inputNameHint(INSTALL_PATH, 'dry_run')}`
+      const message = hinted`${inputNameHint(INSTALL_PATH, 'check')} cannot be used with ${inputNameHint(INSTALL_PATH, 'force')}${cliOnlyText(hinted` or ${inputNameHint(INSTALL_PATH, 'dry_run')}`)}`
       return stopWith(out, message, 'invalid-input', USAGE_EXIT_CODE)
     }
     const template = requireTemplate(out, input.name)

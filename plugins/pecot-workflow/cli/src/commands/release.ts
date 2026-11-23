@@ -28,7 +28,7 @@ import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient, makeClient } from './github-client.js'
 import { issuePath } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -290,9 +290,8 @@ const releaseCheckCommand = defineCommand({
 
 const RELEASE_CREATE_OUTPUT = z.strictObject({
   tag: z.string().describe('Tag of the release'),
-  url: z.string().optional().describe('URL of the created release (omitted on dry_run)'),
+  url: z.string().optional().describe('URL of the created release (omitted when the response has none)'),
   releaseNotes: z.string().describe('Release notes from the CHANGELOG'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 const releaseCreateCommand = defineCommand({
@@ -365,8 +364,7 @@ const RELEASE_MERGE_OUTPUT = z.strictObject({
   pullRequest: z.string().describe('Release PR (owner/repo/N)'),
   head: z.string().describe('Head branch of the PR'),
   base: z.string().describe('Base branch of the PR (the release branch)'),
-  deletedBranch: z.boolean().describe('Whether the remote head branch was deleted (false without delete_branch, on dry_run, or when the deletion failed)'),
-  dryRun: DRY_RUN_FIELD,
+  deletedBranch: z.boolean().describe('Whether the remote head branch was deleted (false without delete_branch or when the deletion failed)'),
 })
 
 const releaseMergeCommand = defineCommand({

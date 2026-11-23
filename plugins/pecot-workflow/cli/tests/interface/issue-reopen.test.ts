@@ -436,7 +436,8 @@ describe('issue reopen', () => {
       expect(result.stderr).toContain('reopened: Issue acme/demo/7\ncreated: comment on acme/demo/7\n')
     })
 
-    it('--dry-run で打つと、Status を消さずに、消す予定を reopen の後・set の前の dry-run の行に出す', async () => {
+    it('--dry-run で打つと、Status を消さずに、消す予定を reopen の後・set の前の dry-run の行に出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-REOPEN-21')
       prepareProject()
       const github = await startGithub([linkedRepositories(), itemWithStatus('Done')])
 
@@ -445,17 +446,6 @@ describe('issue reopen', () => {
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('dry-run: would reopen Issue acme/demo/7\ndry-run: would remove Issue acme/demo/7 Status Done on the board\ndry-run: would set Issue acme/demo/7 status ready\n')
       expect(github.requests().map(request => labelOf(request))).not.toContain('ClearProjectItemField')
-    })
-
-    it('dry_run で打つと、Status を消さずに、消す予定を doneCleared で data に返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-REOPEN-21')
-      prepareProject()
-      const github = await startGithub([linkedRepositories(), itemWithStatus('Done')])
-
-      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', dry_run: true })
-
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, doneCleared: true, commented: false, dryRun: true })
-      expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems'])
     })
 
     it('Status が Done の項目の Issue を開き直すと、開き直す前に Status を消し、doneCleared を true で data に返す', async (context) => {
@@ -516,15 +506,12 @@ describe('issue reopen', () => {
       expect(outcome.structured['detail']).toMatch(/^could not comment on Issue acme\/demo\/7: /u)
     })
 
-    it.for([
-      { name: '呼ぶ', extra: {} },
-      { name: 'dry_run で呼ぶ', extra: { dry_run: true } },
-    ])('comment が空白だけで $name と、GitHub を呼ばずに、入力の名前を comment と書いた invalid-input の失敗を返す', async (row, context) => {
+    it('comment が空白だけで呼ぶと、GitHub を呼ばずに、入力の名前を comment と書いた invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-REOPEN-25')
       prepareProject()
       const github = await startGithub([])
 
-      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: ' '.repeat(3), ...row.extra })
+      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: ' '.repeat(3) })
 
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toEqual({ kind: 'invalid-input', detail: 'comment is blank: give a reason or omit it' })
@@ -541,17 +528,6 @@ describe('issue reopen', () => {
 
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', unarchived: false, doneCleared: false, commented: false, warnings: ['Issue acme/demo/7 is not on the project board'] })
       expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems', PATCH, PATCH])
-    })
-
-    it('dry_run で打つと、開き直さずボードにも書かずに、書く予定の status と dryRun を data に返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-REOPEN-21')
-      prepareProject()
-      const github = await startGithub([linkedRepositories(), boardItems()])
-
-      const outcome = await reopenTool({ issue_ref: 'acme/demo/7', comment: '理由', dry_run: true })
-
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'ready', unarchived: false, doneCleared: false, commented: true, dryRun: true })
-      expect(github.requests().map(request => labelOf(request))).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems'])
     })
 
     it('閉じた Issue の参照を渡すと、reopen して issue に入れ、status を省くと ready にする', async (context) => {

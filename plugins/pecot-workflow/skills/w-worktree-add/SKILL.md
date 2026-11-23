@@ -47,7 +47,7 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 
 `worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（結果は成功のまま）になる。
 `setup_command` が失敗したら、警告の文を利用者に示す。
-成功のときや setup を動かさないときは、`setupFailed` が `false` になる。`dry_run: true` のときは、`setupFailed` が無い。
+成功のときや setup を動かさないときは、`setupFailed` が `false` になる。
 
 ### Step 2: add を呼ぶ
 

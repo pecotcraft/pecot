@@ -7,7 +7,6 @@ import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireConfigFor } from './command-stop.js'
-import { DRY_RUN_FIELD } from './output.js'
 import type { Operation, Output } from './output.js'
 import { requireReleaseTargetRepository } from './release.js'
 
@@ -26,12 +25,11 @@ const TRACKER_ENTRY_JSON = z.strictObject({
 
 export const TRACKER_SYNC_OUTPUT = z.strictObject({
   source: z.enum(['dependabot', 'security']).describe('Source synced'),
-  tracker: z.int().optional().describe('Number of the Tracker used or created (omitted when there is none, or on dry_run before creation)'),
-  created: z.boolean().describe('Whether a new Tracker was created (on dry_run, would be created)'),
-  added: z.array(TRACKER_ENTRY_JSON).describe('Rows added to the Tracker list (on dry_run, to be added)'),
-  removed: z.array(TRACKER_ENTRY_JSON).describe('Rows removed from the Tracker list (on dry_run, to be removed)'),
-  closed: z.boolean().describe('Whether the Tracker was closed because its list became none (on dry_run, would be closed)'),
-  dryRun: DRY_RUN_FIELD,
+  tracker: z.int().optional().describe('Number of the Tracker used or created (omitted when there is none)'),
+  created: z.boolean().describe('Whether a new Tracker was created'),
+  added: z.array(TRACKER_ENTRY_JSON).describe('Rows added to the Tracker list'),
+  removed: z.array(TRACKER_ENTRY_JSON).describe('Rows removed from the Tracker list'),
+  closed: z.boolean().describe('Whether the Tracker was closed because its list became none'),
 })
 
 export type TrackerSyncData = z.input<typeof TRACKER_SYNC_OUTPUT>

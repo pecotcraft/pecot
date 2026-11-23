@@ -389,15 +389,14 @@ describe('board move', () => {
       })
     })
 
-    it('dry_run を付けると、ボードの項目を読むだけで Status を動かさず、予定の status と dryRun: true を返す', async (context) => {
+    it('CLI で --dry-run を付けると、ボードの項目を読むだけで Status を動かさず、設定する予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-BOARD-MOVE-15')
       prepareProject()
       const github = await startGithub([linkedRepositories(), boardItems()])
 
-      const outcome = await move({ issue_ref: 'acme/demo/7', status: 'active', dry_run: true })
+      const result = await update(['board', 'move', 'acme/demo/7', 'active', '--dry-run'])
 
-      expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', status: 'active', dryRun: true })
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would set Issue acme/demo/7 status active\n' })
       expect(github.requests().map(request => request.type === 'graphql' ? request.operation : request.path)).toEqual(['GetLinkedRepositoriesUser', 'GetIssueProjectItems'])
     })
   })

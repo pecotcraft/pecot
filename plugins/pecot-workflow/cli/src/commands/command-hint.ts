@@ -2,7 +2,7 @@
 import { registerHintCommands } from '../domain/command-hint.js'
 import type { CommandDefinition } from './command-definition.js'
 
-export { commandHint, globalRepositoryHint, hinted, hintedTextOf, inputHint, inputNameHint, joinHinted, placeholder, RUN, RUN_COLON, runAgain, surfaceText } from '../domain/command-hint.js'
+export { cliOnlyText, commandHint, globalRepositoryHint, hinted, hintedTextOf, inputHint, inputNameHint, joinHinted, placeholder, RUN, RUN_COLON, runAgain, surfaceText } from '../domain/command-hint.js'
 export type { CommandHint, HintedText } from '../domain/command-hint.js'
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型
@@ -11,6 +11,7 @@ export function registerCommandHints(definitions: readonly CommandDefinition[]):
     path: definition.path,
     positional: definition.positional,
     inputs: Object.keys(definition.input.shape),
+    cliOnly: definition.cliOnly,
     hasOwnRepo: definition.hasOwnRepo,
   })))
 }

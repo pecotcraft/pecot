@@ -14,7 +14,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 
@@ -36,12 +36,11 @@ const MergeInputSchema = z.strictObject({
 const PR_MERGE_OUTPUT = z.strictObject({
   pullRequest: z.string().describe('PR (owner/repo/N)'),
   base: z.string().describe('Base branch the PR is merged into'),
-  status: z.enum(['merged', 'enqueued']).optional().describe('merged, or enqueued when the PR was added to the merge queue (absent on dry_run)'),
+  status: z.enum(['merged', 'enqueued']).describe('merged, or enqueued when the PR was added to the merge queue'),
   stack: z.strictObject({
     number: z.int().describe('Stack number'),
     size: z.int().describe('Number of PRs in the stack from this PR upward (K of "1 of K")'),
   }).optional().describe('Stack the PR is the bottom of (absent for a PR outside a stack)'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type PrMergeData = z.input<typeof PR_MERGE_OUTPUT>

@@ -51,6 +51,18 @@ describe('diffGenerated', () => {
     expect(diffGenerated(before, after)).toEqual(['PW-A: input.properties.a.default: 1 -> [1]'])
   })
 
+  it('CLI だけの入力の増減と変更があると、cli.only の欄のパスで報告する', () => {
+    const cli = (only: object | undefined): object => ({ cli: { positional: [], flags: { dry_run: ['--dry-run'] }, ...(only !== undefined && { only }) } })
+    const none = file([entry('PW-A', {}, cli(undefined))])
+    const boolean = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' } }))])
+    const described = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean', description: 'Plan only.' } }))])
+    expect(diffGenerated(none, boolean)).toEqual(['PW-A: cli.only: added'])
+    expect(diffGenerated(boolean, none)).toEqual(['PW-A: cli.only: removed'])
+    expect(diffGenerated(boolean, described)).toEqual(['PW-A: cli.only.dry_run.description: added'])
+    const two = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' }, force: { type: 'boolean' } }))])
+    expect(diffGenerated(boolean, two)).toEqual(['PW-A: cli.only.force: added'])
+  })
+
   it('ファイルの先頭部が変わると、報告する', () => {
     expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
   })

@@ -507,6 +507,7 @@ describe('project init', () => {
     expectClean(result)
     expect(result.stderr).toBe(`${skippedFields.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would add option Blocked to field pecot-workflow-acme\ndry-run: would add option Needs Attention to field Status\n`)
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+    expect(requestLabels(result.requests)).not.toContain('GetLinkedRepositoriesUser')
   })
 
   describe('MCP の data', () => {
@@ -586,30 +587,6 @@ describe('project init', () => {
       const result = await tool('project_init', initArguments, [...base(existing), listProjects(projectNode(1, 'board')), failing('GetProjectFieldsUser'), failing('GetProjectFieldsOrg')], { config: false })
       expect(result.isError).toBe(true)
       expect(result.structured['detail']).toMatch(/^could not sync project config: /u)
-    })
-
-    it('dry_run で、足す選択肢があると、設定ファイルの書き込みの予定を調べない', async (context) => {
-      await verifies(context, 'PW-PROJECT-INIT-17')
-      const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
-      const result = await tool('project_init', { ...initArguments, dry_run: true }, base(existing), { config: false })
-      expectClean(result)
-      expect(result.structured).toMatchObject({ dryRun: true })
-      expect(result.structured['fields']).toContainEqual({ name: 'pecot-workflow-acme', change: 'update', addedOptions: ['Blocked'] })
-      expect(requestLabels(result.requests)).not.toContain('GetLinkedRepositoriesUser')
-    })
-
-    it('dry_run だと、作る予定のフィールドと dryRun を返す', async (context) => {
-      await verifies(context, 'PW-PROJECT-INIT-16')
-      const result = await tool('project_init', { ...initArguments, dry_run: true }, initRules(titleWithoutStatus), { config: false })
-      expect(result.structured).toEqual({
-        fields: [
-          { name: 'pecot-workflow-acme', change: 'create', addedOptions: [] },
-          { name: 'pecot-priority', change: 'create', addedOptions: [] },
-          { name: 'pecot-size', change: 'create', addedOptions: [] },
-          { name: 'Status', change: 'skip', addedOptions: [] },
-        ],
-        dryRun: true,
-      })
     })
   })
 })
@@ -736,12 +713,6 @@ describe('project create', () => {
       const result = await tool('project_create', projectInput, createRules(standardFields(['Backlog'])), { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized', number: 1, url: BOARD_URL } })
       expect(result.read(CONFIG_FILE)).toBeUndefined()
-    })
-
-    it('dry_run だと、タイトルと owner と dryRun だけを返す', async (context) => {
-      await verifies(context, 'PW-PROJECT-CREATE-11')
-      const result = await tool('project_create', { ...owned, title: 'board', suffix: 'acme', dry_run: true }, [graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects()], { config: false })
-      expect(result.structured).toEqual({ title: 'board', owner: 'acme', dryRun: true })
     })
   })
 })
@@ -1113,7 +1084,7 @@ describe('board show', () => {
         const result = await infoTool([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
         expectClean(result)
         expect(result.structured['mismatches']).toBe(2)
-        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; call board_sync (dry_run: true to preview) to fix'])
+        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; call board_sync to fix'])
       })
 
       it('Active と In Review の Issue は、前提を読まず、readiness を null にする', async (context) => {
@@ -1523,12 +1494,6 @@ describe('project activate', () => {
       expect(result.structured).toMatchObject({ project: CONFIG_NAME, change: 'update' })
     })
 
-    it('dry_run だと、予定の change と dryRun を返す', async (context) => {
-      await verifies(context, 'PW-PROJECT-ACTIVATE-23')
-      const result = await tool('project_activate', { ...owned, project: '1', dry_run: true }, [projectFields(), ...syncRules()], { config: false })
-      expect(result.structured).toEqual({ project: CONFIG_NAME, configPath: path.join(result.directory, CONFIG_FILE), change: 'create', dryRun: true })
-    })
-
     it('host が要る場面で渡していないと、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-12')
       const result = await tool('project_activate', { project: '1' }, [], { config: false })
@@ -1722,12 +1687,6 @@ describe('project link', () => {
       expect(result.structured).toMatchObject({ repository: 'acme/demo', change: 'update' })
     })
 
-    it('dry_run だと dryRun を返す', async (context) => {
-      await verifies(context, 'PW-PROJECT-LINK-18')
-      const result = await tool('project_link', { repo: 'acme/demo', develop_branch: 'dev', dry_run: true })
-      expect(result.structured).toMatchObject({ repository: 'acme/demo', change: 'update', dryRun: true })
-    })
-
     it('リンクに失敗すると、kind が github-api の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-LINK-08')
       const result = await tool('project_link', { repo: 'acme/other' }, [projectIdRule(), unresolvedRepository()])
@@ -1877,12 +1836,6 @@ describe('project set', () => {
       const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, [], withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', previous: 'acme/roadmap', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
     })
-
-    it('dry_run だと、書く予定の設定ファイルのパスを configPath に入れ、dryRun を返す', async (context) => {
-      await verifies(context, 'PW-PROJECT-SET-09')
-      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap', dry_run: true })
-      expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', change: 'create', configPath: path.join(result.directory, CONFIG_FILE), dryRun: true })
-    })
   })
 })
 
@@ -1932,13 +1885,6 @@ describe('project unset', () => {
       await verifies(context, 'PW-PROJECT-UNSET-03')
       const result = await tool('project_unset', { key: 'aggregation_repo' })
       expect(result.structured).toEqual({ key: 'aggregation_repo', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
-    })
-
-    it('dry_run だと、消す予定の値と dryRun を返し、設定ファイルを書かない', async (context) => {
-      await verifies(context, 'PW-PROJECT-UNSET-06')
-      const result = await tool('project_unset', { key: 'aggregation_repo', dry_run: true }, [], withAggregation('acme/roadmap'))
-      expect(result.structured).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', configPath: path.join(result.directory, CONFIG_FILE), dryRun: true })
-      expect(savedConfig(result)).toHaveProperty('aggregation_repo', 'acme/roadmap')
     })
 
     it('アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す', async (context) => {

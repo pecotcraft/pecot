@@ -97,7 +97,7 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `board_show` | ボードの状態をまとめて表示する |
 | `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
 | `board_move` | Issue 番号でボードのステータスを更新する |
-| `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`dry_run`・`project` を取る） |
+| `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`project` を取る） |
 | `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る） |
 | `issue_check` | `issue_create` に渡すファイルを確かめ、作らずに番号・前提・進め方の表を出す |
 | `issue_show` | Issue の詳細を必要な項目だけ取得する |

@@ -399,14 +399,6 @@ describe('session start', () => {
       expect(result.structured).toMatchObject({ branch: 'feat/7', base: 'feat/3', stackedOn: 3 })
     })
 
-    it('dry_run で打つと、作る予定のブランチと dryRun を data に返し、作業ディレクトリを返さない', async (context) => {
-      await verifies(context, 'PW-SESSION-START-36')
-      const result = await runTool({ tool: 'session_start', arguments: { ...ARGUMENTS, dry_run: true }, github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main')] })
-      expectClean(result)
-      expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', dryRun: true })
-      expect(result.read(TITLE)).toBeUndefined()
-    })
-
     it.for([
       { name: 'allow_cross_repo' },
       { name: 'force_overwrite_active' },

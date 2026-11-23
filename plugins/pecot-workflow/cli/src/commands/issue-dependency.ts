@@ -30,7 +30,7 @@ import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import type { JudgedIssue } from './issue-readiness.js'
 import { ensureRepositoryInProject, ISSUE_REF_DESCRIPTION, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import type { IssueTarget } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -42,7 +42,7 @@ const UNBLOCK_PATH = ['issue', 'unblock']
 
 const ISSUE_FIELD = z.string().describe('The waiting Issue (owner/repo/N)')
 const BY_FIELD = z.string().describe('The prerequisite Issue (owner/repo/N)')
-const MOVES_FIELD = z.array(BOARD_MOVE_JSON).optional().describe('The waiting Issue when its column or Status was written (at most one; empty when nothing was written; omitted on dry_run)')
+const MOVES_FIELD = z.array(BOARD_MOVE_JSON).describe('The waiting Issue when its column or Status was written (at most one; empty when nothing was written)')
 
 const ISSUE_BLOCK_OUTPUT = z.strictObject({
   issue: ISSUE_FIELD,
@@ -50,7 +50,6 @@ const ISSUE_BLOCK_OUTPUT = z.strictObject({
   wait: z.enum(['stack', 'merge']).describe('Wait kind of the blocked-by after the command'),
   change: z.enum(['added', 'updated', 'unchanged']).describe('added (new blocked-by), updated (wait kind or reason changed), or unchanged'),
   moves: MOVES_FIELD,
-  dryRun: DRY_RUN_FIELD,
 })
 
 const ISSUE_UNBLOCK_OUTPUT = z.strictObject({
@@ -58,7 +57,6 @@ const ISSUE_UNBLOCK_OUTPUT = z.strictObject({
   by: BY_FIELD,
   change: z.enum(['removed', 'unchanged']).describe('removed, or unchanged when it was not a blocked-by'),
   moves: MOVES_FIELD,
-  dryRun: DRY_RUN_FIELD,
 })
 
 type BlockOutput = Output<z.input<typeof ISSUE_BLOCK_OUTPUT>>
@@ -226,12 +224,12 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
   if (linked === undefined && total >= MAX_BLOCKED_BY) stopWith(out, `${name} already has ${String(MAX_BLOCKED_BY)} blocked-by issues`, 'dependency-rejected')
 
   const decision = decideBlock({ body: read.body, home, by, wait: input.wait, reason, isLinked: linked !== undefined })
-  const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait }
+  const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change' | 'moves'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait }
   if (decision.kind === 'malformed') {
     stopWith(out, hinted`Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and ${surfaceText('run the command again', 'call the tool again')}`, 'content-invalid', CONTENT_EXIT_CODE)
   }
   else if (decision.kind === 'unchanged') {
-    out.result({ ...result, change: 'unchanged', ...!input.dry_run && { moves: [] } })
+    out.result({ ...result, change: 'unchanged', moves: [] })
     out.planned({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
     out.done({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
     return
@@ -302,9 +300,9 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
   if (linked === undefined && total > issues.length) stopWith(out, `could not read blocked-by of ${name}: ${String(issues.length)} of ${String(total)} issues were read`, 'dependency-unreadable')
 
   const decision = decideUnblock({ body: read.body, home, by, isLinked: linked !== undefined })
-  const result: Omit<z.input<typeof ISSUE_UNBLOCK_OUTPUT>, 'change'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by) }
+  const result: Omit<z.input<typeof ISSUE_UNBLOCK_OUTPUT>, 'change' | 'moves'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by) }
   if (linked === undefined || decision.kind === 'unchanged') {
-    out.result({ ...result, change: 'unchanged', ...!input.dry_run && { moves: [] } })
+    out.result({ ...result, change: 'unchanged', moves: [] })
     out.planned({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })
     out.done({ verb: 'unchanged', target: `${name} is not blocked by ${byName}` })
     return

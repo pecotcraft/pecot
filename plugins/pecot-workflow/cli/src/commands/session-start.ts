@@ -12,7 +12,7 @@ import type { StartDecision } from '../domain/work-start.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { issuePath } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -136,8 +136,7 @@ const SESSION_START_OUTPUT = z.strictObject({
   base: z.string().describe('Base branch the branch starts from'),
   stackedOn: z.int().optional().describe('Issue number whose branch this one is stacked on (omitted when not stacked)'),
   issue: z.string().describe('Work Issue (owner/repo/N)'),
-  workDirectory: z.string().optional().describe('Absolute path of the work directory (omitted on dry_run or when it could not be created)'),
-  dryRun: DRY_RUN_FIELD,
+  workDirectory: z.string().optional().describe('Absolute path of the work directory (omitted when it could not be created)'),
 })
 
 const sessionStartCommand = defineCommand({

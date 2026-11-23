@@ -13,16 +13,15 @@ import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { requireBoardConfig } from './command-stop.js'
 import { makeClient } from './github-client.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { pruneArchivedItems, readBoard } from './board-view.js'
 import type { BoardRead } from './board-view.js'
 import { failApi } from './project-sync.js'
 
 const BOARD_SYNC_OUTPUT = z.strictObject({
-  moves: z.array(BOARD_MOVE_JSON).describe('Issues whose column or Status was written (on dry_run, would be written)'),
-  deletedArchived: z.int().describe('Number of Archived items deleted from the board (on dry_run, to be deleted)'),
-  dryRun: DRY_RUN_FIELD,
+  moves: z.array(BOARD_MOVE_JSON).describe('Issues whose column or Status was written'),
+  deletedArchived: z.int().describe('Number of Archived items deleted from the board'),
 })
 
 function unsupportedWarning(out: Readonly<Output>): void {

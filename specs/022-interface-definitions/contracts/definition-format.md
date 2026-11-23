@@ -13,7 +13,7 @@
 | NAME | `id`・`name`・`description`・`mcp.title` | 書き出し | Tool の `name`・`title`・`description` |
 | SYNOPSIS | `surfaces.cli.path`・`cli.positional`・`cli.flags`・`constraints` | 書き出し。`constraints` は人 | `surfaces.mcp.tool` |
 | DESCRIPTION | `details` | 人 | 同じ |
-| OPTIONS・OPERANDS | `input`・`default_notes` | 書き出し。`default_notes` は人 | Tool の `inputSchema` |
+| OPTIONS・OPERANDS | `input`・`cli.only`・`arguments`・`cli_reference.options`・`default_notes` | 書き出し。`arguments`・`cli_reference.options`・`default_notes` は人 | Tool の `inputSchema`。`cli.only` は MCP に出さない |
 | STDIN | `stdin` | 人 | 常に `none` |
 | INPUT FILES・OUTPUT FILES | `effects` のうち相手が `file` のもの | 人 | 同じ |
 | ENVIRONMENT VARIABLES | `environment` | 人。ソースの文字列と比べる | 同じ |
@@ -225,12 +225,15 @@ common_behaviors:
       examples:
         - run: pecot board sync --dry-run
           note: 書かずに、する予定を出します。
+      options:
+        dry_run: 何も書かずに、する予定だけを出すかどうかです。
 ```
 
 | 決め | 内容 |
 |---|---|
 | 持てる項目 | CLI の面（`surfaces.cli`）を持つ項目だけ |
 | ページの表示 | 持つ項目だけが「コマンド」の節と、エラーの表の「終了コード」の列を出す。持たない項目は、標準入力・標準出力・標準エラーも出さない |
+| `options` | `cli.only` の名前ごとの説明。`cli.only` の名前と過不足なくそろえる。CLI の節が、その入力の説明として出す |
 | `help.examples` との関係 | `prose: ja` で `cli_reference` を持つ項目は、`help.examples` の `run` を `cli_reference.examples` と同じ順・同じ値にする。持たない MCP の項目は比べない。MCP の面の無い項目は `examples` と比べる |
 
 `exit_status[].code` は、CLI の面を持つ項目だけが書ける。

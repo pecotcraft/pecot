@@ -187,11 +187,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -227,6 +222,13 @@
             "--status",
             "-s"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -240,16 +242,11 @@
             },
             "added": {
               "type": "boolean",
-              "description": "true when the Issue is on the board (on dry_run, would be added)"
+              "description": "true when the Issue is on the board"
             },
             "status": {
               "description": "Status set on the board (omitted when status is empty)",
               "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -309,11 +306,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -346,6 +338,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -359,12 +358,7 @@
             },
             "status": {
               "type": "string",
-              "description": "Status set on the board (on dry_run, to be set)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Status set on the board"
             },
             "kind": {
               "type": "string",
@@ -831,11 +825,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show the planned moves without writing to the board"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the active project; when none is active and only one config exists, that one"
@@ -853,6 +842,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the planned moves without writing to the board"
+          }
         }
       },
       "mcp": {
@@ -892,18 +888,13 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Issues whose column or Status was written (on dry_run, would be written)"
+              "description": "Issues whose column or Status was written"
             },
             "deletedArchived": {
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991,
-              "description": "Number of Archived items deleted from the board (on dry_run, to be deleted)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Number of Archived items deleted from the board"
             },
             "kind": {
               "type": "string",
@@ -967,11 +958,6 @@
             "type": "string",
             "description": "Name of the branch to delete"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be deleted without deleting anything"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
@@ -1000,6 +986,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be deleted without deleting anything"
+          }
         }
       },
       "mcp": {
@@ -1017,12 +1010,7 @@
             },
             "deleted": {
               "type": "boolean",
-              "description": "Whether the remote branch was deleted (false on dry_run)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Whether the remote branch was deleted"
             },
             "kind": {
               "type": "string",
@@ -1087,11 +1075,6 @@
             "type": "string",
             "description": "The Issue to wait for (`owner/repo/N`; another repository is allowed)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "issue_ref": {
             "type": "string",
             "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -1140,6 +1123,13 @@
           "wait": [
             "--wait"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -1173,7 +1163,6 @@
               "description": "added (new blocked-by), updated (wait kind or reason changed), or unchanged"
             },
             "moves": {
-              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written; omitted on dry_run)",
               "type": "array",
               "items": {
                 "type": "object",
@@ -1204,12 +1193,8 @@
                   "reason"
                 ],
                 "additionalProperties": false
-              }
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              },
+              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written)"
             },
             "kind": {
               "type": "string",
@@ -1238,7 +1223,8 @@
                 "issue",
                 "by",
                 "wait",
-                "change"
+                "change",
+                "moves"
               ]
             },
             {
@@ -1435,11 +1421,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be posted or written without changing anything"
-          },
           "file": {
             "type": "string",
             "description": "Path of a Markdown file with frontmatter"
@@ -1495,6 +1476,13 @@
             "--template",
             "-t"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be posted or written without changing anything"
+          }
         }
       },
       "mcp": {
@@ -1507,7 +1495,7 @@
               "description": "Issue commented on (owner/repo/N)"
             },
             "commentUrl": {
-              "description": "URL of the comment created or updated (omitted on dry_run, or when GitHub returned no URL)",
+              "description": "URL of the comment created or updated (omitted when GitHub returned no URL)",
               "type": "string"
             },
             "change": {
@@ -1516,16 +1504,11 @@
                 "created",
                 "updated"
               ],
-              "description": "Whether the comment was (on dry_run, would be) created or updated"
+              "description": "Whether the comment was created or updated"
             },
             "file": {
               "description": "Absolute path of the file whose comment_url was written back after posting from it (omitted otherwise)",
               "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -1825,11 +1808,6 @@
             "type": "string",
             "description": "Reason for reopening (posted as a comment)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -1869,6 +1847,13 @@
             "--status",
             "-s"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -1895,11 +1880,6 @@
             "commented": {
               "type": "boolean",
               "description": "Whether the reason was posted as a comment"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -2397,11 +2377,6 @@
             "type": "string",
             "description": "The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "issue_ref": {
             "type": "string",
             "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -2431,6 +2406,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -2455,7 +2437,6 @@
               "description": "removed, or unchanged when it was not a blocked-by"
             },
             "moves": {
-              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written; omitted on dry_run)",
               "type": "array",
               "items": {
                 "type": "object",
@@ -2486,12 +2467,8 @@
                   "reason"
                 ],
                 "additionalProperties": false
-              }
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              },
+              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written)"
             },
             "kind": {
               "type": "string",
@@ -2519,7 +2496,8 @@
               "required": [
                 "issue",
                 "by",
-                "change"
+                "change",
+                "moves"
               ]
             },
             {
@@ -2717,11 +2695,6 @@
             "default": false,
             "description": "Create as a draft PR"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Validate only (skip the early preflight check, do not create the PR)"
-          },
           "file": {
             "type": "string",
             "description": "Path to a Markdown file with front matter"
@@ -2808,6 +2781,13 @@
             "--title",
             "-t"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Validate only (skip the early preflight check, do not create the PR)"
+          }
         }
       },
       "mcp": {
@@ -2816,11 +2796,11 @@
           "type": "object",
           "properties": {
             "url": {
-              "description": "URL of the created PR (omitted on dry_run)",
-              "type": "string"
+              "type": "string",
+              "description": "URL of the created PR"
             },
             "number": {
-              "description": "Number of the created PR (omitted on dry_run, or when the response has none)",
+              "description": "Number of the created PR (omitted when the response has none)",
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
@@ -2854,8 +2834,8 @@
                   "description": "PR number of the lower stage the new PR is stacked on"
                 },
                 "registered": {
-                  "description": "Whether the new PR was registered to the stack (omitted on dry_run)",
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Whether the new PR was registered to the stack"
                 },
                 "number": {
                   "description": "Stack number (omitted when not registered)",
@@ -2865,12 +2845,12 @@
                 }
               },
               "required": [
-                "lower"
+                "lower",
+                "registered"
               ],
               "additionalProperties": false
             },
             "moves": {
-              "description": "Issues waiting for this PR whose column or Status was written (omitted on dry_run)",
               "type": "array",
               "items": {
                 "type": "object",
@@ -2901,12 +2881,8 @@
                   "reason"
                 ],
                 "additionalProperties": false
-              }
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              },
+              "description": "Issues waiting for this PR whose column or Status was written"
             },
             "kind": {
               "type": "string",
@@ -2932,9 +2908,11 @@
           "anyOf": [
             {
               "required": [
+                "url",
                 "head",
                 "base",
-                "title"
+                "title",
+                "moves"
               ]
             },
             {
@@ -2967,11 +2945,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Read the PR and its stack, and show what would happen without merging"
-          },
           "pr_ref": {
             "type": "string",
             "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -2998,6 +2971,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Read the PR and its stack, and show what would happen without merging"
+          }
         }
       },
       "mcp": {
@@ -3014,12 +2994,12 @@
               "description": "Base branch the PR is merged into"
             },
             "status": {
-              "description": "merged, or enqueued when the PR was added to the merge queue (absent on dry_run)",
               "type": "string",
               "enum": [
                 "merged",
                 "enqueued"
-              ]
+              ],
+              "description": "merged, or enqueued when the PR was added to the merge queue"
             },
             "stack": {
               "description": "Stack the PR is the bottom of (absent for a PR outside a stack)",
@@ -3043,11 +3023,6 @@
                 "size"
               ],
               "additionalProperties": false
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -3074,7 +3049,8 @@
             {
               "required": [
                 "pullRequest",
-                "base"
+                "base",
+                "status"
               ]
             },
             {
@@ -3122,11 +3098,6 @@
             "default": false,
             "description": "Continue a restack that stopped on conflicts, after resolving them"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be done without rebasing, pushing or writing records"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
@@ -3154,6 +3125,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be done without rebasing, pushing or writing records"
+          }
         }
       },
       "mcp": {
@@ -3182,7 +3160,7 @@
               "description": "What happened, or with check, what a restack would do"
             },
             "cause": {
-              "description": "Why a restack is needed (only with check or dry_run, when one is needed)",
+              "description": "Why a restack is needed (only with check, when one is needed)",
               "type": "string",
               "enum": [
                 "base-moved",
@@ -3211,11 +3189,6 @@
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -3596,11 +3569,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "host": {
             "type": "string",
             "description": "GitHub host"
@@ -3636,6 +3604,13 @@
             "--owner",
             "-o"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -3644,7 +3619,7 @@
           "type": "object",
           "properties": {
             "project": {
-              "description": "Name of the project config that was (on dry_run, would be) made active",
+              "description": "Name of the project config that was made active",
               "type": "string"
             },
             "configPath": {
@@ -3659,11 +3634,6 @@
                 "unchanged"
               ],
               "description": "What happened to the config file"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -3723,11 +3693,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "host": {
             "type": "string",
             "default": "github.com",
@@ -3771,6 +3736,13 @@
             "--suffix",
             "-s"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -3779,13 +3751,13 @@
           "type": "object",
           "properties": {
             "number": {
-              "description": "Number of the created project (omitted on dry_run)",
+              "description": "Number of the created project (omitted when the response has none)",
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
             },
             "url": {
-              "description": "URL of the created project (omitted on dry_run)",
+              "description": "URL of the created project (omitted when the response has none)",
               "type": "string"
             },
             "title": {
@@ -3795,11 +3767,6 @@
             "owner": {
               "type": "string",
               "description": "Project owner"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -3951,11 +3918,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "host": {
             "type": "string",
             "default": "github.com",
@@ -3999,6 +3961,13 @@
             "--suffix",
             "-s"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -4041,11 +4010,6 @@
                 "additionalProperties": false
               },
               "description": "The workflow, priority and size fields, plus the Status field when its options were looked at"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -4117,11 +4081,6 @@
             "type": "string",
             "description": "Development branch name"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "package": {
             "type": "array",
             "items": {
@@ -4175,6 +4134,13 @@
           "release_type": [
             "--release-type"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -4203,11 +4169,6 @@
             "configPath": {
               "type": "string",
               "description": "Path of the project config file"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -4490,11 +4451,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "key": {
             "type": "string",
             "enum": [
@@ -4532,6 +4488,13 @@
             "--yes",
             "-y"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -4548,7 +4511,7 @@
             },
             "value": {
               "type": "string",
-              "description": "Value of the key after the command (on dry_run, after it would run)"
+              "description": "Value of the key after the command"
             },
             "previous": {
               "description": "Value before the command (omitted when the key was not set)",
@@ -4566,11 +4529,6 @@
             "configPath": {
               "type": "string",
               "description": "Path of the project config file"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -4632,11 +4590,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          },
           "key": {
             "type": "string",
             "enum": [
@@ -4659,6 +4612,13 @@
             "--dry-run",
             "-n"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would change without writing anything"
+          }
         }
       },
       "mcp": {
@@ -4688,11 +4648,6 @@
             "configPath": {
               "type": "string",
               "description": "Path of the project config file"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -4899,11 +4854,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          },
           "package": {
             "type": "string",
             "description": "Package name in a monorepo (required for repositories with packages configured)"
@@ -4936,6 +4886,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          }
         }
       },
       "mcp": {
@@ -4948,17 +4905,12 @@
               "description": "Tag of the release"
             },
             "url": {
-              "description": "URL of the created release (omitted on dry_run)",
+              "description": "URL of the created release (omitted when the response has none)",
               "type": "string"
             },
             "releaseNotes": {
               "type": "string",
               "description": "Release notes from the CHANGELOG"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -5028,11 +4980,6 @@
             "default": false,
             "description": "Delete the branch after merging"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without merging"
-          },
           "pr_ref": {
             "type": "string",
             "description": "PR reference (owner/repo/123)"
@@ -5066,6 +5013,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without merging"
+          }
         }
       },
       "mcp": {
@@ -5087,12 +5041,7 @@
             },
             "deletedBranch": {
               "type": "boolean",
-              "description": "Whether the remote head branch was deleted (false without delete_branch, on dry_run, or when the deletion failed)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Whether the remote head branch was deleted (false without delete_branch or when the deletion failed)"
             },
             "kind": {
               "type": "string",
@@ -5157,11 +5106,6 @@
           "detail": {
             "type": "string",
             "description": "Name of the missing setting (only with result setup-missing)"
-          },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Read the PR and show the comment that would be posted without posting it (in body of the MCP result)"
           },
           "ensure": {
             "type": "boolean",
@@ -5262,6 +5206,13 @@
           "since": [
             "--since"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Read the PR and show the comment that would be posted without posting it"
+          }
         }
       },
       "mcp": {
@@ -5304,17 +5255,8 @@
               ]
             },
             "commentUrl": {
-              "description": "URL of the comment written (absent when skipped or on dry_run)",
+              "description": "URL of the comment written (absent when skipped, or when GitHub returned no URL)",
               "type": "string"
-            },
-            "body": {
-              "description": "Body of the comment that would be posted (only on dry_run)",
-              "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -5378,11 +5320,6 @@
             "default": false,
             "description": "Delete the branch"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Dry-run (do not actually clean up)"
-          },
           "pr_ref": {
             "type": "string",
             "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
@@ -5421,6 +5358,13 @@
           "skip_local_cleanup": [
             "--skip-local-cleanup"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Dry-run (do not actually clean up)"
+          }
         }
       },
       "mcp": {
@@ -5435,7 +5379,7 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
               },
-              "description": "Issue numbers this command closed (to be closed on dry_run); usually empty for a PR to the default branch, since GitHub closes them on merge"
+              "description": "Issue numbers this command closed; usually empty for a PR to the default branch, since GitHub closes them on merge"
             },
             "skippedIssues": {
               "type": "array",
@@ -5491,7 +5435,7 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Branches deleted (to be deleted on dry_run)"
+              "description": "Branches deleted"
             },
             "readinessChanges": {
               "type": "array",
@@ -5544,11 +5488,6 @@
             "currentBranch": {
               "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
               "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -5805,11 +5744,6 @@
             "default": true,
             "description": "Kept for compatibility; has no effect"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be created and recorded without writing anything"
-          },
           "issue_ref": {
             "type": "string",
             "description": "Issue reference (owner/repo/123)"
@@ -5846,6 +5780,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be created and recorded without writing anything"
+          }
         }
       },
       "mcp": {
@@ -5876,13 +5817,8 @@
               "description": "Work Issue (owner/repo/N)"
             },
             "workDirectory": {
-              "description": "Absolute path of the work directory (omitted on dry_run or when it could not be created)",
+              "description": "Absolute path of the work directory (omitted when it could not be created)",
               "type": "string"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -5944,11 +5880,6 @@
       "input": {
         "type": "object",
         "properties": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show the planned Tracker changes without changing anything"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
@@ -5978,6 +5909,13 @@
           "project": [
             "--project"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the planned Tracker changes without changing anything"
+          }
         }
       },
       "mcp": {
@@ -5994,14 +5932,14 @@
               "description": "Source synced"
             },
             "tracker": {
-              "description": "Number of the Tracker used or created (omitted when there is none, or on dry_run before creation)",
+              "description": "Number of the Tracker used or created (omitted when there is none)",
               "type": "integer",
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
             },
             "created": {
               "type": "boolean",
-              "description": "Whether a new Tracker was created (on dry_run, would be created)"
+              "description": "Whether a new Tracker was created"
             },
             "added": {
               "type": "array",
@@ -6031,7 +5969,7 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Rows added to the Tracker list (on dry_run, to be added)"
+              "description": "Rows added to the Tracker list"
             },
             "removed": {
               "type": "array",
@@ -6061,16 +5999,11 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Rows removed from the Tracker list (on dry_run, to be removed)"
+              "description": "Rows removed from the Tracker list"
             },
             "closed": {
               "type": "boolean",
-              "description": "Whether the Tracker was closed because its list became none (on dry_run, would be closed)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Whether the Tracker was closed because its list became none"
             },
             "kind": {
               "type": "string",
@@ -6267,11 +6200,6 @@
             "type": "string",
             "description": "Root of the target Git repository (absolute or relative path; default: the current directory)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be written without writing anything"
-          },
           "force": {
             "type": "boolean",
             "default": false,
@@ -6306,6 +6234,13 @@
           "force": [
             "--force"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be written without writing anything"
+          }
         }
       },
       "mcp": {
@@ -6327,7 +6262,7 @@
             },
             "written": {
               "type": "boolean",
-              "description": "Whether the file was written (false on check and dry_run)"
+              "description": "Whether the file was written (false on check)"
             },
             "upToDate": {
               "description": "With check: whether the file in the repository has the version of the bundled template",
@@ -6339,11 +6274,6 @@
               "items": {
                 "type": "string"
               }
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -6417,11 +6347,6 @@
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          },
           "no_copy": {
             "type": "boolean",
             "default": false,
@@ -6482,6 +6407,13 @@
           "setup": [
             "--setup"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          }
         }
       },
       "mcp": {
@@ -6495,7 +6427,7 @@
             },
             "path": {
               "type": "string",
-              "description": "Absolute path of the worktree (on dry_run, where it would be)"
+              "description": "Absolute path of the worktree"
             },
             "branch": {
               "type": "string",
@@ -6506,13 +6438,8 @@
               "description": "Base branch the worktree branch starts from"
             },
             "setupFailed": {
-              "description": "true when the setup command failed or timed out, false when it succeeded or was not run (omitted on dry_run)",
-              "type": "boolean"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
               "type": "boolean",
-              "const": true
+              "description": "true when the setup command failed or timed out, false when it succeeded or was not run"
             },
             "kind": {
               "type": "string",
@@ -6541,7 +6468,8 @@
                 "name",
                 "path",
                 "branch",
-                "base"
+                "base",
+                "setupFailed"
               ]
             },
             {
@@ -6577,11 +6505,6 @@
           "directory": {
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
-          },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
           }
         },
         "required": [
@@ -6600,6 +6523,13 @@
             "--dry-run",
             "-n"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          }
         }
       },
       "mcp": {
@@ -6609,16 +6539,11 @@
           "properties": {
             "configFile": {
               "type": "string",
-              "description": "Absolute path of the worktree config file (on dry_run, where it would be)"
+              "description": "Absolute path of the worktree config file"
             },
             "ignoreFile": {
               "type": "string",
-              "description": "Absolute path of the worktree ignore file (on dry_run, where it would be)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Absolute path of the worktree ignore file"
             },
             "kind": {
               "type": "string",
@@ -6687,11 +6612,6 @@
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          },
           "force": {
             "type": "boolean",
             "default": false,
@@ -6719,6 +6639,13 @@
           "force": [
             "--force"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          }
         }
       },
       "mcp": {
@@ -6762,11 +6689,6 @@
                 "additionalProperties": false
               },
               "description": "One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
             },
             "kind": {
               "type": "string",
@@ -6829,11 +6751,6 @@
             "type": "string",
             "description": "Target Git repository (absolute or relative path)"
           },
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          },
           "force": {
             "type": "boolean",
             "default": false,
@@ -6874,6 +6791,13 @@
           "keep_branch": [
             "--keep-branch"
           ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          }
         }
       },
       "mcp": {
@@ -6883,16 +6807,11 @@
           "properties": {
             "name": {
               "type": "string",
-              "description": "Name of the worktree that was (on dry_run, would be) removed, as given"
+              "description": "Name of the worktree that was removed, as given"
             },
             "deletedBranch": {
               "type": "boolean",
-              "description": "Whether the local branch was deleted (false when kept, when the deletion failed, and on dry_run)"
-            },
-            "dryRun": {
-              "description": "true on dry_run (nothing was changed)",
-              "type": "boolean",
-              "const": true
+              "description": "Whether the local branch was deleted (false when kept or when the deletion failed)"
             },
             "kind": {
               "type": "string",

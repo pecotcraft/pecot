@@ -61,7 +61,6 @@ entries:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       status: '足した Issue に設定する Status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - 'Issue を 1 件、アクティブなプロジェクトのボードに足し、続けて Status の欄を設定します。pecot の外で作った Issue に使います。'
@@ -74,7 +73,6 @@ entries:
       - '既にボードにある Issue を、重ねて足すことはありません。'
       - '`status` がこれらの値のどれでもないと、何も足さずに失敗を返します。'
       - '`status` の値をボードが定義していないと、何も足さずに失敗を返します。'
-      - '`dry_run` を付けると、Issue を読み、足す予定と設定する予定の Status を結果に入れて、ボードには何も書きません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
@@ -82,9 +80,8 @@ entries:
     mcp_output:
       fields:
         issue: 'ボードに足した Issue です。`owner/repo/N` の形です。'
-        added: 'Issue をボードに足したかどうかです。成功のときは、いつも `true` です。`dry_run` のときも `true` で、足す予定を示します。'
-        status: '設定した Status です。`status` を空で渡したときは入りません。`dry_run` のときは、設定する予定の値です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。ボードには何も書いていません。'
+        added: 'Issue をボードに足したかどうかです。成功のときは、いつも `true` です。'
+        status: '設定した Status です。`status` を空で渡したときは入りません。'
     diagnostics: '標準エラーに、足した Issue の結果の行（`added`）と、Status の結果の行（`set`）を出します。`--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。`--status` の値をボードが定義していないときも、`error` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。'
     environment: []
     exit_status:
@@ -134,7 +131,7 @@ entries:
         what: 'プロジェクトにつながっているリポジトリと、Issue の node ID を読みます。'
       - target: github
         kind: write
-        what: 'Issue をプロジェクトのボードに足し、Status の欄を設定します。`dry_run` のときは書きません。'
+        what: 'Issue をプロジェクトのボードに足し、Status の欄を設定します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -150,10 +147,6 @@ entries:
           issue_ref: example-org/my-repo/123
           status: backlog
         note: 'Issue をボードに足し、Status を `backlog` にします。'
-      - arguments:
-          issue_ref: example-org/my-repo/123
-          dry_run: true
-        note: 'ボードへ書き込まず、する予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-BOARD-ADD-01
@@ -212,7 +205,7 @@ entries:
         statement: 'もし `status` が `blocked` でボードが Blocked を定義していないなら、`project_init` で足し方を案内する文を `detail` に入れます'
       - id: PW-BOARD-ADD-19
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、Issue をボードに足さず、足す予定と設定する予定の Status を結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、Issue をボードに足さず、足す予定と設定する予定の Status を `dry-run` の行で標準エラーに出します'
       - id: PW-BOARD-ADD-20
         pattern: unwanted
         statement: 'もし Issue を足した後で Status の書き込みに失敗したなら、書けなかった Status を `detail` に入れて失敗を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
@@ -246,7 +239,6 @@ entries:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       status: '設定する Status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - 'アクティブなプロジェクトのボードに既にある Issue の、Status を設定します。'
@@ -257,7 +249,6 @@ entries:
       - '`status` は、設定ファイルを読む前に確かめます。'
       - 'Issue のリポジトリはアクティブなプロジェクトに登録されていて、Issue はボードに載っていなければなりません。'
       - 'ボードが定義していない `status` を渡すと、失敗を返します。'
-      - '`dry_run` を付けると、ボードの項目を読み、設定する予定の Status を結果に入れて、ボードには何も書きません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
@@ -265,8 +256,7 @@ entries:
     mcp_output:
       fields:
         issue: 'Status を動かした Issue です。`owner/repo/N` の形です。'
-        status: '設定した Status です。`dry_run` のときは、設定する予定の値です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。ボードには何も書いていません。'
+        status: '設定した Status です。'
     diagnostics: '標準エラーに、Status の結果の行（`set`）を出します。status が有効な値でないときは、有効な値を並べた `error` の行を出します。ボードが Blocked を定義していないときは、`hint` の行が `pecot project init` の実行を案内します。'
     environment: []
     exit_status:
@@ -319,7 +309,7 @@ entries:
         what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
       - target: github
         kind: write
-        what: 'ボードの項目の Status の欄を設定します。`dry_run` のときは書きません。'
+        what: 'ボードの項目の Status の欄を設定します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -332,11 +322,6 @@ entries:
           issue_ref: example-org/my-repo/123
           status: in_review
         note: 'Issue を In Review へ動かします。'
-      - arguments:
-          issue_ref: example-org/my-repo/123
-          status: in_review
-          dry_run: true
-        note: 'ボードへ書き込まず、Status を動かす予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-BOARD-MOVE-01
@@ -383,7 +368,7 @@ entries:
         statement: 'もし Status が `blocked` でボードが Blocked を定義していないなら、`project_init` で足し方を案内する文を `detail` に入れます'
       - id: PW-BOARD-MOVE-15
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、項目の Status を動かさず、設定する予定の値を結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、項目の Status を動かさず、設定する予定の値を `dry-run` の行で標準エラーに出します'
       - id: PW-BOARD-MOVE-16
         pattern: unwanted
         statement: 'もし Status の書き込みに失敗したなら、書けなかった Status を `detail` に入れて失敗を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
@@ -600,7 +585,6 @@ entries:
       default_notes: {}
     summary: Ready・Blocked・Active・In Review の Issue を、判定に合った列と Status へ動かします。
     arguments:
-      dry_run: 'ボードへ書き込まず、動かす予定だけを返すかどうかです。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。'
     constraints: []
     details:
@@ -611,7 +595,6 @@ entries:
       - '判定を読めない Issue（`develop_branch` が未設定のときなど）は動かさず、`warnings` に理由を入れます。'
       - 'ブランチと PR はボードの一覧に載らないので、Blocked・Active・In Review の Issue は 1 件ずつ読みます。読むのを省くのは、一覧で前提が無いと分かる Ready の Issue だけです。'
       - '動かした後で、Archived の項目を、更新の新しい 20 件を残して、ボードから削除します。削除できない Archived の項目は飛ばして続け、最後に失敗を返します。'
-      - '`dry_run` を付けると、動かす予定を `moves` に、削除する予定の Archived の件数を `deletedArchived` に入れ、ボードには何も書きません。'
       - '設定は、`project` の設定、アクティブなプロジェクト、`.pecot/config/projects` にある唯一の設定の順で選びます。設定が 2 つ以上あってアクティブなプロジェクトが無いときは、`project` を求める失敗を返します。'
       - 'CLI では、実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`warnings` に 1 つ入れ、何も動かしません。'
@@ -620,9 +603,8 @@ entries:
       format: none
     mcp_output:
       fields:
-        moves: '列か Status を書いた Issue の配列です。`dry_run` のときは、書く予定の Issue です。要素は `issue`・`reason` を必ず持ちます。`issue` は `#N` の形で、ホームリポジトリの外は `owner/repo#N` です。`reason` は、動かすと決めた Readiness です。`from` と `to` は列が変わったときだけ、`label` は Status を設定したときだけ入ります。'
-        deletedArchived: 'ボードから削除した Archived の項目の件数です。`dry_run` のときは、削除する予定の件数です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。ボードには何も書いていません。'
+        moves: '列か Status を書いた Issue の配列です。要素は `issue`・`reason` を必ず持ちます。`issue` は `#N` の形で、ホームリポジトリの外は `owner/repo#N` です。`reason` は、動かすと決めた Readiness です。`from` と `to` は列が変わったときだけ、`label` は Status を設定したときだけ入ります。'
+        deletedArchived: 'ボードから削除した Archived の項目の件数です。'
     diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
     environment: []
     exit_status:
@@ -672,7 +654,7 @@ entries:
         what: '判定に合っていない Issue の列（pecot-workflow のフィールド）と Status を設定します。'
       - target: github
         kind: destructive
-        what: '更新の新しい 20 件を超えた Archived の項目を、プロジェクトのボードから削除します。`dry_run` のときは削除しません。'
+        what: '更新の新しい 20 件を超えた Archived の項目を、プロジェクトのボードから削除します。'
       - target: file
         kind: read
         what: '設定ファイルを読みます。'
@@ -682,12 +664,11 @@ entries:
     idempotent: true
     examples:
       - arguments:
-          dry_run: true
-        note: 'ボードへ書き込まず、動かす予定を返します。'
-      - arguments:
           project: example-config
         note: '名前を渡した設定のボードを同期します。アクティブなプロジェクトの無いチェックアウトで使います。'
     cli_reference:
+      options:
+        dry_run: 'ボードへ書き込まず、動かす予定だけを出すかどうかです。'
       examples:
         - run: pecot board sync --dry-run
           note: 'ボードへ書き込まず、動かす予定を出します。'
@@ -721,7 +702,7 @@ entries:
         statement: '札が Needs Attention の Issue の前提がすべて済むと、札を Todo に戻します'
       - id: PW-BOARD-SYNC-09
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、動かす予定を `moves` に入れ、ボードに書きません。CLI では、予定を `dry-run` の行で標準エラーに出します'
+        statement: 'CLI で `--dry-run` を付けて打つと、ボードに書かず、動かす予定を `dry-run` の行で標準エラーに出します'
       - id: PW-BOARD-SYNC-10
         pattern: unwanted
         statement: 'もし書き込みに失敗した Issue があるなら、`warnings` に入れてほかの Issue を続け、最後に `kind` が `partial-failure` の失敗を返します。CLI では終了コード 1 で終わります。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
@@ -781,7 +762,7 @@ entries:
         statement: '更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除し、件数を `deletedArchived` に入れます'
       - id: PW-BOARD-SYNC-29
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、Archived の項目を削除せず、削除する予定の件数を `deletedArchived` に入れます。CLI では、`dry-run: would delete N archived items` の行を標準エラーに出します'
+        statement: 'CLI で `--dry-run` を付けて打つと、Archived の項目を削除せず、`dry-run: would delete N archived items` の行を標準エラーに出します'
       - id: PW-BOARD-SYNC-30
         pattern: unwanted
         statement: 'もし Archived の項目を削除できなかったなら、`warnings` に入れて続けます'
@@ -807,7 +788,6 @@ entries:
     summary: リモートブランチを削除します。保護するブランチは削除しません。
     arguments:
       branch: '削除するブランチの名前です。'
-      dry_run: '何も削除せず、削除する予定だけを返すかどうかです。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
       repo: 'リポジトリの参照です。`owner/repo` の形で渡します。'
     constraints: []
@@ -816,7 +796,6 @@ entries:
       - '削除する先のリポジトリは、引数 `repo`（`owner/repo`）です。'
       - 'セッションのディレクトリの git remote は、削除する先に使いません。セッションのディレクトリが、remote を持つ git のリポジトリの中にあれば足ります。'
       - 'リポジトリの既定ブランチと、設定ファイルの `develop_branch`・`release_branch` は保護していて、削除しません。'
-      - '`dry_run` を付けると、既定ブランチを読んで保護するブランチを確かめた後、削除する予定を結果に入れます。何も削除しません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
@@ -825,8 +804,7 @@ entries:
       fields:
         branch: '削除対象のリモートブランチの名前です。'
         repository: 'ブランチがあるリポジトリです。`owner/repo` の形です。'
-        deleted: 'リモートブランチを削除したかどうかです。`dry_run` のときは、いつも `false` です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も削除していません。'
+        deleted: 'リモートブランチを削除したかどうかです。'
     diagnostics: '標準エラーに、削除したブランチごとの結果の行（`deleted`）を出します。`--dry-run` のときは、予定の行（`dry-run`）を出します。ブランチが保護されているときは、保護するブランチを並べた `error` の行を出します。ほかの失敗でも `error` の行を出します。'
     environment: []
     exit_status:
@@ -889,11 +867,6 @@ entries:
           repo: example-org/my-repo
           branch: feat/my-change/123
         note: 'リモートブランチを削除します。'
-      - arguments:
-          repo: example-org/my-repo
-          branch: feat/my-change/123
-          dry_run: true
-        note: '削除せずに、予定を返します。'
     default_notes:
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
@@ -902,13 +875,13 @@ entries:
         statement: 'リポジトリとブランチ名を渡して呼ぶと、そのリポジトリのリモートブランチを削除します'
       - id: PW-BRANCH-DELETE-03
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、何も削除しません'
+        statement: 'CLI で `--dry-run` を付けて打つと、何も削除しません'
       - id: PW-BRANCH-DELETE-04
         pattern: event
         statement: 'ブランチを削除すると、結果の `deleted` を `true` にします'
       - id: PW-BRANCH-DELETE-06
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、`deleted` を `false`、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、削除する予定を `dry-run` の行で標準エラーに出し、0 で終わります'
       - id: PW-BRANCH-DELETE-10
         pattern: unwanted
         statement: 'もし削除するブランチが既定ブランチ・`develop_branch`・`release_branch` のどれかなら、保護するブランチを並べた `detail` を返します'
@@ -967,7 +940,6 @@ entries:
     summary: 'Issue に blocked-by（前提）を付けるか、付いている前提の待ち方と理由を変えます。'
     arguments:
       by: '待つ相手の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
-      dry_run: '何も書き込まずに、書く予定だけを返すかどうかです。'
       issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       reason: '前提のマージを待つ理由です。`wait` が `merge` のときは必須で、`stack` のときは渡せません。'
@@ -984,7 +956,6 @@ entries:
       - '書き込みは、blocked-by、本文、ボードの順に行います。本文の書き込みに失敗しても、blocked-by は残ります。同じ引数で呼び直せば、本文が直ります。'
       - '書き込みの後で、待つ側の Issue の判定を読み直します。読み直した blocked-by と節が書いた内容と違うときは、もう一度読みます。それでも違うときは、列と Status の札を動かしません。'
       - '列と Status の札は、読み直した判定で動かします。やり方は、判定の機能のボードの修復と同じです。ブランチか PR のある Issue は動かさず、判定との食い違いを `warnings` で知らせます。'
-      - '`dry_run` を付けると、書く予定を結果に入れます。読み取り、輪の探索、確認は行い、何も書き込みません。'
       - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -997,8 +968,7 @@ entries:
         by: '前提の Issue です。`owner/repo/N` の形です。'
         wait: '実行後の blocked-by の待ち方です。`stack`（前提のブランチに積む）か `merge`（前提のマージを待つ）です。'
         change: 'blocked-by がどうなったかです。`added`（新しく足した）・`updated`（待ち方か理由を変えた）・`unchanged`（変更なし）のどれかです。'
-        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。`dry_run` のときは入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
     environment: []
     exit_status:
@@ -1095,7 +1065,7 @@ entries:
         statement: 'もし待つ側の Issue に着手の跡があるなら、前提は付けて列と札を動かさず、判定との食い違いを `warnings` に入れます'
       - id: PW-ISSUE-BLOCK-08
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、書き込みを送らずに、書く予定を結果に入れて `dryRun` を `true` にします'
+        statement: 'CLI で `--dry-run` を付けて打つと、書き込みを送らずに、書く予定を `dry-run` の行で標準エラーに出します'
       - id: PW-ISSUE-BLOCK-09
         pattern: ubiquitous
         statement: '常に、本文の節の中の前提の行以外を書き換えません'
@@ -1143,7 +1113,7 @@ entries:
         statement: '`by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を付けます'
       - id: PW-ISSUE-BLOCK-24
         pattern: event
-        statement: '呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
+        statement: '呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します'
       - id: PW-ISSUE-BLOCK-25
         pattern: unwanted
         statement: 'もし列を書けないなら、`warnings` に入れ、前提を付けたまま成功を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
@@ -1297,7 +1267,6 @@ entries:
       message: 'コメントの本文です。'
       template: '`message` の本文を確かめるテンプレートの種類です。`plan`・`merge-diff`・`review-findings`・`review-resolution`・`precede-notify` のどれかを渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints:
       - requires: {message: [issue_ref, template]}
     details:
@@ -1311,7 +1280,6 @@ entries:
       - 'ファイルから投稿した後、新しいコメントの URL をそのファイルの `comment_url` に書き戻します。'
       - '`comment_url` は、`issue_ref` の Issue のコメントを指していなければなりません。'
       - '`file` では、リポジトリがプロジェクトに無いと `warnings` に入れますが、コメントは投稿します。'
-      - '`dry_run` を付けると、入力を検証し、コメントの投稿と `comment_url` の書き戻しをせずに、する予定を結果に入れます。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
@@ -1320,10 +1288,9 @@ entries:
     mcp_output:
       fields:
         issue: 'コメントした Issue です。`owner/repo/N` の形です。'
-        commentUrl: '作ったか更新したコメントの URL です。`dry_run` のときと、GitHub が URL を返さなかったときは入りません。'
-        change: 'コメントをどう書いたかです。`created`（新しく作った）と `updated`（更新した）の 2 値です。`dry_run` のときは、書く予定の側です。'
-        file: 'ファイルから新しく投稿して `comment_url` を書き戻したときは、そのファイルの絶対パスです。書き戻せなかったとき、`comment_url` を持つファイルで更新したとき、`dry_run` のとき、`message` で投稿したときは入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。投稿もファイルの書き込みもしていません。'
+        commentUrl: '作ったか更新したコメントの URL です。GitHub が URL を返さなかったときは入りません。'
+        change: 'コメントをどう書いたかです。`created`（新しく作った）と `updated`（更新した）の 2 値です。'
+        file: 'ファイルから新しく投稿して `comment_url` を書き戻したときは、そのファイルの絶対パスです。書き戻せなかったとき、`comment_url` を持つファイルで更新したとき、`message` で投稿したときは入りません。'
     diagnostics: '標準エラーに、コメントの結果の行（`created` か `updated`）を出します。ファイルのリポジトリがプロジェクトに無いときと、`comment_url` を書き戻せないときは、`warning` の行を出します。本文がテンプレートに合わないときは、`error` の行を 1 つ出します。その 1 行目はテンプレートのパスです。続けて、字下げした行で次の違反を出します。足りない節、見出しの要約の規則の違反、使えない記法、折りたたみの規則の違反、テンプレートに無い見出しです。'
     environment: []
     exit_status:
@@ -1379,13 +1346,13 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'Issue にコメントを投稿します。または、`comment_url` のコメントを書き換えます。`dry_run` のときは書きません。'
+        what: 'Issue にコメントを投稿します。または、`comment_url` のコメントを書き換えます。'
       - target: github
         kind: read
         what: 'ファイルのときに、リポジトリがプロジェクトにつながっているかどうかを確かめます。'
       - target: file
         kind: write
-        what: '投稿したファイルに、`comment_url` を書き戻します。`dry_run` のときは書きません。'
+        what: '投稿したファイルに、`comment_url` を書き戻します。'
       - target: file
         kind: read
         what: 'コメントのファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -1397,10 +1364,6 @@ entries:
       - arguments:
           file: .pecot/tmp/output/comment-plan-20260101-120000.md
         note: 'ファイルのコメントを投稿します。ファイルに `comment_url` があれば、そのコメントを書き換えます。'
-      - arguments:
-          file: .pecot/tmp/output/comment-plan-20260101-120000.md
-          dry_run: true
-        note: 'コメントを投稿せず、ファイルも変えずに、する予定を返します。'
     default_notes:
       issue_ref: '省くと、値はありません。`message` では必須です。`file` では、フロントマターの `issue_ref` を使います。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       template: '省くと、値はありません。`message` では必須です。`file` では、フロントマターのテンプレートを使います。'
@@ -1476,10 +1439,10 @@ entries:
         statement: 'もし Issue の参照の形が誤っているなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-ISSUE-COMMENT-28
         pattern: event
-        statement: '`file` に `dry_run` を付けて呼ぶと、コメントを投稿せず `comment_url` も書き戻さずに、する予定を結果に入れて成功を返します'
+        statement: 'CLI でファイルに `--dry-run` を付けて打つと、コメントを投稿せず `comment_url` も書き戻さずに、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-ISSUE-COMMENT-29
         pattern: event
-        statement: '`message` に `dry_run` を付けて呼ぶと、コメントを投稿せず、`change` を `created`、`dryRun` を `true` にします'
+        statement: 'CLI で `--message` に `--dry-run` を付けて打つと、コメントを投稿せず、投稿する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-ISSUE-COMMENT-31
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
@@ -1926,7 +1889,6 @@ entries:
       issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       status: '開き直した後の status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - '閉じた Issue を開き直し、プロジェクトのボードの status を設定します。'
@@ -1939,7 +1901,6 @@ entries:
       - '組み込みの `Status` が `Done` の項目は、Issue を開き直す前に値を消し、結果の `doneCleared` を `true` にします。'
       - '`Done` が残ると、ボードの自動化（Auto-close issue）が Issue を閉じ直すことがあります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      - '`dry_run` を付けると、Issue とボードの項目を読みます。開き直し・アーカイブの解除・`Done` の消去・status の設定・コメントの投稿の予定を結果に入れ、何も書きません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
@@ -1951,7 +1912,6 @@ entries:
         unarchived: 'ボードの項目の Archived を解いたかどうかです。'
         doneCleared: 'ボードの項目の組み込みの `Status` の `Done` を消したかどうかです。'
         commented: '理由をコメントに投稿したかどうかです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、結果の行を出します。`updated`（アーカイブの解除）、`removed`（`Status` の `Done` の消去）、`set`（status）、`reopened`（Issue）、`created`（コメント）です。Issue がボードに無いときと、status がプロジェクトに設定されていないとき、`Status` の `Done` を消せないときは、`warning` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
@@ -1998,7 +1958,7 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'Issue を開き直し、コメントを投稿します。ボードの項目は、アーカイブを解き、組み込みの `Status` の `Done` を消し、status のフィールドを設定します。`dry_run` のときは書きません。'
+        what: 'Issue を開き直し、コメントを投稿します。ボードの項目は、アーカイブを解き、組み込みの `Status` の `Done` を消し、status のフィールドを設定します。'
       - target: github
         kind: read
         what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
@@ -2015,10 +1975,6 @@ entries:
           status: active
           comment: The fix did not hold.
         note: 'Issue を `active` で開き直し、理由を残します。'
-      - arguments:
-          issue_ref: example-org/my-repo/12
-          dry_run: true
-        note: 'Issue を開き直さずに、する予定を返します。'
     default_notes:
       issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
     behaviors:
@@ -2084,7 +2040,7 @@ entries:
         statement: 'もし status が `blocked` でボードが Blocked を定義していないなら、`project_init` で足し方を案内する文を `warnings` に入れます'
       - id: PW-ISSUE-REOPEN-21
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、Issue を開き直さずボードにも書かず、する操作を結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、Issue を開き直さずボードにも書かず、する操作を `dry-run` の行で標準エラーに出します'
       - id: PW-ISSUE-REOPEN-22
         pattern: event
         statement: 'ボードの項目がアーカイブ済みの Issue を開き直すと、Status を設定する前にアーカイブを解き、結果の `unarchived` を `true` にします'
@@ -2317,7 +2273,6 @@ entries:
     summary: 'Issue から blocked-by（前提）を外します。'
     arguments:
       by: '外す前提の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
-      dry_run: '何も書き込まずに、書く予定だけを返すかどうかです。'
       issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
     constraints: []
@@ -2330,7 +2285,6 @@ entries:
       - '書き込みの後で、待つ側の Issue の判定を読み直して確かめ、`issue_block` と同じやり方で、列と Status の札を動かします。'
       - 'Status の札の `Needs Attention` を `Todo` に戻すのは、前提が残っているときか、外した前提が閉じていたときだけです。人がほかの理由で付けた札は、開いた最後の前提を外しても外しません。'
       - 'ブランチか PR のある Issue は動かしません。'
-      - '`dry_run` を付けると、読み取りと確認は行い、何も書き込みません。結果の `dryRun` を `true` にします。'
       - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -2342,8 +2296,7 @@ entries:
         issue: '待たせていた側の Issue です。`owner/repo/N` の形です。'
         by: '前提の Issue です。`owner/repo/N` の形です。'
         change: 'blocked-by がどうなったかです。`removed`（外した）か `unchanged`（もともと blocked-by ではなかった）です。'
-        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。`dry_run` のときは入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
+        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `removed` か `unchanged` を出し、列か札を変えたときは続けて `moved` と `set` を出します。`warning` の行は、次のときに出します。`Waits for merge` の節を読めないとき。判定を出せないか、確かめられないとき。ボードに Todo の選択肢が無いとき。ボードに書けなかったとき。Todo が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
@@ -2432,7 +2385,7 @@ entries:
         statement: 'もし待つ側の Issue に着手の跡があるなら、前提は外して列と札を動かしません'
       - id: PW-ISSUE-UNBLOCK-08
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、書き込みを送らずに、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、書き込みを送らずに、外す予定を `dry-run` の行で標準エラーに出します'
       - id: PW-ISSUE-UNBLOCK-09
         pattern: unwanted
         statement: 'もし本文の `Waits for merge` の節が読めないなら、前提だけを外し、節を直していない旨を `warnings` に入れます'
@@ -2462,7 +2415,7 @@ entries:
         statement: '`by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を外します'
       - id: PW-ISSUE-UNBLOCK-18
         pattern: event
-        statement: '呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します。`dry_run` のときは `moves` を返しません'
+        statement: '呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します'
       - id: PW-ISSUE-UNBLOCK-19
         pattern: unwanted
         statement: 'もし列を書けないなら、`warnings` に入れ、前提を外したまま成功を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
@@ -2723,7 +2676,6 @@ entries:
     arguments:
       base: 'base ブランチです。`message` では必須です。'
       draft: 'ドラフトの PR として作るかどうかです。'
-      dry_run: '検証だけを行うかどうかです。事前の確認を飛ばし、PR は作りません。'
       file: 'フロントマター付きの Markdown ファイルのパスです。'
       head: 'head ブランチです。fork のブランチは `owner:branch` の形で渡します。'
       message: 'PR の本文です。ファイルを使わずに直接渡します。'
@@ -2745,7 +2697,7 @@ entries:
       - '積んで着手した記録 `.pecot/state/.pecot-base` があると、base は `develop_branch` ではなく、記録の base（下の段のブランチ）です。今のブランチの `default` のテンプレートだけが対象です。`head` の引数・フロントマターの `head`・`release` のテンプレートでは、記録を読みません。'
       - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
       - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`cannot infer the stacked base` の文を `warnings` に入れます。求めた結果は書きません。'
-      - '積んだ先を求められないとき、投稿は失敗を返し、PR を作りません。開発ブランチ向けの PR に、下の段の差分が入りうるためです。`dry_run` は、`warnings` に入れて続けます。'
+      - '積んだ先を求められないとき、投稿は失敗を返し、PR を作りません。開発ブランチ向けの PR に、下の段の差分が入りうるためです。'
       - '下の段の PR が開いているときは、その base で PR を作ります。渡した base が `develop_branch` なら、`kind` が `content-invalid` の失敗を返します。'
       - '下の段の PR がマージ済みのときは、`develop_branch` を base にして PR を作ります。'
       - '下の段の PR は、開いている・マージ済み・閉じた、の順に選びます。'
@@ -2754,7 +2706,7 @@ entries:
       - '記録のコミットが head の履歴に無いときは、`file` と `message` の投稿では PR を作らず、失敗を返します。このとき、下の段の PR と remote の先頭を読み、`pr_restack` と同じ判断で載せ直し済みかを決めます。載せ直し済みと決まったときだけ、`detail` の 2 行目で `pr_restack` で記録を書き直すことを案内します。最後の行で、記録を書いたブランチで呼ぶか、`head` を渡して記録なしで作るかを案内します。'
       - '積んだ base の PR を作った後、下の段のスタックに登録します。スタックが無ければ、2 つの PR で新しく作ります。下の段の PR がスタックの一番上に無いときは、追加を呼ばず、そのことを `warnings` に入れます。スタックの API が無いリポジトリと接続の失敗では、URL を添えて `warnings` に入れ、PR は残します。'
       - 'PR を作った後、head ブランチが指す Issue を待っている Issue を読み、判定に従って列を動かします。読むのは、選んだプロジェクトのボードの項目だけで、ボードに載っていない Issue は飛ばします。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します。着手の跡がある Issue は動かしません。'
-      - '接続の失敗を含め、この処理の失敗は `warnings` に入れるだけで、成功と失敗を変えません。状態を確かめられないときは、`could not confirm that GitHub reflects PR #<N> ...` の文を入れ、後から `board_sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も入れずに飛ばします。`dry_run` とリリースの PR では行いません。'
+      - '接続の失敗を含め、この処理の失敗は `warnings` に入れるだけで、成功と失敗を変えません。状態を確かめられないときは、`could not confirm that GitHub reflects PR #<N> ...` の文を入れ、後から `board_sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も入れずに飛ばします。リリースの PR では行いません。'
       - '番号の空いた `Closes #` の行は、head ブランチ名の末尾の番号で埋めます。テンプレートが `release` のときと、`no_issue_ref` を付けたときは埋めません。古い版の `.pecot/state/.pecot-active` が残っていても読まないので、`.pecot/state/` の無い clone でも同じ `Closes` が入ります。'
       - '`file` では、リポジトリ・base・題・head・draft をフロントマターで決めます。同じ名前の引数は無視します。'
       - '`message` では、リポジトリは `repo` です。`repo` を省くと、プロジェクトの設定にあるリポジトリを指す remote のリポジトリです。remote は `origin` を先に見て、次に `git remote` の順で見ます。'
@@ -2763,9 +2715,7 @@ entries:
       - '題・本文・base を確かめ、次のどれかが誤っていると、`kind` が `content-invalid` の失敗を返します。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
       - 'リリースの種類が nx のリポジトリでは、題の scope が、変更した nx のプロジェクトの scope と違うときも、同じ失敗を返します。'
       - '積んだ base の scope は、下の段の PR がマージ済みなら、記録のコミットから head までの差分で求めます。開いている間は、下の段のブランチとの差分で求めます。'
-      - '`dry_run` を付けなければ、セッションのディレクトリを `pr_check` と同じように確かめます。引っかかりが見つかると、それぞれを `warnings` に入れ、`kind` が `preflight-failed` の失敗を返します。積んだブランチが remote とずれたときの Push Status の直し方も、`pr_check` と同じに決めます。'
-      - '`dry_run` を付けると、検証して、作る予定の head・base・題を結果に入れ、PR は作りません。'
-      - '`dry_run` で下の段の PR が開いているときは、スタックへの登録の予定も、結果の `stack` に入れます。'
+      - 'セッションのディレクトリを `pr_check` と同じように確かめます。引っかかりが見つかると、それぞれを `warnings` に入れ、`kind` が `preflight-failed` の失敗を返します。積んだブランチが remote とずれたときの Push Status の直し方も、`pr_check` と同じに決めます。'
       - 'PR を作った後、head ブランチが指す Issue を In Review にします。テンプレートが `release` のときは行いません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
@@ -2774,15 +2724,14 @@ entries:
       description: '作った PR の URL です。`--dry-run` のときは、何も出しません。'
     mcp_output:
       fields:
-        url: '作った PR の URL です。`dry_run` のときは入りません。'
-        number: '作った PR の番号です。`dry_run` のときと、応答に番号が無いときは入りません。'
+        url: '作った PR の URL です。'
+        number: '作った PR の番号です。応答に番号が無いときは入りません。'
         head: 'PR の head ブランチです。fork のブランチは `owner:branch` の形です。'
         base: 'PR の base ブランチです。'
         title: 'PR のタイトルです。'
         inReview: 'Status を In Review にした Issue の番号です。設定しなかったときは入りません。'
-        stack: 'PR の積み方です。積まない PR では入りません。`lower`（下の段の PR の番号）を必ず持ちます。`registered`（スタックに登録したか）と `number`（スタックの番号。登録したときだけ）は、`dry_run` のときは入りません。'
-        moves: 'この PR を待っていた Issue のうち、列か Status を書いたものの配列です。`dry_run` のときは入りません。要素は `issue`・`reason` を必ず持ち、`from`・`to`・`label` は `board_sync` の `moves` と同じです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。PR は作っていません。'
+        stack: 'PR の積み方です。積まない PR では入りません。`lower`（下の段の PR の番号）を必ず持ちます。`registered`（スタックに登録したか）も必ず持ちます。`number`（スタックの番号）は、登録したときだけ入ります。'
+        moves: 'この PR を待っていた Issue のうち、列か Status を書いたものの配列です。要素は `issue`・`reason` を必ず持ち、`from`・`to`・`label` は `board_sync` の `moves` と同じです。'
     diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。記録が無く積んだ先を求められないとき、投稿では `error: cannot infer the stacked base: <理由>` の行と直し方の行を出します。`--dry-run` では、同じ理由の `warning` の行を出します。'
     environment: []
     exit_status:
@@ -2882,10 +2831,6 @@ entries:
     idempotent: false
     examples:
       - arguments:
-          file: .pecot/tmp/output/pr-create-20260101-120000.md
-          dry_run: true
-        note: 'PR を作らずに、ファイルを検証します。'
-      - arguments:
           message: <body>
           title: 'feat: add a report'
           base: develop
@@ -2940,13 +2885,13 @@ entries:
         statement: '`template` に `release` を渡して呼ぶと、リリース PR として検証します'
       - id: PW-PR-CREATE-20
         pattern: event
-        statement: '`dry_run` を付けずに呼ぶと、PR を作る前に `pr_check` と同じ確認をします'
+        statement: '呼ぶと、PR を作る前に `pr_check` と同じ確認をします。CLI では、`--dry-run` を付けたときを除きます'
       - id: PW-PR-CREATE-21
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、PR を作らずに、`dryRun` を `true` にして作る予定を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、PR を作らずに、作る予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PR-CREATE-22
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、事前の確認をしません'
+        statement: 'CLI で `--dry-run` を付けて打つと、事前の確認をしません'
       - id: PW-PR-CREATE-23
         pattern: event
         statement: 'PR を作ると、関連 Issue のボードの status を In Review にします'
@@ -3063,7 +3008,7 @@ entries:
         statement: '積んだ base の記録があるときに題の scope を確かめると、下の段の PR がマージ済みなら記録のコミットから head までの差分で、開いている間は下の段のブランチとの差分で求めます'
       - id: PW-PR-CREATE-63
         pattern: event
-        statement: '`dry_run` を付け、下の段の PR が開いているときに呼ぶと、結果の `stack` の `lower` に下の段の PR の番号を入れます'
+        statement: 'CLI で `--dry-run` を付け、下の段の PR が開いているときに打つと、下の段の PR のスタックに足す予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PR-CREATE-65
         pattern: unwanted
         statement: 'もし積んだ base の記録のコミットが head の履歴に無いなら、PR を作らずに、`kind` が `git-unresolved` の失敗を返します'
@@ -3093,7 +3038,7 @@ entries:
         statement: 'もし記録が無く、積んだ先を求められないなら、投稿では `detail` を `cannot infer the stacked base` で始めて失敗を返し、PR を作りません'
       - id: PW-PR-CREATE-74
         pattern: unwanted
-        statement: 'もし記録が無く、積んだ先を求められないなら、`dry_run` では `warnings` に入れ、`develop_branch` を base にします'
+        statement: 'もし記録が無く、積んだ先を求められないなら、CLI の `--dry-run` では `warning` の行を出し、`develop_branch` を base にします'
       - id: PW-PR-CREATE-75
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
@@ -3154,7 +3099,6 @@ entries:
         project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: 'PR をマージします。スタックの中の PR は、最下段のものだけをマージします。'
     arguments:
-      dry_run: 'マージせずに、行う内容だけを返すかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
@@ -3170,7 +3114,6 @@ entries:
       - '同じ PR のマージの要求が既にあるときは、その要求の結果を読み続けます。'
       - '結果を読めないときは、PR の状態から、マージ済みか merge queue の中かを決めます。どちらでもなければ、60 秒が過ぎるまで読み直します。'
       - 'マージの後の片付けはしません。続けて `session_finish` を呼びます。'
-      - '`dry_run` を付けると、PR とスタックを読み、要求を送らずに、マージする PR と base を結果に入れます。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
@@ -3180,9 +3123,8 @@ entries:
       fields:
         pullRequest: 'マージした PR です。`owner/repo/N` の形です。'
         base: 'PR をマージした先の base ブランチです。'
-        status: '結果です。`merged`（マージした）か `enqueued`（merge queue に入った）です。`dry_run` のときは入りません。'
+        status: '結果です。`merged`（マージした）か `enqueued`（merge queue に入った）です。'
         stack: 'PR が最下段だったスタックです。`number`（スタックの番号）と `size`（この PR から上の PR の数）を持ちます。スタックの外の PR では入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。マージしていません。'
     diagnostics: '標準エラーに、結果の行を出します。マージしたときは `merged`、merge queue に入ったときは `added` です。スタックの最下段の PR では、`merged` の行にスタックの番号と段の数が付きます。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
@@ -3244,10 +3186,6 @@ entries:
       - arguments:
           pr_ref: example-org/my-repo/123
         note: 'PR をマージします。'
-      - arguments:
-          pr_ref: example-org/my-repo/123
-          dry_run: true
-        note: 'マージせずに、行う内容を返します。'
     default_notes:
       pr_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
@@ -3293,7 +3231,7 @@ entries:
         statement: 'もし GitHub API がほかのエラーを返したなら、失敗を返します'
       - id: PW-PR-MERGE-14
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、PR とスタックを読み、要求を送らずに、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、PR とスタックを読み、要求を送らずに、マージする予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PR-MERGE-15
         pattern: unwanted
         statement: 'もし PR が閉じているかマージ済みなら、要求を送らずに、`kind` が `pr-state` の失敗を返します'
@@ -3343,7 +3281,6 @@ entries:
       check: '載せ直しが要るかだけを確かめます。'
       continue: '衝突で止まった載せ直しを、衝突を解いた後に続けます。'
       abort: '衝突で止まった載せ直しを取りやめ、載せ直しの前の位置に戻します。'
-      dry_run: '載せ直し・push・記録の書き込みをせずに、する予定だけを返すかどうかです。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
@@ -3367,7 +3304,6 @@ entries:
       - '衝突したら、衝突したファイルを `conflicts` に入れ、rebase を途中のまま残します。途中の記録を書き、`kind` が `git-conflict` の失敗を返します。'
       - '`continue` は、衝突を解いて `git add` した後に続けます。`abort` は、載せ直しの前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
       - '`check`・`continue`・`abort` は、1 つだけ渡せます。'
-      - '`dry_run` を付けると、fetch と判断までを行い、する予定を結果に入れます。rebase・push・記録の書き込みは行いません。'
       - '書き換えるのは、セッションのディレクトリのブランチだけです。ほかの worktree には触れません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
@@ -3379,12 +3315,11 @@ entries:
         branch: '載せ直すブランチです。'
         base: '載せ直した後の base のブランチです。下の段の PR がマージ済みなら、開発ブランチです。'
         outcome: '起きたことです。`up-to-date`・`needs-restack`・`restacked`・`synced`・`conflict`・`aborted` のどれかです。`check` を付けたときは、載せ直すと何が起きるかです。'
-        cause: '載せ直しが要る理由です。`base-moved` か `base-merged` です。`check` か `dry_run` を付けて、載せ直しが要るときだけ入ります。'
+        cause: '載せ直しが要る理由です。`base-moved` か `base-merged` です。`check` を付けて、載せ直しが要るときだけ入ります。'
         pullRequest: '下の段の、マージ済みの PR の番号です。`cause` が `base-merged` のときだけ入ります。'
         pushed: 'ブランチを push したかどうかです。`outcome` が `restacked` のときだけ入ります。'
         conflicts: '衝突したファイルの一覧です。`outcome` が `conflict` のときだけ入ります。'
         relinked: '本文を保存し直した、開いている PR の番号です。開発ブランチへ載せ直すか合わせた後、まだリンクになっていない `Closes` があって保存し直したときだけ入ります。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。ブランチと記録は変えていません。'
     diagnostics: '標準エラーに、結果の行を出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。開発ブランチへ載せ直した後に PR の本文を保存し直すと、`updated: PR #N relinked to its closing Issues` の行を足します。PR の本文を保存し直せないと、`warning: cannot relink PR #N to its closing Issues: <理由>` の行を出します。続けて、手で保存し直す案内の行を出し、終了コードは 0 のままです。載せ直しの失敗は `error` の行で、続けて直し方の行を出します。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
     environment: []
     exit_status:
@@ -3540,7 +3475,7 @@ entries:
         statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
       - id: PW-PR-RESTACK-22
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、載せ直し・push・記録の書き込みをせずに、する予定を結果に入れ、`dryRun` を `true` にします'
+        statement: 'CLI で `--dry-run` を付けて打つと、載せ直し・push・記録の書き込みをせずに、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PR-RESTACK-23
         pattern: state
         statement: '新しい base の上に載り終えていて記録だけが古い間、rebase をせずに push と記録の書き直しを行い、`outcome` を `restacked` にします。remote のブランチが同じ木で新しい base の上にあれば、push せずに合わせ、`outcome` を `synced` にします'
@@ -3762,7 +3697,6 @@ entries:
       host: 'GitHub のホストです。'
       owner: 'プロジェクトの所有者です。'
       project: 'プロジェクトの番号か名前です。設定ファイルのパスかファイル名でも渡せます。候補は `project_search` で一覧します。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - '`project` は必須です。所有者のプロジェクトは `project_search` で一覧でき、初期化済みのものとアクティブなものが分かります。'
@@ -3775,7 +3709,6 @@ entries:
       - '新しくつないだリポジトリは、リポジトリの一覧の末尾に足します。'
       - '次の選択肢は、ボードにあるときだけ設定ファイルに書きます。pecot-workflow のフィールドの Blocked と、Status のフィールドの Todo・Needs Attention です。'
       - 'Blocked の選択肢の無いボードも受け付けます。pecot-workflow のフィールドのほかの 6 つの選択肢は必須です。'
-      - '`dry_run` を付けると、プロジェクトを読み、書く予定の設定ファイルとアクティブにする予定の設定を結果に入れて、何も書きません。'
       - '`host` が、渡した設定ファイルのホストと違うときは、`warnings` に入れて、設定ファイルのホストを使います。'
     stdin: none
     output:
@@ -3783,10 +3716,9 @@ entries:
       description: '標準出力には何も書きません。'
     mcp_output:
       fields:
-        project: 'アクティブにした設定の名前です。`dry_run` のときは、アクティブにする予定の名前です。'
+        project: 'アクティブにした設定の名前です。'
         configPath: 'プロジェクトの設定ファイルのパスです。'
         change: '設定ファイルがどうなったかです。`create`・`update`・`unchanged` のどれかです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。`--host` が渡した設定ファイルのホストと違うときは、`warning` の行を出します。このときは、設定ファイルのホストを使います。'
     environment: []
     exit_status:
@@ -3833,7 +3765,7 @@ entries:
         what: '所有者のプロジェクトと、そのフィールドと、つながっているリポジトリを読みます。'
       - target: file
         kind: write
-        what: '`.pecot/config/projects/` の下の設定ファイルを作るか更新し、アクティブなプロジェクトを設定します。`dry_run` のときは書きません。'
+        what: '`.pecot/config/projects/` の下の設定ファイルを作るか更新し、アクティブなプロジェクトを設定します。'
       - target: file
         kind: read
         what: '設定ファイルと、アクティブなプロジェクトの設定を読みます。'
@@ -3846,12 +3778,6 @@ entries:
           host: github.com
           owner: example-org
         note: '番号でプロジェクトをアクティブにします。'
-      - arguments:
-          project: '1'
-          host: github.com
-          owner: example-org
-          dry_run: true
-        note: '設定ファイルとアクティブな設定は書かず、する予定を返します。'
     default_notes:
       owner: '省くと、認証したユーザーです。設定ファイルを渡したときは、ファイルに記録した所有者を使い、`owner` は使いません。'
       host: 'プロジェクトの番号か名前を渡すときは必須です。設定ファイルを渡したときは、ファイルに記録したホストを使います。'
@@ -3915,7 +3841,7 @@ entries:
         statement: 'もし進行の欄に必須の値（Blocked を除く 6 つ）が欠けているなら、`kind` が `not-initialized` の失敗を返します'
       - id: PW-PROJECT-ACTIVATE-23
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、設定ファイルを書かずアクティブなプロジェクトも切り替えず、する予定を結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、設定ファイルを書かずアクティブなプロジェクトも切り替えず、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PROJECT-ACTIVATE-24
         pattern: event
         statement: '`project` に設定ファイルのパスかファイル名を渡すと、その設定ファイルの `workflow_suffix` の進行の欄で同期します'
@@ -3946,7 +3872,6 @@ entries:
       owner: 'プロジェクトの所有者です。'
       suffix: 'ワークフローのフィールドに付ける接尾辞です。'
       title: 'プロジェクトの題です。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - '所有者の GitHub Projects V2 のプロジェクトを作ります。'
@@ -3957,17 +3882,15 @@ entries:
       - '設定ファイルを書き、プロジェクトをアクティブにします。'
       - '所有者が見つからないときは、何も作らずに失敗を返します。'
       - '同じ題のプロジェクトが既にあるときは、何も作らずに失敗を返します。'
-      - '`dry_run` を付けると、プロジェクトが既にあるかを読み、作る予定の `title` と `owner` を結果に入れて、何も作りません。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
-        number: '作ったプロジェクトの番号です。`dry_run` のときは入りません。'
-        url: '作ったプロジェクトの URL です。`dry_run` のときは入りません。'
+        number: '作ったプロジェクトの番号です。応答に番号が無いときは入りません。'
+        url: '作ったプロジェクトの URL です。応答に URL が無いときは入りません。'
         title: 'プロジェクトのタイトルです。'
         owner: 'プロジェクトのオーナーです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
     diagnostics: '標準エラーに、次のものの結果の行を出します。作ったプロジェクト、作ったフィールドそれぞれ、足した Needs Attention の選択肢、設定ファイル、アクティブなプロジェクトです。選択肢を足せないときは、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -4011,13 +3934,13 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'プロジェクトと 3 つのフィールドを作り、Status のフィールドに Needs Attention の選択肢を足します。`dry_run` のときは書きません。'
+        what: 'プロジェクトと 3 つのフィールドを作り、Status のフィールドに Needs Attention の選択肢を足します。'
       - target: github
         kind: read
         what: '所有者、既にあるプロジェクト、フィールド、つながっているリポジトリを読みます。'
       - target: file
         kind: write
-        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。`dry_run` のときは書きません。'
+        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。'
     prerequisites:
       - 'ホストの GitHub トークンと、所有者のプロジェクトを作る権限が要ります。'
     idempotent: false
@@ -4027,12 +3950,6 @@ entries:
           title: Example Project
           suffix: example
         note: 'プロジェクトを作り、アクティブにします。'
-      - arguments:
-          owner: example-org
-          title: Example Project
-          suffix: example
-          dry_run: true
-        note: 'プロジェクトを作らずに、する予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-CREATE-01
@@ -4067,7 +3984,7 @@ entries:
         statement: 'もし Status に Needs Attention を足せなかったなら、`warnings` に入れて設定ファイルを作ります'
       - id: PW-PROJECT-CREATE-11
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、プロジェクトを作らず、作る予定を結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、プロジェクトを作らず、作る予定を `dry-run` の行で標準エラーに出します'
   PW-PROJECT-GET:
     help:
       details:
@@ -4165,7 +4082,6 @@ entries:
       name: 'プロジェクトの題です。'
       owner: 'プロジェクトの所有者です。'
       suffix: 'ワークフローのフィールドに付ける接尾辞です。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - '既にあるプロジェクトに、`pecot-workflow-<suffix>`・`pecot-priority`・`pecot-size` のフィールドを足します。'
@@ -4178,14 +4094,12 @@ entries:
       - '選択肢を足せないときは、`warnings` に入れて続けます。その選択肢を、id なしで送り直すことはありません。'
       - '何かを書く前に、既にある `pecot-workflow-<suffix>` のフィールドが必須の 6 つの選択肢を持つことを確かめます。6 つは Backlog・Pending・Ready・Active・In Review・Archived です。1 つでも欠けていれば、何も書かずに失敗を返します。'
       - 'その後、`suffix` のフィールドの設定ファイルを GitHub から作り直し、プロジェクトをアクティブにします。設定ファイルがあり、内容がボードから作るものと既に同じときは行いません。'
-      - '`dry_run` を付けると、プロジェクトを読み、作る予定のフィールドと足す予定の選択肢を `fields` に入れて、何も書きません。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
         fields: 'プロジェクトのフィールドの配列です。workflow・priority・size のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（フィールドが見つからない）のどれかです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も作らず、何も変えていません。'
     diagnostics: '標準エラーに、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。選択肢を足せないときは、`warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
     environment: []
     exit_status:
@@ -4226,10 +4140,10 @@ entries:
         what: '所有者のプロジェクト、対象のプロジェクトのフィールド、つながっているリポジトリを読みます。'
       - target: github
         kind: write
-        what: 'プロジェクトに足りないフィールドを作ります。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。`dry_run` のときは書きません。'
+        what: 'プロジェクトに足りないフィールドを作ります。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
       - target: file
         kind: write
-        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。`dry_run` のときは書きません。'
+        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。'
     prerequisites:
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
     idempotent: true
@@ -4239,12 +4153,6 @@ entries:
           name: Example Project
           suffix: example
         note: '既にあるプロジェクトに pecot-workflow のフィールドを足します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
-      - arguments:
-          owner: example-org
-          name: Example Project
-          suffix: example
-          dry_run: true
-        note: 'フィールドと設定ファイルは書かず、する予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-INIT-01
@@ -4294,10 +4202,10 @@ entries:
         statement: 'もし設定ファイルの同期で GitHub API がエラーを返したなら、`could not sync project config` で始まる `detail` を入れて失敗を返します'
       - id: PW-PROJECT-INIT-16
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、フィールドを作らず設定ファイルも書かず、する予定を `fields` に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、フィールドを作らず設定ファイルも書かず、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PROJECT-INIT-17
         pattern: event
-        statement: '`dry_run` で、作るフィールドか足す選択肢があると、設定ファイルの書き込みの予定を調べません'
+        statement: 'CLI の `--dry-run` で、作るフィールドか足す選択肢があると、設定ファイルの書き込みの予定を調べません'
   PW-PROJECT-LINK:
     help:
       details:
@@ -4326,7 +4234,6 @@ entries:
       package: 'monorepo のパッケージです。`NAME:PATH` の形で登録します。配列で複数渡せます。要素の例は `pecot:plugins/pecot-workflow/CHANGELOG.md` です。'
       release_branch: 'リリースブランチの名前です。'
       release_type: 'リリースの方法の宣言です。w-release スキルが、この値で手順を選びます。`single`（CHANGELOG が 1 つ）・`multi`（packages）・`nx`（Nx Release）のどれかを渡します。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints:
       - conflicts: [package, changelog_file]
       - conflicts: [package, clear_packages]
@@ -4337,7 +4244,6 @@ entries:
       - '`package` を渡すと、登録済みのリポジトリの packages を置き換えます。`changelog_file` を渡していなくても、設定の `changelog_file` を消します。'
       - '`clear_packages` を渡すと、登録済みのリポジトリの packages を消します。'
       - 'リポジトリの所有者は、プロジェクトの所有者と一致していなければなりません。'
-      - '`dry_run` を付けると、リポジトリがつながっているかを読み、設定がどうなる予定かを `change` に入れて、何も書きません。'
     stdin: none
     output:
       format: none
@@ -4347,7 +4253,6 @@ entries:
         projectNumber: 'アクティブなプロジェクトの番号です。'
         change: '設定がどうなったかです。`create`（リポジトリを足した）か `update`（項目を変えた）です。'
         configPath: 'プロジェクトの設定ファイルのパスです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、プロジェクトへのつなぎの結果の行（`added`、既につながっていれば `unchanged`）を出します。設定ファイルの結果の行（`added` か `updated`）も出します。'
     environment: []
     exit_status:
@@ -4394,13 +4299,13 @@ entries:
     effects:
       - target: github
         kind: write
-        what: '新しいリポジトリをプロジェクトにつなぎます。`dry_run` のときは書きません。'
+        what: '新しいリポジトリをプロジェクトにつなぎます。'
       - target: file
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
         kind: write
-        what: 'アクティブな設定ファイルに、リポジトリを足すか更新します。`dry_run` のときは書きません。'
+        what: 'アクティブな設定ファイルに、リポジトリを足すか更新します。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`project_activate` で決めます）。'
       - 'ホストの GitHub トークンが要ります。'
@@ -4414,10 +4319,6 @@ entries:
           package:
             - pecot:plugins/pecot-workflow/CHANGELOG.md
         note: 'monorepo のパッケージを登録します。'
-      - arguments:
-          repo: example-org/my-repo
-          dry_run: true
-        note: 'リポジトリをつながず、設定ファイルも書かずに、する予定を返します。'
     default_notes:
       release_type: '省くと、packages から推定します。packages があれば `multi`、無ければ `single` です。'
     behaviors:
@@ -4474,7 +4375,7 @@ entries:
         statement: 'もし `packages` を持つリポジトリに `changelog_file` を渡したなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-PROJECT-LINK-18
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、リポジトリをつながず設定ファイルも書かず、する予定を結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、リポジトリをつながず設定ファイルも書かず、する予定を `dry-run` の行で標準エラーに出します'
   PW-PROJECT-LIST:
     help:
       details:
@@ -4651,7 +4552,6 @@ entries:
       key: '設定のキーです。今のキーは `aggregation_repo`（Epic を集めるリポジトリ）だけです。'
       value: 'Epic を集めるリポジトリです。`owner/repo` の形で渡します。'
       yes: '既にある値を、確認なしで上書きするかどうかです。上書きの知らせは、`warnings` に入ります。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - 'Epic を集めるリポジトリを、アクティブなプロジェクトの設定ファイルに保存します。'
@@ -4660,18 +4560,16 @@ entries:
       - '違う値を上書きするときは、必ず `warnings` に 1 つ入れます。'
       - '`yes` は、その知らせから確認の案内を省くだけです。'
       - '既に保存してある値と同じ値を渡すと、何も変えずに、`change` を `unchanged` にして成功を返します。'
-      - '`dry_run` を付けると、キーを書かずに、書く予定の値と前の値を `value` と `previous` に入れて返します。上書きの知らせは `warnings` に入れません。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
         key: '設定したキーです。今は `aggregation_repo` だけです。'
-        value: '実行後のキーの値です。`dry_run` のときは、実行したあとになる値です。'
+        value: '実行後のキーの値です。'
         previous: '実行前のキーの値です。未設定だったときは入りません。'
         change: '設定がどうなったかです。`create`（未設定だった）・`update`（値を置き換えた）・`unchanged`（既に同じ値だった）のどれかです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
-        configPath: 'アクティブなプロジェクトの設定ファイルの絶対パスです。`change` がどれでも、`dry_run` のときも入ります。'
+        configPath: 'アクティブなプロジェクトの設定ファイルの絶対パスです。`change` がどれでも入ります。'
     diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -4703,7 +4601,7 @@ entries:
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
         kind: write
-        what: 'アクティブな設定ファイルに `aggregation_repo` を書きます。`dry_run` のときは書きません。'
+        what: 'アクティブな設定ファイルに `aggregation_repo` を書きます。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`project_activate` で決めます）。'
     idempotent: true
@@ -4712,11 +4610,6 @@ entries:
           key: aggregation_repo
           value: example-org/roadmap
         note: 'Epic を集めるリポジトリを設定します。'
-      - arguments:
-          key: aggregation_repo
-          value: example-org/roadmap
-          dry_run: true
-        note: '設定ファイルを書かずに、する予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-SET-01
@@ -4745,7 +4638,7 @@ entries:
         statement: 'もし `aggregation_repo` でないキーを渡したなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-PROJECT-SET-09
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、設定ファイルを書かず、前の値を `previous` に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、設定ファイルを書かず、前の値を添えた `dry-run` の行を標準エラーに出します'
   PW-PROJECT-UNSET:
     help:
       details:
@@ -4762,13 +4655,11 @@ entries:
     summary: 設定のキーの値を消します。キーは Epic を集めるリポジトリ（`aggregation_repo`）で、消した後で Epic を作るには、引数 `repo` が要ります。
     arguments:
       key: '設定のキーです。今のキーは `aggregation_repo`（Epic を集めるリポジトリ）だけです。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - 'アクティブなプロジェクトの設定ファイルから、Epic を集めるリポジトリを消します。'
       - 'キーは `aggregation_repo` だけです。ほかのキーを渡すと、`kind` が `invalid-input` の失敗を返します。'
       - '未設定の値を消しても、何も変えずに、`change` を `unchanged` にして成功を返します。'
-      - '`dry_run` を付けると、キーを消さずに、消す予定の前の値を `previous` に入れて返します。'
       - '消した後で `issue_create` に `type` の `epic` を渡すときは、引数 `repo` で作り先を渡します。'
     stdin: none
     output:
@@ -4778,8 +4669,7 @@ entries:
         key: '消したキーです。今は `aggregation_repo` だけです。'
         previous: '実行前のキーの値です。未設定だったときは入りません。'
         change: '設定がどうなったかです。`delete`（キーを消した）か `unchanged`（もともと未設定だった）です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
-        configPath: 'アクティブなプロジェクトの設定ファイルの絶対パスです。`change` がどれでも、`dry_run` のときも入ります。'
+        configPath: 'アクティブなプロジェクトの設定ファイルの絶対パスです。`change` がどれでも入ります。'
     diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
     environment: []
     exit_status:
@@ -4808,7 +4698,7 @@ entries:
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
         kind: write
-        what: 'アクティブな設定ファイルから `aggregation_repo` を消します。`dry_run` のときは書きません。'
+        what: 'アクティブな設定ファイルから `aggregation_repo` を消します。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`project_activate` で決めます）。'
     idempotent: true
@@ -4816,10 +4706,6 @@ entries:
       - arguments:
           key: aggregation_repo
         note: 'Epic を集めるリポジトリの設定を消します。'
-      - arguments:
-          key: aggregation_repo
-          dry_run: true
-        note: '設定ファイルを書かずに、消す予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-UNSET-01
@@ -4839,7 +4725,7 @@ entries:
         statement: 'もし `aggregation_repo` でないキーを渡したなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-PROJECT-UNSET-06
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、値を消さず、前の値を `previous` に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、値を消さず、前の値を添えた `dry-run` の行を標準エラーに出します'
   PW-RELEASE-CHECK:
     help:
       details:
@@ -5164,7 +5050,6 @@ entries:
         project: None; the config that includes the target repository, and the active one among them when there are several.
     summary: GitHub のリリースとタグを作ります。リリースノートは CHANGELOG から取ります。
     arguments:
-      dry_run: '何も変えずに、行う予定だけを返すかどうかです。'
       package: 'monorepo のパッケージの名前です。'
       version: 'リリースする版です。`0.6.1` のように渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
@@ -5184,7 +5069,6 @@ entries:
       - 'セッションのディレクトリは、git のリポジトリの中でなければなりません。'
       - '`repo` が今の git remote と食い違うときは、`warnings` に入れて `repo` を使います。'
       - 'remote の URL から `owner/repo` を読めないときは、`repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
-      - '`dry_run` を付けると、リリースを作らず、GitHub のクライアントも作りません。'
     stdin: none
     output:
       format: text
@@ -5192,9 +5076,8 @@ entries:
     mcp_output:
       fields:
         tag: 'リリースのタグです。'
-        url: '作ったリリースの URL です。`dry_run` のときは入りません。'
+        url: '作ったリリースの URL です。応答に URL が無いときは入りません。'
         releaseNotes: 'CHANGELOG から取ったリリースノートです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も作っていません。'
     diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
@@ -5267,10 +5150,6 @@ entries:
         note: 'CHANGELOG から、リリース `v0.6.1` を作ります。'
       - arguments:
           version: 0.6.1
-          dry_run: true
-        note: '何も作らずに、予定とリリースノートを返します。'
-      - arguments:
-          version: 0.6.1
           package: pecot-workflow
         note: 'monorepo で、リリース `pecot-workflow-v0.6.1` を作ります。'
     default_notes:
@@ -5288,13 +5167,13 @@ entries:
         statement: '`package` を渡して呼ぶと、パッケージ名を接頭辞にしたタグと名前でリリースを作ります'
       - id: PW-RELEASE-CREATE-04
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、リリースを作りません'
+        statement: 'CLI で `--dry-run` を付けて打つと、リリースを作りません'
       - id: PW-RELEASE-CREATE-05
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、作る予定のタグを `tag` に入れ、`dryRun` を `true` にします'
+        statement: 'CLI で `--dry-run` を付けて打つと、作る予定のタグを `dry-run` の行で標準エラーに出します'
       - id: PW-RELEASE-CREATE-06
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、リリースノートを `releaseNotes` に入れます'
+        statement: 'CLI で `--dry-run` を付けて打つと、リリースノートを標準出力に出します'
       - id: PW-RELEASE-CREATE-07
         pattern: event
         statement: '`repo` が今の git remote のリポジトリと食い違うと、`warnings` に 1 つ入れます'
@@ -5396,7 +5275,6 @@ entries:
     arguments:
       admin: '管理者の権限でマージするかどうかです。マージできるかどうかの確認を飛ばします。'
       delete_branch: 'マージの後でブランチを削除するかどうかです。'
-      dry_run: 'マージせずに、行う予定だけを返すかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/123` の形で渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     constraints: []
@@ -5413,7 +5291,6 @@ entries:
       - '`admin` で飛ばすのは、衝突の確認だけです。マージを許すかどうかは、GitHub API が決めます。'
       - '`delete_branch` を付けると、マージの後で PR の head ブランチをリモートから削除します。'
       - 'head ブランチの削除に失敗しても、`warnings` で知らせ、成功を返します。'
-      - '`dry_run` を付けると、何もマージせず、何も削除しません。`delete_branch` を付けても何も変わりません。'
       - 'リポジトリの既定ブランチを `release_branch` にしているときは、GitHub が Issue を閉じることがあります。閉じるのは、PR がクローズのキーワードで参照している Issue です。'
     stdin: none
     output:
@@ -5423,8 +5300,7 @@ entries:
         pullRequest: 'マージしたリリースの PR です。`owner/repo/N` の形です。'
         head: 'PR の head ブランチです。'
         base: 'PR の base ブランチです。リリースブランチです。'
-        deletedBranch: 'リモートの head ブランチを削除したかどうかです。`delete_branch` を付けなかったとき、`dry_run` のとき、削除に失敗したときは `false` です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何もマージしていません。'
+        deletedBranch: 'リモートの head ブランチを削除したかどうかです。`delete_branch` を付けなかったとき、削除に失敗したときは `false` です。'
     diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
@@ -5504,10 +5380,6 @@ entries:
         note: 'リリースの PR を、マージコミットでマージします。'
       - arguments:
           pr_ref: example-org/my-repo/123
-          dry_run: true
-        note: 'マージせずに、予定を返します。'
-      - arguments:
-          pr_ref: example-org/my-repo/123
           delete_branch: true
         note: 'リリースの PR をマージし、head ブランチを削除します。'
     default_notes: {}
@@ -5523,13 +5395,13 @@ entries:
         statement: '`admin` を付けて呼ぶと、衝突のある PR でもマージを試みます'
       - id: PW-RELEASE-MERGE-04
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、マージしません'
+        statement: 'CLI で `--dry-run` を付けて打つと、マージしません'
       - id: PW-RELEASE-MERGE-05
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、`dryRun` を `true` にして、PR の `head` と `base` を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、PR の head と base を `dry-run` の行で標準エラーに出します'
       - id: PW-RELEASE-MERGE-06
         pattern: event
-        statement: '`dry_run` と `delete_branch` を付けて呼ぶと、ブランチを削除しません'
+        statement: 'CLI で `--dry-run` と `--delete-branch` を付けて打つと、ブランチを削除しません'
       - id: PW-RELEASE-MERGE-07
         pattern: event
         statement: 'PR をマージすると、マージした PR を `pullRequest` に入れます'
@@ -5610,7 +5482,7 @@ entries:
         - The comment names where the review stopped. With --since, an inline comment starting with **F-NN** made after that time means it stopped after posting inline comments.
         - The comment ends with a hidden marker of GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. When a comment by a bot already has the same marker, nothing is posted.
         - A closed PR gets no comment. The project config is not read; the host is github.com.
-        - With --dry-run, reads the PR and writes the body that would be posted to stdout, and posts nothing. The MCP result has the same body in body.
+        - With --dry-run, reads the PR and writes the body that would be posted to stdout, and posts nothing.
       examples:
         - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --review-outcome failure --review-conclusion failure --review-has-token true --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
           note: Post a comment from the cleanup step when the review job failed.
@@ -5630,7 +5502,6 @@ entries:
       review_outcome: '`ensure` のときの、自動レビューの step の `outcome` です。`success`・`failure`・`cancelled`・`skipped` のどれかです。'
       review_conclusion: '`ensure` のときの、claude-code-action の出力 `conclusion` です。Claude Code を動かさなかった run では空なので、空の文字列を受け付けます。'
       review_has_token: '`ensure` のときの、claude-code-action の出力 `github_token` があるかどうかです。`true` か `false` で渡し、トークンの値は受け取りません。'
-      dry_run: 'PR を読み、書くはずのコメントを決めますが、書きません。書くはずの本文を `body` に入れます。CLI では、本文を標準出力に出します。'
     constraints:
       - conflicts: [result, ensure]
       - requires: {ensure: [job_status, review_outcome, review_conclusion, review_has_token]}
@@ -5666,9 +5537,7 @@ entries:
         result: 'コメントに書いた結果です。`failed`・`limit`・`setup-missing` のどれかです。書かなかったときは入りません。'
         location: '止まった場所です。`before-findings`（指摘を投稿する前）・`after-inline`（インラインコメントを投稿した後）・`unknown` のどれかです。書かなかったときは入りません。'
         skipped: '書かなかった理由です。`reviewed`・`job-succeeded`・`workflow-mismatch`・`closed`・`already-written`・`actor-without-write` のどれかです。書いたときは入りません。'
-        commentUrl: '書いたコメントの URL です。書かなかったとき、`dry_run` のとき、GitHub が URL を返さなかったときは入りません。'
-        body: '書くはずのコメントの本文です。`dry_run` で、書くと決めたときだけ入ります。CLI の `--dry-run` が標準出力に出す本文と同じです。'
-        dryRun: '`dry_run` のときだけ `true` が入ります。'
+        commentUrl: '書いたコメントの URL です。書かなかったとき、GitHub が URL を返さなかったときは入りません。'
     diagnostics: '標準エラーに、書いたときは `created` の行を、書かなかったときは理由を添えた `skipped` の行を出します。`--dry-run` のときは、代わりに `dry-run: would` の行を出します。権限を読めないときは `warning` の行を出して書きます。本文がテンプレートに合わないときは、`error` の行を出します。'
     environment:
       - name: GITHUB_RUN_ID
@@ -5737,6 +5606,8 @@ entries:
           result: reviewed
         note: '指摘を投稿し終えたレビューを終えます。コメントは書きません。'
     cli_reference:
+      options:
+        dry_run: 'PR を読み、書くはずのコメントを決めますが、書きません。書くはずの本文を標準出力に出します。'
       examples:
         - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --review-outcome failure --review-conclusion failure --review-has-token true --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
           note: 'ワークフローの後始末から、job が失敗したときにコメントを書きます。'
@@ -5792,7 +5663,7 @@ entries:
         statement: '`result` に `reviewed` を渡して呼ぶと、書かずに `pullRequest` と `skipped` だけを結果に返します'
       - id: PW-REVIEW-FINISH-16
         pattern: optional
-        statement: '`dry_run` が有効なら、PR を読んでもコメントを書かず、`dryRun` を `true` にします。書くはずの本文は `body` に入れ、CLI では標準出力に出します'
+        statement: 'CLI で `--dry-run` が有効なら、PR を読んでもコメントを書かず、書くはずの本文を標準出力に出します'
       - id: PW-REVIEW-FINISH-17
         pattern: event
         statement: '起動した人の権限を読めないと、`warnings` に 1 つ入れて、コメントを書きます'
@@ -5833,7 +5704,6 @@ entries:
     summary: マージ済みの PR の後片付けをします。関連する Issue を閉じ、ブランチを削除し、ローカルを片付けます。
     arguments:
       delete_branch: 'ブランチを削除するかどうかです。'
-      dry_run: '実際には片付けず、予定だけを返すかどうかです。'
       pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       skip_local_cleanup: 'ローカルのブランチの切り替えと削除を飛ばすかどうかです。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
@@ -5852,7 +5722,6 @@ entries:
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
       - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title` です。古い版の `.pecot-quick-mode`・`.pecot-active` が残っていても触れません。'
       - '`skip_local_cleanup` を付けると、ローカルを片付けず、これらのフラグも残します。'
-      - '`dry_run` を付けると、何も変えずに、閉じる予定の Issue と削除する予定のブランチを結果に入れます。'
       - '2 回目の実行の後の状態は 1 回目と同じですが、結果は違います。リモートブランチは `deletedBranches` に入らず、ローカルのブランチへの `git branch -D` は `warnings` に入ります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -5862,13 +5731,12 @@ entries:
       description: '判定の変わった Issue があるときだけ、`Readiness changed:` の行と、Issue ごとの `- <Issue> <前の判定> -> <後の判定>` の行を出します。無ければ何も出しません。'
     mcp_output:
       fields:
-        closedIssues: 'このコマンドが閉じた Issue の番号の配列です。`dry_run` のときは、閉じる予定の番号です。既定ブランチ宛ての PR では、GitHub がマージで先に閉じるので、ふつうは空です。'
+        closedIssues: 'このコマンドが閉じた Issue の番号の配列です。既定ブランチ宛ての PR では、GitHub がマージで先に閉じるので、ふつうは空です。'
         skippedIssues: 'PR が閉じる対象のうち、閉じなかった Issue の配列です。要素は `number` と `reason` を持ちます。`reason` は `epic`（保護している）・`already-closed`・`not-found`・`failed`（`warnings` を見る）のどれかです。`already-closed` には、PR のマージで GitHub が先に閉じた Issue も入ります。'
-        deletedBranches: '削除したブランチの配列です。`dry_run` のときは、削除する予定のブランチです。要素は `branch` と `location`（`remote` か `local`）を持ちます。'
+        deletedBranches: '削除したブランチの配列です。要素は `branch` と `location`（`remote` か `local`）を持ちます。'
         readinessChanges: '判定が変わった Issue の配列です。要素は `issue`（`#N` か `owner/repo#N`）・`from`・`to` を持ちます。`from` と `to` は `blocked`・`startable`・`stackable on #N` のどれかです。無ければ空の配列です。'
         restack: 'この PR の上に積んだ段の配列です。要素は `issue` と、Issue につながるブランチがあれば `branch` を持ちます。その作業ディレクトリで載せ直しが要ります。無ければ空の配列です。'
         currentBranch: 'ローカルの後片付けのあとのブランチです。後片付けを飛ばしたときは入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
     diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`moved`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。ローカルの片付けを飛ばしたときも、`warning` の行を出します。上に積んだ段があるときと、待っている Issue の判定を確かめられないときも、`warning` の行を出します。'
     environment: []
     exit_status:
@@ -5941,10 +5809,6 @@ entries:
           pr_ref: example-org/my-repo/123
           delete_branch: true
         note: 'マージ済みの PR の後片付けをし、リモートブランチも削除します。'
-      - arguments:
-          pr_ref: example-org/my-repo/123
-          dry_run: true
-        note: '何も変えずに、行う予定を返します。'
     default_notes:
       pr_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
@@ -5981,7 +5845,7 @@ entries:
         statement: '`skip_local_cleanup` を付けて呼ぶと、フラグのファイルを消しません'
       - id: PW-SESSION-FINISH-12
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、何も変えずに、する予定を結果に入れ、`dryRun` を `true` にします'
+        statement: 'CLI で `--dry-run` を付けて打つと、何も変えずに、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-SESSION-FINISH-13
         pattern: event
         statement: '呼ぶと、close する Issue を数えます。CLI では、件数を `count` の行で標準エラーに出します'
@@ -6047,7 +5911,7 @@ entries:
         statement: 'もし読み直しても、閉じた Issue が済んだ前提として判定に出ないなら、`warnings` に 1 つ入れて列を動かしません'
       - id: PW-SESSION-FINISH-37
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、閉じる予定の Issue を済んだものとして判定し、列を書かずに、判定の変化を `readinessChanges` に入れます'
+        statement: 'CLI で `--dry-run` を付けて打つと、閉じる予定の Issue を済んだものとして判定し、列を書かずに、判定の変化を標準出力に出します'
       - id: PW-SESSION-FINISH-38
         pattern: event
         statement: 'base が開発ブランチでない PR を片付けると、その PR の Issue を閉じます'
@@ -6319,7 +6183,6 @@ entries:
       branch: '作るブランチの名前です。'
       checkout: '互換のために残した引数で、何も変わりません。'
       issue_ref: 'Issue の参照です。`owner/repo/123` の形で渡します。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
@@ -6348,20 +6211,18 @@ entries:
       - '引数 `repo` は、今の git remote のリポジトリと一致していなければなりません。'
       - 'remote の URL から `owner/repo` を読めないときは、`repo` と比べません。`repo` があれば、`warnings` に入れて続け、無ければ失敗を返します。'
       - 'このツールは、対象を `repo` から決めません。'
-      - '`dry_run` を付けると、Issue・前提・分岐元の commit まで読み、作るブランチの名前を `branch` に入れて、何も書きません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
-        branch: '作ったブランチの名前です。Issue の番号が付きます。`dry_run` のときは、作る予定の名前です。'
+        branch: '作ったブランチの名前です。Issue の番号が付きます。'
         repository: 'ブランチを作ったリポジトリです。`owner/repo` の形です。'
         base: 'ブランチの起点にした base ブランチです。'
         stackedOn: 'このブランチを積んだ先の Issue の番号です。積まないときは入りません。'
         issue: '作業中の Issue です。`owner/repo/N` の形です。'
-        workDirectory: '作業ディレクトリの絶対パスです。`dry_run` のときと、作れなかったときは入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も作らず、何も記録していません。'
+        workDirectory: '作業ディレクトリの絶対パスです。作れなかったときは入りません。'
     diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
@@ -6423,13 +6284,13 @@ entries:
         what: '次のものを読みます。プロジェクトにつながっているリポジトリ。Issue の前提と、そのブランチの PR。Issue の node ID と題。分岐元のブランチの先頭のコミット。'
       - target: github
         kind: write
-        what: '紐づいたブランチを作り、ボード上の Issue の Status を `active` にします。`dry_run` のときは書きません。'
+        what: '紐づいたブランチを作り、ボード上の Issue の Status を `active` にします。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
       - target: file
         kind: write
-        what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/work/<N>/` も作ります。`.pecot/state/.pecot-active` は書きません。`dry_run` のときは書きません。'
+        what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/work/<N>/` も作ります。`.pecot/state/.pecot-active` は書きません。'
     prerequisites:
       - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
@@ -6445,11 +6306,6 @@ entries:
           branch: fix/my-bug
           base: main
         note: '`main` から、ブランチ `fix/my-bug/123` を作ります。'
-      - arguments:
-          issue_ref: example-org/my-repo/123
-          branch: feat/my-change
-          dry_run: true
-        note: 'ブランチと Status は作らず、する予定を返します。'
     default_notes:
       base: '省くと、着手の判定が `stackable` のときは、積む先の PR のブランチです。それ以外では設定ファイルにあるリポジトリの `develop_branch` で、それも無ければ失敗を返します。'
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
@@ -6540,7 +6396,7 @@ entries:
         statement: 'もし積む先のブランチが判定の後に無くなったなら、積む先が見つからない旨を `detail` に入れ、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-SESSION-START-36
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、ブランチを作らず Status と作業対象を書かず、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、ブランチを作らず Status と作業対象を書かず、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-SESSION-START-37
         pattern: unwanted
         statement: 'もし廃止した入力（`allow_cross_repo`・`force_overwrite_active`）を渡したなら、`kind` が `invalid-input` の失敗を返し、ブランチを作りません'
@@ -6618,7 +6474,6 @@ entries:
     summary: '`source` に選んだものの一覧を、open の Tracker に書き直します。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。'
     arguments:
       source: 'Tracker に載せるものです。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。どちらかを必ず渡します。'
-      dry_run: '何も変えずに、Tracker を変える予定だけを返すかどうかです。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     constraints: []
     details:
@@ -6671,12 +6526,11 @@ entries:
     mcp_output:
       fields:
         source: '同期した種類です。`dependabot` か `security` です。'
-        tracker: '使ったか作った Tracker の番号です。Tracker が無いときと、作る前の `dry_run` のときは入りません。'
-        created: 'Tracker を新しく作ったかどうかです。`dry_run` のときは、作る予定かどうかです。'
-        added: 'Tracker の一覧に足した行の配列です。`dry_run` のときは、足す予定の行です。要素は `kind` と `number` を持ちます。`kind` は `pull-request`・`dependabot`・`code-scanning`・`secret-scanning` のどれかです。'
-        removed: 'Tracker の一覧から外した行の配列です。`dry_run` のときは、外す予定の行です。要素の形は `added` と同じです。'
-        closed: '一覧が空になって Tracker を閉じたかどうかです。`dry_run` のときは、閉じる予定かどうかです。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
+        tracker: '使ったか作った Tracker の番号です。Tracker が無いときは入りません。'
+        created: 'Tracker を新しく作ったかどうかです。'
+        added: 'Tracker の一覧に足した行の配列です。要素は `kind` と `number` を持ちます。`kind` は `pull-request`・`dependabot`・`code-scanning`・`secret-scanning` のどれかです。'
+        removed: 'Tracker の一覧から外した行の配列です。要素の形は `added` と同じです。'
+        closed: '一覧が空になって Tracker を閉じたかどうかです。'
     diagnostics: '`dependabot` では、`count` の行で、open の Dependabot の PR の数、判断を待つ PR の数、判断を待つ PR のうち検証の結果が無いものの数を出します。変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`closed`・`skipped`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。`security` では、変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`skipped`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。一覧を取れなかった種類ごとの行も含みます。'
     environment: []
     exit_status:
@@ -6697,7 +6551,7 @@ entries:
         when: 'Tracker の本文にある `list-begin` と `list-end` の印が、ちょうど 1 組ではありません。'
       - kind: partial-failure
         code: 1
-        when: 'Tracker の作成・書き直し・クローズ・ボードへの配置のどれかに失敗しました。`security` で取れない種類があるときも含み、`dry_run` でも失敗を返します。'
+        when: 'Tracker の作成・書き直し・クローズ・ボードへの配置のどれかに失敗しました。`security` で取れない種類があるときも含みます。'
       - kind: invalid-input
         code: 2
         when: '`source` を省いたか、`dependabot` でも `security` でもありません。ほかのコマンドラインの誤りも含みます。'
@@ -6747,19 +6601,13 @@ entries:
     examples:
       - arguments:
           source: dependabot
-          dry_run: true
-        note: 'GitHub へ書き込まず、Tracker を変える予定を返します。'
-      - arguments:
-          source: dependabot
         note: 'Tracker の一覧を書き直します。必要なら、Tracker を作るか閉じます。'
-      - arguments:
-          source: security
-          dry_run: true
-        note: 'GitHub へ書き込まず、Tracker を変える予定を返します。'
       - arguments:
           source: security
         note: 'Tracker の一覧を書き直します。必要なら、Tracker を作ります。'
     cli_reference:
+      options:
+        dry_run: '何も変えずに、Tracker を変える予定だけを出すかどうかです。'
       examples:
         - run: pecot tracker sync dependabot --dry-run
           note: 'GitHub へ書き込まず、Tracker を変える予定を出します。'
@@ -6863,10 +6711,10 @@ entries:
         statement: '`dependabot` で、open の Tracker が複数あると、`warnings` に 1 つ入れます。CLI では、`warning` の行を標準エラーに出します'
       - id: PW-TRACKER-SYNC-31
         pattern: event
-        statement: '`dependabot` で、`dry_run` を付けて呼ぶと、GitHub への書き込みをしません'
+        statement: 'CLI で `dependabot` に `--dry-run` を付けて打つと、GitHub への書き込みをしません'
       - id: PW-TRACKER-SYNC-32
         pattern: event
-        statement: '`dependabot` で、`dry_run` を付けて呼ぶと、予定を結果に入れ、`dryRun` を `true` にします。CLI では、予定の行を標準エラーに出します'
+        statement: 'CLI で `dependabot` に `--dry-run` を付けて打つと、予定の行を標準エラーに出します'
       - id: PW-TRACKER-SYNC-33
         pattern: unwanted
         statement: 'もし `dependabot` で、対象のリポを含む設定から 1 つを選べないなら、候補の名前と `project` の案内を `detail` に入れて、失敗を返します'
@@ -6980,10 +6828,10 @@ entries:
         statement: '`security` で、open の Tracker が複数あると、`warnings` に 1 つ入れます。CLI では、`warning` の行を標準エラーに出します'
       - id: PW-TRACKER-SYNC-70
         pattern: event
-        statement: '`security` で、`dry_run` を付けて呼ぶと、GitHub への書き込みをしません'
+        statement: 'CLI で `security` に `--dry-run` を付けて打つと、GitHub への書き込みをしません'
       - id: PW-TRACKER-SYNC-71
         pattern: event
-        statement: '`security` で、`dry_run` を付けて呼ぶと、予定を結果に入れ、`dryRun` を `true` にします。CLI では、予定の行を標準エラーに出します'
+        statement: 'CLI で `security` に `--dry-run` を付けて打つと、予定の行を標準エラーに出します'
       - id: PW-TRACKER-SYNC-72
         pattern: unwanted
         statement: 'もし `security` で、対象のリポを含む設定から 1 つを選べないなら、候補の名前と `project` の案内を `detail` に入れて、失敗を返します'
@@ -7223,11 +7071,9 @@ entries:
       name: '雛形の一覧の名前です。いまは `review` だけです。'
       check: '書き出さずに、置いたファイルの版が同梱の雛形と同じかを確かめるかどうかです。'
       force: 'ファイルが既にあるときに上書きするかどうかです。'
-      dry_run: '何も書かずに、書く予定だけを返すかどうかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'
     constraints:
       - conflicts: [check, force]
-      - conflicts: [check, dry_run]
     details:
       - '名前の雛形を、`directory` のリポに書き出します。`review` の置き先は `.github/workflows/pecot-review.yml` です。'
       - '親のディレクトリが無ければ作ります。'
@@ -7235,7 +7081,6 @@ entries:
       - 'ファイルが既にあるときは、`force` が無ければ失敗を返します。'
       - '`force` では、利用者が begin と end の印の間に足した行を、結果の `removedLines` と `warnings` に入れてから上書きします。'
       - '`check` では何も書きません。ファイルの 1 行目の版が同梱の雛形と同じかを確かめ、結果の `upToDate` に入れます。ファイルが無いか古いときは、更新の呼び方を `detail` に入れて失敗を返します。'
-      - '`dry_run` では、何も書かずに、書く予定を結果に入れます。'
       - '合言葉や上限など利用者が変える値は、リポの変数にあります。ファイルを上書きしても消えません。'
     stdin: none
     output:
@@ -7246,10 +7091,9 @@ entries:
         path: 'リポのルートからのワークフローのファイルのパスです。'
         version: '同梱の雛形の版です。'
         installedVersion: '置いてあったファイルの版です。ファイルが無いか、版の目印が無いときは入りません。'
-        written: 'ファイルを書いたかどうかです。`check` と `dry_run` のときは、いつも `false` です。'
+        written: 'ファイルを書いたかどうかです。`check` のときは、いつも `false` です。'
         upToDate: '`check` のときだけ入ります。置いたファイルの版が同梱の雛形と同じかどうかです。'
         removedLines: '既にあるファイルを上書きするときだけ入ります。利用者が印の間に足した行で、雛形の中身に置き換わります。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も書いていません。'
     diagnostics: '標準エラーに、書いたファイルの結果の行（`created`・`updated`）を出します。`--dry-run` のときは予定の行（`dry-run`）を、`--check` で版が同じときは `unchanged` の行を出します。消える行があると `warning` の行を出します。失敗では `error` の行を出します。'
     environment: []
     exit_status:
@@ -7261,7 +7105,7 @@ entries:
         when: '`check` で、ファイルが無いか、版が同梱の雛形より古いです。'
       - kind: invalid-input
         code: 2
-        when: '名前が雛形の一覧に無いか、`check` を `force`・`dry_run` と一緒に渡したか、`directory` が無いパス・ファイル・読めないディレクトリです。ほかの引数の誤りも含みます。'
+        when: '名前が雛形の一覧に無いか、`check` を `force` と一緒に渡したか、`directory` が無いパス・ファイル・読めないディレクトリです。ほかの引数の誤りも含みます。'
       - kind: git-unresolved
         code: 1
         when: '`directory` が Git リポジトリの外です。'
@@ -7307,7 +7151,7 @@ entries:
         statement: '雛形を書き出すと、結果の `path` に置き先を、`version` に同梱の雛形の版を入れます'
       - id: PW-WORKFLOW-INSTALL-03
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、何も書かずに、`written` を `false`、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、何も書かずに、書く予定を `dry-run` の行で標準エラーに出し、0 で終わります'
       - id: PW-WORKFLOW-INSTALL-04
         pattern: unwanted
         statement: 'もし置き先にファイルのあるとき `force` を付けずに呼ぶなら、何も書かずに、`kind` が `already-exists` の失敗を返します'
@@ -7328,7 +7172,7 @@ entries:
         statement: 'もし名前が雛形の一覧に無いなら、一覧の名前を `detail` に入れて、`kind` が `invalid-input` の失敗を返します'
       - id: PW-WORKFLOW-INSTALL-10
         pattern: unwanted
-        statement: 'もし `check` を `force` か `dry_run` と一緒に渡したなら、何も書かずに、`kind` が `invalid-input` の失敗を返します'
+        statement: 'もし `check` を `force` と一緒に渡したなら、何も書かずに、`kind` が `invalid-input` の失敗を返します。CLI では、`--check` を `--dry-run` と一緒に付けたときも、何も書かずに使い方の誤りで止まります'
       - id: PW-WORKFLOW-INSTALL-11
         pattern: event
         statement: 'リポのサブディレクトリを `directory` に渡すと、リポのルートからの置き先に書き出します'
@@ -7377,7 +7221,6 @@ entries:
       project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、remote のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。'
       base: '分岐元のブランチです。'
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
-      dry_run: '何も変えずに、行う予定だけを返すかどうかです。'
       no_copy: '追跡していないファイルのコピーを飛ばすかどうかです。'
       no_link: 'シンボリックリンクの作成を飛ばすかどうかです。'
       path: 'worktree を作る場所です。'
@@ -7393,7 +7236,7 @@ entries:
       - 'ブランチは `<remote>/<base>` から作り、そのブランチを upstream にします。`<base>` は、引数 `base` か、プロジェクトの設定にあるリポジトリの `develop_branch` です。`<remote>` は、プロジェクトの設定にあるリポジトリを指す remote です。`origin` を先に見て、次に `git remote` の順で見ます。'
       - 'ブランチ `wtN` が既にあるときは、失敗を返します。upstream が `<remote>/<base>` のときと、`allow_existing_branch` を付けたときは別です。'
       - 'upstream が合っていて、どの worktree も使っていないブランチは、消して作り直します。'
-      - 'worktree を作る前に、メインの worktree で `git worktree prune` を動かします。`dry_run` のときも動かします。'
+      - 'worktree を作る前に、メインの worktree で `git worktree prune` を動かします。'
       - 'メインの worktree に、`.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` が要ります。どちらも `worktree_init` が作ります。'
       - 'リポジトリは、プロジェクトの設定の `repositories` か `aggregation_repo` に無ければなりません。含む設定が 2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
       - '`worktree-config.json` のシンボリックリンクを作ってから、メインの worktree で git が無視しているファイルをコピーします。`.worktreeignore` が除くファイルと、作ったシンボリックリンクの下のファイルはコピーしません。コピーの後、新しい worktree で setup のコマンドを動かします。'
@@ -7413,11 +7256,10 @@ entries:
     mcp_output:
       fields:
         name: 'worktree の名前です。`wtN` の形で番号を振ります。'
-        path: 'worktree の絶対パスです。`dry_run` のときは、置く予定の場所です。'
+        path: 'worktree の絶対パスです。'
         branch: 'worktree で checkout したブランチです。'
         base: 'ブランチの起点にした base ブランチです。'
-        setupFailed: 'setup のコマンドが失敗したか、時間切れになったかです。成功したときと、実行しなかったときは `false` です。`dry_run` のときは入りません。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
+        setupFailed: 'setup のコマンドが失敗したか、時間切れになったかです。成功したときと、実行しなかったときは `false` です。'
     diagnostics: '標準エラーに、`created` の行（`--dry-run` のときは `dry-run` の行）を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -7470,7 +7312,7 @@ entries:
     effects:
       - target: git
         kind: write
-        what: '古い worktree の管理情報を prune します（`dry_run` のときも行います）。worktree とブランチ `wtN` を作り、upstream を設定します。worktree の git の管理ディレクトリに、`wtN` を記録します。'
+        what: '古い worktree の管理情報を prune します。worktree とブランチ `wtN` を作り、upstream を設定します。worktree の git の管理ディレクトリに、`wtN` を記録します。'
       - target: git
         kind: destructive
         what: '期待する upstream と合っていて、worktree の無い既存のローカルブランチ `wtN` を消します。'
@@ -7496,10 +7338,6 @@ entries:
       - arguments:
           directory: .
         note: 'セッションのディレクトリのリポジトリの、次の worktree を作ります。'
-      - arguments:
-          directory: .
-          dry_run: true
-        note: '作る予定の worktree を返します。'
       - arguments:
           directory: .
           base: develop
@@ -7548,7 +7386,7 @@ entries:
         statement: '`allow_existing_branch` を付けて呼ぶと、upstream の違う既存のブランチを再利用します'
       - id: PW-WORKTREE-ADD-13
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、何も作りません'
+        statement: 'CLI で `--dry-run` を付けて打つと、何も作りません'
       - id: PW-WORKTREE-ADD-14
         pattern: event
         statement: 'worktree を作ると、その名前・ブランチ・ベースを、結果の `name`・`branch`・`base` に入れます'
@@ -7557,10 +7395,10 @@ entries:
         statement: 'worktree を作ると、worktree の絶対パスを結果の `path` に入れます'
       - id: PW-WORKTREE-ADD-16
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、結果の `dryRun` を `true` にします'
+        statement: 'CLI で `--dry-run` を付けて打つと、作る予定を `dry-run` の行で標準エラーに出します'
       - id: PW-WORKTREE-ADD-17
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、予定の worktree のパスを結果の `path` に入れます'
+        statement: 'CLI で `--dry-run` を付けて打つと、予定の worktree のパスを標準出力に出します'
       - id: PW-WORKTREE-ADD-18
         pattern: event
         statement: 'シンボリックリンクを作ると、作った数を数えます。CLI では、`symlinks created` の `count` の行で標準エラーに出します'
@@ -7696,7 +7534,6 @@ entries:
     summary: メインの worktree に、worktree の設定ファイルを作ります。
     arguments:
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - '`directory` のリポジトリのメインの worktree に、既定のテンプレートを書きます。書く先は、`.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` です。'
@@ -7706,16 +7543,14 @@ entries:
       - '`.worktreeignore` には、`worktree_add` がコピーしないパターンを、gitignore の書き方で並べます。'
       - 'どちらかのファイルが既にあるときは、何も書かずに失敗を返します。'
       - 'devcontainer が要ります。'
-      - '`dry_run` を付けると、どちらのファイルも書かずに、置く予定のパスを `configFile` と `ignoreFile` に入れます。'
       - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
-        configFile: 'worktree の設定ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
-        ignoreFile: 'worktree の ignore ファイルの絶対パスです。`dry_run` のときは、置く予定の場所です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
+        configFile: 'worktree の設定ファイルの絶対パスです。'
+        ignoreFile: 'worktree の ignore ファイルの絶対パスです。'
     diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -7762,7 +7597,7 @@ entries:
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
         kind: write
-        what: '`worktree-config.json` と `.worktreeignore` を作ります。`.pecot/config` のディレクトリが無ければ、それも作ります。`dry_run` のときは書きません。'
+        what: '`worktree-config.json` と `.worktreeignore` を作ります。`.pecot/config` のディレクトリが無ければ、それも作ります。'
     prerequisites:
       - 'devcontainer の中で動かします。'
     idempotent: false
@@ -7770,10 +7605,6 @@ entries:
       - arguments:
           directory: .
         note: 'セッションのディレクトリのリポジトリに、worktree の設定ファイルを書きます。'
-      - arguments:
-          directory: .
-          dry_run: true
-        note: 'ファイルを書かずに、作る予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-WORKTREE-INIT-01
@@ -7832,7 +7663,7 @@ entries:
         statement: 'もしアクティブな設定ファイルを読めないか形式が不正なら、`kind` が `config-invalid` の失敗を返します'
       - id: PW-WORKTREE-INIT-19
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、設定ファイルと ignore ファイルを書かず、置く予定のパスを結果に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、設定ファイルと ignore ファイルを書かず、置く予定のパスを `dry-run` の行で標準エラーに出し、0 で終わります'
       - id: PW-WORKTREE-INIT-20
         pattern: event
         statement: '引数 `repo` を渡して remote の URL から `owner/repo` を読めないと、`warnings` に 1 つ入れて続けます'
@@ -7869,7 +7700,6 @@ entries:
     arguments:
       all: 'すべてのサブの worktree を対象にするかどうかです。'
       directory: '対象の Git リポジトリのパスです。絶対パスと相対パスのどちらも渡せます。'
-      dry_run: '何も変えずに、行う予定だけを返すかどうかです。'
       force: '実体のファイルとディレクトリを、尋ねずに上書きするかどうかです。'
     constraints: []
     details:
@@ -7883,8 +7713,6 @@ entries:
       - 'リンクのパスにある実体のファイルかディレクトリは、上書きの確認に答えた後にだけ置き換えます。MCP のツールには確認に答える手段が無いので、`kind` が `aborted` の失敗を返します。`force` を付けると、尋ねずに置き換えます。'
       - '`all` を付けて `force` が無いときは、実体のファイルを尋ねずに飛ばします。'
       - 'リンクのパスが `.pecot/` で始まるときは、リンクを張る前にプラグインのスクリプトを動かし、worktree に `.pecot/.gitignore` を書きます。'
-      - '`dry_run` を付けると、何も変えません。作る・更新する・飛ばすのどれになるかを、リンクごとの `change` で返します。'
-      - '`dry_run` は、リンクごとの判断を実際の実行と同じ方法で決めます。実行が飛ばすリンクは、同じ理由を `reason` に入れた `skip` として予定に入ります。`all` を付けて `force` が無いときは、実体のファイルを飛ばす予定にします。'
       - 'git が追跡しているパスは、飛ばす予定にします。実際の実行では、`warnings` に入れ、エラーとして数えます。'
       - 'devcontainer が要ります。'
       - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
@@ -7894,7 +7722,6 @@ entries:
     mcp_output:
       fields:
         links: '各対象 worktree にある、設定の link ごとの結果の配列です。サブ worktree が無ければ空です。要素は `path`（symlink の絶対パス）・`destination`（向き先の絶対パス）・`change` を持ちます。`change` は `create`（新しい symlink）・`update`（既存を置き換えた）・`skip`（そのまま）・`error`（作れなかった）のどれかです。`reason` は、`skip` と `error` のときだけ入ります。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。symlink は何も変えていません。'
     diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`--all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。`--dry-run` のときは、`dry-run` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -7965,11 +7792,6 @@ entries:
       - arguments:
           directory: .
           all: true
-          dry_run: true
-        note: 'すべてのサブの worktree で、変わる予定のリンクを返します。'
-      - arguments:
-          directory: .
-          all: true
           force: true
         note: 'すべてのサブの worktree で、リンクのパスにある実体のファイルを尋ねずに置き換えます。'
     default_notes: {}
@@ -8006,7 +7828,7 @@ entries:
         statement: '`force` を付けずに `all` を付けてリンクのパスに実ファイルがあると、尋ねずにそのリンクを飛ばします'
       - id: PW-WORKTREE-LINK-11
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、何も変えません'
+        statement: 'CLI で `--dry-run` を付けて打つと、何も変えません'
       - id: PW-WORKTREE-LINK-12
         pattern: event
         statement: '`all` を付けてサブの worktree が無いと、`links` を空の配列にして成功を返します'
@@ -8021,7 +7843,7 @@ entries:
         statement: 'リンクを飛ばすと、`change` を `skip` にし、理由を `reason` に入れます'
       - id: PW-WORKTREE-LINK-16
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、リンクごとの予定を `links` に入れ、`dryRun` を `true` にします'
+        statement: 'CLI で `--dry-run` を付けて打つと、リンクごとの予定を `dry-run` の行で標準エラーに出します'
       - id: PW-WORKTREE-LINK-17
         pattern: unwanted
         statement: 'もしリンクのパスを git が追跡しているか、リンクを作れないなら、そのリンクを作りません'
@@ -8114,7 +7936,6 @@ entries:
       force: '変更があっても削除するかどうかです。'
       keep_branch: 'ブランチを残すかどうかです。'
       name: '削除する worktree の名前です。記録した `wtN`、`wtN` のディレクトリ、ブランチ名のどれかを渡します。'
-      dry_run: '何も書かずに、する予定だけを返すかどうかです。'
     constraints: []
     details:
       - '`directory` のリポジトリの worktree のうち、メインの worktree を除いたものから、`name` の worktree を探します。見つけた worktree は、`git worktree remove` で削除します。'
@@ -8130,16 +7951,14 @@ entries:
       - '3 段階のどれでも worktree に当たらない名前を渡すと、失敗を返します。'
       - 'devcontainer が要ります。'
       - 'worktree の設定ファイルとアクティブなプロジェクトは読みません。'
-      - '`dry_run` を付けると、何も消さずに、削除する予定の名前を結果に入れます。'
       - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
-        name: '削除した worktree の名前です。渡したままの名前です。`dry_run` のときは、削除する予定の名前です。'
-        deletedBranch: 'ローカルブランチを削除したかどうかです。残したとき、削除に失敗したとき、`dry_run` のときは `false` です。'
-        dryRun: '`dry_run` のときだけ `true` で入ります。何も変えていません。'
+        name: '削除した worktree の名前です。渡したままの名前です。'
+        deletedBranch: 'ローカルブランチを削除したかどうかです。残したとき、削除に失敗したときは `false` です。'
     diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment:
       - name: REMOTE_CONTAINERS
@@ -8177,10 +7996,10 @@ entries:
         what: 'worktree の一覧と、`worktree_add` がそれぞれの worktree に記録した `wtN` を読みます。'
       - target: git
         kind: destructive
-        what: 'worktree を削除します。`force` のときは、コミットしていない変更ごと削除します。ローカルブランチを `git branch -D` で削除します。`dry_run` のときは書きません。'
+        what: 'worktree を削除します。`force` のときは、コミットしていない変更ごと削除します。ローカルブランチを `git branch -D` で削除します。'
       - target: file
         kind: destructive
-        what: '空になったセットのディレクトリ `<プロジェクトのルート>/<name>` を削除します。`dry_run` のときは書きません。'
+        what: '空になったセットのディレクトリ `<プロジェクトのルート>/<name>` を削除します。'
     prerequisites:
       - 'devcontainer の中で動かします。'
     idempotent: false
@@ -8195,11 +8014,6 @@ entries:
           keep_branch: true
           force: true
         note: '変更があっても worktree を削除し、ブランチは残します。'
-      - arguments:
-          name: wt1
-          directory: .
-          dry_run: true
-        note: '何も消さずに、消す予定を返します。'
     default_notes: {}
     behaviors:
       - id: PW-WORKTREE-REMOVE-01
@@ -8279,7 +8093,7 @@ entries:
         statement: '記録と置き場所のどちらでも見つからない名前を渡して呼ぶと、その名前のブランチを checkout している worktree を削除します'
       - id: PW-WORKTREE-REMOVE-26
         pattern: event
-        statement: '`dry_run` を付けて呼ぶと、worktree とブランチを消さず、削除する予定の名前を `name` に入れ、`dryRun` を `true` にして成功を返します'
+        statement: 'CLI で `--dry-run` を付けて打つと、worktree とブランチを消さず、削除する予定を `dry-run` の行で標準エラーに出し、0 で終わります'
       - id: PW-WORKTREE-REMOVE-27
         pattern: unwanted
         statement: 'もし `force` を付けずに変更のある worktree を削除しようとしたなら、git の文に続けて、`force: true` を付ける案内を `detail` に入れます'

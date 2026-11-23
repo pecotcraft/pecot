@@ -24,7 +24,7 @@ import {
   runWithExit,
   VALID_STATUSES,
 } from './issue-shared.js'
-import { createOutput, DRY_RUN_FIELD } from './output.js'
+import { createOutput } from './output.js'
 import type { Output } from './output.js'
 
 // Projects V2 の自動化が Issue をもう一度閉じることがあるため、status を設定した後に待つ
@@ -45,7 +45,6 @@ const ISSUE_REOPEN_OUTPUT = z.strictObject({
   unarchived: z.boolean().describe('Whether the item was unarchived on the board'),
   doneCleared: z.boolean().describe('Whether the built-in Status Done was cleared on the board'),
   commented: z.boolean().describe('Whether the reason was posted as a comment'),
-  dryRun: DRY_RUN_FIELD,
 })
 
 type ReopenOutput = Output<z.input<typeof ISSUE_REOPEN_OUTPUT>>

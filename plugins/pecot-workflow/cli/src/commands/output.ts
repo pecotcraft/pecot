@@ -53,11 +53,6 @@ export interface Operation {
 }
 
 /**
-dry_run を持つコマンドの output の dryRun。値は createOutput の result が入れる
-*/
-export const DRY_RUN_FIELD = z.literal(true).optional().describe('true on dry_run (nothing was changed)')
-
-/**
 D は MCP の成功の data の型（コマンドの output の z.input）。CLI では result は何も出さない
 */
 export interface Output<D extends object = Record<string, unknown>> {
@@ -91,8 +86,7 @@ export interface Output<D extends object = Record<string, unknown>> {
   */
   readonly data: (text: string) => void
   /**
-  MCP の成功の data に項目を渡す。何度も呼べば浅く重なる（後の値が勝つ）ので、配列は組み終えてから 1 回だけ渡す。
-  dry-run のときは dryRun: true を重ねるので、output に DRY_RUN_FIELD を置く
+  MCP の成功の data に項目を渡す。何度も呼べば浅く重なる（後の値が勝つ）ので、配列は組み終えてから 1 回だけ渡す
   */
   // 補助の関数が Output（既定の D）で受け取れるよう、メソッドの形で書く（引数の型の比べ方が双変になる）
   result(fields: Readonly<Partial<D>>): void
@@ -157,7 +151,7 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
       io.stdout(text.endsWith('\n') ? text : `${text}\n`)
     },
     result(fields) {
-      io.data?.(isDryRun ? { ...fields, dryRun: true } : fields)
+      io.data?.(fields)
     },
     signal: io.signal,
   }

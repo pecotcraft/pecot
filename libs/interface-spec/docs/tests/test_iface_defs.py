@@ -961,6 +961,29 @@ def test_exit_code_column_and_command_section_are_only_for_cli_reference() -> No
     assert titles[-1] == COMMAND_TITLE
 
 
+def test_cli_only_options_show_their_description_and_are_not_mcp_arguments() -> None:
+    entry = _both_entry(
+        cli={
+            "positional": ["target"],
+            "flags": {"force": ["--force", "-f"], "dry_run": ["--dry-run", "-n"]},
+            "only": {"dry_run": {"type": "boolean"}},
+        },
+        cli_reference={**_CLI_REFERENCE, "options": {"dry_run": "何も書かずに、予定を出します。"}},
+    )
+    sections = dict(render_sections(entry))
+    assert "dry_run" not in "\n".join(sections["引数"])
+    command = sections[COMMAND_TITLE]
+    at = command.index(".. option:: --dry-run, -n")
+    assert command[at : at + 4] == [
+        ".. option:: --dry-run, -n",
+        "",
+        "   何も書かずに、予定を出します。",
+        "",
+    ]
+    assert "引数 \\ ``dry_run``\\  に当たります。" not in "\n".join(command)
+    assert "   引数 \\ ``force``\\  に当たります。" in command
+
+
 def test_mcp_output_links_to_common_fields_of_the_plugin() -> None:
     entry = {**_mcp_entry({"branch": {"type": "string"}}), PLUGIN_KEY: "sample"}
     text = _output_section(entry)

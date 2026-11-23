@@ -425,15 +425,14 @@ describe('board add', () => {
       expect(github.requests()).toEqual([])
     })
 
-    it('dry_run を付けると、Issue を読むだけで足さず、足す予定の Issue・Status・dryRun: true を返す', async (context) => {
+    it('CLI で --dry-run を付けると、Issue を読むだけで足さず、足す予定と設定する予定の Status を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-BOARD-ADD-19')
       prepareProject()
       const github = await startGithub([linkedRepositories(), issueNodeId()])
 
-      const outcome = await callToolOnce(BOARD_ADD_COMMANDS, 'board_add', { issue_ref: 'acme/demo/7', dry_run: true })
+      const result = await add(['board', 'add', 'acme/demo/7', '--dry-run'])
 
-      expect(outcome.isError).toBe(false)
-      expect(outcome.structured).toEqual({ ...ADDED, status: 'ready', dryRun: true })
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would add Issue acme/demo/7 to project\ndry-run: would set Issue acme/demo/7 status ready\n' })
       expect(github.requests().map(request => request.type === 'graphql' ? request.operation : request.path)).toEqual(['GetLinkedRepositoriesUser', 'GetIssueNodeId'])
     })
   })
