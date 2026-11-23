@@ -110,9 +110,13 @@
 ## R7. 1 つのレポートにまとめる
 
 - **Decision**: `allure generate <結果のディレクトリ>...` に、レポートのレーンの結果のディレクトリを全部渡す。設定は `.githooks/scripts/test_report/allurerc.mjs` に置く
-  - plugin は awesome を 1 つ。`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`、`reportName: "pecot テストレポート"`
+  - plugin は awesome を 1 つ。`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`
+  - レポートの名前は、トップレベルの `name: "pecot テストレポート"` に置く。awesome の `reportName` は、3.33.0 では画面の題を変えない（ソース。awesome は options の後に、トップレベルの `name` から来る `context.reportName` を渡す）
 - **Rationale**: 複数のディレクトリを渡す形は、CLI のヘルプの例と、設定の `resultsDir` の配列にある。結果には「どのディレクトリから来たか」の項目が無く、出どころはラベルでだけ分かる。`groupBy` は任意のラベルで木を組む（plugin-awesome の README）
-- **実物で確かめる点**: `groupBy` に並べたラベルを持たないテストが、木のどこに出るか。最初のフェーズで実物で確かめ、読みにくければ `groupBy` を `["project", "lane"]` に縮める
+- **実物で確かめた点**（Phase 2。`text-rules:test-unit` と `githooks:test-nx-cache`）: `groupBy` は縮めない
+  - vitest は `parentSuite` がファイル、`suite` が `describe`、`subSuite` が入れ子の `describe`。pytest は `parentSuite` がパッケージ、`suite` がモジュール、`subSuite` がクラス
+  - どちらも `lane` の下が `parentSuite`・`suite` の順に並び、同じ深さになる。テストは、書いた題で葉に出る
+  - ラベルを持たない段は飛ばされ、テストは 1 つ上の段に並ぶ（`describe` の無い `it`・クラスの無い pytest の関数）。読みにくくはならない
 
 ## R8. レポートのレーンの定め
 
