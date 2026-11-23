@@ -16,7 +16,7 @@ import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harnes
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, REPOSITORY, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsRule, prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -1303,6 +1303,14 @@ describe('pr create', () => {
           '',
         ].join('\n'),
       })
+    })
+
+    it('待つ Issue の札が Bot の待ちの結果を持つ Needs Attention なら、列だけを動かし、札を Todo に戻さない', async () => {
+      const waiting = { ...waitingTarget(true), label: 'Needs Attention' }
+      const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waiting), commentsRule(13, [botResult('question')]), READY_WRITE_RULE] })
+      const result = await workspace.run(messageArguments())
+      expect(result.code).toBe(0)
+      expect(lines(result.stderr)).toStrictEqual([`created: PR acme/demo ${BRANCH} -> main: ${TITLE}`, 'set: Issue #12 status to In Review', 'moved: #13 Blocked -> Ready (stackable on #12)'])
     })
 
     it('着手の跡がある待つ Issue は、列を動かさない', async () => {

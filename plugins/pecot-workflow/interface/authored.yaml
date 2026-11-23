@@ -387,6 +387,7 @@ entries:
         - A repository whose alerts cannot be read shows the reason and does not stop the command.
         - Narrows the board items to one repository when --repo or the global pecot --repo is given.
         - Reads the blocked-by of the open Issues in Ready and Blocked, and judges each as startable, stackable or blocked. Issues in Active and In Review are not read.
+        - Also reads the comments of an Issue whose Status is Needs Attention and that has no branch or PR, to tell whether the automation set the Status, as board sync does.
         - Only shows the judgment. It never changes the column or the Status of an Issue, even when they do not match the judgment.
         - An Issue whose prerequisites cannot be read is shown as unknown.
         - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
@@ -410,6 +411,7 @@ entries:
       - 'alert を読めないリポジトリは、理由を入れるだけで、失敗にはしません。'
       - '`repo` を渡すと、ボードの項目を 1 つのリポジトリに絞ります。'
       - 'Ready と Blocked にある open の Issue の blocked-by を読み、それぞれを `startable`・`stackable`・`blocked` のどれかに判定します。Active と In Review の Issue は読みません。'
+      - '札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。自動処理が書いた札かを決め、`board_sync` と同じ規則で数えるためです。'
       - '判定は返すだけです。Issue の列と Status は、判定に合っていなくても変えません。'
       - '前提を読めない Issue は、判定を `unknown` にします。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`readiness` の無いボードを返します。'
@@ -464,7 +466,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'ボードの項目、Ready と Blocked の Issue の blocked-by、登録したリポジトリそれぞれの Dependabot alert の状態を読みます。'
+        what: 'ボードの項目、Ready と Blocked の Issue の blocked-by、登録したリポジトリそれぞれの Dependabot alert の状態を読みます。札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。'
       - target: file
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
@@ -1646,7 +1648,7 @@ entries:
         what: 'Issue を作り、blocked-by を足し、プロジェクトのボードに足します。フィールドを設定し、親 Epic の sub-issue としてつなぎます。前提が済んでいる Issue は、Blocked から Ready へ動かします。'
       - target: github
         kind: read
-        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。'
+        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -2831,7 +2833,7 @@ entries:
         what: 'PR を作り、関連する Issue のボードの status を In Review にします。積んだ base の PR は、スタックに登録します。この PR を待っていた Issue の列を動かします。'
       - target: github
         kind: read
-        what: '関連する Issue の種類と、そのボードの項目を読みます。積んだ base では、下の段の PR とスタックも読みます。待っている Issue とボードも読みます。'
+        what: '関連する Issue の種類と、そのボードの項目を読みます。積んだ base では、下の段の PR とスタックも読みます。待っている Issue とボードも読みます。待っている Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: git
         kind: read
         what: 'ブランチ・remote・status・stash・push の状態を読みます。nx のリポジトリでは、base との差分も読みます。'
@@ -3874,6 +3876,7 @@ entries:
         - Adds the Needs Attention option to the Status field of the project.
         - When an option cannot be added, a warning line is written and the command continues.
         - Writes the config file and makes the project active.
+        - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
         - Stops without creating anything when the owner is not found.
         - Stops without creating anything when a project with the same title already exists.
         - With --dry-run, checks whether the project already exists and prints a dry-run line for creating it, and creates nothing.
@@ -3897,6 +3900,7 @@ entries:
       - 'プロジェクトの Status のフィールドに、Needs Attention の選択肢を足します。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。'
       - '設定ファイルを書き、プロジェクトをアクティブにします。'
+      - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
       - '所有者が見つからないときは、何も作らずに失敗を返します。'
       - '同じ題のプロジェクトが既にあるときは、何も作らずに失敗を返します。'
     stdin: none
@@ -4002,6 +4006,9 @@ entries:
       - id: PW-PROJECT-CREATE-11
         pattern: event
         statement: 'CLI で `--dry-run` を付けて打つと、プロジェクトを作らず、作る予定を `dry-run` の行で標準エラーに出します'
+      - id: PW-PROJECT-CREATE-12
+        pattern: event
+        statement: 'Status のフィールドに In Progress があると、設定ファイルに、その id を `status.options.in_progress` として書きます'
   PW-PROJECT-GET:
     help:
       details:

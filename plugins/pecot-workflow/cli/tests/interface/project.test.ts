@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { commentsRule, type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsRule, type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
@@ -642,6 +642,12 @@ describe('project create', () => {
     })
   })
 
+  it('Status に In Progress があると、設定ファイルに in_progress の id を書く', async (context) => {
+    await verifies(context, 'PW-PROJECT-CREATE-12')
+    const result = await create(createRules())
+    expect(savedStatus(result)).toMatchObject({ id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2' } })
+  })
+
   it('設定ファイルを作ると、そのプロジェクトをアクティブにする', async (context) => {
     await verifies(context, 'PW-PROJECT-CREATE-04')
     const result = await create(createRules())
@@ -924,6 +930,14 @@ describe('board show', () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }] }), commentsRule(3)], config)
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_ONE}\n`)
+    })
+
+    it('Bot が書いた待ちの結果のコメントを持つ Needs Attention の札は、食い違いに数えない', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-33')
+      const done: IssueSpec = { number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }
+      const result = await info([board(item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), commentsRule(3, [botResult('question')])])
+      expectClean(result)
+      expect(result.stderr).toBe('')
     })
 
     it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async () => {
