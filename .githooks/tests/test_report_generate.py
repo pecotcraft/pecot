@@ -1,15 +1,17 @@
 """test_report/generate.py のテスト。結果のそろいの判定・履歴の扱い・allure generate に渡す引数と、allurerc.mjs の値。
 
-単体のケースは allure の起動（run）だけを差し替える。最後の 1 本は本物の allure generate を起こす。
+単体のケースは allure の起動（run）だけを差し替える。最後の節は、本物の allure generate を起こす。
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -295,8 +297,7 @@ def test_readable_history_is_left_as_is(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     history = tmp_path / "history.jsonl"
-    # JSON.stringify は U+2028 をエスケープしない。行の区切りに数えない
-    body = '{"uuid": "1", "name": "a b"}\r\n\n  \n{"uuid": "2"}\n'.encode()
+    body = b'{"uuid": "1", "name": "a b"}\r\n\n  \n{"uuid": "2"}\n'
     history.write_bytes(body)
 
     code, _ = _history_run(root, tmp_path, history)
@@ -309,6 +310,15 @@ def test_readable_history_is_left_as_is(
 def test_lone_carriage_return_splits_lines_like_node_readline() -> None:
     assert generate.read_history(b'{"a": 1}\r{"b": 2}\n') == []
     assert generate.read_history(b'{"a": 1}\r{oops\n') == [2]
+    # JSON.stringify は U+2028 をエスケープしないが、readline はそこで切る
+    assert generate.read_history('{"a": "x\u2028y"}\n'.encode()) == [1, 2]
+
+
+def test_blank_lines_are_those_js_trim_empties() -> None:
+    # JS の trim() は U+3000・U+FEFF を除き、\x1c・U+0085 を除かない（Python の strip() と違う）
+    assert generate.read_history('{"a": 1}\n\u3000\ufeff\n'.encode()) == []
+    assert generate.read_history(b'{"a": 1}\n\x1c\n') == [2]
+    assert generate.read_history('{"a": 1}\n\u0085\n'.encode()) == [2]
 
 
 # --- 材料（--sources） ---
@@ -447,13 +457,20 @@ def test_conflicting_arguments_stop_before_anything(
 
 
 def _config(env: dict[str, str]) -> dict[str, Any]:
+    """allurerc.mjs の export と、Allure の readConfig が解いた値。"""
     script = (
-        f"const {{ default: c }} = await import({json.dumps(_CONFIG.as_uri())});"
-        "process.stdout.write('\\n' + JSON.stringify(c));"
+        f"const {{ default: raw }} = await import({json.dumps(_CONFIG.as_uri())});"
+        "const { readConfig } = await import('@allurereport/core');"
+        f"const r = await readConfig(process.cwd(), {json.dumps(str(_CONFIG))});"
+        "const resolved = { name: r.name, historyPath: r.historyPath ?? null,"
+        " historyLimit: r.historyLimit, historyBaseUrl: r.historyBaseUrl ?? null,"
+        " flakyDetection: r.flakyDetection };"
+        "process.stdout.write('\\n' + JSON.stringify({ raw, resolved }));"
     )
+    # -e の import は作業ディレクトリから解く。@allurereport/core は allure の依存なので、allure の実体から解く
     done = subprocess.run(
         ["node", "--input-type=module", "-e", script],
-        cwd=_REPO,
+        cwd=(_REPO / "node_modules/allure").resolve(),
         env=env,
         capture_output=True,
         text=True,
@@ -468,10 +485,7 @@ def test_config_values() -> None:
 
     config = _config(env)
 
-    assert config["name"] == "pecot テストレポート"
-    assert config["historyLimit"] == 20
-    assert config["flakyDetection"] == {"includePassedTests": True}
-    assert config["plugins"] == {
+    assert config["raw"]["plugins"] == {
         "awesome": {
             "options": {
                 "groupBy": ["project", "lane", "parentSuite", "suite", "subSuite"],
@@ -479,14 +493,19 @@ def test_config_values() -> None:
             }
         }
     }
-    assert "historyBaseUrl" not in config
-    assert "historyPath" not in config
+    assert config["resolved"] == {
+        "name": "pecot テストレポート",
+        "historyPath": None,
+        "historyLimit": 20,
+        "historyBaseUrl": None,
+        "flakyDetection": {"includePassedTests": True},
+    }
 
 
 def test_config_takes_history_path_from_env(tmp_path: Path) -> None:
     env = {**os.environ, generate.HISTORY_ENV: str(tmp_path / "history.jsonl")}
 
-    assert _config(env)["historyPath"] == str(tmp_path / "history.jsonl")
+    assert _config(env)["resolved"]["historyPath"] == str(tmp_path / "history.jsonl")
 
 
 # --- 本物の allure generate ---
@@ -510,10 +529,15 @@ def _allure_result(uuid: str) -> dict[str, Any]:
     }
 
 
-@pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
-def test_real_allure_appends_history_and_recovers_from_unreadable_lines(
-    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def _entries(history: Path) -> list[str]:
+    """Node の readline と trim() で数えた、履歴の行。"""
+    text = history.read_bytes().decode("utf-8")
+    return [line for line in re.split(r"\r\n|\n|\r", text) if line.strip(generate._JS_TRIM)]  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.fixture
+def real_build(root: Path, tmp_path: Path) -> tuple[Callable[[], int], Path]:
+    """本物の allure generate で、--sources・--history を付けて作る関数と、履歴のパス。"""
     results = root / _LANES[0]["results"]
     results.mkdir(parents=True)
     (results / "1-result.json").write_text(json.dumps(_allure_result("1")), encoding="utf-8")
@@ -539,18 +563,70 @@ def test_real_allure_appends_history_and_recovers_from_unreadable_lines(
             lanes_path=root / "report-lanes.json",
         )
 
-    assert build() == 0
-    assert (out / "index.html").is_file()
-    assert len(history.read_text(encoding="utf-8").splitlines()) == 1
+    return build, history
+
+
+_needs_pnpm = pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
+
+
+@_needs_pnpm
+def test_real_allure_appends_a_line_per_report(
+    real_build: tuple[Callable[[], int], Path], tmp_path: Path
+) -> None:
+    build, history = real_build
 
     assert build() == 0
-    assert len(history.read_text(encoding="utf-8").splitlines()) == 2
+    assert (tmp_path / "report/index.html").is_file()
+    assert len(_entries(history)) == 1
+    assert json.loads(_entries(history)[0])["name"].startswith("pecot テストレポート")
 
-    with history.open("a", encoding="utf-8") as f:
-        f.write("{oops\n")
+    assert build() == 0
+    assert len(_entries(history)) == 2
+
+
+@_needs_pnpm
+@pytest.mark.parametrize(
+    "extend",
+    [
+        lambda line: f"{line}\n   \n\u3000\n",
+        lambda line: f"{line}\r\n",
+        lambda line: f"{line}\r",
+    ],
+    ids=["blank-lines", "crlf", "lone-cr"],
+)
+def test_real_allure_reads_what_generate_passes_as_readable(
+    real_build: tuple[Callable[[], int], Path],
+    capsys: pytest.CaptureFixture[str],
+    extend: Callable[[str], str],
+) -> None:
+    build, history = real_build
+    assert build() == 0
+    history.write_bytes(extend(_entries(history)[0]).encode())
+    before = len(_entries(history))
     capsys.readouterr()
+
     assert build() == 0
+
+    assert "履歴" not in capsys.readouterr().err
+    assert len(_entries(history)) == before + 1
+
+
+@_needs_pnpm
+@pytest.mark.parametrize(
+    "bad",
+    ["{oops", '{"a": NaN}', "null", "[1, 2]", "\x1c", '{"a": "x\u2028y"}'],
+    ids=["broken", "nan", "null", "array", "not-js-blank", "u2028"],
+)
+def test_real_allure_builds_from_empty_history_after_unreadable_lines(
+    real_build: tuple[Callable[[], int], Path], capsys: pytest.CaptureFixture[str], bad: str
+) -> None:
+    build, history = real_build
+    assert build() == 0
+    with history.open("a", encoding="utf-8") as f:
+        f.write(f"{bad}\n")
+    capsys.readouterr()
+
+    assert build() == 0
+
     assert "履歴" in capsys.readouterr().err
-    lines = history.read_text(encoding="utf-8").splitlines()
-    assert len(lines) == 1
-    assert json.loads(lines[0])["name"].startswith("pecot テストレポート")
+    assert len(_entries(history)) == 1

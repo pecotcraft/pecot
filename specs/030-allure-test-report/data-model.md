@@ -93,10 +93,15 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 
 - 読めない行は、Allure（Node の readline と `JSON.parse`）が読めない行とする。後の SideCheck も同じ決まりで読む
   - UTF-8 でないファイルは、全体を読めないとする
-  - 行の区切りは `\r\n`・`\n`・`\r` だけ。U+2028 などでは切らない。空白だけの行は飛ばす
+  - 行の区切りは `\r\n`・`\n`・`\r`・U+2028・U+2029（Node の readline）。`JSON.stringify` は U+2028 をエスケープしないので、文字列に U+2028 を含む行は 2 つに切れて読めない
+  - JS の `trim()` で空になる行は飛ばす。空白とするのは ECMAScript の WhiteSpace と LineTerminator で、Python の `str.strip()` とは違う（U+FEFF を含み、`\x1c`〜`\x1f`・U+0085 を含まない）
+  - `null` の行は、`JSON.parse` は通るが、Allure がその後で落ちる
   - `NaN`・`Infinity` を含む行と、オブジェクトでない行（`null` など）は読めない
 - 履歴のファイルは、レポートの出力のディレクトリの外に置いて渡す。`allure generate --clean` は、入力のファイルを含む出力を消せない。レポートと一緒に置くときは、作った後に写す
 - `generate.py` は、`--history` のときだけ環境変数 `PECOT_REPORT_HISTORY` で `allurerc.mjs` の `historyPath` に渡す。Allure 3.33.0 の CLI に、履歴のパスの引数が無いため
+  - `historyPath` を書かなければ、Allure は履歴を読み書きしない。`resolveConfig` に既定のパスが無い
+    - 出典はソース（`@allurereport/core/dist/config.js` の `historyPath: historyPath ? resolve(historyPath) : undefined`）
+    - `test_report_generate.py` が、`readConfig` で解いた値で確かめる
 - GitHub Actions では、Allure がレポートの名前の後ろに job の名前を付ける（ソース。`@allurereport/ci` の `jobRunName`）。履歴の行の `name` も同じになる
 
 ## 保管の置き場所（StoreLayout に足すもの）

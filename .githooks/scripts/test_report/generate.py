@@ -37,8 +37,10 @@ DEFAULT_LANES = _HERE / "report-lanes.json"
 CONFIG = _HERE / "allurerc.mjs"
 HISTORY_ENV = "PECOT_REPORT_HISTORY"
 _SHA = re.compile(r"[0-9a-f]{40}")
-# Node の readline と同じ区切り。U+2028 などでは切らない
-_LINE_BREAK = re.compile(r"\r\n|\n|\r")
+# Node の readline と同じ区切り（U+2028・U+2029 でも切る）
+_LINE_BREAK = re.compile(r"\r\n|\n|\r|\u2028|\u2029")
+# JS の String.prototype.trim が除く文字（WhiteSpace と LineTerminator）。Allure は trim() で空行を飛ばす
+_JS_TRIM = "\t\v\f \u00a0\ufeff\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\n\r\u2028\u2029"
 
 Runner = Callable[[list[str], dict[str, str]], int]
 
@@ -129,7 +131,7 @@ def read_history(data: bytes) -> list[int]:
         return [0]
     bad: list[int] = []
     for number, line in enumerate(_LINE_BREAK.split(text), start=1):
-        if not line.strip():
+        if not line.strip(_JS_TRIM):
             continue
         try:
             entry = json.loads(line, parse_constant=_reject_constant)
