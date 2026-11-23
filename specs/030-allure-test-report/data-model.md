@@ -46,6 +46,12 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 | `runs` | 1 項目。起動した run のコミットで、全レーン | 結果を出せるタグを持つプラグインごとに 1 項目（そのタグのコミットで、そのプラグインのレーン）と、骨組みのコミットで、プラグインに属さないレーンの 1 項目 |
 | `missing` | 空 | 結果を出せないタグのプラグインの名前 |
 
+形（`report-sources.json`）。`generate.py` が読むのは `runs` だけで、`commit` は 40 桁の 16 進、`lanes` は `<project>:<target>`。
+
+```json
+{"side": "dev", "runs": [{"commit": "<SHA>", "lanes": ["pecot-workflow:test-cli"]}], "missing": []}
+```
+
 決まり:
 
 - タグが結果を出せるかは、そのタグのコミットに `report-lanes.json` があるかで決める
@@ -64,6 +70,9 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 
 - 落ちたら、欠けたレーンの名前を出して失敗する。レポートは作らない（FR-012・FR-015）
 - 手元では、ある結果だけで作る。欠けたレーンを出して続ける（FR-024）
+- 手元でない実行は、ReportSources（`--sources`）を必ず受ける。受けないと、コミットを確かめられない
+- `source.json` は、結果のディレクトリの親（`<project>/test-results/<target>/source.json`）に置く。形は `{"lane": "<project>:<target>", "commit": "<SHA>"}`
+  - 結果のディレクトリの中に置かないのは、Allure がそのディレクトリのファイルを全部、読み手に渡すため
 
 ## 履歴（History）
 
@@ -79,6 +88,16 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 - 初めて: ファイルが無い。空の履歴でレポートを作り、1 行のファイルができる
 - 2 回目から: 公開中のファイルを読み、1 行足す。20 行を超えたら、古い行から消える
 - 読めない（壊れている・取れない）: 空の履歴として作る（FR-021）。知らせを job summary に書く
+
+決まり:
+
+- 読めない行は、Allure（Node の readline と `JSON.parse`）が読めない行とする。後の SideCheck も同じ決まりで読む
+  - UTF-8 でないファイルは、全体を読めないとする
+  - 行の区切りは `\r\n`・`\n`・`\r` だけ。U+2028 などでは切らない。空白だけの行は飛ばす
+  - `NaN`・`Infinity` を含む行と、オブジェクトでない行（`null` など）は読めない
+- 履歴のファイルは、レポートの出力のディレクトリの外に置いて渡す。`allure generate --clean` は、入力のファイルを含む出力を消せない。レポートと一緒に置くときは、作った後に写す
+- `generate.py` は、`--history` のときだけ環境変数 `PECOT_REPORT_HISTORY` で `allurerc.mjs` の `historyPath` に渡す。Allure 3.33.0 の CLI に、履歴のパスの引数が無いため
+- GitHub Actions では、Allure がレポートの名前の後ろに job の名前を付ける（ソース。`@allurereport/ci` の `jobRunName`）。履歴の行の `name` も同じになる
 
 ## 保管の置き場所（StoreLayout に足すもの）
 

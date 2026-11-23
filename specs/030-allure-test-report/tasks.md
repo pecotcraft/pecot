@@ -77,19 +77,19 @@ description: "Task list for 030-allure-test-report"
 
 ### Tests for User Story 1（先に書く）
 
-- [ ] T011 [P] [US1] `.githooks/tests/test_report_generate.py` に、ResultsCheck（data-model.md）のテストを先に書く。
+- [x] T011 [P] [US1] `.githooks/tests/test_report_generate.py` に、ResultsCheck（data-model.md）のテストを先に書く。
   確かめること: `results` のディレクトリが無いレーン・`*-result.json` が 1 つも無いレーンがあると、そのレーンの名前を出して失敗する、`--local` では欠けたレーンの名前を出して続ける、`allure generate` に渡す引数（結果のディレクトリ・設定・出力・履歴）が決まりどおり、
   履歴のファイルが無いときと、JSON として読めない行があるときは、空の履歴で作って知らせを出す（FR-021）、
   `--sources` を渡したとき、結果の `source.json` が無いか、コミットが材料と違うレーンがあると失敗する（FR-012）。モックは `allure` の起動の境界だけ
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] `.githooks/scripts/test_report/allurerc.mjs` を作る。
-  awesome の plugin を 1 つ、`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`、`reportName: "pecot テストレポート"`、
+- [x] T012 [US1] `.githooks/scripts/test_report/allurerc.mjs` を、`defineConfig` で作る。
+  トップレベルの `name: "pecot テストレポート"`、awesome の plugin を 1 つ（`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`）、
   `historyLimit: 20`、`flakyDetection: { includePassedTests: true }`。`historyBaseUrl` は設定しない（research R5・R7）
-- [ ] T013 [US1] `.githooks/scripts/test_report/generate.py` を作る（T011・T012 の後）。
-  判定（どのレーンがそろったか）は純粋な処理に、`allure` の起動は I/O に分ける。入力は `--local`・`--output`・`--history`（省ける）・`--sources`（ReportSources の JSON。省ける）
-- [ ] T014 [US1] 実物で確かめる（T013 の後）。
+- [x] T013 [US1] `.githooks/scripts/test_report/generate.py` を作る（T011・T012 の後）。
+  判定（どのレーンがそろったか）は純粋な処理に、`allure` の起動は I/O に分ける。入力は `--local`・`--output`・`--history`（省ける）・`--sources`（ReportSources の JSON。`--local` のときだけ省ける）
+- [x] T014 [US1] 実物で確かめる（T013 の後）。
   2 つ以上のレーン（vitest と pytest を 1 つずつ）を動かし、`generate.py --local --output .pecot/work/<Issue 番号>/report` でレポートを作って開く。
   `groupBy` のラベルを持たないテストの出方を見て、読みにくければ `groupBy` を `["project", "lane"]` に縮める（research R7）。
   わざと落としたテストに、理由とスタックが出ることを確かめる
