@@ -36,6 +36,16 @@ describe('allureReporterConfig', () => {
     const config = allureReporterConfig(ROOT, { ...NX_ENV, PECOT_REPORT_SITE_URL: 'https://example.github.io/pecot/' })
     expect(config?.links?.tms?.urlTemplate).toBe('https://example.github.io/pecot/permalink.html?id=%s')
   })
+
+  it('PECOT_REPORT_SITE_URL が空文字だと、tms のリンクを手元のサイトに向ける', () => {
+    const config = allureReporterConfig(ROOT, { ...NX_ENV, PECOT_REPORT_SITE_URL: '' })
+    expect(config?.links?.tms?.urlTemplate).toBe('http://localhost:8000/permalink.html?id=%s')
+  })
+
+  it('PECOT_REPORT_SITE_URL の末尾に / が無いと、/ を足してリンクを組む', () => {
+    const config = allureReporterConfig(ROOT, { ...NX_ENV, PECOT_REPORT_SITE_URL: 'https://example.github.io/pecot' })
+    expect(config?.links?.tms?.urlTemplate).toBe('https://example.github.io/pecot/permalink.html?id=%s')
+  })
 })
 
 describe('allureReporter', () => {

@@ -47,7 +47,8 @@
         "runtime",
         "env",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
-        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts"
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts"
       ],
       "dependsOn": [
         "install"

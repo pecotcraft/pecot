@@ -9,7 +9,8 @@ const LOCAL_SITE_URL = 'http://localhost:8000/'
 export function allureReporterConfig(projectRoot: string, environment: NodeJS.ProcessEnv = process.env): AllureVitestReporterConfig | undefined {
   const target = environment['NX_TASK_TARGET_TARGET']
   if (target === undefined || target === '') return undefined
-  const siteUrl = environment['PECOT_REPORT_SITE_URL'] ?? LOCAL_SITE_URL
+  const site = environment['PECOT_REPORT_SITE_URL']
+  const siteUrl = site === undefined || site === '' ? LOCAL_SITE_URL : (site.endsWith('/') ? site : `${site}/`)
   return {
     resultsDir: path.join(projectRoot, 'test-results', target, 'allure-results'),
     globalLabels: [

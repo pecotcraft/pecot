@@ -251,6 +251,7 @@
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
         "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{projectRoot}/interface/generated.json",
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
