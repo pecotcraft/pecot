@@ -1446,7 +1446,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (owner/repo/123 form, required with -m)"
+            "description": "Issue reference (owner/repo/123 form, required with `message`)"
           },
           "message": {
             "type": "string",
@@ -1465,7 +1465,7 @@
               "review-resolution",
               "precede-notify"
             ],
-            "description": "Template type the message is checked against (required with -m; plan/merge-diff/review-findings/review-resolution/precede-notify)"
+            "description": "Template type the message is checked against (required with `message`; plan/merge-diff/review-findings/review-resolution/precede-notify)"
           }
         },
         "required": [],
@@ -1626,7 +1626,7 @@
           },
           "repo": {
             "type": "string",
-            "description": "Repository (owner/repo form; required with -m unless epic)"
+            "description": "Repository (owner/repo form; required with `message` unless epic)"
           },
           "size": {
             "type": "string",
@@ -1638,7 +1638,7 @@
           },
           "title": {
             "type": "string",
-            "description": "Issue title (direct posting mode, required with -m)"
+            "description": "Issue title (direct posting mode, required with `message`)"
           },
           "type": {
             "type": "string",
@@ -2710,7 +2710,7 @@
         "properties": {
           "base": {
             "type": "string",
-            "description": "Base branch (required with -m)"
+            "description": "Base branch (required with `message`)"
           },
           "draft": {
             "type": "boolean",
@@ -2745,11 +2745,11 @@
           },
           "repo": {
             "type": "string",
-            "description": "Repository in owner/repo form (with -m)"
+            "description": "Repository in owner/repo form (with `message`)"
           },
           "screenshot": {
             "type": "string",
-            "description": "Reason to omit an image from Summary (with -m)"
+            "description": "Reason to omit an image from Summary (with `message`)"
           },
           "template": {
             "type": "string",
@@ -2758,7 +2758,7 @@
           },
           "title": {
             "type": "string",
-            "description": "PR title (required with -m)"
+            "description": "PR title (required with `message`)"
           }
         },
         "required": [],

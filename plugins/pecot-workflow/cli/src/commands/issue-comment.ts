@@ -192,9 +192,9 @@ const ISSUE_COMMENT = defineCommand({
   input: z.object({
     file: z.string().optional().describe('Path of a Markdown file with frontmatter'),
     message: z.string().optional().describe('Comment body'),
-    issue_ref: z.string().optional().describe('Issue reference (owner/repo/123 form, required with -m)'),
+    issue_ref: z.string().optional().describe('Issue reference (owner/repo/123 form, required with `message`)'),
     template: TEMPLATE_SCHEMA.optional().describe(
-      'Template type the message is checked against (required with -m; plan/merge-diff/review-findings/review-resolution/precede-notify)',
+      'Template type the message is checked against (required with `message`; plan/merge-diff/review-findings/review-resolution/precede-notify)',
     ),
     project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),

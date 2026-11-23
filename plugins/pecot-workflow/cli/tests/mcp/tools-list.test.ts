@@ -80,11 +80,11 @@ describe('tools/list', () => {
     expect(tools.map(tool => tool.description)).toEqual(COMMANDS.map(command => command.description))
   })
 
-  it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name）が無い', async () => {
+  it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name・-m）が無い', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
     const flagged = tools.flatMap(({ name, description, inputSchema, outputSchema }) =>
-      stringsOf({ description, inputSchema, outputSchema }).filter(text => /(?:^|[^\w-])--[a-z]/u.test(text)).map(text => `${name}: ${text}`))
+      stringsOf({ description, inputSchema, outputSchema }).filter(text => /(?:^|[\s(])--?[a-z]/u.test(text)).map(text => `${name}: ${text}`))
     expect(flagged).toEqual([])
   })
 
