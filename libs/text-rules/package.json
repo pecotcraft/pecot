@@ -26,13 +26,13 @@
   },
   "dependencies": {
     "@cffnpwr/textlint-plugin-comments": "1.0.0",
-    "@textlint-ja/textlint-rule-preset-ai-writing": "^1.7.0",
+    "@textlint-ja/textlint-rule-preset-ai-writing": "^1.7.1",
     "@textlint/kernel": "^15.8.0",
     "@textlint/module-interop": "^15.8.0",
     "@textlint/textlint-plugin-markdown": "^15.8.0",
     "textlint": "^15.8.0",
     "textlint-rule-preset-ai-words-ja": "1.2.1",
-    "textlint-rule-preset-ja-technical-writing": "^12.0.2",
+    "textlint-rule-preset-ja-technical-writing": "^12.1.0",
     "web-tree-sitter": "0.27.1",
     "yaml": "2.9.1"
   },
@@ -41,7 +41,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@textlint/types": "^15.8.0",
     "@types/node": "^25.9.9",
-    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/coverage-v8": "^5.1.1",
     "@vitest/eslint-plugin": "^1.6.28",
     "eslint": "^10.15.0",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -53,8 +53,8 @@
     "eslint-plugin-unicorn": "^79.0.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.72.2",
+    "typescript-eslint": "^8.73.0",
     "typescript7": "npm:typescript@^7.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   }
 }

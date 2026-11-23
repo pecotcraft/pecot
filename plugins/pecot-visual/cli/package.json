@@ -73,7 +73,7 @@
     "@types/node": "^25.9.9",
     "@types/yauzl": "^3.4.0",
     "@types/yazl": "^3.3.1",
-    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/coverage-v8": "^5.1.1",
     "@vitest/eslint-plugin": "^1.6.28",
     "eslint": "^10.15.0",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -85,13 +85,13 @@
     "eslint-plugin-unicorn": "^79.0.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "jsdom": "^31.0.1",
-    "knip": "^6.45.1",
+    "knip": "^6.47.0",
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.72.2",
+    "typescript-eslint": "^8.73.0",
     "typescript7": "npm:typescript@^7.0.2",
     "vite": "catalog:",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   },
   "nx": {
     "root": "plugins/pecot-visual",
