@@ -133,6 +133,8 @@ Claude の App を使う構成では、雛形のファイルを足す・変え�
 |---|---|---|
 | `PECOT_REVIEW_TRIGGER_PHRASE` | `@pecotbot review` | 起動し直しの合言葉 |
 | `PECOT_REVIEW_ALLOWED_BOTS` | `[]` | PR をレビューする bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
+| `PECOT_REVIEW_MODEL` | `opus` | レビューに使うモデル。別名（`opus`・`sonnet` など）か、完全な名前で書く |
+| `PECOT_REVIEW_EFFORT` | `high` | effort の段階。`low`・`medium`・`high`・`xhigh`・`max` のどれか |
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限 |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | job の時間の上限。分 |
 | `PECOT_REVIEW_PROJECT` | 空 | レビューで使うプロジェクトの設定の名前。`.pecot/config/projects/` のファイル名から `.json` を除いて書く |
@@ -184,6 +186,20 @@ Dependabot が起こした実行は、Actions の secret でなく Dependabot �
 コメントの「止まった場所」が「インラインコメントを投稿した後」なら、インラインコメントは付いていて、指摘の一覧がまだありません。起動し直すと、前の指摘と同じ趣旨のものは新しく投稿せず、指摘の一覧で前のスレッドを指します。
 
 PR のチェックの行から、実行の記録へ行けます。時間の上限の `cancelled` は、人が実行を手で取り消したときと区別できません。
+
+### 実行の記録
+
+run の Summary に、レビューの実行の記録が出ます。PR のチェックの行から run を開き、Summary を見ます。
+
+| 表 | 中身 |
+|---|---|
+| `Review run` | 使われたモデルと effort、ターンの数、結果 |
+| `Tool calls` | 呼んだツールを順に。ツールの名前と、読んだパス・打ったコマンド・URL などの対象 |
+| `Denied calls` | 許可が無くて拒まれた呼び出しの、ツールの名前と対象 |
+
+effort は、Claude Code が実際に使った値です。準備の step が環境変数 `CLAUDE_CODE_EFFORT_LEVEL` を置くと、変数 `PECOT_REVIEW_EFFORT` より強く、その値が出ます。
+
+ツールの出力と、Claude の考えた文は出しません。issue_comment の本文のように、入力の中の本文の項目も出しません。パス・コマンド・パターン・URL・検索の語は 200 文字まで出ます。拒まれた呼び出しも含め、これらは Claude が書いた文を含むことがあります。対象はコードスパンに入れて出すので、リンクや画像にはなりません。記録を作れなかったときも、レビューの結果は変わりません。
 
 ### トークンを作り直す
 

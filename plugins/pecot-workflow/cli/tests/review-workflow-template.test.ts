@@ -15,13 +15,14 @@ const template = readFileSync(path.join(pluginRoot, 'cli/templates/workflow/peco
 const documentPath = path.join(pluginRoot, 'skills/w-help/references/review-workflow.md')
 
 interface Step {
-  name?: string
-  id?: string
-  if?: string
-  uses?: string
-  run?: string
-  with?: Record<string, unknown>
-  env?: Record<string, string>
+  'name'?: string
+  'id'?: string
+  'if'?: string
+  'continue-on-error'?: boolean
+  'uses'?: string
+  'run'?: string
+  'with'?: Record<string, unknown>
+  'env'?: Record<string, string>
 }
 interface Job {
   'if'?: string
@@ -60,6 +61,7 @@ const claudeArguments = text(reviewInputs['claude_args'])
 const finish = steps.find(step => step.run?.includes('review finish') === true) ?? {}
 const checkPr = steps.find(step => step.id === 'pr') ?? {}
 const checkFirst = steps.find(step => step.id === 'first') ?? {}
+const record = steps.find(step => step.name === 'Record the run') ?? {}
 const laterCondition = '${{ (github.event_name == \'pull_request\' && steps.first.outputs.ok != \'false\') || steps.pr.outputs.ok == \'true\' }}'
 
 // job の if を、event_name の比べで始まる 2 つの枝に分ける。
@@ -125,7 +127,7 @@ describe('review のワークフローの雛形', () => {
     expect(checkout.with?.['persist-credentials']).toBe(false)
     const afterCheck = steps.slice(steps.indexOf(checkPr) + 1)
     for (const step of afterCheck) {
-      if (step === finish) continue
+      if (step === finish || step === record) continue
       expect(step.if, `${step.name ?? ''} が PR の確かめの結果を見ない`).toContain('steps.pr.outputs.ok == \'true\'')
     }
   })
@@ -199,9 +201,11 @@ describe('review のワークフローの雛形', () => {
     expect(JSON.stringify(job.concurrency)).not.toContain('env.')
   })
 
-  it('利用者が変える 4 つの変数に、既定値の式がある', () => {
+  it('利用者が変える 6 つの変数に、既定値の式がある', () => {
     expect(template).toContain(phrase)
     expect(template).toContain('vars.PECOT_REVIEW_ALLOWED_BOTS || \'[]\'')
+    expect(template).toContain('vars.PECOT_REVIEW_MODEL || \'opus\'')
+    expect(template).toContain('vars.PECOT_REVIEW_EFFORT || \'high\'')
     expect(template).toContain('vars.PECOT_REVIEW_MAX_TURNS || \'60\'')
     expect(template).toContain('vars.PECOT_REVIEW_TIMEOUT_MINUTES || \'30\'')
   })
@@ -287,6 +291,8 @@ describe('review のワークフローの雛形', () => {
   it('claude_args は権限のモード・ターンの上限・許可・拒否を持ち、コメントの行を含まない', () => {
     expect(claudeArguments).toContain('--permission-mode default')
     expect(claudeArguments).toContain('--max-turns ${{ vars.PECOT_REVIEW_MAX_TURNS || \'60\' }}')
+    expect(claudeArguments).toContain('--model ${{ vars.PECOT_REVIEW_MODEL || \'opus\' }}')
+    expect(claudeArguments).toContain('--effort ${{ vars.PECOT_REVIEW_EFFORT || \'high\' }}')
     expect(claudeArguments).toContain('--allowedTools "')
     expect(claudeArguments).toContain('--disallowedTools "')
     expect(claudeArguments).not.toContain('#')
@@ -403,6 +409,58 @@ describe('review のワークフローの雛形', () => {
     expect(finish.run).toContain('--execution-file "$EXECUTION_FILE" --since "$REVIEW_STARTED_AT"')
   })
 
+  it('Review の settings は、使われた effort を RUNNER_TEMP のファイルに書く PreToolUse のフックだけを持つ', () => {
+    const settings: unknown = JSON.parse(text(reviewInputs['settings']))
+    expect(settings).toEqual({
+      hooks: {
+        PreToolUse: [{ hooks: [{ type: 'command', command: 'printf %s "$CLAUDE_EFFORT" > "$RUNNER_TEMP/pecot-review-effort"' }] }],
+      },
+    })
+  })
+
+  it('記録の step は、Review の直後に置かれ、実行のファイルのある run で動き、失敗しても job を失敗にしない', () => {
+    expect(steps[steps.indexOf(review) + 1]).toBe(record)
+    expect(record.if).toBe('${{ always() && steps.claude.outputs.execution_file != \'\' }}')
+    expect(record['continue-on-error']).toBe(true)
+    expect(record.env).toEqual({ EXECUTION_FILE: '${{ steps.claude.outputs.execution_file }}' })
+    expect(record.run).not.toContain('${{')
+  })
+
+  it('記録の jq は、モデル・effort・ツールの呼び出し・拒否を表に出し、出力と本文を出さない', () => {
+    const filter = /jq -r --arg effort "\$effort" '([^']*)'/.exec(record.run ?? '')?.[1] ?? ''
+    const execution = [
+      { type: 'system', subtype: 'init', model: 'claude-opus-5-5' },
+      { type: 'assistant', message: { content: [
+        { type: 'text', text: '考えた文' },
+        { type: 'tool_use', name: 'Read', input: { file_path: 'src/a|b.ts' } },
+        { type: 'tool_use', name: 'mcp__pecot-workflow__issue_comment', input: { issue_ref: 'o/r/1', message: '本文の中身' } },
+      ] } },
+      { type: 'user', message: { content: [{ type: 'tool_result', content: 'ファイルの中身' }] } },
+      { type: 'assistant', message: { content: [
+        { type: 'tool_use', name: 'Bash', input: { command: 'echo ![x](https://example.com/a.png)\n<b>`x`' } },
+        { type: 'tool_use', name: 'Other', input: { body: 'コメントの本文', line: 3 } },
+      ] } },
+      { type: 'result', subtype: 'error_max_turns', num_turns: 4, permission_denials: [
+        { tool_name: 'Bash', tool_use_id: 't1', tool_input: { command: 'gh pr merge 1' } },
+      ] },
+    ]
+    const summary = execFileSync('jq', ['-r', '--arg', 'effort', 'high', filter], { input: JSON.stringify(execution), encoding: 'utf8' })
+    expect(summary).toContain('| `claude-opus-5-5` | `high` | `4` | `error_max_turns` |')
+    expect(summary).toContain('| 1 | `Read` | `src/a\\|b.ts` |')
+    expect(summary).toContain('| 2 | `mcp__pecot-workflow__issue_comment` | `o/r/1` |')
+    expect(summary).toContain('| 3 | `Bash` | `echo ![x](https://example.com/a.png) <b>x` |')
+    expect(summary).toContain('| 4 | `Other` | `body, line` |')
+    expect(summary).toContain('| `Bash` | `gh pr merge 1` |')
+    for (const hidden of ['考えた文', '本文の中身', 'ファイルの中身', 'コメントの本文']) expect(summary).not.toContain(hidden)
+  })
+
+  it('記録の jq は、ツールの呼び出しと拒否が無いとき、None. を出す', () => {
+    const filter = /jq -r --arg effort "\$effort" '([^']*)'/.exec(record.run ?? '')?.[1] ?? ''
+    const summary = execFileSync('jq', ['-r', '--arg', 'effort', 'unknown', filter], { input: '[]', encoding: 'utf8' })
+    expect(summary).toContain('| `unknown` | `unknown` |  |  |')
+    expect(summary.match(/^None\.$/gm)).toHaveLength(2)
+  })
+
   it('setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない', () => {
     expect(stepUsing('actions/setup-node').with?.['package-manager-cache']).toBe(false)
   })
@@ -438,7 +496,9 @@ describe('自動レビューの導入の説明', () => {
       'PECOT_AGENT_APP_CLIENT_ID',
       'PECOT_AGENT_APP_PRIVATE_KEY',
       'PECOT_REVIEW_ALLOWED_BOTS',
+      'PECOT_REVIEW_EFFORT',
       'PECOT_REVIEW_MAX_TURNS',
+      'PECOT_REVIEW_MODEL',
       'PECOT_REVIEW_PROJECT',
       'PECOT_REVIEW_TIMEOUT_MINUTES',
       'PECOT_REVIEW_TRIGGER_PHRASE',
@@ -447,9 +507,16 @@ describe('自動レビューの導入の説明', () => {
     for (const name of names) expect(document).toContain(`\`${name}\``)
   })
 
-  it('利用者が変える 4 つの変数の既定値が、説明の表の同じ行にある', () => {
+  it('利用者が変える 6 つの変数の既定値が、説明の表の同じ行にある', () => {
     const defaults = new Map(Array.from(active.matchAll(/vars\.(PECOT_REVIEW_[A-Z_]+) \|\| '([^']*)'/g), match => [match[1] ?? '', match[2] ?? '']))
-    expect(defaults.size).toBe(4)
+    expect(new Set(defaults.keys())).toEqual(new Set([
+      'PECOT_REVIEW_ALLOWED_BOTS',
+      'PECOT_REVIEW_EFFORT',
+      'PECOT_REVIEW_MAX_TURNS',
+      'PECOT_REVIEW_MODEL',
+      'PECOT_REVIEW_TIMEOUT_MINUTES',
+      'PECOT_REVIEW_TRIGGER_PHRASE',
+    ]))
     const rows = document.split('\n').filter(line => line.startsWith('|'))
     for (const [name, value] of defaults) {
       const row = rows.find(line => line.startsWith(`| \`${name}\` |`))

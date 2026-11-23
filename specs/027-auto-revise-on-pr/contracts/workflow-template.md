@@ -26,6 +26,8 @@ base の側の変更でコンフリクトが消えたときは PR のイベン�
 |---|---|---|
 | `PECOT_REVIEW_TRIGGER_PHRASE` | `@pecotbot review` | 起動し直しの合言葉。コメントの本文がこれで始まると起動する |
 | `PECOT_REVIEW_ALLOWED_BOTS` | 空 | 起動を許す bot の名前。JSON の配列で書く（例: `["my-app[bot]"]`） |
+| `PECOT_REVIEW_MODEL` | `opus` | モデル。`claude_args` の `--model` に渡す。別名か完全な名前 |
+| `PECOT_REVIEW_EFFORT` | `high` | effort の段階。`claude_args` の `--effort` に渡す。`low`・`medium`・`high`・`xhigh`・`max` |
 | `PECOT_REVIEW_MAX_TURNS` | `60` | main のターンの上限。サブエージェントの中のやり取りは数えない |
 | `PECOT_REVIEW_TIMEOUT_MINUTES` | `30` | 時間の上限。分 |
 | `PECOT_REVIEW_PROJECT` | 空 | プロジェクトの設定の名前。リポが 2 つ以上の設定に入っているときに置く。`.pecot/config/projects/` のファイル名から `.json` を除いたもの |
@@ -95,6 +97,7 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 | Node | `actions/setup-node`。`package-manager-cache: false` を渡す。job が secret を持つので、PR の `package.json` が npm を指しても、npm のキャッシュを戻さず保存もしない。キャッシュが要る利用者は、利用者の準備の囲みで `actions/cache` を使う。setup-node は囲みの外にあり、`cache` を足しても雛形の上書きで消える |
 | 利用者の準備 | 開始と終了の印のコメント 2 行だけ。step は `uses` か `run` を要するので、空の step は置かない |
 | 自動レビュー | claude-code-action。入力は下の表 |
+| 実行の記録 | 自動レビューの直後。`if: always() && steps.claude.outputs.execution_file != ''`、`continue-on-error: true`。`env` の `EXECUTION_FILE` で execution file を受け、`jq` で 3 つの表を `$GITHUB_STEP_SUMMARY` に足す（下の節）。失敗を job の失敗にすると、後始末が成功したレビューに「止まった」と書くので、失敗させない |
 | 後始末 | `if: always() && steps.first.outputs.ok != 'false'` で `pecot review finish "$GITHUB_REPOSITORY/$PR" --ensure` を打つ。PR の番号も `env` の `PR` で受ける。自動レビューの step の値を、`env` で受けて引用符付きの引数で渡す（下の表） |
 
 後始末の step が渡す値:
@@ -131,7 +134,8 @@ action はすべて SHA で固定し、版をコメントに書く。
 | `plugins` | `pecot-w@pecot` |
 | `prompt` | `/pecot-w:w-review <github.repository>/<PR番号>`。変数 `PECOT_REVIEW_PROJECT` があるときだけ、末尾に `project=<名前>` を足す（下の式） |
 | `allowed_bots` | 許す bot の一覧。`*` は使わない |
-| `claude_args` | `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` |
+| `settings` | PreToolUse のフック 1 つ。`$CLAUDE_EFFORT` を `$RUNNER_TEMP/pecot-review-effort` に書くだけで、何も返さない。実行の記録が、使われた effort を読む |
+| `claude_args` | `--permission-mode default`・`--model`・`--effort`・`--max-turns`・`--allowedTools`・`--disallowedTools` |
 
 action の公式の文書は、トークンと Workload Identity Federation の入力を同時に渡さないよう書いている（`docs/setup.md`）。4 つの ID は、次の形で片方だけを渡す。
 
@@ -176,6 +180,22 @@ PR のブランチで雛形を変えた PR では、action がレビューを飛
 この PR には自動レビューの跡が残らないので、push のたびに `synchronize` の run が checkout から後始末まで動く。モデルは呼ばれず、かかるのは runner の時間だけだ。
 action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、action の `outputs` に無く、呼ぶ側から読めない。
 自前の App のときは、この確かめは無い。
+
+## 実行の記録
+
+実行の記録の step は、execution file（SDK のメッセージの配列）を `jq -r` で読み、次の 3 つの表を job summary に足す。
+
+| 表 | 中身 |
+|---|---|
+| `Review run` | init の `model`、使われた effort、result の `num_turns`・`subtype` |
+| `Tool calls` | assistant のメッセージの `tool_use` を順に、番号・ツール名・対象 |
+| `Denied calls` | result の `permission_denials` の、ツール名・対象。無ければ `None.` |
+
+- 使われた effort は、`settings` のフックが書いたファイルから読む。init のメッセージは effort を持たない。ファイルが無ければ `unknown` を出す
+- 対象は、入力の `file_path`・`path`・`file`・`pattern`・`command`・`url`・`query`・`pr_ref`・`issue_ref`・`libraryId`・`libraryName` のうち最初にあるもの。どれも無ければ、入力のキーの名前だけを並べる。コメントの本文の入る項目は出さない
+- ツールの出力と、Claude の文は出さない。対象は Claude の書いた文字列なので、拒まれた呼び出しを含め、diff から写した文が 200 文字まで出ることがある
+- セルは、改行を空白に替え、バッククォートを外して 200 文字で切り、`|` を `\|` に替えてコードスパンで囲む。空のセルは囲まない（空のコードスパンは文字のまま出る）。対象は Claude が diff を読んで書いた文字列を含むので、リンク・画像・HTML にしない
+- action の `display_report` は使わない。Claude の書いた内容を Summary に出すので、action の文書が、信頼できる入力のときだけ使うよう警告している
 
 ## 許可するツール
 
@@ -234,7 +254,7 @@ MCP サーバが環境変数から読む形にしないのは、全部のツー�
 | `issue_comment` の run に、PR の確かめの step があり、checkout の `ref` が `pull_request` の `head.sha` かその step の `head.sha` の出力を読む | step の `if` と `with` を見る |
 | PR の確かめの step が、書いた人の権限を読み、`admin`・`maintain`・`write` のときだけ通す。API の失敗をプロセス置換で握りつぶさない | `env` と `run` の文字列を見る |
 | job の `if`・`timeout-minutes`・`concurrency` が、`env.` を読んでいない | 式の文字列を探す |
-| 4 つの変数に、既定値の式がある | 式の文字列を探す |
+| 6 つの変数に、既定値の式がある | 式の文字列を探す |
 | `timeout-minutes` が `fromJSON` で数に直している | 式の文字列を探す |
 | `allowed_non_write_users`・`track_progress`・`anthropic_api_key` が無い | キーの有無を見る |
 | `claude_code_oauth_token` があり、Workload Identity Federation の 4 つの入力が、secret のあるときに空になる式を持つ | 式の文字列を探す |
@@ -246,7 +266,7 @@ MCP サーバが環境変数から読む形にしないのは、全部のツー�
 | トークンの発行の step が、変数 `PECOT_AGENT_APP_CLIENT_ID` のあるときだけ動き、渡す権限が Pull requests の write と Contents の read だけ | step の `if` と `with` のキーを比べる |
 | `github_token` と `PECOT_GITHUB_COM_TOKEN` が、発行したトークンが無いときに Claude の App と `GITHUB_TOKEN` に落ちる式を持つ | 式の文字列を探す |
 | job に `timeout-minutes` と `concurrency` がある | キーの有無を見る |
-| `claude_args` に `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` がある | 文字列を探す |
+| `claude_args` に `--permission-mode default`・`--model`・`--effort`・`--max-turns`・`--allowedTools`・`--disallowedTools` がある | 文字列を探す |
 | 許可リストに `Edit`・`Write` が無く、`--disallowedTools` にある。`Bash` の許可は `gh pr diff`・`gh pr view` の規則だけ | 文字列を探す |
 | `--disallowedTools` に `Bash(git clone:*)`・`Read(//proc/**)` がある | 文字列を探す |
 | 許可リストに、マージ・クローズ・リリースのツール（`pr_merge`・`release_create` など）が無い | 文字列を探す |
@@ -254,6 +274,9 @@ MCP サーバが環境変数から読む形にしないのは、全部のツー�
 | 後始末の step が、`JOB_STATUS`・`REVIEW_OUTCOME`・`REVIEW_CONCLUSION`・`REVIEW_HAS_TOKEN` を `env` で受け、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |
 | 後始末の step が、`steps.claude.outputs.github_token` の値そのものを `env` に置いていない | 式の文字列を探す |
 | `claude_args` に `#` が無い | 読み込んだ値を見る |
+| `settings` が、`$CLAUDE_EFFORT` をファイルに書く PreToolUse のフックだけを持つ | 読み込んだ値を比べる |
+| 実行の記録の step が自動レビューの直後にあり、`if`・`continue-on-error`・`env` を持ち、`run` に `${{` が無い | キーの値と `run` の文字列を見る |
+| 実行の記録の `jq` が、3 つの表を出し、ツールの出力と本文を出さない。`\|` と改行で列がずれず、リンク・画像・HTML がコードスパンの中に出る | `run` の jq を試しの execution file にかける |
 | 利用者が足す許可が、job の `env` の変数から `--allowedTools` に足される | 式の文字列を探す |
 | action がすべて SHA で固定されている | `uses` の形を見る |
 | 後始末の step の dist-tag が `@latest` | `run` の文字列を見る |
