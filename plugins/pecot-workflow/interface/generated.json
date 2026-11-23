@@ -194,7 +194,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -316,7 +316,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -582,7 +582,7 @@
                       "multi",
                       "nx"
                     ],
-                    "description": "Release type in effect (data only; not in --json)"
+                    "description": "Release type in effect"
                   },
                   "packages": {
                     "type": "array",
@@ -1094,7 +1094,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -1102,7 +1102,7 @@
           },
           "reason": {
             "type": "string",
-            "description": "Why it waits for the merge (required with --wait merge)"
+            "description": "Why it waits for the merge (required when `wait` is merge)"
           },
           "wait": {
             "type": "string",
@@ -1446,7 +1446,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (owner/repo/123 form, required with -m)"
+            "description": "Issue reference (owner/repo/123 form, required with `message`)"
           },
           "message": {
             "type": "string",
@@ -1465,7 +1465,7 @@
               "review-resolution",
               "precede-notify"
             ],
-            "description": "Template type the message is checked against (required with -m; plan/merge-diff/review-findings/review-resolution/precede-notify)"
+            "description": "Template type the message is checked against (required with `message`; plan/merge-diff/review-findings/review-resolution/precede-notify)"
           }
         },
         "required": [],
@@ -1626,7 +1626,7 @@
           },
           "repo": {
             "type": "string",
-            "description": "Repository (owner/repo form; required with -m unless epic)"
+            "description": "Repository (owner/repo form; required with `message` unless epic)"
           },
           "size": {
             "type": "string",
@@ -1638,7 +1638,7 @@
           },
           "title": {
             "type": "string",
-            "description": "Issue title (direct posting mode, required with -m)"
+            "description": "Issue title (direct posting mode, required with `message`)"
           },
           "type": {
             "type": "string",
@@ -1832,7 +1832,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -1970,7 +1970,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "json": {
             "type": "boolean",
@@ -2404,7 +2404,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -2710,7 +2710,7 @@
         "properties": {
           "base": {
             "type": "string",
-            "description": "Base branch (required with -m)"
+            "description": "Base branch (required with `message`)"
           },
           "draft": {
             "type": "boolean",
@@ -2745,11 +2745,11 @@
           },
           "repo": {
             "type": "string",
-            "description": "Repository in owner/repo form (with -m)"
+            "description": "Repository in owner/repo form (with `message`)"
           },
           "screenshot": {
             "type": "string",
-            "description": "Reason to omit an image from Summary (with -m)"
+            "description": "Reason to omit an image from Summary (with `message`)"
           },
           "template": {
             "type": "string",
@@ -2758,7 +2758,7 @@
           },
           "title": {
             "type": "string",
-            "description": "PR title (required with -m)"
+            "description": "PR title (required with `message`)"
           }
         },
         "required": [],
@@ -2974,7 +2974,7 @@
           },
           "pr_ref": {
             "type": "string",
-            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -3283,7 +3283,7 @@
           },
           "pr_ref": {
             "type": "string",
-            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
@@ -4111,7 +4111,7 @@
           "clear_packages": {
             "type": "boolean",
             "default": false,
-            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
+            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to `changelog_file` or the default CHANGELOG.md"
           },
           "develop_branch": {
             "type": "string",
@@ -4127,7 +4127,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
+            "description": "Monorepo package to register, as NAME:PATH. Example: pecot:plugins/pecot-workflow/CHANGELOG.md"
           },
           "release_branch": {
             "type": "string",
@@ -4615,7 +4615,7 @@
     {
       "id": "PW-PROJECT-UNSET",
       "name": "project unset",
-      "description": "Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo",
+      "description": "Clear a key of the project config; without aggregation_repo, creating an Epic needs the target repository given explicitly",
       "surfaces": {
         "cli": {
           "path": [
@@ -5183,7 +5183,7 @@
           },
           "pr_ref": {
             "type": "string",
-            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "result": {
             "type": "string",
@@ -5385,7 +5385,7 @@
           },
           "pr_ref": {
             "type": "string",
-            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
           },
           "project": {
             "type": "string",
