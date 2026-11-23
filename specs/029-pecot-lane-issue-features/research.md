@@ -144,7 +144,7 @@
 | フィールドの改名・作成・削除 | GraphQL の公式の mutation だけを使う |
 | ビュー | REST の公式の作成の API。Group by を GraphQL で設定できない点は、仕様の制約として受け入れる |
 | Issue fields | GA の REST・GraphQL を使う。preview の項目（Issue の `statusId` など）は `excluded`（preview）として一覧に残す |
-| MCP | 新しいツールにも `inputSchema`・`outputSchema` を付ける。`attributes` の値は JSON Schema の `oneOf`（string・number・string の配列・null）で表す |
+| MCP | 新しいツールにも `inputSchema`・`outputSchema` を付ける。`attributes` の値は JSON Schema の `anyOf`（string・number・string の配列・null。zod の `z.union` が出す形）で表す |
 | 独自の項目 | GitHub に置き場所のある情報（担当者・マイルストーン・Issue type など）を、pecot の frontmatter や設定に独自に持たない。起票の frontmatter の `attributes` は、MCP の入力と同じ名前で受けるだけにする |
 
 不適合として残すものは無い。

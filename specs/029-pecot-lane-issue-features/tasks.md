@@ -178,25 +178,25 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 5（定義と表示）
 
-- [ ] T043 [P] [US5] `PW/cli/src/infra/github/tests/attributes.test.ts` に、定義の読み込みのテストを先に書く。
-  入力は、公開スキーマに合う GraphQL の応答と REST の `GET /orgs/{org}/issue-fields` の応答の実物の形。確かめること:
+- [x] T043 [P] [US5] `PW/cli/src/infra/github/tests/attributes.test.ts` に、定義の読み込みのテストを先に書く。
+  入力は、公開スキーマに合う GraphQL の応答（Issue fields は `Repository.issueFields`）の実物の形。確かめること:
   - 6 種類のボードのフィールドが data-model.md の AttributeDefinition の `kind` になる
   - GitHub が計算するフィールドは `writable: false` になる
   - 知らない `dataType` は `kind: "unsupported"` と `unsupported_reason` になる
   - Issue fields・Issue type・ラベル・マイルストーンが出る
   - Issue fields の読み込みが 403・404 でも、ほかの定義は出る
-- [ ] T044 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-ATTRIBUTES-*` と `PW-ISSUE-SHOW` の `attributes` の振る舞いを足す。
+- [x] T044 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-ATTRIBUTES-*` と `PW-ISSUE-SHOW` の `attributes` の振る舞いを足す。
   `PW/cli/tests/interface/issue-attributes.test.ts`（新規）と `PW/cli/tests/interface/issue-show.test.ts` に先にテストを書く。
   `issue_show` で扱えない種類の値に出会ったら、その名前と GitHub の種類を `unsupported` に出し、ほかの `attributes` は出すことも確かめる（FR-022）
 
 ### Implementation for User Story 5（定義と表示）
 
-- [ ] T045 [US5] `PW/cli/src/infra/github/attributes.ts` を作り、ボードのフィールド・Issue fields・Issue type・ラベル・マイルストーンの定義を読む。
+- [x] T045 [US5] `PW/cli/src/infra/github/attributes.ts` を作り、ボードのフィールド・Issue fields・Issue type・ラベル・マイルストーンの定義を読む。
   `PW/cli/src/infra/github/queries.ts` の `fieldValues` を全種類（text・number・date・single select・multi select・iteration）で読む形にする（T043 の後）
-- [ ] T046 [US5] `PW/cli/src/commands/issue-attributes.ts` を作り、MCP ツール `issue_attributes` として登録する（`inputSchema`・`outputSchema` 付き）
-- [ ] T047 [US5] `PW/cli/src/commands/issue-show.ts` に `attributes`（AttributeReading の配列）を足す。担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールドを読む。扱えない種類の値は `unsupported` に出す（FR-022）
-- [ ] T048 [US5] `PW/interface/generated.json` を作り直し、T043・T044 のテストのファイルを動かす
-- [ ] T049 [US5] quickstart.md の B-1 の 1・2 を、検証用のボードで動かす
+- [x] T046 [US5] `PW/cli/src/commands/issue-attributes.ts` を作り、MCP ツール `issue_attributes` として登録する（`inputSchema`・`outputSchema` 付き）
+- [x] T047 [US5] `PW/cli/src/commands/issue-show.ts` に `attributes`（AttributeReading の配列）を足す。担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールドを読む。扱えない種類の値は `unsupported` に出す（FR-022）
+- [x] T048 [US5] `PW/interface/generated.json` を作り直し、T043・T044 のテストのファイルを動かす
+- [x] T049 [US5] quickstart.md の B-1 の 1・2 を、検証用のボードで動かす
 
 **Checkpoint**: pecot の知らないフィールドを含め、定義と値がすべて読める
 

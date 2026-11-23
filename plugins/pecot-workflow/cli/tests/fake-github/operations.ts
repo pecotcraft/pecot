@@ -54,6 +54,14 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['nodes{id,blockedBy}|blockedByFirst,ids', 'GetBlockedByOfNodes'],
   ['repository.issue.blocking{totalCount,nodes}|blockingFirst,number,owner,repo', 'GetIssueBlockingReferences'],
   ['repository.issue{number,title,state,url,repository,projectItems}|number,owner,repo,workflowFieldName', 'GetIssueBoardItem'],
+  ['__type{name}|#named', 'HasIssueFields'],
+  ['repository.issue{assignees,milestone,labels,issueType,issueFieldValues,projectItems}|number,owner,repo', 'GetIssueAttributes'],
+  // GHES 向けの版は、query に書いた名前で引く。識別子は重ならない
+  ['repository.issue{assignees,milestone,labels,projectItems}|number,owner,repo#named', 'GetIssueAttributesWithoutIssueFields'],
+  ['{node,repository}|owner,projectId,repo', 'GetIssueAttributeDefinitions'],
+  ['{node,repository}|owner,projectId,repo#named', 'GetIssueAttributeDefinitionsWithoutIssueFields'],
+  ['repository.labels{pageInfo,nodes}|after,owner,repo', 'GetRepositoryLabelsPage'],
+  ['repository.milestones{pageInfo,nodes}|after,owner,repo', 'GetRepositoryMilestonesPage'],
 ]
 
 export const OPERATION_NAMES: ReadonlySet<string> = new Set(OPERATION_TABLE.map(([, name]) => name))

@@ -27,6 +27,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | 実装計画ファイルから Issue を一括登録したい | `/pecot-w:w-issueize` |
 | Epic 配下に次のサブタスクを 1 件作りたい | `/pecot-w:w-ready` |
 | Issue の前提（blocked by）を付け外ししたい・種類を変えたい | MCP ツール `issue_block` / `issue_unblock` |
+| Issue に付けられる機能（ボードのフィールド・Issue fields など）と取りうる値を知りたい | MCP ツール `issue_attributes` |
 | 積んだ PR を、下の段の新しい位置へ載せ直したい | `/pecot-w:w-pr`、または MCP ツール `pr_restack` |
 | リポジトリをプロジェクトに追加したい | `/pecot-w:w-repo-add` |
 | ワークツリーを作成したい | `/pecot-w:w-worktree-add` |

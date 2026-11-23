@@ -1,5 +1,5 @@
 {
-  "stdout": "## #7 見本の Issue\n\n**State:** OPEN | **Comments:** 1\n\n**Branches:**\n  - `feat/7`\n\n**Sub-issues:**\n  - #8 子の Issue (OPEN)\n\n---\n\n本文の 1 行目\n本文の 2 行目\n\n\n\n### Comments (1/1)\n\n---\n\n**@reviewer** - 2026-01-02\n\nコメントの本文\n",
+  "stdout": "## #7 見本の Issue\n\n**State:** OPEN | **Comments:** 1\n\n**Attributes:**\n  - Area: cli\n  - Priority: High\n  - assignees: octocat\n  - milestone: v1\n  - type: Task\n  - labels: bug\n\n**Branches:**\n  - `feat/7`\n\n**Sub-issues:**\n  - #8 子の Issue (OPEN)\n\n---\n\n本文の 1 行目\n本文の 2 行目\n\n\n\n### Comments (1/1)\n\n---\n\n**@reviewer** - 2026-01-02\n\nコメントの本文\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -24,6 +24,22 @@
         "blockedByFirst": 50,
         "columnFieldName": "pecot-workflow-acme",
         "labelFieldName": "Status"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "HasIssueFields",
+      "variables": {},
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueAttributes",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7
       },
       "auth": "token"
     }

@@ -1,0 +1,8 @@
+# 存在しないオプション。使い方エラーを記録する。
+id: issue-attributes-usage
+command:
+  path: [issue, attributes]
+  args:
+    - "--bogus"
+setup: {}
+github: []

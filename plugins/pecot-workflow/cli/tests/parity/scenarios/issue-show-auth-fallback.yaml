@@ -103,3 +103,14 @@ github:
     respond:
       status: 200
       body: {"data": {"repository": {"issue": {"id": "I_7", "number": 7, "state": "OPEN", "title": "課題7", "repository": {"owner": {"login": "acme"}, "name": "demo"}, "issueType": {"name": "Task"}, "subIssues": {"totalCount": 0}, "projectItems": {"totalCount": 0, "nodes": []}, "linkedBranches": {"totalCount": 0, "nodes": []}, "closedByPullRequestsReferences": {"totalCount": 0, "nodes": []}, "timelineItems": {"totalCount": 0, "nodes": []}, "body": "本文", "parent": null, "blockedBy": {"totalCount": 0, "nodes": []}}}}}
+  - match:
+      operation: HasIssueFields
+    respond:
+      status: 200
+      body: {"data": {"__type": {"name": "IssueFields"}}}
+  - match:
+      operation: GetIssueAttributes
+      variables: {owner: acme, repo: demo, number: 7}
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"assignees": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": []}, "milestone": null, "labels": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": []}, "issueType": null, "issueFieldValues": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": []}, "projectItems": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": []}}}}}

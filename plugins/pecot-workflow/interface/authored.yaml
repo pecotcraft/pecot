@@ -915,6 +915,155 @@ entries:
       - id: PW-BRANCH-DELETE-21
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+  PW-ISSUE-ATTRIBUTES:
+    help:
+      details:
+        - Lists the attributes that an Issue of the repository can have, with their kind, choices and whether pecot can write them.
+        - The attributes are the fields of the configured board, the Issue fields of the repository, and the built-in assignees, milestone, type, labels, parent and blocked_by.
+        - Board fields that mirror a built-in attribute (Assignees, Labels, Milestone, Type, Parent issue) or an Issue field are not listed as board fields.
+        - The pecot column field and the built-in Status are read-only, because pecot board move moves them. parent and blocked_by are read-only too.
+        - Fields that GitHub computes, and fields of a kind pecot does not handle, are listed as unsupported with their GitHub type.
+        - When the board or the Issue fields cannot be read, prints a warning and lists the rest.
+        - On a GitHub Enterprise Server without Issue fields, lists the attributes without Issue fields and Issue types.
+        - With --json, prints the same data as JSON.
+        - The repository is taken from the global pecot --repo, and without it from the origin remote, or from the first remote when there is no origin.
+        - A mismatch between --repo and the current git remote is a warning, and --repo is used.
+        - --project names the project config to use. Without it, the config that includes the repository is used; when several do, the active one among them.
+      examples:
+        - run: pecot issue attributes
+          note: List the attributes as a Markdown list.
+        - run: pecot --repo example-org/my-repo issue attributes --json
+          note: List the attributes of another repository as JSON.
+      default_notes:
+        project: None; the config that includes the target repository, and the active one among them when there are several.
+    summary: リポの Issue に付けられる機能の定義を出します。
+    arguments:
+      json: 'JSON で出力するかどうかです。結果の項目は、この値によらず同じです。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
+    constraints: []
+    details:
+      - 'リポの Issue に付けられる機能の定義を返します。定義は、名前・`source`・`kind`・選べる値・書けるかを持ちます。'
+      - '機能は 3 つの `source` に分かれます。設定のボードのフィールドは `project`、リポの Issue fields は `issue_field` です。組み込みの `assignees`・`milestone`・`type`・`labels`・`parent`・`blocked_by` は `issue` です。'
+      - '組み込みの機能を写すボードのフィールド（Assignees・Labels・Milestone・Type・Parent issue）は、`source` が `project` の定義に出しません。Issue field を写したボードのフィールドも出しません。'
+      - 'pecot の進行の欄と組み込みの Status は、`board_move` で動かすので `writable` が false です。`parent` と `blocked_by` も false です。'
+      - 'GitHub が計算するフィールドと、pecot が扱えない種類のフィールドは、`kind` を `unsupported` にし、`unsupported_reason` に GitHub の種類を入れます。`unsupported` にも並べます。'
+      - 'ボードか Issue fields を読めないときは、`warnings` に入れ、読めた定義を返します。'
+      - 'Issue fields の無い GitHub Enterprise Server では、Issue fields と Issue type を除いた定義を返します。'
+      - 'ラベルとマイルストーン（open のもの）は、すべてのページを読みます。ほかの一覧は先頭の 100 件を読み、続きがあれば `warnings` に入れます。'
+      - '`json` を付けても、結果の項目は変わりません。'
+      - 'リポジトリは、引数 `repo` から決めます。無ければ remote の `origin` から、`origin` も無ければ最初の remote から決めます。'
+      - '`repo` が今の git remote と食い違うときは、`warnings` に入れて `repo` を使います。'
+      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
+    stdin: none
+    output:
+      format: text
+      description: '機能ごとに `- <name> (<source>, <kind>): <選べる値>` の行を並べた Markdown の箇条書きです。書けない機能は `<kind>` の後に `read-only` を、扱えない機能は `unsupported (<GitHub の種類>)` を出します。`--json` を付けると、`attributes` と `unsupported` を持つ JSON のオブジェクトです。'
+    mcp_output:
+      fields:
+        attributes: '機能の定義の配列です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`writable` を持ちます。`kind` の値は、ボードと Issue fields の種類の `single_select`・`multi_select`・`text`・`number`・`date`・`iteration` です。組み込みの機能の種類は `users`・`milestone`・`issue_type`・`labels`・`issue_ref`・`issue_refs` です。扱えない種類は `unsupported` です。選べる値のある `kind`（選択・Iteration・マイルストーン・Issue type・ラベル）は `options` を持ちます。`options` の要素は `name` を持ち、Iteration では `start_date`（`YYYY-MM-DD`）も持ちます。担当者は列挙しません。`kind` が `unsupported` の要素は、`unsupported_reason` に GitHub の種類を持ちます。キーは snake_case です。'
+        unsupported: '`kind` が `unsupported` の機能の配列です。要素は `name`・`source`・`github_type` を持ちます。'
+    diagnostics: 'ボードか Issue fields を読めないとき、一覧の続きを読まなかったときは、`warning` の行を出します。`--repo` が git remote と違うときも、`warning` の行を出します。'
+    environment: []
+    exit_status:
+      - kind: git-unresolved
+        code: 1
+        when: '`repo` を省いたのに、git remote から `owner/repo` を読めません。git の外で `repo` を省いたときも含みます。'
+      - kind: no-active-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`project` の名前の設定がありません。'
+      - kind: invalid-input
+        code: 2
+        when: '引数の誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象のリポが見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: default
+    effects:
+      - target: github
+        kind: read
+        what: '設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・open のマイルストーンを読みます。'
+      - target: file
+        kind: read
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
+    prerequisites:
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
+      - 'ホストの GitHub トークンが要ります。'
+    idempotent: true
+    examples:
+      - arguments: {}
+        note: '今のリポの Issue に付けられる機能の定義を返します。'
+      - arguments:
+          json: true
+        note: '今のリポの定義を、JSON の出力で返します。'
+    default_notes:
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
+    behaviors:
+      - id: PW-ISSUE-ATTRIBUTES-01
+        pattern: event
+        statement: '呼ぶと、設定のボードのフィールドを `source` が `project` の定義にして `attributes` に入れます。選択・Iteration のフィールドは `options` に選べる値を、Iteration は開始日も入れます'
+      - id: PW-ISSUE-ATTRIBUTES-02
+        pattern: event
+        statement: '呼ぶと、リポの Issue fields を `source` が `issue_field` の定義にして `attributes` に入れます'
+      - id: PW-ISSUE-ATTRIBUTES-03
+        pattern: event
+        statement: '呼ぶと、組み込みの機能を `source` が `issue` の定義にして `attributes` に入れます。組み込みの機能は `assignees`・`milestone`・`type`・`labels`・`parent`・`blocked_by` です。`options` には、open のマイルストーン・Issue type・ラベルを入れます'
+      - id: PW-ISSUE-ATTRIBUTES-04
+        pattern: event
+        statement: '呼ぶと、組み込みの機能を写すボードのフィールドと Issue field を写したボードのフィールドを、`source` が `project` の定義に入れません'
+      - id: PW-ISSUE-ATTRIBUTES-05
+        pattern: event
+        statement: '呼ぶと、pecot の進行の欄・組み込みの Status・`parent`・`blocked_by` の `writable` を false にします'
+      - id: PW-ISSUE-ATTRIBUTES-06
+        pattern: unwanted
+        statement: 'もし GitHub が計算するフィールドか pecot が扱えない種類のフィールドがあるなら、`kind` を `unsupported` にします。`unsupported_reason` を GitHub の種類にして、`unsupported` にも入れます'
+      - id: PW-ISSUE-ATTRIBUTES-07
+        pattern: unwanted
+        statement: 'もし Issue fields かボードを読めないなら、`warnings` に入れ、読めた定義を返します'
+      - id: PW-ISSUE-ATTRIBUTES-08
+        pattern: unwanted
+        statement: 'もし GitHub Enterprise Server に Issue fields が無いなら、Issue fields と `type` を除いた定義を返します'
+      - id: PW-ISSUE-ATTRIBUTES-09
+        pattern: event
+        statement: 'ラベルかマイルストーンが 100 件を超えると、続きのページも読んで `options` に入れます'
+      - id: PW-ISSUE-ATTRIBUTES-10
+        pattern: event
+        statement: '`json` を付けて呼ぶと、同じ内容を JSON にします。結果の項目は、`json` を省いたときと同じです'
+      - id: PW-ISSUE-ATTRIBUTES-11
+        pattern: event
+        statement: '`repo` を渡すと、そのリポの定義を返します。省くと、git の remote のリポの定義を返します'
+      - id: PW-ISSUE-ATTRIBUTES-12
+        pattern: unwanted
+        statement: 'もし `repo` を省いて git の remote のリポジトリを読めないなら、`kind` が `git-unresolved` の失敗を返します'
+      - id: PW-ISSUE-ATTRIBUTES-13
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
+      - id: PW-ISSUE-ATTRIBUTES-14
+        pattern: unwanted
+        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
   PW-ISSUE-BLOCK:
     help:
       details:
@@ -2072,6 +2221,9 @@ entries:
         - Prints the title, state, parent Issue, linked branches, linked PRs, sub-issues, body and comments.
         - For an Issue with blocked-by, also prints a Blocked by line with each prerequisite and a Readiness line with the judgment.
         - When the blocked-by cannot be read, prints a warning and the rest of the Issue as before.
+        - After the header lines, prints an Attributes section with the attributes that have a value, from the configured board, the Issue fields and the built-in ones, including parent and blocked_by as owner/repo/N.
+        - Values of a kind that pecot does not handle are listed as unsupported with their GitHub type.
+        - When some attribute values cannot be read, prints a warning and the rest.
         - Shows at most --comment-limit comments, from 0 to 20; 0 hides them.
         - With --json, prints the same data as JSON.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
@@ -2095,6 +2247,9 @@ entries:
       - '題・状態・親 Issue・紐づいたブランチ・紐づいた PR・sub-issue・本文・コメントを返します。'
       - 'blocked-by のある Issue では、前提を並べた `blockedBy` と、判定の `readiness` も返します。'
       - 'blocked-by を読めないときは、`warnings` に入れ、Issue の残りを今までどおり返します。'
+      - '値の入っている機能を、`attributes` に返します。機能は、設定のボードのフィールド・Issue fields・組み込みの機能（担当者・マイルストーン・Issue type・ラベル・`parent`・`blocked_by`）です。'
+      - 'pecot が扱えない種類の値は、`unsupported` に名前と GitHub の種類を返します。'
+      - '機能の値の一部（ボード・Issue fields）を読めないときは、`warnings` に入れ、読めた値を返します。値を読む要求が失敗したときは、`warnings` に入れ、`attributes` と `unsupported` を `null` にします。'
       - 'コメントは、多くても `comment_limit` 件まで返します。値は 0 から 20 で、0 にするとコメントを返しません。'
       - '`json` を付けても、結果の項目は変わりません。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
@@ -2102,7 +2257,7 @@ entries:
     stdin: none
     output:
       format: text
-      description: '`## #<N> <title>` の見出しで始まる Markdown です。続けて、状態、親、Blocked by と Readiness の行、紐づいたブランチ、紐づいた PR、sub-issue、本文、コメントを出します。`--json` を付けると、同じデータに `blockedBy` と `readiness` を足した JSON のオブジェクトです。'
+      description: '`## #<N> <title>` の見出しで始まる Markdown です。続けて、状態、親、Blocked by と Readiness の行、Attributes の節、紐づいたブランチ、紐づいた PR、sub-issue、本文、コメントを出します。Attributes の節は、機能ごとに `  - <name>: <value>` の行を並べます。`--json` を付けると、同じデータに `blockedBy`・`readiness`・`attributes`・`unsupported` を足した JSON のオブジェクトです。'
     mcp_output:
       fields:
         number: 'Issue の番号です。キーは snake_case です。'
@@ -2118,7 +2273,9 @@ entries:
         repo: 'Issue があるリポジトリの名前です。'
         blockedBy: '前提（blocked-by）の配列です。読めなかったときは `null` です。要素は `number`・`repository`・`state`・`wait`・`reason` を持ちます。`wait` は `stack` か `merge`、`reason` は Waits for merge の節に書いた理由（無ければ `null`）です。'
         readiness: 'Readiness の判定です。判定できなかったときは `null` です。`kind`（`startable`・`stackable`・`blocked`）・`stackOn`・`reason`・`text` を持ちます。`stackOn` は積む前提で、`stackable` 以外は `null` です。`reason` は `blocked` の理由の符号で、`blocked` 以外は `null` です。'
-    diagnostics: '本文の Waits for merge の節が blocked-by と食い違うか、形が誤っているときは、`warning` の行を出します。blocked-by を読めないときも、`warning` の行を出します。'
+        attributes: '値の入っている機能の配列です。読めなかったときは `null` です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`value` を持ちます。`value` は、選択・Iteration・マイルストーン・Issue type では名前です。複数選択・担当者・ラベル・`blocked_by` では配列、数では数です。日付では `YYYY-MM-DD`、`parent` では `owner/repo/N` です。'
+        unsupported: '値は入っているが pecot が扱えない種類の機能の配列です。読めなかったときは `null` です。要素は `name`・`source`・`github_type` を持ちます。'
+    diagnostics: '本文の Waits for merge の節が blocked-by と食い違うか、形が誤っているときは、`warning` の行を出します。blocked-by を読めないときと、機能の値を読めないときも、`warning` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -2158,7 +2315,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'Issue と、その親・sub-issue・紐づいたブランチ・紐づいた PR・コメントを読みます。blocked-by と、それぞれの前提の状態も読みます。'
+        what: 'Issue と、その親・sub-issue・紐づいたブランチ・紐づいた PR・コメントを読みます。blocked-by と、それぞれの前提の状態も読みます。担当者・マイルストーン・Issue type・ラベル・Issue fields の値と、設定のボードのフィールドの値も読みます。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -2250,6 +2407,27 @@ entries:
       - id: PW-ISSUE-SHOW-24
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-ISSUE-SHOW-25
+        pattern: event
+        statement: '値の入っている機能がある Issue を読むと、その値を `name`・`source`・`kind`・`value` で `attributes` に入れます。対象は、設定のボードのフィールド・Issue fields・組み込みの機能です'
+      - id: PW-ISSUE-SHOW-26
+        pattern: event
+        statement: '親か前提がある Issue を読むと、`parent` と `blocked_by` を `owner/repo/N` の形で `attributes` に入れます'
+      - id: PW-ISSUE-SHOW-27
+        pattern: event
+        statement: '呼ぶと、Issue field を写したボードの値と、組み込みの機能を写すボードの値を、`source` が `project` の値に入れません'
+      - id: PW-ISSUE-SHOW-28
+        pattern: unwanted
+        statement: 'もし値の種類を pecot が扱えないなら、名前と GitHub の種類を `unsupported` に入れます'
+      - id: PW-ISSUE-SHOW-29
+        pattern: unwanted
+        statement: 'もし機能の値の一部（ボード・Issue fields）を読めないなら、`warnings` に入れ、読めた値を `attributes` に返します'
+      - id: PW-ISSUE-SHOW-30
+        pattern: unwanted
+        statement: 'もし機能の値を読む要求が失敗したなら、`warnings` に入れ、`attributes` と `unsupported` を `null` にし、ほかの項目を今までどおり返します'
+      - id: PW-ISSUE-SHOW-31
+        pattern: event
+        statement: '値の入っている機能がある Issue を `json` なしで読むと、ヘッダの行の後に `**Attributes:**` の節を出します'
   PW-ISSUE-UNBLOCK:
     help:
       details:

@@ -59,6 +59,7 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'get', meaning: '設定の値を出す', readOnly: true },
   { name: 'check', meaning: '次の操作の前に確かめる', readOnly: true },
   { name: 'doctor', meaning: '導入に要る設定がそろっているかを確かめる', readOnly: true },
+  { name: 'attributes', meaning: '付けられる機能の定義を出す', readOnly: true },
   { name: 'create', meaning: 'GitHub のものを作る' },
   { name: 'delete', meaning: 'GitHub のものを消す' },
   { name: 'add', meaning: '集まりに入れる' },

@@ -26,6 +26,22 @@
         "labelFieldName": "Status"
       },
       "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "HasIssueFields",
+      "variables": {},
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueAttributes",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7
+      },
+      "auth": "token"
     }
   ],
   "files": {
