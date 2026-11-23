@@ -5610,7 +5610,7 @@ entries:
         - The comment names where the review stopped. With --since, an inline comment starting with **F-NN** made after that time means it stopped after posting inline comments.
         - The comment ends with a hidden marker of GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. When a comment by a bot already has the same marker, nothing is posted.
         - A closed PR gets no comment. The project config is not read; the host is github.com.
-        - With --dry-run, reads the PR and writes the body that would be posted to stdout, and posts nothing.
+        - With --dry-run, reads the PR and writes the body that would be posted to stdout, and posts nothing. The MCP result has the same body in body.
       examples:
         - run: pecot review finish example-org/my-repo/123 --ensure --job-status failure --review-outcome failure --review-conclusion failure --review-has-token true --execution-file /tmp/execution.json --since 2026-11-17T10:00:00Z
           note: Post a comment from the cleanup step when the review job failed.
@@ -5630,7 +5630,7 @@ entries:
       review_outcome: '`ensure` のときの、自動レビューの step の `outcome` です。`success`・`failure`・`cancelled`・`skipped` のどれかです。'
       review_conclusion: '`ensure` のときの、claude-code-action の出力 `conclusion` です。Claude Code を動かさなかった run では空なので、空の文字列を受け付けます。'
       review_has_token: '`ensure` のときの、claude-code-action の出力 `github_token` があるかどうかです。`true` か `false` で渡し、トークンの値は受け取りません。'
-      dry_run: 'PR を読み、書くはずのコメントを決めますが、書きません。CLI では、書くはずの本文を標準出力に出します。'
+      dry_run: 'PR を読み、書くはずのコメントを決めますが、書きません。書くはずの本文を `body` に入れます。CLI では、本文を標準出力に出します。'
     constraints:
       - conflicts: [result, ensure]
       - requires: {ensure: [job_status, review_outcome, review_conclusion, review_has_token]}
@@ -5667,6 +5667,7 @@ entries:
         location: '止まった場所です。`before-findings`（指摘を投稿する前）・`after-inline`（インラインコメントを投稿した後）・`unknown` のどれかです。書かなかったときは入りません。'
         skipped: '書かなかった理由です。`reviewed`・`job-succeeded`・`workflow-mismatch`・`closed`・`already-written`・`actor-without-write` のどれかです。書いたときは入りません。'
         commentUrl: '書いたコメントの URL です。書かなかったとき、`dry_run` のとき、GitHub が URL を返さなかったときは入りません。'
+        body: '書くはずのコメントの本文です。`dry_run` で、書くと決めたときだけ入ります。CLI の `--dry-run` が標準出力に出す本文と同じです。'
         dryRun: '`dry_run` のときだけ `true` が入ります。'
     diagnostics: '標準エラーに、書いたときは `created` の行を、書かなかったときは理由を添えた `skipped` の行を出します。`--dry-run` のときは、代わりに `dry-run: would` の行を出します。権限を読めないときは `warning` の行を出して書きます。本文がテンプレートに合わないときは、`error` の行を出します。'
     environment:
@@ -5791,7 +5792,7 @@ entries:
         statement: '`result` に `reviewed` を渡して呼ぶと、書かずに `pullRequest` と `skipped` だけを結果に返します'
       - id: PW-REVIEW-FINISH-16
         pattern: optional
-        statement: '`dry_run` が有効なら、PR を読み、コメントを書かず、`dryRun` を `true` にします。CLI では、書くはずの本文を標準出力に出します'
+        statement: '`dry_run` が有効なら、PR を読んでもコメントを書かず、`dryRun` を `true` にします。書くはずの本文は `body` に入れ、CLI では標準出力に出します'
       - id: PW-REVIEW-FINISH-17
         pattern: event
         statement: '起動した人の権限を読めないと、`warnings` に 1 つ入れて、コメントを書きます'
@@ -6077,7 +6078,7 @@ entries:
         - A leftover .pecot/state/.pecot-active is not read.
         - The Active Issue line shows owner/repo#N, or none when there is no work Issue.
         - When there is a work Issue, an Active Issue section follows with the number, the title and the state of the Issue read from GitHub.
-        - The body of the Issue follows in the section when it is not empty; the body is shown only in this text, not in the MCP result.
+        - The body of the Issue follows in the section when it is not empty. The MCP result has the body in activeIssue.body.
         - When the Issue cannot be read from GitHub, a warning line is written and the section is left out.
         - When the Active Issue section is shown and .pecot/state/.pecot-base of the worktree of --directory names an Issue the work stacks on, a Stack section follows with a base line of the branch, the Issue and its PR (the open PR that is not from a fork, else the latest one, else no PR, or PR unknown when it cannot be read).
         - "The Stack section has a needs restack line (yes or no) after the base line: yes when the head of the base branch on the remote differs from the recorded position or when its PR is merged, unless the branch is already on the new base (decided in the same way as pr restack). The line is decided without git fetch, by asking the remote, and is left out when the remote cannot be reached or the base branch is gone without a merged PR."
@@ -6105,8 +6106,8 @@ entries:
       - '古い版の `.pecot/state/.pecot-active` が残っていても読みません。'
       - '作業中の Issue は、`activeIssue` の `reference` に入れます。作業中の Issue が無ければ、`activeIssue` を入れません。'
       - '作業中の Issue があるときは、GitHub から読んだ Issue の題・状態を `activeIssue` に入れます。'
-      - 'Issue の本文は、結果に入れません。CLI では、Markdown の Active Issue の節に本文を続けます。'
-      - 'Issue を GitHub から読めないときは、`warnings` に入れ、`activeIssue` に題と状態を入れません。'
+      - 'Issue の本文は、`activeIssue` の `body` に入れます。本文が無ければ空の文字列です。CLI では、本文が空でなければ、Markdown の Active Issue の節に本文を続けます。'
+      - 'Issue を GitHub から読めないときは、`warnings` に入れ、`activeIssue` に題・状態・本文を入れません。'
       - '作業中の Issue を読めて、プロジェクトのルートの `.pecot/state/.pecot-base` が積んだ先の Issue を指すときは、`stack` を入れます。`stack` には、ブランチ・Issue・その PR を入れます。PR は、fork からではない open の PR です。それが無ければ最新の PR です。PR が無いか読めないときは、`pullRequest` を入れません。'
       - '`stack` の `needsRestack` は、載せ直しが要るかです。下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときが `true` です。ただし、ブランチが新しい base の上に載り終えていれば `false` です（`pr_restack` と同じ判断です）。'
       - '`needsRestack` は、`git fetch` をせずに remote へ尋ねて決めます。remote に届かないときは、入れません。下の段のブランチが消えていて PR がマージされていないときも、入れません。'
@@ -6126,7 +6127,7 @@ entries:
       fields:
         branch: '今のブランチです。読めないときは入りません。'
         repository: 'git remote のリポジトリです。`owner/repo` の形です。読めないときは入りません。'
-        activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo/N`。`issue_ref` にそのまま渡せる形）を持ちます。`title` と `state`（`OPEN` か `CLOSED`）は、GitHub から読めたときだけ入ります。本文は入りません。'
+        activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo/N`。`issue_ref` にそのまま渡せる形）を持ちます。`title`・`state`（`OPEN` か `CLOSED`）・`body`（Issue の本文。本文が無ければ空文字）は、GitHub から読めたときだけ入ります。'
         stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、載せ直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
         stackedAbove: '今のブランチを base にした、同じリポジトリの open の PR の一覧です。`number` と `branch`（head のブランチ）を持ちます。無いときと読めないときは入りません。'
     diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。記録が無く積んだ先を求められないとき（`warning: cannot infer the stacked base`）。作業中の Issue のリポを含む設定が無いか使う設定が決まらないときと、選んだ設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
@@ -6175,7 +6176,7 @@ entries:
         statement: '作業中の Issue があると、GitHub から読んだ Issue の題名・状態を `activeIssue` に入れます'
       - id: PW-SESSION-SHOW-06
         pattern: event
-        statement: '読んだ Issue に本文があると、結果には入れず、CLI では本文を Active Issue の節に続けて出します'
+        statement: '作業中の Issue を読めると、本文を `activeIssue` の `body` に入れます。CLI では、本文があれば Active Issue の節に続けて出します'
       - id: PW-SESSION-SHOW-07
         pattern: unwanted
         statement: 'もしブランチ名を読めないなら、`branch` を入れません'
@@ -6196,13 +6197,13 @@ entries:
         statement: 'もしブランチ名の末尾が番号でないなら、処理を続けます'
       - id: PW-SESSION-SHOW-15
         pattern: unwanted
-        statement: 'もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、`activeIssue` に題と状態を入れません'
+        statement: 'もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、`activeIssue` に題・状態・本文を入れません'
       - id: PW-SESSION-SHOW-16
         pattern: unwanted
         statement: 'もし作業中の Issue があるのに、そのリポを含む設定が無いか使う設定が決まらないなら、`warnings` に 1 つ入れます'
       - id: PW-SESSION-SHOW-17
         pattern: unwanted
-        statement: 'もし作業中の Issue があるのに Issue を GitHub から読めないなら、`activeIssue` に題と状態を入れません'
+        statement: 'もし作業中の Issue があるのに Issue を GitHub から読めないなら、`activeIssue` に題・状態・本文を入れません'
       - id: PW-SESSION-SHOW-18
         pattern: unwanted
         statement: 'もし作業中の Issue があるのに Issue を GitHub から読めないなら、`warnings` に 1 つ入れます'

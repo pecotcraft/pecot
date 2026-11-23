@@ -5161,7 +5161,7 @@
           "dry_run": {
             "type": "boolean",
             "default": false,
-            "description": "Read the PR and show the comment that would be posted without posting it"
+            "description": "Read the PR and show the comment that would be posted without posting it (in body of the MCP result)"
           },
           "ensure": {
             "type": "boolean",
@@ -5305,6 +5305,10 @@
             },
             "commentUrl": {
               "description": "URL of the comment written (absent when skipped or on dry_run)",
+              "type": "string"
+            },
+            "body": {
+              "description": "Body of the comment that would be posted (only on dry_run)",
               "type": "string"
             },
             "dryRun": {
@@ -5660,6 +5664,10 @@
                 },
                 "state": {
                   "description": "State of the Issue, OPEN or CLOSED (omitted when it cannot be read from GitHub)",
+                  "type": "string"
+                },
+                "body": {
+                  "description": "Body of the Issue, empty when it has none (omitted when it cannot be read from GitHub)",
                   "type": "string"
                 }
               },
