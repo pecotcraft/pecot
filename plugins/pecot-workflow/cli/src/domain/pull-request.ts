@@ -81,7 +81,7 @@ export interface PullRequestContentOptions {
   */
   readonly requiredSections: readonly SectionHeading[]
   /**
-  積んで着手した記録の base（下の段のブランチ）。開発ブランチのほか、この base も通す
+  スタックして着手した記録の base（親ブランチ）。開発ブランチのほか、この base も通す
   */
   readonly stackedBase?: string | undefined
 }
@@ -132,7 +132,7 @@ export interface PullRequestBaseInput {
   readonly base: string
   readonly developBranch: string
   /**
-  下の段のブランチを head に持つ PR（pickLowerPullRequest で選んだもの）。積んだ記録のときだけ見る
+  親ブランチを head に持つ PR（pickLowerPullRequest で選んだもの）。スタックの記録のときだけ見る
   */
   readonly lowerPullRequest?: Readonly<PullRequestReadout> | undefined
 }
@@ -149,7 +149,7 @@ export interface PullRequestBaseUse {
   */
   readonly base: string
   /**
-  新しい PR と一緒にスタックへ登録する、下の段の PR の番号。登録しなければ undefined
+  新しい PR と一緒にスタックへ登録する、親 PR の番号。登録しなければ undefined
   */
   readonly stackOn: number | undefined
   /**
@@ -157,7 +157,7 @@ export interface PullRequestBaseUse {
   */
   readonly stackedBase: string | undefined
   /**
-  下の段の PR がマージ済みか。題の scope を記録のコミットから比べるのは、マージ済みのときだけ
+  親 PR がマージ済みか。題の scope を記録のコミットから比べるのは、マージ済みのときだけ
   */
   readonly isLowerMerged: boolean
 }
@@ -165,7 +165,7 @@ export interface PullRequestBaseUse {
 export type PullRequestBaseDecision = PullRequestBaseStop | PullRequestBaseUse
 
 /**
-base の記録と下の段の PR の状態から、PR を作る base とスタックへの登録を決める。
+base の記録と親 PR の状態から、PR を作る base とスタックへの登録を決める。
 記録の base でも開発ブランチでもない base は、そのまま返して内容の検証で落とす
 */
 export function decidePullRequestBase(input: Readonly<PullRequestBaseInput>): PullRequestBaseDecision {
@@ -184,7 +184,7 @@ export function decidePullRequestBase(input: Readonly<PullRequestBaseInput>): Pu
 const LOWER_STATE_ORDER: readonly PullRequestReadout['state'][] = ['OPEN', 'MERGED', 'CLOSED']
 
 /**
-下の段のブランチを head に持つ PR から、base を決める 1 本を選ぶ。fork でないもののうち、開いている・マージ済み・閉じた の順（同じ状態なら渡した順の先頭）
+親ブランチを head に持つ PR から、base を決める 1 本を選ぶ。fork でないもののうち、開いている・マージ済み・閉じた の順（同じ状態なら渡した順の先頭）
 */
 export function pickLowerPullRequest(pullRequests: readonly PullRequestReadout[]): PullRequestReadout | undefined {
   const own = pullRequests.filter(pullRequest => !pullRequest.isCrossRepository)
@@ -192,7 +192,7 @@ export function pickLowerPullRequest(pullRequests: readonly PullRequestReadout[]
 }
 
 /**
-止めた理由の文（`error: ` の前置きを含まない）。下の段の PR が無いときは、直し方の行を続ける
+止めた理由の文（`error: ` の前置きを含まない）。親 PR が無いときは、直し方の行を続ける
 */
 export function describeBaseStop(stop: Readonly<PullRequestBaseStop>): readonly (string | HintedText)[] {
   switch (stop.reason) {
@@ -440,7 +440,7 @@ export function forkPushFixHint(remote: string, branch: string, isDiverged: bool
 }
 
 /**
-積んだブランチが diverged のときの直し方。載せ直しが要るか、載せ直し済みで push と記録の書き直しが残れば pr restack、
+スタックしたブランチが diverged のときの直し方。スタックし直しが要るか、スタックし直し済みで push と記録の書き直しが残れば pr restack、
 要らなければ diverged の直し方、決められなければ pr restack --check
 */
 export function pushFixHintOf(decision: Readonly<RestackDecision> | undefined): HintedText {

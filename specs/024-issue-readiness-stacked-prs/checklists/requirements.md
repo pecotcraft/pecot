@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Issue の着手の可否を依存関係から判定し、stacked PRs として積んで進める
+# Specification Quality Checklist: Issue の着手の可否を依存関係から判定し、stacked PRs としてスタックして進める
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 
@@ -34,5 +34,5 @@
 ## Notes
 
 - スキル名・blocked by・gh stack 拡張は、この製品の利用者が直接触れる面なので spec に書いている。CLI のコマンド名・オプション名・API の呼び方は書いていない
-- 実物で確かめる点は Assumptions に置き、plan の工程で確かめる。別の作業ディレクトリでの積み直し、積んだ PR の Issue の自動クローズ、ワークフローを起動できるイベントの 3 つである
+- 実物で確かめる点は Assumptions に置き、plan の工程で確かめる。別の作業ディレクトリでのスタックし直し、スタック PR の Issue の自動クローズ、ワークフローを起動できるイベントの 3 つである
 - clarify は 2026-11-12 に済んだ。決めた内容は spec の Clarifications にある

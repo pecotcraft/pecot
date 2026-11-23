@@ -109,9 +109,9 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | 場面 | 出力 | 終了コード |
 |---|---|---|
 | 単独の PR をマージした | `merged: PR #N into <base>` | 0 |
-| スタックの最下段をマージした | `merged: PR #N into <base> (stack #S, 1 of K)` | 0 |
+| スタックの一番下をマージした | `merged: PR #N into <base> (stack #S, 1 of K)` | 0 |
 | merge queue に入った | `added: PR #N to merge queue of <base>` | 0 |
-| スタックの最下段でない | `error: PR #N is not the bottom of stack #S. Merge PR #M first` | 2 |
+| スタックの一番下でない | `error: PR #N is not the bottom of stack #S. Merge PR #M first` | 2 |
 | ドラフト | `error: PR #N is a draft` | 2 |
 | 閉じている | `error: PR #N is closed` | 2 |
 | マージ済み | `error: PR #N is already merged` | 2 |
@@ -140,44 +140,44 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 
 ### `pecot pr restack [--check] [--continue] [--abort]`
 
-今のブランチを、base にしたブランチの新しい位置へ載せ直す。
+今のブランチを、base にしたブランチの新しい位置へスタックし直す。
 
 | 場面 | 出力 | 終了コード |
 |---|---|---|
-| `--check` で、載せ直しが要らない | stdout に `up to date: <branch> on <base>` | 0 |
-| `--check` で、載せ直しが要る | stdout に `needs restack: <branch> on <base> (base moved)` | 0 |
+| `--check` で、スタックし直しが要らない | stdout に `up to date: <branch> on <base>` | 0 |
+| `--check` で、スタックし直しが要る | stdout に `needs restack: <branch> on <base> (base moved)` | 0 |
 | `--check` で、base の PR がマージ済み | stdout に `needs restack: <branch> onto <develop> (base #N merged)` | 0 |
-| 載せ直して push した | `updated: <branch> restacked on <base>` | 0 |
-| GitHub が先に載せ直していて、手元をリモートに合わせた（push しない） | `updated: <branch> synced with origin/<branch>` | 0 |
-| 載せ直しが要らなかった | `unchanged: <branch> is up to date` | 0 |
+| スタックし直して push した | `updated: <branch> restacked on <base>` | 0 |
+| GitHub が先にスタックし直していて、手元をリモートに合わせた（push しない） | `updated: <branch> synced with origin/<branch>` | 0 |
+| スタックし直しが要らなかった | `unchanged: <branch> is up to date` | 0 |
 | 衝突した | `error: conflict in <files>`、続けて `--continue` と `--abort` の案内 | 3 |
 | 未コミットの変更がある | `error: working tree has uncommitted changes` | 2 |
 | base のブランチが消えていて、マージもされていない | `error: base branch <base> is gone and PR #N was not merged` | 1 |
-| 積んでいないブランチ | `--check` は `up to date: <branch> on <develop>`、載せ直しは `unchanged: <branch> is up to date` | 0 |
+| スタックしていないブランチ | `--check` は `up to date: <branch> on <develop>`、スタックし直しは `unchanged: <branch> is up to date` | 0 |
 | remote にブランチが無い（push の前） | `updated: <branch> restacked on <base>`（push しない） | 0 |
 | `--abort` で取りやめた | `unchanged: <branch> restack aborted` | 0 |
 | 途中の記録が無いのに `--continue`・`--abort` を付けた | `error: no restack in progress` | 2 |
 | `--check`・`--continue`・`--abort` を 2 つ以上付けた | 使い方の誤りの `error:` | 2 |
-| remote のブランチにだけある変更がある | `error: <remote>/<branch> has commits that are not in <branch>`、続けて、載せ直しの前へ戻した旨と取り込む案内 | 1 |
+| remote のブランチにだけある変更がある | `error: <remote>/<branch> has commits that are not in <branch>`、続けて、スタックし直しの前へ戻した旨と取り込む案内 | 1 |
 | push が `--force-with-lease` で拒まれた | `error: push was rejected`、続けて打ち直しの案内 | 1 |
 | `git fetch` が失敗した | `error: cannot fetch <remote>` | 1 |
 
 - 書き換えるのは、今の作業ディレクトリのブランチだけだ
-- 積んでいないブランチ（記録が無いか、開発ブランチからの着手）は載せ直さない。開発ブランチが進むたびに PR を force push しないためだ
-- 載せ直しが要るかは、下の段の remote の先頭と、記録の位置を比べて決める
+- スタックしていないブランチ（記録が無いか、開発ブランチからの着手）はスタックし直さない。開発ブランチが進むたびに PR を force push しないためだ
+- スタックし直しが要るかは、親ブランチの remote の先頭と、記録の位置を比べて決める
 - 未コミットの変更の確かめは、`--continue` と `--abort` では行わない
 - rebase の後に、remote のブランチにだけある変更を探す。`--force-with-lease` は、fetch で取り込んだのに rebase に入っていないコミットを守らないためだ
-  - 同じ変更かは、載せ直しの前と後のブランチの両方と比べる。GitHub が書き換えたコミットは、前後の行が載せ直しの後と同じになるためだ
-  - 見つけたら、ブランチを載せ直しの前の位置へ戻して止まる
+  - 同じ変更かは、スタックし直しの前と後のブランチの両方と比べる。GitHub が書き換えたコミットは、前後の行がスタックし直しの後と同じになるためだ
+  - 見つけたら、ブランチをスタックし直しの前の位置へ戻して止まる
 - rebase は `--no-update-refs` で打つ。利用者の `rebase.updateRefs` の設定で、ほかのブランチを書き換えないためだ
 - 衝突で止まるときに、途中の記録を書く（data-model.md の 8）。`--continue` と `--abort` は、この記録だけを読む
   - `--continue` がまた衝突したら、前と同じく終了コード 3 で止まる
 - push が拒まれたときは、base の位置の記録を書き直さない
-- base の PR がマージ済みなら、開発ブランチへ載せ直し、記録の base を開発ブランチに変える
+- base の PR がマージ済みなら、開発ブランチへスタックし直し、記録の base を開発ブランチに変える
   - `git fetch` の後、まず記録した古い base の位置から `rebase --onto <新しい base>` を打つ（research.md の R6）
-  - 結果が `git diff --quiet HEAD origin/<branch>` で同じ木なら、GitHub が先に載せ直している。`origin/<branch>` に合わせ、push しない
+  - 結果が `git diff --quiet HEAD origin/<branch>` で同じ木なら、GitHub が先にスタックし直している。`origin/<branch>` に合わせ、push しない
   - 木が違えば、`--force-with-lease` で push する
-- 載せ直しの後、base の位置の記録を書き直す
+- スタックし直しの後、base の位置の記録を書き直す
   - 合わせた場合は、`git merge-base origin/<branch> <開発ブランチ>` の結果を記録する
 
 ### `pecot board sync [--dry-run] [--project <設定名>]`
@@ -215,7 +215,7 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 |---|---|
 | `blocked_by` | frontmatter の前提を、作った Issue に blocked by として付ける |
 | マージを待つ前提 | 本文の末尾に節を足す。形は [prerequisite-table.md](prerequisite-table.md) |
-| `--plan` | 投稿せずに、進め方の表と積める並びを stdout に出す |
+| `--plan` | 投稿せずに、進め方の表とスタックできる並びを stdout に出す |
 | 列 | `status` を省いた Issue は、判定で `Ready` か `Blocked` に置く |
 | 番号 | `order` を省いた Issue に、次の通し番号を振る。`parallel` は受け付けない |
 
@@ -262,7 +262,7 @@ Markdown の出力に 2 行を足す。前提が無い Issue では出さない�
 **Readiness:** blocked by #349 (waits for merge)
 ```
 
-- JSON の出力に `blockedBy`（番号・リポ・状態・種類・理由）と `readiness`（区分・積む先・理由）を足す
+- JSON の出力に `blockedBy`（番号・リポ・状態・種類・理由）と `readiness`（区分・スタック先・理由）を足す
 - 本文の節と blocked by が食い違うときは、`warning:` を出す
 
 ### `pecot create-branch`
@@ -270,18 +270,18 @@ Markdown の出力に 2 行を足す。前提が無い Issue では出さない�
 | 判定 | 動き | 出力 | 終了コード |
 |---|---|---|---|
 | `startable` | 開発ブランチから作る | `created: branch <b> in <repo> from <develop>` | 0 |
-| `stackable` | 積む先のブランチから作る | `created: branch <b> in <repo> from <base> (stacked on #N)` | 0 |
+| `stackable` | スタック先のブランチから作る | `created: branch <b> in <repo> from <base> (stacked on #N)` | 0 |
 | `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて済んでいない前提ごとの `- #B: <状態>` の行、直し方の案内（2 行目以降は 2 字下がる） | 2 |
-| `stackable` で `--base` が積む先と違う | 作らない | `error: --base <x> differs from the base chosen by readiness: <branch> (stacked on #N)` | 2 |
+| `stackable` で `--base` がスタック先と違う | 作らない | `error: --base <x> differs from the base chosen by readiness: <branch> (stacked on #N)` | 2 |
 | 前提の読み取りに失敗 | 作らない | `error: could not read blocked-by of #A: <理由>` | 1 |
 | 判定に失敗（PR の引き足しの失敗など） | 作らない | `error: could not judge readiness of #A: <理由>`。開発ブランチが未設定なのが原因なら、続けて `set it with: pecot project set-repo <owner/repo> --develop-branch develop` の行 | 1 |
-| `stackable` で、判定の後に積む先のブランチが無くなった | 作らない | `error: base branch <branch> of #N not found: <理由>` | 1 |
+| `stackable` で、判定の後にスタック先のブランチが無くなった | 作らない | `error: base branch <branch> of #N not found: <理由>` | 1 |
 | 依存関係を持たない GHES | 判定を省いて開発ブランチから作る | `warning: readiness is not checked: <理由>` の後、`startable` と同じ | 0 |
 
 - `--base` を比べるのは、判定が `stackable` のときだけだ。違えば止まる（終了コード 2）。`startable` では比べない。`blocked` は比べる前に止まる
-- 開発ブランチ（と `--base`）を求めるのは、判定の後で、積まないときだけだ。`blocked` は開発ブランチが無くても、`blocked` の説明で止まる
+- 開発ブランチ（と `--base`）を求めるのは、判定の後で、スタックしないときだけだ。`blocked` は開発ブランチが無くても、`blocked` の説明で止まる
 - ブロックを無視する指定は置かない
-- base のブランチと位置（積んだときは積んだ先の Issue も）を、状態のファイルに 1 行で記録する
+- base のブランチと位置（スタックしたときはスタック先の Issue も）を、状態のファイルに 1 行で記録する
 - 前提ごとの行の状態は、マージを待つ理由（`wait: merge — <理由>`）まで読める
 - 直し方の案内は、`pecot issue unblock <A> --by <B>` の行だ
   - `unblock` の行は、済んでいない前提ごとに 1 行ずつ、その前提の参照を `<B>` に入れて出す
@@ -293,15 +293,15 @@ Markdown の出力に 2 行を足す。前提が無い Issue では出さない�
 | 場面 | 動き | 出力 |
 |---|---|---|
 | 記録の base が開発ブランチ | 今までどおり | 変わらない |
-| 記録の base が下の段のブランチで、その PR が開いている | base を下の段のブランチにして作り、スタックに登録する | `created: PR #N <head> -> <base>`、`added: PR #N to stack #S` |
-| 下の段の PR がマージ済み | base を開発ブランチにして作る | `created: PR #N <head> -> <develop>` |
-| 下の段の PR が無く、マージもされていない | 作らない | `error: base branch <base> has no open PR`（終了コード 2） |
+| 記録の base が親ブランチで、その PR が開いている | base を親ブランチにして作り、スタックに登録する | `created: PR #N <head> -> <base>`、`added: PR #N to stack #S` |
+| 親 PR がマージ済み | base を開発ブランチにして作る | `created: PR #N <head> -> <develop>` |
+| 親 PR が無く、マージもされていない | 作らない | `error: base branch <base> has no open PR`（終了コード 2） |
 | スタックの機能が無いリポ | PR は作る | `warning: could not register stack: <理由>` |
 
 - `--prepare` は、記録の base をテンプレートの `base` に入れる
 - 内容の検証は、base が開発ブランチか、記録の base と同じなら通す
 - PR を作った後、この Issue を前提にしている Issue の判定を計算し直し、列を動かす。着手の跡がある Issue は動かさない
-- 本文に、スタックの中の位置や上下の PR を書かせない
+- 本文に、スタックの中の位置や親子の PR を書かせない
 
 ### `pecot pr cleanup`
 
@@ -316,9 +316,9 @@ Readiness changed:
 - #350 blocked -> stackable on #349
 ```
 
-- 上に積んだ段があるとき、その作業ディレクトリで `pecot pr restack` を打つよう案内する
+- 子 PR があるとき、その作業ディレクトリで `pecot pr restack` を打つよう案内する
 - base の記録のファイルを、`.pecot-active` と一緒に消す
-- 上の段のブランチは消さない
+- 子ブランチは消さない
 
 ### `pecot project init`
 
@@ -346,7 +346,7 @@ Readiness changed:
 
 - 判定を読む対象は、`Ready` と `Blocked` の open の Issue だけだ。`Active` と `In Review` の Issue の前提は読まない
 - 列と札は変えない。判定とずれていても、`moved:`・`set:`・`warning:` は出さない
-- 同じ Epic の積める並びを、`## Stackable chains` の節に出す。1 本の並びを `- #<Epic>: #P -> #B -> #C` の 1 行にする
+- 同じ Epic のスタックできる並びを、`## Stackable chains` の節に出す。1 本の並びを `- #<Epic>: #P -> #B -> #C` の 1 行にする
   - Epic は、並びの一番上の Issue の親で決める。親の無い並びは `- (no epic): …` と出す
   - 並びが無ければ、節を出さない
 - 判定の読み取りに失敗した Issue は、判定の列に `unknown (<理由>)` と出す
@@ -357,7 +357,7 @@ Readiness changed:
 
 ### `pecot session status`
 
-積んで着手した作業ディレクトリでは、次の節を足す。
+スタックして着手した作業ディレクトリでは、次の節を足す。
 
 ```text
 ## Stack
@@ -367,9 +367,9 @@ Readiness changed:
 ```
 
 - `readiness` の行は、着手中の Issue の判定が `blocked` のときだけ出す。文は `describeReadiness` の文だ
-- `needs restack` の行は、fetch せずに決める。下の段の remote の先頭を `ls-remote` で読み、記録の位置と比べる。読めなければ行を出さない
+- `needs restack` の行は、fetch せずに決める。親ブランチの remote の先頭を `ls-remote` で読み、記録の位置と比べる。読めなければ行を出さない
 
-今のブランチを base にした開いている PR（上に積んだ段）があれば、積んで着手していない作業ディレクトリでも、節に次の行を足す。
+今のブランチを base にした開いている PR（子 PR）があれば、スタックして着手していない作業ディレクトリでも、節に次の行を足す。
 
 ```text
 ## Stack

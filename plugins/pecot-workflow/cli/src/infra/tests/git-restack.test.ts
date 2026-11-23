@@ -36,15 +36,15 @@ beforeEach(() => {
 interface Stack {
   readonly origin: string
   /**
-  下の段（lower）を checkout した作業ディレクトリ
+  親ブランチ（lower）を checkout した作業ディレクトリ
   */
   readonly lower: string
   /**
-  上の段（upper）を checkout した linked worktree
+  子ブランチ（upper）を checkout した linked worktree
   */
   readonly upper: string
   /**
-  上の段の着手のときに記録した base の位置（lower の先頭）
+  子ブランチの着手のときに記録した base の位置（lower の先頭）
   */
   readonly recordedBase: string
 }
@@ -70,7 +70,7 @@ function numbered(changed: Readonly<Record<number, string>>): string {
 }
 
 /**
-main ← lower ← upper の積んだブランチ。lower と upper は別の作業ディレクトリで、どちらも origin に push 済み
+main ← lower ← upper のスタックしたブランチ。lower と upper は別の作業ディレクトリで、どちらも origin に push 済み
 */
 function createStack(): Stack {
   const root = makeTemporaryDirectory('pecot-restack-')
@@ -121,7 +121,7 @@ function isAlive(pid: number): boolean {
 }
 
 /**
-下の段を squash で main に入れる。main には先に別の変更も入れておく
+親ブランチを squash で main に入れる。main には先に別の変更も入れておく
 */
 function squashLowerIntoMain(stack: Readonly<Stack>): void {
   gitForTest(stack.lower, ['switch', '-q', 'main'])
@@ -133,7 +133,7 @@ function squashLowerIntoMain(stack: Readonly<Stack>): void {
 }
 
 /**
-GitHub がリモートの上の段を main の上に書き換えたのと同じ形にする。コミットの日時をずらし、手元の載せ直しと SHA を変える
+GitHub がリモートの子ブランチを main の上に書き換えたのと同じ形にする。コミットの日時をずらし、手元のスタックし直しと SHA を変える
 */
 function rewriteRemoteUpperOntoMain(stack: Readonly<Stack>, extraCommit?: string): string | undefined {
   const scratch = makeTemporaryDirectory('pecot-rewrite-')
@@ -147,7 +147,7 @@ function rewriteRemoteUpperOntoMain(stack: Readonly<Stack>, extraCommit?: string
 }
 
 /**
-上の段と下の段が base.txt の同じ行を変え、載せ直しが衝突する
+子ブランチと親ブランチが base.txt の同じ行を変え、スタックし直しが衝突する
 */
 function createConflictingStack(): Stack {
   const stack = createStack()
@@ -157,7 +157,7 @@ function createConflictingStack(): Stack {
 }
 
 describe('rebaseOnto', () => {
-  it('下の段にコミットを足すと、上の段を記録の位置から下の段の新しい先頭へ載せ直す', () => {
+  it('親ブランチにコミットを足すと、子ブランチを記録の位置から親ブランチの新しい先頭へスタックし直す', () => {
     const stack = createStack()
     const newLower = commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
 
@@ -167,7 +167,7 @@ describe('rebaseOnto', () => {
     expect(subjects(stack.upper, 'lower..HEAD')).toEqual(['U2', 'U1'])
   })
 
-  it('下の段を squash で開発ブランチへ入れた後、上の段を開発ブランチへ載せ、下の段のコミットを落とす', async () => {
+  it('親ブランチを squash で開発ブランチへ入れた後、子ブランチを開発ブランチへ載せ、親ブランチのコミットを落とす', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
@@ -231,7 +231,7 @@ describe('rebaseOnto', () => {
 })
 
 describe('abortRebase と continueRebase', () => {
-  it('衝突の後に abortRebase すると、載せ直しの前の位置に戻る', () => {
+  it('衝突の後に abortRebase すると、スタックし直す前の位置に戻る', () => {
     const stack = createConflictingStack()
     const before = sha(stack.upper, 'HEAD')
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('conflict')
@@ -281,7 +281,7 @@ describe('isRebaseInProgress', () => {
 })
 
 describe('hasSameTree と resetHardTo', () => {
-  it('載せ直した木が origin の上の段と同じなら true を返し、resetHardTo の後は origin と同じ SHA になる', async () => {
+  it('スタックし直した木が origin の子ブランチと同じなら true を返し、resetHardTo の後は origin と同じ SHA になる', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
@@ -398,7 +398,7 @@ function isRunning(pid: number | undefined): boolean {
 }
 
 describe('remoteOnlyChanges', () => {
-  it('GitHub が書き換えた上の段のコミットと、下の段・開発ブランチのコミットは一覧に入れない', async () => {
+  it('GitHub が書き換えた子ブランチのコミットと、親ブランチ・開発ブランチのコミットは一覧に入れない', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
@@ -407,7 +407,7 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([])
   })
 
-  it('下の段の直しが上の段の変更の近くに入ると、書き換えたコミットは載せ直しの前の HEAD とは合わず、載せ直した後の HEAD とは合う', async () => {
+  it('親ブランチの直しが子ブランチの変更の近くに入ると、書き換えたコミットはスタックし直す前の HEAD とは合わず、スタックし直した後の HEAD とは合う', async () => {
     const initial = createStack()
     commitFile(initial.lower, 'f.txt', numbered({}), 'L2')
     gitForTest(initial.upper, ['rebase', '-q', 'lower'])
@@ -426,7 +426,7 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', excluded)).toEqual([])
   })
 
-  it('remote の上の段にだけ足されたコミットを一覧に入れる', async () => {
+  it('remote の子ブランチにだけ足されたコミットを一覧に入れる', async () => {
     const stack = createStack()
     squashLowerIntoMain(stack)
     const suggestion = rewriteRemoteUpperOntoMain(stack, 'apply suggestion')
@@ -435,7 +435,7 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([suggestion])
   })
 
-  it('書き換えの無い remote の上の段にだけ足されたコミットを一覧に入れ、下の段の新しいコミットは入れない', async () => {
+  it('書き換えの無い remote の子ブランチにだけ足されたコミットを一覧に入れ、親ブランチの新しいコミットは入れない', async () => {
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     gitForTest(stack.lower, ['push', '-q', 'origin', 'lower'])

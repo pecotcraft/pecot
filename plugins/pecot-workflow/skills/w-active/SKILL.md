@@ -38,7 +38,7 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 |---|---|
 | #123 | Issue のタイトル |
 
-別の Issue の上に積んで着手するものは、タイトルの後ろに「（#N の上に積む）」と添える。
+別の Issue の上にスタックして着手するものは、タイトルの後ろに「（#N の上にスタックする）」と添える。
 表の後に、どれに着手するかを地の文で尋ねる。AskUserQuestion は使わない。
 
 ### Step 2: 対象タスクを確認
@@ -55,7 +55,7 @@ git pull
 
 ### Step 4: ブランチ作成
 
-pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づくブランチを作る。`base` は渡さない。積む先はツールが選ぶ。
+pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づくブランチを作る。`base` は渡さない。スタック先はツールが選ぶ。
 
 **ブランチ名の決め方:**
 
@@ -70,7 +70,7 @@ pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づ�
 ### Step 5: ブランチ切り替え
 
 作ったブランチに切り替える。**ブランチを作ったリポジトリの** ワークツリーで実行すること。
-別の Issue の上に積んで着手したときは、その旨を利用者に伝える。
+別の Issue の上にスタックして着手したときは、その旨を利用者に伝える。
 
 ```bash
 git fetch origin

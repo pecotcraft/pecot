@@ -66,7 +66,7 @@ export { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
 const PREFLIGHT_FAILED = 'preflight found warnings; fix them before creating a PR'
-// 下の段の PR が開いておらず、マージもされていない
+// 親 PR が開いておらず、マージもされていない
 const NO_OPEN_BASE_EXIT_CODE = 2
 
 // Python の `{e}` に当たる、例外の文
@@ -118,12 +118,12 @@ interface ScopeTarget {
 }
 
 /**
-積んだ base のときの題の scope の差分の起点。記録のコミット（下の段がマージ済みのとき）か、下の段のブランチ（開いている間）
+スタックした base のときの題の scope の差分の起点。記録のコミット（親 PR がマージ済みのとき）か、親ブランチ（開いている間）
 */
 type StackedScope = { readonly sha: string } | { readonly branch: string }
 
-// scope を nx のプロジェクトと比べる対象か。release_type が nx で、base が develop か積んだ base で、remote と作業ツリーが対象に合うときだけ。
-// 下の段を squash でマージした後は、開発ブランチとの差分がその段のファイルも含むので、記録のコミットから比べる
+// scope を nx のプロジェクトと比べる対象か。release_type が nx で、base が develop かスタックした base で、remote と作業ツリーが対象に合うときだけ。
+// 親 PR を squash でマージした後は、開発ブランチとの差分が親ブランチのファイルも含むので、記録のコミットから比べる
 function nxScopeTarget(config: Readonly<ProjectConfig>, owner: string, repository: string, base: string, directory: string, stacked: StackedScope | undefined): ScopeTarget | undefined {
   const configured = findRepository(config, owner, repository)
   if (configured === undefined || effectiveReleaseType(configured) !== 'nx' || (stacked === undefined && base !== getDevelopBranch(config, owner, repository))) return undefined
@@ -383,13 +383,13 @@ interface PushFixTarget {
   readonly remote: string
   readonly client: () => GitHubClient
   /**
-  呼び出し側が既に読んだ下の段の PR。あれば読み直さない
+  呼び出し側が既に読んだ親 PR。あれば読み直さない
   */
   readonly lowerPullRequest?: KnownLowerPullRequest | undefined
   readonly signal: Readonly<AbortSignal> | undefined
 }
 
-// diverged のときの Push Status の直し方。積んでいれば載せ直しが要るかを読んで決める。diverged でなければ undefined（git push）
+// diverged のときの Push Status の直し方。スタックしていればスタックし直しが要るかを読んで決める。diverged でなければ undefined（git push）
 async function pushFixHintFor(push: PushStatus, reading: BaseReading | undefined, target: Readonly<PushFixTarget>): Promise<HintedText | undefined> {
   if (!push.isDiverged) return undefined
   if (reading?.kind !== 'stacked') return DIVERGED_FIX_HINT
@@ -480,7 +480,7 @@ function lazyClient(config: Readonly<ProjectConfig>, out: Readonly<Output>): () 
 
 type StackResult = NonNullable<PrCreateData['stack']>
 
-// 下の段の PR が入っているスタックに足す。無ければ下の段と新しい PR で作る。失敗は warning にとどめる
+// 親 PR が入っているスタックに足す。無ければ親 PR と新しい PR で作る。失敗は warning にとどめる
 async function registerStack(client: GitHubClient, location: RepositoryReference, lower: number, created: number | undefined, out: Readonly<Output>): Promise<StackResult> {
   const unregistered: StackResult = { lower, registered: false }
   if (created === undefined) {
@@ -490,7 +490,7 @@ async function registerStack(client: GitHubClient, location: RepositoryReference
   try {
     const stack = await client.getStackOfPullRequest(location.owner, location.repository, lower)
     const top = stack?.pullRequests.at(-1)
-    // GitHub は一番上にしか足せないので、同じ下の段に 2 つ目を積んだときは 422 を待たずに知らせる
+    // GitHub は一番上にしか足せないので、同じ親 PR に 2 つ目の子 PR をスタックしたときは 422 を待たずに知らせる
     if (stack !== undefined && top !== lower) {
       out.warning(`could not register stack: PR #${String(lower)} is not the top of stack #${String(stack.number)} (top: PR #${String(top)}); PR #${String(created)} was not added`)
       return unregistered
@@ -577,8 +577,8 @@ export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output
 }
 
 // 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
-// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手で載せ直した後の古い記録なので止める。開発ブランチ向けに作ると下の段の差分が入りうるため。
-// 記録が無く積んだ先を求められないときも、同じ理由で投稿を止める
+// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手でスタックし直した後の古い記録なので止める。開発ブランチ向けに作ると親ブランチの差分が入りうるため。
+// 記録が無くスタック先を求められないときも、同じ理由で投稿を止める
 async function readBaseRecordFor(head: string, input: Readonly<{ template: string, dryRun: boolean }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
   if (input.template === 'release' || head !== gitCurrentBranch(directory)) return undefined
   const base = await readBaseOrInfer({ directory, project: { config: target.config, client: lazyClient(target.config, out) } })
@@ -609,7 +609,7 @@ interface RecordTarget {
   readonly location: RepositoryReference
 }
 
-// pr restack と同じ判断で、載せ直し済み（rebased）か。下の段の PR か remote を読めなければ false
+// pr restack と同じ判断で、スタックし直し済み（rebased）か。親 PR か remote を読めなければ false
 async function isRestackedLocally(reading: Extract<BaseReading, { kind: 'stacked' }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<boolean> {
   const { config, location } = target
   const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
@@ -626,12 +626,12 @@ async function isRestackedLocally(reading: Extract<BaseReading, { kind: 'stacked
 interface BaseDecided {
   readonly decision: PullRequestBaseDecision
   /**
-  読んだ下の段の PR。積んだ記録でなければ読まず undefined
+  読んだ親 PR。スタックの記録でなければ読まず undefined
   */
   readonly lowerPullRequest: KnownLowerPullRequest | undefined
 }
 
-// 積んだ記録なら、PR を作るリポで下の段の PR を読み、base を決める
+// スタックの記録なら、PR を作るリポで親 PR を読み、base を決める
 async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubClient, developBranch: string, out: Readonly<Output>): Promise<BaseDecided> {
   const { reading, base, location } = input
   if (reading === undefined) return { decision: { kind: 'use', base, stackOn: undefined, stackedBase: undefined, isLowerMerged: false }, lowerPullRequest: undefined }
@@ -648,7 +648,7 @@ async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubC
   }
 }
 
-// 下の段の PR が開いているのに開発ブランチを渡したときは、内容の検証の失敗と一緒に出す（終了コード 3）
+// 親 PR が開いているのに開発ブランチを渡したときは、内容の検証の失敗と一緒に出す（終了コード 3）
 function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { readonly use: PullRequestBaseUse | undefined, readonly errors: readonly (string | HintedText)[] } {
   if (decision.kind === 'use') return { use: decision, errors: [] }
   const lines = describeBaseStop(decision)
@@ -657,7 +657,7 @@ function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { 
   return stopWith(out, joinHinted(lines), 'pr-state', NO_OPEN_BASE_EXIT_CODE)
 }
 
-// 下の段がマージ済みなら記録のコミットから、開いていてそのブランチへ作るならそのブランチから、題の scope を比べる
+// 親 PR がマージ済みなら記録のコミットから、開いていてそのブランチへ作るならそのブランチから、題の scope を比べる
 function stackedScopeOf(reading: BaseReading | undefined, use: Readonly<PullRequestBaseUse> | undefined): StackedScope | undefined {
   if (use === undefined || reading?.kind !== 'stacked') return undefined
   if (use.isLowerMerged) return { sha: reading.record.sha }
@@ -710,7 +710,7 @@ function requireRepository(value: string, out: Readonly<Output>): RepositoryRefe
   return splitOwnerRepository(value) ?? stopWith(out, `invalid repository format: ${value} (expected: owner/repo)`, 'invalid-input')
 }
 
-// frontmatter の base が空のときの base。積んだ記録があれば下の段のブランチ、無ければ開発ブランチ。下の段がマージ済みなら decideBase が開発ブランチに戻す
+// frontmatter の base が空のときの base。スタックの記録があれば親ブランチ、無ければ開発ブランチ。親 PR がマージ済みなら decideBase が開発ブランチに戻す
 function defaultBase(config: Readonly<ProjectConfig>, location: RepositoryReference, reading: BaseReading | undefined, out: Readonly<Output>): string {
   if (reading?.kind === 'stacked') return reading.record.branch
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
@@ -975,7 +975,7 @@ function hasBranch(branch: string, cwd: string): boolean {
   return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
 }
 
-// 下の段のブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので、
+// 親ブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので、
 // remote に尋ね、無いと答えたときだけ消えたとみなす。届かないか時間切れなら追跡参照で決める
 async function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<Output>): Promise<boolean> {
   const head = await remoteBranchHead(cwd, remote, branch, out.signal)

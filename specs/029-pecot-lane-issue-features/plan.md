@@ -172,16 +172,16 @@ A と B は互いを待たない。各段は、前の段が無いと確かめら
 **A. pecot のフィールドの整理**
 
 1. **`pecot-status` への改名と `suffix` の廃止**（US4b）: 設定の新しい形と旧い形の読み込み、`project_sync` の改名と設定の移行、各操作の警告。検証用のボードで確かめられる
-2. **`pecot-priority`・`pecot-size` の廃止**（US4）: 作成・起票・トラッカー・テンプレート・スキルから消し、`project_sync` の `confirm_delete`。1 の移行の出力に削除を足すので、1 に積む
-3. **`pecot-lane` とビュー**（US1）: `lanes` の入力、フィールドの作成と選択肢の追加、REST のビューの作成。1 の `pecot-status` の ID をビューに使うので、1 に積む
-4. **起票・同期・一覧**（US2・US3）: `issue_create` の `lane`、親の値の引き継ぎ、`missing_lane`、`lanes`、スキルの変更。3 に積む
+2. **`pecot-priority`・`pecot-size` の廃止**（US4）: 作成・起票・トラッカー・テンプレート・スキルから消し、`project_sync` の `confirm_delete`。1 の移行の出力に削除を足すので、1 にスタックする
+3. **`pecot-lane` とビュー**（US1）: `lanes` の入力、フィールドの作成と選択肢の追加、REST のビューの作成。1 の `pecot-status` の ID をビューに使うので、1 にスタックする
+4. **起票・同期・一覧**（US2・US3）: `issue_create` の `lane`、親の値の引き継ぎ、`missing_lane`、`lanes`、スキルの変更。3 にスタックする
 5. **このリポへの導入**: リリースされた pecot-workflow で、このリポのボードを移行する。1〜4 のマージとリリースを待つ
 
 **B. Issue の機能を使える担保**
 
 1. **定義を読み、表示する**（US5 の 3・5）: `issue_attributes`、`issue_show` の `attributes`
-2. **名前で書く**（US5 の 1・2・4・6・7）: `issue_create` の `attributes`、`issue_edit`、検証。6 の定義の読み込みを使うので、6 に積む
-3. **担保の一覧と PR の CI**（US5 の 9）: 写し、担保の一覧、`ATTRIBUTE_HANDLERS` との照らし合わせのテスト。7 の handler を照らすので、7 に積む
+2. **名前で書く**（US5 の 1・2・4・6・7）: `issue_create` の `attributes`、`issue_edit`、検証。6 の定義の読み込みを使うので、6 にスタックする
+3. **担保の一覧と PR の CI**（US5 の 9）: 写し、担保の一覧、`ATTRIBUTE_HANDLERS` との照らし合わせのテスト。7 の handler を照らすので、7 にスタックする
 4. **定期の確かめ**（US5 の 8・9）: `drift.ts`・`issue-surface-drift.yml`・Lambda の dispatch の先。workflow_dispatch は既定のブランチの定義で動き、Lambda の配備も要るので、8 のマージを待つ
 5. **棚卸し**（US6）: 一覧を書き、不適合を起票し、「使う」としたものを準備か案内に入れる。6〜8 で何を扱えるかが決まった後に書く
 

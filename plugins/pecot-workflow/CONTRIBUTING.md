@@ -294,7 +294,7 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `issue_reopen` | Issue の再オープン・カードのアーカイブ解除・Status の `Done` の削除 | sweep |
 | `pr_create` | PR・スタックへの登録・カードの Status | sweep（PR を閉じる） |
 | `pr_merge` | PR のマージか merge queue への投入 | マージした PR と commit は検証用の `main` に残ります |
-| `pr_restack` | 手元のブランチの rebase と `git push --force-with-lease` | sweep。対象は積んだ PR だけです |
+| `pr_restack` | 手元のブランチの rebase と `git push --force-with-lease` | sweep。対象はスタック PR だけです |
 | `project_create` | org のボードとフィールド | 題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消します。作ると新しいボードが有効になるので、`project activate` で戻します |
 | `project_init` | ボードのフィールドと選択肢 | 題に `[cuj <Issue番号>-<乱数>]` を入れて `gh project create` で作った空のボードで実行し、`gh project delete` で消します |
 | `project_link` | リポとプロジェクトのつなぎ | `gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` |

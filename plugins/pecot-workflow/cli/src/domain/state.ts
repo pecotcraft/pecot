@@ -9,9 +9,9 @@ import { createRepositoryReference } from './repository-resolver.js'
 // フラグファイル名
 // セッション名のキャッシュ（hooks の session-title.sh が Claude Code の sessionTitle に流す）。session start がブランチを作るときに書く
 export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
-// 着手のときに選んだ base（ブランチ・位置・積んだ先の Issue）。session start が書き、session finish が消す
+// 着手のときに選んだ base（ブランチ・位置・スタック先の Issue）。session start が書き、session finish が消す
 export const FLAG_PECOT_BASE = '.pecot-base'
-// 衝突で止まった載せ直しの途中の記録。pr restack が書き、続行か取りやめで消す
+// 衝突で止まったスタックし直しの途中の記録。pr restack が書き、続行か取りやめで消す
 export const FLAG_PECOT_RESTACK = '.pecot-restack'
 
 export const SESSION_TITLE_MAX_CHARS = 40
@@ -58,7 +58,7 @@ export interface BaseRecord {
   readonly branch: string
   readonly sha: string
   /**
-  積んだ先の Issue。開発ブランチから着手したときは undefined
+  スタック先の Issue。開発ブランチから着手したときは undefined
   */
   readonly stackedOn: IssueReference | undefined
 }
@@ -73,7 +73,7 @@ const BASE_SHA_PATTERN = /^(?:[\da-f]{40}|[\da-f]{64})$/u
 const BASE_ISSUE_PATTERN = /^([^\s#/]+)\/([^\s#/]+)#(\d+)$/u
 
 /**
-.pecot-base の 1 行。`<branch> <sha>` に、積んだときは ` <owner/repo#N>` を続ける
+.pecot-base の 1 行。`<branch> <sha>` に、スタックしたときは ` <owner/repo#N>` を続ける
 */
 export function formatBaseRecord(record: Readonly<BaseRecord>): string {
   const fields = [record.branch, record.sha]
@@ -105,11 +105,11 @@ export function interpretBaseRecord(content: string | undefined): BaseReading {
 export interface RestackProgress {
   readonly remote: string
   /**
-  載せ直しているブランチ。rebase の途中は HEAD が detached なので、ここから読む
+  スタックし直しているブランチ。rebase の途中は HEAD が detached なので、ここから読む
   */
   readonly branch: string
   /**
-  載せ直す前のブランチの先頭。remote にだけある変更が見つかったときに、ここへ戻す
+  スタックし直す前のブランチの先頭。remote にだけある変更が見つかったときに、ここへ戻す
   */
   readonly originalSha: string
   readonly ontoBranch: string
@@ -119,11 +119,11 @@ export interface RestackProgress {
   */
   readonly leaseSha: string | undefined
   /**
-  載せ直した後も積んだ記録を保つなら、積んだ先の Issue。開発ブランチへ載せ直すなら undefined
+  スタックし直した後もスタックの記録を保つなら、スタック先の Issue。開発ブランチへスタックし直すなら undefined
   */
   readonly stackedOn: IssueReference | undefined
   /**
-  載せ直す前の積んだ記録の位置。`--continue` が remote にだけある変更を数えるときに除く。古い版の途中の記録には無い
+  スタックし直す前のスタックの記録の位置。`--continue` が remote にだけある変更を数えるときに除く。古い版の途中の記録には無い
   */
   readonly recordSha: string | undefined
 }

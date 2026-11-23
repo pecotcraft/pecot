@@ -343,7 +343,7 @@ export interface SharedChanges {
 }
 
 /**
-head が other の変更を持っているか。other を載せ直して force-push した後も、patch-id で見つける
+head が other の変更を持っているか。other をスタックし直して force-push した後も、patch-id で見つける
 */
 export function changesSharedWith(cwd: string, head: string, other: string, base: string): SharedChanges {
   const lines = (arguments_: readonly string[]): readonly string[] => runGit(arguments_, { cwd, check: true }).stdout.split('\n').filter(line => line !== '')

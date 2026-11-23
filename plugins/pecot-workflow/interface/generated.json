@@ -149,7 +149,7 @@
         },
         {
           "word": "restack",
-          "meaning": "積んだブランチを、base の新しい位置へ載せ直す"
+          "meaning": "スタックしたブランチを、base の新しい位置へスタックし直す"
         },
         {
           "word": "comment",

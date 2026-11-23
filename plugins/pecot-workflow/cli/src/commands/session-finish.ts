@@ -223,7 +223,7 @@ function waitingCheck(source: Readonly<WaitingSource>, heads: readonly IssueRefe
   }
 }
 
-// 閉じた Issue を待つ Issue の列と札を動かし、マージの前と比べた判定の変化と、載せ直す上の段を記録する
+// 閉じた Issue を待つ Issue の列と札を動かし、マージの前と比べた判定の変化と、スタックし直す子ブランチを記録する
 async function updateWaitingIssues(context: Readonly<FinishContext>, source: Readonly<WaitingSource>): Promise<void> {
   const { out, isDryRun, record } = context
   const { client, config, location, pullRequest } = source

@@ -163,7 +163,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 ## Phase 6: 確かめる場所の都合で、作業の順番を待たされない (US6、P3)
 
-**Goal**: フェーズの前後の決まりが、試験環境で確かめられる変更を「積める」とする。プラグインを「マージを待つ」の例にした箇所が無い
+**Goal**: フェーズの前後の決まりが、試験環境で確かめられる変更を「スタックできる」とする。プラグインを「マージを待つ」の例にした箇所が無い
 
 **Independent Test**: contracts/prerequisite-rule.md の「確かめ」の 3 つが通る
 
@@ -177,7 +177,7 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 - [x] T039 [P] [US6] `p-w/skills/w-issueize/SKILL.md` を読み、説明の文に試験環境の語が要る箇所を、T036 と同じ文にする。例の行（action）と、表の形・`wait: merge`・`reason` の扱いは変えない（直す文が無く、変更なし。contracts/prerequisite-rule.md の「直す場所」）
 - [x] T040 [US6] 4 か所（w-breakdown・issue-flow-rules・spec-driven-workflow・w-ready）の文を読み比べる。問いの芯の 2 句が同じで、「プラグイン」を「マージを待つ」の例にした箇所が無いことを確かめる。GitHub Copilot CLI 向けの写しがあれば、同じに直す
 - [x] T041 [US6] `.nx/version-plans/` に、pecot-workflow の version plan を足す
-- [x] T042 [US6] contracts/prerequisite-rule.md の「確かめ」の 2 つの計画を用意する。作業ツリーの pecot-workflow を読み込んだセッションで、w-breakdown の tasks の工程を動かす。スキルを使う行が「積める」、action を使う行が「マージを待つ」になるのを見る。結果を PR の説明に書く
+- [x] T042 [US6] contracts/prerequisite-rule.md の「確かめ」の 2 つの計画を用意する。作業ツリーの pecot-workflow を読み込んだセッションで、w-breakdown の tasks の工程を動かす。スキルを使う行が「スタックできる」、action を使う行が「マージを待つ」になるのを見る。結果を PR の説明に書く
 
 ---
 
@@ -208,12 +208,12 @@ T048 から後の番号は、analyze の後に足したタスクだ。進める�
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | 積める | Phase 2 の検証用の整えが、Phase 1 で research.md に書く検証用の `ci.yml` の結果を読む |
-| 3 | 2 | 積める | Phase 3 の手順が、Phase 2 で `CONTRIBUTING.md` に足す「試験環境」の節に書き足す |
-| 4 | 3 | 積める | Phase 4 の確かめが、Phase 3 で文書に書く、直した中身を読み込む手順を使う |
-| 5 | 3 | 積める | Phase 5 の確かめが、Phase 3 で `CLAUDE.md` に書く検証用の場所と、読み込みの手順を使う |
-| 6 | 3 | 積める | Phase 6 の決まりの文が、Phase 3 で文書に書く試験環境の手順を指す |
-| 7 | 3 | 積める | Phase 7 の人のいないセッションが、Phase 3 で文書に書く手元の手順と同じ確かめを流す |
+| 2 | 1 | スタックできる | Phase 2 の検証用の整えが、Phase 1 で research.md に書く検証用の `ci.yml` の結果を読む |
+| 3 | 2 | スタックできる | Phase 3 の手順が、Phase 2 で `CONTRIBUTING.md` に足す「試験環境」の節に書き足す |
+| 4 | 3 | スタックできる | Phase 4 の確かめが、Phase 3 で文書に書く、直した中身を読み込む手順を使う |
+| 5 | 3 | スタックできる | Phase 5 の確かめが、Phase 3 で `CLAUDE.md` に書く検証用の場所と、読み込みの手順を使う |
+| 6 | 3 | スタックできる | Phase 6 の決まりの文が、Phase 3 で文書に書く試験環境の手順を指す |
+| 7 | 3 | スタックできる | Phase 7 の人のいないセッションが、Phase 3 で文書に書く手元の手順と同じ確かめを流す |
 
 ### User Story Dependencies
 

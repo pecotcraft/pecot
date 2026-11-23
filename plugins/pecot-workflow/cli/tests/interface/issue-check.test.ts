@@ -58,7 +58,7 @@ function writes(github: RunningGithub): string[] {
 }
 
 describe('issue check', () => {
-  it('ファイルを渡すと、何も作らずに番号・前提・進め方の表と積める並びを標準出力に出す', async (context) => {
+  it('ファイルを渡すと、何も作らずに番号・前提・進め方の表とスタックできる並びを標準出力に出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-01')
     const project = setUpIssueProject()
     writeTree(project.root, {
@@ -199,7 +199,7 @@ describe('issue check', () => {
   })
 
   describe('MCP の data', () => {
-    it('ファイルを渡すと、進め方の表の行と積める並びを data に返す', async () => {
+    it('ファイルを渡すと、進め方の表の行とスタックできる並びを data に返す', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', PARENT),

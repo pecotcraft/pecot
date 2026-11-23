@@ -18,7 +18,7 @@ import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 
-// 要求を送らずに止める（ドラフト、閉じている、スタックの最下段でない）
+// 要求を送らずに止める（ドラフト、閉じている、スタックの一番下でない）
 const NOT_MERGEABLE_EXIT_CODE = 2
 const POLL_INTERVAL_MILLISECONDS = 2000
 // R14 では 3〜8 秒で終わった。時刻でなく回数で数え、偽のタイマーでも同じに動かす
@@ -91,7 +91,7 @@ function checkState(out: Readonly<Output<PrMergeData>>, name: string, pullReques
   if (pullRequest.isDraft) stopNotMergeable(out, `${name} is a draft`)
 }
 
-// 下の段に open の PR があれば止める。マージ済みで並びに残る PR は飛ばす。スタックの機能が無いリポは単独の PR として扱う
+// スタックでこの PR より下に open の PR があれば止める。マージ済みで並びに残る PR は飛ばす。スタックの機能が無いリポは単独の PR として扱う
 async function bottomOfStack(out: Readonly<Output<PrMergeData>>, client: GitHubClient, target: Readonly<Target>): Promise<PrMergeData['stack']> {
   let stack
   try {

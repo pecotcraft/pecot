@@ -98,7 +98,7 @@ describe('pr merge', () => {
     expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
   })
 
-  it('スタックの最下段の PR をマージすると、スタックの番号と段の数を添えた merged の行を出す', async () => {
+  it('スタックの一番下の PR をマージすると、スタックの番号とPR の数を添えた merged の行を出す', async () => {
     prepareProject()
     await startGithub([pullRequest(), stacks([stackOf([11, 12])]), requested(202, pending()), result(MERGED)])
 
@@ -107,7 +107,7 @@ describe('pr merge', () => {
     expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'merged: PR #11 into main (stack #3, 1 of 2)\n' })
   })
 
-  it('下の段の PR がマージ済みで並びに残っていても、最下段として扱う', async () => {
+  it('親 PR がマージ済みで並びに残っていても、一番下として扱う', async () => {
     prepareProject()
     const github = await startGithub([pullRequest(), stacks([stackOf([10, 11, 12])]), pullRequest({ number: 10, state: 'MERGED' }), requested(202, pending()), result(MERGED)])
 
@@ -128,7 +128,7 @@ describe('pr merge', () => {
     expect(put?.type === 'rest' ? put.body : undefined).toEqual({ sha: 'sha-11' })
   })
 
-  it('スタックの最下段でなければ、要求を送らずに、先にマージする PR を示す error の行を出し、終了コード 2 を返す', async () => {
+  it('スタックの一番下でなければ、要求を送らずに、先にマージする PR を示す error の行を出し、終了コード 2 を返す', async () => {
     prepareProject()
     const github = await startGithub([pullRequest({ number: 12 }), { match: { method: 'GET', path: '/repos/acme/demo/stacks', query: { pull_request: '12' } }, respond: { status: 200, body: [stackOf([10, 11, 12])] }, times: 1 }, pullRequest({ number: 10, state: 'MERGED' }), pullRequest({ number: 11 })])
 
@@ -138,7 +138,7 @@ describe('pr merge', () => {
     expect(github.requests().some(request => request.type === 'rest' && request.method === 'PUT')).toBe(false)
   })
 
-  it('MCP で最下段でない PR を渡すと、kind が pr-state の失敗を返す', async (context) => {
+  it('MCP で一番下でない PR を渡すと、kind が pr-state の失敗を返す', async (context) => {
     await verifies(context, 'PW-PR-MERGE-05')
     prepareProject()
     await startGithub([pullRequest({ number: 12 }), { match: { method: 'GET', path: '/repos/acme/demo/stacks', query: { pull_request: '12' } }, respond: { status: 200, body: [stackOf([11, 12])] }, times: 1 }, pullRequest({ number: 11 })])
@@ -398,7 +398,7 @@ describe('pr merge', () => {
       expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
     })
 
-    it('下の段の PR がマージ済みで並びに残っていても、最下段として扱い、残りの段の数を stack に入れる', async (context) => {
+    it('親 PR がマージ済みで並びに残っていても、一番下として扱い、残りのPR の数を stack に入れる', async (context) => {
       await verifies(context, 'PW-PR-MERGE-03')
       prepareProject()
       await startGithub([pullRequest(), stacks([stackOf([10, 11, 12])]), pullRequest({ number: 10, state: 'MERGED' }), requested(202, pending()), result(MERGED)])

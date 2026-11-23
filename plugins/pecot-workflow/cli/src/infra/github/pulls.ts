@@ -77,7 +77,7 @@ export interface ReviewThread {
 }
 
 /**
-GitHub のスタック。pullRequests は下の段からの PR 番号
+GitHub のスタック。pullRequests は親から子の順の PR 番号
 */
 export interface PullRequestStack {
   readonly number: number
@@ -462,7 +462,7 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
-  スタックを作る。pullRequestNumbers は下の段からの順
+  スタックを作る。pullRequestNumbers は親から子の順
   */
   async createStack(owner: string, repository: string, pullRequestNumbers: readonly number[]): Promise<PullRequestStack> {
     return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks`, {

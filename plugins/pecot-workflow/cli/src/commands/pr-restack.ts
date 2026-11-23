@@ -1,4 +1,4 @@
-// pr restack。積んだブランチを、base にしたブランチの新しい位置へ載せ直す。
+// pr restack。スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す。
 // 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
 import { z } from 'zod'
 
@@ -90,9 +90,9 @@ function stopOnConflict(out: RestackOutput, cwd: string, progress: Readonly<Rest
   return stopWith(out, message, 'git-conflict', CONFLICT_EXIT_CODE)
 }
 
-// remote のブランチにだけあるコミット。patch-id は前後の行も含むので、載せ直しの前と後のどちらとも合わないものだけを数える
+// remote のブランチにだけあるコミット。patch-id は前後の行も含むので、スタックし直す前と後のどちらとも合わないものだけを数える
 function remoteOnlyCommits(cwd: string, progress: Readonly<RestackProgress>, remoteBranch: string): readonly string[] {
-  // 記録の位置は途中の記録から読む。積んだ先を求めて始めた載せ直しでは .pecot-base が無い。古い版の途中の記録は .pecot-base から読む
+  // 記録の位置は途中の記録から読む。スタック先を求めて始めたスタックし直しでは .pecot-base が無い。古い版の途中の記録は .pecot-base から読む
   const reading = progress.recordSha === undefined ? readBaseRecord() : undefined
   const recordSha = progress.recordSha ?? (reading?.kind === 'stacked' ? reading.record.sha : undefined)
   const excluded = [progress.ontoSha, ...recordSha === undefined ? [] : [recordSha]]
@@ -121,7 +121,7 @@ function describePushFailure(push: Readonly<Extract<PushResult, { pushed: false 
   }
 }
 
-// rebase が終わった後。remote が載せ直し済みで木が同じなら合わせ、違えば push し、base の記録を書き直す
+// rebase が終わった後。remote がスタックし直し済みで木が同じなら合わせ、違えば push し、base の記録を書き直す
 async function finishRestack(out: RestackOutput, cwd: string, progress: Readonly<RestackProgress>, signal: Readonly<AbortSignal> | undefined): Promise<void> {
   const { remote, branch, ontoBranch, leaseSha } = progress
   const remoteBranch = `${remote}/${branch}`
@@ -170,7 +170,7 @@ function hasUnlinkedClosingIssues(pullRequest: Readonly<PullRequestForFinish>, t
   return extractClosingIssueNumbers(pullRequest.body, target).some(number => !linked.has(number))
 }
 
-// 開発ブランチへ載せ直した PR の本文を保存し直す。GitHub は base の付け替えでは Closes を読み直さず、Issue とリンクしない
+// 開発ブランチへスタックし直した PR の本文を保存し直す。GitHub は base の付け替えでは Closes を読み直さず、Issue とリンクしない
 async function relinkClosingIssues(out: RestackOutput, target: Readonly<RelinkTarget>, progress: Readonly<RestackProgress>): Promise<void> {
   const { owner, repository, developBranch } = target
   if (progress.ontoBranch !== developBranch) return
@@ -253,7 +253,7 @@ interface StackedTarget {
   readonly developBranch: string
 }
 
-// 下の段の PR と、remote の先頭を読んで、載せ直す先を決める
+// 親 PR と、remote の先頭を読んで、スタックし直す先を決める
 async function decideFor(out: RestackOutput, cwd: string, host: string, target: Readonly<StackedTarget>): Promise<RestackDecision> {
   const { remote, owner, repository, developBranch, reading } = target
   const { branch } = reading.record
@@ -271,20 +271,20 @@ async function decideFor(out: RestackOutput, cwd: string, host: string, target: 
   }
 }
 
-// 載せ直す先の ref と SHA。開発ブランチへ載せ直すときは、積んだ先を記録から外す
+// スタックし直す先の ref と SHA。開発ブランチへスタックし直すときは、スタック先を記録から外す
 function progressOf(out: RestackOutput, cwd: string, branch: string, target: Readonly<StackedTarget>, decision: Extract<RestackDecision, { kind: 'moved' | 'merged' | 'rebased' }>): RestackProgress {
   const { remote } = target
   const { record } = target.reading
   const ontoSha = resolveCommit(cwd, `${remote}/${decision.base}`)
   const originalSha = resolveCommit(cwd, 'HEAD')
   if (ontoSha === undefined || originalSha === undefined) return stopWith(out, `branch ${remote}/${decision.base} does not exist\ncheck the remote branches with: git branch -r`, 'git-unresolved')
-  // 下の段の上に残るなら積んだ先を残す。rebased の base は、下の段（moved から）か開発ブランチ（merged から）
+  // 親ブランチの上に残るならスタック先を残す。rebased の base は、親ブランチ（moved から）か開発ブランチ（merged から）
   const isStillStacked = decision.kind === 'moved' || (decision.kind === 'rebased' && decision.base === record.branch)
   return { remote, branch, originalSha, ontoBranch: decision.base, ontoSha, leaseSha: resolveCommit(cwd, `${remote}/${branch}`), stackedOn: isStillStacked ? record.stackedOn : undefined, recordSha: record.sha }
 }
 
 // rebase の起点。記録の位置が HEAD に無いとき（push が拒まれた後に base が進んだときなど）は、別の点から求める。
-// 下の段の追跡参照からの fork-point を先に使い、求まらなければ新しい base との merge-base にする。古い下の段のコミットを積み直さない
+// 親ブランチの追跡参照からの fork-point を先に使い、求まらなければ新しい base との merge-base にする。古い親ブランチのコミットを当て直さない
 function rebaseStartOf(out: RestackOutput, cwd: string, target: Readonly<StackedTarget>, ontoSha: string): string {
   const { sha, branch } = target.reading.record
   if (isAncestor(cwd, sha, 'HEAD')) return sha
@@ -311,7 +311,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     stopWith(out, hinted`a rebase is in progress\ncontinue the restack: ${commandHint(RESTACK_PATH, { continue: true })}\nor abort it: ${commandHint(RESTACK_PATH, { abort: true })}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   const config = requireConfigFor(out, location, input.project, RESTACK_PATH).config
-  // 記録が無ければ、求める前に fetch して、手元に無い下の段も追跡参照で見る
+  // 記録が無ければ、求める前に fetch して、手元に無い親ブランチも追跡参照で見る
   let fetched: Promise<FetchResult> | undefined
   const fetchOnce = async (): Promise<FetchResult> => await (fetched ??= fetchRemote(cwd, remote, out.signal))
   const fetchBeforeInfer = async (): Promise<void> => {
@@ -348,7 +348,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     return
   }
   if (decision.kind === 'rebased') {
-    // 載せ直し済みなので rebase をせず、push と記録の書き直しだけを行う
+    // スタックし直し済みなので rebase をせず、push と記録の書き直しだけを行う
     const progress = progressOf(out, cwd, branch, target, decision)
     if (input.dry_run) {
       const isSynced = isSyncedWithRemote(cwd, progress)

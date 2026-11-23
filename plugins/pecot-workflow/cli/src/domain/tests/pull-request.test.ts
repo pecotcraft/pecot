@@ -207,13 +207,13 @@ describe('validatePullRequestContent', () => {
     expect(validatePullRequestContent(options({ base: 'main', developBranch: '' }))).toEqual([])
   })
 
-  it('積んだ記録の base を渡すと、その base と開発ブランチを通し、どちらでもない base を止める', () => {
+  it('スタックの記録の base を渡すと、その base と開発ブランチを通し、どちらでもない base を止める', () => {
     expect(validatePullRequestContent(options({ base: 'feat/a/11', stackedBase: 'feat/a/11' }))).toEqual([])
     expect(validatePullRequestContent(options({ base: 'develop', stackedBase: 'feat/a/11' }))).toEqual([])
     expect(validatePullRequestContent(options({ base: 'main', stackedBase: 'feat/a/11' }))).toEqual(['base branch must be develop or feat/a/11 (given: main)'])
   })
 
-  it('積んだ記録の base が開発ブランチと同じなら、今までと同じ文で止める', () => {
+  it('スタックの記録の base が開発ブランチと同じなら、今までと同じ文で止める', () => {
     expect(validatePullRequestContent(options({ base: 'main', stackedBase: 'develop' }))).toEqual(['base branch must be develop (given: main)'])
   })
 
@@ -376,11 +376,11 @@ describe('describePushStatus', () => {
 
 describe('pushFixHintOf', () => {
   const rows: readonly { readonly name: string, readonly decision: RestackDecision | undefined, readonly expected: string }[] = [
-    { name: '下の段が動いた', decision: { kind: 'moved', base: 'feat/1' }, expected: 'pecot pr restack' },
-    { name: '下の段がマージ済み', decision: { kind: 'merged', base: 'main', pullRequest: 1 }, expected: 'pecot pr restack' },
-    { name: '載せ直し済みで記録だけが古い', decision: { kind: 'rebased', base: 'main' }, expected: 'pecot pr restack' },
-    { name: '下の段が動いていない', decision: { kind: 'up-to-date', base: 'feat/1' }, expected: `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits` },
-    { name: '下の段が消えた', decision: { kind: 'gone', base: 'feat/1', pullRequest: undefined }, expected: 'pecot pr restack --check' },
+    { name: '親ブランチが動いた', decision: { kind: 'moved', base: 'feat/1' }, expected: 'pecot pr restack' },
+    { name: '親 PR がマージ済み', decision: { kind: 'merged', base: 'main', pullRequest: 1 }, expected: 'pecot pr restack' },
+    { name: 'スタックし直し済みで記録だけが古い', decision: { kind: 'rebased', base: 'main' }, expected: 'pecot pr restack' },
+    { name: '親ブランチが動いていない', decision: { kind: 'up-to-date', base: 'feat/1' }, expected: `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits` },
+    { name: '親ブランチが消えた', decision: { kind: 'gone', base: 'feat/1', pullRequest: undefined }, expected: 'pecot pr restack --check' },
     { name: '判断を読めない', decision: undefined, expected: 'pecot pr restack --check' },
   ]
 
@@ -442,20 +442,20 @@ describe('decidePullRequestBase', () => {
     expect(decide(reading, 'develop')).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: undefined, isLowerMerged: false })
   })
 
-  it('積んだ記録があり下の段の PR が開いているとき、下の段のブランチを base にしてその PR のスタックに登録する', () => {
+  it('スタックの記録を持ち、親 PR が開いているとき、親ブランチを base にしてその PR のスタックに登録する', () => {
     expect(decide(STACKED, 'feat/a/11', lower('OPEN'))).toEqual({ kind: 'use', base: 'feat/a/11', stackOn: 21, stackedBase: 'feat/a/11', isLowerMerged: false })
   })
 
   it.for([
     { name: '記録の base', base: 'feat/a/11' },
     { name: '開発ブランチ', base: 'develop' },
-  ])('下の段の PR がマージ済みで $name を渡したとき、開発ブランチを base にしてスタックに登録しない', ({ base }) => {
+  ])('親 PR がマージ済みで $name を渡したとき、開発ブランチを base にしてスタックに登録しない', ({ base }) => {
     expect(decide(STACKED, base, lower('MERGED'))).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: 'feat/a/11', isLowerMerged: true })
   })
 
   it.for([
-    { name: '下の段の PR が無い', pullRequest: undefined },
-    { name: '下の段の PR がマージされずに閉じた', pullRequest: lower('CLOSED') },
+    { name: '親 PR が無い', pullRequest: undefined },
+    { name: '親 PR がマージされずに閉じた', pullRequest: lower('CLOSED') },
   ])('$name とき、作らずに止める', ({ pullRequest }) => {
     expect(decide(STACKED, 'feat/a/11', pullRequest)).toEqual({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' })
   })
@@ -464,7 +464,7 @@ describe('decidePullRequestBase', () => {
     expect(decide({ kind: 'malformed', content: 'broken' }, 'develop')).toEqual({ kind: 'stop', reason: 'malformed', content: 'broken' })
   })
 
-  it('下の段の PR が開いているのに開発ブランチを渡したとき、止める', () => {
+  it('親 PR が開いているのに開発ブランチを渡したとき、止める', () => {
     expect(decide(STACKED, 'develop', lower('OPEN'))).toEqual({ kind: 'stop', reason: 'lower-open', branch: 'feat/a/11', pullRequest: 21, base: 'develop' })
   })
 
@@ -473,7 +473,7 @@ describe('decidePullRequestBase', () => {
   })
 })
 
-// 下の段のブランチの PR。番号と状態と fork かを変える
+// 親ブランチの PR。番号と状態と fork かを変える
 function pullRequestIn(number: number, state: PullRequestReadout['state'], isCrossRepository = false): PullRequestReadout {
   return { ...lower(state), number, isCrossRepository }
 }
@@ -498,7 +498,7 @@ describe('describeBaseStop', () => {
     { name: 'cli', surface: 'cli', again: 'run pr create again' },
     { name: 'mcp', surface: 'mcp', again: 'call pr_create again' },
   ]
-  it.for(surfaces)('下の段の PR が無いとき、止めた理由と、出し先 $name の形の直し方の 2 行を返す', ({ surface, again }) => {
+  it.for(surfaces)('親 PR が無いとき、止めた理由と、出し先 $name の形の直し方の 2 行を返す', ({ surface, again }) => {
     expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' }).map(line => formatHinted(line, surface))).toEqual([
       'base branch feat/a/11 has no open PR',
       `reopen the PR of feat/a/11, or create a new one, then ${again}`,
@@ -509,7 +509,7 @@ describe('describeBaseStop', () => {
     expect(describeBaseStop({ kind: 'stop', reason: 'malformed', content: 'broken' })).toEqual(['.pecot-base is malformed: broken'])
   })
 
-  it('下の段の PR が開いているのに開発ブランチを渡したとき、使うべき base を示す', () => {
+  it('親 PR が開いているのに開発ブランチを渡したとき、使うべき base を示す', () => {
     expect(describeBaseStop({ kind: 'stop', reason: 'lower-open', branch: 'feat/a/11', pullRequest: 21, base: 'develop' })).toEqual([
       'base branch must be feat/a/11 while its PR #21 is open (given: develop)',
     ])

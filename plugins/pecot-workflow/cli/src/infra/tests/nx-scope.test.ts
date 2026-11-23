@@ -286,7 +286,7 @@ describe('changedFiles（実 git）', () => {
     expect(changedFiles(repository, 'main', 'feat/x/1')).toEqual(['README.md', 'a/b.py', 'new-name.txt', 'old/name.txt', '日本語/c.md'])
   })
 
-  it('起点にコミットの SHA を渡すと、下の段が squash でマージされた後も、その位置から head までの変更だけを返す', () => {
+  it('起点にコミットの SHA を渡すと、親 PR が squash でマージされた後も、その位置から head までの変更だけを返す', () => {
     const repository = createGitRepository({ 'README.md': 'x' })
     gitForTest(repository, ['checkout', '-q', '-b', 'feat/a/11'])
     writeFileSync(path.join(repository, 'lower.txt'), 'lower')

@@ -1,9 +1,9 @@
 ---
 
-description: "Issue の着手の可否を依存関係から判定し、前提が PR 中なら stacked PRs として積んで進める のタスク一覧"
+description: "Issue の着手の可否を依存関係から判定し、前提が PR 中なら stacked PRs としてスタックして進める のタスク一覧"
 ---
 
-# Tasks: Issue の着手の可否を依存関係から判定し、前提が PR 中なら stacked PRs として積んで進める
+# Tasks: Issue の着手の可否を依存関係から判定し、前提が PR 中なら stacked PRs としてスタックして進める
 
 **Input**: `specs/024-issue-readiness-stacked-prs/` の設計文書
 
@@ -63,9 +63,9 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 - [x] T002 [P] 既定の Status に、`updateProjectV2Field` で選択肢を 1 つ足す。既存の選択肢を `id` 付きで送り、カードの値が残ることを見る。足した後に PR を 1 本マージし、既定の自動化が札を `Done` にすることを見る
 - [x] T003 [P] 進行の欄の選択肢を、`Backlog` と `Ready` の間に 1 つ差し込む。ボードの列が、渡した順に並ぶことを見る（API の順まで確かめた。画面の列の順は未確認で、quickstart の準備で確かめる）
 - [x] T004 [P] `addBlockedBy` で、同じリポと別のリポの Issue を前提に付ける。輪になる組を付けたときの応答を記録する。REST の DELETE と `removeBlockedBy` の両方で外し、通るほうを記録する
-- [x] T005 [P] 2 段の PR を作り、`POST /repos/{owner}/{repo}/stacks` でスタックに登録する。上の段の PR の `closingIssuesReferences` が作られるかを記録する
-- [x] T006 2 段のスタックの下の段を、`PUT .../pulls/{n}/merge-async` でマージする。結果の読み方と、終わるまでの時間を記録する。上の段の PR の base とブランチの位置が、マージの後にどう変わるかを記録する
-- [x] T007 T006 の後、上の段の手元のブランチで `git rebase --onto <開発ブランチ> <記録した古い base の位置>` を打つ。差分が上の段の変更だけになることを見る
+- [x] T005 [P] 2 つの PR を作り、`POST /repos/{owner}/{repo}/stacks` でスタックに登録する。子 PR の `closingIssuesReferences` が作られるかを記録する
+- [x] T006 PR 2 つのスタックの親 PR を、`PUT .../pulls/{n}/merge-async` でマージする。結果の読み方と、終わるまでの時間を記録する。子 PR の base とブランチの位置が、マージの後にどう変わるかを記録する
+- [x] T007 T006 の後、子 PR の手元のブランチで `git rebase --onto <開発ブランチ> <記録した古い base の位置>` を打つ。差分が子 PR の変更だけになることを見る
 - [x] T008 merge queue を有効にしたブランチで、T006 と同じマージを打つ。キューに入るかを記録する
 - [x] T009 結果を `specs/024-issue-readiness-stacked-prs/research.md` の R14 の表に書く。見込みと違った点は、R14 の「外れたとき」の設計に合わせて、該当の R と contracts を直す
 
@@ -80,16 +80,16 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 **Independent Test**: data-model.md の 3 の判定の表と、4 の進め方の表の、すべての行に当たる入力でテストが通る。偽の GitHub サーバに対して、前提の追加・解除・読み取りが、決めた形の要求を送る
 
 - [x] T010 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、着手の判定の失敗するテストを書く
-  - data-model.md の 3 の表の 9 つの順を、1 行ずつ入力にする。区分・理由のコード・積む先・見直しが要るかを比べる
+  - data-model.md の 3 の表の 9 つの順を、1 行ずつ入力にする。区分・理由のコード・スタック先・見直しが要るかを比べる
   - 順 7 は、前提の状態ごとに分ける。着手済みで PR が無い、未着手、PR が 2 本以上、fork からの PR、列が `Pending` の 5 つだ
   - 順 8 は、どの前提の PR から base をたどっても、ほかの前提に届かない組を入れる。間接の前提を挟む鎖と、開発ブランチに届かない鎖も入れる
-  - 済んでいない前提が 3 件で 1 本の列に並ぶ組は `stackable` になり、積む先が最上段の head のブランチになる
+  - 済んでいない前提が 3 件で 1 本の列に並ぶ組は `stackable` になり、スタック先が一番上の head のブランチになる
   - 前提の札が `Needs Attention` のとき、理由とは別の注記にその前提が入り、区分は変わらない
   - Epic と Tracker は、判定を返さない
-- [x] T011 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、進め方と積める並びの失敗するテストを書く
+- [x] T011 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、進め方とスタックできる並びの失敗するテストを書く
   - data-model.md の 4 の表の 4 つの進め方を、1 行ずつ入力にする
   - `merge` の前提があれば、ほかの前提の形にかかわらず「マージ待ち」になる
-  - 枝分かれのある前提の形で、積める並びが 2 本に分かれて出る
+  - 枝分かれのある前提の形で、スタックできる並びが 2 本に分かれて出る
   - quickstart.md の 1 の 5 つのフェーズを入力にし、期待の表と並びに合う
   - 輪のある入力で、輪になるキーの並びを返す
 - [x] T012 [P] `p-w/cli/src/domain/tests/prerequisites.test.ts` に、本文の節の読み書きの失敗するテストを書く
@@ -98,7 +98,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 行を外して節が空になると、節ごと消える
   - 同じリポは `#N`、別のリポは `owner/repo#N` で書く
   - 形に合わない行が 1 つでもある節は、読めないものとして返す
-- [x] T013 `p-w/cli/src/domain/readiness.ts` を足し、T010 と T011 を通す。判定・進め方・積める並び・輪の確認を置く。区分は `startable`・`stackable`・`blocked` の 3 つで、理由のコードは data-model.md の 3 の表の 7 つだ
+- [x] T013 `p-w/cli/src/domain/readiness.ts` を足し、T010 と T011 を通す。判定・進め方・スタックできる並び・輪の確認を置く。区分は `startable`・`stackable`・`blocked` の 3 つで、理由のコードは data-model.md の 3 の表の 7 つだ
 - [x] T014 `p-w/cli/src/domain/prerequisites.ts` を足し、T012 を通す
 - [x] T015 [P] `p-w/cli/src/infra/github/tests/` に、前提の読み書きの失敗するテストを書く
   - 追加は GraphQL の `addBlockedBy` で、`issueId` と `blockingIssueId` に node ID を渡す
@@ -175,7 +175,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 前提の付いていない Issue だけのボードでは、`Readiness` の列がすべて `startable` で、列が動かない
 - [x] T033 [US2] `p-w/cli/src/commands/project-info.ts` と `p-w/cli/src/commands/project.ts` を直し、T032 を通す。列と札を直す部分は外し、Phase 13 へ移した
   - 判定の計算は `mapWithLimit` で並べる
-  - 同じ Epic の積める並びを `## Stackable chains` に出す（FR-051）
+  - 同じ Epic のスタックできる並びを `## Stackable chains` に出す（FR-051）
   - JSON の出力の各 Issue に `readiness` を足す
 - [x] T034 [P] [US2] `p-w/cli/tests/interface/issue.test.ts` に、`issue read` の失敗するテストを書く。`Blocked by:` と `Readiness:` の 2 行が出る。前提の無い Issue では出ない。本文の節と blocked by が食い違うときに `warning:` が出る
 - [x] T035 [US2] `p-w/cli/src/commands/issue-read.ts` を直し、T034 を通す。JSON の出力に `blockedBy` と `readiness` を足す
@@ -189,7 +189,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ## Phase 5: User Story 1 — 一括投稿が前提を付け、進め方を示す (Priority: P1)
 
-**Goal**: `pecot issue create` が、Issue ファイルの前提を blocked by として付け、判定に合った列へ置く。`--plan` が、進め方の表と積める並びを出す。タイトルの番号は通し番号だけになる
+**Goal**: `pecot issue create` が、Issue ファイルの前提を blocked by として付け、判定に合った列へ置く。`--plan` が、進め方の表とスタックできる並びを出す。タイトルの番号は通し番号だけになる
 
 **Independent Test**: quickstart.md の 1 を通す。5 つのフェーズの Issue に、表の行と合う blocked by が付く。マージを待つ前提のある Issue の本文にだけ、節が付く
 
@@ -200,7 +200,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - `blocked_by` と `status: ready` を両方書くと、検証で落ちる
 - [x] T040 [US1] `p-w/cli/src/domain/frontmatter.ts` を直し、T039 を通す
 - [x] T041 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、`issue create --plan` の失敗するテストを書く
-  - 出力の表と積める並びは、contracts/cli-commands.md の `--plan` の形のとおりだ
+  - 出力の表とスタックできる並びは、contracts/cli-commands.md の `--plan` の形のとおりだ
   - 投稿の要求を 1 件も送らない
   - 次の 5 つの入力で、決めた `error:` を出して終了コード 1 で止まる
     - 前提のキーが、どのファイルにも無い
@@ -214,7 +214,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - マージを待つ前提のある Issue だけ、本文の末尾に節が付く
   - 前提のある Issue は `Blocked` の列に、無い Issue は `Ready` の列に置かれる
   - 前提の追加が 1 件失敗しても、Issue の作成は取り消されない。失敗した組と、付け直すコマンドが出て、終了コードは 1 になる
-  - 最後に、Issue の番号での積める並びが出る
+  - 最後に、Issue の番号でのスタックできる並びが出る
   - Issue の作成が途中で失敗したときは、作られた Issue どうしの前提だけを付ける
 - [x] T043 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、通し番号の失敗するテストを書く
   - `order` を省くと、既存のサブタスクの番号の最大の次から、ファイルの順に振る
@@ -232,7 +232,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - Step 2 は、前提の表を読む。段と枝の文字の計算と、「番号が示すのは着手の条件」の記述を外す
   - Step 3 は、`blocked_by` を書く。投稿の前に `pecot issue create --plan` を打ち、出力を前提の表と並べて示す
   - 4 列の表が無い tasks.md の扱いを、contracts/prerequisite-table.md の 4 のとおりに書く
-  - Step 4 は、進め方・積める並び・最初に着手できる Issue を報告する
+  - Step 4 は、進め方・スタックできる並び・最初に着手できる Issue を報告する
 - [x] T047 [P] [US1] `p-w/skills/w-help/references/issue-flow-rules.md` の `order` の説明を通し番号に直し、前提と種類の決まりを足す
 - [x] T048 [US1] スキルの文書のテストを直す。w-issueize の Step の順と、打つコマンドが、直した文と合う
 - [x] T049 [US1] `issue create` の定義書を直す。`p-w/interface/authored.yaml` に、`--plan`・前提の登録・通し番号の振る舞いの項目を足す
@@ -273,15 +273,15 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 **Independent Test**: quickstart.md の 3 の前半と 4 を通す。`startable` は開発ブランチから、`stackable` は前提のブランチからブランチができる。`blocked` は終了コード 2 で止まり、リモートにブランチができない
 
 - [x] T057 [P] [US3] `p-w/cli/tests/interface/create-branch.test.ts` に、失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot create-branch` の表の 4 行のとおりだ
-  - `stackable` のとき、`createLinkedBranch` に渡す位置が、積む先のブランチの先頭になる
+  - `stackable` のとき、`createLinkedBranch` に渡す位置が、スタック先のブランチの先頭になる
   - `blocked` のとき、ブランチを作る要求を送らない。直し方の 2 行が出る
   - `--base` が判定で選んだ base と違うと、終了コード 2 で止まる
   - 前提の付いていない Issue では、出力が今までと 1 文字も変わらない
-- [x] T058 [P] [US3] `p-w/cli/src/infra/tests/` に、base の記録の失敗するテストを書く。`.pecot/state/.pecot-base` に、base のブランチ・位置・積んだ先の Issue を 1 行で書く。ファイルが無いときは、開発ブランチから着手したものとして読む（data-model.md の 8）
+- [x] T058 [P] [US3] `p-w/cli/src/infra/tests/` に、base の記録の失敗するテストを書く。`.pecot/state/.pecot-base` に、base のブランチ・位置・スタック先の Issue を 1 行で書く。ファイルが無いときは、開発ブランチから着手したものとして読む（data-model.md の 8）
 - [x] T059 [US3] `p-w/cli/src/domain/state.ts` と `p-w/cli/src/infra/state-store.ts` に、base の記録を足し、T058 を通す
 - [x] T060 [US3] `p-w/cli/src/commands/repository.ts` を直し、T057 を通す。`resolveBaseBranch` の前に判定を計算する。ブロックを無視する指定は足さない（FR-021）
 - [x] T061 [US3] `p-w/cli/src/commands/session.ts` を直す。テストは `p-w/cli/tests/interface/session.test.ts` に書く
-  - 積んで着手した作業ディレクトリで、`## Stack` の節に base と、その Issue の PR を出す
+  - スタックして着手した作業ディレクトリで、`## Stack` の節に base と、その Issue の PR を出す
   - 着手中の Issue の判定が `blocked` のときは、同じ節に食い違いを出す
 - [x] T062 [US3] `p-w/skills/w-active/SKILL.md` を、contracts/skill-flow.md の w-active の表のとおりに直す。base の選び方をスキルの文に書かない。ブロック中で止まったときに、案内の 2 行を利用者に示す手順を足す
 - [x] T063 [US3] `create-branch` と `session status` の定義書を直す。スキルの文書のテストを直す
@@ -291,11 +291,11 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ---
 
-## Phase 8: User Story 4 — 積んだ Issue の PR がスタックとして出る (Priority: P2)
+## Phase 8: User Story 4 — スタックした Issue の PR がスタックとして出る (Priority: P2)
 
-**Goal**: `pecot pr create` が、積んだブランチの PR を下の段のブランチを base にして作り、GitHub のスタックに登録する。PR を作ると、その Issue を待っていた Issue の列が動く
+**Goal**: `pecot pr create` が、スタックしたブランチの PR を親ブランチを base にして作り、GitHub のスタックに登録する。PR を作ると、その Issue を待っていた Issue の列が動く
 
-**Independent Test**: quickstart.md の 3 の後半を通す。PR の base が前提のブランチで、差分にその段の変更だけが出る。2 つの PR がスタックとして並ぶ。待っていた Issue が `Ready` に移る
+**Independent Test**: quickstart.md の 3 の後半を通す。PR の base が前提のブランチで、差分にその PR の変更だけが出る。2 つの PR がスタックとして並ぶ。待っていた Issue が `Ready` に移る
 
 - [x] T065 [P] [US4] `p-w/cli/src/domain/tests/` に、PR の内容の検証の失敗するテストを書く。base が開発ブランチか、記録の base と同じなら通る。どちらでもなければ、今までどおり検証で落ちる
 - [x] T066 [P] [US4] `p-w/cli/src/infra/github/tests/` に、スタックの API の失敗するテストを書く
@@ -308,20 +308,20 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - スタックの API が 404 を返すリポでは、PR は作り、`warning:` を出す
   - 記録の base が開発ブランチのとき、出力が今までと変わらない
 - [x] T068 [US4] `p-w/cli/src/infra/github/pulls.ts` に、スタックの登録と読み取りを足し、T066 を通す
-- [x] T069 [US4] `p-w/cli/src/domain/pull-request.ts` と `p-w/cli/src/commands/pr.ts` を直し、T065 と T067 を通す。下の段の PR がマージ済みなら、base を開発ブランチにする
-- [x] T070 [US4] `p-w/skills/w-pr/SKILL.md` を、contracts/skill-flow.md の w-pr の表のとおりに直す。本文に、上下の PR やスタックの位置を書かせない
+- [x] T069 [US4] `p-w/cli/src/domain/pull-request.ts` と `p-w/cli/src/commands/pr.ts` を直し、T065 と T067 を通す。親 PR がマージ済みなら、base を開発ブランチにする
+- [x] T070 [US4] `p-w/skills/w-pr/SKILL.md` を、contracts/skill-flow.md の w-pr の表のとおりに直す。本文に、親子の PR やスタックの位置を書かせない
 - [x] T071 [US4] `pr create` の定義書を直す。スキルの文書のテストを直す
 - [x] T072 [US4] version plan を `.nx/version-plans/` に足す
 
-**Checkpoint**: 積んで着手した Issue を、レビューに出せる
+**Checkpoint**: スタックして着手した Issue を、レビューに出せる
 
 ---
 
 ## Phase 9: User Story 5 — スタックを下からマージし、次に着手できる Issue が分かる (Priority: P2)
 
-**Goal**: `pecot pr merge` が、単独の PR とスタックの最下段の PR をマージする。`pecot pr cleanup` が、待っていた Issue の列を動かし、判定の変化を出す。エージェントは `gh stack` を直接打てない
+**Goal**: `pecot pr merge` が、単独の PR とスタックの一番下の PR をマージする。`pecot pr cleanup` が、待っていた Issue の列を動かし、判定の変化を出す。エージェントは `gh stack` を直接打てない
 
-**Independent Test**: quickstart.md の 6 を通す。上の段の PR のマージは止まる。下の段をマージして片付けると、`Readiness changed:` が出て、上の段のブランチが残る
+**Independent Test**: quickstart.md の 6 を通す。子 PR のマージは止まる。親 PR をマージして片付けると、`Readiness changed:` が出て、子ブランチが残る
 
 - [x] T073 [P] [US5] `p-w/cli/src/infra/github/tests/` に、マージの API の失敗するテストを書く。単独の PR もスタックの中の PR も、`PUT .../pulls/{n}/merge-async` を呼ぶ（同期の API は merge queue を扱わない）。結果は `GET .../merge-async/{uuid}` で、終わるまで読む
   - merge queue の有無は、GraphQL の `PullRequest.isMergeQueueEnabled` で判定する。有りと無しの両方でテストする
@@ -337,7 +337,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 片付けの後、この PR の Issue を前提にしている Issue の列と札が動く。着手の跡がある Issue は動かない
   - base が開発ブランチでない PR の片付けでも、その PR の Issue が閉じる
   - 判定が変わった Issue が、stdout の `Readiness changed:` に出る
-  - 上に積んだ段があるとき、載せ直しの案内が出る。上の段のブランチを消す要求を送らない
+  - 子 PR があるとき、スタックし直しの案内が出る。子ブランチを消す要求を送らない
   - base の記録のファイルが、`.pecot-active` と一緒に消える
   - 前提にされていない Issue の PR では、出力が今までと変わらない
 - [x] T076 [US5] `p-w/cli/src/infra/github/pulls.ts` に、非同期のマージを足し、T073 を通す
@@ -352,34 +352,34 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 - [x] T081 [US5] 定義書に `PW-PR-MERGE` を足し、`pr cleanup` の項目を直す。共通の完了条件の 4 つを済ませる。コマンドの数は 1 つ増える。スキルの文書のテストを直す
 - [x] T082 [US5] version plan を `.nx/version-plans/` に足す
 
-**Checkpoint**: 積んだ PR を、順番を誤らずに開発ブランチへ届けられる
+**Checkpoint**: スタック PR を、順番を誤らずに開発ブランチへ届けられる
 
 ---
 
-## Phase 10: User Story 6 — 下の段を直した後に、上の段を載せ直せる (Priority: P3)
+## Phase 10: User Story 6 — 親 PR を直した後に、子 PR をスタックし直せる (Priority: P3)
 
-**Goal**: `pecot pr restack` が、今のブランチを base の新しい位置へ載せ直す。`--check` で、載せ直しが要るかが分かる。ほかの作業ディレクトリには触れない
+**Goal**: `pecot pr restack` が、今のブランチを base の新しい位置へスタックし直す。`--check` で、スタックし直しが要るかが分かる。ほかの作業ディレクトリには触れない
 
-**Independent Test**: quickstart.md の 5 と、6 の後半を通す。下の段に push があると `needs restack` と出る。載せ直すと、PR の差分がその段の変更だけに戻る。衝突では終了コード 3 で止まり、`--abort` で元に戻る
+**Independent Test**: quickstart.md の 5 と、6 の後半を通す。親 PR に push があると `needs restack` と出る。スタックし直すと、PR の差分がその PR の変更だけに戻る。衝突では終了コード 3 で止まり、`--abort` で元に戻る
 
-- [x] T083 [P] [US6] `p-w/cli/src/infra/tests/` に、載せ直しの失敗するテストを書く。一時の git リポと worktree を 2 つ使い、実際の git で確かめる
-  - 下の段にコミットを足すと、上の段が `git rebase --onto <新しい位置> <記録の位置>` で載る
-  - 下の段を squash で開発ブランチへ入れた後、上の段が開発ブランチへ載り、下の段のコミットが落ちる
+- [x] T083 [P] [US6] `p-w/cli/src/infra/tests/` に、スタックし直しの失敗するテストを書く。一時の git リポと worktree を 2 つ使い、実際の git で確かめる
+  - 親 PR にコミットを足すと、子 PR が `git rebase --onto <新しい位置> <記録の位置>` でスタックし直される
+  - 親 PR を squash で開発ブランチへ入れた後、子 PR が開発ブランチへスタックし直され、親 PR のコミットが落ちる
   - もう一方の worktree の、未コミットの変更とブランチの位置が変わらない
-  - 載せ直した結果の木が `origin/<branch>` と同じなら、手元が origin と同じ SHA になり、push しない
+  - スタックし直した結果の木が `origin/<branch>` と同じなら、手元が origin と同じ SHA になり、push しない
   - 木が違えば、`rebase --onto` した結果を `--force-with-lease` で push する
-  - 衝突のとき、衝突したファイルの一覧を返す。取りやめると、載せ直しの前の位置に戻る
-- [x] T084 [US6] `p-w/cli/src/infra/git.ts` に、載せ直し・続行・取りやめ・`--force-with-lease` の push を足し、T083 を通す
+  - 衝突のとき、衝突したファイルの一覧を返す。取りやめると、スタックし直しの前の位置に戻る
+- [x] T084 [US6] `p-w/cli/src/infra/git.ts` に、スタックし直し・続行・取りやめ・`--force-with-lease` の push を足し、T083 を通す
   - `rebase --onto` の後に `git diff --quiet HEAD origin/<branch>` で木を比べ、同じなら `origin/<branch>` に合わせて push しない
   - 合わせた後の base の位置は `git merge-base origin/<branch> <開発ブランチ>` で求める
-- [x] T085 [P] [US6] `p-w/cli/tests/interface/pr.test.ts` に、`pr restack` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr restack` の表の 9 行のとおりだ。載せ直しの後に、base の位置の記録が書き直される
+- [x] T085 [P] [US6] `p-w/cli/tests/interface/pr.test.ts` に、`pr restack` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr restack` の表の 9 行のとおりだ。スタックし直しの後に、base の位置の記録が書き直される
 - [x] T086 [US6] `p-w/cli/src/commands/pr.ts` に `pr restack` を足し、T085 を通す。`PR_COMMANDS` に登録する
-- [x] T087 [US6] `p-w/cli/src/commands/session.ts` の `## Stack` の節に、載せ直しが要るかを足す
-- [x] T088 [US6] `p-w/skills/w-revise/SKILL.md` を、contracts/skill-flow.md の w-revise の表のとおりに直す。上の段の作業ディレクトリには入らず、載せ直しが要る旨を報告に入れる
+- [x] T087 [US6] `p-w/cli/src/commands/session.ts` の `## Stack` の節に、スタックし直しが要るかを足す
+- [x] T088 [US6] `p-w/skills/w-revise/SKILL.md` を、contracts/skill-flow.md の w-revise の表のとおりに直す。子ブランチの作業ディレクトリには入らず、スタックし直しが要る旨を報告に入れる
 - [x] T089 [US6] 定義書に `PW-PR-RESTACK` を足し、共通の完了条件の 4 つを済ませる。コマンドの数は 1 つ増える。スキルの文書のテストを直す
 - [x] T090 [US6] version plan を `.nx/version-plans/` に足す
 
-**Checkpoint**: レビューの指摘で下の段が変わっても、上の段を保てる
+**Checkpoint**: レビューの指摘で親 PR が変わっても、子 PR を保てる
 
 ---
 
@@ -404,11 +404,11 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ## Phase 12: 文書と、検証用のリポでの通し
 
-**Goal**: 利用者が、前提・着手の判定・積む運用を、配布する文書だけで使える。spec 023 の文書が、人の判断を待つ値の名前を `Needs Attention` と書いている。w-ready が、前提を付けてサブタスクを作れる
+**Goal**: 利用者が、前提・着手の判定・スタックする運用を、配布する文書だけで使える。spec 023 の文書が、人の判断を待つ値の名前を `Needs Attention` と書いている。w-ready が、前提を付けてサブタスクを作れる
 
 **Independent Test**: quickstart.md の 1〜10 を、検証用のリポで通す。SC-001〜SC-016 の合否が PR に貼られている
 
-- [x] T095 [P] `p-w/skills/w-help/references/spec-driven-workflow.md` に、積んで着手・PR・マージ・載せ直しの流れを足す（FR-045）
+- [x] T095 [P] `p-w/skills/w-help/references/spec-driven-workflow.md` に、スタックして着手・PR・マージ・スタックし直しの流れを足す（FR-045）
 - [x] T096 [P] `p-w/skills/w-help/SKILL.md` と `p-w/README.md` に、新しい 4 つのコマンドと、列の読み方への案内を足す
 - [x] T097 [P] `specs/023-label-triggered-autofix/` の文書の `Waiting` を `Needs Attention` に直す（FR-071）。直すのは値の名前だけで、ほかの文は変えない
 - [x] T110 [P] `p-w/skills/w-ready/SKILL.md` が、先に終える Issue を `blocked_by` に書き、`dry_run: true` で確かめてから投稿する。`p-w/cli/templates/issue/task.md`・`bug.md` から `status`・`order` を外し、`blocked_by` を足す
@@ -456,22 +456,22 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | 積める | 前提の解除に使う API を、Phase 1 の結果で決める |
-| 3 | 1 | 積める | 選択肢の足し方と並びを、Phase 1 の結果で決める |
-| 4 | 2 | 積める | 一覧が、判定の関数と前提の読み取りを使う |
-| 4 | 3 | 積める | 列を直す処理が、`Blocked` の値と設定のキーを使う |
-| 5 | 4 | 積める | 一括投稿が、列を動かす共通の処理を使う |
-| 6 | 4 | 積める | 前提を変えた後に、列を動かす共通の処理を使う |
-| 7 | 4 | 積める | 着手が、Issue の実態の読み取りと判定を使う |
-| 8 | 7 | 積める | PR の作成が、着手のときの base の記録を読む |
-| 9 | 8 | 積める | マージが、スタックの読み取りを使う |
-| 10 | 8 | 積める | 載せ直しが、base の記録と下の段の PR を読む |
-| 11 | 5 | 積める | 前提の表を読む w-issueize と、表の形をそろえる |
+| 2 | 1 | スタックできる | 前提の解除に使う API を、Phase 1 の結果で決める |
+| 3 | 1 | スタックできる | 選択肢の足し方と並びを、Phase 1 の結果で決める |
+| 4 | 2 | スタックできる | 一覧が、判定の関数と前提の読み取りを使う |
+| 4 | 3 | スタックできる | 列を直す処理が、`Blocked` の値と設定のキーを使う |
+| 5 | 4 | スタックできる | 一括投稿が、列を動かす共通の処理を使う |
+| 6 | 4 | スタックできる | 前提を変えた後に、列を動かす共通の処理を使う |
+| 7 | 4 | スタックできる | 着手が、Issue の実態の読み取りと判定を使う |
+| 8 | 7 | スタックできる | PR の作成が、着手のときの base の記録を読む |
+| 9 | 8 | スタックできる | マージが、スタックの読み取りを使う |
+| 10 | 8 | スタックできる | スタックし直しが、base の記録と親 PR を読む |
+| 11 | 5 | スタックできる | 前提の表を読む w-issueize と、表の形をそろえる |
 | 12 | 6 | マージを待つ | quickstart の 1〜10 を、全フェーズの入った main の CLI で通す |
 | 12 | 9 | マージを待つ | 同上 |
 | 12 | 10 | マージを待つ | 同上 |
 | 12 | 11 | マージを待つ | 同上 |
-| 13 | 4 | 積める | 列を直すコマンドが、判定の関数と列を直す処理を使う |
+| 13 | 4 | スタックできる | 列を直すコマンドが、判定の関数と列を直す処理を使う |
 
 Phase 3 の T027 は、このリポのボードに値を足す。値の無いボードでも動くので、ほかのフェーズはこれを待たない。
 Phase 9 の hook の案内は `pecot pr restack` の名前を出す。コマンドは Phase 10 で入るが、案内の文だけなので Phase 9 は Phase 10 を待たない。
@@ -486,18 +486,18 @@ Phase 9 の hook の案内は `pecot pr restack` の名前を出す。コマン�
 | US3（判定で着手する） | 7 | US2 |
 | US4（スタックとして PR を出す） | 8 | US3 |
 | US5（下からマージする） | 9 | US4 |
-| US6（載せ直す） | 10 | US4 |
+| US6（スタックし直す） | 10 | US4 |
 | US8（前提の表を書かせる） | 11 | US1 |
 
 ### Parallel Opportunities
 
 - Phase 2 と Phase 3 は、Phase 1 の後に並べて進められる
 - Phase 5・6・7 は、Phase 4 の後に並べて進められる
-- Phase 9 と Phase 10 は、Phase 8 の後に並べて進められる。どちらも `p-w/cli/src/commands/pr.ts` を直すので、後から出すほうが載せ直す
+- Phase 9 と Phase 10 は、Phase 8 の後に並べて進められる。どちらも `p-w/cli/src/commands/pr.ts` を直すので、後から出すほうがスタックし直す
 - Phase 11 は、Phase 5 の後ならいつでも進められる
 - フェーズの中では、`[P]` のタスクを並べて進められる
 
-積める並びは次のとおり。
+スタックできる並びは次のとおり。
 
 ```text
 1 -> 2
@@ -526,7 +526,7 @@ T017 Issue の PR の読み取り（p-w/cli/src/infra/github/pulls.ts）
 ### MVP
 
 Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue がボードの正しい列にできる。一覧に判定が出て、列がずれても直る。
-この時点で、最初の困りごと（進めてよいのか分からない）が解ける。積んで進める動線はまだ無く、前提のマージを待つ。
+この時点で、最初の困りごと（進めてよいのか分からない）が解ける。スタックして進める動線はまだ無く、前提のマージを待つ。
 
 ### 増やし方
 
@@ -535,8 +535,8 @@ Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue
 | 1 | Phase 1〜4 | 画面で付けた blocked by が、一覧の判定とボードの列に出る |
 | 2 | Phase 5 | Issue 化のときに、前提が付き、進め方が見える |
 | 3 | Phase 7・8 | 前提がレビュー中の間に、次の Issue に着手して PR を出せる |
-| 4 | Phase 9 | 積んだ PR を、順番を誤らずにマージできる |
-| 5 | Phase 10 | 下の段が変わっても、上の段を保てる |
+| 4 | Phase 9 | スタック PR を、順番を誤らずにマージできる |
+| 5 | Phase 10 | 親 PR が変わっても、子 PR を保てる |
 | 6 | Phase 6 | 計画が変わったときに、前提を直せる |
 | 7 | Phase 11 | 前提の読み違いが、表の形で防がれる |
 | 8 | Phase 12 | 文書を読んで使い始められる。w-ready でも前提を付けられる |

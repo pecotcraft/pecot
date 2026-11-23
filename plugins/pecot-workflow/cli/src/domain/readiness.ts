@@ -136,7 +136,7 @@ function isPending(issue: IssueFacts): boolean {
   return issue.column === PENDING_COLUMN
 }
 
-// 列が Pending の前提は、人が後回しにしたものなので、PR があっても積む先にしない
+// 列が Pending の前提は、人が後回しにしたものなので、PR があってもスタック先にしない
 function isStackable(issue: IssueFacts): boolean {
   return isInReview(issue) && !isPending(issue)
 }
@@ -218,7 +218,7 @@ export function judgeReadiness(input: JudgeReadinessInput): Readiness | undefine
   }
   if (unfinished.length === 0) return result('startable', { needsReview: isNeedsReview, attention })
 
-  // 前提の Issue か、その PR が別のリポにあると、積む先のブランチを対象のリポで引けない
+  // 前提の Issue か、その PR が別のリポにあると、スタック先のブランチを対象のリポで引けない
   const otherRepository = unfinished.filter(({ issue }) => !isSameRepository(issue.ref.repository, target.ref.repository)
     || (isInReview(issue) && openPullRequests(issue).some(pullRequest => !isSameRepository(pullRequest.repository, target.ref.repository))))
   if (otherRepository.length > 0) return blocked({ code: 'other-repository', issues: otherRepository.map(({ issue }) => issue.ref) })
@@ -332,7 +332,7 @@ export function planProgression(phases: readonly PlannedPhase[]): ProgressionPla
 }
 
 /**
-stack の積む先をたどった木の、根から葉までの道を、下から並べて返す。stack の無い根は道を作らないので、1 段だけの道は出ない
+stack のスタック先をたどった木の、根から葉までの道を、下から並べて返す。stack の無い根は道を作らないので、1 段だけの道は出ない
 */
 export function stackChains(progressions: ReadonlyMap<string, Progression>): readonly (readonly string[])[] {
   const children = new Map<string, string[]>()
@@ -370,7 +370,7 @@ export function cycleThrough(target: string, edges: ReadonlyMap<string, readonly
 
 /**
 判定の一覧（Issue のキー → 判定）から、stackChains に渡す進め方を作る。
-stackable は積む先の Issue の上に積み、それ以外は単独として扱う
+stackable はスタック先の Issue の上にスタックし、それ以外は単独として扱う
 */
 export function progressionsFromReadiness(readiness: ReadonlyMap<string, Readiness>): ReadonlyMap<string, Progression> {
   return new Map([...readiness].map(([key, judged]): [string, Progression] => [
@@ -399,7 +399,7 @@ const NOT_IN_REVIEW_TEXT: ReadonlyMap<NotInReviewState, string> = new Map([
 ])
 
 /**
-前提 1 件の状態の文。`done`・`closed without merge`・`in review`・`wait: merge — <理由>`、または積めない理由（not started など）
+前提 1 件の状態の文。`done`・`closed without merge`・`in review`・`wait: merge — <理由>`、またはスタックできない理由（not started など）
 */
 export function describePrerequisiteState(prerequisite: Readonly<Prerequisite>): string {
   const { issue, wait, reason } = prerequisite
@@ -471,21 +471,21 @@ export function assumePullRequestState(prerequisites: readonly Prerequisite[], i
 }
 
 /**
-判定の区分か積む先のブランチが違うか。理由と注記の違いは変化としない
+判定の区分かスタック先のブランチが違うか。理由と注記の違いは変化としない
 */
 export function hasReadinessChanged(before: Readiness, after: Readiness): boolean {
   return before.kind !== after.kind || before.stackOn?.branch !== after.stackOn?.branch
 }
 
 /**
-判定の変化の行の文。blocked は理由を付けず、stackable は積む先を付ける
+判定の変化の行の文。blocked は理由を付けず、stackable はスタック先を付ける
 */
 export function describeReadinessChange(readiness: Readiness, targetRepository: RepositoryReference): string {
   return readiness.kind === 'blocked' ? 'blocked' : describeReadiness(readiness, [], targetRepository)
 }
 
 /**
-着手の跡があり、issues のどれかを stack で待つ（その上に積んだ段の）Issue か
+着手の跡があり、issues のどれかを stack で待つ（その子ブランチの）Issue か
 */
 export function isStackedOn(target: IssueFacts, prerequisites: readonly Prerequisite[], issues: readonly IssueReference[]): boolean {
   const keys = new Set(issues.map(issue => issueReferenceKey(issue)))
@@ -538,7 +538,7 @@ function toPullRequest(readout: PullRequestReadout): IssuePullRequest {
   }
 }
 
-// 積んだ PR は開いている間 Development 欄に載らず、マージ済みの PR はブランチが消えるので、2 つの読み口を合わせる。
+// スタック PR は開いている間 Development 欄に載らず、マージ済みの PR はブランチが消えるので、2 つの読み口を合わせる。
 // 同じ PR は 1 本に数え、fork からの PR は、リンクしたブランチの読み口だけ捨てる
 function collectPullRequests(readout: IssueReadout): readonly IssuePullRequest[] {
   const sources = [

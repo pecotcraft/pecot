@@ -1,4 +1,4 @@
-// 積んだブランチを載せ直す先の判断と、その表示。git と GitHub の読み取りは commands が行う。
+// スタックしたブランチをスタックし直す先の判断と、その表示。git と GitHub の読み取りは commands が行う。
 
 import type { PullRequestReadout } from './issue-readout.js'
 import type { BaseReading } from './state.js'
@@ -15,11 +15,11 @@ export interface RestackInput {
   readonly reading: Exclude<BaseReading, { kind: 'malformed' }>
   readonly developBranch: string
   /**
-  下の段のブランチを head に持つ PR（pickLowerPullRequest で選んだもの）
+  親ブランチを head に持つ PR（pickLowerPullRequest で選んだもの）
   */
   readonly lowerPullRequest: Readonly<PullRequestReadout> | undefined
   /**
-  下の段のブランチの、remote の先頭の SHA。remote に無ければ undefined
+  親ブランチの、remote の先頭の SHA。remote に無ければ undefined
   */
   readonly lowerHead: string | undefined
 }
@@ -36,7 +36,7 @@ export type RestackDecision
     | { readonly kind: 'rebased', readonly base: string }
 
 /**
-載せ直す先を決める。base は、載せ直した後の base のブランチ（merged なら開発ブランチ）
+スタックし直す先を決める。base は、スタックし直した後の base のブランチ（merged なら開発ブランチ）
 */
 export function decideRestack(input: Readonly<RestackInput>): RestackDecision {
   const { reading, developBranch, lowerPullRequest, lowerHead } = input
@@ -67,7 +67,7 @@ export function describeRestackCheck(branch: string, decision: Exclude<RestackDe
 }
 
 /**
-下の段のブランチが消えていて、マージもされていないときの文（`error: ` の前置きを含まない）
+親ブランチが消えていて、マージもされていないときの文（`error: ` の前置きを含まない）
 */
 export function describeGone(decision: Extract<RestackDecision, { kind: 'gone' }>): string {
   const pullRequest = decision.pullRequest === undefined ? 'it has no merged PR' : `PR #${String(decision.pullRequest)} was not merged`
@@ -75,7 +75,7 @@ export function describeGone(decision: Extract<RestackDecision, { kind: 'gone' }
 }
 
 /**
-載せ直しが要るか。下の段が消えていて決められないときは undefined
+スタックし直しが要るか。親ブランチが消えていて決められないときは undefined
 */
 export function needsRestack(decision: Readonly<RestackDecision>): boolean | undefined {
   return decision.kind === 'gone' ? undefined : decision.kind === 'moved' || decision.kind === 'merged'

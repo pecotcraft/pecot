@@ -169,7 +169,7 @@ export function formatPlanTable(rows: readonly PlanRow[], home: RepositoryRefere
 }
 
 /**
-積める並び。キーを label で表記に直し、並びが無ければ undefined。並びは `Stackable chains:` の見出しと `- a -> b` の行にする
+スタックできる並び。キーを label で表記に直し、並びが無ければ undefined。並びは `Stackable chains:` の見出しと `- a -> b` の行にする
 */
 export function formatStackableChains(progressions: ReadonlyMap<string, Progression>, label: (key: string) => string): string | undefined {
   const chains = stackChains(progressions).filter(chain => chain.length >= 2)

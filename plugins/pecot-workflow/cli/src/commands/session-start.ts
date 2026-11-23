@@ -76,7 +76,7 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
 }
 
 /**
-3.5. 着手の判定を読み、積む先を決める。blocked と読めないときは止める。依存関係を持たない GHES は、warning を出して判定なしで進める
+3.5. 着手の判定を読み、スタック先を決める。blocked と読めないときは止める。依存関係を持たない GHES は、warning を出して判定なしで進める
 */
 async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueReference>): Promise<Exclude<StartDecision, { kind: 'blocked' }>> {
   const label = displayReference(issue, issue.repository)
@@ -186,11 +186,11 @@ const sessionStartCommand = defineCommand({
         stopWith(out, `${owner}/${repository} is not in the project`, 'repo-not-in-project')
       }
 
-      // 4.5. 着手の判定で base を選ぶ。--base は積む先と比べる
+      // 4.5. 着手の判定で base を選ぶ。--base はスタック先と比べる
       const decision = await decideWorkStart(out, client, config, issue)
       const mismatch = describeBaseMismatch(input.base, decision, issue)
       if (mismatch !== undefined) stopWith(out, mismatch, 'invalid-input', USAGE_EXIT_CODE)
-      // 3. ベースブランチ決定（積まないときだけ、--base か設定の develop_branch を求める）
+      // 3. ベースブランチ決定（スタックしないときだけ、--base か設定の develop_branch を求める）
       const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branch: input.branch, base: input.base })
 
       // 5. Issue Node ID とタイトル取得（タイトルはセッション名用）

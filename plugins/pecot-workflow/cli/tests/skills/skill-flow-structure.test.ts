@@ -133,12 +133,12 @@ describe('w-active の手順', () => {
     expect(text).toContain('AskUserQuestion は使わない')
   })
 
-  it('ブランチ作成では base を渡さず、積んで着手した旨を伝える', () => {
+  it('ブランチ作成では base を渡さず、スタックして着手した旨を伝える', () => {
     const create = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
     const switching = sectionBody(text, titleIndex(headings, 'ブランチ切り替え'))
     expect(create).toContain('`base` は渡さない')
     expect(switching).toContain('作ったブランチに切り替える')
-    expect(switching).toContain('別の Issue の上に積んで着手したときは、その旨を利用者に伝える')
+    expect(switching).toContain('別の Issue の上にスタックして着手したときは、その旨を利用者に伝える')
   })
 
   it('実装の Step は、計画の CUJ を main が cuj-run.md に従って流すと書き、リンク先が実在する', () => {
@@ -193,7 +193,7 @@ describe('w-review の手順', () => {
     expect(preamble).toContain('渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。')
   })
 
-  it('Step 1 は、載せ直しを行わない', () => {
+  it('Step 1 では、スタックし直さない', () => {
     expect(sectionBody(text, numberIndex(headings, 1))).not.toContain('pr_restack')
   })
 
@@ -303,7 +303,7 @@ describe('w-pr の手順', () => {
     expect(body).not.toContain('/pecot-w:w-review')
   })
 
-  it('Step 5 は、session_show で上の段の PR を確かめ、あれば pr_restack が要る旨を報告に入れる', () => {
+  it('Step 5 は、session_show で子 PR を確かめ、あれば pr_restack が要る旨を報告に入れる', () => {
     const body = sectionBody(text, numberIndex(headings, 5))
     expect(body).toContain('`session_show`')
     expect(body).toContain('`pr_restack`')
@@ -382,14 +382,14 @@ describe('w-issueize の手順', () => {
   it('Step 2 は、4 列の表が無い tasks.md の扱いを持つ', () => {
     const body = sectionBody(text, titleIndex(headings, '前提'))
     expect(body).toContain('4 列の表が無い tasks.md')
-    expect(body).toContain('種類はすべて「積める」とする')
+    expect(body).toContain('種類はすべて「スタックできる」とする')
     expect(body).toContain('表が無かった旨を伝える')
   })
 
   it('Step 3 は、issue_check で確かめた番号・前提・進め方を、前提の表と並べて示す', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
     expect(body).toContain('結果の番号・前提・進め方を表にし')
-    expect(body).toContain('積める並びも示す')
+    expect(body).toContain('スタックできる並びも示す')
     expect(body).toContain('前提の表と並べて')
   })
 
@@ -427,9 +427,9 @@ describe('w-issueize の手順', () => {
     expect(text).not.toMatch(/段を決める/u)
   })
 
-  it('完了報告に、進め方・積める並び・最初に着手できる Issue を入れる', () => {
+  it('完了報告に、進め方・スタックできる並び・最初に着手できる Issue を入れる', () => {
     const body = sectionBody(text, numberIndex(headings, 4))
-    for (const word of ['進め方', '積める並び', '最初に着手できる Issue']) expect(body).toContain(word)
+    for (const word of ['進め方', 'スタックできる並び', '最初に着手できる Issue']) expect(body).toContain(word)
   })
 })
 
@@ -559,7 +559,7 @@ describe('w-breakdown の手順', () => {
 
   it('渡す指示は、種類を決める 2 つの問いを、開発ブランチを基準に持つ', () => {
     const block = tasksBlock()
-    expect(block).toContain('前提の変更を、手元のブランチか試験環境で動かして、このフェーズの実装と確認ができる。このときは「積める」')
+    expect(block).toContain('前提の変更を、手元のブランチか試験環境で動かして、このフェーズの実装と確認ができる。このときは「スタックできる」')
     expect(block).toContain('前提の変更が開発ブランチに入っていないと、手元のブランチと試験環境のどちらでも、このフェーズの実装か確認ができない。このときは「マージを待つ」')
     expect(block).toContain('試験環境は、開発ブランチに入れる前の変更を動かして確かめる場所だ。プロジェクトの文書に、その場所で動かす手順があるときだけ使う。無いときは、手元のブランチだけで判断する。')
     expect(block).not.toContain('main に入っていない')
@@ -587,7 +587,7 @@ describe('w-breakdown の手順', () => {
     const body = sectionBody(text, checkStep())
     expect(body).toContain(`1. \`${TABLE_HEADER}\` の 4 列の表がある`)
     expect(body).toContain('2. `Phase` と `前提` が数字だけで、どれも tasks.md のフェーズの見出し（`## Phase <番号>:`）にある')
-    expect(body).toContain('3. `種類` の値が、どの行も「積める」か「マージを待つ」')
+    expect(body).toContain('3. `種類` の値が、どの行も「スタックできる」か「マージを待つ」')
     expect(body).toContain('4. すべての行に `理由` がある')
   })
 
@@ -609,8 +609,8 @@ describe('w-breakdown の手順', () => {
     expect(body).not.toContain('main に入っていない')
   })
 
-  it('積める行の理由が空のときは、tasks の工程をやり直す', () => {
-    expect(sectionBody(text, checkStep())).toContain('積める行の理由が空のとき')
+  it('スタックできる行の理由が空のときは、tasks の工程をやり直す', () => {
+    expect(sectionBody(text, checkStep())).toContain('「スタックできる」の行の理由が空のとき')
   })
 
   it('analyze の案内は、確かめの Step の承認の文より後ろにある', () => {
@@ -730,7 +730,7 @@ describe('前提の種類を決める文', () => {
     'skills/w-ready/SKILL.md',
     'skills/w-help/references/issue-flow-rules.md',
     'skills/w-help/references/spec-driven-workflow.md',
-  ])('%s は、積める・マージを待つの文に、試験環境の句を持つ', (file) => {
+  ])('%s は、スタックできる・マージを待つの文に、試験環境の句を持つ', (file) => {
     const text = readPluginFile(file)
     expect(text).toContain(STACK_PHRASE)
     expect(text).toContain(MERGE_PHRASE)
