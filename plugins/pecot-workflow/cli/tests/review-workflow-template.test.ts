@@ -457,7 +457,7 @@ describe('review のワークフローの雛形', () => {
   it('記録の jq は、ツールの呼び出しと拒否が無いとき、None. を出す', () => {
     const filter = /jq -r --arg effort "\$effort" '([^']*)'/.exec(record.run ?? '')?.[1] ?? ''
     const summary = execFileSync('jq', ['-r', '--arg', 'effort', 'unknown', filter], { input: '[]', encoding: 'utf8' })
-    expect(summary).toContain('| `unknown` | `unknown` | `` | `` |')
+    expect(summary).toContain('| `unknown` | `unknown` |  |  |')
     expect(summary.match(/^None\.$/gm)).toHaveLength(2)
   })
 

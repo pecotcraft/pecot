@@ -193,8 +193,8 @@ action の中の出力 `skipped_due_to_workflow_validation_mismatch` は、actio
 
 - 使われた effort は、`settings` のフックが書いたファイルから読む。init のメッセージは effort を持たない。ファイルが無ければ `unknown` を出す
 - 対象は、入力の `file_path`・`path`・`file`・`pattern`・`command`・`url`・`query`・`pr_ref`・`issue_ref`・`libraryId`・`libraryName` のうち最初にあるもの。どれも無ければ、入力のキーの名前だけを並べる。コメントの本文の入る項目は出さない
-- ツールの出力と、Claude の文は出さない
-- セルは、改行を空白に替え、バッククォートを外して 200 文字で切り、`|` を `\|` に替えてコードスパンで囲む。対象は Claude が diff を読んで書いた文字列を含むので、リンク・画像・HTML にしない
+- ツールの出力と、Claude の文は出さない。`command`・`query` は Claude の書いた文字列なので、拒まれた呼び出しを含め、本文の入ったコマンドが 200 文字まで出ることがある
+- セルは、改行を空白に替え、バッククォートを外して 200 文字で切り、`|` を `\|` に替えてコードスパンで囲む。空のセルは囲まない（空のコードスパンは文字のまま出る）。対象は Claude が diff を読んで書いた文字列を含むので、リンク・画像・HTML にしない
 - action の `display_report` は使わない。Claude の書いた内容を Summary に出すので、action の文書が、信頼できる入力のときだけ使うよう警告している
 
 ## 許可するツール

@@ -51,7 +51,8 @@
 #
 # The job summary of each run shows the model and the effort level that were used.
 # It also lists the tools that were called and the calls that were denied.
-# It shows paths and commands, never tool output or comment text.
+# It shows paths, commands, and queries cut to 200 characters, never tool output.
+# A command, even a denied one, can carry text that Claude wrote.
 #
 # Runs started by Dependabot read Dependabot secrets, not Actions secrets.
 # To review Dependabot PRs, add "dependabot[bot]" to PECOT_REVIEW_ALLOWED_BOTS.
@@ -252,7 +253,7 @@ jobs:
           effort=unknown
           if [ -s "$RUNNER_TEMP/pecot-review-effort" ]; then effort=$(cat "$RUNNER_TEMP/pecot-review-effort"); fi
           jq -r --arg effort "$effort" '
-            def cell: tostring | gsub("[\r\n]+"; " ") | gsub("`"; "") | .[0:200] | gsub("\\|"; "\\|") | "`" + . + "`";
+            def cell: tostring | gsub("[\r\n]+"; " ") | gsub("`"; "") | .[0:200] | gsub("\\|"; "\\|") | if . == "" then "" else "`" + . + "`" end;
             def target: if type != "object" then ""
               else (.file_path // .path // .file // .pattern // .command // .url // .query
                 // .pr_ref // .issue_ref // .libraryId // .libraryName) // (keys | join(", ")) end;
