@@ -2,13 +2,14 @@
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
 import { z } from 'zod'
 
+import { isLabelWrittenByAutomation } from '../domain/auto-result.js'
 import { findRepository, workflowFieldName } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import type { IssuePrerequisitesReadout, PullRequestReadout } from '../domain/issue-readout.js'
 import { readWaitsForMerge } from '../domain/prerequisites.js'
 import type { WaitsForMergeReadout } from '../domain/prerequisites.js'
-import { judgeReadiness, toIssueFacts } from '../domain/readiness.js'
+import { hasStarted, judgeReadiness, NEEDS_ATTENTION_LABEL, toIssueFacts } from '../domain/readiness.js'
 import type { FactsMismatch, IssueFacts, IssuePullRequest, Prerequisite, Readiness } from '../domain/readiness.js'
 import { issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
@@ -71,6 +72,10 @@ export interface IssueSnapshot {
   対象のリポジトリの develop_branch。未設定なら undefined
   */
   readonly developmentBranch: string | undefined
+  /**
+  今の札（Needs Attention）を自動処理が書いた。コメントを読まない読み取りでは false
+  */
+  readonly labelWrittenByAutomation: boolean
 }
 
 export interface UnreadableIssue {
@@ -100,11 +105,23 @@ function titlesOf(readout: IssuePrerequisitesReadout): ReadonlyMap<string, strin
   return readout.blockedBy.kind === 'ok' ? new Map(readout.blockedBy.issues.map(issue => [issueReferenceKey({ repository: issue.repository, number: issue.number }), issue.title])) : new Map()
 }
 
+function isApiFailure(error: unknown): error is GitHubAPIError {
+  return error instanceof GitHubAPIError && !(error instanceof DependenciesUnsupportedError)
+}
+
+// 札を Todo に戻しうる Issue（札が Needs Attention で着手の跡が無い）だけ、コメントを読む
+async function wasLabelWrittenByAutomation(client: Readonly<GitHubClient>, reference: IssueReference, target: IssueFacts): Promise<boolean> {
+  if (target.label !== NEEDS_ATTENTION_LABEL || hasStarted(target)) return false
+  const { owner, repository } = reference.repository
+  return isLabelWrittenByAutomation(target.label, await client.listIssueCommentReadings(owner, repository, reference.number))
+}
+
 /**
 対象の Issue と前提を読む。API の失敗と blockedBy の読み取りの失敗は、読めない理由で返す。
+shouldReadComments が真なら、札を自動処理が書いたかをコメントから決める（列と札を動かす呼び出しだけが渡す）。
 DependenciesUnsupportedError は GitHubAPIError だが、対応しない GHES を呼ぶ側で見分けるため、そのまま投げる
 */
-export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, blockedByFirst?: number): Promise<IssueSnapshot | UnreadableIssue> {
+export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, blockedByFirst?: number, shouldReadComments = false): Promise<IssueSnapshot | UnreadableIssue> {
   const { owner, repository } = reference.repository
   let readout: IssuePrerequisitesReadout
   try {
@@ -114,13 +131,23 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
     }, blockedByFirst)
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError && !(error instanceof DependenciesUnsupportedError)) return unreadable(error.message)
+    if (isApiFailure(error)) return unreadable(error.message)
     throw error
   }
   const section: WaitsForMergeReadout = readWaitsForMerge(readout.issue.body, reference.repository)
   const result = toIssueFacts(readout, section, { columnFieldName: workflowFieldName(config), labelFieldName: STATUS_FIELD_NAME })
   if (result.prerequisites === 'read-failed') {
     return unreadable(readout.blockedBy.kind === 'read-failed' ? readout.blockedBy.reason : 'could not read blocked-by')
+  }
+  let wasWrittenByAutomation = false
+  if (shouldReadComments) {
+    try {
+      wasWrittenByAutomation = await wasLabelWrittenByAutomation(client, reference, result.target)
+    }
+    catch (error: unknown) {
+      if (isApiFailure(error)) return unreadable(error.message)
+      throw error
+    }
   }
   const { parent } = readout.issue
   return {
@@ -134,6 +161,7 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
     malformedReason: section.kind === 'malformed' ? section.reason : undefined,
     parent: parent === null ? undefined : { repository: parent.repository, number: parent.number },
     developmentBranch: findRepository(config, owner, repository)?.develop_branch,
+    labelWrittenByAutomation: wasWrittenByAutomation,
   }
 }
 
@@ -153,6 +181,7 @@ export function snapshotWithoutPrerequisites(config: ProjectConfig, input: { rea
     malformedReason: undefined,
     parent: input.parent,
     developmentBranch: findRepository(config, repository.owner, repository.repository)?.develop_branch,
+    labelWrittenByAutomation: false,
   }
 }
 
@@ -246,7 +275,7 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
     readiness = await traceStacks(client, snapshot, cache, byHead, readiness, judge, branch)
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError && !(error instanceof DependenciesUnsupportedError)) return unreadable(error.message, snapshot)
+    if (isApiFailure(error)) return unreadable(error.message, snapshot)
     throw error
   }
   return {
@@ -259,6 +288,7 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
     mismatches: snapshot.mismatches,
     malformedReason: snapshot.malformedReason,
     parent: snapshot.parent,
+    labelWrittenByAutomation: snapshot.labelWrittenByAutomation,
     readiness,
   }
 }
@@ -285,6 +315,7 @@ export async function judgeAssuming(
     malformedReason: judged.malformedReason,
     parent: judged.parent,
     developmentBranch: findRepository(config, repository.owner, repository.repository)?.develop_branch,
+    labelWrittenByAutomation: judged.labelWrittenByAutomation,
   }
   // 輪は前提の辺だけで決まり、状態の置き換えで変わらない
   const reason = judged.readiness?.reason
@@ -294,8 +325,8 @@ export async function judgeAssuming(
 /**
 Issue 1 件の読み取りから判定までを通す。輪は呼ぶ側が渡す（issue show は輪を見ない）
 */
-export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[], blockedByFirst?: number): Promise<IssueReadiness> {
-  const snapshot = await readIssueSnapshot(client, config, reference, blockedByFirst)
+export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[], blockedByFirst?: number, shouldReadComments = false): Promise<IssueReadiness> {
+  const snapshot = await readIssueSnapshot(client, config, reference, blockedByFirst, shouldReadComments)
   return snapshot.kind === 'unreadable' ? snapshot : await judgeSnapshot(client, snapshot, cache, cycle)
 }
 

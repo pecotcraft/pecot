@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { IssueSpec } from '../_helpers/prerequisites.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import type { CommandResult, ToolResult } from '../_helpers/command-harness.js'
@@ -164,14 +164,48 @@ describe('board sync', () => {
   })
 
   it('前提がすべて済んだ Issue の Needs Attention を、Todo に戻す', async () => {
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), write('PVTI_1', 'st1'), rateLimit(130)])
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1), write('PVTI_1', 'st1'), rateLimit(130)])
     expectClean(result)
     expect(result.stderr).toBe(`set: Status of #1 to Todo\n${RATE_NOTE}`)
   })
 
+  it.for(['question', 'failed', 'limit'])('bot が書いた最後の自動処理の結果が %s なら、前提が済んでも Needs Attention を Todo に戻さない', async (result, context) => {
+    await verifies(context, 'PW-BOARD-SYNC-32')
+    const comments = [botResult('pr-created'), { body: '答えを書きました' }, botResult(result)]
+    const run = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, comments), rateLimit(130)])
+    expectClean(run)
+    expect(run.code).toBe(0)
+    expect(run.stderr).toBe(RATE_NOTE)
+    expect(writes(run)).toEqual([])
+  })
+
+  it('人が書いた自動処理の結果の目印は見ず、前提がすべて済んだ Issue の Needs Attention を Todo に戻す', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-08')
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, [humanResult('question')]), write('PVTI_1', 'st1'), rateLimit(130)])
+    expectClean(result)
+    expect(result.stderr).toBe(`set: Status of #1 to Todo\n${RATE_NOTE}`)
+  })
+
+  it('bot が書いた最後の自動処理の結果が人の対応を待たないものなら、Needs Attention を Todo に戻す', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-08')
+    const comments = [botResult('question'), botResult('out-of-scope')]
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, comments), write('PVTI_1', 'st1'), rateLimit(130)])
+    expectClean(result)
+    expect(result.stderr).toBe(`set: Status of #1 to Todo\n${RATE_NOTE}`)
+  })
+
+  it('札が Needs Attention の Issue のコメントを読めないと、判定を出せない warning を出し、札を戻さない', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-23')
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsFailure(1), rateLimit(130)])
+    expectClean(result)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe(`warning: could not judge #1: GitHub API error: 500\n${RATE_NOTE}`)
+    expect(writes(result)).toEqual([])
+  })
+
   it('--dry-run を付けると、同じ文を dry-run の行で出し、ボードに書かない', async (context) => {
     await verifies(context, 'PW-BOARD-SYNC-09')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED' }] }), prerequisitesRule({ number: 4 }), rateLimit(100)], ['--dry-run'])
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED' }] }), commentsRule(1), prerequisitesRule({ number: 4 }), rateLimit(100)], ['--dry-run'])
     expectClean(result)
     expect(result.code).toBe(0)
     expect(result.stderr).toBe(`dry-run: would move #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\ndry-run: would move #4 Blocked -> Ready (startable)\n${NO_POINTS_USED}`)
@@ -180,7 +214,7 @@ describe('board sync', () => {
 
   it('--dry-run で札を変える予定も、dry-run の行で出す', async (context) => {
     await verifies(context, 'PW-BOARD-SYNC-09')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), rateLimit(100)], ['--dry-run'])
+    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), commentsRule(3), rateLimit(100)], ['--dry-run'])
     expectClean(result)
     expect(result.stderr).toBe(`dry-run: would move #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\ndry-run: would set Status of #1 to Needs Attention\ndry-run: would set Status of #3 to Todo\n${NO_POINTS_USED}`)
     expect(writes(result)).toEqual([])
@@ -484,9 +518,23 @@ describe('board sync', () => {
 
     it('前提がすべて済んだ Issue の Needs Attention を、Todo に戻す', async (context) => {
       await verifies(context, 'PW-BOARD-SYNC-08')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), write('PVTI_1', 'st1'))
+      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1), write('PVTI_1', 'st1'))
       expectClean(result)
       expect(result.structured).toEqual({ moves: [{ issue: '#1', label: 'Todo', reason: 'startable' }], deletedArchived: 0 })
+    })
+
+    it('bot が書いた最後の自動処理の結果が question なら、Needs Attention を Todo に戻さず、空の moves を返す', async (context) => {
+      await verifies(context, 'PW-BOARD-SYNC-32')
+      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, [botResult('question')]))
+      expectClean(result)
+      expect(result.structured).toEqual({ moves: [], deletedArchived: 0 })
+    })
+
+    it('札が Needs Attention の Issue のコメントを読めないと、判定を出せない旨を warnings に入れ、札を戻さない', async (context) => {
+      await verifies(context, 'PW-BOARD-SYNC-23')
+      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsFailure(1))
+      expectClean(result)
+      expect(result.structured).toEqual({ moves: [], deletedArchived: 0, warnings: ['could not judge #1: GitHub API error: 500'] })
     })
 
     it('書き込みに失敗した Issue を warnings に入れてほかの Issue を続け、kind が partial-failure の失敗を返す', async (context) => {

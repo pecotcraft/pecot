@@ -9,9 +9,10 @@ import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
-import { addBlockedByRule, bodyWritten, bothLinked, levelRule, nodeId, nodeIdRule, prepareDependencyProject, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
+import { addBlockedByRule, bodyWritten, bothLinked, labelUpdated, levelRule, nodeId, nodeIdRule, prepareDependencyProject, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
 import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../_helpers/prerequisites.js'
+import type { IssueSpec } from '../_helpers/prerequisites.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -430,6 +431,89 @@ describe('issue block', () => {
 
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not read blocked-by of #7: /u)
+  })
+
+  describe('札が Needs Attention の Issue に、済んだ前提を付ける', () => {
+    const merged: IssueSpec = { number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }
+    const addMerged = (...after: readonly ResponseRule[]): ResponseRule[] => [
+      bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [merged] }), ...after,
+    ]
+
+    it('自動処理の結果のコメントが無いと、列を Ready へ戻した後で札を Todo にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-06')
+      prepareDependencyProject()
+      const github = await startGithub(addMerged(commentsRule(7), boardItems(), fieldUpdated('o3'), labelUpdated('s2')))
+
+      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nmoved: #7 Blocked -> Ready (startable)\nset: Status of #7 to Todo\n' })
+      expect(writes(github)).toEqual(['AddBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
+    })
+
+    it('bot が書いた最後の自動処理の結果が limit なら、列は Ready に戻し、札を Todo に戻さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-28')
+      prepareDependencyProject()
+      const comments = commentsRule(7, [botResult('limit')])
+      const github = await startGithub(addMerged(comments, boardItems(), fieldUpdated('o3')))
+
+      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nmoved: #7 Blocked -> Ready (startable)\n' })
+      expect(writes(github)).toEqual(['AddBlockedBy', 'UpdateProjectItemField'])
+    })
+
+    it('人が書いた自動処理の結果の目印しか無いなら、札を Todo に戻す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-06')
+      prepareDependencyProject()
+      const comments = commentsRule(7, [humanResult('limit')])
+      const github = await startGithub(addMerged(comments, boardItems(), fieldUpdated('o3'), labelUpdated('s2')))
+
+      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+
+      expect(result.stderr).toBe('added: blocked-by #5 to #7\nmoved: #7 Blocked -> Ready (startable)\nset: Status of #7 to Todo\n')
+      expect(writes(github)).toEqual(['AddBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
+    })
+
+    it('コメントを読めないと、前提は付けたまま、判定を出せない warning を出して列と札を動かさない', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-29')
+      prepareDependencyProject()
+      const github = await startGithub(addMerged(commentsFailure(7)))
+
+      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+
+      expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nwarning: could not judge readiness of #7: GitHub API error: 500; the column and label of #7 were not moved\n' })
+      expect(writes(github)).toEqual(['AddBlockedBy'])
+    })
+
+    it('bot が書いた最後の自動処理の結果が question なら、札を戻さず、列の動きだけを moves に入れて data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-28')
+      prepareDependencyProject()
+      const comments = commentsRule(7, [botResult('question')])
+      await startGithub(addMerged(comments, boardItems(), fieldUpdated('o3')))
+
+      const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'stack', change: 'added', moves: [{ issue: '#7', from: 'Blocked', to: 'Ready', reason: 'startable' }] })
+    })
+
+    it('コメントを読めないと、空の moves と判定を出せない旨の warning を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-BLOCK-29')
+      prepareDependencyProject()
+      await startGithub(addMerged(commentsFailure(7)))
+
+      const outcome = await blockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        wait: 'stack',
+        change: 'added',
+        moves: [],
+        warnings: ['could not judge readiness of #7: GitHub API error: 500; the column and label of #7 were not moved'],
+      })
+    })
   })
 
   describe('MCP の data', () => {

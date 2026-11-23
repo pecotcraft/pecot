@@ -158,6 +158,6 @@ describe('decideBoardMove の札', () => {
 describe('設定のキーの対応', () => {
   it('列と札の表示名を設定のキーに対応づける', () => {
     expect(COLUMN_CONFIG_KEYS).toStrictEqual({ 'Blocked': 'blocked', 'In Review': 'in_review', 'Ready': 'ready' })
-    expect(LABEL_CONFIG_KEYS).toStrictEqual({ 'Needs Attention': 'needs_attention', 'Todo': 'todo' })
+    expect(LABEL_CONFIG_KEYS).toStrictEqual({ 'In Progress': 'in_progress', 'Needs Attention': 'needs_attention', 'Todo': 'todo' })
   })
 })

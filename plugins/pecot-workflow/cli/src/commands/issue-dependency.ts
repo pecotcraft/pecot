@@ -106,8 +106,7 @@ function boardMoveInput(judged: JudgedIssue, config: ProjectConfig, hasPrerequis
     hasStarted: hasStarted(target),
     hasPrerequisites,
     readiness: judged.readiness,
-    // spec 023 が入るまで、札はこの機能が書いたものとして扱う
-    labelWrittenByAutomation: false,
+    labelWrittenByAutomation: judged.labelWrittenByAutomation,
     available: {
       blocked: isOptionAvailable(config, 'workflow', 'blocked'),
       needsAttention: isOptionAvailable(config, 'status', 'needs_attention'),
@@ -120,7 +119,7 @@ function boardMoveInput(judged: JudgedIssue, config: ProjectConfig, hasPrerequis
 async function readConfirmed(context: Context, expected: ExpectedPrerequisites): Promise<{ readonly judged: JudgedIssue } | { readonly failure: string }> {
   const name = displayReference(context.target, context.home)
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const result = await readIssueReadiness(context.client, context.config, context.target, createReadinessCache())
+    const result = await readIssueReadiness(context.client, context.config, context.target, createReadinessCache(), undefined, undefined, true)
     if (result.kind === 'unreadable') return { failure: `could not judge readiness of ${name}: ${result.reason}` }
     if (hasExpectedPrerequisites(result.prerequisites, expected)) return { judged: result }
   }

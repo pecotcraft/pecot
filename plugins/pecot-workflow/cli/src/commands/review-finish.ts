@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { isJsonObject, jsonField } from '../domain/json.js'
 import { stripFrontmatter, stripLeadingHtmlComment } from '../domain/frontmatter.js'
 import { decideReviewFinish, hasStoppedMarker, readExecution, renderReviewStopped, stopLocationOf } from '../domain/review-finish.js'
-import type { ExecutionReading, FinishDecision, FinishInput, IssueCommentReading, ReviewCommentReading, RunIdentity, StopLocation } from '../domain/review-finish.js'
+import type { ExecutionReading, FinishDecision, FinishInput, ReviewCommentReading, RunIdentity, StopLocation } from '../domain/review-finish.js'
 import type { JsonValue } from '../domain/python-format.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
@@ -174,12 +174,6 @@ async function canActorWrite(out: FinishOutput, client: GitHubClient, target: Re
   }
 }
 
-function issueCommentOf(value: JsonValue): IssueCommentReading {
-  const body = jsonField(value, 'body')
-  const userType = jsonField(jsonField(value, 'user'), 'type')
-  return { body: typeof body === 'string' ? body : '', userType: typeof userType === 'string' ? userType : '' }
-}
-
 function reviewCommentOf(value: JsonValue): ReviewCommentReading {
   const body = jsonField(value, 'body')
   const createdAt = jsonField(value, 'created_at')
@@ -240,8 +234,8 @@ async function finish(out: FinishOutput, input: Readonly<Input>, globalRepositor
   }
   const run = runIdentity()
   if (run !== undefined) {
-    const comments = await readOrStop(out, `the comments of ${displayOf(target)}`, async () => await client.listIssueComments(target.owner, target.repository, target.number))
-    if (hasStoppedMarker(comments.filter(comment => isJsonObject(comment)).map(comment => issueCommentOf(comment)), run)) {
+    const comments = await readOrStop(out, `the comments of ${displayOf(target)}`, async () => await client.listIssueCommentReadings(target.owner, target.repository, target.number))
+    if (hasStoppedMarker(comments, run)) {
       skip(out, target, 'already-written')
       return
     }

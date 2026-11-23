@@ -219,7 +219,7 @@ function keyEntry(name: string, isOptional: boolean): KeyEntry {
 // 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
 const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived']
 const WORKFLOW_KEYS: readonly KeyEntry[] = WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)))
-const STATUS_KEYS: readonly KeyEntry[] = [keyEntry('Todo', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)]
+const STATUS_KEYS: readonly KeyEntry[] = [keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)]
 const PRIORITY_KEYS: readonly KeyEntry[] = ['High', 'Medium', 'Low'].map(name => keyEntry(name, false))
 const SIZE_KEYS: readonly KeyEntry[] = ['XS', 'S', 'M', 'L'].map(name => keyEntry(name, false))
 

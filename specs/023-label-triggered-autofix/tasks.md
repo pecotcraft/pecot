@@ -57,20 +57,19 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 
 **Independent Test**: 検証用で `pecot project init` を打つと、設定の `fields.status.options` に `in_progress` が足される。2 回目は何も変えない。自動処理の結果のコメントを持つ Issue の `Needs Attention` を、`board_sync` が Todo に戻さない
 
-- [ ] T001 [P] [US4] `p-w/cli/src/domain/tests/` に、設定のキー `status.options.in_progress` の、失敗するテストを書く
+- [x] T001 [P] [US4] `p-w/cli/src/domain/tests/` に、設定のキー `status.options.in_progress` の、失敗するテストを書く
   - `project init` が、既定の Status の In Progress の選択肢の ID を、設定に書く
   - `in_progress` の無い設定は、今までどおり読める
-  - In Progress の名前の選択肢が無いときは、無い名前を出して止まる
-- [ ] T002 [US4] `p-w/cli/src/domain/config.ts`・`p-w/cli/src/domain/board-move.ts`・`p-w/cli/src/commands/project.ts` に、`in_progress` のキーを足す
+- [x] T002 [US4] `p-w/cli/src/commands/project-sync.ts`・`p-w/cli/src/domain/board-move.ts` に、`in_progress` のキーを足す
   - 今あるキー（`needs_attention`・`todo`）は変えない
   - 欄は `spec/data-model.md` の「プロジェクトの設定に足すキー」のとおり
-- [ ] T003 [P] [US4] `p-w/cli/src/domain/tests/` に、札を自動処理が書いたかの判定の、失敗するテストを書く。Issue に、自動処理の結果のコメントの目印（bot が書いたもの）があれば真になる。決め方は `spec/data-model.md` のとおり
-- [ ] T004 [US4] T003 の判定を `p-w/cli/src/domain/` に足し、`labelWrittenByAutomation` を `false` に固定している 3 か所に渡す
+- [x] T003 [P] [US4] `p-w/cli/src/domain/tests/` に、札を自動処理が書いたかの判定の、失敗するテストを書く。Issue に、自動処理の結果のコメントの目印（bot が書いたもの）があれば真になる。決め方は `spec/data-model.md` のとおり
+- [x] T004 [US4] T003 の判定を `p-w/cli/src/domain/` に足し、`labelWrittenByAutomation` を `false` に固定している 3 か所に渡す
   - 3 か所は、`p-w/cli/src/commands/board-judgment.ts`・`issue-create.ts`・`issue-dependency.ts` だ
   - 目印を読む処理は `p-w/cli/src/infra/github/` に置く
-- [ ] T005 [US4] `project init` の定義書を直す。`p-w/interface/authored.yaml` の説明・効果・振る舞いの項目に、`in_progress` を書く。対応するテストに `verifies` を付ける
-- [ ] T006 [US4] 検証用のボードで `pecot project init` を打ち、設定に `in_progress` が足されたことを確かめる。前後で、カードの既定の Status の値が変わっていないことを確かめる
-- [ ] T007 [US4] 検証用で通った後に、このリポのボードで `pecot project init` を打つ。`.pecot/config/projects/` の設定の差分をコミットする
+- [x] T005 [US4] `project init` の定義書を直す。`p-w/interface/authored.yaml` の説明・効果・振る舞いの項目に、`in_progress` を書く。対応するテストに `verifies` を付ける
+- [x] T006 [US4] 検証用のボードで `pecot project init` を打ち、設定に `in_progress` が足されたことを確かめる。前後で、カードの既定の Status の値が変わっていないことを確かめる
+- [x] T007 [US4] 検証用で通った後に、このリポのボードで `pecot project init` を打つ。`.pecot/config/projects/` の設定の差分をコミットする
 
 **Checkpoint**: 設定ファイルから In Progress の ID を引ける。自動処理が書いた札を、列の判定が戻さない
 
@@ -112,6 +111,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
   - 出すものは `spec/contracts/cli-commands.md` の `pecot auto start` の表のとおり
   - `answers` は、`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `role_name` が `admin`・`maintain`・`write` のコメントに限る。ほかの人のコメントは、数だけを出す
   - 自動処理が書いた `Needs Attention` なら、PR が無ければ Todo に、あれば In Progress に戻す。それ以外の札は書かない
+  - 設定に `in_progress` が無いときは、無い名前（In Progress）を出して止まる
   - Issue がボードに無ければ、進行の欄を Ready にして載せる。`board add` と同じ処理を使う
 - [ ] T015 [US3] `p-w/cli/src/commands/auto.ts` に `finish` を足す
   - 振る舞いは `spec/contracts/cli-commands.md` の `pecot auto finish` の表のとおり
