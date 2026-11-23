@@ -81,8 +81,7 @@ specs/030-allure-test-report/
 
 ```text
 package.json                          # 変更: allure（CLI）を devDependencies に
-plugins/*/cli/package.json            # 変更: allure-vitest を devDependencies に
-libs/*/package.json                   # 変更: allure-vitest を。interface-spec には allure-js-commons も
+libs/interface-spec/package.json      # 変更: allure-vitest と allure-js-commons を。プラグインには足さない（research R2）
 .gitignore                            # 変更: allure-results と、手元のレポートの出力
 
 libs/interface-spec/
