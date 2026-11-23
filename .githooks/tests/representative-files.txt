@@ -12,6 +12,7 @@
 .githooks/scripts/attach-mcp-tgz.sh
 .githooks/scripts/gen-runtime-lock.mjs
 .githooks/scripts/run-pnpm.sh
+.githooks/scripts/test_report/generate.py
 .githooks/scripts/tests/mcp-publish-common.test.sh
 .githooks/tests/test_nx_task_cache.py
 .githooks/tests/test_ruleset_main.py
@@ -39,6 +40,7 @@ libs/interface-spec/src/domain/diff.ts
 libs/interface-spec/src/eslint/describe-title.ts
 libs/interface-spec/src/eslint/table-key.ts
 libs/interface-spec/src/vitest/unique-titles.ts
+libs/interface-spec/src/vitest/verifies.ts
 libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml
 libs/text-rules/index.ts
 libs/text-rules/package.json
