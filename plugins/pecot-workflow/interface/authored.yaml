@@ -4737,7 +4737,8 @@ entries:
         - A repository with the feature disabled passes with a skipped line.
         - A state of code scanning or secret scanning that cannot be determined, such as a missing permission, fails the command.
         - For a repository whose release type is nx, only the alerts are checked, and the version argument and --package are rejected.
-        - Otherwise checks that the CHANGELOG exists, that the version is in X.Y.Z form, that the tag exists neither locally nor on the remote, and that <develop_branch> has commits that <release_branch> does not have, where <remote> of the tag check is origin, or the first remote when there is no origin.
+        - With a version argument, checks that it is in X.Y.Z form before the alerts, and stops without checking the alerts when it is not.
+        - For a repository whose release type is not nx, also checks that the CHANGELOG exists, that the tag exists neither locally nor on the remote, and that <develop_branch> has commits that <release_branch> does not have, where <remote> of the tag check is origin, or the first remote when there is no origin.
         - "Without a version argument, the version is the first ## [X.Y.Z] heading of the CHANGELOG, and the Unreleased heading is skipped."
         - The CHANGELOG is the changelog_file of the repository in the config file.
         - Without changelog_file, the CHANGELOG is CHANGELOG.md and then AIST-CHANGELOG.md at the git root, and with --package, the changelog of that package.
@@ -4777,7 +4778,8 @@ entries:
       - '機能が無効のリポジトリは、飛ばした確認を `skipped` に入れて通ります。'
       - '権限が無いなどで code scanning か secret scanning の状態を判定できないと、失敗を返します。'
       - 'リリースの種類が nx のリポジトリでは、alert だけを確かめます。`version` と `package` は受け付けません。'
-      - 'それ以外では、次のことを確かめます。CHANGELOG があること。版が `X.Y.Z` の形であること。タグがローカルとリモートのどちらにも無いこと。`<develop_branch>` に、`<release_branch>` に無いコミットがあること。タグの確認に使う `<remote>` は `origin` で、`origin` が無ければ最初の remote です。'
+      - '`version` を渡すと、alert を調べる前に `X.Y.Z` の形かを確かめます。形が誤っていれば、alert を調べずに止まります。'
+      - 'nx でないリポジトリでは、alert のほかに次のことを確かめます。CHANGELOG があること。タグがローカルとリモートのどちらにも無いこと。`<develop_branch>` に、`<release_branch>` に無いコミットがあること。タグの確認に使う `<remote>` は `origin` で、`origin` が無ければ最初の remote です。'
       - '`version` が無いときの版は、CHANGELOG の最初の `## [X.Y.Z]` の見出しです。Unreleased の見出しは飛ばします。'
       - 'CHANGELOG は、設定ファイルにあるリポジトリの `changelog_file` です。'
       - '`changelog_file` が無いときの CHANGELOG は、git のルートの `CHANGELOG.md` で、その次が `AIST-CHANGELOG.md` です。`package` を渡したときは、そのパッケージの changelog です。'
@@ -4974,7 +4976,7 @@ entries:
         statement: 'もし `version` を省いて CHANGELOG に版が 1 つも無いなら、`kind` が `preflight-failed` の失敗を返します'
       - id: PW-RELEASE-CHECK-28
         pattern: unwanted
-        statement: 'もし渡した `version` が `X.Y.Z` の形でないなら、失敗を返します'
+        statement: 'もし渡した `version` が `X.Y.Z` の形でないなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-RELEASE-CHECK-29
         pattern: unwanted
         statement: 'もしタグがローカルに既にあるなら、`kind` が `preflight-failed` の失敗を返します'

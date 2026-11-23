@@ -350,7 +350,7 @@ describe('release check', () => {
   })
 
   it('もし渡した版が X.Y.Z の形でないなら、終了コード 1 で終わる', async () => {
-    const result = await runPreflight(project(WITH_BRANCHES), ['1.2'])
+    const result = await runPreflight(project(WITH_BRANCHES), ['1.2'], [])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('1.2')
   })
@@ -538,7 +538,8 @@ describe('release check', () => {
       { name: 'release_branch を設定していない', options: { repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'develop' }] }, input: {}, rules: alertRules(), kind: 'repo-setting-missing', detail: 'set it with: project_link with repo: "acme/demo", release_branch: <branch>', id: 'PW-RELEASE-CHECK-25' },
       { name: 'CHANGELOG が無い', options: { ...WITH_BRANCHES, files: { 'CHANGELOG.md': undefined } }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'CHANGELOG.md', id: 'PW-RELEASE-CHECK-26' },
       { name: 'version を省いて CHANGELOG に版が 1 つも無い', options: { ...WITH_BRANCHES, files: NO_PACKAGE_FILES }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'CHANGELOG', id: 'PW-RELEASE-CHECK-27' },
-      { name: '渡した version が X.Y.Z の形でない', options: WITH_BRANCHES, input: { version: '1.2' }, rules: alertRules(), kind: 'other', detail: '1.2', id: 'PW-RELEASE-CHECK-28' },
+      { name: '渡した version が X.Y.Z の形でない', options: WITH_BRANCHES, input: { version: '1.2' }, rules: [], kind: 'invalid-input', detail: 'invalid version format: 1.2', id: 'PW-RELEASE-CHECK-28' },
+      { name: '渡した version が空文字', options: WITH_BRANCHES, input: { version: '' }, rules: [], kind: 'invalid-input', detail: 'invalid version format: ', id: 'PW-RELEASE-CHECK-28' },
       { name: 'タグがローカルに既にある', options: { ...WITH_BRANCHES, localTags: ['v0.2.0'] }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'tag already exists locally: v0.2.0', id: 'PW-RELEASE-CHECK-29' },
       { name: 'タグが remote に既にある', options: { ...WITH_BRANCHES, remoteTags: ['v0.2.0'] }, input: {}, rules: alertRules(), kind: 'preflight-failed', detail: 'tag already exists on the remote: v0.2.0', id: 'PW-RELEASE-CHECK-30' },
       { name: 'develop_branch のコミットがすべて release_branch にある', options: WITH_BRANCHES, input: {}, rules: [...alertRules(), compareRule(0)], kind: 'preflight-failed', detail: 'there is nothing to release', id: 'PW-RELEASE-CHECK-31' },
@@ -796,7 +797,7 @@ describe('release create', () => {
     })
 
     it.for([
-      { name: '版が X.Y.Z の形でない', options: {}, input: { version: '1.2' }, kind: 'invalid-input', detail: '1.2', id: 'PW-RELEASE-CREATE-10' },
+      { name: '版が X.Y.Z の形でない', options: {}, input: { version: '1.2' }, kind: 'invalid-input', detail: 'invalid version format: 1.2', id: 'PW-RELEASE-CREATE-10' },
       { name: 'git リポジトリのルートを見つけられない', options: { isGit: false }, input: { repo: 'acme/demo' }, kind: 'git-unresolved', detail: 'could not find the root directory of the git repository', id: 'PW-RELEASE-CREATE-11' },
       { name: 'packages を設定したリポジトリに package を渡さない', options: { repositories: [PACKAGES], files: PACKAGE_FILES }, input: {}, kind: 'invalid-input', detail: 'acme/demo is a monorepo', id: 'PW-RELEASE-CREATE-13' },
       { name: 'package が設定に登録していないパッケージ名', options: { repositories: [PACKAGES], files: PACKAGE_FILES }, input: { package: 'unknown' }, kind: 'invalid-input', detail: 'package \'unknown\' is not registered in acme/demo', id: 'PW-RELEASE-CREATE-14' },
