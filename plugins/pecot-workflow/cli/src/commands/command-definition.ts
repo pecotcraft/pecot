@@ -69,7 +69,7 @@ export class CommandExit extends BaseError {
 /**
 グローバルの --repo を入力にしたもの。全コマンドの入力に足される
 */
-const GLOBAL_SHAPE = { repo: z.string().optional() }
+const GLOBAL_SHAPE = { repo: z.string().optional().describe('Target repository, given explicitly as \'owner/repo\'') }
 const RESERVED_OUTPUT_KEYS: readonly string[] = ['reason', 'detail', 'warnings', 'log']
 const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
 

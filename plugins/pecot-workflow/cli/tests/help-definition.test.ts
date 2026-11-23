@@ -173,13 +173,24 @@ function isRequired(entry: Entry, name: string, property: Property): boolean {
 }
 
 /**
+説明の文の `name` を、定義書の打つ形（位置引数は `<name>`、オプションは長い形）にする。グローバルの repo は --repo
+*/
+function cliText(entry: Entry, text: string): string {
+  return text.replaceAll(/`([a-z][a-z_]*)`/gu, (whole, name: string) => {
+    if (entry.cli.positional.includes(name)) return `\`<${name}>\``
+    const long = flagsOf(entry, name).at(0) ?? (name === 'repo' ? '--repo' : undefined)
+    return long === undefined ? whole : `\`${long}\``
+  })
+}
+
+/**
 引数 1 つの説明の欄。説明、default_notes の文、その後ろに印（[repeatable]・[required]・[choices: …]・[default: …]・範囲）の順
 */
 function descriptionOf(entry: Entry, name: string, notes: AuthoredNotes | undefined, isOption: boolean): string {
   const property = propertyOf(entry, name)
   const choices = choicesOf(property)
   const description = property['description']
-  return normalized([
+  const parts = [
     typeof description === 'string' ? description : '',
     notes?.defaultNotes.get(name) ?? '',
     isOption && property['type'] === 'array' ? '[repeatable]' : '',
@@ -187,7 +198,8 @@ function descriptionOf(entry: Entry, name: string, notes: AuthoredNotes | undefi
     choices !== undefined && (!isOption || isLongChoices(choices)) ? `[choices: ${choices.join(', ')}]` : '',
     ...defaultMarks(flagsOf(entry, name), property),
     ...rangeMarks(elementOf(property)),
-  ].filter(part => part !== '').join(' '))
+  ].filter(part => part !== '')
+  return normalized(cliText(entry, parts.join(' ')))
 }
 
 function positionalRow(entry: Entry, name: string, notes: AuthoredNotes | undefined): ExpectedRow {
@@ -253,7 +265,7 @@ function expectHelpMatchesDefinition(definition: CommandDefinition, text: string
   const positional = entry.cli.positional.map(name => positionalRow(entry, name, notes))
   const options = Object.keys(entry.input.properties).filter(name => !entry.cli.positional.includes(name)).map(name => optionRow(entry, name, notes))
   expect(unwrapped(sections.get('Usage') ?? [])).toBe(['Usage: pecot', ...definition.path, '[OPTIONS]', ...positional.map(row => row.name)].join(' '))
-  expect(unwrapped(sections.get('Description') ?? [])).toBe(normalized(entry.description))
+  expect(unwrapped(sections.get('Description') ?? [])).toBe(normalized(cliText(entry, entry.description)))
 
   const argumentLines = sections.get('Arguments')
   expect(argumentLines === undefined).toBe(positional.length === 0)
@@ -298,6 +310,15 @@ describe('全コマンドの --help は定義書の中身を全部出す', () =>
   it('定義書の項目を持たないコマンドは無く、default_notes を持つ項目がある', () => {
     expect(COMMANDS.filter(definition => notesOf(definition) === undefined).map(definition => definition.path.join(' '))).toEqual([])
     expect(COMMANDS.some(definition => (notesOf(definition)?.defaultNotes.size ?? 0) > 0)).toBe(true)
+  })
+
+  it.for([
+    { name: 'issue show', argv: ['issue', 'show'], text: 'the short form `N` in the repository of `--repo`,' },
+    { name: 'issue block', argv: ['issue', 'block'], text: 'Why it waits for the merge (required when `--wait` is merge)' },
+    { name: 'project link', argv: ['project', 'link'], text: 'falls back to `--changelog-file` or the default' },
+  ])('$name の --help は、説明の文の引数名をフラグの形で出す', async ({ argv, text }) => {
+    const help = await helpOf(argv, 80)
+    expect(unwrapped(help.split('\n'))).toContain(text)
   })
 })
 

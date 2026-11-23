@@ -53,7 +53,7 @@
 | `project list` | List available projects |
 | `project search` | Search projects through the GitHub API, and show which are initialized and which is active |
 | `project set` | Set a key of the project config (aggregation_repo: the Epic aggregation repository) |
-| `project unset` | Clear a key of the project config; without aggregation_repo, creating an Epic needs --repo |
+| `project unset` | Clear a key of the project config; without aggregation_repo, creating an Epic needs the target repository given explicitly |
 
 ## release
 

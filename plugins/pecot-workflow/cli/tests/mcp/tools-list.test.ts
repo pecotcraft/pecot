@@ -37,6 +37,13 @@ function hasTrueSchema(schema: unknown): boolean {
     : ['items', 'anyOf', 'oneOf', 'allOf', 'additionalProperties'].includes(key) && hasTrueSchema(value))
 }
 
+// schema の中の文字列の値を全部集める
+function stringsOf(value: unknown): readonly string[] {
+  if (typeof value === 'string') return [value]
+  if (typeof value !== 'object' || value === null) return []
+  return Object.values(value).flatMap(item => stringsOf(item))
+}
+
 const generated = GeneratedSchema.parse(parseJson(readFileSync(GENERATED, 'utf8')))
 
 const opened: ConnectedClient[] = []
@@ -71,6 +78,14 @@ describe('tools/list', () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.map(tool => tool.description)).toEqual(COMMANDS.map(command => command.description))
+  })
+
+  it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name）が無い', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const flagged = tools.flatMap(({ name, description, inputSchema, outputSchema }) =>
+      stringsOf({ description, inputSchema, outputSchema }).filter(text => /(?:^|[^\w-])--[a-z]/u.test(text)).map(text => `${name}: ${text}`))
+    expect(flagged).toEqual([])
   })
 
   it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の入力は、定義書の同じ項目の input に一致する', async ({ command }) => {

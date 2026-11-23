@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import type { AuthoredNotes } from '../../infra/authored-notes.js'
-import { commandHelpText } from '../command-help.js'
+import { cliTextOf, commandHelpText } from '../command-help.js'
 import { defineCommand } from '../registry.js'
 import { cellLength } from '../rich-panel.js'
 import { exitWith } from './support.js'
@@ -321,5 +321,21 @@ describe('選択肢の長いオプション', () => {
     const text = commandHelpText(long, undefined, 120)
     expect(text).toContain('--kind <task|bug>')
     expect(text).not.toContain('[choices: task')
+  })
+})
+
+describe('cliTextOf', () => {
+  it.for([
+    { name: 'オプションの名前', text: 'Needs `required_flag`', expected: 'Needs `--required-flag`' },
+    { name: '位置引数の名前', text: 'Unlike `target`', expected: 'Unlike `<target>`' },
+    { name: 'グローバルの repo', text: 'Of `repo`', expected: 'Of `--repo`' },
+    { name: '入力名でない語', text: 'As `owner/repo/N` or `N` or `unknown`', expected: 'As `owner/repo/N` or `N` or `unknown`' },
+  ])('$name をバッククォートで囲むと、CLI の打つ形にする', ({ text, expected }) => {
+    expect(cliTextOf(demo, text)).toBe(expected)
+  })
+
+  it('コマンドの説明の文の引数名を、--help の説明の段落でフラグの形にする', () => {
+    const described = defineCommand({ path: ['demo', 'say'], title: 'Test command', description: 'Run it with `verbose`', input: z.object({ verbose: z.boolean().default(false).describe('Print more') }), output: z.strictObject({}), positional: [], interactive: false, run: async () => await exitWith(0) })
+    expect(commandHelpText(described, undefined, 80)).toContain('\n\nRun it with `--verbose`\n\n')
   })
 })

@@ -131,7 +131,7 @@ function argumentRows(definition: Readonly<CommandDefinition>, input: InputSchem
     const isRequired = isRequiredField(definition, input, name)
     return {
       name: positionalName(name, input, isRequired),
-      description: describeProperty({ name, property: propertyOf(input, name), isRequired, hasNegation: false, isOption: false, defaultNote: defaultNotes.get(name) }),
+      description: cliTextOf(definition, describeProperty({ name, property: propertyOf(input, name), isRequired, hasNegation: false, isOption: false, defaultNote: defaultNotes.get(name) })),
     }
   })
 }
@@ -153,7 +153,7 @@ function optionRows(definition: Readonly<CommandDefinition>, input: InputSchema,
       const hasNegation = definition.negations.has(name)
       return {
         name: optionName(definition, name, property),
-        description: describeProperty({ name, property, isRequired: isRequiredField(definition, input, name), hasNegation, isOption: true, defaultNote: defaultNotes.get(name) }),
+        description: cliTextOf(definition, describeProperty({ name, property, isRequired: isRequiredField(definition, input, name), hasNegation, isOption: true, defaultNote: defaultNotes.get(name) })),
       }
     })
   return [...rows, HELP_OPTION]
@@ -164,6 +164,15 @@ function optionRows(definition: Readonly<CommandDefinition>, input: InputSchema,
 */
 function referenceOf(definition: Readonly<CommandDefinition>, name: string): string {
   return definition.positional.includes(name) ? `<${name}>` : flagOf(name)
+}
+
+/**
+説明の文の中の `` `name` `` を、打つ形（`` `--name` ``・`` `<name>` ``）にする。文は MCP の引数名で書き、CLI の help だけがこれを通す。
+名前は、コマンドの入力名とグローバルの repo だけを替える
+*/
+export function cliTextOf(definition: Readonly<CommandDefinition>, text: string): string {
+  return text.replaceAll(/`([a-z][a-z_]*)`/gu, (whole, name: string) =>
+    name === 'repo' || Object.hasOwn(definition.input.shape, name) ? `\`${referenceOf(definition, name)}\`` : whole)
 }
 
 function joinNames(names: readonly string[]): string {
@@ -195,7 +204,7 @@ export function commandHelpText(definition: Readonly<CommandDefinition>, notes: 
   const constraints = notes?.constraints.flatMap(constraint => constraintSentences(definition, constraint)) ?? []
   const sections = [
     usageLines(`pecot ${definition.path.join(' ')} ${synopsisFrom(definition, input)}`, width),
-    paragraph(definition.description, width),
+    paragraph(cliTextOf(definition, definition.description), width),
     ...positional.length === 0 ? [] : [definitionSection('Arguments', positional, width)],
     definitionSection('Options', optionRows(definition, input, defaultNotes), width),
     ...constraints.length === 0 ? [] : [bulletSection('Constraints', constraints, width)],

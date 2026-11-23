@@ -64,7 +64,7 @@ export const ISSUE_TYPE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker']).defa
 
 export const PARENT_EPIC_DESCRIPTION = 'Parent Epic reference: an integer (relative to aggregation_repo) or the primary form \'owner/repo/N\''
 
-export const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
+export const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)'
 
 export const VALID_STATUSES: ReadonlySet<string> = new Set(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
 

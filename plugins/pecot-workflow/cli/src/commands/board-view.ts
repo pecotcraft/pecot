@@ -157,7 +157,7 @@ const REPOSITORY_JSON = z.strictObject({
   develop_branch: z.string().nullable().describe('Develop branch (null when not set)'),
   release_branch: z.string().nullable().describe('Release branch (null when not set)'),
   dependabot_alerts: ALERTS_JSON.describe('Dependabot alert status, or the reason it could not be fetched'),
-  release_type: z.enum(['single', 'multi', 'nx']).describe('Release type in effect (data only; not in --json)'),
+  release_type: z.enum(['single', 'multi', 'nx']).describe('Release type in effect'),
   packages: z.array(PACKAGE_JSON).describe('Packages of a monorepo (data only; empty when none)'),
   changelog_file: z.string().optional().describe('CHANGELOG path set for a repository without packages (data only; omitted when not set)'),
 })

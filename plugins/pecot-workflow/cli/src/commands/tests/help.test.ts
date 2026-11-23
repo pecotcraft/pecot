@@ -132,6 +132,11 @@ describe('helpText', () => {
     expect(text).toContain('Commands:\n  custom\n')
   })
 
+  it('コマンドの説明の文にあるバッククォートの引数名は、Commands の行でフラグの形にする', () => {
+    const text = helpText(['custom'], [define(['custom', 'run'], 'Run it in `repo`, not `owner/repo`')], 80)
+    expect(text).toContain('  run  Run it in `--repo`, not `owner/repo`\n')
+  })
+
   it('コマンドが無ければ Commands の節を出さない', () => {
     const text = helpText([], [], 80)
     expect(text).not.toContain('Commands:')
