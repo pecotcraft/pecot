@@ -945,7 +945,8 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         ("pnpm-workspace.yaml", _GITHOOKS_GRAPH),
         ("nx.json", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
         (".nxignore", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
-        ("libs/text-rules/project.json", _GITHOOKS_GRAPH),
+        # test-ci の test_report_lanes.py は、全部の project.json の target と outputs を読む。
+        ("libs/text-rules/project.json", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
         # test-checks が読む設定。外れると、整合の確認が古い成功を返す。
         (".pre-commit-config.yaml", _GITHOOKS_CHECKS),
         (".textlintignore", _GITHOOKS_CHECKS),

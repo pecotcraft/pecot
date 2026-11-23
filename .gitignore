@@ -52,3 +52,6 @@ CLAUDE.local.md
 plugins/pecot-tools/cli/test-results/
 plugins/pecot-visual/cli/test-results/
 plugins/pecot-workflow/cli/test-results/
+
+# レーンが残す Allure の結果（<project>/test-results/<target>/allure-results）
+allure-results

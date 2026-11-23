@@ -71,6 +71,8 @@ _EXEMPT: dict[str, str] = {
         "ミラーの bootstrap は渡さず、build.mjs が text-rules も build する"
     ),
     "PECOT_TOOLS_SKIP_INSTALL": "test target の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ",
+    "NX_TASK_TARGET_PROJECT": "nx が task ごとに渡す project の名前。キャッシュの鍵のレーンで値が決まる",
+    "NX_TASK_TARGET_TARGET": "NX_TASK_TARGET_PROJECT と同じく、nx が task ごとに渡す target の名前",
     "PECOT_SITE_STRICT": (
         "interface-spec の docs だけが読み、docs は cache しない。test-unit のビルドは conf.py の値を上書きする"
     ),

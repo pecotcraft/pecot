@@ -100,6 +100,7 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{projectRoot}/cli/**/*",
         "!{projectRoot}/cli/tests/bootstrap/**",
         "{projectRoot}/interface/**/*",
@@ -125,7 +126,7 @@
         "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh",
         "^production"
       ],
-      "outputs": ["{projectRoot}/cli/test-results/junit.xml"],
+      "outputs": ["{projectRoot}/cli/test-results/junit.xml", "{projectRoot}/test-results/test-cli/allure-results"],
       "dependsOn": [
         "install",
         "check-pm-guard",
@@ -137,7 +138,7 @@
         "description": "cli の build / test / test:e2e。install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 21 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。cli/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。bin/pecotv、plugin.json、.mcp.json は、E2E が起動する実体になる。assets は、drawio の E2E が読むアイコンと証明書になる。skills の references は drawio の E2E が読む。pecot-tools の 3 ファイルと drift の確認は、node-runtime の同期テストが読む。assets/slidev から inputs に入れるのは 3 つだけとする。deck-lint.config.js、deck-lint.env.config.js、scripts/eslint/**（テスト以外）。slide lint 系のテスト（slide-lint.test.ts と mcp-tools.test.ts の slide_lint）が、子プロセスで起動するファイルを指す。eslint plugin の dist は build-slidev が作るので、dependsOn へ載せる。これでソースを変えた変更では、古い dist の成功が残らない。実行時依存の manifest は assets/slidev/runtime/package.json にある。runtime-install.test.ts と runtime-peers.test.ts が読む。pecotvPluginTestGlobals の **/package.json が拾うので、個別には入れない。上の 3 つ以外の assets/slidev（lint の補助スクリプトとそのテスト等）は、E2E が読まないので入れない。入れると、それらを変えるたびに本レーンが実行される（.claude/rules/nx-inputs.md）。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
+        "command": "rm -rf test-results/test-cli/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
         "cwd": "plugins/pecot-visual"
       }
     },
@@ -312,6 +313,7 @@
         "^production",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
         "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{projectRoot}/interface/generated.json"
       ],
       "dependsOn": ["install", { "projects": ["text-rules"], "target": "build" }],

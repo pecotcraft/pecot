@@ -1,7 +1,14 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
+
+import { allureReporter } from './src/vitest/allure-reporter.js'
 
 export default defineConfig({
   test: {
+    reporters: [
+      ...configDefaults.reporters,
+      // interface-env: NX_TASK_TARGET_PROJECT NX_TASK_TARGET_TARGET PECOT_REPORT_SITE_URL
+      ...allureReporter(import.meta.dirname),
+    ],
     include: ['tests/**/*.test.ts'],
     exclude: ['node_modules/**', 'tests/fixtures/**', 'tests/site/**'],
     setupFiles: ['src/vitest/unique-titles.ts'],

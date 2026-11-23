@@ -31,6 +31,7 @@
         "{projectRoot}/ci/run-affected-tests.sh",
         "{projectRoot}/pre-commit/run-affected-lint.sh"
       ],
+      "outputs": ["{projectRoot}/test-results/test-nx-cache/allure-results"],
       "dependsOn": [
         {
           "projects": [
@@ -62,6 +63,7 @@
         "{workspaceRoot}/libs/interface-spec/targets.json",
         "{projectRoot}/tests/representative-files.txt"
       ],
+      "outputs": ["{projectRoot}/test-results/test-nx-affected/allure-results"],
       "dependsOn": [
         {
           "projects": [
@@ -100,12 +102,20 @@
         "{projectRoot}/tests/test_pages_release.py",
         "{projectRoot}/tests/test_pages_store.py",
         "{projectRoot}/tests/test_pages_verify.py",
+        "{projectRoot}/tests/test_report_lanes.py",
+        "{projectRoot}/tests/test_allure_report_labels.py",
+        "{workspaceRoot}/libs/interface-spec/docs/tests/conftest.py",
         "{projectRoot}/scripts/pages_site/**/*",
+        "{projectRoot}/scripts/test_report/**/*",
+        "{workspaceRoot}/plugins/*/project.json",
+        "{workspaceRoot}/libs/*/project.json",
+        "{workspaceRoot}/.nx/nx-release/project.json",
         "{workspaceRoot}/libs/interface-spec/docs/junit-lanes.json",
         "{projectRoot}/ci/**/*",
         "{projectRoot}/pre-commit/run-affected-lint.sh",
         "{projectRoot}/pre-push/check-version-plan-required.sh"
       ],
+      "outputs": ["{projectRoot}/test-results/test-ci/allure-results"],
       "dependsOn": [
         {
           "projects": [
@@ -115,10 +125,10 @@
         }
       ],
       "metadata": {
-        "description": "CI のスクリプト（run-pr-checks・run-affected-*・キャッシュ・dev-container・pages_site）のテスト。"
+        "description": "CI のスクリプト（run-pr-checks・run-affected-*・キャッシュ・dev-container・pages_site・test_report）のテスト。"
       },
       "options": {
-        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py .githooks/tests/test_pages_lanes.py .githooks/tests/test_pages_collect.py .githooks/tests/test_pages_provenance.py .githooks/tests/test_pages_release.py .githooks/tests/test_pages_store.py .githooks/tests/test_pages_verify.py",
+        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py .githooks/tests/test_pages_lanes.py .githooks/tests/test_pages_collect.py .githooks/tests/test_pages_provenance.py .githooks/tests/test_pages_release.py .githooks/tests/test_pages_store.py .githooks/tests/test_pages_verify.py .githooks/tests/test_report_lanes.py .githooks/tests/test_allure_report_labels.py",
         "cwd": "."
       }
     },
@@ -187,6 +197,7 @@
         "{workspaceRoot}/libs/*/runtime-lock.yaml",
         "{workspaceRoot}/libs/*/runtime-workspace.yaml"
       ],
+      "outputs": ["{projectRoot}/test-results/test-checks/allure-results"],
       "dependsOn": [
         {
           "projects": [

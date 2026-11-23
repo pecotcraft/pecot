@@ -2,6 +2,7 @@ import path from 'node:path'
 
 import { configDefaults, defineConfig } from 'vitest/config'
 
+import { allureReporter } from '../../../libs/interface-spec/src/vitest/allure-reporter.js'
 import { readBaseline } from './tests/parity/baseline.js'
 
 // include / exclude は各 project にだけ書く。
@@ -37,7 +38,12 @@ export default defineConfig({
         },
       },
     ],
-    reporters: [...configDefaults.reporters, 'junit'],
+    reporters: [
+      ...configDefaults.reporters,
+      'junit',
+      // interface-env: NX_TASK_TARGET_PROJECT NX_TASK_TARGET_TARGET PECOT_REPORT_SITE_URL
+      ...allureReporter(path.resolve(import.meta.dirname, '..')),
+    ],
     outputFile: { junit: 'test-results/junit.xml' },
     coverage: {
       provider: 'v8',

@@ -28,7 +28,8 @@
     "env": [
       { "env": "NODE_OPTIONS" },
       { "env": "NODE_V8_COVERAGE" },
-      { "env": "HOME" }
+      { "env": "HOME" },
+      { "env": "PECOT_REPORT_SITE_URL" }
     ],
     "pecotPluginEnv": [
       { "env": "PECOT_HOOKS_CONFIG_PATH" },

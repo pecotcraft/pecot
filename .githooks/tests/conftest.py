@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -69,6 +70,28 @@ _NX_TASK_ENV = (
 
 
 _nx_state_roots: list[str] = []
+
+# Allure の結果に付けるラベル。run.sh が nx のレーンから動いたときに -o で渡す。
+_REPORT_LABELS = {"pecot_report_project": "project", "pecot_report_lane": "lane"}
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    for name, label in _REPORT_LABELS.items():
+        parser.addini(name, f"Allure の結果に付ける {label} のラベル", default="")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    labels = {label: config.getini(name) for name, label in _REPORT_LABELS.items()}
+    if not any(labels.values()):
+        return
+    import allure  # run.sh が allure-pytest を入れたときだけ読む
+
+    # allure.label は型を持たない。allure-pytest では pytest の印を返す。
+    mark = cast("Callable[[str, str], pytest.MarkDecorator]", allure.label)  # pyright: ignore[reportUnknownMemberType]
+    for item in items:
+        for label, value in labels.items():
+            if value:
+                item.add_marker(mark(label, value))
 
 
 def pytest_configure(config: pytest.Config) -> None:

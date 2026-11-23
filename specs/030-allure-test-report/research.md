@@ -31,11 +31,16 @@
 - **Decision**: vitest の設定のすべてに、reporter `allure-vitest/reporter` を足す。`resultsDir` は、レーンごとに分けた `<project>/test-results/<target>/allure-results` にする。既存の `junit` の reporter は残す
   - 対象の設定: `plugins/pecot-workflow/cli/vitest.config.ts`、`plugins/pecot-visual/cli/vitest.config.ts`・`vitest.e2e.config.ts`、`plugins/pecot-tools/cli/vitest.config.ts`・`vitest.e2e.config.ts`、`libs/interface-spec/vitest.config.ts`・`vitest.site.config.ts`、`libs/text-rules/vitest.config.ts`
   - プロジェクトとレーンは、reporter の `globalLabels` で `project`・`lane` のラベルとして渡す。値は、nx が task に渡す環境変数（`NX_TASK_TARGET_PROJECT`・`NX_TASK_TARGET_TARGET`）から決める
-  - `allure-vitest`・`allure-js-commons` は 3.15.0 に固定する。依存は、reporter を読むパッケージ（3 つのプラグインの `cli`・`libs/interface-spec`・`libs/text-rules`）の `package.json` に足す。`allure` の CLI だけは、ルートの `package.json` に足す
+  - `allure-vitest`・`allure-js-commons` は 3.15.0 に固定し、配布しない `libs/interface-spec` の `package.json` にだけ足す。`allure` の CLI は、ルートの `package.json` に足す
+    - reporter は `libs/interface-spec/src/vitest/allure-reporter.ts` の 1 か所で、`allure-vitest/reporter` の instance として作る。名前やパスの文字列で渡すと、knip がプラグインの設定から `allure-vitest` を未宣言の依存と読む
+    - プラグインの cli と `libs/text-rules` の devDependencies は、配布物の `runtime-lock.yaml` に写り、利用者の実行用ミラーにも入る。そこへ足すと、テストのためだけに配布物が変わる（#693）
+  - nx の外で動いたとき（`NX_TASK_TARGET_TARGET` が無いとき）は、reporter を足さず、結果を残さない（#693）
+    - `pecot-workflow` の設定は 1 つで 3 レーンを受け持ち、reporter は root にしか置けないので、nx の外では結果の置き場所を決められない
+    - reporter が無い実行では、`allure.*` の呼び出しは `allure-js-commons` の `NoopTestRuntime` に当たり、何も書かずに警告を出す（ソース）。`verifies` が `allure.*` を呼ぶフェーズで、この警告の扱いを決める
   - 1 つのレーンがテストを何回かに分けて動かすときは、同じ結果のディレクトリへ書き足す。空にするのは、レーンの最初の 1 回だけにする
     - `pecot-visual:test-cli`・`pecot-tools:test-cli`: vitest の後に e2e
     - `interface-spec:test-unit`: vitest の後に pytest
-  - `pecot-workflow:test-hooks` の 2 回目（`env -i` で、1 回目と JUnit を比べるための実行）は、Allure の結果を残さない。同じテストが 2 回出るのを避ける。`env -i` では nx の環境変数も消えるので、ラベルも付かない
+  - `pecot-workflow:test-hooks` の 2 回目（`env -i` で、1 回目と JUnit を比べるための実行）は、Allure の結果を残さない。同じテストが 2 回出るのを避ける。`env -i` では nx の環境変数も消えるので、上の決まりで reporter が付かない
 - **Rationale**:
   - 文書の形は `reporters: [..., ["allure-vitest/reporter", { resultsDir }]]`。peerDependencies は `vitest >= 1.3.0` で、5.1.0 を含む
   - `globalLabels` は reporter の文書にある設定で、すべての結果に付く。`ALLURE_LABEL_<名前>` の環境変数は vitest の文書に無く（ソース）、pytest では使えないので、採らない
@@ -49,7 +54,10 @@
 
 - **Decision**: pytest のレーン（`interface-spec:test-unit` の docs のテストと、`.githooks` の 4 レーン）に `allure-pytest` 2.16.2 を足し、`--alluredir <結果のディレクトリ>` を付ける。`project`・`lane` のラベルは、`conftest.py` の hook で付ける
   - `libs/interface-spec/docs/pyproject.toml` の dev の依存に足す
-  - `.githooks/tests/run.sh` の `uvx --with` に足す
+  - `.githooks/tests/run.sh` の `uvx --with` に足す。`run.sh` は、nx のレーンから動いたときだけ、結果のディレクトリを消してから `--alluredir` を付ける（#693）
+  - `--clean-alluredir` は使わない。xdist の worker もそれぞれ `pytest_configure` でディレクトリを消すので、落ちた worker の代わりが起きると、途中の結果が消える（ソース）
+  - ラベルの値は、conftest の `addini`（`pecot_report_project`・`pecot_report_lane`）に `-o` で渡す。xdist の worker も同じ引数で起動する
+  - `allure` は hook の中で読む。allure-pytest を入れない pytest（pre-push の `check-nx-env-inputs.sh`）でも、conftest が読める
 - **Rationale**: 文書の形は `python -m pytest --alluredir allure-results`。`requires` は `pytest>=4.5.0` で、9.2.0 を含む。環境変数でラベルを付ける仕組みは pytest には無い（ソース）
 - **実物で確かめる点**: `.githooks` のテストは pytest-xdist の `-n auto` で動く。`allure-pytest` と xdist を同時に使えることは、文書で確かめられなかった。最初のフェーズで実物で確かめ、結果がそろわなければ、このレーンだけ `-n 0` にせず、原因を調べて利用者に伝える
 - **pytest の `verifies`**: pytest のテストは、今 `verifies` を 1 つも書いていない。pytest 用の `verifies` は作らない
@@ -123,7 +131,7 @@
   | 入れないレーン | 理由 |
   |---|---|
   | 各プラグインの `test-bootstrap`・`test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash の `*.test.sh` |
-  | `pecot-visual:test-slidev` | `node --test` |
+  | `pecot-visual:test-slidev`・`nx-release:test-unit` | `node --test` |
 
 - **Rationale**: `.githooks/tests` に、nx の `test-*` の target がこのファイルに全部あることを確かめるテストを置く。レーンが増えたとき、入れるか入れないかを書かないと CI が落ちる（FR-002）
 - **`junit-lanes.json` の扱い**: 消す。今の読み手は、合否を描く作り・CI の JUnit の artifact・リリース版の材料の 3 つで、どれもこの機能で無くなる。サイトに載せるプラグインの一覧は、定義書（`plugins/*/interface/`）を持つプラグインから決める

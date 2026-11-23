@@ -104,6 +104,7 @@
         "{workspaceRoot}/nx.json",
         "env"
       ],
+      "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
       "dependsOn": [
         "install"
       ],
@@ -111,7 +112,7 @@
         "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli/tests/interface-export/）を形式の検証に読むので、inputs に足してある。 tests/names.test.ts は pecot-visual・pecot-tools の定義書を材料に借りるだけなので、inputs に足さない。定義書が names に合うかは lint-defs が確かめる。 docs/tests の pytest（iface_defs 拡張）も動かす。 pytest は docs/junit-lanes.json の junit が各プラグインの outputs にあるかを見る。 そのため plugins/*/project.json を inputs に足してある。 targetDefaults が outputs を足さないことも見るので、nx.json も足してある。"
       },
       "options": {
-        "command": "pnpm exec vitest run --coverage && uv run --locked --project docs pytest docs/tests -q",
+        "command": "rm -rf test-results/test-unit/allure-results && pnpm exec vitest run --coverage && uv run --locked --project docs pytest docs/tests -q --alluredir test-results/test-unit/allure-results -o pecot_report_project=interface-spec -o pecot_report_lane=test-unit",
         "cwd": "libs/interface-spec"
       }
     },
@@ -127,12 +128,14 @@
         "{projectRoot}/vitest.site.config.ts",
         "{projectRoot}/package.json",
         "{projectRoot}/src/vitest/unique-titles.ts",
+        "{projectRoot}/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/plugins/*/interface/generated.json",
         "{workspaceRoot}/plugins/*/interface/authored.yaml",
         "{workspaceRoot}/.github/assets/**/*",
         "runtime",
         "env"
       ],
+      "outputs": ["{projectRoot}/test-results/test-site/allure-results"],
       "dependsOn": [
         "install"
       ],
@@ -140,7 +143,7 @@
         "description": "定義書のサイトをビルドし、Chromium で全ページを開いて見た目の崩れ（目次の無いページの右の空欄・見出しの ¶・幅 390px のはみ出し）を測る。Chromium は pecot-visual と同じ playwright の版のものを使う。"
       },
       "options": {
-        "command": "pnpm exec vitest run --config vitest.site.config.ts",
+        "command": "rm -rf test-results/test-site/allure-results && pnpm exec vitest run --config vitest.site.config.ts",
         "cwd": "libs/interface-spec"
       }
     },
