@@ -94,7 +94,7 @@ jobs:
       # pages-store の ruleset の bypass は、この App だけ。client ID と秘密鍵は environment pages-store にだけ置く。
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ vars.PAGES_STORE_APP_CLIENT_ID }}
           private-key: ${{ secrets.PAGES_STORE_APP_PRIVATE_KEY }}
