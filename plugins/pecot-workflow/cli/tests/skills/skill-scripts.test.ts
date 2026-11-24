@@ -2,7 +2,7 @@
 // スキルの scripts/ にあるスクリプトを、一時ディレクトリで実際に動かして結果を確かめる。
 // あわせて、スキルの本文がスクリプトを埋め込まず、在るファイルを指していることを確かめる。
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, symlinkSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs'
 import { createServer } from 'node:net'
 import path from 'node:path'
 
@@ -25,6 +25,7 @@ describe('スキルの本文とスクリプトのファイル', () => {
     { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/detect-sibling-config.cjs' },
     { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/board-url.cjs' },
     { skill: 'skills/w-pr/SKILL.md', script: 'scripts/serve-preview.cjs' },
+    { skill: 'skills/w-pr/SKILL.md', script: 'scripts/wait-merge.cjs' },
   ])('$skill は、base directory の $script を node で動かすよう書き、そのファイルが在る', ({ skill, script }) => {
     expect(readPluginFile(skill)).toContain(`node <このスキルの base directory>/${script}`)
     const file = path.join(pluginRoot, path.dirname(skill), script)
@@ -273,5 +274,79 @@ describe('w-pr のプレビューの配信', () => {
     const result = spawnSync(process.execPath, [script, '.pecot/work/399', port], { cwd: repository, encoding: 'utf8' })
     expect(result.status).toBe(1)
     expect(result.stderr).toBe(`配信を立てられません: port が 0〜65535 の整数ではありません（${port}）\n`)
+  })
+})
+
+function open(mergeable: string, isInMergeQueue = false) {
+  return { state: 'OPEN', mergeable, isInMergeQueue }
+}
+
+function parseArguments(line: string): readonly string[] {
+  const parsed: unknown = JSON.parse(line)
+  return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []
+}
+
+describe('w-pr のマージの待ち受け', () => {
+  const script = scriptPath('skills/w-pr/scripts/wait-merge.cjs')
+  const url = 'https://github.com/pecotcraft/pecot-sandbox/pull/12'
+  const fakeGh = readFileSync(path.join(import.meta.dirname, 'fixtures/fake-gh.mjs'), 'utf8')
+
+  function waitMerge(responses: readonly unknown[], arguments_: readonly string[] = [url, '0.05', '2']) {
+    const bin = makeTemporaryDirectory()
+    writeTree(bin, { 'gh': `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/fake-gh.mjs" "$@"\n`, 'fake-gh.mjs': fakeGh, 'responses.json': JSON.stringify(responses) })
+    chmodSync(path.join(bin, 'gh'), 0o755)
+    const result = spawnSync(process.execPath, [script, ...arguments_], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env['PATH'] ?? ''}` },
+    })
+    const log = path.join(bin, 'calls.log')
+    const calls = existsSync(log) ? readFileSync(log, 'utf8').trim().split('\n').map(line => parseArguments(line)) : []
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr, calls }
+  }
+
+  it.for([
+    { name: 'マージされた', responses: [{ state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }], word: 'MERGED' },
+    { name: 'マージされずに閉じられた', responses: [{ state: 'CLOSED', mergeable: 'MERGEABLE', isInMergeQueue: false }], word: 'CLOSED' },
+    { name: 'base とコンフリクトした', responses: [open('CONFLICTING')], word: 'CONFLICTING' },
+    { name: 'merge queue から外れて開いたまま', responses: [open('MERGEABLE', true), open('MERGEABLE')], word: 'DEQUEUED' },
+  ])('PR が $name なら、$word を 1 行出して終了コード 0 で終わる', ({ responses, word }) => {
+    expect(waitMerge(responses)).toMatchObject({ status: 0, stdout: `${word}\n`, stderr: '' })
+  })
+
+  it('開いたままの間は待ち続け、マージされたら MERGED を出す', () => {
+    const result = waitMerge([open('UNKNOWN'), open('MERGEABLE', true), { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }])
+    expect(result).toMatchObject({ status: 0, stdout: 'MERGED\n' })
+    expect(result.calls).toHaveLength(3)
+  })
+
+  it('開いたまま上限が来ると、TIMEOUT を出して終了コード 0 で終わる', () => {
+    const result = waitMerge([open('MERGEABLE')], [url, '0.05', '0.3'])
+    expect(result).toMatchObject({ status: 0, stdout: 'TIMEOUT\n' })
+    expect(result.calls.length).toBeGreaterThan(1)
+  })
+
+  it('PR の URL のホスト・owner・repo・番号で、GraphQL を読む', () => {
+    const [call] = waitMerge([{ state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }]).calls
+    expect(call?.slice(0, 4)).toStrictEqual(['api', '--hostname', 'github.com', 'graphql'])
+    expect(call).toEqual(expect.arrayContaining(['owner=pecotcraft', 'repo=pecot-sandbox', 'number=12']))
+    expect(call?.find(argument => argument.startsWith('query='))).toContain('isInMergeQueue')
+  })
+
+  it('gh が 1 回失敗しても、読み直して続ける', () => {
+    expect(waitMerge(['fail', { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }])).toMatchObject({ status: 0, stdout: 'MERGED\n' })
+  })
+
+  it('gh が 3 回続けて失敗すると、理由を stderr に出して終了コード 1 で止まる', () => {
+    const result = waitMerge(['fail'])
+    expect(result).toMatchObject({ status: 1, stdout: '', stderr: '待ち受けを続けられません: HTTP 502\n' })
+    expect(result.calls).toHaveLength(3)
+  })
+
+  it.for([
+    { name: '間隔が 0', arguments_: [url, '0'], message: '間隔が正の数ではありません（0）' },
+    { name: '上限が数でない', arguments_: [url, '1', 'abc'], message: '上限が正の数ではありません（abc）' },
+    { name: 'URL が PR を指さない', arguments_: ['https://github.com/pecotcraft/pecot-sandbox/issues/12'], message: 'PR の URL ではありません（https://github.com/pecotcraft/pecot-sandbox/issues/12）' },
+  ])('$name だと、gh を呼ばずに終了コード 1 で止まる', ({ arguments_, message }) => {
+    expect(waitMerge([open('MERGEABLE')], arguments_)).toMatchObject({ status: 1, stdout: '', stderr: `待ち受けを続けられません: ${message}\n`, calls: [] })
   })
 })

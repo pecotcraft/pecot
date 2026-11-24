@@ -3,14 +3,15 @@ name: w-pr
 description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
-  Does not merge PRs (use w-merge).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment, Bash(gh api:*), Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*)
+  Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish, merge-diff, precede-notify).
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check, mcp__plugin_pecot-w_pecot-workflow__pr_create, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment, mcp__plugin_pecot-w_pecot-workflow__issue_show, mcp__plugin_pecot-w_pecot-workflow__session_show, mcp__plugin_pecot-w_pecot-workflow__session_finish, Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-merge.cjs *), Bash(gh api:*), Bash(git push:*), Bash(git checkout:*), Bash(git branch:*), Bash(git worktree list:*), Bash(git fetch:*), Bash(git pull:*), Bash(mkdir:*), Bash(touch:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr checks:*), Bash(gh run view:*), Bash(git add:*), Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
 # プルリクエスト作成
 
 現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。CI を待ち、PR に付いたレビューの指摘の採否を自分で決めて対応し、終わってから報告します。直さない指摘には、理由を返信します。
+その後も、利用者が GitHub の画面でマージするのを待ち受け、マージされたら後片付けと Epic・後続へのコメントまで済ませます。
 
 ## 手順
 
@@ -113,7 +114,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 gh pr checks <PR番号> --watch --fail-fast > /dev/null 2>&1; gh pr checks <PR番号>
 ```
 
-- `no checks reported` が出たら、少しおいて打ち直す。2 回続いたら CI の無いリポとみなし、その旨を伝えて終える
+- `no checks reported` が出たら、少しおいて打ち直す。2 回続いたら CI の無いリポとみなし、その旨を伝えて Step 5 へ進む
 - 落ちたら、PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる
 - 直すのは 3 回まで。超えたら状況を利用者に伝えて止まる
 
@@ -127,7 +128,7 @@ CI が通ったら、PR に付いたレビューの指摘に対応する。自�
 - 後ろに `review-resolution` の無い `review-findings`
 
 pecot-workflow の MCP ツール `pr_show` で、PR のコメントを読む（`reviews: true`）。
-指摘が無ければ、その旨を伝えて終える。
+指摘が無ければ、その旨を伝えて [Step 6](#step-6-マージを待ち受けて片付ける) へ進む。
 
 最新の `review-findings` の Disposition で「直った」とされた F-NN は、採否を決める対象にしない。スレッドを resolve する対象にし、`review-resolution` の Applied に書く。
 
@@ -170,7 +171,7 @@ gh api --hostname <対象ホスト> graphql \
 - 「対応不要」の理由には、確かめた根拠（読んだコード・仕様の文・計画）を添える
 - 保留や別 Issue への先送りにしない
 
-指摘が 0 件の `review-findings` なら、`review-resolution` を 0 件の文言で投稿し、この後の修正と resolve を飛ばす。
+指摘が 0 件の `review-findings` なら、`review-resolution` を 0 件の文言で投稿し、この後の修正と resolve を飛ばして Step 6 へ進む。
 
 #### 採用分を直し、main がコミット
 
@@ -234,7 +235,7 @@ gh api --hostname <対象ホスト> graphql -f query='
 
 対応を終えたら、チャットに `review-resolution` の本文をそのまま示して報告する。
 
-修正を push したら、Step 4 に戻って CI を待つ。
+修正を push したら、Step 4 に戻って CI を待つ。push する修正が無ければ、Step 6 へ進む。
 
 修正を push したあと、pecot-workflow の MCP ツール `session_show` を使って、子 PR があるかを確かめる。あれば、その PR の作業ディレクトリで `pr_restack` が要る旨を、チャットの報告に入れる。子 PR の作業ディレクトリには入らない。
 
@@ -243,4 +244,28 @@ gh api --hostname <対象ホスト> graphql -f query='
 - 採否は main が決め、途中で利用者に確かめない。「対応不要」にした F-NN は、スレッドの返信と Declined に理由を残す。
 - 返信と resolve は、`**F-NN**` で始まるスレッドに限る。
 
-マージは `/pecot-w:w-merge` を使用する。
+### Step 6: マージを待ち受けて片付ける
+
+マージは、利用者が GitHub の画面で行う。PR がマージされるか閉じられるまで待ち、マージされたらその場で片付ける。
+
+次のコマンドで待ち、PR の状態が変わったときに 1 語だけ出す。Step 4 と同じく、Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
+
+```bash
+node <このスキルの base directory>/scripts/wait-merge.cjs <PR の URL>
+```
+
+URL だけを渡すと、60 秒おきに PR を読み、25 分で切り上げる。間隔と上限は、2 つ目と 3 つ目の引数に秒で渡せる。
+25 分は、Claude Code の background 実行の既定の上限（30 分）より短い。
+
+出力に合う行を実行する。
+
+| 出力 | 次の手順 |
+|---|---|
+| `MERGED` | [マージされた後の片付け](references/after-merge.md) に従って、片付けと Epic・後続へのコメントを済ませる |
+| `CLOSED` | マージされずに閉じられた旨を利用者に伝えて止まる。片付けない |
+| `CONFLICTING` | base とコンフリクトした。Step 4 に戻り、スタックし直すか base へ rebase してから CI とレビューの指摘に対応し、ここで待ち直す |
+| `DEQUEUED` | merge queue のチェックが落ちたか、コンフリクトで queue から外された。Step 4 に戻り、原因を直してから待ち直す |
+| `TIMEOUT` | 同じコマンドで待ち直す |
+| `待ち受けを続けられません:` で始まる | 文を利用者に伝えて止まる |
+
+上限で止められて何も出さずに終わったときも、同じコマンドで待ち直す。

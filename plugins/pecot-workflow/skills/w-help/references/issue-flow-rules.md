@@ -162,7 +162,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 
 未コミット差分の扱いはツールのガード対象外（git status の判断は AI / 人間に委ねられる）。`git status` で前 Issue 由来の差分が残っていれば commit / stash / 破棄で clean にしてから着手する。
 
-関連: [`w-worktree-add/SKILL.md`](../../w-worktree-add/SKILL.md) / [`w-merge/references/worktree-handling.md`](../../w-merge/references/worktree-handling.md) / [`flags.md`](./flags.md)。
+関連: [`w-worktree-add/SKILL.md`](../../w-worktree-add/SKILL.md) / [`w-pr/references/after-merge.md`](../../w-pr/references/after-merge.md#ワークツリー環境での手作業) / [`flags.md`](./flags.md)。
 
 ## 6. 変更対象のリポジトリ限定（越境ガード）
 

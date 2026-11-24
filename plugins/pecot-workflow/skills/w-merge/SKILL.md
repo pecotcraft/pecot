@@ -52,32 +52,6 @@ while [ "$(gh api graphql -F n=<PR番号> -f query='query($n:Int!){repository(ow
 - `MERGED` なら 2.3 へ進む
 - `OPEN` なら、queue のチェックが落ちたかコンフリクトで外された。原因を読んで直し、2.1 からやり直す
 
-#### 2.3 片付け
+#### 2.3 片付けとコメント
 
-pecot-workflow の MCP ツール `session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。
-
-警告が出たら、その文に従って手で対応する。ワークツリー環境の手順は [ワークツリー環境での処理](references/worktree-handling.md) にある。
-
-結果に判定の変化（`readinessChanges`）があれば、着手できるようになった Issue を利用者に伝える。
-子ブランチ（`restack`）があれば、そのブランチの作業ディレクトリでスタックし直しが要ることを利用者に伝える。ほかの作業ディレクトリには入らない。
-
-### Step 3: 実装差分分析・Epicコメント
-
-PR が閉じた Issue に親 Epic があるときだけ行う。親 Epic は、pecot-workflow の MCP ツール `issue_show` で確かめる。
-
-PR が閉じた Issue は、片付けの結果の `closedIssues` の Issue と、`skippedIssues` の `already-closed` の Issue。
-`already-closed` の Issue は、`pr_show` で読む PR の closing issues にあるものだけを数える。
-
-1. マージした PR の変更と、Issue の本文の計画を比べる
-2. pecot-workflow の MCP ツール `issue_comment` を使って、Epic 宛ての merge-diff テンプレのファイルを作る
-3. テンプレのガイドに従って本文を書き、`issue_comment` を使って Epic に投稿する
-
-計画どおりで差分が無いときも、その旨を投稿する。変更ファイルの一覧は本文に書かない。
-
-### Step 4: speckit後続フェーズ通知（条件付き）
-
-speckit 由来のタスクで、後続のフェーズに影響する変更があるときだけ行う。speckit 由来とは、Issue の本文か、親 Epic のほかのサブタスクが `specs/`・`.specify/` に触れているものを指す。
-
-1. 通知する Issue を選ぶ。片付けの結果に判定の変化（`readinessChanges`）があれば、その Issue を選ぶ。無ければ、`issue_show` を使って親 Epic を読み、現在のタスク以外の OPEN のサブタスクを選ぶ
-2. `issue_comment` を使って、その Issue 宛ての precede-notify テンプレのファイルを作る
-3. テンプレのガイドに従って本文を書き、`issue_comment` を使って投稿する
+w-pr の [マージされた後の片付け](../w-pr/references/after-merge.md) に従って、片付けと Epic・後続へのコメントを済ませる。

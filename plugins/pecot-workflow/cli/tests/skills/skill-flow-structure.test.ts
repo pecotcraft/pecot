@@ -316,6 +316,51 @@ describe('w-pr の手順', () => {
     expect(body.match(/\bt\d+:\s*resolveReviewThread/gu)?.length ?? 0).toBeGreaterThanOrEqual(2)
     expect(body).not.toContain('$threadId')
   })
+
+  it('Step 6 は、レビューの指摘に対応した後で、マージを待ち受けて片付ける', () => {
+    expect(titleIndex(headings, 'レビューの指摘に対応')).toBeLessThan(titleIndex(headings, 'マージを待ち受けて片付ける'))
+    expect(text).not.toContain('`/pecot-w:w-merge`')
+  })
+
+  it('Step 6 は、待ち受けのスクリプトの出力ごとに次の手順を持ち、コンフリクトと queue からの外れで Step 4 に戻す', () => {
+    const body = sectionBody(text, numberIndex(headings, 6))
+    expect(body).toContain('node <このスキルの base directory>/scripts/wait-merge.cjs <PR の URL>')
+    for (const word of ['MERGED', 'CLOSED', 'CONFLICTING', 'DEQUEUED', 'TIMEOUT', '待ち受けを続けられません:']) expect(body).toContain(`| \`${word}`)
+    expect(body.match(/Step 4 に戻り/gu)).toHaveLength(2)
+    expect(body).toContain('マージされずに閉じられた旨を利用者に伝えて止まる。片付けない')
+  })
+
+  it('Step 4 と Step 5 は、途中で終えずに Step 6 の待ち受けへつなぐ', () => {
+    expect(sectionBody(text, numberIndex(headings, 4))).toContain('その旨を伝えて Step 5 へ進む')
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).not.toMatch(/伝えて終える/u)
+    expect(body).toContain('push する修正が無ければ、Step 6 へ進む')
+  })
+})
+
+describe('マージされた後の片付け', () => {
+  const link = 'references/after-merge.md'
+  const text = readPluginFile(`skills/w-pr/${link}`)
+
+  it.for([
+    { skill: 'w-pr', href: link },
+    { skill: 'w-merge', href: `../w-pr/${link}` },
+  ])('$skill は、片付けの手順を $href から読ませ、リンク先が在る', ({ skill, href }) => {
+    expect(readSkill(skill)).toContain(`](${href})`)
+    expect(existsSync(path.join(pluginRoot, 'skills', skill, href))).toBe(true)
+  })
+
+  it('session_finish でリモートブランチも消し、Epic に merge-diff、後続に precede-notify を投稿させる', () => {
+    expect(text).toContain('`session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。')
+    expect(text).toContain('## Epic への merge-diff')
+    expect(text).toContain('## 後続への precede-notify')
+  })
+
+  it('w-merge は、片付けの手順を自分で持たない', () => {
+    const merge = readSkill('w-merge')
+    expect(merge).not.toContain('session_finish')
+    expect(merge).not.toContain('merge-diff')
+  })
 })
 
 describe('w-ready の手順', () => {
