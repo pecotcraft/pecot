@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "dry-run: would move #2 Active -> Ready (startable)\ncount: GraphQL points used: 0\ncount: GraphQL points remaining: 4900\n",
+  "stderr": "warning: this board uses the old field name pecot-workflow-acme\n  run: pecot project init acme <name> --host ghes.example.com\ndry-run: would move #2 Active -> Ready (startable)\ncount: GraphQL points used: 0\ncount: GraphQL points remaining: 4900\n",
   "exitCode": 0,
   "requests": [
     {
@@ -26,7 +26,6 @@
         "owner": "acme",
         "repo": "demo",
         "number": 2,
-        "columnFieldName": "pecot-workflow-acme",
         "labelFieldName": "Status",
         "blockedByFirst": 50
       },

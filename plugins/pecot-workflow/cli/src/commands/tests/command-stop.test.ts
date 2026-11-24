@@ -53,7 +53,6 @@ function useProjects(configs: Readonly<Record<string, readonly string[]>>): stri
     writeFileSync(path.join(projects, `${name}.json`), JSON.stringify({
       host: 'github.com',
       owner: 'acme',
-      workflow_suffix: 'x',
       project: { number: 1, id: 'PVT_x', fields: { workflow: { id: 'F', options: {} } } },
       repositories: repositories.map(full => ({ owner: full.split('/', 2)[0] ?? '', name: full.split('/', 2)[1] ?? '' })),
     }))

@@ -1,11 +1,11 @@
 // board show の表示と、Archived の整理、Dependabot alert の収集。
 import { z } from 'zod'
 
-import { effectiveReleaseType, workflowFieldName } from '../domain/config.js'
+import { effectiveReleaseType, workflowFieldId } from '../domain/config.js'
 import type { ProjectConfig, Repository } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'
 import type { DependabotAlertStatus } from '../domain/dependabot.js'
-import { formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
+import { fieldNameById, formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { compareStrings } from '../domain/python-format.js'
@@ -13,6 +13,8 @@ import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { READINESS_JSON } from './issue-readiness.js'
+import { isLegacyWorkflowFieldName } from '../domain/migration.js'
+import { commandHint, hinted, placeholder, RUN_COLON } from './command-hint.js'
 import type { BoardReadinessJson } from './issue-readiness.js'
 import type { Output } from './output.js'
 import { STATUS_FIELD_NAME } from './project-sync.js'
@@ -339,19 +341,32 @@ export interface BoardRead {
   一覧を足す前のクエリで読み直した（Issue の依存関係に対応しない GHES）
   */
   readonly isLegacy: boolean
+  /**
+  進行の欄のボード上の今の名前。どの Item にも値が無ければ undefined
+  */
+  readonly workflowFieldName: string | undefined
 }
 
 /**
-ボードのアイテムを全部読み、表示するものに絞る
+ボードのアイテムを全部読み、表示するものに絞る。進行の欄は設定のフィールド ID で読む
 */
 export async function readBoard(client: Readonly<GitHubClient>, config: ProjectConfig, effectiveRepository: string | undefined): Promise<BoardRead> {
-  const fieldName = workflowFieldName(config)
+  const fieldId = workflowFieldId(config)
   const state = { isLegacy: false }
-  const rawItems = await client.listProjectItems(config.project.id, { workflowFieldName: fieldName, onLegacy: () => {
+  const rawItems = await client.listProjectItems(config.project.id, { workflowFieldId: fieldId, onLegacy: () => {
     state.isLegacy = true
   } })
-  const allItems = transformItems(rawItems, fieldName)
+  const allItems = transformItems(rawItems, fieldId)
   const open = allItems.filter(item => item.content.state === 'OPEN' && typeof item.workflow === 'string' && DISPLAY_STATUSES.has(item.workflow))
   const items = effectiveRepository === undefined || effectiveRepository === '' ? open : open.filter(item => item.content.repository === effectiveRepository)
-  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy }
+  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy, workflowFieldName: fieldNameById(rawItems, fieldId) }
+}
+
+/**
+進行の欄が旧い名前（pecot-workflow-<suffix>）のままなら、移行の手順を warning の行で出す
+*/
+export function warnOldFieldName(out: Readonly<Output>, config: ProjectConfig, read: Readonly<BoardRead>): void {
+  const name = read.workflowFieldName
+  if (name === undefined || !isLegacyWorkflowFieldName(name)) return
+  out.warning(hinted`this board uses the old field name ${name}\n${RUN_COLON}${commandHint(['project', 'init'], { owner: config.owner, name: placeholder('name'), host: config.host })}`)
 }

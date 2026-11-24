@@ -14,7 +14,7 @@ function page(nodes: readonly unknown[], hasNextPage: boolean, endCursor: unknow
 }
 
 function archivedItem(id: string, status: string): unknown {
-  return { id, fieldValues: { nodes: [{ field: { name: 'pecot-workflow' }, name: status }] } }
+  return { id, fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-status' }, name: status }] } }
 }
 
 function archivedItems(prefix: string, count: number): readonly unknown[] {
@@ -68,23 +68,23 @@ describe('listProjectItems', () => {
     expect(await client.listProjectItems('PVT')).toEqual([{ id: 'a' }])
   })
 
-  it('excludeArchived は Archived のアイテムを除く。フィールド名は大文字小文字を区別しない', async () => {
+  it('excludeArchived は、ID で探した進行の欄が Archived のアイテムを除く。値は大文字小文字を区別しない', async () => {
     const items = [
       archivedItem('a', 'Archived'),
       archivedItem('b', 'Active'),
-      { id: 'c', fieldValues: { nodes: [JSON_NULL, { field: { name: 'other' }, name: 'Archived' }] } },
+      { id: 'c', fieldValues: { nodes: [JSON_NULL, { field: { id: 'F_other', name: 'pecot-status' }, name: 'Archived' }] } },
       { id: 'd' },
       archivedItem('e', 'archived'),
     ]
     const { client } = await startClient([graphqlData('ListProjectItems', page(items, false, JSON_NULL))])
-    const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldName: 'PECOT-Workflow' })
+    const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldId: 'F_wf' })
     expect(result.map(item => item['id'])).toEqual(['b', 'c', 'd'])
   })
 
   it('excludeArchived で連続 50 件 Archived が続いたら、次のページを取らずに打ち切る', async () => {
     const items = [archivedItem('keep', 'Ready'), ...archivedItems('x', 50)]
     const { client, server } = await startClient([graphqlData('ListProjectItems', page(items, true, 'next'))])
-    const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldName: 'pecot-workflow' })
+    const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldId: 'F_wf' })
     expect(result.map(item => item['id'])).toEqual(['keep'])
     expect(graphqlRequests(server)).toHaveLength(1)
   })
@@ -92,7 +92,7 @@ describe('listProjectItems', () => {
   it('Archived でないアイテムが挟まれば、連続の数は 0 に戻る', async () => {
     const items = [...archivedItems('a', 49), archivedItem('mid', 'Ready'), ...archivedItems('b', 49)]
     const { client, server } = await startClient([graphqlData('ListProjectItems', page(items, false, JSON_NULL))])
-    const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldName: 'pecot-workflow' })
+    const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldId: 'F_wf' })
     expect(result.map(item => item['id'])).toEqual(['mid'])
     expect(graphqlRequests(server)).toHaveLength(1)
   })
@@ -353,22 +353,22 @@ function boardItemIssue(projectItems: readonly unknown[]): unknown {
 describe('getIssueBoardItem', () => {
   it('指定のプロジェクトの項目 ID と進行の列を、ボードの一覧と同じ形で返す', async () => {
     const { client, server } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([
-      { id: 'PVTI_other', project: { id: 'PVT_other' }, workflow: { name: 'Ready' } },
+      { id: 'PVTI_other', project: { id: 'PVT_other' }, fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-x' }, name: 'Ready' }] } },
       JSON_NULL,
-      { id: 'PVTI_13', project: { id: 'PVT_proj' }, workflow: { name: 'Blocked' } },
+      { id: 'PVTI_13', project: { id: 'PVT_proj' }, fieldValues: { nodes: [{}, { field: { id: 'F_other', name: 'Status' }, name: 'Todo' }, { field: { id: 'F_wf', name: 'pecot-workflow-x' }, name: 'Blocked' }] } },
     ]))])
-    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x')).toEqual({
+    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'F_wf')).toEqual({
       id: 'PVTI_13',
       workflow: 'Blocked',
       title: '課題13',
       content: { number: 13, state: 'OPEN', url: 'https://github.com/acme/other/issues/13', repository: 'acme/other' },
     })
-    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueBoardItem', variables: { owner: 'acme', repo: 'other', number: 13, workflowFieldName: 'pecot-workflow-x' } }])
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueBoardItem', variables: { owner: 'acme', repo: 'other', number: 13 } }])
   })
 
   it('進行の列に値が無ければ、workflow を null にする', async () => {
-    const { client } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([{ id: 'PVTI_13', project: { id: 'PVT_proj' }, workflow: JSON_NULL }]))])
-    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x')).toMatchObject({ id: 'PVTI_13', workflow: JSON_NULL })
+    const { client } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([{ id: 'PVTI_13', project: { id: 'PVT_proj' }, fieldValues: { nodes: [] } }]))])
+    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'F_wf')).toMatchObject({ id: 'PVTI_13', workflow: JSON_NULL })
   })
 
   it.each([
@@ -378,12 +378,12 @@ describe('getIssueBoardItem', () => {
     ['どのプロジェクトにも載っていない', boardItemIssue([])],
   ])('%sときは undefined', async (_label, response) => {
     const { client } = await startClient([graphqlData('GetIssueBoardItem', response)])
-    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x')).toBeUndefined()
+    expect(await client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'F_wf')).toBeUndefined()
   })
 
   it('項目 ID が文字列でなければ GitHubAPIError', async () => {
-    const { client } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([{ id: 5, project: { id: 'PVT_proj' }, workflow: JSON_NULL }]))])
-    expect(await rejection(client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'pecot-workflow-x'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: projectItems.nodes.id'))
+    const { client } = await startClient([graphqlData('GetIssueBoardItem', boardItemIssue([{ id: 5, project: { id: 'PVT_proj' }, fieldValues: { nodes: [] } }]))])
+    expect(await rejection(client.getIssueBoardItem('PVT_proj', 'acme', 'other', 13, 'F_wf'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: projectItems.nodes.id'))
   })
 })
 
@@ -516,6 +516,20 @@ describe('createProjectField', () => {
     expect(await rejection(client.createProjectField('PVT_test123', 'pecot-workflow', options))).toMatchObject(
       failure(GitHubAPIError, 'GraphQL query error: {\'message\': \'GraphQL error\'}'),
     )
+  })
+})
+
+describe('renameProjectField', () => {
+  it('改名後のフィールドを返す。変数は fieldId・name だけで、選択肢は送らない', async () => {
+    const renamed = { id: 'PVTSSF_f1', name: 'pecot-status' }
+    const { client, server } = await startClient([graphqlData('RenameProjectField', { updateProjectV2Field: { projectV2Field: renamed } })])
+    expect(await client.renameProjectField('PVTSSF_f1', 'pecot-status')).toEqual(renamed)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'RenameProjectField', variables: { fieldId: 'PVTSSF_f1', name: 'pecot-status' } }])
+  })
+
+  it('projectV2Field が null なら GitHubAPIError', async () => {
+    const { client } = await startClient([graphqlData('RenameProjectField', { updateProjectV2Field: { projectV2Field: JSON_NULL } })])
+    expect(await rejection(client.renameProjectField('PVTSSF_f1', 'pecot-status'))).toMatchObject(failure(GitHubAPIError, 'failed to rename the field'))
   })
 })
 

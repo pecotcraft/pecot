@@ -4,7 +4,7 @@
 
 ## R1. `pecot-workflow-<suffix>` を `pecot-status` に改名する
 
-- **Decision**: ボードを整える操作（`project_sync`）が、`updateProjectV2Field` に `fieldId` と `name: "pecot-status"` だけを渡して改名する。選択肢（`singleSelectOptions`）は渡さない
+- **Decision**: ボードを整える操作（`project_init`）が、`updateProjectV2Field` に `fieldId` と `name: "pecot-status"` だけを渡して改名する。選択肢（`singleSelectOptions`）は渡さない
 - **Rationale**: スキーマの説明は「Empty input is ignored」。選択肢を渡さなければ、選択肢の ID と各 Item の値はそのまま残る（FR-030・SC-005b）。選択肢を渡すと全部の置き換えになり、ID を付け忘れた選択肢の値が消える
 - **Alternatives considered**:
   - 新しいフィールドを作って値を写し、古いほうを消す: 値の写しの途中で止まると、値が二重か欠ける。改名の API があるので要らない
@@ -15,7 +15,7 @@
 - **Decision**:
   - `project_create`・`project_init` の入力から `suffix` を外す。設定の `workflow_suffix` を消す
   - 設定ファイルの名前は `${host}_${owner}_${number}.json` にする。ボードの持ち主と番号で一意に決まる。ボードの名前は画面で変えられるので使わない
-  - `project_sync` は、旧い名前の設定ファイル（`${host}_${owner}_${slugify(name)}_${suffix}.json`）を見つけたら新しい名前に移し、使用中のプロジェクトの指定（設定ファイルの stem）も書き換える
+  - `project_init` は、旧い名前の設定ファイル（`${host}_${owner}_${slugify(name)}_${suffix}.json`）を見つけたら新しい名前に移し、使用中のプロジェクトの指定（設定ファイルの stem）も書き換える
   - `board_url` のフィルタ（`filterQuery`）の欄の名前も `pecot-status` にする
 - **Rationale**: 調べた範囲で `suffix` の用途は、フィールド名・設定ファイル名・`board_url` の 3 つだけだった。w-onboarding の「ラベル識別子に使用」は、コードに当たる箇所が無く、文書の誤り。3 つとも、ボードの持ち主・名前と固定の名前で置き換えられる
 - **Alternatives considered**: 設定ファイル名にだけ `suffix` を残す。clarify で、入力ごと無くすと決めた
@@ -30,21 +30,21 @@
   - w-quick の「priority=medium, size=s」と、`hooks/lib/core/mcp-guidance.sh` の該当の文を消す
   - 既存の設定ファイルに `fields.priority`・`size` があっても読み捨てる（zod の `strip`）
   - 既存のテンプレートの frontmatter に `priority`・`size` があっても無視する
-  - `project_sync` は、ボードに 2 つのフィールドがあれば、消すフィールドを示す。`confirm_delete` を受けたときだけ `deleteProjectV2Field` で消す
+  - `project_init` は、ボードに 2 つのフィールドがあれば、消すフィールドを示す。`confirm_delete` を受けたときだけ `deleteProjectV2Field` で消す
 - **Rationale**: FR-008〜FR-010。消すと値が戻らないので、確認を入力で受ける（clarify の決定）。MCP には対話の確認が無いので、1 回目は消す予定を返し、2 回目に `confirm_delete: true` で消す
 - **Alternatives considered**: MCP の elicitation で確認を取る。対応しないクライアントがあり、CLI の利用と形がそろわない
 
 ## R4. `pecot-lane` を足す
 
 - **Decision**:
-  - `project_create`・`project_init`・`project_sync` に入力 `lanes`（文字列の配列）を足す
+  - `project_create`・`project_init` に入力 `lanes`（文字列の配列）を足す
   - フィールドが無ければ `createProjectV2Field`（`SINGLE_SELECT`）で作る。あれば、既存の選択肢を ID ごと読み、足りない値を足した全体を `updateProjectV2Field` に渡す。選択肢は消さない
   - `lanes` を渡さず、フィールドも無いときは作らず、値を決めるよう案内する（US1 の 4）
   - 設定には `pecot-lane` の選択肢を写さない。起票・同期・一覧は、使うたびにボードの `pecot-lane` の選択肢を読む
 - **Rationale**:
   - 選択肢の更新は全部の置き換えなので、既存の ID を必ず付ける（R1 と同じ）
   - B は、`attributes` の値を書くたびにボードから読んだ定義で照らす（R7）。設定にも選択肢を写すと、同じ選択肢を 2 か所で持つ。
-    利用者が画面で選択肢を足すと、`project_sync` まで 2 つが食い違い、`attributes` では書けるのに `lane` では止まる。
+    利用者が画面で選択肢を足すと、`project_init` まで 2 つが食い違い、`attributes` では書けるのに `lane` では止まる。
     憲章の VIII（同じものを表すモデルは 1 つ）に合わせ、ボードだけを正にする
 - **Alternatives considered**:
   - Issue fields に置く。clarify で、ボードのフィールドに置くと決めた

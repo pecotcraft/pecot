@@ -1,4 +1,5 @@
 # 着手の跡の無い Active の Issue を、--dry-run で Ready へ戻す予定の行にする。書かない。
+# 進行の欄は旧い名前のままなので、旧い名前の警告を出す。
 id: board-sync-ok-dry-run
 command:
   path: [board, sync]
@@ -72,7 +73,7 @@ github:
       variables: {projectId: PVT_1}
     respond:
       status: 200
-      body: {"data": {"node": {"items": {"nodes": [{"id": "PVTI_2", "updatedAt": "2026-01-02T03:04:05Z", "fieldValues": {"nodes": [{"field": {"name": "pecot-workflow-acme"}, "name": "Active"}]}, "content": {"id": "I_2", "number": 2, "title": "作業中の課題", "state": "OPEN", "url": "https://ghes.example.com/acme/demo/issues/2", "labels": {"nodes": []}, "repository": {"owner": {"login": "acme"}, "name": "demo"}}}], "pageInfo": {"hasNextPage": false, "endCursor": null}}}}}
+      body: {"data": {"node": {"items": {"nodes": [{"id": "PVTI_2", "updatedAt": "2026-01-02T03:04:05Z", "fieldValues": {"nodes": [{"field": {"id": "PVTSSF_workflow", "name": "pecot-workflow-acme"}, "name": "Active"}]}, "content": {"id": "I_2", "number": 2, "title": "作業中の課題", "state": "OPEN", "url": "https://ghes.example.com/acme/demo/issues/2", "labels": {"nodes": []}, "repository": {"owner": {"login": "acme"}, "name": "demo"}}}], "pageInfo": {"hasNextPage": false, "endCursor": null}}}}}
   - match:
       operation: GetIssuePrerequisites
       variables: {owner: acme, repo: demo, number: 2}

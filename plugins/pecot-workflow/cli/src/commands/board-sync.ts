@@ -15,7 +15,7 @@ import { requireBoardConfig } from './command-stop.js'
 import { makeClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
-import { pruneArchivedItems, readBoard } from './board-view.js'
+import { pruneArchivedItems, readBoard, warnOldFieldName } from './board-view.js'
 import type { BoardRead } from './board-view.js'
 import { failApi } from './project-sync.js'
 
@@ -87,6 +87,7 @@ const boardSyncCommand = defineCommand({
       reportPoints(out, before, await client.getGraphqlRateLimit())
       return failApi(out, 'read project board', error)
     }
+    warnOldFieldName(out, config, read)
     if (read.isLegacy) unsupportedWarning(out)
     const { failures, moves } = read.isLegacy ? { failures: 0, moves: [] } : await syncBoard({ out, client, config, home: homeRepositoryOf(config) }, read, input.dry_run)
     const pruned = await pruneArchivedItems(out, client, config, read.allItems, input.dry_run)

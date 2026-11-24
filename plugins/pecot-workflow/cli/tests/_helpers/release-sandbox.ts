@@ -106,7 +106,6 @@ function configFile(repositories: readonly Readonly<Record<string, unknown>>[]):
   return JSON.stringify({
     host: HOST,
     owner: OWNER,
-    workflow_suffix: 'acme',
     project: {
       number: 1,
       id: 'PVT_1',

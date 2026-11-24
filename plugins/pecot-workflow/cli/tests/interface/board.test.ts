@@ -44,6 +44,7 @@ interface ItemExtra {
   readonly isPullRequest?: boolean
   readonly updatedAt?: string
   readonly state?: string
+  readonly field?: string
 }
 
 // 一覧の応答に載る、着手の判定の軽い入力
@@ -53,7 +54,7 @@ function item(id: string, number: number, workflow: string, extra: ItemExtra = {
   return {
     id,
     updatedAt: extra.updatedAt ?? '2026-01-02T03:04:05Z',
-    fieldValues: { nodes: [{ field: { name: 'pecot-workflow-acme' }, name: workflow }] },
+    fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: extra.field ?? 'pecot-status' }, name: workflow }] },
     content: { id: `I_${String(number)}`, number, title: extra.title ?? `課題${String(number)}`, state: extra.state ?? 'OPEN', url: `https://${DEFAULT_HOST}/acme/${repository}/${extra.isPullRequest === true ? 'pull' : 'issues'}/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...progress },
   }
 }
@@ -119,6 +120,14 @@ describe('board sync', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+  })
+
+  it('進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project init の案内を出す', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-33')
+    const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme' })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
+    expectClean(result)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  run: pecot project init acme <name> --host ghes.example.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
   it('Ready の Issue に済んでいない前提があると、Blocked へ動かす', async () => {
@@ -445,6 +454,14 @@ describe('board sync', () => {
       expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
     })
 
+    it('進行の欄が旧い名前のボードでは、同じ Issue を動かし、旧い名前と project_init の案内を warnings に入れる', async (context) => {
+      await verifies(context, 'PW-BOARD-SYNC-33')
+      const result = await tool('board_sync', {}, [rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme' })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
+      expectClean(result)
+      expect(result.structured).toMatchObject({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }] })
+      expect(stableWarnings(result)[0]).toMatch(/^this board uses the old field name pecot-workflow-acme\n.*project_init/su)
+    })
+
     it('20 件を超えた Archived を削除すると、その件数を deletedArchived に返す', async (context) => {
       await verifies(context, 'PW-BOARD-SYNC-28')
       const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02'), rateLimit(130)])
@@ -747,6 +764,14 @@ describe('board show', () => {
       await verifies(context, 'PW-BOARD-SHOW-02')
       const result = await tool('board_show', { json: true }, showRules(), boardConfig(FULL_WORKFLOW, repositories))
       expect(result.structured).toEqual(expected)
+    })
+
+    it('進行の欄が旧い名前のボードでは、旧い名前と project_init の案内を warnings に入れる', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-36')
+      const [, ...rest] = showRules()
+      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { field: 'pecot-workflow-acme' })), ...rest], boardConfig(FULL_WORKFLOW, repositories))
+      expectClean(result)
+      expect(stableWarnings(result)[0]).toMatch(/^this board uses the old field name pecot-workflow-acme\n.*project_init/su)
     })
   })
 })

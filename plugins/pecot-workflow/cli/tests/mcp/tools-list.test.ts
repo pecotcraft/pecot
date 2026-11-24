@@ -142,7 +142,7 @@ describe('tools/list', () => {
     { name: 'issue_create', required: ['issues'] },
     { name: 'issue_check', required: ['plan'] },
     { name: 'pr_create', required: ['url', 'head', 'base', 'title', 'moves'] },
-    { name: 'project_activate', required: ['configPath', 'change'] },
+    { name: 'project_activate', required: ['configPath', 'change', 'config_moved'] },
   ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
     const { client } = await connect()
     const { tools } = await client.listTools()

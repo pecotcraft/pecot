@@ -378,7 +378,7 @@ export class IssuesApi extends ProjectsApi {
   Issue の依存関係に対応しない GHES（3.19 より前）、blockedBy 以外の失敗は GitHubAPIError
   */
   async getIssuePrerequisites(owner: string, repository: string, number: number, projectId: string, fieldNames: Readonly<PrerequisiteFieldNames>, blockedByFirst = MAX_BLOCKED_BY): Promise<IssuePrerequisitesReadout> {
-    const variables = { owner, repo: repository, number, columnFieldName: fieldNames.columnFieldName, labelFieldName: fieldNames.labelFieldName, blockedByFirst }
+    const variables = { owner, repo: repository, number, labelFieldName: fieldNames.labelFieldName, blockedByFirst }
     let outcome: GraphqlOutcome
     try {
       outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath)

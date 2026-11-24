@@ -7,7 +7,7 @@
 | 項目 | 変更 | 内容 |
 |---|---|---|
 | ファイル名 | 変更 | `<host>_<owner>_<slug>_<suffix>.json` から `<host>_<owner>_<number>.json` にする。ボードの名前を変えても対応が外れない（R2） |
-| `workflow_suffix` | 削除 | 読み込みでは捨てる。`project_sync` が旧いファイルを移すときに消す |
+| `workflow_suffix` | 削除 | 読み込みでは捨てる。`project_init` が旧いファイルを移すときに消す |
 | `fields.workflow` | 変更なし | `pecot-status` の選択肢の名前と ID |
 | `fields.priority`・`fields.size` | 削除 | 読み込みでは捨てる |
 | `board_url` | 変更 | フィルタの欄の名前を `pecot-status` にする |
@@ -15,7 +15,7 @@
 検証の決まり:
 
 - `pecot-lane` の選択肢は設定に写さない。使うたびにボードから読む（R4）
-- 旧い形の設定（`workflow_suffix` あり・旧いファイル名）は、`project_sync` の後に新しい形になる。それまでの各操作は旧い形を読んで動き、移行の手順を示す
+- 旧い形の設定（`workflow_suffix` あり・旧いファイル名）は、`project_init` の後に新しい形になる。それまでの各操作は旧い形を読んで動き、移行の手順を示す
 
 ### pecot のフィールド（ボード）
 
@@ -27,14 +27,14 @@
 ### 移行の状態（ボードを整える操作が見る）
 
 ```text
-旧い形 ──project_sync──▶ 改名済み ──project_sync(confirm_delete)──▶ 移行済み
+旧い形 ──project_init──▶ 改名済み ──project_init(confirm_delete)──▶ 移行済み
   │                        │
   │ pecot-workflow-<s>     │ pecot-status あり
   │ pecot-priority/size    │ pecot-priority/size が残る
 ```
 
-- 改名と設定の移行は、`project_sync` の 1 回で済む
-- `pecot-priority`・`pecot-size` の削除は、`confirm_delete: true` を受けた `project_sync` だけが行う
+- 改名と設定の移行は、`project_init` の 1 回で済む
+- `pecot-priority`・`pecot-size` の削除は、`confirm_delete: true` を受けた `project_init` だけが行う
 - `pecot-status` と `pecot-workflow-<suffix>` が両方あるボードは、`pecot-status` を使い、旧いほうを消す予定として示す
 
 ### LaneSummary（`board_show` の結果の `lanes`）

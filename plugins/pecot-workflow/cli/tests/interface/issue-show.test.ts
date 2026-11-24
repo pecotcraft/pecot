@@ -60,7 +60,7 @@ function issueRule(fields: Readonly<IssueFields> = {}): ResponseRule {
 function withoutDevelopBranch(): string {
   const fields = { workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } } }
   const project = { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields }
-  return `${JSON.stringify({ host: 'ghes.example.com', owner: 'acme', workflow_suffix: 'acme', project, repositories: [{ owner: 'acme', name: 'demo' }] }, undefined, 2)}\n`
+  return `${JSON.stringify({ host: 'ghes.example.com', owner: 'acme', project, repositories: [{ owner: 'acme', name: 'demo' }] }, undefined, 2)}\n`
 }
 
 const HEAD = '## #7 見本の Issue\n\n**State:** OPEN\n\n'

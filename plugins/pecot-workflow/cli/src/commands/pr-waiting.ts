@@ -3,7 +3,7 @@
 // どの失敗も warning にとどめ、終了コードを変えない。
 import { setTimeout as delay } from 'node:timers/promises'
 
-import { homeRepositoryOf, workflowFieldName } from '../domain/config.js'
+import { homeRepositoryOf, workflowFieldId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem } from '../domain/format.js'
@@ -144,7 +144,7 @@ async function readWaitingIssues(context: Readonly<BoardContext>, head: IssueRef
 // 待つ Issue のうち、開いていてボードに載っているものの項目だけを読む
 async function readBoardItems(waiting: Readonly<Waiting>, issues: readonly BlockedByReference[]): Promise<readonly BoardItem[]> {
   const { client, config } = waiting.context
-  const field = workflowFieldName(config)
+  const field = workflowFieldId(config)
   const open = issues.filter(issue => issue.state === 'OPEN')
   const items = await mapWithLimit(open, READ_MAX_WORKERS, async ({ repository, number }) => await client.getIssueBoardItem(config.project.id, repository.owner, repository.repository, number, field))
   return items.flatMap(item => item ?? [])

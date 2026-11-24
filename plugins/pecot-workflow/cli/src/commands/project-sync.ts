@@ -2,24 +2,24 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-import { parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
+import { parseProjectConfig, serializeProjectConfig, WORKFLOW_FIELD_NAME } from '../domain/config.js'
 import type { FieldOptions, ProjectConfig, Repository } from '../domain/config.js'
 import type { OptionPlacement } from '../domain/field-options.js'
 import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
+import { isLegacyWorkflowFieldName, planConfigMove, planWorkflowField } from '../domain/migration.js'
+import type { WorkflowFieldPlan } from '../domain/migration.js'
 import { pythonRepr } from '../domain/python-format.js'
 import type { JsonValue } from '../domain/python-format.js'
-import { loadConfig, projectsDirectory, saveConfig, setActiveConfig } from '../infra/config-store.js'
+import { listProjectConfigEntries, loadConfig, projectsDirectory, removeConfig, saveConfig, setActiveConfig } from '../infra/config-store.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { GitHubAPIError } from '../infra/github/errors.js'
 import type { ProjectFieldOption } from '../infra/github/projects.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
-import { commandHint, hinted, placeholder, RUN_COLON } from './command-hint.js'
+import { commandHint, hinted, RUN_COLON } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
-import type { Output } from './output.js'
-
-const WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
+import type { Operation, Output } from './output.js'
 
 /**
 選択肢の定義。isOptional は無くても同期を止めない。placement は足すときの差し込み先の候補（先から使い、無ければ末尾）
@@ -100,8 +100,17 @@ export function textOf(value: JsonValue | undefined): string {
   return typeof value === 'string' ? value : pythonRepr(value)
 }
 
-export function isWorkflowField(name: JsonValue | undefined): boolean {
-  return typeof name === 'string' && name.startsWith(WORKFLOW_FIELD_PREFIX)
+// 進行の欄か（今の名前か、改名する前の名前）
+function isWorkflowField(name: JsonValue | undefined): boolean {
+  return typeof name === 'string' && (name === WORKFLOW_FIELD_NAME || isLegacyWorkflowFieldName(name))
+}
+
+/**
+選択肢を持つフィールドの名前から、進行の欄の扱いを決める
+*/
+export function planWorkflowFieldOf(fields: readonly JsonValue[]): WorkflowFieldPlan {
+  const names = fields.filter(field => isJsonObject(field) && Object.hasOwn(field, 'options')).map(field => jsonField(field, 'name')).filter(name => typeof name === 'string')
+  return planWorkflowField(names)
 }
 
 export function hasWorkflowField(fields: readonly JsonValue[]): boolean {
@@ -144,7 +153,7 @@ export function missingRequiredOptions(field: Readonly<JsonObject>): readonly st
 必須の選択肢が欠けたときの、終了コード 1 の止め方
 */
 export function stopMissingOptions(out: Readonly<Output>, missing: readonly string[]): never {
-  return stopWith(out, `pecot-workflow field is missing options: ${missing.join(', ')}\nrequired options: Backlog / Pending / Ready / Active / In Review / Archived`, 'not-initialized')
+  return stopWith(out, `${WORKFLOW_FIELD_NAME} field is missing options: ${missing.join(', ')}\nrequired options: Backlog / Pending / Ready / Active / In Review / Archived`, 'not-initialized')
 }
 
 function lowerName(option: JsonValue | undefined): string {
@@ -152,23 +161,25 @@ function lowerName(option: JsonValue | undefined): string {
   return typeof name === 'string' ? name.toLowerCase() : ''
 }
 
-// 選択肢を持つ workflow フィールド。suffix があればその名前のもの、無ければ最初の pecot-workflow-*
-function findWorkflowField(fields: readonly JsonValue[], suffix: string | undefined): JsonObject | undefined {
-  return fields.find((field): field is JsonObject => isJsonObject(field) && Object.hasOwn(field, 'options') && (suffix === undefined ? isWorkflowField(field['name']) : field['name'] === `${WORKFLOW_FIELD_PREFIX}${suffix}`))
+// 選択肢を持つ進行の欄。pecot-status を先に、無ければ改名する前の名前のもの
+function findWorkflowField(fields: readonly JsonValue[]): JsonObject | undefined {
+  const plan = planWorkflowFieldOf(fields)
+  const name = plan.kind === 'rename' ? plan.from : plan.use
+  return plan.kind === 'create' ? undefined : lastFieldNamed(fields, name)
 }
 
-async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string, number: number, suffix?: string | undefined }>): Promise<ValidatedFields> {
-  const { owner, name, host, number, suffix } = target
+async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string, number: number }>): Promise<ValidatedFields> {
+  const { owner, name, host, number } = target
   const projectInfo = await client.getProjectFields(owner, number)
   if (projectInfo === undefined || !isTruthy(projectInfo)) return stopWith(out, `could not read project fields: ${name}`, 'not-initialized')
   const fields = fieldNodesOf(projectInfo)
-  const workflowField = findWorkflowField(fields, suffix)
+  const workflowField = findWorkflowField(fields)
   if (workflowField === undefined) {
     return stopWith(
       out,
-      hinted`project "${name}" has no pecot-workflow-* field
-required field: pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)
-${RUN_COLON}${commandHint(['project', 'init'], { owner, name, host, suffix: placeholder('suffix') })}`,
+      hinted`project "${name}" has no ${WORKFLOW_FIELD_NAME} field
+required field: ${WORKFLOW_FIELD_NAME} (Backlog/Pending/Ready/Active/In Review/Archived)
+${RUN_COLON}${commandHint(['project', 'init'], { owner, name, host })}`,
       'not-initialized',
     )
   }
@@ -177,13 +188,6 @@ ${RUN_COLON}${commandHint(['project', 'init'], { owner, name, host, suffix: plac
   const views = asArray(jsonField(jsonField(projectInfo, 'views'), 'nodes'))
   const viewNumber = jsonField(views.at(0), 'number')
   return { workflowField, fields, viewNumber }
-}
-
-/**
-ファイル名に使う slug。小文字にして空白を `-` にし、`a-z0-9-` 以外を落とす
-*/
-export function slugify(text: string): string {
-  return text.toLowerCase().replaceAll(' ', '-').replaceAll(/[^a-z0-9-]/gu, '')
 }
 
 // urllib.parse.quote(text) と同じ。`/` と `_.-~` は残し、それ以外は %XX にする
@@ -293,32 +297,68 @@ function loadExistingConfig(configPath: string): ProjectConfig | undefined {
 }
 
 /**
-syncProjectConfig の結果。行に出した値と同じ。change は設定ファイルの扱い、activeProject はアクティブにした（dry-run では、する）設定の名前で、unchanged なら undefined
+設定ファイルの置き場所。movedFrom は新しい名前に移す、同じボードの旧い名前のファイル
+*/
+export interface ConfigPlacement {
+  readonly configPath: string
+  readonly movedFrom: string | undefined
+}
+
+/**
+ボードの設定ファイルのパスと、移す元を決める。同じボードの旧いファイルが 2 つ以上あれば、何も書かずに止める
+*/
+export function placeProjectConfig(out: Readonly<Output>, board: Readonly<{ host: string, owner: string, number: number }>): ConfigPlacement {
+  const directory = projectsDirectory()
+  const { to, from } = planConfigMove(board, listProjectConfigEntries())
+  if (from.length > 1) {
+    const names = from.map(fileName => `- ${fileName}`).join('\n')
+    return stopWith(out, `several config files point to project #${String(board.number)}:\n${names}\nremove all but one, then run again; it is moved to ${to}`, 'config-invalid')
+  }
+  const [only] = from
+  return { configPath: path.join(directory, to), movedFrom: only === undefined ? undefined : path.join(directory, only) }
+}
+
+/**
+旧い名前の設定ファイルを移す行。新しい名前は、`project` の入力と Actions の変数 PECOT_REVIEW_PROJECT にも使う
+*/
+export function reportConfigMove(out: Readonly<Output>, placement: Readonly<ConfigPlacement>, isDryRun: boolean): void {
+  if (placement.movedFrom === undefined) return
+  const operation: Operation = { verb: 'move', target: `config file ${placement.movedFrom} to ${placement.configPath}` }
+  if (isDryRun) out.planned(operation)
+  else out.done(operation)
+  const name = path.parse(placement.configPath).name
+  out.warning(`the project config is now named ${name}\nuse this name for the project input and the PECOT_REVIEW_PROJECT variable`)
+}
+
+/**
+syncProjectConfig の結果。行に出した値と同じ。change は設定ファイルの扱い、activeProject はアクティブにした（dry-run では、する）設定の名前で、unchanged なら undefined。
+movedFrom は、新しい名前に移した（dry-run では、移す）旧い名前の設定ファイル
 */
 export interface SyncedProjectConfig {
   readonly configPath: string
   readonly change: 'create' | 'update' | 'unchanged'
   readonly activeProject: string | undefined
+  readonly movedFrom: string | undefined
 }
 
 /**
 GitHub Projects V2 の情報から設定ファイルを作るか更新し、アクティブにする。設定ファイルのパスと、行に出した扱いを返す。
-pecot-workflow に合うプロジェクトだけを扱う。suffix はその名前の workflow フィールドを使う。
+pecot-workflow に合うプロジェクトだけを扱う。同じボードの旧い名前の設定ファイルは、新しい名前に移す。
 skipIfUnchanged は、設定ファイルの内容が同じなら書かない。activateIfUnchanged を足すと、そのときもアクティブにする。isDryRun は読むだけで、書く操作を planned で出す
 */
 export async function syncProjectConfig(
   out: Readonly<Output>,
   client: Readonly<GitHubClient>,
-  target: Readonly<{ owner: string, name: string, host: string, suffix?: string | undefined, skipIfUnchanged?: boolean | undefined, activateIfUnchanged?: boolean | undefined, isDryRun?: boolean | undefined }>,
+  target: Readonly<{ owner: string, name: string, host: string, skipIfUnchanged?: boolean | undefined, activateIfUnchanged?: boolean | undefined, isDryRun?: boolean | undefined }>,
 ): Promise<SyncedProjectConfig> {
   const { owner, name, host, skipIfUnchanged = false } = target
   const project = await findProjectByTitle(out, client, owner, name)
   const number = requireNumber(project['number'], 'project.number')
-  const { workflowField, fields, viewNumber } = await fetchValidatedFields(out, client, { owner, name, host, number, suffix: target.suffix })
+  const { workflowField, fields, viewNumber } = await fetchValidatedFields(out, client, { owner, name, host, number })
 
-  const suffix = textOf(workflowField['name']).slice(WORKFLOW_FIELD_PREFIX.length)
-  const configPath = path.join(projectsDirectory(), `${host}_${owner}_${slugify(name)}_${suffix}.json`)
-  const existing = loadExistingConfig(configPath)
+  const placement = placeProjectConfig(out, { host, owner, number })
+  const { configPath, movedFrom } = placement
+  const existing = loadExistingConfig(configPath) ?? (movedFrom === undefined ? undefined : loadConfig(movedFrom))
 
   const linked = await client.getLinkedRepositories(owner, number)
   const priorityField = lastFieldNamed(fields, 'pecot-priority')
@@ -327,7 +367,6 @@ export async function syncProjectConfig(
   const config: ProjectConfig = {
     host,
     owner,
-    workflow_suffix: suffix,
     project: {
       number,
       id: requireString(project['id'], 'project.id'),
@@ -346,25 +385,28 @@ export async function syncProjectConfig(
   // 読み直して保存と同じ形にそろえてから比べる
   const normalized = parseProjectConfig(parseJsonText(serializeProjectConfig(config)))
   const activeProject = path.parse(configPath).name
-  if (skipIfUnchanged && existing !== undefined && serializeProjectConfig(existing) === serializeProjectConfig(normalized)) {
+  if (skipIfUnchanged && movedFrom === undefined && existing !== undefined && serializeProjectConfig(existing) === serializeProjectConfig(normalized)) {
     out.planned({ verb: 'unchanged', target: `config file ${configPath}` })
-    if (target.activateIfUnchanged !== true) return { configPath, change: 'unchanged', activeProject: undefined }
+    if (target.activateIfUnchanged !== true) return { configPath, change: 'unchanged', activeProject: undefined, movedFrom }
     if (target.isDryRun === true) out.planned({ verb: 'set', target: `active project to ${activeProject}` })
     else {
       setActiveConfig(configPath)
       out.done({ verb: 'set', target: `active project to ${activeProject}` })
     }
-    return { configPath, change: 'unchanged', activeProject }
+    return { configPath, change: 'unchanged', activeProject, movedFrom }
   }
   const verb = existing === undefined ? 'create' : 'update'
   if (target.isDryRun === true) {
+    reportConfigMove(out, placement, true)
     out.planned({ verb, target: `config file ${configPath}` })
     out.planned({ verb: 'set', target: `active project to ${activeProject}` })
-    return { configPath, change: verb, activeProject }
+    return { configPath, change: verb, activeProject, movedFrom }
   }
   saveConfig(config, configPath)
+  if (movedFrom !== undefined) removeConfig(movedFrom)
+  reportConfigMove(out, placement, false)
   out.done({ verb, target: `config file ${configPath}` })
   setActiveConfig(configPath)
   out.done({ verb: 'set', target: `active project to ${activeProject}` })
-  return { configPath, change: verb, activeProject }
+  return { configPath, change: verb, activeProject, movedFrom }
 }

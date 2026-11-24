@@ -30,35 +30,35 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ## Phase 1: User Story 4b - 進行の欄を `pecot-status` に改名し、`suffix` を無くす (Priority: P1)
 
-**Goal**: 新しいボードは `pecot-status` で作られ、既存のボードは `project_sync` で改名・設定の移行がされる。`suffix` の入力が無くなる（FR-029〜FR-031、research R1・R2）
+**Goal**: 新しいボードは `pecot-status` で作られ、既存のボードは `project_init` で改名・設定の移行がされる。`suffix` の入力が無くなる（FR-029〜FR-031、research R1・R2）
 
 **Independent Test**: quickstart.md の A-1 の 1・2 と A-4 の 2
 
 ### Tests for User Story 4b
 
-- [ ] T001 [P] [US4b] `PW/cli/src/domain/tests/config.test.ts` に、設定の新しい形と旧い形の読み込みのテストを先に書く。
+- [x] T001 [P] [US4b] `PW/cli/src/domain/tests/config.test.ts` に、設定の新しい形と旧い形の読み込みのテストを先に書く。
   確かめること: `workflow_suffix` の無い設定を読める、旧い設定の `workflow_suffix` は読み捨てる、`workflowFieldName()` が常に `pecot-status` を返す、設定ファイルの名前が `${host}_${owner}_${number}.json` になり、ボードの名前を変えても同じ
-- [ ] T002 [P] [US4b] `PW/cli/src/domain/tests/migration.test.ts` に、移行の予定を決める関数のテストを先に書く。
+- [x] T002 [P] [US4b] `PW/cli/src/domain/tests/migration.test.ts` に、移行の予定を決める関数のテストを先に書く。
   入力はボードのフィールドの一覧と設定ファイルの名前。確かめること: `pecot-workflow-<s>` だけなら改名の予定、`pecot-status` だけなら何もしない、両方あれば `pecot-status` を使い旧いほうを消す予定（data-model.md の「移行の状態」）、旧いファイル名なら移す先を返す
-- [ ] T003 [P] [US4b] `PW/interface/authored.yaml` の `PW-PROJECT-*` と `PW-BOARD-*` に、改名・`suffix` の廃止・旧い形の警告の振る舞いを足し、`PW/cli/tests/interface/project.test.ts` に先にテストを書く。
+- [x] T003 [P] [US4b] `PW/interface/authored.yaml` の `PW-PROJECT-*` と `PW-BOARD-*` に、改名・`suffix` の廃止・旧い形の警告の振る舞いを足し、`PW/cli/tests/interface/project.test.ts` に先にテストを書く。
   確かめること:
   - `project_create`・`project_init` は `suffix` を渡すと無い入力として止まる。`pecot-status` で作る
-  - `project_sync` は `updateProjectV2Field` に `name` だけを渡し、`singleSelectOptions` を渡さない
+  - `project_init` は `updateProjectV2Field` に `name` だけを渡し、`singleSelectOptions` を渡さない
   - 出力の `migration.renamed`・`config_moved`
   - 旧い形のボードで、`board_show` が今と同じ結果と警告 1 行（contracts の文言）を返す
 
 ### Implementation for User Story 4b
 
-- [ ] T004 [US4b] `PW/cli/src/domain/config.ts` から `workflow_suffix` を消し（読み込みでは `strip`）、`workflowFieldName()` を `pecot-status` 固定にする。設定ファイルの名前の関数も直す（T001 の後）
-- [ ] T005 [US4b] `PW/cli/src/domain/migration.ts` を作り、移行の予定を決める純粋な関数を置く（T002 の後）
-- [ ] T006 [US4b] `PW/cli/src/infra/github/queries.ts`・`PW/cli/src/infra/github/projects.ts` に、`updateProjectV2Field`（名前だけ）と `deleteProjectV2Field` を足す
-- [ ] T007 [US4b] `PW/cli/src/commands/project.ts` の `project_create`・`project_init` から `suffix` を消し、`initializeFields` で `pecot-status` を作る
-- [ ] T008 [US4b] `PW/cli/src/commands/project-sync.ts` で、`WORKFLOW_FIELD_PREFIX` による探し方を、`pecot-status` を先に、無ければ `pecot-workflow-*` を探す形に直す。
+- [x] T004 [US4b] `PW/cli/src/domain/config.ts` から `workflow_suffix` を消し（読み込みでは `strip`）、`workflowFieldName()` を `pecot-status` 固定にする。設定ファイルの名前の関数も直す（T001 の後）
+- [x] T005 [US4b] `PW/cli/src/domain/migration.ts` を作り、移行の予定を決める純粋な関数を置く（T002 の後）
+- [x] T006 [US4b] `PW/cli/src/infra/github/queries.ts`・`PW/cli/src/infra/github/projects.ts` に、`updateProjectV2Field`（名前だけ）を足す。`deleteProjectV2Field` は、使う T017 で足す
+- [x] T007 [US4b] `PW/cli/src/commands/project.ts` の `project_create`・`project_init` から `suffix` を消し、`initializeFields` で `pecot-status` を作る
+- [x] T008 [US4b] `PW/cli/src/commands/project-sync.ts` で、`WORKFLOW_FIELD_PREFIX` による探し方を、`pecot-status` を先に、無ければ `pecot-workflow-*` を探す形に直す。
   移行の予定（T005）に従って改名し、旧い設定ファイルを新しい名前に移し、使用中のプロジェクトの指定も書き換える。`board_url` の `filterQuery` の欄の名前も `pecot-status` にする。出力に `migration` を足す
-- [ ] T009 [US4b] `project_sync` のほかの操作が旧い形を見つけたら、contracts/mcp-tools.md の警告を 1 行出す処理を、`PW/cli/src/commands/board-view.ts` の設定の読み込みの箇所に足す
-- [ ] T010 [US4b] `suffix` に触れる文書を直す: `PW/skills/w-onboarding/SKILL.md`（`suffix` の入力と「ラベル識別子」の誤りを消す）、`PW/skills/w-help/references/troubleshooting.md`、`PW/cli/src/domain/readiness.ts` の注記
-- [ ] T011 [US4b] `PW/interface/generated.json` を作り直し、`pecot-workflow:test-cli` の T001〜T003 のテストのファイルを動かす
-- [ ] T012 [US4b] quickstart.md の A-1 の 1・2 と A-4 の 2 を、検証用のボードで動かす
+- [x] T009 [US4b] `board_show`・`board_sync` が旧い形を見つけたら、contracts/mcp-tools.md の警告を 1 行出す処理を、`PW/cli/src/commands/board-view.ts` のボードの読み込みの箇所に足す
+- [x] T010 [US4b] `suffix` に触れる文書を直す: `PW/skills/w-onboarding/SKILL.md`（`suffix` の入力と「ラベル識別子」の誤りを消す）、`PW/skills/w-help/references/troubleshooting.md`、`PW/cli/src/domain/readiness.ts` の注記
+- [x] T011 [US4b] `PW/interface/generated.json` を作り直し、`pecot-workflow:test-cli` の T001〜T003 のテストのファイルを動かす
+- [x] T012 [US4b] quickstart.md の A-1 の 1・2 と A-4 の 2 を、検証用のボードで動かす
 
 **Checkpoint**: 検証用のボードの進行の欄が `pecot-status` になり、値が残り、各操作が今と同じに動く
 
@@ -66,7 +66,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ## Phase 2: User Story 4 - `pecot-priority`・`pecot-size` を廃止する (Priority: P1)
 
-**Goal**: pecot は 2 つのフィールドを作らず、求めず、入れない。既存のボードからは、確認を受けた `project_sync` だけが消す（FR-008〜FR-010、research R3）
+**Goal**: pecot は 2 つのフィールドを作らず、求めず、入れない。既存のボードからは、確認を受けた `project_init` だけが消す（FR-008〜FR-010、research R3）
 
 **Independent Test**: quickstart.md の A-1 の 3 と A-4 の 1（Priority・Size ができないこと）
 
@@ -79,14 +79,14 @@ description: "Task list for 029-pecot-lane-issue-features"
   確かめること:
   - `issue_create` に `priority`・`size` を渡すと無い入力として止まる
   - 作ったボードに 2 つのフィールドが無い。トラッカーが `pecot-priority` を書かない
-  - `project_sync` は、`confirm_delete` なしでは `migration.pending_delete` に出すだけで消さない
+  - `project_init` は、`confirm_delete` なしでは `migration.pending_delete` に出すだけで消さない
   - `confirm_delete: true` で `deleteProjectV2Field` を呼び、`migration.deleted` に出す
 
 ### Implementation for User Story 4
 
 - [ ] T016 [US4] `PW/cli/src/domain/config.ts` から `PRIORITIES`・`SIZES`・`fields.priority`・`fields.size` と `fieldOf` の該当の分岐を消す
 - [ ] T017 [US4] `PW/cli/src/commands/project.ts` と `PW/cli/src/commands/project-sync.ts` から、2 つのフィールドの作成・選択肢の定め（`PRIORITY_FIELD_OPTIONS`・`SIZE_FIELD_OPTIONS`）・設定への読み込みを消す。
-  `project_sync` に `confirm_delete` を足し、移行の予定に削除を足す
+  `project_init` に `confirm_delete` を足し、移行の予定に削除を足す。`PW/cli/src/infra/github/queries.ts`・`projects.ts` に `deleteProjectV2Field` を足す
 - [ ] T018 [US4] `PW/cli/src/commands/issue-create.ts`（入力・freeform の既定値・ファイルからの読み込み）と `PW/cli/src/domain/frontmatter.ts` から `priority`・`size` を消す
 - [ ] T019 [P] [US4] `PW/cli/templates/issue/{task,bug,epic,tracker,task-implement}.md` の frontmatter から `priority`・`size` を消す
 - [ ] T020 [US4] トラッカーから priority を消す。
@@ -326,9 +326,11 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 **Purpose**: リリースされた pecot-workflow で、このリポのボードを移行し、`pecot-lane` を入れる
 
-- [ ] T077 このリポで `project_sync` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼び、`pecot-workflow-pecotcraft` が `pecot-status` になり、`Lanes` のビューができたことを確かめる
+- [ ] T077 このリポで `project_init` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼び、`pecot-workflow-pecotcraft` が `pecot-status` になり、`Lanes` のビューができたことを確かめる
+  あわせて、設定ファイルの新しい名前に合わせて、`PW/CONTRIBUTING.md` の `project activate` の例と Actions の変数 `PECOT_REVIEW_PROJECT` を直す
+  `PW/scripts/sandbox/sandbox-diff-items.json` の FR-005 の `pecot-workflow-*` を `pecot-status` にする
 - [ ] T078 開いている Issue のすべてに `pecot-lane` を入れ、`board_sync` の `missing_lane` が空になることを確かめる
-- [ ] T079 消すフィールド（`pecot-priority`・`pecot-size`）を利用者に示して確認を取り、`confirm_delete: true` で `project_sync` を呼ぶ
+- [ ] T079 消すフィールド（`pecot-priority`・`pecot-size`）を利用者に示して確認を取り、`confirm_delete: true` で `project_init` を呼ぶ
 - [ ] T080 `Lanes` のビューを開き、着手できるタスクの無い領域が分かることを確かめる（SC-001）
 
 ---
@@ -339,7 +341,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | スタックできる | Phase 2 の `confirm_delete` は、Phase 1 の `project_sync` の移行の予定と `migration` の出力に削除を足す |
+| 2 | 1 | スタックできる | Phase 2 の `confirm_delete` は、Phase 1 の `project_init` の移行の予定と `migration` の出力に削除を足す |
 | 3 | 1 | スタックできる | Phase 3 のビューの作成が、Phase 1 で作る `pecot-status` の ID を `vertical_group_by` に使う |
 | 4 | 3 | スタックできる | Phase 4 の起票・同期・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
 | 6 | 5 | スタックできる | Phase 6 の検証が、Phase 5 で作る定義の読み込み（`infra/github/attributes.ts`）を使う |

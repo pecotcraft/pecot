@@ -52,16 +52,15 @@ cp <出力のパス> .pecot/config/projects/
 
 ### Step 2: プロジェクト新規作成
 
-AskUserQuestion でプロジェクト名とワークフローサフィックスを質問する。
+AskUserQuestion でプロジェクト名を質問する。
 
-pecot-workflow の MCP ツール `project_create` を使って、プロジェクトを作る（`owner`・`title`・`host`・`suffix`）。
+pecot-workflow の MCP ツール `project_create` を使って、プロジェクトを作る（`owner`・`title`・`host`）。
 
 | 入力 | 説明 |
 |------|------|
 | `owner` | GitHub の owner（user or org）（必須） |
 | `title` | GitHub Projects のプロジェクト名（必須） |
 | `host` | GitHub ホスト（例: `github.com`, `ghes.example.com`） |
-| `suffix` | ワークフローサフィックス（設定ファイル名・ラベル識別子に使用）（必須） |
 
 ### Step 3: Epic 集約リポの設定（任意）
 

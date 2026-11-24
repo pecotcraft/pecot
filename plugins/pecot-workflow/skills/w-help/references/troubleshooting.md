@@ -14,4 +14,4 @@ gh auth refresh -s project   # projectスコープ追加
 
 ## フィールドが見つからない
 
-pecot-workflow の MCP ツール `project_init` を使う（`owner`・`name`・`suffix`）。
+pecot-workflow の MCP ツール `project_init` を使う（`owner`・`name`）。

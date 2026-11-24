@@ -23,7 +23,8 @@ import {
   withAggregationRepository,
   withRepositoryAppended,
   withRepositoryReplaced,
-  workflowFieldName,
+  projectConfigFileName,
+  workflowFieldId,
 } from '../config.js'
 import type { ProjectConfig, RepositoryMembership } from '../config.js'
 import { InvalidValueError } from '../errors.js'
@@ -33,7 +34,6 @@ function sampleConfigData(): Record<string, JsonValue> {
   return {
     host: 'ghes.example.com',
     owner: 'test-owner',
-    workflow_suffix: 'test',
     project: {
       number: 1,
       id: 'PVT_test123',
@@ -100,7 +100,6 @@ describe('parseProjectConfig（モデルの値）', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'test',
-      workflow_suffix: 'test',
       project: { number: 1, id: 'PVT', fields: { workflow: { id: 'WF', options: {} } } },
     })
     expect(config.project.fields.workflow).toEqual({ id: 'WF', options: {} })
@@ -139,20 +138,19 @@ describe('parseProjectConfig（モデルの値）', () => {
   })
 })
 
-describe('parseProjectConfig（検証エラー）', () => {
-  it('workflow_suffix が無いと検証エラー', () => {
-    const data = sampleConfigData()
-    Reflect.deleteProperty(data, 'workflow_suffix')
-    expect(() => parseProjectConfig(data)).toThrow(InvalidValueError)
-    // 入力が 50 文字を超えるので、input_value は前 25 文字 + ... + 後ろ 24 文字（Python の実出力と同じ切り方）
-    expect(validationMessage(data)).toBe([
-      '1 validation error for ProjectConfig',
-      'workflow_suffix',
-      '  Field required [type=missing, input_value={\'host\': \'ghes.example.co...name\': \'another-repo\'}]}, input_type=dict]',
-      '    For further information visit https://errors.pydantic.dev/2.14/v/missing',
-    ].join('\n'))
+describe('parseProjectConfig（旧い形）', () => {
+  it('旧い設定の workflow_suffix を読み捨て、保存では出さない', () => {
+    const config = parseProjectConfig({ ...sampleConfigData(), workflow_suffix: 'test' })
+    expect(Object.keys(config)).not.toContain('workflow_suffix')
+    expect(serializeProjectConfig(config)).not.toContain('workflow_suffix')
   })
 
+  it('workflow_suffix の無い設定を読める', () => {
+    expect(parseProjectConfig(sampleConfigData()).project.fields.workflow.id).toBe('FIELD_workflow')
+  })
+})
+
+describe('parseProjectConfig（検証エラー）', () => {
   it.each(['config-exclusive', 'config-aggregation-single-segment', 'config-nine-errors'])('文は Python の実出力と同じ: %s', (id) => {
     const { input, message } = validationErrorOutput(id)
     expect(validationMessage(input)).toBe(message)
@@ -235,7 +233,6 @@ function aggregationData(extra: Readonly<Record<string, JsonValue>>): JsonValue 
   return {
     host: 'github.com',
     owner: 'acme-labs',
-    workflow_suffix: 'pecot',
     project: { number: 1, id: 'PVT_xxx', fields: { workflow: { id: 'F_workflow', options: { backlog: 'o1', active: 'o2' } } } },
     repositories: [],
     ...extra,
@@ -288,8 +285,14 @@ describe('フィールドの検索', () => {
     expect(getFieldId(noPriority, 'priority')).toBeUndefined()
   })
 
-  it('設定の workflow のフィールドから、その名前を返す', () => {
-    expect(workflowFieldName(config)).toBe('pecot-workflow-test')
+  it('進行の欄は、設定の workflow のフィールドの ID で指す', () => {
+    expect(workflowFieldId(config)).toBe('FIELD_workflow')
+  })
+})
+
+describe('projectConfigFileName', () => {
+  it('ホスト・持ち主・番号から名前を作り、ボードの題を使わない', () => {
+    expect(projectConfigFileName('github.com', 'pecotcraft', 3)).toBe('github.com_pecotcraft_3.json')
   })
 })
 
@@ -377,14 +380,12 @@ describe('serializeProjectConfig', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'test',
-      workflow_suffix: 'test',
       project: { number: 1, id: 'PVT', fields: { workflow: { id: 'WF', options: {} } } },
     })
     expect(serializeProjectConfig(config)).toBe([
       '{',
       '  "host": "github.com",',
       '  "owner": "test",',
-      '  "workflow_suffix": "test",',
       '  "project": {',
       '    "number": 1,',
       '    "id": "PVT",',
@@ -405,13 +406,12 @@ describe('serializeProjectConfig', () => {
     const config = parseProjectConfig({
       repositories: [{ release_branch: 'main', name: 'r', owner: 'o' }],
       project: { fields: { workflow: { options: {}, id: 'WF' } }, id: 'PVT', number: 1 },
-      workflow_suffix: 's',
       owner: 'o',
       host: 'h',
       aggregation_repo: 'a/b',
     })
     const keys = Object.keys(parseJsonObject(serializeProjectConfig(config)))
-    expect(keys).toEqual(['host', 'owner', 'workflow_suffix', 'project', 'repositories', 'aggregation_repo'])
+    expect(keys).toEqual(['host', 'owner', 'project', 'repositories', 'aggregation_repo'])
     expect(serializeProjectConfig(config)).toContain('"owner": "o",\n      "name": "r",\n      "release_branch": "main"')
   })
 

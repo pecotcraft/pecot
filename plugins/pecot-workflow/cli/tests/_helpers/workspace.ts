@@ -174,7 +174,6 @@ export function projectConfigFiles(options: Readonly<ConfigOptions> = {}): Reado
   const config = {
     host: HOST,
     owner: OWNER,
-    workflow_suffix: OWNER,
     project: { number: 1, id: 'PVT_1', board_url: `https://${HOST}/users/${OWNER}/projects/1`, fields: BOARD_FIELDS },
     repositories: [repository, ...(options.hasSecondRepository === true ? [{ owner: OWNER, name: 'other', develop_branch: 'main' }] : [])],
   }

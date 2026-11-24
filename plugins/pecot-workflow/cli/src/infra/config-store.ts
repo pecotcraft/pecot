@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスはプロジェクトルート配下の設定ディレクトリと、呼び出し側が渡す設定ファイル */
 // プロジェクト設定（`.pecot/config/projects/*.json`）の読み書き。モデルと判定は domain/config.ts にある。
 
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { hinted, inputHint, placeholder } from '../domain/command-hint.js'
@@ -9,6 +9,7 @@ import type { HintedText } from '../domain/command-hint.js'
 import { ConfigError, findRepository, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { InvalidValueError } from '../domain/errors.js'
+import type { ConfigFileEntry } from '../domain/migration.js'
 import { parseJsonText } from '../domain/json.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { compareStrings, pythonStrip, ValidationFailure } from '../domain/python-format.js'
@@ -98,6 +99,32 @@ export function listProjectConfigNames(): readonly string[] {
     if (isFileNotFound(error)) return []
     throw error
   }
+}
+
+// 設定ファイル 1 つが指すボード。読めないファイルは undefined
+function readConfigEntry(fileName: string): ConfigFileEntry | undefined {
+  try {
+    const config = loadConfig(path.join(projectsDirectory(), fileName))
+    return { fileName, host: config.host, owner: config.owner, number: config.project.number }
+  }
+  catch (error: unknown) {
+    if (error instanceof ConfigError) return undefined
+    throw error
+  }
+}
+
+/**
+projects/ にある設定ファイルの名前と、中身が指すボード（名前順）。読めないファイルは飛ばす
+*/
+export function listProjectConfigEntries(): readonly ConfigFileEntry[] {
+  return listProjectConfigNames().map(name => readConfigEntry(`${name}.json`)).filter(entry => entry !== undefined)
+}
+
+/**
+設定ファイルを消す
+*/
+export function removeConfig(file: string): void {
+  rmSync(file)
 }
 
 /**

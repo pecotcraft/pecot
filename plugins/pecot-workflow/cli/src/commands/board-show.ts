@@ -17,7 +17,7 @@ import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import { readBoardReadiness, readinessOf, skipBoardReadiness } from './board-readiness.js'
-import { BOARD_SHOW_OUTPUT, boardShowData, boardShowJson, boardShowMarkdown, boardShowResult, collectAlertStatuses, readBoard } from './board-view.js'
+import { BOARD_SHOW_OUTPUT, boardShowData, boardShowJson, boardShowMarkdown, boardShowResult, collectAlertStatuses, readBoard, warnOldFieldName } from './board-view.js'
 import type { BoardShowJson } from './board-view.js'
 import { failApi } from './project-sync.js'
 
@@ -57,7 +57,9 @@ const boardShowCommand = defineCommand({
     const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
     try {
       const client = createGitHubClient(out, config.host)
-      const { items, progress, isLegacy } = await readBoard(client, config, input.repo)
+      const read = await readBoard(client, config, input.repo)
+      warnOldFieldName(out, config, read)
+      const { items, progress, isLegacy } = read
       const statuses = await collectAlertStatuses(client, config)
       const view = { config, projectName, statuses }
       const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)

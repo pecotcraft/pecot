@@ -72,7 +72,6 @@ describe('pruneArchivedItems', () => {
   const config = parseProjectConfig({
     host: 'github.com',
     owner: 'o',
-    workflow_suffix: 's',
     project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'F', options: {} } } },
     repositories: [],
   })

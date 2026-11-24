@@ -110,7 +110,6 @@ const RepositorySchema = model('Repository', {
 const ProjectConfigSchema = model('ProjectConfig', {
   host: z.string(),
   owner: z.string(),
-  workflow_suffix: z.string(),
   project: ProjectSchema,
   repositories: z.array(RepositorySchema).readonly().default([]),
   aggregation_repo: z.string().superRefine((value, context) => {
@@ -240,8 +239,28 @@ export function serializeProjectConfig(config: ProjectConfig): string {
 
 // 検索
 
-export function workflowFieldName(config: ProjectConfig): string {
-  return `pecot-workflow-${config.workflow_suffix}`
+/**
+進行の欄の名前
+*/
+export const WORKFLOW_FIELD_NAME = 'pecot-status'
+
+/**
+改名する前の進行の欄の名前の前置き（`pecot-workflow-<suffix>`）
+*/
+export const LEGACY_WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
+
+/**
+進行の欄のフィールド ID。値はこの ID で読む（改名しても変わらない）
+*/
+export function workflowFieldId(config: ProjectConfig): string {
+  return config.project.fields.workflow.id
+}
+
+/**
+設定ファイルの名前。ボードの題は画面で変えられるので使わない
+*/
+export function projectConfigFileName(host: string, owner: string, number: number): string {
+  return `${host}_${owner}_${String(number)}.json`
 }
 
 function fieldOf(config: ProjectConfig, fieldName: string): FieldOptions | undefined {

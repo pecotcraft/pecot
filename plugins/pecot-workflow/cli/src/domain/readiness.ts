@@ -515,9 +515,9 @@ export interface ToIssueFactsResult {
 
 export interface ToIssueFactsOptions {
   /**
-  進行の欄のフィールド名（`pecot-workflow-<suffix>`）
+  進行の欄のフィールド ID
   */
-  readonly columnFieldName: string
+  readonly columnFieldId: string
   /**
   札のフィールド名。このフェーズでは `Status`
   */
@@ -562,12 +562,12 @@ function workKind(readout: IssueReadout): IssueWorkKind {
 }
 
 function toFacts(readout: IssueReadout, options: ToIssueFactsOptions): IssueFacts {
-  const valueOf = (fieldName: string): string | undefined => readout.projectFieldValues.find(value => value.fieldName === fieldName)?.optionName
+  const values = readout.projectFieldValues
   return {
     ref: { repository: readout.repository, number: readout.number },
     state: LOWER_STATE[readout.state],
-    column: valueOf(options.columnFieldName),
-    label: valueOf(options.labelFieldName),
+    column: values.find(value => value.fieldId === options.columnFieldId)?.optionName,
+    label: values.find(value => value.fieldName === options.labelFieldName)?.optionName,
     kind: workKind(readout),
     branches: readout.linkedBranches.map(branch => branch.name),
     pullRequests: collectPullRequests(readout),

@@ -13,20 +13,20 @@
 
 ## A-1. 既存のボードの移行（US4・US4b）
 
-1. `project_sync` を `confirm_delete` なしで呼ぶ
+1. `project_init` を `confirm_delete` なしで呼ぶ
    - 期待: `pecot-workflow-sandbox` が `pecot-status` になる。Issue の進行の欄の値は前と同じ。設定ファイルが `_sandbox` の無い名前に移る。`migration.pending_delete` に `pecot-priority`・`pecot-size` が出て、まだ消えていない
 2. `board_show` と `board_sync` を呼ぶ
    - 期待: 移行の前と同じ Item・同じ列。`pecot-priority`・`pecot-size` が残っていても止まらない
-3. `project_sync` を `confirm_delete: true` で呼ぶ
+3. `project_init` を `confirm_delete: true` で呼ぶ
    - 期待: 2 つのフィールドが消え、`migration.deleted` に出る
 
 ## A-2. `pecot-lane` とレーンのビュー（US1）
 
-1. `project_sync` を `lanes: ["alpha", "beta"]` で呼ぶ
+1. `project_init` を `lanes: ["alpha", "beta"]` で呼ぶ
    - 期待: `pecot-lane` ができる。ボードに `Lanes` のビューができ、列が `pecot-status`、横のレーンが `pecot-lane`
 2. ボードの画面で `Lanes` を開く
    - 期待: 値の無い Issue は「No pecot-lane」のレーンに入る
-3. `project_sync` を `lanes: ["gamma"]` で呼ぶ
+3. `project_init` を `lanes: ["gamma"]` で呼ぶ
    - 期待: 選択肢が alpha・beta・gamma になり、既存の Issue の値は消えない
 
 ## A-3. 起票・同期・一覧（US2・US3）
@@ -35,7 +35,7 @@
    - 期待: 起票の内容から `pecot-lane` が決まって入る。`pecot-priority`・`pecot-size` を聞かれない
 2. `issue_create` を `lane: "delta"`（無い値）で呼ぶ
    - 期待: Issue を作らずに止まり、取りうる値が出る
-3. ボードの画面で `pecot-lane` に選択肢 `epsilon` を足し、`project_sync` を呼ばずに `issue_create` を `lane: "epsilon"` で呼ぶ
+3. ボードの画面で `pecot-lane` に選択肢 `epsilon` を足し、`project_init` を呼ばずに `issue_create` を `lane: "epsilon"` で呼ぶ
    - 期待: 止まらずに起票でき、`epsilon` が入る（選択肢を設定に写さないので、画面の変更がすぐ使える）
 4. `pecot-lane` の入った Epic の下に、`lane` なしでタスクを起票する
    - 期待: タスクに親と同じ値が入る
@@ -82,7 +82,7 @@
 
 PR がマージされ、リリースされた pecot-workflow で行う。
 
-1. このリポで `project_sync` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼ぶ
+1. このリポで `project_init` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼ぶ
 2. 開いている Issue のすべてに `pecot-lane` を入れ、`board_sync` の `missing_lane` が空になることを確かめる
-3. 利用者の確認を取ってから、`confirm_delete: true` で `project_sync` を呼ぶ
+3. 利用者の確認を取ってから、`confirm_delete: true` で `project_init` を呼ぶ
 4. `Lanes` のビューを開き、着手できるタスクの無い領域が分かることを確かめる（SC-001）

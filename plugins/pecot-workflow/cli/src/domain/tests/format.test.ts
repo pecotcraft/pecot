@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { JSON_NULL } from '../json-null.js'
-import { boardItemKey, extractWorkflowStatus, formatBoardOutput, formatItemsJson, formatStackableChains, formatTableRow, transformItems } from '../format.js'
+import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, formatBoardOutput, formatItemsJson, formatStackableChains, formatTableRow, transformItems } from '../format.js'
 import type { BoardItem } from '../format.js'
 import type { JsonValue } from '../python-format.js'
 
@@ -11,7 +11,7 @@ const SAMPLE_RAW_ITEMS: readonly RawItem[] = [
   {
     id: 'item1',
     updatedAt: '2026-01-14T10:00:00Z',
-    fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Active' }] },
+    fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-test' }, name: 'Active' }] },
     content: {
       number: 100,
       title: 'Active Issue',
@@ -24,7 +24,7 @@ const SAMPLE_RAW_ITEMS: readonly RawItem[] = [
   {
     id: 'item2',
     updatedAt: '2026-01-13T10:00:00Z',
-    fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Ready' }] },
+    fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-test' }, name: 'Ready' }] },
     content: {
       number: 101,
       title: 'Ready Issue',
@@ -37,7 +37,7 @@ const SAMPLE_RAW_ITEMS: readonly RawItem[] = [
   {
     id: 'item3',
     updatedAt: '2026-01-12T10:00:00Z',
-    fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Backlog' }] },
+    fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-test' }, name: 'Backlog' }] },
     content: {
       number: 102,
       title: 'Backlog Issue',
@@ -50,7 +50,7 @@ const SAMPLE_RAW_ITEMS: readonly RawItem[] = [
   {
     id: 'item4',
     updatedAt: '2026-01-11T10:00:00Z',
-    fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Archived' }] },
+    fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-test' }, name: 'Archived' }] },
     content: {
       number: 103,
       title: 'Done Issue',
@@ -68,54 +68,76 @@ function firstItem(items: readonly BoardItem[]): BoardItem {
   return item
 }
 
-describe('extractWorkflowStatus', () => {
-  it('pecot-workflow のフィールドがあるとき、その値を返す', () => {
+describe('extractFieldValueByName', () => {
+  it('名前の合うフィールドがあるとき、その値を返す', () => {
     const item = { fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Active' }] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBe('Active')
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBe('Active')
   })
 
-  it('pecot-workflow のフィールドが無いとき、undefined を返す', () => {
+  it('名前の合うフィールドが無いとき、undefined を返す', () => {
     const item = { fieldValues: { nodes: [{ field: { name: 'Priority' }, name: 'High' }] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBeUndefined()
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBeUndefined()
   })
 
   it('fieldValues が空のとき、undefined を返す', () => {
-    expect(extractWorkflowStatus({ fieldValues: { nodes: [] } }, 'pecot-workflow-test')).toBeUndefined()
+    expect(extractFieldValueByName({ fieldValues: { nodes: [] } }, 'pecot-workflow-test')).toBeUndefined()
   })
 
   it('fieldValues が無いとき、undefined を返す', () => {
-    expect(extractWorkflowStatus({}, 'pecot-workflow-test')).toBeUndefined()
+    expect(extractFieldValueByName({}, 'pecot-workflow-test')).toBeUndefined()
   })
 
   it('大文字小文字を区別しない', () => {
     const item = { fieldValues: { nodes: [{ field: { name: 'PECOT-WORKFLOW-TEST' }, name: 'Ready' }] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBe('Ready')
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBe('Ready')
   })
 
   it('空ノードが混在しても Workflow を抽出できる', () => {
     const item = { fieldValues: { nodes: [{}, {}, { field: { name: 'pecot-workflow-test' }, name: 'Active' }, {}] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBe('Active')
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBe('Active')
   })
 
   it('field がないノードをスキップ', () => {
     const item = { fieldValues: { nodes: [{ name: 'SomeValue' }, { field: { name: 'pecot-workflow-test' }, name: 'Backlog' }] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBe('Backlog')
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBe('Backlog')
   })
 
   it('null のノードが含まれていてもエラーにならない', () => {
     const item = { fieldValues: { nodes: [JSON_NULL, { field: { name: 'pecot-workflow-test' }, name: 'Done' }] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBe('Done')
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBe('Done')
   })
 
   it('値の名前が null なら最初に見つけた時点で未設定を返す', () => {
     const item = { fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: JSON_NULL }, { field: { name: 'pecot-workflow-test' }, name: 'Active' }] } }
-    expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBeUndefined()
+    expect(extractFieldValueByName(item, 'pecot-workflow-test')).toBeUndefined()
+  })
+})
+
+describe('extractFieldValueById', () => {
+  it('名前に依らず、ID の合うフィールドの値を返す', () => {
+    const item = { fieldValues: { nodes: [{}, { field: { id: 'F_other', name: 'pecot-status' }, name: 'Todo' }, { field: { id: 'F_wf', name: 'pecot-workflow-old' }, name: 'Ready' }] } }
+    expect(extractFieldValueById(item, 'F_wf')).toBe('Ready')
+  })
+
+  it('ID の合うフィールドが無いとき、undefined を返す', () => {
+    expect(extractFieldValueById({ fieldValues: { nodes: [{ field: { name: 'F_wf' }, name: 'Ready' }] } }, 'F_wf')).toBeUndefined()
+  })
+})
+
+describe('fieldNameById', () => {
+  it('値の入った最初の Item から、ID の合うフィールドの今の名前を返す', () => {
+    const items = [{ fieldValues: { nodes: [] } }, { fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-old' }, name: 'Ready' }] } }]
+    expect(fieldNameById(items, 'F_wf')).toBe('pecot-workflow-old')
+  })
+
+  it('どの Item にも値が無いとき、undefined を返す', () => {
+    expect(fieldNameById([{ fieldValues: { nodes: [] } }], 'F_wf')).toBeUndefined()
   })
 })
 
 describe('transformItems', () => {
   it('raw の項目を、workflow・title・番号・ラベルを持つ項目に変換する', () => {
-    const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
+    const items = transformItems(SAMPLE_RAW_ITEMS, 'F_wf')
     expect(items).toHaveLength(4)
     const item = firstItem(items)
     expect(item.workflow).toBe('Active')
@@ -125,7 +147,7 @@ describe('transformItems', () => {
   })
 
   it('出力の形（キーの順序を含む）は Python の辞書と同じ', () => {
-    const [item] = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
+    const [item] = transformItems(SAMPLE_RAW_ITEMS, 'F_wf')
     expect(JSON.stringify(item)).toBe(JSON.stringify({
       id: 'item1',
       workflow: 'Active',
@@ -142,23 +164,23 @@ describe('transformItems', () => {
   })
 
   it('無い値は JSON にすると null で出る（Python の CLI と同じ）', () => {
-    const [item] = transformItems([{ id: 'x', content: { title: 't' } }], 'pecot-workflow-test')
+    const [item] = transformItems([{ id: 'x', content: { title: 't' } }], 'F_wf')
     expect(JSON.stringify(item)).toBe('{"id":"x","workflow":null,"title":"t","updatedAt":"","content":{"number":null,"state":null,"url":null,"labels":[],"repository":""}}')
   })
 
   it('ラベルが空のとき、labels は空配列になる', () => {
-    const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
+    const items = transformItems(SAMPLE_RAW_ITEMS, 'F_wf')
     const ready = items.find(item => item.workflow === 'Ready')
     expect(ready?.content.labels).toEqual([])
   })
 
   it('content がないアイテムはスキップ', () => {
     const raw = [{ id: 'draft', fieldValues: { nodes: [] }, content: JSON_NULL }]
-    expect(transformItems(raw, 'pecot-workflow-test')).toHaveLength(0)
+    expect(transformItems(raw, 'F_wf')).toHaveLength(0)
   })
 
   it('content が空のアイテムもスキップ', () => {
-    expect(transformItems([{ id: 'x', content: {} }], 'pecot-workflow-test')).toHaveLength(0)
+    expect(transformItems([{ id: 'x', content: {} }], 'F_wf')).toHaveLength(0)
   })
 
   it('不正なラベルノードはスキップ', () => {
@@ -174,17 +196,17 @@ describe('transformItems', () => {
         labels: { nodes: [{ name: 'valid' }, {}, { name: '' }, { other: 'field' }, { name: 'also-valid' }] },
       },
     }]
-    expect(firstItem(transformItems(raw, 'pecot-workflow-test')).content.labels).toEqual(['valid', 'also-valid'])
+    expect(firstItem(transformItems(raw, 'F_wf')).content.labels).toEqual(['valid', 'also-valid'])
   })
 
   it('空の fieldValue ノードがあってもエラーにならない', () => {
     const raw = [{
       id: 'item1',
       updatedAt: '2026-01-14T10:00:00Z',
-      fieldValues: { nodes: [{}, {}, { field: { name: 'pecot-workflow-test' }, name: 'Active' }, {}] },
+      fieldValues: { nodes: [{}, {}, { field: { id: 'F_wf', name: 'pecot-status' }, name: 'Active' }, {}] },
       content: { number: 100, title: 'Test', state: 'OPEN', url: 'https://example.com', labels: { nodes: [] } },
     }]
-    expect(firstItem(transformItems(raw, 'pecot-workflow-test')).workflow).toBe('Active')
+    expect(firstItem(transformItems(raw, 'F_wf')).workflow).toBe('Active')
   })
 
   it('labels フィールドがなくてもエラーにならない', () => {
@@ -194,7 +216,7 @@ describe('transformItems', () => {
       fieldValues: { nodes: [] },
       content: { number: 100, title: 'Test', state: 'OPEN', url: 'https://example.com' },
     }]
-    expect(firstItem(transformItems(raw, 'pecot-workflow-test')).content.labels).toEqual([])
+    expect(firstItem(transformItems(raw, 'F_wf')).content.labels).toEqual([])
   })
 
   it('リポジトリの owner か名前が欠けると repository は空文字', () => {
@@ -202,18 +224,18 @@ describe('transformItems', () => {
       { id: 'a', content: { number: 1, repository: { owner: { login: 'o' } } } },
       { id: 'b', content: { number: 2, repository: { name: 'n' } } },
     ]
-    expect(transformItems(raw, 'pecot-workflow-test').map(item => item.content.repository)).toEqual(['', ''])
+    expect(transformItems(raw, 'F_wf').map(item => item.content.repository)).toEqual(['', ''])
   })
 
   it('欠けたキーは既定値になる（id・title・updatedAt は空文字、他は null）', () => {
-    const [item] = transformItems([{ content: { number: 1 } }], 'pecot-workflow-test')
+    const [item] = transformItems([{ content: { number: 1 } }], 'F_wf')
     expect(item).toEqual({ id: '', workflow: JSON_NULL, title: '', updatedAt: '', content: { number: 1, state: JSON_NULL, url: JSON_NULL, labels: [], repository: '' } })
   })
 })
 
 describe('formatBoardOutput', () => {
   it('ステータスの見出しと Ref・Title の表を出し、プロジェクト名の見出しと 0 件の見出しは出さない', () => {
-    const output = formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test'))
+    const output = formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'F_wf'))
 
     // プロジェクト名見出しは出力されない
     expect(output).not.toContain('## プロジェクト:')
@@ -234,7 +256,7 @@ describe('formatBoardOutput', () => {
   })
 
   it('出力全体は Python と同じ（見出し・表・空行）', () => {
-    expect(formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test'))).toBe([
+    expect(formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'F_wf'))).toBe([
       '### Active (1)',
       '| Ref | Title |',
       '|-----|----------|',
@@ -258,7 +280,7 @@ describe('formatBoardOutput', () => {
   })
 
   it('ステータスごとにグループ化される', () => {
-    const output = formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test'))
+    const output = formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'F_wf'))
     expect(output).toContain('### Ready (1)')
     expect(output).toContain('### Archived (1)')
   })
@@ -334,7 +356,7 @@ describe('formatBoardOutput', () => {
 })
 
 describe('formatBoardOutput の Readiness の列', () => {
-  const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
+  const items = transformItems(SAMPLE_RAW_ITEMS, 'F_wf')
 
   it('判定の表を渡すと、Ready の節だけ Readiness の列を持つ', () => {
     const output = formatBoardOutput(items, new Map([['test/repo#101', 'startable']]))
@@ -346,9 +368,9 @@ describe('formatBoardOutput の Readiness の列', () => {
   it('Blocked の節にも列を足し、表に無い Issue のセルは - にする', () => {
     const blocked = transformItems([{
       id: 'b',
-      fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Blocked' }] },
+      fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-workflow-test' }, name: 'Blocked' }] },
       content: { number: 7, title: 'Blocked Issue', repository: { owner: { login: 'Test' }, name: 'Repo' } },
-    }], 'pecot-workflow-test')
+    }], 'F_wf')
     expect(formatBoardOutput(blocked, new Map())).toContain('| Test/Repo#7 | Blocked Issue | - |')
     expect(formatBoardOutput(blocked, new Map([['test/repo#7', 'blocked by #3 (waits for merge)']]))).toContain('| Test/Repo#7 | Blocked Issue | blocked by #3 (waits for merge) |')
   })
@@ -380,7 +402,7 @@ describe('formatStackableChains', () => {
 
 describe('formatItemsJson', () => {
   it('items だけをキーに持つ JSON を返す', () => {
-    const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
+    const items = transformItems(SAMPLE_RAW_ITEMS, 'F_wf')
     const output = formatItemsJson(items)
     expect(Object.keys(output)).toEqual(['items'])
     expect(output.items).toHaveLength(4)

@@ -91,13 +91,13 @@ export interface IssuePrerequisitesReadout {
 }
 
 /**
-ボードのフィールド名。getIssuePrerequisites が値を取る 2 つ
+ボードのフィールド。getIssuePrerequisites が値を取る 2 つ
 */
 export interface PrerequisiteFieldNames {
   /**
-  進行の欄のフィールド名
+  進行の欄のフィールド ID（改名しても変わらない）
   */
-  readonly columnFieldName: string
+  readonly columnFieldId: string
   /**
   札のフィールド名
   */

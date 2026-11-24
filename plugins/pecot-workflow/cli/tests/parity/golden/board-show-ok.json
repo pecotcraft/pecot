@@ -29,9 +29,8 @@
         "owner": "acme",
         "repo": "demo",
         "number": 1,
-        "blockedByFirst": 50,
-        "columnFieldName": "pecot-workflow-acme",
-        "labelFieldName": "Status"
+        "labelFieldName": "Status",
+        "blockedByFirst": 50
       },
       "auth": "token"
     }

@@ -22,7 +22,7 @@ export function prepareDependencyProject(options: Readonly<{ omit?: readonly Boa
   }
   const project = { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields }
   const repositories = ['demo', 'other'].map(name => ({ owner: 'acme', name, develop_branch: 'main' }))
-  const config = { host: 'ghes.example.com', owner: 'acme', workflow_suffix: 'acme', project, repositories }
+  const config = { host: 'ghes.example.com', owner: 'acme', project, repositories }
   const fixture = setUpProject({ repositories: ['demo', 'other'], files: { [`.pecot/config/projects/${CONFIG_FILE}`]: `${JSON.stringify(config, undefined, 2)}\n` } })
   const repository = enterGitRepository()
   gitForTest(repository, ['remote', 'add', 'origin', ORIGIN_URL])

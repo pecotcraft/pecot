@@ -35,7 +35,6 @@ function config(aggregation?: string): ProjectConfig {
   return parseProjectConfig({
     host: 'github.com',
     owner: 'o',
-    workflow_suffix: 'o',
     ...(aggregation !== undefined && { aggregation_repo: aggregation }),
     project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'F_workflow', options: { backlog: 'O_b' } } } },
   })
