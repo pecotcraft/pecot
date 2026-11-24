@@ -230,7 +230,7 @@ function boardMoveInput(config: ProjectConfig, judged: Readonly<JudgedIssue>): B
     hasStarted: hasStarted(judged.target),
     hasPrerequisites: true,
     readiness: judged.readiness,
-    labelWrittenByAutomation: false,
+    labelWrittenByAutomation: judged.labelWrittenByAutomation,
     available: {
       blocked: getOptionId(config, 'workflow', 'blocked') !== undefined,
       needsAttention: getOptionId(config, 'status', 'needs_attention') !== undefined,
@@ -243,7 +243,7 @@ function boardMoveInput(config: ProjectConfig, judged: Readonly<JudgedIssue>): B
 async function settleColumn(output: Output, client: GitHubClient, config: ProjectConfig, session: PostingSession, issue: IssueReference, item: BoardItem, linked: number): Promise<MovableColumn | undefined> {
   let judged
   try {
-    judged = await readIssueReadiness(client, config, issue, session.cache)
+    judged = await readIssueReadiness(client, config, issue, session.cache, undefined, undefined, true)
   }
   catch (error: unknown) {
     if (error instanceof DependenciesUnsupportedError) return undefined

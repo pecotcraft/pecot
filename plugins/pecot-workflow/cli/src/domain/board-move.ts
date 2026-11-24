@@ -7,6 +7,8 @@ import type { IssueReference } from './reference-parser.js'
 export type MovableColumn = 'Ready' | 'Blocked'
 export type LabelValue = 'Needs Attention' | 'Todo'
 export type MissingValue = 'Blocked' | 'Needs Attention' | 'Todo'
+// 設定が ID を持つ札。In Progress は自動処理（spec 023）だけが書く
+export type StatusValue = LabelValue | 'In Progress'
 
 /**
 進行の欄（列）の表示名と設定のキー（`workflow.options.<key>`）の対応
@@ -21,9 +23,10 @@ export const COLUMN_CONFIG_KEYS = {
 札（Status）の表示名と設定のキー（`status.options.<key>`）の対応
 */
 export const LABEL_CONFIG_KEYS = {
+  'In Progress': 'in_progress',
   'Needs Attention': 'needs_attention',
   'Todo': 'todo',
-} satisfies Readonly<Record<LabelValue, string>>
+} satisfies Readonly<Record<StatusValue, string>>
 
 export interface BoardMoveInput {
   /**

@@ -6,6 +6,7 @@ import type { JsonObject } from '../../domain/json.js'
 import type { BlockedByReference, BlockedByReferences, IssueBlockedByReferences, IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
+import type { IssueCommentReading } from '../../domain/review-finish.js'
 import type { GraphqlOutcome } from './client.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
@@ -298,6 +299,18 @@ export class IssuesApi extends ProjectsApi {
   */
   async listIssueComments(owner: string, repository: string, number: number): Promise<readonly JsonValue[]> {
     return this.listAll(`${repositoryPath(owner, repository)}/issues/${String(number)}/comments`, { per_page: ISSUES_PER_PAGE })
+  }
+
+  /**
+  Issue・PR のコメントを全件取り、本文と書き手の種類（`user.type`）だけを返す。順は REST と同じ ID の昇順
+  */
+  async listIssueCommentReadings(owner: string, repository: string, number: number): Promise<readonly IssueCommentReading[]> {
+    const comments = await this.listIssueComments(owner, repository, number)
+    return comments.filter(comment => isJsonObject(comment)).map((comment) => {
+      const body = jsonField(comment, 'body')
+      const userType = jsonField(jsonField(comment, 'user'), 'type')
+      return { body: typeof body === 'string' ? body : '', userType: typeof userType === 'string' ? userType : '' }
+    })
   }
 
   /**

@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsRule, type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
@@ -156,6 +156,11 @@ function savedConfig(result: Readonly<Pick<CommandResult, 'read'>>, file = CONFI
 function workflowOptions(result: Readonly<CommandResult>): Json {
   const fields = asJson(asJson(savedConfig(result)['project'])['fields'])
   return asJson(asJson(fields['workflow'])['options'])
+}
+
+function savedStatus(result: Readonly<CommandResult>): unknown {
+  const fields = asJson(asJson(savedConfig(result)['project'])['fields'])
+  return fields['status']
 }
 
 function repositoryEntries(result: Readonly<CommandResult>): Json[] {
@@ -389,8 +394,9 @@ describe('project init', () => {
     ])
   })
 
-  it('値を足すと、設定ファイルを同期して Blocked と Needs Attention の id を書く', async (context) => {
+  it('値を足すと、設定ファイルを同期して Blocked・In Progress・Needs Attention の id を書く', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-08')
+    await verifies(context, 'PW-PROJECT-INIT-18')
     const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
     const synced = [
       { id: 'PVTF_title', name: 'Title' },
@@ -403,8 +409,23 @@ describe('project init', () => {
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
     expect(asJson(savedConfig(result)['project'])['fields']).toMatchObject({
       workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o1', blocked: 'o2' } },
-      status: { id: 'PVTSSF_status', options: { todo: 'o1', needs_attention: 'o4' } },
     })
+    expect(savedStatus(result)).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2', needs_attention: 'o4' } })
+  })
+
+  it('Status に In Progress が無いと、設定ファイルに in_progress を書かずに成功する', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-19')
+    const renamed = ['Todo', 'Doing', 'Done']
+    const existing = [...titleWithoutStatus, workflowField(BOARD_ORDER), ...otherFields(), statusField(renamed)]
+    const synced = [
+      { id: 'PVTF_title', name: 'Title' },
+      { id: 'PVTSSF_workflow', name: 'pecot-workflow-acme', databaseId: 456, options: options(WORKFLOW_NAMES_WITH_BLOCKED) },
+      statusField([...renamed, 'Needs Attention']),
+    ]
+    const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), listProjects(projectNode(1, 'board')), projectFields(synced), linked()])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(savedStatus(result)).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1', needs_attention: 'o4' } })
   })
 
   it('値が既にあると、書き込まずに unchanged の行を出す', async () => {
@@ -619,6 +640,12 @@ describe('project create', () => {
       project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o1', archived: 'o6' } } } },
       repositories: [],
     })
+  })
+
+  it('Status に In Progress があると、設定ファイルに in_progress の id を書く', async (context) => {
+    await verifies(context, 'PW-PROJECT-CREATE-12')
+    const result = await create(createRules())
+    expect(savedStatus(result)).toMatchObject({ id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2' } })
   })
 
   it('設定ファイルを作ると、そのプロジェクトをアクティブにする', async (context) => {
@@ -900,9 +927,17 @@ describe('board show', () => {
       const workflow = asJson(fields['workflow'])
       const options = Object.fromEntries(Object.entries(asJson(workflow['options'])).filter(([name]) => name !== 'blocked'))
       const config = { ...withoutBlocked, project: { ...project, fields: { ...fields, workflow: { ...workflow, options } } } }
-      const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }] })], config)
+      const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }] }), commentsRule(3)], config)
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_ONE}\n`)
+    })
+
+    it('Bot が書いた待ちの結果のコメントを持つ Needs Attention の札は、食い違いに数えない', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-33')
+      const done: IssueSpec = { number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }
+      const result = await info([board(item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), commentsRule(3, [botResult('question')])])
+      expectClean(result)
+      expect(result.stderr).toBe('')
     })
 
     it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async () => {
@@ -1441,10 +1476,10 @@ describe('project activate', () => {
     const fields = asJson(asJson(savedConfig(result)['project'])['fields'])
     expect(asJson(fields['workflow'])['options']).not.toHaveProperty('blocked')
     expect(asJson(savedConfig(result)['project'])['board_url']).not.toContain('Blocked')
-    expect(fields['status']).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1' } })
+    expect(fields['status']).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2' } })
   })
 
-  it('Blocked と Needs Attention があるボードを同期すると、その id を設定ファイルに書く', async (context) => {
+  it('Blocked・In Progress・Needs Attention があるボードを同期すると、その id を設定ファイルに書く', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-20')
     const fields = [...standardFields(WORKFLOW_NAMES_WITH_BLOCKED).slice(0, 4), statusField([...STATUS_NAMES, 'Needs Attention'])]
     const result = await run(reference('1'), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()], { config: false })
@@ -1452,7 +1487,7 @@ describe('project activate', () => {
     expectClean(result)
     const saved = asJson(asJson(savedConfig(result)['project'])['fields'])
     expect(asJson(saved['workflow'])['options']).toMatchObject({ blocked: 'o2', ready: 'o4' })
-    expect(saved['status']).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1', needs_attention: 'o4' } })
+    expect(saved['status']).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2', needs_attention: 'o4' } })
     expect(asJson(savedConfig(result)['project'])['board_url']).toContain('Blocked')
   })
 

@@ -95,7 +95,7 @@ export async function judgeBoard(client: GitHubClient, config: ProjectConfig, it
     if (local === 'skip') return undefined
     if (local !== undefined) return { target, snapshot: local }
     try {
-      return { target, snapshot: await readIssueSnapshot(client, config, target.ref, blockedByReadCount(known?.blockedBy)) }
+      return { target, snapshot: await readIssueSnapshot(client, config, target.ref, blockedByReadCount(known?.blockedBy), true) }
     }
     catch (error: unknown) {
       if (!(error instanceof DependenciesUnsupportedError)) throw error
@@ -183,8 +183,7 @@ export function boardMoveOf(config: ProjectConfig, target: BoardTarget, result: 
     hasStarted: hasStarted(result.target),
     hasPrerequisites: result.prerequisites.length > 0,
     readiness: result.readiness,
-    // 札を書いたのが自動処理かは記録していない（data-model.md の 6）
-    labelWrittenByAutomation: false,
+    labelWrittenByAutomation: result.labelWrittenByAutomation,
     available: {
       blocked: getOptionId(config, 'workflow', 'blocked') !== undefined,
       needsAttention: getOptionId(config, 'status', 'needs_attention') !== undefined,

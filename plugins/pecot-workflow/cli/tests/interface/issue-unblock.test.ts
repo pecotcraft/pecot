@@ -9,7 +9,7 @@ import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-c
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { bodyWritten, bothLinked, labelUpdated, prepareDependencyProject, removeBlockedByRule, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
 import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -108,7 +108,7 @@ describe('issue unblock', () => {
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
-      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'), labelUpdated('s2'),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7), boardItems(), fieldUpdated('o3'), labelUpdated('s2'),
     ])
 
     const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
@@ -117,11 +117,53 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
   })
 
+  it('札が Needs Attention で、bot が書いた最後の自動処理の結果が question なら、閉じた前提を外しても札を Todo に戻さない', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-22')
+    prepareDependencyProject()
+    const github = await startGithub([
+      bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7, [botResult('question')]), boardItems(), fieldUpdated('o3'),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'removed: blocked-by #5 from #7\nmoved: #7 Blocked -> Ready (startable)\n' })
+    expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField'])
+  })
+
+  it('札が Needs Attention で、人が書いた自動処理の結果の目印しか無いなら、閉じた前提を外すと札を Todo に戻す', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-05')
+    prepareDependencyProject()
+    const github = await startGithub([
+      bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7, [humanResult('question')]), boardItems(), fieldUpdated('o3'), labelUpdated('s2'),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'removed: blocked-by #5 from #7\nmoved: #7 Blocked -> Ready (startable)\nset: Status of #7 to Todo\n' })
+    expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
+  })
+
+  it('札が Needs Attention の Issue のコメントを読めないと、前提は外し、判定を出せない warning を出して列と札を動かさない', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-23')
+    prepareDependencyProject()
+    const github = await startGithub([
+      bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsFailure(7),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'removed: blocked-by #5 from #7\nwarning: could not judge readiness of #7: GitHub API error: 500; the column and label of #7 were not moved\n' })
+    expect(writes(github)).toEqual(['RemoveBlockedBy'])
+  })
+
   it('札が Needs Attention でも、開いた最後の前提を外しただけなら、札を戻さない', async () => {
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5),
-      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7), boardItems(), fieldUpdated('o3'),
     ])
 
     const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
@@ -187,7 +229,7 @@ describe('issue unblock', () => {
     prepareDependencyProject({ omit: ['todo'] })
     await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
-      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+      prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7), boardItems(), fieldUpdated('o3'),
     ])
 
     const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
@@ -322,7 +364,7 @@ describe('issue unblock', () => {
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
-        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'), labelUpdated('s2'),
+        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7), boardItems(), fieldUpdated('o3'), labelUpdated('s2'),
       ])
 
       const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
@@ -334,6 +376,44 @@ describe('issue unblock', () => {
         moves: [{ issue: '#7', from: 'Blocked', to: 'Ready', label: 'Todo', reason: 'startable' }],
       })
       expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
+    })
+
+    it('札が Needs Attention で、bot が書いた最後の自動処理の結果が failed なら、札を戻さず、列の動きだけを moves に入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-22')
+      prepareDependencyProject()
+      await startGithub([
+        bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
+        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7, [botResult('failed')]), boardItems(), fieldUpdated('o3'),
+      ])
+
+      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        change: 'removed',
+        moves: [{ issue: '#7', from: 'Blocked', to: 'Ready', reason: 'startable' }],
+      })
+    })
+
+    it('札が Needs Attention の Issue のコメントを読めないと、空の moves と判定を出せない旨の warning を data に返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-UNBLOCK-23')
+      prepareDependencyProject()
+      await startGithub([
+        bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
+        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsFailure(7),
+      ])
+
+      const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
+        issue: 'acme/demo/7',
+        by: 'acme/demo/5',
+        change: 'removed',
+        moves: [],
+        warnings: ['could not judge readiness of #7: GitHub API error: 500; the column and label of #7 were not moved'],
+      })
     })
 
     it('読み直した前提が書いた内容と合わないとき、空の moves と理由の warning を data に返す', async (context) => {
@@ -432,7 +512,7 @@ describe('issue unblock', () => {
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5),
-        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7), boardItems(), fieldUpdated('o3'),
       ])
 
       const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
@@ -481,7 +561,7 @@ describe('issue unblock', () => {
       prepareDependencyProject({ omit: ['todo'] })
       await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
-        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+        prerequisitesRule({ number: 7, column: 'Blocked', label: 'Needs Attention', body: BODY, blockedBy: [] }), commentsRule(7), boardItems(), fieldUpdated('o3'),
       ])
 
       const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })

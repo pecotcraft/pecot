@@ -97,3 +97,44 @@ spec の Issue 向けの GetIssuePrerequisites の応答の規則。変数の ow
 export function prerequisitesRule(spec: TargetSpec): ResponseRule {
   return graphqlRule('GetIssuePrerequisites', prerequisitesData(spec), { owner: spec.owner ?? 'acme', repo: spec.repo ?? 'demo', number: spec.number })
 }
+
+export interface CommentSpec {
+  readonly body: string
+  readonly userType?: 'Bot' | 'User'
+}
+
+/**
+自動処理の結果のコメントの本文。先頭に目印を置く
+*/
+function autoResultBody(result: string): string {
+  return `<!-- pecot-auto: result=${result} run=1 attempt=1 branch=feat/x/1 -->\n## 自動処理が止まった`
+}
+
+/**
+List issue comments（REST）の応答の規則。札が Needs Attention で着手の跡の無い Issue を、列を動かすコマンドが読む
+*/
+export function commentsRule(number: number, comments: readonly CommentSpec[] = [], options: Readonly<{ owner?: string, repo?: string, times?: number }> = {}): ResponseRule {
+  const body = comments.map((comment, index) => ({ id: index + 1, body: comment.body, user: { login: comment.userType === 'Bot' ? 'pecot-agent[bot]' : 'alice', type: comment.userType ?? 'User' } }))
+  return { match: { method: 'GET', path: `/repos/${options.owner ?? 'acme'}/${options.repo ?? 'demo'}/issues/${String(number)}/comments` }, respond: { status: 200, body }, times: options.times ?? 1 }
+}
+
+/**
+List issue comments（REST）が 500 を返す規則
+*/
+export function commentsFailure(number: number, options: Readonly<{ owner?: string, repo?: string }> = {}): ResponseRule {
+  return { match: { method: 'GET', path: `/repos/${options.owner ?? 'acme'}/${options.repo ?? 'demo'}/issues/${String(number)}/comments` }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+}
+
+/**
+bot が書いた、自動処理の結果のコメント
+*/
+export function botResult(result: string): CommentSpec {
+  return { body: autoResultBody(result), userType: 'Bot' }
+}
+
+/**
+人が書いた、自動処理の結果の目印を持つコメント
+*/
+export function humanResult(result: string): CommentSpec {
+  return { body: autoResultBody(result), userType: 'User' }
+}

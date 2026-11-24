@@ -387,6 +387,7 @@ entries:
         - A repository whose alerts cannot be read shows the reason and does not stop the command.
         - Narrows the board items to one repository when --repo or the global pecot --repo is given.
         - Reads the blocked-by of the open Issues in Ready and Blocked, and judges each as startable, stackable or blocked. Issues in Active and In Review are not read.
+        - Also reads the comments of an Issue whose Status is Needs Attention and that has no branch or PR, to tell whether the automation set the Status, as board sync does.
         - Only shows the judgment. It never changes the column or the Status of an Issue, even when they do not match the judgment.
         - An Issue whose prerequisites cannot be read is shown as unknown.
         - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
@@ -410,6 +411,7 @@ entries:
       - 'alert を読めないリポジトリは、理由を入れるだけで、失敗にはしません。'
       - '`repo` を渡すと、ボードの項目を 1 つのリポジトリに絞ります。'
       - 'Ready と Blocked にある open の Issue の blocked-by を読み、それぞれを `startable`・`stackable`・`blocked` のどれかに判定します。Active と In Review の Issue は読みません。'
+      - '札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。自動処理が書いた札かを決め、`board_sync` と同じ規則で数えるためです。'
       - '判定は返すだけです。Issue の列と Status は、判定に合っていなくても変えません。'
       - '前提を読めない Issue は、判定を `unknown` にします。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`readiness` の無いボードを返します。'
@@ -464,7 +466,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'ボードの項目、Ready と Blocked の Issue の blocked-by、登録したリポジトリそれぞれの Dependabot alert の状態を読みます。'
+        what: 'ボードの項目、Ready と Blocked の Issue の blocked-by、登録したリポジトリそれぞれの Dependabot alert の状態を読みます。札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。'
       - target: file
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
@@ -569,6 +571,7 @@ entries:
         - Reads the whole board and moves the open Issues in Ready, Blocked, Active and In Review to the column and Status that their judgment calls for.
         - The judgment, the column move and the Status write are the same as the rest of the workflow (blocked-by, branches and PRs).
         - An Issue with a branch or a PR is never moved; when it is blocked, a warning line says so.
+        - A Needs Attention label that the automation put on to wait for a person is not set back to Todo. Such a label is told by the last automation result comment that a bot wrote on the Issue.
         - An Issue in Backlog, Pending or Archived, a PR card, a Tracker and an Epic are not moved.
         - An Issue whose judgment cannot be read (for example, develop_branch is not set) is not moved, and a warning line gives the reason.
         - Reads each Issue of Blocked, Active and In Review one by one, because the branches and PRs are not in the board list. Skips only the Ready Issues that the list shows with no prerequisites.
@@ -591,9 +594,10 @@ entries:
       - 'ボードの全体を読み、Ready・Blocked・Active・In Review にある open の Issue を、判定が求める列と Status へ動かします。'
       - '判定・列の移動・Status の書き込みは、ワークフローのほかの部分と同じです（blocked-by・ブランチ・PR を見ます）。'
       - 'ブランチか PR のある Issue は動かしません。その Issue が blocked のときは、`warnings` で知らせます。'
+      - '自動処理が人の対応を待って付けた `Needs Attention` の札は、`Todo` に戻しません。自動処理が付けた札かは、Issue に bot が書いた最後の自動処理の結果のコメントで決めます。'
       - 'Backlog・Pending・Archived にある Issue と、PR のカード・Tracker・Epic は動かしません。'
       - '判定を読めない Issue（`develop_branch` が未設定のときなど）は動かさず、`warnings` に理由を入れます。'
-      - 'ブランチと PR はボードの一覧に載らないので、Blocked・Active・In Review の Issue は 1 件ずつ読みます。読むのを省くのは、一覧で前提が無いと分かる Ready の Issue だけです。'
+      - 'ブランチと PR はボードの一覧に載らないので、Blocked・Active・In Review の Issue は 1 件ずつ読みます。読むのを省くのは、一覧で前提が無いと分かる Ready の Issue だけです。札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。'
       - '動かした後で、Archived の項目を、更新の新しい 20 件を残して、ボードから削除します。削除できない Archived の項目は飛ばして続け、最後に失敗を返します。'
       - '設定は、`project` の設定、アクティブなプロジェクト、`.pecot/config/projects` にある唯一の設定の順で選びます。設定が 2 つ以上あってアクティブなプロジェクトが無いときは、`project` を求める失敗を返します。'
       - 'CLI では、実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
@@ -648,7 +652,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'ボードの項目を読みます。Blocked・Active・In Review の Issue と、前提のある Ready の Issue は、blocked-by・ブランチ・PR も読みます。GraphQL の rate limit も読みます。'
+        what: 'ボードの項目を読みます。Blocked・Active・In Review の Issue と、前提のある Ready の Issue は、blocked-by・ブランチ・PR も読みます。そのうち札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。GraphQL の rate limit も読みます。'
       - target: github
         kind: write
         what: '判定に合っていない Issue の列（pecot-workflow のフィールド）と Status を設定します。'
@@ -769,6 +773,9 @@ entries:
       - id: PW-BOARD-SYNC-31
         pattern: unwanted
         statement: 'もし Archived の項目を削除できなかったなら、`kind` が `partial-failure` の失敗を返し、削除できなかった件数を `detail` に入れます。CLI では、最後に `error: could not delete N archived items from the board` の行を出し、終了コード 1 で終わります'
+      - id: PW-BOARD-SYNC-32
+        pattern: unwanted
+        statement: 'もし札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、前提がすべて済んでも札を `Todo` に戻しません'
   PW-BRANCH-DELETE:
     help:
       details:
@@ -927,7 +934,7 @@ entries:
         - A cycle is searched only when a new blocked-by is added. The search follows the blocked-by of --by step by step, up to 200 Issues. When it cannot be sure, the command stops, because GitHub accepts cycles of three or more Issues.
         - The writes are made in the order blocked-by, body, then board. When the body write fails, the blocked-by stays and running the same command again fixes the body.
         - After the writes, the readiness of the waiting Issue is read again. When the blocked-by and the section read back differ from what was written, it is read once more. When they still differ, the column and the Status label are not moved.
-        - The column and the Status label are moved by the readiness that was read back, in the same way as the board repair of the readiness feature. An Issue that has a branch or a PR is not moved and gets a warning about the difference.
+        - The column and the Status label are moved by the readiness that was read back, in the same way as pecot board sync. An Issue that has a branch or a PR is not moved and gets a warning about the difference. A Needs Attention label that the automation put on to wait for a person is not set back to Todo.
         - With --dry-run, writes dry-run lines instead of the result lines. The reads, the cycle search and the checks are still made, and nothing is written.
         - Needs a GitHub Enterprise Server of version 3.19 or later, which has issue dependencies.
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
@@ -955,7 +962,7 @@ entries:
       - '輪の探索は、新しく blocked-by を足すときだけ行います。`by` の blocked-by を 1 段ずつたどり、200 件の Issue まで調べます。確かめきれないときは、失敗を返します。GitHub は 3 件以上の Issue でできる輪を受け付けてしまうためです。'
       - '書き込みは、blocked-by、本文、ボードの順に行います。本文の書き込みに失敗しても、blocked-by は残ります。同じ引数で呼び直せば、本文が直ります。'
       - '書き込みの後で、待つ側の Issue の判定を読み直します。読み直した blocked-by と節が書いた内容と違うときは、もう一度読みます。それでも違うときは、列と Status の札を動かしません。'
-      - '列と Status の札は、読み直した判定で動かします。やり方は、判定の機能のボードの修復と同じです。ブランチか PR のある Issue は動かさず、判定との食い違いを `warnings` で知らせます。'
+      - '列と Status の札は、読み直した判定で動かします。やり方は、`board_sync` と同じです。ブランチか PR のある Issue は動かさず、判定との食い違いを `warnings` で知らせます。自動処理が人の対応を待って付けた `Needs Attention` の札は、`Todo` に戻しません。'
       - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -1024,7 +1031,7 @@ entries:
         what: 'blocked-by を付け、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
       - target: github
         kind: read
-        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、輪の探索、読み直した判定、ボードの項目を読みます。'
+        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、輪の探索、読み直した判定、ボードの項目を読みます。待つ側の Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -1123,6 +1130,12 @@ entries:
       - id: PW-ISSUE-BLOCK-27
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-ISSUE-BLOCK-28
+        pattern: unwanted
+        statement: 'もし待つ側の札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、前提がすべて済んでも札を `Todo` に戻しません'
+      - id: PW-ISSUE-BLOCK-29
+        pattern: unwanted
+        statement: 'もし書いた後の待つ側の Issue の判定を読めないなら、前提は付けたまま列と札を動かさず、判定を出せない旨を `warnings` に入れて成功を返します'
   PW-ISSUE-CHECK:
     help:
       details:
@@ -1635,7 +1648,7 @@ entries:
         what: 'Issue を作り、blocked-by を足し、プロジェクトのボードに足します。フィールドを設定し、親 Epic の sub-issue としてつなぎます。前提が済んでいる Issue は、Blocked から Ready へ動かします。'
       - target: github
         kind: read
-        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。'
+        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -2259,7 +2272,7 @@ entries:
         - When the section has a line for the prerequisite, the line is removed. A section that becomes empty is removed with its heading.
         - When the section cannot be read, only the blocked-by is removed and a warning says that the section was not changed, because removing is what the user wants.
         - After the writes, the readiness of the waiting Issue is read again, confirmed and used to move the column and the Status label in the same way as pecot issue block.
-        - The Status label Needs Attention is set back to Todo only when a prerequisite is left or the removed prerequisite was closed. The label that a person put on for another reason is not removed by removing the last open prerequisite.
+        - The Status label Needs Attention is set back to Todo only when a prerequisite is left or the removed prerequisite was closed. The label that a person put on for another reason is not removed by removing the last open prerequisite. A Needs Attention label that the automation put on to wait for a person is not set back either.
         - An Issue that has a branch or a PR is not moved.
         - With --dry-run, writes a dry-run line instead of the result lines. The reads and the checks are still made, and nothing is written.
         - Needs a GitHub Enterprise Server of version 3.19 or later, which has issue dependencies.
@@ -2283,7 +2296,7 @@ entries:
       - '節に前提の行があるときは、その行を外します。節が空になったときは、見出しごと消します。'
       - '節を読めないときは、blocked-by だけを外し、節を直していない旨を `warnings` で知らせます。外すことが利用者の求めることだからです。'
       - '書き込みの後で、待つ側の Issue の判定を読み直して確かめ、`issue_block` と同じやり方で、列と Status の札を動かします。'
-      - 'Status の札の `Needs Attention` を `Todo` に戻すのは、前提が残っているときか、外した前提が閉じていたときだけです。人がほかの理由で付けた札は、開いた最後の前提を外しても外しません。'
+      - 'Status の札の `Needs Attention` を `Todo` に戻すのは、前提が残っているときか、外した前提が閉じていたときだけです。人がほかの理由で付けた札は、開いた最後の前提を外しても外しません。自動処理が人の対応を待って付けた札も、戻しません。'
       - 'ブランチか PR のある Issue は動かしません。'
       - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
@@ -2346,7 +2359,7 @@ entries:
         what: 'blocked-by を外し、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
       - target: github
         kind: read
-        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、読み直した判定、ボードの項目を読みます。'
+        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、読み直した判定、ボードの項目を読みます。待つ側の Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -2425,6 +2438,12 @@ entries:
       - id: PW-ISSUE-UNBLOCK-21
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-ISSUE-UNBLOCK-22
+        pattern: unwanted
+        statement: 'もし待つ側の札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、閉じた前提を外しても札を `Todo` に戻しません'
+      - id: PW-ISSUE-UNBLOCK-23
+        pattern: unwanted
+        statement: 'もし外した後の待つ側の Issue の判定を読めないなら、前提は外したまま列と札を動かさず、判定を出せない旨を `warnings` に入れて成功を返します'
   PW-PR-CHECK:
     help:
       details:
@@ -2814,7 +2833,7 @@ entries:
         what: 'PR を作り、関連する Issue のボードの status を In Review にします。積んだ base の PR は、スタックに登録します。この PR を待っていた Issue の列を動かします。'
       - target: github
         kind: read
-        what: '関連する Issue の種類と、そのボードの項目を読みます。積んだ base では、下の段の PR とスタックも読みます。待っている Issue とボードも読みます。'
+        what: '関連する Issue の種類と、そのボードの項目を読みます。積んだ base では、下の段の PR とスタックも読みます。待っている Issue とボードも読みます。待っている Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: git
         kind: read
         what: 'ブランチ・remote・status・stash・push の状態を読みます。nx のリポジトリでは、base との差分も読みます。'
@@ -3681,7 +3700,7 @@ entries:
         - The develop branch, release branch, changelog_file, packages and release type of each repository, and aggregation_repo, already in the config file are kept.
         - A repository that is no longer linked to the project is removed from the config file.
         - A newly linked repository is appended to the end of the repository list.
-        - The Blocked option of the pecot-workflow field and the Todo and Needs Attention options of the Status field are written to the config file only when the board has them.
+        - The Blocked option of the pecot-workflow field and the Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
         - A board without the Blocked option is accepted; the other six options of the pecot-workflow field are required.
         - With --dry-run, reads the project and prints dry-run lines for the config file and the switch of the active project, and writes nothing.
       examples:
@@ -3707,7 +3726,7 @@ entries:
       - '設定ファイルに既にある次の値は残します。リポジトリごとの開発ブランチ・リリースブランチ・`changelog_file`・packages・リリースの種類と、`aggregation_repo` です。'
       - 'プロジェクトとのつながりが外れたリポジトリは、設定ファイルから消します。'
       - '新しくつないだリポジトリは、リポジトリの一覧の末尾に足します。'
-      - '次の選択肢は、ボードにあるときだけ設定ファイルに書きます。pecot-workflow のフィールドの Blocked と、Status のフィールドの Todo・Needs Attention です。'
+      - '次の選択肢は、ボードにあるときだけ設定ファイルに書きます。pecot-workflow のフィールドの Blocked と、Status のフィールドの Todo・In Progress・Needs Attention です。'
       - 'Blocked の選択肢の無いボードも受け付けます。pecot-workflow のフィールドのほかの 6 つの選択肢は必須です。'
       - '`host` が、渡した設定ファイルのホストと違うときは、`warnings` に入れて、設定ファイルのホストを使います。'
     stdin: none
@@ -3832,7 +3851,7 @@ entries:
         statement: 'もし進行の欄に Blocked が無いなら、止めずに同期し、設定ファイルに `blocked` のキーを書きません'
       - id: PW-PROJECT-ACTIVATE-20
         pattern: event
-        statement: 'Blocked か Needs Attention がボードにあると、同期でその id を設定ファイルに書きます'
+        statement: 'Blocked・In Progress・Needs Attention がボードにあると、同期でその id を設定ファイルに書きます'
       - id: PW-PROJECT-ACTIVATE-21
         pattern: unwanted
         statement: 'もし Status のフィールドが無いなら、設定ファイルに `fields.status` を書きません'
@@ -3857,6 +3876,7 @@ entries:
         - Adds the Needs Attention option to the Status field of the project.
         - When an option cannot be added, a warning line is written and the command continues.
         - Writes the config file and makes the project active.
+        - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
         - Stops without creating anything when the owner is not found.
         - Stops without creating anything when a project with the same title already exists.
         - With --dry-run, checks whether the project already exists and prints a dry-run line for creating it, and creates nothing.
@@ -3880,6 +3900,7 @@ entries:
       - 'プロジェクトの Status のフィールドに、Needs Attention の選択肢を足します。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。'
       - '設定ファイルを書き、プロジェクトをアクティブにします。'
+      - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
       - '所有者が見つからないときは、何も作らずに失敗を返します。'
       - '同じ題のプロジェクトが既にあるときは、何も作らずに失敗を返します。'
     stdin: none
@@ -3985,6 +4006,9 @@ entries:
       - id: PW-PROJECT-CREATE-11
         pattern: event
         statement: 'CLI で `--dry-run` を付けて打つと、プロジェクトを作らず、作る予定を `dry-run` の行で標準エラーに出します'
+      - id: PW-PROJECT-CREATE-12
+        pattern: event
+        statement: 'Status のフィールドに In Progress があると、設定ファイルに、その id を `status.options.in_progress` として書きます'
   PW-PROJECT-GET:
     help:
       details:
@@ -4069,6 +4093,7 @@ entries:
         - When an option cannot be added, a warning line is written and the command continues; the option is not sent again without its id.
         - Before writing anything, checks that an existing pecot-workflow-<suffix> field has the six required options (Backlog, Pending, Ready, Active, In Review, Archived); if one is missing, writes nothing and stops.
         - After that, regenerates the config file from GitHub for the --suffix field and makes the project active, unless a config file exists and its content already equals the one generated from the board.
+        - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
         - With --dry-run, reads the project and prints dry-run lines for creating the fields, adding the options, writing the config file and switching the active project, and writes nothing.
       examples:
         - run: pecot project init example-org "Example Project" --suffix example
@@ -4094,6 +4119,7 @@ entries:
       - '選択肢を足せないときは、`warnings` に入れて続けます。その選択肢を、id なしで送り直すことはありません。'
       - '何かを書く前に、既にある `pecot-workflow-<suffix>` のフィールドが必須の 6 つの選択肢を持つことを確かめます。6 つは Backlog・Pending・Ready・Active・In Review・Archived です。1 つでも欠けていれば、何も書かずに失敗を返します。'
       - 'その後、`suffix` のフィールドの設定ファイルを GitHub から作り直し、プロジェクトをアクティブにします。設定ファイルがあり、内容がボードから作るものと既に同じときは行いません。'
+      - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
     stdin: none
     output:
       format: none
@@ -4178,7 +4204,7 @@ entries:
         statement: '選択肢を足すと、既存の選択肢を `id`・`name`・`color`・`description` のまま送り、Blocked は Backlog の直後、Needs Attention は末尾に置きます'
       - id: PW-PROJECT-INIT-08
         pattern: event
-        statement: '設定ファイルが無いか、ボードから作る内容と違うと、設定ファイルを同期して Blocked と Needs Attention の id を書きます'
+        statement: '設定ファイルが無いか、ボードから作る内容と違うと、設定ファイルを同期して Blocked・In Progress・Needs Attention の id を書きます'
       - id: PW-PROJECT-INIT-09
         pattern: unwanted
         statement: 'もし足す選択肢が既にあるなら、書き込まずに、`fields` のそのフィールドの `change` を `unchanged` にします'
@@ -4206,6 +4232,12 @@ entries:
       - id: PW-PROJECT-INIT-17
         pattern: event
         statement: 'CLI の `--dry-run` で、作るフィールドか足す選択肢があると、設定ファイルの書き込みの予定を調べません'
+      - id: PW-PROJECT-INIT-18
+        pattern: event
+        statement: 'Status のフィールドに In Progress があると、設定ファイルの同期で、その id を `status.options.in_progress` に書きます'
+      - id: PW-PROJECT-INIT-19
+        pattern: unwanted
+        statement: 'もし Status のフィールドに In Progress が無いなら、設定ファイルに `in_progress` を書かずに続け、成功を返します'
   PW-PROJECT-LINK:
     help:
       details:
