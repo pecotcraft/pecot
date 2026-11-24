@@ -36,6 +36,17 @@
 | Done | 完了 |
 | Needs Attention | 人の対応か判断を待っている。pecot が置く |
 
+## 領域のレーン（`pecot-lane`）
+
+`pecot-lane` は、作業の領域を表す single select のフィールドです。ボードの `Lanes` のビューが、列を `pecot-status`、横のレーンを `pecot-lane` に分けて出します。
+着手できるタスクの無い領域が、ビューを開くだけで分かります。
+
+- 値は利用者が決める。プラグイン・チーム・サービスなど、作業を分けたい単位にする。GitHub の画面に出るので、英語の名前にする
+- 値は、pecot-workflow の MCP ツール `project_create`・`project_init` の `lanes` で渡す。`project_init` は、既存の値を残して足りない値だけを足す
+- `lanes` を渡さず、ボードに `pecot-lane` も無いときは、フィールドを作らず、値を決めるよう案内する
+- `Lanes` のビューは、結果の `view.url` で開く。ビューを作れなかったときは、`view.manual_steps` の手順で画面から作る
+- 値の無い Issue は、ビューの「No pecot-lane」のレーンに入る
+
 ## ボードに値が無いとき
 
 `Blocked` と `Needs Attention` は、あれば使う値です。無いボードでも pecot は止まらず、列を動かしません。

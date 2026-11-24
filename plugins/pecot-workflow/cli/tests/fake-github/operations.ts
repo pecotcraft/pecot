@@ -63,6 +63,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['{node,repository}|owner,projectId,repo#named', 'GetIssueAttributeDefinitionsWithoutIssueFields'],
   ['repository.labels{pageInfo,nodes}|after,owner,repo', 'GetRepositoryLabelsPage'],
   ['repository.milestones{pageInfo,nodes}|after,owner,repo', 'GetRepositoryMilestonesPage'],
+  ['repositoryOwner{__typename,databaseId,projectV2}|owner,projectNumber', 'GetProjectViewTarget'],
 ]
 
 export const OPERATION_NAMES: ReadonlySet<string> = new Set(OPERATION_TABLE.map(([, name]) => name))

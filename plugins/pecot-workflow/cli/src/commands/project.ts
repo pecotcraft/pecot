@@ -8,6 +8,7 @@ import type { Package, ProjectConfig, Repository } from '../domain/config.js'
 import { choosePlacement, insertOption } from '../domain/field-options.js'
 import type { FieldOptionInput } from '../domain/field-options.js'
 import { JSON_NULL } from '../domain/json-null.js'
+import { mergeLaneOptions } from '../domain/lane-options.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
@@ -15,9 +16,9 @@ import type { JsonValue } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { getActiveConfigPath, loadConfig, projectsDirectory, saveConfig } from '../infra/config-store.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
+import { GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError } from '../infra/github/errors.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
-import type { LinkResult, ProjectFieldOption } from '../infra/github/projects.js'
+import type { LinkResult, ProjectFieldOption, ProjectViewTarget } from '../infra/github/projects.js'
 import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
@@ -31,6 +32,8 @@ import type { Operation, Output } from './output.js'
 import type { ConfigPlacement, OptionSpec, SyncedProjectConfig } from './project-sync.js'
 import {
   BLOCKED_SPEC,
+  LANE_FIELD_NAME,
+  LANES_VIEW_NAME,
   NEEDS_ATTENTION_SPEC,
   PRIORITY_FIELD_OPTIONS,
   SIZE_FIELD_OPTIONS,
@@ -61,6 +64,9 @@ function setChange(hasPrevious: boolean): 'create' | 'update' {
 }
 
 const dryRunInput = z.boolean().default(false).describe('Show what would change without writing anything')
+const lanesInput = z.array(z.string().min(1)).min(1).optional().describe('Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept')
+const INIT_PATH: readonly string[] = ['project', 'init']
+const CREATE_PATH: readonly string[] = ['project', 'create']
 const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u
 const MISSING_PATH_CODES: ReadonlySet<string> = new Set(['ENOENT', 'ENOTDIR', 'ELOOP'])
 const SEARCH_TITLE_LIMIT = 38
@@ -348,6 +354,131 @@ async function renameWorkflowField(out: Readonly<Output>, client: Readonly<GitHu
   run.mark(WORKFLOW_FIELD_NAME, 'rename')
 }
 
+/**
+pecot-lane の扱いの入力。command は案内に出すコマンド（project init か project create）
+*/
+interface LaneRequest {
+  readonly lanes?: readonly string[] | undefined
+  readonly command: readonly string[]
+}
+
+// pecot-lane を作るか、足りない値を足す。足した（予行では、足す予定の）数と、ビューを用意できる欄があるかを返す
+async function prepareLaneField(out: Readonly<Output>, client: Readonly<GitHubClient>, board: Readonly<{ projectId: string, fields: readonly JsonValue[] }>, request: Readonly<LaneRequest>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<Readonly<{ count: number, hasField: boolean }>> {
+  const { lanes, command } = request
+  const field = lastFieldNamed(board.fields, LANE_FIELD_NAME)
+  if (field === undefined) {
+    if (board.fields.some(node => jsonField(node, 'name') === LANE_FIELD_NAME)) {
+      skipped(out, `field ${LANE_FIELD_NAME} (not a single select field)`)
+      out.warning(`field ${LANE_FIELD_NAME} is not a single select field, so no lanes were added and view ${LANES_VIEW_NAME} was not created\ndelete or rename that field on the board, then run again`)
+      run.mark(LANE_FIELD_NAME, 'skip')
+      return { count: 0, hasField: false }
+    }
+    if (lanes === undefined) {
+      skipped(out, `field ${LANE_FIELD_NAME} (no lanes given)`)
+      out.warning(hinted`field ${LANE_FIELD_NAME} was not created because no lanes were given\nchoose the lanes (the areas of work, such as plugins, teams or services) and pass them with ${inputNameHint(command, 'lanes')}`)
+      run.mark(LANE_FIELD_NAME, 'skip')
+      return { count: 0, hasField: false }
+    }
+    if (run.isDryRun) out.planned({ verb: 'create', target: `field ${LANE_FIELD_NAME}` })
+    else {
+      const created = await client.createProjectField(board.projectId, LANE_FIELD_NAME, mergeLaneOptions([], lanes).options)
+      out.done({ verb: 'create', target: `field ${LANE_FIELD_NAME} (ID: ${requireString(created['id'], 'field.id')})` })
+    }
+    run.mark(LANE_FIELD_NAME, 'create')
+    return { count: 1, hasField: true }
+  }
+  skipped(out, `field ${LANE_FIELD_NAME} (already exists)`)
+  run.mark(LANE_FIELD_NAME, 'unchanged')
+  return { count: lanes === undefined ? 0 : await addLaneOptions(out, client, field, lanes, run), hasField: true }
+}
+
+// 既にある pecot-lane に無い値を末尾に足す。足した（予行では、足す予定の）数を返す
+async function addLaneOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, lanes: readonly string[], run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
+  const { options, added } = mergeLaneOptions(optionInputsOf(field), lanes)
+  const given = new Set(lanes)
+  for (const lane of given) {
+    if (added.includes(lane)) continue
+    const unchanged: Operation = { verb: 'unchanged', target: `option ${lane} in field ${LANE_FIELD_NAME}` }
+    out.planned(unchanged)
+    out.done(unchanged)
+  }
+  if (added.length === 0) return 0
+  if (!run.isDryRun) {
+    try {
+      await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), options)
+    }
+    catch (error: unknown) {
+      if (!(error instanceof GitHubAPIError)) throw error
+      out.warning(`could not add options ${added.join(', ')} to field ${LANE_FIELD_NAME}: ${error.message}`)
+      return 0
+    }
+  }
+  for (const lane of added) {
+    const operation: Operation = { verb: 'add', target: `option ${lane} to field ${LANE_FIELD_NAME}` }
+    if (run.isDryRun) out.planned(operation)
+    else out.done(operation)
+    run.mark(LANE_FIELD_NAME, 'update', lane)
+  }
+  return added.length
+}
+
+const VIEW = z.strictObject({
+  created: z.boolean().describe('Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand'),
+  name: z.string().describe('Name of the view (Lanes)'),
+  url: z.string().optional().describe('URL of the view (omitted with dry_run, and when it has to be created by hand)'),
+  manual_steps: z.array(z.string()).optional().describe('Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)'),
+}).describe('The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)')
+
+type LanesView = z.input<typeof VIEW>
+
+function manualStepsOf(projectUrl: string): readonly string[] {
+  return [
+    `open the project: ${projectUrl}`,
+    `add a view named ${LANES_VIEW_NAME} with the Board layout`,
+    `set Column by to ${WORKFLOW_FIELD_NAME}`,
+    `set Group by to ${LANE_FIELD_NAME}`,
+  ]
+}
+
+// 権限の足りないトークン・views の API の無い GHES・GitHub App のトークンでの個人のボードは、画面で作る道に回す
+function isViewCreationRefused(error: unknown): error is GitHubAPIError {
+  return error instanceof GitHubNotFoundError || (error instanceof GitHubAPIError && !(error instanceof GitHubRateLimitError) && error.statusCode === 403)
+}
+
+function viewBodyOf(target: Readonly<ProjectViewTarget>): Readonly<{ name: string, layout: 'board', vertical_group_by: readonly [number], group_by: readonly [number] }> {
+  const status = target.fieldDatabaseIds.get(WORKFLOW_FIELD_NAME)
+  const lane = target.fieldDatabaseIds.get(LANE_FIELD_NAME)
+  if (status === undefined || lane === undefined) throw new GitHubAPIError(`could not read the database ids of fields ${WORKFLOW_FIELD_NAME} and ${LANE_FIELD_NAME}`)
+  return { name: LANES_VIEW_NAME, layout: 'board', vertical_group_by: [status], group_by: [lane] }
+}
+
+// Lanes のビューを用意する。同じ名前のビューがあれば作らない。403・404 では作らずに、画面で作る手順を返して続ける
+async function ensureLanesView(out: Readonly<Output>, client: Readonly<GitHubClient>, board: Readonly<{ owner: string, number: number }>, isDryRun: boolean): Promise<LanesView> {
+  const target = await client.getProjectViewTarget(board.owner, board.number)
+  const existing = target.views.find(view => view.name === LANES_VIEW_NAME)
+  if (existing !== undefined) {
+    skipped(out, `view ${LANES_VIEW_NAME} (already exists)`)
+    return { created: false, name: LANES_VIEW_NAME, url: `${target.url}/views/${String(existing.number)}` }
+  }
+  if (isDryRun) {
+    out.planned({ verb: 'create', target: `view ${LANES_VIEW_NAME}` })
+    return { created: true, name: LANES_VIEW_NAME }
+  }
+  let view: JsonObject
+  try {
+    view = await client.createProjectView(target, viewBodyOf(target))
+  }
+  catch (error: unknown) {
+    if (!isViewCreationRefused(error)) throw error
+    const steps = manualStepsOf(target.url)
+    out.warning(`could not create view ${LANES_VIEW_NAME} (status ${String(error.statusCode ?? 0)}): ${error.message}\ncreate it on the board:\n${steps.map((step, index) => `${String(index + 1)}. ${step}`).join('\n')}`)
+    return { created: false, name: LANES_VIEW_NAME, manual_steps: [...steps] }
+  }
+  const url = view['html_url']
+  out.done({ verb: 'create', target: typeof url === 'string' ? `view ${LANES_VIEW_NAME} (${url})` : `view ${LANES_VIEW_NAME}` })
+  return { created: true, name: LANES_VIEW_NAME, ...typeof url === 'string' && { url } }
+}
+
 interface InitializedFields {
   /**
   作る・足す・改名する（予行では、その予定の）フィールドと選択肢の数
@@ -358,11 +489,15 @@ interface InitializedFields {
   改名した（予行では、する）旧い名前
   */
   readonly renamed: string | undefined
+  /**
+  Lanes のビュー。pecot-lane が無ければ undefined
+  */
+  readonly view: LanesView | undefined
 }
 
 // フィールドを作り、既にあるフィールドには足りない選択肢を足す。進行の欄が旧い名前なら改名する。
 // 既にある進行の欄の必須の値が欠けていれば、何も書かずに止める
-async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string }>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<InitializedFields> {
+async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string } & LaneRequest>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<InitializedFields> {
   const { owner, name, host } = target
   const { isDryRun, mark } = run
   const project = await findProjectByTitle(out, client, owner, name)
@@ -411,17 +546,19 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
     out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
     mark(fieldName, 'create')
   }
+  const lane = await prepareLaneField(out, client, { projectId, fields }, target, run)
   // 改名した進行の欄は、改名の後の名前で選択肢の行を出す
   const workflowField = existingWorkflow === undefined ? undefined : { ...existingWorkflow, name: WORKFLOW_FIELD_NAME }
   const optionCount = await addMissingOptions(out, client, fields, workflowField, run)
-  return { changeCount: renameCount + newFieldCount + optionCount, projectNumber, renamed: renameCount > 0 && plan.kind === 'rename' ? plan.from : undefined }
+  const view = lane.hasField ? await ensureLanesView(out, client, { owner, number: projectNumber }, isDryRun) : undefined
+  return { changeCount: renameCount + newFieldCount + lane.count + optionCount, projectNumber, renamed: renameCount > 0 && plan.kind === 'rename' ? plan.from : undefined, view }
 }
 
 const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip', 'rename'])
 
 const INIT_ROW = z.strictObject({
   name: z.string().describe('Name of the project field'),
-  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status'),
+  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status'),
   addedOptions: z.array(z.string()).describe('Names of the options added to the field (empty when none)'),
 })
 
@@ -436,8 +573,9 @@ const MIGRATION = z.strictObject({
 })
 
 const INIT_OUTPUT = z.strictObject({
-  fields: z.array(INIT_ROW).describe('The workflow, priority and size fields, plus the Status field when its options were looked at'),
+  fields: z.array(INIT_ROW).describe('The workflow, priority, size and pecot-lane fields, plus the Status field when its options were looked at'),
   migration: MIGRATION.optional().describe('What was moved from the old form (omitted when the command stopped before the project config)'),
+  view: VIEW.optional(),
 })
 
 // 移した設定ファイルの、名前だけの組
@@ -446,13 +584,14 @@ function configMovedOf(placement: Readonly<ConfigPlacement>): z.input<typeof CON
 }
 
 const initCommand = defineCommand({
-  path: ['project', 'init'],
+  path: INIT_PATH,
   title: 'Initialize project fields',
-  description: 'Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist',
+  description: 'Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     name: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
+    lanes: lanesInput,
     dry_run: dryRunInput,
   }),
   output: INIT_OUTPUT,
@@ -467,7 +606,8 @@ const initCommand = defineCommand({
     const mark = fieldReporter((fields) => {
       out.result({ fields })
     })
-    const initialized = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, { isDryRun: input.dry_run, mark }))
+    const initialized = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, { ...input, command: INIT_PATH }, { isDryRun: input.dry_run, mark }))
+    if (initialized.view !== undefined) out.result({ view: initialized.view })
     const renamed = initialized.renamed ?? JSON_NULL
     // 設定ファイルは作るフィールドと選択肢の ID を書くので、予行では作る前の設定を出さない。移す予定は ID に依らないので出す
     if (initialized.changeCount > 0 && input.dry_run) {
@@ -491,16 +631,19 @@ const CREATE_OUTPUT = z.strictObject({
   url: z.string().optional().describe('URL of the created project (omitted when the response has none)'),
   title: z.string().describe('Title of the project'),
   owner: z.string().describe('Project owner'),
+  fields: z.array(INIT_ROW).optional().describe('The fields of the created project, in the same rows as project init (omitted with dry_run, and when the command stopped before the fields)'),
+  view: VIEW.optional(),
 })
 
 const projectCreationCommand = defineCommand({
-  path: ['project', 'create'],
+  path: CREATE_PATH,
   title: 'Create project',
-  description: 'Create a new project (to add the fields to an existing project, use project init)',
+  description: 'Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init)',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     title: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
+    lanes: lanesInput,
     dry_run: dryRunInput,
   }),
   output: CREATE_OUTPUT,
@@ -539,7 +682,11 @@ const projectCreationCommand = defineCommand({
         ...typeof created['url'] === 'string' && { url: created['url'] },
       })
       await guarded(out, 'initialize project fields', async () => {
-        await initializeFields(out, client, { owner, name: title, host }, { isDryRun: false, mark: fieldReporter(undefined) })
+        const fieldsReported = fieldReporter((fields) => {
+          out.result({ fields })
+        })
+        const { view } = await initializeFields(out, client, { owner, name: title, host, lanes: input.lanes, command: CREATE_PATH }, { isDryRun: false, mark: fieldsReported })
+        if (view !== undefined) out.result({ view })
       })
       await guarded(out, 'sync project config', async () => {
         await syncProjectConfig(out, client, { owner, name: title, host })

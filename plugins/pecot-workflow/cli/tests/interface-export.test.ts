@@ -207,6 +207,24 @@ describe('exportEntries', () => {
     })
   })
 
+  it('空を断る配列は、minItems と、items の中の minLength を決めた順で出す', () => {
+    const nonEmpty = z.string().min(1)
+    const lanes = z.array(nonEmpty).min(1).optional().describe('Lanes.')
+    const delta = defineCommand({
+      path: ['delta'],
+      title: 'Test command',
+      description: 'Lanes.',
+      input: z.strictObject({ lanes }),
+      output: z.strictObject({}),
+      positional: [],
+      run: () => Promise.resolve(0),
+      interactive: false,
+    })
+    const [entry] = exportEntries([delta])
+    expect(entry?.input.properties['lanes']).toStrictEqual({ type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1, description: 'Lanes.' })
+    expect(Object.keys(entry?.input.properties['lanes'] ?? {})).toStrictEqual(['type', 'items', 'minItems', 'description'])
+  })
+
   it('id は名前を大文字にし、空白と _ を - にする', () => {
     const [entry] = exportEntries([defineCommand({
       path: ['sub', 'add-to_x'],
@@ -274,7 +292,7 @@ describe('exportEntries の失敗と refine', () => {
 
   it.each([
     ['exclusiveMinimum', z.number().int().gt(0), 'bad cmd: n: unsupported JSON Schema key exclusiveMinimum'],
-    ['minLength', z.string().min(1), 'bad cmd: n: unsupported JSON Schema key minLength'],
+    ['maxLength', z.string().max(5), 'bad cmd: n: unsupported JSON Schema key maxLength'],
     ['pattern', z.string().regex(/^a$/), 'bad cmd: n: unsupported JSON Schema key pattern'],
     ['format', z.email(), 'bad cmd: n: unsupported JSON Schema key format'],
     ['anyOf', z.union([z.string(), strings]), 'bad cmd: n: unsupported JSON Schema key anyOf'],

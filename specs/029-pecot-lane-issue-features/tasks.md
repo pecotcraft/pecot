@@ -109,9 +109,9 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 1
 
-- [ ] T024 [P] [US1] `PW/cli/src/domain/tests/lane-options.test.ts` に、選択肢の追加の計算のテストを先に書く。
+- [x] T024 [P] [US1] `PW/cli/src/domain/tests/lane-options.test.ts` に、選択肢の追加の計算のテストを先に書く。
   確かめること: 既存の選択肢を ID ごと残し、足りない値だけを足した全体を返す、既存の値は消さない、大文字と小文字を区別する
-- [ ] T025 [P] [US1] `PW/interface/authored.yaml` に `pecot-lane` とビューの振る舞いを足し、`PW/cli/tests/interface/project.test.ts` に先にテストを書く。
+- [x] T025 [P] [US1] `PW/interface/authored.yaml` に `pecot-lane` とビューの振る舞いを足し、`PW/cli/tests/interface/project.test.ts` に先にテストを書く。
   確かめること:
   - `lanes` を受けると `createProjectV2Field`（`SINGLE_SELECT`）で作る
   - 既にあれば、`updateProjectV2Field` に既存の ID 付きの全体を送る
@@ -123,15 +123,15 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] `PW/cli/src/domain/lane-options.ts` を作る（T024 の後）。
+- [x] T026 [US1] `PW/cli/src/domain/lane-options.ts` を作る（T024 の後）。
   名前から選択肢を引く関数もここに置き、B の single select の照らし合わせ（T052）と共有する。
   T052 が先にマージされていれば、そちらの関数を使い、同じ関数を 2 つ作らない（憲章の VIII）
-- [ ] T027 [US1] `PW/cli/src/infra/github/queries.ts`・`PW/cli/src/infra/github/projects.ts` に、`createProjectV2Field`、選択肢つきの `updateProjectV2Field`、ビューの一覧の読み込み、REST のビューの作成（組織と個人の両方のパス）を足す
-- [ ] T028 [US1] `PW/cli/src/commands/project.ts`・`PW/cli/src/commands/project-sync.ts` に `lanes` の入力、フィールドの作成と選択肢の追加、ビューの作成、出力の `view` を足す
-- [ ] T029 [US1] `PW/skills/w-onboarding/SKILL.md` に、`lanes` の値の決め方（プラグイン・チーム・サービスなど。GitHub の画面に出るので英語の名前）と、`Lanes` のビューの開き方を書く。
+- [x] T027 [US1] `PW/cli/src/infra/github/queries.ts`・`PW/cli/src/infra/github/projects.ts` に、`createProjectV2Field`、選択肢つきの `updateProjectV2Field`、ビューの一覧の読み込み、REST のビューの作成（組織と個人の両方のパス）を足す
+- [x] T028 [US1] `PW/cli/src/commands/project.ts`・`PW/cli/src/commands/project-sync.ts` に `lanes` の入力、フィールドの作成と選択肢の追加、ビューの作成、出力の `view` を足す
+- [x] T029 [US1] `PW/skills/w-onboarding/SKILL.md` に、`lanes` の値の決め方（プラグイン・チーム・サービスなど。GitHub の画面に出るので英語の名前）と、`Lanes` のビューの開き方を書く。
   同じ案内を `PW/skills/w-help/references/` にも書く（FR-012）
-- [ ] T030 [US1] `PW/interface/generated.json` を作り直し、T024・T025 のテストのファイルを動かす
-- [ ] T031 [US1] quickstart.md の A-2 と A-4 の 1 を、検証用のボードで動かす
+- [x] T030 [US1] `PW/interface/generated.json` を作り直し、T024・T025 のテストのファイルを動かす
+- [x] T031 [US1] quickstart.md の A-2 と A-4 の 1 を、検証用のボードで動かす
 
 **Checkpoint**: 検証用のボードに `pecot-lane` と `Lanes` のビューがあり、レーンで分かれて見える
 
