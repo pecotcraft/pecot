@@ -9,7 +9,7 @@ if [ "${CI:-}" != "true" ]; then
 fi
 bash "$root/setup.sh"
 # Chromium の依存パッケージは、イメージ（features/playwright-deps）に入っている。
-# CI では、Chromium を使うレーンだけが取得する。その条件（PECOT_CI_BROWSER=1）は ci.yml にある。
+# CI では、Chromium を使うレーンだけが取得する。その条件（PECOT_CI_BROWSER=1）は ci.yml と test-report.yml にある。
 if [ "${CI:-}" != "true" ] || [ "${PECOT_CI_BROWSER:-}" = "1" ]; then
   (cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install chromium)
 fi
