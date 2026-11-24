@@ -25,9 +25,14 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 最初のチェックには、pecot-workflow の MCP ツール `project_list` を使う。
 
-パターン 1〜3 で有効にしたボードも、領域のレーンで分けられる。
-分けるかを利用者に聞き、分けるなら Step 2 と同じく `lanes` の値を決める。
-決めた値は、pecot-workflow の MCP ツール `project_init` に渡す。ボードに `pecot-lane` が既にあれば、足りない値だけが足される。
+パターン 1〜3 で有効にしたら、Step 3 へ進む前に、ボードに `pecot-lane` があるかを見る。
+
+1. pecot-workflow の MCP ツール `project_search` で、有効にしたボードのタイトルを得る。`active` が真の行のタイトルを使う
+   - `host`・`owner` は、パターン 3 では検索に渡した値、パターン 1・2 では `project_activate` の結果の `configPath` のファイルの値にする
+2. pecot-workflow の MCP ツール `project_init` を、`lanes` を渡さずに使う（`owner`・`name`: 1. のタイトル・`host`）
+3. 結果の `fields` の `pecot-lane` が `skip` なら、ボードを領域のレーンで分けるかを利用者に聞く
+   - 分けるなら、Step 2 と同じく `lanes` の値を決め、`lanes` を足して `project_init` をもう一度使う
+   - `skip` でなければ、聞かずに Step 3 へ進む
 
 パターン 2 は、このスキルの base directory にある `scripts/detect-sibling-config.cjs` を動かし、その出力の行で決める。
 作業ディレクトリはカレントリポのままにし、base directory から組んだ絶対パスで打つ。

@@ -4544,6 +4544,12 @@ entries:
       - id: PW-PROJECT-INIT-52
         pattern: event
         statement: 'CLI で `--dry-run` と `lanes` を付けて打つと、`pecot-lane` とビューを作る予定を `dry-run` の行で標準エラーに出し、何も書きません'
+      - id: PW-PROJECT-INIT-53
+        pattern: unwanted
+        statement: 'もし GitHub が `pecot-lane` に値を足す書き込みを断ったなら、`fields` のその `change` を `unchanged` にし、足せなかった値を `warnings` で知らせて続けます'
+      - id: PW-PROJECT-INIT-54
+        pattern: unwanted
+        statement: 'もしビューの作成がレート制限で断られたなら、画面で作る手順を返さずに、`kind` が `github-rate-limit` の失敗を返します'
   PW-PROJECT-LINK:
     help:
       details:

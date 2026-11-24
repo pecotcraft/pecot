@@ -730,6 +730,22 @@ describe('project init', () => {
       expect(result.stderr).toContain(`\n  create it on the board:\n  1. open the project: ${BOARD_URL}\n  2. add a view named Lanes with the Board layout\n  3. set Column by to pecot-status\n  4. set Group by to pecot-lane\n`)
     })
 
+    it('pecot-lane に値を足す書き込みが断られると、unchanged のまま warnings で知らせ、ビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-53')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli'), failing('UpdateProjectField'), viewTarget(), createView(), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add options skills to field pecot-lane: /u)])
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-lane', change: 'unchanged', addedOptions: [] })
+      expect(result.structured['view']).toEqual({ created: true, name: 'Lanes', url: VIEW_URL })
+    })
+
+    it('ビューの作成がレート制限の 403 で断られると、画面で作る手順を返さずに失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-54')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli', 'skills'), viewTarget(), createView(403, { message: 'API rate limit exceeded for installation ID 1.' })], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'github-rate-limit' } })
+      expect(JSON.stringify(result.structured)).not.toContain('manual_steps')
+    })
+
     it('ビューの作成で 403・404 のほかのエラーが返ると、終了コード 1 で終わる', async () => {
       const result = await initLanes([...laneBoard('cli', 'skills'), viewTarget(), createView(500, { message: 'Server Error' })])
       expect(result.code).toBe(1)
@@ -1037,7 +1053,17 @@ describe('project create', () => {
     it('作ったプロジェクトの番号・URL・タイトル・owner を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-CREATE-05')
       const result = await tool('project_create', projectInput, createRules(), { config: false })
-      expect(result.structured).toMatchObject({ number: 1, url: BOARD_URL, title: 'board', owner: 'acme' })
+      expect(result.structured).toEqual({
+        number: 1, url: BOARD_URL, title: 'board', owner: 'acme',
+        fields: [
+          { name: 'pecot-status', change: 'create', addedOptions: [] },
+          { name: 'pecot-priority', change: 'create', addedOptions: [] },
+          { name: 'pecot-size', change: 'create', addedOptions: [] },
+          NO_LANES_ROW,
+          { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
+        ],
+        warnings: [NO_LANES_WARNING],
+      })
     })
 
     it('Status に Needs Attention を足せないと、warnings に入れて設定ファイルを作る', async (context) => {
