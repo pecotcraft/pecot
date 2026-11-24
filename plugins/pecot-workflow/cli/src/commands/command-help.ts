@@ -38,12 +38,14 @@ function isLongChoices(choices: readonly string[]): boolean {
 }
 
 /**
-値の型。`<str>`・`<int>`、選択肢は `<task|bug|epic|tracker>`
+値の型。`<str>`・`<int>`・`<json>`、選択肢は `<task|bug|epic|tracker>`
 */
 function metavarOf(property: JsonObject): string {
   const choices = choicesOf(property)
   if (choices !== undefined && !isLongChoices(choices)) return `<${choices.join('|')}>`
-  return elementOf(property)['type'] === 'integer' ? '<int>' : '<str>'
+  const type = elementOf(property)['type']
+  if (type === 'object') return '<json>'
+  return type === 'integer' ? '<int>' : '<str>'
 }
 
 function rangeOf(property: JsonObject): string | undefined {

@@ -5,7 +5,7 @@ import type { AuthoredNotes } from '../../infra/authored-notes.js'
 import { cliTextOf, commandHelpText } from '../command-help.js'
 import { defineCommand } from '../registry.js'
 import { cellLength } from '../rich-panel.js'
-import { exitWith } from './support.js'
+import { ATTRIBUTES_INPUT, exitWith } from './support.js'
 
 const STRINGS = z.array(z.string())
 
@@ -128,6 +128,23 @@ describe('commandHelpText', () => {
       '--nodesc <str>',
       '--help',
     ])
+  })
+
+  it('オブジェクトの配列は、値の型を <json> にし、[repeatable] を付ける', () => {
+    const edit = defineCommand({
+      path: ['issue', 'edit'],
+      title: 'Test command',
+      description: 'Edit attributes',
+      input: z.object({ attributes: ATTRIBUTES_INPUT }),
+      output: z.strictObject({}),
+      positional: [],
+      aliases: { attributes: '--attribute' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    const lines = commandHelpText(edit, undefined, 80).split('\n')
+    expect(optionNames(lines)).toEqual(['--attributes, --attribute <json>', '--help'])
+    expect(lines).toContain('  --attributes, --attribute <json>  Attributes to write [repeatable]')
   })
 
   it('説明の末尾に [repeatable]・[required]・[default: …]・範囲を付ける', () => {

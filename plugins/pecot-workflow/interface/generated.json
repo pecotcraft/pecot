@@ -156,6 +156,10 @@
           "meaning": "コメントを書く"
         },
         {
+          "word": "edit",
+          "meaning": "既にあるものの値を書き換える"
+        },
+        {
           "word": "reopen",
           "meaning": "閉じたものを開き直す"
         },
@@ -1777,6 +1781,53 @@
       "input": {
         "type": "object",
         "properties": {
+          "attributes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the attribute, as issue_attributes lists it"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "project",
+                    "issue_field",
+                    "issue"
+                  ],
+                  "description": "Source of the attribute (project, issue_field or issue); only needed when the same name is in several sources"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Value: a name for select, iteration (or its start date), milestone and type; a list for multi_select, assignees and labels; a number for number; YYYY-MM-DD for date; null to remove the value"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Attributes to write by name (the attributes that issue_attributes lists): name, value and, only when the same name is in several sources, source; null values are skipped; cannot be used with files (write attributes in the front matter instead)"
+          },
           "files": {
             "type": "array",
             "items": {
@@ -1852,6 +1903,10 @@
           "files"
         ],
         "flags": {
+          "attributes": [
+            "--attributes",
+            "--attribute"
+          ],
           "freeform": [
             "--freeform"
           ],
@@ -1956,6 +2011,137 @@
                 }
               }
             },
+            "errors": {
+              "description": "Why the attribute values were not accepted; no Issue was created (omitted when none)",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "File whose front matter has the value (issue_create with files only)",
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "unknown_attribute",
+                      "ambiguous_attribute",
+                      "read_only_attribute",
+                      "unsupported_attribute",
+                      "invalid_value",
+                      "unreadable_attribute",
+                      "not_on_board"
+                    ],
+                    "description": "Why the value was not accepted"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute as given"
+                  },
+                  "source": {
+                    "description": "Source of the attribute, when known",
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ]
+                  },
+                  "value": {
+                    "description": "Value as given",
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expected": {
+                    "description": "Values the attribute takes",
+                    "type": "string"
+                  },
+                  "candidates": {
+                    "description": "Similar names",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sources": {
+                    "description": "Sources that have the same name",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "project",
+                        "issue_field",
+                        "issue"
+                      ]
+                    }
+                  },
+                  "hint": {
+                    "description": "What to use instead, or why the definitions could not be read",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "failed": {
+              "description": "Attributes that passed the check but could not be written, with the reason (omitted when none)",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Message from GitHub, or that GitHub dropped the value"
+                  },
+                  "issue": {
+                    "type": "string",
+                    "description": "Issue whose attribute could not be written (owner/repo/N)"
+                  }
+                },
+                "required": [
+                  "name",
+                  "source",
+                  "reason",
+                  "issue"
+                ],
+                "additionalProperties": false
+              }
+            },
             "kind": {
               "type": "string",
               "description": "Failure kind (failure only)"
@@ -1981,6 +2167,358 @@
             {
               "required": [
                 "issues"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-EDIT",
+      "name": "issue edit",
+      "description": "Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "edit"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_edit"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "attributes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the attribute, as issue_attributes lists it"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "project",
+                    "issue_field",
+                    "issue"
+                  ],
+                  "description": "Source of the attribute (project, issue_field or issue); only needed when the same name is in several sources"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Value: a name for select, iteration (or its start date), milestone and type; a list for multi_select, assignees and labels; a number for number; YYYY-MM-DD for date; null to remove the value"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Attributes to write: name, value (null removes it) and, only when the same name is in several sources, source"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "attributes": [
+            "--attributes",
+            "--attribute"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "project": [
+            "--project"
+          ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Check the values and show what would change without writing anything"
+          }
+        }
+      },
+      "mcp": {
+        "title": "Edit Issue attributes",
+        "output": {
+          "type": "object",
+          "properties": {
+            "changed": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ]
+                  },
+                  "before": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Value before the change (null when there was none)"
+                  },
+                  "after": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Value after the change (null when removed)"
+                  }
+                },
+                "required": [
+                  "name",
+                  "source",
+                  "before",
+                  "after"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Attributes whose value was changed, with the value before and after"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "File whose front matter has the value (issue_create with files only)",
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "unknown_attribute",
+                      "ambiguous_attribute",
+                      "read_only_attribute",
+                      "unsupported_attribute",
+                      "invalid_value",
+                      "unreadable_attribute",
+                      "not_on_board"
+                    ],
+                    "description": "Why the value was not accepted"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute as given"
+                  },
+                  "source": {
+                    "description": "Source of the attribute, when known",
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ]
+                  },
+                  "value": {
+                    "description": "Value as given",
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expected": {
+                    "description": "Values the attribute takes",
+                    "type": "string"
+                  },
+                  "candidates": {
+                    "description": "Similar names",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sources": {
+                    "description": "Sources that have the same name",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "project",
+                        "issue_field",
+                        "issue"
+                      ]
+                    }
+                  },
+                  "hint": {
+                    "description": "What to use instead, or why the definitions could not be read",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Why the values were not accepted; nothing was written when this is not empty"
+            },
+            "failed": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Message from GitHub, or that GitHub dropped the value"
+                  }
+                },
+                "required": [
+                  "name",
+                  "source",
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Attributes that passed the check but could not be written, with the reason"
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "changed",
+                "errors",
+                "failed"
               ]
             },
             {

@@ -40,6 +40,8 @@ const TYPE_CASES: readonly (readonly [string, z.ZodType, unknown])[] = [
   ['配列の選択肢', z.array(z.enum(['a', 'b'])).default([]), { type: 'choice', choices: ['a', 'b'] }],
   ['文字列', z.string(), { type: 'string' }],
   ['配列は要素の型', z.array(z.int()).readonly(), unbounded],
+  ['オブジェクトの配列', z.array(z.strictObject({ name: z.string() })).optional(), { type: 'json' }],
+  ['オブジェクト', z.object({ name: z.string() }), { type: 'json' }],
 ]
 
 describe('valueTypeOf', () => {
@@ -86,6 +88,20 @@ describe('convertValue', () => {
     expect(convertValue('a', range)).toEqual({ isValid: false, message: '\'a\' is not a valid float range.' })
     expect(convertValue('9', range)).toEqual({ isValid: false, message: '9.0 is not in the range 0<=x<=5.' })
     expect(convertValue('3', range)).toEqual({ isValid: true, value: 3 })
+  })
+
+  it('JSON のオブジェクトは読んだ値を返し、中身の形は見ない', () => {
+    expect(convertValue('{"name":"Estimate","value":3,"extra":true}', { type: 'json' })).toEqual({ isValid: true, value: { name: 'Estimate', value: 3, extra: true } })
+  })
+
+  it.for([
+    { text: '{name:1}', message: '\'{name:1}\' is not a valid JSON object.' },
+    { text: '[1]', message: '\'[1]\' is not a valid JSON object.' },
+    { text: '"x"', message: '\'"x"\' is not a valid JSON object.' },
+    { text: '3', message: '\'3\' is not a valid JSON object.' },
+    { text: 'null', message: '\'null\' is not a valid JSON object.' },
+  ])('JSON のオブジェクトの型に $text を渡すと、断る', ({ text, message }) => {
+    expect(convertValue(text, { type: 'json' })).toEqual({ isValid: false, message })
   })
 
   it('選択肢に無い値は、全部の選択肢を並べて断る', () => {

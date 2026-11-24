@@ -14,6 +14,7 @@ import type {
   AttributeKind,
   AttributeOption,
   AttributeReading,
+  AttributeSource,
   AttributeValue,
   ProjectFieldShape,
   UnsupportedAttribute,
@@ -50,6 +51,10 @@ export interface DefinitionsTarget {
 export interface AttributeDefinitions {
   readonly definitions: readonly AttributeDefinition[]
   readonly warnings: readonly string[]
+  /**
+  定義を読めなかったか、100 件で切れた source と、warnings と同じ理由の文
+  */
+  readonly unreadable: ReadonlyMap<AttributeSource, string>
 }
 
 export interface ValuesTarget {
@@ -63,6 +68,10 @@ export interface AttributeValues {
   readonly readings: readonly AttributeReading[]
   readonly unsupported: readonly UnsupportedAttribute[]
   readonly warnings: readonly string[]
+  /**
+  設定のボードの Item の ID。ボードに載っていないか、読めなければ undefined
+  */
+  readonly itemId: string | undefined
 }
 
 const PAGE_SIZE = 100
@@ -140,20 +149,21 @@ function requireRepository(data: JsonObject, owner: string, repository: string):
   return node ?? JSON_NULL
 }
 
-function iterationOption(iteration: JsonValue): AttributeOption | undefined {
-  const name = jsonField(iteration, 'title')
-  const startDate = jsonField(iteration, 'startDate')
-  return typeof name === 'string' ? { name, ...typeof startDate === 'string' && { startDate } } : undefined
+function optionOf(node: JsonValue, nameKey: string): AttributeOption | undefined {
+  const name = jsonField(node, nameKey)
+  const startDate = jsonField(node, 'startDate')
+  const id = jsonField(node, 'id')
+  return typeof name === 'string' ? { name, ...typeof startDate === 'string' && { startDate }, ...typeof id === 'string' && { id } } : undefined
 }
 
 function optionsOfProjectField(node: JsonValue): readonly AttributeOption[] {
   const iterationSetup = jsonField(node, 'configuration')
   if (isTruthy(iterationSetup)) {
     const iterations = [...asArray(jsonField(iterationSetup, 'iterations')), ...asArray(jsonField(iterationSetup, 'completedIterations'))]
-    return iterations.map(iteration => iterationOption(iteration)).filter(option => option !== undefined)
+    return iterations.map(iteration => optionOf(iteration, 'title')).filter(option => option !== undefined)
   }
   const options = jsonField(node, 'multiSelectOptions') ?? jsonField(node, 'options')
-  return namesOf(options, 'name').map(name => ({ name }))
+  return asArray(options).map(option => optionOf(option, 'name')).filter(option => option !== undefined)
 }
 
 function projectFieldShape(node: JsonValue): ProjectFieldShape | undefined {
@@ -165,17 +175,44 @@ function projectFieldShape(node: JsonValue): ProjectFieldShape | undefined {
     : undefined
 }
 
-async function remainingNames(client: AttributesClient, query: string, connectionKey: string, nameKey: string, target: Readonly<DefinitionsTarget>, first: JsonValue | undefined): Promise<readonly string[]> {
-  const names = [...namesOf(jsonField(first, 'nodes'), nameKey)]
+async function remainingNodes(client: AttributesClient, query: string, connectionKey: string, target: Readonly<DefinitionsTarget>, first: JsonValue | undefined): Promise<readonly JsonValue[]> {
+  const nodes = [...truthyNodes(first)]
   let connection = first
   while (hasNextPage(connection)) {
     const after = jsonField(jsonField(connection, 'pageInfo'), 'endCursor')
     if (typeof after !== 'string') break
     const data = await client.executeGraphql(query, { owner: target.owner, repo: target.repository, after })
     connection = jsonField(jsonField(data, 'repository'), connectionKey)
-    names.push(...namesOf(jsonField(connection, 'nodes'), nameKey))
+    nodes.push(...truthyNodes(connection))
   }
-  return names
+  return nodes
+}
+
+// マイルストーンの id は、REST が受ける番号を文字列にしたもの
+function milestoneOption(node: JsonValue): AttributeOption | undefined {
+  const name = jsonField(node, 'title')
+  const number = jsonField(node, 'number')
+  return typeof name === 'string' ? { name, ...typeof number === 'number' && { id: String(number) } } : undefined
+}
+
+function withMilestoneOptions(definition: AttributeDefinition, options: readonly AttributeOption[]): AttributeDefinition {
+  return definition.source === 'issue' && definition.kind === 'milestone' ? { ...definition, options } : definition
+}
+
+function projectDefinitionOf(node: JsonValue, workflowFieldId: string): AttributeDefinition | undefined {
+  const shape = projectFieldShape(node)
+  if (shape === undefined) return undefined
+  const definition = projectFieldDefinition(shape, workflowFieldId)
+  return definition === undefined ? undefined : { ...definition, fieldId: shape.id }
+}
+
+function issueFieldDefinitionOf(node: JsonValue): AttributeDefinition | undefined {
+  const name = jsonField(node, 'name')
+  const dataType = jsonField(node, 'dataType')
+  if (typeof name !== 'string' || typeof dataType !== 'string') return undefined
+  const definition = issueFieldDefinition({ name, dataType, options: namesOf(jsonField(node, 'options'), 'name').map(option => ({ name: option })) })
+  const fieldId = jsonField(node, 'fullDatabaseId')
+  return typeof fieldId === 'string' ? { ...definition, fieldId } : definition
 }
 
 function isDefinitionsTolerated(path: readonly JsonValue[]): boolean {
@@ -184,7 +221,8 @@ function isDefinitionsTolerated(path: readonly JsonValue[]): boolean {
 
 /**
 設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・開いたマイルストーンの定義を読む。
-ボード・Issue fields・Issue type を読めない部分エラーは、warnings に 1 行ずつ入れ、残りを返す
+ボード・Issue fields・Issue type を読めない部分エラーと 100 件での切れは、warnings に 1 行ずつ入れる。
+その source を unreadable に入れ、残りを返す
 */
 export async function readAttributeDefinitions(client: AttributesClient, target: Readonly<DefinitionsTarget>): Promise<AttributeDefinitions> {
   const hasIssueFields = await hasIssueFieldTypes(client)
@@ -195,41 +233,43 @@ export async function readAttributeDefinitions(client: AttributesClient, target:
 
   const projectMessages = messagesUnder(errors, ['project'])
   const fields = jsonField(jsonField(data, 'project'), 'fields')
-  const projectWarnings = projectMessages.length > 0 || isTruthy(fields)
-    ? failureWarning('the fields of the board', projectMessages)
-    : [`could not read the fields of the board: project ${target.projectId} was not found`]
-  const projectDefinitions = truthyNodes(fields).flatMap((node) => {
-    const shape = projectFieldShape(node)
-    const definition = shape === undefined ? undefined : projectFieldDefinition(shape, target.workflowFieldId)
-    return definition === undefined ? [] : [definition]
-  })
+  const projectDefinitions = truthyNodes(fields).map(node => projectDefinitionOf(node, target.workflowFieldId)).filter(definition => definition !== undefined)
 
   const issueFields = jsonField(repository, 'issueFields')
-  const issueFieldDefinitions = truthyNodes(issueFields).flatMap((node) => {
-    const name = jsonField(node, 'name')
-    const dataType = jsonField(node, 'dataType')
-    return typeof name === 'string' && typeof dataType === 'string' ? [issueFieldDefinition({ name, dataType, options: namesOf(jsonField(node, 'options'), 'name').map(option => ({ name: option })) })] : []
-  })
+  const issueFieldDefinitions = truthyNodes(issueFields).map(node => issueFieldDefinitionOf(node)).filter(definition => definition !== undefined)
   const issueTypes = jsonField(repository, 'issueTypes')
   const issueTypeMessages = messagesUnder(errors, ['repository', 'issueTypes'])
 
-  const labels = await remainingNames(client, QUERY_GET_REPOSITORY_LABELS_PAGE, 'labels', 'name', target, jsonField(repository, 'labels'))
-  const milestones = await remainingNames(client, QUERY_GET_REPOSITORY_MILESTONES_PAGE, 'milestones', 'title', target, jsonField(repository, 'milestones'))
+  const labels = await remainingNodes(client, QUERY_GET_REPOSITORY_LABELS_PAGE, 'labels', target, jsonField(repository, 'labels'))
+  const milestones = await remainingNodes(client, QUERY_GET_REPOSITORY_MILESTONES_PAGE, 'milestones', target, jsonField(repository, 'milestones'))
+  const milestoneOptions = milestones.map(node => milestoneOption(node)).filter(option => option !== undefined)
   const builtins = builtinDefinitions({
-    milestones,
+    milestones: milestoneOptions.map(option => option.name),
     issueTypes: hasIssueFields && issueTypeMessages.length === 0 ? namesOf(jsonField(issueTypes, 'nodes'), 'name') : undefined,
-    labels,
-  })
+    labels: namesOf(labels, 'name'),
+  }).map(definition => withMilestoneOptions(definition, milestoneOptions))
 
-  const warnings = [
-    ...projectWarnings,
+  const projectWarnings = [
+    ...projectMessages.length > 0 || isTruthy(fields)
+      ? failureWarning('the fields of the board', projectMessages)
+      : [`could not read the fields of the board: project ${target.projectId} was not found`],
     ...hasNextPage(fields) ? [`read only the first ${String(PAGE_SIZE)} fields of the board`] : [],
+  ]
+  const issueTypeWarnings = [
     ...failureWarning(`the Issue types of ${repositoryName}`, issueTypeMessages),
     ...hasNextPage(issueTypes) ? [`read only the first ${String(PAGE_SIZE)} Issue types of ${repositoryName}`] : [],
+  ]
+  const issueFieldWarnings = [
     ...failureWarning(`the Issue fields of ${repositoryName}`, messagesUnder(errors, ['repository', 'issueFields'])),
     ...hasNextPage(issueFields) ? [`read only the first ${String(PAGE_SIZE)} Issue fields of ${repositoryName}`] : [],
   ]
-  return { definitions: [...projectDefinitions, ...issueFieldDefinitions, ...builtins], warnings }
+  const warningsBySource: readonly (readonly [AttributeSource, readonly string[]])[] = [['project', projectWarnings], ['issue_field', issueFieldWarnings], ['issue', issueTypeWarnings]]
+  const unreadable = new Map(warningsBySource.filter(([, lines]) => lines.length > 0).map(([source, lines]): readonly [AttributeSource, string] => [source, lines.join('; ')]))
+  return {
+    definitions: [...projectDefinitions, ...issueFieldDefinitions, ...builtins],
+    warnings: [...projectWarnings, ...issueTypeWarnings, ...issueFieldWarnings],
+    unreadable,
+  }
 }
 
 interface ClassifiedValues {
@@ -301,7 +341,7 @@ function isValuesTolerated(path: readonly JsonValue[]): boolean {
 }
 
 /**
-Issue 1 件の、値の入っている機能を読む。ボードの値は設定のボードのものだけ。parent・blocked_by は含めない。
+Issue 1 件の、値の入っている機能と、設定のボードの Item の ID を読む。ボードの値は設定のボードのものだけ。parent・blocked_by は含めない。
 ボード・Issue fields を読めない部分エラーは、warnings に 1 行ずつ入れ、残りを返す
 */
 export async function readAttributeValues(client: AttributesClient, target: Readonly<ValuesTarget>): Promise<AttributeValues> {
@@ -341,5 +381,6 @@ export async function readAttributeValues(client: AttributesClient, target: Read
     readings: [...projectParts.readings, ...issueFieldParts.readings, ...builtins],
     unsupported: [...projectParts.unsupported, ...issueFieldParts.unsupported],
     warnings,
+    itemId: stringValue(jsonField(item, 'id')),
   }
 }

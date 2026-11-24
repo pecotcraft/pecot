@@ -10,6 +10,7 @@ import { pluginRoot } from './setup.js'
 
 const Names = z.array(z.string())
 const PropertySchema = z.looseObject({ type: z.string() })
+const ItemsSchema = z.looseObject({ items: z.looseObject({ type: z.string() }) })
 const SurfacesSchema = z.object({ cli: z.object({ path: Names }) })
 const InputSchema = z.object({ properties: z.record(z.string(), PropertySchema) })
 const CliSchema = z.object({ positional: Names, flags: z.record(z.string(), Names), only: z.record(z.string(), z.unknown()).optional() })
@@ -61,10 +62,25 @@ export function hasCliOnlyInput(shape: Readonly<ToolShape>, argv: readonly strin
   })
 }
 
-function typeOf(shape: Readonly<ToolShape>, field: string): string {
+function propertyOf(shape: Readonly<ToolShape>, field: string): z.output<typeof PropertySchema> {
   const property = Object.entries(shape.input.properties).find(([name]) => name === field)?.[1]
   if (property === undefined) throw new Error(`${field} は入力に無い名前です`)
-  return property.type
+  return property
+}
+
+function typeOf(shape: Readonly<ToolShape>, field: string): string {
+  return propertyOf(shape, field).type
+}
+
+// 要素がオブジェクトの配列（attributes）は、CLI が 1 つずつ JSON の文字列で受ける。読めない文字列は、CLI が使い方の誤りで断るので写せない
+function arrayItem(shape: Readonly<ToolShape>, field: string, text: string): unknown {
+  if (ItemsSchema.safeParse(propertyOf(shape, field)).data?.items.type !== 'object') return text
+  try {
+    return parseJson(text)
+  }
+  catch {
+    throw new Error(`${field}: JSON として読めない値は、CLI が使い方の誤りで断るので写せません: ${text}`)
+  }
 }
 
 function convert(type: string, field: string, text: string): unknown {
@@ -79,7 +95,7 @@ function assign(input: ToolInput, shape: Readonly<ToolShape>, field: string, tex
   const type = typeOf(shape, field)
   const current = Reflect.get(input, field)
   const previous: unknown[] = Array.isArray(current) ? current : []
-  Reflect.set(input, field, type === 'array' ? [...previous, text] : convert(type, field, text))
+  Reflect.set(input, field, type === 'array' ? [...previous, arrayItem(shape, field, text)] : convert(type, field, text))
 }
 
 interface Parsed {

@@ -2,7 +2,7 @@
 //
 // 解析はコマンド名の手前で止まる。コマンド名より後ろの引数は、そのコマンドの解析に渡す。
 // ここでは値の検証はしない。--repo の形式と PECOT_GITHUB_API_URL は、呼び出す側が決まった順で検証する。
-import { closeMatches } from './fuzzy.js'
+import { closeMatches } from '../domain/fuzzy.js'
 import type { UsageContext } from './usage-error.js'
 import {
   COMMAND_SYNOPSIS,

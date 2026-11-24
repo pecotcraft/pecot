@@ -33,6 +33,7 @@ import type { JsonObject } from '../domain/json.js'
 import { gitRunnerFor } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import type { CreateIssueExtras } from '../infra/github/issues.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { commandHint, hinted, inputHint, inputNameHint, RUN } from './command-hint.js'
@@ -327,10 +328,11 @@ export async function createIssueOrExit(
   body: string,
   labels: readonly string[] | undefined,
   source?: string,
+  extras?: Readonly<CreateIssueExtras>,
 ): Promise<JsonObject> {
   let issue: JsonObject
   try {
-    issue = await createIssue(client, owner, repository, title, body, labels)
+    issue = await createIssue(client, owner, repository, title, body, labels, extras)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error

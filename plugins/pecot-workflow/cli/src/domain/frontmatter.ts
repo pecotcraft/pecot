@@ -7,6 +7,7 @@
 
 import { z } from 'zod'
 
+import { ATTRIBUTE_SOURCES } from './attributes.js'
 import { convertToInteger, PRIORITIES, SIZES, WORKFLOW_STATUSES } from './config.js'
 import { PecotError } from './errors.js'
 import { normalizeNewlines, parsePythonInteger, pythonStrip, pythonStringRepr } from './python-format.js'
@@ -128,6 +129,20 @@ const BlockedByEntrySchema = z.object({
   reason: z.preprocess(normalizeOptionalText, z.string({ error: stringMessage }).refine(value => !/[\r\n]/u.test(value), { error: SINGLE_LINE_MESSAGE }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
+// YAML は `2026-12-01` を日付として読むので、機能の値では元の `YYYY-MM-DD` の文字列に戻す
+function dateToText(value: unknown): unknown {
+  return value instanceof Date ? value.toISOString().replace(/T00:00:00\.000Z$/u, '') : value
+}
+
+const AttributeListSchema = z.array(z.string({ error: STRING_MESSAGE })).readonly()
+const AttributeValueSchema = z.union([z.string(), z.number(), AttributeListSchema, z.null()], { error: 'Input should be a string, a number, a list of strings or null' })
+
+const AttributeEntrySchema = z.object({
+  name: z.preprocess(stripString, z.string({ error: stringMessage }).min(1, { error: NOT_EMPTY_MESSAGE })),
+  value: z.preprocess(dateToText, AttributeValueSchema),
+  source: z.enum(ATTRIBUTE_SOURCES, { error: choiceMessage }).nullish().transform(value => value ?? undefined),
+}).readonly()
+
 const IssueFrontmatterSchema = z.object({
   title: z.string({ error: stringMessage }),
   type: IssueTypeSchema,
@@ -148,6 +163,7 @@ const IssueFrontmatterSchema = z.object({
     return z.NEVER
   })),
   order: z.preprocess(value => convertToInteger(emptyStringToUndefined(value)), IntegerSchema.nullish().transform(value => value ?? undefined)),
+  attributes: z.preprocess(value => value === null ? undefined : value, z.array(AttributeEntrySchema, { error: listMessage }).readonly().optional()),
 }).readonly()
 
 const CommentFrontmatterSchema = z.object({

@@ -17,6 +17,7 @@ import {
   setUpIssueProject,
   subIssuesPage,
 } from '../_helpers/issue-create-case.js'
+import { definitionRules } from '../_helpers/attributes.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -186,6 +187,20 @@ describe('issue check', () => {
       stderr: 'error: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required\n',
     })
     expect(operations(github)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput'])
+  })
+
+  it('フロントマターの attributes の値が定義に合わないとき、合わない値ごとに error の行を出し、終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-CHECK-04')
+    const project = setUpIssueProject()
+    writeTree(project.root, { 'a.md': taskFile('先頭', 'attributes:', '  - name: Area', '    value: web', '  - name: Effort', '    value: big') })
+    const github = await startGithub([linkedRepositories(), ...definitionRules()])
+
+    const result = await check(...inRoot(project.root, 'a.md'))
+
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: a\.md: invalid_value: Area \(project\); value "web"; expected .+\nerror: a\.md: invalid_value: Effort \(issue_field\); value "big"; expected .+\nerror: did not create any Issue: /u)
+    expect(writes(github)).toEqual([])
   })
 
   it('ファイルの引数が無いとき、終了コード 2 で終わる', async (context) => {

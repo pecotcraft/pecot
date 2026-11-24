@@ -218,7 +218,8 @@ function optionRow(entry: Entry, name: string, notes: AuthoredNotes | undefined)
   const alias = others.filter(flag => flag.startsWith('--') && !flag.startsWith('--no-'))
   const negation = others.filter(flag => flag.startsWith('--no-'))
   const choices = choicesOf(property)
-  const fallback = elementOf(property)['type'] === 'integer' ? '<int>' : '<str>'
+  const METAVARS: Readonly<Record<string, string>> = { integer: '<int>', object: '<json>' }
+  const fallback = METAVARS[String(elementOf(property)['type'])] ?? '<str>'
   const metavar = choices === undefined || isLongChoices(choices) ? fallback : `<${choices.join('|')}>`
   const forms = [...short, long, ...alias, ...negation].join(', ')
   const label = property['type'] === 'boolean' ? forms : `${forms} ${metavar}`

@@ -5,7 +5,13 @@ import { describe, expect, it } from 'vitest'
 import type { ResponseRule } from '../../../../tests/fake-github/server.js'
 import { readAttributeDefinitions, readAttributeValues } from '../attributes.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
-import { QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS, QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS } from '../queries.js'
+import {
+  QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS,
+  QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS,
+  QUERY_GET_ISSUE_ATTRIBUTES,
+  QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS,
+  QUERY_GET_REPOSITORY_MILESTONES_PAGE,
+} from '../queries.js'
 import { graphqlData, graphqlRequests, rejection, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
@@ -30,22 +36,22 @@ function projectField(id: string, name: string, dataType: string, extra: Readonl
 const BOARD_FIELDS = [
   projectField('F_title', 'Title', 'TITLE'),
   projectField('F_assignees', 'Assignees', 'ASSIGNEES'),
-  projectField('F_status', 'Status', 'SINGLE_SELECT', { options: [{ name: 'Todo' }, { name: 'Done' }] }),
+  projectField('F_status', 'Status', 'SINGLE_SELECT', { options: [{ id: 'O_todo', name: 'Todo' }, { id: 'O_done', name: 'Done' }] }),
   projectField('PVTSSF_workflow', 'pecot-status', 'SINGLE_SELECT', { options: [{ name: 'Ready' }] }),
-  projectField('F_area', 'Area', 'SINGLE_SELECT', { options: [{ name: 'cli' }, { name: 'docs' }] }),
-  projectField('F_tags', 'Tags', 'MULTI_SELECT', { multiSelectOptions: [{ name: 'a' }, { name: 'b' }] }),
+  projectField('F_area', 'Area', 'SINGLE_SELECT', { options: [{ id: 'O_cli', name: 'cli' }, { id: 'O_docs', name: 'docs' }] }),
+  projectField('F_tags', 'Tags', 'MULTI_SELECT', { multiSelectOptions: [{ id: 'O_a', name: 'a' }, { id: 'O_b', name: 'b' }] }),
   projectField('F_note', 'Note', 'TEXT'),
   projectField('F_estimate', 'Estimate', 'NUMBER'),
   projectField('F_due', 'Due', 'DATE'),
-  projectField('F_sprint', 'Sprint', 'ITERATION', { configuration: { iterations: [{ title: 'Sprint 2', startDate: '2026-11-16' }], completedIterations: [{ title: 'Sprint 1', startDate: '2026-11-02' }] } }),
+  projectField('F_sprint', 'Sprint', 'ITERATION', { configuration: { iterations: [{ id: 'I_2', title: 'Sprint 2', startDate: '2026-11-16' }], completedIterations: [{ id: 'I_1', title: 'Sprint 1', startDate: '2026-11-02' }] } }),
   projectField('F_progress', 'Sub-issues progress', 'SUB_ISSUES_PROGRESS'),
   projectField('F_priority', 'Priority', 'SINGLE_SELECT', { isIssueField: true, options: [{ name: 'High' }] }),
 ]
 
 const ISSUE_FIELDS = [
-  { name: 'Priority', dataType: 'SINGLE_SELECT', options: [{ name: 'High' }, { name: 'Low' }] },
-  { name: 'Start date', dataType: 'DATE' },
-  { name: 'Effort', dataType: 'NUMBER' },
+  { fullDatabaseId: '101', name: 'Priority', dataType: 'SINGLE_SELECT', options: [{ name: 'High' }, { name: 'Low' }] },
+  { fullDatabaseId: '102', name: 'Start date', dataType: 'DATE' },
+  { fullDatabaseId: '103', name: 'Effort', dataType: 'NUMBER' },
 ]
 
 interface DefinitionsData {
@@ -63,25 +69,44 @@ function definitionsData(data: Readonly<DefinitionsData> = {}): Record<string, u
       issueTypes: 'issueTypes' in data ? data.issueTypes : page([{ name: 'Bug' }, { name: 'Task' }]),
       issueFields: 'issueFields' in data ? data.issueFields : page(ISSUE_FIELDS),
       labels: data.labels ?? page([{ name: 'bug' }]),
-      milestones: data.milestones ?? page([{ title: 'v1' }]),
+      milestones: data.milestones ?? page([{ number: 3, title: 'v1' }]),
     },
   }
 }
 
 describe('readAttributeDefinitions', () => {
-  it('ボードの 6 種類のフィールドを、data-model の kind と選択肢にする', async () => {
+  it('ボードの 6 種類のフィールドを、data-model の kind と選択肢にし、フィールドと選択肢・Iteration の ID を持たせる', async () => {
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData())])
 
-    const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+    const { definitions, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(definitions.filter(definition => ['Area', 'Tags', 'Note', 'Estimate', 'Due', 'Sprint'].includes(definition.name))).toStrictEqual([
-      { name: 'Area', source: 'project', kind: 'single_select', options: [{ name: 'cli' }, { name: 'docs' }], writable: true },
-      { name: 'Tags', source: 'project', kind: 'multi_select', options: [{ name: 'a' }, { name: 'b' }], writable: true },
-      { name: 'Note', source: 'project', kind: 'text', writable: true },
-      { name: 'Estimate', source: 'project', kind: 'number', writable: true },
-      { name: 'Due', source: 'project', kind: 'date', writable: true },
-      { name: 'Sprint', source: 'project', kind: 'iteration', options: [{ name: 'Sprint 2', startDate: '2026-11-16' }, { name: 'Sprint 1', startDate: '2026-11-02' }], writable: true },
+      { name: 'Area', source: 'project', kind: 'single_select', options: [{ name: 'cli', id: 'O_cli' }, { name: 'docs', id: 'O_docs' }], writable: true, fieldId: 'F_area' },
+      { name: 'Tags', source: 'project', kind: 'multi_select', options: [{ name: 'a', id: 'O_a' }, { name: 'b', id: 'O_b' }], writable: true, fieldId: 'F_tags' },
+      { name: 'Note', source: 'project', kind: 'text', writable: true, fieldId: 'F_note' },
+      { name: 'Estimate', source: 'project', kind: 'number', writable: true, fieldId: 'F_estimate' },
+      { name: 'Due', source: 'project', kind: 'date', writable: true, fieldId: 'F_due' },
+      {
+        name: 'Sprint',
+        source: 'project',
+        kind: 'iteration',
+        options: [{ name: 'Sprint 2', startDate: '2026-11-16', id: 'I_2' }, { name: 'Sprint 1', startDate: '2026-11-02', id: 'I_1' }],
+        writable: true,
+        fieldId: 'F_sprint',
+      },
     ])
+    expect(unreadable).toStrictEqual(new Map())
+  })
+
+  it('定義のクエリは、選択肢・Iteration の ID、Issue field の fullDatabaseId、マイルストーンの番号を問い合わせる', () => {
+    const definitions = QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS.replaceAll(/\s+/gu, ' ')
+    expect(definitions).toContain('options { id name }')
+    expect(definitions).toContain('multiSelectOptions { id name }')
+    expect(definitions).toContain('iterations { id title startDate }')
+    expect(definitions).toContain('completedIterations { id title startDate }')
+    expect(definitions).toContain('... on IssueFieldCommon { fullDatabaseId name dataType }')
+    expect(definitions).toContain('nodes { number title }')
+    expect(QUERY_GET_REPOSITORY_MILESTONES_PAGE.replaceAll(/\s+/gu, ' ')).toContain('nodes { number title }')
   })
 
   it('GitHub が計算するフィールドは unsupported で書けず、Status と進行の欄も書けない', async () => {
@@ -114,20 +139,20 @@ describe('readAttributeDefinitions', () => {
 
     const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
-    expect(definitions[0]).toStrictEqual({ name: 'People', source: 'project', kind: 'unsupported', writable: false, unsupportedReason: 'PEOPLE' })
+    expect(definitions[0]).toStrictEqual({ name: 'People', source: 'project', kind: 'unsupported', writable: false, unsupportedReason: 'PEOPLE', fieldId: 'F_x' })
   })
 
-  it('Issue fields・Issue type・ラベル・マイルストーンと組み込みの機能を、この順に出す', async () => {
+  it('Issue fields・Issue type・ラベル・マイルストーンと組み込みの機能を、この順に出し、Issue field とマイルストーンに ID を持たせる', async () => {
     const { client, server } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData())])
 
     const { definitions, warnings } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(definitions.filter(definition => definition.source !== 'project')).toStrictEqual([
-      { name: 'Priority', source: 'issue_field', kind: 'single_select', options: [{ name: 'High' }, { name: 'Low' }], writable: true },
-      { name: 'Start date', source: 'issue_field', kind: 'date', writable: true },
-      { name: 'Effort', source: 'issue_field', kind: 'number', writable: true },
+      { name: 'Priority', source: 'issue_field', kind: 'single_select', options: [{ name: 'High' }, { name: 'Low' }], writable: true, fieldId: '101' },
+      { name: 'Start date', source: 'issue_field', kind: 'date', writable: true, fieldId: '102' },
+      { name: 'Effort', source: 'issue_field', kind: 'number', writable: true, fieldId: '103' },
       { name: 'assignees', source: 'issue', kind: 'users', writable: true },
-      { name: 'milestone', source: 'issue', kind: 'milestone', options: [{ name: 'v1' }], writable: true },
+      { name: 'milestone', source: 'issue', kind: 'milestone', options: [{ name: 'v1', id: '3' }], writable: true },
       { name: 'type', source: 'issue', kind: 'issue_type', options: [{ name: 'Bug' }, { name: 'Task' }], writable: true },
       { name: 'labels', source: 'issue', kind: 'labels', options: [{ name: 'bug' }], writable: true },
       { name: 'parent', source: 'issue', kind: 'issue_ref', writable: false },
@@ -143,37 +168,68 @@ describe('readAttributeDefinitions', () => {
   it.for([
     { name: 'FORBIDDEN', type: 'FORBIDDEN', message: 'Resource not accessible by integration' },
     { name: 'NOT_FOUND', type: 'NOT_FOUND', message: 'Could not resolve to a node' },
-  ])('Issue fields の読み込みが $name でも、ほかの定義は出し、warnings に 1 行入れる', async ({ type, message }) => {
+  ])('Issue fields の読み込みが $name でも、ほかの定義は出し、warnings に 1 行入れ、issue_field を unreadable に入れる', async ({ type, message }) => {
     const data = definitionsData({ issueFields: null })
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data, errors: [{ type, path: ['repository', 'issueFields'], message }] })])
 
-    const { definitions, warnings } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+    const { definitions, warnings, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(definitions.some(definition => definition.source === 'issue_field')).toBe(false)
     expect(definitions.map(definition => definition.name)).toContain('Area')
     expect(definitions.map(definition => definition.name)).toContain('type')
     expect(warnings).toStrictEqual([`could not read the Issue fields of acme/demo: ${message}`])
+    expect(unreadable).toStrictEqual(new Map([['issue_field', `could not read the Issue fields of acme/demo: ${message}`]]))
   })
 
-  it('ボードを読めない部分エラーでも、リポの定義は出し、warnings に 1 行入れる', async () => {
+  it('ボードを読めない部分エラーでも、リポの定義は出し、warnings に 1 行入れ、project を unreadable に入れる', async () => {
     const data = definitionsData({ project: null })
     const errors = [{ type: 'INSUFFICIENT_SCOPES', path: ['project'], message: 'Your token has not been granted the required scopes' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data, errors })])
 
-    const { definitions, warnings } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+    const { definitions, warnings, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(definitions.some(definition => definition.source === 'project')).toBe(false)
     expect(definitions.map(definition => definition.name)).toContain('Priority')
     expect(warnings).toStrictEqual(['could not read the fields of the board: Your token has not been granted the required scopes'])
+    expect(unreadable).toStrictEqual(new Map([['project', 'could not read the fields of the board: Your token has not been granted the required scopes']]))
+  })
+
+  it('ボードが見つからなければ、project を unreadable に入れる', async () => {
+    const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData({ project: null }))])
+
+    const { unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+
+    expect(unreadable).toStrictEqual(new Map([['project', 'could not read the fields of the board: project PVT_1 was not found']]))
+  })
+
+  it('Issue type を読めない部分エラーでは、type を出さず、issue を unreadable に入れる', async () => {
+    const data = definitionsData({ issueTypes: null })
+    const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueTypes'], message: 'Resource not accessible' }]
+    const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data, errors })])
+
+    const { definitions, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+
+    expect(definitions.map(definition => definition.name)).not.toContain('type')
+    expect(unreadable).toStrictEqual(new Map([['issue', 'could not read the Issue types of acme/demo: Resource not accessible']]))
+  })
+
+  it('Issue field の fullDatabaseId が null なら、fieldId を持たせない', async () => {
+    const issueFields = page([{ fullDatabaseId: null, name: 'Effort', dataType: 'NUMBER' }])
+    const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData({ issueFields }))])
+
+    const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+
+    expect(definitions.find(definition => definition.name === 'Effort')).toStrictEqual({ name: 'Effort', source: 'issue_field', kind: 'number', writable: true })
   })
 
   it('Issue fields の型が無い GHES では、Issue fields と Issue type を抜いた版で読み、type を出さない', async () => {
     const data = { project: { fields: page([projectField('F_note', 'Note', 'TEXT')]) }, repository: { labels: page([]), milestones: page([]) } }
     const { client, server } = await startClient([issueFieldsProbe(false), graphqlData('GetIssueAttributeDefinitionsWithoutIssueFields', data)])
 
-    const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+    const { definitions, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(definitions.map(definition => definition.name)).toStrictEqual(['Note', 'assignees', 'milestone', 'labels', 'parent', 'blocked_by'])
+    expect(unreadable).toStrictEqual(new Map())
     expect(graphqlRequests(server).map(request => request.operation)).toStrictEqual(['HasIssueFields', 'GetIssueAttributeDefinitionsWithoutIssueFields'])
   })
 
@@ -183,35 +239,40 @@ describe('readAttributeDefinitions', () => {
   })
 
   it('ラベルとマイルストーンに続きのページがあれば、続きも読む', async () => {
-    const data = definitionsData({ labels: page([{ name: 'bug' }], true, 'L1'), milestones: page([{ title: 'v1' }], true, 'M1') })
+    const data = definitionsData({ labels: page([{ name: 'bug' }], true, 'L1'), milestones: page([{ number: 3, title: 'v1' }], true, 'M1') })
     const { client, server } = await startClient([
       issueFieldsProbe(),
       graphqlData('GetIssueAttributeDefinitions', data),
       graphqlData('GetRepositoryLabelsPage', { repository: { labels: page([{ name: 'docs' }]) } }),
-      graphqlData('GetRepositoryMilestonesPage', { repository: { milestones: page([{ title: 'v2' }]) } }),
+      graphqlData('GetRepositoryMilestonesPage', { repository: { milestones: page([{ number: 4, title: 'v2' }]) } }),
     ])
 
     const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(definitions.find(definition => definition.name === 'labels')?.options).toStrictEqual([{ name: 'bug' }, { name: 'docs' }])
-    expect(definitions.find(definition => definition.name === 'milestone')?.options).toStrictEqual([{ name: 'v1' }, { name: 'v2' }])
+    expect(definitions.find(definition => definition.name === 'milestone')?.options).toStrictEqual([{ name: 'v1', id: '3' }, { name: 'v2', id: '4' }])
     expect(graphqlRequests(server).slice(2)).toStrictEqual([
       { operation: 'GetRepositoryLabelsPage', variables: { owner: 'acme', repo: 'demo', after: 'L1' } },
       { operation: 'GetRepositoryMilestonesPage', variables: { owner: 'acme', repo: 'demo', after: 'M1' } },
     ])
   })
 
-  it('ボードのフィールド・Issue fields・Issue type に続きがあれば、warnings に 1 行ずつ入れる', async () => {
+  it('ボードのフィールド・Issue fields・Issue type に続きがあれば、warnings に 1 行ずつ入れ、その source を unreadable に入れる', async () => {
     const data = definitionsData({ project: { fields: page([], true) }, issueFields: page([], true), issueTypes: page([], true) })
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', data)])
 
-    const { warnings } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
+    const { warnings, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
 
     expect(warnings).toStrictEqual([
       'read only the first 100 fields of the board',
       'read only the first 100 Issue types of acme/demo',
       'read only the first 100 Issue fields of acme/demo',
     ])
+    expect(unreadable).toStrictEqual(new Map([
+      ['project', 'read only the first 100 fields of the board'],
+      ['issue_field', 'read only the first 100 Issue fields of acme/demo'],
+      ['issue', 'read only the first 100 Issue types of acme/demo'],
+    ]))
   })
 
   it('リポが無いと、GitHubNotFoundError にする', async () => {
@@ -239,8 +300,8 @@ interface ValuesIssue {
 function valuesData(issue: Readonly<ValuesIssue> = {}): Record<string, unknown> {
   const elsewhere = [boardValue('ProjectV2ItemFieldTextValue', fieldOf('Elsewhere', 'TEXT'), { text: '別のボード' })]
   const items = issue.projectItems ?? page([
-    { project: { id: 'PVT_other' }, fieldValues: page(elsewhere) },
-    { project: { id: 'PVT_1' }, fieldValues: page(issue.fieldValues ?? []) },
+    { id: 'PVTI_other', project: { id: 'PVT_other' }, fieldValues: page(elsewhere) },
+    { id: 'PVTI_1', project: { id: 'PVT_1' }, fieldValues: page(issue.fieldValues ?? []) },
   ])
   return {
     repository: {
@@ -452,5 +513,25 @@ describe('readAttributeValues', () => {
     const error = await rejection(readAttributeValues(client, VALUES_TARGET))
     expect(error).toMatchObject({ name: GitHubAPIError.name })
     expect(String(error)).toContain('boom')
+  })
+
+  it('設定のボードの Item の ID を itemId に返す', async () => {
+    const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', valuesData())])
+
+    const { itemId } = await readAttributeValues(client, VALUES_TARGET)
+
+    expect(itemId).toBe('PVTI_1')
+    expect(QUERY_GET_ISSUE_ATTRIBUTES.replaceAll(/\s+/gu, ' ')).toContain('nodes { id project { id }')
+  })
+
+  it.for([
+    { name: '別のボードにだけ載っている', projectItems: page([{ id: 'PVTI_other', project: { id: 'PVT_other' }, fieldValues: page([]) }]) },
+    { name: 'どのボードにも載っていない', projectItems: page([]) },
+  ])('$name とき、itemId は undefined', async ({ projectItems }) => {
+    const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', valuesData({ projectItems }))])
+
+    const { itemId } = await readAttributeValues(client, VALUES_TARGET)
+
+    expect(itemId).toBeUndefined()
   })
 })

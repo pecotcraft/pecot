@@ -1299,7 +1299,7 @@ entries:
     help:
       details:
         - Checks the Markdown files that pecot issue create would post, in the order given, and creates nothing.
-        - Runs every check that issue create runs before the first Issue of a batch is created, including the reads of the parent Epics and the existing Issues named in blocked_by.
+        - Runs every check that issue create runs before the first Issue of a batch is created, including the reads of the parent Epics and the existing Issues named in blocked_by, and the check of attributes in the front matter against the definitions.
         - Prints a table of the files with their order numbers, blocked-by and approach (alone, stack on, wait for merge, join), and the stackable chains.
         - A file is named by its key, the stem of the file name.
         - --project names the project config to use. Without it, the config that includes the repository of the files is used; when several do, the active one among them.
@@ -1314,7 +1314,7 @@ entries:
     constraints: []
     details:
       - '`issue_create` に渡すファイルを、渡した順に確かめます。何も作りません。'
-      - '一括の最初の Issue を作る前に `issue_create` が行う確認を、すべて行います。親 Epic と、`blocked_by` に書いた既存の Issue も読みます。'
+      - '一括の最初の Issue を作る前に `issue_create` が行う確認を、すべて行います。親 Epic と、`blocked_by` に書いた既存の Issue も読みます。フロントマターの `attributes` の値も、機能の定義と照らします。'
       - 'ファイルごとの進め方を `plan` に、スタックできる並びを `stackableChains` に入れます。`plan` には、番号・blocked-by・進め方（単独・スタックする・マージを待つ・合流）を載せます。'
       - 'ファイルは、key（ファイル名の拡張子を除いた部分）で示します。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、ファイルの作り先のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -1337,7 +1337,7 @@ entries:
         when: '`project` の名前の設定がありません。'
       - kind: invalid-input
         code: 1
-        when: '同じファイルを重ねて渡したか、ファイルの作り先のリポが別々のプロジェクトの設定に分かれています。'
+        when: '同じファイルを重ねて渡したか、ファイルの作り先のリポが別々のプロジェクトの設定に分かれています。フロントマターの `attributes` の値が定義に合わないときも含みます。'
       - kind: content-invalid
         code: 1
         when: 'ファイルが無いか、フロントマターか本文が誤っています。プレースホルダが先のファイルを指していないとき、`blocked_by` が誤った前提を指すとき、ファイルに `parallel` があるときも含みます。'
@@ -1384,7 +1384,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'プロジェクトにつながっているリポジトリ、親 Epic の sub-issue、`blocked_by` に書いた Issue を読みます。'
+        what: 'プロジェクトにつながっているリポジトリ、親 Epic の sub-issue、`blocked_by` に書いた Issue を読みます。フロントマターに `attributes` があるときは、機能の定義と、`assignees` に渡したログイン名を担当にできるかも読みます。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、プロジェクトの設定ファイルを読みます。'
@@ -1409,6 +1409,9 @@ entries:
       - id: PW-ISSUE-CHECK-03
         pattern: unwanted
         statement: 'もし `files` を渡していないなら、`kind` が `invalid-input` の失敗を返します'
+      - id: PW-ISSUE-CHECK-04
+        pattern: unwanted
+        statement: 'もしフロントマターの `attributes` の値が 1 つでも定義に合わないなら、合わない値ごとに `error` の行を出し、`kind` が `invalid-input` の失敗を返します'
   PW-ISSUE-COMMENT:
     help:
       details:
@@ -1674,6 +1677,12 @@ entries:
         - With a parent Epic, links each created Issue as a sub-issue of it.
         - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
         - With files, stops when two files of the batch have the same order under the same parent Epic.
+        - --attribute writes the value of an attribute listed by pecot issue attributes, by name. Each --attribute takes one JSON object with name, value and, only when the same name is in several sources, source. With files, attributes in the front matter does the same, and --attribute cannot be used with files.
+        - Before the first Issue is created, checks every attribute value against the definitions read from GitHub. When one does not fit, creates no Issue and lists every error.
+        - Writes assignees, milestone, type and labels in the request that creates the Issue. Then writes the Issue fields, and the board fields after the Issue is added to the board.
+        - When an Issue field or a built-in attribute cannot be written, prints a warning for it and goes on.
+        - Giving both --label (or labels in the front matter) and the labels attribute stops the command. A null value is skipped.
+        - Without attributes, reads no definitions and creates the Issue as before.
       examples:
         - run: pecot issue create .pecot/work/12/issue-a.md .pecot/work/12/issue-b.md
           note: Create two Issues in the order given.
@@ -1687,6 +1696,7 @@ entries:
         parent_epic: An integer is resolved against aggregation_repo, or against the repository of the new Issue when aggregation_repo is not set. The form owner/repo/N is used as it is.
     summary: フロントマター付きの Markdown ファイルから Issue を作ります。
     arguments:
+      attributes: '書く機能の配列です。要素は `name`・`value` を持ち、同じ名前が複数の `source` にあるときだけ `source` を持ちます。機能は `issue_attributes` が返すものです。`files` と一緒には使えません。'
       files: 'フロントマター付きの Markdown ファイルのパスの配列です。複数渡すと、まとめて投稿します。'
       freeform: 'テンプレートの検証なしで、`message` と `repo` だけから Issue を作るかどうかです。題は `message` の 1 行目の先頭 50 文字から作ります。'
       label: 'ラベルの配列です。複数渡せます。'
@@ -1704,6 +1714,7 @@ entries:
       - requires: {freeform: [message, repo]}
       - conflicts: [freeform, files]
       - conflicts: [freeform, title]
+      - conflicts: [attributes, files]
     details:
       - 'モードは、`files`・`message`・`freeform` の 3 つです。'
       - '`files` と `message` を両方渡すと、`files` が `message` より優先されます。'
@@ -1739,6 +1750,12 @@ entries:
       - '親 Epic があるときは、作った Issue をそれぞれ親 Epic の sub-issue としてつなぎます。'
       - '親 Epic と `order` を渡したときは、その Epic に同じ order の Issue が既にあると、失敗を返します。'
       - '`files` では、一括の中の 2 つのファイルが同じ親 Epic の下で同じ order を持つと、失敗を返します。'
+      - '`attributes` で、`issue_attributes` が返す機能に、名前で値を書きます。`files` では、フロントマターの `attributes` が同じ役をします。引数の `attributes` は `files` と一緒に使えません。'
+      - '最初の Issue を作る前に、すべての値を GitHub から読んだ定義と照らします。1 つでも合わなければ、Issue を 1 件も作らずに、合わないものをすべて `errors` に入れて失敗を返します。'
+      - '担当者・マイルストーン・Issue type・ラベルは、Issue を作る要求に入れます。続けて Issue fields を書きます。ボードのフィールドは、ボードへ足した後で書きます。'
+      - 'Issue fields か組み込みの機能を書けないときは、その機能と理由を `failed` と `warnings` に入れて続けます。'
+      - '`label` かフロントマターの `labels` と、`attributes` の `labels` を両方渡すと、どちらを使うか決まらないので失敗を返します。`value` が `null` の機能は書きません。'
+      - '`attributes` が無いときは、機能の定義を読まず、今までと同じ要求で作ります。'
     stdin: none
     output:
       format: text
@@ -1747,7 +1764,9 @@ entries:
       fields:
         issues: '作った Issue の配列です。作った順に並びます。途中で失敗したときも、それまでに作った分が入ります。要素は `owner`・`repository`・`number`・`url` を必ず持ちます。`status` は、ボードに書いた Status（Blocked から出したときは `ready`）です。書かなかったときは入りません。`parent` は、sub-issue として足した親 Epic（`owner/repo/N`）です。親が無いときは入りません。'
         stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
-    diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status・priority・size）と `moved`（Blocked から Ready）もあります。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
+        errors: '機能の値の検証で止めた理由の配列です。止めなかったときは入りません。要素の形は `issue_edit` の `errors` と同じで、ファイルから作るときは、値を書いたファイルの名前の `file` も持ちます。'
+        failed: '検証は通ったが書けなかった機能の配列です。書けなかった機能が無いときは入りません。要素は `issue` (`owner/repo/N`)・`name`・`source`・`reason` を持ちます。'
+    diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status・priority・size と、`attributes` で書いた機能）と `moved`（Blocked から Ready）もあります。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。`attributes` の機能を書けなかったとき。機能の定義を一部読めなかったとき。機能の値が定義に合わないときは、合わない値ごとに `error` の行を出します。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -1765,6 +1784,9 @@ entries:
       - kind: invalid-input
         code: 1
         when: '一括で渡したファイルの作り先のリポが、別々のプロジェクトの設定に分かれています。'
+      - kind: invalid-input
+        code: 1
+        when: '機能の値が定義に合いません。名前が無いとき、名前が曖昧なとき、書けない機能のとき、定義を読めないときも含みます。'
       - kind: content-invalid
         code: 1
         when: 'フロントマターか本文が誤っています。プレースホルダが先のファイルを指していないとき、リポジトリの形が誤っているとき、本文がテンプレートに合わないとき（3 ではなく 1 です）も含みます。'
@@ -1791,7 +1813,7 @@ entries:
         when: 'テンプレートが見つかりません。'
       - kind: invalid-input
         code: 2
-        when: '`freeform` に `message` か `repo` がありません。`freeform` をファイル・`title` と一緒に渡したときも含みます。リポジトリが `owner/repo` の形でないときも含みます。`parent_epic` の形が誤っているときと、ほかの引数の誤りも含みます。'
+        when: '`freeform` に `message` か `repo` がありません。`freeform` をファイル・`title` と一緒に渡したときも含みます。`attributes` を `files` と一緒に渡したとき、`attributes` の要素が JSON として読めないときも含みます。リポジトリが `owner/repo` の形でないときも含みます。`parent_epic` の形が誤っているときと、ほかの引数の誤りも含みます。'
       - kind: repo-setting-missing
         code: 2
         when: 'Epic の作り先を決められません。設定に `aggregation_repo` が無く、`repo` もありません。'
@@ -1820,10 +1842,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'Issue を作り、blocked-by を足し、プロジェクトのボードに足します。フィールドを設定し、親 Epic の sub-issue としてつなぎます。前提が済んでいる Issue は、Blocked から Ready へ動かします。'
+        what: 'Issue を作り、blocked-by を足し、プロジェクトのボードに足します。フィールドと `attributes` の機能の値を設定し、親 Epic の sub-issue としてつなぎます。前提が済んでいる Issue は、Blocked から Ready へ動かします。'
       - target: github
         kind: read
-        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
+        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。`attributes` があるときは、機能の定義と、`assignees` に渡したログイン名を担当にできるか。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -2050,6 +2072,200 @@ entries:
       - id: PW-ISSUE-CREATE-78
         pattern: unwanted
         statement: 'もし一括で渡したファイルの作り先のリポが、別々のプロジェクトの設定に分かれるなら、ファイルと設定の名前を `detail` に入れ、1 件も作らずに失敗を返します'
+      - id: PW-ISSUE-CREATE-79
+        pattern: event
+        statement: '`attributes` を付けて呼ぶと、Issue を作り、名前で引いた機能に値を書きます。組み込みの機能は起票の要求に入れます。Issue fields は起票の後で書きます。ボードのフィールドは、ボードへ足した後で書きます'
+      - id: PW-ISSUE-CREATE-80
+        pattern: event
+        statement: 'ファイルのフロントマターに `attributes` があると、そのファイルから作る Issue に、同じように値を書きます'
+      - id: PW-ISSUE-CREATE-81
+        pattern: unwanted
+        statement: 'もし値が 1 つでも定義に合わないなら、一括のどの Issue も作らずに、`kind` が `invalid-input` の失敗を返します。合わないものを、すべて `errors` に入れます'
+      - id: PW-ISSUE-CREATE-82
+        pattern: event
+        statement: '`attributes` を省いて呼ぶと、機能の定義を読まずに、今までと同じ要求で Issue を作ります'
+      - id: PW-ISSUE-CREATE-83
+        pattern: unwanted
+        statement: 'もし Issue fields か組み込みの機能の値を書けないなら、その機能と理由を `failed` と `warnings` に入れ、ほかの機能を書いて成功を返します'
+      - id: PW-ISSUE-CREATE-84
+        pattern: unwanted
+        statement: 'もし `label` かフロントマターの `labels` と `attributes` の `labels` を両方渡したなら、Issue を作らずに `ambiguous_attribute` の失敗を返します'
+      - id: PW-ISSUE-CREATE-85
+        pattern: unwanted
+        statement: 'もし `attributes` を `files` と一緒に渡したなら、`kind` が `invalid-input` で終了コードが 2 の失敗を返します'
+      - id: PW-ISSUE-CREATE-86
+        pattern: event
+        statement: '`attributes` の `value` に `null` を渡すと、その機能を書かずに飛ばします'
+  PW-ISSUE-EDIT:
+    help:
+      details:
+        - Writes, changes or removes the values of the attributes of one Issue by name. The attributes are those listed by pecot issue attributes.
+        - Each --attribute takes one JSON object with name, value and, only when the same name is in several sources, source. A null value removes the value.
+        - Reads the definitions and the current values first, and checks every value against the definitions. When one does not fit, writes nothing and lists every error.
+        - A value that is the same as the current one is not written. Multi-select, assignees and labels are compared without their order.
+        - Writes assignees, milestone, type and labels with one request, then the Issue fields, then the board fields.
+        - When an Issue field or a built-in attribute cannot be written, goes on with the rest and lists it as failed with the reason, and exits with status 1.
+        - The pecot column field, the built-in Status, parent and blocked_by are read-only. Use pecot board move, issue create and issue block for them.
+        - With --dry-run, reads the definitions and the current values, checks the values, prints a dry-run line and the changes that would be made, and writes nothing.
+        - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
+      examples:
+        - run: "pecot issue edit example-org/my-repo/12 --attribute '{\"name\":\"Estimate\",\"value\":3}'"
+          note: Set the Estimate field of the Issue to 3.
+        - run: "pecot issue edit 12 --attribute '{\"name\":\"milestone\",\"value\":null}'"
+          note: Remove the milestone of the Issue.
+        - run: "pecot issue edit 12 --attribute '{\"name\":\"Area\",\"value\":\"docs\"}' --dry-run"
+          note: Show what would change without writing anything.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+        project: None; the config that includes the repository of the Issue, and the active one among them when there are several.
+    summary: Issue の機能の値を、名前で書き、変え、外します。
+    arguments:
+      attributes: '書く機能の配列です。要素は `name`・`value` を持ち、同じ名前が複数の `source` にあるときだけ `source` を持ちます。`value` を `null` にすると、値を外します。'
+      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
+    constraints: []
+    details:
+      - 'Issue 1 件の機能の値を、名前で書き、変え、外します。機能は、`issue_attributes` が返すものです。'
+      - '`attributes` の要素は、`name`・`value` と、同じ名前が複数の `source` にあるときだけ `source` を持ちます。`value` が `null` なら、値を外します。'
+      - '先に、機能の定義と Issue の今の値を読みます。すべての値を定義と照らし、1 つでも合わなければ、何も書かずに失敗を返します。'
+      - '今の値と同じ値は書きません。複数選択・担当者・ラベルは、順を問わずに比べます。Iteration は、開始日で渡しても名前に引き当てて比べます。'
+      - '組み込みの機能（`assignees`・`milestone`・`type`・`labels`）は、REST の 1 回の要求で書きます。続けて Issue fields を、最後にボードのフィールドを書きます。'
+      - 'Issue fields か組み込みの機能を書けないときは、ほかの機能を書き続けます。書けなかった機能と理由を `failed` に入れ、`kind` が `partial-failure` の失敗を返します。'
+      - 'pecot の進行の欄・組み込みの Status・`parent`・`blocked_by` は書けません。`board_move`・`issue_create` の `parent_epic`・`issue_block` を使います。'
+      - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
+      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
+    stdin: none
+    output:
+      format: text
+      description: '変えた機能ごとに `- <name>: <前の値> -> <後の値>` の行を並べた Markdown の箇条書きです。値の無いときは `(none)` と出します。変えた機能が無いときは、何も出しません。'
+    mcp_output:
+      fields:
+        changed: '変えた機能の配列です。要素は `name`・`source`・`before`・`after` を持ちます。`before`・`after` は、`issue_show` の `attributes` の `value` と同じ形で、値の無いときは `null` です。'
+        errors: '検証で止めた理由の配列です。止めなかったときは空です。要素は `code`・`name` を持ちます。あるときだけ、`source`・`value`・`expected`（取りうる値）・`candidates`（似た名前）を持ちます。同じく、`sources`（同じ名前を持つ `source`）・`hint`（代わりに使う操作や、読めなかった理由）を持ちます。`code` は、名前の誤りなら `unknown_attribute`・`ambiguous_attribute` です。書けない機能なら `read_only_attribute`・`unsupported_attribute`・`not_on_board` です。値の誤りなら `invalid_value`、定義を読めなければ `unreadable_attribute` です。'
+        failed: '検証は通ったが書けなかった機能の配列です。要素は `name`・`source`・`reason` を持ちます。`reason` は、GitHub が返した文か、GitHub が値を捨てたことです。'
+    diagnostics: '検証で止めたときは、合わない機能ごとに `error` の行を出します。書けなかった機能ごとに `warning` の行を出します。機能の定義か値の一部を読めないときも、`warning` の行を出します。'
+    environment: []
+    exit_status:
+      - kind: no-active-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定がありません。`project` で選んだ設定が対象のリポを含まないときも含みます。'
+      - kind: project-not-found
+        code: 1
+        when: '`project` の名前の設定がありません。'
+      - kind: invalid-input
+        code: 1
+        when: '機能の値が定義に合いません。名前が無いとき、名前が曖昧なとき、書けない機能のとき、定義を読めないとき、Issue がボードに無いときも含みます。'
+      - kind: partial-failure
+        code: 1
+        when: '検証は通りましたが、書けなかった機能があります。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っています。`attributes` の要素が JSON として読めないときと、ほかの引数の誤りも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '書いている途中で 1 つの機能を書けなくても、残りの機能を書きます。書けた機能は `changed` に、書けなかった機能は `failed` に入ります。'
+    effects:
+      - target: github
+        kind: read
+        what: '設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・open のマイルストーンの定義を読みます。Issue の今の値と、`assignees` に渡したログイン名を担当にできるかも読みます。'
+      - target: github
+        kind: write
+        what: 'Issue の担当者・マイルストーン・Issue type・ラベルと、Issue fields の値、設定のボードのフィールドの値を書きます。'
+      - target: file
+        kind: read
+        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
+    prerequisites:
+      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
+      - 'ホストの GitHub トークンが要ります。'
+    idempotent: true
+    examples:
+      - arguments:
+          issue_ref: example-org/my-repo/12
+          attributes:
+            - name: Estimate
+              value: 3
+        note: 'Issue の Estimate のフィールドを 3 にします。'
+      - arguments:
+          issue_ref: example-org/my-repo/12
+          attributes:
+            - name: milestone
+              value: null
+        note: 'Issue のマイルストーンを外します。'
+    default_notes:
+      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
+      project: '省くと、Issue のリポジトリを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
+    behaviors:
+      - id: PW-ISSUE-EDIT-01
+        pattern: event
+        statement: '`attributes` に値を渡すと、名前で引いた機能に値を書き、`changed` に前と後の値を入れます'
+      - id: PW-ISSUE-EDIT-02
+        pattern: event
+        statement: '`value` に `null` を渡すと、その機能の値を外し、`changed` の `after` を `null` にします'
+      - id: PW-ISSUE-EDIT-03
+        pattern: event
+        statement: '今の値と同じ値を渡すと、書かずに、`changed` にも入れません。複数選択・担当者・ラベルは、順を問わずに比べます'
+      - id: PW-ISSUE-EDIT-04
+        pattern: event
+        statement: '組み込みの機能・Issue fields・ボードのフィールドを渡すと、組み込みは REST の 1 回の要求で書きます。Issue fields は REST で、ボードのフィールドは種類ごとの値の GraphQL で書きます'
+      - id: PW-ISSUE-EDIT-05
+        pattern: unwanted
+        statement: 'もし値が 1 つでも定義に合わないなら、何も書かずに、`kind` が `invalid-input` の失敗を返します。合わないものを、すべて `errors` に入れます'
+      - id: PW-ISSUE-EDIT-06
+        pattern: unwanted
+        statement: 'もし名前が定義に無いなら、`code` を `unknown_attribute` にし、似た名前を `candidates` に入れます'
+      - id: PW-ISSUE-EDIT-07
+        pattern: unwanted
+        statement: 'もし同じ名前が複数の `source` にあり、`source` を渡していないなら、`code` を `ambiguous_attribute` にし、候補の `source` を `sources` に入れます'
+      - id: PW-ISSUE-EDIT-08
+        pattern: unwanted
+        statement: 'もし pecot の進行の欄か組み込みの Status を渡したなら、`code` を `read_only_attribute` にし、`board_move` を使うよう `hint` に入れます'
+      - id: PW-ISSUE-EDIT-09
+        pattern: unwanted
+        statement: 'もし値が種類と合わないか、選択肢の外か、担当にできないログイン名なら、`code` を `invalid_value` にして取りうる値を `expected` に入れます'
+      - id: PW-ISSUE-EDIT-10
+        pattern: unwanted
+        statement: 'もし Issue が設定のボードに無いのにボードのフィールドを渡したなら、`code` を `not_on_board` にし、`board_add` を使うよう `hint` に入れます'
+      - id: PW-ISSUE-EDIT-11
+        pattern: unwanted
+        statement: 'もし機能の定義を読めなかった `source` の名前を渡したなら、`code` を `unreadable_attribute` にし、読めなかった理由を `hint` に入れます'
+      - id: PW-ISSUE-EDIT-12
+        pattern: unwanted
+        statement: 'もし Issue fields の書き込みを GitHub が拒んだなら、ほかの機能を書き続けます。その機能と GitHub の理由を `failed` に入れ、`kind` が `partial-failure` の失敗を返します'
+      - id: PW-ISSUE-EDIT-13
+        pattern: unwanted
+        statement: 'もし GitHub が組み込みの機能の値を捨てたなら、その機能を `failed` に入れ、`kind` が `partial-failure` の失敗を返します'
+      - id: PW-ISSUE-EDIT-14
+        pattern: unwanted
+        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
+      - id: PW-ISSUE-EDIT-15
+        pattern: unwanted
+        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
+      - id: PW-ISSUE-EDIT-16
+        pattern: event
+        statement: 'CLI で `--dry-run` を付けて打つと、値を照らし、何も書かずに、書く予定を `dry-run` の行と箇条書きで出します'
   PW-ISSUE-REOPEN:
     help:
       details:

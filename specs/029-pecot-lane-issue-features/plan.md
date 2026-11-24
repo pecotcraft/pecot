@@ -119,7 +119,7 @@ plugins/pecot-workflow/
 │   ├── infra/github/
 │   │   ├── queries.ts              # 変更: 全種類の fieldValues、Issue fields、フィールドの改名・削除・作成
 │   │   ├── projects.ts             # 変更: フィールドの改名・削除、ビューの作成（REST）
-│   │   ├── issues.ts               # 変更: 作成と更新で type・assignees・milestone・issue_field_values
+│   │   ├── issues.ts               # 変更: 作成に type・assignees・milestone、更新の PATCH、issue-field-values の POST・DELETE、担当の確かめ
 │   │   ├── attributes.ts           # 新規: 定義を読む（ボードのフィールド・Issue fields・type・ラベル・マイルストーン）
 │   │   └── issue-surface.ts        # 新規: 公開スキーマの SDL と REST の OpenAPI を取りに行く
 │   └── commands/

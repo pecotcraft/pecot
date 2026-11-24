@@ -13,6 +13,7 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { JsonObject } from '../domain/json.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import type { CreateIssueExtras } from '../infra/github/issues.js'
 import { fieldWriteFailure } from './field-write-failure.js'
 import type { FieldHintState } from './field-write-failure.js'
 import type { Operation, Output } from './output.js'
@@ -35,8 +36,9 @@ export async function createIssue(
   title: string,
   body: string,
   labels: readonly string[] | undefined,
+  extras?: Readonly<CreateIssueExtras>,
 ): Promise<JsonObject> {
-  return await client.createIssue(owner, repository, title, body, labels)
+  return await client.createIssue(owner, repository, title, body, labels, extras)
 }
 
 /**

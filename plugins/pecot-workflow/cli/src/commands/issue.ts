@@ -5,6 +5,7 @@ import { ISSUE_CHECK_COMMANDS } from './issue-check.js'
 import { ISSUE_COMMENT_COMMANDS } from './issue-comment.js'
 import { ISSUE_CREATE_COMMANDS } from './issue-create.js'
 import { ISSUE_DEPENDENCY_COMMANDS } from './issue-dependency.js'
+import { ISSUE_EDIT_COMMANDS } from './issue-edit.js'
 import { ISSUE_REOPEN_COMMANDS } from './issue-reopen.js'
 import { ISSUE_SHOW_COMMANDS } from './issue-show.js'
 
@@ -13,6 +14,7 @@ export const ISSUE_COMMANDS: readonly CommandDefinition[] = [
   ...ISSUE_CHECK_COMMANDS,
   ...ISSUE_SHOW_COMMANDS,
   ...ISSUE_ATTRIBUTES_COMMANDS,
+  ...ISSUE_EDIT_COMMANDS,
   ...ISSUE_COMMENT_COMMANDS,
   ...ISSUE_DEPENDENCY_COMMANDS,
   ...ISSUE_REOPEN_COMMANDS,

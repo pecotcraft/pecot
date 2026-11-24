@@ -65,7 +65,7 @@
 | 項目 | 内容 |
 |---|---|
 | `name` | AttributeDefinition の `name` |
-| `value` | string・number・string の配列・null（null は外す） |
+| `value` | string・number・string の配列・null（`issue_edit` では外す。`issue_create` では書かずに飛ばす） |
 | `source` | 省略できる。同じ名前が複数の `source` にあるときだけ要る |
 
 検証の決まり（すべて、書く前にまとめて確かめる）:
@@ -76,7 +76,9 @@
 | 名前が 1 つの `source` に決まる | `ambiguous_attribute`。候補の `source` を出す |
 | `writable` が true | `read_only_attribute` |
 | `kind` が `unsupported` でない | `unsupported_attribute`。GitHub の種類の名前を出す |
-| 値が `kind` に合う | `invalid_value`。取りうる値を出す。number は数、date は `YYYY-MM-DD`、select は選択肢の名前、iteration は名前か開始日 |
+| 値が `kind` に合う | `invalid_value`。取りうる値を出す。number は数、date は `YYYY-MM-DD`、select は選択肢の名前、iteration は名前か開始日。担当者は担当にできるログイン名 |
+| 名前の `source` の定義を読めた | `unreadable_attribute`。読めなかった理由を出す |
+| ボードのフィールドなら、Issue がボードに載っている（`issue_edit`） | `not_on_board`。`board_add` を使うよう出す |
 
 ### AttributeReading（`issue_show` の結果の `attributes` の 1 つ）
 

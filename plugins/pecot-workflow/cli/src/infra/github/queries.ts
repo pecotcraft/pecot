@@ -263,6 +263,17 @@ export const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $i
   }
 }`
 
+// プロジェクトアイテムのフィールドに値を書く。value は ProjectV2FieldValue（種類ごとに 1 つのキー）
+export const MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+  updateProjectV2ItemFieldValue(
+    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }
+  ) {
+    projectV2Item {
+      id
+    }
+  }
+}`
+
 // プロジェクトアイテム削除
 export const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
   deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
@@ -1287,6 +1298,7 @@ function getIssueAttributesQuery(name: string, hasIssueFields: boolean): string 
           hasNextPage
         }
         nodes {
+          id
           project {
             id
           }
@@ -1333,6 +1345,7 @@ const ISSUE_FIELD_DEFINITIONS = `
       }
       nodes {
         ... on IssueFieldCommon {
+          fullDatabaseId
           name
           dataType
         }
@@ -1352,6 +1365,7 @@ const ISSUE_FIELD_DEFINITIONS = `
 const MULTI_SELECT_FIELD_OPTIONS = `
           ... on ProjectV2MultiSelectField {
             multiSelectOptions {
+              id
               name
             }
           }`
@@ -1369,10 +1383,12 @@ function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean
           ... on ProjectV2IterationField {
             configuration {
               iterations {
+                id
                 title
                 startDate
               }
               completedIterations {
+                id
                 title
                 startDate
               }
@@ -1380,6 +1396,7 @@ function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean
           }${hasIssueFields ? MULTI_SELECT_FIELD_OPTIONS : ''}
           ... on ProjectV2SingleSelectField {
             options {
+              id
               name
             }
           }
@@ -1403,6 +1420,7 @@ function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean
         endCursor
       }
       nodes {
+        number
         title
       }
     }
@@ -1449,6 +1467,7 @@ export const QUERY_GET_REPOSITORY_MILESTONES_PAGE = `query ($owner: String!, $re
         endCursor
       }
       nodes {
+        number
         title
       }
     }

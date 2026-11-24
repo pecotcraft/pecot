@@ -1,7 +1,7 @@
 // 使い方の誤りの表示。Python の CLI が出していた click の Usage 行・Try 行と、枠付きの Error を写す。
 // 全コマンドの共通部。コマンドの path と引数の書式は、呼び出す側が渡す。
 import { BaseError } from '../domain/errors.js'
-import { compareCodePoints } from './fuzzy.js'
+import { compareCodePoints } from '../domain/fuzzy.js'
 import { renderPanel, wrapText } from './rich-panel.js'
 
 const PROGRAM = 'pecot'

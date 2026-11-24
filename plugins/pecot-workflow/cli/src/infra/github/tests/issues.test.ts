@@ -7,6 +7,7 @@ import { JSON_NULL } from '../../../domain/json-null.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError } from '../errors.js'
 import type { ResponseRule } from '../../../../tests/fake-github/server.js'
 import type { GitHubClient } from '../index.js'
+import { builtinValuesOfIssue, issueFieldRestId } from '../issues.js'
 import { QUERY_GET_ISSUE_PREREQUISITES } from '../queries.js'
 import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
@@ -39,6 +40,145 @@ describe('createIssue', () => {
     expect(await rejection(client.createIssue('owner', 'repo', 'T'))).toMatchObject(
       failure(GitHubAuthError, 'authentication failed: check the token', { statusCode: 401 }),
     )
+  })
+
+  it('extras の担当者・マイルストーンの番号・Issue type を、同じ POST の本文に入れる', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/issues', { status: 201, body: { number: 126 } })])
+    await client.createIssue('owner', 'repo', 'Title', 'Body', ['bug'], { assignees: ['alice'], milestone: 3, type: 'Task' })
+    expect(restRequests(server).map(({ body }) => body)).toEqual([{ title: 'Title', body: 'Body', labels: ['bug'], assignees: ['alice'], milestone: 3, type: 'Task' }])
+  })
+
+  it('extras のうち指定の無いものは送らない', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/issues', { status: 201, body: { number: 127 } })])
+    await client.createIssue('owner', 'repo', 'Title', 'Body', undefined, { milestone: 3 })
+    expect(restRequests(server).map(({ body }) => JSON.stringify(body))).toEqual(['{"title":"Title","body":"Body","milestone":3}'])
+  })
+})
+
+describe('updateIssueAttributes', () => {
+  it('組み込みの書き込みを、キーと値のまま PATCH 1 回の本文に入れ、応答の Issue を返す', async () => {
+    const response = { number: 7, assignees: [], labels: [{ name: 'bug' }], milestone: JSON_NULL, type: { name: 'Bug' } }
+    const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/7', { status: 200, body: response })])
+    const result = await client.updateIssueAttributes('owner', 'repo', 7, [
+      { key: 'assignees', value: [] },
+      { key: 'labels', value: ['bug'] },
+      { key: 'milestone', value: JSON_NULL },
+      { key: 'type', value: 'Bug' },
+    ])
+    expect(result).toEqual(response)
+    expect(restRequests(server).map(({ method, path, body }) => ({ method, path, body }))).toEqual([
+      { method: 'PATCH', path: '/repos/owner/repo/issues/7', body: { assignees: [], labels: ['bug'], milestone: JSON_NULL, type: 'Bug' } },
+    ])
+  })
+})
+
+function issueFieldValuesBody(chunk: readonly { readonly fieldId: number, readonly value: string }[]): unknown {
+  return { issue_field_values: chunk.map(({ fieldId, value }) => ({ field_id: fieldId, value })) }
+}
+
+describe('addIssueFieldValues', () => {
+  const PATH = '/repos/owner/repo/issues/7/issue-field-values'
+
+  it('field_id と value の組を、版 2022-11-28 で POST する', async () => {
+    const rule: ResponseRule = { match: { method: 'POST', path: PATH, apiVersion: '2022-11-28' }, respond: { status: 200, body: [] }, times: 1 }
+    const { client, server } = await startClient([rule])
+    await client.addIssueFieldValues('owner', 'repo', 7, [{ fieldId: 101, value: 'High' }, { fieldId: 103, value: 5 }, { fieldId: 104, value: ['x', 'y'] }])
+    expect(restRequests(server).map(({ method, path, body }) => ({ method, path, body }))).toEqual([
+      { method: 'POST', path: PATH, body: { issue_field_values: [{ field_id: 101, value: 'High' }, { field_id: 103, value: 5 }, { field_id: 104, value: ['x', 'y'] }] } },
+    ])
+  })
+
+  it('値が 0 件なら要求しない', async () => {
+    const { client, server } = await startClient([])
+    await client.addIssueFieldValues('owner', 'repo', 7, [])
+    expect(restRequests(server)).toEqual([])
+  })
+
+  it('26 件は 25 件と 1 件の 2 回に分けて送る', async () => {
+    const { client, server } = await startClient([restResponse('POST', PATH, { status: 200, body: [] }, 2)])
+    const values = Array.from({ length: 26 }, (_, index) => ({ fieldId: index + 1, value: String(index) }))
+    await client.addIssueFieldValues('owner', 'repo', 7, values)
+    expect(restRequests(server).map(({ body }) => body)).toEqual([issueFieldValuesBody(values.slice(0, 25)), issueFieldValuesBody(values.slice(25))])
+  })
+
+  it('403 は、GitHub の本文を持つ GitHubAPIError にする', async () => {
+    const text = '{"message":"You do not have permission to set issue field values"}'
+    const { client } = await startClient([restResponse('POST', PATH, { status: 403, text })])
+    expect(await rejection(client.addIssueFieldValues('owner', 'repo', 7, [{ fieldId: 101, value: 'High' }]))).toMatchObject(
+      failure(GitHubAPIError, 'access denied', { statusCode: 403, responseBody: text }),
+    )
+  })
+})
+
+describe('deleteIssueFieldValue', () => {
+  const PATH = '/repos/owner/repo/issues/7/issue-field-values/101'
+
+  it('204 なら deleted を返す', async () => {
+    const { client, server } = await startClient([restResponse('DELETE', PATH, { status: 204, text: '' })])
+    expect(await client.deleteIssueFieldValue('owner', 'repo', 7, 101)).toBe('deleted')
+    expect(restRequests(server).map(({ method, path }) => ({ method, path }))).toEqual([{ method: 'DELETE', path: PATH }])
+  })
+
+  it('404 なら absent を返す', async () => {
+    const { client } = await startClient([restResponse('DELETE', PATH, { status: 404, text: '{"message":"Not Found"}' })])
+    expect(await client.deleteIssueFieldValue('owner', 'repo', 7, 101)).toBe('absent')
+  })
+
+  it('403 は GitHubAPIError にする', async () => {
+    const { client } = await startClient([restResponse('DELETE', PATH, { status: 403, text: '{"message":"Forbidden"}' })])
+    expect(await rejection(client.deleteIssueFieldValue('owner', 'repo', 7, 101))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403 }))
+  })
+})
+
+describe('isAssignable', () => {
+  it('204 なら true を返す', async () => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/alice', { status: 204, text: '' })])
+    expect(await client.isAssignable('owner', 'repo', 'alice')).toBe(true)
+    expect(restRequests(server).map(({ method, path }) => ({ method, path }))).toEqual([{ method: 'GET', path: '/repos/owner/repo/assignees/alice' }])
+  })
+
+  it('404 なら false を返す', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/ghost', { status: 404, text: '{"message":"Not Found"}' })])
+    expect(await client.isAssignable('owner', 'repo', 'ghost')).toBe(false)
+  })
+
+  it('ほかの状態コードは例外にする', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/alice', { status: 500, text: 'boom' })])
+    expect(await rejection(client.isAssignable('owner', 'repo', 'alice'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 500', { statusCode: 500 }))
+  })
+
+  it('ログイン名をパスの 1 セグメントとして符号化する', async () => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/a%2Fb', { status: 404, text: '' })])
+    expect(await client.isAssignable('owner', 'repo', 'a/b')).toBe(false)
+    expect(restRequests(server).map(({ path }) => path)).toEqual(['/repos/owner/repo/assignees/a%2Fb'])
+  })
+})
+
+describe('issueFieldRestId', () => {
+  it.for([
+    { name: '十進の整数', text: '101', expected: 101 },
+    { name: '安全な整数の上限', text: String(Number.MAX_SAFE_INTEGER), expected: Number.MAX_SAFE_INTEGER },
+    { name: '安全な整数の上限を超える数', text: '9007199254740992', expected: undefined },
+    { name: '0', text: '0', expected: undefined },
+    { name: '先頭が 0 の数', text: '0101', expected: undefined },
+    { name: '負の数', text: '-1', expected: undefined },
+    { name: '小数', text: '1.5', expected: undefined },
+    { name: '空文字', text: '', expected: undefined },
+    { name: '空白の付いた数', text: ' 1', expected: undefined },
+  ])('$name の文字列を $expected にする', ({ text, expected }) => {
+    expect(issueFieldRestId(text)).toBe(expected)
+  })
+})
+
+describe('builtinValuesOfIssue', () => {
+  it('担当者のログイン名・ラベルの名前・マイルストーンの題と番号・Issue type の名前を読む', () => {
+    const issue = { assignees: [{ login: 'alice' }, { login: 'bob' }], labels: [{ name: 'bug' }, 'docs'], milestone: { title: 'v1', number: 3 }, type: { name: 'Task' } }
+    expect(builtinValuesOfIssue(issue)).toEqual({ assignees: ['alice', 'bob'], labels: ['bug', 'docs'], milestone: { title: 'v1', number: 3 }, type: 'Task' })
+  })
+
+  it('値の無い Issue は、空の配列と undefined にする', () => {
+    expect(builtinValuesOfIssue({ assignees: [], labels: [], milestone: JSON_NULL, type: JSON_NULL })).toStrictEqual({ assignees: [], labels: [], milestone: undefined, type: undefined })
+    expect(builtinValuesOfIssue({})).toStrictEqual({ assignees: [], labels: [], milestone: undefined, type: undefined })
   })
 })
 
