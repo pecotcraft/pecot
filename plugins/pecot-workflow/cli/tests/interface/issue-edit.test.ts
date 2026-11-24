@@ -1,0 +1,308 @@
+/* eslint-disable unicorn/no-null -- JSON の null を確かめる */
+import { describe, expect, it } from 'vitest'
+
+import { ISSUE_EDIT_COMMANDS } from '../../src/commands/issue-edit.js'
+import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import type { RunningGithub } from '../_helpers/interface-case.js'
+import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
+import { callToolOnce } from '../_helpers/mcp-client.js'
+import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import { boardValue, connectionPage, definitionsData, issueAttributesData, issueFieldsProbeRule } from '../_helpers/attributes.js'
+import type { DefinitionsSpec, IssueAttributesSpec } from '../_helpers/attributes.js'
+import { verifies } from '../_helpers/verifies.js'
+
+useIsolatedEnvironment()
+
+const AREA_CLI = boardValue('ProjectV2ItemFieldSingleSelectValue', 'Area', 'SINGLE_SELECT', { name: 'cli' })
+
+function valuesRule(data: Readonly<Record<string, unknown>>): ResponseRule {
+  return { match: { operation: 'GetIssueAttributes', variables: { owner: 'acme', repo: 'demo', number: 7 } }, respond: { status: 200, body: { data } }, times: 1 }
+}
+
+function definitionsRule(body: unknown): ResponseRule {
+  return { match: { operation: 'GetIssueAttributeDefinitions', variables: { owner: 'acme', repo: 'demo', projectId: 'PVT_1' } }, respond: { status: 200, body }, times: 1 }
+}
+
+/**
+今の値と定義を読む 3 つの要求の応答。既定の Issue は、ボードの Area が cli で、ほかの値が無い
+*/
+function readRules(values?: Readonly<IssueAttributesSpec>, definitions: Readonly<DefinitionsSpec> = {}): readonly ResponseRule[] {
+  return [issueFieldsProbeRule(true, 2), valuesRule(issueAttributesData(values ?? { fieldValues: [AREA_CLI] })), definitionsRule({ data: definitionsData(definitions) })]
+}
+
+function assignable(login: string, status = 204): ResponseRule {
+  return { match: { method: 'GET', path: `/repos/acme/demo/assignees/${login}` }, respond: { status }, times: 1 }
+}
+
+function patched(body: Readonly<Record<string, unknown>>): ResponseRule {
+  return { match: { method: 'PATCH', path: '/repos/acme/demo/issues/7' }, respond: { status: 200, body: { number: 7, assignees: [], labels: [], milestone: null, type: null, ...body } }, times: 1 }
+}
+
+function fieldValuesAdded(status = 200): ResponseRule {
+  const body = status === 200 ? [] : { message: 'Resource not accessible by integration' }
+  return { match: { method: 'POST', path: '/repos/acme/demo/issues/7/issue-field-values' }, respond: { status, body }, times: 1 }
+}
+
+function fieldValueDeleted(fieldId: number): ResponseRule {
+  return { match: { method: 'DELETE', path: `/repos/acme/demo/issues/7/issue-field-values/${String(fieldId)}` }, respond: { status: 204 }, times: 1 }
+}
+
+function boardWritten(times = 1): ResponseRule {
+  return { match: { operation: 'UpdateProjectItemFieldValue' }, respond: { status: 200, body: { data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_1' } } } } }, times }
+}
+
+function boardCleared(): ResponseRule {
+  return { match: { operation: 'ClearProjectItemField' }, respond: { status: 200, body: { data: { clearProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_1' } } } } }, times: 1 }
+}
+
+async function edit(attributes: readonly unknown[]): Promise<ToolOutcome> {
+  return await callToolOnce(ISSUE_EDIT_COMMANDS, 'issue_edit', { issue_ref: 'acme/demo/7', attributes })
+}
+
+function writesOf(github: Readonly<RunningGithub>): readonly RecordedRequest[] {
+  return github.requests().filter(request => request.type === 'rest' ? request.method !== 'GET' : request.operation === 'UpdateProjectItemFieldValue' || request.operation === 'ClearProjectItemField')
+}
+
+describe('issue edit', () => {
+  describe('書く', () => {
+    it('--attribute を渡すと、変えた値を Markdown の箇条書きで標準出力に出し、変えた機能を set の行に出す', async () => {
+      setUpProject()
+      await startGithub([...readRules(), boardWritten()])
+
+      const result = await runInProcess(['issue', 'edit', 'acme/demo/7', '--attribute', '{"name":"Area","value":"docs"}'], ISSUE_EDIT_COMMANDS)
+
+      expect(result).toEqual({ code: 0, stdout: '- Area: cli -> docs\n', stderr: 'set: Issue acme/demo/7 Area\n' })
+    })
+
+    it('--dry-run を付けて打つと、値を照らし、何も書かずに、書く予定を dry-run の行と箇条書きで出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-16')
+      setUpProject()
+      const github = await startGithub(readRules())
+
+      const result = await runInProcess(['issue', 'edit', 'acme/demo/7', '--attribute', '{"name":"Area","value":"docs"}', '--dry-run'], ISSUE_EDIT_COMMANDS)
+
+      expect(result).toEqual({ code: 0, stdout: '- Area: cli -> docs\n', stderr: 'dry-run: would set Issue acme/demo/7 Area\n' })
+      expect(writesOf(github)).toStrictEqual([])
+    })
+
+    it('attributes に値を渡すと、名前で引いた機能に値を書き、changed に前と後の値を入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-01')
+      await verifies(context, 'PW-ISSUE-EDIT-04')
+      setUpProject()
+      const github = await startGithub([
+        ...readRules(),
+        assignable('octocat'),
+        patched({ assignees: [{ login: 'octocat' }], milestone: { title: 'v1', number: 3 }, type: { name: 'Bug' } }),
+        fieldValuesAdded(),
+        boardWritten(2),
+      ])
+
+      const outcome = await edit([
+        { name: 'Area', value: 'docs' },
+        { name: 'Sprint', value: '2026-11-16' },
+        { name: 'Effort', value: 3 },
+        { name: 'type', value: 'Bug' },
+        { name: 'assignees', value: ['octocat'] },
+        { name: 'milestone', value: 'v1' },
+      ])
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toStrictEqual({
+        changed: [
+          { name: 'type', source: 'issue', before: null, after: 'Bug' },
+          { name: 'assignees', source: 'issue', before: null, after: ['octocat'] },
+          { name: 'milestone', source: 'issue', before: null, after: 'v1' },
+          { name: 'Effort', source: 'issue_field', before: null, after: 3 },
+          { name: 'Area', source: 'project', before: 'cli', after: 'docs' },
+          { name: 'Sprint', source: 'project', before: null, after: 'Sprint 2' },
+        ],
+        errors: [],
+        failed: [],
+      })
+      expect(writesOf(github)).toMatchObject([
+        { type: 'rest', method: 'PATCH', body: { type: 'Bug', assignees: ['octocat'], milestone: 3 } },
+        { type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/issue-field-values', body: { issue_field_values: [{ field_id: 103, value: 3 }] } },
+        { type: 'graphql', variables: { projectId: 'PVT_1', itemId: 'PVTI_1', fieldId: 'F_area', value: { singleSelectOptionId: 'O_docs' } } },
+        { type: 'graphql', variables: { fieldId: 'F_sprint', value: { iterationId: 'I_2' } } },
+      ])
+    })
+
+    it('value に null を渡すと、その機能の値を外し、changed の after を null にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-02')
+      setUpProject()
+      const issueFieldValues = [{ __typename: 'IssueFieldNumberValue', field: { name: 'Effort', dataType: 'NUMBER' }, numberValue: 5 }]
+      const github = await startGithub([...readRules({ fieldValues: [AREA_CLI], milestone: 'v1', issueFieldValues }), patched({}), fieldValueDeleted(103), boardCleared()])
+
+      const outcome = await edit([{ name: 'Area', value: null }, { name: 'Effort', value: null }, { name: 'milestone', value: null }])
+
+      expect(outcome.structured).toStrictEqual({
+        changed: [
+          { name: 'milestone', source: 'issue', before: 'v1', after: null },
+          { name: 'Effort', source: 'issue_field', before: 5, after: null },
+          { name: 'Area', source: 'project', before: 'cli', after: null },
+        ],
+        errors: [],
+        failed: [],
+      })
+      expect(writesOf(github)).toMatchObject([
+        { type: 'rest', method: 'PATCH', body: { milestone: null } },
+        { type: 'rest', method: 'DELETE' },
+        { type: 'graphql', operation: 'ClearProjectItemField', variables: { fieldId: 'F_area' } },
+      ])
+    })
+
+    it('今の値と同じ値を渡すと、書かずに、changed にも入れない。ラベルは順を問わずに比べる', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-03')
+      setUpProject()
+      const definitions = { labels: connectionPage([{ name: 'bug' }, { name: 'docs' }]) }
+      const github = await startGithub(readRules({ fieldValues: [AREA_CLI], labels: ['bug', 'docs'] }, definitions))
+
+      const outcome = await edit([{ name: 'Area', value: 'cli' }, { name: 'labels', value: ['docs', 'bug'] }])
+
+      expect(outcome.structured).toStrictEqual({ changed: [], errors: [], failed: [] })
+      expect(writesOf(github)).toStrictEqual([])
+    })
+  })
+
+  describe('照らして止める', () => {
+    it('値が 1 つでも定義に合わないと、何も書かずに、合わないものをすべて errors に入れて invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-05')
+      await verifies(context, 'PW-ISSUE-EDIT-06')
+      await verifies(context, 'PW-ISSUE-EDIT-09')
+      setUpProject()
+      const github = await startGithub([...readRules(), assignable('ghost', 404)])
+
+      const outcome = await edit([
+        { name: 'Area', value: 'docs' },
+        { name: 'Effort', value: 'big' },
+        { name: 'Aera', value: 'cli' },
+        { name: 'assignees', value: ['ghost'] },
+      ])
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['kind']).toBe('invalid-input')
+      expect(outcome.structured['errors']).toMatchObject([
+        { code: 'invalid_value', name: 'Effort', source: 'issue_field', value: 'big' },
+        { code: 'unknown_attribute', name: 'Aera', candidates: ['Area'] },
+        { code: 'invalid_value', name: 'assignees', source: 'issue', value: ['ghost'] },
+      ])
+      expect(writesOf(github)).toStrictEqual([])
+    })
+
+    it('同じ名前が複数の source にあり source を渡していないと、ambiguous_attribute にし、候補の source を sources に入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-07')
+      setUpProject()
+      const fields = [{ id: 'F_effort', name: 'Effort', dataType: 'NUMBER', isIssueField: false }]
+      await startGithub(readRules({}, { fields }))
+
+      const outcome = await edit([{ name: 'Effort', value: 3 }])
+
+      expect(outcome.structured['errors']).toMatchObject([{ code: 'ambiguous_attribute', name: 'Effort', sources: ['project', 'issue_field'] }])
+    })
+
+    it.for([
+      { name: '進行の欄', attribute: 'pecot-workflow-acme', value: 'Ready' },
+      { name: '組み込みの Status', attribute: 'Status', value: 'Done' },
+    ])('$name を渡すと、read_only_attribute にし、board_move を使うよう hint に入れる', async ({ attribute, value }, context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-08')
+      setUpProject()
+      await startGithub(readRules())
+
+      const outcome = await edit([{ name: attribute, value }])
+
+      expect(outcome.structured['errors']).toMatchObject([{ code: 'read_only_attribute', name: attribute, source: 'project' }])
+      expect(JSON.stringify(outcome.structured['errors'])).toContain('board_move')
+    })
+
+    it('Issue が設定のボードに無いのにボードのフィールドを渡すと、not_on_board にし、board_add を使うよう hint に入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-10')
+      setUpProject()
+      await startGithub(readRules({ isOnBoard: false }))
+
+      const outcome = await edit([{ name: 'Area', value: 'docs' }])
+
+      expect(outcome.structured['errors']).toMatchObject([{ code: 'not_on_board', name: 'Area', source: 'project' }])
+      expect(JSON.stringify(outcome.structured['errors'])).toContain('board_add')
+    })
+
+    it('機能の定義を読めなかった source の名前を渡すと、unreadable_attribute にし、読めなかった理由を hint に入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-11')
+      setUpProject()
+      const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueFields'], message: 'Resource not accessible by integration' }]
+      await startGithub([issueFieldsProbeRule(true, 2), valuesRule(issueAttributesData()), definitionsRule({ data: definitionsData({ issueFields: null }), errors })])
+
+      const outcome = await edit([{ name: 'Effort', value: 3 }])
+
+      expect(outcome.structured['errors']).toMatchObject([{ code: 'unreadable_attribute', name: 'Effort', source: 'issue_field' }])
+      expect(JSON.stringify(outcome.structured['errors'])).toContain('Resource not accessible by integration')
+    })
+  })
+
+  describe('書けなかった機能', () => {
+    it('Issue fields の書き込みを GitHub が拒むと、ほかの機能を書き続け、GitHub の理由を failed に入れて partial-failure の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-12')
+      setUpProject()
+      const github = await startGithub([...readRules(), fieldValuesAdded(403), boardWritten()])
+
+      const outcome = await edit([{ name: 'Effort', value: 3 }, { name: 'Area', value: 'docs' }])
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({
+        kind: 'partial-failure',
+        changed: [{ name: 'Area', source: 'project', before: 'cli', after: 'docs' }],
+        failed: [{ name: 'Effort', source: 'issue_field' }],
+      })
+      expect(JSON.stringify(outcome.structured['failed'])).toContain('Resource not accessible by integration')
+      expect(writesOf(github)).toHaveLength(2)
+    })
+
+    it('GitHub が組み込みの機能の値を捨てると、その機能を failed に入れて partial-failure の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-13')
+      setUpProject()
+      await startGithub([...readRules(), patched({})])
+
+      const outcome = await edit([{ name: 'type', value: 'Bug' }])
+
+      expect(outcome.structured).toMatchObject({
+        kind: 'partial-failure',
+        changed: [],
+        failed: [{ name: 'type', source: 'issue', reason: 'GitHub dropped the value (writing it needs push access to the repository)' }],
+      })
+    })
+  })
+
+  describe('失敗', () => {
+    it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-14')
+      setUpProject({ repositories: ['other'] })
+
+      const outcome = await edit([{ name: 'Area', value: 'docs' }])
+
+      expect(outcome.structured['kind']).toBe('repo-not-in-project')
+    })
+
+    it('GitHub API がエラーを返すと、kind が github-api の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-15')
+      setUpProject()
+      await startGithub([issueFieldsProbeRule(), { match: { operation: 'GetIssueAttributes' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const outcome = await edit([{ name: 'Area', value: 'docs' }])
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['kind']).toBe('github-api')
+      expect(outcome.structured['detail']).toMatch(/^could not edit the attributes of Issue acme\/demo\/7: /u)
+    })
+
+    it('JSON として読めない --attribute を渡すと、使い方の誤りで終了コード 2 を返し、GitHub を呼ばない', async () => {
+      setUpProject()
+      const github = await startGithub([])
+
+      const result = await runInProcess(['issue', 'edit', 'acme/demo/7', '--attribute', '{name: Area}'], ISSUE_EDIT_COMMANDS)
+
+      expect(result.code).toBe(2)
+      expect(result.stderr).toContain('is not')
+      expect(github.requests()).toStrictEqual([])
+    })
+  })
+})

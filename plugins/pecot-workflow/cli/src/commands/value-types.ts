@@ -29,7 +29,14 @@ export interface ChoiceType {
   readonly choices: readonly string[]
 }
 
-export type ValueType = ChoiceType | FloatType | IntegerType | { readonly type: 'string' }
+/**
+オブジェクトの型（z.object）。値は JSON のオブジェクト 1 つで渡し、中身の形は zod の検証が確かめる
+*/
+export interface JsonType {
+  readonly type: 'json'
+}
+
+export type ValueType = ChoiceType | FloatType | IntegerType | JsonType | { readonly type: 'string' }
 
 /**
 包んでいる側のスキーマ。Optional・Default・Nullable・Readonly・Prefault・Catch・NonOptional は中を見る。
@@ -73,6 +80,7 @@ export function valueTypeOf(schema: z.core.$ZodType): ValueType {
     const range = { min: boundOf(current.minValue), max: boundOf(current.maxValue) }
     return isInteger ? { type: 'integer', ...range } : { type: 'float', ...range }
   }
+  if (current instanceof z.ZodObject) return { type: 'json' }
   return current instanceof z.ZodEnum ? { type: 'choice', choices: current.options.map(String) } : { type: 'string' }
 }
 
@@ -109,11 +117,23 @@ function isOutside(value: number, min: number | undefined, max: number | undefin
   return (min !== undefined && value < min) || (max !== undefined && value > max)
 }
 
+function parseJsonObject(text: string): Conversion {
+  const invalid: Conversion = { isValid: false, message: `${pythonStringRepr(text)} is not a valid JSON object.` }
+  try {
+    const value: unknown = JSON.parse(text)
+    return typeof value === 'object' && value !== null && !Array.isArray(value) ? { isValid: true, value } : invalid
+  }
+  catch {
+    return invalid
+  }
+}
+
 /**
 コマンドラインの文字列を、型に応じて変換する。誤りの文は typer 同梱の click と同じ
 */
 export function convertValue(text: string, valueType: ValueType): Conversion {
   if (valueType.type === 'string') return { isValid: true, value: text }
+  if (valueType.type === 'json') return parseJsonObject(text)
   if (valueType.type === 'choice') {
     return valueType.choices.includes(text) ? { isValid: true, value: text } : { isValid: false, message: `${pythonStringRepr(text)} is not one of ${valueType.choices.map(choice => pythonStringRepr(choice)).join(', ')}.` }
   }

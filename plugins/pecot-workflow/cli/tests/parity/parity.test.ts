@@ -54,6 +54,7 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
   ['project-link-usage', 'rejected'],
   ['release-create-usage-no-version', 'rejected'],
   ['issue-attributes-usage', 'unmappable'],
+  ['issue-edit-usage', 'unmappable'],
   ['release-check-usage-unknown-option', 'unmappable'],
   ['tracker-sync-usage-security-unknown-option', 'unmappable'],
   ['session-show-usage', 'rejected'],

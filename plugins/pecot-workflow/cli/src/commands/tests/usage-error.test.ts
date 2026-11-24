@@ -23,16 +23,17 @@ describe('golden の usage エラー', () => {
   // グローバルオプションの誤り（global-）は文が複数行になるので、下の個別のケースで確かめる
   const ids = scenarioIds().filter(id => !id.startsWith('global-') && readGolden(id).stderr.startsWith('Usage: '))
 
-  it('golden から 25 件を読む', () => {
-    expect(ids).toHaveLength(25)
+  it('golden から 26 件を読む', () => {
+    expect(ids).toHaveLength(26)
   })
 
   it.for(ids)('%s の stderr を文字単位で再現する', (id) => {
     const { stderr } = readGolden(id)
-    const lines = stderr.split('\n', 4)
+    const lines = stderr.split('\n')
     const program = (lines.at(0) ?? '').replace(/^Usage: /u, '').split(' ')
     const optionsAt = program.indexOf('[OPTIONS]')
-    const message = (lines.at(3) ?? '').replace(/^│ /u, '').replace(/ *│$/u, '')
+    // 枠の中で折り返した文は、空白でつなぎ直す
+    const message = lines.slice(3).filter(line => line.startsWith('│ ')).map(line => line.replace(/^│ /u, '').replace(/ *│$/u, '')).join(' ')
     const error = new UsageError(message, {
       commandPath: program.slice(1, optionsAt),
       synopsis: program.slice(optionsAt).join(' '),

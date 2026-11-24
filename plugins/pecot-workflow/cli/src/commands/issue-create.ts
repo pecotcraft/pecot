@@ -32,6 +32,23 @@ import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { normalizePath, resolveRealPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
+import type { AttributeError, AttributeInput, AttributeWrite } from '../domain/attributes.js'
+import type { JsonObject } from '../domain/json.js'
+import {
+  ATTRIBUTE_ERROR_JSON,
+  ATTRIBUTE_FAILURE_JSON,
+  ATTRIBUTES_INPUT,
+  attributeInputs,
+  builtinOutcome,
+  checkAttributes,
+  createBuiltins,
+  labelsConflict,
+  reportAttributeErrors,
+  warnFailures,
+  writeIssueFields,
+  writeProjectFields,
+} from './attribute-writes.js'
+import type { AttributeErrorJson, AttributeOutcome, DefinitionsCache, IssueLocationTarget, RawAttributes } from './attribute-writes.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 
@@ -108,13 +125,20 @@ const CREATED_ISSUE_DATA = z.strictObject({
 
 export const STACKABLE_CHAINS = z.array(z.array(z.string())).optional().describe('Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)')
 
+const CREATE_FAILURE_JSON = ATTRIBUTE_FAILURE_JSON.extend({
+  issue: z.string().describe('Issue whose attribute could not be written (owner/repo/N)'),
+})
+
 const ISSUE_CREATE_OUTPUT = z.strictObject({
   issues: z.array(CREATED_ISSUE_DATA).describe('Issues created, in the order of creation (also kept on a failure after some were created)'),
   stackableChains: STACKABLE_CHAINS,
+  errors: z.array(ATTRIBUTE_ERROR_JSON).optional().describe('Why the attribute values were not accepted; no Issue was created (omitted when none)'),
+  failed: z.array(CREATE_FAILURE_JSON).optional().describe('Attributes that passed the check but could not be written, with the reason (omitted when none)'),
 })
 
 type IssueCreateData = z.input<typeof ISSUE_CREATE_OUTPUT>
 type CreatedIssueData = z.input<typeof CREATED_ISSUE_DATA>
+type CreateFailureJson = z.input<typeof CREATE_FAILURE_JSON>
 type CreateOutput = Output<IssueCreateData>
 
 // --- 共通 ---
@@ -155,10 +179,14 @@ interface Posting {
   真なら、前提をすべて付けた後に判定を読み、Blocked の列を直す。既存の Issue を前提に持ち、Blocked で作った Issue だけが真
   */
   readonly settleColumn: boolean
+  /**
+  検証を通った attributes の書く予定
+  */
+  readonly attributes: readonly AttributeWrite[]
 }
 
 /**
-1 回の投稿の間の記録。failures は付け直すコマンド
+1 回の投稿の間の記録。failures は付け直すコマンド、attributeFailures は書けなかった機能
 */
 interface PostingSession {
   readonly failures: CommandHint[]
@@ -168,10 +196,67 @@ interface PostingSession {
   */
   readonly issues: CreatedIssueData[]
   readonly fieldHint: FieldHintState
+  readonly attributeFailures: CreateFailureJson[]
 }
 
 function newSession(): PostingSession {
-  return { failures: [], cache: createReadinessCache(), issues: [], fieldHint: { hasHinted: false } }
+  return { failures: [], cache: createReadinessCache(), issues: [], fieldHint: { hasHinted: false }, attributeFailures: [] }
+}
+
+// 組み込みは起票の応答と比べ、Issue fields はボードと関係なく、ボードのフィールドはボードに足せたときだけ書く
+async function writeCreatedAttributes(output: CreateOutput, client: GitHubClient, config: ProjectConfig, session: PostingSession, issue: Readonly<IssueLocationTarget>, created: JsonObject, item: BoardItem | undefined, writes: readonly AttributeWrite[]): Promise<void> {
+  if (writes.length === 0) return
+  const target = `Issue ${issuePath(issue.owner, issue.repository, issue.number)}`
+  const fields = await writeIssueFields(client, issue, writes)
+  const board: AttributeOutcome = item === undefined
+    ? { changed: [], failed: writes.filter(write => write.source === 'project').map(write => ({ name: write.name, source: write.source, reason: 'the Issue could not be added to the board' })) }
+    : await writeProjectFields(client, config.project.id, item.itemId, writes)
+  const parts: readonly AttributeOutcome[] = [builtinOutcome(writes, created), fields, board]
+  const changed = parts.flatMap(part => part.changed)
+  const failed = parts.flatMap(part => part.failed)
+  if (changed.length > 0) output.done({ verb: 'set', target: `${target} ${changed.map(change => change.name).join(', ')}` })
+  warnFailures(output, target, failed)
+  if (failed.length === 0) return
+  const issueText = issuePath(issue.owner, issue.repository, issue.number)
+  session.attributeFailures.push(...failed.map(item => ({ issue: issueText, ...item })))
+  output.result({ failed: [...session.attributeFailures] })
+}
+
+type AttributeCheck
+  = | { readonly ok: true, readonly writes: readonly AttributeWrite[] }
+    | { readonly ok: false, readonly errors: readonly AttributeError[] }
+
+// 起票の前に attributes を照らす。attributes が無ければ定義を読まない。hasLabels は label かフロントマターの labels があるか
+async function checkCreateAttributes(output: Output, client: GitHubClient, config: ProjectConfig, owner: string, repository: string, inputs: readonly AttributeInput[], hasLabels: boolean, cache: DefinitionsCache): Promise<AttributeCheck> {
+  if (inputs.length === 0) return { ok: true, writes: [] }
+  let validation
+  try {
+    validation = await checkAttributes(output, client, config, { owner, repository }, inputs, undefined, cache)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    return stopWith(output, `could not read the attributes of ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
+  }
+  const errors = [...labelsConflict(inputs, hasLabels), ...validation.ok ? [] : validation.errors]
+  return validation.ok && errors.length === 0 ? validation : { ok: false, errors }
+}
+
+interface FileAttributeErrors {
+  readonly file: string | undefined
+  readonly errors: readonly AttributeError[]
+}
+
+// 照らして合わなかった値を error の行と errors に出し、Issue を作らずに止める
+function stopForAttributeErrors(output: Output, entries: readonly FileAttributeErrors[], record: ((errors: readonly AttributeErrorJson[]) => void) | undefined): never {
+  const errors = entries.flatMap(entry => reportAttributeErrors(output, entry.errors, entry.file))
+  record?.(errors)
+  return stopWith(output, 'did not create any Issue: some attribute values do not fit the definitions', 'invalid-input')
+}
+
+function recordCreateErrors(output: CreateOutput): (errors: readonly AttributeErrorJson[]) => void {
+  return (errors) => {
+    output.result({ issues: [], errors: [...errors] })
+  }
 }
 
 // 投稿中の Issue は常に末尾にある。isUpdate なら末尾を書き換え、そうでなければ足す
@@ -272,7 +357,8 @@ Issue を作り、前提・ボード・欄・列の直し・親 Epic への接�
 */
 async function postIssue(output: CreateOutput, client: GitHubClient, config: ProjectConfig, session: PostingSession, posting: Readonly<Posting>): Promise<PostedIssue> {
   const { owner, repository } = posting
-  const issue = await createIssueOrExit(output, client, owner, repository, posting.title, posting.body, posting.labels, posting.source)
+  const builtins = createBuiltins(posting.attributes)
+  const issue = await createIssueOrExit(output, client, owner, repository, posting.title, posting.body, builtins.labels ?? posting.labels, posting.source, builtins.extras)
   const { number, url, nodeId } = summarizeCreatedIssue(issue)
   const entry: CreatedIssueData = { owner, repository, number, url }
   recordIssue(output, session, entry, false)
@@ -303,6 +389,7 @@ async function postIssue(output: CreateOutput, client: GitHubClient, config: Pro
       if (isMovedToReady) status = 'ready'
     }
   }
+  await writeCreatedAttributes(output, client, config, session, { owner, repository, number }, issue, added, posting.attributes)
   const knownNodeId = added?.issueNodeId ?? issueNodeId
   let parent: string | undefined
   if (posting.parentReference !== undefined) {
@@ -399,6 +486,7 @@ export interface LocalFile {
   */
   readonly status: string
   readonly hasNoBlockedColumn: boolean
+  readonly attributes: readonly AttributeInput[]
 }
 
 function stopForFrontmatter(output: Output, error: FrontmatterError, name: string): never {
@@ -453,7 +541,22 @@ function readLocalFile(output: Output, config: ProjectConfig, file: string): Loc
     parentReference: parentReferenceOf(frontmatter.parent_epic, config, owner, repository),
     status: hasNoBlockedColumn ? 'ready' : declared,
     hasNoBlockedColumn,
+    attributes: (frontmatter.attributes ?? []).map(({ name, value, source }) => ({ name, value, ...source !== undefined && { source } })),
   }
+}
+
+// ファイルごとに、作成先のリポの定義で attributes を照らす。1 つでも合わなければ、すべての誤りを出して止める
+async function checkFileAttributes(output: Output, client: GitHubClient, config: ProjectConfig, locals: readonly LocalFile[], record: ((errors: readonly AttributeErrorJson[]) => void) | undefined): Promise<readonly (readonly AttributeWrite[])[]> {
+  const cache: DefinitionsCache = new Map()
+  const writes: (readonly AttributeWrite[])[] = []
+  const failed: FileAttributeErrors[] = []
+  for (const local of locals) {
+    const check = await checkCreateAttributes(output, client, config, local.owner, local.repository, local.attributes, local.frontmatter.labels.length > 0, cache)
+    if (check.ok) writes.push(check.writes)
+    else failed.push({ file: local.name, errors: check.errors })
+  }
+  if (failed.length > 0) stopForAttributeErrors(output, failed, record)
+  return writes
 }
 
 function homeOf(file: Readonly<LocalFile>): RepositoryReference {
@@ -584,6 +687,10 @@ export interface BatchContext {
   readonly nodeIds: ReadonlyMap<string, string>
   readonly client: GitHubClient
   readonly config: ProjectConfig
+  /**
+  ファイルの順の、検証を通った attributes の書く予定
+  */
+  readonly attributeWrites: readonly (readonly AttributeWrite[])[]
 }
 
 // blocked_by のあるファイルがあるのに、依存関係に対応しない GHES なら、何も作らずに止める。前提の無い一括は、読み取りを増やさない
@@ -633,7 +740,7 @@ function configForFiles(output: Output, files: readonly string[], project: strin
 }
 
 // 1 件も投稿しないうちに確かめられることをすべて確かめ、投稿に要るものをそろえる。issue check もこれを使う
-export async function prepareBatch(output: Output, files: readonly string[], project: string | undefined, commandPath: readonly string[] = CREATE_PATH): Promise<BatchContext> {
+export async function prepareBatch(output: Output, files: readonly string[], project: string | undefined, commandPath: readonly string[] = CREATE_PATH, recordErrors?: (errors: readonly AttributeErrorJson[]) => void): Promise<BatchContext> {
   validatePlaceholders(output, files)
   const config = configForFiles(output, files, project, commandPath)
   const locals = files.map(file => readLocalFile(output, config, file))
@@ -667,7 +774,8 @@ export async function prepareBatch(output: Output, files: readonly string[], pro
   await ensureDependenciesSupported(output, client, locals)
   const orders = await planFileOrders(output, client, locals, groups)
   const nodeIds = await readExistingPrerequisites(output, client, locals, resolution.prerequisites)
-  return { locals, home: homeOf(first), prerequisites: resolution.prerequisites, progressions: resolution.progressions, orders, nodeIds, client, config }
+  const attributeWrites = await checkFileAttributes(output, client, config, locals, recordErrors)
+  return { locals, home: homeOf(first), prerequisites: resolution.prerequisites, progressions: resolution.progressions, orders, nodeIds, client, config, attributeWrites }
 }
 
 function titleOf(local: Readonly<LocalFile>, order: number | undefined): string {
@@ -734,6 +842,7 @@ async function postFiles(output: CreateOutput, context: Readonly<BatchContext>):
         parentReference: local.parentReference,
         prerequisites,
         settleColumn: local.status === 'blocked' && prerequisites.some(({ reference }) => !isBatchReference(reference, posted)),
+        attributes: context.attributeWrites.at(index) ?? [],
       })
       const reference = createIssueReference(home, result.number)
       posted.push({ reference, nodeId: result.nodeId })
@@ -758,7 +867,7 @@ function isBatchReference(reference: IssueReference, posted: readonly (PostedFil
 }
 
 async function createFromFiles(output: CreateOutput, files: readonly string[], project: string | undefined): Promise<void> {
-  await postFiles(output, await prepareBatch(output, files, project))
+  await postFiles(output, await prepareBatch(output, files, project, CREATE_PATH, recordCreateErrors(output)))
 }
 
 // --- -m の直接投稿 ---
@@ -775,6 +884,7 @@ interface DirectOptions {
   readonly labels: readonly string[] | undefined
   readonly order: number | undefined
   readonly project: string | undefined
+  readonly attributes: readonly AttributeInput[]
 }
 
 // config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
@@ -798,6 +908,8 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
   const title = buildIssueTitle(issueType, options.title, { parentEpic: parentReference?.number, order: options.order })
   validateIssueTemplate(output, issueType, options.message)
   const client = await clientForIssueCreate(output, config, owner, repository, options.repository, parentReference, options.order)
+  const labels = options.labels !== undefined && options.labels.length > 0 ? options.labels : undefined
+  const attributes = await checkDirectAttributes(output, client, config, owner, repository, options.attributes, labels !== undefined)
 
   const fields: IssueField[] = [{ fieldName: 'workflow', optionName: status, label: `status ${status}` }]
   if (options.priority !== undefined && options.priority !== '') fields.push({ fieldName: 'priority', optionName: options.priority, label: `priority ${options.priority}` })
@@ -808,14 +920,21 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
     repository,
     title,
     body: options.message,
-    labels: options.labels !== undefined && options.labels.length > 0 ? options.labels : undefined,
+    labels,
     source: undefined,
     useResponseNodeId: true,
     fields,
     parentReference,
     prerequisites: [],
     settleColumn: false,
+    attributes,
   })
+}
+
+// 直接の起票と freeform の attributes を照らす。合わなければ止める
+async function checkDirectAttributes(output: CreateOutput, client: GitHubClient, config: ProjectConfig, owner: string, repository: string, inputs: readonly AttributeInput[], hasLabels: boolean): Promise<readonly AttributeWrite[]> {
+  const check = await checkCreateAttributes(output, client, config, owner, repository, inputs, hasLabels, new Map())
+  return check.ok ? check.writes : stopForAttributeErrors(output, [{ file: undefined, errors: check.errors }], recordCreateErrors(output))
 }
 
 interface MessageTarget {
@@ -880,6 +999,7 @@ interface FreeformInput {
   readonly order?: number | undefined
   readonly label?: readonly string[] | undefined
   readonly project?: string | undefined
+  readonly attributes?: RawAttributes
 }
 
 // テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは 1 行目の先頭 50 文字の空白を 1 つにまとめたもの
@@ -904,19 +1024,22 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
   const title = buildIssueTitle(issueType, cleaned, { parentEpic: parentReference?.number, order: input.order })
   const client = await clientForIssueCreate(output, config, owner, repository, repo, parentReference, input.order)
   if (parentReference !== undefined && issueType === 'epic') output.warning('giving a parent Epic to an Epic is not recommended')
+  const labels = input.label !== undefined && input.label.length > 0 ? input.label : undefined
+  const attributes = await checkDirectAttributes(output, client, config, owner, repository, attributeInputs(input.attributes), labels !== undefined)
 
   await postIssue(output, client, config, newSession(), {
     owner,
     repository,
     title,
     body: `${pythonRightStrip(message)}\n\n${FREEFORM_FOOTER}`,
-    labels: input.label !== undefined && input.label.length > 0 ? input.label : undefined,
+    labels,
     source: undefined,
     useResponseNodeId: true,
     fields: freeformFields(issueType, status, input.priority, input.size),
     parentReference,
     prerequisites: [],
     settleColumn: false,
+    attributes,
   })
 }
 
@@ -931,6 +1054,7 @@ interface MessageInput {
   readonly label?: readonly string[] | undefined
   readonly order?: number | undefined
   readonly project?: string | undefined
+  readonly attributes?: RawAttributes
 }
 
 // -m の直接投稿。入力の確認から作成まで
@@ -951,6 +1075,7 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
     labels: input.label,
     order: input.order,
     project: input.project,
+    attributes: attributeInputs(input.attributes),
   }, target.config)
 }
 
@@ -972,12 +1097,14 @@ const ISSUE_CREATE = defineCommand({
     parent_epic: z.string().optional().describe(PARENT_EPIC_DESCRIPTION),
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
+    attributes: ATTRIBUTES_INPUT.describe('Attributes to write by name (the attributes that issue_attributes lists): name, value and, only when the same name is in several sources, source; null values are skipped; cannot be used with files (write attributes in the front matter instead)'),
     freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)'),
     project: PROJECT_INPUT,
   }),
   output: ISSUE_CREATE_OUTPUT,
   positional: ['files'],
   shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l' },
+  aliases: { attributes: '--attribute' },
   interactive: false,
   run: async (input, io: CommandIo) => {
     const output = createOutput<IssueCreateData>(false, io)
@@ -985,6 +1112,9 @@ const ISSUE_CREATE = defineCommand({
     return await runWithExit(async () => {
       if ((hasFiles || input.title !== undefined) && input.freeform) {
         stopWith(output, hinted`${inputHint(CREATE_PATH, 'freeform')} cannot be used with ${inputNameHint(CREATE_PATH, 'files')} or ${inputNameHint(CREATE_PATH, 'title')}`, 'invalid-input', USAGE_EXIT_CODE)
+      }
+      if (hasFiles && input.attributes !== undefined) {
+        stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'attributes')} cannot be used with ${inputNameHint(CREATE_PATH, 'files')}; write attributes in the front matter`, 'invalid-input', USAGE_EXIT_CODE)
       }
       if (input.freeform) {
         await createFreeform(output, input)

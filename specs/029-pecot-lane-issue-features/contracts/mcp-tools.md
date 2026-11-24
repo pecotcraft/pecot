@@ -94,18 +94,32 @@ AttributeValue の配列。検証に 1 つでも通らなければ、Issue を�
 { "code": "invalid_value", "name": "Estimate", "source": "project", "value": "big", "expected": "number" }
 ```
 
+項目は `code`・`name` のほかに、あるものだけを入れる。`source`・`value`・`expected`（取りうる値）・`candidates`（似た名前）・`sources`（同じ名前を持つ `source`）・`hint`（代わりに使う操作や、読めなかった理由）。
+
+ファイルから起票するときは、値を書いたファイルの名前を `file` に入れる。検証で止めたときの失敗の `kind` は `invalid-input`。
+
+CLI では、`--attribute` に要素 1 つの JSON（`{"name":"Estimate","value":3}`）を繰り返して渡す。
+
+ファイルから起票するときは、frontmatter の `attributes` に同じ形の配列を書く。入力の `attributes` と `files` は一緒に渡せない。
+入力の `label` か frontmatter の `labels` と、`attributes` の `labels` を両方渡すと、`ambiguous_attribute` で止める。`issue_check` も、frontmatter の `attributes` を同じく照らし、合わない値を error の行に出す（何も書かない）。
+
 ### `issue_edit`（新規）
 
 | 入力 | 内容 |
 |---|---|
 | `issue_ref` | `owner/repo/N` |
-| `attributes` | AttributeValue の配列。`value: null` で外す |
+| `attributes` | AttributeValue の配列。`value: null` で外す。今の値と同じ値は書かない |
+| `project` | 設定の名前。省略すると、対象のリポを含む設定 |
 
 | 出力 | 内容 |
 |---|---|
 | `changed` | 変えた機能の名前と、前の値・後の値 |
 | `errors` | 検証で止めたときの一覧。止めたときは何も書かない |
-| `failed` | 検証は通ったが書けなかった機能と理由（Issue fields の権限の不足など）。ほかの機能は書く（FR-020）。`issue_create` の出力にも同じ項目を足す |
+| `failed` | 検証は通ったが書けなかった機能と理由（Issue fields の権限の不足など）。ほかの機能は書く（FR-020）。`issue_create` の出力にも、作った Issue の `issue` を添えて同じ項目を足す |
+
+`failed` が 1 つでもあれば、`issue_edit` は失敗の `kind` を `partial-failure` にする。`issue_create` は、Issue を作れていれば警告の行に出し、成功で終える。
+
+CLI の `pecot issue edit` は `--dry-run` を持つ。値を照らし、変わる機能を出すだけで、何も書かない。MCP には出さない（ほかの書き込みのコマンドと同じ）。
 
 ### `issue_show`
 

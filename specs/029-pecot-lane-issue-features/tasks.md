@@ -210,11 +210,11 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 5（書く）
 
-- [ ] T050 [P] [US5] `PW/cli/src/domain/tests/attributes.test.ts` に、検証のテストを先に書く。
+- [x] T050 [P] [US5] `PW/cli/src/domain/tests/attributes.test.ts` に、検証のテストを先に書く。
   data-model.md の表のとおり、`unknown_attribute`（似た名前の候補つき）・`ambiguous_attribute`・`read_only_attribute`・`unsupported_attribute`・`invalid_value` を確かめる。
   値の決まり: 「number は数、date は `YYYY-MM-DD`、select は選択肢の名前、iteration は名前か開始日」。1 つでも合わなければ全部を返し、書く予定を作らないことも確かめる。
   `pecot-status` と組み込みの Status は `read_only_attribute` で止まり、`board_move` を使うよう出すことも確かめる（research R7）
-- [ ] T051 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-EDIT-*` と `PW-ISSUE-CREATE` の `attributes` の振る舞いを足す。
+- [x] T051 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-EDIT-*` と `PW-ISSUE-CREATE` の `attributes` の振る舞いを足す。
   `PW/cli/tests/interface/issue-edit.test.ts`（新規）と `PW/cli/tests/interface/issue-create.test.ts` に先にテストを書く。
   確かめること:
   - REST の作成に `type`・`assignees`・`milestone`・`labels`・`issue_field_values` が入る
@@ -228,15 +228,15 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Implementation for User Story 5（書く）
 
-- [ ] T052 [US5] `PW/cli/src/domain/attributes.ts` を作り、検証と書く予定の組み立てと `ATTRIBUTE_HANDLERS`（`kind` から書き方への対応）を置く（T050 の後）。
+- [x] T052 [US5] `PW/cli/src/domain/attributes.ts` を作り、検証と書く予定の組み立てと `ATTRIBUTE_HANDLERS`（`kind` から書き方への対応）を置く（T050 の後）。
   single select の名前から選択肢を引く関数は、A の T026 と共有する。T026 が先にマージされていれば、そちらの関数を使う
-- [ ] T053 [US5] `PW/cli/src/infra/github/issues.ts` の作成と更新に `type`・`assignees`・`milestone`・`issue_field_values` を足す。
+- [x] T053 [US5] `PW/cli/src/infra/github/issues.ts` の作成と更新に `type`・`assignees`・`milestone`・`issue_field_values` を足す。
   `PW/cli/src/infra/github/projects.ts` に種類ごとの `updateProjectV2ItemFieldValue` と `clearProjectV2ItemFieldValue` を足す
-- [ ] T054 [US5] `PW/cli/src/commands/issue-create.ts` に `attributes` を足す。frontmatter（`PW/cli/src/domain/frontmatter.ts`）でも同じ名前で受ける
-- [ ] T055 [US5] `PW/cli/src/commands/issue-edit.ts` を作り、MCP ツール `issue_edit` として登録する
-- [ ] T056 [P] [US5] `PW/skills/w-help/references/` に、`issue_attributes` で定義を見て、`attributes` で指定する使い方を書く。利用を強制しないこと（指定しなければ空のまま）も書く
-- [ ] T057 [US5] `PW/interface/generated.json` を作り直し、T050・T051 のテストのファイルを動かす
-- [ ] T058 [US5] quickstart.md の B-1 の 3〜7 を、検証用のボードで動かす
+- [x] T054 [US5] `PW/cli/src/commands/issue-create.ts` に `attributes` を足す。frontmatter（`PW/cli/src/domain/frontmatter.ts`）でも同じ名前で受ける
+- [x] T055 [US5] `PW/cli/src/commands/issue-edit.ts` を作り、MCP ツール `issue_edit` として登録する
+- [x] T056 [P] [US5] `PW/skills/w-help/references/` に、`issue_attributes` で定義を見て、`attributes` で指定する使い方を書く。利用を強制しないこと（指定しなければ空のまま）も書く
+- [x] T057 [US5] `PW/interface/generated.json` を作り直し、T050・T051 のテストのファイルを動かす
+- [x] T058 [US5] quickstart.md の B-1 の 3〜7 を、検証用のボードで動かす
 
 **Checkpoint**: pecot の知らない 6 種類のフィールドと担当者・マイルストーン・Issue type を、名前で書き、変え、外せる
 

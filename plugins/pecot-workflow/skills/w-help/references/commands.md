@@ -28,6 +28,7 @@
 | `issue check` | Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything |
 | `issue comment` | Post a comment on an Issue |
 | `issue create` | Create Issues from Markdown files with frontmatter |
+| `issue edit` | Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists) |
 | `issue reopen` | Reopen a closed Issue (also sets the status on the board) |
 | `issue show` | Fetch Issue details efficiently (GraphQL, only the needed fields) |
 | `issue unblock` | Remove a blocked-by (prerequisite) from an Issue |

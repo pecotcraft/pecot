@@ -1,0 +1,7 @@
+# --attribute の値が JSON として読めない。GitHub を呼ぶ前に使い方エラーで止める。
+id: issue-edit-usage
+command:
+  path: [issue, edit]
+  args: [acme/demo/7, --attribute, "{name: Estimate}"]
+setup: {}
+github: []

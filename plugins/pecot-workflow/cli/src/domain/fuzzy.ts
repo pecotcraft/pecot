@@ -1,6 +1,6 @@
 // 近い語の候補。Python の difflib.get_close_matches（n=3、cutoff=0.6）を写す。
 // click の `Possible options` と `Did you mean` の元になる。
-import { splitCodePoints } from '../domain/python-format.js'
+import { splitCodePoints } from './python-format.js'
 
 const MAX_MATCHES = 3
 const CUTOFF = 0.6

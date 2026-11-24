@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot issue edit [OPTIONS] {issue_ref}\nTry 'pecot issue edit --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Invalid value for '--attributes' / '--attribute': '{name: Estimate}' is not  │\n│ a valid JSON object.                                                         │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

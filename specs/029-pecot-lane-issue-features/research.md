@@ -87,14 +87,21 @@
   - `pecot-status` と組み込みの Status（札）は、書き込めない機能として返す。列の移動は `board_move` が、移動の決まり（Blocked の判定など）と共に行う。
     `attributes` からも書けると、同じことをする道が 2 つになる（憲章の VIII）
 - **書き方**:
-  - Issue の作成は今の REST `POST /issues` のまま。`type`・`assignees`・`milestone`・`labels`・`issue_field_values` を同じ要求に入れる
+  - Issue の作成は今の REST `POST /issues` のまま。`type`・`assignees`・`milestone`・`labels` を同じ要求に入れる
+  - Issue fields は、作成の後に `POST /issues/{n}/issue-field-values` で書く。外すときは `DELETE /issues/{n}/issue-field-values/{issue_field_id}`
   - ボードのフィールドは `updateProjectV2ItemFieldValue` で書く。種類は text・number・date・single select・multi select・iteration
   - blocked-by は、作成の後に `addBlockedBy`（今の形）
   - 更新は REST の `PATCH /issues/{n}` と `issue-field-values` と、GraphQL の `updateProjectV2ItemFieldValue`・`clearProjectV2ItemFieldValue` を使う
-- **Rationale**: 定義を持ち歩かず、書くたびに読むので、利用者が足したフィールドや GitHub が足した種類の値も、pecot を直さずに扱える（FR-014）。REST の作成に Issue の機能がまとめて入るので、作成の後に失敗する書き込みが減る
+  - 担当者は、書く前に `GET /repos/{owner}/{repo}/assignees/{assignee}` で、担当にできるかを確かめる
+  - 組み込みは、権限が無いと GitHub が捨てる。応答の値と頼んだ値を比べ、捨てられた機能を `failed` に出す
+- **Rationale**:
+  - 定義を持ち歩かず、書くたびに読む。利用者が足したフィールドや GitHub が足した種類の値も、pecot を直さずに扱える（FR-014）
+  - Issue fields を別の要求にするのは、権限の不足を GitHub の 403 の文で返すため（FR-020）。作成の要求の `issue_field_values` は、権限が無いと捨てられ、理由が残らない
 - **Alternatives considered**:
   - 名前と値の連想配列（`{"Area": "x"}`）: 同じ名前の曖昧さ（FR-019）を表せない
   - GraphQL の `createIssue` に移す: `issueFields` を持つが、REST の作成と同じ範囲で、移す理由が無い
+  - Issue fields を作成の要求に入れ、応答の `issue_field_values` と比べる: 要求は 1 回減るが、理由は「GitHub が捨てた」としか書けない
+  - Issue fields を GraphQL の `setIssueFieldValue` で書く: REST と同じく GA だが、REST で足りる
 
 ## R8. 使えることの担保（B）
 

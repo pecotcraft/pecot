@@ -4,7 +4,7 @@
 import { Command, CommanderError, Option } from 'commander'
 import { z } from 'zod'
 
-import { closeMatches } from './fuzzy.js'
+import { closeMatches } from '../domain/fuzzy.js'
 import { flagOf } from './names.js'
 import type { CommandDefinition, CommandIo, PreparedCommand } from './registry.js'
 import {

@@ -1,6 +1,7 @@
 // Issue 操作の API。cli/core/github/issues.py の移植。
 // 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
 
+import type { BuiltinWrite } from '../../domain/attributes.js'
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { BlockedByReference, BlockedByReferences, IssueBlockedByReferences, IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
@@ -28,7 +29,7 @@ import {
 } from './queries.js'
 import { readBlockedBy, readIssue, readIssueReference } from './readout.js'
 import { ProjectsApi } from './projects.js'
-import { repositoryPath } from './rest-path.js'
+import { encodePathSegment, repositoryPath } from './rest-path.js'
 
 const ISSUES_PER_PAGE = 100
 
@@ -101,6 +102,66 @@ export interface IssueSlim {
 }
 
 const DEFAULT_COMMENT_LIMIT = 5
+
+const NO_CONTENT = 204
+
+const NOT_FOUND = 404
+
+// POST .../issue-field-values の issue_field_values の maxItems
+const MAX_ISSUE_FIELD_VALUES_PER_REQUEST = 25
+
+/**
+起票の要求に足す組み込みの機能。milestone は番号、type は Issue type の名前
+*/
+export interface CreateIssueExtras {
+  readonly assignees?: readonly string[]
+  readonly milestone?: number
+  readonly type?: string
+}
+
+/**
+Issue field の値 1 つ。fieldId は REST の数の ID、選択肢は名前で送る
+*/
+export interface IssueFieldValueWrite {
+  readonly fieldId: number
+  readonly value: string | number | readonly string[]
+}
+
+/**
+GraphQL の fullDatabaseId（BigInt の文字列）を、REST の issue_field_id に直す。安全な整数でなければ undefined
+*/
+export function issueFieldRestId(fieldId: string): number | undefined {
+  if (!/^[1-9]\d*$/u.test(fieldId)) return undefined
+  const id = Number(fieldId)
+  return Number.isSafeInteger(id) ? id : undefined
+}
+
+/**
+REST の Issue の応答に入っている組み込みの機能の値。頼んだ値と比べ、GitHub が捨てた値を見つけるのに使う
+*/
+export interface IssueBuiltinValues {
+  readonly assignees: readonly string[]
+  readonly labels: readonly string[]
+  readonly milestone: { readonly title: string, readonly number: number } | undefined
+  readonly type: string | undefined
+}
+
+function stringsAt(list: JsonValue | undefined, key: string): readonly string[] {
+  return asArray(list).map(item => typeof item === 'string' ? item : jsonField(item, key)).filter(value => typeof value === 'string')
+}
+
+export function builtinValuesOfIssue(issue: JsonObject): IssueBuiltinValues {
+  const milestone = issue['milestone']
+  const title = jsonField(milestone, 'title')
+  const number = jsonField(milestone, 'number')
+  const type = jsonField(issue['type'], 'name')
+  return {
+    assignees: stringsAt(issue['assignees'], 'login'),
+    labels: stringsAt(issue['labels'], 'name'),
+    milestone: typeof title === 'string' && typeof number === 'number' ? { title, number } : undefined,
+    type: typeof type === 'string' ? type : undefined,
+  }
+}
 
 /**
 前提を 1 回で読む件数の上限
@@ -269,15 +330,57 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
-  Issue を作る。labels が空なら送らない
+  Issue を作る。labels が空なら送らない。extras は指定のあるものだけを送る
   */
-  async createIssue(owner: string, repository: string, title: string, body = '', labels?: readonly string[]): Promise<JsonObject> {
+  async createIssue(owner: string, repository: string, title: string, body = '', labels?: readonly string[], extras: Readonly<CreateIssueExtras> = {}): Promise<JsonObject> {
     const data = {
       title,
       body,
       ...(labels !== undefined && labels.length > 0 && { labels }),
+      ...(extras.assignees !== undefined && { assignees: extras.assignees }),
+      ...(extras.milestone !== undefined && { milestone: extras.milestone }),
+      ...(extras.type !== undefined && { type: extras.type }),
     }
     return this.restObject('POST', `${repositoryPath(owner, repository)}/issues`, { json: data })
+  }
+
+  /**
+  組み込みの機能（担当者・ラベル・マイルストーン・Issue type）を、PATCH 1 回で書き、応答の Issue を返す
+  */
+  async updateIssueAttributes(owner: string, repository: string, number: number, writes: readonly BuiltinWrite[]): Promise<JsonObject> {
+    const data = Object.fromEntries(writes.map(write => [write.key, write.value]))
+    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: data })
+  }
+
+  /**
+  Issue fields の値を足す（今の値に重ねる）。0 件なら要求しない。空の配列はすべての値を消す仕様のため
+  */
+  async addIssueFieldValues(owner: string, repository: string, number: number, values: readonly IssueFieldValueWrite[]): Promise<void> {
+    const target = `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values`
+    for (let start = 0; start < values.length; start += MAX_ISSUE_FIELD_VALUES_PER_REQUEST) {
+      const chunk = values.slice(start, start + MAX_ISSUE_FIELD_VALUES_PER_REQUEST)
+      await this.restJson('POST', target, { json: { issue_field_values: chunk.map(({ fieldId, value }) => ({ field_id: fieldId, value })) } })
+    }
+  }
+
+  /**
+  Issue field の値を 1 つ外す。値が無い 404 は 'absent'
+  */
+  async deleteIssueFieldValue(owner: string, repository: string, number: number, fieldId: number): Promise<'absent' | 'deleted'> {
+    const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values/${String(fieldId)}`)
+    if (response.statusCode === NOT_FOUND) return 'absent'
+    if (!response.isSuccess) this.handleHttpError(response)
+    return 'deleted'
+  }
+
+  /**
+  そのログイン名を、リポの Issue の担当にできるか。204 は true、404 は false、ほかの応答は例外
+  */
+  async isAssignable(owner: string, repository: string, login: string): Promise<boolean> {
+    const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/assignees/${encodePathSegment(login)}`)
+    if (response.statusCode === NO_CONTENT) return true
+    if (response.statusCode === NOT_FOUND) return false
+    return this.handleHttpError(response)
   }
 
   /**

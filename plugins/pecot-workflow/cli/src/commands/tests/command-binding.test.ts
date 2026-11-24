@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { isHelpRequested, runDefinition, synopsisOf, usageOf } from '../command-binding.js'
+import { exitCodeOfFailure } from '../failure.js'
 import { defineCommand } from '../registry.js'
 import { formatUsageError, UsageError } from '../usage-error.js'
-import { capture, exitWith, failWith, throwFailure } from './support.js'
+import { ATTRIBUTES_INPUT, capture, exitWith, failWith, throwFailure } from './support.js'
 
 const seen: unknown[] = []
 
@@ -333,6 +334,53 @@ describe('型の変換', () => {
     seen.length = 0
     await runDefinition(typed, ['1', '--ratio', '1_0e1'], capture())
     expect(seen).toEqual([{ number: 1, count: 5, ratio: 100 }])
+  })
+})
+
+describe('JSON のオブジェクトの値', () => {
+  const edit = defineCommand({
+    path: ['issue', 'edit'],
+    title: 'Test command',
+    description: '属性を書く',
+    input: z.object({ attributes: ATTRIBUTES_INPUT }),
+    output: z.strictObject({}),
+    positional: [],
+    aliases: { attributes: '--attribute' },
+    interactive: false,
+    run: async (input) => {
+      seen.push(input)
+      return await exitWith(0)
+    },
+  })
+
+  it('別名で 2 回渡した JSON を、2 要素の配列にして渡す', async () => {
+    seen.length = 0
+    const argv = ['--attribute', '{"name":"Estimate","value":3}', '--attribute', '{"name":"Labels","value":["a","b"],"source":"issue"}']
+    expect(await runDefinition(edit, argv, capture())).toBe(0)
+    expect(seen).toEqual([{ attributes: [{ name: 'Estimate', value: 3 }, { name: 'Labels', value: ['a', 'b'], source: 'issue' }] }])
+  })
+
+  it('長い形でも受ける', async () => {
+    seen.length = 0
+    await runDefinition(edit, ['--attributes', '{"name":"Due","value":"2026-12-01"}'], capture())
+    expect(seen).toEqual([{ attributes: [{ name: 'Due', value: '2026-12-01' }] }])
+  })
+
+  it.for([
+    { name: '読めない JSON', text: '{name:Estimate}' },
+    { name: '配列', text: '[{"name":"Estimate","value":3}]' },
+    { name: '数', text: '3' },
+    { name: 'null', text: 'null' },
+  ])('$name を渡すと、終了コード 2 の Invalid value にする', async ({ text }) => {
+    const error = await usageErrorOf(runDefinition(edit, ['--attribute', text], capture()))
+    expect(error.message).toBe(`Invalid value for '--attributes' / '--attribute': '${text}' is not a valid JSON object.`)
+    expect(error.context).toEqual({ commandPath: ['issue', 'edit'], synopsis: '[OPTIONS]' })
+    expect(exitCodeOfFailure(error, capture(), 80)).toBe(2)
+  })
+
+  it('JSON の中身の誤りは、zod の検証が Invalid value にする', async () => {
+    const message = await messageOf(runDefinition(edit, ['--attribute', '{"name":"Estimate"}'], capture()))
+    expect(message).toMatch(/^Invalid value for '--attributes' \/ '--attribute': /u)
   })
 })
 

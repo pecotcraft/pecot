@@ -14,7 +14,7 @@ export interface InputSchema {
 /**
 引数の中のキーの順。ここに無いキーは後ろに、名前の順で付ける
 */
-const SCHEMA_KEY_ORDER = ['type', 'items', 'enum', 'minimum', 'maximum', 'minItems', 'minLength', 'default', 'description']
+const SCHEMA_KEY_ORDER = ['type', 'anyOf', 'items', 'properties', 'required', 'additionalProperties', 'enum', 'minimum', 'maximum', 'minItems', 'minLength', 'default', 'description']
 
 /**
 z.int() が付ける安全な整数の端
@@ -24,7 +24,7 @@ const SAFE_INTEGER_EDGES = new Set([Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INT
 /**
 contracts の表に載せる type
 */
-const TYPES = new Set(['string', 'integer', 'boolean', 'array'])
+const TYPES = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object', 'null'])
 
 export function isRecord(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -33,6 +33,23 @@ export function isRecord(value: unknown): value is JsonObject {
 function keyRank(key: string): number {
   const index = SCHEMA_KEY_ORDER.indexOf(key)
   return index === -1 ? SCHEMA_KEY_ORDER.length : index
+}
+
+function sortedNames(names: unknown): unknown {
+  return Array.isArray(names) && names.every(name => typeof name === 'string') ? names.toSorted(byName) : names
+}
+
+/**
+入れ子のスキーマ（items・additionalProperties・anyOf の枝・properties の値）にも normalizeProperty を当てる。
+properties と required は、最上位の normalizeInput と同じく名前の順にする
+*/
+function normalizeValue(key: string, value: unknown, where: string): unknown {
+  if ((key === 'items' || key === 'additionalProperties') && isRecord(value)) return normalizeProperty(value, where)
+  if (key === 'anyOf' && Array.isArray(value)) return value.map((branch: unknown) => normalizeProperty(isRecord(branch) ? branch : {}, where))
+  if (key === 'properties' && isRecord(value)) {
+    return Object.fromEntries(Object.entries(value).toSorted(([left], [right]) => byName(left, right)).map(([name, property]) => [name, normalizeProperty(isRecord(property) ? property : {}, where)]))
+  }
+  return key === 'required' ? sortedNames(value) : value
 }
 
 /**
@@ -45,7 +62,7 @@ function normalizeProperty(schema: JsonObject, where: string): JsonObject {
     .map(([key, value]): [string, unknown] => {
       if (!SCHEMA_KEY_ORDER.includes(key)) throw new TypeError(`${where}: unsupported JSON Schema key ${key}`)
       if (key === 'type' && !(typeof value === 'string' && TYPES.has(value))) throw new TypeError(`${where}: unsupported type ${JSON.stringify(value)}`)
-      return [key, key === 'items' && isRecord(value) ? normalizeProperty(value, where) : value]
+      return [key, normalizeValue(key, value, where)]
     })
     .toSorted(([left], [right]) => keyRank(left) - keyRank(right))
   return Object.fromEntries(entries)

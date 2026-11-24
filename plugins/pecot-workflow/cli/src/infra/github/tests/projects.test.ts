@@ -3,6 +3,7 @@
 // user のクエリが失敗したら organization を試す流れは、GitHub が返す失敗（errors を 200 で返す）で確かめる。
 import { describe, expect, it, vi } from 'vitest'
 
+import type { ProjectFieldValueInput } from '../../../domain/attributes.js'
 import { JSON_NULL } from '../../../domain/json-null.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
 import type { ProjectViewBody, ProjectViewTarget } from '../projects.js'
@@ -147,6 +148,27 @@ describe('アイテムの追加・更新・削除', () => {
   it('updateProjectItemField は projectV2Item が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: JSON_NULL } })])
     expect(await rejection(client.updateProjectItemField('PVT_proj', 'PVTI_item', 'FIELD_id', 'OPT_id'))).toMatchObject(failure(GitHubAPIError, 'failed to update the field'))
+  })
+
+  it.for<{ readonly name: string, readonly value: ProjectFieldValueInput }>([
+    { name: 'text', value: { text: 'メモ' } },
+    { name: 'number', value: { number: 2.5 } },
+    { name: 'date', value: { date: '2026-12-01' } },
+    { name: 'singleSelectOptionId', value: { singleSelectOptionId: 'O_cli' } },
+    { name: 'multiSelectOptionIds', value: { multiSelectOptionIds: ['O_a', 'O_b'] } },
+    { name: 'iterationId', value: { iterationId: 'I_2' } },
+  ])('setProjectItemFieldValue は $name の値を ProjectV2FieldValue のまま送り、アイテム ID を返す', async ({ value }) => {
+    const { client, server } = await startClient([graphqlData('UpdateProjectItemFieldValue', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_item' } } })])
+    expect(await client.setProjectItemFieldValue('PVT_proj', 'PVTI_item', 'FIELD_id', value)).toBe('PVTI_item')
+    expect(graphqlRequests(server)).toEqual([{
+      operation: 'UpdateProjectItemFieldValue',
+      variables: { projectId: 'PVT_proj', itemId: 'PVTI_item', fieldId: 'FIELD_id', value },
+    }])
+  })
+
+  it('setProjectItemFieldValue は projectV2Item が null なら GitHubAPIError', async () => {
+    const { client } = await startClient([graphqlData('UpdateProjectItemFieldValue', { updateProjectV2ItemFieldValue: { projectV2Item: JSON_NULL } })])
+    expect(await rejection(client.setProjectItemFieldValue('PVT_proj', 'PVTI_item', 'FIELD_id', { text: 'x' }))).toMatchObject(failure(GitHubAPIError, 'failed to update the field'))
   })
 
   it('deleteProjectItem は削除したアイテムの ID を返す', async () => {

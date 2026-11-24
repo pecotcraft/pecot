@@ -1,6 +1,7 @@
 // GitHub Projects (v2) 操作の API。cli/core/github/projects.py の移植。
 // owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
 
+import type { ProjectFieldValueInput } from '../../domain/attributes.js'
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
@@ -23,6 +24,7 @@ import {
   MUTATION_RENAME_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
+  MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE,
   QUERY_GET_ISSUE_BOARD_ITEM,
   QUERY_GET_ISSUE_PROJECT_ITEMS,
   QUERY_GET_LINKED_REPOSITORIES_ORG,
@@ -271,6 +273,16 @@ export class ProjectsApi extends ReposApi {
   */
   async updateProjectItemField(projectId: string, itemId: string, fieldId: string, optionId: string): Promise<string> {
     const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId, optionId })
+    const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item')
+    if (!isTruthy(item)) throw new GitHubAPIError('failed to update the field')
+    return requireString(jsonField(item, 'id'), 'projectV2Item.id')
+  }
+
+  /**
+  プロジェクトアイテムのフィールドに、種類ごとの値（ProjectV2FieldValue）を書き、アイテムの ID を返す
+  */
+  async setProjectItemFieldValue(projectId: string, itemId: string, fieldId: string, value: ProjectFieldValueInput): Promise<string> {
+    const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE, { projectId, itemId, fieldId, value })
     const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item')
     if (!isTruthy(item)) throw new GitHubAPIError('failed to update the field')
     return requireString(jsonField(item, 'id'), 'projectV2Item.id')

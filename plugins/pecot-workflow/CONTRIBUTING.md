@@ -290,7 +290,8 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `branch_delete` | リモートブランチの削除 | 不要。その head の PR は GitHub が閉じます |
 | `issue_block`・`issue_unblock` | blocked-by・Issue の本文・カードの列 | sweep |
 | `issue_comment` | Issue のコメント | Issue ごと sweep が閉じます（コメントは残ります）。`-m` で送るときは `-t` で種類を渡します |
-| `issue_create` | Issue・blocked-by・カード・sub-issue | sweep |
+| `issue_create` | Issue・blocked-by・カード・sub-issue・機能の値（`attributes`） | sweep |
+| `issue_edit` | 機能の値（担当者・マイルストーン・Issue type・ラベル・Issue fields・ボードのフィールド） | Issue ごと sweep が閉じます（値は残ります） |
 | `issue_reopen` | Issue の再オープン・カードのアーカイブ解除・Status の `Done` の削除 | sweep |
 | `pr_create` | PR・スタックへの登録・カードの Status | sweep（PR を閉じる） |
 | `pr_merge` | PR のマージか merge queue への投入 | マージした PR と commit は検証用の `main` に残ります |

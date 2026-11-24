@@ -28,6 +28,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | Epic 配下に次のサブタスクを 1 件作りたい | `/pecot-w:w-ready` |
 | Issue の前提（blocked by）を付け外ししたい・種類を変えたい | MCP ツール `issue_block` / `issue_unblock` |
 | Issue に付けられる機能（ボードのフィールド・Issue fields など）と取りうる値を知りたい | MCP ツール `issue_attributes` |
+| Issue の機能の値を名前で変えたい・外したい | MCP ツール `issue_edit` |
 | スタック PR を、親ブランチの新しい位置へスタックし直したい | `/pecot-w:w-pr`、または MCP ツール `pr_restack` |
 | リポジトリをプロジェクトに追加したい | `/pecot-w:w-repo-add` |
 | ワークツリーを作成したい | `/pecot-w:w-worktree-add` |
@@ -38,6 +39,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | 知りたいこと | 参照先 |
 |-------------|--------|
 | CLI コマンド一覧（MCP ツールは、コマンドの空白と `-` を `_` に替えた名前） | [コマンド一覧](references/commands.md) |
+| Issue の機能（フィールド・担当者・マイルストーンなど）を名前で指定する | [Issue の機能を名前で指定する](references/issue-attributes.md) |
 | ボードの列の読み方（`Blocked` と `Ready` の違い、列を動かすもの） | [ボードステータス](references/board-status.md) |
 | 列を自動で直すワークフローを置きたい | [ボードを自動で直すワークフロー](references/board-sync-workflow.md) |
 | PR を作ると自動でレビューを回すワークフローを置きたい・運用したい | [自動レビューのワークフロー](references/review-workflow.md) |

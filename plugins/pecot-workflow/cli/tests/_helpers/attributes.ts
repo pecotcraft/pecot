@@ -19,13 +19,17 @@ export interface IssueAttributesSpec {
   設定のボード（PVT_1）の Item の fieldValues の項
   */
   readonly fieldValues?: readonly unknown[]
+  /**
+  偽なら、Issue を設定のボードに載せない
+  */
+  readonly isOnBoard?: boolean
 }
 
 /**
 GetIssueAttributes の data。既定は、値の入った機能が無い Issue
 */
 export function issueAttributesData(spec: Readonly<IssueAttributesSpec> = {}): Record<string, unknown> {
-  const { assignees = [], milestone, issueType, labels = [], issueFieldValues = [], fieldValues = [] } = spec
+  const { assignees = [], milestone, issueType, labels = [], issueFieldValues = [], fieldValues = [], isOnBoard = true } = spec
   return {
     repository: {
       issue: {
@@ -34,7 +38,7 @@ export function issueAttributesData(spec: Readonly<IssueAttributesSpec> = {}): R
         labels: page(labels.map(name => ({ name }))),
         issueType: issueType === undefined ? null : { name: issueType },
         issueFieldValues: page(issueFieldValues),
-        projectItems: page([{ project: { id: 'PVT_1' }, fieldValues: page(fieldValues) }]),
+        projectItems: page(isOnBoard ? [{ id: 'PVTI_1', project: { id: 'PVT_1' }, fieldValues: page(fieldValues) }] : []),
       },
     },
   }
@@ -65,11 +69,11 @@ GetIssueAttributeDefinitions の既定のボードのフィールド。計算す
 export const BOARD_FIELDS: readonly unknown[] = [
   projectField('F_title', 'Title', 'TITLE'),
   projectField('F_assignees', 'Assignees', 'ASSIGNEES'),
-  projectField('F_status', 'Status', 'SINGLE_SELECT', { options: [{ name: 'Todo' }, { name: 'Done' }] }),
-  projectField('PVTSSF_workflow', 'pecot-workflow-acme', 'SINGLE_SELECT', { options: [{ name: 'Ready' }] }),
-  projectField('F_area', 'Area', 'SINGLE_SELECT', { options: [{ name: 'cli' }, { name: 'docs' }] }),
-  projectField('F_sprint', 'Sprint', 'ITERATION', { configuration: { iterations: [{ title: 'Sprint 2', startDate: '2026-11-16' }], completedIterations: [] } }),
-  projectField('F_priority', 'Priority', 'SINGLE_SELECT', { isIssueField: true, options: [{ name: 'High' }] }),
+  projectField('F_status', 'Status', 'SINGLE_SELECT', { options: [{ id: 'O_todo', name: 'Todo' }, { id: 'O_done', name: 'Done' }] }),
+  projectField('PVTSSF_workflow', 'pecot-workflow-acme', 'SINGLE_SELECT', { options: [{ id: 'O_ready', name: 'Ready' }] }),
+  projectField('F_area', 'Area', 'SINGLE_SELECT', { options: [{ id: 'O_cli', name: 'cli' }, { id: 'O_docs', name: 'docs' }] }),
+  projectField('F_sprint', 'Sprint', 'ITERATION', { configuration: { iterations: [{ id: 'I_2', title: 'Sprint 2', startDate: '2026-11-16' }], completedIterations: [] } }),
+  projectField('F_priority', 'Priority', 'SINGLE_SELECT', { isIssueField: true, options: [{ id: 'O_high', name: 'High' }] }),
 ]
 
 export interface DefinitionsSpec {
@@ -84,14 +88,14 @@ export interface DefinitionsSpec {
 GetIssueAttributeDefinitions の data。issueFields に null を渡すと、読めなかった形にする
 */
 export function definitionsData(spec: Readonly<DefinitionsSpec> = {}): Record<string, unknown> {
-  const { fields = BOARD_FIELDS, issueFields = [{ name: 'Priority', dataType: 'SINGLE_SELECT', options: [{ name: 'High' }, { name: 'Low' }] }, { name: 'Effort', dataType: 'NUMBER' }], issueTypes = ['Bug', 'Task'] } = spec
+  const { fields = BOARD_FIELDS, issueFields = [{ fullDatabaseId: '101', name: 'Priority', dataType: 'SINGLE_SELECT', options: [{ name: 'High' }, { name: 'Low' }] }, { fullDatabaseId: '103', name: 'Effort', dataType: 'NUMBER' }], issueTypes = ['Bug', 'Task'] } = spec
   return {
     project: { fields: page(fields) },
     repository: {
       issueTypes: page(issueTypes.map(name => ({ name }))),
       issueFields: issueFields === null ? null : page(issueFields),
       labels: spec.labels ?? page([{ name: 'bug' }]),
-      milestones: spec.milestones ?? page([{ title: 'v1' }]),
+      milestones: spec.milestones ?? page([{ number: 3, title: 'v1' }]),
     },
   }
 }
