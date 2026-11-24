@@ -393,6 +393,7 @@ entries:
         - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
         - When pecot board sync would move the column or the Status of a Ready or Blocked Issue, writes one warning line with the count and points to pecot board sync. The count uses the same rule as pecot board sync. A Blocked Issue without prerequisites is counted even though its branches and PRs are not read, so the line says the column or Status may not match.
         - When the progress field still has an old pecot-workflow-<suffix> name, reads the board the same way and writes one warning line with the old name and points to pecot project init.
+        - When board items still have values in pecot-priority or pecot-size, adds those field names to the same warning. A board with no item values, or with only items of more than 10 values, cannot show them.
       examples:
         - run: pecot board show
           note: Show the dashboard as Markdown.
@@ -418,6 +419,7 @@ entries:
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`readiness` の無いボードを返します。'
       - '`board_sync` が列か Status を動かすはずの Ready か Blocked の Issue があると、`warnings` に 1 つ入れます。件数を載せ、`board_sync` を案内します。件数の数え方は、`board_sync` と同じ規則です。前提の無い Blocked の Issue は、ブランチと PR を読んでいなくても数えます。そのため、列か Status が合っていないおそれがあると伝えます。'
       - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じようにボードを読みます。旧い名前を載せて `project_init` を案内する警告を、`warnings` に 1 つ入れます。'
+      - 'Item の値に `pecot-priority`・`pecot-size` が残っていれば、残ったフィールドの名前を同じ警告に足します。値の入った Item が無いボードと、値が 10 個を超える Item だけのボードでは、残っていても気づけません。'
     stdin: none
     output:
       format: text
@@ -428,7 +430,7 @@ entries:
         repositories: '登録したリポジトリの配列です。登録順に並びます。キーは snake_case です。要素は `full_name`・`owner`・`name`・`develop_branch`・`release_branch`・`dependabot_alerts` を持ちます。ブランチが未設定なら `null` です。`dependabot_alerts` は、読めなかったときは理由の `error` だけを持ちます。読めたときは `enabled`・`open_count`・`max_severity`・`alerts_url` を持ちます。要素は、`release_type`（`single`・`multi`・`nx`）と `packages`（`name` と `changelog` の配列。無ければ空）も持ちます。package の無いリポジトリに CHANGELOG の設定があるときだけ、`changelog_file` も持ちます。'
         board: 'ボードの状態です。`items` の配列を持ち、Backlog・Pending・Blocked・Ready・Active・In Review にある開いた項目が入ります。キーは snake_case です。要素は `id`・`workflow`（列。無ければ `null`）・`title`・`updatedAt`・`content`・`readiness` を持ちます。`content` は `number`・`state`・`url`・`labels`・`repository` を持ちます。`readiness` は、Ready と Blocked の Issue だけが `kind`・`stackOn`・`reason`・`text` を持ち、ほかの項目は `null` です。サーバが Issue の依存を扱えないときは、`readiness` ごと入りません。'
         mismatches: 'Ready か Blocked の Issue のうち、列と Status のどちらかが判定と食い違う疑いのあるものの件数です。'
-    diagnostics: 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、標準エラーに `warning` の行を 1 つ出します。Ready か Blocked の Issue の列か Status が判定に合っていないおそれがあるときも、`warning` の行を 1 つ出します。進行の欄が旧い名前のときも、`warning` の行を 1 つ出します。'
+    diagnostics: 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、標準エラーに `warning` の行を 1 つ出します。Ready か Blocked の Issue の列か Status が判定に合っていないおそれがあるときも、`warning` の行を 1 つ出します。進行の欄が旧い名前のときと、`pecot-priority`・`pecot-size` が残っているときも、合わせて `warning` の行を 1 つ出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -570,6 +572,9 @@ entries:
       - id: PW-BOARD-SHOW-36
         pattern: state
         statement: '進行の欄が旧い名前の `pecot-workflow-<suffix>` である間、同じ内容を返し、旧い名前を載せて `project_init` を案内する警告を `warnings` に 1 つ入れます'
+      - id: PW-BOARD-SHOW-37
+        pattern: state
+        statement: 'Item の値に `pecot-priority`・`pecot-size` が残っている間、同じ内容を返し、残ったフィールドの名前を `project_init` を案内する警告に足します。進行の欄の警告と合わせて、警告は 1 つです'
   PW-BOARD-SYNC:
     help:
       details:
@@ -586,6 +591,7 @@ entries:
         - Reads the GraphQL rate limit (REST, no points) before and after the run and prints the points used and the remaining points. When it cannot be read, the line is left out. When the rate limit window resets during the run, or the difference is negative, the points used line is left out.
         - On a GitHub Enterprise Server without Issue dependencies, prints one warning and moves nothing.
         - When the progress field still has an old pecot-workflow-<suffix> name, moves the Issues the same way and writes one warning line with the old name and points to pecot project init.
+        - When board items still have values in pecot-priority or pecot-size, adds those field names to the same warning. A board with no item values, or with only items of more than 10 values, cannot show them.
       examples:
         - run: pecot board sync --dry-run
           note: Show the planned moves without writing to the board.
@@ -609,6 +615,7 @@ entries:
       - 'CLI では、実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`warnings` に 1 つ入れ、何も動かしません。'
       - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じように Issue を動かします。旧い名前を載せて `project_init` を案内する警告を、`warnings` に 1 つ入れます。'
+      - 'Item の値に `pecot-priority`・`pecot-size` が残っていれば、残ったフィールドの名前を同じ警告に足します。値の入った Item が無いボードと、値が 10 個を超える Item だけのボードでは、残っていても気づけません。'
     stdin: none
     output:
       format: none
@@ -616,7 +623,7 @@ entries:
       fields:
         moves: '列か Status を書いた Issue の配列です。要素は `issue`・`reason` を必ず持ちます。`issue` は `#N` の形で、ホームリポジトリの外は `owner/repo#N` です。`reason` は、動かすと決めた Readiness です。`from` と `to` は列が変わったときだけ、`label` は Status を設定したときだけ入ります。'
         deletedArchived: 'ボードから削除した Archived の項目の件数です。'
-    diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。進行の欄が旧い名前のとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
+    diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。進行の欄が旧い名前のときか、`pecot-priority`・`pecot-size` が残っているとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
     environment: []
     exit_status:
       - kind: partial-failure
@@ -786,6 +793,9 @@ entries:
       - id: PW-BOARD-SYNC-33
         pattern: state
         statement: '進行の欄が旧い名前（`pecot-workflow-<suffix>`）である間、同じ Issue を動かし、`project_init` を案内する警告を `warnings` に 1 つ入れます'
+      - id: PW-BOARD-SYNC-34
+        pattern: state
+        statement: 'Item の値に `pecot-priority`・`pecot-size` が残っている間、同じ Issue を動かし、残ったフィールドの名前を `project_init` を案内する警告に足します。進行の欄の警告と合わせて、警告は 1 つです'
   PW-BRANCH-DELETE:
     help:
       details:
@@ -1649,7 +1659,8 @@ entries:
         - The templates are MCP resources (pecot-template://issue/<type>); copy one to a file and fill it in.
         - To see the table of a batch without creating anything, use pecot issue check.
         - With files, creates one Issue per file in the order given.
-        - With files, the front matter decides the type, repository, status, priority, size, parent Epic, order, labels and blocked_by, and the options of the same names are ignored.
+        - With files, the front matter decides the type, repository, status, parent Epic, order, labels and blocked_by, and the options of the same names are ignored.
+        - The priority and size keys of an older front matter are ignored.
         - Before the first Issue of a batch is created, checks that every file exists, that none is given twice, that every {{issue:key}} placeholder points to an earlier file, and that every front matter and body is valid.
         - Before the first Issue of a batch is created, also checks blocked_by, the order numbers and the repository link, and reads the parent Epics and the existing Issues named in blocked_by.
         - Each blocked_by entry names an earlier file of the batch by its key (the stem of the file name) or an existing Issue as owner/repo/N, with wait stack (the default) or wait merge and a reason.
@@ -1665,7 +1676,7 @@ entries:
         - With -m, --repo is required unless --type is epic.
         - With --freeform, creates one Issue from --message and --repo without checking the body against the template.
         - With --freeform, the title is the first 50 characters of the first line of the message, with each run of whitespace turned into one space, prefixed by the type.
-        - With --freeform, the status is --status, or the default of the type when it is not given. The priority is --priority or medium, and the size is --size or s, except that epic and tracker get no default size.
+        - With --freeform, the status is --status, or the default of the type when it is not given.
         - With --freeform, appends a comment that points to the issue-creation rules to the end of the body.
         - With --freeform, a parent Epic given to an Epic gives a warning and continues.
         - With --freeform, creates no branch and records no work target. Use pecot session start for them.
@@ -1673,7 +1684,7 @@ entries:
         - The status at creation can only be the default of the type, or blocked for a task or bug with blocked_by.
         - An Epic is created in aggregation_repo when no repository is given.
         - Creating an Epic in a repository other than aggregation_repo gives a warning and continues.
-        - Adds each created Issue to the project board and sets its status, priority and size.
+        - Adds each created Issue to the project board and sets its status.
         - With a parent Epic, links each created Issue as a sub-issue of it.
         - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
         - With files, stops when two files of the batch have the same order under the same parent Epic.
@@ -1703,10 +1714,8 @@ entries:
       message: 'Issue の本文です。ファイルを使わずに直接投稿するときの値です。'
       order: 'サブタスクの順番の番号です。`parent_epic` と一緒に使います。'
       parent_epic: '親 Epic の参照です。整数か、`owner/repo/N` の形で渡します。'
-      priority: '優先度です。`high`・`medium`・`low` のどれかを渡します。'
       project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、作り先のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。Epic を `repo` なしで作るときは、アクティブなプロジェクト、設定が 1 つだけならその設定の順で選びます。'
       repo: 'リポジトリです。`owner/repo` の形で渡します。'
-      size: 'サイズです。`xs`・`s`・`m`・`l` のどれかを渡します。'
       status: 'Status です。`backlog`・`pending`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
       title: 'Issue の題です。`message` で直接投稿するときは必須です。'
       type: 'Issue の種類です。`task`・`bug`・`epic`・`tracker` のどれかを渡します。'
@@ -1722,7 +1731,8 @@ entries:
       - 'テンプレートは MCP の resource（`pecot-template://issue/<種類>`）です。ファイルに写して書き込みます。'
       - '何も作らずに一括の表を見るときは、`issue_check` を使います。'
       - '`files` では、渡した順に、ファイルごとに Issue を 1 件作ります。'
-      - '`files` では、type・リポジトリ・status・priority・size・親 Epic・order・ラベル・`blocked_by` をフロントマターで決めます。同じ名前の引数は無視します。'
+      - '`files` では、type・リポジトリ・status・親 Epic・order・ラベル・`blocked_by` をフロントマターで決めます。同じ名前の引数は無視します。'
+      - '旧いフロントマターの `priority`・`size` は読み捨てます。'
       - '一括の最初の Issue を作る前に、次のことを確かめます。どのファイルもあること。同じファイルを重ねて渡していないこと。どの `{{issue:key}}` も先のファイルを指すこと。どのフロントマターと本文も正しいこと。'
       - '一括の最初の Issue を作る前に、`blocked_by`・order の番号・リポジトリのつながりも確かめます。親 Epic と、`blocked_by` に書いた既存の Issue も読みます。'
       - '`blocked_by` の各要素は、一括の中の先のファイルを key で指すか、既存の Issue を `owner/repo/N` で指します。key は、ファイル名の拡張子を除いた部分です。各要素には、`wait: stack`（既定）か `wait: merge` と、reason を書きます。'
@@ -1738,7 +1748,7 @@ entries:
       - '`message` では、`type` が `epic` でなければ `repo` が必須です。'
       - '`freeform` では、`message` と `repo` から、本文をテンプレートで確かめずに Issue を 1 件作ります。'
       - '`freeform` の題は、`message` の 1 行目の先頭の 50 文字です。連続した空白は 1 つの空白にまとめ、前に type を付けます。'
-      - '`freeform` の status は `status` の値で、無ければ type の既定の値です。priority は `priority` の値か `medium` です。size は `size` の値か `s` で、`epic` と `tracker` には既定の size を付けません。'
+      - '`freeform` の status は `status` の値で、無ければ type の既定の値です。'
       - '`freeform` では、本文の末尾に、起票の決まりを指すコメントを付けます。'
       - '`freeform` で Epic に親 Epic を渡すと、`warnings` に入れて続けます。'
       - '`freeform` は、ブランチを作らず、作業対象も記録しません。それは `session_start` が行います。'
@@ -1746,7 +1756,7 @@ entries:
       - '作るときの status にできるのは、type の既定の値だけです。`blocked_by` のある task か bug では、`blocked` にもできます。'
       - 'Epic は、リポジトリを渡さないと `aggregation_repo` に作ります。'
       - '`aggregation_repo` 以外のリポジトリに Epic を作ると、`warnings` に入れて続けます。'
-      - '作った Issue は、それぞれプロジェクトのボードに足し、status・priority・size を設定します。'
+      - '作った Issue は、それぞれプロジェクトのボードに足し、status を設定します。'
       - '親 Epic があるときは、作った Issue をそれぞれ親 Epic の sub-issue としてつなぎます。'
       - '親 Epic と `order` を渡したときは、その Epic に同じ order の Issue が既にあると、失敗を返します。'
       - '`files` では、一括の中の 2 つのファイルが同じ親 Epic の下で同じ order を持つと、失敗を返します。'
@@ -1766,7 +1776,7 @@ entries:
         stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
         errors: '機能の値の検証で止めた理由の配列です。止めなかったときは入りません。要素の形は `issue_edit` の `errors` と同じで、ファイルから作るときは、値を書いたファイルの名前の `file` も持ちます。'
         failed: '検証は通ったが書けなかった機能の配列です。書けなかった機能が無いときは入りません。要素は `issue` (`owner/repo/N`)・`name`・`source`・`reason` を持ちます。'
-    diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status・priority・size と、`attributes` で書いた機能）と `moved`（Blocked から Ready）もあります。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。`attributes` の機能を書けなかったとき。機能の定義を一部読めなかったとき。機能の値が定義に合わないときは、合わない値ごとに `error` の行を出します。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
+    diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status と、`attributes` で書いた機能）と `moved`（Blocked から Ready）もあります。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。`attributes` の機能を書けなかったとき。機能の定義を一部読めなかったとき。機能の値が定義に合わないときは、合わない値ごとに `error` の行を出します。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -1894,7 +1904,7 @@ entries:
         statement: 'Issue を作ると、プロジェクトのボードに足します'
       - id: PW-ISSUE-CREATE-11
         pattern: event
-        statement: 'ボードに足すと、status・priority・size を設定します'
+        statement: 'ボードに足すと、status を設定します'
       - id: PW-ISSUE-CREATE-12
         pattern: event
         statement: '`status` を省いて `message` で呼ぶと、type の既定の status を設定します'
@@ -2035,7 +2045,7 @@ entries:
         statement: '`freeform` で呼ぶと、`message` の 1 行目の先頭 50 文字の連続する空白を 1 つにしたものを、type の接頭辞つきの題にします'
       - id: PW-ISSUE-CREATE-62
         pattern: event
-        statement: '`freeform` で呼ぶと、status を `status` の値か type の既定の値にします。`priority`・`size` が無ければ、priority を `medium`、size を `s` にします。`epic` と `tracker` には既定の size を付けません'
+        statement: '`freeform` で呼ぶと、status を `status` の値か type の既定の値にします'
       - id: PW-ISSUE-CREATE-63
         pattern: event
         statement: '`freeform` に `parent_epic` を付けて呼ぶと、その Epic の sub-issue につなぎます。Epic に付けたときは、`warnings` に入れます'
@@ -2054,9 +2064,6 @@ entries:
       - id: PW-ISSUE-CREATE-69
         pattern: unwanted
         statement: 'もし `freeform` を `files`・`title` と一緒に渡したなら、何も作らずに、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-73
-        pattern: event
-        statement: '`freeform` に `priority` か `size` を付けて呼ぶと、既定の値の代わりにその値を設定します'
       - id: PW-ISSUE-CREATE-74
         pattern: unwanted
         statement: 'もし作り先のリポを含む設定が無いなら、どのプロジェクトの設定にも無いことと設定の名前の一覧を `detail` に入れて、失敗を返します'
@@ -2096,6 +2103,12 @@ entries:
       - id: PW-ISSUE-CREATE-86
         pattern: event
         statement: '`attributes` の `value` に `null` を渡すと、その機能を書かずに飛ばします'
+      - id: PW-ISSUE-CREATE-87
+        pattern: unwanted
+        statement: 'もし `priority` か `size` を渡したなら、無い入力として断り、Issue を作りません'
+      - id: PW-ISSUE-CREATE-88
+        pattern: event
+        statement: 'フロントマターに `priority`・`size` のあるファイルを渡すと、2 つを読み捨てて Issue を作り、ボードには status だけを設定します'
   PW-ISSUE-EDIT:
     help:
       details:
@@ -4296,11 +4309,14 @@ entries:
       - id: PW-PROJECT-ACTIVATE-27
         pattern: event
         statement: '旧い名前の進行の欄だけがあるボードを渡すと、初期化済みとして同期します'
+      - id: PW-PROJECT-ACTIVATE-28
+        pattern: event
+        statement: '設定ファイルに `fields.priority`・`fields.size` が残っていると、内容がボードと同じでも設定ファイルを書き直して 2 つを消します'
   PW-PROJECT-CREATE:
     help:
       details:
         - Creates a GitHub Projects V2 project for the owner.
-        - Adds the pecot-status, pecot-priority and pecot-size fields to the project.
+        - Adds the pecot-status field to the project. The pecot-priority and pecot-size fields are not created.
         - The pecot-status field is created with seven options, including Blocked.
         - Adds the Needs Attention option to the Status field of the project.
         - When an option cannot be added, a warning line is written and the command continues.
@@ -4330,7 +4346,7 @@ entries:
     constraints: []
     details:
       - '所有者の GitHub Projects V2 のプロジェクトを作ります。'
-      - 'プロジェクトに、pecot-status・pecot-priority・pecot-size のフィールドを足します。'
+      - 'プロジェクトに、pecot-status のフィールドを足します。pecot-priority・pecot-size のフィールドは作りません。'
       - 'pecot-status のフィールドは、Blocked を含む 7 つの選択肢で作ります。'
       - 'プロジェクトの Status のフィールドに、Needs Attention の選択肢を足します。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。'
@@ -4457,6 +4473,9 @@ entries:
       - id: PW-PROJECT-CREATE-12
         pattern: event
         statement: 'Status のフィールドに In Progress があると、設定ファイルに、その id を `status.options.in_progress` として書きます'
+      - id: PW-PROJECT-CREATE-13
+        pattern: event
+        statement: 'プロジェクトを作ると、`pecot-priority`・`pecot-size` のフィールドを作りません'
       - id: PW-PROJECT-CREATE-20
         pattern: event
         statement: '`lanes` を渡すと、その値で `pecot-lane` のフィールドを作り、`Lanes` のビューを作ります'
@@ -4540,10 +4559,11 @@ entries:
   PW-PROJECT-INIT:
     help:
       details:
-        - Adds the pecot-status, pecot-priority and pecot-size fields to an existing project.
-        - When the project has an old pecot-workflow-<suffix> field and no pecot-status field, renames it to pecot-status and keeps its options and the values on the cards. When both exist, uses pecot-status and leaves the old field as it is.
+        - Adds the pecot-status field to an existing project. The pecot-priority and pecot-size fields are not created.
+        - When the project has an old pecot-workflow-<suffix> field and no pecot-status field, renames it to pecot-status and keeps its options and the values on the cards. When both exist, uses pecot-status and plans to delete the old field.
         - A field that already exists is skipped.
-        - The other fields are still created.
+        - The fields that pecot no longer uses are pecot-priority, pecot-size and an old pecot-workflow-<suffix> field next to pecot-status. Without --confirm-delete, they are listed in a warning line and kept. Their values cannot be restored once deleted, so show the names to the user and run again with --confirm-delete only after the user approves.
+        - With --confirm-delete, deletes those fields after the config file is written.
         - Adds the Blocked option to a pecot-status field that already exists, placed right after Backlog (right before Ready when there is no Backlog, at the end when there is neither).
         - Adds the Needs Attention option at the end of the Status field. When the project has no Status field, nothing is added.
         - Names are compared without regard to case, and an option that already exists is left as it is.
@@ -4559,27 +4579,33 @@ entries:
         - After that, regenerates the config file <host>_<owner>_<number>.json from GitHub and makes the project active, unless a config file exists and its content already equals the one generated from the board.
         - A config file of the same project under another name is moved to that name, and the active project follows it. Use the new name for the project input and the PECOT_REVIEW_PROJECT variable. When two or more such files exist, nothing is moved and the command stops.
         - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them. pecot-lane is not written to the config file.
-        - With --dry-run, reads the project and prints dry-run lines for renaming and creating the fields, adding the options, creating the view, moving and writing the config file and switching the active project, and writes nothing.
+        - With --dry-run, reads the project and prints dry-run lines for renaming and creating the fields, adding the options, creating the view, moving and writing the config file, switching the active project and, with --confirm-delete, deleting the fields, and writes nothing.
       examples:
         - run: pecot project init example-org "Example Project"
-          note: Add the pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist.
+          note: Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and list the fields to delete.
         - run: pecot project init example-org "Example Project" --lanes cli --lanes skills
           note: Also create the pecot-lane field with two lanes, or add the missing ones to it, and create the Lanes view.
+        - run: pecot project init example-org "Example Project" --confirm-delete
+          note: Also delete pecot-priority, pecot-size and an old workflow field, after the user approved it.
         - run: pecot project init example-org "Example Project" --dry-run
           note: Show what would be created and written without changing anything.
       default_notes: {}
-    summary: 既にあるプロジェクトに pecot-workflow のフィールドを足します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。
+    summary: 既にあるプロジェクトに pecot-status のフィールドを足し、旧い形から移します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。
     arguments:
+      confirm_delete: 'pecot が使わないフィールドを消すかどうかです。消すフィールドは `migration.pending_delete` に出ます。消したフィールドの値は戻らないので、利用者が消すことを承認した後にだけ `true` にします。'
       host: 'GitHub のホストです。'
       lanes: '`pecot-lane` のフィールドの値の配列です。値は、プラグイン・チーム・サービスのような作業の領域です。1 つ以上渡します。'
       name: 'プロジェクトの題です。'
       owner: 'プロジェクトの所有者です。'
     constraints: []
     details:
-      - '既にあるプロジェクトに、`pecot-status`・`pecot-priority`・`pecot-size` のフィールドを足します。'
-      - '旧い名前の `pecot-workflow-<suffix>` のフィールドがあり、`pecot-status` が無いときは、`pecot-status` に改名します。名前だけを変えるので、選択肢とカードの値は残ります。両方あるときは `pecot-status` を使い、旧いフィールドはそのまま残します。'
+      - '既にあるプロジェクトに、`pecot-status` のフィールドを足します。`pecot-priority`・`pecot-size` のフィールドは作りません。'
+      - '旧い名前の `pecot-workflow-<suffix>` のフィールドがあり、`pecot-status` が無いときは、`pecot-status` に改名します。名前だけを変えるので、選択肢とカードの値は残ります。両方あるときは `pecot-status` を使い、旧いフィールドを消す予定に入れます。'
       - '既にあるフィールドは飛ばします。'
-      - 'そのときも、ほかのフィールドは作ります。'
+      - 'pecot が使わないフィールドは、`pecot-priority`・`pecot-size` と、`pecot-status` と並んで残る旧い `pecot-workflow-<suffix>` です。'
+      - '`confirm_delete` が無いときは、使わないフィールドを消さず、名前を `migration.pending_delete` へ入れて `warnings` で知らせます。消したフィールドの値は戻りません。利用者へ名前を示し、承認を得てから `confirm_delete` を付けて呼び直します。'
+      - '`confirm_delete` が `true` のときは、設定ファイルを書いた後に、使わないフィールドを消して `migration.deleted` に入れます。'
+      - '設定ファイルに旧い形の `fields.priority`・`fields.size` が残っているときは、読み捨て、書き直して消します。'
       - '既にある `pecot-status` のフィールドには、Blocked の選択肢を Backlog の直後に足します。Backlog が無ければ Ready の直前、どちらも無ければ末尾に足します。'
       - 'Status のフィールドの末尾に、Needs Attention の選択肢を足します。プロジェクトに Status のフィールドが無いときは、何も足しません。'
       - '名前は、大文字と小文字を区別せずに比べます。既にある選択肢は、そのまま残します。'
@@ -4600,10 +4626,10 @@ entries:
       format: none
     mcp_output:
       fields:
-        fields: 'プロジェクトのフィールドの配列です。workflow・priority・size・`pecot-lane` のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（飛ばした）・`rename`（旧い名前から改名した）のどれかです。`skip` は、フィールドが見つからないとき、`lanes` が無く `pecot-lane` を作らないとき、`pecot-lane` が single select でないときです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
+        fields: 'プロジェクトのフィールドの配列です。`pecot-status`・`pecot-lane` のフィールドと、選択肢を調べたときの Status フィールドと、消したフィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` の値は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）です。ほかに `skip`（飛ばした）・`rename`（旧い名前から改名した）・`delete`（消した）があります。`skip` は、フィールドが見つからないとき、`lanes` が無く `pecot-lane` を作らないとき、`pecot-lane` が single select でないときです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
         view: '`Lanes` のビューです。`created`（作ったか。予行では作る予定か）・`name`・`url`・`manual_steps`（画面で作る手順）を持ちます。同じ名前のビューが既にあれば、`created` は false で、`url` にそのビューの URL が入ります。`url` は、予行のときと、画面で作るときは入りません。`manual_steps` は、GitHub が作成を断ったときだけ入ります。ボードに single select の `pecot-lane` が無いときは入りません。'
-        migration: '旧い形から移したものです。`renamed` は `pecot-status` に改名した旧いフィールドの名前、`config_moved` は移した設定ファイルの `from`・`to` のファイル名で、無ければどちらも `null` です。設定ファイルの前に止まったときは入りません。'
-    diagnostics: '標準エラーに、旧いフィールドを改名した行（`renamed`）、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。`lanes` が無く `pecot-lane` も無いときは、`skipped` の行と、`lanes` の渡し方を案内する `warning` の行を出します。ビューの結果の行（`created` か `skipped`）を出します。選択肢を足せないとき、ビューを作れないとき、`pecot-lane` が single select でないときは、`warning` の行を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
+        migration: '旧い形から移したものです。`renamed` は `pecot-status` に改名した旧いフィールドの名前、`config_moved` は移した設定ファイルの `from`・`to` のファイル名で、無ければどちらも `null` です。`pending_delete` は、`confirm_delete` が無いので残した、pecot が使わないフィールドの名前の配列です。`deleted` は消したフィールドの名前の配列です。どちらも無ければ空です。設定ファイルの前に止まったときは入りません。'
+    diagnostics: '標準エラーに、旧いフィールドを改名した行（`renamed`）、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。`lanes` が無く `pecot-lane` も無いときは、`skipped` の行と、`lanes` の渡し方を案内する `warning` の行を出します。ビューの結果の行（`created` か `skipped`）を出します。選択肢を足せないとき、ビューを作れないとき、`pecot-lane` が single select でないときは、`warning` の行を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。pecot の使わないフィールドが残り、`confirm_delete` も無いときは、名前と承認を得る手順を書いた `warning` の行を出します。`confirm_delete` を付けたときは、消したフィールドごとに `deleted` の行を出します。'
     environment: []
     exit_status:
       - kind: project-not-found
@@ -4646,7 +4672,7 @@ entries:
         what: '所有者のプロジェクト、対象のプロジェクトのフィールドとビュー、つながっているリポジトリを読みます。'
       - target: github
         kind: write
-        what: 'プロジェクトに足りないフィールドを作り、旧い名前の進行の欄を改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。`lanes` の値で `pecot-lane` を作るか値を足し、`Lanes` のビューを作ります。'
+        what: 'プロジェクトに足りないフィールドを作り、旧い名前の進行の欄を改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。`lanes` の値で `pecot-lane` を作るか値を足し、`Lanes` のビューを作ります。`confirm_delete` が `true` のときは、pecot が使わないフィールドを消します。'
       - target: file
         kind: write
         what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。同じプロジェクトを指す別の名前の設定ファイルは、新しい名前に移します。'
@@ -4657,17 +4683,22 @@ entries:
       - arguments:
           owner: example-org
           name: Example Project
-        note: '既にあるプロジェクトに pecot-workflow のフィールドを足します。旧い名前の進行の欄は `pecot-status` に改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
+        note: '既にあるプロジェクトに `pecot-status` のフィールドを足します。旧い名前の進行の欄は `pecot-status` に改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。消す予定のフィールドを `migration.pending_delete` に返します。'
       - arguments:
           owner: example-org
           name: Example Project
           lanes: [cli, skills]
         note: '2 つの値で `pecot-lane` を作るか、無い値を足し、`Lanes` のビューを作ります。'
+      - arguments:
+          owner: example-org
+          name: Example Project
+          confirm_delete: true
+        note: '利用者が承認した後に、`pending_delete` に出たフィールドを消します。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-INIT-01
         pattern: event
-        statement: 'フィールドの無いプロジェクトを渡すと、pecot-workflow の 3 つのフィールドを作ります'
+        statement: 'フィールドの無いプロジェクトを渡すと、`pecot-status` のフィールドを作ります'
       - id: PW-PROJECT-INIT-02
         pattern: event
         statement: 'フィールドを作ると、`fields` のそのフィールドの `change` を `create` にします'
@@ -4737,6 +4768,24 @@ entries:
       - id: PW-PROJECT-INIT-24
         pattern: unwanted
         statement: 'もし同じプロジェクトを指す、別の名前の設定ファイルが 2 つ以上あるなら、ボードと設定ファイルを変えずに `kind` が `config-invalid` の失敗を返します'
+      - id: PW-PROJECT-INIT-25
+        pattern: event
+        statement: 'フィールドの無いプロジェクトを渡すと、`pecot-priority`・`pecot-size` のフィールドは作りません'
+      - id: PW-PROJECT-INIT-26
+        pattern: event
+        statement: '`confirm_delete` なしで使わないフィールドのあるボードを渡すと、消さず、`pending_delete` へ入れ、値が戻らないことを `warnings` で知らせます'
+      - id: PW-PROJECT-INIT-27
+        pattern: event
+        statement: '`confirm_delete` を `true` にして渡すと、設定ファイルを書いた後に消し、名前を `deleted` に入れ、`fields` の `change` を `delete` にします'
+      - id: PW-PROJECT-INIT-28
+        pattern: event
+        statement: '`pecot-status` と旧い名前の進行の欄が両方あるボードを渡すと、旧い欄も消す予定に入れます'
+      - id: PW-PROJECT-INIT-29
+        pattern: event
+        statement: 'CLI で `--dry-run` と `--confirm-delete` を付けて打つと、消す予定を `dry-run` の行で標準エラーに出し、何も消しません'
+      - id: PW-PROJECT-INIT-30
+        pattern: event
+        statement: '設定ファイルに `fields.priority`・`fields.size` が残っていると、内容がボードと同じでも設定ファイルを書き直して 2 つを消します'
       - id: PW-PROJECT-INIT-40
         pattern: event
         statement: '`lanes` を渡し、`pecot-lane` が無いと、その値で `pecot-lane` を作り、`fields` のその `change` を `create` にします'
@@ -7056,17 +7105,17 @@ entries:
         - With dependabot, the last push is the last force push, or the creation of the PR when there is none.
         - With dependabot, each table row has the PR title, a link to the PR and the state of the checks (passed, failed, pending or none).
         - With dependabot, the waiting reasons appear only in the result lines.
-        - With dependabot, when no Tracker is open and there are PRs to list, creates a Tracker, adds it to the project board, and sets Status to Backlog and Priority to medium.
+        - With dependabot, when no Tracker is open and there are PRs to list, creates a Tracker, adds it to the project board, and sets Status to Backlog. Sets no other field.
         - With dependabot, when no Tracker is open and no PR is listed, creates nothing.
         - With dependabot, when the list is empty and a Tracker is open, sets the list to none and closes the Tracker as completed.
-        - With dependabot, on an open Tracker that is not closed, sets Status and Priority only while they are empty, so a change made by a person stays.
+        - With dependabot, on an open Tracker that is not closed, sets Status only while it is empty, so a change made by a person stays.
         - With security, finds the open Tracker issue labeled security-alert whose body has the Tracker marker.
         - With security, rewrites the list between list-begin and list-end in the body of the Tracker with the open alerts.
         - With security, reads the open Dependabot alerts, the open code scanning alerts of the default branch and the open secret scanning alerts.
         - With security, each kind has its own heading and table in the Tracker body.
-        - With security, Priority comes from the alert severity.
-        - With security, a secret scanning alert is always high.
-        - With security, the Priority of a new Tracker is the highest Priority among its rows.
+        - With security, the third column of each table is Severity and shows the severity of the alert as GitHub gives it, which is the vulnerability severity of a Dependabot alert (critical, high, medium or low), and the security severity level of a code scanning rule, or the rule severity (error, warning, note or none) when it has none.
+        - With security, a secret scanning alert, which has no severity on GitHub, and an alert without a severity show -.
+        - With security, rows are sorted from the highest severity (critical, then high and error, medium and warning, low and note, none, and -), then by number. A Dependabot row of one advisory shows the highest severity among its alerts.
         - With security, the rows of code scanning and secret scanning alerts show masked as the title.
         - With security, a Dependabot row shows the advisory summary, and Dependabot alerts of one advisory share a row.
         - With security, a kind whose feature is disabled shows disabled under its heading and adds no rows.
@@ -7074,11 +7123,11 @@ entries:
         - With security, a kind whose list cannot be fetched keeps its previous rows and shows unavailable when it had none.
         - With security, when a kind cannot be fetched, the command ends with exit status 1 after the other kinds were applied.
         - With security, a 403 for Dependabot alerts or a 404 for secret scanning that cannot be confirmed as disabled counts as a failure to fetch.
-        - With security, when no Tracker is open and there are rows to list, creates a Tracker, adds it to the project board, and sets Status to Backlog and Priority to the highest row.
+        - With security, when no Tracker is open and there are rows to list, creates a Tracker, adds it to the project board, and sets Status to Backlog. Sets no other field.
         - With security, when no Tracker is open and there is no row to list, creates nothing.
         - With security, never closes the Tracker.
         - With security, when every alert is gone, each kind shows none, and a person closes the Tracker and moves it to Archived.
-        - With security, on an existing Tracker, sets Status and Priority only while they are empty, so a change made by a person stays.
+        - With security, on an existing Tracker, sets Status only while it is empty, so a change made by a person stays.
         - Text in the Tracker body outside the list markers stays as it is.
         - A field that the project config does not define is not set.
         - When several Trackers are open, uses the lowest number and leaves the others open.
@@ -7115,17 +7164,17 @@ entries:
       - '`dependabot` では、最後の push は、最後の force push です。force push が無ければ、PR の作成です。'
       - '`dependabot` では、表の各行は、PR の題、PR へのリンク、検証の状態（passed・failed・pending・none）です。'
       - '`dependabot` では、判断を待つ理由は、Tracker の表にも結果の項目にも入りません。CLI では、結果の行に出します。'
-      - '`dependabot` では、open の Tracker が無く、載せる PR があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog、Priority を medium にします。'
+      - '`dependabot` では、open の Tracker が無く、載せる PR があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog にします。ほかの欄には値を入れません。'
       - '`dependabot` では、open の Tracker が無く、載せる PR も無いときは、何も作りません。'
       - '`dependabot` では、一覧が空で open の Tracker があるときは、一覧を none にし、Tracker を completed として閉じます。'
-      - '`dependabot` では、閉じない open の Tracker には、Status と Priority が空の間だけ値を入れます。人が変えた値は残ります。'
+      - '`dependabot` では、閉じない open の Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。'
       - '`security` では、ラベルが `security-alert` で、本文に Tracker の印がある open の Tracker の Issue を探します。'
       - '`security` では、Tracker の本文の `list-begin` と `list-end` の間にある一覧を、open の alert で書き直します。'
       - '`security` では、open の Dependabot alert と secret scanning alert を読みます。code scanning alert は、既定ブランチの open のものを読みます。'
       - '`security` では、Tracker の本文の見出しと表を、alert の種類ごとに分けます。'
-      - '`security` では、Priority は、alert の severity から決めます。'
-      - '`security` では、secret scanning alert は、必ず high です。'
-      - '`security` では、新しい Tracker の Priority は、行の Priority のうち最も高いものです。'
+      - '`security` では、表の 3 列目は Severity で、GitHub の alert の重大度をそのまま出します。Dependabot は脆弱性の重大度（critical・high・medium・low）です。code scanning は rule の security severity level で、無ければ rule の severity（error・warning・note・none）です。'
+      - '`security` では、GitHub が重大度を持たない secret scanning alert と、重大度の無い alert には `-` を出します。'
+      - '`security` では、行を重大度の高い順に並べ、同じなら番号の順にします。順は critical、high と error、medium と warning、low と note、none、`-` です。Dependabot の 1 つの advisory の行は、その alert のうち最も高い重大度を出します。'
       - '`security` では、code scanning alert と secret scanning alert の行では、題を `masked` と書きます。'
       - '`security` では、Dependabot の行には advisory の要約を書きます。同じ advisory の Dependabot alert は、1 つの行にまとめます。'
       - '`security` では、機能が無効の種類は、見出しの下に `disabled` と書き、行を足しません。'
@@ -7133,11 +7182,11 @@ entries:
       - '`security` では、一覧を取れない種類は、前の行を残します。前の行が無かったときは、`unavailable` と書きます。'
       - '`security` では、取れない種類があるときは、ほかの種類を反映した後で、`kind` が `partial-failure` の失敗を返します。'
       - '`security` では、Dependabot alert の 403 と secret scanning の 404 を、無効だと確かめられなければ、取れなかったものとして数えます。'
-      - '`security` では、open の Tracker が無く、載せる行があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog、Priority を最も高い行の値にします。'
+      - '`security` では、open の Tracker が無く、載せる行があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog にします。ほかの欄には値を入れません。'
       - '`security` では、open の Tracker が無く、載せる行も無いときは、何も作りません。'
       - '`security` では、Tracker を閉じることはありません。'
       - '`security` では、alert がすべて無くなると、どの種類も `none` と書きます。Tracker を閉じて Archived へ動かすのは、人です。'
-      - '`security` では、既にある Tracker には、Status と Priority が空の間だけ値を入れます。人が変えた値は残ります。'
+      - '`security` では、既にある Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。'
       - 'Tracker の本文のうち、一覧の印の外にある文はそのまま残します。'
       - 'プロジェクトの設定が定義していないフィールドは設定しません。'
       - 'open の Tracker が複数あるときは、番号が最小のものを使い、ほかは open のまま残します。'
@@ -7205,13 +7254,13 @@ entries:
         what: '`dependabot` では、リポジトリの open の Dependabot の PR と、`dependabot-pr` のラベルが付いた Issue の一覧を読みます。'
       - target: github
         kind: write
-        what: '`dependabot` では、Tracker の Issue を作り、本文を書き直し、閉じます。プロジェクトのボードに足し、Status と Priority を設定します。'
+        what: '`dependabot` では、Tracker の Issue を作り、本文を書き直し、閉じます。プロジェクトのボードに足し、Status を設定します。'
       - target: github
         kind: read
         what: '`security` では、リポジトリの open の Dependabot・code scanning・secret scanning の alert の一覧を読みます。一覧を拒まれたときは、secret scanning と Dependabot の設定も読みます。`security-alert` のラベルが付いた Issue の一覧も読みます。'
       - target: github
         kind: write
-        what: '`security` では、Tracker の Issue を作り、本文を書き直します。プロジェクトのボードに足し、Status と Priority を設定します。'
+        what: '`security` では、Tracker の Issue を作り、本文を書き直します。プロジェクトのボードに足し、Status を設定します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -7252,7 +7301,7 @@ entries:
         statement: '`dependabot` で、Tracker の Issue を作ると、Status を Backlog にします'
       - id: PW-TRACKER-SYNC-04
         pattern: event
-        statement: '`dependabot` で、Tracker の Issue を作ると、Priority を medium にします'
+        statement: '`dependabot` で、Tracker の Issue を作ると、ボードの Status だけを設定し、ほかの欄には値を入れません'
       - id: PW-TRACKER-SYNC-05
         pattern: event
         statement: '`dependabot` で、open の Tracker が無く、判断を待つ PR も無いと、Tracker の Issue を作りません'
@@ -7321,7 +7370,7 @@ entries:
         statement: '`dependabot` で、表が既に none の open の Tracker があると、Tracker を閉じます'
       - id: PW-TRACKER-SYNC-27
         pattern: event
-        statement: '`dependabot` で、閉じない open の Tracker の Status か Priority が空だと、空の欄だけに Backlog か medium を入れます'
+        statement: '`dependabot` で、閉じない open の Tracker の Status が空だと、Backlog を入れます。ほかの欄には値を入れません'
       - id: PW-TRACKER-SYNC-28
         pattern: event
         statement: '`dependabot` で、open の Tracker が複数あると、番号が最小のものを使います'
@@ -7390,7 +7439,7 @@ entries:
         statement: '`security` で、Tracker の Issue を作ると、Status を Backlog にします'
       - id: PW-TRACKER-SYNC-50
         pattern: event
-        statement: '`security` で、Tracker の Issue を作ると、Priority を行の最大にします'
+        statement: '`security` で、Tracker の Issue を作ると、ボードの Status だけを設定し、ほかの欄には値を入れません'
       - id: PW-TRACKER-SYNC-51
         pattern: event
         statement: '`security` で、open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作りません'
@@ -7438,7 +7487,7 @@ entries:
         statement: '`security` で、code scanning の解析が無いリポジトリだと、code scanning の alert を 0 件として扱います'
       - id: PW-TRACKER-SYNC-66
         pattern: event
-        statement: '`security` で、既存の Tracker の Status か Priority が空だと、空の欄だけに Backlog か行の最大の Priority を入れます'
+        statement: '`security` で、既存の Tracker の Status が空だと、Backlog を入れます。ほかの欄には値を入れません'
       - id: PW-TRACKER-SYNC-67
         pattern: event
         statement: '`security` で、open の Tracker が複数あると、番号が最小のものを使います'
@@ -7519,16 +7568,25 @@ entries:
         statement: 'もし `source` に `dependabot` でも `security` でもない値を渡したなら、`kind` が `invalid-input` の失敗を返します。CLI では、使い方の誤りとして終了コード 2 で終わります'
       - id: PW-TRACKER-SYNC-93
         pattern: unwanted
-        statement: 'もし `dependabot` で、Tracker の Status か Priority の書き込みに失敗したなら、書けなかった欄と値を `detail` に入れ、ほかの欄を続けます。最後に `kind` が `partial-failure` の失敗を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
+        statement: 'もし `dependabot` で、Tracker の Status の書き込みに失敗したなら、書けなかった欄と値を `detail` に入れます。最後に `kind` が `partial-failure` の失敗を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
       - id: PW-TRACKER-SYNC-94
         pattern: unwanted
-        statement: 'もし `security` で、Tracker の Status か Priority の書き込みに失敗したなら、書けなかった欄と値を `detail` に入れ、ほかの欄を続けます。最後に `kind` が `partial-failure` の失敗を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
+        statement: 'もし `security` で、Tracker の Status の書き込みに失敗したなら、書けなかった欄と値を `detail` に入れます。最後に `kind` が `partial-failure` の失敗を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
       - id: PW-TRACKER-SYNC-95
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
       - id: PW-TRACKER-SYNC-96
         pattern: event
         statement: '`project` で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
+      - id: PW-TRACKER-SYNC-97
+        pattern: event
+        statement: '`security` で Tracker の本文を書くと、各表の 3 列目を Severity にし、GitHub の alert の重大度の値をそのまま出します'
+      - id: PW-TRACKER-SYNC-98
+        pattern: event
+        statement: '`security` で secret scanning alert か重大度の無い alert を表に書くと、Severity に `-` を出します'
+      - id: PW-TRACKER-SYNC-99
+        pattern: event
+        statement: '`security` で、既存の本文の行の印に旧い `priority=` があると、それを重大度として読み、次の書き直しで `severity=` の印にします'
   PW-WORKFLOW-DOCTOR:
     help:
       details:

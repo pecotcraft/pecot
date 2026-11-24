@@ -27,23 +27,6 @@ setup:
                   "archived": "o6",
                   "blocked": "o7"
                 }
-              },
-              "priority": {
-                "id": "PVTSSF_priority",
-                "options": {
-                  "high": "p1",
-                  "medium": "p2",
-                  "low": "p3"
-                }
-              },
-              "size": {
-                "id": "PVTSSF_size",
-                "options": {
-                  "xs": "s1",
-                  "s": "s2",
-                  "m": "s3",
-                  "l": "s4"
-                }
               }
             }
           },
@@ -63,8 +46,6 @@ setup:
         type: task
         repository: acme/demo
         status: ready
-        priority: high
-        size: s
         parent_epic: acme/demo/3
         order: 2
         ---
@@ -81,8 +62,6 @@ setup:
         title: 後に作る Issue
         type: task
         repository: acme/demo
-        priority: high
-        size: s
         parent_epic: acme/demo/3
         order: 3
         blocked_by:

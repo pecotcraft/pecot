@@ -5,7 +5,7 @@ import { effectiveReleaseType, workflowFieldId } from '../domain/config.js'
 import type { ProjectConfig, Repository } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'
 import type { DependabotAlertStatus } from '../domain/dependabot.js'
-import { fieldNameById, formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
+import { fieldNameById, fieldNamesWithValues, formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { compareStrings } from '../domain/python-format.js'
@@ -17,7 +17,7 @@ import { isLegacyWorkflowFieldName } from '../domain/migration.js'
 import { commandHint, hinted, placeholder, RUN_COLON } from './command-hint.js'
 import type { BoardReadinessJson } from './issue-readiness.js'
 import type { Output } from './output.js'
-import { STATUS_FIELD_NAME } from './project-sync.js'
+import { STATUS_FIELD_NAME, UNUSED_FIELD_NAMES } from './project-sync.js'
 
 /**
 Archived のうち、ボードに残す件数
@@ -345,6 +345,10 @@ export interface BoardRead {
   進行の欄のボード上の今の名前。どの Item にも値が無ければ undefined
   */
   readonly workflowFieldName: string | undefined
+  /**
+  pecot が使わないフィールド（UNUSED_FIELD_NAMES）のうち、どれかの Item に値が残るものの名前
+  */
+  readonly unusedFieldNames: readonly string[]
 }
 
 /**
@@ -359,14 +363,17 @@ export async function readBoard(client: Readonly<GitHubClient>, config: ProjectC
   const allItems = transformItems(rawItems, fieldId)
   const open = allItems.filter(item => item.content.state === 'OPEN' && typeof item.workflow === 'string' && DISPLAY_STATUSES.has(item.workflow))
   const items = effectiveRepository === undefined || effectiveRepository === '' ? open : open.filter(item => item.content.repository === effectiveRepository)
-  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy, workflowFieldName: fieldNameById(rawItems, fieldId) }
+  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy, workflowFieldName: fieldNameById(rawItems, fieldId), unusedFieldNames: fieldNamesWithValues(rawItems, UNUSED_FIELD_NAMES) }
 }
 
 /**
-進行の欄が旧い名前（pecot-workflow-<suffix>）のままなら、移行の手順を warning の行で出す
+進行の欄が旧い名前（pecot-workflow-<suffix>）のままか、pecot が使わないフィールドに値が残るなら、移行の手順を 1 つの warning で出す
 */
 export function warnOldFieldName(out: Readonly<Output>, config: ProjectConfig, read: Readonly<BoardRead>): void {
   const name = read.workflowFieldName
-  if (name === undefined || !isLegacyWorkflowFieldName(name)) return
-  out.warning(hinted`this board uses the old field name ${name}\n${RUN_COLON}${commandHint(['project', 'init'], { owner: config.owner, name: placeholder('name'), host: config.host })}`)
+  const legacy = name !== undefined && isLegacyWorkflowFieldName(name) ? `uses the old field name ${name}` : undefined
+  const unused = read.unusedFieldNames.length > 0 ? `still has fields pecot does not use: ${read.unusedFieldNames.join(', ')}` : undefined
+  const findings = [legacy, unused].filter(finding => finding !== undefined)
+  if (findings.length === 0) return
+  out.warning(hinted`this board ${findings.join(' and ')}\n${RUN_COLON}${commandHint(['project', 'init'], { owner: config.owner, name: placeholder('name'), host: config.host })}`)
 }

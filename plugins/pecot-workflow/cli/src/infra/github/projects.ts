@@ -18,6 +18,7 @@ import {
   MUTATION_CLEAR_PROJECT_ITEM_FIELD,
   MUTATION_CREATE_PROJECT,
   MUTATION_CREATE_PROJECT_FIELD,
+  MUTATION_DELETE_PROJECT_FIELD,
   MUTATION_DELETE_PROJECT_ITEM,
   MUTATION_UNARCHIVE_PROJECT_ITEM,
   MUTATION_LINK_PROJECT_REPOSITORY,
@@ -505,6 +506,16 @@ export class ProjectsApi extends ReposApi {
     const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field')
     if (!isTruthy(updated)) throw new GitHubAPIError('failed to rename the field')
     return asObject(updated)
+  }
+
+  /**
+  フィールドを消し、消したフィールド（id・name）を返す。各 Item の値も消え、戻らない
+  */
+  async deleteProjectField(fieldId: string): Promise<JsonObject> {
+    const result = await this.executeGraphql(MUTATION_DELETE_PROJECT_FIELD, { fieldId })
+    const deleted = jsonField(jsonField(result, 'deleteProjectV2Field'), 'projectV2Field')
+    if (!isTruthy(deleted)) throw new GitHubAPIError('failed to delete the field')
+    return asObject(deleted)
   }
 
   /**

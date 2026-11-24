@@ -8,7 +8,7 @@
 import { z } from 'zod'
 
 import { ATTRIBUTE_SOURCES } from './attributes.js'
-import { convertToInteger, PRIORITIES, SIZES, WORKFLOW_STATUSES } from './config.js'
+import { convertToInteger, WORKFLOW_STATUSES } from './config.js'
 import { PecotError } from './errors.js'
 import { normalizeNewlines, parsePythonInteger, pythonStrip, pythonStringRepr } from './python-format.js'
 import { parseYamlDocument } from './yaml-document.js'
@@ -150,8 +150,6 @@ const IssueFrontmatterSchema = z.object({
   repository: z.string({ error: stringMessage }),
   status: WorkflowStatusSchema.optional(),
   blocked_by: z.preprocess(value => value === null ? undefined : value, z.array(BlockedByEntrySchema, { error: listMessage }).readonly().prefault([])),
-  priority: z.preprocess(emptyStringToUndefined, z.enum(PRIORITIES, { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
-  size: z.preprocess(emptyStringToUndefined, z.enum(SIZES, { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
   labels: z.array(z.string({ error: STRING_MESSAGE }), { error: listMessage }).readonly().prefault([]),
   parent_epic: z.preprocess(normalizeParentEpic, z.unknown().transform((value, context) => {
     // 「整数 | 文字列」のどちらでもない値は、枝ごとの誤り（`parent_epic.int`・`parent_epic.str`）を 2 行で返す

@@ -15,9 +15,7 @@ import {
   getReleaseBranch,
   isRepositoryInProject,
   parseProjectConfig,
-  PRIORITIES,
   serializeProjectConfig,
-  SIZES,
   WORKFLOW_STATUSES,
   parsePackage,
   withAggregationRepository,
@@ -77,14 +75,6 @@ describe('列挙値', () => {
   it('ワークフローのステータスの列挙値は、backlog から archived までの 7 つを並べて返す', () => {
     expect(WORKFLOW_STATUSES).toEqual(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
   })
-
-  it('優先度の列挙値は、high・medium・low の 3 つを並べて返す', () => {
-    expect(PRIORITIES).toEqual(['high', 'medium', 'low'])
-  })
-
-  it('サイズの列挙値は、xs から l までの 4 つを並べて返す', () => {
-    expect(SIZES).toEqual(['xs', 's', 'm', 'l'])
-  })
 })
 
 describe('parseProjectConfig（モデルの値）', () => {
@@ -96,15 +86,14 @@ describe('parseProjectConfig（モデルの値）', () => {
     expect(config.repositories).toHaveLength(2)
   })
 
-  it('workflow だけのフィールド定義。priority・size は undefined', () => {
+  it('workflow だけのフィールド定義を読める', () => {
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'test',
       project: { number: 1, id: 'PVT', fields: { workflow: { id: 'WF', options: {} } } },
     })
     expect(config.project.fields.workflow).toEqual({ id: 'WF', options: {} })
-    expect(config.project.fields.priority).toBeUndefined()
-    expect(config.project.fields.size).toBeUndefined()
+    expect(config.project.fields.status).toBeUndefined()
     expect(config.project.board_url).toBeUndefined()
     expect(config.repositories).toEqual([])
   })
@@ -143,6 +132,17 @@ describe('parseProjectConfig（旧い形）', () => {
     const config = parseProjectConfig({ ...sampleConfigData(), workflow_suffix: 'test' })
     expect(Object.keys(config)).not.toContain('workflow_suffix')
     expect(serializeProjectConfig(config)).not.toContain('workflow_suffix')
+  })
+
+  it('旧い設定の fields.priority・fields.size を読み捨て、保存し直すと出さない', () => {
+    const config = parseProjectConfig(sampleConfigData())
+    expect(Object.keys(config.project.fields)).not.toContain('priority')
+    expect(Object.keys(config.project.fields)).not.toContain('size')
+    const saved = serializeProjectConfig(config)
+    expect(saved).not.toContain('"priority"')
+    expect(saved).not.toContain('"size"')
+    expect(saved).not.toContain('FIELD_priority')
+    expect(saved).not.toContain('FIELD_size')
   })
 
   it('workflow_suffix の無い設定を読める', () => {
@@ -266,23 +266,28 @@ describe('aggregation_repo', () => {
 describe('フィールドの検索', () => {
   const config = sampleConfig()
 
+  const withStatus = parseProjectConfig({
+    ...sampleConfigData(),
+    project: { number: 1, id: 'a', fields: { workflow: { id: 'FIELD_workflow', options: { active: 'opt_active' } }, status: { id: 'FIELD_status', options: { in_progress: 'opt_in_progress' } } } },
+  })
+
   it('フィールド名から ID を引き、無い名前には undefined を返す', () => {
-    expect(getFieldId(config, 'workflow')).toBe('FIELD_workflow')
-    expect(getFieldId(config, 'priority')).toBe('FIELD_priority')
-    expect(getFieldId(config, 'size')).toBe('FIELD_size')
-    expect(getFieldId(config, 'nonexistent')).toBeUndefined()
+    expect(getFieldId(withStatus, 'workflow')).toBe('FIELD_workflow')
+    expect(getFieldId(withStatus, 'status')).toBe('FIELD_status')
+    expect(getFieldId(withStatus, 'nonexistent')).toBeUndefined()
   })
 
   it('フィールド名と選択肢名から選択肢の ID を引き、無い組には undefined を返す', () => {
-    expect(getOptionId(config, 'workflow', 'active')).toBe('opt_active')
-    expect(getOptionId(config, 'priority', 'high')).toBe('opt_high')
-    expect(getOptionId(config, 'workflow', 'nonexistent')).toBeUndefined()
-    expect(getOptionId(config, 'nonexistent', 'active')).toBeUndefined()
+    expect(getOptionId(withStatus, 'workflow', 'active')).toBe('opt_active')
+    expect(getOptionId(withStatus, 'status', 'in_progress')).toBe('opt_in_progress')
+    expect(getOptionId(withStatus, 'workflow', 'nonexistent')).toBeUndefined()
+    expect(getOptionId(withStatus, 'nonexistent', 'active')).toBeUndefined()
   })
 
-  it('priority が無い設定では、priority のフィールドの ID は undefined を返す', () => {
-    const noPriority = parseProjectConfig({ ...sampleConfigData(), project: { number: 1, id: 'a', fields: { workflow: { id: 'x', options: {} } } } })
-    expect(getFieldId(noPriority, 'priority')).toBeUndefined()
+  it('旧い設定に fields.priority・fields.size があっても、priority・size のフィールドの ID は undefined を返す', () => {
+    expect(getFieldId(config, 'priority')).toBeUndefined()
+    expect(getFieldId(config, 'size')).toBeUndefined()
+    expect(getOptionId(config, 'priority', 'high')).toBeUndefined()
   })
 
   it('進行の欄は、設定の workflow のフィールドの ID で指す', () => {

@@ -1,4 +1,4 @@
-# Dependabot の open の alert が 1 件で、open の Tracker が無い。Tracker を 1 件立て、ボードの Backlog と Priority を設定する。
+# Dependabot の open の alert が 1 件で、open の Tracker が無い。Tracker を 1 件立て、ボードの Status だけを Backlog にする。
 id: tracker-sync-ok-security
 command:
   path: [tracker, sync]
@@ -116,7 +116,6 @@ github:
             item: {id: PVTI_12}
   - match:
       operation: UpdateProjectItemField
-    times: 2
     respond:
       status: 200
       body:

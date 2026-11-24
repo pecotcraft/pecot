@@ -26,23 +26,6 @@ setup:
                     "in_review": "o5",
                     "archived": "o6"
                   }
-                },
-                "priority": {
-                  "id": "PVTSSF_priority",
-                  "options": {
-                    "high": "p1",
-                    "medium": "p2",
-                    "low": "p3"
-                  }
-                },
-                "size": {
-                  "id": "PVTSSF_size",
-                  "options": {
-                    "xs": "s1",
-                    "s": "s2",
-                    "m": "s3",
-                    "l": "s4"
-                  }
                 }
               }
             },

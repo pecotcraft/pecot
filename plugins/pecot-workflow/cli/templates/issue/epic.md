@@ -3,8 +3,6 @@ title: ""
 type: epic
 repository: ""
 status: backlog
-priority: ""
-size: ""
 labels: []
 parent_epic: ""
 ---

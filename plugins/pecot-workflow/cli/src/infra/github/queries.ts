@@ -496,6 +496,18 @@ export const MUTATION_RENAME_PROJECT_FIELD = `mutation ($fieldId: ID!, $name: St
   }
 }`
 
+// プロジェクトフィールドの削除。フィールドの値も消え、戻らない
+export const MUTATION_DELETE_PROJECT_FIELD = `mutation ($fieldId: ID!) {
+  deleteProjectV2Field(input: { fieldId: $fieldId }) {
+    projectV2Field {
+      ... on ProjectV2FieldCommon {
+        id
+        name
+      }
+    }
+  }
+}`
+
 // プロジェクトフィールドの選択肢の置き換え（SingleSelect用。一覧の全体を送る）
 export const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
   updateProjectV2Field(

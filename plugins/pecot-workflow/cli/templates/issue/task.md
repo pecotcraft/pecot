@@ -2,8 +2,6 @@
 title: ""
 type: task
 repository: ""
-priority: ""
-size: ""
 labels: []
 parent_epic: ""
 blocked_by: []

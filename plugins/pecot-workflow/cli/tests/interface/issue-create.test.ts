@@ -47,7 +47,7 @@ async function create(...argv: readonly string[]): Promise<CliResult> {
 
 // 親 Epic を持たない 1 件の投稿で、ファイル入力が通る応答（node_id はボードへの追加の側で取る）
 function fileRules(): ResponseRule[] {
-  return [linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3)]
+  return [linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1)]
 }
 
 // 親 Epic #3 に #3-02 がある。order 2 は重複、order 3 は空き
@@ -97,7 +97,7 @@ const REJECTED_INPUTS = [
   { id: 'PW-ISSUE-CREATE-52', name: '前提が後ろのファイルを指す', second: [], first: blockedBy('b'), kind: 'invalid-input', expected: 'error: blocked_by in a.md refers to b, which comes later\n' },
   { id: 'PW-ISSUE-CREATE-52', name: '同じ前提を 2 回書く', second: [...blockedBy('a'), '  - issue: a'], first: [], kind: 'invalid-input', expected: 'error: blocked_by in b.md refers to a more than once\n' },
   { id: 'PW-ISSUE-CREATE-53', name: 'parallel を書く', second: ['parallel: true'], first: [], kind: 'content-invalid', expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
-  { id: 'PW-ISSUE-CREATE-53', name: 'parallel とほかの誤りを両方書く', second: ['parallel: true', 'size: zzz'], first: [], kind: 'content-invalid', expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
+  { id: 'PW-ISSUE-CREATE-53', name: 'parallel とほかの誤りを両方書く', second: ['parallel: true', 'labels: a'], first: [], kind: 'content-invalid', expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
   { id: 'PW-ISSUE-CREATE-54', name: 'wait: merge に reason が無い', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], kind: 'content-invalid', expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
 ]
 
@@ -119,19 +119,19 @@ describe('issue create', () => {
         issueNodeId(13),
         issueNodeId(3, 2),
         addedToProject(2),
-        updatedFields(6),
+        updatedFields(2),
         subIssueAdded(),
         subIssueAdded(),
       ])
 
       // --type などのオプションは、ファイルのフロントマターの値に負ける
-      const result = await create(path.join(project.root, 'first.md'), path.join(project.root, 'second.md'), '--type', 'epic', '--status', 'backlog', '--priority', 'low')
+      const result = await create(path.join(project.root, 'first.md'), path.join(project.root, 'second.md'), '--type', 'epic', '--status', 'backlog')
 
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n${ISSUE_URL_BASE}/13\n`)
       expect(result.stderr).toBe(
-        'created: Issue acme/demo/12 from first.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size s\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n'
-        + 'created: Issue acme/demo/13 from second.md\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status ready, priority high, size s\nadded: Issue acme/demo/13 as sub-issue of acme/demo/3\n',
+        'created: Issue acme/demo/12 from first.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n'
+        + 'created: Issue acme/demo/13 from second.md\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status ready\nadded: Issue acme/demo/13 as sub-issue of acme/demo/3\n',
       )
       const posts = github.requests().filter(request => request.type === 'rest')
       expect(posts).toMatchObject([
@@ -168,14 +168,14 @@ describe('issue create', () => {
         createdIssue(13),
         issueNodeId(13),
         addedToProject(),
-        updatedFields(3),
+        updatedFields(1),
       ])
 
       const result = await create(path.join(project.root, 'a.md'), path.join(project.root, 'b.md'))
 
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n${ISSUE_URL_BASE}/13\n`)
-      expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\ncreated: Issue acme\/demo\/13 from b\.md\nadded: Issue acme\/demo\/13 to project\nset: Issue acme\/demo\/13 status ready, priority high, size s\n$/u)
+      expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\ncreated: Issue acme\/demo\/13 from b\.md\nadded: Issue acme\/demo\/13 to project\nset: Issue acme\/demo\/13 status ready\n$/u)
     })
 
     it('ボードへの追加に失敗しても、親 Epic へつなぎ、Issue の URL を 1 回だけ出して終了コード 0 で終わる', async () => {
@@ -190,10 +190,10 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\nadded: Issue acme\/demo\/12 as sub-issue of acme\/demo\/3\n$/u)
     })
 
-    it('欄の設定に失敗したとき、欄ごとに warning を出し、project activate の案内を 1 回だけ添えて、残りの欄を設定して続ける', async () => {
+    it('欄の設定に失敗したとき、warning を出し、project activate の案内を添えて、終了コード 0 で終わる', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
-      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), staleOptionUpdate(2), updatedFields(1)])
+      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), staleOptionUpdate(1)])
 
       const result = await create(path.join(project.root, 'draft.md'))
 
@@ -204,8 +204,6 @@ describe('issue create', () => {
         'added: Issue acme/demo/12 to project',
         `warning: could not set status ready of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
         '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
-        `warning: could not set priority high of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
-        'set: Issue acme/demo/12 size s',
         '',
       ].join('\n'))
     })
@@ -255,7 +253,7 @@ describe('issue create', () => {
     it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に、error の行を標準エラーに出して終了コード 1 で終わる', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_WITH_PARENT) })
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
       const result = await create(path.join(project.root, 'draft.md'))
 
@@ -271,7 +269,7 @@ describe('issue create', () => {
         'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
         'c.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '3 件目' }),
       })
-      const github = await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), failedIssueCreation(403)])
+      const github = await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), failedIssueCreation(403)])
 
       const result = await create(...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
 
@@ -391,15 +389,31 @@ describe('issue create', () => {
       expect(requests.find(request => request.type === 'rest')).toMatchObject({ body: { title: '[Task] 一覧に状態を出す', body: TASK_BODY } })
     })
 
-    it('--priority・--size・--label・--parent-epic・--order を付けると、欄を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async () => {
+    it('--label・--parent-epic・--order を付けると、status を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async () => {
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), subIssueAdded()])
+      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
-      const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, '--priority', 'high', '--size', 'm', '-l', 'a', '--label', 'b', '--parent-epic', '3', '--order', '3')
+      const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, '-l', 'a', '--label', 'b', '--parent-epic', '3', '--order', '3')
 
       expect(result.code).toBe(0)
-      expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size m\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n')
+      expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n')
       expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ body: { title: '[Task] #3-03: 題', labels: ['a', 'b'] } })
+    })
+
+    it.for([
+      { name: '--priority', argv: ['--priority', 'high'] },
+      { name: '--size', argv: ['--size', 'm'] },
+    ])('$name を付けると、知らないオプションとして、何も作らずに終了コード 2 で終わる', async (row, context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-87')
+      setUpIssueProject()
+      const github = await startGithub([])
+
+      const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, ...row.argv)
+
+      expect(result.code).toBe(2)
+      expect(result.stdout).toBe('')
+      expect(result.stderr).toContain(`No such option: ${row.name}`)
+      expect(github.requests()).toEqual([])
     })
 
     it('--status が有効な値でないとき、有効な値を並べた error の行を出して終了コード 1 で終わる', async () => {
@@ -569,8 +583,8 @@ describe('issue create', () => {
     it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタックできる並びを出す', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, {
-        'a.md': taskFile('先頭', PARENT, 'priority: high', 'size: s'),
-        'b.md': taskFile('次', PARENT, 'priority: high', 'size: s', ...blockedBy('a')),
+        'a.md': taskFile('先頭', PARENT),
+        'b.md': taskFile('次', PARENT, ...blockedBy('a')),
       })
       const github = await startGithub([
         linkedRepositories(),
@@ -583,7 +597,7 @@ describe('issue create', () => {
         issueNodeId(3, 2),
         blockedByAdded(),
         addedToProject(2),
-        updatedFields(6),
+        updatedFields(2),
         subIssueAdded(),
         subIssueAdded(),
       ])
@@ -593,8 +607,8 @@ describe('issue create', () => {
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${BASE}/12\n${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
       expect(result.stderr).toBe(
-        'created: Issue acme/demo/12 from a.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size s\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n'
-        + 'created: Issue acme/demo/13 from b.md\nadded: blocked-by #12 to #13\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status blocked, priority high, size s\nadded: Issue acme/demo/13 as sub-issue of acme/demo/3\n',
+        'created: Issue acme/demo/12 from a.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n'
+        + 'created: Issue acme/demo/13 from b.md\nadded: blocked-by #12 to #13\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status blocked\nadded: Issue acme/demo/13 as sub-issue of acme/demo/3\n',
       )
       const requests = github.requests()
       expect(requests.filter(request => request.type === 'rest')).toMatchObject([
@@ -663,31 +677,35 @@ describe('issue create', () => {
 
     it('欄と列の直しがどちらも古い ID で書けないとき、project activate の案内を 1 回だけ出す', async () => {
       const project = setUpIssueProject()
-      writeTree(project.root, { 'a.md': taskFile('先頭', 'priority: high', ...blockedBy('acme/demo/12')) })
+      writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')), 'b.md': taskFile('次') })
       await startGithub([
         linkedRepositories(),
         blockedBySupported(),
         issueNodeId(12),
         createdIssue(13),
+        createdIssue(14),
         blockedByAdded(),
         issueNodeId(13),
-        addedToProject(),
+        issueNodeId(14),
+        addedToProject(2),
         updatedFields(1),
         staleOptionUpdate(2),
         prerequisitesRule({ number: 13, column: 'Blocked', blockedBy: [{ number: 12, state: 'CLOSED', branch: 'feat/12', pullRequests: [{ number: 5, state: 'MERGED', head: 'feat/12' }] }] }),
       ])
 
-      const result = await create(path.join(project.root, 'a.md'))
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
 
       expect(result.code).toBe(0)
       expect(result.stderr).toBe([
         'created: Issue acme/demo/13 from a.md',
         'added: blocked-by #12 to #13',
         'added: Issue acme/demo/13 to project',
-        `warning: could not set priority high of Issue acme/demo/13: ${STALE_OPTION_TEXT}`,
-        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
         'set: Issue acme/demo/13 status blocked',
         `warning: could not move #13: ${STALE_OPTION_TEXT}`,
+        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        'created: Issue acme/demo/14 from b.md',
+        'added: Issue acme/demo/14 to project',
+        `warning: could not set status ready of Issue acme/demo/14: ${STALE_OPTION_TEXT}`,
         '',
       ].join('\n'))
     })
@@ -1011,7 +1029,7 @@ describe('issue create', () => {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
         'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
       })
-      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), failedIssueCreation(403)])
+      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), failedIssueCreation(403)])
 
       const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
 
@@ -1074,12 +1092,12 @@ describe('issue create', () => {
         issueNodeId(13),
         issueNodeId(3, 2),
         addedToProject(2),
-        updatedFields(6),
+        updatedFields(2),
         subIssueAdded(),
         subIssueAdded(),
       ])
 
-      const outcome = await createTool({ files: inRoot(project.root, 'first.md', 'second.md'), type: 'epic', status: 'backlog', priority: 'low' })
+      const outcome = await createTool({ files: inRoot(project.root, 'first.md', 'second.md'), type: 'epic', status: 'backlog' })
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({
@@ -1093,7 +1111,43 @@ describe('issue create', () => {
         { method: 'POST', path: '/repos/acme/demo/issues', body: { title: '[Task] #3-03: 後に作る Issue' } },
       ])
       expect(JSON.stringify(postsOf(github).at(1))).toContain('#12 が終わってから進める。')
-      expect(variablesOf(github, 'UpdateProjectItemField')).toHaveLength(6)
+      expect(variablesOf(github, 'UpdateProjectItemField')).toMatchObject([{ fieldId: 'PVTSSF_workflow', optionId: 'o3' }, { fieldId: 'PVTSSF_workflow', optionId: 'o3' }])
+    })
+
+    it('フロントマターに旧い priority・size があっても、読み捨てて作り、ボードには status だけを設定する', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-88')
+      const project = setUpIssueProject()
+      writeTree(project.root, {
+        'a.md': taskFile('先頭', 'priority: high', 'size: s'),
+        'b.md': taskFile('次', 'priority: urgent', 'size: ""'),
+      })
+      const github = await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), updatedFields(2)])
+
+      const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toEqual({
+        issues: [
+          { ...ISSUE_12, status: 'ready' },
+          { owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' },
+        ],
+      })
+      expect(variablesOf(github, 'UpdateProjectItemField')).toMatchObject([{ fieldId: 'PVTSSF_workflow', optionId: 'o3' }, { fieldId: 'PVTSSF_workflow', optionId: 'o3' }])
+    })
+
+    it.for([
+      { name: 'priority', arguments_: { priority: 'high' } },
+      { name: 'size', arguments_: { size: 'm' } },
+    ])('$name を渡すと、無い入力として止まり、Issue を作らない', async (row, context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-87')
+      setUpIssueProject()
+      const github = await startGithub([])
+
+      const outcome = await createTool({ ...DIRECT, ...row.arguments_ })
+
+      expect(outcome.isError).toBe(true)
+      expect(JSON.stringify(outcome)).toContain(row.name)
+      expect(github.requests()).toEqual([])
     })
 
     it('files と message を一緒に渡すと、message の本文を使わずにファイルから作る', async (context) => {
@@ -1117,7 +1171,7 @@ describe('issue create', () => {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
         'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
       })
-      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), failedAddToProject(), createdIssue(13), issueNodeId(13), addedToProject(), updatedFields(3)])
+      await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), failedAddToProject(), createdIssue(13), issueNodeId(13), addedToProject(), updatedFields(1)])
 
       const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
 
@@ -1139,21 +1193,19 @@ describe('issue create', () => {
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^could not add Issue acme\/demo\/12 to project: /u)])
     })
 
-    it('欄の設定に失敗したとき、失敗を欄ごとに warnings へ入れ、project_activate の案内を 1 回だけ添えて、残りの欄を設定する', async (context) => {
+    it('欄の設定に失敗したとき、失敗を warnings へ入れ、project_activate の案内を添えて、次のファイルの欄を設定する', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
-      writeTree(project.root, { 'a.md': taskFile('先頭', 'priority: high', 'size: s'), 'b.md': taskFile('次') })
-      const github = await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), staleOptionUpdate(3), updatedFields(1)])
+      writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次') })
+      const github = await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), staleOptionUpdate(1), updatedFields(1)])
 
       const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md') })
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toEqual([
         `could not set status ready of Issue acme/demo/12: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again`,
-        `could not set priority high of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
-        `could not set size s of Issue acme/demo/12: ${STALE_OPTION_TEXT}`,
       ])
-      expect(variablesOf(github, 'UpdateProjectItemField')).toHaveLength(4)
+      expect(variablesOf(github, 'UpdateProjectItemField')).toHaveLength(2)
     })
 
     it('500 で欄の設定に失敗したときは、warnings に入れ、ID を読み直す案内を添えない', async (context) => {
@@ -1174,7 +1226,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-26')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_WITH_PARENT) })
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
       const outcome = await createTool({ files: inRoot(project.root, 'draft.md') })
 
@@ -1193,7 +1245,7 @@ describe('issue create', () => {
         'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
         'c.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '3 件目' }),
       })
-      const github = await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), failedIssueCreation(403)])
+      const github = await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), failedIssueCreation(403)])
 
       const outcome = await createTool({ files: inRoot(project.root, 'a.md', 'b.md', 'c.md') })
 
@@ -1317,18 +1369,19 @@ describe('issue create', () => {
       expect(postsOf(github)).toMatchObject([{ body: { title: '[Task] 一覧に状態を出す', body: TASK_BODY } }])
     })
 
-    it('priority・size・label・parent_epic・order を渡すと、欄を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async (context) => {
+    it('label・parent_epic・order を渡すと、status を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-11')
       await verifies(context, 'PW-ISSUE-CREATE-13')
       await verifies(context, 'PW-ISSUE-CREATE-19')
       await verifies(context, 'PW-ISSUE-CREATE-20')
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), subIssueAdded()])
+      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
-      const outcome = await createTool({ title: '題', repo: 'acme/demo', message: TASK_BODY, priority: 'high', size: 'm', label: ['a', 'b'], parent_epic: '3', order: 3 })
+      const outcome = await createTool({ title: '題', repo: 'acme/demo', message: TASK_BODY, label: ['a', 'b'], parent_epic: '3', order: 3 })
 
       expect(outcome.structured).toEqual({ issues: [{ ...ISSUE_12, status: 'ready', parent: 'acme/demo/3' }] })
       expect(postsOf(github)).toMatchObject([{ body: { title: '[Task] #3-03: 題', labels: ['a', 'b'] } }])
-      expect(variablesOf(github, 'UpdateProjectItemField')).toHaveLength(3)
+      expect(variablesOf(github, 'UpdateProjectItemField')).toMatchObject([{ fieldId: 'PVTSSF_workflow', optionId: 'o3' }])
     })
 
     it('message の status が有効な値でないとき、有効な値を並べた detail を入れて、kind が invalid-input の失敗を返す', async (context) => {
@@ -1481,8 +1534,8 @@ describe('issue create', () => {
         await verifies(context, 'PW-ISSUE-CREATE-56')
         const project = setUpIssueProject()
         writeTree(project.root, {
-          'a.md': taskFile('先頭', PARENT, 'priority: high', 'size: s'),
-          'b.md': taskFile('次', PARENT, 'priority: high', 'size: s', ...blockedBy('a')),
+          'a.md': taskFile('先頭', PARENT),
+          'b.md': taskFile('次', PARENT, ...blockedBy('a')),
         })
         const github = await startGithub([
           linkedRepositories(),
@@ -1495,7 +1548,7 @@ describe('issue create', () => {
           issueNodeId(3, 2),
           blockedByAdded(),
           addedToProject(2),
-          updatedFields(6),
+          updatedFields(2),
           subIssueAdded(),
           subIssueAdded(),
         ])

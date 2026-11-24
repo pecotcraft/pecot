@@ -1,4 +1,4 @@
-# 3 つのフィールドが揃い、進行の欄に Blocked もある。Status は無い。何も作らず、何も足さず、設定ファイルを作る。
+# pecot-status・pecot-priority・pecot-size が揃い、進行の欄に Blocked もある。Status は無い。何も作らず、何も足さず、設定ファイルを作り、使わない 2 つを消さずに名前を warning で出す。
 id: project-init-ok-skip
 command:
   path: [project, init]

@@ -64,7 +64,6 @@ import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
 import {
   addToBoardOrWarn,
-  BACKLOG_TYPES,
   buildIssueTitle,
   clientForIssueCreate,
   createIssueOrExit,
@@ -563,12 +562,8 @@ function homeOf(file: Readonly<LocalFile>): RepositoryReference {
   return createRepositoryReference(file.owner, file.repository)
 }
 
-function frontmatterFields(file: Readonly<LocalFile>): readonly IssueField[] {
-  const { frontmatter, status } = file
-  const fields: IssueField[] = [{ fieldName: 'workflow', optionName: status, label: `status ${status}` }]
-  if (frontmatter.priority !== undefined) fields.push({ fieldName: 'priority', optionName: frontmatter.priority, label: `priority ${frontmatter.priority}` })
-  if (frontmatter.size !== undefined) fields.push({ fieldName: 'size', optionName: frontmatter.size, label: `size ${frontmatter.size}` })
-  return fields
+function statusFields(status: string): readonly IssueField[] {
+  return [{ fieldName: 'workflow', optionName: status, label: `status ${status}` }]
 }
 
 interface ParentGroup {
@@ -838,7 +833,7 @@ async function postFiles(output: CreateOutput, context: Readonly<BatchContext>):
         labels: local.frontmatter.labels.length > 0 ? local.frontmatter.labels : undefined,
         source: local.name,
         useResponseNodeId: false,
-        fields: frontmatterFields(local),
+        fields: statusFields(local.status),
         parentReference: local.parentReference,
         prerequisites,
         settleColumn: local.status === 'blocked' && prerequisites.some(({ reference }) => !isBatchReference(reference, posted)),
@@ -878,8 +873,6 @@ interface DirectOptions {
   readonly repository: string
   readonly issueType: IssueType
   readonly status: string | undefined
-  readonly priority: string | undefined
-  readonly size: string | undefined
   readonly parentEpic: string | undefined
   readonly labels: readonly string[] | undefined
   readonly order: number | undefined
@@ -911,10 +904,6 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
   const labels = options.labels !== undefined && options.labels.length > 0 ? options.labels : undefined
   const attributes = await checkDirectAttributes(output, client, config, owner, repository, options.attributes, labels !== undefined)
 
-  const fields: IssueField[] = [{ fieldName: 'workflow', optionName: status, label: `status ${status}` }]
-  if (options.priority !== undefined && options.priority !== '') fields.push({ fieldName: 'priority', optionName: options.priority, label: `priority ${options.priority}` })
-  if (options.size !== undefined && options.size !== '') fields.push({ fieldName: 'size', optionName: options.size, label: `size ${options.size}` })
-
   await postIssue(output, client, config, newSession(), {
     owner,
     repository,
@@ -923,7 +912,7 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
     labels,
     source: undefined,
     useResponseNodeId: true,
-    fields,
+    fields: statusFields(status),
     parentReference,
     prerequisites: [],
     settleColumn: false,
@@ -975,26 +964,11 @@ const FREEFORM_FOOTER = '<!-- issue create の freeform で起票（テンプレ
 
 const FREEFORM_TITLE_LENGTH = 50
 
-/**
-freeform の Issue の欄。priority の既定は medium、size の既定は s（Backlog に置く型には既定を付けない）
-*/
-function freeformFields(issueType: IssueType, status: string, priority: string | undefined, size: string | undefined): readonly IssueField[] {
-  const chosenPriority = priority === undefined || priority === '' ? 'medium' : priority
-  const chosenSize = size === undefined || size === '' ? (BACKLOG_TYPES.has(issueType) ? undefined : 's') : size
-  return [
-    { fieldName: 'workflow', optionName: status, label: `status ${status}` },
-    { fieldName: 'priority', optionName: chosenPriority, label: `priority ${chosenPriority}` },
-    ...chosenSize === undefined ? [] : [{ fieldName: 'size', optionName: chosenSize, label: `size ${chosenSize}` }],
-  ]
-}
-
 interface FreeformInput {
   readonly message?: string | undefined
   readonly repo?: string | undefined
   readonly type: IssueType
   readonly status?: string | undefined
-  readonly priority?: string | undefined
-  readonly size?: string | undefined
   readonly parent_epic?: string | undefined
   readonly order?: number | undefined
   readonly label?: readonly string[] | undefined
@@ -1035,7 +1009,7 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
     labels,
     source: undefined,
     useResponseNodeId: true,
-    fields: freeformFields(issueType, status, input.priority, input.size),
+    fields: statusFields(status),
     parentReference,
     prerequisites: [],
     settleColumn: false,
@@ -1048,8 +1022,6 @@ interface MessageInput {
   readonly repo?: string | undefined
   readonly type: IssueType
   readonly status?: string | undefined
-  readonly priority?: string | undefined
-  readonly size?: string | undefined
   readonly parent_epic?: string | undefined
   readonly label?: readonly string[] | undefined
   readonly order?: number | undefined
@@ -1069,8 +1041,6 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
     repository: target.repository,
     issueType: input.type,
     status: input.status,
-    priority: input.priority,
-    size: input.size,
     parentEpic: input.parent_epic,
     labels: input.label,
     order: input.order,
@@ -1092,13 +1062,11 @@ const ISSUE_CREATE = defineCommand({
     repo: z.string().optional().describe('Repository (owner/repo form; required with `message` unless epic)'),
     type: ISSUE_TYPE_SCHEMA,
     status: z.string().optional().describe('Status (backlog/pending/ready/active/in_review/archived)'),
-    priority: z.string().optional().describe('Priority (high/medium/low)'),
-    size: z.string().optional().describe('Size (xs/s/m/l)'),
     parent_epic: z.string().optional().describe(PARENT_EPIC_DESCRIPTION),
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
     attributes: ATTRIBUTES_INPUT.describe('Attributes to write by name (the attributes that issue_attributes lists): name, value and, only when the same name is in several sources, source; null values are skipped; cannot be used with files (write attributes in the front matter instead)'),
-    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)'),
+    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line)'),
     project: PROJECT_INPUT,
   }),
   output: ISSUE_CREATE_OUTPUT,

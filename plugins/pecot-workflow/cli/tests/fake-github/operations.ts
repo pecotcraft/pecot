@@ -31,6 +31,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['createProjectV2Field.projectV2Field{id,name,options}|name,options,projectId', 'CreateProjectField'],
   ['updateProjectV2Field.projectV2Field{id,name,options}|fieldId,options', 'UpdateProjectField'],
   ['updateProjectV2Field.projectV2Field{id,name}|fieldId,name', 'RenameProjectField'],
+  ['deleteProjectV2Field.projectV2Field{id,name}|fieldId', 'DeleteProjectField'],
   ['user{id}|login', 'GetUserNodeId'],
   ['organization{id}|login', 'GetOrgNodeId'],
   ['createProjectV2.projectV2{id,number,title,url}|ownerId,title', 'CreateProject'],

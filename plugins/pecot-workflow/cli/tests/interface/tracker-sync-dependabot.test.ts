@@ -24,7 +24,7 @@ import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
-import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
+import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
@@ -35,7 +35,7 @@ beforeEach(() => {
   freezeClock()
 })
 
-const BOTH_FILLED = [WORKFLOW_FIELD, PRIORITY_FIELD]
+const STATUS_FILLED = [WORKFLOW_FIELD]
 const COUNTS_ONE = 'count: open dependabot PRs: 1\ncount: PRs awaiting a decision: 1\ncount: PRs awaiting a decision without check results: 0\n'
 const FAILURE_CODE = 1
 const MAJOR = { kind: 'major' }
@@ -78,7 +78,7 @@ const ROW_2 = '| <!-- pecot-dependabot-pr: pr/2 --> `Bump left-pad` | [#2](https
 
 async function createNewTracker(): Promise<Run> {
   const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 3, name: 'lodash' })]
-  return await sync([...listings(nodes), createdTracker(100), ...boardRules(100, { priority: 'medium', onlyIfEmpty: false })])
+  return await sync([...listings(nodes), createdTracker(100), ...boardRules(100, { onlyIfEmpty: false })])
 }
 
 describe('tracker sync', () => {
@@ -97,7 +97,7 @@ describe('tracker sync', () => {
   it('Tracker の Issue を作ると、ボードに足す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-02')
     const { github } = await createNewTracker()
-    expect(labelsOf(github)).toEqual([...READS, 'POST /repos/acme/demo/issues', 'GetIssueNodeId', 'AddToProject', 'UpdateProjectItemField', 'UpdateProjectItemField'])
+    expect(labelsOf(github)).toEqual([...READS, 'POST /repos/acme/demo/issues', 'GetIssueNodeId', 'AddToProject', 'UpdateProjectItemField'])
     expect(github.requests()[4]).toMatchObject({ operation: 'AddToProject', variables: { projectId: 'PVT_1', contentId: 'I_100' } })
   })
 
@@ -107,10 +107,12 @@ describe('tracker sync', () => {
     expect(github.requests()).toContainEqual(expect.objectContaining({ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'PVTI_100', fieldId: WORKFLOW_FIELD, optionId: 'o1' } }))
   })
 
-  it('Tracker の Issue を作ると、Priority を medium にする', async (context) => {
+  it('Tracker の Issue を作ると、ボードの欄は Status だけを入れ、Priority を入れない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-04')
-    const { github } = await createNewTracker()
-    expect(github.requests()).toContainEqual(expect.objectContaining({ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'PVTI_100', fieldId: PRIORITY_FIELD, optionId: 'p2' } }))
+    const { result, github } = await createNewTracker()
+    expect(result.code).toBe(0)
+    const updates = github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
+    expect(updates.map(request => request.type === 'graphql' ? request.variables : undefined)).toEqual([{ projectId: 'PVT_1', itemId: 'PVTI_100', fieldId: WORKFLOW_FIELD, optionId: 'o1' }])
   })
 
   it('open の Tracker が無く、判断を待つ PR も無いと、Tracker の Issue を作らない', async (context) => {
@@ -129,7 +131,7 @@ describe('tracker sync', () => {
   it('open の Tracker があると、list-begin と list-end の間の表を、判断を待つ PR の行に書き直す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-07')
     const existing = trackerBody([[1, 'Bump old', 'failed']], '\n人の注記\n')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']], '\n人の注記\n') }), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']], '\n人の注記\n') }), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
     expect(labelsOf(github)).toContain('PATCH /repos/acme/demo/issues/9')
@@ -180,7 +182,7 @@ describe('tracker sync', () => {
   it('表に PR を足すと、added の行を理由とともに標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-16')
     const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 6, rollup: 'FAILURE', mergeable: 'CONFLICTING', age: 2 * HOUR })]
-    const rules = [...listings(nodes, [trackerIssue(9, trackerBody([[2, 'Bump left-pad', 'passed']]))]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings(nodes, [trackerIssue(9, trackerBody([[2, 'Bump left-pad', 'passed']]))]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('added: PR #6 to Tracker #9 (checks failed, conflict)\n')
   })
@@ -188,7 +190,7 @@ describe('tracker sync', () => {
   it('表から PR を外すと、removed の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-17')
     const existing = trackerBody([[1, 'Bump old', 'failed'], [2, 'Bump left-pad', 'passed']])
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('removed: PR #1 from Tracker #9\n')
   })
@@ -197,7 +199,7 @@ describe('tracker sync', () => {
 
   it('行の足し外しが無く本文だけが変わると、本文を書き直す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-18')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']]) }), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']]) }), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
     expect(writtenBodies(github)).toEqual([{ body: trackerBody([[2, 'Bump left-pad', 'passed']]) }])
@@ -205,7 +207,7 @@ describe('tracker sync', () => {
 
   it('行の足し外しが無く本文だけが変わると、updated の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-19')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
     expect(result.stdout).toBe('')
     expect(stderrAfterCounts(result)).toBe('updated: Tracker #9 body\n')
@@ -218,7 +220,7 @@ describe('tracker sync', () => {
     { name: 'CRLF', body: SAME.replaceAll('\n', '\r\n') },
   ])('書き直した本文が今の本文（$name）と同じだと、本文を書き直さない', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-20')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, row.body)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, row.body)]), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
     expect(writtenBodies(github).filter(body => body !== undefined)).toEqual([])
@@ -226,7 +228,7 @@ describe('tracker sync', () => {
 
   it('書き直した本文が今の本文と同じだと、unchanged の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-21')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('unchanged: Tracker #9\n')
   })
@@ -268,14 +270,15 @@ describe('tracker sync', () => {
   })
 
   it.for([
-    { name: 'Status', filled: [WORKFLOW_FIELD], updated: PRIORITY_FIELD },
-    { name: 'Priority', filled: [PRIORITY_FIELD], updated: WORKFLOW_FIELD },
-  ])('閉じない open の Tracker の $name だけが埋まっていると、空の欄だけに値を入れる', async (row, context) => {
+    { name: 'Status が空', filled: [], updated: [WORKFLOW_FIELD] },
+    { name: 'Status が埋まっている', filled: [WORKFLOW_FIELD], updated: [] },
+  ])('閉じない open の Tracker の $name と、Status が空のときだけ Backlog を入れ、Priority を入れない', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-27')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: row.filled })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: row.filled })]
     const { github } = await sync(rules)
     const updates = github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
-    expect(updates).toMatchObject([{ variables: { fieldId: row.updated } }])
+    expect(updates).toHaveLength(row.updated.length)
+    expect(updates).toMatchObject(row.updated.map(fieldId => ({ variables: { fieldId } })))
   })
 
   const TWO_TRACKERS = [
@@ -286,7 +289,7 @@ describe('tracker sync', () => {
   ]
 
   async function syncWithTwoTrackers(): Promise<Run> {
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], TWO_TRACKERS), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], TWO_TRACKERS), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     return await sync(rules)
   }
 
@@ -455,7 +458,7 @@ describe('tracker sync', () => {
   })
 
   async function syncWithFailedBoard(): Promise<Run> {
-    const [nodeId] = boardRules(100, { priority: 'medium', onlyIfEmpty: false })
+    const [nodeId] = boardRules(100, { onlyIfEmpty: false })
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })]
     return await sync(rules)
   }
@@ -470,7 +473,7 @@ describe('tracker sync', () => {
   it('Tracker の作成かボードへの追加に失敗すると、Tracker の失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-45')
     await verifies(context, 'PW-TRACKER-SYNC-46')
-    const [nodeId] = boardRules(100, { priority: 'medium', onlyIfEmpty: false })
+    const [nodeId] = boardRules(100, { onlyIfEmpty: false })
     const board = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })])
     expect(board.outcome.isError).toBe(true)
     expect(board.outcome.structured).toMatchObject({ kind: 'partial-failure', detail: `Tracker: ${graphqlServerError(board.github.url)}` })
@@ -478,35 +481,33 @@ describe('tracker sync', () => {
     expect(creation.outcome.structured).toMatchObject({ kind: 'partial-failure', detail: 'Tracker: GitHub API error: 500' })
   })
 
-  it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの失敗と ID を読み直す案内を 1 回だけ detail に入れて partial-failure の失敗を返す', async (context) => {
+  it('選択肢の ID が古くて Status を書けないと、書けなかった欄と ID を読み直す案内を detail に入れて partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-93')
-    const added = boardRules(100, { priority: 'medium', onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
-    const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate(2)])
+    const added = boardRules(100, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
+    const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate()])
     expect(outcome.isError).toBe(true)
     expect(outcome.structured).toMatchObject({ kind: 'partial-failure' })
     expect(outcome.structured['detail']).toBe([
       `could not set status backlog of Tracker #100: ${STALE_OPTION_TEXT}`,
       '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
-      `could not set priority medium of Tracker #100: ${STALE_OPTION_TEXT}`,
     ].join('\n'))
   })
 
-  it('CLI で、選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出す', async () => {
-    const added = boardRules(100, { priority: 'medium', onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
-    const { result } = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate(2)])
+  it('CLI で、選択肢の ID が古くて Status を書けないと、error の行と ID を読み直す案内を出す', async () => {
+    const added = boardRules(100, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
+    const { result } = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate()])
     expect(result.code).toBe(FAILURE_CODE)
     expect(stderrAfterCounts(result)).toBe([
       `created: Tracker "${TODAY_TITLE}"`,
       'added: PR #2 to new Tracker (major)',
       `error: could not set status backlog of Tracker #100: ${STALE_OPTION_TEXT}`,
       '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
-      `error: could not set priority medium of Tracker #100: ${STALE_OPTION_TEXT}`,
       '',
     ].join('\n'))
   })
 
   it('CLI で、open の Tracker のボード登録に失敗すると、error の行を出して終了コード 1 で終わる', async () => {
-    const [nodeId] = boardRules(9, { priority: 'medium', onlyIfEmpty: true })
+    const [nodeId] = boardRules(9, { onlyIfEmpty: true })
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(FAILURE_CODE)
@@ -523,7 +524,7 @@ describe('tracker sync', () => {
 
     it('Tracker を作ると、その番号と足した PR を返す', async () => {
       const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 3, name: 'lodash' })]
-      const data = await syncTool([...listings(nodes), createdTracker(100), ...boardRules(100, { priority: 'medium', onlyIfEmpty: false })])
+      const data = await syncTool([...listings(nodes), createdTracker(100), ...boardRules(100, { onlyIfEmpty: false })])
       expect(data).toEqual({ source: 'dependabot', tracker: 100, created: true, added: [PR_2], removed: [], closed: false })
     })
 
@@ -536,14 +537,14 @@ describe('tracker sync', () => {
 
     it('行の足し外しが無く本文だけが変わると、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-19')
-      const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
+      const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [], closed: false })
     })
 
     it('書き直した本文が今の本文と同じだと、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-21')
-      const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
+      const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [], closed: false })
     })
@@ -552,7 +553,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-TRACKER-SYNC-16')
       await verifies(context, 'PW-TRACKER-SYNC-17')
       const existing = trackerBody([[1, 'Bump old', 'failed']])
-      const data = await syncTool([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })])
+      const data = await syncTool([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })])
       expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [PR_2], removed: [{ kind: 'pull-request', number: 1 }], closed: false })
     })
 

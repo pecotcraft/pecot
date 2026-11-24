@@ -123,6 +123,13 @@ export function fieldNameById(items: readonly JsonValue[], fieldId: string): str
   return undefined
 }
 
+/**
+names のうち、どれかの Item に値があるフィールドの名前（names の順）
+*/
+export function fieldNamesWithValues(items: readonly JsonValue[], names: readonly string[]): readonly string[] {
+  return names.filter(name => items.some(item => findFieldValue(item, field => stringMember(field, 'name') === name) !== undefined))
+}
+
 // ラベルを抽出する（名前があり、空でないものだけ）
 function extractLabels(content: JsonValue | undefined): readonly string[] {
   const labels: string[] = []

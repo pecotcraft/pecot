@@ -37,11 +37,7 @@ export function configText(options: Readonly<IssueProjectOptions>): string {
   const { aggregation } = options
   const developBranch = Object.hasOwn(options, 'developBranch') ? options.developBranch : 'main'
   const status = { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6', ...options.withoutBlockedColumn !== true && { blocked: 'o7' } }
-  const fields = {
-    workflow: { id: 'PVTSSF_workflow', options: status },
-    priority: { id: 'PVTSSF_priority', options: { high: 'p1', medium: 'p2', low: 'p3' } },
-    size: { id: 'PVTSSF_size', options: { xs: 's1', s: 's2', m: 's3', l: 's4' } },
-  }
+  const fields = { workflow: { id: 'PVTSSF_workflow', options: status } }
   const config = {
     host: 'ghes.example.com',
     owner: 'acme',
@@ -177,4 +173,4 @@ export function rawFrontmatterFile(lines: readonly string[], body = TASK_BODY): 
   return `---\n${lines.join('\n')}\n---\n\n${body}`
 }
 
-export const TASK_FRONTMATTER: Readonly<Record<string, string>> = { title: '一覧に状態を出す', type: 'task', repository: 'acme/demo', status: 'ready', priority: 'high', size: 's' }
+export const TASK_FRONTMATTER: Readonly<Record<string, string>> = { title: '一覧に状態を出す', type: 'task', repository: 'acme/demo', status: 'ready' }

@@ -45,6 +45,10 @@ interface ItemExtra {
   readonly updatedAt?: string
   readonly state?: string
   readonly field?: string
+  /**
+  進行の欄のほかに値を持つ単一選択のフィールドの名前
+  */
+  readonly others?: readonly string[]
 }
 
 // 一覧の応答に載る、着手の判定の軽い入力
@@ -54,7 +58,7 @@ function item(id: string, number: number, workflow: string, extra: ItemExtra = {
   return {
     id,
     updatedAt: extra.updatedAt ?? '2026-01-02T03:04:05Z',
-    fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: extra.field ?? 'pecot-status' }, name: workflow }] },
+    fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: extra.field ?? 'pecot-status' }, name: workflow }, ...(extra.others ?? []).map(name => ({ field: { id: `F_${name}`, name }, name: 'High' }))] },
     content: { id: `I_${String(number)}`, number, title: extra.title ?? `課題${String(number)}`, state: extra.state ?? 'OPEN', url: `https://${DEFAULT_HOST}/acme/${repository}/${extra.isPullRequest === true ? 'pull' : 'issues'}/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...progress },
   }
 }
@@ -128,6 +132,14 @@ describe('board sync', () => {
     expectClean(result)
     expect(result.code).toBe(0)
     expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  run: pecot project init acme <name> --host ghes.example.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+  })
+
+  it('Item の値に pecot-priority・pecot-size が残るボードでは、同じ Issue を動かし、残った名前と project init の案内を出す', async (context) => {
+    await verifies(context, 'PW-BOARD-SYNC-34')
+    const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { others: ['pecot-priority'] }), item('PVTI_5', 5, 'Archived', { state: 'CLOSED', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
+    expectClean(result)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe(`warning: this board still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host ghes.example.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
   it('Ready の Issue に済んでいない前提があると、Blocked へ動かす', async () => {
@@ -462,6 +474,15 @@ describe('board sync', () => {
       expect(stableWarnings(result)[0]).toMatch(/^this board uses the old field name pecot-workflow-acme\n.*project_init/su)
     })
 
+    it('旧い名前の欄と pecot-priority・pecot-size が残るボードでは、1 つの warning で project_init を案内する', async (context) => {
+      await verifies(context, 'PW-BOARD-SYNC-33')
+      await verifies(context, 'PW-BOARD-SYNC-34')
+      const result = await tool('board_sync', {}, [rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
+      expectClean(result)
+      const migrations = stableWarnings(result).filter(warning => warning.includes('project_init'))
+      expect(migrations).toEqual([`this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "${DEFAULT_HOST}"`])
+    })
+
     it('20 件を超えた Archived を削除すると、その件数を deletedArchived に返す', async (context) => {
       await verifies(context, 'PW-BOARD-SYNC-28')
       const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02'), rateLimit(130)])
@@ -772,6 +793,15 @@ describe('board show', () => {
       const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { field: 'pecot-workflow-acme' })), ...rest], boardConfig(FULL_WORKFLOW, repositories))
       expectClean(result)
       expect(stableWarnings(result)[0]).toMatch(/^this board uses the old field name pecot-workflow-acme\n.*project_init/su)
+    })
+
+    it('Item の値に pecot-priority・pecot-size が残るボードでは、残った名前と project_init の案内を warnings に入れる', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-37')
+      const [, ...rest] = showRules()
+      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { others: ['pecot-priority', 'pecot-size'] })), ...rest], boardConfig(FULL_WORKFLOW, repositories))
+      expectClean(result)
+      expect(stableWarnings(result)[0]).toBe(`this board still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "${DEFAULT_HOST}"`)
+      expect(result.structured['board']).toEqual(expected.board)
     })
   })
 })

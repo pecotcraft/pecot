@@ -72,9 +72,9 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 4
 
-- [ ] T013 [P] [US4] `PW/cli/src/domain/tests/frontmatter.test.ts` と `PW/cli/src/domain/tests/config.test.ts` に、`priority`・`size` を読み捨てるテストを先に書く
-- [ ] T014 [P] [US4] `PW/cli/src/domain/tests/security-tracker.test.ts` に、本文の表の列が `Severity` で、GitHub の重大度をそのまま出すテストを先に書く
-- [ ] T015 [P] [US4] `PW/interface/authored.yaml` の `PW-ISSUE-CREATE-11` と freeform の振る舞い（`priority`・`size`）を消し、廃止の振る舞いを足す。
+- [x] T013 [P] [US4] `PW/cli/src/domain/tests/frontmatter.test.ts` と `PW/cli/src/domain/tests/config.test.ts` に、`priority`・`size` を読み捨てるテストを先に書く
+- [x] T014 [P] [US4] `PW/cli/src/domain/tests/security-tracker.test.ts` に、本文の表の列が `Severity` で、GitHub の重大度をそのまま出すテストを先に書く
+- [x] T015 [P] [US4] `PW/interface/authored.yaml` の `PW-ISSUE-CREATE-11` と freeform の振る舞い（`priority`・`size`）を消し、廃止の振る舞いを足す。
   `PW/cli/tests/interface/issue-create.test.ts`・`issue-create-freeform.test.ts`・`project.test.ts`・`tracker-sync-security.test.ts`・`tracker-sync-dependabot.test.ts` に先にテストを書く。
   確かめること:
   - `issue_create` に `priority`・`size` を渡すと無い入力として止まる
@@ -84,18 +84,18 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] `PW/cli/src/domain/config.ts` から `PRIORITIES`・`SIZES`・`fields.priority`・`fields.size` と `fieldOf` の該当の分岐を消す
-- [ ] T017 [US4] `PW/cli/src/commands/project.ts` と `PW/cli/src/commands/project-sync.ts` から、2 つのフィールドの作成・選択肢の定め（`PRIORITY_FIELD_OPTIONS`・`SIZE_FIELD_OPTIONS`）・設定への読み込みを消す。
+- [x] T016 [US4] `PW/cli/src/domain/config.ts` から `PRIORITIES`・`SIZES`・`fields.priority`・`fields.size` と `fieldOf` の該当の分岐を消す
+- [x] T017 [US4] `PW/cli/src/commands/project.ts` と `PW/cli/src/commands/project-sync.ts` から、2 つのフィールドの作成・選択肢の定め（`PRIORITY_FIELD_OPTIONS`・`SIZE_FIELD_OPTIONS`）・設定への読み込みを消す。
   `project_init` に `confirm_delete` を足し、移行の予定に削除を足す。`PW/cli/src/infra/github/queries.ts`・`projects.ts` に `deleteProjectV2Field` を足す
-- [ ] T018 [US4] `PW/cli/src/commands/issue-create.ts`（入力・freeform の既定値・ファイルからの読み込み）と `PW/cli/src/domain/frontmatter.ts` から `priority`・`size` を消す
-- [ ] T019 [P] [US4] `PW/cli/templates/issue/{task,bug,epic,tracker,task-implement}.md` の frontmatter から `priority`・`size` を消す
-- [ ] T020 [US4] トラッカーから priority を消す。
+- [x] T018 [US4] `PW/cli/src/commands/issue-create.ts`（入力・freeform の既定値・ファイルからの読み込み）と `PW/cli/src/domain/frontmatter.ts` から `priority`・`size` を消す
+- [x] T019 [P] [US4] `PW/cli/templates/issue/{task,bug,epic,tracker,task-implement}.md` の frontmatter から `priority`・`size` を消す
+- [x] T020 [US4] トラッカーから priority を消す。
   対象: `PW/cli/src/commands/issue-board.ts` の `putOnBoard`、`PW/cli/src/commands/tracker-sync-security.ts`、`PW/cli/src/domain/security-tracker.ts`（列を `Severity` に）、
   `PW/cli/src/commands/tracker-sync-dependabot.ts`・`PW/cli/src/domain/dependabot-pull-requests.ts` の `PRIORITY`
-- [ ] T021 [P] [US4] `PW/skills/w-quick/SKILL.md` の「priority=medium, size=s」と、`PW/hooks/lib/core/mcp-guidance.sh` の該当の文を消す。
+- [x] T021 [P] [US4] `PW/skills/w-quick/SKILL.md` の「priority=medium, size=s」と、`PW/hooks/lib/core/mcp-guidance.sh` の該当の文を消す。
   ほかのスキルと `PW/skills/w-help/references/` に `priority`・`size` の記述が残っていないか探して消す。w-help に、`confirm_delete` で移行する手順を書く
-- [ ] T022 [US4] `PW/interface/generated.json` を作り直し、T013〜T015 のテストのファイルを動かす
-- [ ] T023 [US4] quickstart.md の A-1 の 3 を、検証用のボードで動かす
+- [x] T022 [US4] `PW/interface/generated.json` を作り直し、T013〜T015 のテストのファイルを動かす
+- [x] T023 [US4] quickstart.md の A-1 の 3 を、検証用のボードで動かす
 
 **Checkpoint**: 新しいボード・起票・トラッカーに Priority・Size が出ず、既存のボードは確認の後にだけ消える
 

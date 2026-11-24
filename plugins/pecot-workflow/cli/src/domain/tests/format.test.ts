@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { JSON_NULL } from '../json-null.js'
-import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, formatBoardOutput, formatItemsJson, formatStackableChains, formatTableRow, transformItems } from '../format.js'
+import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, fieldNamesWithValues, formatBoardOutput, formatItemsJson, formatStackableChains, formatTableRow, transformItems } from '../format.js'
 import type { BoardItem } from '../format.js'
 import type { JsonValue } from '../python-format.js'
 
@@ -132,6 +132,20 @@ describe('fieldNameById', () => {
 
   it('どの Item にも値が無いとき、undefined を返す', () => {
     expect(fieldNameById([{ fieldValues: { nodes: [] } }], 'F_wf')).toBeUndefined()
+  })
+})
+
+describe('fieldNamesWithValues', () => {
+  it('どれかの Item に値がある名前だけを、渡した名前の順に返す', () => {
+    const items = [
+      { fieldValues: { nodes: [{ field: { id: 'F_s', name: 'pecot-size' }, name: 'M' }] } },
+      { fieldValues: { nodes: [{ field: { id: 'F_p', name: 'pecot-priority' }, name: 'High' }, {}] } },
+    ]
+    expect(fieldNamesWithValues(items, ['pecot-priority', 'pecot-size', 'pecot-other'])).toEqual(['pecot-priority', 'pecot-size'])
+  })
+
+  it('どの Item にも値が無いとき、空の配列を返す', () => {
+    expect(fieldNamesWithValues([{ fieldValues: { nodes: [] } }], ['pecot-priority'])).toEqual([])
   })
 })
 

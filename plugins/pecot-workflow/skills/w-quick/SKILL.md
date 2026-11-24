@@ -34,7 +34,7 @@ pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る�
 - タイトルは `message` の 1 行目から自動で作る
 - テンプレート検証スキップ
 - ブランチは作られない（Step 2 の `session_start` が作る）
-- 固定設定: type=task, priority=medium, size=s。status は型の既定（`session_start` が active にする）
+- 固定設定: type=task。status は型の既定（`session_start` が active にする）
   - 起票時点が作業開始時点なので、Step 2 で active にする。詳細は [issue-flow-rules.md §4](../w-help/references/issue-flow-rules.md#起票時の既定-status)
 
 **リポジトリの特定方法:**

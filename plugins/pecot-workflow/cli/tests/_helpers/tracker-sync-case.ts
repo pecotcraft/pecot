@@ -10,8 +10,6 @@ import { makeAmbiguous } from './project-selection.js'
 
 export const NOW = new Date('2026-11-09T12:00:00Z')
 export const WORKFLOW_FIELD = 'PVTSSF_workflow'
-export const PRIORITY_FIELD = 'PVTSSF_priority'
-const PRIORITY_OPTIONS = new Map([['high', 'p1'], ['medium', 'p2'], ['low', 'p3']])
 
 export function freezeClock(): void {
   vi.useFakeTimers({ toFake: ['Date'], now: NOW })
@@ -63,10 +61,6 @@ export interface BoardOptions {
   */
   readonly onlyIfEmpty: boolean
   /**
-  Priority の名前（high・medium・low）。行が無いときは undefined で、Priority を入れない
-  */
-  readonly priority: string | undefined
-  /**
   既に値が入っている欄の ID
   */
   readonly filled?: readonly string[]
@@ -77,10 +71,10 @@ export interface BoardOptions {
 }
 
 /**
-Tracker をボードに載せ、Status を Backlog、Priority を options.priority にする応答
+Tracker をボードに載せ、Status を Backlog にする応答。Status のほかの欄は書かない（書けば表に無い要求としてテストが落ちる）
 */
 export function boardRules(number: number, options: Readonly<BoardOptions>): ResponseRule[] {
-  const { onlyIfEmpty, priority, filled = [], failsToAdd = false } = options
+  const { onlyIfEmpty, filled = [], failsToAdd = false } = options
   const itemId = `PVTI_${String(number)}`
   const nodeId = `I_${String(number)}`
   const rules: ResponseRule[] = [
@@ -94,14 +88,10 @@ export function boardRules(number: number, options: Readonly<BoardOptions>): Res
   if (onlyIfEmpty) {
     const fieldValues = { nodes: filled.map(id => ({ field: { id } })) }
     const items = { nodes: [{ id: itemId, project: { id: 'PVT_1' }, fieldValues }] }
-    rules.push({ match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: items } } } } }, times: priority === undefined ? 1 : 2 })
+    rules.push({ match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: items } } } } }, times: 1 })
   }
-  const priorityOption = priority === undefined ? undefined : PRIORITY_OPTIONS.get(priority)
-  const fields: (readonly [string, string])[] = [[WORKFLOW_FIELD, 'o1']]
-  if (priorityOption !== undefined) fields.push([PRIORITY_FIELD, priorityOption])
-  for (const [fieldId, optionId] of fields) {
-    if (filled.includes(fieldId)) continue
-    const variables = { projectId: 'PVT_1', itemId, fieldId, optionId }
+  if (!filled.includes(WORKFLOW_FIELD)) {
+    const variables = { projectId: 'PVT_1', itemId, fieldId: WORKFLOW_FIELD, optionId: 'o1' }
     rules.push({ match: { operation: 'UpdateProjectItemField', variables }, respond: { status: 200, body: { data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: itemId } } } } }, times: 1 })
   }
   return rules

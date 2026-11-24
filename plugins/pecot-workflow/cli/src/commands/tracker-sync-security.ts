@@ -3,7 +3,7 @@
 
 import { ALERT_KINDS, kindLabel, listOpenAlerts, SecurityAlertError } from '../domain/security-alerts.js'
 import type { AlertKind, AlertSources } from '../domain/security-alerts.js'
-import { ALERT_LABEL, buildTrackerTitle, maxPriority, normalizeAlerts, parseTrackerEntries, planTracker, renderTrackerBody, TRACKER_PATTERN } from '../domain/security-tracker.js'
+import { ALERT_LABEL, buildTrackerTitle, normalizeAlerts, parseTrackerEntries, planTracker, renderTrackerBody, TRACKER_PATTERN } from '../domain/security-tracker.js'
 import type { Alert, TrackerPlan } from '../domain/security-tracker.js'
 import { findTracker } from '../domain/tracker-body.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
@@ -55,7 +55,7 @@ async function fetchOpenAlerts(out: Readonly<Output>, sources: AlertSources, hos
 function operationsOf(plan: TrackerPlan, tracker: number | undefined, title: string, isUnchanged: boolean): SyncStages {
   if (tracker === undefined) {
     if (!plan.create) return { create: [{ verb: 'skip', target: 'Tracker creation' }], rewrite: [] }
-    const created: Operation[] = [{ verb: 'create', target: `Tracker "${title}" with priority ${String(maxPriority(plan.entries))}` }]
+    const created: Operation[] = [{ verb: 'create', target: `Tracker "${title}"` }]
     for (const entry of plan.entries) created.push({ verb: 'add', target: `${entry.kind} #${String(entry.number)} to new Tracker` })
     return { create: created, rewrite: [] }
   }
@@ -89,7 +89,6 @@ interface ApplyInput extends SyncApplyContext {
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は可変
 async function applyChanges(out: Readonly<Output<TrackerSyncData>>, input: Readonly<ApplyInput>): Promise<number> {
   const { client, config, owner, repository, plan, title, body, stages, number, isUnchanged, rows } = input
-  const priority = maxPriority(plan.entries)
   try {
     if (number === undefined) {
       if (!plan.create) {
@@ -100,7 +99,7 @@ async function applyChanges(out: Readonly<Output<TrackerSyncData>>, input: Reado
       for (const operation of stages.create) out.done(operation)
       const created = requireNumber(issue['number'], 'number')
       out.result({ tracker: created, created: true, added: rows.added })
-      return await putOnBoard(out, client, config, owner, repository, created, priority, { onlyIfEmpty: false })
+      return await putOnBoard(out, client, config, owner, repository, created, { onlyIfEmpty: false })
     }
     let failures = 0
     let isUpdated = true
@@ -121,8 +120,8 @@ async function applyChanges(out: Readonly<Output<TrackerSyncData>>, input: Reado
       for (const operation of stages.rewrite) out.done(operation)
       out.result(rows)
     }
-    // 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
-    failures += await putOnBoard(out, client, config, owner, repository, number, priority, { onlyIfEmpty: true })
+    // 作った後にボード登録が失敗した実行を直す。Status は空のときだけ入れる
+    failures += await putOnBoard(out, client, config, owner, repository, number, { onlyIfEmpty: true })
     return failures
   }
   catch (error: unknown) {

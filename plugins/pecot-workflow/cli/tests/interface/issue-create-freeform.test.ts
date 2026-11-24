@@ -53,15 +53,15 @@ function fieldWrites(github: RunningGithub): number {
 }
 
 describe('issue create', () => {
-  it('メッセージとリポジトリを渡すと、テンプレートに照らさず Issue を 1 件作り、ボードに足して欄を設定し、URL を出す', async () => {
+  it('メッセージとリポジトリを渡すと、テンプレートに照らさず Issue を 1 件作り、ボードに足して status を設定し、URL を出す', async () => {
     const project = setUpIssueProject()
-    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo')
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
-    expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority medium, size s\n')
+    expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\n')
     const post = github.requests().find(request => request.type === 'rest')
     expect(post).toMatchObject({ body: { title: `[Task] ${MESSAGE}` } })
     expect(post?.type === 'rest' ? JSON.stringify(post.body) : '').toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
@@ -71,7 +71,7 @@ describe('issue create', () => {
 
   it('複数行のメッセージを渡すと、1 行目の連続する空白を 1 つにしたものを type の接頭辞つきの題にし、本文にはメッセージの全体を入れる', async () => {
     setUpIssueProject()
-    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
     const message = `先頭の   行\n次の行 ${'あ'.repeat(60)}`
 
     const result = await freeform('-m', message, '-r', 'acme/demo')
@@ -85,7 +85,7 @@ describe('issue create', () => {
 
   it('1 行目が 50 文字を超えるメッセージを渡すと、1 行目の先頭 50 文字の連続する空白を 1 つにしたものを題にする', async () => {
     setUpIssueProject()
-    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
     const message = `${'あ'.repeat(30)}   ${'い'.repeat(27)}\n2 行目`
 
     const result = await freeform('-m', message, '-r', 'acme/demo')
@@ -95,28 +95,34 @@ describe('issue create', () => {
     expect(post).toMatchObject({ body: { title: `[Task] ${'あ'.repeat(30)} ${'い'.repeat(17)}` } })
   })
 
-  it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は backlog と medium だけで size を付けない', async () => {
+  it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は status backlog だけにする', async () => {
     setUpIssueProject()
-    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(2), issueNodeId(3), subIssueAdded()])
+    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--type', 'epic', '--parent-epic', '3')
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
     expect(result.stderr).toBe(
-      'warning: giving a parent Epic to an Epic is not recommended\ncreated: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status backlog, priority medium\n'
+      'warning: giving a parent Epic to an Epic is not recommended\ncreated: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status backlog\n'
       + 'added: Issue acme/demo/12 as sub-issue of acme/demo/3\n',
     )
   })
 
-  it('--priority と --size を渡すと、既定の medium・s の代わりにその値を設定する', async () => {
+  it.for([
+    { name: '--priority', argv: ['--priority', 'high'] },
+    { name: '--size', argv: ['--size', 'm'] },
+  ])('$name を渡すと、知らないオプションとして、何も作らずに終了コード 2 で終わる', async (row, context) => {
+    await verifies(context, 'PW-ISSUE-CREATE-87')
     setUpIssueProject()
-    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const github = await startGithub([])
 
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--priority', 'high', '--size', 'm')
+    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', ...row.argv)
 
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe('created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size m\n')
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain(`No such option: ${row.name}`)
+    expect(github.requests()).toEqual([])
   })
 
   it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定をせず、終了コード 0 で終わる', async () => {
@@ -132,7 +138,7 @@ describe('issue create', () => {
 
   it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async () => {
     setUpIssueProject()
-    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])
+    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--parent-epic', '3')
 
@@ -174,11 +180,11 @@ describe('issue create', () => {
   })
 
   describe('MCP の呼び出し', () => {
-    it('message と repo を渡すと、テンプレートに照らさず Issue を 1 件作り、status・priority・size を既定の値にして issues に返す', async (context) => {
+    it('message と repo を渡すと、テンプレートに照らさず Issue を 1 件作り、status だけを既定の値にして issues に返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-60')
       await verifies(context, 'PW-ISSUE-CREATE-62')
       const project = setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
       const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo' })
 
@@ -186,7 +192,7 @@ describe('issue create', () => {
       expect(outcome.structured).toEqual({ issues: [{ ...ISSUE_12, status: 'ready' }] })
       expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ body: { title: `[Task] ${MESSAGE}` } })
       expect(sentBody(github)).toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
-      expect(fieldWrites(github)).toBe(3)
+      expect(fieldWrites(github)).toBe(1)
       expect(hasQuickMode(project.root)).toBe(false)
     })
 
@@ -196,7 +202,7 @@ describe('issue create', () => {
     ])('$name の message を渡すと、1 行目の先頭 50 文字の連続する空白を 1 つにしたものを接頭辞つきの題にする', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-61')
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
       const outcome = await freeformTool({ message: row.message, repo: 'acme/demo' })
 
@@ -204,32 +210,32 @@ describe('issue create', () => {
       expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ body: { title: row.title } })
     })
 
-    it('Epic に parent_epic を付けると、親につないで warnings に入れ、欄は backlog と medium だけにする', async (context) => {
+    it('Epic に parent_epic を付けると、親につないで warnings に入れ、欄は status backlog だけにする', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-62')
       await verifies(context, 'PW-ISSUE-CREATE-63')
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(2), issueNodeId(3), subIssueAdded()])
+      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
       const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', type: 'epic', parent_epic: '3' })
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ issues: [{ ...ISSUE_12, status: 'backlog', parent: 'acme/demo/3' }], warnings: ['giving a parent Epic to an Epic is not recommended'] })
-      expect(fieldWrites(github)).toBe(2)
+      expect(fieldWrites(github)).toBe(1)
     })
 
-    it('priority と size を渡すと、既定の medium・s の代わりにその値を設定する', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-73')
+    it.for([
+      { name: 'priority', arguments_: { priority: 'high' } },
+      { name: 'size', arguments_: { size: 'm' } },
+    ])('$name を渡すと、無い入力として止まり、Issue を作らない', async (row, context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-87')
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+      const github = await startGithub([])
 
-      const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', priority: 'high', size: 'm' })
+      const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', ...row.arguments_ })
 
-      expect(outcome.isError).toBe(false)
-      expect(github.requests().flatMap(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField' ? [request.variables] : [])).toMatchObject([
-        { fieldId: 'PVTSSF_workflow', optionId: 'o3' },
-        { fieldId: 'PVTSSF_priority' },
-        { fieldId: 'PVTSSF_size' },
-      ])
+      expect(outcome.isError).toBe(true)
+      expect(JSON.stringify(outcome)).toContain(row.name)
+      expect(github.requests()).toEqual([])
     })
 
     it('ボードへの追加に失敗したとき、warnings に入れ、欄の設定をせず、作った Issue を issues に入れて成功を返す', async (context) => {
@@ -248,7 +254,7 @@ describe('issue create', () => {
     it('親 Epic へのつなぎに失敗したとき、作った Issue を issues に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-66')
       setUpIssueProject()
-      await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3), issueNodeId(3), failedSubIssue()])
+      await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
       const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', parent_epic: '3' })
 

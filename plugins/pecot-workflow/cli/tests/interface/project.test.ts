@@ -40,8 +40,6 @@ function standardFields(workflow: readonly string[] = WORKFLOW_NAMES): Json[] {
   return [
     { id: 'PVTF_title', name: 'Title' },
     { id: 'PVTSSF_workflow', name: 'pecot-status', databaseId: 456, options: options(workflow) },
-    { id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) },
-    { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) },
     statusField(),
   ]
 }
@@ -68,7 +66,7 @@ const syncRules = (...linkedNames: string[]): ResponseRule[] => [listProjects(pr
 
 const createField = (name: string, id: string): ResponseRule => graphqlRule('CreateProjectField', { createProjectV2Field: { projectV2Field: { id, name, options: [] } } }, { name })
 const updateField = (fieldId: string): ResponseRule => graphqlRule('UpdateProjectField', { updateProjectV2Field: { projectV2Field: { id: fieldId, name: 'x', options: [] } } }, { fieldId })
-const createFields = (): ResponseRule[] => [createField('pecot-status', 'PVTSSF_w'), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s')]
+const createFields = (): ResponseRule[] => [createField('pecot-status', 'PVTSSF_w')]
 
 function createRules(finalFields: Json[] = standardFields()): ResponseRule[] {
   return [
@@ -201,6 +199,12 @@ const LEGACY_FIELD = 'pecot-workflow-acme'
 const LEGACY_NAME = path.parse(LEGACY_CONFIG_FILE).name
 const legacyConfig: Partial<CommandRun> = { config: projectConfig({ extra: { workflow_suffix: 'acme' } }), configFile: LEGACY_CONFIG_FILE }
 const renameRule = (fieldId = 'PVTSSF_old'): ResponseRule => graphqlRule('RenameProjectField', { updateProjectV2Field: { projectV2Field: { id: fieldId, name: 'pecot-status' } } }, { fieldId, name: 'pecot-status' })
+// 廃止した fields.priority・fields.size を足した、旧い形の設定
+function withOldFields(saved: Json): Json {
+  const project = asJson(saved['project'])
+  const oldFields = { priority: { id: 'PVTSSF_priority', options: { high: 'p1', medium: 'p2', low: 'p3' } }, size: { id: 'PVTSSF_size', options: { xs: 's1', s: 's2', m: 's3', l: 's4' } } }
+  return { ...saved, project: { ...project, fields: { ...asJson(project['fields']), ...oldFields } } }
+}
 const movedNote = (name: string): string => `warning: the project config is now named ${name}\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\n`
 // lanes を渡さず、pecot-lane も無いボードの行と案内
 const NO_LANES = 'skipped: field pecot-lane (no lanes given)\nwarning: field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes\n'
@@ -374,30 +378,37 @@ describe('project init', () => {
   const init = async (rules: ResponseRule[], title = 'board', config: Json | false = false): Promise<CommandResult> => await run(arguments_('init', 'acme', title, '--host', DEFAULT_HOST), rules, { config })
   const base = (fields: Json[]): ResponseRule[] => [listProjects(projectNode(1, 'board')), projectFields(fields)]
   const workflowField = (names: readonly string[], name = 'pecot-status'): Json => ({ id: 'PVTSSF_old', name, options: options(names) })
-  const otherFields = (): Json[] => [{ id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) }, { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) }]
-  const skippedFields = `skipped: field pecot-status (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n${NO_LANES}`
+  const unusedFields = (): Json[] => [{ id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) }, { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) }]
+  const withUnused = (): Json[] => [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...unusedFields()]
+  const deleteField = (fieldId: string, name: string): ResponseRule => graphqlRule('DeleteProjectField', { deleteProjectV2Field: { projectV2Field: { id: fieldId, name } } }, { fieldId })
+  const deleteRules = (): ResponseRule[] => [deleteField('PVTSSF_priority', 'pecot-priority'), deleteField('PVTSSF_size', 'pecot-size')]
+  const confirmed = (...rest: string[]): string[] => arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, '--confirm-delete', ...rest)
+  const pendingText = (names: string, again: string): string => `these fields are not used by pecot and are left on the board: ${names}\n  deleting them also deletes their values on every item, and the values cannot be restored\n  show these names to the user and get their approval; only then, ${again}`
+  const pendingWarning = (names: string): string => `warning: ${pendingText(names, `run again: pecot project init acme board --host ${DEFAULT_HOST} --confirm-delete`)}\n`
+  const skippedFields = `skipped: field pecot-status (already exists)\n${NO_LANES}`
   const syncedLines = (result: Readonly<CommandResult>): string => `created: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`
 
-  it('フィールドの無いプロジェクトに打つと、3 つのフィールドを作る', async (context) => {
+  it('フィールドの無いプロジェクトに打つと、pecot-status のフィールドを作り、pecot-priority・pecot-size を作らない', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-01')
+    await verifies(context, 'PW-PROJECT-INIT-25')
     const result = await init([...base(titleOnly), ...createFields(), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-priority', 'pecot-size'])
+    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status'])
   })
 
   it('フィールドを作ると、created の行を標準エラーに出す', async () => {
     const result = await init([...base(titleWithoutStatus), ...createFields(), ...syncRules()])
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`created: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n${NO_LANES}skipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`created: field pecot-status (ID: PVTSSF_w)\n${NO_LANES}skipped: field Status (not found)\n${syncedLines(result)}`)
   })
 
   it('既にあるフィールドは作らずに、skipped の行を標準エラーに出す', async () => {
     const existing = [...titleOnly, workflowField([...WORKFLOW_NAMES_WITH_BLOCKED])]
-    const result = await init([...base(existing), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()])
+    const result = await init([...base(existing), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`skipped: field pecot-status (already exists)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n${NO_LANES}unchanged: option Blocked in field pecot-status\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`skipped: field pecot-status (already exists)\n${NO_LANES}unchanged: option Blocked in field pecot-status\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
   })
 
   it('指定したタイトルのプロジェクトが無いと、終了コード 1 で終わる', async () => {
@@ -413,7 +424,7 @@ describe('project init', () => {
   })
 
   it('既にあるフィールドに Blocked と Needs Attention が無いと、足して added の行を標準エラーに出す', async () => {
-    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const existing = [...titleOnly, workflowField(BOARD_ORDER)]
     const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -422,7 +433,7 @@ describe('project init', () => {
 
   it('選択肢を足すとき、既存の選択肢は id・name・color・description のまま送り、Blocked は Backlog の直後、Needs Attention は末尾に置く', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-07')
-    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const existing = [...titleOnly, workflowField(BOARD_ORDER)]
     const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), ...syncRules()])
     const kept = (names: readonly string[]): Json[] => options(names)
     const blocked = { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' }
@@ -436,7 +447,7 @@ describe('project init', () => {
   it('値を足すと、設定ファイルを同期して Blocked・In Progress・Needs Attention の id を書く', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-08')
     await verifies(context, 'PW-PROJECT-INIT-18')
-    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const existing = [...titleOnly, workflowField(BOARD_ORDER)]
     const synced = [
       { id: 'PVTF_title', name: 'Title' },
       { id: 'PVTSSF_workflow', name: 'pecot-status', databaseId: 456, options: options(WORKFLOW_NAMES_WITH_BLOCKED) },
@@ -455,7 +466,7 @@ describe('project init', () => {
   it('Status に In Progress が無いと、設定ファイルに in_progress を書かずに成功する', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-19')
     const renamed = ['Todo', 'Doing', 'Done']
-    const existing = [...titleWithoutStatus, workflowField(BOARD_ORDER), ...otherFields(), statusField(renamed)]
+    const existing = [...titleWithoutStatus, workflowField(BOARD_ORDER), statusField(renamed)]
     const synced = [
       { id: 'PVTF_title', name: 'Title' },
       { id: 'PVTSSF_workflow', name: 'pecot-workflow-acme', databaseId: 456, options: options(WORKFLOW_NAMES_WITH_BLOCKED) },
@@ -468,7 +479,7 @@ describe('project init', () => {
   })
 
   it('値が既にあると、書き込まずに unchanged の行を出す', async () => {
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), statusField([...STATUS_NAMES, 'needs attention'])]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), statusField([...STATUS_NAMES, 'needs attention'])]
     const result = await init([...base(existing), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -477,7 +488,7 @@ describe('project init', () => {
   })
 
   it('Status のフィールドが無いボードでは、何も足さずに skipped の行を出す', async () => {
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const result = await init([...base(existing), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -486,7 +497,7 @@ describe('project init', () => {
   })
 
   it('選択肢を足せなかったときは、warning の行を出して続け、終了コード 0 で終わる', async () => {
-    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const existing = [...titleOnly, workflowField(BOARD_ORDER)]
     const result = await init([...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -496,7 +507,7 @@ describe('project init', () => {
 
   it('HTTP 200 で GraphQL の errors が返って足せなくても、warning の行を出して続け、終了コード 0 で終わる', async () => {
     const rejected: ResponseRule = { match: { operation: 'UpdateProjectField' }, respond: { status: 200, body: { errors: [{ message: 'Variable $options of type [ProjectV2SingleSelectFieldOptionInput!]! was provided invalid value for 0.id (Field is not defined on ProjectV2SingleSelectFieldOptionInput)' }] } }, times: 1 }
-    const existing = [...titleOnly, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleOnly, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const result = await init([...base(existing), rejected, ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -506,7 +517,7 @@ describe('project init', () => {
 
   it('設定ファイルがあり、内容がボードから作る内容と同じなら、設定ファイルとアクティブのどちらも書き換えない', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-12')
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), statusField([...STATUS_NAMES, 'Needs Attention'])]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), statusField([...STATUS_NAMES, 'Needs Attention'])]
     const rules = (): ResponseRule[] => [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()]
     const first = await init(rules())
     expect(first.stderr).toContain('created: config file ')
@@ -519,7 +530,7 @@ describe('project init', () => {
 
   it('設定ファイルがあっても内容がボードと違えば（Blocked の id が無い）、同期して Blocked の id を書く', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-08')
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const stale = projectConfig()
     const result = await init([...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], 'board', stale)
     expect(result.code).toBe(0)
@@ -529,7 +540,7 @@ describe('project init', () => {
   })
 
   it('既にある進行の欄に必須の値が欠けていると、何も書かずに終了コード 1 で終わる', async () => {
-    const existing = [...titleOnly, workflowField(['Backlog', 'Blocked']), ...otherFields()]
+    const existing = [...titleOnly, workflowField(['Backlog', 'Blocked'])]
     const result = await init(base(existing))
     expect(result.code).toBe(1)
     expectClean(result)
@@ -542,7 +553,7 @@ describe('project init', () => {
   it('pecot-status と旧い名前の進行の欄が両方あるボードでは、旧い欄を改名せずに、pecot-status の欄で設定ファイルを同期する', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-14')
     const legacy = { ...workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), id: 'PVTSSF_legacy' }
-    const existing = [...titleWithoutStatus, legacy, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleWithoutStatus, legacy, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const result = await init([...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()])
     expect(result.code).toBe(0)
     expectClean(result)
@@ -553,19 +564,19 @@ describe('project init', () => {
 
   it('旧い名前の進行の欄だけがあるボードでは、名前だけを渡して pecot-status に改名し、renamed の行を出す', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-20')
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
-    const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD)]
+    const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const result = await init([...base(existing), renameRule(), listProjects(projectNode(1, 'board')), projectFields(renamed), linked()])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(graphqlVariables(result, 'RenameProjectField')).toEqual([{ fieldId: 'PVTSSF_old', name: 'pecot-status' }])
-    expect(result.stderr).toBe(`renamed: field ${LEGACY_FIELD} to pecot-status\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n${NO_LANES}unchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`renamed: field ${LEGACY_FIELD} to pecot-status\n${NO_LANES}unchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}`)
     expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_old' } } } })
   })
 
   it('旧い名前の設定ファイルがあると、新しい名前に移し、アクティブな設定を新しい名前にする', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-22')
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST), [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], legacyConfig)
     expect(result.code).toBe(0)
     expectClean(result)
@@ -577,7 +588,7 @@ describe('project init', () => {
 
   it('--dry-run で旧い形のボードに打つと、改名と設定ファイルを移す予定を dry-run の行で出し、何も書かない', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-23')
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD)]
     const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, '--dry-run'), base(existing), legacyConfig)
     expect(result.code).toBe(0)
     expectClean(result)
@@ -590,7 +601,7 @@ describe('project init', () => {
 
   it('同じボードを指す旧い名前の設定ファイルが 2 つあると、欄を改名せず、何も移さずに終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-24')
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD)]
     const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST), [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], { ...legacyConfig, files: otherFile })
     expect(result.code).toBe(1)
     expect(result.stderr).toContain(`error: several config files point to project #1:\n  - ${path.basename(LEGACY_CONFIG_FILE)}\n  - ${OTHER_NAME}.json\n`)
@@ -608,7 +619,7 @@ describe('project init', () => {
   })
 
   it('設定ファイルの同期で GitHub API がエラーを返すと、could not sync project config の行を出して終了コード 1 で終わる', async () => {
-    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
     const result = await init([...base(existing), listProjects(projectNode(1, 'board')), failing('GetProjectFieldsUser'), failing('GetProjectFieldsOrg')])
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/error: could not sync project config: /u)
@@ -617,7 +628,7 @@ describe('project init', () => {
 
   it('--dry-run で、フィールドが揃っていて足す選択肢だけがあると、設定ファイルの予行の行を出さない', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-17')
-    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const existing = [...titleOnly, workflowField(BOARD_ORDER)]
     const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, '--dry-run'), base(existing), { config: false })
     expect(result.code).toBe(0)
     expectClean(result)
@@ -626,12 +637,91 @@ describe('project init', () => {
     expect(requestLabels(result.requests)).not.toContain('GetLinkedRepositoriesUser')
   })
 
+  it('pecot-priority・pecot-size があるボードに --confirm-delete なしで打つと、何も消さずに、名前と承認を求める warning の行を出す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-26')
+    const result = await init([...base(withUnused()), ...syncRules()])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}${pendingWarning('pecot-priority, pecot-size')}`)
+    expect(requestLabels(result.requests)).not.toContain('DeleteProjectField')
+  })
+
+  it('--confirm-delete を付けて打つと、設定ファイルを同期した後に 2 つのフィールドを消し、deleted の行を出す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-27')
+    const result = await run(confirmed(), [...base(withUnused()), ...syncRules(), ...deleteRules()], { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(graphqlVariables(result, 'DeleteProjectField')).toEqual([{ fieldId: 'PVTSSF_priority' }, { fieldId: 'PVTSSF_size' }])
+    expect(result.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}deleted: field pecot-priority\ndeleted: field pecot-size\n`)
+    const labels = requestLabels(result.requests)
+    expect(labels.indexOf('DeleteProjectField')).toBeGreaterThan(labels.indexOf('GetLinkedRepositoriesUser'))
+  })
+
+  it('pecot-status と旧い名前の進行の欄が両方あるボードでは、旧い欄も消す予定に入れ、--confirm-delete で 3 つを消す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-28')
+    const legacy = { ...workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), id: 'PVTSSF_legacy' }
+    const existing = [...titleWithoutStatus, legacy, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...unusedFields()]
+    const pending = await init([...base(existing), ...syncRules()])
+    expect(pending.code).toBe(0)
+    expect(pending.stderr).toContain(pendingWarning(`pecot-priority, pecot-size, ${LEGACY_FIELD}`))
+    expect(requestLabels(pending.requests)).not.toContain('DeleteProjectField')
+    const result = await run(confirmed(), [...base(existing), ...syncRules(), ...deleteRules(), deleteField('PVTSSF_legacy', LEGACY_FIELD)], { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(graphqlVariables(result, 'DeleteProjectField')).toEqual([{ fieldId: 'PVTSSF_priority' }, { fieldId: 'PVTSSF_size' }, { fieldId: 'PVTSSF_legacy' }])
+    expect(result.stderr).toContain(`deleted: field ${LEGACY_FIELD}\n`)
+    expect(requestLabels(result.requests)).not.toContain('RenameProjectField')
+  })
+
+  it('--dry-run と --confirm-delete を付けて打つと、消す予定を dry-run の行で出し、何も消さない', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-29')
+    const result = await run(confirmed('--dry-run'), [...base(withUnused()), ...syncRules()], { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toMatch(/dry-run: would set active project to [^\n]+\ndry-run: would delete field pecot-priority\ndry-run: would delete field pecot-size\n$/u)
+    expect(result.stderr).not.toContain('warning: these fields')
+    expect(requestLabels(result.requests)).not.toContain('DeleteProjectField')
+    expect(result.read(CONFIG_FILE)).toBeUndefined()
+  })
+
+  it('--dry-run と --confirm-delete を付けて、選択肢を足す予定があるボードに打つと、選択肢の予定に続けて消す予定を dry-run の行で出す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-29')
+    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...unusedFields()]
+    const result = await run(confirmed('--dry-run'), base(existing), { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toBe(`${skippedFields.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would add option Blocked to field pecot-status\ndry-run: would add option Needs Attention to field Status\ndry-run: would delete field pecot-priority\ndry-run: would delete field pecot-size\n`)
+    expect(requestLabels(result.requests)).not.toContain('DeleteProjectField')
+    expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+  })
+
+  it('フィールドの削除で GitHub API がエラーを返すと、could not delete project fields の行を出して終了コード 1 で終わり、同期した設定ファイルは残す', async () => {
+    const result = await run(confirmed(), [...base(withUnused()), ...syncRules(), failing('DeleteProjectField')], { config: false })
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/error: could not delete project fields: /u)
+    expect(result.read(CONFIG_FILE)).toBeDefined()
+  })
+
+  it('設定ファイルに fields.priority・fields.size が残っていると、ボードと同じ内容でも update で書き直し、2 つのキーを消す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-30')
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), statusField([...STATUS_NAMES, 'Needs Attention'])]
+    const rules = (): ResponseRule[] => [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()]
+    const first = await init(rules())
+    const second = await init(rules(), 'board', withOldFields(savedConfig(first)))
+    expect(second.code).toBe(0)
+    expectClean(second)
+    expect(second.stderr).toContain(`updated: config file ${configPathOf(second)}\n`)
+    expect(second.read(CONFIG_FILE)).toBe(first.read(CONFIG_FILE))
+    const fields = asJson(asJson(savedConfig(second)['project'])['fields'])
+    expect(Object.keys(fields)).toEqual(['workflow', 'status'])
+  })
+
   describe('pecot-lane と Lanes のビュー', () => {
     const LANES = ['--lanes', 'cli', '--lanes', 'skills']
     const initLanes = async (rules: ResponseRule[], extra: readonly string[] = LANES): Promise<CommandResult> => await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, ...extra), rules, { config: false })
     // pecot-lane のほかは揃っていて、Status の欄の無いボード
-    const ready = (...extra: Json[]): Json[] => [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), ...extra]
-    const readyLines = 'skipped: field pecot-status (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n'
+    const ready = (...extra: Json[]): Json[] => [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...extra]
+    const readyLines = 'skipped: field pecot-status (already exists)\n'
     const laneArguments = { ...initArguments, lanes: ['cli', 'skills'] }
     const laneBoard = (...names: string[]): ResponseRule[] => base(ready(laneField(names)))
     const TEXT_LANE = { id: 'PVTF_lane', name: 'pecot-lane' }
@@ -771,7 +861,7 @@ describe('project init', () => {
       expect(result.code).toBe(0)
       expectClean(result)
       const savedFields = asJson(asJson(savedConfig(result)['project'])['fields'])
-      expect(sorted(Object.keys(savedFields))).toEqual(['priority', 'size', 'status', 'workflow'])
+      expect(sorted(Object.keys(savedFields))).toEqual(['status', 'workflow'])
       expect(result.read(CONFIG_FILE)).not.toContain('PVTSSF_lane')
     })
 
@@ -800,17 +890,15 @@ describe('project init', () => {
     it('作ったフィールドと足した選択肢を fields に返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-03')
       await verifies(context, 'PW-PROJECT-INIT-06')
-      const rules = [...initRules([...titleOnly, workflowWithBlocked]), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()]
+      const rules = [...initRules([...titleOnly, workflowWithBlocked]), updateField('PVTSSF_status'), ...syncRules()]
       const result = await tool('project_init', initArguments, rules, { config: false })
       expect(result.structured).toEqual({
         fields: [
           { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
-          { name: 'pecot-priority', change: 'create', addedOptions: [] },
-          { name: 'pecot-size', change: 'create', addedOptions: [] },
           NO_LANES_ROW,
           { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
         ],
-        migration: { renamed: null, config_moved: null },
+        migration: { renamed: null, config_moved: null, pending_delete: [], deleted: [] },
         warnings: [NO_LANES_WARNING],
       })
     })
@@ -819,23 +907,21 @@ describe('project init', () => {
       await verifies(context, 'PW-PROJECT-INIT-02')
       await verifies(context, 'PW-PROJECT-INIT-10')
       const result = await tool('project_init', initArguments, [...initRules(titleWithoutStatus), ...createFields(), ...syncRules()], { config: false })
-      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-status', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, NO_LANES_ROW, { name: 'Status', change: 'skip', addedOptions: [] }], warnings: [NO_LANES_WARNING] })
+      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-status', change: 'create' }, NO_LANES_ROW, { name: 'Status', change: 'skip', addedOptions: [] }], warnings: [NO_LANES_WARNING] })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     })
 
     it('足す選択肢が既にあると、書き込まずに、その欄の change を unchanged にする', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-09')
-      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), statusField([...STATUS_NAMES, 'needs attention'])]
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), statusField([...STATUS_NAMES, 'needs attention'])]
       const result = await tool('project_init', initArguments, [...base(existing), ...syncRules()], { config: false })
       expect(result.structured).toEqual({
         fields: [
           { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
-          { name: 'pecot-priority', change: 'unchanged', addedOptions: [] },
-          { name: 'pecot-size', change: 'unchanged', addedOptions: [] },
           NO_LANES_ROW,
           { name: 'Status', change: 'unchanged', addedOptions: [] },
         ],
-        migration: { renamed: null, config_moved: null },
+        migration: { renamed: null, config_moved: null, pending_delete: [], deleted: [] },
         warnings: [NO_LANES_WARNING],
       })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
@@ -856,7 +942,7 @@ describe('project init', () => {
 
     it('選択肢を足せないと、warnings に入れて続け、成功を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-11')
-      const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+      const existing = [...titleOnly, workflowField(BOARD_ORDER)]
       const result = await tool('project_init', initArguments, [...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()], { config: false })
       expect(result.isError).toBe(false)
       expectClean(result)
@@ -865,7 +951,7 @@ describe('project init', () => {
 
     it('既にある進行の欄に必須の値が欠けていると、何も書かずに、欠けた値を detail に入れて kind が not-initialized の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-13')
-      const existing = [...titleOnly, workflowField(['Backlog', 'Blocked']), ...otherFields()]
+      const existing = [...titleOnly, workflowField(['Backlog', 'Blocked'])]
       const result = await tool('project_init', initArguments, base(existing), { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
       expect(result.structured['detail']).toContain('pecot-status field is missing options: Pending, Ready, Active, In Review, Archived')
@@ -875,7 +961,7 @@ describe('project init', () => {
 
     it('設定ファイルの同期で GitHub API がエラーを返すと、could not sync project config で始まる detail を入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-15')
-      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
       const result = await tool('project_init', initArguments, [...base(existing), listProjects(projectNode(1, 'board')), failing('GetProjectFieldsUser'), failing('GetProjectFieldsOrg')], { config: false })
       expect(result.isError).toBe(true)
       expect(result.structured['detail']).toMatch(/^could not sync project config: /u)
@@ -885,20 +971,20 @@ describe('project init', () => {
       await verifies(context, 'PW-PROJECT-INIT-20')
       await verifies(context, 'PW-PROJECT-INIT-21')
       await verifies(context, 'PW-PROJECT-INIT-22')
-      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
-      const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD)]
+      const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
       const result = await tool('project_init', initArguments, [...base(existing), renameRule(), listProjects(projectNode(1, 'board')), projectFields(renamed), linked()], legacyConfig)
       expectClean(result)
       expect(jsonList(result.structured['fields'])[0]).toEqual({ name: 'pecot-status', change: 'rename', addedOptions: [] })
-      expect(result.structured['migration']).toEqual({ renamed: LEGACY_FIELD, config_moved: { from: path.basename(LEGACY_CONFIG_FILE), to: path.basename(CONFIG_FILE) } })
+      expect(result.structured['migration']).toEqual({ renamed: LEGACY_FIELD, config_moved: { from: path.basename(LEGACY_CONFIG_FILE), to: path.basename(CONFIG_FILE) }, pending_delete: [], deleted: [] })
       expect(result.structured['warnings']).toEqual([NO_LANES_WARNING, expect.stringMatching(/^the project config is now named /u)])
       expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
     })
 
     it('Blocked の無い旧い形のボードで改名すると、選択肢を足しても fields の change を rename のまま返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-20')
-      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES, LEGACY_FIELD), ...otherFields()]
-      const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES, LEGACY_FIELD)]
+      const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
       const result = await tool('project_init', initArguments, [...base(existing), renameRule(), updateField('PVTSSF_old'), listProjects(projectNode(1, 'board')), projectFields(renamed), linked()], { config: false })
       expectClean(result)
       expect(jsonList(result.structured['fields'])[0]).toEqual({ name: 'pecot-status', change: 'rename', addedOptions: ['Blocked'] })
@@ -906,7 +992,7 @@ describe('project init', () => {
 
     it('同じボードを指す旧い名前の設定ファイルが 2 つあると、何も移さずに kind が config-invalid の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-24')
-      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED)]
       const result = await tool('project_init', initArguments, [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], { ...legacyConfig, files: otherFile })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'config-invalid' } })
       expect(result.read(CONFIG_FILE)).toBeUndefined()
@@ -917,6 +1003,44 @@ describe('project init', () => {
       expect(result.isError).toBe(true)
       expect(JSON.stringify(result)).toContain('suffix')
       expect(result.requests).toEqual([])
+    })
+
+    it('confirm_delete なしでは、消す予定の名前を pending_delete に入れ、承認を求める文を warnings に入れ、何も消さない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-26')
+      const result = await tool('project_init', initArguments, [...base(withUnused()), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expectClean(result)
+      expect(result.structured['migration']).toEqual({ renamed: null, config_moved: null, pending_delete: ['pecot-priority', 'pecot-size'], deleted: [] })
+      expect(result.structured['warnings']).toEqual([NO_LANES_WARNING, pendingText('pecot-priority, pecot-size', `call project_init with owner: "acme", name: "board", host: "${DEFAULT_HOST}", confirm_delete: true again`)])
+      expect(jsonList(result.structured['fields']).map(row => row['name'])).toEqual(['pecot-status', 'pecot-lane', 'Status'])
+      expect(requestLabels(result.requests)).not.toContain('DeleteProjectField')
+    })
+
+    it('confirm_delete: true では、消した名前を deleted に入れ、fields に change が delete の行を入れる', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-27')
+      const result = await tool('project_init', { ...initArguments, confirm_delete: true }, [...base(withUnused()), ...syncRules(), ...deleteRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expectClean(result)
+      expect(result.structured).toEqual({
+        fields: [
+          { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
+          NO_LANES_ROW,
+          { name: 'Status', change: 'skip', addedOptions: [] },
+          { name: 'pecot-priority', change: 'delete', addedOptions: [] },
+          { name: 'pecot-size', change: 'delete', addedOptions: [] },
+        ],
+        migration: { renamed: null, config_moved: null, pending_delete: [], deleted: ['pecot-priority', 'pecot-size'] },
+        warnings: [NO_LANES_WARNING],
+      })
+    })
+
+    it('pecot-status と旧い名前の進行の欄が両方あるボードでは、旧い欄の名前を pending_delete の末尾に入れる', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-28')
+      const legacy = { ...workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), id: 'PVTSSF_legacy' }
+      const existing = [...titleWithoutStatus, legacy, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...unusedFields()]
+      const result = await tool('project_init', initArguments, [...base(existing), ...syncRules()], { config: false })
+      expectClean(result)
+      expect(result.structured['migration']).toMatchObject({ pending_delete: ['pecot-priority', 'pecot-size', LEGACY_FIELD], deleted: [] })
     })
   })
 })
@@ -932,10 +1056,11 @@ describe('project create', () => {
     expect(graphqlVariables(result, 'CreateProject')).toEqual([{ ownerId: 'U_1', title: 'board' }])
   })
 
-  it('プロジェクトを作ると、続けて 3 つのフィールドを足す', async (context) => {
+  it('プロジェクトを作ると、続けて pecot-status のフィールドを足し、pecot-priority・pecot-size を作らない', async (context) => {
     await verifies(context, 'PW-PROJECT-CREATE-02')
+    await verifies(context, 'PW-PROJECT-CREATE-13')
     const result = await create(createRules())
-    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-priority', 'pecot-size'])
+    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status'])
   })
 
   it('フィールドを足すと、設定ファイルを作る', async (context) => {
@@ -965,7 +1090,7 @@ describe('project create', () => {
   it('プロジェクトを作ると、created の行を標準エラーに出す', async () => {
     const result = await create(createRules())
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n${NO_LANES}added: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
+    expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-status (ID: PVTSSF_w)\n${NO_LANES}added: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
   })
 
   it('Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る', async () => {
@@ -1018,7 +1143,7 @@ describe('project create', () => {
       const result = await run(arguments_('create', 'acme', 'board', '--host', DEFAULT_HOST, '--lanes', 'cli', '--lanes', 'skills'), laneRules(), { config: false })
       expect(result.code).toBe(0)
       expectClean(result)
-      expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-priority', 'pecot-size', 'pecot-lane'])
+      expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-lane'])
       expect(restBodies(result, USER_VIEWS_PATH)).toEqual([lanesBody])
       expect(result.stderr).toContain(`created: field pecot-lane (ID: PVTSSF_lane)\nadded: option Needs Attention to field Status\ncreated: view Lanes (${VIEW_URL})\n`)
     })
@@ -1038,8 +1163,6 @@ describe('project create', () => {
       expect(result.isError).toBe(false)
       expect(result.structured['fields']).toEqual([
         { name: 'pecot-status', change: 'create', addedOptions: [] },
-        { name: 'pecot-priority', change: 'create', addedOptions: [] },
-        { name: 'pecot-size', change: 'create', addedOptions: [] },
         { name: 'pecot-lane', change: 'create', addedOptions: [] },
         { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
       ])
@@ -1057,8 +1180,6 @@ describe('project create', () => {
         number: 1, url: BOARD_URL, title: 'board', owner: 'acme',
         fields: [
           { name: 'pecot-status', change: 'create', addedOptions: [] },
-          { name: 'pecot-priority', change: 'create', addedOptions: [] },
-          { name: 'pecot-size', change: 'create', addedOptions: [] },
           NO_LANES_ROW,
           { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
         ],
@@ -1760,6 +1881,18 @@ describe('project activate', () => {
     expect(data.structured).toMatchObject({ change: 'unchanged', project: NAME })
   })
 
+  it('設定ファイルに fields.priority・fields.size が残っていると、ボードと同じ内容でも update で書き直し、2 つのキーを消す', async (context) => {
+    await verifies(context, 'PW-PROJECT-ACTIVATE-28')
+    const first = await activateByNumber()
+    const again = await activateByNumber({ config: withOldFields(savedConfig(first)) })
+    expect(again.code).toBe(0)
+    expectClean(again)
+    expect(again.stderr).toBe(`updated: config file ${configPathOf(again)}\nset: active project to ${NAME}\n`)
+    expect(again.read(CONFIG_FILE)).toBe(first.read(CONFIG_FILE))
+    const data = await tool('project_activate', { ...owned, project: '1' }, [projectFields(), ...syncRules()], { config: withOldFields(savedConfig(first)) })
+    expect(data.structured).toMatchObject({ change: 'update', project: NAME })
+  })
+
   it('pecot-status と旧い名前の進行の欄が両方あるボードでも、pecot-status の欄で同期する', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-24')
     const legacy = { id: 'PVTSSF_legacy', name: LEGACY_FIELD, options: options(WORKFLOW_NAMES) }
@@ -1893,7 +2026,7 @@ describe('project activate', () => {
 
   it('Blocked・In Progress・Needs Attention があるボードを同期すると、その id を設定ファイルに書く', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-20')
-    const fields = [...standardFields(WORKFLOW_NAMES_WITH_BLOCKED).slice(0, 4), statusField([...STATUS_NAMES, 'Needs Attention'])]
+    const fields = [...standardFields(WORKFLOW_NAMES_WITH_BLOCKED).slice(0, 2), statusField([...STATUS_NAMES, 'Needs Attention'])]
     const result = await run(reference('1'), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()], { config: false })
     expect(result.code).toBe(0)
     expectClean(result)
@@ -1906,7 +2039,7 @@ describe('project activate', () => {
   it('ボードの値が小文字の blocked でも、設定ファイルに id を書き、board_url の絞り込みに Blocked を含める', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-20')
     const names = WORKFLOW_NAMES_WITH_BLOCKED.map(name => name === 'Blocked' ? 'blocked' : name)
-    const fields = standardFields(names).slice(0, 4)
+    const fields = standardFields(names).slice(0, 2)
     const result = await run(reference('1'), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()], { config: false })
     expect(result.code).toBe(0)
     expect(workflowOptions(result)).toHaveProperty('blocked', 'o2')
@@ -1915,7 +2048,7 @@ describe('project activate', () => {
 
   it('Status のフィールドが無いボードを同期すると、fields.status を書かない', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-21')
-    const fields = standardFields().slice(0, 4)
+    const fields = standardFields().slice(0, 2)
     const result = await run(reference('1'), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()], { config: false })
     expect(result.code).toBe(0)
     const saved = asJson(savedConfig(result)['project'])

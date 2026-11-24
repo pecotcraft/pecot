@@ -1,5 +1,5 @@
 // security alert の Tracker の本文の読み書きと、行の足し外しを決める純粋な処理（cli/core/security_alerts.py の移植）。
-// 公開のリポとボードに載るので、本文に出すのは種類・番号・Priority・URL まで。Dependabot はパッケージ名と GHSA の ID も出す。
+// 公開のリポとボードに載るので、本文に出すのは種類・番号・重大度・URL まで。Dependabot はパッケージ名と GHSA の ID も出す。
 
 import { jsonField } from './json.js'
 import { normalizeNewlines, parsePythonInteger, pythonStrip } from './python-format.js'
@@ -13,10 +13,19 @@ const TRACKER_MARKER = '<!-- pecot-alert: tracker -->'
 const LIST_BEGIN = '<!-- pecot-alert: list-begin -->'
 export const LIST_END = '<!-- pecot-alert: list-end -->'
 
-const SEVERITY_PRIORITY: ReadonlyMap<string, string> = new Map([['critical', 'high'], ['high', 'high'], ['medium', 'medium'], ['low', 'low']])
-const RULE_SEVERITY_PRIORITY: ReadonlyMap<string, string> = new Map([['error', 'high'], ['warning', 'medium'], ['note', 'low']])
-const PRIORITY_RANK: ReadonlyMap<string, number> = new Map([['low', 0], ['medium', 1], ['high', 2]])
-const DEFAULT_PRIORITY = 'medium'
+// security_severity_level と rule.severity を 1 つの順にする。none・未知の値・重大度の無い行は 0
+const SEVERITY_RANK: ReadonlyMap<string, number> = new Map([
+  ['critical', 4],
+  ['high', 3],
+  ['error', 3],
+  ['medium', 2],
+  ['warning', 2],
+  ['low', 1],
+  ['note', 1],
+])
+// 印に書く値。`--` を入れないため英小文字だけにする
+const SEVERITY_VALUE = /^[a-z]+$/u
+const NO_SEVERITY = '-'
 
 const MARKER_SOURCE = String.raw`<!--${SPACE}*pecot-alert:${SPACE}*(dependabot|code-scanning|secret-scanning)/(\p{Nd}+)((?:${SPACE}+[a-z]+=${NON_SPACE}+)*)${SPACE}*-->`
 
@@ -37,9 +46,9 @@ export interface TrackerEntry {
   readonly kind: AlertKind
   readonly number: number
   /**
-  high / medium / low
+  GitHub の重大度の値（secret scanning と、重大度の無い alert は undefined）
   */
-  readonly priority: string
+  readonly severity: string | undefined
   /**
   Dependabot のパッケージ名（ほかの種類は undefined）
   */
@@ -96,7 +105,7 @@ function alertUrl(raw: JsonValue, host: string, owner: string, repository: strin
   return textField(jsonField(raw, 'html_url')) ?? `https://${host}/${owner}/${repository}/security/${kind}/${String(number)}`
 }
 
-// Priority は security_vulnerability.severity、無ければ security_advisory.severity で決める
+// 重大度は security_vulnerability.severity、無ければ security_advisory.severity
 function normalizeDependabot(raw: JsonValue, host: string, owner: string, repository: string): Alert | undefined {
   const number = alertNumber(raw)
   if (number === undefined) return undefined
@@ -107,7 +116,7 @@ function normalizeDependabot(raw: JsonValue, host: string, owner: string, reposi
   return {
     kind: 'dependabot',
     number,
-    priority: SEVERITY_PRIORITY.get(severity ?? '') ?? DEFAULT_PRIORITY,
+    severity,
     url: alertUrl(raw, host, owner, repository, 'dependabot', number),
     package: textField(jsonField(dependency, 'name')),
     ghsa: isGhsa(ghsa) ? ghsa : undefined,
@@ -115,17 +124,15 @@ function normalizeDependabot(raw: JsonValue, host: string, owner: string, reposi
   }
 }
 
-// Priority は rule.security_severity_level、無ければ rule.severity で決める
+// 重大度は rule.security_severity_level、無ければ rule.severity
 function normalizeCodeScanning(raw: JsonValue, host: string, owner: string, repository: string): Alert | undefined {
   const number = alertNumber(raw)
   if (number === undefined) return undefined
   const rule = jsonField(raw, 'rule')
-  const level = textField(jsonField(rule, 'security_severity_level'))
-  const severity = textField(jsonField(rule, 'severity'))
   return {
     kind: 'code-scanning',
     number,
-    priority: SEVERITY_PRIORITY.get(level ?? '') ?? RULE_SEVERITY_PRIORITY.get(severity ?? '') ?? DEFAULT_PRIORITY,
+    severity: textField(jsonField(rule, 'security_severity_level')) ?? textField(jsonField(rule, 'severity')),
     url: alertUrl(raw, host, owner, repository, 'code-scanning', number),
     package: undefined,
     ghsa: undefined,
@@ -133,14 +140,14 @@ function normalizeCodeScanning(raw: JsonValue, host: string, owner: string, repo
   }
 }
 
-// secret scanning の Priority は常に high
+// secret scanning の alert は、GitHub が重大度を持たない
 function normalizeSecretScanning(raw: JsonValue, host: string, owner: string, repository: string): Alert | undefined {
   const number = alertNumber(raw)
   if (number === undefined) return undefined
   return {
     kind: 'secret-scanning',
     number,
-    priority: 'high',
+    severity: undefined,
     url: alertUrl(raw, host, owner, repository, 'secret-scanning', number),
     package: undefined,
     ghsa: undefined,
@@ -180,7 +187,8 @@ export function unquoteComponent(text: string): string {
 }
 
 function entryMarker(entry: TrackerEntry): string {
-  const parts = [entryKey(entry), `priority=${entry.priority}`]
+  const parts = [entryKey(entry)]
+  if (entry.severity !== undefined && SEVERITY_VALUE.test(entry.severity)) parts.push(`severity=${entry.severity}`)
   // `--` を含めないため、`-` も符号化する
   if (entry.package !== undefined && entry.package !== '') parts.push(`pkg=${quoteComponent(entry.package).replaceAll('-', '%2D')}`)
   if (isGhsa(entry.ghsa)) parts.push(`ghsa=${entry.ghsa}`)
@@ -199,20 +207,25 @@ function alertLink(entry: TrackerEntry, host: string, owner: string, repository:
 
 // code scanning・secret scanning の行。title は固定の masked
 function entryRow(entry: TrackerEntry, host: string, owner: string, repository: string): string {
-  return `| ${entryMarker(entry)} masked | ${alertLink(entry, host, owner, repository)} | ${entry.priority} |`
+  return `| ${entryMarker(entry)} masked | ${alertLink(entry, host, owner, repository)} | ${severityCell(entry.severity)} |`
 }
 
-function rankOf(priority: string): number {
-  return PRIORITY_RANK.get(priority) ?? 1
+function severityCell(severity: string | undefined): string {
+  return severity === undefined || severity === '' ? NO_SEVERITY : cell(severity)
+}
+
+function rankOf(severity = ''): number {
+  return SEVERITY_RANK.get(severity) ?? 0
 }
 
 /**
-全行の Priority の最大。行が無ければ undefined。同順位は先の行の値
+全行の重大度の最大。同順位は先の行の値で、値のある行を値の無い行より先にとる。どの行も重大度を持たなければ undefined
 */
-export function maxPriority(entries: readonly TrackerEntry[]): string | undefined {
+export function maxSeverity(entries: readonly TrackerEntry[]): string | undefined {
   let best: string | undefined
-  for (const { priority } of entries) {
-    if (best === undefined || rankOf(priority) > rankOf(best)) best = priority
+  for (const { severity } of entries) {
+    if (severity === undefined) continue
+    if (best === undefined || rankOf(severity) > rankOf(best)) best = severity
   }
   return best
 }
@@ -235,11 +248,11 @@ function membersOf(group: Readonly<AdvisoryGroup>): readonly TrackerEntry[] {
 
 function groupRank(group: Readonly<AdvisoryGroup>): number {
   let best = -Infinity
-  for (const entry of membersOf(group)) best = Math.max(best, rankOf(entry.priority))
+  for (const entry of membersOf(group)) best = Math.max(best, rankOf(entry.severity))
   return best
 }
 
-// GHSA ごとに束ねる（GHSA の無い alert は 1 件ずつ）。並びは Priority の高い順、同じなら先頭の番号順
+// GHSA ごとに束ねる（GHSA の無い alert は 1 件ずつ）。並びは 重大度の高い順、同じなら先頭の番号順
 function advisoryGroups(entries: readonly TrackerEntry[]): readonly AdvisoryGroup[] {
   const restByGhsa = new Map<string, TrackerEntry[]>()
   const groups: AdvisoryGroup[] = []
@@ -261,7 +274,7 @@ function firstNonEmpty(values: readonly (string | undefined)[]): string | undefi
   return values.find(value => value !== undefined && value !== '')
 }
 
-// Dependabot の advisory 1 件の行（内容・alert・Priority）
+// Dependabot の advisory 1 件の行（内容・alert・重大度）
 function advisoryRow(group: Readonly<AdvisoryGroup>, host: string, owner: string, repository: string): string {
   const { first } = group
   const members = membersOf(group)
@@ -272,7 +285,7 @@ function advisoryRow(group: Readonly<AdvisoryGroup>, host: string, owner: string
   const content = hasGhsa(first) ? `[${label}](https://${host}/advisories/${first.ghsa})` : label
   const markers = members.map((entry, index) => entryMarker({ ...entry, summary: index === 0 ? summary : undefined })).join(' ')
   const links = members.map(entry => alertLink(entry, host, owner, repository)).join(' ')
-  return `| ${markers} ${content} | ${links} | ${maxPriority(members) ?? DEFAULT_PRIORITY} |`
+  return `| ${markers} ${content} | ${links} | ${severityCell(maxSeverity(members))} |`
 }
 
 /**
@@ -292,9 +305,9 @@ function section(kind: AlertKind, entries: readonly TrackerEntry[], status: Sect
   if (rows.length === 0) return head + (status === 'failed' ? 'unavailable' : 'none')
   const bodyRows = kind === 'dependabot'
     ? advisoryGroups(rows).map(group => advisoryRow(group, host, owner, repository))
-    // Priority の高い順、同じなら番号順
-    : rows.toSorted((a, b) => rankOf(b.priority) - rankOf(a.priority) || a.number - b.number).map(entry => entryRow(entry, host, owner, repository))
-  return head + ['| title | alert | Priority |', '|---|---|---|', ...bodyRows].join('\n')
+    // 重大度の高い順、同じなら番号順
+    : rows.toSorted((a, b) => rankOf(b.severity) - rankOf(a.severity) || a.number - b.number).map(entry => entryRow(entry, host, owner, repository))
+  return head + ['| title | alert | Severity |', '|---|---|---|', ...bodyRows].join('\n')
 }
 
 export interface RenderOptions {
@@ -342,14 +355,16 @@ function entriesOfMarkers(markers: string): readonly TrackerEntry[] {
     const attributes = attributesOf(rest)
     const number = parsePythonInteger(digits)
     if (number === undefined || (attributes.get('state') ?? 'open') !== 'open') continue
-    const priority = attributes.get('priority') ?? DEFAULT_PRIORITY
+    const entryKind = kindOf(kind)
+    // 旧い本文の priority= は、severity= が無いときの重大度として読む。secret scanning は重大度を持たない
+    const severity = entryKind === 'secret-scanning' ? undefined : attributes.get('severity') ?? attributes.get('priority')
     const ghsa = attributes.get('ghsa')
     const package_ = attributes.get('pkg')
     const summary = attributes.get('sum')
     found.push({
-      kind: kindOf(kind),
+      kind: entryKind,
       number,
-      priority: PRIORITY_RANK.has(priority) ? priority : DEFAULT_PRIORITY,
+      severity: severity !== undefined && SEVERITY_VALUE.test(severity) ? severity : undefined,
       package: package_ === undefined ? undefined : unquoteComponent(package_),
       ghsa: isGhsa(ghsa) ? ghsa : undefined,
       summary: summary === undefined ? undefined : unquoteComponent(summary),
@@ -441,7 +456,7 @@ export function planTracker(
       rows.set(key, {
         kind,
         number: alert.number,
-        priority: alert.priority,
+        severity: alert.severity,
         package: orElse(alert.package, old?.package),
         ghsa: orElse(alert.ghsa, old?.ghsa),
         summary: orElse(alert.summary, old?.summary),

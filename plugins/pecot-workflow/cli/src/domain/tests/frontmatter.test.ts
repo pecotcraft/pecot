@@ -51,19 +51,25 @@ describe('validateIssueFrontmatter', () => {
       type: 'bug',
       repository: 'owner/repo',
       status: 'active',
-      priority: 'high',
-      size: 'm',
       labels: ['bug', 'urgent'],
       parent_epic: 123,
       order: 1,
     })
     expect(fm.type).toBe('bug')
     expect(fm.status).toBe('active')
-    expect(fm.priority).toBe('high')
-    expect(fm.size).toBe('m')
     expect(fm.labels).toEqual(['bug', 'urgent'])
     expect(fm.parent_epic).toBe(123)
     expect(fm.order).toBe(1)
+  })
+
+  it.for([
+    { name: 'priority: high', extra: { priority: 'high' } },
+    { name: 'size: s', extra: { size: 's' } },
+    { name: '選べない値の priority: urgent', extra: { priority: 'urgent' } },
+    { name: 'priority・size の空文字列', extra: { priority: '', size: '' } },
+  ])('旧いテンプレートの $name を渡すと、止めずに読み捨てる', ({ extra }) => {
+    const fm = validateIssueFrontmatter({ ...ISSUE_BASE, ...extra })
+    expect(fm).toEqual({ ...ISSUE_BASE, blocked_by: [], labels: [] })
   })
 
   it('無効な type はエラー', () => {
@@ -75,9 +81,7 @@ describe('validateIssueFrontmatter', () => {
   })
 
   it('空文字列のフィールドは未指定になる', () => {
-    const fm = validateIssueFrontmatter({ ...ISSUE_BASE, priority: '', size: '', parent_epic: '', order: '' })
-    expect(fm.priority).toBeUndefined()
-    expect(fm.size).toBeUndefined()
+    const fm = validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: '', order: '' })
     expect(fm.parent_epic).toBeUndefined()
     expect(fm.order).toBeUndefined()
   })
@@ -234,10 +238,8 @@ describe('validateIssueFrontmatter の parallel と order', () => {
   })
 
   it('null の項目は未指定になる', () => {
-    const fm = validateIssueFrontmatter({ ...ISSUE_BASE, template: JSON_NULL, priority: JSON_NULL, size: JSON_NULL, parent_epic: JSON_NULL, order: JSON_NULL })
+    const fm = validateIssueFrontmatter({ ...ISSUE_BASE, template: JSON_NULL, parent_epic: JSON_NULL, order: JSON_NULL })
     expect(fm.template).toBeUndefined()
-    expect(fm.priority).toBeUndefined()
-    expect(fm.size).toBeUndefined()
     expect(fm.parent_epic).toBeUndefined()
     expect(fm.order).toBeUndefined()
   })
@@ -284,7 +286,7 @@ status: ready
     expect(result.body).toContain('これは本文です。')
   })
 
-  it('priority・size・labels・parent_epic・order まで書いたコンテンツを渡すと、すべての値を取り出す', () => {
+  it('labels・parent_epic・order まで書いたコンテンツを渡すと、すべての値を取り出し、旧い priority・size を読み捨てる', () => {
     const content = `---
 title: Epic実装
 type: epic
@@ -305,8 +307,8 @@ order: 1
     expect(result.frontmatter.title).toBe('Epic実装')
     expect(result.frontmatter.type).toBe('epic')
     expect(result.frontmatter.status).toBe('backlog')
-    expect(result.frontmatter.priority).toBe('high')
-    expect(result.frontmatter.size).toBe('l')
+    expect(result.frontmatter).not.toHaveProperty('priority')
+    expect(result.frontmatter).not.toHaveProperty('size')
     expect(result.frontmatter.labels).toEqual(['enhancement', 'epic'])
     expect(result.frontmatter.parent_epic).toBe(42)
     expect(result.frontmatter.order).toBe(1)
@@ -347,15 +349,13 @@ type: epic: invalid
     expect(() => parseFrontmatter('---\ntitle: テスト\n---\n\n本文\n')).toThrow('validation error')
   })
 
-  it('priority・size・parent_epic・order が空文字列のとき、いずれも undefined にする', () => {
+  it('parent_epic・order が空文字列のとき、いずれも undefined にする', () => {
     const content = [
       '---',
       'title: Epic実装',
       'type: epic',
       'repository: org/project',
       'status: backlog',
-      'priority: ""',
-      'size: ""',
       'parent_epic: ""',
       'order: ""',
       '---',
@@ -365,8 +365,6 @@ type: epic: invalid
     ].join('\n')
     const result = parseFrontmatter(content)
     expect(result.frontmatter.parent_epic).toBeUndefined()
-    expect(result.frontmatter.priority).toBeUndefined()
-    expect(result.frontmatter.size).toBeUndefined()
     expect(result.frontmatter.order).toBeUndefined()
   })
 

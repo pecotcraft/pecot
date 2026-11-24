@@ -556,6 +556,20 @@ describe('renameProjectField', () => {
   })
 })
 
+describe('deleteProjectField', () => {
+  it('消したフィールドを返す。変数は fieldId だけ', async () => {
+    const deleted = { id: 'PVTSSF_p', name: 'pecot-priority' }
+    const { client, server } = await startClient([graphqlData('DeleteProjectField', { deleteProjectV2Field: { projectV2Field: deleted } })])
+    expect(await client.deleteProjectField('PVTSSF_p')).toEqual(deleted)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'DeleteProjectField', variables: { fieldId: 'PVTSSF_p' } }])
+  })
+
+  it('projectV2Field が null なら GitHubAPIError', async () => {
+    const { client } = await startClient([graphqlData('DeleteProjectField', { deleteProjectV2Field: { projectV2Field: JSON_NULL } })])
+    expect(await rejection(client.deleteProjectField('PVTSSF_p'))).toMatchObject(failure(GitHubAPIError, 'failed to delete the field'))
+  })
+})
+
 describe('updateProjectFieldOptions', () => {
   const options = [
     { id: 'opt1', name: 'Backlog', color: 'RED', description: 'Epic置き場' },

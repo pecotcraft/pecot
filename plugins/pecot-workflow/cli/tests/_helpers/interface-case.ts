@@ -81,8 +81,6 @@ export interface ProjectFixture {
 function fixtureConfig(host: string, owner: string, repositories: readonly string[]): string {
   const fields = {
     workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } },
-    priority: { id: 'PVTSSF_priority', options: { high: 'p1', medium: 'p2', low: 'p3' } },
-    size: { id: 'PVTSSF_size', options: { xs: 's1', s: 's2', m: 's3', l: 's4' } },
   }
   const project = { number: 1, id: 'PVT_1', board_url: `https://${host}/users/${owner}/projects/1`, fields }
   const config = { host, owner, project, repositories: repositories.map(name => ({ owner, name, develop_branch: 'main' })) }

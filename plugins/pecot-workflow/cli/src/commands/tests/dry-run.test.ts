@@ -53,8 +53,6 @@ const listProjects = (...nodes: Json[]): ResponseRule => graphqlRule('ListProjec
 const options = (names: readonly string[]): Json[] => names.map((name, index) => ({ id: `o${String(index + 1)}`, name, color: 'GRAY', description: name }))
 const standardFields = (): Json[] => [
   { id: 'PVTSSF_workflow', name: 'pecot-status', databaseId: 456, options: options(['Backlog', 'Pending', 'Ready', 'Active', 'In Review', 'Archived']) },
-  { id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) },
-  { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) },
   { id: 'PVTSSF_status', name: 'Status', options: options(['Todo', 'In Progress', 'Done']) },
 ]
 const projectFields = (fields: Json[]): ResponseRule => graphqlRule('GetProjectFieldsUser', { user: { projectV2: { id: 'PVT_1', title: 'board', url: BOARD_URL, views: { nodes: [{ number: 1 }] }, fields: { nodes: fields } } } })
@@ -139,8 +137,6 @@ describe('project', () => {
     expectClean(result)
     expect(result.stderr).toBe([
       'dry-run: would create field pecot-status',
-      'dry-run: would create field pecot-priority',
-      'dry-run: would create field pecot-size',
       'dry-run: would skip field pecot-lane (no lanes given)',
       'warning: field pecot-lane was not created because no lanes were given',
       '  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes',
@@ -159,8 +155,6 @@ describe('project', () => {
     expectClean(result)
     expect(result.stderr).toBe([
       'dry-run: would skip field pecot-status (already exists)',
-      'dry-run: would skip field pecot-priority (already exists)',
-      'dry-run: would skip field pecot-size (already exists)',
       'dry-run: would skip field pecot-lane (no lanes given)',
       'warning: field pecot-lane was not created because no lanes were given',
       '  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes',
@@ -181,8 +175,6 @@ describe('project', () => {
     expectClean(result)
     expect(result.stderr).toBe([
       'dry-run: would skip field pecot-status (already exists)',
-      'dry-run: would skip field pecot-priority (already exists)',
-      'dry-run: would skip field pecot-size (already exists)',
       'dry-run: would create field pecot-lane',
       'dry-run: would add option Blocked to field pecot-status',
       'dry-run: would add option Needs Attention to field Status',

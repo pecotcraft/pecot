@@ -68,8 +68,6 @@ export function projectConfig(options: Readonly<ConfigOptions> = {}): Record<str
       board_url: `https://${DEFAULT_HOST}/users/${DEFAULT_OWNER}/projects/1`,
       fields: {
         workflow: { id: 'PVTSSF_workflow', options: options.workflowOptions ?? { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } },
-        priority: { id: 'PVTSSF_priority', options: { high: 'p1', medium: 'p2', low: 'p3' } },
-        size: { id: 'PVTSSF_size', options: { xs: 's1', s: 's2', m: 's3', l: 's4' } },
       },
     },
     repositories: options.repositories ?? [{ owner: DEFAULT_OWNER, name: DEFAULT_NAME, develop_branch: 'main' }],
