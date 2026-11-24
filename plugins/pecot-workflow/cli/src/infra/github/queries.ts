@@ -1454,3 +1454,32 @@ export const QUERY_GET_REPOSITORY_MILESTONES_PAGE = `query ($owner: String!, $re
     }
   }
 }`
+
+// Lanes のビューを作る先。所有者の種類と個人の数値の id（REST のパス）、ビューの名前、欄の databaseId
+export const QUERY_GET_PROJECT_VIEW_TARGET = `query ($owner: String!, $projectNumber: Int!) {
+  repositoryOwner(login: $owner) {
+    __typename
+    ... on User {
+      databaseId
+    }
+    ... on ProjectV2Owner {
+      projectV2(number: $projectNumber) {
+        url
+        views(first: 50) {
+          nodes {
+            number
+            name
+          }
+        }
+        fields(first: 50) {
+          nodes {
+            ... on ProjectV2SingleSelectField {
+              databaseId
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}`

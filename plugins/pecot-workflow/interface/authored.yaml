@@ -4072,7 +4072,11 @@ entries:
         - The pecot-status field is created with seven options, including Blocked.
         - Adds the Needs Attention option to the Status field of the project.
         - When an option cannot be added, a warning line is written and the command continues.
-        - Writes the config file <host>_<owner>_<number>.json and makes the project active.
+        - With --lanes, creates the pecot-lane single select field with the given values, the areas of work such as plugins, teams or services.
+        - Without --lanes, pecot-lane is not created, and a warning line tells how to pass the lanes.
+        - When pecot-lane is created, also creates a board view named Lanes, with pecot-status as the columns and pecot-lane as the groups.
+        - When GitHub refuses to create the view (status 403 or 404), a warning line gives the steps to create it on the board, and the command continues.
+        - Writes the config file <host>_<owner>_<number>.json and makes the project active. pecot-lane is not written to the config file.
         - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
         - Stops without creating anything when the owner is not found.
         - Stops without creating anything when a project with the same title already exists.
@@ -4080,12 +4084,15 @@ entries:
       examples:
         - run: pecot project create example-org "Example Project"
           note: Create a project and activate it.
+        - run: pecot project create example-org "Example Project" --lanes cli --lanes skills
+          note: Create a project with the pecot-lane field of two lanes and the Lanes view.
         - run: pecot project create example-org "Example Project" --dry-run
           note: Show the planned project without creating it.
       default_notes: {}
     summary: 新しいプロジェクトを作ります。既にあるプロジェクトにフィールドを足すときは、`project init` を使います。
     arguments:
       host: 'GitHub のホストです。'
+      lanes: '`pecot-lane` のフィールドの値の配列です。値は、プラグイン・チーム・サービスのような作業の領域です。1 つ以上渡します。'
       owner: 'プロジェクトの所有者です。'
       title: 'プロジェクトの題です。'
     constraints: []
@@ -4095,7 +4102,11 @@ entries:
       - 'pecot-status のフィールドは、Blocked を含む 7 つの選択肢で作ります。'
       - 'プロジェクトの Status のフィールドに、Needs Attention の選択肢を足します。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。'
-      - '設定ファイルを `<host>_<owner>_<番号>.json` の名前で書き、プロジェクトをアクティブにします。'
+      - '`lanes` を渡すと、その値を選択肢に持つ single select の `pecot-lane` のフィールドを作ります。'
+      - '`lanes` が無いときは `pecot-lane` を作らず、`lanes` の渡し方の案内を `warnings` に入れます。'
+      - '`pecot-lane` を作ると、`Lanes` という名前のボードのビューも作ります。列は `pecot-status`、グループは `pecot-lane` です。'
+      - 'GitHub がビューの作成を断ったとき（状態 403・404）は、画面で作る手順を `view.manual_steps` に入れて続けます。'
+      - '設定ファイルを `<host>_<owner>_<番号>.json` の名前で書き、プロジェクトをアクティブにします。`pecot-lane` は設定ファイルに書きません。'
       - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
       - '所有者が見つからないときは、何も作らずに失敗を返します。'
       - '同じ題のプロジェクトが既にあるときは、何も作らずに失敗を返します。'
@@ -4108,7 +4119,9 @@ entries:
         url: '作ったプロジェクトの URL です。応答に URL が無いときは入りません。'
         title: 'プロジェクトのタイトルです。'
         owner: 'プロジェクトのオーナーです。'
-    diagnostics: '標準エラーに、次のものの結果の行を出します。作ったプロジェクト、作ったフィールドそれぞれ、足した Needs Attention の選択肢、設定ファイル、アクティブなプロジェクトです。選択肢を足せないときは、`warning` の行を出します。'
+        fields: '作ったプロジェクトのフィールドの配列です。要素は `project init` の `fields` と同じ形です。予行のときと、フィールドの前に止まったときは入りません。'
+        view: '`Lanes` のビューです。`created`（作ったか）・`name`・`url`・`manual_steps`（画面で作る手順）を持ちます。`url` は、作れずに画面で作るときは入りません。`manual_steps` は、GitHub が作成を断ったときだけ入ります。`pecot-lane` を作らなかったときは入りません。'
+    diagnostics: '標準エラーに、次のものの結果の行を出します。作ったプロジェクト、作ったフィールドそれぞれ、足した Needs Attention の選択肢、作ったビュー、設定ファイル、アクティブなプロジェクトです。`lanes` が無いときは、`pecot-lane` の `skipped` の行と、`lanes` の渡し方を案内する `warning` の行を出します。選択肢を足せないときと、ビューを作れないときは、`warning` の行を出します。'
     environment: []
     exit_status:
       - kind: github-not-found
@@ -4154,10 +4167,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'プロジェクトと 3 つのフィールドを作り、Status のフィールドに Needs Attention の選択肢を足します。'
+        what: 'プロジェクトと 3 つのフィールドを作り、Status のフィールドに Needs Attention の選択肢を足します。`lanes` を渡すと、`pecot-lane` のフィールドと `Lanes` のビューも作ります。'
       - target: github
         kind: read
-        what: '所有者、既にあるプロジェクト、フィールド、つながっているリポジトリを読みます。'
+        what: '所有者、既にあるプロジェクト、フィールド、ビュー、つながっているリポジトリを読みます。'
       - target: file
         kind: write
         what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。'
@@ -4169,6 +4182,11 @@ entries:
           owner: example-org
           title: Example Project
         note: 'プロジェクトを作り、アクティブにします。'
+      - arguments:
+          owner: example-org
+          title: Example Project
+          lanes: [cli, skills]
+        note: '2 つの値の `pecot-lane` のフィールドと `Lanes` のビューを持つプロジェクトを作ります。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-CREATE-01
@@ -4207,6 +4225,15 @@ entries:
       - id: PW-PROJECT-CREATE-12
         pattern: event
         statement: 'Status のフィールドに In Progress があると、設定ファイルに、その id を `status.options.in_progress` として書きます'
+      - id: PW-PROJECT-CREATE-20
+        pattern: event
+        statement: '`lanes` を渡すと、その値で `pecot-lane` のフィールドを作り、`Lanes` のビューを作ります'
+      - id: PW-PROJECT-CREATE-21
+        pattern: unwanted
+        statement: 'もし `lanes` が無いなら、`pecot-lane` とビューを作らずに、`lanes` の渡し方の案内を `warnings` に入れます'
+      - id: PW-PROJECT-CREATE-22
+        pattern: event
+        statement: 'フィールドを作ると、結果の `fields` に作ったフィールドの行を入れ、作ったビューを `view` に入れます'
   PW-PROJECT-GET:
     help:
       details:
@@ -4290,20 +4317,29 @@ entries:
         - Names are compared without regard to case, and an option that already exists is left as it is.
         - The whole option list is sent again with the existing options keeping their id, name, color and description, so the values on the cards stay.
         - When an option cannot be added, a warning line is written and the command continues; the option is not sent again without its id.
+        - With --lanes and no pecot-lane field, creates the pecot-lane single select field with the given values, the areas of work such as plugins, teams or services.
+        - With --lanes and a pecot-lane field, keeps its options with their id and adds the missing values at the end. Names are compared with case.
+        - Without --lanes and no pecot-lane field, pecot-lane is not created, and a warning line tells how to pass the lanes.
+        - When the board has a pecot-lane field, creates a board view named Lanes, with pecot-status as the columns and pecot-lane as the groups. A view named Lanes that already exists is left as it is.
+        - When GitHub refuses to create the view (status 403 or 404), a warning line gives the steps to create it on the board, and the command continues. For example, a GitHub App token cannot create a view on a user's board.
+        - When the pecot-lane field is not a single select field, adds no lanes, creates no view, and writes a warning line.
         - Before writing anything, checks that an existing pecot-status or pecot-workflow-<suffix> field has the six required options (Backlog, Pending, Ready, Active, In Review, Archived); if one is missing, writes nothing and stops.
         - After that, regenerates the config file <host>_<owner>_<number>.json from GitHub and makes the project active, unless a config file exists and its content already equals the one generated from the board.
         - A config file of the same project under another name is moved to that name, and the active project follows it. Use the new name for the project input and the PECOT_REVIEW_PROJECT variable. When two or more such files exist, nothing is moved and the command stops.
-        - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
-        - With --dry-run, reads the project and prints dry-run lines for renaming and creating the fields, adding the options, moving and writing the config file and switching the active project, and writes nothing.
+        - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them. pecot-lane is not written to the config file.
+        - With --dry-run, reads the project and prints dry-run lines for renaming and creating the fields, adding the options, creating the view, moving and writing the config file and switching the active project, and writes nothing.
       examples:
         - run: pecot project init example-org "Example Project"
           note: Add the pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist.
+        - run: pecot project init example-org "Example Project" --lanes cli --lanes skills
+          note: Also create the pecot-lane field with two lanes, or add the missing ones to it, and create the Lanes view.
         - run: pecot project init example-org "Example Project" --dry-run
           note: Show what would be created and written without changing anything.
       default_notes: {}
     summary: 既にあるプロジェクトに pecot-workflow のフィールドを足します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。
     arguments:
       host: 'GitHub のホストです。'
+      lanes: '`pecot-lane` のフィールドの値の配列です。値は、プラグイン・チーム・サービスのような作業の領域です。1 つ以上渡します。'
       name: 'プロジェクトの題です。'
       owner: 'プロジェクトの所有者です。'
     constraints: []
@@ -4317,18 +4353,25 @@ entries:
       - '名前は、大文字と小文字を区別せずに比べます。既にある選択肢は、そのまま残します。'
       - '選択肢の一覧は、全体を送り直します。既にある選択肢は id・name・color・description を保つので、カードの値は残ります。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。その選択肢を、id なしで送り直すことはありません。'
+      - '`lanes` を渡し、`pecot-lane` のフィールドが無いときは、その値を選択肢に持つ single select の `pecot-lane` を作ります。値は、プラグイン・チーム・サービスのような作業の領域です。'
+      - '`lanes` を渡し、`pecot-lane` があるときは、既にある選択肢を id ごと残し、無い値を末尾に足します。名前は、大文字と小文字を区別して比べます。'
+      - '`lanes` が無く、`pecot-lane` も無いときは作らず、`lanes` の渡し方の案内を `warnings` に入れます。'
+      - 'ボードに `pecot-lane` があると、`Lanes` という名前のボードのビューを作ります。列は `pecot-status`、グループは `pecot-lane` です。同じ名前のビューが既にあれば、作りません。'
+      - 'GitHub がビューの作成を断ったとき（状態 403・404）は、画面で作る手順を `view.manual_steps` に入れて続けます。例えば、GitHub App のトークンでは、個人のボードにビューを作れません。'
+      - '`pecot-lane` が single select でないときは、値を足さず、ビューも作らずに、`warnings` で知らせます。'
       - '何かを書く前に、既にある `pecot-status` か `pecot-workflow-<suffix>` のフィールドが必須の 6 つの選択肢を持つことを確かめます。6 つは Backlog・Pending・Ready・Active・In Review・Archived です。1 つでも欠けていれば、何も書かずに失敗を返します。'
       - 'その後、設定ファイル `<host>_<owner>_<番号>.json` を GitHub から作り直し、プロジェクトをアクティブにします。設定ファイルがあり、内容がボードから作るものと既に同じときは行いません。'
       - '同じプロジェクトを指す、別の名前の設定ファイルがあれば、新しい名前に移し、アクティブなプロジェクトも新しい名前にします。`project` の入力と Actions の変数 `PECOT_REVIEW_PROJECT` には、新しい名前を使います。移す元が 2 つ以上あるときは、何も移さずに失敗を返します。'
-      - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
+      - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。`pecot-lane` は設定ファイルに書きません。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
-        fields: 'プロジェクトのフィールドの配列です。workflow・priority・size のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（フィールドが見つからない）・`rename`（旧い名前から改名した）のどれかです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
+        fields: 'プロジェクトのフィールドの配列です。workflow・priority・size・`pecot-lane` のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（飛ばした）・`rename`（旧い名前から改名した）のどれかです。`skip` は、フィールドが見つからないとき、`lanes` が無く `pecot-lane` を作らないとき、`pecot-lane` が single select でないときです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
+        view: '`Lanes` のビューです。`created`（作ったか。予行では作る予定か）・`name`・`url`・`manual_steps`（画面で作る手順）を持ちます。同じ名前のビューが既にあれば、`created` は false で、`url` にそのビューの URL が入ります。`url` は、予行のときと、画面で作るときは入りません。`manual_steps` は、GitHub が作成を断ったときだけ入ります。ボードに single select の `pecot-lane` が無いときは入りません。'
         migration: '旧い形から移したものです。`renamed` は `pecot-status` に改名した旧いフィールドの名前、`config_moved` は移した設定ファイルの `from`・`to` のファイル名で、無ければどちらも `null` です。設定ファイルの前に止まったときは入りません。'
-    diagnostics: '標準エラーに、旧いフィールドを改名した行（`renamed`）、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。選択肢を足せないときは、`warning` の行を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
+    diagnostics: '標準エラーに、旧いフィールドを改名した行（`renamed`）、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。`lanes` が無く `pecot-lane` も無いときは、`skipped` の行と、`lanes` の渡し方を案内する `warning` の行を出します。ビューの結果の行（`created` か `skipped`）を出します。選択肢を足せないとき、ビューを作れないとき、`pecot-lane` が single select でないときは、`warning` の行を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
     environment: []
     exit_status:
       - kind: project-not-found
@@ -4364,14 +4407,14 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '失敗した手順より前に作ったフィールドと足した選択肢は、プロジェクトに残ります。この失敗の結果にも、そこまでの `fields` が入ります。選択肢を足せなかったときは、`warnings` で知らせて成功を返します。'
+    on_error: '失敗した手順より前に作ったフィールドと足した選択肢は、プロジェクトに残ります。この失敗の結果にも、そこまでの `fields` が入ります。選択肢を足せなかったときと、ビューの作成を 403・404 で断られたときは、`warnings` で知らせて成功を返します。ビューの作成でほかのエラーが返ると、設定ファイルを書かずに失敗を返します。'
     effects:
       - target: github
         kind: read
-        what: '所有者のプロジェクト、対象のプロジェクトのフィールド、つながっているリポジトリを読みます。'
+        what: '所有者のプロジェクト、対象のプロジェクトのフィールドとビュー、つながっているリポジトリを読みます。'
       - target: github
         kind: write
-        what: 'プロジェクトに足りないフィールドを作り、旧い名前の進行の欄を改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
+        what: 'プロジェクトに足りないフィールドを作り、旧い名前の進行の欄を改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。`lanes` の値で `pecot-lane` を作るか値を足し、`Lanes` のビューを作ります。'
       - target: file
         kind: write
         what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。同じプロジェクトを指す別の名前の設定ファイルは、新しい名前に移します。'
@@ -4383,6 +4426,11 @@ entries:
           owner: example-org
           name: Example Project
         note: '既にあるプロジェクトに pecot-workflow のフィールドを足します。旧い名前の進行の欄は `pecot-status` に改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
+      - arguments:
+          owner: example-org
+          name: Example Project
+          lanes: [cli, skills]
+        note: '2 つの値で `pecot-lane` を作るか、無い値を足し、`Lanes` のビューを作ります。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-INIT-01
@@ -4457,6 +4505,51 @@ entries:
       - id: PW-PROJECT-INIT-24
         pattern: unwanted
         statement: 'もし同じプロジェクトを指す、別の名前の設定ファイルが 2 つ以上あるなら、ボードと設定ファイルを変えずに `kind` が `config-invalid` の失敗を返します'
+      - id: PW-PROJECT-INIT-40
+        pattern: event
+        statement: '`lanes` を渡し、`pecot-lane` が無いと、その値で `pecot-lane` を作り、`fields` のその `change` を `create` にします'
+      - id: PW-PROJECT-INIT-41
+        pattern: event
+        statement: '`lanes` を渡し、`pecot-lane` があると、既存の選択肢を id ごと残して無い値を末尾に足し、`fields` のその `change` を `update` にします'
+      - id: PW-PROJECT-INIT-42
+        pattern: unwanted
+        statement: 'もし `lanes` の値が `pecot-lane` に全てあるなら、書き込まずに、`fields` のその `change` を `unchanged` にします'
+      - id: PW-PROJECT-INIT-43
+        pattern: unwanted
+        statement: 'もし `lanes` が無く、`pecot-lane` も無いなら、作らずに `fields` のその `change` を `skip` にし、`lanes` の渡し方の案内を `warnings` に入れます'
+      - id: PW-PROJECT-INIT-44
+        pattern: state
+        statement: 'ボードに `pecot-lane` がある間、列を `pecot-status`、グループを `pecot-lane` にした `Lanes` のビューを作り、`view.created` を true にします'
+      - id: PW-PROJECT-INIT-45
+        pattern: event
+        statement: '個人のボードを渡すと、所有者の数値の id のパス（`/users/{user_id}`）でビューを作ります'
+      - id: PW-PROJECT-INIT-46
+        pattern: unwanted
+        statement: 'もし同じ名前のビューが既にあるなら、作らずに `view.created` を false にし、`view.url` にそのビューの URL を入れます'
+      - id: PW-PROJECT-INIT-47
+        pattern: unwanted
+        statement: 'もし GitHub がビューの作成を 403 か 404 で断ったなら、画面で作る手順を `view.manual_steps` に入れ、設定ファイルを同期して成功を返します。例えば、GitHub App のトークンで個人のボードに打ったときです'
+      - id: PW-PROJECT-INIT-48
+        pattern: unwanted
+        statement: 'もしボードに `pecot-lane` が無いなら、ビューを作らず、結果に `view` を入れません'
+      - id: PW-PROJECT-INIT-49
+        pattern: unwanted
+        statement: 'もし `pecot-lane` が single select でないなら、値を足さずビューも作らずに、`fields` のその `change` を `skip` にし、`warnings` で知らせます'
+      - id: PW-PROJECT-INIT-50
+        pattern: ubiquitous
+        statement: '常に、設定ファイルに `pecot-lane` の欄と選択肢を書きません'
+      - id: PW-PROJECT-INIT-51
+        pattern: unwanted
+        statement: 'もし `lanes` が空の配列か、空の文字の値を含むなら、GitHub を呼ばずに `kind` が `invalid-input` の失敗を返します'
+      - id: PW-PROJECT-INIT-52
+        pattern: event
+        statement: 'CLI で `--dry-run` と `lanes` を付けて打つと、`pecot-lane` とビューを作る予定を `dry-run` の行で標準エラーに出し、何も書きません'
+      - id: PW-PROJECT-INIT-53
+        pattern: unwanted
+        statement: 'もし GitHub が `pecot-lane` に値を足す書き込みを断ったなら、`fields` のその `change` を `unchanged` にし、足せなかった値を `warnings` で知らせて続けます'
+      - id: PW-PROJECT-INIT-54
+        pattern: unwanted
+        statement: 'もしビューの作成がレート制限で断られたなら、画面で作る手順を返さずに、`kind` が `github-rate-limit` の失敗を返します'
   PW-PROJECT-LINK:
     help:
       details:

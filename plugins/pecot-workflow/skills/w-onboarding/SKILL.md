@@ -25,6 +25,15 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 最初のチェックには、pecot-workflow の MCP ツール `project_list` を使う。
 
+パターン 1〜3 で有効にしたら、Step 3 へ進む前に、ボードに `pecot-lane` があるかを見る。
+
+1. pecot-workflow の MCP ツール `project_search` で、有効にしたボードのタイトルを得る。`active` が真の行のタイトルを使う
+   - `host`・`owner` は、パターン 3 では検索に渡した値、パターン 1・2 では `project_activate` の結果の `configPath` のファイルの値にする
+2. pecot-workflow の MCP ツール `project_init` を、`lanes` を渡さずに使う（`owner`・`name`: 1. のタイトル・`host`）
+3. 結果の `fields` の `pecot-lane` が `skip` なら、ボードを領域のレーンで分けるかを利用者に聞く
+   - 分けるなら、Step 2 と同じく `lanes` の値を決め、`lanes` を足して `project_init` をもう一度使う
+   - `skip` でなければ、聞かずに Step 3 へ進む
+
 パターン 2 は、このスキルの base directory にある `scripts/detect-sibling-config.cjs` を動かし、その出力の行で決める。
 作業ディレクトリはカレントリポのままにし、base directory から組んだ絶対パスで打つ。
 `ls`・`cat` などで兄弟リポを調べて、スクリプトの代わりにしない。
@@ -54,13 +63,20 @@ cp <出力のパス> .pecot/config/projects/
 
 AskUserQuestion でプロジェクト名を質問する。
 
-pecot-workflow の MCP ツール `project_create` を使って、プロジェクトを作る（`owner`・`title`・`host`）。
+続けて、AskUserQuestion でボードを分ける領域（`lanes` の値）を決める。
+
+- 値は、作業を分けたい単位（プラグイン・チーム・サービスなど）にする
+- 候補は、カレントリポのディレクトリの分け方（`plugins/` `packages/` `services/` などの下の名前）から挙げる
+- GitHub の画面に出るので、英語の名前にする
+
+pecot-workflow の MCP ツール `project_create` を使って、プロジェクトを作る（`owner`・`title`・`host`・`lanes`）。
 
 | 入力 | 説明 |
 |------|------|
 | `owner` | GitHub の owner（user or org）（必須） |
 | `title` | GitHub Projects のプロジェクト名（必須） |
 | `host` | GitHub ホスト（例: `github.com`, `ghes.example.com`） |
+| `lanes` | `pecot-lane` の値。決めた領域の名前 |
 
 ### Step 3: Epic 集約リポの設定（任意）
 
@@ -87,6 +103,9 @@ URL は、このスキルの base directory にある `scripts/board-url.cjs` �
 ```bash
 node <このスキルの base directory>/scripts/board-url.cjs
 ```
+
+`project_create`・`project_init` の結果の `view.url` を示し、領域ごとのレーンで見る `Lanes` のビューを開けることを伝える。
+`view.manual_steps` が返ったときは、ビューを作れなかったので、その手順を示す。
 
 ### Step 5: 自動レビューを入れる（任意）
 

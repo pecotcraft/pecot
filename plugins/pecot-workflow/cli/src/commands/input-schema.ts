@@ -14,7 +14,7 @@ export interface InputSchema {
 /**
 引数の中のキーの順。ここに無いキーは後ろに、名前の順で付ける
 */
-const SCHEMA_KEY_ORDER = ['type', 'items', 'enum', 'minimum', 'maximum', 'default', 'description']
+const SCHEMA_KEY_ORDER = ['type', 'items', 'enum', 'minimum', 'maximum', 'minItems', 'minLength', 'default', 'description']
 
 /**
 z.int() が付ける安全な整数の端

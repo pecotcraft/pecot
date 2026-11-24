@@ -141,6 +141,9 @@ describe('project', () => {
       'dry-run: would create field pecot-status',
       'dry-run: would create field pecot-priority',
       'dry-run: would create field pecot-size',
+      'dry-run: would skip field pecot-lane (no lanes given)',
+      'warning: field pecot-lane was not created because no lanes were given',
+      '  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes',
       'dry-run: would add option Needs Attention to field Status',
       '',
     ].join('\n'))
@@ -158,10 +161,35 @@ describe('project', () => {
       'dry-run: would skip field pecot-status (already exists)',
       'dry-run: would skip field pecot-priority (already exists)',
       'dry-run: would skip field pecot-size (already exists)',
+      'dry-run: would skip field pecot-lane (no lanes given)',
+      'warning: field pecot-lane was not created because no lanes were given',
+      '  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes',
       'dry-run: would add option Blocked to field pecot-status',
       'dry-run: would add option Needs Attention to field Status',
       '',
     ].join('\n'))
+    expect(result.read(BOARD_CONFIG_FILE)).toBe(before)
+  })
+
+  it('project init に dry_run と lanes を渡すと、pecot-lane と Lanes のビューの作成を予行の行に出し、何も書かない', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-52')
+    const viewTarget = graphqlRule('GetProjectViewTarget', { repositoryOwner: { __typename: 'User', databaseId: 9, projectV2: { url: BOARD_URL, views: { nodes: [{ number: 1, name: 'View 1' }] }, fields: { nodes: [{ databaseId: 456, name: 'pecot-status' }] } } } })
+    const github = [listProjects(projectNode()), projectFields(standardFields()), viewTarget]
+    const before = `${JSON.stringify(projectConfig(), undefined, 2)}\n`
+    const result = await dryRun(['project', 'init', 'acme', 'board', '-h', DEFAULT_HOST, '--lanes', 'cli', '-n'], github, { configFile: BOARD_CONFIG_FILE })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toBe([
+      'dry-run: would skip field pecot-status (already exists)',
+      'dry-run: would skip field pecot-priority (already exists)',
+      'dry-run: would skip field pecot-size (already exists)',
+      'dry-run: would create field pecot-lane',
+      'dry-run: would add option Blocked to field pecot-status',
+      'dry-run: would add option Needs Attention to field Status',
+      'dry-run: would create view Lanes',
+      '',
+    ].join('\n'))
+    expect(requestLabels(result.requests)).not.toContain('CreateProjectField')
     expect(result.read(BOARD_CONFIG_FILE)).toBe(before)
   })
 

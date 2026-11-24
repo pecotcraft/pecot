@@ -32,6 +32,7 @@ import {
   QUERY_GET_PROJECT_FIELDS_USER,
   QUERY_GET_PROJECT_ID_ORG,
   QUERY_GET_PROJECT_ID_USER,
+  QUERY_GET_PROJECT_VIEW_TARGET,
   QUERY_GET_USER_NODE_ID,
   QUERY_LIST_PROJECT_ITEMS,
   QUERY_LIST_PROJECT_ITEMS_LEGACY,
@@ -39,6 +40,7 @@ import {
   QUERY_LIST_PROJECTS_USER,
 } from './queries.js'
 import { ReposApi } from './repos.js'
+import { encodePathSegment } from './rest-path.js'
 
 // 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
 const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u
@@ -92,6 +94,47 @@ export type ProjectFieldOption = Readonly<{ name: string, color: string, descrip
 export interface LinkResult {
   readonly status: 'linked' | 'already_linked' | 'failed'
   readonly detail: string
+}
+
+/**
+ビューを作る先のボード。userId は個人のボードの REST のパスに使う User.databaseId。fieldDatabaseIds は single select の欄の名前から databaseId
+*/
+export interface ProjectViewTarget {
+  readonly owner: string
+  readonly number: number
+  readonly ownerKind: 'User' | 'Organization'
+  readonly userId: number | undefined
+  readonly url: string
+  readonly views: readonly Readonly<{ number: number, name: string }>[]
+  readonly fieldDatabaseIds: ReadonlyMap<string, number>
+}
+
+/**
+REST の views の作成の本文（board のレイアウト。列と横の分け方は欄の databaseId）
+*/
+export type ProjectViewBody = Readonly<{ name: string, layout: 'board', vertical_group_by: readonly [number], group_by: readonly [number] }>
+
+function viewTargetOf(owner: string, number: number, ownerNode: JsonValue | undefined): ProjectViewTarget {
+  const typename = jsonField(ownerNode, '__typename')
+  if (typename !== 'User' && typename !== 'Organization') throw new GitHubAPIError(`unexpected owner type: ${typeof typename === 'string' ? typename : 'none'}`)
+  const project = jsonField(ownerNode, 'projectV2')
+  if (!isTruthy(project)) throw new GitHubNotFoundError(`project not found: ${owner}/projects/${String(number)}`)
+  const views: { number: number, name: string }[] = []
+  const viewNodes = truthyNodes(jsonField(project, 'views'))
+  for (const view of viewNodes) {
+    const viewNumber = jsonField(view, 'number')
+    const name = jsonField(view, 'name')
+    if (typeof viewNumber === 'number' && typeof name === 'string') views.push({ number: viewNumber, name })
+  }
+  const fieldDatabaseIds = new Map<string, number>()
+  const fieldNodes = truthyNodes(jsonField(project, 'fields'))
+  for (const field of fieldNodes) {
+    const name = jsonField(field, 'name')
+    const databaseId = jsonField(field, 'databaseId')
+    if (typeof name === 'string' && typeof databaseId === 'number') fieldDatabaseIds.set(name, databaseId)
+  }
+  const userId = jsonField(ownerNode, 'databaseId')
+  return { owner, number, ownerKind: typename, userId: typeof userId === 'number' ? userId : undefined, url: requireString(jsonField(project, 'url'), 'projectV2.url'), views, fieldDatabaseIds }
 }
 
 const MAX_ARCHIVED_CONSECUTIVE = 50
@@ -486,5 +529,28 @@ export class ProjectsApi extends ReposApi {
     const project = jsonField(jsonField(result, 'createProjectV2'), 'projectV2')
     if (!isTruthy(project)) throw new GitHubAPIError('failed to create the project')
     return asObject(project)
+  }
+
+  /**
+  ビューを作る先（所有者の種類・ビュー・欄の databaseId）を読む。所有者かボードが無ければ GitHubNotFoundError
+  */
+  async getProjectViewTarget(owner: string, projectNumber: number): Promise<ProjectViewTarget> {
+    const result = await this.executeGraphql(QUERY_GET_PROJECT_VIEW_TARGET, { owner, projectNumber })
+    const ownerNode = jsonField(result, 'repositoryOwner')
+    if (!isTruthy(ownerNode)) throw new GitHubNotFoundError(`owner not found: ${owner}`)
+    return viewTargetOf(owner, projectNumber, ownerNode)
+  }
+
+  /**
+  REST でボードにビューを作り、作ったビューを返す。組織のボードのパスの先頭は /orgs/{org}。個人のボードでは /users/{user_id}
+  */
+  async createProjectView(target: Readonly<ProjectViewTarget>, body: ProjectViewBody): Promise<JsonObject> {
+    let ownerPath = `/orgs/${encodePathSegment(target.owner)}`
+    if (target.ownerKind === 'User') {
+      if (target.userId === undefined) throw new GitHubAPIError(`could not read the user id of ${target.owner}`)
+      ownerPath = `/users/${String(target.userId)}`
+    }
+    const json = { name: body.name, layout: body.layout, vertical_group_by: [...body.vertical_group_by], group_by: [...body.group_by] }
+    return this.restObject('POST', `${ownerPath}/projectsV2/${String(target.number)}/views`, { json })
   }
 }

@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { JSON_NULL } from '../../../domain/json-null.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
-import { failure, graphqlData, graphqlError, graphqlRequests, rejection, startClient, useFakeGithub } from './fake-client.js'
+import type { ProjectViewBody, ProjectViewTarget } from '../projects.js'
+import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
 
@@ -646,5 +647,81 @@ describe('getItemSetFieldIds', () => {
   ])('%sときは空', async (_label, response) => {
     const { result } = await lookupSetFieldIds(response)
     expect(result.size).toBe(0)
+  })
+})
+
+describe('getProjectViewTarget', () => {
+  const project = {
+    url: 'https://github.com/orgs/acme/projects/3',
+    views: { nodes: [{ number: 1, name: 'Board' }, JSON_NULL] },
+    fields: { nodes: [{ databaseId: 11, name: 'pecot-status' }, {}, { databaseId: 22, name: 'pecot-lane' }, { databaseId: 33, name: 'pecot-lane' }] },
+  }
+
+  it('組織のボードは、所有者の種類・URL・ビュー・single select の欄の databaseId を返す。同じ名前の欄は後のものを使う', async () => {
+    const { client, server } = await startClient([graphqlData('GetProjectViewTarget', { repositoryOwner: { __typename: 'Organization', projectV2: project } })])
+    expect(await client.getProjectViewTarget('acme', 3)).toEqual({
+      owner: 'acme',
+      number: 3,
+      ownerKind: 'Organization',
+      userId: undefined,
+      url: 'https://github.com/orgs/acme/projects/3',
+      views: [{ number: 1, name: 'Board' }],
+      fieldDatabaseIds: new Map([['pecot-status', 11], ['pecot-lane', 33]]),
+    })
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetProjectViewTarget', variables: { owner: 'acme', projectNumber: 3 } }])
+  })
+
+  it('個人のボードは、User の数値の id を userId に入れる', async () => {
+    const { client } = await startClient([graphqlData('GetProjectViewTarget', { repositoryOwner: { __typename: 'User', databaseId: 4242, projectV2: project } })])
+    expect(await client.getProjectViewTarget('someone', 3)).toMatchObject({ ownerKind: 'User', userId: 4242 })
+  })
+
+  it('所有者かボードが無ければ GitHubNotFoundError', async () => {
+    const { client } = await startClient([
+      graphqlData('GetProjectViewTarget', { repositoryOwner: JSON_NULL }),
+      graphqlData('GetProjectViewTarget', { repositoryOwner: { __typename: 'Organization', projectV2: JSON_NULL } }),
+    ])
+    expect(await rejection(client.getProjectViewTarget('nobody', 3))).toMatchObject(failure(GitHubNotFoundError, 'owner not found: nobody'))
+    expect(await rejection(client.getProjectViewTarget('acme', 3))).toMatchObject(failure(GitHubNotFoundError, 'project not found: acme/projects/3'))
+  })
+})
+
+describe('createProjectView', () => {
+  const body: ProjectViewBody = { name: 'Lanes', layout: 'board', vertical_group_by: [11], group_by: [22] }
+  const view = { id: 7, number: 2, name: 'Lanes', layout: 'board', html_url: 'https://github.com/orgs/acme/projects/3/views/2' }
+  const target = { owner: 'acme', number: 3, url: 'https://github.com/orgs/acme/projects/3', views: [], fieldDatabaseIds: new Map<string, number>() }
+
+  it('組織のボードは /orgs/{org}/projectsV2/{number}/views に、本文の 4 つの項目を送り、作ったビューを返す', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/orgs/acme/projectsV2/3/views', { status: 201, body: view })])
+    expect(await client.createProjectView({ ...target, ownerKind: 'Organization', userId: undefined }, body)).toEqual(view)
+    expect(restRequests(server).map(({ method, path, body: sent }) => ({ method, path, body: sent }))).toEqual([{ method: 'POST', path: '/orgs/acme/projectsV2/3/views', body }])
+  })
+
+  it('個人のボードは /users/{user_id}/projectsV2/{number}/views に、数値の id で送る', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/users/4242/projectsV2/3/views', { status: 201, body: view })])
+    await client.createProjectView({ ...target, owner: 'someone', ownerKind: 'User', userId: 4242 }, body)
+    expect(restRequests(server).map(request => request.path)).toEqual(['/users/4242/projectsV2/3/views'])
+  })
+
+  it('組織の名前はパスのセグメントとして符号化する', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/orgs/a%20b/projectsV2/3/views', { status: 201, body: view })])
+    await client.createProjectView({ ...target, owner: 'a b', ownerKind: 'Organization', userId: undefined }, body)
+    expect(restRequests(server).map(request => request.path)).toEqual(['/orgs/a%20b/projectsV2/3/views'])
+  })
+
+  it('個人のボードで userId が無ければ、送らずに GitHubAPIError', async () => {
+    const { client, server } = await startClient([])
+    expect(await rejection(client.createProjectView({ ...target, ownerKind: 'User', userId: undefined }, body))).toMatchObject(failure(GitHubAPIError, 'could not read the user id of acme'))
+    expect(restRequests(server)).toEqual([])
+  })
+
+  it('404 は GitHubNotFoundError、403 は状態コードを持つ GitHubAPIError', async () => {
+    const { client } = await startClient([
+      restResponse('POST', '/orgs/acme/projectsV2/3/views', { status: 404, body: { message: 'Not Found' } }),
+      restResponse('POST', '/orgs/acme/projectsV2/3/views', { status: 403, body: { message: 'Resource not accessible by integration' } }),
+    ])
+    const organization: ProjectViewTarget = { ...target, ownerKind: 'Organization', userId: undefined }
+    expect(await rejection(client.createProjectView(organization, body))).toMatchObject({ name: 'GitHubNotFoundError', statusCode: 404 })
+    expect(await rejection(client.createProjectView(organization, body))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403 }))
   })
 })

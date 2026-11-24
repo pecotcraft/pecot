@@ -202,6 +202,29 @@ const LEGACY_NAME = path.parse(LEGACY_CONFIG_FILE).name
 const legacyConfig: Partial<CommandRun> = { config: projectConfig({ extra: { workflow_suffix: 'acme' } }), configFile: LEGACY_CONFIG_FILE }
 const renameRule = (fieldId = 'PVTSSF_old'): ResponseRule => graphqlRule('RenameProjectField', { updateProjectV2Field: { projectV2Field: { id: fieldId, name: 'pecot-status' } } }, { fieldId, name: 'pecot-status' })
 const movedNote = (name: string): string => `warning: the project config is now named ${name}\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\n`
+// lanes を渡さず、pecot-lane も無いボードの行と案内
+const NO_LANES = 'skipped: field pecot-lane (no lanes given)\nwarning: field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes\n'
+const NO_LANES_WARNING = 'field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes'
+const NO_LANES_ROW = { name: 'pecot-lane', change: 'skip', addedOptions: [] }
+// pecot-lane と Lanes のビューの用意。ビューの先は個人のボード（databaseId 9）
+const VIEW_URL = `${BOARD_URL}/views/2`
+const USER_VIEWS_PATH = '/users/9/projectsV2/1/views'
+const laneField = (names: readonly string[]): Json => ({ id: 'PVTSSF_lane', name: 'pecot-lane', options: options(names) })
+const lanesBody = { name: 'Lanes', layout: 'board', vertical_group_by: [456], group_by: [789] }
+
+function viewTarget(views: Json[] = [], typename = 'User'): ResponseRule {
+  const project = { url: BOARD_URL, views: { nodes: [{ number: 1, name: 'View 1' }, ...views] }, fields: { nodes: [{ databaseId: 456, name: 'pecot-status' }, { databaseId: 789, name: 'pecot-lane' }, {}] } }
+  return graphqlRule('GetProjectViewTarget', { repositoryOwner: { __typename: typename, ...typename === 'User' && { databaseId: 9 }, projectV2: project } })
+}
+
+const CREATED_VIEW = { id: 2, number: 2, name: 'Lanes', html_url: VIEW_URL }
+const createView = (status = 201, body: unknown = CREATED_VIEW, viewPath = USER_VIEWS_PATH): ResponseRule => restRule('POST', viewPath, status, body)
+
+function restBodies(result: Readonly<Pick<CommandResult, 'requests'>>, requestPath: string): unknown[] {
+  return result.requests.filter((request): request is Extract<RecordedRequest, { type: 'rest' }> => request.type === 'rest' && request.path === requestPath).map(request => request.body)
+}
+
+const MANUAL_STEPS = [`open the project: ${BOARD_URL}`, 'add a view named Lanes with the Board layout', 'set Column by to pecot-status', 'set Group by to pecot-lane']
 
 describe('project list', () => {
   const other = { [`${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_other_acme.json`]: `${JSON.stringify(projectConfig(), undefined, 2)}\n` }
@@ -352,7 +375,7 @@ describe('project init', () => {
   const base = (fields: Json[]): ResponseRule[] => [listProjects(projectNode(1, 'board')), projectFields(fields)]
   const workflowField = (names: readonly string[], name = 'pecot-status'): Json => ({ id: 'PVTSSF_old', name, options: options(names) })
   const otherFields = (): Json[] => [{ id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) }, { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) }]
-  const skippedFields = 'skipped: field pecot-status (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n'
+  const skippedFields = `skipped: field pecot-status (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n${NO_LANES}`
   const syncedLines = (result: Readonly<CommandResult>): string => `created: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`
 
   it('フィールドの無いプロジェクトに打つと、3 つのフィールドを作る', async (context) => {
@@ -366,7 +389,7 @@ describe('project init', () => {
   it('フィールドを作ると、created の行を標準エラーに出す', async () => {
     const result = await init([...base(titleWithoutStatus), ...createFields(), ...syncRules()])
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`created: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nskipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`created: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n${NO_LANES}skipped: field Status (not found)\n${syncedLines(result)}`)
   })
 
   it('既にあるフィールドは作らずに、skipped の行を標準エラーに出す', async () => {
@@ -374,7 +397,7 @@ describe('project init', () => {
     const result = await init([...base(existing), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`skipped: field pecot-status (already exists)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nunchanged: option Blocked in field pecot-status\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`skipped: field pecot-status (already exists)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n${NO_LANES}unchanged: option Blocked in field pecot-status\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
   })
 
   it('指定したタイトルのプロジェクトが無いと、終了コード 1 で終わる', async () => {
@@ -536,7 +559,7 @@ describe('project init', () => {
     expect(result.code).toBe(0)
     expectClean(result)
     expect(graphqlVariables(result, 'RenameProjectField')).toEqual([{ fieldId: 'PVTSSF_old', name: 'pecot-status' }])
-    expect(result.stderr).toBe(`renamed: field ${LEGACY_FIELD} to pecot-status\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\nunchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`renamed: field ${LEGACY_FIELD} to pecot-status\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n${NO_LANES}unchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}`)
     expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_old' } } } })
   })
 
@@ -603,6 +626,176 @@ describe('project init', () => {
     expect(requestLabels(result.requests)).not.toContain('GetLinkedRepositoriesUser')
   })
 
+  describe('pecot-lane と Lanes のビュー', () => {
+    const LANES = ['--lanes', 'cli', '--lanes', 'skills']
+    const initLanes = async (rules: ResponseRule[], extra: readonly string[] = LANES): Promise<CommandResult> => await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, ...extra), rules, { config: false })
+    // pecot-lane のほかは揃っていて、Status の欄の無いボード
+    const ready = (...extra: Json[]): Json[] => [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields(), ...extra]
+    const readyLines = 'skipped: field pecot-status (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n'
+    const laneArguments = { ...initArguments, lanes: ['cli', 'skills'] }
+    const laneBoard = (...names: string[]): ResponseRule[] => base(ready(laneField(names)))
+    const TEXT_LANE = { id: 'PVTF_lane', name: 'pecot-lane' }
+
+    it('lanes を渡し pecot-lane が無いと、渡した値で pecot-lane を作り、Lanes のビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-40')
+      await verifies(context, 'PW-PROJECT-INIT-44')
+      const result = await initLanes([...base(ready()), createField('pecot-lane', 'PVTSSF_lane'), viewTarget(), createView(), ...syncRules()])
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(graphqlVariables(result, 'CreateProjectField')).toEqual([{ projectId: 'PVT_1', name: 'pecot-lane', options: [{ name: 'cli', color: 'BLUE', description: '' }, { name: 'skills', color: 'GREEN', description: '' }] }])
+      expect(restBodies(result, USER_VIEWS_PATH)).toEqual([lanesBody])
+      expect(result.stderr).toBe(`${readyLines}created: field pecot-lane (ID: PVTSSF_lane)\nunchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\ncreated: view Lanes (${VIEW_URL})\n${syncedLines(result)}`)
+    })
+
+    it('個人のボードでは、所有者の数値の id のパスにビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-45')
+      const result = await initLanes([...laneBoard('cli', 'skills'), viewTarget(), createView(), ...syncRules()])
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(requestLabels(result.requests)).toContain(`POST ${USER_VIEWS_PATH}`)
+    })
+
+    it('組織のボードでは、組織の名前のパスにビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-44')
+      const orgPath = '/orgs/acme/projectsV2/1/views'
+      const result = await initLanes([...laneBoard('cli', 'skills'), viewTarget([], 'Organization'), createView(201, { id: 2, number: 2, html_url: VIEW_URL }, orgPath), ...syncRules()])
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(restBodies(result, orgPath)).toEqual([lanesBody])
+    })
+
+    it('pecot-lane があると、既存の選択肢を id ごと残し、足りない値を末尾に足して update にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-41')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli'), updateField('PVTSSF_lane'), viewTarget(), createView(), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(graphqlVariables(result, 'UpdateProjectField')).toEqual([{ fieldId: 'PVTSSF_lane', options: [{ id: 'o1', name: 'cli', color: 'GRAY', description: 'cli の説明' }, { name: 'skills', color: 'GREEN', description: '' }] }])
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-lane', change: 'update', addedOptions: ['skills'] })
+      expect(result.structured['view']).toEqual({ created: true, name: 'Lanes', url: VIEW_URL })
+    })
+
+    it('pecot-lane が渡した値を全て持つと、書き込まず、change を unchanged にする', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-42')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli', 'skills'), viewTarget(), createView(), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-lane', change: 'unchanged', addedOptions: [] })
+    })
+
+    it('lanes が無く pecot-lane も無いと、作らずに skip とし、warnings で案内し、view を返さない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-43')
+      await verifies(context, 'PW-PROJECT-INIT-48')
+      const result = await tool('project_init', initArguments, [...base(ready()), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['fields']).toContainEqual(NO_LANES_ROW)
+      expect(result.structured['warnings']).toEqual([NO_LANES_WARNING])
+      expect(result.structured).not.toHaveProperty('view')
+      expect(requestLabels(result.requests)).not.toContain('CreateProjectField')
+      expect(requestLabels(result.requests)).not.toContain('GetProjectViewTarget')
+    })
+
+    it('lanes が無くても pecot-lane があると、値を足さずに Lanes のビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-44')
+      const result = await tool('project_init', initArguments, [...laneBoard('cli'), viewTarget(), createView(), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-lane', change: 'unchanged', addedOptions: [] })
+      expect(result.structured['view']).toEqual({ created: true, name: 'Lanes', url: VIEW_URL })
+    })
+
+    it('同じ名前のビューがあると、作らずに created を false にし、そのビューの URL を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-46')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli', 'skills'), viewTarget([{ number: 3, name: 'Lanes' }]), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['view']).toEqual({ created: false, name: 'Lanes', url: `${BOARD_URL}/views/3` })
+      expect(result.requests.some(request => request.type === 'rest')).toBe(false)
+    })
+
+    it.for([
+      { status: 403, message: 'Resource not accessible by integration' },
+      { status: 404, message: 'Not Found' },
+    ])('ビューの作成が $status で断られると、画面で作る手順を返し、設定ファイルを同期して成功を返す', async ({ status, message }, context) => {
+      await verifies(context, 'PW-PROJECT-INIT-47')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli', 'skills'), viewTarget(), createView(status, { message }), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['view']).toEqual({ created: false, name: 'Lanes', manual_steps: MANUAL_STEPS })
+      const refused = `could not create view Lanes (status ${String(status)}): `
+      expect(result.structured['warnings']).toEqual([expect.stringContaining(refused)])
+      expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
+    })
+
+    it('ビューの作成が断られると、警告の行に画面で作る手順を番号つきで出し、終了コード 0 で終わる', async () => {
+      const result = await initLanes([...laneBoard('cli', 'skills'), viewTarget(), createView(403, { message: 'Resource not accessible by integration' }), ...syncRules()])
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(result.stderr).toContain(`\n  create it on the board:\n  1. open the project: ${BOARD_URL}\n  2. add a view named Lanes with the Board layout\n  3. set Column by to pecot-status\n  4. set Group by to pecot-lane\n`)
+    })
+
+    it('pecot-lane に値を足す書き込みが断られると、unchanged のまま warnings で知らせ、ビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-53')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli'), failing('UpdateProjectField'), viewTarget(), createView(), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add options skills to field pecot-lane: /u)])
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-lane', change: 'unchanged', addedOptions: [] })
+      expect(result.structured['view']).toEqual({ created: true, name: 'Lanes', url: VIEW_URL })
+    })
+
+    it('ビューの作成がレート制限の 403 で断られると、画面で作る手順を返さずに失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-54')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli', 'skills'), viewTarget(), createView(403, { message: 'API rate limit exceeded for installation ID 1.' })], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'github-rate-limit' } })
+      expect(JSON.stringify(result.structured)).not.toContain('manual_steps')
+    })
+
+    it('ビューの作成で 403・404 のほかのエラーが返ると、終了コード 1 で終わる', async () => {
+      const result = await initLanes([...laneBoard('cli', 'skills'), viewTarget(), createView(500, { message: 'Server Error' })])
+      expect(result.code).toBe(1)
+      expect(result.stderr).toMatch(/^error: could not initialize project fields \(status 500\): /mu)
+      expect(result.read(CONFIG_FILE)).toBeUndefined()
+    })
+
+    it('pecot-lane が single select でないと、値を足さずビューも作らずに skip とし、warnings で知らせる', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-49')
+      const result = await tool('project_init', laneArguments, [...base(ready(TEXT_LANE)), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['fields']).toContainEqual({ name: 'pecot-lane', change: 'skip', addedOptions: [] })
+      expect(result.structured['warnings']).toEqual(['field pecot-lane is not a single select field, so no lanes were added and view Lanes was not created\n  delete or rename that field on the board, then run again'])
+      expect(result.structured).not.toHaveProperty('view')
+      expect(requestLabels(result.requests)).not.toContain('CreateProjectField')
+      expect(requestLabels(result.requests)).not.toContain('GetProjectViewTarget')
+    })
+
+    it('pecot-lane を作っても、設定ファイルに pecot-lane の欄と選択肢を書かない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-50')
+      const synced = [...standardFields(), laneField(['cli', 'skills'])]
+      const result = await initLanes([...base(ready()), createField('pecot-lane', 'PVTSSF_lane'), viewTarget(), createView(), listProjects(projectNode(1, 'board')), projectFields(synced), linked()])
+      expect(result.code).toBe(0)
+      expectClean(result)
+      const savedFields = asJson(asJson(savedConfig(result)['project'])['fields'])
+      expect(sorted(Object.keys(savedFields))).toEqual(['priority', 'size', 'status', 'workflow'])
+      expect(result.read(CONFIG_FILE)).not.toContain('PVTSSF_lane')
+    })
+
+    it.for([
+      { name: '空の lanes', lanes: [] },
+      { name: '空の文字の値', lanes: [''] },
+    ])('$name を渡すと、GitHub を呼ばずに kind が invalid-input の失敗を返す', async ({ lanes }, context) => {
+      await verifies(context, 'PW-PROJECT-INIT-51')
+      const result = await tool('project_init', { ...initArguments, lanes }, [], { config: false })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.requests).toEqual([])
+    })
+
+    it('--dry-run で lanes を渡すと、フィールドとビューの予定の行だけを出し、何も書かない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-52')
+      const result = await initLanes([...base(ready()), viewTarget()], [...LANES, '--dry-run'])
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(result.stderr).toBe(`${readyLines.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would create field pecot-lane\ndry-run: would leave option Blocked in field pecot-status unchanged\ndry-run: would skip field Status (not found)\ndry-run: would create view Lanes\n`)
+      expect(requestLabels(result.requests)).not.toContain('CreateProjectField')
+      expect(result.requests.some(request => request.type === 'rest')).toBe(false)
+    })
+  })
+
   describe('MCP の data', () => {
     it('作ったフィールドと足した選択肢を fields に返す', async (context) => {
       await verifies(context, 'PW-PROJECT-INIT-03')
@@ -614,9 +807,11 @@ describe('project init', () => {
           { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-priority', change: 'create', addedOptions: [] },
           { name: 'pecot-size', change: 'create', addedOptions: [] },
+          NO_LANES_ROW,
           { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
         ],
         migration: { renamed: null, config_moved: null },
+        warnings: [NO_LANES_WARNING],
       })
     })
 
@@ -624,7 +819,7 @@ describe('project init', () => {
       await verifies(context, 'PW-PROJECT-INIT-02')
       await verifies(context, 'PW-PROJECT-INIT-10')
       const result = await tool('project_init', initArguments, [...initRules(titleWithoutStatus), ...createFields(), ...syncRules()], { config: false })
-      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-status', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, { name: 'Status', change: 'skip', addedOptions: [] }] })
+      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-status', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, NO_LANES_ROW, { name: 'Status', change: 'skip', addedOptions: [] }], warnings: [NO_LANES_WARNING] })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     })
 
@@ -637,9 +832,11 @@ describe('project init', () => {
           { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-priority', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-size', change: 'unchanged', addedOptions: [] },
+          NO_LANES_ROW,
           { name: 'Status', change: 'unchanged', addedOptions: [] },
         ],
         migration: { renamed: null, config_moved: null },
+        warnings: [NO_LANES_WARNING],
       })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     })
@@ -663,7 +860,7 @@ describe('project init', () => {
       const result = await tool('project_init', initArguments, [...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()], { config: false })
       expect(result.isError).toBe(false)
       expectClean(result)
-      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add option Blocked to field pecot-status: /u)])
+      expect(result.structured['warnings']).toEqual([NO_LANES_WARNING, expect.stringMatching(/^could not add option Blocked to field pecot-status: /u)])
     })
 
     it('既にある進行の欄に必須の値が欠けていると、何も書かずに、欠けた値を detail に入れて kind が not-initialized の失敗を返す', async (context) => {
@@ -694,7 +891,7 @@ describe('project init', () => {
       expectClean(result)
       expect(jsonList(result.structured['fields'])[0]).toEqual({ name: 'pecot-status', change: 'rename', addedOptions: [] })
       expect(result.structured['migration']).toEqual({ renamed: LEGACY_FIELD, config_moved: { from: path.basename(LEGACY_CONFIG_FILE), to: path.basename(CONFIG_FILE) } })
-      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^the project config is now named /u)])
+      expect(result.structured['warnings']).toEqual([NO_LANES_WARNING, expect.stringMatching(/^the project config is now named /u)])
       expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
     })
 
@@ -768,7 +965,7 @@ describe('project create', () => {
   it('プロジェクトを作ると、created の行を標準エラーに出す', async () => {
     const result = await create(createRules())
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nadded: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
+    expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n${NO_LANES}added: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
   })
 
   it('Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る', async () => {
@@ -808,13 +1005,65 @@ describe('project create', () => {
     expect(result.read(ACTIVE_FILE)).toBeUndefined()
   })
 
+  describe('pecot-lane と Lanes のビュー', () => {
+    // フィールドを作った後に pecot-lane を作り、Status に値を足してからビューを作る
+    const laneRules = (): ResponseRule[] => {
+      const rules = createRules([...standardFields(), laneField(['cli', 'skills'])])
+      const statusIndex = rules.findIndex(rule => rule.match.operation === 'UpdateProjectField')
+      return [...rules.slice(0, statusIndex), createField('pecot-lane', 'PVTSSF_lane'), updateField('PVTSSF_status'), viewTarget(), createView(), ...rules.slice(statusIndex + 1)]
+    }
+
+    it('lanes を渡すと、その値で pecot-lane を作り、Lanes のビューを作る', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-20')
+      const result = await run(arguments_('create', 'acme', 'board', '--host', DEFAULT_HOST, '--lanes', 'cli', '--lanes', 'skills'), laneRules(), { config: false })
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-priority', 'pecot-size', 'pecot-lane'])
+      expect(restBodies(result, USER_VIEWS_PATH)).toEqual([lanesBody])
+      expect(result.stderr).toContain(`created: field pecot-lane (ID: PVTSSF_lane)\nadded: option Needs Attention to field Status\ncreated: view Lanes (${VIEW_URL})\n`)
+    })
+
+    it('lanes が無いと、pecot-lane とビューを作らずに、lanes の渡し方を案内する', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-21')
+      const result = await tool('project_create', { ...owned, title: 'board' }, createRules(), { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['warnings']).toEqual([NO_LANES_WARNING])
+      expect(result.structured).not.toHaveProperty('view')
+      expect(variableValues(result, 'CreateProjectField', 'name')).not.toContain('pecot-lane')
+    })
+
+    it('作ったフィールドの行を fields に返し、作ったビューを view に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-CREATE-22')
+      const result = await tool('project_create', { ...owned, title: 'board', lanes: ['cli', 'skills'] }, laneRules(), { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['fields']).toEqual([
+        { name: 'pecot-status', change: 'create', addedOptions: [] },
+        { name: 'pecot-priority', change: 'create', addedOptions: [] },
+        { name: 'pecot-size', change: 'create', addedOptions: [] },
+        { name: 'pecot-lane', change: 'create', addedOptions: [] },
+        { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
+      ])
+      expect(result.structured['view']).toEqual({ created: true, name: 'Lanes', url: VIEW_URL })
+    })
+  })
+
   describe('MCP の data', () => {
     const projectInput = { ...owned, title: 'board' }
 
     it('作ったプロジェクトの番号・URL・タイトル・owner を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-CREATE-05')
       const result = await tool('project_create', projectInput, createRules(), { config: false })
-      expect(result.structured).toEqual({ number: 1, url: BOARD_URL, title: 'board', owner: 'acme' })
+      expect(result.structured).toEqual({
+        number: 1, url: BOARD_URL, title: 'board', owner: 'acme',
+        fields: [
+          { name: 'pecot-status', change: 'create', addedOptions: [] },
+          { name: 'pecot-priority', change: 'create', addedOptions: [] },
+          { name: 'pecot-size', change: 'create', addedOptions: [] },
+          NO_LANES_ROW,
+          { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
+        ],
+        warnings: [NO_LANES_WARNING],
+      })
     })
 
     it('Status に Needs Attention を足せないと、warnings に入れて設定ファイルを作る', async (context) => {
@@ -822,7 +1071,7 @@ describe('project create', () => {
       const rules = createRules().map(rule => rule.match.operation === 'UpdateProjectField' ? failing('UpdateProjectField') : rule)
       const result = await tool('project_create', projectInput, rules, { config: false })
       expect(result.isError).toBe(false)
-      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add option Needs Attention to field Status: /u)])
+      expect(result.structured['warnings']).toEqual([NO_LANES_WARNING, expect.stringMatching(/^could not add option Needs Attention to field Status: /u)])
       expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
     })
 

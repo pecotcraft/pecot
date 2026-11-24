@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { choosePlacement, insertOption } from '../field-options.js'
+import { appendOptions, choosePlacement, copyOption, findOptionByName, insertOption } from '../field-options.js'
 
 const existing = [
   { id: 'a', name: 'Pending', color: 'GRAY', description: 'p' },
@@ -65,5 +65,42 @@ describe('choosePlacement', () => {
   it('どの候補の基準も無ければ、末尾を選ぶ', () => {
     expect(choosePlacement(existing, [{ after: 'Nothing' }, { before: 'Nothing' }])).toEqual({ end: true })
     expect(choosePlacement(existing, [])).toEqual({ end: true })
+  })
+})
+
+describe('copyOption', () => {
+  it('id を持つ選択肢は id ごと写し、id の無い選択肢は id を足さない', () => {
+    expect(copyOption({ id: 'a', name: 'Pending', color: 'GRAY', description: 'p' })).toEqual({ id: 'a', name: 'Pending', color: 'GRAY', description: 'p' })
+    expect(copyOption(blocked)).toEqual(blocked)
+    expect(copyOption(blocked)).not.toHaveProperty('id')
+  })
+})
+
+describe('appendOptions', () => {
+  it('既存の選択肢を id・color・description ごと残し、無い名前の追加分だけを末尾に足す', () => {
+    const result = appendOptions(existing, [{ name: 'Ready', color: 'BLUE', description: '' }, blocked])
+    expect(result.options).toEqual([...existing, blocked])
+    expect(result.added).toEqual(['Blocked'])
+  })
+
+  it('名前は大文字と小文字を区別して比べる', () => {
+    const lower = { name: 'ready', color: 'BLUE', description: '' }
+    expect(appendOptions(existing, [lower])).toEqual({ options: [...existing, lower], added: ['ready'] })
+  })
+
+  it('追加分の中で重なった名前は、先のものだけを足す', () => {
+    const later = { ...blocked, color: 'RED' }
+    expect(appendOptions(existing, [blocked, later])).toEqual({ options: [...existing, blocked], added: ['Blocked'] })
+  })
+
+  it('足すものが無ければ、既存の写しと空の added を返す', () => {
+    expect(appendOptions(existing, [{ name: 'Pending', color: 'BLUE', description: '' }])).toEqual({ options: existing, added: [] })
+  })
+})
+
+describe('findOptionByName', () => {
+  it('名前が大文字と小文字まで同じ選択肢を返し、無ければ undefined', () => {
+    expect(findOptionByName(existing, 'Backlog')).toEqual(existing[1])
+    expect(findOptionByName(existing, 'backlog')).toBeUndefined()
   })
 })

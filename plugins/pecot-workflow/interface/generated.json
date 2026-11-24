@@ -4018,7 +4018,7 @@
     {
       "id": "PW-PROJECT-CREATE",
       "name": "project create",
-      "description": "Create a new project (to add the fields to an existing project, use project init)",
+      "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init)",
       "surfaces": {
         "cli": {
           "path": [
@@ -4039,6 +4039,15 @@
             "type": "string",
             "default": "github.com",
             "description": "GitHub host"
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "description": "Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept"
           },
           "owner": {
             "type": "string",
@@ -4068,6 +4077,9 @@
           "host": [
             "--host",
             "-h"
+          ],
+          "lanes": [
+            "--lanes"
           ]
         },
         "only": {
@@ -4100,6 +4112,73 @@
             "owner": {
               "type": "string",
               "description": "Project owner"
+            },
+            "fields": {
+              "description": "The fields of the created project, in the same rows as project init (omitted with dry_run, and when the command stopped before the fields)",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the project field"
+                  },
+                  "change": {
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "update",
+                      "unchanged",
+                      "skip",
+                      "rename"
+                    ],
+                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status"
+                  },
+                  "addedOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Names of the options added to the field (empty when none)"
+                  }
+                },
+                "required": [
+                  "name",
+                  "change",
+                  "addedOptions"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "view": {
+              "type": "object",
+              "properties": {
+                "created": {
+                  "type": "boolean",
+                  "description": "Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Name of the view (Lanes)"
+                },
+                "url": {
+                  "description": "URL of the view (omitted with dry_run, and when it has to be created by hand)",
+                  "type": "string"
+                },
+                "manual_steps": {
+                  "description": "Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "created",
+                "name"
+              ],
+              "additionalProperties": false,
+              "description": "The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)"
             },
             "kind": {
               "type": "string",
@@ -4234,7 +4313,7 @@
     {
       "id": "PW-PROJECT-INIT",
       "name": "project init",
-      "description": "Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist",
+      "description": "Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view",
       "surfaces": {
         "cli": {
           "path": [
@@ -4255,6 +4334,15 @@
             "type": "string",
             "default": "github.com",
             "description": "GitHub host"
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "description": "Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept"
           },
           "name": {
             "type": "string",
@@ -4284,6 +4372,9 @@
           "host": [
             "--host",
             "-h"
+          ],
+          "lanes": [
+            "--lanes"
           ]
         },
         "only": {
@@ -4317,7 +4408,7 @@
                       "skip",
                       "rename"
                     ],
-                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status"
+                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status"
                   },
                   "addedOptions": {
                     "type": "array",
@@ -4334,7 +4425,7 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "The workflow, priority and size fields, plus the Status field when its options were looked at"
+              "description": "The workflow, priority, size and pecot-lane fields, plus the Status field when its options were looked at"
             },
             "migration": {
               "description": "What was moved from the old form (omitted when the command stopped before the project config)",
@@ -4379,6 +4470,36 @@
                 "config_moved"
               ],
               "additionalProperties": false
+            },
+            "view": {
+              "type": "object",
+              "properties": {
+                "created": {
+                  "type": "boolean",
+                  "description": "Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Name of the view (Lanes)"
+                },
+                "url": {
+                  "description": "URL of the view (omitted with dry_run, and when it has to be created by hand)",
+                  "type": "string"
+                },
+                "manual_steps": {
+                  "description": "Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "created",
+                "name"
+              ],
+              "additionalProperties": false,
+              "description": "The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)"
             },
             "kind": {
               "type": "string",
