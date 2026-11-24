@@ -294,7 +294,7 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
 }
 
 /**
-判定済みの Issue の前提を assume で置き換え、同じ judgeSnapshot で判定し直す。API は、積んだ並びを引き足すときだけ呼ぶ
+判定済みの Issue の前提を assume で置き換え、同じ judgeSnapshot で判定し直す。API は、スタックした並びを引き足すときだけ呼ぶ
 */
 export async function judgeAssuming(
   client: Readonly<GitHubClient>,
@@ -352,7 +352,7 @@ board show の判定。前提を読めなかった Issue の kind は unknown
 export type BoardReadinessJson = Omit<ReadinessJson, 'kind'> & { readonly kind: ReadinessJson['kind'] | 'unknown' }
 
 /**
-JSON の出力に使う判定。reason は blocked のときだけの理由のコード、stackOn は積む先
+JSON の出力に使う判定。reason は blocked のときだけの理由のコード、stackOn はスタック先
 */
 export function readinessJson(readiness: Readonly<Readiness>, text: string): ReadinessJson {
   const { stackOn } = readiness

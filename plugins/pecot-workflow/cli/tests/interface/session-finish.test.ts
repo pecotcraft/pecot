@@ -96,7 +96,7 @@ async function finishTool(workspace: Readonly<Workspace>, argumentsOfTool: Reado
   }
 }
 
-// #12 を待つ Issue。#13 は未着手で Blocked、#14 は #12 の上に積んで着手し In Review
+// #12 を待つ Issue。#13 は未着手で Blocked、#14 は #12 の上にスタックして着手し In Review
 
 const UPPER = 'feat/demo/14'
 // PR #21 がマージされ、閉じた #12
@@ -567,7 +567,7 @@ describe('session finish', () => {
       expect(result).toStrictEqual({ code: 0, stdout: '', stderr: 'count: Issues to close: 1\nclosed: Issue #12\n' })
     })
 
-    it('上に積んだ段があると、載せ直しを案内し、上の段のブランチを消す要求を送らない', async () => {
+    it('子ブランチがあると、スタックし直しを案内し、子ブランチを消す要求を送らない', async () => {
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
       expect(result.stderr).toContain(`warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}\n`)
@@ -647,7 +647,7 @@ describe('session finish', () => {
   })
 
   describe('MCP の data', () => {
-    it('待つ Issue の判定が変わり、上に積んだ段があると、readinessChanges と restack を data に返す', async (context) => {
+    it('待つ Issue の判定が変わり、子ブランチがあると、readinessChanges と restack を data に返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-33')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13] })
 
@@ -709,7 +709,7 @@ describe('session finish', () => {
       expect(outcome.structured['readinessChanges']).toStrictEqual([])
     })
 
-    it('上に積んだ段があると、pr_restack を warnings で案内し、その段のブランチを消す要求を送らない', async (context) => {
+    it('子ブランチがあると、pr_restack を warnings で案内し、その子ブランチを消す要求を送らない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-35')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       const outcome = await finishTool(workspace, { delete_branch: true, skip_local_cleanup: true })

@@ -1,4 +1,4 @@
-// 積んだ記録（.pecot-base）を読む。無ければ、作業中の Issue の判定と git から積んだ先を求める。
+// スタックの記録（.pecot-base）を読む。無ければ、作業中の Issue の判定と git からスタック先を求める。
 import { getDevelopBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import type { BaseReading } from '../domain/state.js'
@@ -39,7 +39,7 @@ export interface BaseResult {
   */
   readonly readiness: IssueReadiness | undefined
   /**
-  積んだ先を求められなかった理由。求められたか、求めなかったときは undefined
+  スタック先を求められなかった理由。求められたか、求めなかったときは undefined
   */
   readonly unresolved: string | undefined
 }
@@ -50,7 +50,7 @@ function probeLower(directory: string, remote: string, developReference: string)
     const missing = [lower, developReference].find(reference => resolveCommit(directory, reference) === undefined)
     if (missing !== undefined) return { kind: 'untracked', reference: missing }
     const shared = changesSharedWith(directory, 'HEAD', lower, developReference)
-    // pr restack の rebaseStartOf と同じく fork-point を先に使う。reflog の無い clone では、載せ直す前の下の段の先頭を patch-id で見つける
+    // pr restack の rebaseStartOf と同じく fork-point を先に使う。reflog の無い clone では、スタックし直す前の親ブランチの先頭を patch-id で見つける
     const sha = forkPoint(directory, lower, 'HEAD') ?? shared.lastEquivalent ?? mergeBase(directory, 'HEAD', lower)
     return { kind: 'probed', isShared: shared.isShared, sha }
   }

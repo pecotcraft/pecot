@@ -1,4 +1,4 @@
-// 着手の判定から、base の選び方・止める文・積んだ先の表示を決める。I/O を持たない。
+// 着手の判定から、base の選び方・止める文・スタック先の表示を決める。I/O を持たない。
 
 import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
@@ -30,7 +30,7 @@ function blockedMessage(target: IssueReference, readiness: Readiness, prerequisi
 }
 
 /**
-判定から着手の仕方を決める。stackable は積む先のブランチから、blocked は止める。
+判定から着手の仕方を決める。stackable はスタック先のブランチから、blocked は止める。
 startable と、判定を持たない Epic・Tracker（undefined）は、今までどおり
 */
 export function decideStart(readiness: Readiness | undefined, prerequisites: readonly Prerequisite[], target: IssueReference): StartDecision {
@@ -40,7 +40,7 @@ export function decideStart(readiness: Readiness | undefined, prerequisites: rea
 }
 
 /**
---base が、判定で選んだ積む先と違うときの文。stackable のときだけ比べる
+--base が、判定で選んだスタック先と違うときの文。stackable のときだけ比べる
 */
 export function describeBaseMismatch(base: string | undefined, decision: Exclude<StartDecision, { kind: 'blocked' }>, target: IssueReference): HintedText | undefined {
   const isDifferent = base !== undefined && base !== '' && decision.kind === 'stack' && base !== decision.branch
@@ -48,7 +48,7 @@ export function describeBaseMismatch(base: string | undefined, decision: Exclude
 }
 
 /**
-積んだ先の下の段を git で調べた結果。追跡参照が手元に無ければ untracked
+スタック先の親ブランチを git で調べた結果。追跡参照が手元に無ければ untracked
 */
 export type LowerProbe
   = | { readonly kind: 'untracked', readonly reference: string }
@@ -60,8 +60,8 @@ export type StackInference
     | { readonly kind: 'unknown', readonly reason: string }
 
 /**
-.pecot-base が無いときに、判定と下の段の git の様子から積んだ先を求める。
-判定が stackable でも下の段の変更を持たないのは、開発ブランチから着手した後に前提を足したとき
+.pecot-base が無いときに、判定と親ブランチの git の様子からスタック先を求める。
+判定が stackable でも親ブランチの変更を持たないのは、開発ブランチから着手した後に前提を足したとき
 */
 export function inferStackedBase(readiness: Readiness | undefined, prerequisites: readonly Prerequisite[], target: IssueReference, probe: (stackOn: Readonly<StackTarget>) => LowerProbe): StackInference {
   if (readiness?.kind === 'blocked') return { kind: 'unknown', reason: describeReadiness(readiness, prerequisites, target.repository) }

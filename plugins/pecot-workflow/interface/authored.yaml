@@ -419,7 +419,7 @@ entries:
     stdin: none
     output:
       format: text
-      description: 'Overview・Registered repositories・Board status の節がある Markdown です。Ready と Blocked の表には、Readiness の列があります。積める Issue があるときは、Stackable chains の節が続きます。`--json` を付けると、`project`・`repositories`・`board` を持つ JSON のオブジェクトです。`repositories` の各要素は `dependabot_alerts` を、`board` の各項目は `readiness` を持ちます。'
+      description: 'Overview・Registered repositories・Board status の節がある Markdown です。Ready と Blocked の表には、Readiness の列があります。スタックできる Issue があるときは、Stackable chains の節が続きます。`--json` を付けると、`project`・`repositories`・`board` を持つ JSON のオブジェクトです。`repositories` の各要素は `dependabot_alerts` を、`board` の各項目は `readiness` を持ちます。'
     mcp_output:
       fields:
         project: 'アクティブなプロジェクトの概要です。`name`・`host`・`owner`・`number`・`aggregation_repo` を持ちます。ロードマップのリポジトリが未設定なら、`aggregation_repo` は `null` です。キーは snake_case です。'
@@ -540,7 +540,7 @@ entries:
         statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、`warnings` に 1 つ入れ、`readiness` の無いボードを返します'
       - id: PW-BOARD-SHOW-26
         pattern: event
-        statement: 'CLI では、積める並びがあると、Epic ごとの 1 行で Stackable chains の節に出します'
+        statement: 'CLI では、スタックできる並びがあると、Epic ごとの 1 行で Stackable chains の節に出します'
       - id: PW-BOARD-SHOW-27
         pattern: event
         statement: '呼ぶと、`board` の各 Issue に `readiness` を足します'
@@ -1099,7 +1099,7 @@ entries:
       issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
       reason: '前提のマージを待つ理由です。`wait` が `merge` のときは必須で、`stack` のときは渡せません。'
-      wait: '待ち方です。`stack`（相手のブランチの上に積みます。省くとこちら）か `merge`（相手がマージされるまで待ちます）を渡します。'
+      wait: '待ち方です。`stack`（相手のブランチの上にスタックします。省くとこちら）か `merge`（相手がマージされるまで待ちます）を渡します。'
     constraints: []
     details:
       - 'Issue に blocked-by（前提）を付けるか、付いている前提の待ち方と理由を変えます。'
@@ -1122,7 +1122,7 @@ entries:
       fields:
         issue: '待たせる側の Issue です。`owner/repo/N` の形です。'
         by: '前提の Issue です。`owner/repo/N` の形です。'
-        wait: '実行後の blocked-by の待ち方です。`stack`（前提のブランチに積む）か `merge`（前提のマージを待つ）です。'
+        wait: '実行後の blocked-by の待ち方です。`stack`（前提のブランチにスタックする）か `merge`（前提のマージを待つ）です。'
         change: 'blocked-by がどうなったかです。`added`（新しく足した）・`updated`（待ち方か理由を変えた）・`unchanged`（変更なし）のどれかです。'
         moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `board_sync` の `moves` と同じです。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。'
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
@@ -1305,17 +1305,17 @@ entries:
     details:
       - '`issue_create` に渡すファイルを、渡した順に確かめます。何も作りません。'
       - '一括の最初の Issue を作る前に `issue_create` が行う確認を、すべて行います。親 Epic と、`blocked_by` に書いた既存の Issue も読みます。'
-      - 'ファイルごとの進め方を `plan` に、積める並びを `stackableChains` に入れます。`plan` には、番号・blocked-by・進め方（単独・積む・マージを待つ・合流）を載せます。'
+      - 'ファイルごとの進め方を `plan` に、スタックできる並びを `stackableChains` に入れます。`plan` には、番号・blocked-by・進め方（単独・スタックする・マージを待つ・合流）を載せます。'
       - 'ファイルは、key（ファイル名の拡張子を除いた部分）で示します。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、ファイルの作り先のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
       format: text
-      description: 'ファイルの表です。積める並びがあれば、空行に続けて出します。'
+      description: 'ファイルの表です。スタックできる並びがあれば、空行に続けて出します。'
     mcp_output:
       fields:
         plan: 'ファイルごとの進め方の表です。渡した順に並びます。要素は `file`・`blockedBy`・`approach` を必ず持ちます。`file` はファイルのキー（ファイル名の本体）です。`blockedBy` は、`issue`（ファイルのキーか既存の Issue）と `wait`（`stack` か `merge`）の配列で、書いた順です。`approach` は `alone`・`wait-merge`・`stack`・`join` のどれかです。`order` は、親 Epic があるときだけ入ります。`stackOn` は、`approach` が `stack` のときだけ入ります。'
-        stackableChains: '積める並びの配列です。1 つの並びは、下の段から順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。積める並びが無いときは入りません。'
+        stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
     diagnostics: '`issue create` と同じく、一括の確認で見つけた `warning` と `error` の行を出します。'
     environment: []
     exit_status:
@@ -1387,12 +1387,12 @@ entries:
           files:
             - .pecot/work/12/issue-a.md
             - .pecot/work/12/issue-b.md
-        note: '何も作らずに、進め方の表と積める並びを返します。'
+        note: '何も作らずに、進め方の表とスタックできる並びを返します。'
     default_notes: {}
     behaviors:
       - id: PW-ISSUE-CHECK-01
         pattern: event
-        statement: '`files` を渡すと、何も作らずに、ファイルごとの番号・前提・進め方を `plan` に、積める並びを `stackableChains` に入れます'
+        statement: '`files` を渡すと、何も作らずに、ファイルごとの番号・前提・進め方を `plan` に、スタックできる並びを `stackableChains` に入れます'
       - id: PW-ISSUE-CHECK-02
         pattern: unwanted
         statement: 'もし `blocked_by` が一括の中の誤った前提か読めない既存の Issue を指すなら、失敗を返します'
@@ -1694,7 +1694,7 @@ entries:
       - '`blocked_by` のある task か bug は Blocked の列に、無いものは Ready の列に置きます。ボードに Blocked の列が無いときは、`warnings` に 1 つ入れて Ready に置きます。'
       - '既存の Issue を指す Blocked の Issue は、blocked-by を足した後で、着手できるかどうかを読みます。着手できるなら、Ready の列へ動かします。判定を読めないときは、Blocked のまま残します。'
       - '親 Epic があって order の無い Issue には、その Epic で使われている最大の order の次の番号を、ファイルの順に振ります。`18a` のような枝の文字が付いた番号は、その数字として数えます。題には、通し番号だけを入れます。'
-      - '投稿の後、すべての blocked-by を足せたときは、作った Issue の積める並びを `stackableChains` に入れます。'
+      - '投稿の後、すべての blocked-by を足せたときは、作った Issue のスタックできる並びを `stackableChains` に入れます。'
       - '`parallel` の欄には対応していません。この欄のあるファイルは受け付けません。'
       - '本文の `{{issue:key}}` は、その key の先のファイルから作った Issue の番号に展開します。'
       - '`message` では、`title`・本文・`repo`・`type` から Issue を 1 件作ります。'
@@ -1716,11 +1716,11 @@ entries:
     stdin: none
     output:
       format: text
-      description: '作った Issue ごとに URL を 1 行ずつ、ファイルの順に出します。作った Issue に積める並びがあれば、その後に出します。'
+      description: '作った Issue ごとに URL を 1 行ずつ、ファイルの順に出します。作った Issue にスタックできる並びがあれば、その後に出します。'
     mcp_output:
       fields:
         issues: '作った Issue の配列です。作った順に並びます。途中で失敗したときも、それまでに作った分が入ります。要素は `owner`・`repository`・`number`・`url` を必ず持ちます。`status` は、ボードに書いた Status（Blocked から出したときは `ready`）です。書かなかったときは入りません。`parent` は、sub-issue として足した親 Epic（`owner/repo/N`）です。親が無いときは入りません。'
-        stackableChains: '積める並びの配列です。1 つの並びは、下の段から順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。積める並びが無いときは入りません。'
+        stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
     diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status・priority・size）と `moved`（Blocked から Ready）もあります。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
     environment: []
     exit_status:
@@ -1969,7 +1969,7 @@ entries:
         statement: 'もし `wait` が `merge` の前提に `reason` が無いなら、何も作らずに、`kind` が `content-invalid` の失敗を返します'
       - id: PW-ISSUE-CREATE-56
         pattern: event
-        statement: '前提を付けたファイルを作り終えると、積める並びを `stackableChains` に入れます'
+        statement: '前提を付けたファイルを作り終えると、スタックできる並びを `stackableChains` に入れます'
       - id: PW-ISSUE-CREATE-57
         pattern: unwanted
         statement: 'もし一括の中で同じ親 Epic に同じ order を書いたファイルが 2 つ以上あるなら、何も作らずに、`kind` が `order-conflict` の失敗を返します'
@@ -2285,7 +2285,7 @@ entries:
         owner: 'Issue があるリポジトリのオーナーです。'
         repo: 'Issue があるリポジトリの名前です。'
         blockedBy: '前提（blocked-by）の配列です。読めなかったときは `null` です。要素は `number`・`repository`・`state`・`wait`・`reason` を持ちます。`wait` は `stack` か `merge`、`reason` は Waits for merge の節に書いた理由（無ければ `null`）です。'
-        readiness: 'Readiness の判定です。判定できなかったときは `null` です。`kind`（`startable`・`stackable`・`blocked`）・`stackOn`・`reason`・`text` を持ちます。`stackOn` は積む前提で、`stackable` 以外は `null` です。`reason` は `blocked` の理由の符号で、`blocked` 以外は `null` です。'
+        readiness: 'Readiness の判定です。判定できなかったときは `null` です。`kind`（`startable`・`stackable`・`blocked`）・`stackOn`・`reason`・`text` を持ちます。`stackOn` はスタック先の前提で、`stackable` 以外は `null` です。`reason` は `blocked` の理由の符号で、`blocked` 以外は `null` です。'
         attributes: '値の入っている機能の配列です。読めなかったときは `null` です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`value` を持ちます。`value` は、選択・Iteration・マイルストーン・Issue type では名前です。複数選択・担当者・ラベル・`blocked_by` では配列、数では数です。日付では `YYYY-MM-DD`、`parent` では `owner/repo/N` です。'
         unsupported: '値は入っているが pecot が扱えない種類の機能の配列です。読めなかったときは `null` です。要素は `name`・`source`・`github_type` を持ちます。'
     diagnostics: '本文の Waits for merge の節が blocked-by と食い違うか、形が誤っているときは、`warning` の行を出します。blocked-by を読めないときと、機能の値を読めないときも、`warning` の行を出します。'
@@ -2407,7 +2407,7 @@ entries:
         statement: 'もし済んでいない前提があり、リポに `develop_branch` が無いなら、`blockedBy` に前提を入れて `readiness` を `null` にします。`warnings` にも入れます'
       - id: PW-ISSUE-SHOW-20
         pattern: unwanted
-        statement: 'もし前提の積む先の PR を読めないなら、`warnings` に入れ、`blockedBy` に前提を入れて、`readiness` を `null` にします'
+        statement: 'もし前提のスタック先の PR を読めないなら、`warnings` に入れ、`blockedBy` に前提を入れて、`readiness` を `null` にします'
       - id: PW-ISSUE-SHOW-21
         pattern: unwanted
         statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、`warnings` に入れ、`blockedBy` と `readiness` を `null` にします'
@@ -2655,18 +2655,18 @@ entries:
       - '`directory` のリポジトリについて、PR を作る前に確かめる情報を返します。'
       - '結果には、remote・今のブランチ・Push Status・base ブランチ・`git status`・コミット・差分の統計・worktree・stash の一覧を入れます。'
       - 'base ブランチは、`<remote>/` の後に、選んだプロジェクトの `develop_branch` を続けたものです。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
-      - '積んで着手した記録があるときは、base ブランチは、`<remote>/` の後に下の段のブランチを続けたものです。remote がそのブランチは無いと答えれば（マージで消えた後）、手元に追跡参照が残っていても `develop_branch` の方にします。remote に届かなければ、手元の追跡参照の有無で決めます。'
-      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
+      - 'スタックして着手した記録があるときは、base ブランチは、`<remote>/` の後に親ブランチを続けたものです。remote がそのブランチは無いと答えれば（マージで消えた後）、手元に追跡参照が残っていても `develop_branch` の方にします。remote に届かなければ、手元の追跡参照の有無で決めます。'
+      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、スタック先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチにスタックしたものとします。変更を持つとは、同じコミットか、そのブランチをスタックし直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
       - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`cannot infer the stacked base` の文を `warnings` に入れます。求めた結果は書きません。'
-      - '下の段のブランチについての remote への問い合わせには、10 秒の時間切れがあり、認証の入力は求めません（`GIT_TERMINAL_PROMPT=0` と askpass の無効化）。時間切れは、remote に届かないときと同じに扱います。'
-      - '下の段のブランチが remote にあり、手元に追跡参照が無いときは、`develop_branch` と比べ、`git fetch` を案内する文を `warnings` に入れます。この文は、確かめた結果の数に入りません。'
-      - '積んだ base の記録の形が誤っているときは、base を決められないので、`kind` が `content-invalid` の失敗を返します。'
+      - '親ブランチについての remote への問い合わせには、10 秒の時間切れがあり、認証の入力は求めません（`GIT_TERMINAL_PROMPT=0` と askpass の無効化）。時間切れは、remote に届かないときと同じに扱います。'
+      - '親ブランチが remote にあり、手元に追跡参照が無いときは、`develop_branch` と比べ、`git fetch` を案内する文を `warnings` に入れます。この文は、確かめた結果の数に入りません。'
+      - 'スタックした base の記録の形が誤っているときは、base を決められないので、`kind` が `content-invalid` の失敗を返します。'
       - '確かめた結果に引っかかりがあっても、すべての項目を返します。'
       - '引っかかりとして数えるのは、push していないか remote とずれたブランチ、変更したファイルか追跡していないファイル、stash の項目です。'
-      - '積んで着手した記録があり、ブランチが remote とずれているときは、下の段の PR と remote の先頭を読み、`pr_restack` と同じに載せ直しの要否を決めます。GitHub を読むのは、このときと、記録が無く積んだ先を求めるときだけです。'
-      - 'Push Status の直し方は、載せ直しが要れば `pr_restack`、決められなければ `check` を付けた `pr_restack` です。下の段のブランチが remote から消え、PR がマージされていないときも、決められないに入ります。'
+      - 'スタックして着手した記録があり、ブランチが remote とずれているときは、親 PR と remote の先頭を読み、`pr_restack` と同じにスタックし直しの要否を決めます。GitHub を読むのは、このときと、記録が無くスタック先を求めるときだけです。'
+      - 'Push Status の直し方は、スタックし直しが要れば `pr_restack`、決められなければ `check` を付けた `pr_restack` です。親ブランチが remote から消え、PR がマージされていないときも、決められないに入ります。'
       - 'ブランチが新しい base の上に載り終えていて記録だけが古いときも、Push Status の直し方は `pr_restack` です。push と記録の書き直しを `pr_restack` が行うためです。'
-      - 'ほかに、ブランチが remote とずれて載せ直しが要らないときは、Push Status の直し方は `git pull --rebase` です。push 済みのコミットを書き換えたなら `git push --force-with-lease` です。積んでいないブランチも同じです。git は fast-forward でない push を拒むためです。'
+      - 'ほかに、ブランチが remote とずれてスタックし直しが要らないときは、Push Status の直し方は `git pull --rebase` です。push 済みのコミットを書き換えたなら `git push --force-with-lease` です。スタックしていないブランチも同じです。git は fast-forward でない push を拒むためです。'
       - '引っかかりが 1 件以上あると、それぞれを `warnings` に入れ、`kind` が `preflight-failed` の失敗を返します。失敗の結果にも、集めた項目が入ります。'
       - 'リポジトリと設定を読むだけで、何も変えません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -2680,13 +2680,13 @@ entries:
         currentBranch: '今のブランチです。'
         pushed: '今のブランチを push 済みで、リモートのブランチと同じかどうかです。'
         pushStatus: 'Push Status の状態を書いた文です。'
-        baseBranch: '比べる相手のリモートブランチです。`remote/branch` の形です。積んでいるときは下の段、そうでなければ develop ブランチです。'
+        baseBranch: '比べる相手のリモートブランチです。`remote/branch` の形です。スタックしているときは親ブランチ、そうでなければ develop ブランチです。'
         gitStatus: '`git status` の出力です。'
         commits: 'ベースブランチからのコミットを、1 行に 1 件ずつ並べた文です。'
         diffSummary: 'ベースブランチとの差分の統計を書いた文です。'
         worktree: 'worktree の情報です。`list`（`git worktree list` の出力）と `directoryName`（今のディレクトリの名前）を持ちます。リンクされた worktree かどうかを示す `isWorktree` は、判定できたときだけ入ります。'
         stashList: 'stash の一覧を書いた文です。'
-    diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。下の段のブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
+    diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。親ブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。記録が無くスタック先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -2709,7 +2709,7 @@ entries:
         when: '`<remote>/<develop_branch>` がありません。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
       - kind: content-invalid
         code: 1
-        when: '積んだ base の記録の形が誤っています。'
+        when: 'スタックした base の記録の形が誤っています。'
       - kind: preflight-failed
         code: 2
         when: '`warning` が 1 件以上あります。'
@@ -2797,31 +2797,31 @@ entries:
         statement: 'もし `directory` を渡していないなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-PR-CHECK-18
         pattern: event
-        statement: '積んだ base の記録があるときに呼ぶと、`baseBranch` に `<remote>/<下の段のブランチ>` を入れます。そのブランチが remote から消えていれば、手元に追跡参照が残っていても `<remote>/<develop_branch>` を入れます'
+        statement: 'スタックした base の記録があるときに呼ぶと、`baseBranch` に `<remote>/<親ブランチ>` を入れます。そのブランチが remote から消えていれば、手元に追跡参照が残っていても `<remote>/<develop_branch>` を入れます'
       - id: PW-PR-CHECK-19
         pattern: unwanted
-        statement: 'もし積んだ base の記録の形が誤っているなら、`kind` が `content-invalid` の失敗を返します'
+        statement: 'もしスタックした base の記録の形が誤っているなら、`kind` が `content-invalid` の失敗を返します'
       - id: PW-PR-CHECK-20
         pattern: event
-        statement: '下の段のブランチが remote にあり、手元に追跡参照が無いときに呼ぶと、開発ブランチと比べ、`git fetch` を案内する文を `warnings` に入れます'
+        statement: '親ブランチが remote にあり、手元に追跡参照が無いときに呼ぶと、開発ブランチと比べ、`git fetch` を案内する文を `warnings` に入れます'
       - id: PW-PR-CHECK-21
         pattern: unwanted
-        statement: 'もし積んだ記録があってブランチが remote とずれ、下の段が動いたかマージされているなら、Push Status の直し方に `pr_restack` を示します'
+        statement: 'もしスタックの記録があってブランチが remote とずれ、親ブランチが動いたか親 PR がマージされているなら、Push Status の直し方に `pr_restack` を示します'
       - id: PW-PR-CHECK-22
         pattern: unwanted
-        statement: 'もしブランチが remote とずれて、載せ直しも記録の書き直しも要らないなら、直し方に `git pull --rebase` と `git push --force-with-lease` を示します'
+        statement: 'もしブランチが remote とずれ、スタックし直しも記録の書き直しも要らないなら、直し方に `git pull --rebase` と `git push --force-with-lease` を示します'
       - id: PW-PR-CHECK-23
         pattern: unwanted
-        statement: 'もし積んだブランチが remote とずれ、載せ直しが要るかを決められないなら、Push Status の直し方に `check` を付けた `pr_restack` を示します。下の段の PR か remote の先頭を読めないときと、下の段のブランチが消えて PR が未マージのときです'
+        statement: 'もしスタックしたブランチが remote とずれ、スタックし直しが要るかを決められないなら、Push Status の直し方に `check` を付けた `pr_restack` を示します。親 PR か remote の先頭を読めないときと、親ブランチが消えて PR が未マージのときです'
       - id: PW-PR-CHECK-24
         pattern: unwanted
-        statement: 'もし積んだブランチが remote とずれ、新しい base の上に載り終えていて記録だけが古いなら、Push Status の直し方に `pr_restack` を示します'
+        statement: 'もしスタックしたブランチが remote とずれ、新しい base の上に載り終えていて記録だけが古いなら、Push Status の直し方に `pr_restack` を示します'
       - id: PW-PR-CHECK-25
         pattern: state
-        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、下の段の追跡参照と比べます'
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが親ブランチの変更を持つ間、親ブランチの追跡参照と比べます'
       - id: PW-PR-CHECK-26
         pattern: unwanted
-        statement: 'もし記録が無く、積んだ先を求められないなら、`cannot infer the stacked base: <理由>` の文を `warnings` に入れ、`develop_branch` の追跡参照と比べます'
+        statement: 'もし記録が無く、スタック先を求められないなら、`cannot infer the stacked base: <理由>` を `warnings` に入れ、`develop_branch` の追跡参照と比べます'
       - id: PW-PR-CHECK-27
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
@@ -2890,18 +2890,18 @@ entries:
       - '両方を渡すと、`file` が `message` より優先されます。'
       - '`template` は、`default` か `release` です。'
       - 'テンプレートは MCP の resource（`pecot-template://pr/create` と `pecot-template://pr/release`）です。ファイルに写して書き込みます。'
-      - '`file` と `default` のテンプレートで、フロントマターの base が空なら、投稿のときに base を決めます。積んだブランチは下の段のブランチ、そうでなければリポジトリの `develop_branch` です。'
-      - '積んで着手した記録 `.pecot/state/.pecot-base` があると、base は `develop_branch` ではなく、記録の base（下の段のブランチ）です。今のブランチの `default` のテンプレートだけが対象です。`head` の引数・フロントマターの `head`・`release` のテンプレートでは、記録を読みません。'
-      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
+      - '`file` と `default` のテンプレートで、フロントマターの base が空なら、投稿のときに base を決めます。スタックしたブランチは親ブランチ、そうでなければリポジトリの `develop_branch` です。'
+      - 'スタックして着手した記録 `.pecot/state/.pecot-base` があると、base は `develop_branch` ではなく、記録の base（親ブランチ）です。今のブランチの `default` のテンプレートだけが対象です。`head` の引数・フロントマターの `head`・`release` のテンプレートでは、記録を読みません。'
+      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、スタック先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチにスタックしたものとします。変更を持つとは、同じコミットか、そのブランチをスタックし直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
       - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`cannot infer the stacked base` の文を `warnings` に入れます。求めた結果は書きません。'
-      - '積んだ先を求められないとき、投稿は失敗を返し、PR を作りません。開発ブランチ向けの PR に、下の段の差分が入りうるためです。'
-      - '下の段の PR が開いているときは、その base で PR を作ります。渡した base が `develop_branch` なら、`kind` が `content-invalid` の失敗を返します。'
-      - '下の段の PR がマージ済みのときは、`develop_branch` を base にして PR を作ります。'
-      - '下の段の PR は、開いている・マージ済み・閉じた、の順に選びます。'
-      - '下の段の PR が無く、マージもされていないときは、PR を作りません。base ブランチに開いた PR が無いと書いた `detail` を入れて、`kind` が `pr-state` の失敗を返します。'
+      - 'スタック先を求められないとき、投稿は失敗を返し、PR を作りません。開発ブランチ向けの PR に、親ブランチの差分が入りうるためです。'
+      - '親 PR が開いているときは、その base で PR を作ります。渡した base が `develop_branch` なら、`kind` が `content-invalid` の失敗を返します。'
+      - '親 PR がマージ済みのときは、`develop_branch` を base にして PR を作ります。'
+      - '親 PR は、開いている・マージ済み・閉じた、の順に選びます。'
+      - '親 PR が無く、マージもされていないときは、PR を作りません。base ブランチに開いた PR が無いと書いた `detail` を入れて、`kind` が `pr-state` の失敗を返します。'
       - '記録の形が誤っているときは、base を決められないので、`kind` が `content-invalid` の失敗を返します。'
-      - '記録のコミットが head の履歴に無いときは、`file` と `message` の投稿では PR を作らず、失敗を返します。このとき、下の段の PR と remote の先頭を読み、`pr_restack` と同じ判断で載せ直し済みかを決めます。載せ直し済みと決まったときだけ、`detail` の 2 行目で `pr_restack` で記録を書き直すことを案内します。最後の行で、記録を書いたブランチで呼ぶか、`head` を渡して記録なしで作るかを案内します。'
-      - '積んだ base の PR を作った後、下の段のスタックに登録します。スタックが無ければ、2 つの PR で新しく作ります。下の段の PR がスタックの一番上に無いときは、追加を呼ばず、そのことを `warnings` に入れます。スタックの API が無いリポジトリと接続の失敗では、URL を添えて `warnings` に入れ、PR は残します。'
+      - '記録のコミットが head の履歴に無いときは、`file` と `message` の投稿では PR を作らず、失敗を返します。このとき、親 PR と remote の先頭を読み、`pr_restack` と同じ判断でスタックし直し済みかを決めます。スタックし直し済みと決まったときだけ、`detail` の 2 行目で `pr_restack` で記録を書き直すことを案内します。最後の行で、記録を書いたブランチで呼ぶか、`head` を渡して記録なしで作るかを案内します。'
+      - 'スタックした base の PR を作った後、親 PR のスタックに登録します。スタックが無ければ、2 つの PR で新しく作ります。親 PR がスタックの一番上に無いときは、追加を呼ばず、そのことを `warnings` に入れます。スタックの API が無いリポジトリと接続の失敗では、URL を添えて `warnings` に入れ、PR は残します。'
       - 'PR を作った後、head ブランチが指す Issue を待っている Issue を読み、判定に従って列を動かします。読むのは、選んだプロジェクトのボードの項目だけで、ボードに載っていない Issue は飛ばします。判定に作った PR が出ていないときは、約 1.5 秒待ってから 1 回だけ読み直します。着手の跡がある Issue は動かしません。'
       - '接続の失敗を含め、この処理の失敗は `warnings` に入れるだけで、成功と失敗を変えません。状態を確かめられないときは、`could not confirm that GitHub reflects PR #<N> ...` の文を入れ、後から `board_sync` で列を直せると添えます。head の番号の Issue が PR のリポジトリに無いときは、何も入れずに飛ばします。リリースの PR では行いません。'
       - '番号の空いた `Closes #` の行は、head ブランチ名の末尾の番号で埋めます。テンプレートが `release` のときと、`no_issue_ref` を付けたときは埋めません。古い版の `.pecot/state/.pecot-active` が残っていても読まないので、`.pecot/state/` の無い clone でも同じ `Closes` が入ります。'
@@ -2911,8 +2911,8 @@ entries:
       - '`file` では、その Issue が Epic か種別を読めないとき、`Closes` を足さずに番号の空いた `Closes #` の行を消します。種別を読めないときは、`warnings` に入れます。'
       - '題・本文・base を確かめ、次のどれかが誤っていると、`kind` が `content-invalid` の失敗を返します。Issue の参照、必須の節、見出しの要約、記法、Summary のスクリーンショット、base ブランチです。'
       - 'リリースの種類が nx のリポジトリでは、題の scope が、変更した nx のプロジェクトの scope と違うときも、同じ失敗を返します。'
-      - '積んだ base の scope は、下の段の PR がマージ済みなら、記録のコミットから head までの差分で求めます。開いている間は、下の段のブランチとの差分で求めます。'
-      - 'セッションのディレクトリを `pr_check` と同じように確かめます。引っかかりが見つかると、それぞれを `warnings` に入れ、`kind` が `preflight-failed` の失敗を返します。積んだブランチが remote とずれたときの Push Status の直し方も、`pr_check` と同じに決めます。'
+      - 'スタックした base の scope は、親 PR がマージ済みなら、記録のコミットから head までの差分で求めます。開いている間は、親ブランチとの差分で求めます。'
+      - 'セッションのディレクトリを `pr_check` と同じように確かめます。引っかかりが見つかると、それぞれを `warnings` に入れ、`kind` が `preflight-failed` の失敗を返します。スタックしたブランチが remote とずれたときの Push Status の直し方も、`pr_check` と同じに決めます。'
       - 'PR を作った後、head ブランチが指す Issue を In Review にします。テンプレートが `release` のときは行いません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
@@ -2927,9 +2927,9 @@ entries:
         base: 'PR の base ブランチです。'
         title: 'PR のタイトルです。'
         inReview: 'Status を In Review にした Issue の番号です。設定しなかったときは入りません。'
-        stack: 'PR の積み方です。積まない PR では入りません。`lower`（下の段の PR の番号）を必ず持ちます。`registered`（スタックに登録したか）も必ず持ちます。`number`（スタックの番号）は、登録したときだけ入ります。'
+        stack: 'スタック PR の、親 PR とスタックへの登録です。スタックしない PR では入りません。`lower`（親 PR の番号）を必ず持ちます。`registered`（スタックに登録したか）も必ず持ちます。`number`（スタックの番号）は、登録したときだけ入ります。'
         moves: 'この PR を待っていた Issue のうち、列か Status を書いたものの配列です。要素は `issue`・`reason` を必ず持ち、`from`・`to`・`label` は `board_sync` の `moves` と同じです。'
-    diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。記録が無く積んだ先を求められないとき、投稿では `error: cannot infer the stacked base: <理由>` の行と直し方の行を出します。`--dry-run` では、同じ理由の `warning` の行を出します。'
+    diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。スタックした base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、親 PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<親>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。親 PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<親> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。親 PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。記録が無くスタック先を求められないとき、投稿では `error: cannot infer the stacked base: <理由>` の行と直し方の行を出します。`--dry-run` では、同じ理由の `warning` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -2955,13 +2955,13 @@ entries:
         when: 'リポジトリか head ブランチを決められません。'
       - kind: content-invalid
         code: 1
-        when: '積んだ base の記録の形が誤っていて、base を決められません。'
+        when: 'スタックした base の記録の形が誤っていて、base を決められません。'
       - kind: git-unresolved
         code: 1
-        when: '積んだ base の記録のコミットが head の履歴にありません。`file` と `message` の投稿のときです。'
+        when: 'スタックした base の記録のコミットが head の履歴にありません。`file` と `message` の投稿のときです。'
       - kind: git-unresolved
         code: 1
-        when: '記録が無く、積んだ先を求められません。`file` と `message` の投稿のときです。'
+        when: '記録が無く、スタック先を求められません。`file` と `message` の投稿のときです。'
       - kind: repo-setting-missing
         code: 1
         when: '`develop_branch` か `release_branch` が未設定です。'
@@ -2976,7 +2976,7 @@ entries:
         when: '事前の確認が `warning` を見つけました。push していない、コミットしていない変更がある、stash がある、のどれかです。'
       - kind: pr-state
         code: 2
-        when: '下の段の PR が開いておらず、マージもされていないので、積んだ base の PR を作れません。'
+        when: '親 PR が開いておらず、マージもされていないので、スタックした base の PR を作れません。'
       - kind: invalid-input
         code: 2
         when: '引数の誤りがあります。'
@@ -3008,10 +3008,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'PR を作り、関連する Issue のボードの status を In Review にします。積んだ base の PR は、スタックに登録します。この PR を待っていた Issue の列を動かします。'
+        what: 'PR を作り、関連する Issue のボードの status を In Review にします。スタックした base の PR は、スタックに登録します。この PR を待っていた Issue の列を動かします。'
       - target: github
         kind: read
-        what: '関連する Issue の種類と、そのボードの項目を読みます。積んだ base では、下の段の PR とスタックも読みます。待っている Issue とボードも読みます。待っている Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
+        what: '関連する Issue の種類と、そのボードの項目を読みます。スタックした base では、親 PR とスタックも読みます。待っている Issue とボードも読みます。待っている Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: git
         kind: read
         what: 'ブランチ・remote・status・stash・push の状態を読みます。nx のリポジトリでは、base との差分も読みます。'
@@ -3163,16 +3163,16 @@ entries:
         statement: 'もし head ブランチを決められないなら、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-PR-CREATE-49
         pattern: event
-        statement: '積んだ base の記録があるときに `base` が空のファイルを渡すと、記録の base（下の段のブランチ）を base にします'
+        statement: 'スタックした base の記録があるときに `base` が空のファイルを渡すと、記録の base（親ブランチ）を base にします'
       - id: PW-PR-CREATE-50
         pattern: event
-        statement: '積んだ base の記録があり、下の段の PR が開いているときに呼ぶと、base を下の段のブランチにして PR を作ります'
+        statement: 'スタックした base の記録があり、親 PR が開いているときに呼ぶと、base を親ブランチにして PR を作ります'
       - id: PW-PR-CREATE-51
         pattern: event
-        statement: '積んだ base の PR を作ると、下の段のスタックに登録し、結果の `stack` の `registered` を `true` に、`number` をスタックの番号にします'
+        statement: 'スタックした base の PR を作ると、親 PR のスタックに登録し、結果の `stack` の `registered` を `true` に、`number` をスタックの番号にします'
       - id: PW-PR-CREATE-52
         pattern: event
-        statement: '積んだ base の記録があり、下の段の PR がマージ済みのときに呼ぶと、base を開発ブランチにして PR を作ります'
+        statement: 'スタックした base の記録があり、親 PR がマージ済みのときに呼ぶと、base を開発ブランチにして PR を作ります'
       - id: PW-PR-CREATE-53
         pattern: event
         statement: '記録が無いか、開発ブランチからの着手のときに呼ぶと、今までどおり開発ブランチを base にします'
@@ -3187,13 +3187,13 @@ entries:
         statement: '待っている Issue に着手の跡がある間、その Issue の列を動かしません'
       - id: PW-PR-CREATE-57
         pattern: unwanted
-        statement: 'もし下の段の PR が開いておらず、マージもされていないなら、PR を作りません。`detail` を `base branch <base> has no open PR` で始め、`kind` が `pr-state` の失敗を返します'
+        statement: 'もし親 PR が開いておらず、マージもされていないなら、PR を作りません。`detail` を `base branch <base> has no open PR` で始め、`kind` が `pr-state` の失敗を返します'
       - id: PW-PR-CREATE-58
         pattern: unwanted
-        statement: 'もし下の段の PR が開いているのに base が開発ブランチなら、`kind` が `content-invalid` の失敗を返します'
+        statement: 'もし親 PR が開いているのに base が開発ブランチなら、`kind` が `content-invalid` の失敗を返します'
       - id: PW-PR-CREATE-59
         pattern: unwanted
-        statement: 'もし積んだ base の記録の形が誤っているなら、`kind` が `content-invalid` の失敗を返します'
+        statement: 'もしスタックした base の記録の形が誤っているなら、`kind` が `content-invalid` の失敗を返します'
       - id: PW-PR-CREATE-60
         pattern: unwanted
         statement: 'もしスタックに登録できないなら、`could not register stack: <理由>` の文を `warnings` に入れ、PR は残します'
@@ -3202,13 +3202,13 @@ entries:
         statement: 'もし待っている Issue を読めないか動かせないなら、接続の失敗でも `warnings` に入れ、成功と失敗は変えません。選択肢の ID が古くて動かせないときは、ID を読み直す `project_activate` の案内を、In Review の書き込みと合わせて 1 回だけ添えます'
       - id: PW-PR-CREATE-62
         pattern: event
-        statement: '積んだ base の記録があるときに題の scope を確かめると、下の段の PR がマージ済みなら記録のコミットから head までの差分で、開いている間は下の段のブランチとの差分で求めます'
+        statement: 'スタックした base の記録があるときに題の scope を確かめると、親 PR がマージ済みなら記録のコミットから head までの差分で、開いている間は親ブランチとの差分で求めます'
       - id: PW-PR-CREATE-63
         pattern: event
-        statement: 'CLI で `--dry-run` を付け、下の段の PR が開いているときに打つと、下の段の PR のスタックに足す予定を `dry-run` の行で標準エラーに出します'
+        statement: 'CLI で `--dry-run` を付け、親 PR が開いているときに打つと、親 PR のスタックに足す予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PR-CREATE-65
         pattern: unwanted
-        statement: 'もし積んだ base の記録のコミットが head の履歴に無いなら、PR を作らずに、`kind` が `git-unresolved` の失敗を返します'
+        statement: 'もしスタックした base の記録のコミットが head の履歴に無いなら、PR を作らずに、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-PR-CREATE-64
         pattern: unwanted
         statement: 'もし head の番号の Issue が PR のリポジトリに無いなら、待っている Issue の確認を、何も返さずに飛ばします'
@@ -3220,22 +3220,22 @@ entries:
         statement: 'もし `.pecot/state/` の無い clone で紐づいたブランチにいるなら、`file` でも `Closes` にブランチ名の番号を入れます'
       - id: PW-PR-CREATE-69
         pattern: unwanted
-        statement: 'もし積んだ記録があり、事前の確認がブランチと remote のずれを見つけたなら、Push Status の直し方を `pr_check` と同じに決めます'
+        statement: 'もしスタックの記録があり、事前の確認がブランチと remote のずれを見つけたなら、Push Status の直し方を `pr_check` と同じに決めます'
       - id: PW-PR-CREATE-70
         pattern: unwanted
-        statement: 'もし積んだ base の記録のコミットが head の履歴に無く、`pr_restack` と同じ判断で載せ直し済みと決まったなら、記録の書き直しを `detail` で案内します。案内するのは `pr_restack` です。決まらなければ案内しません'
+        statement: 'もしスタックした base の記録のコミットが head の履歴に無く、`pr_restack` と同じ判断でスタックし直し済みと決まったなら、記録の書き直しを `detail` で案内します。案内するのは `pr_restack` です。決まらなければ案内しません'
       - id: PW-PR-CREATE-71
         pattern: state
-        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、下の段のブランチを base にします。下の段を載せ直して force-push した後も同じです'
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが親ブランチの変更を持つ間、親ブランチを base にします。親ブランチをスタックし直して force-push した後も同じです'
       - id: PW-PR-CREATE-72
         pattern: state
         statement: '記録が無く、作業中の Issue の判定が startable の間、`develop_branch` を base にします'
       - id: PW-PR-CREATE-73
         pattern: unwanted
-        statement: 'もし記録が無く、積んだ先を求められないなら、投稿では `detail` を `cannot infer the stacked base` で始めて失敗を返し、PR を作りません'
+        statement: 'もし記録が無く、スタック先を求められないなら、投稿では `detail` を `cannot infer the stacked base` で始めて失敗を返し、PR を作りません'
       - id: PW-PR-CREATE-74
         pattern: unwanted
-        statement: 'もし記録が無く、積んだ先を求められないなら、CLI の `--dry-run` では `warning` の行を出し、`develop_branch` を base にします'
+        statement: 'もし記録が無く、スタック先を求められないなら、CLI の `--dry-run` では `warning` の行を出し、`develop_branch` を base にします'
       - id: PW-PR-CREATE-75
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
@@ -3294,7 +3294,7 @@ entries:
       default_notes:
         pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
         project: None; the config that includes the target repository, and the active one among them when there are several.
-    summary: 'PR をマージします。スタックの中の PR は、最下段のものだけをマージします。'
+    summary: 'PR をマージします。スタックの中の PR は、一番下のものだけをマージします。'
     arguments:
       pr_ref: 'PR の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
@@ -3321,8 +3321,8 @@ entries:
         pullRequest: 'マージした PR です。`owner/repo/N` の形です。'
         base: 'PR をマージした先の base ブランチです。'
         status: '結果です。`merged`（マージした）か `enqueued`（merge queue に入った）です。'
-        stack: 'PR が最下段だったスタックです。`number`（スタックの番号）と `size`（この PR から上の PR の数）を持ちます。スタックの外の PR では入りません。'
-    diagnostics: '標準エラーに、結果の行を出します。マージしたときは `merged`、merge queue に入ったときは `added` です。スタックの最下段の PR では、`merged` の行にスタックの番号と段の数が付きます。失敗ごとに `error` の行を出します。'
+        stack: 'PR が一番下だったスタックです。`number`（スタックの番号）と `size`（この PR から上の PR の数）を持ちます。スタックの外の PR では入りません。'
+    diagnostics: '標準エラーに、結果の行を出します。マージしたときは `merged`、merge queue に入ったときは `added` です。スタックの一番下の PR では、`merged` の行にスタックの番号と PR の数が付きます。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -3336,7 +3336,7 @@ entries:
         when: '`project` の名前の設定がありません。'
       - kind: pr-state
         code: 2
-        when: 'PR がドラフトか、閉じているか、マージ済みか、スタックの最下段ではありません。要求は送っていません。'
+        when: 'PR がドラフトか、閉じているか、マージ済みか、スタックの一番下ではありません。要求は送っていません。'
       - kind: pr-state
         code: 1
         when: 'GitHub がマージを拒みました。または、結果を読めず、PR がマージ済みでも merge queue の中でもありません。'
@@ -3371,7 +3371,7 @@ entries:
         what: 'PR をマージするか、merge queue に入れます。'
       - target: github
         kind: read
-        what: 'PR、PR が入っているスタック、スタックの下の段の PR、マージの結果を読みます。'
+        what: 'PR、PR が入っているスタック、スタックでこの PR より下の PR、マージの結果を読みます。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -3392,16 +3392,16 @@ entries:
         statement: 'スタックの外の PR を渡すと、読んだ head のコミットと squash でマージを頼み、結果の `status` を `merged` にします'
       - id: PW-PR-MERGE-02
         pattern: event
-        statement: 'スタックの最下段の PR を渡すと、スタックの番号と段の数を結果の `stack` に入れます'
+        statement: 'スタックの一番下の PR を渡すと、スタックの番号と PR の数を結果の `stack` に入れます'
       - id: PW-PR-MERGE-03
         pattern: state
-        statement: '下の段の PR がマージ済みでスタックの並びに残っている間、その上の PR を最下段として扱います'
+        statement: '親 PR がマージ済みでスタックの並びに残っている間、その子 PR を一番下として扱います'
       - id: PW-PR-MERGE-04
         pattern: state
         statement: 'base ブランチに merge queue がある間、マージの方法を送らず、merge queue に入ると結果の `status` を `enqueued` にします'
       - id: PW-PR-MERGE-05
         pattern: unwanted
-        statement: 'もしスタックの下の段に開いている PR があるなら、要求を送らずに、先にマージする PR を `detail` で示して、`kind` が `pr-state` の失敗を返します'
+        statement: 'もしスタックでこの PR より下に開いている PR があるなら、要求を送らずに、先にマージする PR を `detail` で示して、`kind` が `pr-state` の失敗を返します'
       - id: PW-PR-MERGE-06
         pattern: unwanted
         statement: 'もし PR がドラフトなら、要求を送らずに、`kind` が `pr-state` の失敗を返します'
@@ -3473,33 +3473,33 @@ entries:
           note: Go back to the position before the restack.
       default_notes:
         project: None; the config that includes the target repository, and the active one among them when there are several.
-    summary: 積んだブランチを、base にしたブランチの新しい位置へ載せ直します。
+    summary: スタックしたブランチを、base にしたブランチの新しい位置へスタックし直します。
     arguments:
-      check: '載せ直しが要るかだけを確かめます。'
-      continue: '衝突で止まった載せ直しを、衝突を解いた後に続けます。'
-      abort: '衝突で止まった載せ直しを取りやめ、載せ直しの前の位置に戻します。'
+      check: 'スタックし直しが要るかだけを確かめます。'
+      continue: '衝突で止まったスタックし直しを、衝突を解いた後に続けます。'
+      abort: '衝突で止まったスタックし直しを取りやめ、スタックし直す前の位置に戻します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
     constraints: []
     details:
-      - '今のブランチを、積んで着手したときの base の記録を使って、下の段のブランチの新しい位置へ載せ直します。'
-      - '`check` を付けると、載せ直しが要るかだけを返します。変わるのは、`git fetch` が進める手元の追跡参照だけです。'
-      - '積んでいないブランチ（開発ブランチからの着手の記録か、記録が無く積んだ先も求まらないもの）は、載せ直しません。'
-      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチに積んだものとします。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
+      - '今のブランチを、スタックして着手したときの base の記録を使って、親ブランチの新しい位置へスタックし直します。'
+      - '`check` を付けると、スタックし直しが要るかだけを返します。変わるのは、`git fetch` が進める手元の追跡参照だけです。'
+      - 'スタックしていないブランチ（開発ブランチからの着手の記録か、記録が無くスタック先も求まらないもの）は、スタックし直しません。'
+      - '作業ディレクトリの worktree に `.pecot/state/.pecot-base` が無いときは、スタック先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、そのブランチにスタックしたものとします。変更を持つとは、同じコミットか、そのブランチをスタックし直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。'
       - 'そうでなければ、開発ブランチからの着手とします。判定を読めないか blocked のときと、GitHub に届かないとき、追跡参照が無いときは、`cannot infer the stacked base` の文を `warnings` に入れます。求めた結果は書きません。'
-      - '載せ直しが要るのは、下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときです。マージ済みなら開発ブランチへ載せ直し、base の記録を開発ブランチからの着手に変えます。'
+      - 'スタックし直しが要るのは、親ブランチの remote の先頭が記録の位置と違うときと、親 PR がマージ済みのときです。マージ済みなら開発ブランチへスタックし直し、base の記録を開発ブランチからの着手に変えます。'
       - 'ブランチが新しい base の上に載り終えていれば、記録が古くても rebase をしません。載り終えているとは、新しい base がブランチの履歴にあり、記録の位置もブランチの履歴にあるなら、それが新しい base の履歴にもあることです。push と記録の書き直しは、`check` なしの `pr_restack` が行います。remote のブランチが同じ木で新しい base の上にあれば、push せずに remote のブランチに合わせます。'
-      - 'rebase の後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。ブランチは載せ直しの前の位置へ戻します。'
-      - '同じ変更かは、載せ直しの前と後のブランチの両方と比べます。GitHub が書き換えたコミットを、別の変更と見ないためです。'
+      - 'rebase の後、remote のブランチにだけあるコミットがあれば止まります。push がそのコミットを消すためです。ブランチはスタックし直す前の位置へ戻します。'
+      - '同じ変更かは、スタックし直す前と後のブランチの両方と比べます。GitHub が書き換えたコミットを、別の変更と見ないためです。'
       - '`git rebase --no-update-refs --onto <新しい base> <記録の位置>` を動かします。'
-      - '記録の位置がブランチの履歴に無いときは、別の点から rebase を始めます。下の段の追跡参照からの fork-point を使い、求まらなければ新しい base との merge-base を使います。下の段がマージ済みでも同じです。'
+      - '記録の位置がブランチの履歴に無いときは、別の点から rebase を始めます。親ブランチの追跡参照からの fork-point を使い、求まらなければ新しい base との merge-base を使います。親 PR がマージ済みでも同じです。'
       - '結果の木が remote のブランチと同じで、remote のブランチが新しい base の上にあれば、remote のブランチに合わせ、push しません。'
       - 'そうでなければ、fetch した位置を期待の値にした `git push --force-with-lease` で push します。pre-push のフックを含めて、10 分まで待ちます。remote に無いブランチは push しません。'
-      - '載せ直しの後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
-      - '開発ブランチへ載せ直した後、ブランチの開いている PR の本文を変えずに保存し直します。GitHub は、積んだ PR の `Closes` を Issue とリンクせず、base を付け替えても本文を読み直さないためです。'
+      - 'スタックし直した後、base の記録の位置を、ブランチと新しい base の merge-base に書き直します。'
+      - '開発ブランチへスタックし直した後、ブランチの開いている PR の本文を変えずに保存し直します。GitHub は、スタック PR の `Closes` を Issue とリンクせず、base を付け替えても本文を読み直さないためです。'
       - '保存し直すのは、PR の base がリポの既定のブランチで、本文の `Closes` などの Issue に、まだリンクになっていないものがあるときだけです。GitHub がリンクにするのは、既定のブランチに向いた PR だけです。'
       - '保存し直しの失敗は `warnings` に入れるだけで、成功を返します。base の記録は書き直し済みなので、呼び直しても保存し直しません。`warnings` の文には、GitHub で本文を変えずに保存し直す案内を添えます。'
       - '衝突したら、衝突したファイルを `conflicts` に入れ、rebase を途中のまま残します。途中の記録を書き、`kind` が `git-conflict` の失敗を返します。'
-      - '`continue` は、衝突を解いて `git add` した後に続けます。`abort` は、載せ直しの前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
+      - '`continue` は、衝突を解いて `git add` した後に続けます。`abort` は、スタックし直す前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
       - '`check`・`continue`・`abort` は、1 つだけ渡せます。'
       - '書き換えるのは、セッションのディレクトリのブランチだけです。ほかの worktree には触れません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -3509,15 +3509,15 @@ entries:
       description: '`--check` のときだけ、`up to date: <branch> on <base>` か `needs restack: ...` の 1 行を出します。'
     mcp_output:
       fields:
-        branch: '載せ直すブランチです。'
-        base: '載せ直した後の base のブランチです。下の段の PR がマージ済みなら、開発ブランチです。'
-        outcome: '起きたことです。`up-to-date`・`needs-restack`・`restacked`・`synced`・`conflict`・`aborted` のどれかです。`check` を付けたときは、載せ直すと何が起きるかです。'
-        cause: '載せ直しが要る理由です。`base-moved` か `base-merged` です。`check` を付けて、載せ直しが要るときだけ入ります。'
-        pullRequest: '下の段の、マージ済みの PR の番号です。`cause` が `base-merged` のときだけ入ります。'
+        branch: 'スタックし直すブランチです。'
+        base: 'スタックし直した後の base のブランチです。親 PR がマージ済みなら、開発ブランチです。'
+        outcome: '起きたことです。`up-to-date`・`needs-restack`・`restacked`・`synced`・`conflict`・`aborted` のどれかです。`check` を付けたときは、スタックし直すと何が起きるかです。'
+        cause: 'スタックし直しが要る理由です。`base-moved` か `base-merged` です。`check` を付けて、スタックし直しが要るときだけ入ります。'
+        pullRequest: 'マージ済みの親 PR の番号です。`cause` が `base-merged` のときだけ入ります。'
         pushed: 'ブランチを push したかどうかです。`outcome` が `restacked` のときだけ入ります。'
         conflicts: '衝突したファイルの一覧です。`outcome` が `conflict` のときだけ入ります。'
-        relinked: '本文を保存し直した、開いている PR の番号です。開発ブランチへ載せ直すか合わせた後、まだリンクになっていない `Closes` があって保存し直したときだけ入ります。'
-    diagnostics: '標準エラーに、結果の行を出します。載せ直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。開発ブランチへ載せ直した後に PR の本文を保存し直すと、`updated: PR #N relinked to its closing Issues` の行を足します。PR の本文を保存し直せないと、`warning: cannot relink PR #N to its closing Issues: <理由>` の行を出します。続けて、手で保存し直す案内の行を出し、終了コードは 0 のままです。載せ直しの失敗は `error` の行で、続けて直し方の行を出します。記録が無く積んだ先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
+        relinked: '本文を保存し直した、開いている PR の番号です。開発ブランチへスタックし直すか合わせた後、まだリンクになっていない `Closes` があって保存し直したときだけ入ります。'
+    diagnostics: '標準エラーに、結果の行を出します。スタックし直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。開発ブランチへスタックし直した後に PR の本文を保存し直すと、`updated: PR #N relinked to its closing Issues` の行を足します。PR の本文を保存し直せないと、`warning: cannot relink PR #N to its closing Issues: <理由>` の行を出します。続けて、手で保存し直す案内の行を出し、終了コードは 0 のままです。スタックし直しの失敗は `error` の行で、続けて直し方の行を出します。記録が無くスタック先を求められないときは、`warning: cannot infer the stacked base: <理由>` の行を出します。'
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -3525,7 +3525,7 @@ entries:
         when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
       - kind: git-unresolved
         code: 1
-        when: '`git fetch` が失敗したか、remote に届きません。載せ直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたか、時間切れのときも同じです。'
+        when: '`git fetch` が失敗したか、remote に届きません。スタックし直す先のブランチが手元の追跡参照に無いときも含みます。remote のブランチにだけあるコミットがあるときと、push が拒まれたか、時間切れのときも同じです。'
       - kind: no-active-project
         code: 1
         when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
@@ -3540,13 +3540,13 @@ entries:
         when: '`develop_branch` が未設定です。'
       - kind: content-invalid
         code: 1
-        when: '積んだ base の記録か、途中の記録の形が誤っています。'
+        when: 'スタックした base の記録か、途中の記録の形が誤っています。'
       - kind: pr-state
         code: 1
-        when: '下の段のブランチが remote から消えていて、その PR がマージされていません。'
+        when: '親ブランチが remote から消えていて、その PR がマージされていません。'
       - kind: github-api
         code: 1
-        when: '下の段の PR を GitHub から読めません。'
+        when: '親 PR を GitHub から読めません。'
       - kind: github-auth
         code: 1
         when: 'GitHub の認証に失敗しました。'
@@ -3561,10 +3561,10 @@ entries:
         when: '未コミットの変更があります。`check`・`continue`・`abort` では確かめません。'
       - kind: git-conflict
         code: 3
-        when: '載せ直しが衝突しました。`continue` の後に、また衝突したときも含みます。'
+        when: 'スタックし直しが衝突しました。`continue` の後に、また衝突したときも含みます。'
       - kind: invalid-input
         code: 2
-        when: '`check`・`continue`・`abort` を 2 つ以上渡したか、途中の載せ直しが無いのに `continue`・`abort` を渡しました。pecot の記録が無い rebase の途中のときと、ほかの引数の誤りも含みます。'
+        when: '`check`・`continue`・`abort` を 2 つ以上渡したか、途中のスタックし直しが無いのに `continue`・`abort` を渡しました。pecot の記録が無い rebase の途中のときと、ほかの引数の誤りも含みます。'
       - kind: project-root-not-found
         code: 1
         when: 'プロジェクトのルートを決められません。'
@@ -3574,75 +3574,75 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒否・時間切れ・取り消しで止まったときは、手元のブランチは載せ直した後のままで、base の記録は変わりません。拒まれたか取り消されたときは、同じ引数で呼び直せば続きます。時間切れのときは、手で push してから呼び直すと、remote に合わせて続きます。remote のブランチにだけあるコミットで止まったときは、ブランチを載せ直しの前の位置へ戻します。'
+    on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒否・時間切れ・取り消しで止まったときは、手元のブランチはスタックし直した後のままで、base の記録は変わりません。拒まれたか取り消されたときは、同じ引数で呼び直せば続きます。時間切れのときは、手で push してから呼び直すと、remote に合わせて続きます。remote のブランチにだけあるコミットで止まったときは、ブランチをスタックし直す前の位置へ戻します。'
     effects:
       - target: git
         kind: destructive
         what: '`git fetch` で追跡参照を進め、今のブランチを rebase で書き換え、`--force-with-lease` で remote のブランチを置き換えます。remote に合わせるときは、今のブランチを remote のブランチの位置に動かします。'
       - target: github
         kind: read
-        what: '下の段のブランチを head に持つ PR を読みます。'
+        what: '親ブランチを head に持つ PR を読みます。'
       - target: github
         kind: write
-        what: '開発ブランチへ載せ直した後、既定のブランチに向いたブランチの開いている PR を読み、本文を変えずに保存し直します。'
+        what: '開発ブランチへスタックし直した後、既定のブランチに向いたブランチの開いている PR を読み、本文を変えずに保存し直します。'
       - target: file
         kind: write
         what: '`.pecot/state/.pecot-base` を書き直します。衝突で止まる間は `.pecot/state/.pecot-restack` を置き、終わるか取りやめると消します。'
     prerequisites:
       - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - '積んで着手した作業ディレクトリで呼びます（`session_start` が base の記録を書きます）。'
+      - 'スタックして着手した作業ディレクトリで呼びます（`session_start` が base の記録を書きます）。'
     idempotent: true
     examples:
       - arguments:
           check: true
-        note: '今のブランチに載せ直しが要るかを確かめます。'
+        note: '今のブランチにスタックし直しが要るかを確かめます。'
       - arguments: {}
-        note: '今のブランチを載せ直して push します。'
+        note: '今のブランチをスタックし直して push します。'
       - arguments:
           continue: true
         note: '衝突を解いて `git add` した後に、続けます。'
       - arguments:
           abort: true
-        note: '載せ直しの前の位置に戻します。'
+        note: 'スタックし直す前の位置に戻します。'
     default_notes:
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-PR-RESTACK-01
         pattern: event
-        statement: '`check` を付けて、下の段が動いていないときに呼ぶと、結果の `outcome` を `up-to-date` にします'
+        statement: '`check` を付けて、親ブランチが動いていないときに呼ぶと、結果の `outcome` を `up-to-date` にします'
       - id: PW-PR-RESTACK-02
         pattern: event
-        statement: '`check` を付けて、下の段の remote の先頭が記録と違うときに呼ぶと、`outcome` を `needs-restack`、`cause` を `base-moved` にします'
+        statement: '`check` を付けて、親ブランチの remote の先頭が記録と違うときに呼ぶと、`outcome` を `needs-restack`、`cause` を `base-moved` にします'
       - id: PW-PR-RESTACK-03
         pattern: event
-        statement: '`check` を付けて、下の段の PR がマージ済みのときに呼ぶと、`outcome` を `needs-restack`、`cause` を `base-merged` にします。`pullRequest` には PR の番号を入れます'
+        statement: '`check` を付けて、親 PR がマージ済みのときに呼ぶと、`outcome` を `needs-restack`、`cause` を `base-merged` にします。`pullRequest` には PR の番号を入れます'
       - id: PW-PR-RESTACK-04
         pattern: event
-        statement: '載せ直しが要るときに呼ぶと、新しい base へ載せ直して `git push --force-with-lease` で push し、`outcome` を `restacked` にします'
+        statement: 'スタックし直しが要るときに呼ぶと、新しい base へスタックし直して `git push --force-with-lease` で push し、`outcome` を `restacked` にします'
       - id: PW-PR-RESTACK-05
         pattern: event
-        statement: '載せ直した結果の木が remote のブランチと同じで、remote のブランチが新しい base に載っている状態で呼ぶと、push せずに remote のブランチへ合わせます。`outcome` は `synced` です'
+        statement: 'スタックし直した結果の木が remote のブランチと同じで、remote のブランチが新しい base に載っている状態で呼ぶと、push せずに remote のブランチへ合わせます。`outcome` は `synced` です'
       - id: PW-PR-RESTACK-06
         pattern: event
-        statement: '下の段が動いていないときに呼ぶと、何も変えずに `outcome` を `up-to-date` にします'
+        statement: '親ブランチが動いていないときに呼ぶと、何も変えずに `outcome` を `up-to-date` にします'
       - id: PW-PR-RESTACK-07
         pattern: unwanted
-        statement: 'もし載せ直しが衝突したなら、衝突したファイルを `conflicts` に、`continue`・`abort` の案内を `detail` に入れます。途中の記録を書いて、`kind` が `git-conflict` の失敗を返します'
+        statement: 'もしスタックし直しが衝突したなら、衝突したファイルを `conflicts` に、`continue`・`abort` の案内を `detail` に入れます。途中の記録を書いて、`kind` が `git-conflict` の失敗を返します'
       - id: PW-PR-RESTACK-08
         pattern: unwanted
-        statement: 'もし未コミットの変更があるなら、載せ直さずに、`kind` が `preflight-failed` の失敗を返します。`check` では確かめません'
+        statement: 'もし未コミットの変更があるなら、スタックし直さずに、`kind` が `preflight-failed` の失敗を返します。`check` では確かめません'
       - id: PW-PR-RESTACK-09
         pattern: unwanted
-        statement: 'もし下の段のブランチが remote から消えていて、その PR がマージされていないなら、`kind` が `pr-state` の失敗を返します'
+        statement: 'もし親ブランチが remote から消えていて、その PR がマージされていないなら、`kind` が `pr-state` の失敗を返します'
       - id: PW-PR-RESTACK-10
         pattern: state
-        statement: '積んでいないブランチの間、載せ直しをしません。開発ブランチからの着手の記録があれば、fetch もしません。`check` の有無によらず、`outcome` を `up-to-date` にします'
+        statement: 'スタックしていないブランチの間、スタックし直しをしません。開発ブランチからの着手の記録があれば、fetch もしません。`check` の有無によらず、`outcome` を `up-to-date` にします'
       - id: PW-PR-RESTACK-11
         pattern: state
-        statement: 'remote に今のブランチが無い間、載せ直すだけで push せず、`pushed` を `false` にします'
+        statement: 'remote に今のブランチが無い間、スタックし直すだけで push せず、`pushed` を `false` にします'
       - id: PW-PR-RESTACK-12
         pattern: event
-        statement: '`abort` を付けて呼ぶと、載せ直しの前の位置に戻し、途中の記録を消して、`outcome` を `aborted` にします'
+        statement: '`abort` を付けて呼ぶと、スタックし直す前の位置に戻し、途中の記録を消して、`outcome` を `aborted` にします'
       - id: PW-PR-RESTACK-13
         pattern: event
         statement: '`continue` を付けて呼ぶと、rebase を続け、終われば push と記録の書き直しまで進みます。衝突が残っていれば、もう一度 `kind` が `git-conflict` の失敗を返します。利用者が rebase を終えていれば、残りの手順だけを進めます'
@@ -3654,7 +3654,7 @@ entries:
         statement: 'もし `check`・`continue`・`abort` を 2 つ以上付けたなら、`kind` が `invalid-input` の失敗を返します'
       - id: PW-PR-RESTACK-16
         pattern: unwanted
-        statement: 'もし remote のブランチにだけあるコミットがあるなら、ブランチを載せ直しの前の位置へ戻し、push をせずに、`kind` が `git-unresolved` の失敗を返します'
+        statement: 'もし remote のブランチにだけあるコミットがあるなら、ブランチをスタックし直す前の位置へ戻し、push をせずに、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-PR-RESTACK-17
         pattern: unwanted
         statement: 'もし push が拒まれたなら、base の記録を書き直さずに、`kind` が `git-unresolved` の失敗を返します'
@@ -3663,16 +3663,16 @@ entries:
         statement: 'もし `git fetch` が失敗したなら、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-PR-RESTACK-19
         pattern: event
-        statement: '載せ直しか、remote への合わせが済むと、base の記録を新しい base のブランチと位置に書き直します。開発ブランチへ載せ直したときは、積んだ先の Issue を記録から外します'
+        statement: 'スタックし直しか、remote への合わせが済むと、base の記録を新しい base のブランチと位置に書き直します。開発ブランチへスタックし直したときは、スタック先の Issue を記録から外します'
       - id: PW-PR-RESTACK-20
         pattern: unwanted
-        statement: 'もし積んだ base の記録の形が誤っているなら、`kind` が `content-invalid` の失敗を返します'
+        statement: 'もしスタックした base の記録の形が誤っているなら、`kind` が `content-invalid` の失敗を返します'
       - id: PW-PR-RESTACK-21
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
       - id: PW-PR-RESTACK-22
         pattern: event
-        statement: 'CLI で `--dry-run` を付けて打つと、載せ直し・push・記録の書き込みをせずに、する予定を `dry-run` の行で標準エラーに出します'
+        statement: 'CLI で `--dry-run` を付けて打つと、スタックし直し・push・記録の書き込みをせずに、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PR-RESTACK-23
         pattern: state
         statement: '新しい base の上に載り終えていて記録だけが古い間、rebase をせずに push と記録の書き直しを行い、`outcome` を `restacked` にします。remote のブランチが同じ木で新しい base の上にあれば、push せずに合わせ、`outcome` を `synced` にします'
@@ -3681,22 +3681,22 @@ entries:
         statement: 'ブランチが新しい base の上に載り終えている間、`check` は `outcome` を `up-to-date` にし、base の記録を書き換えません'
       - id: PW-PR-RESTACK-25
         pattern: event
-        statement: '記録の位置が履歴に無いブランチを載せ直すと、下の段からの fork-point を起点とします。求まらなければ、新しい base との merge-base です。古い下の段と base のコミットは積み直しません'
+        statement: '記録の位置が履歴に無いブランチをスタックし直すと、親ブランチからの fork-point を起点とします。求まらなければ、新しい base との merge-base です。古い親ブランチと base のコミットは当て直しません'
       - id: PW-PR-RESTACK-26
         pattern: unwanted
-        statement: 'もし新しい base を merge で取り込んだか、下の段が記録より古い位置へ戻されたなら、載せ直し済みと見ずに、載せ直しが要ると判断します'
+        statement: 'もし新しい base を merge で取り込んだか、親ブランチが記録より古い位置へ戻されたなら、スタックし直し済みと見ずに、スタックし直しが要ると判断します'
       - id: PW-PR-RESTACK-27
         pattern: state
-        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、下の段に積んだものとして載せ直しの要否を決め、載せ直した後に base の記録を書きます'
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが親ブランチの変更を持つ間、親ブランチにスタックしたものとしてスタックし直しの要否を決めます。スタックし直した後に、base の記録を書きます'
       - id: PW-PR-RESTACK-28
         pattern: event
-        statement: '積んだ先を求めて始めた載せ直しが衝突で止まると、載せ直す前の記録の位置を途中の記録に書き、`continue` はそれを使います'
+        statement: 'スタック先を求めて始めたスタックし直しが衝突で止まると、スタックし直す前の記録の位置を途中の記録に書き、`continue` はそれを使います'
       - id: PW-PR-RESTACK-29
         pattern: unwanted
-        statement: 'もし記録が無く、積んだ先を求められないなら、`cannot infer the stacked base` の文を `warnings` に入れ、積んでいないものとして扱います'
+        statement: 'もし記録が無く、スタック先を求められないなら、`cannot infer the stacked base` の文を `warnings` に入れ、スタックしていないものとして扱います'
       - id: PW-PR-RESTACK-30
         pattern: event
-        statement: '記録の無い作業ディレクトリで呼ぶと、積んだ先を求める前に remote を fetch し、手元に無い下の段のブランチも追跡参照で見ます'
+        statement: '記録の無い作業ディレクトリで呼ぶと、スタック先を求める前に remote を fetch し、手元に無い親ブランチも追跡参照で見ます'
       - id: PW-PR-RESTACK-31
         pattern: unwanted
         statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
@@ -3708,7 +3708,7 @@ entries:
         statement: 'もし push が 10 分で終わらないなら、git を止めます。時間切れの旨と、手で push してから `pr_restack` を呼ぶ案内を `detail` に入れます。base の記録は書き直さず、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-PR-RESTACK-34
         pattern: event
-        statement: '開発ブランチへ載せ直すか合わせると、開いている PR の base が既定のブランチで、リンクになっていない `Closes` があれば、本文を変えずに保存し直します。その PR の番号を `relinked` に入れます'
+        statement: '開発ブランチへスタックし直すか合わせると、開いている PR の base が既定のブランチで、リンクになっていない `Closes` があれば、本文を変えずに保存し直します。その PR の番号を `relinked` に入れます'
       - id: PW-PR-RESTACK-35
         pattern: unwanted
         statement: 'もし PR の本文の保存し直しに失敗したなら、手で保存し直す案内を添えて `warnings` に入れ、成功を返します'
@@ -5927,7 +5927,7 @@ entries:
       - 'Epic と、sub-issue を持つ Issue は閉じず、`skippedIssues` に `epic` で入れます。'
       - 'Issue を閉じた後、その Issue を待っている Issue を読み、判定に合わせてボードの列と Status の札を動かします。着手の跡がある Issue は動かしません。判定に、閉じた Issue が済んだ前提として出ていないときは、約 1.5 秒後に 1 回だけ読み直します。それでも出なければ、後で `board_sync` を呼ぶよう `warnings` で知らせ、列を動かしません。'
       - '判定が変わった Issue を、`readinessChanges` に入れます。`from` は、閉じた Issue と PR がまだ開いていたとしたときの判定です。変わった Issue が無ければ、空の配列です。CLI では、標準出力の `Readiness changed:` の行の下に、1 件 1 行で出します。'
-      - '待っている Issue のうち、種類が `stack` でブランチか PR を持つものは、この PR の上に積んだ段です。その作業ディレクトリでブランチを載せ直すよう `warnings` で知らせ、`restack` に入れます。そのブランチは削除しません。'
+      - '待っている Issue のうち、種類が `stack` でブランチか PR を持つものは、この PR の子ブランチの Issue です。その作業ディレクトリでブランチをスタックし直すよう `warnings` で知らせ、`restack` に入れます。そのブランチは削除しません。'
       - '選んだプロジェクトのボードに無い Issue と、`Ready`・`Blocked`・`Active`・`In Review` の外の列の Issue は、動かさず、一覧にも出しません。'
       - '`delete_branch` を付けると、リモートの head ブランチを削除します。'
       - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`worktree_add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
@@ -5947,9 +5947,9 @@ entries:
         skippedIssues: 'PR が閉じる対象のうち、閉じなかった Issue の配列です。要素は `number` と `reason` を持ちます。`reason` は `epic`（保護している）・`already-closed`・`not-found`・`failed`（`warnings` を見る）のどれかです。`already-closed` には、PR のマージで GitHub が先に閉じた Issue も入ります。'
         deletedBranches: '削除したブランチの配列です。要素は `branch` と `location`（`remote` か `local`）を持ちます。'
         readinessChanges: '判定が変わった Issue の配列です。要素は `issue`（`#N` か `owner/repo#N`）・`from`・`to` を持ちます。`from` と `to` は `blocked`・`startable`・`stackable on #N` のどれかです。無ければ空の配列です。'
-        restack: 'この PR の上に積んだ段の配列です。要素は `issue` と、Issue につながるブランチがあれば `branch` を持ちます。その作業ディレクトリで載せ直しが要ります。無ければ空の配列です。'
+        restack: 'この PR の子ブランチの配列です。要素は `issue` と、Issue につながるブランチがあれば `branch` を持ちます。その作業ディレクトリでスタックし直しが要ります。無ければ空の配列です。'
         currentBranch: 'ローカルの後片付けのあとのブランチです。後片付けを飛ばしたときは入りません。'
-    diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`moved`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。ローカルの片付けを飛ばしたときも、`warning` の行を出します。上に積んだ段があるときと、待っている Issue の判定を確かめられないときも、`warning` の行を出します。'
+    diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`moved`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。ローカルの片付けを飛ばしたときも、`warning` の行を出します。子ブランチがあるときと、待っている Issue の判定を確かめられないときも、`warning` の行を出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -6117,7 +6117,7 @@ entries:
         statement: 'もし判定の変わった Issue が無いなら、`readinessChanges` を空の配列にします。CLI では、`Readiness changed:` の行を出しません'
       - id: PW-SESSION-FINISH-35
         pattern: state
-        statement: '上に積んだ段がある間、`pr_restack` での載せ直しを `warnings` で案内し、その段のブランチを消す要求を送りません'
+        statement: '子ブランチがある間、`pr_restack` でのスタックし直しを `warnings` で案内し、その子ブランチを消す要求を送りません'
       - id: PW-SESSION-FINISH-36
         pattern: unwanted
         statement: 'もし読み直しても、閉じた Issue が済んだ前提として判定に出ないなら、`warnings` に 1 つ入れて列を動かしません'
@@ -6184,13 +6184,13 @@ entries:
       - '作業中の Issue があるときは、GitHub から読んだ Issue の題・状態を `activeIssue` に入れます。'
       - 'Issue の本文は、`activeIssue` の `body` に入れます。本文が無ければ空の文字列です。CLI では、本文が空でなければ、Markdown の Active Issue の節に本文を続けます。'
       - 'Issue を GitHub から読めないときは、`warnings` に入れ、`activeIssue` に題・状態・本文を入れません。'
-      - '作業中の Issue を読めて、プロジェクトのルートの `.pecot/state/.pecot-base` が積んだ先の Issue を指すときは、`stack` を入れます。`stack` には、ブランチ・Issue・その PR を入れます。PR は、fork からではない open の PR です。それが無ければ最新の PR です。PR が無いか読めないときは、`pullRequest` を入れません。'
-      - '`stack` の `needsRestack` は、載せ直しが要るかです。下の段の remote の先頭が記録の位置と違うときと、下の段の PR がマージ済みのときが `true` です。ただし、ブランチが新しい base の上に載り終えていれば `false` です（`pr_restack` と同じ判断です）。'
-      - '`needsRestack` は、`git fetch` をせずに remote へ尋ねて決めます。remote に届かないときは、入れません。下の段のブランチが消えていて PR がマージされていないときも、入れません。'
+      - '作業中の Issue を読めて、プロジェクトのルートの `.pecot/state/.pecot-base` がスタック先の Issue を指すときは、`stack` を入れます。`stack` には、ブランチ・Issue・その PR を入れます。PR は、fork からではない open の PR です。それが無ければ最新の PR です。PR が無いか読めないときは、`pullRequest` を入れません。'
+      - '`stack` の `needsRestack` は、スタックし直しが要るかです。親ブランチの remote の先頭が記録の位置と違うときと、親 PR がマージ済みのときが `true` です。ただし、ブランチが新しい base の上に載り終えていれば `false` です（`pr_restack` と同じ判断です）。'
+      - '`needsRestack` は、`git fetch` をせずに remote へ尋ねて決めます。remote に届かないときは、入れません。親ブランチが消えていて PR がマージされていないときも、入れません。'
       - 'アクティブな Issue の着手の判定が `blocked` のときは、`stack` に `readiness` も入れます。'
-      - '今のブランチを base にした、同じリポジトリの open の PR があれば、PR ごとの項目を `stackedAbove` に入れます。積んで着手していない作業ディレクトリでも入れます。'
+      - '今のブランチを base にした、同じリポジトリの open の PR があれば、PR ごとの項目を `stackedAbove` に入れます。スタックして着手していない作業ディレクトリでも入れます。'
       - '`.pecot/state/.pecot-base` の記録は、`directory` の git リポジトリの toplevel のものを読みます。プロジェクトのルートの記録を、別の worktree や clone の作業には使いません。'
-      - '記録が無いときは、積んだ先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、その base を `stack` に入れます。変更を持つとは、同じコミットか、そのブランチを載せ直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。求めるときに読んだ判定は、`readiness` にも使います。'
+      - '記録が無いときは、スタック先を求めます。作業中の Issue の判定が stackable で、判定の示すブランチの変更をブランチが持てば、その base を `stack` に入れます。変更を持つとは、同じコミットか、そのブランチをスタックし直した後の同じ patch を持つことです。そのブランチが自分のコミットを持たなければ、その先頭がブランチの祖先であることです。求めるときに読んだ判定は、`readiness` にも使います。'
       - '`stack` は、作業中の Issue の題と状態と同じ設定とクライアントで読みます。`activeIssue` に題と状態が入らないときは、`stack` も入れません。'
       - 'このツールは診断用です。読めない値は省き、失敗を返しません。'
       - '何も書き込みません。'
@@ -6198,15 +6198,15 @@ entries:
     stdin: none
     output:
       format: text
-      description: 'Session status の見出しがある Markdown です。Branch・Repository・Active Issue の行を出します。作業中の Issue を読めたときは Active Issue の節を、作業を積んでいるときは Stack の節を出します。'
+      description: 'Session status の見出しがある Markdown です。Branch・Repository・Active Issue の行を出します。作業中の Issue を読めたときは Active Issue の節を、作業をスタックしているときは Stack の節を出します。'
     mcp_output:
       fields:
         branch: '今のブランチです。読めないときは入りません。'
         repository: 'git remote のリポジトリです。`owner/repo` の形です。読めないときは入りません。'
         activeIssue: 'セッションの作業中の Issue です。無いときは入りません。`reference`（`owner/repo/N`。`issue_ref` にそのまま渡せる形）を持ちます。`title`・`state`（`OPEN` か `CLOSED`）・`body`（Issue の本文。本文が無ければ空文字）は、GitHub から読めたときだけ入ります。'
-        stack: '作業を積んでいる先です。積んでいないときは入りません。`branch`（積んでいる先の base ブランチ）と `stackedOn`（積んでいる Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、載せ直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
+        stack: '作業のスタック先です。スタックしていないときは入りません。`branch`（スタック先の base ブランチ）と `stackedOn`（スタック先の Issue。`owner/repo/N`）を持ちます。`pullRequest`（`number` と `state`）は、base ブランチの PR があり、読めたときだけ入ります。`needsRestack` は、スタックし直しが要るかで、決められたときだけ入ります。`readiness` は、作業中の Issue が blocked のときだけ入ります。'
         stackedAbove: '今のブランチを base にした、同じリポジトリの open の PR の一覧です。`number` と `branch`（head のブランチ）を持ちます。無いときと読めないときは入りません。'
-    diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。記録が無く積んだ先を求められないとき（`warning: cannot infer the stacked base`）。作業中の Issue のリポを含む設定が無いか使う設定が決まらないときと、選んだ設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
+    diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。作業中の Issue があり、それを読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。記録が無くスタック先を求められないとき（`warning: cannot infer the stacked base`）。作業中の Issue のリポを含む設定が無いか使う設定が決まらないときと、選んだ設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -6225,13 +6225,13 @@ entries:
     effects:
       - target: git
         kind: read
-        what: 'ディレクトリの今のブランチと git リポジトリの toplevel、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。積んだ作業では、下の段のブランチの先頭を `git ls-remote` で remote に尋ねます。'
+        what: 'ディレクトリの今のブランチと git リポジトリの toplevel、remote の `origin` の URL を読みます。`origin` が無ければ、最初の remote の URL を読みます。スタックした作業では、親ブランチの先頭を `git ls-remote` で remote に尋ねます。'
       - target: file
         kind: read
         what: '`directory` の worktree の `.pecot/state/.pecot-base` と、プロジェクトの設定ファイルを読みます。作業中の Issue のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。記録が無ければ、git の追跡参照も読みます。`.pecot/state/.pecot-active` は読みません。'
       - target: github
         kind: read
-        what: '作業中の Issue の題・状態・本文を読みます。積んだ作業では、base のブランチの PR と、Issue の前提も読みます。今のブランチを base にした open の PR も読みます。'
+        what: '作業中の Issue の題・状態・本文を読みます。スタックした作業では、base のブランチの PR と、Issue の前提も読みます。今のブランチを base にした open の PR も読みます。'
     prerequisites: []
     idempotent: true
     examples:
@@ -6297,7 +6297,7 @@ entries:
         statement: 'もし作業中の Issue があり、選んだ設定ファイルの形式が不正なら、成功を返します'
       - id: PW-SESSION-SHOW-23
         pattern: state
-        statement: '積んで着手した作業ディレクトリの間、積んだ先の Issue とその PR を `stack` に入れます'
+        statement: 'スタックして着手した作業ディレクトリの間、スタック先の Issue とその PR を `stack` に入れます'
       - id: PW-SESSION-SHOW-24
         pattern: state
         statement: '着手中の Issue の判定が `blocked` の間、`stack` に `readiness` を入れます'
@@ -6312,10 +6312,10 @@ entries:
         statement: 'もし着手中の Issue の判定を読めないなら、`warnings` に 1 つ入れ、`stack` の base のブランチは入れます'
       - id: PW-SESSION-SHOW-28
         pattern: state
-        statement: '積んで着手した作業ディレクトリの間、`stack` に `needsRestack` を入れます。下の段の remote の先頭が記録の位置と違うか、下の段の PR がマージ済みなら `true` です'
+        statement: 'スタックして着手した作業ディレクトリの間、`stack` に `needsRestack` を入れます。親ブランチの remote の先頭が記録の位置と違うか、親 PR がマージ済みなら `true` です'
       - id: PW-SESSION-SHOW-29
         pattern: state
-        statement: '今のブランチを base にした open の PR がある間、PR ごとの項目を `stackedAbove` に入れます。積んで着手していない作業ディレクトリでも入れます'
+        statement: '今のブランチを base にした open の PR がある間、PR ごとの項目を `stackedAbove` に入れます。スタックして着手していない作業ディレクトリでも入れます'
       - id: PW-SESSION-SHOW-30
         pattern: unwanted
         statement: 'もし今のブランチを base にした PR を読めないなら、`warnings` に 1 つ入れ、`stackedAbove` を入れません'
@@ -6324,7 +6324,7 @@ entries:
         statement: 'もし古い版の `.pecot-active` が残っているなら、その内容を読まずに、remote とブランチ名から作業中の Issue を求めます'
       - id: PW-SESSION-SHOW-32
         pattern: unwanted
-        statement: 'もし `directory` の git リポジトリの toplevel がプロジェクトのルートと違うなら、`.pecot-base` の積んだ記録を `stack` に使いません'
+        statement: 'もし `directory` の git リポジトリの toplevel がプロジェクトのルートと違うなら、`.pecot-base` のスタックの記録を `stack` に使いません'
       - id: PW-SESSION-SHOW-33
         pattern: unwanted
         statement: 'もし remote のリポジトリを読めないか URL の形が合わないなら、ブランチ名の末尾が番号でも `activeIssue` を入れません'
@@ -6333,16 +6333,16 @@ entries:
         statement: 'ブランチが新しい base の上に載り終えていて、base の記録だけが古い間、`stack` の `needsRestack` を `false` にします'
       - id: PW-SESSION-SHOW-35
         pattern: state
-        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが下の段の変更を持つ間、求めた base を `stack` に入れます'
+        statement: '記録が無く、作業中の Issue の判定が stackable で、ブランチが親ブランチの変更を持つ間、求めた base を `stack` に入れます'
       - id: PW-SESSION-SHOW-36
         pattern: unwanted
         statement: 'もし記録が無く、作業中の Issue の判定が blocked なら、`cannot infer the stacked base` の知らせを `warnings` に入れ、`stack` を入れません'
       - id: PW-SESSION-SHOW-37
         pattern: unwanted
-        statement: 'もし記録が無く、判定は stackable でも、下の段の変更をブランチに持たないなら、`stack` を入れません'
+        statement: 'もし記録が無く、判定は stackable でも、親ブランチの変更をブランチに持たないなら、`stack` を入れません'
       - id: PW-SESSION-SHOW-38
         pattern: state
-        statement: '`directory` の worktree に積んだ記録がある間、toplevel がプロジェクトのルートと違っても、判定から求めずに、その記録で `stack` を入れます'
+        statement: '`directory` の worktree にスタックの記録がある間、toplevel がプロジェクトのルートと違っても、判定から求めずに、その記録で `stack` を入れます'
       - id: PW-SESSION-SHOW-39
         pattern: unwanted
         statement: 'もし作業中の Issue のリポを含む設定が無いか、使う設定が決まらないなら、`warnings` に 1 つ入れ、成功を返します'
@@ -6402,12 +6402,12 @@ entries:
       - '`issue_ref` は、フル形式の `owner/repo/N` でなければなりません。'
       - 'ブランチの名前は、Issue の番号を後ろに付けた `<branch>/<N>` です。'
       - 'ブランチを作る前に、`issue_show` と同じ方法で Issue の着手の判定を読みます。'
-      - '判定が `stackable` のときは、積む先の PR のブランチの先頭から分岐し、積んだ先の Issue の番号を `stackedOn` に入れます。'
+      - '判定が `stackable` のときは、スタック先の PR のブランチの先頭から分岐し、スタック先の Issue の番号を `stackedOn` に入れます。'
       - '判定が `startable` のときと、判定の無い Issue（Epic か Tracker）のときは、`base` の先頭から分岐します。`base` が無ければ、設定ファイルにあるそのリポジトリの `develop_branch` の先頭から分岐します。'
-      - '`develop_branch` と `base` が要るのは、判定が決まった後で、ブランチを積まないときだけです。'
+      - '`develop_branch` と `base` が要るのは、判定が決まった後で、ブランチをスタックしないときだけです。'
       - '判定が `blocked` のときは、ブランチを作りません。`kind` が `not-ready` の失敗を返し、`detail` に理由・済んでいない前提・直し方を入れます。`develop_branch` が未設定でも同じです。'
-      - '直し方は、済んでいない前提ごとの unblock の案内と、マージを待つ前提ごとの積む案内です。どの案内にも、その Issue の参照を添えます。'
-      - '判定が決まった後で積む先の PR のブランチが無くなったときは、ブランチと Issue の名前を `detail` に入れて失敗を返します。'
+      - '直し方は、済んでいない前提ごとの unblock の案内と、マージを待つ前提ごとの、スタックに切り替える案内です。どの案内にも、その Issue の参照を添えます。'
+      - '判定が決まった後でスタック先の PR のブランチが無くなったときは、ブランチと Issue の名前を `detail` に入れて失敗を返します。'
       - '`base` を判定が選んだ分岐元と比べるのは、判定が `stackable` のときだけです。違う `base` を渡すと、失敗を返します。'
       - 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、判定を読まず、`warnings` で知らせます。ブランチは、前提の無い Issue と同じように分岐します。'
       - 'ブランチを作った後、ボード上の Issue の Status を `active` にします。'
@@ -6415,7 +6415,7 @@ entries:
       - 'その後、Issue のセッション名を `.pecot/state/.pecot-session-title` に記録し、`.pecot/work/<N>/` を作ります。作業ディレクトリがすでにあっても、`workDirectory` に入れます。'
       - '作業中の Issue はファイルに記録しません。git remote とブランチ名の末尾の番号から求めるので、`.pecot/state/.pecot-active` は書きません。'
       - '作業対象の記録に失敗しても、成功を返します。'
-      - '作業対象を記録したときは、選んだ分岐元を `.pecot/state/.pecot-base` に `<branch> <sha>` の形で書きます。ブランチを積んだときは、積んだ先の Issue の `owner/repo#N` を続けて書きます。'
+      - '作業対象を記録したときは、選んだ分岐元を `.pecot/state/.pecot-base` に `<branch> <sha>` の形で書きます。ブランチをスタックしたときは、スタック先の Issue の `owner/repo#N` を続けて書きます。'
       - '`.pecot/state/.pecot-base` は、作業対象を記録する前に消します。前の Issue の記録を残さないためです。'
       - 'セッションのディレクトリの git remote のリポジトリは、Issue のリポジトリでなければなりません。この確かめを外す入力はありません。ただし、remote の URL から `owner/repo` を読めないときは、確かめません。'
       - 'リポジトリは、選んだプロジェクトに登録されていなければなりません。'
@@ -6432,10 +6432,10 @@ entries:
         branch: '作ったブランチの名前です。Issue の番号が付きます。'
         repository: 'ブランチを作ったリポジトリです。`owner/repo` の形です。'
         base: 'ブランチの起点にした base ブランチです。'
-        stackedOn: 'このブランチを積んだ先の Issue の番号です。積まないときは入りません。'
+        stackedOn: 'このブランチのスタック先の Issue の番号です。スタックしないときは入りません。'
         issue: '作業中の Issue です。`owner/repo/N` の形です。'
         workDirectory: '作業ディレクトリの絶対パスです。作れなかったときは入りません。'
-    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。スタック先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -6452,7 +6452,7 @@ entries:
         when: 'リポジトリがプロジェクトにありません。'
       - kind: git-unresolved
         code: 1
-        when: '積む先のブランチが無くなりました。git の外で `repo` を省いたときも含みます。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
+        when: 'スタック先のブランチが無くなりました。git の外で `repo` を省いたときも含みます。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
       - kind: repo-mismatch
         code: 1
         when: '`repo` が今の git remote と違います。'
@@ -6489,7 +6489,7 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'ブランチを作った後で Status の設定か作業対象の記録に失敗したときは、ブランチは Issue に紐づいたまま残り、成功を返します。作業対象を記録できなかったときは、`.pecot-base` を書きません。前の Issue の記録も残りません。`.pecot-base` を消せないか書けないときは、`warnings` で知らせます。Issue が blocked のとき、判定を読めないとき、積む先のブランチが無くなったときは、何も作らず、何も書きません。'
+    on_error: 'ブランチを作った後で Status の設定か作業対象の記録に失敗したときは、ブランチは Issue に紐づいたまま残り、成功を返します。作業対象を記録できなかったときは、`.pecot-base` を書きません。前の Issue の記録も残りません。`.pecot-base` を消せないか書けないときは、`warnings` で知らせます。Issue が blocked のとき、判定を読めないとき、スタック先のブランチが無くなったときは、何も作らず、何も書きません。'
     effects:
       - target: github
         kind: read
@@ -6519,7 +6519,7 @@ entries:
           base: main
         note: '`main` から、ブランチ `fix/my-bug/123` を作ります。'
     default_notes:
-      base: '省くと、着手の判定が `stackable` のときは、積む先の PR のブランチです。それ以外では設定ファイルにあるリポジトリの `develop_branch` で、それも無ければ失敗を返します。'
+      base: '省くと、着手の判定が `stackable` のときは、スタック先の PR のブランチです。それ以外では設定ファイルにあるリポジトリの `develop_branch` で、それも無ければ失敗を返します。'
       project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
     behaviors:
       - id: PW-SESSION-START-01
@@ -6584,10 +6584,10 @@ entries:
         statement: 'もし `repo` を省いて git の外で呼んだなら、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-SESSION-START-28
         pattern: state
-        statement: '着手の判定が `stackable` の間、積む先の PR のブランチの先頭からブランチを作ります'
+        statement: '着手の判定が `stackable` の間、スタック先の PR のブランチの先頭からブランチを作ります'
       - id: PW-SESSION-START-29
         pattern: state
-        statement: '着手の判定が `stackable` の間、積んだ先の Issue の番号を `stackedOn` に入れます'
+        statement: '着手の判定が `stackable` の間、スタック先の Issue の番号を `stackedOn` に入れます'
       - id: PW-SESSION-START-30
         pattern: event
         statement: 'ブランチを作ると、選んだ base を `.pecot-base` に記録します'
@@ -6599,13 +6599,13 @@ entries:
         statement: 'もし着手の判定が `blocked` なら、`kind` が `not-ready` の失敗を返します'
       - id: PW-SESSION-START-33
         pattern: unwanted
-        statement: 'もし `stackable` の判定で、`base` の値と積む先が違うなら、ブランチを作らず、`kind` が `invalid-input` の失敗を返します'
+        statement: 'もし `stackable` の判定で、`base` の値とスタック先が違うなら、ブランチを作らず、`kind` が `invalid-input` の失敗を返します'
       - id: PW-SESSION-START-34
         pattern: unwanted
         statement: 'もし前提を読めないか判定できないなら、ブランチを作らず、`kind` が `dependency-unreadable` の失敗を返します'
       - id: PW-SESSION-START-35
         pattern: unwanted
-        statement: 'もし積む先のブランチが判定の後に無くなったなら、積む先が見つからない旨を `detail` に入れ、`kind` が `git-unresolved` の失敗を返します'
+        statement: 'もしスタック先のブランチが判定の後に無くなったなら、スタック先が見つからない旨を `detail` に入れ、`kind` が `git-unresolved` の失敗を返します'
       - id: PW-SESSION-START-36
         pattern: event
         statement: 'CLI で `--dry-run` を付けて打つと、ブランチを作らず Status と作業対象を書かず、する予定を `dry-run` の行で標準エラーに出します'

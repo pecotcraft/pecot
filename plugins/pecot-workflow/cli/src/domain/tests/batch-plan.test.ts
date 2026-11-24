@@ -110,7 +110,7 @@ describe('formatPlanTable', () => {
     ].join('\n'))
   })
 
-  it('マージを待つ前提と積める前提の両方があると、Blocked by には両方を出し、Approach にはマージを待つ前提だけを出す', () => {
+  it('マージを待つ前提とスタックできる前提の両方があると、Blocked by には両方を出し、Approach にはマージを待つ前提だけを出す', () => {
     const { rows } = rowsOf(QUICKSTART, [1, 2, 3, 4, 5])
     expect(formatPlanTable(rows, HOME).split('\n').at(-1)).toBe('| phase5 | 5 | phase3, phase4 (merge) | wait for merge of phase4 |')
   })
@@ -126,12 +126,12 @@ describe('formatPlanTable', () => {
 })
 
 describe('formatStackableChains', () => {
-  it('積める並びを、見出しと 1 本 1 行で出す', () => {
+  it('スタックできる並びを、見出しと 1 本 1 行で出す', () => {
     const { progressions } = rowsOf(QUICKSTART, [])
     expect(formatStackableChains(progressions, key => key)).toBe('Stackable chains:\n- phase1 -> phase2 -> phase3\n- phase1 -> phase2 -> phase4')
   })
 
-  it('積める並びが無いとき、undefined を返す', () => {
+  it('スタックできる並びが無いとき、undefined を返す', () => {
     const files = [file('a'), file('b', [merge('a')])]
     expect(formatStackableChains(rowsOf(files, []).progressions, key => key)).toBeUndefined()
   })

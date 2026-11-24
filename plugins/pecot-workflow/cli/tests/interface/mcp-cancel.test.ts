@@ -53,7 +53,7 @@ async function pidOf(sleeper: Readonly<Sleeper>): Promise<number> {
   return Number(readFileSync(sleeper.pidFile, 'utf8').trim())
 }
 
-// 上の段を checkout し、下の段の今の remote の先頭で base の記録を書く
+// 子ブランチを checkout し、親ブランチの今の remote の先頭で base の記録を書く
 async function openStacked(): Promise<Workspace> {
   const workspace = await openWorkspace({ branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }] })
   workspace.git(['checkout', '-q', '-b', UPPER, `origin/${LOWER}`])

@@ -28,7 +28,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | Epic 配下に次のサブタスクを 1 件作りたい | `/pecot-w:w-ready` |
 | Issue の前提（blocked by）を付け外ししたい・種類を変えたい | MCP ツール `issue_block` / `issue_unblock` |
 | Issue に付けられる機能（ボードのフィールド・Issue fields など）と取りうる値を知りたい | MCP ツール `issue_attributes` |
-| 積んだ PR を、下の段の新しい位置へ載せ直したい | `/pecot-w:w-pr`、または MCP ツール `pr_restack` |
+| スタック PR を、親ブランチの新しい位置へスタックし直したい | `/pecot-w:w-pr`、または MCP ツール `pr_restack` |
 | リポジトリをプロジェクトに追加したい | `/pecot-w:w-repo-add` |
 | ワークツリーを作成したい | `/pecot-w:w-worktree-add` |
 | ワークツリーを削除したい | `/pecot-w:w-worktree-remove` |
@@ -46,7 +46,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | 認証・設定ファイル | [認証・設定ファイル](references/auth-config.md) |
 | エラー・トラブル対応 | [トラブルシューティング](references/troubleshooting.md) |
 | フラグシステムの仕組み | [フラグ一覧](references/flags.md) |
-| speckit / spec 駆動ワークフロー、前提の PR の上に積んで進める流れ（着手・PR・マージ・載せ直し） | [spec 駆動ワークフロー](references/spec-driven-workflow.md) |
+| speckit / spec 駆動ワークフロー、前提の PR の上にスタックして進める流れ（着手・PR・マージ・スタックし直し） | [spec 駆動ワークフロー](references/spec-driven-workflow.md) |
 | Issue/PR 起票時のフロー基本ルール | [Issue/PR フロー基本ルール](references/issue-flow-rules.md) |
 | スキルが起こすエージェントのモデルの決め方 | [エージェントのモデル](references/agent-models.md) |
 | サブエージェントに委譲する条件と、起こす箇所ごとの理由 | [サブエージェントの使い方](references/subagent-usage.md) |

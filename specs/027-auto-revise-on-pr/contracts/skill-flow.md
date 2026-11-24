@@ -14,7 +14,7 @@ PR を出した開発者は、CI と自動レビューを待つ間も手を止�
 
 ## w-review
 
-- Step 1 は、PR の本文・diff・既存のレビューと、PR が閉じる Issue（`closing_issues`）を読む。Issue はコメントを 20 件まで読み、計画のコメントを探す（#657）。載せ直しはしない。レビューは PR を変えない
+- Step 1 は、PR の本文・diff・既存のレビューと、PR が閉じる Issue（`closing_issues`）を読む。Issue はコメントを 20 件まで読み、計画のコメントを探す（#657）。スタックし直しはしない。レビューは PR を変えない
 - Step 2 は、2 巡目以降に、前の指摘が直ったかを見る
 - Step 3 は、main が diff を自分でレビューする。サブエージェントは起こさない。視点は `references/review-viewpoints.md` が持つ。印は `[tech]`・`[cuj]` の 2 つ。計画を読めたときは、計画と照らした違いも `[tech]` で指摘する
 - Step 4 は、採番・投稿先の振り分け・インラインコメント・`review-findings` を投稿する。インラインコメントは、action に同梱の MCP ツール `create_inline_comment` で投稿する。ファイル単位の指摘は General 節に回す

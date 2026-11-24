@@ -1057,14 +1057,14 @@ describe('board show', () => {
       expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
     })
 
-    describe('積める並び', () => {
-      // Epic #10 の子 #2 が PR 中で、#3 がその上に積める
+    describe('スタックできる並び', () => {
+      // Epic #10 の子 #2 が PR 中で、#3 がその上にスタックできる
       const chain = (): ResponseRule[] => [
         board(item('PVTI_2', 2, 'In Review'), item('PVTI_3', 3, 'Ready')),
         prerequisitesRule({ number: 3, parent: { number: 10 }, blockedBy: [{ number: 2, column: 'In Review', branch: 'feat/2', pullRequests: [{ number: 20, head: 'feat/2' }] }] }),
       ]
 
-      it('積める並びを、Epic ごとに ## Stackable chains の節へ出す', async (context) => {
+      it('スタックできる並びを、Epic ごとに ## Stackable chains の節へ出す', async (context) => {
         await verifies(context, 'PW-BOARD-SHOW-26')
         const result = await info(chain())
         expectClean(result)
@@ -1223,7 +1223,7 @@ describe('board show', () => {
         expect(items[0]).not.toHaveProperty('readiness')
       })
 
-      it('積める並びの Issue は、readiness に stackable と積む先を入れる', async (context) => {
+      it('スタックできる並びの Issue は、readiness に stackable とスタック先を入れる', async (context) => {
         await verifies(context, 'PW-BOARD-SHOW-27')
         const result = await infoTool([
           board(item('PVTI_2', 2, 'In Review'), item('PVTI_3', 3, 'Ready')),

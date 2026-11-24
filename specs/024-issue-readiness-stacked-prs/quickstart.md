@@ -53,10 +53,10 @@ pecot board show          # 判定が出ることを見る
 
 | Phase | 前提 | 種類 |
 |---|---|---|
-| 2 | 1 | 積める |
-| 3 | 2 | 積める |
-| 4 | 2 | 積める |
-| 5 | 3 | 積める |
+| 2 | 1 | スタックできる |
+| 3 | 2 | スタックできる |
+| 4 | 2 | スタックできる |
+| 5 | 3 | スタックできる |
 | 5 | 4 | マージを待つ |
 
 ```bash
@@ -67,7 +67,7 @@ pecot issue create phase1.md phase2.md phase3.md phase4.md phase5.md
 | 見るもの | 期待 |
 |---|---|
 | `--dry-run` の表 | Phase 1 は `alone`、2・3・4 は `stack on`、5 は `wait for merge of phase4` |
-| `--dry-run` の積める並び | `phase1 -> phase2 -> phase3` と `phase1 -> phase2 -> phase4` の 2 本 |
+| `--dry-run` のスタックできる並び | `phase1 -> phase2 -> phase3` と `phase1 -> phase2 -> phase4` の 2 本 |
 | Issue の画面 | Phase 2〜5 に blocked by が付く。指す先が表の行と合う |
 | Phase 5 の本文 | 末尾に `## Waits for merge` があり、Phase 4 の Issue と理由が 1 行ある |
 | Phase 2〜4 の本文 | 前提についての記述が無い |
@@ -87,7 +87,7 @@ pecot issue show <owner/repo/Phase 5 の番号>
 | `Blocked` の表 | Phase 2 が `blocked by #<1>`。Phase 5 に、マージを待つ理由が出る |
 | `issue show` | `Blocked by:` に 2 件と種類、`Readiness:` に `blocked` |
 
-## 3. 積んで着手する（US3・US4）
+## 3. スタックして着手する（US3・US4）
 
 worktree A で Phase 1 に着手し、PR を出す。
 
@@ -132,7 +132,7 @@ pecot session start <owner/repo/Phase 5> feat/phase5
 | 出力 | `is blocked by` と、マージを待つ理由、直し方の 2 行 |
 | リモート | ブランチができていない |
 
-## 5. 下の段を直して、上の段を載せ直す（US6）
+## 5. 親 PR を直して、子 PR をスタックし直す（US6）
 
 worktree A で Phase 1 にコミットを足して push する。worktree B で確かめる。
 
@@ -152,7 +152,7 @@ worktree A と B が同じ行を変えた状態でも試す。
 | 見るもの | 期待 |
 |---|---|
 | `restack` | 終了コード 3。衝突したファイルと、`--continue`・`--abort` の案内が出る |
-| `--abort` の後 | ブランチが載せ直しの前の位置に戻る |
+| `--abort` の後 | ブランチがスタックし直しの前の位置に戻る |
 
 ## 6. 下からマージする（US5）
 
@@ -169,11 +169,11 @@ pecot session finish <owner/repo/Phase 1 の PR> --delete-branch
 |---|---|
 | Phase 2 の PR のマージ | 終了コード 2。先にマージする PR が出る |
 | Phase 1 の PR のマージ | `merged:` が出る。Phase 1 の Issue が閉じる |
-| `session finish` の出力 | `Readiness changed:` に、Phase 1 を待つ Phase 2 の変化（`stackable on` から `startable`）が出る。載せ直しの案内が出る |
+| `session finish` の出力 | `Readiness changed:` に、Phase 1 を待つ Phase 2 の変化（`stackable on` から `startable`）が出る。スタックし直しの案内が出る |
 | Phase 2 の PR | 開いたまま、base が開発ブランチになっている |
 | Phase 2 のブランチ | リモートに残っている |
 
-worktree B で載せ直す。手元に足したコミットが無い場合と、push していないコミットを 1 つ足した場合で、2 回通す。
+worktree B でスタックし直す。手元に足したコミットが無い場合と、push していないコミットを 1 つ足した場合で、2 回通す。
 
 ```bash
 pecot pr restack
@@ -191,7 +191,7 @@ pecot pr restack
 
 merge queue の規則は、ここで戻す。`pecot-sandbox` の main の ruleset（id 27130266）に規則を足し直す。
 merge queue のあるブランチでも 1 回通す。`pecot pr merge` が `added: ... to merge queue` を出し、キューを通ってマージされることを見る。
-その後も `pecot pr restack` を続け、キューを通った後の載せ直しを見る。GitHub は、キュー経由でも上の段を載せ直す。
+その後も `pecot pr restack` を続け、キューを通った後のスタックし直しを見る。GitHub は、キュー経由でも子 PR をスタックし直す。
 
 ## 7. 前提と種類を直す（US7・US9）
 

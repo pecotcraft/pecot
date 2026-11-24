@@ -738,7 +738,7 @@ async function postFiles(output: CreateOutput, context: Readonly<BatchContext>):
       const reference = createIssueReference(home, result.number)
       posted.push({ reference, nodeId: result.nodeId })
       labels.set(local.key, displayReference(reference, context.home))
-      // Ready へ動かした Issue は、前提が済んでいるので、積む先を持たない
+      // Ready へ動かした Issue は、前提が済んでいるので、スタック先を持たない
       if (result.isMovedToReady) progressions.set(local.key, { kind: 'alone' })
       for (const key of local.keys) created.set(key, { repository: `${local.owner}/${local.repository}`, number: result.number })
     }

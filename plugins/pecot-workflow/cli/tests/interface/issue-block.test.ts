@@ -144,7 +144,7 @@ describe('issue block', () => {
     expect(writes(github)).toEqual(['PATCH /repos/acme/demo/issues/7'])
   })
 
-  it('種類を stack に戻すと、節から行を外して updated の行を出し、積める判定なら列を Ready に戻す', async () => {
+  it('種類を stack に戻すと、節から行を外して updated の行を出し、スタックできる判定なら列を Ready に戻す', async () => {
     prepareDependencyProject()
     const inReview = { number: 5, branch: 'feat/5', pullRequests: [{ number: 50, head: 'feat/5' }] }
     await startGithub([
@@ -651,7 +651,7 @@ describe('issue block', () => {
       expect(writes(github)).toEqual([])
     })
 
-    it('種類を stack に戻すと、節から行を外して updated を返し、積める判定なら列を Ready に戻して moves に入れる', async (context) => {
+    it('種類を stack に戻すと、節から行を外して updated を返し、スタックできる判定なら列を Ready に戻して moves に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-03')
       await verifies(context, 'PW-ISSUE-BLOCK-06')
       prepareDependencyProject()

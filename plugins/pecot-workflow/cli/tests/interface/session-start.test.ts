@@ -29,7 +29,7 @@ const linkedRepositories = (): ResponseRule => graphqlRule(
   { owner: 'acme', projectNumber: 1 },
 )
 const issueNode = (): ResponseRule => graphqlRule('GetIssueNodeId', { repository: { issue: { id: 'I_7', title: '[Task] 見本の Issue' } } }, { owner: 'acme', repo: 'demo', number: 7 })
-// 積む先のブランチ（main 以外で、feat/ で始まるもの）には、別の SHA を返す
+// スタック先のブランチ（main 以外で、feat/ で始まるもの）には、別の SHA を返す
 const baseSha = (branch: string): ResponseRule => restRule('GET', `/repos/acme/demo/git/ref/heads/${branch}`, 200, { object: { sha: branch.startsWith('feat/') ? STACK_SHA : SHA } })
 const linkedBranch = (): ResponseRule => graphqlRule('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: { ref: { name: 'feat/7', prefix: 'refs/heads/' } } } })
 const projectItems = (): ResponseRule => graphqlRule('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_7', project: { id: 'PVT_1' } }] } } } }, { owner: 'acme', repo: 'demo', number: 7 })
@@ -391,7 +391,7 @@ describe('session start', () => {
       })
     })
 
-    it('前提の PR に積んで作ると、積んだ先の Issue の番号を stackedOn に返す', async (context) => {
+    it('前提の PR にスタックして作ると、スタック先の Issue の番号を stackedOn に返す', async (context) => {
       await verifies(context, 'PW-SESSION-START-29')
       const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
       const result = await runTool({ tool: 'session_start', arguments: ARGUMENTS, github: judged({ blockedBy: [inReview] }, 'feat/3') })
@@ -524,7 +524,7 @@ describe('session start', () => {
       expect(requestLabels(result.requests)).not.toContain('CreateLinkedBranch')
     })
 
-    it('stackable の判定で base の値と積む先が違うと、ブランチを作らず、kind が invalid-input の失敗を返す', async (context) => {
+    it('stackable の判定で base の値とスタック先が違うと、ブランチを作らず、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-START-33')
       const result = await start({ arguments: { base: 'release' }, github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] })
       expectClean(result)
@@ -540,7 +540,7 @@ describe('session start', () => {
       expect(result.read(TITLE)).toBeUndefined()
     })
 
-    it('積む先のブランチが判定の後に無くなると、積む先が見つからない旨を detail に入れ、kind が git-unresolved の失敗を返す', async (context) => {
+    it('スタック先のブランチが判定の後に無くなると、スタック先が見つからない旨を detail に入れ、kind が git-unresolved の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-START-35')
       const gone = restRule('GET', '/repos/acme/demo/git/ref/heads/feat/3', 404, { message: 'Not Found' })
       const result = await start({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] }), issueNode(), gone] })
@@ -555,7 +555,7 @@ describe('session start', () => {
     const WAITS = '## Waits for merge\n- #4: 公開後に確かめる\n'
     const STACKED = 'created: branch feat/7 in acme/demo from feat/3 (stacked on #3)\n'
 
-    it('前提の PR が 1 本に積めると、その PR のブランチの先頭からブランチを作り、created の行に積んだ先を付ける', async (context) => {
+    it('前提の PR が 1 本にスタックできると、その PR のブランチの先頭からブランチを作り、created の行にスタック先を付ける', async (context) => {
       await verifies(context, 'PW-SESSION-START-28')
       const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') })
       expect(result.code).toBe(0)
@@ -566,7 +566,7 @@ describe('session start', () => {
       expect(result.requests.find(request => request.type === 'graphql' && request.operation === 'CreateLinkedBranch')).toMatchObject({ variables: { input: { issueId: 'I_7', oid: STACK_SHA, name: 'feat/7' } } })
     })
 
-    it('ブランチを作ると、選んだ base を .pecot-base に書く（積んだときは積んだ先の Issue も）', async (context) => {
+    it('ブランチを作ると、選んだ base を .pecot-base に書く（スタックしたときはスタック先の Issue も）', async (context) => {
       await verifies(context, 'PW-SESSION-START-30')
       const stacked = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') })
       expect(stacked.read(BASE)).toBe(`feat/3 ${STACK_SHA} acme/demo#3`)
@@ -574,14 +574,14 @@ describe('session start', () => {
       expect(plain.read(BASE)).toBe(`main ${SHA}`)
     })
 
-    it('積む先と同じ --base を付けると、そのまま積んで作る', async (context) => {
+    it('スタック先と同じ --base を付けると、そのままスタックして作る', async (context) => {
       await verifies(context, 'PW-SESSION-START-28')
       const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'feat/3'])
       expect(result.code).toBe(0)
       expect(result.stderr).toContain(STACKED)
     })
 
-    it('積む先と違う --base を付けると、ブランチを作らず終了コード 2 で終わる', async () => {
+    it('スタック先と違う --base を付けると、ブランチを作らず終了コード 2 で終わる', async () => {
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'release'])
       expect(result.code).toBe(2)
       expectClean(result)
@@ -674,7 +674,7 @@ describe('session start', () => {
       expect(result.stderr).toBe(`warning: readiness is not checked: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required\n${CREATED}${STATUS_SET}${TARGET_SET}`)
     })
 
-    it('積む先のブランチが判定の後に無くなると、積む先が見つからない旨の error の行を出して終了コード 1 で終わる', async () => {
+    it('スタック先のブランチが判定の後に無くなると、スタック先が見つからない旨の error の行を出して終了コード 1 で終わる', async () => {
       const gone = restRule('GET', '/repos/acme/demo/git/ref/heads/feat/3', 404, { message: 'Not Found' })
       const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] }), issueNode(), gone] })
       expect(result.code).toBe(1)

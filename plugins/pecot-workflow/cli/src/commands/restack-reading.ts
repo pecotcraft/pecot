@@ -1,4 +1,4 @@
-// 積んだブランチを載せ直す先の判断を、下の段の PR と remote の先頭から求める。pr restack・pr check・pr create・session show が共有する。
+// スタックしたブランチをスタックし直す先の判断を、親 PR と remote の先頭から求める。pr restack・pr check・pr create・session show が共有する。
 import type { PullRequestReadout } from '../domain/issue-readout.js'
 import { pickLowerPullRequest } from '../domain/pull-request.js'
 import { decideRestack } from '../domain/restack.js'
@@ -9,7 +9,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 
 /**
-既に読んだ下の段の PR。PR が無かったことも示せるよう、包んで渡す
+既に読んだ親 PR。PR が無かったことも示せるよう、包んで渡す
 */
 export interface KnownLowerPullRequest {
   readonly pullRequest: PullRequestReadout | undefined
@@ -27,7 +27,7 @@ export interface RestackTarget {
   readonly reading: Extract<BaseReading, { kind: 'stacked' }>
   readonly developBranch: string
   /**
-  渡されたら、下の段の PR を読み直さない
+  渡されたら、親 PR を読み直さない
   */
   readonly lowerPullRequest?: KnownLowerPullRequest | undefined
   /**
@@ -42,7 +42,7 @@ export type RestackReading
     | { readonly kind: 'pull-request-unreadable', readonly error: GitHubAPIError }
 
 /**
-下の段の PR を読み、remote の先頭を尋ねて、載せ直す先を決める。PR を読めないか remote に届かなければ、その種類を返す
+親 PR を読み、remote の先頭を尋ねて、スタックし直す先を決める。PR を読めないか remote に届かなければ、その種類を返す
 */
 export async function readRestackDecision(target: Readonly<RestackTarget>): Promise<RestackReading> {
   const { reading, remote } = target
@@ -65,7 +65,7 @@ export async function readRestackDecision(target: Readonly<RestackTarget>): Prom
 }
 
 // 新しい base の上に載り終えていれば rebased に替える。記録の位置が HEAD にあれば、それが新しい base の祖先であることも求める。
-// merge で base を取り込んだブランチと、下の段が古い位置へ戻されたブランチを、載せ直し済みと見ないため
+// merge で base を取り込んだブランチと、親ブランチが古い位置へ戻されたブランチを、スタックし直し済みと見ないため
 function withRebased(cwd: string, remote: string, reading: Readonly<Extract<BaseReading, { kind: 'stacked' }>>, decision: RestackDecision, lowerHead: string | undefined): RestackDecision {
   if (decision.kind !== 'moved' && decision.kind !== 'merged') return decision
   // moved は ls-remote の先頭を使う。fetch しない呼び出し元では、追跡参照が古い位置を指しうるため

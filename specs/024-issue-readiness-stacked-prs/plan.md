@@ -1,4 +1,4 @@
-# Implementation Plan: Issue の着手の可否を依存関係から判定し、前提が PR 中なら stacked PRs として積んで進める
+# Implementation Plan: Issue の着手の可否を依存関係から判定し、前提が PR 中なら stacked PRs としてスタックして進める
 
 **Branch**: `024-issue-readiness-stacked-prs` | **Date**: 2026-11-12 | **Spec**: [spec.md](spec.md)
 
@@ -7,14 +7,14 @@
 ## Summary
 
 pecot-workflow に、Issue の前後関係を GitHub の blocked by で持たせ、着手の可否を CLI が計算する仕組みを足す。
-判定は 3 つある。着手できる、積めば着手できる、ブロック中だ。
+判定は 3 つある。着手できる、スタックすれば着手できる、ブロック中だ。
 判定の規則は domain の純粋な関数に置く。一覧・着手・PR の作成・マージの片付けが、同じ関数を使う。
 ボードの進行の欄に `Blocked` の列を足す。`Ready` の列は、今着手できる Issue だけにする。
 列は判定の写しで、pecot の操作と `pecot board sync` が動かす。ワークフローは、そのコマンドを打つ手段の 1 つで任意だ。一覧を出す操作は動かさない。着手の操作は列を読まない。
 前提が PR 中の Issue は、前提のブランチを base にして着手する。PR は GitHub のスタックとして登録する。
 スタックの登録とマージは、GitHub の REST の API を直接呼ぶ。`gh stack` 拡張には依存しない。
-前提には種類がある。積める前提と、マージを待つ前提だ。種類は tasks.md の前提の表で決め、マージを待つ前提だけを Issue の本文に残す。
-w-breakdown が前提の表を書かせ、w-issueize がそれを blocked by に変える。進め方と積める並びは CLI が計算する。
+前提には種類がある。スタックできる前提と、マージを待つ前提だ。種類は tasks.md の前提の表で決め、マージを待つ前提だけを Issue の本文に残す。
+w-breakdown が前提の表を書かせ、w-issueize がそれを blocked by に変える。進め方とスタックできる並びは CLI が計算する。
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ w-breakdown が前提の表を書かせ、w-issueize がそれを blocked by に
 | Testing | vitest（単体と `tests/interface/`）、偽の GitHub サーバ（`tests/fake-github/`）、スキルの文書のテスト、このリポでの CUJ |
 | Target Platform | 利用者の端末（Claude Code と GitHub Copilot CLI） |
 | Project Type | 配布するプラグイン（CLI・スキル・テンプレート・hooks） |
-| Performance Goals | `pecot project info` は、Ready と Blocked が合わせて 50 件のボードで、判定の分の増加を 5 秒以内に収める。GraphQL の点数は 1 回あたり 60 点以下にする（前提の無い Issue は個別に読まない）。この点数は、一覧が 1 ページで、前提が 8 件以下の Issue を 1 件 1 点で数えた値だ。前提が 9 件以上の Issue と、積む先の PR を base からたどる読み取りは、この外にある |
+| Performance Goals | `pecot project info` は、Ready と Blocked が合わせて 50 件のボードで、判定の分の増加を 5 秒以内に収める。GraphQL の点数は 1 回あたり 60 点以下にする（前提の無い Issue は個別に読まない）。この点数は、一覧が 1 ページで、前提が 8 件以下の Issue を 1 件 1 点で数えた値だ。前提が 9 件以上の Issue と、スタック先の PR を base からたどる読み取りは、この外にある |
 
 **Constraints**:
 
@@ -89,20 +89,20 @@ plugins/pecot-workflow/
 ├── cli/
 │   ├── src/
 │   │   ├── domain/
-│   │   │   ├── readiness.ts            # 新規。着手の判定・進め方・積める並び・輪の確認
+│   │   │   ├── readiness.ts            # 新規。着手の判定・進め方・スタックできる並び・輪の確認
 │   │   │   ├── board-move.ts           # 新規。列を直す判断
 │   │   │   ├── prerequisites.ts        # 新規。本文のマージを待つ前提の節の読み書き
 │   │   │   ├── config.ts               # 進行の欄に blocked、fields.status
 │   │   │   ├── frontmatter.ts          # blocked_by を足す。parallel を外す
 │   │   │   ├── format.ts               # 列の並びと、一覧の判定の列
-│   │   │   ├── pull-request.ts         # 積んだ PR の base を通す
+│   │   │   ├── pull-request.ts         # スタック PR の base を通す
 │   │   │   └── state.ts                # base の記録のフラグ
 │   │   ├── infra/
 │   │   │   ├── github/queries.ts       # blocked by・選択肢の更新・Issue の PR
 │   │   │   ├── github/issues.ts        # 前提の読み書き
 │   │   │   ├── github/projects.ts      # 選択肢の追加、既定の Status の読み書き
 │   │   │   ├── github/pulls.ts         # スタックの登録と読み取り、非同期のマージ
-│   │   │   ├── git.ts                  # 載せ直しと push
+│   │   │   ├── git.ts                  # スタックし直しと push
 │   │   │   └── state-store.ts          # base の記録
 │   │   └── commands/
 │   │       ├── issue-dependency.ts     # 新規。issue block・unblock
@@ -132,9 +132,9 @@ plugins/pecot-workflow/
     ├── w-breakdown/SKILL.md            # tasks の工程に前提の表を書かせる
     ├── w-issueize/SKILL.md             # 表を frontmatter に写す。段の計算をやめる
     ├── w-active/SKILL.md               # base の判断を CLI に任せる
-    ├── w-pr/SKILL.md                   # 積んだ PR の説明
+    ├── w-pr/SKILL.md                   # スタック PR の説明
     ├── w-merge/SKILL.md                # pecot pr merge に変える
-    ├── w-revise/SKILL.md               # 上の段の載せ直しの報告
+    ├── w-revise/SKILL.md               # 子 PR のスタックし直しの報告
     └── w-help/references/              # board-status.md・issue-flow-rules.md・spec-driven-workflow.md
 
 specs/023-label-triggered-autofix/      # 待ちの値の名前だけを直す
@@ -154,13 +154,13 @@ specs/023-label-triggered-autofix/      # 待ちの値の名前だけを直す
 | 5 | 一括投稿が前提を付ける。進め方と通し番号。テンプレートと w-issueize | US1、FR-001〜FR-006、FR-018、FR-043、FR-046〜FR-051、FR-055〜FR-058 |
 | 6 | 前提の付け外しと種類の変更 | US7、US9、FR-007〜FR-009、FR-062 |
 | 7 | 着手が判定で base を選ぶ。w-active | US3、FR-019〜FR-024 |
-| 8 | 積んだ PR の作成とスタックの登録。w-pr | US4、FR-025〜FR-031、FR-041 |
+| 8 | スタック PR の作成とスタックの登録。w-pr | US4、FR-025〜FR-031、FR-041 |
 | 9 | マージのコマンドと、片付けの後の通知。w-merge と hook | US5、FR-032〜FR-035、FR-068 |
-| 10 | 載せ直しのコマンド。w-revise | US6、FR-036〜FR-040 |
+| 10 | スタックし直しのコマンド。w-revise | US6、FR-036〜FR-040 |
 | 11 | w-breakdown が前提の表を書かせる | US8、FR-052〜FR-054 |
 | 12 | w-help の文書、spec 023 の名前の修正、w-ready の前提、検証用のリポでの quickstart | FR-042、FR-044、FR-045、FR-076、FR-077、SC-001〜SC-016 |
 
-段階 5 までで、Issue 化からボードの列までが通る。段階 7 から 10 が、積んで進める動線だ。
+段階 5 までで、Issue 化からボードの列までが通る。段階 7 から 10 が、スタックして進める動線だ。
 段階の前後関係と種類は、tasks.md の前提の表に書く。
 
 ## Complexity Tracking
@@ -168,8 +168,8 @@ specs/023-label-triggered-autofix/      # 待ちの値の名前だけを直す
 | 足すもの | 要る理由 | より単純な案を採らない理由 |
 |---|---|---|
 | `pecot issue block`・`unblock` | 計画が変わったときに、前提と種類を直す手段が要る。ブロックを無視して着手する指定を作らないので、直す操作が唯一の出口になる | GitHub の画面で直す形は、本文のマージを待つ前提の節と blocked by が食い違う |
-| `pecot pr merge` | スタックの中の PR は、今までのマージ API で拒まれる。最下段でない PR のマージを止める判断も要る | `gh pr merge` を残すと、積んだ PR で必ず落ちる |
-| `pecot pr restack` | 載せ直しには、記録した古い base の位置が要る。スキルの文で git の手順を書くと、位置の取り違えが起きる | `gh stack rebase` は、ほかの作業ディレクトリの状態で全体が止まる |
+| `pecot pr merge` | スタックの中の PR は、今までのマージ API で拒まれる。一番下でない PR のマージを止める判断も要る | `gh pr merge` を残すと、スタック PR で必ず落ちる |
+| `pecot pr restack` | スタックし直しには、記録した古い base の位置が要る。スキルの文で git の手順を書くと、位置の取り違えが起きる | `gh stack rebase` は、ほかの作業ディレクトリの状態で全体が止まる |
 | 進行の欄の `Blocked` | `Ready` を「着手できる」の意味にするには、前提を待つ Issue の置き場が要る | `Pending` に置く形は、人が後回しにした Issue と区別できない |
 | 既定の Status の `Needs Attention` | 前提がマージされずに閉じられた Issue は、人の判断が要る。spec 023 が同じ値を足すので、増える値は 1 つだ | 専用の列やラベルを足すと、人の判断を待つ印が 2 つになる |
 | spec 023 の文書の修正 | 待ちの値の名前を `Needs Attention` にそろえる。spec 023 は未実装で、古い名前のまま実装されると、後で値の移行が要る | 文書を直さずに実装の時に読み替える形は、読み替えを忘れる |

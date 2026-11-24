@@ -339,13 +339,13 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | 積める | Phase 2 の `confirm_delete` は、Phase 1 の `project_sync` の移行の予定と `migration` の出力に削除を足す |
-| 3 | 1 | 積める | Phase 3 のビューの作成が、Phase 1 で作る `pecot-status` の ID を `vertical_group_by` に使う |
-| 4 | 3 | 積める | Phase 4 の起票・同期・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
-| 6 | 5 | 積める | Phase 6 の検証が、Phase 5 で作る定義の読み込み（`infra/github/attributes.ts`）を使う |
-| 7 | 6 | 積める | Phase 7 の網羅のテストが、Phase 6 で作る `ATTRIBUTE_HANDLERS` と照らす |
-| 8 | 7 | 積める | Phase 8 の差の確かめが、Phase 7 で作る `extract.ts` と写しを使う |
-| 9 | 7 | 積める | Phase 9 の棚卸しの「pecot の今の使い方」が、Phase 7 の担保の一覧で決まる |
+| 2 | 1 | スタックできる | Phase 2 の `confirm_delete` は、Phase 1 の `project_sync` の移行の予定と `migration` の出力に削除を足す |
+| 3 | 1 | スタックできる | Phase 3 のビューの作成が、Phase 1 で作る `pecot-status` の ID を `vertical_group_by` に使う |
+| 4 | 3 | スタックできる | Phase 4 の起票・同期・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
+| 6 | 5 | スタックできる | Phase 6 の検証が、Phase 5 で作る定義の読み込み（`infra/github/attributes.ts`）を使う |
+| 7 | 6 | スタックできる | Phase 7 の網羅のテストが、Phase 6 で作る `ATTRIBUTE_HANDLERS` と照らす |
+| 8 | 7 | スタックできる | Phase 8 の差の確かめが、Phase 7 で作る `extract.ts` と写しを使う |
+| 9 | 7 | スタックできる | Phase 9 の棚卸しの「pecot の今の使い方」が、Phase 7 の担保の一覧で決まる |
 | 10 | 2 | マージを待つ | このリポのボードは、配布された pecot-workflow で移す。廃止と移行の処理がリリースに入っていないと、`confirm_delete` の削除ができない |
 | 10 | 4 | マージを待つ | このリポのボードは、配布された pecot-workflow で移す。`pecot-lane` と起票・同期の処理がリリースに入っていないと、`missing_lane` を確かめられない |
 
@@ -363,7 +363,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 ### Parallel Opportunities
 
 - A の Phase 1〜4 と、B の Phase 5〜8 は、別の worktree で並べて進められる
-- Phase 2 と Phase 3 は、どちらも Phase 1 にだけ積むので、並べて進められる
+- Phase 2 と Phase 3 は、どちらも Phase 1 にだけスタックするので、並べて進められる
 - 各フェーズの `[P]` のテストは、別のファイルなので並べて書ける
 
 ---

@@ -29,20 +29,20 @@ function unexpectedProbe(): LowerProbe {
 }
 
 describe('inferStackedBase', () => {
-  it('判定が stackable で、HEAD が下の段の変更を持つと、下の段に積んだ記録を返す', () => {
+  it('判定が stackable で、HEAD が親ブランチの変更を持つと、親ブランチにスタックした記録を返す', () => {
     const inferred = inferStackedBase(stackable, [], target, probeOf({ kind: 'probed', isShared: true, sha: SHA }))
     expect(inferred).toEqual({ kind: 'stacked', record: { branch: 'feat/3', sha: SHA, stackedOn: lower }, stackedOn: lower })
   })
 
-  it('判定が stackable でも、HEAD が下の段の変更を持たないと、開発ブランチからの着手として返す', () => {
+  it('判定が stackable でも、HEAD が親ブランチの変更を持たないと、開発ブランチからの着手として返す', () => {
     expect(inferStackedBase(stackable, [], target, probeOf({ kind: 'probed', isShared: false, sha: SHA }))).toEqual({ kind: 'development' })
   })
 
-  it('下の段の追跡参照が手元に無いと、git fetch の案内を添えた理由を返す', () => {
+  it('親ブランチの追跡参照が手元に無いと、git fetch の案内を添えた理由を返す', () => {
     expect(inferStackedBase(stackable, [], target, probeOf({ kind: 'untracked', reference: 'origin/feat/3' }))).toEqual({ kind: 'unknown', reason: 'origin/feat/3 is not found; fetch it with: git fetch' })
   })
 
-  it('下の段から分かれた点を求められないと、その理由を返す', () => {
+  it('親ブランチから分かれた点を求められないと、その理由を返す', () => {
     expect(inferStackedBase(stackable, [], target, probeOf({ kind: 'probed', isShared: true, sha: undefined }))).toEqual({ kind: 'unknown', reason: 'cannot find where HEAD forked from feat/3' })
   })
 
@@ -80,7 +80,7 @@ describe('decideStart', () => {
     ].join('\n'))
   })
 
-  it('マージを待つ前提でも PR がマージ済みなら、マージ済みと示し、積むよう切り替える案内を出さない', () => {
+  it('マージを待つ前提でも PR がマージ済みなら、マージ済みと示し、スタックに切り替える案内を出さない', () => {
     expect(blockedText({ ...mergedOpen, wait: 'merge', reason: '理由' })).toBe([
       '#7 is blocked by #3 (not in review: #3 (PR merged, Issue open))',
       '- #3: PR merged, Issue open',

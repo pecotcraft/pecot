@@ -566,7 +566,7 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^error: blocked_by in a\.md refers to acme\/demo\/99, which could not be read: .+\n$/u)
     })
 
-    it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、積める並びを出す', async () => {
+    it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタックできる並びを出す', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', PARENT, 'priority: high', 'size: s'),
@@ -1474,7 +1474,7 @@ describe('issue create', () => {
         expect(postsOf(github)).toEqual([])
       })
 
-      it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、積める並びを stackableChains に返す', async (context) => {
+      it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタックできる並びを stackableChains に返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-46')
         await verifies(context, 'PW-ISSUE-CREATE-47')
         await verifies(context, 'PW-ISSUE-CREATE-49')

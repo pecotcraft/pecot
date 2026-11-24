@@ -455,7 +455,7 @@ describe('createStack', () => {
     )
   })
 
-  it('422（base が下の段の head と合わない）は GitHubAPIError', async () => {
+  it('422（base が親 PR の head と合わない）は GitHubAPIError', async () => {
     const text = 'Validation Failed'
     const { client } = await startClient([restResponse('POST', '/repos/owner/repo/stacks', { status: 422, text })])
     expect(await rejection(client.createStack('owner', 'repo', [11, 12]))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: text }))

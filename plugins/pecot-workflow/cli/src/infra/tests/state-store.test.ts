@@ -237,7 +237,7 @@ describe('writeSessionTitle', () => {
 describe('writeBaseRecord / readBaseRecord', () => {
   const SHA = '0123456789abcdef0123456789abcdef01234567'
 
-  it('積んだ base を書いて読み戻す', () => {
+  it('スタックした base を書いて読み戻す', () => {
     const root = useProject()
     writeBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: createIssueReference(createRepositoryReference('acme', 'demo'), 3) })
     expect(readFileSync(path.join(root, '.pecot', 'state', '.pecot-base'), 'utf8')).toBe(`feat/3 ${SHA} acme/demo#3`)

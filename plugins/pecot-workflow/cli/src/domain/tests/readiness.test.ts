@@ -202,17 +202,17 @@ describe('judgeReadiness の順', () => {
     expect(judge([need(facts, 'merge', '理由')]).reason).toEqual({ code: 'not-in-review', issues: [{ issue: reference(1), state: 'merged-open' }] })
   })
 
-  it('merged の PR と open の PR を 1 本ずつ持つ前提は、open の PR に積む', () => {
+  it('merged の PR と open の PR を 1 本ずつ持つ前提は、open の PR にスタックする', () => {
     const facts = inReview(1, DEV, { pullRequests: [pullRequest(1000, 'old', DEV, { state: 'merged' }), pullRequest(1001, 'b1')] })
     expect(judge([need(facts)])).toMatchObject({ kind: 'stackable', stackOn: { branch: 'b1', issue: reference(1) } })
   })
 
-  it('順 8: 前提が 1 件なら、その PR の head に積む', () => {
+  it('順 8: 前提が 1 件なら、その PR の head にスタックする', () => {
     const result = judge([reviewing(1)])
     expect(result).toEqual({ kind: 'stackable', stackOn: { branch: 'b1', issue: reference(1) }, reason: undefined, needsReview: false, attention: [] })
   })
 
-  it('順 8: 3 件を逆の順で渡しても、鎖の最上段に積む', () => {
+  it('順 8: 3 件を逆の順で渡しても、鎖の一番上にスタックする', () => {
     const one = inReview(1)
     const two = inReview(2, 'b1')
     const three = inReview(3, 'b2')
@@ -221,7 +221,7 @@ describe('judgeReadiness の順', () => {
     }
   })
 
-  it('順 8: 間接の前提を挟む鎖にも積める', () => {
+  it('順 8: 間接の前提を挟む鎖にもスタックできる', () => {
     const one = inReview(1)
     const three = inReview(3, 'b2')
     const indirect = pullRequest(1002, 'b2', 'b1')
@@ -256,7 +256,7 @@ describe('judgeReadiness の順', () => {
     expect(judge(prerequisites, { byHead: [pullRequest(1002, 'b2', 'b1')] }).kind).toBe('stackable')
   })
 
-  it('順 8: 開発ブランチを head に持つ PR は、積む先の途中として通らない', () => {
+  it('順 8: 開発ブランチを head に持つ PR は、スタック先の途中として通らない', () => {
     const result = judge([reviewing(1), reviewing(2)], { byHead: [pullRequest(2000, DEV, 'x')] })
     expect(result.reason?.code).toBe('diverged')
   })
@@ -361,7 +361,7 @@ describe('planProgression', () => {
     expect(progressions.get('d')).toEqual({ kind: 'wait-merge' })
   })
 
-  it('前提が 1 つなら、その前提に積む', () => {
+  it('前提が 1 つなら、その前提にスタックする', () => {
     expect(planned([phase('a'), phase('b', ['a'])]).get('b')).toEqual({ kind: 'stack', on: 'a' })
   })
 
@@ -369,12 +369,12 @@ describe('planProgression', () => {
     expect(planned([phase('a'), phase('b'), phase('c', ['a'], ['b'])]).get('c')).toEqual({ kind: 'join' })
   })
 
-  it('1 つの前提からほかの前提へ届くなら、届く元の前提に積む', () => {
+  it('1 つの前提からほかの前提へ届くなら、届く元の前提にスタックする', () => {
     const progressions = planned([phase('a'), phase('b', ['a']), phase('c', ['a'], ['b'])])
     expect(progressions.get('c')).toEqual({ kind: 'stack', on: 'b' })
   })
 
-  it('既存の Issue を経由して届く前提にも積む', () => {
+  it('既存の Issue を経由して届く前提にもスタックする', () => {
     const progressions = planned([phase('a', ['acme/app/9']), phase('b', ['a'], ['acme/app/9'])])
     expect(progressions.get('b')).toEqual({ kind: 'stack', on: 'a' })
   })
@@ -417,12 +417,12 @@ describe('stackChains', () => {
     expect(stackChains(progressions)).toEqual([['a', 'b']])
   })
 
-  it('積む先の無いフェーズだけなら道を出さない', () => {
+  it('スタック先の無いフェーズだけなら道を出さない', () => {
     const progressions = planned([phase('a'), phase('b', ['a', 'merge']), phase('c', ['a'], ['b'])])
     expect(stackChains(progressions)).toEqual([])
   })
 
-  it('積む先が既存の Issue なら、その Issue から始まる道を出す', () => {
+  it('スタック先が既存の Issue なら、その Issue から始まる道を出す', () => {
     const progressions = planned([phase('a', ['acme/app/9']), phase('b', ['a'])])
     expect(stackChains(progressions)).toEqual([['acme/app/9', 'a', 'b']])
   })
@@ -444,7 +444,7 @@ function expectedOutcome(progression: Progression | undefined, heads: ReadonlyMa
 }
 
 describe('進め方と判定の一致', () => {
-  // 同じリポの入力だけで、すべての前提を PR 中と置いて判定する。PR の base は、積む先の head にそろえる
+  // 同じリポの入力だけで、すべての前提を PR 中と置いて判定する。PR の base は、スタック先の head にそろえる
   const cases: readonly { readonly name: string, readonly phases: readonly PlannedPhase[] }[] = [
     { name: 'quickstart の 5 フェーズ', phases: quickstart },
     { name: 'join を含む並び', phases: [phase('a'), phase('b'), phase('c', ['a'], ['b']), phase('d', ['a'])] },
@@ -653,7 +653,7 @@ describe('describeReadiness', () => {
     expect(describeFor([])).toBe('startable')
   })
 
-  it('積める前提には stackable on #N を返す', () => {
+  it('スタックできる前提には stackable on #N を返す', () => {
     expect(describeFor([reviewing(1)])).toBe('stackable on #1')
   })
 
@@ -720,7 +720,7 @@ describe('cycleThrough', () => {
 })
 
 describe('progressionsFromReadiness', () => {
-  it('stackable は積む先の上に積み、ほかは単独にする', () => {
+  it('stackable はスタック先の上にスタックし、ほかは単独にする', () => {
     const stackable = judge([reviewing(1)])
     const startable = judge([])
     const blocked = judge([unstarted(1)])
@@ -811,7 +811,7 @@ describe('hasReadinessChanged・describeReadinessChange', () => {
   const startable = judge([])
   const blocked = judge([unstarted(1)])
 
-  it('区分か積む先のブランチが違えば変化とし、理由だけの違いは変化としない', () => {
+  it('区分かスタック先のブランチが違えば変化とし、理由だけの違いは変化としない', () => {
     const otherBase = { ...stackable, stackOn: { branch: 'b9', issue: reference(9) } }
     const blockedOtherReason = judge([startedOnly(1)])
     expect(hasReadinessChanged(stackable, startable)).toBe(true)
@@ -820,7 +820,7 @@ describe('hasReadinessChanged・describeReadinessChange', () => {
     expect(hasReadinessChanged(blocked, blockedOtherReason)).toBe(false)
   })
 
-  it('変化の文は、blocked を理由なしで、stackable を積む先つきで出す', () => {
+  it('変化の文は、blocked を理由なしで、stackable をスタック先つきで出す', () => {
     expect(describeReadinessChange(blocked, repository_)).toBe('blocked')
     expect(describeReadinessChange(stackable, repository_)).toBe('stackable on #1')
     expect(describeReadinessChange(stackable, otherRepository)).toBe('stackable on acme/app#1')

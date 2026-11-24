@@ -41,19 +41,19 @@
 - Decision: Issue の PR は、Issue にリンクしたブランチを head に持つ PR とする。閉じる参照（`closingIssuesReferences`）も合わせて読む
 - Rationale:
   - pecot は、着手のたびに、Issue へリンクしたブランチを作る。ブランチ名は `<名前>/<Issue番号>` だ
-  - 閉じる参照は、base が既定のブランチでない PR では作られないと文書にある。積んだ PR はこれに当たる
-  - R14 で確かめると、上の段の PR の閉じる参照は、本文に `Closes #N` があっても空だった
-    - 下の段のマージで base が既定のブランチに変わった後も、空のままだった
-    - 下の段の PR（base が既定のブランチ）では作られた
+  - 閉じる参照は、base が既定のブランチでない PR では作られないと文書にある。スタック PR はこれに当たる
+  - R14 で確かめると、子 PR の閉じる参照は、本文に `Closes #N` があっても空だった
+    - 親 PR のマージで base が既定のブランチに変わった後も、空のままだった
+    - 親 PR（base が既定のブランチ）では作られた
   - `pr cleanup` は、head のブランチの番号からも Issue を見つけている。同じ決まりにそろう
   - 済んだ前提は、Issue が閉じていて、その PR がマージ済みのもの。PR 中は、Issue が開いていて、その PR が開いているもの
   - Issue の PR は、2 つの読み口から集める
     - リンクしたブランチの `ref.associatedPullRequests`
     - `closedByPullRequestsReferences(includeClosedPrs: true)`（Development 欄）。引数を省くと open の PR しか返さない
-  - 積んだ上の段の PR は、開いている間は Development 欄に載らず、リンクしたブランチから読む。マージの後はブランチが消え、Development 欄から読む
+  - スタックした子 PR は、開いている間は Development 欄に載らず、リンクしたブランチから読む。マージの後はブランチが消え、Development 欄から読む
   - #375 で足したタイムライン（`timelineItems`）の読み口は、#457 で外した。言及が先頭の件数を超えると判定が止まり、2 つの読み口で足りるため
 - Alternatives considered:
-  - 閉じる参照だけで見分ける案。積んだ PR で空になるおそれがあるので採らない
+  - 閉じる参照だけで見分ける案。スタック PR で空になるおそれがあるので採らない
   - Issue のタイムラインの `ClosedEvent.closer` を読む案。`pr cleanup` は API で Issue を閉じるので、closer が PR にならない
 
 ## R4. スタックの登録
@@ -78,14 +78,14 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
   - 非同期の API は `PUT /repos/{owner}/{repo}/pulls/{n}/merge-async` で、結果は `GET .../merge-async/{uuid}` で読む
   - 同期の API は使わない。文書に "This endpoint does not support stacked pull requests or merging with a merge queue" とある
   - 本体の `main` には merge queue があるので、同期の API では単独の PR も通らない
-  - 上の段の PR をマージすると、それより下の未マージの PR も一緒にマージされる。pecot は、最下段でない PR のマージを止める
-  - base が merge queue を使うときは、マージを頼んだ PR と、その下の未マージの PR がキューに入る。上の段は入らない
+  - 子 PR をマージすると、それより下の未マージの PR も一緒にマージされる。pecot は、一番下でない PR のマージを止める
+  - base が merge queue を使うときは、マージを頼んだ PR と、その下の未マージの PR がキューに入る。子 PR は入らない
     - T008 では、マージを頼んだ #11 だけがキューに入り、#12 は base が `main` に変わった
     - pecot は、キューに入ったことを伝えて終わる
   - R14 で確かめたこと
-    - 同期の API（`PUT .../pulls/{n}/merge`）は、スタックの最下段でも 403 で拒んだ
+    - 同期の API（`PUT .../pulls/{n}/merge`）は、スタックの一番下でも 403 で拒んだ
       - 文は `Merging stacked PRs via this endpoint is not supported.` で、非同期の API を案内する
-    - auto-merge の設定（`enablePullRequestAutoMerge`）は、下の段でも上の段でも `UNPROCESSABLE` で拒まれた
+    - auto-merge の設定（`enablePullRequestAutoMerge`）は、親 PR でも子 PR でも `UNPROCESSABLE` で拒まれた
       - 文は `Auto-merge is not supported for stacked pull requests.`
       - GA の告知には「数週間かけて使えるようにする」とある。pecot は auto-merge を使わないので、影響しない
     - `merge-async` の応答は 202 と `{status: "pending", details: {uuid, ...}}` だった
@@ -119,47 +119,47 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
   - w-merge の `gh pr merge` を残す案。スタックの中の PR で必ず落ちるので採らない
   - `gh stack merge` を子プロセスで呼ぶ案。端末でないと確認なしでスタック全体をマージするので採らない
 
-## R6. 下の段がマージされた後と、下の段を直した後
+## R6. 親 PR がマージされた後と、親 PR を直した後
 
-- Decision: `pecot pr restack` が、上の段の作業ディレクトリで git を実行する。記録した base の位置を使って載せ直す
+- Decision: `pecot pr restack` が、子ブランチの作業ディレクトリで git を実行する。記録した base の位置を使ってスタックし直す
   - `git fetch` の後、まず `git rebase --onto <新しい base> <記録した古い base の位置>` を打つ
-  - 下の段のマージの後は、GitHub がリモートの上の段を先に載せ直していることがある
+  - 親 PR のマージの後は、GitHub がリモートの子 PR を先にスタックし直していることがある
   - 結果が `git diff --quiet HEAD origin/<branch>` で同じ木なら、`origin/<branch>` に合わせ、push しない
   - 木が違えば、`--force-with-lease` で push する
   - 合わせた後に記録する base の位置は、`git merge-base origin/<branch> <開発ブランチ>` とする
   - 自分のブランチだけを書き換えるので、ほかの作業ディレクトリには触れない
 - Rationale:
-  - 下の段がマージされると、GitHub が残りのブランチを載せ直し、次の PR の base を開発ブランチに変える。手元のブランチは変わらない
-  - R14 で確かめると、マージの完了の 3 秒後の読み取りで、上の段の PR の base は既に `main` だった
-    - リモートの上の段のブランチは、新しいコミットへ書き換わった。親は squash のコミットで、force push と同じだ
-    - 上の段の CI は、書き換わったコミットで動き直した
-    - 下の段のブランチは、`delete_branch_on_merge` で消えた。スタックは、上の段が開いている間は `open: true` のままだった
-  - merge queue を通ったマージでも、GitHub は上の段を載せ直した
+  - 親 PR がマージされると、GitHub が残りのブランチをスタックし直し、次の PR の base を開発ブランチに変える。手元のブランチは変わらない
+  - R14 で確かめると、マージの完了の 3 秒後の読み取りで、子 PR の base は既に `main` だった
+    - リモートの子ブランチは、新しいコミットへ書き換わった。親は squash のコミットで、force push と同じだ
+    - 子 PR の CI は、書き換わったコミットで動き直した
+    - 親ブランチは、`delete_branch_on_merge` で消えた。スタックは、子 PR が開いている間は `open: true` のままだった
+  - merge queue を通ったマージでも、GitHub は子 PR をスタックし直した
     - PR #12 では `HeadRefForcePushedEvent` が 15:29:27Z にあり、f536d0f から 92fcdb7 に変わった
     - 新しい head の親は、#11 のマージのコミット 05c61ea だった
   - 書き換わったコミットは、`verification.verified` が false で、`reason` は `unsigned`、committer は利用者だった
     - 公式文書（stacked PRs の Rebasing の節）は "Rebasing the stack generates signed commits." と書く。実物は文書と食い違う
     - 署名を必須にした規則のあるリポでは、リモートに合わせる形が、署名の無いコミットをそのまま残す。規則に止められるかは未確認だ
-  - 手元は、`git rebase --onto` で載せ直せる。squash の後でも、下の段のコミットが落ちる
-    - R14 で確かめると、載せ直した後の差分は上の段の変更だけで、木はリモートの上の段と同じだった。SHA はコミットの日時で違った
+  - 手元は、`git rebase --onto` でスタックし直せる。squash の後でも、親 PR のコミットが落ちる
+    - R14 で確かめると、スタックし直した後の差分は子 PR の変更だけで、木はリモートの子 PR と同じだった。SHA はコミットの日時で違った
     - 木が同じなのに push すると、GitHub が書き換えたコミットを、木の同じ別のコミットで置き換えることになる
     - 置き換えると CI が動き直すだけで害は無いが、リモートに合わせれば、その push が要らない
   - 未 push のコミットの有無は判定に使わない。`git fetch` の後は `origin/<branch>` が書き換わった SHA に動き、手元の HEAD と比べられないからだ
-  - 古い base の位置は、作業ディレクトリごとの状態のファイルに記録する。着手のときと、載せ直しのたびに書く
+  - 古い base の位置は、作業ディレクトリごとの状態のファイルに記録する。着手のときと、スタックし直しのたびに書く
 - Alternatives considered:
-  - `gh stack rebase` と `gh stack sync` を使う案。段ごとの作業ディレクトリにも対応しているが、採らない。対象の作業ディレクトリに未コミットの変更があると全体が止まり、無関係な重複のチェックアウトで失敗する報告もある
+  - `gh stack rebase` と `gh stack sync` を使う案。PR ごとの作業ディレクトリにも対応しているが、採らない。対象の作業ディレクトリに未コミットの変更があると全体が止まり、無関係な重複のチェックアウトで失敗する報告もある
   - 記録を持たず、`--fork-point` に任せる案。reflog が無い作業ディレクトリで外れるので採らない
   - push していないコミットの有無で分ける案。reflog を頼りにして `--fork-point` と同じ弱さが出るので採らない
 - Alternatives considered:
-  - `gh stack rebase` と `gh stack sync` を使う案。段ごとの作業ディレクトリにも対応しているが、採らない。対象の作業ディレクトリに未コミットの変更があると全体が止まり、無関係な重複のチェックアウトで失敗する報告もある
+  - `gh stack rebase` と `gh stack sync` を使う案。PR ごとの作業ディレクトリにも対応しているが、採らない。対象の作業ディレクトリに未コミットの変更があると全体が止まり、無関係な重複のチェックアウトで失敗する報告もある
   - 記録を持たず、`--fork-point` に任せる案。reflog が無い作業ディレクトリで外れるので採らない
 
-## R7. 積んだ PR と Issue のクローズ
+## R7. スタック PR と Issue のクローズ
 
 - Decision: Issue を閉じるのは、今までどおり `pecot pr cleanup` にする
 - Rationale:
   - `pr cleanup` は、閉じる参照・本文のキーワード・head のブランチの番号から Issue を見つけ、API で閉じる
-  - 閉じるキーワードが積んだ PR で働くかどうかは、公式の記述が無い。働いた実例はあるが、保証は無い
+  - 閉じるキーワードがスタック PR で働くかどうかは、公式の記述が無い。働いた実例はあるが、保証は無い
   - R14 の確かめでは、base が開発ブランチに変わった後のマージで、本文の `Closes #N` の Issue が閉じた（`ClosedEvent.closer` がその PR）。閉じる参照は空のままだった
   - pecot は GitHub の自動のクローズに頼らないので、どちらでも結果は同じだ
 - Alternatives considered: GitHub の自動のクローズに任せる案。保証が無いので採らない
@@ -243,8 +243,8 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 | 選択肢の並びが、渡した順になる | なる | `Blocked` が末尾に来る。列の並べ替えを手順に書く | API の `options` の順は渡した順で、`Blocked` が `Backlog` と `Ready` の間に並んだ（見込みどおり）。ボードの画面の列の順は未確認 | 2026-11-12 |
 | 別のリポの Issue を、API で blocked by に指せる | 指せる。Epic #50 で画面から通っている | 別のリポの前提を、付けられない旨のエラーにする | 見込みどおり。`addBlockedBy` が 200 を返し、`blockedBy` と `blocking` の両方に返った。`removeBlockedBy` でも、REST の DELETE でも外せた（200） | 2026-11-12 |
 | GitHub が輪を拒むか | 分からない | R2 のとおり pecot が先に確かめるので、影響しない | 見込みなし。一部だけ拒む。2 つの輪と自分自身は `VALIDATION` で拒み、3 つの輪は通した（R2） | 2026-11-12 |
-| 積んだ PR で、閉じる参照が作られるか | 分からない | R3 のとおりリンクしたブランチで見分けるので、影響しない | 見込みなし。作られない。base が `main` に変わった後も空だった。閉じるキーワードはマージで働いた（R3・R7） | 2026-11-12 |
-| 下の段のマージの後、手元の載せ直しが R6 の手順で通る | 通る | 記録する位置を、GitHub が載せ直した後の位置に変える | 見込みどおり。差分は上の段の変更だけで、木はリモートの上の段と同じだった。GitHub がリモートを先に載せ直すので、R6 に手元をリモートに合わせる形を足した（R6） | 2026-11-12 |
+| スタック PR で、閉じる参照が作られるか | 分からない | R3 のとおりリンクしたブランチで見分けるので、影響しない | 見込みなし。作られない。base が `main` に変わった後も空だった。閉じるキーワードはマージで働いた（R3・R7） | 2026-11-12 |
+| 親 PR のマージの後、手元のスタックし直しが R6 の手順で通る | 通る | 記録する位置を、GitHub がスタックし直した後の位置に変える | 見込みどおり。差分は子 PR の変更だけで、木はリモートの子 PR と同じだった。GitHub がリモートを先にスタックし直すので、R6 に手元をリモートに合わせる形を足した（R6） | 2026-11-12 |
 | 非同期のマージ API が、merge queue のあるブランチでキューに入れる | 入れる | キューに入れる操作を別に呼ぶ | 見込みどおり。ただし `merge_method` を渡さないときだけで、渡すと `failed` になる（R5） | 2026-11-12 |
 | マージでブランチが消えた後も、Issue の PR を読める | 分からない | 閉じる参照とタイムラインからも PR を集める（R3） | 見込みなし。リンクしたブランチは一覧から消えた（#7 の `linkedBranches` が空）。PR #9（merged）は、閉じる参照とタイムラインの両方から読めた（#375） | 2026-11-12 |
 | リンクしたブランチから、base が既定でない PR を作ると、Development 欄に載る | 載る。文書は「自動でリンクされる」とし、base の条件を書いていない | リンクしたブランチの読み口で拾う（R3） | 見込みなし。載らず、ブランチのリンクが残った（#171・PR #173）。base が `main` なら載り、ブランチのリンクは外れた（#172・PR #174）。github/docs#45948 に同じ報告があり、GitHub が再現を認めた（#457） | 2026-11-16 |
@@ -253,7 +253,7 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 
 - code scanning（CodeQL）の規則と、bypass の Integration は写していない
 - merge queue の規則は、R14 の表の 1〜7 行目を確かめた後に足した。1〜7 行目は merge queue の無いブランチで確かめた
-  - merge queue を通ったマージでも、上の段は載せ直された（R6）
+  - merge queue を通ったマージでも、子 PR はスタックし直された（R6）
 - 必須チェックの `ci-result` と `version-plan` は、成功するだけの job で満たした
 
 ## R15. ほかの Epic との順番

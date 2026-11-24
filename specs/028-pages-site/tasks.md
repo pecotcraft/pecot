@@ -252,12 +252,12 @@ description: "Task list for 028-pages-site"
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | 積める | 「未実行」と「テストが無い」の区別と STRICT が、`junit-lanes.json` のプラグインごとのレーンの一覧を読む。Phase 1 のブランチの上で手元で作って確かめられる |
-| 3 | 1 | 積める | 作る run が `pages_site/lanes.py` の出力を読む。`pull_request` の run は PR のブランチの定義で動くので、積んだブランチの PR で確かめられる |
-| 4 | 2 | 積める | SideCheck の内部リンクの確かめ（T026）と、帯のタグのコミット（T033）が、Phase 2 の帯を読む |
+| 2 | 1 | スタックできる | 「未実行」と「テストが無い」の区別と STRICT が、`junit-lanes.json` のプラグインごとのレーンの一覧を読む。Phase 1 のブランチの上で手元で作って確かめられる |
+| 3 | 1 | スタックできる | 作る run が `pages_site/lanes.py` の出力を読む。`pull_request` の run は PR のブランチの定義で動くので、スタックしたブランチの PR で確かめられる |
+| 4 | 2 | スタックできる | SideCheck の内部リンクの確かめ（T026）と、帯のタグのコミット（T033）が、Phase 2 の帯を読む |
 | 4 | 3 | マージを待つ | `pages-deploy.yml` は `workflow_run` で起き、既定のブランチの定義で動く。作る run が main への push で動いて artifact を残していないと、確かめと保管と公開を確かめられない |
 | 5 | 4 | マージを待つ | PR 版の保管は `pages-deploy.yml` の中にあり、`workflow_run` は既定のブランチの定義で動く。公開の流れが main に入っていないと、PR 版を公開して確かめられない |
-| 6 | 5 | 積める | 文書は、PR 版までの仕組みと URL を書く。Phase 5 のブランチの上で書いて、内容を見比べられる |
+| 6 | 5 | スタックできる | 文書は、PR 版までの仕組みと URL を書く。Phase 5 のブランチの上で書いて、内容を見比べられる |
 
 Phase 2 と Phase 3 は、どちらも Phase 1 だけを前提にするので並べて進められる。Phase 3 の作る run は、Phase 2 が入っていなくても側を作れる（版の帯が出ないだけ）。
 Phase 5 の T041 と Phase 6 の T043 も Phase 2 の帯を使うが、Phase 4 を通して Phase 2 を間接に前提にするので、表には書かない。
@@ -277,7 +277,7 @@ Phase 5 の T041 と Phase 6 の T043 も Phase 2 の帯を使うが、Phase 4 �
 
 - Phase 1 の T001・T002
 - Phase 2 のテスト T007〜T011、CSS の T018
-- Phase 2 と Phase 3（どちらも Phase 1 の上に積める）
+- Phase 2 と Phase 3（どちらも Phase 1 の上にスタックできる）
 - Phase 4 のテスト T024〜T028
 - Phase 5 のテスト T037・T038
 - Phase 6 の T042〜T044

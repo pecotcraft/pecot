@@ -148,7 +148,7 @@ T058 と T059 は、T044 を分けて足したタスクだ。進める順は、�
 
 ### Implementation for User Story 1・3（手順）
 
-- [x] T034 [US1] `p-w/skills/w-revise/` を `p-w/skills/w-review/` に改め、Step 1〜3 だけにする。Step 2 は main が `references/review-viewpoints.md` に従ってレビューする。Step 1 の載せ直しは外す
+- [x] T034 [US1] `p-w/skills/w-revise/` を `p-w/skills/w-review/` に改め、Step 1〜3 だけにする。Step 2 は main が `references/review-viewpoints.md` に従ってレビューする。Step 1 のスタックし直しは外す
   - インラインコメントは action の `create_inline_comment` で投稿し、雛形の許可リストもそれに合わせる
 - [x] T035 [US3] `p-w/skills/w-pr/SKILL.md` に Step 5「レビューの指摘に対応」を足す。中身は旧 w-revise の Step 4〜6 で、対応する指摘は PR の未解決の F-NN のスレッドと、`review-resolution` の無い `review-findings` から読む
 - [x] T036 [US1] エージェント w-reviewer を w-plan-reviewer に改め、計画のレビューだけに使う。視点の印は `[tech]`・`[cuj]` の 2 つにする
@@ -233,15 +233,15 @@ Phase 5 の T035 に含めた。w-revise の引き継ぎの分岐は足さない
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | 積める | Phase 2 の雛形の許可リスト・`if`・`concurrency` が、Phase 1 で research.md と contracts に書く実機の結果を読む |
-| 3 | 2 | 積める | Phase 3 の `workflow install` が、Phase 2 で足す雛形のファイルを読んで書き出す |
-| 4 | 1 | 積める | Phase 4 の結果の決め方が、Phase 1 で research.md に書く失敗と上限の見分け方を読む |
-| 5 | 4 | 積める | Phase 5 のスキルの文が、Phase 4 で足す MCP ツール `review_finish` を呼ぶ |
-| 6 | 5 | 積める | Phase 6 は Phase 5 に含めた |
-| 7 | 3 | 積める | Phase 7 の w-onboarding の Step が、Phase 3 で足す MCP ツール `workflow_install`・`workflow_doctor` を使う |
+| 2 | 1 | スタックできる | Phase 2 の雛形の許可リスト・`if`・`concurrency` が、Phase 1 で research.md と contracts に書く実機の結果を読む |
+| 3 | 2 | スタックできる | Phase 3 の `workflow install` が、Phase 2 で足す雛形のファイルを読んで書き出す |
+| 4 | 1 | スタックできる | Phase 4 の結果の決め方が、Phase 1 で research.md に書く失敗と上限の見分け方を読む |
+| 5 | 4 | スタックできる | Phase 5 のスキルの文が、Phase 4 で足す MCP ツール `review_finish` を呼ぶ |
+| 6 | 5 | スタックできる | Phase 6 は Phase 5 に含めた |
+| 7 | 3 | スタックできる | Phase 7 の w-onboarding の Step が、Phase 3 で足す MCP ツール `workflow_install`・`workflow_doctor` を使う |
 | 8 | 6 | マージを待つ | Phase 8 の確かめは、action が既定のブランチから入れるプラグインと、npm の `@next` の `@pecot/workflow-mcp` を使う。どちらも、w-review の変更が main に入っていないと流せない |
 | 8 | 7 | マージを待つ | Phase 8 の導入の確かめは、既定のブランチから入るプラグインの w-onboarding と `workflow install` を使う。main に入っていないと流せない |
-| 9 | 8 | 積める | Phase 9 の文書の直しが、Phase 8 で直す雛形の既定値と、research.md に書く試行の結果を読む |
+| 9 | 8 | スタックできる | Phase 9 の文書の直しが、Phase 8 で直す雛形の既定値と、research.md に書く試行の結果を読む |
 
 ### User Story Dependencies
 

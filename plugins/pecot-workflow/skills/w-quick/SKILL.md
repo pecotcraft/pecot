@@ -45,7 +45,7 @@ pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る�
 
 **前提: Step 1でIssueが作成済みであること。**
 
-pecot-workflow の MCP ツール `session_start` を使って、作った Issue に紐づくブランチを作る。`base` は渡さない。積む先はツールが選ぶ。
+pecot-workflow の MCP ツール `session_start` を使って、作った Issue に紐づくブランチを作る。`base` は渡さない。スタック先はツールが選ぶ。
 
 **ブランチ名の決め方:**
 

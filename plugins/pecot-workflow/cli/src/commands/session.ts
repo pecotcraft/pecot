@@ -66,7 +66,7 @@ const SESSION_SHOW_OUTPUT = z.strictObject({
 type SessionShowData = z.input<typeof SESSION_SHOW_OUTPUT>
 
 /**
-GitHub から読めた作業中の Issue。積んだ記録と上の段の PR は、これがあるときだけ読む
+GitHub から読めた作業中の Issue。スタックの記録と子 PR は、これがあるときだけ読む
 */
 interface ActiveIssue {
   readonly reference: IssueReference
@@ -123,7 +123,7 @@ interface StackSection {
   readonly data?: SessionShowData['stack']
 }
 
-// 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
+// スタックして着手した作業ディレクトリの `## Stack` の節。スタックしていなければ空
 async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation> | undefined, directory: string, output: Output): Promise<StackSection> {
   const base = await readBaseOrInfer({ directory, project: { config: active.config, client: () => active.client } })
   warnUnresolved(base, output)
@@ -133,7 +133,7 @@ async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<Remo
   const { record, stackedOn } = reading
   // ブランチは作業ディレクトリのリポにあるので、PR もそこで探す（pr restack と同じ）
   const { owner, repository } = origin ?? stackedOn.repository
-  // 載せ直す先は、fetch せずに、下の段の remote の先頭を尋ねて記録と比べる
+  // スタックし直す先は、fetch せずに、親ブランチの remote の先頭を尋ねて記録と比べる
   const read = await readRestackDecision({ client: () => active.client, owner, repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch: getDevelopBranch(active.config, owner, repository) ?? '', signal: output.signal })
   if (read.kind === 'pull-request-unreadable') output.warning(`cannot read the PR of the base branch: ${read.error.message}`)
   const pullRequest: PullRequestReadout | undefined | 'unknown' = read.kind === 'pull-request-unreadable' ? 'unknown' : read.lowerPullRequest
@@ -168,14 +168,14 @@ async function readStackedAbove(active: Readonly<ActiveIssue>, origin: Readonly<
   }
 }
 
-// 積んだ記録の節に上の段の行を足す。積んだ記録が無くても、上の段があれば節を出す
+// スタックの記録の節に子 PR の行を足す。スタックの記録が無くても、子 PR があれば節を出す
 function withStackedAbove(stackLines: readonly string[], above: readonly Readonly<StackedAbove[number]>[] | undefined): readonly string[] {
   if (above === undefined || above.length === 0) return stackLines
   const lines = above.map(pullRequest => `- stacked above: PR #${String(pullRequest.number)} (${pullRequest.branch})`)
   return stackLines.length === 0 ? ['', '## Stack', ...lines] : [...stackLines, ...lines]
 }
 
-// 着手中の Issue の判定が blocked のときだけ、判定の文を返す。積んだ先を求めるときに読んだ判定があれば、読み直さない
+// 着手中の Issue の判定が blocked のときだけ、判定の文を返す。スタック先を求めるときに読んだ判定があれば、読み直さない
 async function blockedReadiness(active: Readonly<ActiveIssue>, known: IssueReadiness | undefined, output: Output): Promise<string | undefined> {
   const result = known ?? await readIssueReadinessIfSupported(active.client, active.config, active.reference, createReadinessCache())
   if (result === undefined) return undefined

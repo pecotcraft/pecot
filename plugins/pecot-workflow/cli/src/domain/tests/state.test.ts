@@ -106,7 +106,7 @@ describe('.pecot-base の 1 行', () => {
     expect(FLAG_PECOT_BASE).toBe('.pecot-base')
   })
 
-  it('積んだときは、ブランチ・SHA・積んだ先を空白で区切る', () => {
+  it('スタックしたときは、ブランチ・SHA・スタック先を空白で区切る', () => {
     expect(formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue })).toBe(`feat/3 ${SHA} Acme/Demo#3`)
   })
 
@@ -134,8 +134,8 @@ describe('.pecot-base の 1 行', () => {
     { name: '空', content: '' },
     { name: 'SHA が無い', content: 'main' },
     { name: 'SHA の形が違う', content: 'main abc123' },
-    { name: '積んだ先の形が違う', content: `main ${SHA} #3` },
-    { name: '積んだ先の番号が 0', content: `main ${SHA} acme/demo#0` },
+    { name: 'スタック先の形が違う', content: `main ${SHA} #3` },
+    { name: 'スタック先の番号が 0', content: `main ${SHA} acme/demo#0` },
     { name: '項目が多い', content: `main ${SHA} acme/demo#3 extra` },
   ])('形が誤っている（$name）と malformed', ({ content }) => {
     expect(interpretBaseRecord(content)).toEqual({ kind: 'malformed', content })
@@ -151,13 +151,13 @@ describe('.pecot-restack の 1 行', () => {
     expect(FLAG_PECOT_RESTACK).toBe('.pecot-restack')
   })
 
-  it('積んだ記録を保つときは、8 つの項目を空白で区切る', () => {
+  it('スタックの記録を保つときは、8 つの項目を空白で区切る', () => {
     const progress = { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'feat/3', ontoSha: SHA, leaseSha: LEASE, stackedOn: issue, recordSha: LEASE }
     expect(formatRestackProgress(progress)).toBe(`origin feat/4 ${SHA} feat/3 ${SHA} ${LEASE} Acme/Demo#3 ${LEASE}`)
     expect(interpretRestackProgress(formatRestackProgress(progress))).toEqual({ kind: 'progress', progress })
   })
 
-  it('remote にブランチが無く、開発ブランチへ載せ直すときは、無い項目を - にする', () => {
+  it('remote にブランチが無く、開発ブランチへスタックし直すときは、無い項目を - にする', () => {
     const progress = { remote: 'origin', branch: 'feat/4', originalSha: SHA, ontoBranch: 'main', ontoSha: SHA, leaseSha: undefined, stackedOn: undefined, recordSha: undefined }
     expect(formatRestackProgress(progress)).toBe(`origin feat/4 ${SHA} main ${SHA} - - -`)
     expect(interpretRestackProgress(formatRestackProgress(progress))).toEqual({ kind: 'progress', progress })
@@ -181,7 +181,7 @@ describe('.pecot-restack の 1 行', () => {
     { name: '記録の位置の形が違う', content: `origin feat/4 ${SHA} main ${SHA} - - abc` },
     { name: 'SHA の形が違う', content: `origin feat/4 ${SHA} main abc - -` },
     { name: 'lease の形が違う', content: `origin feat/4 ${SHA} main ${SHA} abc -` },
-    { name: '積んだ先の形が違う', content: `origin feat/4 ${SHA} main ${SHA} - #3` },
+    { name: 'スタック先の形が違う', content: `origin feat/4 ${SHA} main ${SHA} - #3` },
   ])('形が誤っている（$name）と malformed', ({ content }) => {
     expect(interpretRestackProgress(content)).toEqual({ kind: 'malformed', content })
   })

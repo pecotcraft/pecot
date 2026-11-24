@@ -112,8 +112,8 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `pr_create` | PR を作る |
 | `pr_show` | PR の詳細を必要な項目だけ取得する |
 | `pr_check` | PR を作る前に確かめる情報をまとめて表示する |
-| `pr_merge` | PR をマージする（スタックの中の PR は最下段だけ） |
-| `pr_restack` | 積んだブランチを、base にしたブランチの新しい位置へ載せ直す |
+| `pr_merge` | PR をマージする（スタックの中の PR は一番下だけ） |
+| `pr_restack` | スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す |
 | `review_finish` | 自動レビューを終える（止まったときだけ、止まったことを知らせるコメントを PR に書く） |
 | `release_check` | リリース前の確認をする |
 | `release_create` | GitHub のリリースとタグを作る（ノートは CHANGELOG から取る） |

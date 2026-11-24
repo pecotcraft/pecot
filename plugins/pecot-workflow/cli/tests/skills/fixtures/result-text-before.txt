@@ -1,30 +1,30 @@
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
 3. 判定が blocked のとき、`session_start` は `kind` が `not-ready`（`exitCode` は 2）で止まり、`stderr` に `is blocked by` が出る。`stderr` の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
 4. 前提を読めないか判定できないとき、`session_start` は `kind` が `dependency-unreadable`（`exitCode` は 1）で止まる。`stderr` に `could not read blocked-by` か `could not judge readiness` が出る。
-積む先のブランチが無くなったときは `kind` が `git-unresolved`（`exitCode` は 1）で、`stderr` に `not found` が出る。
+スタック先のブランチが無くなったときは `kind` が `git-unresolved`（`exitCode` は 1）で、`stderr` に `not found` が出る。
 `stderr`（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
 `stdout` の表にある判定の列（`Readiness`）と、`stderr` の食い違いの警告（`warning:`）を、利用者に伝える。
 `session_start` の結果の `stderr` にある `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
-行に `(stacked on #N)` があれば、#N の上に積んで着手した旨を利用者に伝える。
+行に `(stacked on #N)` があれば、#N の上にスタックして着手した旨を利用者に伝える。
 `stderr` の `created: branch` の行の `in <owner/repo>` は、ブランチを作成したリポジトリを指す。
 結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、`stderr` に出た指摘を直して呼び直す。
 2. 出力されたファイルを編集する
 **w-breakdown を実行したリポジトリ** に作成する。ただし `board_show` の結果の `stdout` に表示
 Step 1 の `board_show` の結果の `stdout` にある `Roadmap repo: ...` 行と CWD のリポを比べる。
-| `.pecot-base` | 着手時に選んだ base（`<branch> <sha> [<owner/repo#N>]`。積んだときだけ末尾に積んだ先の Issue） | `session_start` | `session_show`（`## Stack`） | `session_finish`（`.pecot-active` と同時） |
+| `.pecot-base` | 着手時に選んだ base（`<branch> <sha> [<owner/repo#N>]`。スタックしたときだけ末尾にスタック先の Issue） | `session_start` | `session_show`（`## Stack`） | `session_finish`（`.pecot-active` と同時） |
 | CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | `kind` が `repo-mismatch`（`exitCode` は 2）+ `stderr` の、対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
 | `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | `kind` が `guard-blocked`（`exitCode` は 2）+ `stderr` の WT 分離誘導 | `force_overwrite_active` |
 | `.pecot-active` の Issue が CLOSED | 同上 | `stderr` の stale の `warning:` + 続行 | （バイパス不要） |
 | Issue の判定が blocked | 同上 | `kind` が `not-ready`（`exitCode` は 2）+ `stderr` の、前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
 | 前提を読めない・判定できない | 同上 | `kind` が `dependency-unreadable`（`exitCode` は 1）+ `stderr` の `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（`stderr` を利用者に示す） |
-| 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `kind` が `git-unresolved`（`exitCode` は 1）+ `stderr` の `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
-| `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `kind` が `invalid-input`（`exitCode` は 2）+ `stderr` の `--base <x> differs from the base chosen by readiness` | `--base` を外す |
+| スタック先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `kind` が `git-unresolved`（`exitCode` は 1）+ `stderr` の `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
+| `--base` が判定のスタック先と違う（stackable のときだけ比べる） | 同上 | `kind` が `invalid-input`（`exitCode` は 2）+ `stderr` の `--base <x> differs from the base chosen by readiness` | `--base` を外す |
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が表示される。
 結果の `stdout` の対象リポ行で判定する（`develop:` と `release:` が異なれば2ブランチ、同じ（両方 `main`）なら単一ブランチ）。
 3. `issue_create` を `dry_run: true` で呼び、結果の `stdout` の表と tasks.md の表を並べて確かめる。食い違いは、投稿の前に直す
-投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、番号・前提・進め方の表と、積める並びが出る。`stdout` の表を Step 2 の前提の表と並べてユーザーに示し、前提の食い違いが無いかを見てもらう。
+投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、番号・前提・進め方の表と、スタックできる並びが出る。`stdout` の表を Step 2 の前提の表と並べてユーザーに示し、前提の食い違いが無いかを見てもらう。
 食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果の `ok` が `false` で、`stderr` の `error:` で止まったときも、文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
-作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の結果の `stdout` にある表の `Approach` 列）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の結果の `stdout` にある表の `Approach` 列）を足す。あわせて、スタックできる並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
 投稿の結果の `stderr` のうち、`set:` の行の `status ready` と、`moved:` の行の `-> Ready` から読む。`stderr` に `warning:` の行があるときは、そのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。
 結果の `ok` が `false` なら、`kind`・`message`・`stderr` を見て解決し、呼び直してからマージに進む。`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が `stderr` に出る。
 結果の `stderr` に `warning:` の行があれば以下で手動対応:
@@ -44,7 +44,7 @@ init 済みプロジェクトが表示されたら AskUserQuestion で選択さ�
 結果の `ok` が `false` なら、`kind`・`message`・`stderr` を見て解決し、呼び直してから次へ進む。`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が `stderr` に出る。
 `pr_create` の結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、`stderr` に出た指摘を直して呼び直す。
 `stderr` に `base branch must be ... while its PR #N is open` があるときは、`base` を、示されたブランチに戻して呼び直す。
-`kind` が `pr-state`（`exitCode` は 2）で、`stderr` に `has no open PR` があるときは、下の段の PR が開いていない。
+`kind` が `pr-state`（`exitCode` は 2）で、`stderr` に `has no open PR` があるときは、親 PR が開いていない。
 `stderr` を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
 PR を作った後は、結果の `stderr` を見て利用者に伝える。
 `stderr` に `warning:` の行があっても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。

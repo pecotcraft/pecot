@@ -19,7 +19,7 @@ screenshot: ""
 
 フィールド:
 - repository: 必須。PR 先の `owner/repo`（`git remote -v` の URL。origin、無ければ最初の remote のもの）
-- base: 空のままなら、`pecot pr create` が積んだ下の段のブランチか、開発ブランチを入れる
+- base: 空のままなら、`pecot pr create` が、スタックしたブランチでは親ブランチを、ほかでは開発ブランチを入れる
 - screenshot: 画像を Summary に入れたら空のまま。入れないなら、入れない理由を `"..."` で囲んで書く
   - 例: `"CLI の内部の整理だけで、画面・生成する Markdown・出力の文は変わらない"`
 - title: `"type(scope): #ISSUE タイトル"` の形で `"..."` で囲む（囲まないと ` #ISSUE` 以降が YAML のコメントになる）。type は feat / fix / docs / chore / refactor / test / ci / build / perf / revert
