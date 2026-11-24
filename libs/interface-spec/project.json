@@ -129,6 +129,7 @@
         "{projectRoot}/package.json",
         "{projectRoot}/src/vitest/unique-titles.ts",
         "{projectRoot}/src/vitest/allure-reporter.ts",
+        "{projectRoot}/src/vitest/attach.ts",
         "{workspaceRoot}/plugins/*/interface/generated.json",
         "{workspaceRoot}/plugins/*/interface/authored.yaml",
         "{workspaceRoot}/.github/assets/**/*",

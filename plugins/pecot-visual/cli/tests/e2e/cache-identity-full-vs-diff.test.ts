@@ -48,6 +48,7 @@ import {
   valuesOf,
   type PptxSnapshot,
 } from '../_helpers/pptx-compare.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -102,6 +103,8 @@ const isChromiumReady = isChromiumCached()
 describe.skipIf(externalPair === undefined && !isChromiumReady)('CUJ: 差分変換の出力 = 全変換の出力', () => {
   it('中央 1 枚を編集した差分変換の出力が、同一ソースの全変換の出力と XPath 抽出値レベルで一致する', async () => {
     if (externalPair !== undefined) {
+      await attachFile('比較した PPTX（A）', externalPair.a)
+      await attachFile('比較した PPTX（B）', externalPair.b)
       // T013 実機検証: 外部から渡された 2 つの pptx を同じ観点で比較する。
       // 実デッキは枚数が事前に確定せず、画像のみのスライド（a:t と xfrm を持たない）が混じる。
       // そのため、退化の判定はデッキ単位へ緩める。
@@ -144,6 +147,7 @@ describe.skipIf(externalPair === undefined && !isChromiumReady)('CUJ: 差分変�
     // 2. 中央 1 枚だけ編集 → 差分変換（hit + miss 混在）
     writeFileSync(slidesPath, deckMarkdown('# キャッシュ同一性 2 枚目（改訂）'))
     const diff = runPecotv('diff', convertArguments(diffOut))
+    await attachFile('差分変換の PPTX', diffOut)
     expect(diff.status).toBe(0)
     const diffDone = lastEvent(diff.stdout, 'slide.convert.done')
     // 方式モード assert: 差分方式であること。
@@ -157,6 +161,7 @@ describe.skipIf(externalPair === undefined && !isChromiumReady)('CUJ: 差分変�
     rmSync(cacheDirectory, { recursive: true, force: true })
     expect(existsSync(cacheDirectory)).toBe(false)
     const full = runPecotv('full', convertArguments(fullOut))
+    await attachFile('全変換の PPTX', fullOut)
     expect(full.status).toBe(0)
     const fullDone = lastEvent(full.stdout, 'slide.convert.done')
     expect(fullDone?.cache).toMatchObject({ enabled: true, hits: 0, misses: SLIDE_COUNT })

@@ -1,8 +1,4 @@
-// evidence-xlsx のテストが使う画像フィクスチャを手組みする。
-//
-// 実画像ファイルをリポジトリに置かず、寸法・形式・破損の各条件をテスト側で作れるようにする。
-// PNG は CRC まで正しく組む (zlib.crc32 + deflate)。LibreOffice / pdftotext のような独立
-// デコーダに通す e2e でも使うため、チャンク CRC が合っていないと描画されない。
+// テストが使う画像を手組みする。PNG はチャンクの CRC まで正しく組む（LibreOffice は CRC が合わないと描かない）。
 
 import zlib from 'node:zlib'
 
@@ -18,31 +14,44 @@ function pngChunk(type: string, data: Readonly<Buffer>): Buffer {
 }
 
 /**
-単色 truecolor PNG。IHDR / IDAT / IEND のみの最小構成。
+RGB 各 1 バイトが行優先で隙間なく並ぶ画素列から、8bit truecolor の PNG を組む。IHDR / IDAT / IEND のみの最小構成。
 */
-export function buildPng(
-  width: number,
-  height: number,
-  rgb: readonly [number, number, number] = [200, 40, 40],
-): Buffer {
+export function encodeTruecolorPng(width: number, height: number, pixels: Readonly<Uint8Array>): Buffer {
+  const rowLength = width * 3
+  if (pixels.length < rowLength * height) {
+    throw new Error(`画素列が ${String(width)}x${String(height)} の RGB に足りない (${String(pixels.length)} バイト)`)
+  }
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(width, 0)
   ihdr.writeUInt32BE(height, 4)
   ihdr[8] = 8 // bit depth
   ihdr[9] = 2 // color type: truecolor
-  // 各行は「フィルタ種別 1 バイト (0 = none) + RGB × width」。全行同一なので 1 行作って複製する。
-  const pixel = Buffer.from([rgb[0], rgb[1], rgb[2]])
-  const row = Buffer.alloc(1 + width * 3)
-  for (let x = 0; x < width; x += 1) {
-    pixel.copy(row, 1 + x * 3)
+  // 各行は「フィルタ種別 1 バイト (0 = none) + RGB × width」。
+  const raw = Buffer.alloc((1 + rowLength) * height)
+  for (let y = 0; y < height; y += 1) {
+    raw.set(pixels.subarray(y * rowLength, (y + 1) * rowLength), y * (1 + rowLength) + 1)
   }
-  const raw = Buffer.concat(Array.from({ length: height }, () => row))
   return Buffer.concat([
     PNG_SIGNATURE,
     pngChunk('IHDR', ihdr),
     pngChunk('IDAT', zlib.deflateSync(raw)),
     pngChunk('IEND', Buffer.alloc(0)),
   ])
+}
+
+/**
+単色 truecolor PNG。
+*/
+export function buildPng(
+  width: number,
+  height: number,
+  rgb: readonly [number, number, number] = [200, 40, 40],
+): Buffer {
+  const pixels = Buffer.alloc(width * height * 3)
+  for (let index = 0; index < width * height; index += 1) {
+    pixels.set(rgb, index * 3)
+  }
+  return encodeTruecolorPng(width, height, pixels)
 }
 
 /**

@@ -25,6 +25,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { assertCliBuilt, BIN_PECOTV, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -170,16 +171,18 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
   // pdftotext の CUJ が同じ成果物を読むため、成功ケースの出力パスを共有する。
   let successPdfPath = ''
 
-  it('日本語入りの図から exit 0 で SVG と 1 ページの PDF を書き出す', () => {
+  it('日本語入りの図から exit 0 で SVG と 1 ページの PDF を書き出す', async () => {
     const run = runExport('success')
+    const caseDirectory = workDirectory('success')
+    const svgPath = path.join(caseDirectory, 'out.svg')
+    const pdfPath = path.join(caseDirectory, 'out.pdf')
+    await attachFile('書き出した SVG', svgPath)
+    await attachFile('書き出した PDF', pdfPath)
     if (run.status !== 0) {
       console.error(`[drawio-pdf] 失敗 exit=${String(run.status)}\n${formatOutputTails(run.stdout, run.stderr)}`)
     }
     expect(run.status, `stderr tail: ${run.stderr.slice(-2000)}`).toBe(0)
 
-    const caseDirectory = workDirectory('success')
-    const svgPath = path.join(caseDirectory, 'out.svg')
-    const pdfPath = path.join(caseDirectory, 'out.pdf')
     const done = parseDone(run.stdout)
     expect(done.event).toBe('drawio.export.done')
     expect(done.pdfFailed, `stderr tail: ${run.stderr.slice(-2000)}`).toBe(false)
@@ -211,8 +214,9 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     successPdfPath = pdfPath
   }, DURATION_CEILING_MS + 30_000)
 
-  it.skipIf(!isCommandAvailable('pdftotext'))('書き出した PDF から日本語ラベルが文字として抽出できる', () => {
+  it.skipIf(!isCommandAvailable('pdftotext'))('書き出した PDF から日本語ラベルが文字として抽出できる', async () => {
     expect(successPdfPath, '成功ケースの PDF が無い（先行 it の失敗を参照）').not.toBe('')
+    await attachFile('書き出した PDF', successPdfPath)
     const extracted = spawnSync('pdftotext', [successPdfPath, '-'], { encoding: 'utf8' })
     expect(extracted.status, `pdftotext stderr: ${extracted.stderr}`).toBe(0)
     // pdftotext は折り返し位置で改行を入れるため、空白を除いてから比較する。
@@ -221,8 +225,9 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(text).toContain(BOX_LABEL)
   })
 
-  it.skipIf(!isCommandAvailable('pdffonts') || !hasNotoSansCjkJp())('日本語ラベルは Noto Sans CJK JP を埋め込んで描かれる', () => {
+  it.skipIf(!isCommandAvailable('pdffonts') || !hasNotoSansCjkJp())('日本語ラベルは Noto Sans CJK JP を埋め込んで描かれる', async () => {
     expect(successPdfPath, '成功ケースの PDF が無い（先行 it の失敗を参照）').not.toBe('')
+    await attachFile('書き出した PDF', successPdfPath)
     const listed = spawnSync('pdffonts', [successPdfPath], { encoding: 'utf8' })
     expect(listed.status, `pdffonts stderr: ${listed.stderr}`).toBe(0)
     // 1, 2 行目は見出しと罫線。各行の先頭列がフォント名。
@@ -230,12 +235,13 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(fontNames.some(name => name.includes(CJK_FONT_NAME)), `pdffonts:\n${listed.stdout}`).toBe(true)
   })
 
-  it('PDF 生成に失敗すると SVG を残して exit 3 で degrade する', () => {
+  it('PDF 生成に失敗すると SVG を残して exit 3 で degrade する', async () => {
     const run = runExport('degrade', { PECOTV_FORCE_PDF_FAIL: '1' })
+    const caseDirectory = workDirectory('degrade')
+    await attachFile('degrade で残った SVG', path.join(caseDirectory, 'out.svg'))
     // --json の失敗理由（SVG export の時間切れ等）は stdout に出るため、stderr と並べて残す。
     expect(run.status, `stdout tail: ${run.stdout.slice(-2000)}\nstderr tail: ${run.stderr.slice(-2000)}`).toBe(3)
 
-    const caseDirectory = workDirectory('degrade')
     const done = parseDone(run.stdout)
     expect(done.event).toBe('drawio.export.done')
     expect(done.pdfFailed).toBe(true)

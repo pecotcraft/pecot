@@ -190,16 +190,64 @@
 
   | テスト | 添付するもの |
   |---|---|
-  | `libs/interface-spec/tests/site/layout.test.ts` | 測ったページの `page.screenshot()`（幅ごと） |
-  | pecot-visual の e2e で、PNG を作るもの（`drawio-png-chromium`・`mcp-tools` など） | 判定した PNG のファイル |
-  | pecot-visual の e2e で、PDF を作るもの（`drawio-pdf-chromium`・`pptx-preview-soffice`） | 判定した PDF のファイル |
-  | pecot-visual の e2e で、xlsx を PDF・PNG にして判定するもの（`evidence-xlsx-*`） | 判定に使った PNG |
+  | `libs/interface-spec/tests/site/layout.test.ts` | 測ったページの `page.screenshot()`。ケースごとに 1 枚（全ページを回すケースは、違反したページか `index.html`） |
+  | pecot-visual の e2e で、PNG・SVG・PDF を作るもの（`drawio-*`・`pptx-preview-soffice` など） | 判定した PNG・SVG・PDF のファイル |
+  | pecot-visual の e2e で、xlsx を作るもの（`evidence-*`・`mcp-tools` など） | 作った xlsx と、判定した PDF か、判定した画素をそのまま包んだ PNG |
   | pecot-visual の e2e で、PPTX を作るもの（`golden-path-*`・`slidev-to-pptx-*` など） | 判定した PPTX のファイル |
 
-  - 対象のファイルの一覧は、tasks で 1 つずつ挙げる。ブラウザを開かず、成果物も作らない e2e（`theme-versions-side-by-side` など）は対象にしない
-  - `allure.attachment(名前, 中身, 型)`・`allure.attachmentPath(名前, パス, 型)` を使う
+  - 対象のファイルの一覧は、下の「対象のテスト（T021）」の表に 1 つずつ挙げる
+  - contracts の「添付」の `attachFile`・`attachContent` を使う。中身を読んで `attachment` に渡す
 - **Rationale**: PPTX と PDF は、テストが画像にせずに判定している。添付のために画像へ変えると、判定したものと別のものを見せることになる（FR-007b）。そこで、成果物そのものを添付する。spec の FR-007a は、この形に改めた
 - **大きさ**: 添付は、レポートの `data/attachments/` に 1 回分だけ入る。保管の job の大きさの知らせ（900 MB）が、レポートも数える
+  - 手元で `test-site` と、pecot-visual の e2e の 2 ファイル（`drawio-png-chromium`・`drawio-pdf-chromium`）から作ったレポートは 12 MB だった
+    - そのうち `data/attachments/` は 3.6 MB（19 ケース・20 個）。大きいのは、`layout.test.ts` の全体の画面の PNG（1 枚 0.8 MB まで）
+
+### 対象のテスト（T021）
+
+対象は、テストが開いた画面か、作った PNG・SVG・PDF・PPTX・xlsx を、判定に使うもの。CLI の中で Chromium が動くだけで、テストが画面と成果物のどちらも判定に使わないものは、対象にしない。レーンは e2e に限らない。
+
+| ファイル | ケース | 添付するもの |
+|---|---|---|
+| `cache-identity-full-vs-diff` | 1 | 本判定の 2 つの PPTX（全変換・差分変換）。外部 pptx モードは渡された 2 つ |
+| `cache-identity-no-cache` | 1 | `--no-cache` の run の PPTX |
+| `cache-warning-cleanup-failure` | 1 | 壊した後の run の PPTX |
+| `cache-warning-save-failure` | 1 | 保存に失敗した run の PPTX |
+| `drawio-embed-handshake-race` | 1 | `exportViaEmbed` が返した SVG |
+| `drawio-pdf-chromium` | 4 | 1: SVG と PDF。2・3: 1 と同じ PDF。4: degrade で残る SVG |
+| `drawio-png-chromium` | 1 | 書き出した PNG |
+| `element-error-observability` | 1 | 2 回の run の PPTX |
+| `evidence-create-cli` | 1 | 書き出した xlsx |
+| `evidence-xlsx-format-render` | 1 | 作った xlsx と、判定した各ページの PNG |
+| `evidence-xlsx-soffice` | 4 | 1〜3: 作った xlsx と、判定した PDF。4: 作った xlsx と、判定した各ページの PNG |
+| `golden-path-create-convert` | 1 | 変換した PPTX |
+| `golden-path-default-out` | 1 | 既定のパスに出た PPTX |
+| `golden-path-hyperlink` | 1 | 変換した PPTX |
+| `mcp-tools` | 3 | `drawio_export` の成功: SVG と PDF。degrade: SVG。`evidence_create`: xlsx |
+| `mcp-windows-path` | 2 | 書き出した xlsx |
+| `pptx-preview-soffice` | 3 | 1・2: preview の PDF。4: 変換した PPTX と、その PDF |
+| `slidev-to-pptx-animation-policy` | 2 | 変換した PPTX、セクションの staging の PPTX、キャッシュの run の PPTX |
+| `slidev-to-pptx-embedded-fonts` | 2 | 変換した PPTX |
+| `slidev-to-pptx-hash-router` | 3 | 1: 変換した PPTX。2・3: 判定したステップの PPTX |
+| `slidev-to-pptx-pipeline-smoke` | 3 | 2〜4: 変換した PPTX |
+| integration の `drawio-url`（capturePng smoke） | 1 | 書き出した PNG |
+
+| 対象にしないもの | 理由 |
+|---|---|
+| `cache-warning-merge-failure` | 書き出しに失敗する run で、成果物が無い。テストは payload だけを見る |
+| `exit-code-contract`・`help`・`version`・`runner-unexpected-exit-log` | 終了コードと出力の文字列だけを見る |
+| `golden-path-errors` | 失敗の理由と、子プロセスの execve だけを見る |
+| `mcp-stdio` | MCP の応答だけを見る |
+| `mcp-tools` の残りの 9 ケース | 一覧・URL・HTML・md・dev サーバの HTTP・エラーの応答を見る |
+| `pptx-preview-soffice` の 3 | PDF ができないことを見る |
+| `slidev-to-pptx-pipeline-smoke` の 1 | `dist` の JS の中身だけを見る |
+| `theme-versions-side-by-side` | `dist` の JS を見る。ブラウザを開かず、画像も作らない |
+| integration の `drawio-url`（表示用 HTML の遷移 smoke） | 開く画面はテストが置いた stub で、遷移先の URL だけを見る |
+
+- 添付は、成果物を作った直後、どの判定よりも前に置く。判定で落ちたときも残る
+- `attachmentPath` は使わず、中身を読んで `attachment` に渡す（contracts の「添付」）
+  - `allure-vitest` 3.15.0 の reporter は、`attachmentPath` のパスを `onTestRunEnd` で読む。テストが `afterAll` や `finally` で消した成果物は抜ける
+- PPM の画素で判定するテストは、その画素をそのまま可逆の PNG に包んで添付する。判定に使った画素そのものから作るので、FR-007b に当たらない
+- Allure 3.33.0 は PDF・PPTX・xlsx を中で表示しない。落として開く
 
 ## R12. 片付け
 

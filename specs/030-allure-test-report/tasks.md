@@ -133,13 +133,14 @@ description: "Task list for 030-allure-test-report"
 
 **Independent Test**: quickstart.md の 3。成功したテストをレポートで開き、添付があることを確かめる
 
-- [ ] T021 [US1] pecot-visual の e2e（`plugins/pecot-visual/cli/tests/e2e/*.test.ts`。29 ファイル）を 1 つずつ読み、添付の対象と、添付するものを表にする。置き場所は `specs/030-allure-test-report/research.md` の R11 の下。
-  対象にするのは、ブラウザで画面を開くテストと、PNG・PDF・PPTX・xlsx を作って判定するテスト。対象にしないテストには理由を書く
-- [ ] T022 [P] [US1] `libs/interface-spec/tests/site/layout.test.ts` で、測ったページの `page.screenshot()` を、測ったのと同じ `page` から撮って添付する。幅（1440・1920・390）ごとに 1 枚
-- [ ] T023 [P] [US1] `plugins/pecot-visual/cli/tests/_helpers/` に、成果物のファイルを添付する関数を足す（`allure.attachmentPath` を呼ぶだけ。型は拡張子から決める）
-- [ ] T024 [US1] T021 の表の対象のテストに、判定したファイルの添付を足す（T021・T023 の後）。
+- [x] T021 [US1] pecot-visual の e2e（`plugins/pecot-visual/cli/tests/e2e/*.test.ts`。29 ファイル）を 1 つずつ読み、添付の対象と、添付するものを表にする。置き場所は `specs/030-allure-test-report/research.md` の R11 の下。
+  対象にするのは、ブラウザで画面を開くテストと、PNG・PDF・PPTX・xlsx を作って判定するテスト。対象にしないテストには理由を書く。同じレーン（`test-cli`）の integration で、実ブラウザで PNG を作るテストも表に入れる
+- [x] T022 [P] [US1] `libs/interface-spec/tests/site/layout.test.ts` で、測ったページの `page.screenshot()` を、測ったのと同じ `page` から撮って添付する。ケースごとに 1 枚（全ページを回すケースは、違反したページか `index.html`）
+- [x] T023 [P] [US1] `libs/interface-spec/src/vitest/attach.ts` に、成果物のファイルと中身を添付する関数を足し、`plugins/pecot-visual/cli/tests/_helpers/attach.ts` から re-export する。
+  中身を読んで `attachment` に渡し、型は拡張子から決める（contracts の「添付」）
+- [x] T024 [US1] T021 の表の対象のテストに、判定したファイルの添付を足す（T021・T023 の後）。
   判定の後で作り直した画像を添付しない。xlsx を PDF・PNG にして判定するテストは、判定に使った PNG を添付する
-- [ ] T025 [US1] 実物で確かめる。`pnpm exec nx run interface-spec:test-site` と、pecot-visual の e2e を 1 ファイル動かしてレポートを作り、成功したテストに添付があること、添付が判定したものと同じであることを目で確かめる。
+- [x] T025 [US1] 実物で確かめる。`pnpm exec nx run interface-spec:test-site` と、pecot-visual の e2e を 1 ファイル動かしてレポートを作り、成功したテストに添付があること、添付が判定したものと同じであることを目で確かめる。
   レポートのディレクトリの大きさを測り、research R11 の「大きさ」に書く
 
 **Checkpoint**: quickstart.md の 3 が通る。T021 の表の対象のテストの全部に添付がある。

@@ -40,6 +40,7 @@ import {
   cacheDirectoryOf,
   deckMarkdown,
 } from '../_helpers/cache-warning.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -71,7 +72,7 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json payload から観測できる', () => {
-  it('CUJ-A: 掃除が throw する manifest 破損は done payload に警告 2 件 + all:error として出る', () => {
+  it('CUJ-A: 掃除が throw する manifest 破損は done payload に警告 2 件 + all:error として出る', async () => {
     const itT0 = performance.now()
     const warmOut = temporaryRoot('warning-warm.pptx')
     const brokenOut = temporaryRoot('warning-broken.pptx')
@@ -104,6 +105,7 @@ describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json paylo
     mkdirSync(artifactPath, { recursive: true })
 
     const broken = runPecotv('broken-cleanup', convertArguments(brokenOut))
+    await attachFile('キャッシュを壊した後の PPTX', brokenOut)
     // キャッシュ由来の失敗で変換自体は落とさない（SC-004）
     expect(broken.status).toBe(0)
     expect(existsSync(brokenOut)).toBe(true)

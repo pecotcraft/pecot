@@ -19,6 +19,7 @@ import {
 } from '../../../src/commands/drawio/url.js'
 import type { LintText } from '../../../src/domain/_shared/text-check.js'
 import { defaultLintText } from '../../../src/infra/text-lint.js'
+import { attachFile } from '../../_helpers/attach.js'
 import { verifies } from '../../_helpers/verifies.js'
 
 const failingLintText: LintText = () => Promise.reject(new Error('辞書を読めません'))
@@ -984,6 +985,7 @@ playwrightOnlyDescribe('capturePng smoke (実 embed.diagrams.net)', () => {
       const xml = readFileSync(LONG_URL_FIXTURE, 'utf8')
       const outPath = path.join(workDirectory, 'smoke.png')
       await capturePng(xml, outPath, ['sans-serif'])
+      await attachFile('書き出した PNG', outPath)
       const png = readFileSync(outPath)
       // PNG header 検証
       expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')

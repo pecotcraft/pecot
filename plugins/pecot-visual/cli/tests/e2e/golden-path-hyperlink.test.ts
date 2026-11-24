@@ -27,6 +27,7 @@ import {
   createFixtureThemeSpec,
 } from '../_helpers/pecotv-e2e-run.js'
 import { aggregateCount, extractFromPptx } from '../_helpers/xpath-extract.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { FIXTURE_THEMES } from '../_helpers/theme-fixtures.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
@@ -134,6 +135,7 @@ describe.skipIf(!isChromiumReady)('CUJ 2: --force 再生成 + hyperlink 包括',
 
     // convert (--json で slide.convert.done event を確認するため)
     const convert = runPecotv('convert', ['slide', 'convert', projectDirectory, '--out', pptxOut, '--json'])
+    await attachFile('変換した PPTX', pptxOut)
     expect(convert.status).toBe(0)
     expect(lastEvent(convert.stdout, 'slide.convert.done')).toBeDefined()
 

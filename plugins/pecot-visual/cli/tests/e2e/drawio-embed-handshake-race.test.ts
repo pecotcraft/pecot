@@ -16,6 +16,7 @@
 import { chromium, type Browser, type Page } from 'playwright'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { attachContent } from '../_helpers/attach.js'
 import { isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
 
 const EMBED_URL_PATTERN = 'https://embed.diagrams.net/**'
@@ -84,6 +85,7 @@ describe.skipIf(!isChromiumCached())('exportViaEmbed の handshake', () => {
     const started = performance.now()
     const exported = await exportViaEmbed('<mxfile/>', { format: 'svg' })
 
+    await attachContent('書き出した SVG', exported, '.svg')
     expect(exported.toString('utf8')).toBe(SVG)
     expect(performance.now() - started).toBeLessThan(TEST_TIMEOUT_MS)
   }, TEST_TIMEOUT_MS)

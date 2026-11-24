@@ -49,6 +49,29 @@ verifies(context: AnnotatingContext, id: string): Promise<void>
 - 呼び方は変えない
 - nx のレーンの外（Allure の reporter を足さないとき）は、`annotate` だけを残す
 
+## 添付
+
+```ts
+attachFile(name: string, filePath: string): Promise<void>
+attachContent(name: string, content: Uint8Array, extension: string): Promise<void>
+```
+
+`attachFile` はファイルを読んで、`attachContent` は渡した中身を、そのまま Allure の添付にする。型は拡張子から決める。
+
+| 拡張子 | 型 |
+|---|---|
+| `.png` | `image/png` |
+| `.svg` | `image/svg+xml` |
+| `.pdf` | `application/pdf` |
+| `.pptx` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` |
+| `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
+
+- 置き場所は `libs/interface-spec/src/vitest/attach.ts`。pecot-visual の `tests/_helpers/attach.ts` は re-export する
+- 表に無い拡張子は、拡張子を示して throw する
+- `attachFile` は、ファイルが無いと何もしない。無いことは、テストの元の判定が示す
+- nx のレーンの外（Allure の reporter を足さないとき）は、何もしない
+- 中身は呼んだときに読んで渡す。テストが後で成果物を消しても、添付は残る
+
 ## `test-report.yml`（テストを動かし、レポートを作る）
 
 | 契機 | 側 | 条件 |

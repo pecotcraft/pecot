@@ -24,6 +24,7 @@ import {
   lastEvent,
   createFixtureThemeSpec,
 } from '../_helpers/pecotv-e2e-run.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -50,7 +51,7 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ 1b: --out 省略時', () => {
-  it('--out 省略時は slides.md の title 由来の既定パスが生成される', () => {
+  it('--out 省略時は slides.md の title 由来の既定パスが生成される', async () => {
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj1b')
     const themeSpec = createFixtureThemeSpec(temporaryRoot('theme-cuj1b'))
@@ -67,9 +68,10 @@ describe.skipIf(!isChromiumReady)('CUJ 1b: --out 省略時', () => {
     )
 
     const convert = runPecotv('convert', ['slide', 'convert', projectDirectory, '--json'])
+    const expectedOut = path.join(projectDirectory, 'pptx', `${expectedTitle}.pptx`)
+    await attachFile('既定のパスに出た PPTX', expectedOut)
     expect(convert.status).toBe(0)
 
-    const expectedOut = path.join(projectDirectory, 'pptx', `${expectedTitle}.pptx`)
     expect(existsSync(expectedOut)).toBe(true)
     // done イベントの output も title 由来パスを指す
     expect(lastEvent(convert.stdout, 'slide.convert.done')?.output).toBe(expectedOut)

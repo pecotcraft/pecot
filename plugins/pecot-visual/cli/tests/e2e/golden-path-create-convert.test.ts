@@ -31,6 +31,7 @@ import {
   createFixtureThemeSpec,
 } from '../_helpers/pecotv-e2e-run.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -110,6 +111,7 @@ describe.skipIf(!isChromiumReady)('CUJ 1: 黄金パス (slide create → convert
 
     // 3. slide convert
     const convert = runPecotv('convert', ['slide', 'convert', projectDirectory, '--out', pptxOut, '--json'])
+    await attachFile('変換した PPTX', pptxOut)
     expect(convert.status).toBe(0)
     expect(existsSync(pptxOut)).toBe(true)
     // SIGTERM kill 区別: stdout に slide.convert.done event が出力されていること

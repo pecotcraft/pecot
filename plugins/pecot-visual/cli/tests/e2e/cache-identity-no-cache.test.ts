@@ -27,6 +27,7 @@ import {
 } from '../_helpers/pecotv-e2e-run.js'
 import { SLIDE_COUNT, deckMarkdown, resolveExternalPair } from '../_helpers/cache-identity.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -60,7 +61,7 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(externalPair !== undefined || !isChromiumReady)('CUJ: --no-cache', () => {
-  it('warm cache でも全ステップを変換し、完了時の再構築で次の run が全ヒットする', () => {
+  it('warm cache でも全ステップを変換し、完了時の再構築で次の run が全ヒットする', async () => {
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('no-cache-deck')
     const slidesPath = path.join(projectDirectory, 'slides.md')
@@ -82,6 +83,7 @@ describe.skipIf(externalPair !== undefined || !isChromiumReady)('CUJ: --no-cache
       'no-cache/run',
       ['slide', 'convert', projectDirectory, '--out', noCacheOut, '--no-cache', '--json'],
     )
+    await attachFile('--no-cache で変換した PPTX', noCacheOut)
     expect(noCache.status).toBe(0)
     const noCacheDone = lastEvent(noCache.stdout, 'slide.convert.done')
     expect(noCacheDone?.cache).toMatchObject({

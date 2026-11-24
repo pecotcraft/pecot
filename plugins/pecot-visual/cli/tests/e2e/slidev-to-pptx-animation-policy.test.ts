@@ -33,6 +33,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { XmlDocument } from '../../src/domain/_shared/ports.js'
+import { attachFile } from '../_helpers/attach.js'
 import { assertCliBuilt, createPecotvRunner, isChromiumCached, lastEvent, createFixtureThemeSpec } from '../_helpers/pecotv-e2e-run.js'
 import { parsePart } from '../_helpers/ooxml-parts.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
@@ -320,6 +321,9 @@ async function runAnimationPolicyCuj(
   const convert = runPecotv(`convert-${name}`, [
     'slide', 'convert', projectDirectory, '--out', pptxOut, '--json', '--no-cache', ...routeArguments,
   ])
+  const sectionStagingPath = path.join(projectDirectory, SECTION_STAGING_PPTX)
+  await attachFile('変換した PPTX', pptxOut)
+  await attachFile('セクションの staging の PPTX', sectionStagingPath)
   expect(convert.status).toBe(0)
   // SIGTERM kill との区別。done event が出ていれば pipeline は最後まで実行されている。
   const convertDone = lastEvent(convert.stdout, 'slide.convert.done')
@@ -334,7 +338,6 @@ async function runAnimationPolicyCuj(
   // これが無いと、fixture テーマの section から装飾 animation が外れた日に
   // 「除去を一度も通らないまま 0 件」でも green になる。同一 run の中間成果物なので
   // 追加の変換費用は無い。
-  const sectionStagingPath = path.join(projectDirectory, SECTION_STAGING_PPTX)
   expect(existsSync(sectionStagingPath), `${sectionStagingPath} が無い`).toBe(true)
   const sectionBefore = parsePart(await readZipEntries(sectionStagingPath), SINGLE_SLIDE_PART)
   expect(timingCountOf(sectionBefore)).toBeGreaterThan(0)
@@ -389,6 +392,7 @@ async function runAnimationPolicyCuj(
   const cachedConvert = runPecotv(`convert-cached-${name}`, [
     'slide', 'convert', projectDirectory, '--out', pptxOutCached, '--json', ...routeArguments,
   ])
+  await attachFile('キャッシュの run の PPTX', pptxOutCached)
   expect(cachedConvert.status).toBe(0)
   const cachedDone = lastEvent(cachedConvert.stdout, 'slide.convert.done')
   expect(cachedDone).toBeDefined()

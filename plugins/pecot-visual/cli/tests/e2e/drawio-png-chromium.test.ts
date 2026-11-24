@@ -31,6 +31,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { assertCliBuilt, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -113,7 +114,7 @@ function readPngSize(png: Readonly<Buffer>): { readonly width: number, readonly 
 }
 
 describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を描画する', () => {
-  it('日本語入りの図から exit 0 で PNG を書き出し、寸法を持つ PNG になる', () => {
+  it('日本語入りの図から exit 0 で PNG を書き出し、寸法を持つ PNG になる', async () => {
     const inputPath = workDirectory('ja-minimal.drawio')
     const outputPath = workDirectory('ja-minimal.drawio.html')
     const expectedPngPath = workDirectory('ja-minimal.drawio.png')
@@ -132,6 +133,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を�
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
     console.info(`[drawio-png] url: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
+    await attachFile('書き出した PNG', expectedPngPath)
     // PNG 生成失敗は warn として stderr に出るだけで、exit と stdout のどちらにも理由が載らない。
     // これは commands/drawio/url.ts の pngFailed の分岐。失敗時の一次情報を残す。
     if (result.status !== 0) {

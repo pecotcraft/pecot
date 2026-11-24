@@ -5,11 +5,12 @@ import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { attachment, LinkType, Stage, Status } from 'allure-js-commons'
+import { LinkType, Stage, Status } from 'allure-js-commons'
 import type { TestResult } from 'allure-js-commons'
 import { chromium } from 'playwright'
 import type { Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { attachContent } from '../../src/vitest/attach.js'
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../../../..')
 const GENERATE = path.join(REPO_ROOT, '.githooks/scripts/test_report/generate.py')
@@ -150,7 +151,7 @@ describe('テストレポートの tag の絞り込み', () => {
     await tab.getByTestId('collapse-all-button').click()
     await tab.getByTestId('tree-leaf-title').first().waitFor()
     const titles = await tab.getByTestId('tree-leaf-title').allTextContents()
-    await attachment(`tags=${id} の一覧`, await tab.screenshot({ fullPage: true, animations: 'disabled' }), 'image/png')
+    await attachContent(`tags=${id} の一覧`, await tab.screenshot({ fullPage: true, animations: 'disabled' }), '.png')
     await tab.close()
     expect(titles).toEqual([name])
   })
