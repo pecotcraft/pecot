@@ -98,6 +98,10 @@ export interface CommandRun {
   */
   readonly remoteUrl?: string
   /**
+  動かす前に checkout して作るブランチ。既定は初期のブランチのまま
+  */
+  readonly branch?: string
+  /**
   プロジェクト設定。`false` なら置かない（アクティブなプロジェクトが無い）。既定は projectConfig()
   */
   readonly config?: Readonly<Record<string, unknown>> | false
@@ -151,8 +155,8 @@ function readIfExists(directory: string, relative: string): string | undefined {
   }
 }
 
-function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote' | 'remoteUrl'>>): string {
-  const { remote, remoteUrl } = run
+function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote' | 'remoteUrl' | 'branch'>>): string {
+  const { remote, remoteUrl, branch } = run
   if (remote === false) {
     const directory = makeTemporaryDirectory('pecot-nogit-')
     // 親をたどって実リポを読まない
@@ -162,6 +166,7 @@ function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote' | 'remoteUrl'>
   const directory = createGitRepository()
   const { host = DEFAULT_HOST, owner = DEFAULT_OWNER, name = DEFAULT_NAME } = remote ?? {}
   gitForTest(directory, ['remote', 'add', 'origin', remoteUrl ?? `git@${host}:${owner}/${name}.git`])
+  if (branch !== undefined) gitForTest(directory, ['checkout', '-q', '-b', branch])
   return directory
 }
 

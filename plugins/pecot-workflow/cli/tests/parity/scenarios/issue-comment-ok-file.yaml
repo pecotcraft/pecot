@@ -60,6 +60,7 @@ setup:
         ---
         issue_ref: "acme/demo/7"
         template: merge-diff
+        pr_ref: "acme/demo/12"
         ---
 
         ## Merge — 実装は半分まで進んだ

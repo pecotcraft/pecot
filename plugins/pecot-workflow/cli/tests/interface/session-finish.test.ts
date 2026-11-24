@@ -319,6 +319,34 @@ describe('session finish', () => {
     expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true])
   })
 
+  it.for([
+    { name: 'ローカルの片付けまで', extra: [] },
+    { name: '--skip-local-cleanup を付けて', extra: ['--skip-local-cleanup'] },
+  ])('$name 済ませると、片付けた PR を .pecot-merged に足す', async ({ extra }, context) => {
+    await verifies(context, 'PW-SESSION-FINISH-45')
+    const workspace = await cleanupBranch({ github: mergedRules(), files: { [stateFile('.pecot-merged')]: 'acme/demo#3\n' } })
+    const result = await workspace.run([...CLEANUP, ...extra])
+    expect(result.code).toBe(0)
+    expect(workspace.read(stateFile('.pecot-merged'))).toBe('acme/demo#3\nacme/demo#21')
+  })
+
+  it('--dry-run を付けて打つと、.pecot-merged を書かない', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-45')
+    const workspace = await cleanupBranch({ github: [graphql(MERGED, finishPullRequestData()), kindRule(12), waitingRule([])] })
+    await workspace.run([...CLEANUP, '--dry-run'])
+    expect(workspace.exists(stateFile('.pecot-merged'))).toBe(false)
+  })
+
+  it('.pecot-session-title が PR の Issue でない Issue のものだと、.pecot-base と .pecot-session-title を残す', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-46')
+    const files = { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n`, [stateFile('.pecot-session-title')]: '#30 次の作業\n' }
+    const workspace = await cleanupBranch({ github: mergedRules(), files })
+    const result = await workspace.run(CLEANUP)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('skipped: removing the work target records (they belong to #30)\n')
+    expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true])
+  })
+
   it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async () => {
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     const files = filesOf(workspace.directory)

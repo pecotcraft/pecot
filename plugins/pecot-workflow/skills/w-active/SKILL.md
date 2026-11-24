@@ -45,17 +45,10 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 
 pecot-workflow の MCP ツール `issue_show` を使って、利用者が選んだ Issue の内容を確かめる。
 
-### Step 3: ベースブランチを最新化
-
-ブランチ作成前に、現在のブランチを最新化する。
-
-```bash
-git pull
-```
-
-### Step 4: ブランチ作成
+### Step 3: ブランチ作成
 
 pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づくブランチを作る。`base` は渡さない。スタック先はツールが選ぶ。
+ブランチは GitHub 側にベースの先頭から作られるので、手元のブランチを先に最新化しなくてよい。
 
 **ブランチ名の決め方:**
 
@@ -66,6 +59,15 @@ pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づ�
 
 - 前提を外さない。前提を見直すかどうかは利用者が決める
 - `base` を渡さない
+
+### Step 4: 前の PR の後片付けの取りこぼし
+
+`session_start` の結果に `leftovers` があれば、前にマージされた PR の後片付けが残っている。切り替えの前に、PR ごとに [マージされた後の片付け](references/after-merge.md) に従って済ませる。
+
+- `cleanup` が真なら、片付けの節から行う。手元が wt ブランチに戻る
+- `cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う
+
+`leftovers` が無ければ、何もせずに Step 5 へ進む。
 
 ### Step 5: ブランチ切り替え
 

@@ -13,6 +13,8 @@ export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
 export const FLAG_PECOT_BASE = '.pecot-base'
 // 衝突で止まったスタックし直しの途中の記録。pr restack が書き、続行か取りやめで消す
 export const FLAG_PECOT_RESTACK = '.pecot-restack'
+// 片付けを終えた PR（1 行に 1 つ）。session finish が足し、merge-diff を確かめた session start が消す
+export const FLAG_PECOT_MERGED = '.pecot-merged'
 
 export const SESSION_TITLE_MAX_CHARS = 40
 const ISSUE_TYPE_PREFIX_PATTERN = /^\[(?:Task|Bug|Epic)\]\s*/u
@@ -100,6 +102,29 @@ export function interpretBaseRecord(content: string | undefined): BaseReading {
   if (issue === undefined) return { kind: 'development', record: { branch, sha, stackedOn: undefined } }
   const stackedOn = parseStackedOn(issue)
   return stackedOn === undefined ? { kind: 'malformed', content } : { kind: 'stacked', record: { branch, sha, stackedOn }, stackedOn }
+}
+
+/**
+.pecot-session-title の先頭の `#<番号>`。読めなければ undefined
+*/
+export function sessionTitleNumber(content = ''): number | undefined {
+  const digits = /^#(\d+)/u.exec(content)?.[1]
+  return digits === undefined ? undefined : Number(digits)
+}
+
+/**
+.pecot-merged の内容。1 行に 1 つの `owner/repo#N`。形の誤った行は読み飛ばす
+*/
+export function interpretMergedRecord(content = ''): IssueReference[] {
+  const references = content.split('\n').map(line => parseStackedOn(pythonStrip(line)))
+  return references.filter(reference => reference !== undefined)
+}
+
+/**
+.pecot-merged の内容を組み立てる。同じ PR は 1 つにまとめる
+*/
+export function formatMergedRecord(references: readonly IssueReference[]): string {
+  return [...new Set(references.map(reference => issueReferenceToString(reference)))].join('\n')
 }
 
 export interface RestackProgress {

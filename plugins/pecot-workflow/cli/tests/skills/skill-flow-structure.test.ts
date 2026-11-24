@@ -10,6 +10,8 @@ import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 const PARALLEL_SPAWN_NOTE = '1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。'
 const SERIAL_REASON_MARKER = '(直列の理由: ...)'
 const STEP_HEADING = /^### Step (\d+)[:：] ?(.+)$/u
+// マージされた後の片付けの手順を、同じ中身の references/after-merge.md で持つスキル
+const AFTER_MERGE_SKILLS = ['w-pr', 'w-merge', 'w-active', 'w-quick', 'w-breakdown']
 
 interface Heading {
   readonly number: number
@@ -342,13 +344,13 @@ describe('マージされた後の片付け', () => {
   const link = 'references/after-merge.md'
   const text = readPluginFile(`skills/w-pr/${link}`)
 
-  it.for(['w-pr', 'w-merge'])('%s は、片付けの手順を自分の references/after-merge.md から読ませ、リンク先が在る', (skill) => {
+  it.for(AFTER_MERGE_SKILLS)('%s は、片付けの手順を自分の references/after-merge.md から読ませ、リンク先が在る', (skill) => {
     expect(readSkill(skill)).toContain(`](${link})`)
     expect(existsSync(path.join(pluginRoot, 'skills', skill, link))).toBe(true)
   })
 
-  it('w-merge の写しは、w-pr のものと中身が同じ', () => {
-    expect(readPluginFile(`skills/w-merge/${link}`)).toBe(text)
+  it.for(AFTER_MERGE_SKILLS.filter(skill => skill !== 'w-pr'))('%s の写しは、w-pr のものと中身が同じ', (skill) => {
+    expect(readPluginFile(`skills/${skill}/${link}`)).toBe(text)
   })
 
   it('session_finish でリモートブランチも消し、Epic に merge-diff、後続に precede-notify を投稿させる', () => {
@@ -361,6 +363,27 @@ describe('マージされた後の片付け', () => {
     const merge = readSkill('w-merge')
     expect(merge).not.toContain('session_finish')
     expect(merge).not.toContain('merge-diff')
+  })
+
+  it('merge-diff は、マージした PR を pr_ref に書かせ、leftovers から来たときは mergeDiff の Epic に書かせる', () => {
+    expect(text).toContain('frontmatter の `pr_ref` には、マージした PR を `owner/repo/N` で書く')
+    expect(text).toContain('その PR の `mergeDiff` の Epic にする')
+  })
+
+  it.for(['w-active', 'w-quick', 'w-breakdown'])('%s は、session_start の leftovers を、ブランチの切り替えの前に片付けさせる', (skill) => {
+    const body = readSkill(skill)
+    const leftovers = body.indexOf('`session_start` の結果に `leftovers` があれば')
+    expect(leftovers).toBeGreaterThan(body.indexOf('`session_start` を使って'))
+    expect(leftovers).toBeLessThan(body.indexOf('git checkout'))
+    expect(body).toContain('`cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う')
+  })
+
+  it('w-active は、session_start の前に git pull を打たず、ブランチ作成・取りこぼし・切り替えの順に並べる', () => {
+    const body = readSkill('w-active')
+    const headings = stepHeadings(body)
+    expect(body).not.toContain('git pull')
+    expect(titleIndex(headings, 'ブランチ作成')).toBeLessThan(titleIndex(headings, '取りこぼし'))
+    expect(titleIndex(headings, '取りこぼし')).toBeLessThan(titleIndex(headings, 'ブランチ切り替え'))
   })
 })
 

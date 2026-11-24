@@ -154,6 +154,7 @@ const CommentFrontmatterSchema = z.object({
   issue_ref: z.string({ error: stringMessage }),
   template: z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'], { error: choiceMessage }).nullish().transform(value => value ?? undefined),
   comment_url: z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
+  pr_ref: z.preprocess(emptyStringToUndefined, z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
 const PullRequestFrontmatterSchema = z.object({

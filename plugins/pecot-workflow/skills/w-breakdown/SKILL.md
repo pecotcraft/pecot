@@ -77,6 +77,11 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 `base` は渡さない。`session_start` が、タスクを Active に移す。
 ツールが止まったら、エラーの案内を利用者に示して止まる。
 
+`session_start` の結果に `leftovers` があれば、前にマージされた PR の後片付けが残っている。checkout の前に、PR ごとに [マージされた後の片付け](references/after-merge.md) に従って済ませる。
+
+- `cleanup` が真なら、片付けの節から行う。手元が wt ブランチに戻る
+- `cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う
+
 checkout の前に、`git status --porcelain` が空であることを確かめる。空でなければ、commit・stash・破棄のどれにするかを利用者に確かめる。
 
 ```bash

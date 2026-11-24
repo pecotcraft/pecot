@@ -1,7 +1,12 @@
 # マージされた後の片付け
 
 PR がマージされた後に、GitHub 側と手元を片付け、Epic と後続の Issue にコメントを書く手順。
-w-pr の Step 6 で、待ち受けが `MERGED` を受けたときに使う。w-merge でマージしたときも同じ手順で進める。
+
+次の場面で使う。どのスキルも、同じ中身の写しを自分の `references/after-merge.md` に持つ。
+
+- w-pr の Step 6 で、待ち受けが `MERGED` を受けたとき
+- w-merge でマージしたとき
+- w-active・w-quick・w-breakdown で、`session_start` の結果に `leftovers` があったとき。前の PR の後片付けが残っている
 
 ## 片付け
 
@@ -19,8 +24,10 @@ PR が閉じた Issue に親 Epic があるときだけ行う。親 Epic は、p
 PR が閉じた Issue は、片付けの結果の `closedIssues` の Issue と、`skippedIssues` の `already-closed` の Issue。
 `already-closed` の Issue は、`pr_show` で読む PR の closing issues にあるものだけを数える。
 
+`session_start` の `leftovers` から来たときは、書く先を、その PR の `mergeDiff` の Epic にする。`mergeDiff` が空なら、この節は飛ばす。
+
 1. マージした PR の変更と、Issue の本文の計画を比べる
-2. pecot-workflow の MCP ツール `issue_comment` を使って、Epic 宛ての merge-diff テンプレのファイルを作る
+2. pecot-workflow の MCP サーバの resource `pecot-template://comment/merge-diff` を読み、Epic 宛てのファイルを作る。frontmatter の `pr_ref` には、マージした PR を `owner/repo/N` で書く
 3. テンプレのガイドに従って本文を書き、`issue_comment` を使って Epic に投稿する
 
 計画どおりで差分が無いときも、その旨を投稿する。変更ファイルの一覧は本文に書かない。

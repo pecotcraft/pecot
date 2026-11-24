@@ -22,7 +22,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestForFinish } from '../infra/github/pulls.js'
 import { isFileNotFound } from '../infra/os-error.js'
-import { removeFlag } from '../infra/state-store.js'
+import { appendMergedRecord, readSessionTitleNumber, removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
 import type { BoardContext } from './board-judgment.js'
 import { commandHint, hinted, RUN } from './command-hint.js'
@@ -104,7 +104,7 @@ async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, locat
 }
 
 // GitHub はキーワードを既定ブランチ宛ての PR でだけ解釈するので、そのときは closing issues だけを使う
-function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
+export function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
   const numbers = new Set<number>(pr.closing_issues.filter(issue => isSameRepository(issue, location)).map(issue => issue.number))
   if (pr.base_ref !== pr.default_branch) {
     for (const number of extractClosingIssueNumbers(pr.body, location)) numbers.add(number)
@@ -376,12 +376,28 @@ async function localCleanupAfterMerge(context: Readonly<FinishContext>, headBran
   }
 }
 
-function removeActiveFlags(out: Readonly<Output>): void {
+// 消すのは終えた PR の Issue の記録だけ。後片付けの前に次の Issue を着手していれば、その記録を残す
+function removeActiveFlags(out: Readonly<Output>, issueNumbers: ReadonlySet<number>): void {
   try {
+    const titleNumber = readSessionTitleNumber()
+    if (titleNumber !== undefined && !issueNumbers.has(titleNumber)) {
+      settle(out, { verb: 'skip', target: `removing the work target records (they belong to #${String(titleNumber)})` })
+      return
+    }
     for (const flag of [FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE]) removeFlag(flag)
   }
   catch (error: unknown) {
     out.warning(`removing flag files failed: ${reasonOf(error)}`)
+  }
+}
+
+// 次の session start が、この PR の merge-diff があるかを確かめるために残す
+function recordMergedPullRequest(out: Readonly<Output>, pullRequest: IssueReference): void {
+  try {
+    appendMergedRecord(pullRequest)
+  }
+  catch (error: unknown) {
+    out.warning(`recording the merged PR failed: ${reasonOf(error)}`)
   }
 }
 
@@ -415,18 +431,20 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with ${commandHint(['pr', 'merge'])} first`, 'pr-state')
   context.record.hasStarted = true
 
-  const issues = await classifyClosingIssues(client, location, collectClosingIssueNumbers(pr, location), out)
+  const closingNumbers = collectClosingIssueNumbers(pr, location)
+  const issues = await classifyClosingIssues(client, location, closingNumbers, out)
   out.count('Issues to close', issues.open.size)
   await closeRelatedIssues(context, client, location, issues)
   await updateWaitingIssues(context, { client, config, location, pullRequest: mergedPullRequestOf(location, reference.number, pr) })
   if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
+  if (!input.dry_run) recordMergedPullRequest(out, createIssueReference(location, reference.number))
   if (input.skip_local_cleanup) return
   await localCleanupAfterMerge(context, pr.head_ref, config, location)
   if (input.dry_run) {
     return
   }
 
-  removeActiveFlags(out)
+  removeActiveFlags(out, closingNumbers)
 }
 
 const sessionFinishCommand = defineCommand({
