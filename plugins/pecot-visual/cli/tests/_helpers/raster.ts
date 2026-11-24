@@ -10,6 +10,8 @@ import { expect } from 'vitest'
 
 import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
 
+import { encodeTruecolorPng } from './image-fixture.js'
+
 /**
 pdftoppm の既定の解像度 (dpi)。1.5pt の画像枠が数 px の幅で出る値。
 */
@@ -79,6 +81,16 @@ export function readPpm(filePath: string): PpmImage {
 
 function isPpmSpace(byte: number | undefined): boolean {
   return byte === 0x20 || byte === 0x09 || byte === 0x0A || byte === 0x0D
+}
+
+/**
+`readPpm` の画素をそのまま可逆の PNG にする。判定に使った画素を、レポートへ添付するときに使う。
+*/
+export function ppmToPng(
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Buffer は mutable 型
+  page: PpmImage,
+): Buffer {
+  return encodeTruecolorPng(page.width, page.height, page.pixels)
 }
 
 /**

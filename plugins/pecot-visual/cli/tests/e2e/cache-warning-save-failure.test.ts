@@ -43,6 +43,7 @@ import {
   cacheDirectoryOf,
   deckMarkdown,
 } from '../_helpers/cache-warning.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -73,7 +74,7 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json payload から観測できる', () => {
-  it('CUJ-B: 保存先が作れない run は保存・更新の失敗が done payload に出る (all:manifest)', () => {
+  it('CUJ-B: 保存先が作れない run は保存・更新の失敗が done payload に出る (all:manifest)', async () => {
     const itT0 = performance.now()
     const saveFailOut = temporaryRoot('warning-save-fail.pptx')
 
@@ -87,6 +88,7 @@ describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json paylo
     writeFileSync(cacheDirectory, 'not-a-directory')
 
     const saveFail = runPecotv('save-fail', ['slide', 'convert', projectDirectory(), '--out', saveFailOut, '--json'])
+    await attachFile('保存に失敗した run の PPTX', saveFailOut)
     expect(saveFail.status).toBe(0)
     expect(existsSync(saveFailOut)).toBe(true)
 

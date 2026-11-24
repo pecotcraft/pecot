@@ -32,6 +32,7 @@ import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { attachFile } from '../_helpers/attach.js'
 import { assertCliBuilt, createPecotvRunner, isChromiumCached, lastEvent, createFixtureThemeSpec } from '../_helpers/pecotv-e2e-run.js'
 import { parsePart } from '../_helpers/ooxml-parts.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
@@ -126,6 +127,7 @@ async function convertAndAssertEmbeddedFonts(
   writeFileSync(slidesMdPath, reorderedDeck(readFileSync(slidesMdPath, 'utf8')))
 
   const convert = runPecotv(`convert-${name}`, ['slide', 'convert', projectDirectory, '--out', pptxOut, '--json', ...routeArguments])
+  await attachFile('変換した PPTX', pptxOut)
   expect(convert.status).toBe(0)
   // SIGTERM kill との区別。done event が出ていれば pipeline は最後まで実行されている。
   const convertDone = lastEvent(convert.stdout, 'slide.convert.done')

@@ -18,6 +18,7 @@ import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { attachFile } from '../_helpers/attach.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import {
   inlineStringTexts,
@@ -127,6 +128,7 @@ describe('pecotv evidence create の実プロセス実行', () => {
       ['evidence', 'create', '--input', specPath, '--out', 'evidence.xlsx', '--json'],
       workDirectory(),
     )
+    await attachFile('エビデンスの xlsx', workDirectory('evidence.xlsx'))
 
     expect(result.status).toBe(0)
     const event = readSingleJsonEvent(result.stdout)

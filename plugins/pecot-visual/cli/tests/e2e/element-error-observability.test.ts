@@ -51,6 +51,7 @@ import {
   FIXTURE_THEME_NAME,
 } from '../_helpers/pecotv-e2e-run.js'
 import { readZipEntries } from '../_helpers/zip-entries.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -148,6 +149,7 @@ describe.skipIf(!isChromiumReady)('CUJ: element エラーが成功 run の done 
       'slide', 'convert', projectDirectory(), '--out', outPath, '--json', '--no-cache',
     ])
     // element エラーは run の成否を落とさない。pptx も全枚数ぶん生成される。
+    await attachFile('1 回目の run の PPTX', outPath)
     expect(converted.status).toBe(0)
     expect(existsSync(outPath)).toBe(true)
     expect(await slidePartCount(outPath)).toBe(SLIDE_COUNT)
@@ -180,6 +182,7 @@ describe.skipIf(!isChromiumReady)('CUJ: element エラーが成功 run の done 
     const cached = runPecotv('convert-cached', [
       'slide', 'convert', projectDirectory(), '--out', cachedOutPath, '--json',
     ])
+    await attachFile('キャッシュヒット run の PPTX', cachedOutPath)
     expect(cached.status).toBe(0)
     expect(existsSync(cachedOutPath)).toBe(true)
     expect(await slidePartCount(cachedOutPath)).toBe(SLIDE_COUNT)

@@ -36,9 +36,10 @@ import type { TestContext } from 'vitest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
+import { attachContent, attachFile } from '../_helpers/attach.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, drainStderr, makeTransport } from '../_helpers/mcp-stdio.js'
-import { CONVERT_TIMEOUT_MS, rasterize, readPpm } from '../_helpers/raster.js'
+import { CONVERT_TIMEOUT_MS, ppmToPng, rasterize, readPpm } from '../_helpers/raster.js'
 import type { PpmImage } from '../_helpers/raster.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 
@@ -291,6 +292,7 @@ describe('固定書式のレンダリング', () => {
         { name: 'evidence_create', arguments: { input_path: specPath, out_path: outPath } },
         { timeout: REQUEST_TIMEOUT_MS },
       )
+      await attachFile('エビデンスの xlsx', outPath)
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
     }
     finally {
@@ -308,8 +310,11 @@ describe('固定書式のレンダリング', () => {
     expect(statSync(converted.pdfPath).size).toBeGreaterThan(0)
 
     const pages = rasterize(converted.pdfPath, path.join(caseRoot, 'ppm'))
-    expect(pages.length).toBeGreaterThan(0)
     const rasters = pages.map(page => readPpm(page))
+    for (const [index, raster] of rasters.entries()) {
+      await attachContent(`判定した ${String(index + 1)} ページ目`, ppmToPng(raster), '.png')
+    }
+    expect(pages.length).toBeGreaterThan(0)
 
     for (const [label, rgb] of DECORATION_COLORS) {
       expect(measureColor(rasters, rgb).pixels, `${label} の画素が足りない`)

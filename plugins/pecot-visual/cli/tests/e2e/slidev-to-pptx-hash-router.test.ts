@@ -29,6 +29,7 @@ import type { Logger } from '../../src/domain/slidev-to-pptx/logger.js'
 import type { PipelineConfig } from '../../src/domain/slidev-to-pptx/config.js'
 import { convertToPptx } from '../../src/infra/slidev-to-pptx/pipeline.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
+import { attachFile } from '../_helpers/attach.js'
 import { formatOutputTails } from '../_helpers/pecotv-e2e-run.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
 import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
@@ -159,11 +160,21 @@ async function slideTexts(pptxPath: string): Promise<string[]> {
   }
 }
 
+function stepPptxPath(slidesDirectory: string, stepIndex: number): string {
+  return path.join(slidesDirectory, `slide-${stepIndex.toString()}.pptx`)
+}
+
+async function attachSteps(slidesDirectory: string, stepIndexes: readonly number[]): Promise<void> {
+  for (const stepIndex of stepIndexes) {
+    await attachFile(`ステップ ${stepIndex.toString()} の PPTX`, stepPptxPath(slidesDirectory, stepIndex))
+  }
+}
+
 /**
 単一ステップの PPTX（Phase 1 出力）のテキスト。
 */
 async function stepText(slidesDirectory: string, stepIndex: number): Promise<string> {
-  const pptxPath = path.join(slidesDirectory, `slide-${stepIndex.toString()}.pptx`)
+  const pptxPath = stepPptxPath(slidesDirectory, stepIndex)
   expect(existsSync(pptxPath), `${pptxPath} が生成されていません`).toBe(true)
   const texts = await slideTexts(pptxPath)
   return texts.join('')
@@ -206,6 +217,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
       timeout: 240_000,
       maxBuffer: 64 * 1024 * 1024,
     })
+    await attachFile('変換した PPTX', outputPath)
 
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
@@ -255,6 +267,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
       { ...programmaticConfig(temporaryRoot('only-steps')), onlySteps: [2, 3] },
       { logger },
     )
+    await attachSteps(result.slidesDirectory, [200, 300])
 
     expect(infos).toContain('router detection: router=hash')
     expect(result.errors).toStrictEqual([])
@@ -276,6 +289,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
       { ...programmaticConfig(temporaryRoot('only-slide')), onlySlide: { slide: 2, click: null } },
       { logger },
     )
+    await attachSteps(result.slidesDirectory, [200, 201])
 
     expect(infos).toContain('router detection: router=hash')
     expect(result.errors).toStrictEqual([])

@@ -25,6 +25,7 @@ import {
 import { XmldomXmlEngine } from '../../src/infra/pptx-ooxml/xml-engine.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
+import { attachFile } from '../_helpers/attach.js'
 import {
   assertCliBuilt,
   createPecotvRunner,
@@ -345,6 +346,7 @@ describe('Issue #731 — pecotv pptx preview を実 soffice で動かす', () =>
     const out = temporaryRoot('deck.preview.pdf')
 
     const summary = await runPreview(inputPath, { out }, buildDependencies())
+    await attachFile('preview の PDF', out)
 
     expect(summary.findings).toHaveLength(1)
     expect(summary.findings[0]?.slide).toBe(1)
@@ -369,6 +371,7 @@ describe('Issue #731 — pecotv pptx preview を実 soffice で動かす', () =>
 
     const correctedOut = temporaryRoot('shift.preview.pdf')
     const summary = await runPreview(inputPath, { out: correctedOut }, buildDependencies())
+    await attachFile('preview の PDF', correctedOut)
     expect(summary.normalized).toBe(1)
     expect(existsSync(correctedOut)).toBe(true)
 
@@ -433,6 +436,7 @@ describe('Issue #1072 — fixture テーマの実変換 pptx の実 soffice 変�
     }
 
     const convert = runPecotv('convert', ['slide', 'convert', projectDirectory, '--out', pptxOut, '--json'])
+    await attachFile('変換した PPTX', pptxOut)
     expect(convert.status).toBe(0)
     expect(lastEvent(convert.stdout, 'slide.convert.done')).toBeDefined()
 
@@ -450,6 +454,7 @@ describe('Issue #1072 — fixture テーマの実変換 pptx の実 soffice 変�
       outputDirectory: pdfOutputDirectory,
       timeoutMs: 120_000,
     })
+    await attachFile('変換した PDF', converted.pdfPath)
     expect(existsSync(converted.pdfPath)).toBe(true)
     expect(statSync(converted.pdfPath).size).toBeGreaterThan(0)
 

@@ -348,6 +348,15 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 "pecot-workflow:test-cli",
             },
         ),
+        # 判定に使った画面や成果物の添付。pecot-visual の _helpers/attach.ts と test-site が読む (#696)。
+        (
+            "libs/interface-spec/src/vitest/attach.ts",
+            {
+                "interface-spec:test-unit",
+                "interface-spec:test-site",
+                "pecot-visual:test-cli",
+            },
+        ),
         # テストレポートを作るスクリプト。test-site は、このスクリプトが作るレポートを tag で絞り込めるかを確かめる (#695)。
         (
             ".githooks/scripts/test_report/generate.py",

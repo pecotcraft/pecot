@@ -35,6 +35,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { parse } from 'yaml'
 
 import { isChromiumInstalled } from '../../src/infra/playwright/chromium.js'
+import { attachFile } from '../_helpers/attach.js'
 import { createFixtureThemeSpec } from '../_helpers/pecotv-e2e-run.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, CLI_ROOT, drainStderr, isReaped, makeTransport } from '../_helpers/mcp-stdio.js'
@@ -275,6 +276,8 @@ describe('pecotv mcp のツール (stdio)', () => {
         { name: 'drawio_export', arguments: { input_path: MINIMAL_DRAWIO, icons_dir: ICONS_DIR, out_path: outPath } },
         { timeout: DRAWIO_EXPORT_TIMEOUT_MS },
       )
+      await attachFile('書き出した SVG', outPath)
+      await attachFile('書き出した PDF', pdfPath)
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       expect(dataOf(called)).toMatchObject({
@@ -297,6 +300,7 @@ describe('pecotv mcp のツール (stdio)', () => {
         { name: 'drawio_export', arguments: { input_path: MINIMAL_DRAWIO, icons_dir: ICONS_DIR, out_path: outPath } },
         { timeout: DRAWIO_EXPORT_TIMEOUT_MS },
       )
+      await attachFile('書き出した SVG', outPath)
 
       // 警告ありでも SVG は書けているので isError を立てない。
       // 失敗の理由（SVG export の時間切れ等）は ToolResult の本文に出るため、子プロセスの stderr と並べて残す。
@@ -336,6 +340,7 @@ describe('pecotv mcp のツール (stdio)', () => {
         { name: 'evidence_create', arguments: { input_path: specPath, out_path: outPath } },
         { timeout: REQUEST_TIMEOUT_MS },
       )
+      await attachFile('エビデンスの xlsx', outPath)
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       expect(structuredOf(called)).not.toHaveProperty('kind')

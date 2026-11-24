@@ -12,9 +12,10 @@ import { afterAll, describe, expect, it } from 'vitest'
 import type { Annotation } from '../../src/domain/evidence-xlsx/spec-schema.js'
 import { writeEvidenceWorkbook } from '../../src/infra/evidence-xlsx/workbook-writer.js'
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
+import { attachContent, attachFile } from '../_helpers/attach.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import type { PixelRegion, PpmImage } from '../_helpers/raster.js'
-import { CONVERT_TIMEOUT_MS, colorBounds, countColorOutside, rasterize, readPpm } from '../_helpers/raster.js'
+import { CONVERT_TIMEOUT_MS, colorBounds, countColorOutside, ppmToPng, rasterize, readPpm } from '../_helpers/raster.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 
 const temporaryRoot = useTemporaryDirectory('pecotv-922-evidence-', { hook: 'all' })
@@ -343,6 +344,7 @@ describe('生成 xlsx の soffice 変換', () => {
         { imagePath: second, caption: 'ホーム画面へ遷移', annotations: [] },
       ],
     }, out)
+    await attachFile('エビデンスの xlsx', out)
     expect(result.items).toBe(2)
 
     const outputDirectory = path.join(caseRoot, 'pdf')
@@ -351,6 +353,7 @@ describe('生成 xlsx の soffice 変換', () => {
       outputDirectory,
       timeoutMs: CONVERT_TIMEOUT_MS,
     })
+    await attachFile('変換した PDF', converted.pdfPath)
 
     // soffice は load 失敗でも exit 0 を返すため、PDF の実在と非空を成否条件にする。
     expect(existsSync(converted.pdfPath)).toBe(true)
@@ -390,6 +393,7 @@ describe('生成 xlsx の soffice 変換', () => {
         ],
       }],
     }, out)
+    await attachFile('エビデンスの xlsx', out)
     expect(result.annotations).toBe(3)
 
     const outputDirectory = path.join(caseRoot, 'pdf-annotated')
@@ -398,6 +402,7 @@ describe('生成 xlsx の soffice 変換', () => {
       outputDirectory,
       timeoutMs: CONVERT_TIMEOUT_MS,
     })
+    await attachFile('変換した PDF', converted.pdfPath)
 
     expect(existsSync(converted.pdfPath)).toBe(true)
     // 図形が読み飛ばされていれば PDF は出ても文言が現れない。
@@ -435,6 +440,7 @@ describe('生成 xlsx の soffice 変換', () => {
       ],
       items,
     }, out)
+    await attachFile('エビデンスの xlsx', out)
     expect(result.items).toBe(3)
 
     const outputDirectory = path.join(caseRoot, 'pdf-headers')
@@ -443,6 +449,7 @@ describe('生成 xlsx の soffice 変換', () => {
       outputDirectory,
       timeoutMs: CONVERT_TIMEOUT_MS,
     })
+    await attachFile('変換した PDF', converted.pdfPath)
 
     expect(existsSync(converted.pdfPath)).toBe(true)
     const text = pdfText(converted.pdfPath)
@@ -477,6 +484,7 @@ describe('生成 xlsx の soffice 変換', () => {
       extraHeaders: [],
       items,
     }, path.join(caseRoot, 'evidence-position.xlsx'))
+    await attachFile('エビデンスの xlsx', path.join(caseRoot, 'evidence-position.xlsx'))
     expect(result.annotations).toBe(POSITION_SHOTS.flatMap(shot => shot.cases).length)
 
     const converted = await new SofficePdfConverter().convertToPdf({
@@ -486,6 +494,9 @@ describe('生成 xlsx の soffice 変換', () => {
     })
     expect(existsSync(converted.pdfPath)).toBe(true)
     const pages = rasterize(converted.pdfPath, path.join(caseRoot, 'ppm')).map(file => readPpm(file))
+    for (const [index, page] of pages.entries()) {
+      await attachContent(`判定した ${String(index + 1)} ページ目`, ppmToPng(page), '.png')
+    }
 
     const regionsByPage = new Map<PpmImage, PixelRegion[]>()
     for (const shot of POSITION_SHOTS) {

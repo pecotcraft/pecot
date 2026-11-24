@@ -22,6 +22,7 @@ import { Client } from '@modelcontextprotocol/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { MOUNT_ROOT_ENV } from '../../src/mcp/windows-path.js'
+import { attachFile } from '../_helpers/attach.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, drainStderr, makeTransport } from '../_helpers/mcp-stdio.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
@@ -88,6 +89,7 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
         { name: 'evidence_create', arguments: { input_path: inputPath, out_path: OUT_DRIVE_PATH } },
         { timeout: REQUEST_TIMEOUT_MS },
       )
+      await attachFile('エビデンスの xlsx', expectedOut)
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       const structured = structuredOf(called)
@@ -147,6 +149,7 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
         { name: 'evidence_create', arguments: { input_path: mixedSpecPath, out_path: outPath } },
         { timeout: REQUEST_TIMEOUT_MS },
       )
+      await attachFile('エビデンスの xlsx', outPath)
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       const structured = structuredOf(called)
