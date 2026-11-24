@@ -155,22 +155,22 @@ description: "Task list for 030-allure-test-report"
 
 ### Tests for User Story 1（先に書く）
 
-- [ ] T026 [P] [US1] `.githooks/tests/test_report_workflow.py` に、`test-report.yml` の形のテストを先に書く。
+- [x] T026 [P] [US1] `.githooks/tests/test_report_workflow.py` に、`test-report.yml` の形のテストを先に書く。
   確かめること: 契機は `push`（main）と `workflow_dispatch`（入力 `side`: `release`・`dev`）で、`pull_request` が無い、どの job も `contents: read` だけ、
   concurrency は `test-report-<side>` で `cancel-in-progress: false`、
   artifact は `test-report-<side>`・`retention-days: 7`・`overwrite: true`、`tests` の job の matrix が `lanes.py` から決まる、action は SHA で固定、`run:` に式と日本語が無い
-- [ ] T027 [P] [US1] `.githooks/tests/test_pages_release.py` に、ReportSources（data-model.md）のテストを先に書く。
+- [x] T027 [P] [US1] `.githooks/tests/test_pages_release.py` に、ReportSources（data-model.md）のテストを先に書く。
   確かめること: タグのコミットに `report-lanes.json` があるプラグインだけが `runs` に入り、無いプラグインは `missing` に入る、`runs` が空ならレポートを作らないと決まる、骨組みのコミットが結果を出せないときは、プラグインに属さないレーンを入れない、開発版は 1 項目で全レーン。実物の git のタグで確かめる
 
 ### Implementation for User Story 1
 
-- [ ] T028 [US1] `.githooks/scripts/pages_site/release_sources.py` に、ReportSources を決める処理を足す（T027 の後）。タグと骨組みの決め方は、今の ReleaseSources をそのまま使う
-- [ ] T029 [US1] `.github/workflows/test-report.yml` を作る（T026・T028 の後）。job は `side`・`tests`・`report`（contracts の表）。
+- [x] T028 [US1] `.githooks/scripts/pages_site/release_sources.py` に、ReportSources を決める処理を足す（T027 の後）。タグと骨組みの決め方は、今の ReleaseSources をそのまま使う
+- [x] T029 [US1] `.github/workflows/test-report.yml` を作る（T026・T028 の後）。job は `side`・`tests`・`report`（contracts の表）。
   `tests` は、テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる。`report` は、公開中の `history.jsonl` を取り（無ければ空）、`generate.py` で作り、レポート・履歴・`report-sources.json` を上げる。
   `PECOT_REPORT_SITE_URL` を、側の URL で渡す
-- [ ] T030 [US1] `.github/workflows/release.yml` の本番の land の後に、`test-report.yml` を `side=release` で起こす step を足す（今の `pages-build.yml` の起こし方と同じ形）。
+- [x] T030 [US1] `.github/workflows/release.yml` の本番の land の後に、`test-report.yml` を `side=release` で起こす step を足す（今の `pages-build.yml` の起こし方と同じ形）。
   `.githooks/tests/test_report_workflow.py` に、この step のテストを足す
-- [ ] T031 [US1] `.claude/rules/github-workflows.md` の workflow の一覧に、`test-report.yml` の行を足す
+- [x] T031 [US1] `.claude/rules/github-workflows.md` の workflow の一覧に、`test-report.yml` の行を足す
 
 **Checkpoint**: `test_report_workflow.py` と `test_pages_release.py` が通る。actionlint が通る
 
