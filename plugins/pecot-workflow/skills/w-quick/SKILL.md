@@ -5,6 +5,7 @@ description: |
   Use when the user has a small task to tackle immediately (one-file fix, minor bug, quick tweak) and no Issue exists yet — creates the Issue, branch, and enters plan mode in one step.
   Do NOT use when picking up an existing task from the board (use w-active).
 when_to_use: "小さな修正をすぐ始めたい、Issue 作成からブランチ作成まで一度に済ませたい"
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__issue_comment
 argument-hint: "[タスクの内容]"
 hooks:
   PostToolUse:
@@ -51,6 +52,11 @@ pecot-workflow の MCP ツール `session_start` を使って、作った Issue 
 
 - `feat/` + タスクの簡潔な説明（英語、ケバブケース）
 - 例: `feat/add-user-authentication`, `feat/fix-login-bug`
+
+`session_start` の結果に `leftovers` があれば、前にマージされた PR の後片付けが残っている。切り替えの前に、PR ごとに [マージされた後の片付け](references/after-merge.md) に従って済ませる。
+
+- `cleanup` が真なら、片付けの節から行う。手元が wt ブランチに戻る
+- `cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う
 
 作ったブランチに切り替える。
 

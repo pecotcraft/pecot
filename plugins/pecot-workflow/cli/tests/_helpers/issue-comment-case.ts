@@ -18,7 +18,22 @@ export const MERGE_DIFF_BODY = [
   '',
 ].join('\n')
 
+// merge-diff の見本が指す、マージした PR と、投稿の先頭に付く印
+export const MERGE_DIFF_PR = 'acme/demo/12'
+export const MERGE_DIFF_MARKER = '<!-- pecot-merge-diff: pr=acme/demo#12 -->'
+
+/**
+merge-diff の本文に、投稿のときに付く印を付けたもの
+*/
+export function markedMergeDiff(body: string): string {
+  return `${MERGE_DIFF_MARKER}\n\n${body}`
+}
+
 export interface CommentFileOptions {
+  /**
+  frontmatter の pr_ref の値。既定は template が merge-diff のときだけ MERGE_DIFF_PR。false なら書かない
+  */
+  readonly pullRequest?: string | false
   /**
   既定は acme/demo/7
   */
@@ -43,7 +58,8 @@ export interface CommentFileOptions {
 */
 export function commentFileContent(options: Readonly<CommentFileOptions> = {}): string {
   const { issueRef: issueReference = 'acme/demo/7', template = 'merge-diff', withoutTemplate = false, extra = [], body = MERGE_DIFF_BODY } = options
-  const lines = [`issue_ref: "${issueReference}"`, ...withoutTemplate ? [] : [`template: ${template}`], ...extra]
+  const pullRequest = options.pullRequest ?? (template === 'merge-diff' && !withoutTemplate ? MERGE_DIFF_PR : false)
+  const lines = [`issue_ref: "${issueReference}"`, ...withoutTemplate ? [] : [`template: ${template}`], ...pullRequest === false ? [] : [`pr_ref: "${pullRequest}"`], ...extra]
   return `---\n${lines.join('\n')}\n---\n\n${body}`
 }
 

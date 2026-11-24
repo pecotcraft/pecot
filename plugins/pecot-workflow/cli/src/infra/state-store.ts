@@ -6,7 +6,9 @@ import path from 'node:path'
 
 import { ProjectRootNotFoundError } from '../domain/errors.js'
 import { pythonStrip } from '../domain/python-format.js'
-import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, workDirectoryName } from '../domain/state.js'
+import { issueReferenceToString } from '../domain/reference-parser.js'
+import type { IssueReference } from '../domain/reference-parser.js'
+import { FLAG_PECOT_BASE, FLAG_PECOT_MERGED, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, formatMergedRecord, interpretBaseRecord, interpretMergedRecord, planWorkTarget, sessionTitleNumber, workDirectoryName } from '../domain/state.js'
 import type { BaseReading, BaseRecord } from '../domain/state.js'
 import { OsError, hasErrorCode, isFileNotFound } from './os-error.js'
 import { projectRoot, STATE_DIR, WORK_DIR } from './paths.js'
@@ -124,6 +126,37 @@ toplevel の worktree の .pecot-base を読む。無ければ開発ブランチ
 */
 export function readBaseRecordAt(toplevel: string): BaseReading {
   return interpretBaseRecord(readFlagFile(path.join(toplevel, STATE_DIR, FLAG_PECOT_BASE)))
+}
+
+/**
+片付けを終えた PR の記録（.pecot-merged）を読む。無ければ空
+*/
+export function readMergedRecord(): IssueReference[] {
+  return interpretMergedRecord(readFlag(FLAG_PECOT_MERGED))
+}
+
+/**
+片付けを終えた PR を .pecot-merged に足す
+*/
+export function appendMergedRecord(pullRequest: IssueReference): void {
+  writeFlag(FLAG_PECOT_MERGED, formatMergedRecord([...readMergedRecord(), pullRequest]))
+}
+
+/**
+.pecot-merged から PR を除く。残りが無ければファイルを消す
+*/
+export function removeMergedRecords(pullRequests: readonly IssueReference[]): void {
+  const removed = new Set(pullRequests.map(reference => issueReferenceToString(reference)))
+  const rest = readMergedRecord().filter(reference => !removed.has(issueReferenceToString(reference)))
+  if (rest.length === 0) removeFlag(FLAG_PECOT_MERGED)
+  else writeFlag(FLAG_PECOT_MERGED, formatMergedRecord(rest))
+}
+
+/**
+.pecot-session-title の Issue の番号。無いか読めなければ undefined
+*/
+export function readSessionTitleNumber(): number | undefined {
+  return sessionTitleNumber(readFlag(FLAG_PECOT_SESSION_TITLE))
 }
 
 /**

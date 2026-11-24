@@ -44,6 +44,7 @@ const EXPECTED_SKILLS = [
   ...['v-drawio', 'v-evidence', 'v-slidev'].map(name => `pecot-visual/${name}`),
 ]
 const EXPECTED_ARGUMENT_HINTS = {
+  'w-active': '[Issue]',
   'w-backlog': '[Epic の内容]',
   'w-quick': '[タスクの内容]',
   'w-worktree-remove': '[WT 名]',

@@ -5,6 +5,7 @@ description: |
   Use when the user has an Epic and wants to break it down via the speckit workflow (specify → clarify → plan → tasks). Files a breakdown task under the Epic, works on its linked branch, and runs the speckit workflow (specify → clarify → plan → tasks), committing and pushing each approved step.
   Do NOT use for simple subtask creation (use w-ready), batch conversion (use w-issueize), or new Epics (use w-backlog).
 when_to_use: "Epic をサブタスクに分解したい、speckit で計画を立てたい"
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__issue_comment
 ---
 
 # Epic分解：speckit 工程の逐次実行
@@ -76,6 +77,11 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 ブランチは、pecot-workflow の MCP ツール `session_start` で作る。`issue_ref` はタスクの `owner/repo/N`、`branch` は `feat/breakdown-<英語の短い名前>` にする。
 `base` は渡さない。`session_start` が、タスクを Active に移す。
 ツールが止まったら、エラーの案内を利用者に示して止まる。
+
+`session_start` の結果に `leftovers` があれば、前にマージされた PR の後片付けが残っている。checkout の前に、PR ごとに [マージされた後の片付け](references/after-merge.md) に従って済ませる。
+
+- `cleanup` が真なら、片付けの節から行う。手元が wt ブランチに戻る
+- `cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う
 
 checkout の前に、`git status --porcelain` が空であることを確かめる。空でなければ、commit・stash・破棄のどれにするかを利用者に確かめる。
 
