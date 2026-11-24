@@ -1,12 +1,12 @@
 # マージされた後の片付け
 
-PR がマージされた後に、GitHub 側と手元を片付け、Epic と後続の Issue にコメントを書く手順。
+PR がマージされた後に、GitHub 側と手元を片付ける手順。Epic と後続の Issue へのコメントは、セッションでは書かない。引き継ぎのワークフロー（`pecot-handoff.yml`）が書く。
 
 次の場面で使う。どのスキルも、同じ中身の写しを自分の `references/after-merge.md` に持つ。
 
 - w-pr の Step 6 で、待ち受けが `MERGED` を受けたとき
 - w-merge でマージしたとき
-- w-active・w-quick・w-breakdown で、`session_start` の結果に `leftovers` があったとき。前の PR の後片付けが残っている
+- w-active・w-quick・w-breakdown で、`session_start` の結果に `leftovers` があったとき。前の PR の手元の片付けが残っている
 
 ## 片付け
 
@@ -16,29 +16,6 @@ pecot-workflow の MCP ツール `session_finish` を使って、マージ後の
 
 結果に判定の変化（`readinessChanges`）があれば、着手できるようになった Issue を利用者に伝える。
 子ブランチ（`restack`）があれば、そのブランチの作業ディレクトリでスタックし直しが要ることを利用者に伝える。ほかの作業ディレクトリには入らない。
-
-## Epic への merge-diff
-
-PR が閉じた Issue に親 Epic があるときだけ行う。親 Epic は、pecot-workflow の MCP ツール `issue_show` で確かめる。
-
-PR が閉じた Issue は、片付けの結果の `closedIssues` の Issue と、`skippedIssues` の `already-closed` の Issue。
-`already-closed` の Issue は、`pr_show` で読む PR の closing issues にあるものだけを数える。
-
-`session_start` の `leftovers` から来たときは、書く先を、その PR の `mergeDiff` の Epic にする。`mergeDiff` が空なら、この節は飛ばす。
-
-1. マージした PR の変更と、Issue の本文の計画を比べる
-2. pecot-workflow の MCP サーバの resource `pecot-template://comment/merge-diff` を読み、Epic 宛てのファイルを作る。frontmatter の `pr_ref` には、マージした PR を `owner/repo/N` で書く
-3. テンプレのガイドに従って本文を書き、`issue_comment` を使って Epic に投稿する
-
-計画どおりで差分が無いときも、その旨を投稿する。変更ファイルの一覧は本文に書かない。
-
-## 後続への precede-notify
-
-speckit 由来のタスクで、後続のフェーズに影響する変更があるときだけ行う。speckit 由来とは、Issue の本文か、親 Epic のほかのサブタスクが `specs/`・`.specify/` に触れているものを指す。
-
-1. 通知する Issue を選ぶ。片付けの結果に判定の変化（`readinessChanges`）があれば、その Issue を選ぶ。無ければ、`issue_show` を使って親 Epic を読み、現在のタスク以外の OPEN のサブタスクを選ぶ
-2. `issue_comment` を使って、その Issue 宛ての precede-notify テンプレのファイルを作る
-3. テンプレのガイドに従って本文を書き、`issue_comment` を使って投稿する
 
 ## ワークツリー環境での手作業
 

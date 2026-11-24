@@ -346,6 +346,57 @@ describe('w-pr の手順', () => {
   })
 })
 
+describe('w-handoff の手順', () => {
+  const text = readSkill('w-handoff')
+  const headings = stepHeadings(text)
+
+  it('Step は 1〜3 で、PR と Issue を読む・merge-diff・precede-notify の順に並ぶ', () => {
+    expect(headings.map(heading => heading.number)).toEqual([1, 2, 3])
+    expect(headings[1]?.title).toContain('merge-diff')
+    expect(headings[2]?.title).toContain('precede-notify')
+  })
+
+  it('frontmatter に allowed-tools を持たず、手元のセッションでは使わないと書く', () => {
+    const frontmatter = text.slice(0, text.indexOf('\n---', 4))
+    expect(frontmatter).not.toContain('allowed-tools')
+    expect(frontmatter).toContain('when_to_use:')
+    expect(frontmatter).toContain('Not for a local session.')
+  })
+
+  it('Step 1 の前に、引数の project を pecot-workflow の MCP ツールへ渡す文がある', () => {
+    const lines = text.split('\n')
+    const preamble = lines.slice(lines.indexOf('## 手順'), headings[0]?.line).join('\n')
+    expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
+    expect(preamble).toContain('渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。')
+  })
+
+  it('Step 1 は、閉じた Issue を closing issues とブランチ名の番号から求め、親 Epic が無ければ何も書かずに終える', () => {
+    const body = sectionBody(text, numberIndex(headings, 1))
+    for (const phrase of ['`pr_show`', '`closing_issues`', '`head_ref`', '`/<番号>`', '`issue_show`', '`parent`', '何も投稿せずに終える']) expect(body).toContain(phrase)
+    expect(body).not.toContain('session_finish')
+  })
+
+  it('Step 2 は、diff と計画のコメントを比べ、テンプレートのガイドで書いた本文を message と template で Epic に投稿する', () => {
+    const body = sectionBody(text, numberIndex(headings, 2))
+    for (const phrase of ['`gh pr diff', '`## Plan` と `## PECOT-Workflow`', '`pecot-template://comment/merge-diff`', '`template: "merge-diff"`', '`message`', '計画どおりで違いが無いときも、その旨を投稿する。']) {
+      expect(body).toContain(phrase)
+    }
+  })
+
+  it('Step 3 は、speckit 由来のときだけ、閉じた Issue を blocked by に持つ OPEN のサブタスクを先に選んで precede-notify を投稿する', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    for (const phrase of ['speckit 由来のタスク', '`specs/`・`.specify/`', '`sub_issues`', '`blockedBy`', '`pecot-template://comment/precede-notify`', '`template: "precede-notify"`']) {
+      expect(body).toContain(phrase)
+    }
+    expect(body).not.toContain('readinessChanges')
+  })
+
+  it('ファイルを書き換えず、Issue を閉じず、ブランチも消さない', () => {
+    for (const word of ['session_finish', 'branch_delete', 'Write', 'AskUserQuestion']) expect(text).not.toContain(word)
+    expect(text).toContain('ファイルを書き換えず、Issue を閉じず、ブランチも消さない。')
+  })
+})
+
 describe('マージされた後の片付け', () => {
   const link = 'references/after-merge.md'
   const text = readPluginFile(`skills/w-pr/${link}`)
@@ -359,29 +410,28 @@ describe('マージされた後の片付け', () => {
     expect(readPluginFile(`skills/${skill}/${link}`)).toBe(text)
   })
 
-  it('session_finish でリモートブランチも消し、Epic に merge-diff、後続に precede-notify を投稿させる', () => {
+  it('session_finish でリモートブランチも消し、Epic と後続へのコメントは書かせず、引き継ぎのワークフローに任せる', () => {
     expect(text).toContain('`session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。')
-    expect(text).toContain('## Epic への merge-diff')
-    expect(text).toContain('## 後続への precede-notify')
+    expect(text).toContain('Epic と後続の Issue へのコメントは、セッションでは書かない。引き継ぎのワークフロー（`pecot-handoff.yml`）が書く。')
+    for (const word of ['merge-diff', 'precede-notify', 'issue_comment', 'mergeDiff', '`cleanup`', 'frontmatter の `pr_ref`']) expect(text).not.toContain(word)
   })
 
-  it('w-merge は、片付けの手順を自分で持たない', () => {
+  it('w-merge と w-pr は、片付けの手順を自分で持たず、Epic と後続へのコメントを書かせない', () => {
     const merge = readSkill('w-merge')
     expect(merge).not.toContain('session_finish')
-    expect(merge).not.toContain('merge-diff')
+    for (const skill of ['w-merge', 'w-pr']) {
+      const body = readSkill(skill)
+      for (const word of ['merge-diff', 'precede-notify', 'Epic・後続へのコメント']) expect(body, `${skill} が ${word} を書かせる`).not.toContain(word)
+    }
   })
 
-  it('merge-diff は、マージした PR を pr_ref に書かせ、leftovers から来たときは mergeDiff の Epic に書かせる', () => {
-    expect(text).toContain('frontmatter の `pr_ref` には、マージした PR を `owner/repo/N` で書く')
-    expect(text).toContain('その PR の `mergeDiff` の Epic にする')
-  })
-
-  it.for(['w-active', 'w-quick', 'w-breakdown'])('%s は、session_start の leftovers を、ブランチの切り替えの前に片付けさせる', (skill) => {
+  it.for(['w-active', 'w-quick', 'w-breakdown'])('%s は、session_start の leftovers を、ブランチの切り替えの前に PR ごとの片付けの節で済ませる', (skill) => {
     const body = readSkill(skill)
     const leftovers = body.indexOf('`session_start` の結果に `leftovers` があれば')
     expect(leftovers).toBeGreaterThan(body.indexOf('`session_start` を使って'))
     expect(leftovers).toBeLessThan(body.indexOf('git checkout'))
-    expect(body).toContain('`cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う')
+    expect(body).toContain('PR ごとに [マージされた後の片付け](references/after-merge.md) の「片付け」の節を行う。')
+    for (const word of ['`cleanup`', 'merge-diff']) expect(body).not.toContain(word)
   })
 
   it('w-active は、session_start の前に git pull を打たず、ブランチ作成・取りこぼし・切り替えの順に並べる', () => {

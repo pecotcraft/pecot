@@ -22,7 +22,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestForFinish } from '../infra/github/pulls.js'
 import { isFileNotFound } from '../infra/os-error.js'
-import { appendMergedRecord, readSessionTitleNumber, removeFlag } from '../infra/state-store.js'
+import { readSessionTitleNumber, removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
 import type { BoardContext } from './board-judgment.js'
 import { commandHint, hinted, RUN } from './command-hint.js'
@@ -104,7 +104,7 @@ async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, locat
 }
 
 // GitHub はキーワードを既定ブランチ宛ての PR でだけ解釈するので、そのときは closing issues だけを使う
-export function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
+function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
   const numbers = new Set<number>(pr.closing_issues.filter(issue => isSameRepository(issue, location)).map(issue => issue.number))
   if (pr.base_ref !== pr.default_branch) {
     for (const number of extractClosingIssueNumbers(pr.body, location)) numbers.add(number)
@@ -391,16 +391,6 @@ function removeActiveFlags(out: Readonly<Output>, issueNumbers: ReadonlySet<numb
   }
 }
 
-// 次の session start が、この PR の merge-diff があるかを確かめるために残す
-function recordMergedPullRequest(out: Readonly<Output>, pullRequest: IssueReference): void {
-  try {
-    appendMergedRecord(pullRequest)
-  }
-  catch (error: unknown) {
-    out.warning(`recording the merged PR failed: ${reasonOf(error)}`)
-  }
-}
-
 const FinishInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
   dry_run: z.boolean().default(false).describe('Dry-run (do not actually clean up)'),
@@ -437,7 +427,6 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   await closeRelatedIssues(context, client, location, issues)
   await updateWaitingIssues(context, { client, config, location, pullRequest: mergedPullRequestOf(location, reference.number, pr) })
   if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
-  if (!input.dry_run) recordMergedPullRequest(out, createIssueReference(location, reference.number))
   if (input.skip_local_cleanup) return
   await localCleanupAfterMerge(context, pr.head_ref, config, location)
   if (input.dry_run) {

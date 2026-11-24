@@ -9,7 +9,7 @@ import { templateFile } from '../../src/infra/template-store.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
-import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, markedMergeDiff, MERGE_DIFF_BODY, MERGE_DIFF_MARKER, MERGE_DIFF_PR, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
+import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, MERGE_DIFF_BODY, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
@@ -17,7 +17,7 @@ import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-const POSTED_BODY = markedMergeDiff(MERGE_DIFF_BODY.trim())
+const POSTED_BODY = MERGE_DIFF_BODY.trim()
 
 async function comment(...argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
   return await runInProcess(['issue', 'comment', ...argv], ISSUE_COMMENT_COMMANDS)
@@ -25,12 +25,6 @@ async function comment(...argv: readonly string[]): Promise<Awaited<ReturnType<t
 
 async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
   return await callToolOnce(ISSUE_COMMENT_COMMANDS, 'issue_comment', argumentsOfTool)
-}
-
-// プロジェクトを用意して、message で直接投稿する
-async function directTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  setUpProject()
-  return await commentTool({ message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', ...argumentsOfTool })
 }
 
 describe('issue comment', () => {
@@ -51,10 +45,10 @@ describe('issue comment', () => {
     setUpProject()
     const github = await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
+    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
-    expect(github.requests()).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/comments', body: { body: markedMergeDiff(MERGE_DIFF_BODY) } }])
+    expect(github.requests()).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/comments', body: { body: MERGE_DIFF_BODY } }])
   })
 
   it.for([
@@ -142,7 +136,7 @@ describe('issue comment', () => {
     setUpProject()
     const github = await startGithub([])
 
-    const result = await comment('-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', message, '--issue-ref', 'acme/demo/7')
+    const result = await comment('-t', 'merge-diff', '-m', message, '--issue-ref', 'acme/demo/7')
 
     expect(result.code).toBe(3)
     expect(result.stderr.split('\n').some(entry => entry.startsWith(line))).toBe(true)
@@ -166,7 +160,7 @@ describe('issue comment', () => {
   it('-m で --issue-ref を渡していないとき、終了コード 1 で終わる', async () => {
     setUpProject()
 
-    const result = await comment('-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY)
+    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY)
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --issue-ref (Issue reference) is required with --message\n' })
   })
@@ -222,7 +216,7 @@ describe('issue comment', () => {
 
   it.for([
     { name: 'ファイルを渡した', argv: (file: string): string[] => [file] },
-    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
+    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
   ])('対象のリポを含む設定が 2 つあり .active も選べない（$name）とき、候補と --project の案内を出して終了コード 1 で終わる', async ({ argv }) => {
     const { file, ...project } = setUpCommentProject()
     makeAmbiguous(project)
@@ -236,7 +230,7 @@ describe('issue comment', () => {
 
   it.for([
     { name: 'ファイルを渡した', argv: (file: string): string[] => [file] },
-    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
+    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
   ])('対象のリポを含む設定が無い（$name）とき、error を出して終了コード 1 で終わる', async ({ argv }) => {
     const repository = enterGitRepository({ 'note.md': commentFileContent() })
     setUpProject({ repositories: ['other'] })
@@ -250,7 +244,7 @@ describe('issue comment', () => {
     makeAmbiguous(setUpProject())
     await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7', '--project', SECOND_PROJECT)
+    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7', '--project', SECOND_PROJECT)
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
   })
@@ -270,7 +264,7 @@ describe('issue comment', () => {
     removeActive(setUpProject())
     await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
+    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
   })
@@ -297,7 +291,7 @@ describe('issue comment', () => {
     ])
 
     const updated = await comment(file)
-    const direct = await comment('-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
+    const direct = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
 
     expect(updated.code).toBe(1)
     expect(updated.stderr).toContain('error: could not update the comment on Issue acme/demo/7: ')
@@ -307,7 +301,7 @@ describe('issue comment', () => {
 
   it.for([
     { name: 'ファイルの issue_ref', argv: (file: string): string[] => [file], issueRef: 'invalid-format' },
-    { name: '--issue-ref', argv: (): string[] => ['-t', 'merge-diff', '--pr-ref', 'acme/demo/12', '-m', MERGE_DIFF_BODY, '--issue-ref', 'invalid-format'], issueRef: 'acme/demo/7' },
+    { name: '--issue-ref', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'invalid-format'], issueRef: 'acme/demo/7' },
   ])('Issue の参照の形が誤っている（$name）とき、終了コード 2 で終わる', async ({ argv, issueRef }) => {
     const { file } = setUpCommentProject({ issueRef })
     const github = await startGithub([])
@@ -406,10 +400,10 @@ describe('issue comment', () => {
       setUpProject()
       const github = await startGithub([postedComment(COMMENT_URL)])
 
-      const outcome = await commentTool({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' })
+      const outcome = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' })
 
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', change: 'created', commentUrl: COMMENT_URL })
-      expect(github.requests()).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/comments', body: { body: markedMergeDiff(MERGE_DIFF_BODY) } }])
+      expect(github.requests()).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/comments', body: { body: MERGE_DIFF_BODY } }])
     })
 
     it('file と message を一緒に渡すと、message の本文を使わずにファイルを投稿する', async (context) => {
@@ -447,7 +441,7 @@ describe('issue comment', () => {
       setUpProject()
       const github = await startGithub([])
 
-      const outcome = await commentTool({ template: 'merge-diff', pr_ref: 'acme/demo/12', message, issue_ref: 'acme/demo/7' })
+      const outcome = await commentTool({ template: 'merge-diff', message, issue_ref: 'acme/demo/7' })
 
       expect(outcome.isError).toBe(true)
       expect(outcome.structured['kind']).toBe('content-invalid')
@@ -469,7 +463,7 @@ describe('issue comment', () => {
       await verifies(context, 'PW-ISSUE-COMMENT-20')
       setUpProject()
 
-      const outcome = await commentTool({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY })
+      const outcome = await commentTool({ template: 'merge-diff', message: MERGE_DIFF_BODY })
 
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toEqual({ kind: 'invalid-input', detail: 'issue_ref (Issue reference) is required with message' })
@@ -518,7 +512,7 @@ describe('issue comment', () => {
 
     it.for([
       { name: 'file を渡した', arguments_: (file: string): Record<string, unknown> => ({ file }) },
-      { name: 'message を渡した', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }) },
+      { name: 'message を渡した', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }) },
     ])('対象のリポを含む設定が 2 つあり .active も選べない（$name）とき、kind が no-active-project の失敗に候補と project の案内を入れる', async (row, context) => {
       await verifies(context, 'PW-ISSUE-COMMENT-25')
       const { file, ...project } = setUpCommentProject()
@@ -534,7 +528,7 @@ describe('issue comment', () => {
 
     it.for([
       { name: 'file を渡した', arguments_: (file: string): Record<string, unknown> => ({ file }) },
-      { name: 'message を渡した', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }) },
+      { name: 'message を渡した', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }) },
     ])('対象のリポを含む設定が無い（$name）とき、kind が repo-not-in-project の失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-COMMENT-31')
       const repository = enterGitRepository({ 'note.md': commentFileContent() })
@@ -547,7 +541,7 @@ describe('issue comment', () => {
     })
 
     it.for([
-      { name: 'message', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }), rules: (): ResponseRule[] => [postedComment(COMMENT_URL)] },
+      { name: 'message', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }), rules: (): ResponseRule[] => [postedComment(COMMENT_URL)] },
       { name: 'file', arguments_: (file: string): Record<string, unknown> => ({ file }), rules: (): ResponseRule[] => [linkedRepositories(), postedComment(COMMENT_URL)] },
     ])('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で $name の投稿をする', async (row, context) => {
       await verifies(context, 'PW-ISSUE-COMMENT-32')
@@ -564,7 +558,7 @@ describe('issue comment', () => {
     it.for([
       { name: 'ファイルの投稿で HTTP 500 が返った', rules: (): ResponseRule[] => [linkedRepositories(), failedPost(500)], arguments_: (file: string): Record<string, unknown> => ({ file }), kind: 'github-api', detail: 'could not create a comment on Issue acme/demo/7: ' },
       { name: 'ファイルの投稿で HTTP 404 が返った', rules: (): ResponseRule[] => [linkedRepositories(), failedPost(404)], arguments_: (file: string): Record<string, unknown> => ({ file }), kind: 'github-not-found', detail: 'could not create a comment on Issue acme/demo/7: ' },
-      { name: 'message の投稿で HTTP 500 が返った', rules: (): ResponseRule[] => [failedPost(500)], arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }), kind: 'github-api', detail: 'could not create a comment on Issue acme/demo/7: ' },
+      { name: 'message の投稿で HTTP 500 が返った', rules: (): ResponseRule[] => [failedPost(500)], arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }), kind: 'github-api', detail: 'could not create a comment on Issue acme/demo/7: ' },
     ])('$name とき、失敗を返し、ファイルを書き換えない', async (row, context) => {
       await verifies(context, 'PW-ISSUE-COMMENT-26')
       const { file } = setUpCommentProject()
@@ -592,7 +586,7 @@ describe('issue comment', () => {
 
     it.for([
       { name: 'ファイルの issue_ref', arguments_: (file: string): Record<string, unknown> => ({ file }), issueRef: 'invalid-format' },
-      { name: '引数の issue_ref', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', pr_ref: 'acme/demo/12', message: MERGE_DIFF_BODY, issue_ref: 'invalid-format' }), issueRef: 'acme/demo/7' },
+      { name: '引数の issue_ref', arguments_: (): Record<string, unknown> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'invalid-format' }), issueRef: 'acme/demo/7' },
     ])('Issue の参照の形が誤っている（$name）とき、kind が invalid-input の失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-COMMENT-27')
       const { file } = setUpCommentProject({ issueRef: row.issueRef })
@@ -603,60 +597,6 @@ describe('issue comment', () => {
       expect(outcome.isError).toBe(true)
       expect(outcome.structured['kind']).toBe('invalid-input')
       expect(outcome.structured['detail']).toMatch(/^invalid reference: invalid-format\n/u)
-      expect(github.requests()).toEqual([])
-    })
-  })
-
-  describe('merge-diff の印', () => {
-    it('merge-diff をファイルから投稿すると、本文の先頭に pr_ref の PR の印を付ける', async (context) => {
-      await verifies(context, 'PW-ISSUE-COMMENT-33')
-      const { file } = setUpCommentProject()
-      const github = await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
-
-      const result = await comment(file)
-
-      expect(result.code).toBe(0)
-      expect(github.requests()).toMatchObject([{ type: 'graphql' }, { type: 'rest', method: 'POST', body: { body: `${MERGE_DIFF_MARKER}\n\n${MERGE_DIFF_BODY.trim()}` } }])
-    })
-
-    it('印のある merge-diff を comment_url で書き換えると、前の印を除いて印を 1 つだけ付ける', async (context) => {
-      await verifies(context, 'PW-ISSUE-COMMENT-33')
-      const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
-      const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`], body: `<!-- pecot-merge-diff: pr=acme/demo#99 -->\n\n${MERGE_DIFF_BODY}` })
-      const github = await startGithub([linkedRepositories(), updatedComment(456, url)])
-
-      const result = await comment(file)
-
-      expect(result.code).toBe(0)
-      expect(github.requests()).toMatchObject([{ type: 'graphql' }, { type: 'rest', method: 'PATCH', body: { body: POSTED_BODY } }])
-    })
-
-    it.for([
-      { name: 'ファイルの frontmatter', run: async (): Promise<ToolOutcome> => await commentTool({ file: setUpCommentProject({ pullRequest: false }).file }), detail: 'the merge-diff template needs pr_ref in the frontmatter: the merged PR (owner/repo/N)' },
-      { name: 'message の入力', run: async (): Promise<ToolOutcome> => await directTool({ template: 'merge-diff' }), detail: 'the merge-diff template needs pr_ref in the input: the merged PR (owner/repo/N)' },
-    ])('merge-diff の $name に pr_ref が無いと、投稿せずに content-invalid の失敗を返す', async ({ run, detail }, context) => {
-      await verifies(context, 'PW-ISSUE-COMMENT-34')
-      const github = await startGithub([])
-
-      const outcome = await run()
-
-      expect(outcome.isError).toBe(true)
-      expect(outcome.structured).toEqual({ kind: 'content-invalid', detail })
-      expect(github.requests()).toEqual([])
-    })
-
-    it.for([
-      { name: 'merge-diff 以外のテンプレのファイル', run: async (): Promise<ToolOutcome> => await commentTool({ file: setUpCommentProject({ template: 'plan', pullRequest: MERGE_DIFF_PR }).file }), detail: 'pr_ref is only for the merge-diff template; remove it from the frontmatter' },
-      { name: 'merge-diff 以外のテンプレの message', run: async (): Promise<ToolOutcome> => await directTool({ template: 'plan', pr_ref: MERGE_DIFF_PR }), detail: 'pr_ref is only for the merge-diff template; remove it from the input' },
-      { name: 'file と一緒の入力', run: async (): Promise<ToolOutcome> => await commentTool({ file: setUpCommentProject().file, pr_ref: MERGE_DIFF_PR }), detail: 'with file, write pr_ref in the frontmatter of the file' },
-    ])('$name に pr_ref を渡すと、投稿せずに invalid-input の失敗を返す', async ({ run, detail }, context) => {
-      await verifies(context, 'PW-ISSUE-COMMENT-35')
-      const github = await startGithub([])
-
-      const outcome = await run()
-
-      expect(outcome.isError).toBe(true)
-      expect(outcome.structured).toEqual({ kind: 'invalid-input', detail })
       expect(github.requests()).toEqual([])
     })
   })

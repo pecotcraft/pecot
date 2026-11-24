@@ -1639,10 +1639,6 @@
             "type": "string",
             "description": "Comment body"
           },
-          "pr_ref": {
-            "type": "string",
-            "description": "Merged PR the merge-diff comment is about (owner/repo/N or N; required with `message` and template merge-diff, and only for it)"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
@@ -1678,9 +1674,6 @@
           "message": [
             "--message",
             "-m"
-          ],
-          "pr_ref": [
-            "--pr-ref"
           ],
           "project": [
             "--project"
@@ -6868,31 +6861,18 @@
               "type": "string"
             },
             "leftovers": {
-              "description": "Follow-up of earlier merged PRs left undone (omitted when there is none)",
+              "description": "Earlier merged PRs whose local cleanup is left undone (omitted when there is none)",
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "pullRequest": {
                     "type": "string",
-                    "description": "Merged PR whose follow-up is left (owner/repo/N)"
-                  },
-                  "cleanup": {
-                    "type": "boolean",
-                    "description": "Whether the local cleanup with session finish is left (the current branch is the merged branch)"
-                  },
-                  "mergeDiff": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Parent Epics with no merge-diff comment for the PR (owner/repo/N)"
+                    "description": "Merged PR of the current branch whose local cleanup with session finish is left (owner/repo/N)"
                   }
                 },
                 "required": [
-                  "pullRequest",
-                  "cleanup",
-                  "mergeDiff"
+                  "pullRequest"
                 ],
                 "additionalProperties": false
               }
@@ -7149,7 +7129,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the workflow template (review)"
+            "description": "Name of the workflow template (review, handoff)"
           }
         },
         "required": [
@@ -7284,7 +7264,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the workflow template (review)"
+            "description": "Name of the workflow template (review, handoff)"
           }
         },
         "required": [

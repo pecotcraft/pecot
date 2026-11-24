@@ -1435,8 +1435,6 @@ entries:
         - After posting from a file, writes the URL of the new comment back to comment_url in that file.
         - comment_url must point to a comment on the Issue named by issue_ref.
         - With a file, a repository that is not in the project gives a warning and the comment is still posted.
-        - "With the merge-diff template, the merged PR is required as pr_ref: in the front matter of a file, or as --pr-ref with -m. The hidden marker <!-- pecot-merge-diff: pr=owner/repo#N --> is put at the top of the body, replacing an earlier marker, so that pecot session start can find the merge-diff of the PR."
-        - pr_ref is refused with any other template, and --pr-ref is refused with a file.
         - With --dry-run, validates the input and prints dry-run lines instead of posting the comment or writing comment_url back.
         - --project names the project config to use. Without it, the config that includes the repository of the Issue is used; when several do, the active one among them.
       examples:
@@ -1447,13 +1445,11 @@ entries:
       default_notes:
         issue_ref: No default. Required with -m; with a file, issue_ref comes from the front matter. The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
         template: No default. Required with -m; with a file, the template comes from the front matter.
-        pr_ref: No default. Required with -m and -t merge-diff, and refused otherwise; with a file, pr_ref comes from the front matter. The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
     summary: Issue にコメントを投稿します。
     arguments:
       file: 'フロントマター付きの Markdown ファイルのパスです。'
       issue_ref: 'Issue の参照です。`owner/repo/123` の形で渡します。'
       message: 'コメントの本文です。'
-      pr_ref: 'merge-diff のコメントが扱う、マージした PR の参照です。`owner/repo/N` の形で渡します。`message` と `template` の `merge-diff` のときに要り、そのときだけ渡せます。'
       template: '`message` の本文を確かめるテンプレートの種類です。`plan`・`merge-diff`・`review-findings`・`review-resolution`・`precede-notify` のどれかを渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
     constraints:
@@ -1469,8 +1465,6 @@ entries:
       - 'ファイルから投稿した後、新しいコメントの URL をそのファイルの `comment_url` に書き戻します。'
       - '`comment_url` は、`issue_ref` の Issue のコメントを指していなければなりません。'
       - '`file` では、リポジトリがプロジェクトに無いと `warnings` に入れますが、コメントは投稿します。'
-      - 'テンプレートが `merge-diff` のときは、マージした PR の参照が要ります。`file` ではフロントマターの `pr_ref` に、`message` では引数 `pr_ref` に書きます。本文の先頭に、隠した印 `<!-- pecot-merge-diff: pr=owner/repo#N -->` を付けます。前の印があれば置き換えます。後の `session_start` が、この印で PR の merge-diff を探します。'
-      - 'ほかのテンプレートでは `pr_ref` を受け付けません。`file` と一緒の引数 `pr_ref` も受け付けません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
@@ -1496,10 +1490,10 @@ entries:
         when: '`project` の名前の設定がありません。'
       - kind: invalid-input
         code: 1
-        when: 'モードの引数がありません。`message` に `template` が無いとき、`message` に `issue_ref` が無いときも含みます。`merge-diff` 以外のテンプレートに `pr_ref` があるときと、`file` と一緒に引数 `pr_ref` を渡したときも含みます。'
+        when: 'モードの引数がありません。`message` に `template` が無いとき、`message` に `issue_ref` が無いときも含みます。'
       - kind: content-invalid
         code: 1
-        when: 'フロントマターを読めないか、フロントマターに `template` がありません。`merge-diff` のテンプレートで `pr_ref` の無いときも含みます。'
+        when: 'フロントマターを読めないか、フロントマターに `template` がありません。'
       - kind: invalid-input
         code: 1
         when: '`comment_url` の形が誤っているか、別のホストか別の Issue を指しています。'
@@ -1558,7 +1552,6 @@ entries:
     default_notes:
       issue_ref: '省くと、値はありません。`message` では必須です。`file` では、フロントマターの `issue_ref` を使います。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
       template: '省くと、値はありません。`message` では必須です。`file` では、フロントマターのテンプレートを使います。'
-      pr_ref: '省くと、値はありません。`message` と `template` の `merge-diff` では必須です。`file` では、フロントマターの `pr_ref` を使います。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
     behaviors:
       - id: PW-ISSUE-COMMENT-03
         pattern: event
@@ -1641,15 +1634,6 @@ entries:
       - id: PW-ISSUE-COMMENT-32
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-      - id: PW-ISSUE-COMMENT-33
-        pattern: event
-        statement: 'merge-diff のテンプレートで投稿すると、本文の先頭に `pr_ref` の PR の印 `<!-- pecot-merge-diff: pr=owner/repo#N -->` を付けます。前の印があれば除いて、印を 1 つだけにします'
-      - id: PW-ISSUE-COMMENT-34
-        pattern: unwanted
-        statement: 'もし merge-diff のテンプレートで `pr_ref` が無いなら、投稿せず、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-35
-        pattern: unwanted
-        statement: 'もし merge-diff 以外のテンプレートか、`file` と一緒の引数で `pr_ref` を渡したなら、投稿せず、`kind` が `invalid-input` の失敗を返します'
   PW-ISSUE-CREATE:
     help:
       details:
@@ -6319,7 +6303,6 @@ entries:
         - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
         - After the local cleanup, removes the flags .pecot-base and .pecot-session-title under .pecot/state/, but only when .pecot-session-title names an Issue of the PR (or names no Issue); when it names another Issue, the flags are kept and a skipped line says so. Leftover .pecot-quick-mode and .pecot-active from older versions are not touched.
         - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
-        - Appends the merged PR as owner/repo#N to .pecot/state/.pecot-merged, also with --skip-local-cleanup, so that pecot session start can check later that the parent Epic got a merge-diff.
         - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
         - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
         - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
@@ -6354,7 +6337,6 @@ entries:
       - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title` です。古い版の `.pecot-quick-mode`・`.pecot-active` が残っていても触れません。'
       - 'フラグを消すのは、`.pecot-session-title` の番号が PR の Issue のときと、番号が無いときだけです。ほかの Issue の番号なら、次の Issue の記録なので消さず、`skipped` の行で知らせます。'
       - '`skip_local_cleanup` を付けると、ローカルを片付けず、これらのフラグも残します。'
-      - 'マージ済みの PR を、`.pecot/state/.pecot-merged` に `owner/repo#N` の 1 行で書き足します。`skip_local_cleanup` を付けても書きます。後の `session_start` が、親 Epic の merge-diff を確かめるために読みます。'
       - '2 回目の実行の後の状態は 1 回目と同じですが、結果は違います。リモートブランチは `deletedBranches` に入らず、ローカルのブランチへの `git branch -D` は `warnings` に入ります。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
@@ -6428,7 +6410,7 @@ entries:
         what: '開発ブランチか、記録した `wtN`（記録が無ければ親ディレクトリの名前）のブランチを checkout して pull します。ローカルの head ブランチを `git branch -D` で削除します。'
       - target: file
         kind: write
-        what: '`.pecot/state/` の下のフラグを消します。`.pecot/state/.pecot-merged` に、マージ済みの PR を書き足します。'
+        what: '`.pecot/state/` の下のフラグを消します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -6566,9 +6548,6 @@ entries:
       - id: PW-SESSION-FINISH-44
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-      - id: PW-SESSION-FINISH-45
-        pattern: event
-        statement: 'マージ済みの PR を片付けると、`skip_local_cleanup` の有無にかかわらず、その PR を `.pecot/state/.pecot-merged` に書き足します。CLI で `--dry-run` を付けて打つと書きません'
       - id: PW-SESSION-FINISH-46
         pattern: unwanted
         statement: 'もし `.pecot-session-title` の番号が PR の Issue でないなら、`.pecot-base` と `.pecot-session-title` を消さずに残します'
@@ -6790,11 +6769,9 @@ entries:
         - The fix is one unblock line for each unfinished prerequisite, and one line to stack on it for each prerequisite that waits for merge, each with the reference of that Issue.
         - When the branch of the PR to stack on is gone after the readiness is decided, the command writes an error line with the name of the branch and the Issue, and stops.
         - --base is compared with the base chosen by readiness only when the readiness is stackable, and a different --base stops the command.
-        - Before the branch is created, checks the follow-up of earlier merged PRs, and writes a warning line only when something is left; the check never stops the command.
+        - Before the branch is created, checks whether the local cleanup of an earlier merged PR is left, and writes a warning line only when it is; the check never stops the command.
         - When the current branch ends in /<N> and its PR in the repository of the Issue is merged with no open PR, the local cleanup is left; the warning shows the pecot session finish command to run.
-        - The PRs in .pecot/state/.pecot-merged, written by pecot session finish, and the PR of an uncleaned current branch are checked for a merge-diff on each parent Epic of their closing Issues; a parent Epic is missing it when none of its comments has the hidden marker of that PR, and a warning line is written for each.
-        - After the branch is created, the PRs whose merge-diff was found or not needed are removed from .pecot/state/.pecot-merged, so the warning repeats until the merge-diff is posted.
-        - A failure to read the PR or the comments is written as a warning line, and that PR stays recorded.
+        - A failure to read the PR of the current branch is written as a warning line.
         - When the GitHub Enterprise Server does not support issue dependencies, the readiness is not read, a warning line says so, and the branch starts as for an Issue without prerequisites.
         - After the branch is created, the Status of the Issue on the board is set to active.
         - A failure to set the Status does not stop the command.
@@ -6841,11 +6818,9 @@ entries:
       - '直し方は、済んでいない前提ごとの unblock の案内と、マージを待つ前提ごとの、スタックに切り替える案内です。どの案内にも、その Issue の参照を添えます。'
       - '判定が決まった後でスタック先の PR のブランチが無くなったときは、ブランチと Issue の名前を `detail` に入れて失敗を返します。'
       - '`base` を判定が選んだ分岐元と比べるのは、判定が `stackable` のときだけです。違う `base` を渡すと、失敗を返します。'
-      - 'ブランチを作る前に、前にマージされた PR の後片付けの取りこぼしを確かめます。取りこぼしがあるときだけ、`warnings` と `leftovers` に入れます。取りこぼしがあっても止めません。'
+      - 'ブランチを作る前に、前にマージされた PR の手元の後片付けの取りこぼしを確かめます。取りこぼしがあるときだけ、`warnings` と `leftovers` に入れます。取りこぼしがあっても止めません。'
       - '今のブランチの名前が `/<N>` で終わり、Issue のリポにあるそのブランチの PR がマージ済みで、開いた PR が無いときは、手元の片付けが残っています。`warnings` に、打つ `session_finish` を添えます。'
-      - '`session_finish` が `.pecot/state/.pecot-merged` に残した PR と、手元を片付けていない PR を確かめます。closing Issue の親 Epic ごとに、merge-diff があるかを見ます。親 Epic のコメントにその PR の隠した印が無ければ、merge-diff が漏れています。Epic ごとに `warnings` へ 1 つ入れます。'
-      - 'ブランチを作った後、merge-diff が見つかったか要らなかった PR を、`.pecot/state/.pecot-merged` から消します。merge-diff を投稿するまで、同じ警告が出続けます。'
-      - 'PR かコメントを読めなかったときは、`warnings` に入れ、その PR の記録を残します。'
+      - '今のブランチの PR を読めなかったときは、`warnings` に入れます。'
       - 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、判定を読まず、`warnings` で知らせます。ブランチは、前提の無い Issue と同じように分岐します。'
       - 'ブランチを作った後、ボード上の Issue の Status を `active` にします。'
       - 'Status の設定に失敗しても、成功を返します。'
@@ -6872,8 +6847,8 @@ entries:
         stackedOn: 'このブランチのスタック先の Issue の番号です。スタックしないときは入りません。'
         issue: '作業中の Issue です。`owner/repo/N` の形です。'
         workDirectory: '作業ディレクトリの絶対パスです。作れなかったときは入りません。'
-        leftovers: '後片付けの残っている、前にマージされた PR の配列です。要素は `pullRequest`・`cleanup`・`mergeDiff` を持ちます。`pullRequest` は、PR の `owner/repo/N` です。`cleanup` は、`session_finish` の手元の片付けが残っているかです。`mergeDiff` は、merge-diff の無い親 Epic の `owner/repo/N` の配列です。取りこぼしが無ければ入りません。'
-    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。前の PR の後片付けの取りこぼしがあるときと、取りこぼしを確かめられなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。スタック先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
+        leftovers: '手元の後片付けの残っている、前にマージされた PR の配列です。要素は `pullRequest` を持ち、その値は PR の `owner/repo/N` です。`session_finish` の手元の片付けが残っています。取りこぼしが無ければ入りません。'
+    diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業ディレクトリ（`created`）の結果の行を出します。Status・作業対象・作業ディレクトリ・`.pecot-base` を設定できなかったときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。前の PR の手元の後片付けの取りこぼしがあるときと、取りこぼしを確かめられなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。スタック先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。remote の URL から `owner/repo` を読めず `--repo` があるときは、`warning: using --repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`--repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `--repo` の案内の行を続けます。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -6927,11 +6902,11 @@ entries:
       - kind: session-directory-unresolved
         code: 1
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'ブランチを作った後で Status の設定か作業対象の記録に失敗したときは、ブランチは Issue に紐づいたまま残り、成功を返します。作業対象を記録できなかったときは、`.pecot-base` を書きません。前の Issue の記録も残りません。`.pecot-base` を消せないか書けないときは、`warnings` で知らせます。`.pecot-merged` を読めないか消せないときも、`warnings` で知らせて成功を返します。Issue が blocked のとき、判定を読めないとき、スタック先のブランチが無くなったときは、何も作らず、何も書きません。'
+    on_error: 'ブランチを作った後で Status の設定か作業対象の記録に失敗したときは、ブランチは Issue に紐づいたまま残り、成功を返します。作業対象を記録できなかったときは、`.pecot-base` を書きません。前の Issue の記録も残りません。`.pecot-base` を消せないか書けないときは、`warnings` で知らせます。Issue が blocked のとき、判定を読めないとき、スタック先のブランチが無くなったときは、何も作らず、何も書きません。'
     effects:
       - target: github
         kind: read
-        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。Issue の前提と、そのブランチの PR。Issue の node ID と題。分岐元のブランチの先頭のコミット。前にマージされた PR と、その closing Issue の親 Epic の種別とコメント。'
+        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。Issue の前提と、そのブランチの PR。Issue の node ID と題。分岐元のブランチの先頭のコミット。'
       - target: github
         kind: write
         what: '紐づいたブランチを作り、ボード上の Issue の Status を `active` にします。'
@@ -6940,7 +6915,7 @@ entries:
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
       - target: file
         kind: write
-        what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/work/<N>/` も作ります。`.pecot/state/.pecot-active` は書きません。`.pecot/state/.pecot-merged` から、確かめ終えた PR の行を消します。'
+        what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/work/<N>/` も作ります。`.pecot/state/.pecot-active` は書きません。'
     prerequisites:
       - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
@@ -7067,25 +7042,16 @@ entries:
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
       - id: PW-SESSION-START-43
         pattern: event
-        statement: '今のブランチの PR がマージ済みで開いた PR が無いと、`leftovers` へ `cleanup` を真として入れます。`warnings` に `session_finish` の案内を入れ、ブランチを作ります'
-      - id: PW-SESSION-START-44
-        pattern: event
-        statement: '`.pecot-merged` の PR の親 Epic がその PR の merge-diff の印を持たないと、`leftovers` へ `cleanup` を偽として入れます。Epic ごとに `warnings` へ 1 つ入れます'
+        statement: '今のブランチの PR がマージ済みで開いた PR が無いと、`leftovers` へその PR を入れます。`warnings` に `session_finish` の案内を入れ、ブランチを作ります'
       - id: PW-SESSION-START-45
         pattern: event
-        statement: '今のブランチの名前が番号で終わらず、`.pecot-merged` も無いと、取りこぼしを確かめる要求を GitHub に送らず、`leftovers` を入れません'
+        statement: '今のブランチの名前が番号で終わらないと、取りこぼしを確かめる要求を GitHub に送らず、`leftovers` を入れません'
       - id: PW-SESSION-START-46
         pattern: event
-        statement: '今のブランチの PR が開いているか閉じただけだと、`leftovers` と `warnings` を入れません。記録した PR の親が無いとき、親が Epic でないとき、親 Epic が印を持つときも同じです'
-      - id: PW-SESSION-START-47
-        pattern: event
-        statement: 'ブランチを作ると、`.pecot-merged` の PR のうち、merge-diff を確かめられたものの行を消します。CLI で `--dry-run` を付けて打つと消しません'
+        statement: '今のブランチの PR が開いているか閉じただけだと、`leftovers` と `warnings` を入れません'
       - id: PW-SESSION-START-48
         pattern: unwanted
-        statement: 'もし取りこぼしの確かめで GitHub API がエラーを返すか、接続が切れたなら、`warnings` に入れ、その PR の記録を残してブランチを作ります'
-      - id: PW-SESSION-START-49
-        pattern: event
-        statement: '今のブランチの PR が `.pecot-merged` にもあると、1 つの `leftovers` の要素にまとめ、`cleanup` を真にします'
+        statement: 'もし今のブランチの PR を読むときに GitHub API がエラーを返すか、接続が切れたなら、`warnings` に入れてブランチを作ります'
   PW-TRACKER-SYNC:
     help:
       details:
@@ -7594,7 +7560,7 @@ entries:
         - The repository is read from the git remote of --directory. The project config and the board are not read.
         - Prints one line per checked item to stdout, in the form <state> <name>. The state is ok, missing, outdated or skipped.
         - The items are the workflow file, the version marker on its first line, the secrets and variables the template needs, and the Claude GitHub App.
-        - "For review: the secret PECOT_AGENT_APP_PRIVATE_KEY is needed, and printed as an item, only when the variable PECOT_AGENT_APP_CLIENT_ID is set. The secret CLAUDE_CODE_OAUTH_TOKEN, or all 4 variables PECOT_AGENT_ANTHROPIC_*, are needed."
+        - "For review and handoff: the secret PECOT_AGENT_APP_PRIVATE_KEY is needed, and printed as an item, only when the variable PECOT_AGENT_APP_CLIENT_ID is set. The secret CLAUDE_CODE_OAUTH_TOKEN, or all 4 variables PECOT_AGENT_ANTHROPIC_*, are needed."
         - Secrets and variables are read by name only, at the repository level and, for a repository of an organization, the organization level shared with the repository. Their values are never printed.
         - When the token cannot read a list (403 or 404), an item whose names are not found in the lists that were read is skipped, and a skipped item does not count as missing.
         - Whether the Claude GitHub App is installed cannot be read with the token of the repository, so it is always printed as skipped.
@@ -7602,11 +7568,13 @@ entries:
       examples:
         - run: pecot workflow doctor review
           note: Check the files and settings for the automatic review.
+        - run: pecot workflow doctor handoff
+          note: Check the files and settings for the handoff after a merge.
       default_notes:
         directory: The current directory.
     summary: ワークフローの雛形と、雛形の要る設定が、導入先のリポにそろっているかを確かめます。
     arguments:
-      name: '雛形の一覧の名前です。いまは `review` だけです。'
+      name: '雛形の一覧の名前です。`review`・`handoff` のどれかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'
     constraints: []
     details:
@@ -7614,7 +7582,7 @@ entries:
       - 'リポは `directory` の git remote から読みます。プロジェクトの設定とボードは読みません。'
       - '確かめた項目を、結果の `items` に 1 つずつ入れます。状態の `state` は `ok`・`missing`・`outdated`・`skipped` のどれかです。'
       - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数、Claude の GitHub App です。'
-      - '`review` では、変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要り、その項目を入れます。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
+      - '`review` と `handoff` の要る設定は同じです。変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要り、その項目を入れます。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
       - 'secret と変数は、名前の有無だけを読みます。リポの単位と、organization のリポでは、リポに渡る organization の単位の両方を見ます。値は返しません。'
       - 'トークンで読めない一覧（403・404）があると、読めた一覧に名前の見つからない項目を `skipped` にします。`skipped` は足りないと数えません。'
       - 'Claude の GitHub App が入っているかは、リポのトークンでは読めません。いつも `skipped` で入れます。'
@@ -7729,6 +7697,7 @@ entries:
     help:
       details:
         - Writes the named workflow template bundled with pecot into the repository in --directory. For review, the file is .github/workflows/pecot-review.yml.
+        - For handoff, the file is .github/workflows/pecot-handoff.yml. When a PR is merged, it posts on GitHub Actions the merge-diff comment on the parent Epic and the precede-notify comment on the following Issue. It uses the same credentials as review.
         - Creates the parent directories when they are missing.
         - After writing, prints the next steps to stdout. They are installing the Claude GitHub App, setting the model credential, and checking with pecot workflow doctor.
         - When the file already exists, the command stops unless --force is given.
@@ -7744,11 +7713,13 @@ entries:
           note: Check that the installed workflow is up to date.
         - run: pecot workflow install review --force
           note: Update the installed workflow to the bundled version.
+        - run: pecot workflow install handoff
+          note: Write the workflow that posts the comments after a merge.
       default_notes:
         directory: The current directory.
     summary: pecot が同梱する GitHub Actions のワークフローの雛形を、リポに書き出します。
     arguments:
-      name: '雛形の一覧の名前です。いまは `review` だけです。'
+      name: '雛形の一覧の名前です。`review`・`handoff` のどれかです。'
       check: '書き出さずに、置いたファイルの版が同梱の雛形と同じかを確かめるかどうかです。'
       force: 'ファイルが既にあるときに上書きするかどうかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'
@@ -7756,6 +7727,7 @@ entries:
       - conflicts: [check, force]
     details:
       - '名前の雛形を、`directory` のリポに書き出します。`review` の置き先は `.github/workflows/pecot-review.yml` です。'
+      - '`handoff` の置き先は `.github/workflows/pecot-handoff.yml` です。PR がマージされると、GitHub Actions で、親 Epic へ merge-diff のコメントを、後続の Issue へ precede-notify のコメントを書きます。認証は `review` と同じです。'
       - '親のディレクトリが無ければ作ります。'
       - '書き出した後は、Claude の GitHub App を入れ、モデルの認証を設定し、`workflow_doctor` で確かめます。'
       - 'ファイルが既にあるときは、`force` が無ければ失敗を返します。'

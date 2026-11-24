@@ -6,7 +6,7 @@ description: |
   Do NOT use for new tasks from scratch (use w-quick) or for Issue-only creation (use w-ready).
 when_to_use: "Ready のタスクに着手したい、次のタスクを始めたい、Issue の実装を開始したい"
 argument-hint: "[Issue]"
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__issue_comment
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish
 hooks:
   PostToolUse:
     - matcher: "ExitPlanMode"
@@ -67,10 +67,7 @@ pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づ�
 
 ### Step 4: 前の PR の後片付けの取りこぼし
 
-`session_start` の結果に `leftovers` があれば、前にマージされた PR の後片付けが残っている。切り替えの前に、PR ごとに [マージされた後の片付け](references/after-merge.md) に従って済ませる。
-
-- `cleanup` が真なら、片付けの節から行う。手元が wt ブランチに戻る
-- `cleanup` が偽なら、片付けの節を飛ばし、merge-diff の節だけを行う
+`session_start` の結果に `leftovers` があれば、前にマージされた PR の手元の片付けが残っている。切り替えの前に、PR ごとに [マージされた後の片付け](references/after-merge.md) の「片付け」の節を行う。手元が wt ブランチに戻る。
 
 `leftovers` が無ければ、何もせずに Step 5 へ進む。
 

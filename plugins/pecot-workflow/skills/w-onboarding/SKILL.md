@@ -125,6 +125,8 @@ PR を作ると GitHub Actions の上で w-review のレビューを回すワー
    3. 雛形をコミットし、既定のブランチへ入れる
 
    権限を絞りたい利用者だけ、自前の GitHub App を足せることを 1 行で添える。詳しい手順と運用は、[自動レビューのワークフロー](../w-help/references/review-workflow.md) にあることを示す
+
+   同じ認証で、引き継ぎのワークフローも `workflow_install`（`name: "handoff"`）で入れられることを 1 行で添える。マージした結果を Epic に書くもので、[引き継ぎのワークフロー](../w-help/references/handoff-workflow.md) を示す
 6. 設定の順を示したら、このターンを終えて利用者の返事を待つ。Step 6 へは進まない
 7. 後で設定すると答えたら、`workflow_doctor` を呼ばずに、後から `workflow_doctor`（`name: "review"`）で確かめられることを添えて Step 6 へ進む
 8. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない

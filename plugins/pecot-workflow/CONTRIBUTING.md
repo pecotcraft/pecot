@@ -154,7 +154,7 @@ clone は、確かめるセッションごとに 1 つ作ります。手順 5 �
 `sandbox-sweep.sh` は、名前の形に合わないものと、検証用の `main`・設定ファイルには触りません。`--issue` を省くと、名前の形に合うものをすべて片付けます。
 `sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに実行できます。
 `sandbox-diff.sh` で比べない項目を足すときは、`sandbox-diff-items.json` と spec の表を同じ変更で直します。
-このリポの ruleset・ボード・`pecot-board-sync.yml`・`pecot-review.yml` の決まりを変えるときは、検証用を先に変えます。逆にすると、確かめた結果がこのリポで再現しません。
+このリポの ruleset・ボード・`pecot-board-sync.yml`・`pecot-review.yml`・`pecot-handoff.yml` の決まりを変えるときは、検証用を先に変えます。逆にすると、確かめた結果がこのリポで再現しません。
 
 ### 直した pecot-workflow を動かす
 
@@ -226,6 +226,7 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 |:---|:---|:---|
 | ボードの同期（`pecot-board-sync.yml`） | 有無と中身 | この節の手順 1〜8 |
 | 自動レビュー（`pecot-review.yml`） | 有無と中身 | `specs/027-auto-revise-on-pr/quickstart.md` |
+| 引き継ぎ（`pecot-handoff.yml`） | 有無と中身 | この節の「引き継ぎを確かめる」 |
 
 検証用にも自動レビューの写しがあるので、検証用で作る draft でない PR には、自動レビューが付きます。
 自動レビューを quickstart で確かめるときは、次の 2 つに気を付けます。
@@ -262,6 +263,17 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 8. `sandbox-diff.sh` でずれが 0 件であることを確かめてから、`sandbox-sweep.sh` でリリースを消す。順が逆だと、消えた URL を取りに行く実行が失敗する
 
 定期の起動は検証用には届きません。検証用の写しは `schedule` を持ちません。このリポの Lambda（`.github/board-sync/`）は、`handler.mjs` がリポの ID を比べて、`pecotcraft/pecot` だけを起動します。
+
+#### 引き継ぎを確かめる
+
+検証用には引き継ぎの写しもあるので、検証用で PR をマージすると、親 Epic に merge-diff が付きます。
+直した w-handoff と `pecot-handoff.yml` は、マージの前に、検証用の写しを一時的に替えて動かします。
+
+1. 写しに、作業ブランチの SHA を `pecot-src` へ checkout する step を足す
+2. claude-code-action の `plugin_marketplaces` を `./pecot-src` にする。`./` で始まる値は、ローカルのマーケットプレイスとして渡る。`#<ref>` を付けた URL は受けない
+3. `plugins` は `pecot-w@pecot` のままにする
+4. 写しを検証用の `main` に入れてから、検証用で PR をマージし、Epic と後続の Issue のコメントと実行の結果を読む
+5. 確かめの後に、写しをこのリポの `main` の `.github/workflows/pecot-handoff.yml` と同じ中身に戻す PR を入れる。その後、`sandbox-diff.sh` でずれが 0 件であることを確かめる
 
 ### このリポだけの運用
 

@@ -55,6 +55,7 @@ const AGENT_REQUIREMENTS: readonly SettingRequirement[] = [
 */
 export const WORKFLOW_TEMPLATES: readonly WorkflowTemplate[] = [
   { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS },
+  { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS },
 ]
 
 export function findWorkflowTemplate(name: string): WorkflowTemplate | undefined {

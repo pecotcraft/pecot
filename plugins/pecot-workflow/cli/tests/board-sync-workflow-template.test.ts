@@ -1,5 +1,6 @@
 // 配布する board sync のワークフローの雛形が、安全な形・最新の正式版の取得・文書との一致を保つことを確かめる。
 // actionlint は pre-commit が掛ける（.pre-commit-config.yaml の actionlint-system が雛形も対象にする）。
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -22,18 +23,40 @@ interface Step {
   with?: Record<string, unknown>
   env?: Record<string, string>
 }
+interface Job {
+  if?: string
+  needs?: string
+  concurrency?: Record<string, unknown>
+  permissions?: Record<string, string>
+  steps: Step[]
+}
 interface Workflow {
   on: Record<string, unknown>
   permissions: Record<string, string>
-  concurrency: Record<string, unknown>
-  jobs: Record<string, { if?: string, steps: Step[] }>
+  concurrency?: unknown
+  jobs: Record<string, Job>
 }
 
 // parse は unknown を返す。雛形は下のテストが形を確かめる。
 // eslint-disable-next-line no-restricted-syntax
 const workflow = parse(template) as Workflow
-const steps = workflow.jobs['sync']?.steps ?? []
+const sync: Job = workflow.jobs['sync'] ?? { steps: [] }
+const finish: Job = workflow.jobs['finish'] ?? { steps: [] }
+const steps = sync.steps
 const runLine = 'npx -y --prefix=/ @pecot/workflow-mcp@latest board sync'
+const finishLine = 'npx -y --prefix=/ @pecot/workflow-mcp@latest session finish "$GITHUB_REPOSITORY/$PR" --skip-local-cleanup --delete-branch'
+const tokenCondition = '(vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != \'\' || vars.PECOT_BOARD_SYNC_USE_PAT == \'true\')'
+const finishStep = finish.steps.find(step => step.run !== undefined) ?? {}
+
+// finish の step の run を bash で動かし、npx の代わりに引数を出す関数で、打つ行を読む。
+function finishCommand(headReference: string): string {
+  const script = `npx() { printf '%s\\n' "npx $*"; }\n${finishStep.run ?? ''}`
+  return execFileSync('bash', ['-e'], {
+    input: script,
+    env: { ...process.env, HEAD_REF: headReference, PR: '7', GITHUB_REPOSITORY: 'o/r' },
+    encoding: 'utf8',
+  }).trim()
+}
 
 describe('board sync のワークフローの雛形', () => {
   it('文書に、雛形の実行の行がそのまま書かれている', () => {
@@ -52,7 +75,7 @@ describe('board sync のワークフローの雛形', () => {
   })
 
   it('job の if が variable で飛び、Dependabot が起こした実行を除く', () => {
-    const condition = workflow.jobs['sync']?.if ?? ''
+    const condition = sync.if ?? ''
     expect(condition).toContain('vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != \'\'')
     expect(condition).toContain('vars.PECOT_BOARD_SYNC_USE_PAT == \'true\'')
     expect(condition).toContain('github.actor != \'dependabot[bot]\'')
@@ -66,9 +89,69 @@ describe('board sync のワークフローの雛形', () => {
     expect(checkout?.with?.['persist-credentials']).toBe(false)
   })
 
-  it('permissions は contents: read だけで、cancel-in-progress は false', () => {
+  it('workflow の permissions は contents: read だけで、concurrency の group には sync の job だけが入る', () => {
     expect(workflow.permissions).toEqual({ contents: 'read' })
-    expect(workflow.concurrency['cancel-in-progress']).toBe(false)
+    expect(workflow).not.toHaveProperty('concurrency')
+    expect(sync.concurrency).toEqual({ 'group': 'pecot-board-sync', 'cancel-in-progress': false })
+    expect(finish).not.toHaveProperty('concurrency')
+  })
+
+  it('sync の job は finish の後に動き、finish が失敗しても取り消されない限り動く', () => {
+    expect(sync.needs).toBe('finish')
+    expect(sync.if?.startsWith('${{ !cancelled() && ')).toBe(true)
+    expect(sync.if).toContain(tokenCondition)
+  })
+
+  it('finish の job は、token の変数があり、同じリポの head の PR がマージされた closed の実行だけで動く', () => {
+    const condition = finish.if ?? ''
+    expect(condition).toContain(tokenCondition)
+    expect(condition).toContain('github.event_name == \'pull_request_target\'')
+    expect(condition).toContain('github.event.action == \'closed\'')
+    expect(condition).toContain('github.event.pull_request.merged')
+    expect(condition).toContain('github.event.pull_request.head.repo.full_name == github.repository')
+    expect(condition).not.toContain('secrets.')
+  })
+
+  it('finish の job の permissions は contents: write・issues: write・pull-requests: read だけになる', () => {
+    expect(finish.permissions).toEqual({ 'contents': 'write', 'issues': 'write', 'pull-requests': 'read' })
+  })
+
+  it('finish の job は ref を指定せずに checkout し、GITHUB_TOKEN で session finish を打つ', () => {
+    const checkout = finish.steps.find(step => step.uses?.startsWith('actions/checkout@'))
+    expect(checkout?.with).toEqual({ 'persist-credentials': false })
+    expect(finishStep.env).toEqual({
+      PECOT_GITHUB_COM_TOKEN: '${{ github.token }}',
+      PR: '${{ github.event.pull_request.number }}',
+      HEAD_REF: '${{ github.event.pull_request.head.ref }}',
+    })
+    expect(finishStep.run).not.toContain('${{')
+    expect(finishStep.run).toContain(finishLine)
+  })
+
+  it.for([
+    { name: 'feat/add-csv/732', expected: 'npx -y --prefix=/ @pecot/workflow-mcp@latest session finish o/r/7 --skip-local-cleanup --delete-branch' },
+    { name: 'develop', expected: '' },
+    { name: 'feat/732-csv', expected: '' },
+    { name: 'dependabot/npm_and_yarn/foo-1.2.3', expected: '' },
+  ])('head ブランチが $name のとき、finish の job は末尾が /<番号> のときだけ session finish を打つ', ({ name, expected }) => {
+    expect(finishCommand(name)).toBe(expected)
+  })
+
+  it('finish の job も、すべての action を 40 桁の SHA で固定し、npm のキャッシュを使わない', () => {
+    const uses = finish.steps.map(step => step.uses).filter(use => use !== undefined)
+    expect(uses.length).toBeGreaterThan(0)
+    for (const action of uses) expect(action).toMatch(/@[0-9a-f]{40}$/)
+    const setupNode = finish.steps.find(step => step.uses?.startsWith('actions/setup-node@'))
+    expect(setupNode?.with?.['package-manager-cache']).toBe(false)
+  })
+
+  it('文書に、マージで閉じた PR の片付けの節と、finish の job の権限がある', () => {
+    const section = markdownSection(document, '## マージで閉じた PR の片付け')
+    expect(section).toContain('`--skip-local-cleanup`')
+    expect(section).toContain('`/<番号>`')
+    const permissions = markdownSection(document, '### `finish` の権限')
+    const scopes = Object.entries(finish.permissions ?? {})
+    for (const [scope, access] of scopes) expect(permissions).toContain(`\`${scope}: ${access}\``)
   })
 
   it('run は最新の正式版を取る 1 行だけで、式を埋め込まない', () => {

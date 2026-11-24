@@ -26,8 +26,6 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
 import { planWorkTarget, recordWorkTarget } from './work-target.js'
-import { removeMergedRecords } from '../infra/state-store.js'
-import { reasonOf } from './pr.js'
 import { checkLeftovers } from './session-leftovers.js'
 
 const START_PATH = ['session', 'start']
@@ -133,12 +131,8 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
   }
 }
 
-const MERGE_DIFF_EPICS = z.array(z.string()).describe('Parent Epics with no merge-diff comment for the PR (owner/repo/N)')
-
 const LEFTOVER_DATA = z.strictObject({
-  pullRequest: z.string().describe('Merged PR whose follow-up is left (owner/repo/N)'),
-  cleanup: z.boolean().describe('Whether the local cleanup with session finish is left (the current branch is the merged branch)'),
-  mergeDiff: MERGE_DIFF_EPICS,
+  pullRequest: z.string().describe('Merged PR of the current branch whose local cleanup with session finish is left (owner/repo/N)'),
 })
 
 const SESSION_START_OUTPUT = z.strictObject({
@@ -148,21 +142,8 @@ const SESSION_START_OUTPUT = z.strictObject({
   stackedOn: z.int().optional().describe('Issue number whose branch this one is stacked on (omitted when not stacked)'),
   issue: z.string().describe('Work Issue (owner/repo/N)'),
   workDirectory: z.string().optional().describe('Absolute path of the work directory (omitted when it could not be created)'),
-  leftovers: z.array(LEFTOVER_DATA).optional().describe('Follow-up of earlier merged PRs left undone (omitted when there is none)'),
+  leftovers: z.array(LEFTOVER_DATA).optional().describe('Earlier merged PRs whose local cleanup is left undone (omitted when there is none)'),
 })
-
-/**
-記録の PR のうち、merge-diff を確かめられたものを .pecot-merged から消す。消せなければ warning
-*/
-function settleMergedRecords(out: Readonly<Output>, settled: readonly IssueReference[]): void {
-  if (settled.length === 0) return
-  try {
-    removeMergedRecords(settled)
-  }
-  catch (error: unknown) {
-    out.warning(`could not update the merged PR records: ${reasonOf(error)}`)
-  }
-}
 
 const sessionStartCommand = defineCommand({
   path: START_PATH,
@@ -215,9 +196,9 @@ const sessionStartCommand = defineCommand({
       const decision = await decideWorkStart(out, client, config, issue)
       const mismatch = describeBaseMismatch(input.base, decision, issue)
       if (mismatch !== undefined) stopWith(out, mismatch, 'invalid-input', USAGE_EXIT_CODE)
-      // 4.6. 前の PR の後片付けの取りこぼしを確かめる。あっても止めない
-      const { leftovers, settledRecords } = await checkLeftovers(out, client, issue.repository, process.cwd())
-      if (leftovers.length > 0) out.result({ leftovers: leftovers.map(leftover => ({ ...leftover, mergeDiff: [...leftover.mergeDiff] })) })
+      // 4.6. 前の PR の手元の後片付けの取りこぼしを確かめる。あっても止めない
+      const leftovers = await checkLeftovers(out, client, issue.repository, process.cwd())
+      if (leftovers.length > 0) out.result({ leftovers })
       // 3. ベースブランチ決定（スタックしないときだけ、--base か設定の develop_branch を求める）
       const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branch: input.branch, base: input.base })
 
@@ -249,7 +230,6 @@ const sessionStartCommand = defineCommand({
       const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
       out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
       out.result({ ...started, branch: createdBranch })
-      settleMergedRecords(out, settledRecords)
 
       // 7.5. プロジェクトアイテムのステータスを active に更新
       await setIssueStatusActive(out, client, config, { owner, repository, number: issueNumber })

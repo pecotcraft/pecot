@@ -14,6 +14,7 @@
 | `w-ready` | Epicから1タスクを切り出し → 前提に応じて Ready か Blocked に配置 |
 | `w-release` | 開発ブランチ → main へのリリースフロー |
 | `w-review` | 自動レビューのワークフローが起こす。PR のレビューと、指摘の投稿（直さない） |
+| `w-handoff` | 引き継ぎのワークフローが起こす。マージした PR の結果を、Epic と後続の Issue にコメントで書く |
 | `w-help` | pecot CLI・スキルの使い方ヘルプ |
 | `w-worktree-add` | ワークツリー作成（単発／並行セット、symlink setup 含む） |
 | `w-worktree-remove` | ワークツリー削除（単発／並行セット） |

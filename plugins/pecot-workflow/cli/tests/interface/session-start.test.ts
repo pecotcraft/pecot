@@ -14,7 +14,6 @@ import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { STALE_OPTION_TEXT, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool, staleOptionUpdate } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun, ToolResult, ToolRun } from '../_helpers/command-harness.js'
-import { finishPullRequestData, issueKindData } from '../_helpers/workspace.js'
 
 useIsolatedEnvironment()
 
@@ -68,31 +67,16 @@ function expectClean(result: Readonly<Pick<CommandResult, 'problems' | 'unused'>
   expect(result.unused).toEqual([])
 }
 
-// 前の PR（#21、ブランチ feat/old/5、#5 を閉じた）の後片付けの取りこぼしの見本
+// 前の PR（#21、ブランチ feat/old/5）の手元の後片付けの取りこぼしの見本
 const OLD_BRANCH = 'feat/old/5'
-const MERGED_RECORD = '.pecot/state/.pecot-merged'
-const EPIC_COMMENTS = '/repos/acme/demo/issues/2/comments'
+const LIST_BY_HEAD = 'ListPullRequestsByHead'
 
 function headPullRequests(...states: readonly string[]): ResponseRule {
   const nodes = states.map((state, index) => ({ number: 21 + index, state, headRefName: OLD_BRANCH, baseRefName: 'main', isDraft: false, isCrossRepository: false, repository: { owner: { login: 'acme' }, name: 'demo' } }))
-  return graphqlRule('ListPullRequestsByHead', { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes } } }, { owner: 'acme', repo: 'demo', headRefName: OLD_BRANCH })
+  return graphqlRule(LIST_BY_HEAD, { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes } } }, { owner: 'acme', repo: 'demo', headRefName: OLD_BRANCH })
 }
 
-const finishedPullRequest = (): ResponseRule => graphqlRule('GetPullRequestForFinish', finishPullRequestData({ head: OLD_BRANCH, body: 'Closes #5\n', closing: [5] }))
-
-// #5 の読み取り。hasParent が偽なら親が無い（GraphQL は null を返す）
-function parentOf5(hasParent = true): ResponseRule {
-  // eslint-disable-next-line unicorn/no-null -- 応答の形
-  const parent = hasParent ? { number: 2, title: 'Epic', state: 'OPEN', repository: { owner: { login: 'acme' }, name: 'demo' } } : null
-  const issue = { number: 5, state: 'CLOSED', title: '前の作業', body: '', comments: { totalCount: 0, nodes: [] }, parent, subIssues: { nodes: [] }, linkedBranches: { nodes: [] }, timelineItems: { nodes: [] } }
-  return graphqlRule('GetIssueSlim', { repository: { issue } }, { number: 5 })
-}
-
-const epicKind = (issueType = 'Epic'): ResponseRule => graphqlRule('GetIssueKind', issueKindData({ number: 2, issueType }), { number: 2 })
-const epicComments = (...bodies: readonly string[]): ResponseRule => restRule('GET', EPIC_COMMENTS, 200, bodies.map((body, index) => ({ id: index + 1, body, user: { type: 'User' } })))
-const mergeDiffMissing = (): ResponseRule[] => [finishedPullRequest(), parentOf5(), epicKind(), epicComments('## Merge — 別の PR の結果')]
 const FINISH_HINT = 'PR acme/demo#21 of the current branch feat/old/5 is merged but not cleaned up; call session_finish with pr_ref: "acme/demo/21", delete_branch: true'
-const MERGE_DIFF_HINT = 'Epic acme/demo#2 has no merge-diff for PR acme/demo#21; post a merge-diff comment on it with pr_ref acme/demo/21 in the frontmatter'
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 async function start(run: Readonly<Partial<ToolRun>>): Promise<ToolResult> {
@@ -731,32 +715,21 @@ describe('session start', () => {
     })
   })
 
-  describe('前の PR の後片付けの取りこぼし', () => {
-    const MARKER = '<!-- pecot-merge-diff: pr=acme/demo#21 -->'
-
-    it('今のブランチの PR がマージ済みで開いた PR が無いと、leftovers に cleanup が真で入れ、session finish を案内してブランチを作る', async (context) => {
+  describe('前の PR の手元の後片付けの取りこぼし', () => {
+    it('今のブランチの PR がマージ済みで開いた PR が無いと、leftovers にその PR を入れ、session finish を案内してブランチを作る', async (context) => {
       await verifies(context, 'PW-SESSION-START-43')
-      const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('MERGED'), ...mergeDiffMissing()] })
+      const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('MERGED')] })
       expectClean(tool)
       expect(tool.isError).toBe(false)
-      expect(tool.structured).toMatchObject({ branch: 'feat/7', leftovers: [{ pullRequest: 'acme/demo/21', cleanup: true, mergeDiff: ['acme/demo/2'] }] })
-      expect(tool.structured['warnings']).toEqual([FINISH_HINT, MERGE_DIFF_HINT])
+      expect(tool.structured).toMatchObject({ branch: 'feat/7', leftovers: [{ pullRequest: 'acme/demo/21' }] })
+      expect(tool.structured['warnings']).toEqual([FINISH_HINT])
     })
 
-    it('記録した PR の親 Epic が merge-diff の印を持たないと、cleanup が偽の leftovers と、Epic ごとの warnings を入れる', async (context) => {
-      await verifies(context, 'PW-SESSION-START-44')
-      const tool = await start({ github: [...succeeding(), ...mergeDiffMissing()], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
-      expectClean(tool)
-      expect(tool.structured).toMatchObject({ leftovers: [{ pullRequest: 'acme/demo/21', cleanup: false, mergeDiff: ['acme/demo/2'] }] })
-      expect(tool.structured['warnings']).toEqual([MERGE_DIFF_HINT])
-      expect(tool.read(MERGED_RECORD)).toBe('acme/demo#21\n')
-    })
-
-    it('今のブランチの名前が番号で終わらず記録も無いと、取りこぼしを確かめる要求を送らず、leftovers を入れない', async (context) => {
+    it('今のブランチの名前が番号で終わらないと、取りこぼしを確かめる要求を送らず、leftovers を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-START-45')
       const result = await create({}, ['session', 'start', 'acme/demo/7', 'feat'])
       expectClean(result)
-      expect(requestLabels(result.requests)).not.toContain('ListPullRequestsByHead')
+      expect(requestLabels(result.requests)).not.toContain(LIST_BY_HEAD)
       const tool = await start({ branch: 'wt8' })
       expectClean(tool)
       expect(tool.structured).not.toHaveProperty('leftovers')
@@ -764,55 +737,27 @@ describe('session start', () => {
     })
 
     it.for([
-      { name: '今のブランチの PR が開いている', run: (): Partial<ToolRun> => ({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('OPEN', 'MERGED')] }) },
-      { name: '今のブランチの PR が閉じただけ', run: (): Partial<ToolRun> => ({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('CLOSED')] }) },
-      { name: '記録した PR の Issue に親が無い', run: (): Partial<ToolRun> => ({ github: [...succeeding(), finishedPullRequest(), parentOf5(false)], files: { [MERGED_RECORD]: 'acme/demo#21\n' } }) },
-      { name: '記録した PR の Issue の親が Tracker', run: (): Partial<ToolRun> => ({ github: [...succeeding(), finishedPullRequest(), parentOf5(), epicKind('Tracker')], files: { [MERGED_RECORD]: 'acme/demo#21\n' } }) },
-      { name: '記録した PR の親 Epic に印がある', run: (): Partial<ToolRun> => ({ github: [...succeeding(), finishedPullRequest(), parentOf5(), epicKind(), epicComments('## Merge — 別', `${MARKER}\n\n## Merge — 結果`)], files: { [MERGED_RECORD]: 'acme/demo#21\n' } }) },
-    ])('$name とき、取りこぼしとせず、leftovers と warnings を入れない', async ({ run }, context) => {
+      { name: '今のブランチの PR が開いている', states: ['OPEN', 'MERGED'] },
+      { name: '今のブランチの PR が閉じただけ', states: ['CLOSED'] },
+    ])('$name とき、取りこぼしとせず、leftovers と warnings を入れない', async ({ states }, context) => {
       await verifies(context, 'PW-SESSION-START-46')
-      const tool = await start(run())
+      const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests(...states)] })
       expectClean(tool)
       expect(tool.structured).not.toHaveProperty('leftovers')
       expect(tool.structured).not.toHaveProperty('warnings')
     })
 
-    it('ブランチを作ると、記録の PR のうち merge-diff を確かめられたものだけを .pecot-merged から消す', async (context) => {
-      await verifies(context, 'PW-SESSION-START-47')
-      const settled = await start({ github: [...succeeding(), finishedPullRequest(), parentOf5(false)], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
-      expect(settled.read(MERGED_RECORD)).toBeUndefined()
-      const dryRun = await runCommand({ argv: ['session', 'start', 'acme/demo/7', 'feat', '--dry-run'], github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), finishedPullRequest(), parentOf5(false)], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
-      expect(dryRun.code).toBe(0)
-      expect(dryRun.read(MERGED_RECORD)).toBe('acme/demo#21\n')
-    })
-
-    it('取りこぼしの確かめで GitHub API がエラーを返すと、warnings に入れ、記録を消さずにブランチを作る', async (context) => {
+    it.for([
+      { name: 'GitHub API がエラーを返す', respond: { status: 500, body: { message: 'boom' } } },
+      { name: '接続が切れる', respond: { status: 200, disconnect: true } },
+    ])('今のブランチの PR を読むとき $name と、warnings に入れてブランチを作る', async ({ respond }, context) => {
       await verifies(context, 'PW-SESSION-START-48')
-      const failed: ResponseRule = { match: { operation: 'GetPullRequestForFinish' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
-      const tool = await start({ github: [...succeeding(), failed], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
+      const failed: ResponseRule = { match: { operation: LIST_BY_HEAD }, respond, times: 1 }
+      const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), failed] })
       expectClean(tool)
       expect(tool.isError).toBe(false)
-      expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [expect.stringMatching(/^could not check leftovers: reading the merge-diff of PR acme\/demo#21 failed: /u)] })
+      expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [expect.stringMatching(/^could not check leftovers: reading the PR of the current branch failed: /u)] })
       expect(tool.structured).not.toHaveProperty('leftovers')
-      expect(tool.read(MERGED_RECORD)).toBe('acme/demo#21\n')
-    })
-
-    it('取りこぼしの確かめで Epic のコメントを読む接続が切れると、warnings に入れ、その PR の記録を残してブランチを作る', async (context) => {
-      await verifies(context, 'PW-SESSION-START-48')
-      const dropped: ResponseRule = { match: { method: 'GET', path: EPIC_COMMENTS }, respond: { status: 200, disconnect: true }, times: 1 }
-      const tool = await start({ github: [...succeeding(), finishedPullRequest(), parentOf5(), epicKind(), dropped], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
-      expectClean(tool)
-      expect(tool.isError).toBe(false)
-      expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [expect.stringMatching(/^could not check leftovers: reading the merge-diff of PR acme\/demo#21 failed: /u)] })
-      expect(tool.structured).not.toHaveProperty('leftovers')
-      expect(tool.read(MERGED_RECORD)).toBe('acme/demo#21\n')
-    })
-
-    it('今のブランチの PR が記録にもあると、1 件の leftovers にまとめて cleanup を真にする', async (context) => {
-      await verifies(context, 'PW-SESSION-START-49')
-      const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('MERGED'), ...mergeDiffMissing()], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
-      expectClean(tool)
-      expect(tool.structured['leftovers']).toEqual([{ pullRequest: 'acme/demo/21', cleanup: true, mergeDiff: ['acme/demo/2'] }])
     })
   })
 })

@@ -112,7 +112,7 @@ describe('issue', () => {
 
   it('issue comment の -m に dry_run を渡すと、コメントを投稿せず、予行の行だけ出す', async (context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-29')
-    const result = await dryRun(['issue', 'comment', '-t', 'merge-diff', '-i', 'acme/demo/7', '-m', MERGE_DIFF_BODY, '--pr-ref', 'acme/demo/12', '-n'], [])
+    const result = await dryRun(['issue', 'comment', '-t', 'merge-diff', '-i', 'acme/demo/7', '-m', MERGE_DIFF_BODY, '-n'], [])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe('dry-run: would create comment on acme/demo/7\n')

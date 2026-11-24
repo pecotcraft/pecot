@@ -15,6 +15,7 @@ import {
   formatSessionTitle,
   planWorkTarget,
   SESSION_TITLE_MAX_CHARS,
+  sessionTitleNumber,
   workDirectoryName,
 } from '../state.js'
 
@@ -95,6 +96,14 @@ describe('planWorkTarget', () => {
   it('番号が数字でなければ値の不正。文は int() と同じ', () => {
     expect(() => planWorkTarget('owner/repo/abc', '題名')).toThrow(InvalidValueError)
     expect(() => planWorkTarget('owner/repo/abc', '題名')).toThrow('invalid literal for int() with base 10: \'abc\'')
+  })
+})
+
+describe('sessionTitleNumber', () => {
+  it('先頭の #番号 を読み、読めなければ undefined を返す', () => {
+    expect(sessionTitleNumber('#30 次の作業')).toBe(30)
+    expect(sessionTitleNumber('x')).toBeUndefined()
+    expect(sessionTitleNumber(undefined)).toBeUndefined()
   })
 })
 
