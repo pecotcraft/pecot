@@ -33,9 +33,9 @@ describe('normalizeInput', () => {
   })
 
   it.for([
-    { name: 'properties の中', schema: z.strictObject({ m: z.string().min(1) }), message: 'issue edit: n: unsupported JSON Schema key minLength' },
-    { name: 'anyOf の枝の中', schema: z.union([z.string().min(1), z.int()]), message: 'issue edit: n: unsupported JSON Schema key minLength' },
-    { name: 'additionalProperties の中', schema: z.object({}).catchall(z.string().min(1)), message: 'issue edit: n: unsupported JSON Schema key minLength' },
+    { name: 'properties の中', schema: z.strictObject({ m: z.string().max(1) }), message: 'issue edit: n: unsupported JSON Schema key maxLength' },
+    { name: 'anyOf の枝の中', schema: z.union([z.string().max(1), z.int()]), message: 'issue edit: n: unsupported JSON Schema key maxLength' },
+    { name: 'additionalProperties の中', schema: z.object({}).catchall(z.string().max(1)), message: 'issue edit: n: unsupported JSON Schema key maxLength' },
   ])('$name で表に無いキーを使うと、コマンドと引数の名前を付けて止める', ({ schema, message }) => {
     expect(() => normalized({ n: schema })).toThrow(message)
   })

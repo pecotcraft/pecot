@@ -16,7 +16,6 @@ import {
   ATTRIBUTE_HANDLERS,
   builtinDefinitions,
   builtinReadings,
-  findOption,
   formatAttributeValue,
   issueFieldDefinition,
   issueFieldValueKind,
@@ -507,13 +506,5 @@ describe('validateAttributes', () => {
 describe('ATTRIBUTE_HANDLERS', () => {
   it('書ける kind ごとに扱いを持つ', () => {
     expect(Object.keys(ATTRIBUTE_HANDLERS).toSorted(compareCodePoints)).toStrictEqual(['date', 'issue_type', 'iteration', 'labels', 'milestone', 'multi_select', 'number', 'single_select', 'text', 'users'])
-  })
-})
-
-describe('findOption', () => {
-  it('大文字と小文字まで名前の一致する選択肢を返し、無ければ undefined を返す', () => {
-    const options = [{ name: 'cli', id: 'OPT_cli' }, { name: 'docs', id: 'OPT_docs' }]
-    expect(findOption(options, 'docs')).toStrictEqual({ name: 'docs', id: 'OPT_docs' })
-    expect(findOption(options, 'Docs')).toBeUndefined()
   })
 })

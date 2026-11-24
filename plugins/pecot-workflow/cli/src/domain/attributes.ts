@@ -1,4 +1,5 @@
 // Issue の機能（ボードのフィールド・Issue fields・Issue の組み込み）の定義と値の形と、GitHub の種類から kind への対応。
+import { findOptionByName } from './field-options.js'
 import { closeMatches } from './fuzzy.js'
 import { JSON_NULL } from './json-null.js'
 
@@ -339,10 +340,6 @@ export function formatAttributeValue(value: AttributeValue): string {
   return typeof value === 'string' ? value : value.join(', ')
 }
 
-export function findOption(options: readonly AttributeOption[], name: string): AttributeOption | undefined {
-  return options.find(option => option.name === name)
-}
-
 export type WritableAttributeKind = Exclude<AttributeKind, 'issue_ref' | 'issue_refs' | 'unsupported'>
 
 /**
@@ -392,18 +389,18 @@ function hasDuplicates(values: readonly string[]): boolean {
 }
 
 function normalizeChoice(definition: Readonly<AttributeDefinition>, value: AttributeValue): NormalizedAttributeValue {
-  return typeof value === 'string' && findOption(optionsOf(definition), value) !== undefined ? accept(value) : reject(oneOf(definition))
+  return typeof value === 'string' && findOptionByName(optionsOf(definition), value) !== undefined ? accept(value) : reject(oneOf(definition))
 }
 
 function normalizeChoices(definition: Readonly<AttributeDefinition>, value: AttributeValue): NormalizedAttributeValue {
   const names = listOf(value)
-  const isValid = names !== undefined && !hasDuplicates(names) && names.every(name => findOption(optionsOf(definition), name) !== undefined)
+  const isValid = names !== undefined && !hasDuplicates(names) && names.every(name => findOptionByName(optionsOf(definition), name) !== undefined)
   return isValid ? accept(names) : reject(listOfOptions(definition))
 }
 
 function normalizeIteration(definition: Readonly<AttributeDefinition>, value: AttributeValue): NormalizedAttributeValue {
   const options = optionsOf(definition)
-  const option = typeof value === 'string' ? findOption(options, value) ?? options.find(candidate => candidate.startDate === value) : undefined
+  const option = typeof value === 'string' ? findOptionByName(options, value) ?? options.find(candidate => candidate.startDate === value) : undefined
   if (option !== undefined) return accept(option.name)
   const choices = options.map(candidate => candidate.startDate === undefined ? candidate.name : `${candidate.name} (${candidate.startDate})`)
   return reject(`iteration name or start date: ${namesText(choices)}`)
@@ -429,7 +426,7 @@ function isSameSet(before: AttributeValue, after: AttributeValue): boolean {
 }
 
 function optionId(definition: Readonly<AttributeDefinition>, name: string): string | undefined {
-  return findOption(optionsOf(definition), name)?.id
+  return findOptionByName(optionsOf(definition), name)?.id
 }
 
 type ProjectValue = (definition: Readonly<AttributeDefinition>, after: AttributeValue) => ProjectFieldValueInput | undefined
