@@ -148,8 +148,8 @@ describe.skipIf(!isChromiumReady)('CUJ: element エラーが成功 run の done 
     const converted = runPecotv('convert', [
       'slide', 'convert', projectDirectory(), '--out', outPath, '--json', '--no-cache',
     ])
-    // element エラーは run の成否を落とさない。pptx も全枚数ぶん生成される。
     await attachFile('1 回目の run の PPTX', outPath)
+    // element エラーは run の成否を落とさない。pptx も全枚数ぶん生成される。
     expect(converted.status).toBe(0)
     expect(existsSync(outPath)).toBe(true)
     expect(await slidePartCount(outPath)).toBe(SLIDE_COUNT)

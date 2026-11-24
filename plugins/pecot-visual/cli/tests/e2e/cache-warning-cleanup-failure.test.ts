@@ -105,8 +105,8 @@ describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json paylo
     mkdirSync(artifactPath, { recursive: true })
 
     const broken = runPecotv('broken-cleanup', convertArguments(brokenOut))
-    // キャッシュ由来の失敗で変換自体は落とさない（SC-004）
     await attachFile('キャッシュを壊した後の PPTX', brokenOut)
+    // キャッシュ由来の失敗で変換自体は落とさない（SC-004）
     expect(broken.status).toBe(0)
     expect(existsSync(brokenOut)).toBe(true)
 

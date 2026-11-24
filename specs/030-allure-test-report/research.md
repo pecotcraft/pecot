@@ -190,14 +190,13 @@
 
   | テスト | 添付するもの |
   |---|---|
-  | `libs/interface-spec/tests/site/layout.test.ts` | 測ったページの `page.screenshot()`（幅ごと） |
-  | pecot-visual の e2e で、PNG を作るもの（`drawio-png-chromium`・`mcp-tools` など） | 判定した PNG のファイル |
-  | pecot-visual の e2e で、PDF を作るもの（`drawio-pdf-chromium`・`pptx-preview-soffice`） | 判定した PDF のファイル |
-  | pecot-visual の e2e で、xlsx を PDF・PNG にして判定するもの（`evidence-xlsx-*`） | 判定に使った PNG |
+  | `libs/interface-spec/tests/site/layout.test.ts` | 測ったページの `page.screenshot()`。ケースごとに 1 枚（全ページを回すケースは、違反したページか `index.html`） |
+  | pecot-visual の e2e で、PNG・SVG・PDF を作るもの（`drawio-*`・`pptx-preview-soffice` など） | 判定した PNG・SVG・PDF のファイル |
+  | pecot-visual の e2e で、xlsx を作るもの（`evidence-*`・`mcp-tools` など） | 作った xlsx と、判定した PDF か、判定した画素をそのまま包んだ PNG |
   | pecot-visual の e2e で、PPTX を作るもの（`golden-path-*`・`slidev-to-pptx-*` など） | 判定した PPTX のファイル |
 
-  - 対象のファイルの一覧は、tasks で 1 つずつ挙げる。ブラウザを開かず、成果物も作らない e2e（`theme-versions-side-by-side` など）は対象にしない
-  - `allure.attachment(名前, 中身, 型)`・`allure.attachmentPath(名前, パス, 型)` を使う
+  - 対象のファイルの一覧は、下の「対象のテスト（T021）」の表に 1 つずつ挙げる
+  - contracts の「添付」の `attachFile`・`attachContent` を使う。中身を読んで `attachment` に渡す
 - **Rationale**: PPTX と PDF は、テストが画像にせずに判定している。添付のために画像へ変えると、判定したものと別のものを見せることになる（FR-007b）。そこで、成果物そのものを添付する。spec の FR-007a は、この形に改めた
 - **大きさ**: 添付は、レポートの `data/attachments/` に 1 回分だけ入る。保管の job の大きさの知らせ（900 MB）が、レポートも数える
   - 手元で `test-site` と、pecot-visual の e2e の 2 ファイル（`drawio-png-chromium`・`drawio-pdf-chromium`）から作ったレポートは 12 MB だった
