@@ -5,6 +5,7 @@ import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
 import type { FieldOptionInput } from '../../domain/field-options.js'
+import { extractFieldValueById } from '../../domain/format.js'
 import type { BoardItem } from '../../domain/format.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
@@ -19,6 +20,7 @@ import {
   MUTATION_DELETE_PROJECT_ITEM,
   MUTATION_UNARCHIVE_PROJECT_ITEM,
   MUTATION_LINK_PROJECT_REPOSITORY,
+  MUTATION_RENAME_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
   QUERY_GET_ISSUE_BOARD_ITEM,
@@ -70,9 +72,9 @@ export interface ListProjectItemsOptions {
   */
   readonly excludeArchived?: boolean | undefined
   /**
-  excludeArchived のとき、ステータスを見るフィールド名
+  excludeArchived のとき、ステータスを見るフィールドの ID
   */
-  readonly workflowFieldName?: string | undefined
+  readonly workflowFieldId?: string | undefined
   /**
   Issue の依存関係に対応しない GHES で、足したフィールドを除いたクエリで読み直したときに呼ぶ
   */
@@ -95,18 +97,9 @@ export interface LinkResult {
 const MAX_ARCHIVED_CONSECUTIVE = 50
 const DEFAULT_PROJECT_LIMIT = 20
 
-function lowerText(value: JsonValue | undefined): string {
-  return typeof value === 'string' ? value.toLowerCase() : ''
-}
-
 // ワークフローのフィールドの値が Archived か。そのフィールドが無ければ false
-function isItemArchived(item: JsonValue, workflowFieldName: string): boolean {
-  const target = workflowFieldName.toLowerCase()
-  const fieldValues = truthyNodes(jsonField(item, 'fieldValues'))
-  for (const node of fieldValues) {
-    if (lowerText(jsonField(jsonField(node, 'field'), 'name')) === target) return lowerText(jsonField(node, 'name')) === 'archived'
-  }
-  return false
+function isItemArchived(item: JsonValue, workflowFieldId: string): boolean {
+  return extractFieldValueById(item, workflowFieldId)?.toLowerCase() === 'archived'
 }
 
 // オブジェクトの要素だけを残す（null などは落とす）
@@ -162,7 +155,7 @@ export class ProjectsApi extends ReposApi {
   プロジェクトボードのアイテムを取得する（ページネーション対応）
   */
   async listProjectItems(projectId: string, options: Readonly<ListProjectItemsOptions> = {}): Promise<readonly JsonObject[]> {
-    const { limit, excludeArchived = false, workflowFieldName = '', onLegacy } = options
+    const { limit, excludeArchived = false, workflowFieldId = '', onLegacy } = options
     let query = QUERY_LIST_PROJECT_ITEMS
     let allItems: JsonValue[] = []
     let cursor: string | null = JSON_NULL
@@ -191,7 +184,7 @@ export class ProjectsApi extends ReposApi {
 
       if (excludeArchived) {
         for (const item of nodes) {
-          if (isItemArchived(item, workflowFieldName)) {
+          if (isItemArchived(item, workflowFieldId)) {
             archivedConsecutive += 1
           }
           else {
@@ -347,13 +340,13 @@ export class ProjectsApi extends ReposApi {
   Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
   workflow は進行の列の値で、空なら null。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
   */
-  async getIssueBoardItem(projectId: string, owner: string, repository: string, issueNumber: number, workflowFieldName: string): Promise<BoardItem | undefined> {
-    const result = await this.executeGraphql(QUERY_GET_ISSUE_BOARD_ITEM, { owner, repo: repository, number: issueNumber, workflowFieldName })
+  async getIssueBoardItem(projectId: string, owner: string, repository: string, issueNumber: number, workflowFieldId: string): Promise<BoardItem | undefined> {
+    const result = await this.executeGraphql(QUERY_GET_ISSUE_BOARD_ITEM, { owner, repo: repository, number: issueNumber })
     const issue = jsonField(jsonField(result, 'repository'), 'issue')
     if (!isTruthy(issue)) return undefined
     const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId)
     if (item === undefined) return undefined
-    const workflow = jsonField(jsonField(item, 'workflow'), 'name')
+    const workflow = extractFieldValueById(item, workflowFieldId)
     const owning = jsonField(issue, 'repository')
     return {
       id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'),
@@ -447,6 +440,16 @@ export class ProjectsApi extends ReposApi {
     const created = jsonField(jsonField(result, 'createProjectV2Field'), 'projectV2Field')
     if (!isTruthy(created)) throw new GitHubAPIError('failed to create the field')
     return asObject(created)
+  }
+
+  /**
+  フィールドの名前だけを変え、更新後のフィールド（id・name）を返す
+  */
+  async renameProjectField(fieldId: string, name: string): Promise<JsonObject> {
+    const result = await this.executeGraphql(MUTATION_RENAME_PROJECT_FIELD, { fieldId, name })
+    const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field')
+    if (!isTruthy(updated)) throw new GitHubAPIError('failed to rename the field')
+    return asObject(updated)
   }
 
   /**

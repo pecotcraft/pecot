@@ -105,7 +105,7 @@ const DONE_12: IssueSpec = { number: 12, state: 'CLOSED', branch: BRANCH, pullRe
 const MERGED_UNCLOSED_12: IssueSpec = { ...DONE_12, state: 'OPEN' }
 
 function boardItemRule(number: number, column: string): ResponseRule {
-  const projectItems = { nodes: [{ id: `PVTI_${String(number)}`, project: { id: 'PVT_1' }, workflow: { name: column } }] }
+  const projectItems = { nodes: [{ id: `PVTI_${String(number)}`, project: { id: 'PVT_1' }, fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: 'pecot-status' }, name: column }] } }] }
   const issue = { number, title: `課題${String(number)}`, state: 'OPEN', url: `https://${HOST}/acme/demo/issues/${String(number)}`, repository: { owner: { login: 'acme' }, name: 'demo' }, projectItems }
   return graphql('GetIssueBoardItem', { repository: { issue } }, { variables: { number } })
 }

@@ -76,7 +76,6 @@ function projectConfigJson(options: Readonly<ProjectOptions>): string {
   return JSON.stringify({
     host: 'github.com',
     owner: 'acme',
-    workflow_suffix: 'test',
     project: { number: 1, id: 'PVT_test', fields: { workflow: { id: 'F', options: {} } } },
     repositories: options.repositories ?? DEFAULT_REPOSITORIES,
     ...options.aggregationRepository !== undefined && { aggregation_repo: options.aggregationRepository },

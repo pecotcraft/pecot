@@ -15,10 +15,12 @@ import {
   findConfigFor,
   findConfigsForRepository,
   getActiveConfigPath,
+  listProjectConfigEntries,
   loadActiveConfig,
   loadConfig,
   loadNamedConfig,
   projectsDirectory,
+  removeConfig,
   saveConfig,
   setActiveConfig,
 } from '../config-store.js'
@@ -221,6 +223,28 @@ function writeProject(projects: string, name: string, repositories: readonly str
 }
 
 const TARGET = { owner: 'acme', repository: 'app' }
+
+describe('listProjectConfigEntries', () => {
+  it('設定ファイルの名前と、中身が指すボードを名前順に返し、読めないファイルは飛ばす', () => {
+    const { projects } = useProject()
+    writeProject(projects, 'b', ['acme/app'])
+    writeProject(projects, 'a', ['acme/app'])
+    writeFileSync(path.join(projects, 'broken.json'), '{}')
+    expect(listProjectConfigEntries()).toEqual([
+      { fileName: 'a.json', host: 'ghes.example.com', owner: 'test-owner', number: 1 },
+      { fileName: 'b.json', host: 'ghes.example.com', owner: 'test-owner', number: 1 },
+    ])
+  })
+})
+
+describe('removeConfig', () => {
+  it('渡した設定ファイルを消す', () => {
+    const { projects } = useProject()
+    const file = writeProject(projects, 'board', ['acme/app'])
+    removeConfig(file)
+    expect(existsSync(file)).toBe(false)
+  })
+})
 
 describe('loadNamedConfig', () => {
   it('名前で読み、.json は省ける。無い名前は undefined', () => {

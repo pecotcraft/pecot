@@ -3,10 +3,11 @@ import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 
-import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
+import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig, WORKFLOW_FIELD_NAME } from '../domain/config.js'
 import type { Package, ProjectConfig, Repository } from '../domain/config.js'
 import { choosePlacement, insertOption } from '../domain/field-options.js'
 import type { FieldOptionInput } from '../domain/field-options.js'
+import { JSON_NULL } from '../domain/json-null.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
@@ -27,7 +28,7 @@ import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import type { OptionSpec, SyncedProjectConfig } from './project-sync.js'
+import type { ConfigPlacement, OptionSpec, SyncedProjectConfig } from './project-sync.js'
 import {
   BLOCKED_SPEC,
   NEEDS_ATTENTION_SPEC,
@@ -43,6 +44,9 @@ import {
   lastFieldNamed,
   missingRequiredOptions,
   stopMissingOptions,
+  placeProjectConfig,
+  planWorkflowFieldOf,
+  reportConfigMove,
   syncProjectConfig,
   textOf,
 } from './project-sync.js'
@@ -260,7 +264,7 @@ function optionInputsOf(field: Readonly<JsonObject>): readonly FieldOptionInput[
 
 interface FieldReport {
   readonly name: string
-  change: 'create' | 'update' | 'unchanged' | 'skip'
+  change: 'create' | 'update' | 'unchanged' | 'skip' | 'rename'
   addedOptions: string[]
 }
 
@@ -272,7 +276,8 @@ function fieldReporter(publish: ((fields: FieldReport[]) => void) | undefined): 
   const entries = new Map<string, FieldReport>()
   return (name, change, addedOption) => {
     const entry = entries.get(name) ?? { name, change, addedOptions: [] }
-    entry.change = change
+    // 改名した欄は、選択肢を足しても rename のまま残す
+    if (change !== 'unchanged' && entry.change !== 'rename') entry.change = change
     if (addedOption !== undefined) entry.addedOptions.push(addedOption)
     entries.set(name, entry)
     publish?.(Array.from(entries.values(), report => ({ ...report, addedOptions: [...report.addedOptions] })))
@@ -314,10 +319,9 @@ async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClie
   return 1
 }
 
-// 既にあるフィールドに足す選択肢。fields は作る前の状態なので、作ったばかりの進行の欄は「無い」扱いで何も出さない（created の行が出ている）
+// 既にあるフィールドに足す選択肢。作ったばかりの進行の欄は workflowField が無く、何も出さない（created の行が出ている）
 // 足した（予行では、足す予定の）選択肢の数を返す
-async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
-  const workflowField = lastFieldNamed(fields, workflowFieldName)
+async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowField: Readonly<JsonObject> | undefined, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
   const blocked = workflowField === undefined ? 0 : await addFieldOption(out, client, workflowField, BLOCKED_SPEC, run)
   const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
   if (statusField === undefined) {
@@ -333,27 +337,63 @@ function skipped(out: Readonly<Output>, target: string): void {
   out.done({ verb: 'skip', target })
 }
 
-// フィールドを作り、既にあるフィールドには足りない選択肢を足す。既にある進行の欄の必須の値が欠けていれば、何も書かずに止める。
-// 作る・足す（予行では、その予定の）フィールドと選択肢の数を返す
-async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<number> {
-  const { owner, name, suffix } = target
+// 旧い名前の進行の欄を pecot-status に改名する。選択肢を渡さないので、選択肢の ID と各 Item の値は残る
+async function renameWorkflowField(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<void> {
+  const operation: Operation = { verb: 'rename', target: `field ${textOf(field['name'])} to ${WORKFLOW_FIELD_NAME}` }
+  if (run.isDryRun) out.planned(operation)
+  else {
+    await client.renameProjectField(requireString(field['id'], 'field.id'), WORKFLOW_FIELD_NAME)
+    out.done(operation)
+  }
+  run.mark(WORKFLOW_FIELD_NAME, 'rename')
+}
+
+interface InitializedFields {
+  /**
+  作る・足す・改名する（予行では、その予定の）フィールドと選択肢の数
+  */
+  readonly changeCount: number
+  readonly projectNumber: number
+  /**
+  改名した（予行では、する）旧い名前
+  */
+  readonly renamed: string | undefined
+}
+
+// フィールドを作り、既にあるフィールドには足りない選択肢を足す。進行の欄が旧い名前なら改名する。
+// 既にある進行の欄の必須の値が欠けていれば、何も書かずに止める
+async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string }>, run: Readonly<{ isDryRun: boolean, mark: MarkField }>): Promise<InitializedFields> {
+  const { owner, name, host } = target
   const { isDryRun, mark } = run
   const project = await findProjectByTitle(out, client, owner, name)
   const projectId = requireString(project['id'], 'project.id')
-  const projectInfo = await client.getProjectFields(owner, requireNumber(project['number'], 'project.number'))
+  const projectNumber = requireNumber(project['number'], 'project.number')
+  // 設定ファイルが選べないときは、ボードを書き換える前に止める
+  placeProjectConfig(out, { host, owner, number: projectNumber })
+  const projectInfo = await client.getProjectFields(owner, projectNumber)
   if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `could not read project fields: ${name}`, 'not-initialized')
   const fields = fieldNodesOf(projectInfo)
-  const workflowFieldName = `pecot-workflow-${suffix}`
-  const existingWorkflow = lastFieldNamed(fields, workflowFieldName)
+  const plan = planWorkflowFieldOf(fields)
+  const existingWorkflow = plan.kind === 'create' ? undefined : lastFieldNamed(fields, plan.kind === 'rename' ? plan.from : plan.use)
   if (existingWorkflow !== undefined) {
     const missing = missingRequiredOptions(existingWorkflow)
     if (missing.length > 0) stopMissingOptions(out, missing)
   }
+  let renameCount = 0
+  if (existingWorkflow !== undefined && plan.kind === 'rename') {
+    await renameWorkflowField(out, client, existingWorkflow, run)
+    renameCount = 1
+  }
+  const created: readonly (readonly [string, readonly ProjectFieldOption[]])[] = plan.kind === 'create' ? [[WORKFLOW_FIELD_NAME, WORKFLOW_FIELD_OPTIONS]] : []
   const wanted: readonly (readonly [string, readonly ProjectFieldOption[]])[] = [
-    [workflowFieldName, WORKFLOW_FIELD_OPTIONS],
+    ...created,
     ['pecot-priority', PRIORITY_FIELD_OPTIONS],
     ['pecot-size', SIZE_FIELD_OPTIONS],
   ]
+  if (plan.kind === 'current' || plan.kind === 'both') {
+    skipped(out, `field ${WORKFLOW_FIELD_NAME} (already exists)`)
+    mark(WORKFLOW_FIELD_NAME, 'unchanged')
+  }
   let newFieldCount = 0
   for (const [fieldName, options] of wanted) {
     if (fields.some(field => jsonField(field, 'name') === fieldName)) {
@@ -371,49 +411,74 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
     out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
     mark(fieldName, 'create')
   }
-  return newFieldCount + await addMissingOptions(out, client, fields, workflowFieldName, run)
+  // 改名した進行の欄は、改名の後の名前で選択肢の行を出す
+  const workflowField = existingWorkflow === undefined ? undefined : { ...existingWorkflow, name: WORKFLOW_FIELD_NAME }
+  const optionCount = await addMissingOptions(out, client, fields, workflowField, run)
+  return { changeCount: renameCount + newFieldCount + optionCount, projectNumber, renamed: renameCount > 0 && plan.kind === 'rename' ? plan.from : undefined }
 }
 
-const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip'])
+const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip', 'rename'])
 
 const INIT_ROW = z.strictObject({
   name: z.string().describe('Name of the project field'),
-  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found'),
+  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status'),
   addedOptions: z.array(z.string()).describe('Names of the options added to the field (empty when none)'),
+})
+
+const CONFIG_MOVED = z.strictObject({
+  from: z.string().describe('File name of the old project config'),
+  to: z.string().describe('File name the project config was moved to'),
+}).nullable().describe('The old project config file that was moved to the new name (null when none)')
+
+const MIGRATION = z.strictObject({
+  renamed: z.string().nullable().describe('Old name of the workflow field that was renamed to pecot-status (null when none)'),
+  config_moved: CONFIG_MOVED,
 })
 
 const INIT_OUTPUT = z.strictObject({
   fields: z.array(INIT_ROW).describe('The workflow, priority and size fields, plus the Status field when its options were looked at'),
+  migration: MIGRATION.optional().describe('What was moved from the old form (omitted when the command stopped before the project config)'),
 })
+
+// 移した設定ファイルの、名前だけの組
+function configMovedOf(placement: Readonly<ConfigPlacement>): z.input<typeof CONFIG_MOVED> {
+  return placement.movedFrom === undefined ? JSON_NULL : { from: path.basename(placement.movedFrom), to: path.basename(placement.configPath) }
+}
 
 const initCommand = defineCommand({
   path: ['project', 'init'],
   title: 'Initialize project fields',
-  description: 'Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist',
+  description: 'Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     name: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
-    suffix: z.string().describe('Suffix of the workflow field'),
     dry_run: dryRunInput,
   }),
   output: INIT_OUTPUT,
   positional: ['owner', 'name'],
-  shortFlags: { host: '-h', suffix: '-s', dry_run: '-n' },
+  shortFlags: { host: '-h', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
     const out = createOutput<z.input<typeof INIT_OUTPUT>>(input.dry_run, io)
-    const { owner, name, host, suffix } = input
+    const { owner, name, host } = input
     // 認証の失敗を、フィールドの初期化の失敗に包まないため
     const client = await createAuthenticatedGitHubClient(out, host)
     const mark = fieldReporter((fields) => {
       out.result({ fields })
     })
-    const changeCount = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, { isDryRun: input.dry_run, mark }))
-    // 設定ファイルは作るフィールドと選択肢の ID を書くので、予行では作る前の設定を出さない
-    if (changeCount > 0 && input.dry_run) return 0
+    const initialized = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, input, { isDryRun: input.dry_run, mark }))
+    const renamed = initialized.renamed ?? JSON_NULL
+    // 設定ファイルは作るフィールドと選択肢の ID を書くので、予行では作る前の設定を出さない。移す予定は ID に依らないので出す
+    if (initialized.changeCount > 0 && input.dry_run) {
+      const placement = placeProjectConfig(out, { host, owner, number: initialized.projectNumber })
+      reportConfigMove(out, placement, true)
+      out.result({ migration: { renamed, config_moved: configMovedOf(placement) } })
+      return 0
+    }
     await guarded(out, 'sync project config', async () => {
-      await syncProjectConfig(out, client, { owner, name, host, suffix, skipIfUnchanged: true, isDryRun: input.dry_run })
+      const synced = await syncProjectConfig(out, client, { owner, name, host, skipIfUnchanged: true, isDryRun: input.dry_run })
+      out.result({ migration: { renamed, config_moved: configMovedOf(synced) } })
     })
     return 0
   },
@@ -436,16 +501,15 @@ const projectCreationCommand = defineCommand({
     owner: z.string().describe('Project owner'),
     title: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
-    suffix: z.string().describe('Suffix of the workflow field'),
     dry_run: dryRunInput,
   }),
   output: CREATE_OUTPUT,
   positional: ['owner', 'title'],
-  shortFlags: { host: '-h', suffix: '-s', dry_run: '-n' },
+  shortFlags: { host: '-h', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
     const out = createOutput<z.input<typeof CREATE_OUTPUT>>(input.dry_run, io)
-    const { owner, title, host, suffix } = input
+    const { owner, title, host } = input
     await guarded(out, 'create project', async () => {
       const client = createGitHubClient(out, host)
       let ownerId: string
@@ -475,10 +539,10 @@ const projectCreationCommand = defineCommand({
         ...typeof created['url'] === 'string' && { url: created['url'] },
       })
       await guarded(out, 'initialize project fields', async () => {
-        await initializeFields(out, client, { owner, name: title, suffix }, { isDryRun: false, mark: fieldReporter(undefined) })
+        await initializeFields(out, client, { owner, name: title, host }, { isDryRun: false, mark: fieldReporter(undefined) })
       })
       await guarded(out, 'sync project config', async () => {
-        await syncProjectConfig(out, client, { owner, name: title, host, suffix })
+        await syncProjectConfig(out, client, { owner, name: title, host })
       })
     })
     return 0
@@ -513,7 +577,7 @@ async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, confi
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
     if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, suffix: config.workflow_suffix, ...SYNC_FOR_ACTIVATE, isDryRun }))
+    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, ...SYNC_FOR_ACTIVATE, isDryRun }))
   })
 }
 
@@ -560,7 +624,7 @@ async function activateByReference(out: Readonly<Output<ActivateData>>, client: 
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    stopWith(out, hinted`project "${title}" is not initialized\n${RUN_COLON}${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
+    stopWith(out, hinted`project "${title}" is not initialized\n${RUN_COLON}${commandHint(['project', 'init'], { owner, name: title, host })}`, 'not-initialized')
   }
   reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, ...SYNC_FOR_ACTIVATE, isDryRun }))
 }
@@ -574,13 +638,14 @@ const ACTIVATE_OUTPUT = z.strictObject({
   project: z.string().optional().describe('Name of the project config that was made active'),
   configPath: z.string().describe('Path of the project config file'),
   change: z.enum(['create', 'update', 'unchanged']).describe('What happened to the config file'),
+  config_moved: CONFIG_MOVED,
 })
 
 type ActivateData = z.input<typeof ACTIVATE_OUTPUT>
 
 // 設定ファイルの結果を data に渡す
 function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<SyncedProjectConfig>): void {
-  out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change })
+  out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change, config_moved: configMovedOf(synced) })
 }
 
 const activateCommand = defineCommand({
@@ -613,7 +678,7 @@ const activateCommand = defineCommand({
           hinted`${inputNameHint(ACTIVATE_PATH, 'host')} is required
 example: ${commandHint(ACTIVATE_PATH, { project: '1', host: 'github.com', owner: 'example-org' })}
 example: ${commandHint(ACTIVATE_PATH, { project: 'example-project', host: 'ghes.example.com', owner: 'example-org' })}
-example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_example-project_example-org' })}`,
+example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_1' })}`,
           'invalid-input',
         )
       }

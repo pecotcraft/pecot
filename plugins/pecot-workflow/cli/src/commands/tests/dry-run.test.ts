@@ -23,6 +23,8 @@ type Json = Record<string, unknown>
 
 const SESSION_TITLE = '.pecot/state/.pecot-session-title'
 const BOARD_URL = `https://${DEFAULT_HOST}/users/acme/projects/1`
+// ボードの持ち主と番号で付けた設定ファイルの名前
+const BOARD_CONFIG_FILE = `.pecot/config/projects/${DEFAULT_HOST}_acme_1.json`
 
 const STATE = '.pecot/state'
 const SEEDED_STATE: Readonly<Record<string, string>> = {
@@ -50,7 +52,7 @@ const projectNode = (): Json => ({ number: 1, title: 'board', url: BOARD_URL, id
 const listProjects = (...nodes: Json[]): ResponseRule => graphqlRule('ListProjectsUser', { user: { projectsV2: { nodes } } })
 const options = (names: readonly string[]): Json[] => names.map((name, index) => ({ id: `o${String(index + 1)}`, name, color: 'GRAY', description: name }))
 const standardFields = (): Json[] => [
-  { id: 'PVTSSF_workflow', name: 'pecot-workflow-acme', databaseId: 456, options: options(['Backlog', 'Pending', 'Ready', 'Active', 'In Review', 'Archived']) },
+  { id: 'PVTSSF_workflow', name: 'pecot-status', databaseId: 456, options: options(['Backlog', 'Pending', 'Ready', 'Active', 'In Review', 'Archived']) },
   { id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) },
   { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) },
   { id: 'PVTSSF_status', name: 'Status', options: options(['Todo', 'In Progress', 'Done']) },
@@ -123,7 +125,7 @@ describe('project', () => {
   it('project create に dry_run を渡すと、既にあるかを読むだけで、プロジェクトの作成だけを予行の行に出す', async (context) => {
     await verifies(context, 'PW-PROJECT-CREATE-11')
     const github = [graphqlRule('GetUserNodeId', { user: { id: 'U_1' } }), listProjects()]
-    const result = await dryRun(['project', 'create', 'acme', 'board', '-h', DEFAULT_HOST, '-s', 'acme', '-n'], github)
+    const result = await dryRun(['project', 'create', 'acme', 'board', '-h', DEFAULT_HOST, '-n'], github)
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe('dry-run: would create project board for acme\n')
@@ -132,11 +134,11 @@ describe('project', () => {
   it('project init に dry_run を渡すと、無いフィールドの作成を予行の行に出し、設定ファイルを書かない', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-16')
     const github = [listProjects(projectNode()), projectFields([{ id: 'PVTSSF_status', name: 'Status', options: options(['Todo']) }])]
-    const result = await dryRun(['project', 'init', 'acme', 'board', '-h', DEFAULT_HOST, '-s', 'acme', '-n'], github, { config: false })
+    const result = await dryRun(['project', 'init', 'acme', 'board', '-h', DEFAULT_HOST, '-n'], github, { config: false })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe([
-      'dry-run: would create field pecot-workflow-acme',
+      'dry-run: would create field pecot-status',
       'dry-run: would create field pecot-priority',
       'dry-run: would create field pecot-size',
       'dry-run: would add option Needs Attention to field Status',
@@ -149,41 +151,42 @@ describe('project', () => {
     await verifies(context, 'PW-PROJECT-INIT-17')
     const github = [listProjects(projectNode()), projectFields(standardFields())]
     const before = `${JSON.stringify(projectConfig(), undefined, 2)}\n`
-    const result = await dryRun(['project', 'init', 'acme', 'board', '-h', DEFAULT_HOST, '-s', 'acme', '-n'], github)
+    const result = await dryRun(['project', 'init', 'acme', 'board', '-h', DEFAULT_HOST, '-n'], github, { configFile: BOARD_CONFIG_FILE })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toBe([
-      'dry-run: would skip field pecot-workflow-acme (already exists)',
+      'dry-run: would skip field pecot-status (already exists)',
       'dry-run: would skip field pecot-priority (already exists)',
       'dry-run: would skip field pecot-size (already exists)',
-      'dry-run: would add option Blocked to field pecot-workflow-acme',
+      'dry-run: would add option Blocked to field pecot-status',
       'dry-run: would add option Needs Attention to field Status',
       '',
     ].join('\n'))
-    expect(result.read(CONFIG_FILE)).toBe(before)
+    expect(result.read(BOARD_CONFIG_FILE)).toBe(before)
   })
 
   it('project activate に dry_run を渡すと、設定ファイルとアクティブの切り替えを予行の行に出し、何も書かない', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-23')
     const github = [projectFields(standardFields()), listProjects(projectNode()), projectFields(standardFields()), linked('demo')]
-    const result = await dryRun(['project', 'activate', path.basename(CONFIG_FILE), '-n'], github)
+    const result = await dryRun(['project', 'activate', path.basename(BOARD_CONFIG_FILE), '-n'], github, { configFile: BOARD_CONFIG_FILE })
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toContain('dry-run: would set active project to ghes.example.com_acme_board_acme\n')
-    expect(result.read(CONFIG_FILE)).toBe(`${JSON.stringify(projectConfig(), undefined, 2)}\n`)
+    expect(result.stderr).toContain('dry-run: would set active project to ghes.example.com_acme_1\n')
+    expect(result.read(BOARD_CONFIG_FILE)).toBe(`${JSON.stringify(projectConfig(), undefined, 2)}\n`)
   })
 
-  it('project activate に dry_run を渡すと、別の設定ファイルを指しても、アクティブの印と設定ファイルが変わらない', async (context) => {
+  it('project activate に dry_run を渡すと、旧い名前の設定ファイルを指しても、アクティブの印と設定ファイルが変わらない', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-23')
     const other = 'ghes.example.com_acme_other_acme.json'
     const otherContent = `${JSON.stringify(projectConfig(), undefined, 2)}\n`
     const github = [projectFields(standardFields()), listProjects(projectNode()), projectFields(standardFields()), linked('demo')]
-    const result = await dryRun(['project', 'activate', other, '-n'], github, { files: { [`.pecot/config/projects/${other}`]: otherContent } })
+    const result = await dryRun(['project', 'activate', other, '-n'], github, { configFile: BOARD_CONFIG_FILE, files: { [`.pecot/config/projects/${other}`]: otherContent } })
     expect(result.code).toBe(0)
-    expect(result.read('.pecot/config/projects/.active')).toBe(`${path.basename(CONFIG_FILE)}\n`)
-    expect(result.read(CONFIG_FILE)).toBe(otherContent)
+    expect(result.stderr).toContain(`dry-run: would move config file ${path.join(result.directory, '.pecot/config/projects', other)} to ${path.join(result.directory, BOARD_CONFIG_FILE)}\n`)
+    expect(result.read('.pecot/config/projects/.active')).toBe(`${path.basename(BOARD_CONFIG_FILE)}\n`)
+    expect(result.read(BOARD_CONFIG_FILE)).toBe(otherContent)
     expect(result.read(`.pecot/config/projects/${other}`)).toBe(otherContent)
-    expect(Object.keys(snapshot(result.directory, '.pecot/config/projects'))).toEqual(['.active', path.basename(CONFIG_FILE), other].toSorted(compareStrings))
+    expect(Object.keys(snapshot(result.directory, '.pecot/config/projects'))).toEqual(['.active', path.basename(BOARD_CONFIG_FILE), other].toSorted(compareStrings))
   })
 
   it('project link に dry_run を渡すと、リンクの有無を読むだけで、リンクと設定ファイルへの追加を予行の行に出す', async (context) => {

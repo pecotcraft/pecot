@@ -22,7 +22,6 @@ function config(): ProjectConfig {
   return parseProjectConfig({
     host: 'github.com',
     owner: 'o',
-    workflow_suffix: 'o',
     project: {
       number: 1,
       id: 'PVT_1',
@@ -203,7 +202,6 @@ describe('applyBoardMove', () => {
   const withBlocked = parseProjectConfig({
     host: 'github.com',
     owner: 'o',
-    workflow_suffix: 'o',
     project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'F_workflow', options: { ready: 'O_ready', blocked: 'O_blocked' } }, status: { id: 'F_status', options: { todo: 'O_todo' } } } },
   })
 

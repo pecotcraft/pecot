@@ -392,6 +392,7 @@ entries:
         - An Issue whose prerequisites cannot be read is shown as unknown.
         - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
         - When pecot board sync would move the column or the Status of a Ready or Blocked Issue, writes one warning line with the count and points to pecot board sync. The count uses the same rule as pecot board sync. A Blocked Issue without prerequisites is counted even though its branches and PRs are not read, so the line says the column or Status may not match.
+        - When the progress field still has an old pecot-workflow-<suffix> name, reads the board the same way and writes one warning line with the old name and points to pecot project init.
       examples:
         - run: pecot board show
           note: Show the dashboard as Markdown.
@@ -416,6 +417,7 @@ entries:
       - '前提を読めない Issue は、判定を `unknown` にします。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`readiness` の無いボードを返します。'
       - '`board_sync` が列か Status を動かすはずの Ready か Blocked の Issue があると、`warnings` に 1 つ入れます。件数を載せ、`board_sync` を案内します。件数の数え方は、`board_sync` と同じ規則です。前提の無い Blocked の Issue は、ブランチと PR を読んでいなくても数えます。そのため、列か Status が合っていないおそれがあると伝えます。'
+      - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じようにボードを読みます。旧い名前を載せて `project_init` を案内する警告を、`warnings` に 1 つ入れます。'
     stdin: none
     output:
       format: text
@@ -426,7 +428,7 @@ entries:
         repositories: '登録したリポジトリの配列です。登録順に並びます。キーは snake_case です。要素は `full_name`・`owner`・`name`・`develop_branch`・`release_branch`・`dependabot_alerts` を持ちます。ブランチが未設定なら `null` です。`dependabot_alerts` は、読めなかったときは理由の `error` だけを持ちます。読めたときは `enabled`・`open_count`・`max_severity`・`alerts_url` を持ちます。要素は、`release_type`（`single`・`multi`・`nx`）と `packages`（`name` と `changelog` の配列。無ければ空）も持ちます。package の無いリポジトリに CHANGELOG の設定があるときだけ、`changelog_file` も持ちます。'
         board: 'ボードの状態です。`items` の配列を持ち、Backlog・Pending・Blocked・Ready・Active・In Review にある開いた項目が入ります。キーは snake_case です。要素は `id`・`workflow`（列。無ければ `null`）・`title`・`updatedAt`・`content`・`readiness` を持ちます。`content` は `number`・`state`・`url`・`labels`・`repository` を持ちます。`readiness` は、Ready と Blocked の Issue だけが `kind`・`stackOn`・`reason`・`text` を持ち、ほかの項目は `null` です。サーバが Issue の依存を扱えないときは、`readiness` ごと入りません。'
         mismatches: 'Ready か Blocked の Issue のうち、列と Status のどちらかが判定と食い違う疑いのあるものの件数です。'
-    diagnostics: 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、標準エラーに `warning` の行を 1 つ出します。Ready か Blocked の Issue の列か Status が判定に合っていないおそれがあるときも、`warning` の行を 1 つ出します。'
+    diagnostics: 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、標準エラーに `warning` の行を 1 つ出します。Ready か Blocked の Issue の列か Status が判定に合っていないおそれがあるときも、`warning` の行を 1 つ出します。進行の欄が旧い名前のときも、`warning` の行を 1 つ出します。'
     environment: []
     exit_status:
       - kind: no-active-project
@@ -565,6 +567,9 @@ entries:
       - id: PW-BOARD-SHOW-35
         pattern: ubiquitous
         statement: '常に、前提の Issue が PR やほかの Issue から何件言及されていても、言及の件数で判定を変えません'
+      - id: PW-BOARD-SHOW-36
+        pattern: state
+        statement: '進行の欄が旧い名前の `pecot-workflow-<suffix>` である間、同じ内容を返し、旧い名前を載せて `project_init` を案内する警告を `warnings` に 1 つ入れます'
   PW-BOARD-SYNC:
     help:
       details:
@@ -580,6 +585,7 @@ entries:
         - The config is --project, else the active project, else the only config in .pecot/config/projects. With two or more configs and no active project, stops and asks for --project.
         - Reads the GraphQL rate limit (REST, no points) before and after the run and prints the points used and the remaining points. When it cannot be read, the line is left out. When the rate limit window resets during the run, or the difference is negative, the points used line is left out.
         - On a GitHub Enterprise Server without Issue dependencies, prints one warning and moves nothing.
+        - When the progress field still has an old pecot-workflow-<suffix> name, moves the Issues the same way and writes one warning line with the old name and points to pecot project init.
       examples:
         - run: pecot board sync --dry-run
           note: Show the planned moves without writing to the board.
@@ -602,6 +608,7 @@ entries:
       - '設定は、`project` の設定、アクティブなプロジェクト、`.pecot/config/projects` にある唯一の設定の順で選びます。設定が 2 つ以上あってアクティブなプロジェクトが無いときは、`project` を求める失敗を返します。'
       - 'CLI では、実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`warnings` に 1 つ入れ、何も動かしません。'
+      - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じように Issue を動かします。旧い名前を載せて `project_init` を案内する警告を、`warnings` に 1 つ入れます。'
     stdin: none
     output:
       format: none
@@ -609,7 +616,7 @@ entries:
       fields:
         moves: '列か Status を書いた Issue の配列です。要素は `issue`・`reason` を必ず持ちます。`issue` は `#N` の形で、ホームリポジトリの外は `owner/repo#N` です。`reason` は、動かすと決めた Readiness です。`from` と `to` は列が変わったときだけ、`label` は Status を設定したときだけ入ります。'
         deletedArchived: 'ボードから削除した Archived の項目の件数です。'
-    diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
+    diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。進行の欄が旧い名前のとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
     environment: []
     exit_status:
       - kind: partial-failure
@@ -776,6 +783,9 @@ entries:
       - id: PW-BOARD-SYNC-32
         pattern: unwanted
         statement: 'もし札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、前提がすべて済んでも札を `Todo` に戻しません'
+      - id: PW-BOARD-SYNC-33
+        pattern: state
+        statement: '進行の欄が旧い名前（`pecot-workflow-<suffix>`）である間、同じ Issue を動かし、`project_init` を案内する警告を `warnings` に 1 つ入れます'
   PW-BRANCH-DELETE:
     help:
       details:
@@ -3871,15 +3881,16 @@ entries:
     help:
       details:
         - The project argument is required. pecot project search lists the projects of the owner and marks the initialized and the active ones.
-        - A project is initialized when it has a pecot-workflow field.
-        - With a project number or name, regenerates the config file of that project from GitHub and makes it the active project.
+        - A project is initialized when it has a pecot-status field, or an old pecot-workflow-<suffix> field.
+        - With a project number or name, regenerates the config file <host>_<owner>_<number>.json of that project from GitHub and makes it the active project.
         - With a config file path or file name, syncs the project from the host, owner and number recorded in that file and makes it the active project.
         - A config file path or file name needs neither --host nor --owner.
         - The develop branch, release branch, changelog_file, packages and release type of each repository, and aggregation_repo, already in the config file are kept.
         - A repository that is no longer linked to the project is removed from the config file.
         - A newly linked repository is appended to the end of the repository list.
-        - The Blocked option of the pecot-workflow field and the Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
-        - A board without the Blocked option is accepted; the other six options of the pecot-workflow field are required.
+        - A config file of the same project under another name is moved to <host>_<owner>_<number>.json, and the active project follows it. Use the new name for the project input and the PECOT_REVIEW_PROJECT variable.
+        - The Blocked option of the pecot-status field and the Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
+        - A board without the Blocked option is accepted; the other six options of the pecot-status field are required.
         - With --dry-run, reads the project and prints dry-run lines for the config file and the switch of the active project, and writes nothing.
       examples:
         - run: pecot project activate 1 --host github.com --owner example-org
@@ -3897,15 +3908,16 @@ entries:
     constraints: []
     details:
       - '`project` は必須です。所有者のプロジェクトは `project_search` で一覧でき、初期化済みのものとアクティブなものが分かります。'
-      - '初期化済みのプロジェクトとは、pecot-workflow のフィールドを持つプロジェクトです。'
-      - '`project` にプロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイルを GitHub から作り直し、アクティブなプロジェクトにします。'
+      - '初期化済みのプロジェクトとは、`pecot-status` のフィールドか、旧い名前の `pecot-workflow-<suffix>` のフィールドを持つプロジェクトです。'
+      - '`project` にプロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイル `<host>_<owner>_<番号>.json` を GitHub から作り直し、アクティブなプロジェクトにします。'
       - '`project` に設定ファイルのパスかファイル名を渡すと、ファイルに記録したホスト・所有者・番号でプロジェクトを同期し、アクティブなプロジェクトにします。'
       - '設定ファイルのパスかファイル名を渡すときは、`host` と `owner` のどちらも要りません。'
       - '設定ファイルに既にある次の値は残します。リポジトリごとの開発ブランチ・リリースブランチ・`changelog_file`・packages・リリースの種類と、`aggregation_repo` です。'
       - 'プロジェクトとのつながりが外れたリポジトリは、設定ファイルから消します。'
       - '新しくつないだリポジトリは、リポジトリの一覧の末尾に足します。'
-      - '次の選択肢は、ボードにあるときだけ設定ファイルに書きます。pecot-workflow のフィールドの Blocked と、Status のフィールドの Todo・In Progress・Needs Attention です。'
-      - 'Blocked の選択肢の無いボードも受け付けます。pecot-workflow のフィールドのほかの 6 つの選択肢は必須です。'
+      - '同じプロジェクトを指す、別の名前の設定ファイルがあれば、新しい名前に移し、アクティブなプロジェクトも新しい名前にします。`project` の入力と Actions の変数 `PECOT_REVIEW_PROJECT` には、新しい名前を使います。移す元が 2 つ以上あるときは、何も移さずに失敗を返します。'
+      - '次の選択肢は、ボードにあるときだけ設定ファイルに書きます。pecot-status のフィールドの Blocked と、Status のフィールドの Todo・In Progress・Needs Attention です。'
+      - 'Blocked の選択肢の無いボードも受け付けます。pecot-status のフィールドのほかの 6 つの選択肢は必須です。'
       - '`host` が、渡した設定ファイルのホストと違うときは、`warnings` に入れて、設定ファイルのホストを使います。'
     stdin: none
     output:
@@ -3916,7 +3928,8 @@ entries:
         project: 'アクティブにした設定の名前です。'
         configPath: 'プロジェクトの設定ファイルのパスです。'
         change: '設定ファイルがどうなったかです。`create`・`update`・`unchanged` のどれかです。'
-    diagnostics: '標準エラーに、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。`--host` が渡した設定ファイルのホストと違うときは、`warning` の行を出します。このときは、設定ファイルのホストを使います。'
+        config_moved: '新しい名前に移した設定ファイルの `from`・`to` のファイル名です。移していなければ `null` です。'
+    diagnostics: '標準エラーに、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。`--host` が渡した設定ファイルのホストと違うときは、`warning` の行を出します。このときは、設定ファイルのホストを使います。'
     environment: []
     exit_status:
       - kind: invalid-input
@@ -3930,7 +3943,7 @@ entries:
         when: 'プロジェクトが初期化されていません。'
       - kind: config-invalid
         code: 1
-        when: '設定ファイルを読み込めません。'
+        when: '設定ファイルを読み込めません。同じプロジェクトを指す、別の名前の設定ファイルが 2 つ以上あるときも含みます。'
       - kind: invalid-input
         code: 2
         when: '`project` が無いか、知らない引数など、ほかの引数の誤りがあります。'
@@ -4041,43 +4054,48 @@ entries:
         statement: 'CLI で `--dry-run` を付けて打つと、設定ファイルを書かずアクティブなプロジェクトも切り替えず、する予定を `dry-run` の行で標準エラーに出します'
       - id: PW-PROJECT-ACTIVATE-24
         pattern: event
-        statement: '`project` に設定ファイルのパスかファイル名を渡すと、その設定ファイルの `workflow_suffix` の進行の欄で同期します'
+        statement: '`pecot-status` と旧い名前の進行の欄が両方あるボードを渡すと、`pecot-status` の欄で同期します'
       - id: PW-PROJECT-ACTIVATE-25
         pattern: event
         statement: '同期した中身が既存の設定ファイルと同じだと、ファイルを書き換えずに `change` を `unchanged` にし、そのプロジェクトをアクティブにします'
+      - id: PW-PROJECT-ACTIVATE-26
+        pattern: event
+        statement: '同じプロジェクトを指す別の名前の設定ファイルがあると、それを新しい名前に移してアクティブにし、移した元と先を `config_moved` に入れます'
+      - id: PW-PROJECT-ACTIVATE-27
+        pattern: event
+        statement: '旧い名前の進行の欄だけがあるボードを渡すと、初期化済みとして同期します'
   PW-PROJECT-CREATE:
     help:
       details:
         - Creates a GitHub Projects V2 project for the owner.
-        - Adds the pecot-workflow, pecot-priority and pecot-size fields to the project.
-        - The pecot-workflow field is created with seven options, including Blocked.
+        - Adds the pecot-status, pecot-priority and pecot-size fields to the project.
+        - The pecot-status field is created with seven options, including Blocked.
         - Adds the Needs Attention option to the Status field of the project.
         - When an option cannot be added, a warning line is written and the command continues.
-        - Writes the config file and makes the project active.
+        - Writes the config file <host>_<owner>_<number>.json and makes the project active.
         - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
         - Stops without creating anything when the owner is not found.
         - Stops without creating anything when a project with the same title already exists.
         - With --dry-run, checks whether the project already exists and prints a dry-run line for creating it, and creates nothing.
       examples:
-        - run: pecot project create example-org "Example Project" --suffix example
+        - run: pecot project create example-org "Example Project"
           note: Create a project and activate it.
-        - run: pecot project create example-org "Example Project" --suffix example --dry-run
+        - run: pecot project create example-org "Example Project" --dry-run
           note: Show the planned project without creating it.
       default_notes: {}
     summary: 新しいプロジェクトを作ります。既にあるプロジェクトにフィールドを足すときは、`project init` を使います。
     arguments:
       host: 'GitHub のホストです。'
       owner: 'プロジェクトの所有者です。'
-      suffix: 'ワークフローのフィールドに付ける接尾辞です。'
       title: 'プロジェクトの題です。'
     constraints: []
     details:
       - '所有者の GitHub Projects V2 のプロジェクトを作ります。'
-      - 'プロジェクトに、pecot-workflow・pecot-priority・pecot-size のフィールドを足します。'
-      - 'pecot-workflow のフィールドは、Blocked を含む 7 つの選択肢で作ります。'
+      - 'プロジェクトに、pecot-status・pecot-priority・pecot-size のフィールドを足します。'
+      - 'pecot-status のフィールドは、Blocked を含む 7 つの選択肢で作ります。'
       - 'プロジェクトの Status のフィールドに、Needs Attention の選択肢を足します。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。'
-      - '設定ファイルを書き、プロジェクトをアクティブにします。'
+      - '設定ファイルを `<host>_<owner>_<番号>.json` の名前で書き、プロジェクトをアクティブにします。'
       - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
       - '所有者が見つからないときは、何も作らずに失敗を返します。'
       - '同じ題のプロジェクトが既にあるときは、何も作らずに失敗を返します。'
@@ -4105,9 +4123,12 @@ entries:
       - kind: project-not-found
         code: 1
         when: '作った直後のプロジェクトを、所有者のプロジェクトの一覧で見つけられません。'
+      - kind: config-invalid
+        code: 1
+        when: '作ったプロジェクトを指す、別の名前の設定ファイルが 2 つ以上あります。'
       - kind: invalid-input
         code: 2
-        when: '必須の `owner`・`title`・`suffix` のどれかが無いか、ほかの引数の誤りがあります。'
+        when: '必須の `owner`・`title` のどちらかが無いか、知らない引数など、ほかの引数の誤りがあります。'
       - kind: github-auth
         code: 1
         when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
@@ -4147,7 +4168,6 @@ entries:
       - arguments:
           owner: example-org
           title: Example Project
-          suffix: example
         note: 'プロジェクトを作り、アクティブにします。'
     default_notes: {}
     behaviors:
@@ -4261,22 +4281,24 @@ entries:
   PW-PROJECT-INIT:
     help:
       details:
-        - Adds the pecot-workflow-<suffix>, pecot-priority and pecot-size fields to an existing project.
+        - Adds the pecot-status, pecot-priority and pecot-size fields to an existing project.
+        - When the project has an old pecot-workflow-<suffix> field and no pecot-status field, renames it to pecot-status and keeps its options and the values on the cards. When both exist, uses pecot-status and leaves the old field as it is.
         - A field that already exists is skipped.
         - The other fields are still created.
-        - Adds the Blocked option to a pecot-workflow-<suffix> field that already exists, placed right after Backlog (right before Ready when there is no Backlog, at the end when there is neither).
+        - Adds the Blocked option to a pecot-status field that already exists, placed right after Backlog (right before Ready when there is no Backlog, at the end when there is neither).
         - Adds the Needs Attention option at the end of the Status field. When the project has no Status field, nothing is added.
         - Names are compared without regard to case, and an option that already exists is left as it is.
         - The whole option list is sent again with the existing options keeping their id, name, color and description, so the values on the cards stay.
         - When an option cannot be added, a warning line is written and the command continues; the option is not sent again without its id.
-        - Before writing anything, checks that an existing pecot-workflow-<suffix> field has the six required options (Backlog, Pending, Ready, Active, In Review, Archived); if one is missing, writes nothing and stops.
-        - After that, regenerates the config file from GitHub for the --suffix field and makes the project active, unless a config file exists and its content already equals the one generated from the board.
+        - Before writing anything, checks that an existing pecot-status or pecot-workflow-<suffix> field has the six required options (Backlog, Pending, Ready, Active, In Review, Archived); if one is missing, writes nothing and stops.
+        - After that, regenerates the config file <host>_<owner>_<number>.json from GitHub and makes the project active, unless a config file exists and its content already equals the one generated from the board.
+        - A config file of the same project under another name is moved to that name, and the active project follows it. Use the new name for the project input and the PECOT_REVIEW_PROJECT variable. When two or more such files exist, nothing is moved and the command stops.
         - The Todo, In Progress and Needs Attention options of the Status field are written to the config file only when the board has them.
-        - With --dry-run, reads the project and prints dry-run lines for creating the fields, adding the options, writing the config file and switching the active project, and writes nothing.
+        - With --dry-run, reads the project and prints dry-run lines for renaming and creating the fields, adding the options, moving and writing the config file and switching the active project, and writes nothing.
       examples:
-        - run: pecot project init example-org "Example Project" --suffix example
-          note: Add the pecot-workflow fields to an existing project, and the Blocked and Needs Attention options to the fields that already exist.
-        - run: pecot project init example-org "Example Project" --suffix example --dry-run
+        - run: pecot project init example-org "Example Project"
+          note: Add the pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist.
+        - run: pecot project init example-org "Example Project" --dry-run
           note: Show what would be created and written without changing anything.
       default_notes: {}
     summary: 既にあるプロジェクトに pecot-workflow のフィールドを足します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。
@@ -4284,27 +4306,29 @@ entries:
       host: 'GitHub のホストです。'
       name: 'プロジェクトの題です。'
       owner: 'プロジェクトの所有者です。'
-      suffix: 'ワークフローのフィールドに付ける接尾辞です。'
     constraints: []
     details:
-      - '既にあるプロジェクトに、`pecot-workflow-<suffix>`・`pecot-priority`・`pecot-size` のフィールドを足します。'
+      - '既にあるプロジェクトに、`pecot-status`・`pecot-priority`・`pecot-size` のフィールドを足します。'
+      - '旧い名前の `pecot-workflow-<suffix>` のフィールドがあり、`pecot-status` が無いときは、`pecot-status` に改名します。名前だけを変えるので、選択肢とカードの値は残ります。両方あるときは `pecot-status` を使い、旧いフィールドはそのまま残します。'
       - '既にあるフィールドは飛ばします。'
       - 'そのときも、ほかのフィールドは作ります。'
-      - '既にある `pecot-workflow-<suffix>` のフィールドには、Blocked の選択肢を Backlog の直後に足します。Backlog が無ければ Ready の直前、どちらも無ければ末尾に足します。'
+      - '既にある `pecot-status` のフィールドには、Blocked の選択肢を Backlog の直後に足します。Backlog が無ければ Ready の直前、どちらも無ければ末尾に足します。'
       - 'Status のフィールドの末尾に、Needs Attention の選択肢を足します。プロジェクトに Status のフィールドが無いときは、何も足しません。'
       - '名前は、大文字と小文字を区別せずに比べます。既にある選択肢は、そのまま残します。'
       - '選択肢の一覧は、全体を送り直します。既にある選択肢は id・name・color・description を保つので、カードの値は残ります。'
       - '選択肢を足せないときは、`warnings` に入れて続けます。その選択肢を、id なしで送り直すことはありません。'
-      - '何かを書く前に、既にある `pecot-workflow-<suffix>` のフィールドが必須の 6 つの選択肢を持つことを確かめます。6 つは Backlog・Pending・Ready・Active・In Review・Archived です。1 つでも欠けていれば、何も書かずに失敗を返します。'
-      - 'その後、`suffix` のフィールドの設定ファイルを GitHub から作り直し、プロジェクトをアクティブにします。設定ファイルがあり、内容がボードから作るものと既に同じときは行いません。'
+      - '何かを書く前に、既にある `pecot-status` か `pecot-workflow-<suffix>` のフィールドが必須の 6 つの選択肢を持つことを確かめます。6 つは Backlog・Pending・Ready・Active・In Review・Archived です。1 つでも欠けていれば、何も書かずに失敗を返します。'
+      - 'その後、設定ファイル `<host>_<owner>_<番号>.json` を GitHub から作り直し、プロジェクトをアクティブにします。設定ファイルがあり、内容がボードから作るものと既に同じときは行いません。'
+      - '同じプロジェクトを指す、別の名前の設定ファイルがあれば、新しい名前に移し、アクティブなプロジェクトも新しい名前にします。`project` の入力と Actions の変数 `PECOT_REVIEW_PROJECT` には、新しい名前を使います。移す元が 2 つ以上あるときは、何も移さずに失敗を返します。'
       - 'Status のフィールドの Todo・In Progress・Needs Attention は、ボードにあるときだけ設定ファイルに書きます。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
-        fields: 'プロジェクトのフィールドの配列です。workflow・priority・size のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（フィールドが見つからない）のどれかです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
-    diagnostics: '標準エラーに、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。選択肢を足せないときは、`warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
+        fields: 'プロジェクトのフィールドの配列です。workflow・priority・size のフィールドと、選択肢を調べたときの Status フィールドを含みます。要素は `name`・`change`・`addedOptions` を持ちます。`change` は `create`（作った）・`update`（選択肢を足した）・`unchanged`（何もしない）・`skip`（フィールドが見つからない）・`rename`（旧い名前から改名した）のどれかです。`addedOptions` は足した選択肢の名前の配列で、無ければ空です。'
+        migration: '旧い形から移したものです。`renamed` は `pecot-status` に改名した旧いフィールドの名前、`config_moved` は移した設定ファイルの `from`・`to` のファイル名で、無ければどちらも `null` です。設定ファイルの前に止まったときは入りません。'
+    diagnostics: '標準エラーに、旧いフィールドを改名した行（`renamed`）、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。選択肢を足せないときは、`warning` の行を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
     environment: []
     exit_status:
       - kind: project-not-found
@@ -4312,10 +4336,13 @@ entries:
         when: 'プロジェクトが見つかりません。'
       - kind: not-initialized
         code: 1
-        when: 'プロジェクトのフィールドを読めません。既にある `pecot-workflow-<suffix>` のフィールドに必須の選択肢が無いときも含みます。'
+        when: 'プロジェクトのフィールドを読めません。既にある進行の欄に必須の選択肢が無いときも含みます。'
+      - kind: config-invalid
+        code: 1
+        when: '同じプロジェクトを指す、別の名前の設定ファイルが 2 つ以上あります。'
       - kind: invalid-input
         code: 2
-        when: '必須の `owner`・`name`・`suffix` のどれかが無いか、ほかの引数の誤りがあります。'
+        when: '必須の `owner`・`name` のどちらかが無いか、知らない引数など、ほかの引数の誤りがあります。'
       - kind: github-auth
         code: 1
         when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
@@ -4344,10 +4371,10 @@ entries:
         what: '所有者のプロジェクト、対象のプロジェクトのフィールド、つながっているリポジトリを読みます。'
       - target: github
         kind: write
-        what: 'プロジェクトに足りないフィールドを作ります。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
+        what: 'プロジェクトに足りないフィールドを作り、旧い名前の進行の欄を改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
       - target: file
         kind: write
-        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。'
+        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。同じプロジェクトを指す別の名前の設定ファイルは、新しい名前に移します。'
     prerequisites:
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
     idempotent: true
@@ -4355,8 +4382,7 @@ entries:
       - arguments:
           owner: example-org
           name: Example Project
-          suffix: example
-        note: '既にあるプロジェクトに pecot-workflow のフィールドを足します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
+        note: '既にあるプロジェクトに pecot-workflow のフィールドを足します。旧い名前の進行の欄は `pecot-status` に改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。'
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-INIT-01
@@ -4400,7 +4426,7 @@ entries:
         statement: 'もし既にある進行の欄に必須の値が欠けているなら、何も書かずに、欠けた値を `detail` に入れて `kind` が `not-initialized` の失敗を返します'
       - id: PW-PROJECT-INIT-14
         pattern: event
-        statement: 'suffix の違う進行の欄が複数あるボードを渡すと、`suffix` の欄で設定ファイルを同期します'
+        statement: '`pecot-status` と旧い名前の進行の欄が両方あるボードを渡すと、旧い欄を改名せずに、`pecot-status` の欄で設定ファイルを同期します'
       - id: PW-PROJECT-INIT-15
         pattern: unwanted
         statement: 'もし設定ファイルの同期で GitHub API がエラーを返したなら、`could not sync project config` で始まる `detail` を入れて失敗を返します'
@@ -4416,6 +4442,21 @@ entries:
       - id: PW-PROJECT-INIT-19
         pattern: unwanted
         statement: 'もし Status のフィールドに In Progress が無いなら、設定ファイルに `in_progress` を書かずに続け、成功を返します'
+      - id: PW-PROJECT-INIT-20
+        pattern: event
+        statement: '旧い名前の進行の欄だけがあるボードを渡すと、名前だけを渡して `pecot-status` に改名し、`fields` のその `change` を `rename` にします'
+      - id: PW-PROJECT-INIT-21
+        pattern: event
+        statement: '旧い名前の進行の欄を改名すると、旧い名前を `migration` の `renamed` に入れます'
+      - id: PW-PROJECT-INIT-22
+        pattern: event
+        statement: '同じプロジェクトを指す別の名前の設定ファイルがあると、それを新しい名前に移してアクティブにし、移した元と先を `migration` の `config_moved` に入れます'
+      - id: PW-PROJECT-INIT-23
+        pattern: event
+        statement: 'CLI で `--dry-run` を付けて旧い形のボードに打つと、改名と設定ファイルを移す予定を `dry-run` の行で標準エラーに出し、何も書きません'
+      - id: PW-PROJECT-INIT-24
+        pattern: unwanted
+        statement: 'もし同じプロジェクトを指す、別の名前の設定ファイルが 2 つ以上あるなら、ボードと設定ファイルを変えずに `kind` が `config-invalid` の失敗を返します'
   PW-PROJECT-LINK:
     help:
       details:
@@ -4648,7 +4689,7 @@ entries:
       details:
         - Lists the GitHub Projects V2 projects of a user or an organization.
         - A title longer than 38 characters is cut to 35 characters followed by "...".
-        - Marks an initialized project (one with a pecot-workflow field) with [INITIALIZED] and the active project with [ACTIVE].
+        - Marks an initialized project (one with a pecot-status field, or an old pecot-workflow-<suffix> field) with [INITIALIZED] and the active project with [ACTIVE].
         - Reads the fields of each project to tell whether it is initialized. A project whose fields cannot be read gives a warning and no [INITIALIZED] mark.
       examples:
         - run: pecot project search example-org
@@ -4662,7 +4703,7 @@ entries:
     details:
       - 'ユーザーか organization の、GitHub Projects V2 のプロジェクトを `projects` に入れて返します。'
       - '`projects` の `title` は、GitHub が返した題のままです。CLI の表では、38 文字を超える題を 35 文字に切り詰めて `...` を付けます。'
-      - '初期化済みのプロジェクト（pecot-workflow のフィールドを持つもの）は `initialized` を、アクティブなプロジェクトは `active` を `true` にします。CLI の表では、`[INITIALIZED]` と `[ACTIVE]` を付けます。'
+      - '初期化済みのプロジェクトは `initialized` を、アクティブなプロジェクトは `active` を `true` にします。初期化済みは、`pecot-status` か旧い名前の `pecot-workflow-<suffix>` のフィールドを持つものです。CLI の表では、`[INITIALIZED]` と `[ACTIVE]` を付けます。'
       - '初期化済みかどうかは、プロジェクトごとにフィールドを読んで決めます。フィールドを読めないプロジェクトは、`warnings` に入れ、`initialized` を入れません。'
     stdin: none
     output:
@@ -4734,13 +4775,16 @@ entries:
         statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
       - id: PW-PROJECT-SEARCH-05
         pattern: event
-        statement: 'pecot-workflow のフィールドを持つプロジェクトを一覧すると、その要素の `initialized` を `true` にします'
+        statement: '`pecot-status` のフィールドを持つプロジェクトを一覧すると、その要素の `initialized` を `true` にします'
       - id: PW-PROJECT-SEARCH-06
         pattern: event
         statement: 'アクティブなプロジェクトを一覧すると、その要素の `active` を `true` にします'
       - id: PW-PROJECT-SEARCH-07
         pattern: unwanted
         statement: 'もしプロジェクトのフィールドを読めないなら、`warnings` に入れ、その要素に `initialized` を入れずに続けます'
+      - id: PW-PROJECT-SEARCH-08
+        pattern: event
+        statement: '旧い名前の `pecot-workflow-<suffix>` のフィールドを持つプロジェクトを一覧すると、その要素の `initialized` を `true` にします'
   PW-PROJECT-SET:
     help:
       details:

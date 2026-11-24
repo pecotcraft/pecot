@@ -11,13 +11,14 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { botResult, commentsRule, type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
-import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
+import { CONFIG_FILE as LEGACY_CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
 
 const PROJECTS_DIRECTORY = '.pecot/config/projects'
 const ACTIVE_FILE = `${PROJECTS_DIRECTORY}/.active`
+const CONFIG_FILE = `${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_1.json`
 const BOARD_URL = `https://${DEFAULT_HOST}/users/acme/projects/1`
 const NO_ACTIVE = 'error: no active project\n  run: pecot project activate <PROJECT>\n'
 const WORKFLOW_NAMES = ['Backlog', 'Pending', 'Ready', 'Active', 'In Review', 'Archived']
@@ -38,7 +39,7 @@ const options = (names: readonly string[]): Json[] => names.map((name, index) =>
 function standardFields(workflow: readonly string[] = WORKFLOW_NAMES): Json[] {
   return [
     { id: 'PVTF_title', name: 'Title' },
-    { id: 'PVTSSF_workflow', name: 'pecot-workflow-acme', databaseId: 456, options: options(workflow) },
+    { id: 'PVTSSF_workflow', name: 'pecot-status', databaseId: 456, options: options(workflow) },
     { id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) },
     { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) },
     statusField(),
@@ -67,7 +68,7 @@ const syncRules = (...linkedNames: string[]): ResponseRule[] => [listProjects(pr
 
 const createField = (name: string, id: string): ResponseRule => graphqlRule('CreateProjectField', { createProjectV2Field: { projectV2Field: { id, name, options: [] } } }, { name })
 const updateField = (fieldId: string): ResponseRule => graphqlRule('UpdateProjectField', { updateProjectV2Field: { projectV2Field: { id: fieldId, name: 'x', options: [] } } }, { fieldId })
-const createFields = (): ResponseRule[] => [createField('pecot-workflow-acme', 'PVTSSF_w'), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s')]
+const createFields = (): ResponseRule[] => [createField('pecot-status', 'PVTSSF_w'), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s')]
 
 function createRules(finalFields: Json[] = standardFields()): ResponseRule[] {
   return [
@@ -108,12 +109,12 @@ function progressFields(progress: ListProgress): Json {
   }
 }
 
-function item(id: string, number: number, workflow: string, extra: { state?: string, updatedAt?: string, repo?: string, progress?: ListProgress } = {}): Json {
+function item(id: string, number: number, workflow: string, extra: { state?: string, updatedAt?: string, repo?: string, progress?: ListProgress, field?: string } = {}): Json {
   const { state = 'OPEN', updatedAt = '2026-01-02T03:04:05Z', repo: repository = 'demo' } = extra
   return {
     id,
     updatedAt,
-    fieldValues: { nodes: [{ field: { name: 'pecot-workflow-acme' }, name: workflow }] },
+    fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: extra.field ?? 'pecot-status' }, name: workflow }] },
     content: { id: `I_${String(number)}`, number, title: `課題${String(number)}`, state, url: `https://${DEFAULT_HOST}/acme/${repository}/issues/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...extra.progress !== undefined && progressFields(extra.progress) },
   }
 }
@@ -123,7 +124,7 @@ const alerts = (repository: string, body: unknown, status = 200): ResponseRule =
 const twoAlerts = (repository = 'demo'): ResponseRule => alerts(repository, [{ security_vulnerability: { severity: 'high' } }, { security_vulnerability: { severity: 'low' } }])
 // 動かす補助
 
-const GHES: Partial<CommandRun> = { remote: { host: DEFAULT_HOST } }
+const GHES: Partial<CommandRun> = { remote: { host: DEFAULT_HOST }, configFile: CONFIG_FILE }
 const READINESS_HEADER = '| Ref | Title | Readiness |\n|-----|----------|-----------|'
 const arguments_ = (...rest: string[]): string[] => ['project', ...rest]
 const boardArguments = (...rest: string[]): string[] => ['board', ...rest]
@@ -191,10 +192,16 @@ const otherFile = { [`${PROJECTS_DIRECTORY}/${OTHER_NAME}.json`]: `${JSON.string
 const tool = async (name: string, toolArguments: Record<string, unknown>, github: readonly ResponseRule[] = [], extra: Partial<CommandRun> = {}): ReturnType<typeof runTool> =>
   await runTool({ tool: name, arguments: toolArguments, github, ...GHES, ...extra })
 const owned = { owner: 'acme', host: DEFAULT_HOST }
-const initArguments = { ...owned, name: 'board', suffix: 'acme' }
+const initArguments = { ...owned, name: 'board' }
 const initRules = (fields: Json[]): ResponseRule[] => [listProjects(projectNode(1, 'board')), projectFields(fields)]
-const workflowWithBlocked: Json = { id: 'PVTSSF_old', name: 'pecot-workflow-acme', options: options(WORKFLOW_NAMES_WITH_BLOCKED) }
+const workflowWithBlocked: Json = { id: 'PVTSSF_old', name: 'pecot-status', options: options(WORKFLOW_NAMES_WITH_BLOCKED) }
 const withAggregation = (value?: string): Partial<CommandRun> => ({ config: projectConfig(value === undefined ? {} : { extra: { aggregation_repo: value } }) })
+// 移行の前の形（進行の欄の旧い名前と、旧い名前の設定ファイル）
+const LEGACY_FIELD = 'pecot-workflow-acme'
+const LEGACY_NAME = path.parse(LEGACY_CONFIG_FILE).name
+const legacyConfig: Partial<CommandRun> = { config: projectConfig({ extra: { workflow_suffix: 'acme' } }), configFile: LEGACY_CONFIG_FILE }
+const renameRule = (fieldId = 'PVTSSF_old'): ResponseRule => graphqlRule('RenameProjectField', { updateProjectV2Field: { projectV2Field: { id: fieldId, name: 'pecot-status' } } }, { fieldId, name: 'pecot-status' })
+const movedNote = (name: string): string => `warning: the project config is now named ${name}\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\n`
 
 describe('project list', () => {
   const other = { [`${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_other_acme.json`]: `${JSON.stringify(projectConfig(), undefined, 2)}\n` }
@@ -202,14 +209,14 @@ describe('project list', () => {
   it('設定ファイルがあると、ファイル名の順に 1 行ずつ出す', async () => {
     const result = await run(arguments_('list'), [], { files: other })
     expect(result.code).toBe(0)
-    expect(result.stdout).toBe(`=== Projects ===\n  ${DEFAULT_HOST}_acme_board_acme [ACTIVE]\n  ${DEFAULT_HOST}_acme_other_acme\n`)
+    expect(result.stdout).toBe(`=== Projects ===\n  ${DEFAULT_HOST}_acme_1 [ACTIVE]\n  ${DEFAULT_HOST}_acme_other_acme\n`)
     expect(result.stderr).toBe('')
   })
 
   it('アクティブなプロジェクトの設定ファイルの行の末尾に、[ACTIVE] を付ける', async () => {
     const result = await run(arguments_('list'), [], { files: other })
     const lines = result.stdout.split('\n')
-    expect(lines.filter(line => line.endsWith('[ACTIVE]'))).toEqual([`  ${DEFAULT_HOST}_acme_board_acme [ACTIVE]`])
+    expect(lines.filter(line => line.endsWith('[ACTIVE]'))).toEqual([`  ${DEFAULT_HOST}_acme_1 [ACTIVE]`])
   })
 
   it('設定ファイルが 1 つも無いと、none の行を出す', async () => {
@@ -283,6 +290,15 @@ describe('project search', () => {
     expect(rowsOf(result)).toEqual([`1    board${' '.repeat(35)} ${URL1} [INITIALIZED]`, `2    plain${' '.repeat(35)} ${URL2}`])
   })
 
+  it('進行の欄が旧い名前のプロジェクトも、その行に [INITIALIZED] を付ける', async (context) => {
+    await verifies(context, 'PW-PROJECT-SEARCH-08')
+    const legacy = standardFields().map(field => field['name'] === 'pecot-status' ? { ...field, name: LEGACY_FIELD } : field)
+    const result = await search([projectNode(1, 'board')], [fieldsOf(1, legacy)])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(rowsOf(result)).toEqual([`1    board${' '.repeat(35)} ${URL1} [INITIALIZED]`])
+  })
+
   it('アクティブなプロジェクトを一覧すると、その行に [ACTIVE] を付ける', async (context) => {
     await verifies(context, 'PW-PROJECT-SEARCH-06')
     const result = await run(searchArguments, [listProjects(projectNode(1, 'board'), projectNode(2, 'plain')), fieldsOf(1), fieldsOf(2, titleOnly)])
@@ -332,11 +348,11 @@ describe('project search', () => {
 })
 
 describe('project init', () => {
-  const init = async (rules: ResponseRule[], title = 'board', config: Json | false = false): Promise<CommandResult> => await run(arguments_('init', 'acme', title, '--suffix', 'acme', '--host', DEFAULT_HOST), rules, { config })
+  const init = async (rules: ResponseRule[], title = 'board', config: Json | false = false): Promise<CommandResult> => await run(arguments_('init', 'acme', title, '--host', DEFAULT_HOST), rules, { config })
   const base = (fields: Json[]): ResponseRule[] => [listProjects(projectNode(1, 'board')), projectFields(fields)]
-  const workflowField = (names: readonly string[], name = 'pecot-workflow-acme'): Json => ({ id: 'PVTSSF_old', name, options: options(names) })
+  const workflowField = (names: readonly string[], name = 'pecot-status'): Json => ({ id: 'PVTSSF_old', name, options: options(names) })
   const otherFields = (): Json[] => [{ id: 'PVTSSF_priority', name: 'pecot-priority', options: options(['High', 'Medium', 'Low']) }, { id: 'PVTSSF_size', name: 'pecot-size', options: options(['XS', 'S', 'M', 'L']) }]
-  const skippedFields = 'skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n'
+  const skippedFields = 'skipped: field pecot-status (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n'
   const syncedLines = (result: Readonly<CommandResult>): string => `created: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`
 
   it('フィールドの無いプロジェクトに打つと、3 つのフィールドを作る', async (context) => {
@@ -344,13 +360,13 @@ describe('project init', () => {
     const result = await init([...base(titleOnly), ...createFields(), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-workflow-acme', 'pecot-priority', 'pecot-size'])
+    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-priority', 'pecot-size'])
   })
 
   it('フィールドを作ると、created の行を標準エラーに出す', async () => {
     const result = await init([...base(titleWithoutStatus), ...createFields(), ...syncRules()])
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`created: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nskipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`created: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nskipped: field Status (not found)\n${syncedLines(result)}`)
   })
 
   it('既にあるフィールドは作らずに、skipped の行を標準エラーに出す', async () => {
@@ -358,7 +374,7 @@ describe('project init', () => {
     const result = await init([...base(existing), createField('pecot-priority', 'PVTSSF_p'), createField('pecot-size', 'PVTSSF_s'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`skipped: field pecot-workflow-acme (already exists)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nunchanged: option Blocked in field pecot-workflow-acme\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`skipped: field pecot-status (already exists)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nunchanged: option Blocked in field pecot-status\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
   })
 
   it('指定したタイトルのプロジェクトが無いと、終了コード 1 で終わる', async () => {
@@ -378,7 +394,7 @@ describe('project init', () => {
     const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`${skippedFields}added: option Blocked to field pecot-workflow-acme\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`${skippedFields}added: option Blocked to field pecot-status\nadded: option Needs Attention to field Status\n${syncedLines(result)}`)
   })
 
   it('選択肢を足すとき、既存の選択肢は id・name・color・description のまま送り、Blocked は Backlog の直後、Needs Attention は末尾に置く', async (context) => {
@@ -400,7 +416,7 @@ describe('project init', () => {
     const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
     const synced = [
       { id: 'PVTF_title', name: 'Title' },
-      { id: 'PVTSSF_workflow', name: 'pecot-workflow-acme', databaseId: 456, options: options(WORKFLOW_NAMES_WITH_BLOCKED) },
+      { id: 'PVTSSF_workflow', name: 'pecot-status', databaseId: 456, options: options(WORKFLOW_NAMES_WITH_BLOCKED) },
       statusField([...STATUS_NAMES, 'Needs Attention']),
     ]
     const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), listProjects(projectNode(1, 'board')), projectFields(synced), linked()])
@@ -433,7 +449,7 @@ describe('project init', () => {
     const result = await init([...base(existing), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-workflow-acme\nunchanged: option Needs Attention in field Status\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-status\nunchanged: option Needs Attention in field Status\n${syncedLines(result)}`)
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
   })
 
@@ -442,7 +458,7 @@ describe('project init', () => {
     const result = await init([...base(existing), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-workflow-acme\nskipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(result.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}`)
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
   })
 
@@ -451,7 +467,7 @@ describe('project init', () => {
     const result = await init([...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toMatch(/^skipped: field pecot-workflow-acme \(already exists\)\n.*warning: could not add option Blocked to field pecot-workflow-acme: .+\nadded: option Needs Attention to field Status\ncreated: config file /su)
+    expect(result.stderr).toMatch(/^skipped: field pecot-status \(already exists\)\n.*warning: could not add option Blocked to field pecot-status: .+\nadded: option Needs Attention to field Status\ncreated: config file /su)
     expect(graphqlVariables(result, 'UpdateProjectField')).toHaveLength(2)
   })
 
@@ -474,7 +490,7 @@ describe('project init', () => {
     const second = await init(rules(), 'board', savedConfig(first))
     expect(second.code).toBe(0)
     expectClean(second)
-    expect(second.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-workflow-acme\nunchanged: option Needs Attention in field Status\n`)
+    expect(second.stderr).toBe(`${skippedFields}unchanged: option Blocked in field pecot-status\nunchanged: option Needs Attention in field Status\n`)
     expect(second.read(CONFIG_FILE)).toBe(first.read(CONFIG_FILE))
   })
 
@@ -494,22 +510,78 @@ describe('project init', () => {
     const result = await init(base(existing))
     expect(result.code).toBe(1)
     expectClean(result)
-    expect(result.stderr).toContain('pecot-workflow field is missing options: Pending, Ready, Active, In Review, Archived')
+    expect(result.stderr).toContain('pecot-status field is missing options: Pending, Ready, Active, In Review, Archived')
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     expect(requestLabels(result.requests)).not.toContain('CreateProjectField')
     expect(result.read(CONFIG_FILE)).toBeUndefined()
   })
 
-  it('suffix の違う進行の欄が複数あるボードでは、--suffix の欄で設定ファイルを同期する', async (context) => {
+  it('pecot-status と旧い名前の進行の欄が両方あるボードでは、旧い欄を改名せずに、pecot-status の欄で設定ファイルを同期する', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-14')
-    const other = { ...workflowField(WORKFLOW_NAMES_WITH_BLOCKED, 'pecot-workflow-other'), id: 'PVTSSF_other' }
-    const mine = workflowField(WORKFLOW_NAMES_WITH_BLOCKED)
-    const existing = [...titleWithoutStatus, other, mine, ...otherFields()]
+    const legacy = { ...workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), id: 'PVTSSF_legacy' }
+    const existing = [...titleWithoutStatus, legacy, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
     const result = await init([...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(savedConfig(result)).toMatchObject({ workflow_suffix: 'acme', project: { fields: { workflow: { id: 'PVTSSF_old' } } } })
+    expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_old' } } } })
+    expect(requestLabels(result.requests)).not.toContain('RenameProjectField')
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
+  })
+
+  it('旧い名前の進行の欄だけがあるボードでは、名前だけを渡して pecot-status に改名し、renamed の行を出す', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-20')
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
+    const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const result = await init([...base(existing), renameRule(), listProjects(projectNode(1, 'board')), projectFields(renamed), linked()])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(graphqlVariables(result, 'RenameProjectField')).toEqual([{ fieldId: 'PVTSSF_old', name: 'pecot-status' }])
+    expect(result.stderr).toBe(`renamed: field ${LEGACY_FIELD} to pecot-status\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\nunchanged: option Blocked in field pecot-status\nskipped: field Status (not found)\n${syncedLines(result)}`)
+    expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_old' } } } })
+  })
+
+  it('旧い名前の設定ファイルがあると、新しい名前に移し、アクティブな設定を新しい名前にする', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-22')
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+    const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST), [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], legacyConfig)
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toContain(`moved: config file ${path.join(result.directory, LEGACY_CONFIG_FILE)} to ${configPathOf(result)}\n${movedNote(path.parse(CONFIG_FILE).name)}`)
+    expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
+    expect(savedConfig(result)).not.toHaveProperty('workflow_suffix')
+    expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
+  })
+
+  it('--dry-run で旧い形のボードに打つと、改名と設定ファイルを移す予定を dry-run の行で出し、何も書かない', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-23')
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
+    const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, '--dry-run'), base(existing), legacyConfig)
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toContain(`dry-run: would rename field ${LEGACY_FIELD} to pecot-status\n`)
+    expect(result.stderr).toContain(`dry-run: would move config file ${path.join(result.directory, LEGACY_CONFIG_FILE)} to ${configPathOf(result)}\n`)
+    expect(requestLabels(result.requests)).not.toContain('RenameProjectField')
+    expect(result.read(LEGACY_CONFIG_FILE)).toBeDefined()
+    expect(result.read(CONFIG_FILE)).toBeUndefined()
+  })
+
+  it('同じボードを指す旧い名前の設定ファイルが 2 つあると、欄を改名せず、何も移さずに終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-24')
+    const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
+    const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST), [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], { ...legacyConfig, files: otherFile })
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain(`error: several config files point to project #1:\n  - ${path.basename(LEGACY_CONFIG_FILE)}\n  - ${OTHER_NAME}.json\n`)
+    expect(result.read(LEGACY_CONFIG_FILE)).toBeDefined()
+    expect(result.read(CONFIG_FILE)).toBeUndefined()
+    expect(requestLabels(result.requests)).not.toContain('RenameProjectField')
+  })
+
+  it('suffix を渡すと、知らないオプションとして終了コード 2 で終わる', async (context) => {
+    await verifies(context, 'PW-COMMON-09')
+    const result = await run(arguments_('init', 'acme', 'board', '--suffix', 'acme', '--host', DEFAULT_HOST), [], { config: false })
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain('--suffix')
+    expect(result.requests).toEqual([])
   })
 
   it('設定ファイルの同期で GitHub API がエラーを返すと、could not sync project config の行を出して終了コード 1 で終わる', async () => {
@@ -523,10 +595,10 @@ describe('project init', () => {
   it('--dry-run で、フィールドが揃っていて足す選択肢だけがあると、設定ファイルの予行の行を出さない', async (context) => {
     await verifies(context, 'PW-PROJECT-INIT-17')
     const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
-    const result = await run(arguments_('init', 'acme', 'board', '--suffix', 'acme', '--host', DEFAULT_HOST, '--dry-run'), base(existing), { config: false })
+    const result = await run(arguments_('init', 'acme', 'board', '--host', DEFAULT_HOST, '--dry-run'), base(existing), { config: false })
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(result.stderr).toBe(`${skippedFields.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would add option Blocked to field pecot-workflow-acme\ndry-run: would add option Needs Attention to field Status\n`)
+    expect(result.stderr).toBe(`${skippedFields.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would add option Blocked to field pecot-status\ndry-run: would add option Needs Attention to field Status\n`)
     expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     expect(requestLabels(result.requests)).not.toContain('GetLinkedRepositoriesUser')
   })
@@ -539,11 +611,12 @@ describe('project init', () => {
       const result = await tool('project_init', initArguments, rules, { config: false })
       expect(result.structured).toEqual({
         fields: [
-          { name: 'pecot-workflow-acme', change: 'unchanged', addedOptions: [] },
+          { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-priority', change: 'create', addedOptions: [] },
           { name: 'pecot-size', change: 'create', addedOptions: [] },
           { name: 'Status', change: 'update', addedOptions: ['Needs Attention'] },
         ],
+        migration: { renamed: null, config_moved: null },
       })
     })
 
@@ -551,7 +624,7 @@ describe('project init', () => {
       await verifies(context, 'PW-PROJECT-INIT-02')
       await verifies(context, 'PW-PROJECT-INIT-10')
       const result = await tool('project_init', initArguments, [...initRules(titleWithoutStatus), ...createFields(), ...syncRules()], { config: false })
-      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-workflow-acme', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, { name: 'Status', change: 'skip', addedOptions: [] }] })
+      expect(result.structured).toMatchObject({ fields: [{ name: 'pecot-status', change: 'create' }, { name: 'pecot-priority', change: 'create' }, { name: 'pecot-size', change: 'create' }, { name: 'Status', change: 'skip', addedOptions: [] }] })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     })
 
@@ -561,11 +634,12 @@ describe('project init', () => {
       const result = await tool('project_init', initArguments, [...base(existing), ...syncRules()], { config: false })
       expect(result.structured).toEqual({
         fields: [
-          { name: 'pecot-workflow-acme', change: 'unchanged', addedOptions: [] },
+          { name: 'pecot-status', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-priority', change: 'unchanged', addedOptions: [] },
           { name: 'pecot-size', change: 'unchanged', addedOptions: [] },
           { name: 'Status', change: 'unchanged', addedOptions: [] },
         ],
+        migration: { renamed: null, config_moved: null },
       })
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
     })
@@ -589,7 +663,7 @@ describe('project init', () => {
       const result = await tool('project_init', initArguments, [...base(existing), failing('UpdateProjectField'), updateField('PVTSSF_status'), ...syncRules()], { config: false })
       expect(result.isError).toBe(false)
       expectClean(result)
-      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add option Blocked to field pecot-workflow-acme: /u)])
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^could not add option Blocked to field pecot-status: /u)])
     })
 
     it('既にある進行の欄に必須の値が欠けていると、何も書かずに、欠けた値を detail に入れて kind が not-initialized の失敗を返す', async (context) => {
@@ -597,7 +671,7 @@ describe('project init', () => {
       const existing = [...titleOnly, workflowField(['Backlog', 'Blocked']), ...otherFields()]
       const result = await tool('project_init', initArguments, base(existing), { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
-      expect(result.structured['detail']).toContain('pecot-workflow field is missing options: Pending, Ready, Active, In Review, Archived')
+      expect(result.structured['detail']).toContain('pecot-status field is missing options: Pending, Ready, Active, In Review, Archived')
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
       expect(result.read(CONFIG_FILE)).toBeUndefined()
     })
@@ -609,11 +683,49 @@ describe('project init', () => {
       expect(result.isError).toBe(true)
       expect(result.structured['detail']).toMatch(/^could not sync project config: /u)
     })
+
+    it('旧い形のボードと設定ファイルを移すと、改名した旧い名前と移した設定ファイルを migration に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-20')
+      await verifies(context, 'PW-PROJECT-INIT-21')
+      await verifies(context, 'PW-PROJECT-INIT-22')
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED, LEGACY_FIELD), ...otherFields()]
+      const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const result = await tool('project_init', initArguments, [...base(existing), renameRule(), listProjects(projectNode(1, 'board')), projectFields(renamed), linked()], legacyConfig)
+      expectClean(result)
+      expect(jsonList(result.structured['fields'])[0]).toEqual({ name: 'pecot-status', change: 'rename', addedOptions: [] })
+      expect(result.structured['migration']).toEqual({ renamed: LEGACY_FIELD, config_moved: { from: path.basename(LEGACY_CONFIG_FILE), to: path.basename(CONFIG_FILE) } })
+      expect(result.structured['warnings']).toEqual([expect.stringMatching(/^the project config is now named /u)])
+      expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
+    })
+
+    it('Blocked の無い旧い形のボードで改名すると、選択肢を足しても fields の change を rename のまま返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-20')
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES, LEGACY_FIELD), ...otherFields()]
+      const renamed = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const result = await tool('project_init', initArguments, [...base(existing), renameRule(), updateField('PVTSSF_old'), listProjects(projectNode(1, 'board')), projectFields(renamed), linked()], { config: false })
+      expectClean(result)
+      expect(jsonList(result.structured['fields'])[0]).toEqual({ name: 'pecot-status', change: 'rename', addedOptions: ['Blocked'] })
+    })
+
+    it('同じボードを指す旧い名前の設定ファイルが 2 つあると、何も移さずに kind が config-invalid の失敗を返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-INIT-24')
+      const existing = [...titleWithoutStatus, workflowField(WORKFLOW_NAMES_WITH_BLOCKED), ...otherFields()]
+      const result = await tool('project_init', initArguments, [...base(existing), listProjects(projectNode(1, 'board')), projectFields(existing), linked()], { ...legacyConfig, files: otherFile })
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'config-invalid' } })
+      expect(result.read(CONFIG_FILE)).toBeUndefined()
+    })
+
+    it('suffix を渡すと、入力の誤りとして失敗を返し、GitHub を呼ばない', async () => {
+      const result = await tool('project_init', { ...initArguments, suffix: 'acme' }, [], { config: false })
+      expect(result.isError).toBe(true)
+      expect(JSON.stringify(result)).toContain('suffix')
+      expect(result.requests).toEqual([])
+    })
   })
 })
 
 describe('project create', () => {
-  const create = async (rules: ResponseRule[]): Promise<CommandResult> => await run(arguments_('create', 'acme', 'board', '--suffix', 'acme', '--host', DEFAULT_HOST), rules, { config: false })
+  const create = async (rules: ResponseRule[]): Promise<CommandResult> => await run(arguments_('create', 'acme', 'board', '--host', DEFAULT_HOST), rules, { config: false })
 
   it('新しいタイトルを渡すと、GitHub にプロジェクトを作る', async (context) => {
     await verifies(context, 'PW-PROJECT-CREATE-01')
@@ -626,7 +738,7 @@ describe('project create', () => {
   it('プロジェクトを作ると、続けて 3 つのフィールドを足す', async (context) => {
     await verifies(context, 'PW-PROJECT-CREATE-02')
     const result = await create(createRules())
-    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-workflow-acme', 'pecot-priority', 'pecot-size'])
+    expect(variableValues(result, 'CreateProjectField', 'name')).toEqual(['pecot-status', 'pecot-priority', 'pecot-size'])
   })
 
   it('フィールドを足すと、設定ファイルを作る', async (context) => {
@@ -636,7 +748,6 @@ describe('project create', () => {
     expect(savedConfig(result)).toMatchObject({
       host: DEFAULT_HOST,
       owner: 'acme',
-      workflow_suffix: 'acme',
       project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o1', archived: 'o6' } } } },
       repositories: [],
     })
@@ -657,7 +768,7 @@ describe('project create', () => {
   it('プロジェクトを作ると、created の行を標準エラーに出す', async () => {
     const result = await create(createRules())
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nadded: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
+    expect(result.stderr).toBe(`created: project #1 ${BOARD_URL}\ncreated: field pecot-status (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nadded: option Needs Attention to field Status\ncreated: config file ${configPathOf(result)}\nset: active project to ${path.parse(CONFIG_FILE).name}\n`)
   })
 
   it('Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る', async () => {
@@ -698,7 +809,7 @@ describe('project create', () => {
   })
 
   describe('MCP の data', () => {
-    const projectInput = { ...owned, title: 'board', suffix: 'acme' }
+    const projectInput = { ...owned, title: 'board' }
 
     it('作ったプロジェクトの番号・URL・タイトル・owner を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-CREATE-05')
@@ -741,6 +852,21 @@ describe('project create', () => {
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized', number: 1, url: BOARD_URL } })
       expect(result.read(CONFIG_FILE)).toBeUndefined()
     })
+
+    it('suffix を渡すと、入力の誤りとして失敗を返し、プロジェクトを作らない', async () => {
+      const result = await tool('project_create', { ...projectInput, suffix: 'acme' }, [], { config: false })
+      expect(result.isError).toBe(true)
+      expect(JSON.stringify(result)).toContain('suffix')
+      expect(result.requests).toEqual([])
+    })
+  })
+
+  it('suffix を渡すと、知らないオプションとして終了コード 2 で終わり、プロジェクトを作らない', async (context) => {
+    await verifies(context, 'PW-COMMON-09')
+    const result = await run(arguments_('create', 'acme', 'board', '--suffix', 'acme', '--host', DEFAULT_HOST), [], { config: false })
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain('--suffix')
+    expect(result.requests).toEqual([])
   })
 })
 
@@ -749,7 +875,7 @@ describe('board show', () => {
   const quietReady = (...numbers: number[]): ResponseRule[] => numbers.map(number => prerequisitesRule({ number }))
   const standardBoard = (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'Archived', { state: 'CLOSED' })), twoAlerts(), ...quietReady(1)]
   const MARKDOWN = [
-    '# Project info', '', '## Overview', `- Project: ${DEFAULT_HOST}_acme_board_acme`, `- Host: ${DEFAULT_HOST}`, '- Owner: acme', '- Roadmap repo: none', '',
+    '# Project info', '', '## Overview', `- Project: ${DEFAULT_HOST}_acme_1`, `- Host: ${DEFAULT_HOST}`, '- Owner: acme', '- Roadmap repo: none', '',
     '## Registered repositories', '- acme/demo (develop: main)', '    release_type: single', '    dependabot_alerts: open 2', '',
     '## Board status', '', '### Active (1)', '| Ref | Title |', '|-----|----------|', '| acme/demo#2 | 課題2 |', '', '### Ready (1)', '| Ref | Title | Readiness |', '|-----|----------|-----------|', '| acme/demo#1 | 課題1 | startable |', '',
   ].join('\n')
@@ -778,6 +904,24 @@ describe('board show', () => {
     expect(result.stderr).toBe('')
   })
 
+  it('進行の欄が旧い名前のボードでは、同じ内容を出し、旧い名前の警告と project init の案内を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-BOARD-SHOW-36')
+    const legacy = { field: LEGACY_FIELD }
+    const result = await run(boardArguments('show'), [board(item('PVTI_1', 1, 'Ready', legacy), item('PVTI_2', 2, 'Active', legacy), item('PVTI_3', 3, 'Archived', { state: 'CLOSED', ...legacy })), twoAlerts(), ...quietReady(1)])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stdout).toBe(MARKDOWN)
+    expect(result.stderr).toBe(`warning: this board uses the old field name ${LEGACY_FIELD}\n  run: pecot project init acme <name> --host ghes.example.com\n`)
+  })
+
+  it('旧い設定（workflow_suffix 付き）で改名済みのボードを読んでも、同じ内容を出し、警告を出さない', async () => {
+    const result = await run(boardArguments('show'), standardBoard(), legacyConfig)
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stdout).toBe(MARKDOWN.replace(`${DEFAULT_HOST}_acme_1`, () => LEGACY_NAME))
+    expect(result.stderr).toBe('')
+  })
+
   it('Blocked の項目があると、Blocked の節を Ready の節の上に出す', async (context) => {
     await verifies(context, 'PW-BOARD-SHOW-13')
     const result = await run(boardArguments('show'), [board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), twoAlerts(), ...quietReady(1), prerequisitesRule({ number: 4, blockedBy: [{ number: 9 }] })])
@@ -796,7 +940,7 @@ describe('board show', () => {
     const result = await run(boardArguments('show', '--json'), standardBoard())
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual({
-      project: { name: `${DEFAULT_HOST}_acme_board_acme`, host: DEFAULT_HOST, owner: 'acme', number: 1, aggregation_repo: null },
+      project: { name: `${DEFAULT_HOST}_acme_1`, host: DEFAULT_HOST, owner: 'acme', number: 1, aggregation_repo: null },
       repositories: [{
         full_name: 'acme/demo',
         owner: 'acme',
@@ -1367,17 +1511,36 @@ describe('project activate', () => {
     expect(data.structured).toMatchObject({ change: 'unchanged', project: NAME })
   })
 
-  it('suffix の違う進行の欄が複数あるボードでも、渡した設定ファイルの workflow_suffix の欄で同期する', async (context) => {
+  it('pecot-status と旧い名前の進行の欄が両方あるボードでも、pecot-status の欄で同期する', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-24')
-    const other = { id: 'PVTSSF_other', name: 'pecot-workflow-other', options: options(WORKFLOW_NAMES) }
+    const legacy = { id: 'PVTSSF_legacy', name: LEGACY_FIELD, options: options(WORKFLOW_NAMES) }
     const [title, ...rest] = standardFields()
-    const fields = [title ?? {}, other, ...rest]
+    const fields = [title ?? {}, legacy, ...rest]
     const result = await run(arguments_('activate', NAME), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()])
     expect(result.code).toBe(0)
     expectClean(result)
-    expect(savedConfig(result)).toMatchObject({ workflow_suffix: 'acme', project: { fields: { workflow: { id: 'PVTSSF_workflow' } } } })
+    expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_workflow' } } } })
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
-    expect(result.read(`${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_board_other.json`)).toBeUndefined()
+  })
+
+  it('旧い名前の進行の欄だけがあるボードも、初期化済みとして同期する', async (context) => {
+    await verifies(context, 'PW-PROJECT-ACTIVATE-27')
+    const [title, , ...rest] = standardFields()
+    const fields = [title ?? {}, { id: 'PVTSSF_workflow', name: LEGACY_FIELD, options: options(WORKFLOW_NAMES) }, ...rest]
+    const result = await run(reference('1'), [projectFields(fields), listProjects(projectNode(1, 'board')), projectFields(fields), linked()], { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_workflow' } } } })
+  })
+
+  it('旧い名前の設定ファイルを渡すと、新しい名前に移し、アクティブな設定を新しい名前にする', async (context) => {
+    await verifies(context, 'PW-PROJECT-ACTIVATE-26')
+    const result = await run(arguments_('activate', LEGACY_NAME), [projectFields(), ...syncRules()], legacyConfig)
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toBe(`moved: config file ${path.join(result.directory, LEGACY_CONFIG_FILE)} to ${configPathOf(result)}\n${movedNote(NAME)}updated: config file ${configPathOf(result)}\nset: active project to ${NAME}\n`)
+    expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
+    expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
   })
 
   it('--owner を省くと、認証したユーザーのプロジェクトを対象にする', async (context) => {
@@ -1420,7 +1583,7 @@ describe('project activate', () => {
     const result = await run(arguments_('activate', '1'), [], { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: --host is required\n  example: pecot project activate 1 --host github.com --owner example-org\n  example: pecot project activate example-project --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_example-project_example-org\n')
+    expect(result.stderr).toBe('error: --host is required\n  example: pecot project activate 1 --host github.com --owner example-org\n  example: pecot project activate example-project --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_1\n')
   })
 
   it('指定したプロジェクトが無いと、終了コード 1 で終わる', async () => {
@@ -1435,7 +1598,7 @@ describe('project activate', () => {
   it('指定したプロジェクトが初期化されていないと、終了コード 1 で終わる', async () => {
     const result = await run(reference('1'), [projectFields(titleOnly, 'Not Initialized Project')], { config: false })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe(`error: project "Not Initialized Project" is not initialized\n  run: pecot project init acme 'Not Initialized Project' --host ${DEFAULT_HOST} --suffix <suffix>\n`)
+    expect(result.stderr).toBe(`error: project "Not Initialized Project" is not initialized\n  run: pecot project init acme 'Not Initialized Project' --host ${DEFAULT_HOST}\n`)
     expect(result.read(CONFIG_FILE)).toBeUndefined()
   })
 
@@ -1513,7 +1676,7 @@ describe('project activate', () => {
   it('必須の値（Blocked を除く 6 つ）が欠けたボードを同期すると、終了コード 1 で終わる', async () => {
     const result = await run(reference('1'), [projectFields(standardFields(['Backlog', 'Blocked'])), listProjects(projectNode(1, 'board')), projectFields(standardFields(['Backlog', 'Blocked']))], { config: false })
     expect(result.code).toBe(1)
-    expect(result.stderr).toContain('pecot-workflow field is missing options: Pending, Ready, Active, In Review, Archived')
+    expect(result.stderr).toContain('pecot-status field is missing options: Pending, Ready, Active, In Review, Archived')
     expect(result.read(CONFIG_FILE)).toBeUndefined()
   })
 
@@ -1521,7 +1684,15 @@ describe('project activate', () => {
     it('アクティブにした設定の名前・パス・change を返す', async () => {
       const result = await tool('project_activate', { ...owned, project: '1' }, [projectFields(), ...syncRules()], { config: false })
       const configPath = path.join(result.directory, CONFIG_FILE)
-      expect(result.structured).toEqual({ project: CONFIG_NAME, configPath, change: 'create' })
+      expect(result.structured).toEqual({ project: CONFIG_NAME, configPath, change: 'create', config_moved: null })
+    })
+
+    it('旧い名前の設定ファイルを新しい名前に移すと、移した元と先を config_moved に返す', async (context) => {
+      await verifies(context, 'PW-PROJECT-ACTIVATE-26')
+      const result = await tool('project_activate', { ...owned, project: '1' }, [projectFields(), ...syncRules()], legacyConfig)
+      expectClean(result)
+      expect(result.structured).toMatchObject({ project: CONFIG_NAME, config_moved: { from: path.basename(LEGACY_CONFIG_FILE), to: path.basename(CONFIG_FILE) } })
+      expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
     })
 
     it('設定ファイルがあると change を update にする', async () => {

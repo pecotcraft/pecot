@@ -37,6 +37,7 @@ function listProjectItemsQuery(operationName: string, readinessFields: string): 
               ... on ProjectV2ItemFieldSingleSelectValue {
                 field {
                   ... on ProjectV2SingleSelectField {
+                    id
                     name
                   }
                 }
@@ -107,6 +108,7 @@ export const QUERY_LIST_PROJECT_ITEMS_FILTERED = `query ($projectId: ID!, $curso
               ... on ProjectV2ItemFieldSingleSelectValue {
                 field {
                   ... on ProjectV2SingleSelectField {
+                    id
                     name
                   }
                 }
@@ -466,6 +468,18 @@ export const MUTATION_CREATE_PROJECT_FIELD = `mutation ($projectId: ID!, $name: 
           id
           name
         }
+      }
+    }
+  }
+}`
+
+// プロジェクトフィールドの改名。選択肢を渡さないので、選択肢の ID と各 Item の値は残る
+export const MUTATION_RENAME_PROJECT_FIELD = `mutation ($fieldId: ID!, $name: String!) {
+  updateProjectV2Field(input: { fieldId: $fieldId, name: $name }) {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
       }
     }
   }
@@ -940,8 +954,10 @@ const PREREQUISITE_ISSUE_FIELDS = `fragment PrerequisiteIssueFields on Issue {
       project {
         id
       }
-      column: fieldValueByName(name: $columnFieldName) {
-        ...SingleSelectValueFields
+      fieldValues(first: 20) {
+        nodes {
+          ...SingleSelectValueFields
+        }
       }
       label: fieldValueByName(name: $labelFieldName) {
         ...SingleSelectValueFields
@@ -977,13 +993,14 @@ const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV
     field {
       ... on ProjectV2SingleSelectField {
         id
+        name
       }
     }
   }
 }`
 
 // Issue と、その前提（blockedBy）を 1 回で読む。PR は 2 つの読み口（リンクしたブランチと Development 欄）から集める
-export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $columnFieldName: String!, $labelFieldName: String!, $blockedByFirst: Int!) {
+export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $labelFieldName: String!, $blockedByFirst: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       ...PrerequisiteIssueFields
@@ -1119,7 +1136,7 @@ export const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $rep
 ${BLOCKED_BY_REFERENCE_FIELDS}`
 
 // Issue 1 件の、指定のプロジェクトの項目と進行の列。ボード全体を読まずに、列を動かす対象を読む
-export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $number: Int!, $workflowFieldName: String!) {
+export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number
@@ -1138,9 +1155,17 @@ export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String
           project {
             id
           }
-          workflow: fieldValueByName(name: $workflowFieldName) {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                  }
+                }
+                name
+              }
             }
           }
         }

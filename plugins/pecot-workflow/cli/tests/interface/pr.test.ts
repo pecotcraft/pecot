@@ -258,7 +258,7 @@ function waitingRule(total = 1): ResponseRule {
 }
 
 // #13 のボードの項目だけを読む。projectItems が空なら、ボードに載っていない
-function boardItemRule(projectItems: readonly unknown[] = [{ id: 'PVTI_13', project: { id: 'PVT_1' }, workflow: { name: 'Blocked' } }]): ResponseRule {
+function boardItemRule(projectItems: readonly unknown[] = [{ id: 'PVTI_13', project: { id: 'PVT_1' }, fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: 'pecot-status' }, name: 'Blocked' }] } }]): ResponseRule {
   const issue = { number: 13, title: '課題13', state: 'OPEN', url: `https://${HOST}/acme/demo/issues/13`, repository: { owner: { login: 'acme' }, name: 'demo' }, projectItems: { nodes: projectItems } }
   return graphql('GetIssueBoardItem', { repository: { issue } }, { variables: { number: 13 } })
 }
@@ -273,7 +273,7 @@ function waitingTarget(hasPullRequest: boolean): TargetSpec {
 
 // #12 を待つ Issue が #13・#14 の 2 件。#13 の列は書け、#14 の書き込みの応答はテストごとに足す
 const TWO_WAITING_NODES = [13, 14].map(number => ({ id: `I_demo_${String(number)}`, number, state: 'OPEN', repository: { owner: { login: 'acme' }, name: 'demo' } }))
-const ISSUE_14 = { number: 14, title: '課題14', state: 'OPEN', url: `https://${HOST}/acme/demo/issues/14`, repository: { owner: { login: 'acme' }, name: 'demo' }, projectItems: { nodes: [{ id: 'PVTI_14', project: { id: 'PVT_1' }, workflow: { name: 'Blocked' } }] } }
+const ISSUE_14 = { number: 14, title: '課題14', state: 'OPEN', url: `https://${HOST}/acme/demo/issues/14`, repository: { owner: { login: 'acme' }, name: 'demo' }, projectItems: { nodes: [{ id: 'PVTI_14', project: { id: 'PVT_1' }, fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: 'pecot-status' }, name: 'Blocked' }] } }] } }
 const TWO_WAITING_RULES: ResponseRuleList = [
   CREATED_RULE,
   ...IN_REVIEW_RULES,

@@ -535,7 +535,7 @@ function readout(blockers: IssuePrerequisitesReadout['blockedBy'], target: Parti
   return { issue: { ...issueReadout(100, target), body: '', parent: JSON_NULL }, blockedBy: blockers }
 }
 
-const options = { columnFieldName: 'pecot-workflow-x', labelFieldName: 'Status' }
+const options = { columnFieldId: 'f1', labelFieldName: 'Status' }
 const absent: WaitsForMergeReadout = { kind: 'absent' }
 
 function kindOf(over: Partial<IssueReadout>): string {

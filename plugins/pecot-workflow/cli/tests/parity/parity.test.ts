@@ -48,7 +48,7 @@ const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new M
   ['issue-unblock-usage-without-by', 'rejected'],
   ['pr-check-usage', 'rejected'],
   ['issue-check-usage', 'rejected'],
-  ['project-init-usage', 'rejected'],
+  ['project-init-usage', 'unmappable'],
   ['project-search-usage', 'rejected'],
   ['project-set-usage', 'rejected'],
   ['project-link-usage', 'rejected'],

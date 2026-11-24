@@ -3950,6 +3950,32 @@
               ],
               "description": "What happened to the config file"
             },
+            "config_moved": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "description": "File name of the old project config"
+                    },
+                    "to": {
+                      "type": "string",
+                      "description": "File name the project config was moved to"
+                    }
+                  },
+                  "required": [
+                    "from",
+                    "to"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The old project config file that was moved to the new name (null when none)"
+            },
             "kind": {
               "type": "string",
               "description": "Failure kind (failure only)"
@@ -3975,7 +4001,8 @@
             {
               "required": [
                 "configPath",
-                "change"
+                "change",
+                "config_moved"
               ]
             },
             {
@@ -4017,10 +4044,6 @@
             "type": "string",
             "description": "Project owner"
           },
-          "suffix": {
-            "type": "string",
-            "description": "Suffix of the workflow field"
-          },
           "title": {
             "type": "string",
             "description": "Project title"
@@ -4028,7 +4051,6 @@
         },
         "required": [
           "owner",
-          "suffix",
           "title"
         ],
         "additionalProperties": false
@@ -4046,10 +4068,6 @@
           "host": [
             "--host",
             "-h"
-          ],
-          "suffix": [
-            "--suffix",
-            "-s"
           ]
         },
         "only": {
@@ -4216,7 +4234,7 @@
     {
       "id": "PW-PROJECT-INIT",
       "name": "project init",
-      "description": "Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist",
+      "description": "Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, and add the Blocked and Needs Attention options to the fields that already exist",
       "surfaces": {
         "cli": {
           "path": [
@@ -4245,16 +4263,11 @@
           "owner": {
             "type": "string",
             "description": "Project owner"
-          },
-          "suffix": {
-            "type": "string",
-            "description": "Suffix of the workflow field"
           }
         },
         "required": [
           "name",
-          "owner",
-          "suffix"
+          "owner"
         ],
         "additionalProperties": false
       },
@@ -4271,10 +4284,6 @@
           "host": [
             "--host",
             "-h"
-          ],
-          "suffix": [
-            "--suffix",
-            "-s"
           ]
         },
         "only": {
@@ -4305,9 +4314,10 @@
                       "create",
                       "update",
                       "unchanged",
-                      "skip"
+                      "skip",
+                      "rename"
                     ],
-                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found"
+                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status"
                   },
                   "addedOptions": {
                     "type": "array",
@@ -4325,6 +4335,50 @@
                 "additionalProperties": false
               },
               "description": "The workflow, priority and size fields, plus the Status field when its options were looked at"
+            },
+            "migration": {
+              "description": "What was moved from the old form (omitted when the command stopped before the project config)",
+              "type": "object",
+              "properties": {
+                "renamed": {
+                  "description": "Old name of the workflow field that was renamed to pecot-status (null when none)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "config_moved": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "description": "File name of the old project config"
+                        },
+                        "to": {
+                          "type": "string",
+                          "description": "File name the project config was moved to"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "to"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The old project config file that was moved to the new name (null when none)"
+                }
+              },
+              "required": [
+                "renamed",
+                "config_moved"
+              ],
+              "additionalProperties": false
             },
             "kind": {
               "type": "string",

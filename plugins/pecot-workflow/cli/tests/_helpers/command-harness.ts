@@ -62,7 +62,6 @@ export function projectConfig(options: Readonly<ConfigOptions> = {}): Record<str
   return {
     host: DEFAULT_HOST,
     owner: DEFAULT_OWNER,
-    workflow_suffix: 'acme',
     project: {
       number: 1,
       id: 'PVT_1',
@@ -90,6 +89,10 @@ export interface CommandRun {
   origin の指す先。`false` なら git の外で動かす。既定は ghes.example.com の acme/demo
   */
   readonly remote?: RepositoryOptions | false
+  /**
+  config を置くパス。既定は CONFIG_FILE
+  */
+  readonly configFile?: string
   /**
   origin の URL をそのまま渡す（GitHub の形でない手元のパスなど）。remote より先に使う
   */
@@ -176,8 +179,8 @@ async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'argv'>>, body: (dire
     const directory = prepareDirectory(run)
     if (run.config !== false) {
       writeTree(directory, {
-        [CONFIG_FILE]: `${JSON.stringify(run.config ?? projectConfig(), undefined, 2)}\n`,
-        '.pecot/config/projects/.active': `${path.basename(CONFIG_FILE)}\n`,
+        [run.configFile ?? CONFIG_FILE]: `${JSON.stringify(run.config ?? projectConfig(), undefined, 2)}\n`,
+        '.pecot/config/projects/.active': `${path.basename(run.configFile ?? CONFIG_FILE)}\n`,
       })
     }
     writeTree(directory, run.files ?? {})

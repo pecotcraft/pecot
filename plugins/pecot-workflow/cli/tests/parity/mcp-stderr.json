@@ -1,5 +1,6 @@
 {
   "board-move-state-not-on-board": "error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\"\n",
+  "board-show-ok-python-state": "warning: this board uses the old field name pecot-workflow-acme\n  call project_init with owner: \"acme\", name: <name>, host: \"ghes.example.com\"\n",
   "board-show-state": "error: no active project\n  call project_activate with project: <PROJECT>\n",
   "board-sync-state-ambiguous-project": "error: no active project, and 2 project configs exist\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, ghes.example.com_acme_other_acme\n",
   "issue-comment-usage-message-without-issue": "error: issue_ref (Issue reference) is required with message\n",
@@ -8,7 +9,7 @@
   "pr-check-state-unpushed": "count: preflight warnings: 1\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\nerror: preflight found warnings; fix them before creating a PR\n",
   "pr-create-usage": "error: missing arguments\n  usage:\n  pr_create with file: <path>\n  pr_create with message: <body>, title: <title>, base: <base-branch>\n",
   "project-activate-4xx": "error: could not read the authenticated user: resource not found: {{GITHUB_API}}/user\n  pass owner to give the owner explicitly\n",
-  "project-activate-state": "error: host is required\n  example: project_activate with project: \"1\", host: \"github.com\", owner: \"example-org\"\n  example: project_activate with project: \"example-project\", host: \"ghes.example.com\", owner: \"example-org\"\n  example: project_activate with project: \"ghes.example.com_example-org_example-project_example-org\"\n",
+  "project-activate-state": "error: host is required\n  example: project_activate with project: \"1\", host: \"github.com\", owner: \"example-org\"\n  example: project_activate with project: \"example-project\", host: \"ghes.example.com\", owner: \"example-org\"\n  example: project_activate with project: \"ghes.example.com_example-org_1\"\n",
   "project-get-state": "error: no active project\n  call project_activate with project: <PROJECT>\n",
   "project-link-state": "error: give the repository as owner/repo\n  example: project_link with repo: \"example-org/my-repo\"\n",
   "project-unset-state": "error: no active project\n  call project_activate with project: <PROJECT>\n",

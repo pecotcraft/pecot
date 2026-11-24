@@ -14,7 +14,7 @@
 - `pecot-priority`・`pecot-size` を廃止し、利用者が値を決める `pecot-lane` を足す
 - 準備の操作が、列を `pecot-status`、横のレーンを `pecot-lane` にしたボードのビュー `Lanes` を作る
 - 起票は `pecot-lane` を入れる。同期は、値の無い Issue を知らせる。`board_show` と w-active は、値ごとの件数を出す
-- 既存のボードは、`project_sync` が改名と設定の移行をする。廃止したフィールドは、確認を受けてから消す
+- 既存のボードは、`project_init` が改名と設定の移行をする。廃止したフィールドは、確認を受けてから消す
 
 **B. Issue の機能を使える担保**
 
@@ -50,7 +50,7 @@
 
 **Scale/Scope**:
 
-- 変える MCP ツールは 7 つ（`project_create`・`project_init`・`project_sync`・`issue_create`・`issue_show`・`board_show`・`board_sync`）
+- 変える MCP ツールは 7 つ（`project_create`・`project_init`・`project_activate`・`issue_create`・`issue_show`・`board_show`・`board_sync`）
 - 足す MCP ツールは 2 つ（`issue_attributes`・`issue_edit`）
 - 変えるスキルは 6 つ（w-onboarding・w-quick・w-ready・w-issueize・w-backlog・w-active）と w-help の参照
 
@@ -171,8 +171,8 @@ A と B は互いを待たない。各段は、前の段が無いと確かめら
 
 **A. pecot のフィールドの整理**
 
-1. **`pecot-status` への改名と `suffix` の廃止**（US4b）: 設定の新しい形と旧い形の読み込み、`project_sync` の改名と設定の移行、各操作の警告。検証用のボードで確かめられる
-2. **`pecot-priority`・`pecot-size` の廃止**（US4）: 作成・起票・トラッカー・テンプレート・スキルから消し、`project_sync` の `confirm_delete`。1 の移行の出力に削除を足すので、1 にスタックする
+1. **`pecot-status` への改名と `suffix` の廃止**（US4b）: 設定の新しい形と旧い形の読み込み、`project_init` の改名と設定の移行、各操作の警告。検証用のボードで確かめられる
+2. **`pecot-priority`・`pecot-size` の廃止**（US4）: 作成・起票・トラッカー・テンプレート・スキルから消し、`project_init` の `confirm_delete`。1 の移行の出力に削除を足すので、1 にスタックする
 3. **`pecot-lane` とビュー**（US1）: `lanes` の入力、フィールドの作成と選択肢の追加、REST のビューの作成。1 の `pecot-status` の ID をビューに使うので、1 にスタックする
 4. **起票・同期・一覧**（US2・US3）: `issue_create` の `lane`、親の値の引き継ぎ、`missing_lane`、`lanes`、スキルの変更。3 にスタックする
 5. **このリポへの導入**: リリースされた pecot-workflow で、このリポのボードを移行する。1〜4 のマージとリリースを待つ

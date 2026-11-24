@@ -85,7 +85,7 @@ function fixtureConfig(host: string, owner: string, repositories: readonly strin
     size: { id: 'PVTSSF_size', options: { xs: 's1', s: 's2', m: 's3', l: 's4' } },
   }
   const project = { number: 1, id: 'PVT_1', board_url: `https://${host}/users/${owner}/projects/1`, fields }
-  const config = { host, owner, workflow_suffix: owner, project, repositories: repositories.map(name => ({ owner, name, develop_branch: 'main' })) }
+  const config = { host, owner, project, repositories: repositories.map(name => ({ owner, name, develop_branch: 'main' })) }
   return `${JSON.stringify(config, undefined, 2)}\n`
 }
 

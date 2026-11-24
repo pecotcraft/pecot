@@ -3,7 +3,7 @@
 import { z } from 'zod'
 
 import { isLabelWrittenByAutomation } from '../domain/auto-result.js'
-import { findRepository, workflowFieldName } from '../domain/config.js'
+import { findRepository, workflowFieldId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import type { IssuePrerequisitesReadout, PullRequestReadout } from '../domain/issue-readout.js'
@@ -126,7 +126,7 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
   let readout: IssuePrerequisitesReadout
   try {
     readout = await client.getIssuePrerequisites(owner, repository, reference.number, config.project.id, {
-      columnFieldName: workflowFieldName(config),
+      columnFieldId: workflowFieldId(config),
       labelFieldName: STATUS_FIELD_NAME,
     }, blockedByFirst)
   }
@@ -135,7 +135,7 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
     throw error
   }
   const section: WaitsForMergeReadout = readWaitsForMerge(readout.issue.body, reference.repository)
-  const result = toIssueFacts(readout, section, { columnFieldName: workflowFieldName(config), labelFieldName: STATUS_FIELD_NAME })
+  const result = toIssueFacts(readout, section, { columnFieldId: workflowFieldId(config), labelFieldName: STATUS_FIELD_NAME })
   if (result.prerequisites === 'read-failed') {
     return unreadable(readout.blockedBy.kind === 'read-failed' ? readout.blockedBy.reason : 'could not read blocked-by')
   }

@@ -87,19 +87,38 @@ function isEmptyValue(value: JsonValue | undefined): boolean {
   return isJsonObject(value) && Object.keys(value).length === 0
 }
 
+// fieldValues のうち、フィールドが条件に合う最初のノード
+function findFieldValue(item: JsonValue | undefined, isTarget: (field: JsonValue | undefined) => boolean): JsonValue | undefined {
+  return nodesMember(member(item, 'fieldValues')).find(node => !isEmptyValue(node) && isTarget(member(node, 'field')))
+}
+
+function valueName(node: JsonValue | undefined): string | undefined {
+  const name = member(node, 'name')
+  return typeof name === 'string' ? name : undefined
+}
+
 /**
-GraphQL の戻り値から Workflow ステータスを抽出する。
-フィールド名は大文字小文字を区別しない。見つからなければ undefined。
-名前が一致したノードを最初に見つけた時点で、その値（無ければ undefined）を返す
+GraphQL の戻り値から、名前の合う単一選択のフィールドの値を抽出する。
+フィールド名は大文字小文字を区別しない。見つからなければ undefined
 */
-export function extractWorkflowStatus(item: JsonObject, workflowFieldName: string): string | undefined {
-  const nodes = nodesMember(member(item, 'fieldValues'))
-  for (const node of nodes) {
-    if (isEmptyValue(node)) continue
-    if (stringMember(member(node, 'field'), 'name').toLowerCase() === workflowFieldName.toLowerCase()) {
-      const name = member(node, 'name')
-      return typeof name === 'string' ? name : undefined
-    }
+export function extractFieldValueByName(item: JsonObject, fieldName: string): string | undefined {
+  return valueName(findFieldValue(item, field => stringMember(field, 'name').toLowerCase() === fieldName.toLowerCase()))
+}
+
+/**
+GraphQL の戻り値から、ID の合う単一選択のフィールドの値を抽出する。見つからなければ undefined
+*/
+export function extractFieldValueById(item: JsonValue | undefined, fieldId: string): string | undefined {
+  return valueName(findFieldValue(item, field => stringMember(field, 'id') === fieldId))
+}
+
+/**
+ID の合うフィールドの、ボード上の今の名前。どの Item にも値が無ければ undefined
+*/
+export function fieldNameById(items: readonly JsonValue[], fieldId: string): string | undefined {
+  for (const item of items) {
+    const name = stringMember(member(findFieldValue(item, field => stringMember(field, 'id') === fieldId), 'field'), 'name')
+    if (name !== '') return name
   }
   return undefined
 }
@@ -137,14 +156,14 @@ function displayText(value: JsonValue): string {
 GraphQL の戻り値をフォーマット用の形式に変換する。
 Draft Issue など content が無いアイテムは除く
 */
-export function transformItems(rawItems: readonly JsonObject[], workflowFieldName: string): readonly BoardItem[] {
+export function transformItems(rawItems: readonly JsonObject[], workflowFieldId: string): readonly BoardItem[] {
   const transformed: BoardItem[] = []
   for (const item of rawItems) {
     const content = member(item, 'content')
     if (isEmptyValue(content)) continue
     transformed.push({
       id: memberOrEmpty(item, 'id'),
-      workflow: extractWorkflowStatus(item, workflowFieldName) ?? JSON_NULL,
+      workflow: extractFieldValueById(item, workflowFieldId) ?? JSON_NULL,
       title: memberOrEmpty(content, 'title'),
       updatedAt: memberOrEmpty(item, 'updatedAt'),
       content: {
@@ -188,7 +207,7 @@ export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldNam
       subIssues: countMember(content, 'subIssues') ?? 0,
       parent: parentOf(content),
       blockedBy: typeof blockedBy === 'number' ? blockedBy : undefined,
-      label: extractWorkflowStatus(item, labelFieldName),
+      label: extractFieldValueByName(item, labelFieldName),
     })
   }
   return progress

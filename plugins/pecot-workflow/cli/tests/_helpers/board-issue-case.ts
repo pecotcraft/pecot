@@ -41,7 +41,6 @@ function buildConfig(missingStatus: string | undefined, hasBlocked: boolean, rep
   const config = {
     host: 'ghes.example.com',
     owner: 'acme',
-    workflow_suffix: 'acme',
     project,
     repositories: repositories.map(name => ({ owner: 'acme', name, develop_branch: 'main' })),
   }

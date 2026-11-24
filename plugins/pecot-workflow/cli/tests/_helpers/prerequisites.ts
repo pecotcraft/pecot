@@ -68,7 +68,7 @@ function issueNode(spec: IssueSpec): Record<string, unknown> {
     subIssues: { totalCount: spec.subIssues ?? 0 },
     projectItems: connection(spec.column === undefined && spec.label === undefined
       ? []
-      : [{ project: { id: PROJECT_ID }, column: spec.column === undefined ? null : select('FIELD_column', spec.column), label: spec.label === undefined ? null : select('FIELD_status', spec.label) }]),
+      : [{ project: { id: PROJECT_ID }, fieldValues: { nodes: spec.column === undefined ? [] : [{ ...select('PVTSSF_workflow', spec.column), field: { id: 'PVTSSF_workflow', name: 'pecot-status' } }] }, label: spec.label === undefined ? null : select('FIELD_status', spec.label) }]),
     linkedBranches: connection(hasBranch ? [{ ref: { name: spec.branch, associatedPullRequests: connection(nodes) } }] : []),
     closedByPullRequestsReferences: connection(hasBranch ? [] : nodes),
   }

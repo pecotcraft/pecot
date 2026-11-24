@@ -470,7 +470,8 @@ describe('updateIssueBody', () => {
 
 const PROJECT_ID = 'PVT_board'
 const OTHER_PROJECT_ID = 'PVT_other'
-const FIELDS = { columnFieldName: 'pecot-workflow-abc', labelFieldName: 'Status' }
+const FIELDS = { columnFieldId: 'FIELD_column', labelFieldName: 'Status' }
+const COLUMN_FIELD_NAME = 'pecot-status'
 
 function prNode(number: number, overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
   return {
@@ -489,10 +490,15 @@ function singleSelect(fieldId: string, optionName: string): Readonly<Record<stri
   return { name: optionName, optionId: `opt_${optionName}`, field: { id: fieldId } }
 }
 
+// 進行の欄の値。ID で探すので、名前は問わない
+function columnValue(optionName: string, fieldName = COLUMN_FIELD_NAME): Readonly<Record<string, unknown>> {
+  return { name: optionName, optionId: `opt_${optionName}`, field: { id: 'FIELD_column', name: fieldName } }
+}
+
 function boardItem(projectId: string, labelName: string, columnName?: string): Readonly<Record<string, unknown>> {
   return {
     project: { id: projectId },
-    column: columnName === undefined ? JSON_NULL : singleSelect('FIELD_column', columnName),
+    fieldValues: { nodes: columnName === undefined ? [] : [columnValue(columnName)] },
     label: singleSelect('FIELD_status', labelName),
   }
 }
@@ -521,7 +527,7 @@ function target(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Rec
   return { ...prerequisiteIssue(10), body: '本文', parent: JSON_NULL, blockedBy: { totalCount: 0, nodes: [] }, ...overrides }
 }
 
-const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, columnFieldName: FIELDS.columnFieldName, labelFieldName: FIELDS.labelFieldName, blockedByFirst: 50 }
+const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, labelFieldName: FIELDS.labelFieldName, blockedByFirst: 50 }
 
 const blockedByCases: readonly Readonly<{ method: 'addBlockedBy' | 'removeBlockedBy', operation: string }>[] = [
   { method: 'addBlockedBy', operation: 'AddBlockedBy' },
@@ -629,7 +635,7 @@ describe('getIssuePrerequisites', () => {
         issueType: JSON_NULL,
         subIssuesTotal: 0,
         projectFieldValues: [
-          { fieldId: 'FIELD_column', fieldName: FIELDS.columnFieldName, optionId: 'opt_In Review', optionName: 'In Review' },
+          { fieldId: 'FIELD_column', fieldName: COLUMN_FIELD_NAME, optionId: 'opt_In Review', optionName: 'In Review' },
           { fieldId: 'FIELD_status', fieldName: 'Status', optionId: 'opt_In Progress', optionName: 'In Progress' },
         ],
         linkedBranches: [],
@@ -675,9 +681,15 @@ describe('getIssuePrerequisites', () => {
   })
 
   it('列だけ、札だけの値は、あるほうだけ読む', async () => {
-    const onlyColumn = { project: { id: PROJECT_ID }, column: singleSelect('FIELD_column', 'Done'), label: JSON_NULL }
+    const onlyColumn = { project: { id: PROJECT_ID }, fieldValues: { nodes: [{}, columnValue('Done')] }, label: JSON_NULL }
     const { issue } = await readWith(target({ projectItems: connection([onlyColumn]) }))
-    expect(issue.projectFieldValues).toEqual([{ fieldId: 'FIELD_column', fieldName: FIELDS.columnFieldName, optionId: 'opt_Done', optionName: 'Done' }])
+    expect(issue.projectFieldValues).toEqual([{ fieldId: 'FIELD_column', fieldName: COLUMN_FIELD_NAME, optionId: 'opt_Done', optionName: 'Done' }])
+  })
+
+  it('進行の欄は名前でなく ID で探し、旧い名前のままでも値を読む', async () => {
+    const legacy = { project: { id: PROJECT_ID }, fieldValues: { nodes: [columnValue('Ready', 'pecot-workflow-abc')] }, label: JSON_NULL }
+    const { issue } = await readWith(target({ projectItems: connection([legacy]) }))
+    expect(issue.projectFieldValues).toEqual([{ fieldId: 'FIELD_column', fieldName: 'pecot-workflow-abc', optionId: 'opt_Ready', optionName: 'Ready' }])
   })
 
   it('blockedBy が空で totalCount も 0 なら、前提なしの ok', async () => {

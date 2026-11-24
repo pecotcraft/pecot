@@ -45,7 +45,6 @@ export function configText(options: Readonly<IssueProjectOptions>): string {
   const config = {
     host: 'ghes.example.com',
     owner: 'acme',
-    workflow_suffix: 'acme',
     ...aggregation !== undefined && { aggregation_repo: aggregation },
     project: { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields },
     repositories: [

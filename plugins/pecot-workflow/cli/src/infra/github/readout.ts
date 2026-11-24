@@ -67,19 +67,25 @@ function readLinkedBranches(issue: JsonValue): readonly LinkedBranchReadout[] {
     })
 }
 
-function readFieldValue(item: JsonValue, alias: string, fieldName: string): ProjectFieldValueReadout | undefined {
-  const value = jsonField(item, alias)
+function readFieldValue(value: JsonValue | undefined, fieldName: string): ProjectFieldValueReadout | undefined {
   const fieldId = jsonField(jsonField(value, 'field'), 'id')
   const optionId = jsonField(value, 'optionId')
   const optionName = jsonField(value, 'name')
   return typeof fieldId === 'string' && typeof optionId === 'string' && typeof optionName === 'string' ? { fieldId, fieldName, optionId, optionName } : undefined
 }
 
+// 進行の欄は ID で探す。fieldName にはボード上の今の名前を入れる
+function readColumnValue(item: JsonValue, columnFieldId: string): ProjectFieldValueReadout | undefined {
+  const value = truthyNodes(jsonField(item, 'fieldValues')).find(node => jsonField(jsonField(node, 'field'), 'id') === columnFieldId)
+  const name = jsonField(jsonField(value, 'field'), 'name')
+  return readFieldValue(value, typeof name === 'string' ? name : '')
+}
+
 // 設定のプロジェクトのアイテムだけを見る。同じ Issue が載る別のボードの値は読まない
 function readProjectFieldValues(issue: JsonValue, projectId: string, fieldNames: Readonly<PrerequisiteFieldNames>): readonly ProjectFieldValueReadout[] {
   return truthyNodes(jsonField(issue, 'projectItems'))
     .flatMap(item => jsonField(jsonField(item, 'project'), 'id') === projectId
-      ? [readFieldValue(item, 'column', fieldNames.columnFieldName), readFieldValue(item, 'label', fieldNames.labelFieldName)]
+      ? [readColumnValue(item, fieldNames.columnFieldId), readFieldValue(jsonField(item, 'label'), fieldNames.labelFieldName)]
       : [])
     .filter(value => value !== undefined)
 }

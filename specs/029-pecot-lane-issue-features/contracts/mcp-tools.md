@@ -16,7 +16,9 @@
 | `fields` | 変更 | 作った・あったフィールド。`pecot-status`・`pecot-lane` |
 | `view` | 追加 | `{ created: boolean, name, url? , manual_steps? }`。作れなかったときは `manual_steps` |
 
-### `project_sync`
+### `project_init`（既存のボードを整える）
+
+既存のボードの改名と設定の移行は、`project_init` が行う。新しいツール `project_sync` は作らない。
 
 | 入力 | 変更 | 内容 |
 |---|---|---|
@@ -26,6 +28,14 @@
 | 出力 | 変更 | 内容 |
 |---|---|---|
 | `migration` | 追加 | `renamed`（改名した旧い名前か null）・`config_moved`（`from`・`to` か null）・`pending_delete`（消す予定の名前）・`deleted`（消した名前） |
+
+Phase 1 の `migration` は `renamed`・`config_moved` だけを持つ。`pending_delete`・`deleted` は Phase 2 で足す。
+
+### `project_activate`
+
+| 出力 | 変更 | 内容 |
+|---|---|---|
+| `config_moved` | 追加 | 旧い名前の設定ファイルを新しい名前に移したときの `from`・`to`。移していなければ null |
 
 ### `issue_create`
 
@@ -54,12 +64,14 @@ frontmatter: `priority`・`size` は読み捨てる。`lane` と `attributes` �
 
 ### 旧い形のボードと設定での各操作
 
-`project_sync` のほかの操作は、旧い形でも今と同じに動き、警告を 1 行出す。
+`board_show`・`board_sync` は、進行の欄が旧い名前でも今と同じに動き、警告を 1 行出す。ほかの操作は警告を出さない。
 
 ```text
-warning: this board uses the old field names (pecot-workflow-pecotcraft, pecot-priority, pecot-size)
-run: pecot project sync   (then: pecot project sync --confirm-delete)
+warning: this board uses the old field name pecot-workflow-pecotcraft
+  run: pecot project init <owner> <name> --host <host>
 ```
+
+`<owner>`・`<host>` は設定の値で、`<name>` だけを利用者が埋める。MCP では、2 行目が `project_init` の呼び出しの形になる。Phase 2 で、`pecot-priority`・`pecot-size` と `--confirm-delete` を、この文に足す。
 
 ## B. Issue の機能
 
