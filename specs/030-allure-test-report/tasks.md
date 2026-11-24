@@ -254,11 +254,11 @@ description: "Task list for 030-allure-test-report"
 
 | Phase | 前提 | 種類 | 理由 |
 |---|---|---|---|
-| 2 | 1 | 積める | レポートを作る処理が、Phase 1 の `report-lanes.json` と、レーンが残す結果のディレクトリを読む。Phase 1 のブランチの上で、手元でレーンを動かして確かめられる |
-| 3 | 2 | 積める | 絞り込みの URL のテストが、Phase 2 の `generate.py` でレポートを作る。Phase 2 のブランチの上で、手元で確かめられる |
-| 4 | 2 | 積める | 添付がレポートに出ることを、Phase 2 の `generate.py` で作ったレポートで確かめる。Phase 2 のブランチの上で、手元で確かめられる |
-| 5 | 2 | 積める | 作る run が、Phase 1 の `lanes.py` と Phase 2 の `generate.py` を呼ぶ。workflow の形とスクリプトは、積んだブランチの上のテストで確かめられる |
-| 6 | 3 | 積める | 振る舞いの項目のリンクが、Phase 3 で `verifies` が残す tag の形と、`permalink.html` を前提にする。Phase 3 のブランチの上で、手元でサイトとレポートを作って確かめられる |
+| 2 | 1 | スタックできる | レポートを作る処理が、Phase 1 の `report-lanes.json` と、レーンが残す結果のディレクトリを読む。Phase 1 のブランチの上で、手元でレーンを動かして確かめられる |
+| 3 | 2 | スタックできる | 絞り込みの URL のテストが、Phase 2 の `generate.py` でレポートを作る。Phase 2 のブランチの上で、手元で確かめられる |
+| 4 | 2 | スタックできる | 添付がレポートに出ることを、Phase 2 の `generate.py` で作ったレポートで確かめる。Phase 2 のブランチの上で、手元で確かめられる |
+| 5 | 2 | スタックできる | 作る run が、Phase 1 の `lanes.py` と Phase 2 の `generate.py` を呼ぶ。workflow の形とスクリプトは、スタックしたブランチの上のテストで確かめられる |
+| 6 | 3 | スタックできる | 振る舞いの項目のリンクが、Phase 3 で `verifies` が残す tag の形と、`permalink.html` を前提にする。Phase 3 のブランチの上で、手元でサイトとレポートを作って確かめられる |
 | 6 | 5 | マージを待つ | `pages-deploy.yml` は `workflow_run` で起き、既定のブランチの定義で動く。`test-report.yml` が main への push で動いて artifact を残していないと、確かめと保管と公開を確かめられない |
 | 7 | 6 | マージを待つ | 替わりのテストレポートが公開サイトで読めることを確かめてから、自前の作りを消す。公開は、既定のブランチの `workflow_run` でしか動かない |
 | 8 | 6 | マージを待つ | 公開サイトのレポートを実物で確かめる。保管と公開が main に入り、main への push で 2 回動いていないと、履歴を確かめられない |
@@ -286,7 +286,7 @@ Phase 7 と Phase 8 は、どちらも Phase 6 だけを前提にするので、
 - Phase 5 のテスト T026・T027
 - Phase 6 のテスト T032〜T034
 - Phase 7 の T043〜T045
-- Phase 3・Phase 4・Phase 5（どれも Phase 2 の上に積める）
+- Phase 3・Phase 4・Phase 5（どれも Phase 2 の上にスタックできる）
 
 ---
 
