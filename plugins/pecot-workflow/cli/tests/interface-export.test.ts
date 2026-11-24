@@ -295,8 +295,8 @@ describe('exportEntries の失敗と refine', () => {
     ['maxLength', z.string().max(5), 'bad cmd: n: unsupported JSON Schema key maxLength'],
     ['pattern', z.string().regex(/^a$/), 'bad cmd: n: unsupported JSON Schema key pattern'],
     ['format', z.email(), 'bad cmd: n: unsupported JSON Schema key format'],
-    ['anyOf の枝の中の minLength', z.union([z.string().min(1), strings]), 'bad cmd: n: unsupported JSON Schema key minLength'],
-    ['items の中の minLength', z.array(z.string().min(1)), 'bad cmd: n: unsupported JSON Schema key minLength'],
+    ['anyOf の枝の中の maxLength', z.union([z.string().max(5), strings]), 'bad cmd: n: unsupported JSON Schema key maxLength'],
+    ['items の中の maxLength', z.array(z.string().max(5)), 'bad cmd: n: unsupported JSON Schema key maxLength'],
   ])('表に無い %s は、コマンドと引数の名前を付けて止める', (_label, schema, message) => {
     expect(() => exportEntries([commandOf({ n: schema })])).toThrow(message)
   })
