@@ -54,4 +54,4 @@ while [ "$(gh api graphql -F n=<PR番号> -f query='query($n:Int!){repository(ow
 
 #### 2.3 片付けとコメント
 
-w-pr の [マージされた後の片付け](../w-pr/references/after-merge.md) に従って、片付けと Epic・後続へのコメントを済ませる。
+[マージされた後の片付け](references/after-merge.md) に従って、片付けと Epic・後続へのコメントを済ませる。

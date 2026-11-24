@@ -342,12 +342,13 @@ describe('マージされた後の片付け', () => {
   const link = 'references/after-merge.md'
   const text = readPluginFile(`skills/w-pr/${link}`)
 
-  it.for([
-    { skill: 'w-pr', href: link },
-    { skill: 'w-merge', href: `../w-pr/${link}` },
-  ])('$skill は、片付けの手順を $href から読ませ、リンク先が在る', ({ skill, href }) => {
-    expect(readSkill(skill)).toContain(`](${href})`)
-    expect(existsSync(path.join(pluginRoot, 'skills', skill, href))).toBe(true)
+  it.for(['w-pr', 'w-merge'])('%s は、片付けの手順を自分の references/after-merge.md から読ませ、リンク先が在る', (skill) => {
+    expect(readSkill(skill)).toContain(`](${link})`)
+    expect(existsSync(path.join(pluginRoot, 'skills', skill, link))).toBe(true)
+  })
+
+  it('w-merge の写しは、w-pr のものと中身が同じ', () => {
+    expect(readPluginFile(`skills/w-merge/${link}`)).toBe(text)
   })
 
   it('session_finish でリモートブランチも消し、Epic に merge-diff、後続に precede-notify を投稿させる', () => {
