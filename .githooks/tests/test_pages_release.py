@@ -18,7 +18,13 @@ if str(_PAGES_SITE) not in sys.path:
 
 import release_build  # noqa: E402
 import release_sources  # noqa: E402
-from release_sources import ReleaseSourcesError, latest_tags, resolve  # noqa: E402
+from release_sources import (  # noqa: E402
+    ReleaseSourcesError,
+    latest_tags,
+    report_dev,
+    report_release,
+    resolve,
+)
 
 A, B, C = "a" * 40, "b" * 40, "c" * 40
 
@@ -264,6 +270,243 @@ def test_cli_fails_when_tag_is_off_main(repo: Path) -> None:
 
     assert result.returncode == 1
     assert f"ERROR: a-v1.0.0（{side}）が main の祖先ではありません" in result.stderr
+
+
+# --- ReportSources（report_release・report_dev） ---
+
+D = "d" * 40
+_REPORT_LANES = ".githooks/scripts/test_report/report-lanes.json"
+
+
+def _rlane(
+    project: str, target: str, plugin: str | None = None, *, results: str | None = None
+) -> dict[str, str]:
+    entry = {"project": project, "target": target}
+    if plugin is not None:
+        entry["plugin"] = plugin
+    entry["results"] = results or f"{project}/test-results/{target}/allure-results"
+    return entry
+
+
+def _excluded(project: str, target: str, plugin: str | None = None) -> dict[str, str]:
+    entry = {"project": project, "target": target, "excluded": "bash の *.test.sh"}
+    if plugin is not None:
+        entry["plugin"] = plugin
+    return entry
+
+
+def _job(entry: dict[str, str], commit: str) -> dict[str, str]:
+    lane = f"{entry['project']}:{entry['target']}"
+    return {
+        "lane": lane,
+        "slug": lane.replace(":", "-"),
+        "results": entry["results"],
+        "commit": commit,
+    }
+
+
+def _report(
+    commits: dict[str, str],
+    ancestors: set[tuple[str, str]],
+    lanes_of: dict[str, object],
+    main_ancestors: set[str] | None = None,
+) -> release_sources.ReportSources:
+    tag_to_commit = {f"{p}-v1.0.0": c for p, c in commits.items()}
+    main_ok = set(commits.values()) if main_ancestors is None else main_ancestors
+
+    def is_ancestor(a: str, b: str) -> bool:
+        if b == "origin/main":
+            return a in main_ok
+        return a == b or (a, b) in ancestors
+
+    return report_release(
+        [*tag_to_commit, "a-v0.9.0"],
+        list(commits),
+        commit_of=lambda tag: tag_to_commit.get(tag, "0" * 40),
+        is_ancestor=is_ancestor,
+        read_lanes=lambda commit: lanes_of.get(commit),
+        main="origin/main",
+    )
+
+
+def test_report_release_takes_each_plugins_lanes_from_its_tag() -> None:
+    # A・C・D は B の祖先で、B が骨組み。C には report-lanes.json が無く、D には入れるレーンが無い。
+    a_cli = _rlane("a", "test-cli", "a", results="plugins/a/old/allure-results")
+    lanes_a = [a_cli, _rlane("b", "test-old", "b"), _rlane("githooks", "test-old")]
+    b_cli, b_hooks = _rlane("b", "test-cli", "b"), _rlane("b", "test-hooks", "b")
+    ci, unit = _rlane("githooks", "test-ci"), _rlane("text-rules", "test-unit")
+    lanes_b = [_rlane("a", "test-cli", "a"), b_cli, b_hooks, ci, _excluded("x", "test-bash"), unit]
+    lanes_d = [_excluded("d", "test-bootstrap", "d"), _rlane("b", "test-d", "b")]
+    sources = _report(
+        {"a": A, "b": B, "c": C, "d": D},
+        {(A, B), (C, B), (D, B)},
+        {A: lanes_a, B: lanes_b, D: lanes_d},
+    )
+
+    assert sources.record() == {
+        "side": "release",
+        "runs": [
+            {"commit": A, "lanes": ["a:test-cli"]},
+            {"commit": B, "lanes": ["b:test-cli", "b:test-hooks"]},
+            {"commit": B, "lanes": ["githooks:test-ci", "text-rules:test-unit"]},
+        ],
+        "missing": ["c", "d"],
+    }
+    # results は、そのレーンを入れたコミットの report-lanes.json の値。
+    assert sources.jobs == [
+        _job(a_cli, A),
+        _job(b_cli, B),
+        _job(b_hooks, B),
+        _job(ci, B),
+        _job(unit, B),
+    ]
+
+
+def test_report_release_without_report_lanes_makes_no_runs() -> None:
+    sources = _report({"a": A, "b": B}, {(A, B)}, {})
+    assert sources.record() == {"side": "release", "runs": [], "missing": ["a", "b"]}
+    assert sources.jobs == []
+
+
+def test_report_release_leaves_out_shared_lanes_when_skeleton_has_no_report_lanes() -> None:
+    # 骨組みの B に report-lanes.json が無いので、A のファイルにある githooks のレーンは入れない。
+    a_cli = _rlane("a", "test-cli", "a")
+    sources = _report({"a": A, "b": B}, {(A, B)}, {A: [a_cli, _rlane("githooks", "test-ci")]})
+    assert sources.record() == {
+        "side": "release",
+        "runs": [{"commit": A, "lanes": ["a:test-cli"]}],
+        "missing": ["b"],
+    }
+    assert sources.jobs == [_job(a_cli, A)]
+
+
+def test_report_release_makes_no_runs_when_only_shared_lanes_remain() -> None:
+    # どのプラグインも結果を出せなければ、骨組みのレーンだけのレポートは作らない。
+    lanes = [_excluded("a", "test-bootstrap", "a"), _rlane("githooks", "test-ci")]
+    sources = _report({"a": A}, set(), {A: lanes})
+    assert sources.record() == {"side": "release", "runs": [], "missing": ["a"]}
+    assert sources.jobs == []
+
+
+def test_report_release_fails_like_release_sources() -> None:
+    with pytest.raises(
+        ReleaseSourcesError, match=f"b-v1.0.0（{B}）が origin/main の祖先ではありません"
+    ):
+        _report({"a": A, "b": B}, {(A, B)}, {}, main_ancestors={A})
+    with pytest.raises(ReleaseSourcesError, match="祖先に持つタグがありません"):
+        _report({"a": A, "b": B, "c": C}, {(A, B), (A, C)}, {})
+
+
+def test_report_release_fails_naming_tag_of_malformed_report_lanes() -> None:
+    with pytest.raises(ReleaseSourcesError, match=f"b-v1.0.0:{_REPORT_LANES}: .*#1"):
+        _report({"a": A, "b": B}, {(A, B)}, {B: [{"project": "b"}]})
+
+
+def test_report_dev_takes_every_report_lane_of_the_commit() -> None:
+    cli, ci = _rlane("p", "test-cli", "p"), _rlane("githooks", "test-ci")
+    sources = report_dev(
+        A,
+        read_lanes=lambda commit: {A: [cli, _excluded("p", "test-bootstrap", "p"), ci]}.get(commit),
+    )
+    assert sources.record() == {
+        "side": "dev",
+        "runs": [{"commit": A, "lanes": ["githooks:test-ci", "p:test-cli"]}],
+        "missing": [],
+    }
+    assert sources.jobs == [_job(ci, A), _job(cli, A)]
+
+
+def test_report_dev_fails_without_report_lanes() -> None:
+    with pytest.raises(ReleaseSourcesError, match=f"{A[:7]} に {_REPORT_LANES} がありません"):
+        report_dev(A, read_lanes=lambda commit: None)
+
+
+def test_report_dev_requires_full_sha() -> None:
+    with pytest.raises(ReleaseSourcesError, match="40 桁の SHA ではありません: HEAD"):
+        report_dev("HEAD", read_lanes=lambda commit: [])
+
+
+def test_cli_report_dev_prints_sources_and_matrix(repo: Path) -> None:
+    cli, ci = _rlane("a", "test-cli", "a"), _rlane("githooks", "test-ci")
+    head = _commit(
+        repo,
+        {
+            "plugins/a/.claude-plugin/plugin.json": "{}",
+            _REPORT_LANES: json.dumps([cli, _excluded("a", "test-bootstrap", "a"), ci]),
+        },
+        "first",
+    )
+
+    result = _run_cli(repo, "--report", "dev", "--commit", head)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("\n") == 1
+    assert json.loads(result.stdout) == {
+        "sources": {
+            "side": "dev",
+            "runs": [{"commit": head, "lanes": ["a:test-cli", "githooks:test-ci"]}],
+            "missing": [],
+        },
+        "matrix": [_job(cli, head), _job(ci, head)],
+    }
+
+
+def test_cli_report_release_resolves_from_git_tags(repo: Path) -> None:
+    manifests = {
+        "plugins/a/.claude-plugin/plugin.json": "{}",
+        "plugins/b/.claude-plugin/plugin.json": "{}",
+    }
+    _commit(repo, manifests, "first")
+    _git(repo, "tag", "a-v1.0.0")
+    b_cli, ci = _rlane("b", "test-cli", "b"), _rlane("githooks", "test-ci")
+    second = _commit(
+        repo, {_REPORT_LANES: json.dumps([_rlane("a", "test-cli", "a"), b_cli, ci])}, "second"
+    )
+    _git(repo, "tag", "-a", "-m", "b", "b-v1.0.0")
+    _git(repo, "tag", "a-v2.0.0-rc.1")
+
+    result = _run_cli(repo, "--report", "release")
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "sources": {
+            "side": "release",
+            "runs": [
+                {"commit": second, "lanes": ["b:test-cli"]},
+                {"commit": second, "lanes": ["githooks:test-ci"]},
+            ],
+            "missing": ["a"],
+        },
+        "matrix": [_job(b_cli, second), _job(ci, second)],
+    }
+
+
+def test_cli_report_release_without_report_lanes_has_empty_matrix(repo: Path) -> None:
+    _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
+    _git(repo, "tag", "a-v1.0.0")
+
+    result = _run_cli(repo, "--report", "release")
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "sources": {"side": "release", "runs": [], "missing": ["a"]},
+        "matrix": [],
+    }
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (["--report", "dev"], "--report dev には --commit が要ります"),
+        (["--report", "release", "--commit", A], "--commit は --report dev だけで使えます"),
+        (["--report", "dev", "--commit", A, "--record", "x.json"], "--report は --record"),
+        (["--commit", A], "--commit は --report dev だけで使えます"),
+    ],
+)
+def test_cli_report_rejects_wrong_arguments(repo: Path, args: list[str], message: str) -> None:
+    result = _run_cli(repo, *args)
+    assert result.returncode == 2
+    assert message in result.stderr
 
 
 # --- release_build ---

@@ -57,6 +57,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 - タグが結果を出せるかは、そのタグのコミットに `report-lanes.json` があるかで決める
 - リリース版の `runs` が空（どのプラグインも結果を出せない）なら、レポートを作らず、run は成功で終える
 - 骨組みのコミットが結果を出せないときは、プラグインに属さないレーンを入れない
+- 結果を出せるプラグインが無いときは、プラグインに属さないレーンも入れず、`runs` を空にする
 - タグのコミットと骨組みの決め方は、028 の ReleaseSources と同じ（最新のタグ・プレリリースを除く・main の祖先）
 
 ## そろいの判定（ResultsCheck）
@@ -102,7 +103,10 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
   - `historyPath` を書かなければ、Allure は履歴を読み書きしない。`resolveConfig` に既定のパスが無い
     - 出典はソース（`@allurereport/core/dist/config.js` の `historyPath: historyPath ? resolve(historyPath) : undefined`）
     - `test_report_generate.py` が、`readConfig` で解いた値で確かめる
-- GitHub Actions では、Allure がレポートの名前の後ろに job の名前を付ける（ソース。`@allurereport/ci` の `jobRunName`）。履歴の行の `name` も同じになる
+- Allure がレポートの名前の後ろに足すのは、PR の run の「– Pull request #N」だけ。履歴の行の `name` も同じになる
+  - 出典はソース（3.33.0 の `@allurereport/core/dist/report.js` の `reportTitleSuffix`）
+  - `pullRequestName ?? jobRunName` で、PR でない run の `pullRequestName` は空文字なので、job の名前は足さない
+  - `test-report.yml` は PR で動かないので、名前は `allurerc.mjs` の「pecot テストレポート」のまま
 
 ## 保管の置き場所（StoreLayout に足すもの）
 

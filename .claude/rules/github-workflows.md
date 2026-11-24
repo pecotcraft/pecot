@@ -30,6 +30,11 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `pages-deploy.yml`: `pages-build.yml` の完了で動き、run の出どころを API で確かめる。保管ブランチ `pages-store` のその側だけを差し替え、GitHub Pages に公開する
   - `pages-store` へは専用の App（秘密鍵は environment `pages-store`）でだけ書く。手での起動は `pages-store` の今の中身を公開し直す
   - PR 版を公開したら、preview-status の job が PR の head に commit status `pages / preview` を付ける
+- `test-report.yml`: レポートのレーンを全部動かし、Allure Report と履歴を artifact `test-report-<side>`（7 日）に上げる
+  - main への push で開発版を作る。手での起動は `side`（`release`・`dev`）を取り、main からだけ動く。release.yml の本番が land の後に `side=release` で起こす
+  - `side` の job が材料と matrix を決める。`tests` がレーンごとに dev container で動かし、結果を `allure-results-<slug>`（1 日）に上げる。`report` がレポートを作る
+  - テストが落ちても run は成功で終わる。落ちるのは、結果を残さずに止まったレーンがあるときと、`allure generate` が失敗したとき
+  - 公開はまだ無い。次のフェーズで pages-deploy が受ける
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる

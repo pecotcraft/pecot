@@ -69,7 +69,7 @@ verifies(context: AnnotatingContext, id: string): Promise<void>
 
 | 出力 | 中身 |
 |---|---|
-| artifact `test-report-<side>` | レポートのツリーと `history.jsonl` の tar、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
+| artifact `test-report-<side>` | レポートのツリーと `history.jsonl` の tar（`report.tar`）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
 
 失敗の条件:
 

@@ -2,11 +2,13 @@
 
 標準出力に tags・commits・skeleton・lanes の JSON を出す。
 --record に release-sources.json、--lanes に junit-lanes.json と同じ形のレーンの一覧を書く。
+--report {dev,release} のときは、テストレポートの材料（ReportSources）と matrix を出す。
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -19,7 +21,22 @@ from typing import cast
 from lanes import matrix
 
 JUNIT_LANES = "libs/interface-spec/docs/junit-lanes.json"
+REPORT_LANES = ".githooks/scripts/test_report/report-lanes.json"
 _SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def _load_report_matrix() -> Callable[[object], list[dict[str, str]]]:
+    # pages_site の lanes.py と名前がぶつかるので、generate.py と同じくパスで読む
+    path = Path(__file__).resolve().parents[1] / "test_report/lanes.py"
+    spec = importlib.util.spec_from_file_location("test_report_lanes", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"{path} を読めません")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return cast("Callable[[object], list[dict[str, str]]]", module.matrix)
+
+
+report_matrix = _load_report_matrix()
 
 
 class ReleaseSourcesError(ValueError):
@@ -38,6 +55,21 @@ class ReleaseSources:
 
     def to_json(self) -> dict[str, object]:
         return {**self.record(), "lanes": self.lanes}
+
+
+@dataclass(frozen=True)
+class ReportSources:
+    side: str
+    runs: list[dict[str, object]]
+    missing: list[str]
+    jobs: list[dict[str, str]]
+
+    def record(self) -> dict[str, object]:
+        """report-sources.json の形。"""
+        return {"side": self.side, "runs": self.runs, "missing": self.missing}
+
+    def to_json(self) -> dict[str, object]:
+        return {"sources": self.record(), "matrix": self.jobs}
 
 
 def _str_map(data: dict[str, object], key: str) -> dict[str, str]:
@@ -105,15 +137,15 @@ def latest_tags(tag_names: Iterable[str], plugins: Iterable[str]) -> dict[str, s
     return result
 
 
-def resolve(
+def resolve_tags(
     tag_names: Iterable[str],
     plugins: Iterable[str],
     *,
     commit_of: Callable[[str], str],
     is_ancestor: Callable[[str, str], bool],
-    read_lanes: Callable[[str], object | None],
     main: str,
-) -> ReleaseSources:
+) -> tuple[dict[str, str], dict[str, str], str]:
+    """プラグインごとのタグとそのコミット、骨組みのコミットを決める。"""
     tags = latest_tags(tag_names, plugins)
     commits: dict[str, str] = {}
     for plugin, tag in tags.items():
@@ -134,7 +166,21 @@ def resolve(
         raise ReleaseSourcesError(
             f"ほかのすべてのタグのコミットを祖先に持つタグがありません: {listed}"
         )
+    return tags, commits, skeleton
 
+
+def resolve(
+    tag_names: Iterable[str],
+    plugins: Iterable[str],
+    *,
+    commit_of: Callable[[str], str],
+    is_ancestor: Callable[[str, str], bool],
+    read_lanes: Callable[[str], object | None],
+    main: str,
+) -> ReleaseSources:
+    tags, commits, skeleton = resolve_tags(
+        tag_names, plugins, commit_of=commit_of, is_ancestor=is_ancestor, main=main
+    )
     lanes: list[dict[str, str]] = []
     for plugin, tag in tags.items():
         data = read_lanes(commits[plugin])
@@ -154,6 +200,84 @@ def resolve(
     return ReleaseSources(tags=tags, commits=commits, skeleton=skeleton, lanes=lanes)
 
 
+def _owned_by(plugin: str | None) -> Callable[[dict[str, object]], bool]:
+    """そのプラグインのレーンか。None はプラグインに属さないレーン（libs と .githooks）。"""
+    return lambda entry: entry.get("plugin") == plugin
+
+
+def _report_jobs(
+    data: object, where: str, commit: str, keep: Callable[[dict[str, object]], bool]
+) -> list[dict[str, str]]:
+    """report-lanes.json のうち keep に当たるレーンの matrix に、取り出すコミットを足す。"""
+    try:
+        report_matrix(data)
+        entries = [e for e in cast("list[dict[str, object]]", data) if keep(e)]
+        return [{**job, "commit": commit} for job in report_matrix(entries)]
+    except ValueError as error:
+        raise ReleaseSourcesError(f"{where}: {error}") from error
+
+
+def _report_sources(
+    side: str, groups: list[list[dict[str, str]]], missing: list[str]
+) -> ReportSources:
+    runs: list[dict[str, object]] = [
+        {"commit": jobs[0]["commit"], "lanes": [job["lane"] for job in jobs]} for jobs in groups
+    ]
+    jobs = sorted((job for group in groups for job in group), key=lambda job: job["lane"])
+    seen: dict[str, str] = {}
+    for job in jobs:
+        if job["slug"] in seen:
+            raise ReleaseSourcesError(
+                f"slug {job['slug']} が {seen[job['slug']]} と {job['lane']} で重なります"
+            )
+        seen[job["slug"]] = job["lane"]
+    return ReportSources(side=side, runs=runs, missing=missing, jobs=jobs)
+
+
+def report_release(
+    tag_names: Iterable[str],
+    plugins: Iterable[str],
+    *,
+    commit_of: Callable[[str], str],
+    is_ancestor: Callable[[str, str], bool],
+    read_lanes: Callable[[str], object | None],
+    main: str,
+) -> ReportSources:
+    """リリース版の ReportSources。read_lanes はコミットの report-lanes.json を読み、無ければ None。"""
+    tags, commits, skeleton = resolve_tags(
+        tag_names, plugins, commit_of=commit_of, is_ancestor=is_ancestor, main=main
+    )
+    groups: list[list[dict[str, str]]] = []
+    missing: list[str] = []
+    for plugin, tag in tags.items():
+        data = read_lanes(commits[plugin])
+        where = f"{tag}:{REPORT_LANES}"
+        jobs = [] if data is None else _report_jobs(data, where, commits[plugin], _owned_by(plugin))
+        if jobs:
+            groups.append(jobs)
+        else:
+            missing.append(plugin)
+    # 結果を出せるプラグインが無ければ、プラグインに属さないレーンだけのレポートは作らない。
+    shared = read_lanes(skeleton) if groups else None
+    if shared is not None:
+        where = f"{skeleton[:7]}:{REPORT_LANES}"
+        jobs = _report_jobs(shared, where, skeleton, _owned_by(None))
+        if jobs:
+            groups.append(jobs)
+    return _report_sources("release", groups, missing)
+
+
+def report_dev(commit: str, *, read_lanes: Callable[[str], object | None]) -> ReportSources:
+    """開発版の ReportSources。渡したコミットの、レポートに入れるレーンを全部並べた 1 項目。"""
+    if not _SHA.fullmatch(commit):
+        raise ReleaseSourcesError(f"コミットが 40 桁の SHA ではありません: {commit}")
+    data = read_lanes(commit)
+    if data is None:
+        raise ReleaseSourcesError(f"{commit[:7]} に {REPORT_LANES} がありません")
+    jobs = _report_jobs(data, f"{commit[:7]}:{REPORT_LANES}", commit, lambda e: True)
+    return _report_sources("dev", [jobs] if jobs else [], [])
+
+
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
 
@@ -165,11 +289,14 @@ def _git_out(root: Path, *args: str) -> str:
     return result.stdout
 
 
-def resolve_git(root: Path, main: str) -> ReleaseSources:
+def _plugins(root: Path) -> list[str]:
     plugins = [p.parent.parent.name for p in root.glob("plugins/*/.claude-plugin/plugin.json")]
     if not plugins:
         raise ReleaseSourcesError(f"{root}/plugins/*/.claude-plugin/plugin.json がありません")
+    return plugins
 
+
+def _git_ancestor(root: Path) -> Callable[[str, str], bool]:
     def is_ancestor(a: str, b: str) -> bool:
         result = _git(root, "merge-base", "--is-ancestor", a, b)
         if result.returncode not in (0, 1):
@@ -178,22 +305,52 @@ def resolve_git(root: Path, main: str) -> ReleaseSources:
             )
         return result.returncode == 0
 
-    def read_lanes(commit: str) -> object | None:
-        result = _git(root, "show", f"{commit}:{JUNIT_LANES}")
+    return is_ancestor
+
+
+def _git_reader(root: Path, path: str) -> Callable[[str], object | None]:
+    """コミットの path を JSON で読む。ファイルが無ければ None。"""
+
+    def read(commit: str) -> object | None:
+        result = _git(root, "show", f"{commit}:{path}")
         if result.returncode != 0:
             return None
         try:
             return json.loads(result.stdout)
         except json.JSONDecodeError as error:
             raise ReleaseSourcesError(
-                f"{commit[:7]}:{JUNIT_LANES} を JSON として読めません: {error}"
+                f"{commit[:7]}:{path} を JSON として読めません: {error}"
             ) from error
 
+    return read
+
+
+def _git_commit_of(root: Path) -> Callable[[str], str]:
+    return lambda tag: _git_out(root, "rev-parse", f"{tag}^{{commit}}").strip()
+
+
+def resolve_git(root: Path, main: str) -> ReleaseSources:
+    plugins = _plugins(root)
     return resolve(
         _git_out(root, "tag", "-l").split(),
         plugins,
-        commit_of=lambda tag: _git_out(root, "rev-parse", f"{tag}^{{commit}}").strip(),
-        is_ancestor=is_ancestor,
+        commit_of=_git_commit_of(root),
+        is_ancestor=_git_ancestor(root),
+        read_lanes=_git_reader(root, JUNIT_LANES),
+        main=main,
+    )
+
+
+def resolve_report_git(root: Path, side: str, *, main: str, commit: str | None) -> ReportSources:
+    read_lanes = _git_reader(root, REPORT_LANES)
+    if side == "dev":
+        return report_dev(commit or "", read_lanes=read_lanes)
+    plugins = _plugins(root)
+    return report_release(
+        _git_out(root, "tag", "-l").split(),
+        plugins,
+        commit_of=_git_commit_of(root),
+        is_ancestor=_git_ancestor(root),
         read_lanes=read_lanes,
         main=main,
     )
@@ -210,8 +367,22 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--record", type=Path)
     parser.add_argument("--lanes", type=Path)
+    parser.add_argument(
+        "--report", choices=["dev", "release"], help="テストレポートの材料と matrix を出す"
+    )
+    parser.add_argument("--commit", help="--report dev で、レーンを動かすコミット（40 桁の SHA）")
     args = parser.parse_args(argv[1:])
+    if args.commit is not None and args.report != "dev":
+        parser.error("--commit は --report dev だけで使えます")
+    if args.report == "dev" and args.commit is None:
+        parser.error("--report dev には --commit が要ります")
+    if args.report is not None and (args.record is not None or args.lanes is not None):
+        parser.error("--report は --record・--lanes と一緒に使えません")
     try:
+        if args.report is not None:
+            report = resolve_report_git(args.root, args.report, main=args.main, commit=args.commit)
+            print(json.dumps(report.to_json(), ensure_ascii=False, separators=(",", ":")))
+            return 0
         sources = resolve_git(args.root, args.main)
     except ReleaseSourcesError as error:
         print(f"ERROR: {error}", file=sys.stderr)
