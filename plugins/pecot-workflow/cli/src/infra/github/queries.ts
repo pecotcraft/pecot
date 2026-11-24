@@ -1148,3 +1148,284 @@ export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String
     }
   }
 }`
+
+// Issue の機能を読むクエリ。hasIssueFields が false の版は、Issue fields・Issue type を持たない GHES 向け
+function projectFieldFragment(hasIssueFields: boolean): string {
+  return `fragment ProjectFieldFields on ProjectV2FieldConfiguration {
+  ... on ProjectV2FieldCommon {
+    id
+    name
+    dataType${hasIssueFields ? '\n    isIssueField' : ''}
+  }
+}`
+}
+
+const ISSUE_FIELD_FIELDS = `fragment IssueFieldFields on IssueFields {
+  ... on IssueFieldCommon {
+    name
+    dataType
+  }
+}`
+
+// 値の型それぞれに field を読む。知らない型は __typename と、共通の interface を実装していれば field で見分ける
+const PROJECT_FIELD_VALUE_TYPES: readonly (readonly [string, string])[] = [
+  ['ProjectV2ItemFieldDateValue', 'date'],
+  ['ProjectV2ItemFieldIterationValue', 'title'],
+  ['ProjectV2ItemFieldLabelValue', ''],
+  ['ProjectV2ItemFieldMilestoneValue', ''],
+  ['ProjectV2ItemFieldMultiSelectValue', 'options {\n                  name\n                }'],
+  ['ProjectV2ItemFieldNumberValue', 'number'],
+  ['ProjectV2ItemFieldPullRequestValue', ''],
+  ['ProjectV2ItemFieldRepositoryValue', ''],
+  ['ProjectV2ItemFieldReviewerValue', ''],
+  ['ProjectV2ItemFieldSingleSelectValue', 'name'],
+  ['ProjectV2ItemFieldTextValue', 'text'],
+  ['ProjectV2ItemFieldUserValue', ''],
+  ['ProjectV2ItemIssueFieldValue', ''],
+]
+
+// Issue fields と同じ頃に入った型。Issue fields を持たない GHES の版のクエリには書かない
+const TYPES_WITH_ISSUE_FIELDS: ReadonlySet<string> = new Set(['ProjectV2ItemIssueFieldValue', 'ProjectV2ItemFieldMultiSelectValue'])
+
+function projectFieldValueSelections(hasIssueFields: boolean): string {
+  return PROJECT_FIELD_VALUE_TYPES
+    .filter(([type]) => hasIssueFields || !TYPES_WITH_ISSUE_FIELDS.has(type))
+    .map(([type, value]) => `
+              ... on ${type} {${value === '' ? '' : `\n                ${value}`}
+                field {
+                  ...ProjectFieldFields
+                }
+              }`)
+    .join('')
+}
+
+const ISSUE_FIELD_VALUES = `
+      issueType {
+        name
+      }
+      issueFieldValues(first: 100) {
+        pageInfo {
+          hasNextPage
+        }
+        nodes {
+          __typename
+          ... on IssueFieldValueCommon {
+            field {
+              ...IssueFieldFields
+            }
+          }
+          ... on IssueFieldDateValue {
+            value
+          }
+          ... on IssueFieldMultiSelectValue {
+            options {
+              name
+            }
+          }
+          ... on IssueFieldNumberValue {
+            numberValue: value
+          }
+          ... on IssueFieldSingleSelectValue {
+            name
+          }
+          ... on IssueFieldTextValue {
+            value
+          }
+        }
+      }`
+
+function getIssueAttributesQuery(name: string, hasIssueFields: boolean): string {
+  return `query ${name}($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      assignees(first: 100) {
+        pageInfo {
+          hasNextPage
+        }
+        nodes {
+          login
+        }
+      }
+      milestone {
+        title
+      }
+      labels(first: 100) {
+        pageInfo {
+          hasNextPage
+        }
+        nodes {
+          name
+        }
+      }${hasIssueFields ? ISSUE_FIELD_VALUES : ''}
+      projectItems(first: 100, includeArchived: false) {
+        pageInfo {
+          hasNextPage
+        }
+        nodes {
+          project {
+            id
+          }
+          fieldValues(first: 100) {
+            pageInfo {
+              hasNextPage
+            }
+            nodes {
+              __typename
+              ... on ProjectV2ItemFieldValueCommon {
+                field {
+                  ...ProjectFieldFields
+                }
+              }${projectFieldValueSelections(hasIssueFields)}
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+${projectFieldFragment(hasIssueFields)}${hasIssueFields ? `\n\n${ISSUE_FIELD_FIELDS}` : ''}`
+}
+
+// Issue 1 件の、値の入っている機能（担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールド）
+export const QUERY_GET_ISSUE_ATTRIBUTES = getIssueAttributesQuery('', true)
+
+// 上のクエリから、Issue fields と Issue type を除いたもの
+export const QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS = getIssueAttributesQuery('GetIssueAttributesWithoutIssueFields', false)
+
+const ISSUE_FIELD_DEFINITIONS = `
+    issueTypes(first: 100) {
+      pageInfo {
+        hasNextPage
+      }
+      nodes {
+        name
+      }
+    }
+    issueFields(first: 100) {
+      pageInfo {
+        hasNextPage
+      }
+      nodes {
+        ... on IssueFieldCommon {
+          name
+          dataType
+        }
+        ... on IssueFieldMultiSelect {
+          options {
+            name
+          }
+        }
+        ... on IssueFieldSingleSelect {
+          options {
+            name
+          }
+        }
+      }
+    }`
+
+const MULTI_SELECT_FIELD_OPTIONS = `
+          ... on ProjectV2MultiSelectField {
+            multiSelectOptions {
+              name
+            }
+          }`
+
+function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean): string {
+  return `query ${name}($owner: String!, $repo: String!, $projectId: ID!) {
+  project: node(id: $projectId) {
+    ... on ProjectV2 {
+      fields(first: 100) {
+        pageInfo {
+          hasNextPage
+        }
+        nodes {
+          ...ProjectFieldFields
+          ... on ProjectV2IterationField {
+            configuration {
+              iterations {
+                title
+                startDate
+              }
+              completedIterations {
+                title
+                startDate
+              }
+            }
+          }${hasIssueFields ? MULTI_SELECT_FIELD_OPTIONS : ''}
+          ... on ProjectV2SingleSelectField {
+            options {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+  repository(owner: $owner, name: $repo) {${hasIssueFields ? ISSUE_FIELD_DEFINITIONS : ''}
+    labels(first: 100) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        name
+      }
+    }
+    milestones(first: 100, states: [OPEN]) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        title
+      }
+    }
+  }
+}
+
+${projectFieldFragment(hasIssueFields)}`
+}
+
+// 設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・開いたマイルストーンの定義
+export const QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS = getIssueAttributeDefinitionsQuery('', true)
+
+// 上のクエリから、Issue fields と Issue type を除いたもの
+export const QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS = getIssueAttributeDefinitionsQuery('GetIssueAttributeDefinitionsWithoutIssueFields', false)
+
+// Issue fields の型があるか。持たない GHES では null になる
+export const QUERY_HAS_ISSUE_FIELDS = `query HasIssueFields {
+  __type(name: "IssueFields") {
+    name
+  }
+}`
+
+// リポのラベルの続きのページ
+export const QUERY_GET_REPOSITORY_LABELS_PAGE = `query ($owner: String!, $repo: String!, $after: String!) {
+  repository(owner: $owner, name: $repo) {
+    labels(first: 100, after: $after) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        name
+      }
+    }
+  }
+}`
+
+// リポの開いたマイルストーンの続きのページ
+export const QUERY_GET_REPOSITORY_MILESTONES_PAGE = `query ($owner: String!, $repo: String!, $after: String!) {
+  repository(owner: $owner, name: $repo) {
+    milestones(first: 100, after: $after, states: [OPEN]) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        title
+      }
+    }
+  }
+}`

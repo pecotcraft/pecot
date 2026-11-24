@@ -23,6 +23,7 @@
 
 | コマンド | 説明 |
 | --- | --- |
+| `issue attributes` | List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones |
 | `issue block` | Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one |
 | `issue check` | Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything |
 | `issue comment` | Post a comment on an Issue |

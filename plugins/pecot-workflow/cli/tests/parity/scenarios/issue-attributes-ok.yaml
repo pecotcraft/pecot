@@ -1,0 +1,72 @@
+# アクティブなプロジェクトがあり、ボードのフィールド・Issue fields・Issue type・ラベル・マイルストーンの定義を Markdown で出す。
+id: issue-attributes-ok
+command:
+  path: [issue, attributes]
+  args: []
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: HasIssueFields
+    respond:
+      status: 200
+      body: {"data": {"__type": {"name": "IssueFields"}}}
+  - match:
+      operation: GetIssueAttributeDefinitions
+      variables: {owner: acme, repo: demo, projectId: PVT_1}
+    respond:
+      status: 200
+      body: {"data": {"project": {"fields": {"pageInfo": {"hasNextPage": false}, "nodes": [{"id": "F_title", "name": "Title", "dataType": "TITLE", "isIssueField": false}, {"id": "F_status", "name": "Status", "dataType": "SINGLE_SELECT", "isIssueField": false, "options": [{"name": "Todo"}, {"name": "Done"}]}, {"id": "PVTSSF_workflow", "name": "pecot-workflow-acme", "dataType": "SINGLE_SELECT", "isIssueField": false, "options": [{"name": "Ready"}]}, {"id": "F_area", "name": "Area", "dataType": "SINGLE_SELECT", "isIssueField": false, "options": [{"name": "cli"}, {"name": "docs"}]}, {"id": "F_sprint", "name": "Sprint", "dataType": "ITERATION", "isIssueField": false, "configuration": {"iterations": [{"title": "Sprint 2", "startDate": "2026-11-16"}], "completedIterations": []}}, {"id": "F_tracks", "name": "Tracks", "dataType": "TRACKS", "isIssueField": false}]}}, "repository": {"issueTypes": {"pageInfo": {"hasNextPage": false}, "nodes": [{"name": "Bug"}, {"name": "Task"}]}, "issueFields": {"pageInfo": {"hasNextPage": false}, "nodes": [{"name": "Priority", "dataType": "SINGLE_SELECT", "options": [{"name": "High"}, {"name": "Low"}]}, {"name": "Effort", "dataType": "NUMBER"}]}, "labels": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"name": "bug"}]}, "milestones": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"title": "v1"}]}}}}

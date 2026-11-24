@@ -1,0 +1,27 @@
+{
+  "stdout": "- Title (project, unsupported (TITLE))\n- Status (project, single_select, read-only): Todo, Done\n- pecot-workflow-acme (project, single_select, read-only): Ready\n- Area (project, single_select): cli, docs\n- Sprint (project, iteration): Sprint 2 (2026-11-16)\n- Tracks (project, unsupported (TRACKS))\n- Priority (issue_field, single_select): High, Low\n- Effort (issue_field, number)\n- assignees (issue, users)\n- milestone (issue, milestone): v1\n- type (issue, issue_type): Bug, Task\n- labels (issue, labels): bug\n- parent (issue, issue_ref, read-only)\n- blocked_by (issue, issue_refs, read-only)\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "HasIssueFields",
+      "variables": {},
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueAttributeDefinitions",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "projectId": "PVT_1"
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"PVTSSF_workflow\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": [\n    {\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"main\"\n    }\n  ]\n}\n"
+  }
+}

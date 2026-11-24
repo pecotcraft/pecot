@@ -101,6 +101,7 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る） |
 | `issue_check` | `issue_create` に渡すファイルを確かめ、作らずに番号・前提・進め方の表を出す |
 | `issue_show` | Issue の詳細を必要な項目だけ取得する |
+| `issue_attributes` | Issue に付けられる機能（ボードのフィールド・Issue fields・担当者など）の名前・種類・取りうる値を一覧にする |
 | `issue_comment` | Issue にコメントを投稿する |
 | `issue_block` | Issue に前提（blocked by）を付ける。付いている前提の種類と理由を変えるのにも使う |
 | `issue_unblock` | Issue から前提（blocked by）を外す |

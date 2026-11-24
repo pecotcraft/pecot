@@ -83,6 +83,11 @@
           "read_only": true
         },
         {
+          "word": "attributes",
+          "meaning": "付けられる機能の定義を出す",
+          "read_only": true
+        },
+        {
           "word": "create",
           "meaning": "GitHub のものを作る"
         },
@@ -1039,6 +1044,203 @@
                 "branch",
                 "repository",
                 "deleted"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-ATTRIBUTES",
+      "name": "issue attributes",
+      "description": "List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "attributes"
+          ]
+        },
+        "mcp": {
+          "tool": "issue_attributes"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Output as JSON"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "json": [
+            "--json",
+            "-j"
+          ],
+          "project": [
+            "--project"
+          ]
+        }
+      },
+      "mcp": {
+        "title": "List Issue attributes",
+        "output": {
+          "type": "object",
+          "properties": {
+            "attributes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ],
+                    "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "single_select",
+                      "multi_select",
+                      "text",
+                      "number",
+                      "date",
+                      "iteration",
+                      "users",
+                      "milestone",
+                      "issue_type",
+                      "labels",
+                      "issue_ref",
+                      "issue_refs",
+                      "unsupported"
+                    ],
+                    "description": "Kind of the value"
+                  },
+                  "options": {
+                    "description": "Values to choose from (only for the kinds with choices; assignees are not listed)",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Name of the value to choose"
+                        },
+                        "start_date": {
+                          "description": "Start date of the iteration (YYYY-MM-DD; only for iteration)",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "writable": {
+                    "type": "boolean",
+                    "description": "Whether the attribute takes a value set by a person or a tool (false for computed fields, the board columns moved by board_move, parent and blocked_by)"
+                  },
+                  "unsupported_reason": {
+                    "description": "GitHub type that pecot does not handle (only when kind is unsupported)",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "source",
+                  "kind",
+                  "writable"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Attributes that an Issue of the repository can have"
+            },
+            "unsupported": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the attribute"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "project",
+                      "issue_field",
+                      "issue"
+                    ],
+                    "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
+                  },
+                  "github_type": {
+                    "type": "string",
+                    "description": "GitHub type that pecot does not handle"
+                  }
+                },
+                "required": [
+                  "name",
+                  "source",
+                  "github_type"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Attributes whose kind pecot does not handle"
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "attributes",
+                "unsupported"
               ]
             },
             {
@@ -2304,6 +2506,117 @@
               ],
               "description": "Readiness judgment (null when it could not be judged)"
             },
+            "attributes": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the attribute"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "project",
+                          "issue_field",
+                          "issue"
+                        ],
+                        "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "single_select",
+                          "multi_select",
+                          "text",
+                          "number",
+                          "date",
+                          "iteration",
+                          "users",
+                          "milestone",
+                          "issue_type",
+                          "labels",
+                          "issue_ref",
+                          "issue_refs",
+                          "unsupported"
+                        ],
+                        "description": "Kind of the value"
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ],
+                        "description": "Value: a name for select, iteration, milestone and issue_type; a list for multi_select, users, labels and issue_refs; a number for number; YYYY-MM-DD for date; owner/repo/N for issue_ref"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "source",
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Attributes that have a value: fields of the configured board, Issue fields, and built-in ones (null when they could not be read)"
+            },
+            "unsupported": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the attribute"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "project",
+                          "issue_field",
+                          "issue"
+                        ],
+                        "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
+                      },
+                      "github_type": {
+                        "type": "string",
+                        "description": "GitHub type that pecot does not handle"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "source",
+                      "github_type"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Attributes that have a value of a kind pecot does not handle (null when they could not be read)"
+            },
             "kind": {
               "type": "string",
               "description": "Failure kind (failure only)"
@@ -2340,7 +2653,9 @@
                 "owner",
                 "repo",
                 "blockedBy",
-                "readiness"
+                "readiness",
+                "attributes",
+                "unsupported"
               ]
             },
             {

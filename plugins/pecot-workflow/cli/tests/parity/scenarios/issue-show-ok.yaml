@@ -1,4 +1,4 @@
-# アクティブなプロジェクトがあり、GraphQL が Issue を返す。GetIssueSlim を 1 回受ける。
+# アクティブなプロジェクトがあり、GraphQL が Issue と機能の値を返す。GetIssueSlim を 1 回受ける。
 id: issue-show-ok
 command:
   path: [issue, show]
@@ -95,3 +95,14 @@ github:
     respond:
       status: 200
       body: {"data": {"repository": {"issue": {"id": "I_7", "number": 7, "state": "OPEN", "title": "課題7", "repository": {"owner": {"login": "acme"}, "name": "demo"}, "issueType": {"name": "Task"}, "subIssues": {"totalCount": 0}, "projectItems": {"totalCount": 0, "nodes": []}, "linkedBranches": {"totalCount": 0, "nodes": []}, "closedByPullRequestsReferences": {"totalCount": 0, "nodes": []}, "timelineItems": {"totalCount": 0, "nodes": []}, "body": "本文", "parent": null, "blockedBy": {"totalCount": 0, "nodes": []}}}}}
+  - match:
+      operation: HasIssueFields
+    respond:
+      status: 200
+      body: {"data": {"__type": {"name": "IssueFields"}}}
+  - match:
+      operation: GetIssueAttributes
+      variables: {owner: acme, repo: demo, number: 7}
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"assignees": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"login": "octocat"}]}, "milestone": {"title": "v1"}, "labels": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"name": "bug"}]}, "issueType": {"name": "Task"}, "issueFieldValues": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"__typename": "IssueFieldSingleSelectValue", "field": {"name": "Priority", "dataType": "SINGLE_SELECT"}, "name": "High"}]}, "projectItems": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"project": {"id": "PVT_1"}, "fieldValues": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [{"__typename": "ProjectV2ItemFieldSingleSelectValue", "field": {"id": "F_area", "name": "Area", "dataType": "SINGLE_SELECT", "isIssueField": false}, "name": "cli"}]}}]}}}}}

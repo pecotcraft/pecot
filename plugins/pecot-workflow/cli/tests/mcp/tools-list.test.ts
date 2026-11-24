@@ -64,10 +64,10 @@ afterEach(async () => {
 })
 
 describe('tools/list', () => {
-  it('COMMANDS と同じ 40 個の名前を、同じ並びで返す', async () => {
+  it('COMMANDS と同じ 41 個の名前を、同じ並びで返す', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools).toHaveLength(40)
+    expect(tools).toHaveLength(41)
     expect(tools.map(tool => tool.name)).toEqual(COMMANDS.map(command => command.toolName))
   })
 

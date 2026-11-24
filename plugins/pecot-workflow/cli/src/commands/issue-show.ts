@@ -1,6 +1,8 @@
 // issue show。cli/commands/issue.py の issue_read の移植。
 import { z } from 'zod'
 
+import { formatAttributeValue, relationReadings } from '../domain/attributes.js'
+import type { AttributeReading, IssueLocation, UnsupportedAttribute } from '../domain/attributes.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { describePrerequisiteState, describeReadiness, describeUnknown, displayReference, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
@@ -8,6 +10,7 @@ import type { IssueFacts, Readiness } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, repositoryFullName } from '../domain/repository-resolver.js'
+import { readAttributeValues } from '../infra/github/attributes.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { IssueSlim } from '../infra/github/issues.js'
@@ -15,6 +18,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
+import { ATTRIBUTE_READING_JSON, UNSUPPORTED_ATTRIBUTE_JSON } from './issue-attributes.js'
 import { createAuthenticatedGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, READINESS_JSON, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
@@ -36,7 +40,7 @@ function parentLine(issue: IssueSlim, owner: string, repository: string): string
 /**
 Issue の情報を Markdown にする。owner・repo は、親が別のリポジトリかを調べる元
 */
-function formatIssueMarkdown(issue: IssueSlim, owner: string, repository: string, readinessLines: readonly string[]): string {
+function formatIssueMarkdown(issue: IssueSlim, owner: string, repository: string, readinessLines: readonly string[], attributeLines: readonly string[]): string {
   const lines = [`## #${String(issue.number)} ${issue.title}`, '']
 
   const meta = [`**State:** ${issue.state}`]
@@ -46,6 +50,7 @@ function formatIssueMarkdown(issue: IssueSlim, owner: string, repository: string
   const parent = parentLine(issue, owner, repository)
   const header = [...parent === undefined ? [] : [parent], ...readinessLines]
   if (header.length > 0) lines.push(...header, '')
+  if (attributeLines.length > 0) lines.push('**Attributes:**', ...attributeLines, '')
 
   if (issue.linked_branches.length > 0) {
     lines.push('**Branches:**', ...issue.linked_branches.map(branch => `  - \`${branch}\``), '')
@@ -122,6 +127,8 @@ const ISSUE_SHOW_OUTPUT = z.strictObject({
   repo: z.string().describe('Name of the Issue repository'),
   blockedBy: z.array(PREREQUISITE_JSON).nullable().describe('Prerequisites (blocked by) of the Issue (null when they could not be read)'),
   readiness: READINESS_JSON.nullable().describe('Readiness judgment (null when it could not be judged)'),
+  attributes: z.array(ATTRIBUTE_READING_JSON).nullable().describe('Attributes that have a value: fields of the configured board, Issue fields, and built-in ones (null when they could not be read)'),
+  unsupported: z.array(UNSUPPORTED_ATTRIBUTE_JSON).nullable().describe('Attributes that have a value of a kind pecot does not handle (null when they could not be read)'),
 })
 
 type IssueShowJson = z.input<typeof ISSUE_SHOW_OUTPUT>
@@ -170,7 +177,7 @@ function readinessView(source: Readonly<PrerequisiteSource>, readiness: Readines
 --json の標準出力と MCP の data の中身。キーを並べた順が --json の出力の順になる
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の入れ子の型
-function issueShowJson(issue: Readonly<IssueSlim>, owner: string, repository: string, view: Readonly<ReadinessView>): IssueShowJson {
+function issueShowJson(issue: Readonly<IssueSlim>, owner: string, repository: string, view: Readonly<ReadinessView>, attributes: Readonly<AttributesView>): IssueShowJson {
   return {
     number: issue.number,
     state: issue.state,
@@ -185,7 +192,47 @@ function issueShowJson(issue: Readonly<IssueSlim>, owner: string, repository: st
     repo: repository,
     blockedBy: view.blockedBy === JSON_NULL ? JSON_NULL : [...view.blockedBy],
     readiness: view.readiness,
+    attributes: attributes.readings === JSON_NULL ? JSON_NULL : attributes.readings.map(({ name, source, kind, value }) => ({ name, source, kind, value: typeof value === 'object' ? [...value] : value })),
+    unsupported: attributes.unsupported === JSON_NULL ? JSON_NULL : attributes.unsupported.map(({ name, source, githubType }) => ({ name, source, github_type: githubType })),
   }
+}
+
+interface AttributesView {
+  readonly readings: readonly AttributeReading[] | typeof JSON_NULL
+  readonly unsupported: readonly UnsupportedAttribute[] | typeof JSON_NULL
+}
+
+function attributeLines(attributes: Readonly<AttributesView>): readonly string[] {
+  const readings = attributes.readings === JSON_NULL ? [] : attributes.readings.map(reading => `  - ${reading.name}: ${formatAttributeValue(reading.value)}`)
+  const unsupported = attributes.unsupported === JSON_NULL ? [] : attributes.unsupported.map(item => `  - ${item.name}: unsupported (${item.githubType})`)
+  return [...readings, ...unsupported]
+}
+
+// 前提の JSON の repository は owner/repo
+function prerequisiteLocations(blockedBy: ReadinessView['blockedBy']): readonly IssueLocation[] | undefined {
+  if (blockedBy === JSON_NULL) return undefined
+  return blockedBy.map((prerequisite) => {
+    const [owner = '', repository = ''] = prerequisite.repository.split('/', 2)
+    return { owner, repository, number: prerequisite.number }
+  })
+}
+
+// 値を読めなくても、今までの出力は止めない。parent・blocked_by は、読んである親と前提から作る
+async function readAttributes(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueSlim>, location: Readonly<IssueLocation>, blockedBy: readonly Readonly<IssueLocation>[] | undefined): Promise<AttributesView> {
+  const { owner, repository, number } = location
+  let values
+  try {
+    values = await readAttributeValues(client, { owner, repository, number, projectId: config.project.id })
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    out.warning(`could not read the attributes of ${issuePath(owner, repository, number)}: ${error.message}`)
+    return { readings: JSON_NULL, unsupported: JSON_NULL }
+  }
+  for (const warning of values.warnings) out.warning(warning)
+  const { parent } = issue
+  const parentLocation = parent === null ? undefined : { owner: parent.owner ?? owner, repository: parent.repo ?? repository, number: parent.number }
+  return { readings: [...values.readings, ...relationReadings(parentLocation, blockedBy)], unsupported: values.unsupported }
 }
 
 function judgedView(judged: Readonly<JudgedIssue>): ReadinessView {
@@ -270,9 +317,10 @@ const ISSUE_SHOW = defineCommand({
       }
 
       const view = await readView(output, client, config, issue, createIssueReference(createRepositoryReference(owner, repository), number))
-      const json = issueShowJson(issue, owner, repository, view)
+      const attributes = await readAttributes(output, client, config, issue, { owner, repository, number }, prerequisiteLocations(view.blockedBy))
+      const json = issueShowJson(issue, owner, repository, view, attributes)
       output.result(json)
-      output.data(input.json ? JSON.stringify(json, undefined, 2) : formatIssueMarkdown(issue, owner, repository, view.lines))
+      output.data(input.json ? JSON.stringify(json, undefined, 2) : formatIssueMarkdown(issue, owner, repository, view.lines, attributeLines(attributes)))
     })
   },
 })
