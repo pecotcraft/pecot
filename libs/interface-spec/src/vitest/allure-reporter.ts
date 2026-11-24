@@ -6,9 +6,15 @@ import type { AllureVitestReporterConfig } from 'allure-vitest/reporter'
 
 const LOCAL_SITE_URL = 'http://localhost:8000/'
 
-export function allureReporterConfig(projectRoot: string, environment: NodeJS.ProcessEnv = process.env): AllureVitestReporterConfig | undefined {
+// reporter を足すかどうか。verifies も同じ条件で Allure の runtime を呼ぶ。
+export function isAllureEnabled(environment: Readonly<NodeJS.ProcessEnv>): boolean {
   const target = environment['NX_TASK_TARGET_TARGET']
-  if (target === undefined || target === '') return undefined
+  return target !== undefined && target !== ''
+}
+
+export function allureReporterConfig(projectRoot: string, environment: NodeJS.ProcessEnv = process.env): AllureVitestReporterConfig | undefined {
+  if (!isAllureEnabled(environment)) return undefined
+  const target = environment['NX_TASK_TARGET_TARGET'] ?? ''
   const site = environment['PECOT_REPORT_SITE_URL']
   const siteUrl = site === undefined || site === '' ? LOCAL_SITE_URL : (site.endsWith('/') ? site : `${site}/`)
   return {

@@ -132,6 +132,9 @@
         "{workspaceRoot}/plugins/*/interface/generated.json",
         "{workspaceRoot}/plugins/*/interface/authored.yaml",
         "{workspaceRoot}/.github/assets/**/*",
+        "{workspaceRoot}/.githooks/scripts/test_report/generate.py",
+        "{workspaceRoot}/.githooks/scripts/test_report/lanes.py",
+        "{workspaceRoot}/.githooks/scripts/test_report/allurerc.mjs",
         "runtime",
         "env"
       ],
@@ -140,7 +143,7 @@
         "install"
       ],
       "metadata": {
-        "description": "定義書のサイトをビルドし、Chromium で全ページを開いて見た目の崩れ（目次の無いページの右の空欄・見出しの ¶・幅 390px のはみ出し）を測る。Chromium は pecot-visual と同じ playwright の版のものを使う。"
+        "description": "定義書のサイトをビルドし、Chromium で全ページを開いて見た目の崩れ（目次の無いページの右の空欄・見出しの ¶・幅 390px のはみ出し）を測る。Chromium は pecot-visual と同じ playwright の版のものを使う。 report-links.test.ts は、一時の結果から test_report/generate.py でテストレポートを作る。 そのレポートを URL の tags で開き、その ID のテストだけが出ることを確かめる。"
       },
       "options": {
         "command": "rm -rf test-results/test-site/allure-results && pnpm exec vitest run --config vitest.site.config.ts",

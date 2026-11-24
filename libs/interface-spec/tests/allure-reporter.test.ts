@@ -1,10 +1,20 @@
 import path from 'node:path'
 import AllureVitestReporter from 'allure-vitest/reporter'
 import { describe, expect, it } from 'vitest'
-import { allureReporter, allureReporterConfig } from '../src/vitest/allure-reporter.js'
+import { allureReporter, allureReporterConfig, isAllureEnabled } from '../src/vitest/allure-reporter.js'
 
 const ROOT = path.join(path.sep, 'repo', 'plugins', 'pecot-tools')
 const NX_ENV = { NX_TASK_TARGET_PROJECT: 'pecot-tools', NX_TASK_TARGET_TARGET: 'test-cli' }
+
+describe('isAllureEnabled', () => {
+  it.for([
+    { name: 'NX_TASK_TARGET_TARGET が無い', environment: { NX_TASK_TARGET_PROJECT: 'pecot-tools' }, expected: false },
+    { name: 'NX_TASK_TARGET_TARGET が空文字', environment: { ...NX_ENV, NX_TASK_TARGET_TARGET: '' }, expected: false },
+    { name: 'NX_TASK_TARGET_TARGET がある', environment: NX_ENV, expected: true },
+  ])('$name とき、$expected を返す', ({ environment, expected }) => {
+    expect(isAllureEnabled(environment)).toBe(expected)
+  })
+})
 
 describe('allureReporterConfig', () => {
   it('NX_TASK_TARGET_TARGET が無いと、設定を返さない', () => {

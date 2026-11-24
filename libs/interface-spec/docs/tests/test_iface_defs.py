@@ -531,6 +531,19 @@ def test_pages_are_written_and_stale_ones_removed(
     )
 
 
+def test_permalink_reaches_each_item_on_its_page(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    assert built.code == 0
+    # permalink.html は needs.json を読み、項目の docname の HTML へ移る。
+    assert "loadJSON('needs.json'" in built.html("permalink.html")
+    item = "SM-ONE-02"
+    docname = built.needs[item]["docname"]
+    assert docname != "index"
+    assert f'id="{item}"' in built.html(f"{docname}.html")
+
+
 PAGE_ONLY = """\
 Page
 ====

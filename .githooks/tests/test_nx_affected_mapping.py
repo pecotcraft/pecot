@@ -338,6 +338,21 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 "text-rules:test-unit",
             },
         ),
+        # verifies の本体。3 つのプラグインの _helpers/verifies.ts が re-export し、cli のテストだけが読む (#695)。
+        (
+            "libs/interface-spec/src/vitest/verifies.ts",
+            {
+                "interface-spec:test-unit",
+                "pecot-tools:test-cli",
+                "pecot-visual:test-cli",
+                "pecot-workflow:test-cli",
+            },
+        ),
+        # テストレポートを作るスクリプト。test-site は、このスクリプトが作るレポートを tag で絞り込めるかを確かめる (#695)。
+        (
+            ".githooks/scripts/test_report/generate.py",
+            {"githooks:test-ci", "interface-spec:test-site"},
+        ),
     ],
 )
 def test_out_of_lane_input_reruns_only_consumer_lane(

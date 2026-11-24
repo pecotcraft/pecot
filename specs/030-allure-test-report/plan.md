@@ -92,7 +92,7 @@ libs/interface-spec/
 ├── tests/site/layout.test.ts         # 変更: 測ったページの画像を添付する
 ├── tests/site/report-links.test.ts   # 新規: レポートを ?tags=<ID> で開き、絞り込みを確かめる
 ├── docs/
-│   ├── conf.py                       # 変更: sphinx_test_reports・tr_*・PECOT_SITE_RESULTS などを消す。permalink を有効にする
+│   ├── conf.py                       # 変更: sphinx_test_reports・tr_*・PECOT_SITE_RESULTS などを消す（permalink は sphinx-needs 9.2.0 の既定のまま出る）
 │   ├── _ext/iface_defs.py            # 変更: JUnit と合否の部分を消す。項目にレポートへのリンクを出す
 │   ├── _ext/site_stamp.py            # 変更: レポートの URL と、入っていないプラグインの一覧
 │   ├── _templates/footer.html        # 変更: テストレポートへのリンク
