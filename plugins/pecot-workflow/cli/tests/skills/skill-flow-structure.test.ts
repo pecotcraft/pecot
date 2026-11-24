@@ -251,6 +251,20 @@ describe('w-pr の手順', () => {
     expect(titleIndex(headings, 'CI を待って直す')).toBeLessThan(titleIndex(headings, 'レビューの指摘に対応'))
   })
 
+  it('Step 5 は、採否を利用者に聞かず、main が決めて対応してから報告する', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).not.toContain('AskUserQuestion')
+    expect(body).toContain('#### 採否を決める')
+    expect(body).toContain('採否を利用者に聞かない。main が F-NN ごとに「対応」か「対応不要」かを決め、対応を終えてから報告する。')
+    expect(body).toContain('既定は「対応」にする')
+    expect(body).toContain('採否は main が決め、途中で利用者に確かめない。')
+  })
+
+  it('Step 5 は、対応不要にできる場合を絞り、理由に根拠を添えてスレッドに返信させる', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    for (const word of ['指摘が事実と違う', '承認された計画や Issue の決めた仕様・挙動と食い違う', 'その理由に同意する', '確かめた根拠', '保留や別 Issue への先送りにしない', '対応不要の F-NN のスレッドに、理由を返信する']) expect(body).toContain(word)
+  })
+
   it('Step 5 は、main が直すことを基本にし、委譲する条件を subagent-usage.md から読ませる', () => {
     const body = sectionBody(text, numberIndex(headings, 5))
     expect(body).toContain('main が直すことを基本にする')
