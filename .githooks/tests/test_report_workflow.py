@@ -349,7 +349,7 @@ def test_report_installs_node_on_the_runner_like_version_plan() -> None:
         }, name
     assert names[4:] == [
         "Download results",
-        "Fetch published history",
+        "Read stored history",
         "Generate report",
         "Pack report",
         "Upload report",
@@ -386,49 +386,100 @@ def test_report_uploads_report_for_seven_days() -> None:
     }
 
 
-@pytest.mark.parametrize(
-    ("status", "body", "kept", "warned"),
-    [
-        ("200", '{"a":1}\n', '{"a":1}\n', False),
-        ("404", "Not Found", "", False),
-        ("500", "oops", "", True),
-        ("000", "", "", True),
-    ],
-    ids=["found", "first-time", "server-error", "network-error"],
-)
-def test_fetch_history_treats_404_as_first_time(
-    tmp_path: Path, status: str, body: str, kept: str, warned: bool
-) -> None:
-    bin_dir, summary, temp = tmp_path / "bin", tmp_path / "summary", tmp_path / "runner-temp"
-    temp.mkdir()
-    calls = tmp_path / "calls"
-    # 引数から --output のパスを拾い、本文を書いて --write-out の値を返す。
-    _fake(
-        bin_dir,
-        "curl",
-        f'echo "$*" >> {calls}\n'
-        'while [ $# -gt 0 ]; do [ "$1" = --output ] && out=$2; shift; done\n'
-        f"printf '%s' '{body}' > \"$out\"\nprintf '%s' '{status}'\n"
-        f'[ "{status}" != 000 ]',
+def _store_repo(tmp_path: Path, files: dict[str, str] | None) -> Path:
+    """files を持つコミットを origin/pages-store に置いたリポ。None なら pages-store を置かない。"""
+    repo, _ = _stage_repo(tmp_path)
+    if files is None:
+        return repo
+    git = ["git", "-C", str(repo)]
+    branch = subprocess.run(
+        [*git, "symbolic-ref", "--short", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    subprocess.run([*git, "checkout", "-q", "--orphan", "store"], check=True)
+    subprocess.run([*git, "rm", "-rqf", "."], check=True)
+    for name, text in files.items():
+        (repo / name).parent.mkdir(parents=True, exist_ok=True)
+        (repo / name).write_text(text, encoding="utf-8")
+    subprocess.run([*git, "add", "-A"], check=True)
+    subprocess.run(
+        [*git, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"]
+        + ["commit", "-q", "--allow-empty", "-m", "store"],
+        check=True,
     )
-    step = _step("report", "Fetch published history")
+    subprocess.run([*git, "update-ref", "refs/remotes/origin/pages-store", "HEAD"], check=True)
+    subprocess.run([*git, "checkout", "-q", "-f", branch], check=True)
+    return repo
+
+
+_STORED = {"test-report/history.jsonl": '{"r":1}\n', "dev/test-report/history.jsonl": '{"d":1}\n'}
+
+
+@pytest.mark.parametrize(
+    ("side", "files", "kept", "warned"),
+    [
+        ("dev", _STORED, '{"d":1}\n', False),
+        ("release", _STORED, '{"r":1}\n', False),
+        ("dev", {"index.html": "x"}, "", False),
+        ("dev", None, "", True),
+    ],
+    ids=["dev", "release", "first-time", "no-store"],
+)
+def test_read_history_from_pages_store_of_the_side(
+    tmp_path: Path, side: str, files: dict[str, str] | None, kept: str, warned: bool
+) -> None:
+    repo = _store_repo(tmp_path, files)
+    summary, temp = tmp_path / "summary", tmp_path / "runner-temp"
+    temp.mkdir()
+    step = _step("report", "Read stored history")
     env = {
         **step["env"],
         "RUNNER_TEMP": str(temp),
-        "SITE_URL": _DEV_URL,
+        "SIDE": side,
         "GITHUB_STEP_SUMMARY": str(summary),
     }
 
-    result = _bash(step["run"], tmp_path, env, bin_dir)
+    result = _bash(step["run"], repo, env)
 
     assert result.returncode == 0, result.stderr
-    assert f"{_DEV_URL}test-report/history.jsonl" in calls.read_text(encoding="utf-8")
-    history = temp / "test-report/history.jsonl"
-    assert history.read_text(encoding="utf-8") == kept
+    assert (temp / "test-report/history.jsonl").read_text(encoding="utf-8") == kept
     text = summary.read_text(encoding="utf-8") if summary.exists() else ""
-    assert (step["env"]["MSG_HISTORY_FAILED"] in text) == warned
-    if warned:
-        assert status in text
+    assert (step["env"]["MSG_NO_STORE"] in text) == warned
+
+
+def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path) -> None:
+    repo = _store_repo(tmp_path, _STORED)
+    temp, bin_dir, seen = tmp_path / "runner-temp", tmp_path / "bin", tmp_path / "seen-sources"
+    temp.mkdir()
+    # generate.py の代わり: --output に index.html を書き、--history に 1 行足し、--sources を写す。
+    _fake(
+        bin_dir,
+        "python3",
+        "while [ $# -gt 0 ]; do case $1 in --output) out=$2;; --history) hist=$2;; --sources) src=$2;; esac; shift; done\n"
+        'mkdir -p "$out" && echo "<html></html>" > "$out/index.html"\n'
+        'echo \'{"new":1}\' >> "$hist"\n'
+        f'cp "$src" {seen}',
+    )
+    sources = '{"side":"dev","runs":[],"missing":[]}'
+    env = {
+        "RUNNER_TEMP": str(temp),
+        "SIDE": "dev",
+        "SOURCES": sources,
+        "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
+    }
+
+    for name in ("Read stored history", "Generate report", "Pack report"):
+        step = _step("report", name)
+        result = _bash(step["run"], repo, {**step.get("env", {}), **env}, bin_dir)
+        assert result.returncode == 0, f"{name}: {result.stderr}"
+
+    out = temp / "test-report-artifact"
+    assert (out / "report-sources.json").read_text(encoding="utf-8") == sources
+    assert seen.read_text(encoding="utf-8") == sources
+    extract = tmp_path / "extract"
+    extract.mkdir()
+    subprocess.run(["tar", "-xf", str(out / "report.tar"), "-C", str(extract)], check=True)
+    assert (extract / "index.html").is_file()
+    assert (extract / "history.jsonl").read_text(encoding="utf-8") == '{"d":1}\n{"new":1}\n'
 
 
 def test_pack_report_puts_history_into_the_tree(tmp_path: Path) -> None:

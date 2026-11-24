@@ -63,7 +63,7 @@ verifies(context: AnnotatingContext, id: string): Promise<void>
 |---|---|
 | side | 側と ReportSources（data-model.md）を決める。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える |
 | tests | ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
-| report | 全レーンの artifact を取り、ResultsCheck で確かめる。公開中の履歴を取る。`generate.py` でレポートを作り、レポートと履歴と `report-sources.json` を artifact `test-report-<side>` に上げる |
+| report | 全レーンの artifact を取り、ResultsCheck で確かめる。保管ブランチ `pages-store` から、その側の履歴を取る。`generate.py` でレポートを作り、レポートと履歴と `report-sources.json` を artifact `test-report-<side>` に上げる |
 
 出力:
 

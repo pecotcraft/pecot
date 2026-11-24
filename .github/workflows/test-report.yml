@@ -203,8 +203,9 @@ jobs:
     timeout-minutes: 30
     env:
       SOURCES: ${{ needs.side.outputs.sources }}
-      SITE_URL: ${{ needs.side.outputs.site_url }}
+      SIDE: ${{ needs.side.outputs.side }}
     steps:
+      # 履歴を origin/pages-store から読むので、全部のブランチを取る。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -232,24 +233,24 @@ jobs:
           merge-multiple: true
           path: ${{ github.workspace }}
 
-      # 404 は初めてとして空にする。読めない中身は generate.py が知らせて空にする。
-      - name: Fetch published history
+      # Pages の CDN は前の中身を返すことがあるので、公開元の pages-store から読む。ファイルが無ければ初めてとして空にする。
+      - name: Read stored history
         env:
-          MSG_HISTORY_FAILED: "公開中の履歴を取れなかったので、空の履歴でレポートを作ります。HTTP の状態:"
+          MSG_NO_STORE: "保管ブランチ pages-store を読めなかったので、空の履歴でレポートを作ります。"
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/test-report"
           mkdir -p "$work"
           history="$work/history.jsonl"
-          code=$(curl --silent --show-error --retry 2 --output "$history" --write-out '%{http_code}' "${SITE_URL}test-report/history.jsonl") || true
-          case "$code" in
-            200) ;;
-            404) : > "$history" ;;
-            *)
-              : > "$history"
-              printf '\n> [!WARNING]\n> %s %s\n' "$MSG_HISTORY_FAILED" "$code" >> "$GITHUB_STEP_SUMMARY"
-              ;;
-          esac
+          prefix=""
+          [ "$SIDE" != "dev" ] || prefix="dev/"
+          stored="origin/pages-store:${prefix}test-report/history.jsonl"
+          : > "$history"
+          if ! git rev-parse --verify --quiet origin/pages-store > /dev/null; then
+            printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
+          elif git cat-file -e "$stored" 2> /dev/null; then
+            git show "$stored" > "$history"
+          fi
 
       - name: Generate report
         run: |

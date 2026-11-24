@@ -83,7 +83,7 @@
 
 ## R5. 履歴
 
-- **Decision**: 履歴は、側ごとの 1 つのファイル `<側>/test-report/history.jsonl` として、保管ブランチ `pages-store` に置く。レポートを作る run が、公開中のファイルを読んで `historyPath` に渡し、足された後のファイルを、レポートと一緒に artifact で渡す
+- **Decision**: 履歴は、側ごとの 1 つのファイル `<側>/test-report/history.jsonl` として、保管ブランチ `pages-store` に置く。レポートを作る run が、保管ブランチのファイルを git で読んで `historyPath` に渡し、足された後のファイルを、レポートと一緒に artifact で渡す
   - `historyLimit` は 20 にする
   - `historyBaseUrl` は設定しない
   - 不安定なテストの判定は、`flakyDetection: { includePassedTests: true }` にする。ほかの値（`historyDepth: 10`・`stabilizationPeriod: 5`）は既定のまま。既定では、最新の実行で落ちたテストにしか印が付かない
@@ -150,7 +150,7 @@
   |---|---|---|
   | `side` | 側を決める。リリース版は、タグから材料（プラグインごとのコミットと、結果を出せるか）を決める | `contents: read` |
   | `tests`（matrix） | レーンを 1 つずつ dev container で動かす。テストが落ちても、結果のディレクトリを artifact に上げる | `contents: read` |
-  | `report` | 全レーンの結果がそろったことを確かめる。公開中の履歴を取り、`allure generate` でレポートを作り、レポートと履歴を artifact `test-report-<側>` に上げる | `contents: read` |
+  | `report` | 全レーンの結果がそろったことを確かめる。保管ブランチ `pages-store` から履歴を取り、`allure generate` でレポートを作り、レポートと履歴を artifact `test-report-<側>` に上げる | `contents: read` |
 
   - 契機: main への push（開発版）、`workflow_dispatch` の `side`（main からだけ）、`release.yml` の本番の land の後（リリース版）。`pull_request` は契機にしない
   - `pages-deploy.yml` は、`workflow_run` の対象に `test-report.yml` を足す。出どころの確かめ（`provenance.py`）に、この workflow のパスと、PR の run を受けない決まりを足す
