@@ -89,6 +89,8 @@ PR に合言葉のコメントを書くと、もう一度レビューが始ま�
 
 雛形は、トークンを発行するときに、上の 2 つの権限だけに絞ります。同じ App をほかの自動処理にも使うときは、インストールで与える権限を、使う自動処理が要る権限の合計にします。
 
+- 引き継ぎのワークフロー（[handoff-workflow.md](handoff-workflow.md)）は同じ変数で同じ App を使い、Issues: read and write も要る。足りないと、トークンの発行が `The permissions requested are not granted to this installation.` で止まる
+
 - インストールで与えた権限は、`workflow_doctor` では読めない。GitHub の App の設定画面の Permissions で確かめる
 - 自前の App では、インラインコメントと指摘の一覧が、どちらも App の名前で付く。Claude の App のときは、インラインコメントが `claude[bot]`、指摘の一覧が `github-actions[bot]` で付く
 
