@@ -124,6 +124,11 @@ describe('本文のツール名', () => {
     for (const tool of ['pr_create', 'pr_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
   })
 
+  it.for(['w-active', 'w-quick', 'w-breakdown'])('%s の allowed-tools は、取りこぼしの片付けに使う session_finish・pr_show・issue_show・issue_comment を許す', (skillName) => {
+    const skill = documents.find(({ file }) => file === `skills/${skillName}/SKILL.md`)
+    for (const tool of ['session_finish', 'pr_show', 'issue_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
+  })
+
   it('COMMANDS の全ツールの名前が、重ならない', () => {
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)

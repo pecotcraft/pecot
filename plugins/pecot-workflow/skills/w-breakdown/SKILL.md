@@ -5,6 +5,7 @@ description: |
   Use when the user has an Epic and wants to break it down via the speckit workflow (specify → clarify → plan → tasks). Files a breakdown task under the Epic, works on its linked branch, and runs the speckit workflow (specify → clarify → plan → tasks), committing and pushing each approved step.
   Do NOT use for simple subtask creation (use w-ready), batch conversion (use w-issueize), or new Epics (use w-backlog).
 when_to_use: "Epic をサブタスクに分解したい、speckit で計画を立てたい"
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment
 ---
 
 # Epic分解：speckit 工程の逐次実行
