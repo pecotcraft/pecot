@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "error: specify exactly one of --result and --ensure\n",
+  "exitCode": 1,
+  "requests": [],
+  "files": {}
+}

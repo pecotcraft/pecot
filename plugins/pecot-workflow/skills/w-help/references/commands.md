@@ -4,6 +4,14 @@
 
 引数と詳しい振る舞いは `pecot <コマンド> --help` で確かめてください。
 
+## auto
+
+| コマンド | 説明 |
+| --- | --- |
+| `auto finish` | Finish an automated fix run: post the result comment, set the waiting Status and remove the trigger label |
+| `auto gate` | Decide from a GitHub Actions event whether the automated fix runs, and of what kind |
+| `auto start` | Start an automated fix run: restore the Status the automation wrote and print the context to continue |
+
 ## board
 
 | コマンド | 説明 |

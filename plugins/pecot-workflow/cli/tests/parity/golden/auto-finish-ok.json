@@ -1,0 +1,40 @@
+{
+  "stdout": "https://ghes.example.com/acme/demo/issues/7#issuecomment-9\n",
+  "stderr": "created: auto result comment (pr-created) on Issue acme/demo/7\nremoved: label pecot-auto from Issue acme/demo/7\n",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "GetIssuePrerequisites",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7,
+        "labelFieldName": "Status",
+        "blockedByFirst": 50
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "POST",
+      "path": "/repos/acme/demo/issues/7/comments",
+      "query": {},
+      "body": {
+        "body": "## Auto result — 自動処理が PR を作った\n\n- 結果 — `pr-created`（PR を作った）\n- 実行の記録 — 分からない（`GITHUB_RUN_ID` が無い）\n- 次にすること — PR の CI の結果を待ち、CI が通ったら PR をレビューする\n"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "DELETE",
+      "path": "/repos/acme/demo/issues/7/labels/pecot-auto",
+      "query": {},
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"PVTSSF_workflow\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\",\n          \"blocked\": \"o7\"\n        }\n      },\n      \"status\": {\n        \"id\": \"PVTSSF_status\",\n        \"options\": {\n          \"needs_attention\": \"s1\",\n          \"todo\": \"s2\"\n        }\n      }\n    }\n  },\n  \"repositories\": [\n    {\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"main\"\n    }\n  ]\n}\n"
+  }
+}

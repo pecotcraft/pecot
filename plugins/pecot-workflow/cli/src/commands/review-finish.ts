@@ -111,7 +111,10 @@ function parseSince(out: FinishOutput, since: string | undefined): Date | undefi
   return new Date(time)
 }
 
-function readExecutionFile(path: string | undefined): ExecutionReading {
+/**
+execution_file を読む。無いか空なら absent、読めなければ unreadable
+*/
+export function readExecutionFile(path: string | undefined): ExecutionReading {
   const file = nonEmpty(path)
   if (file === undefined) return { kind: 'absent' }
   try {

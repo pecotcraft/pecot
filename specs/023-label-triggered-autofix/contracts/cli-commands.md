@@ -79,11 +79,13 @@
 | `--event-name` | 文字列 | `issues` か `workflow_run` |
 | `--event-path` | パス | イベントの JSON。`GITHUB_EVENT_PATH` |
 | `--max-ci-attempts` | 整数 | CI を直す回数の上限 |
-| `--dry-run` | 真偽値 | 結果のコメントを書かず、書くはずの本文を出す |
+| `--dry-run` | 真偽値 | 結果のコメントを書かず、書くはずの本文を JSON の欄 `comment` に入れる |
 
 - stdout に、[data-model.md](../data-model.md) の「自動処理の実行」の欄を JSON で出す
+- `--dry-run` のときも、stdout は JSON 1 つだけにする。書くはずの本文は、その JSON の欄 `comment` に入る
 - `GITHUB_OUTPUT` があれば、同じ値を `key=value` で足す
-- `issues` のとき、ラベルを付けた人（`sender`）の権限を、`collaborators/<login>/permission` の `role_name` で読む。`admin`・`maintain`・`write` でなければ、何も書かずに `proceed=false` を出す
+- `issues` のとき、ラベルを付けた人（`sender`）の権限を、`collaborators/<login>/permission` の `permission` で読む。`maintain` は `write` で返る
+- `permission` が `admin`・`write` でなければ、何も書かずに `proceed=false` を出す。`sender` が `[bot]` のとき、権限を読めないとき（404・API の失敗）も同じだ
 - `proceed` が偽で、Issue に知らせる理由があるときは、`gate` が `finish` と同じ処理で結果のコメントを書く
 - 人が作った PR の CI では、何も書かずに `proceed=false` を出す
 - 判定の誤りではないので、`proceed` が偽でも終了コードは成功だ
@@ -103,9 +105,9 @@ stdout に出すもの:
 | 欄 | 中身 |
 |---|---|
 | `issue` | タイトルと本文 |
-| `plan` | 前回の計画のコメント。無ければ空 |
+| `plan` | 前回の計画のコメント。本文が見出し `## Plan` で始まるもの。読むのは、bot のコメントと、`answers` と同じ条件の人のコメントだけ。複数あれば最後の 1 つ。無ければ空 |
 | `results` | 前回までの結果のコメント。質問を含む |
-| `answers` | 最後の結果のコメントの後に付いたコメント。`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `role_name` が `admin`・`maintain`・`write` のものに限る |
+| `answers` | 最後の結果のコメントの後に付いたコメント。`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `permission` が `admin`・`write` のものに限る |
 | `branch` | 既にあるブランチ |
 | `pr` | 既にある PR |
 
@@ -134,7 +136,7 @@ stdout に出すもの:
 | 結果が `question`・`failed`・`limit` | 結果のコメントを書き、既定の Status を Needs Attention にし、起動ラベルを外す |
 | 結果が `pr-created`・`out-of-scope`・`setup-missing` | 結果のコメントを書き、起動ラベルを外す。既定の Status は書かない |
 | 結果が `ci-passed`・`ci-fix-pushed` | 結果のコメントを書く |
-| `--ensure` で、同じ run・同じ試行の結果のコメントがある | 何も書かない。起動ラベルが残っていれば外す |
+| `--ensure` で、同じ run・同じ試行の結果のコメントがある | コメントは書かない。起動ラベルが残っていれば外し、結果が待ちの値を書くもの（`question`・`failed`・`limit`）なら、札も書き直す |
 | `--ensure` で、無い | 下の表の順で結果を決めて書く |
 | 既定の Status に待ちの値が無い | 結果のコメントに足りない設定を足す。進行の欄は変えない。終了は成功 |
 | 本文がテンプレートの検証を通らない | テンプレートの検証の失敗として止まり、指摘を出す。既存の `issue_comment` と同じ |

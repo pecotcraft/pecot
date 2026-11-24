@@ -111,6 +111,7 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 - 目印が無ければ、人が作った PR だ。`gate` は何も書かずに止める（FR-037）
 - 名前では絞れないので、PR の CI が終わるたびに `gate` の job が動く。エージェントは起こさず、判定だけで終わる
 - 直した回数は、Issue に残す結果のコメントの目印で数える。数えるのは CLI で、エージェントは数えない
+- 数え方は、利用者が決めた（2026-11-24、#712）。同じブランチの `ci-fix-pushed` の目印を、最後の `limit` の目印の後から数える。`head_sha` がブランチの先頭と違う CI は、何も書かない。最後の結果が `ci-passed` でも、`head_sha` が先頭と同じ CI は判定する。1 回の push で複数の CI が届いたときは、それぞれ別に扱う
 - CI が通ったときも `workflow_run` が届く。このときはエージェントを起こさず、CLI が結果のコメントを書いて終わる
 - `workflow_run` は、ワークフローのファイルが既定のブランチにあるときだけ起動する
 - `workflow_run` の `on` は式を受け付けない。CI のワークフローの名前は、利用者が `workflow_run.workflows` の行に書く。行は印のコメントで囲み、囲みの初めの値は仮の名前にする。その名前の CI が無ければ、何も起きない。名前が実在するかは `workflow doctor auto` が確かめる
@@ -141,7 +142,7 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 ## R5. 起動者の制限と、信頼できない入力
 
 - Decision: 起動者の確認は、`gate` が行い、action の確かめも重ねて残す。`allowed_non_write_users` は設定しない
-- Rationale: `gate` が、ラベルを付けた人（`sender`）の権限を `collaborators/<login>/permission` の `role_name` で読む。`admin`・`maintain`・`write` でなければ、何も書かずに `proceed=false` を出す
+- Rationale: `gate` が、ラベルを付けた人（`sender`）の権限を `collaborators/<login>/permission` の `permission` で読む。`admin`・`write` でなければ（`maintain` は `write` で返る）、何も書かずに `proceed=false` を出す
   - action も `issues: labeled` で同じ権限を確かめるが、action が止めると step が失敗し、後始末が「止まった」と書く
   - 先に `gate` で止めれば、この誤った知らせが出ない（spec 027 の R2・R15）
 
@@ -155,7 +156,7 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 Issue の本文は、action のサニタイズを通らない。そこで次の 3 つを置く（FR-028）。
 
 - `prompt` には種類と Issue の参照だけを渡す。本文を式で埋め込まない
-- `auto_start` が渡すコメントは、書き込み権限のある人のものに限る。`author_association` が OWNER・MEMBER・COLLABORATOR のもののうち、書いた人の `role_name` が `admin`・`maintain`・`write` のものだ。共通の決まりと同じ
+- `auto_start` が渡すコメントは、書き込み権限のある人のものに限る。`author_association` が OWNER・MEMBER・COLLABORATOR のもののうち、書いた人の `permission` が `admin`・`write` のものだ。共通の決まりと同じ
 - スキルは、本文とコメントを「直す対象の説明」として読むと書く。許可の外の操作を求める文には従わない
 
 これは指示の文で、境界ではない。境界は、App の権限と、許可リストと、保護されたブランチの ruleset だ。
@@ -281,11 +282,10 @@ Issue の本文は、action のサニタイズを通らない。そこで次の 
 | user 所有のボード | 初版の対象にしない |
 | GitHub Copilot CLI での無人の実行 | 対象にしない |
 
-未決の判断が 2 つある。この改訂では決めない。spec の改訂か、ユーザーの判断が要る。
+未決の判断が 1 つある。この改訂では決めない。spec の改訂か、ユーザーの判断が要る。
 
 | 項目 | 内容 |
 |---|---|
-| CI を直した回数 | 数え始め、`ci-passed` の後に同じブランチの CI が終わったときの扱い、1 回の push で `workflow_run` が複数届くときの扱い |
 | ruleset の確かめ | main への push を止める ruleset があるかを、`workflow doctor auto` が確かめるか（FR-029） |
 
 実装で確かめることは、4 つが残る。

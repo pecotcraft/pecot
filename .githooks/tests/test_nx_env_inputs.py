@@ -130,6 +130,10 @@ _EXEMPT: dict[str, str] = {
     "GITHUB_RUN_ATTEMPT": "GITHUB_RUN_ID と同じ",
     "GITHUB_ACTOR": "GITHUB_RUN_ID と同じ",
     "PECOT_REVIEW_TRIGGER_PHRASE": "GITHUB_RUN_ID と同じ",
+    "PECOT_AUTO_LABEL": "auto のコマンドが読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
+    "GITHUB_REPOSITORY": "PECOT_AUTO_LABEL と同じ",
+    "GITHUB_SERVER_URL": "PECOT_AUTO_LABEL と同じ",
+    "GITHUB_OUTPUT": "PECOT_AUTO_LABEL と同じ",
     "PECOT_GITHUB_API_URL": (
         "cli/tests/conftest.py が unset して固定する。前後比較のテストは、子プロセスの env に偽サーバの URL を"
         "自分で渡す"

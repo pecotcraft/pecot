@@ -217,6 +217,48 @@ describe('addIssueComment の失敗', () => {
   })
 })
 
+describe('listIssueCommentRecords / listIssueCommentReadings', () => {
+  const comments = [
+    { id: 1, body: 'a', user: { login: 'octocat', type: 'User' }, author_association: 'OWNER', created_at: '2026-01-01T00:00:00Z', html_url: 'https://github.com/owner/repo/issues/7#issuecomment-1' },
+    { id: 2, body: 'b' },
+  ]
+
+  it('書いた人・関係・時刻・URL を読み、欠けた欄は空文字にする', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/issues/7/comments', { status: 200, body: comments })])
+    expect(await client.listIssueCommentRecords('owner', 'repo', 7)).toEqual([
+      { body: 'a', userType: 'User', login: 'octocat', authorAssociation: 'OWNER', createdAt: '2026-01-01T00:00:00Z', url: 'https://github.com/owner/repo/issues/7#issuecomment-1' },
+      { body: 'b', userType: '', login: '', authorAssociation: '', createdAt: '', url: '' },
+    ])
+  })
+
+  it('listIssueCommentReadings は本文と書き手の種類だけを返す', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/issues/7/comments', { status: 200, body: comments })])
+    expect(await client.listIssueCommentReadings('owner', 'repo', 7)).toEqual([
+      { body: 'a', userType: 'User' },
+      { body: 'b', userType: '' },
+    ])
+  })
+})
+
+describe('removeIssueLabel', () => {
+  it('符号化したラベル名宛てに DELETE し、200 なら removed', async () => {
+    const path = '/repos/owner/repo/issues/7/labels/pecot%20auto%2Fready%20%E6%97%A5%E6%9C%AC'
+    const { client, server } = await startClient([restResponse('DELETE', path, { status: 200, body: [] })])
+    expect(await client.removeIssueLabel('owner', 'repo', 7, 'pecot auto/ready 日本')).toBe('removed')
+    expect(restRequests(server).map(({ method, path: requested }) => ({ method, path: requested }))).toEqual([{ method: 'DELETE', path }])
+  })
+
+  it('404 なら absent', async () => {
+    const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/issues/7/labels/x', { status: 404, body: { message: 'Label does not exist' } })])
+    expect(await client.removeIssueLabel('owner', 'repo', 7, 'x')).toBe('absent')
+  })
+
+  it('500 は GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/issues/7/labels/x', { status: 500, text: 'boom' })])
+    expect(await rejection(client.removeIssueLabel('owner', 'repo', 7, 'x'))).toBeInstanceOf(GitHubAPIError)
+  })
+})
+
 describe('getIssueNodeId / getIssueNodeIdAndTitle', () => {
   it('Node ID を返す。変数は owner・repo・number', async () => {
     const { client, server } = await startClient([graphqlData('GetIssueNodeId', { repository: { issue: { id: 'I_kwDOtest123' } } })])

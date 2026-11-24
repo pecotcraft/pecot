@@ -42,9 +42,11 @@
 | `issues: labeled` | 計画のコメントもブランチも無い | `start` | 真 |
 | `issues: labeled` | 計画のコメントかブランチがある | `resume` | 真 |
 | `issues: labeled` | 対象外（下の表） | — | 偽 |
-| `workflow_run` | CI が落ち、直した回数が上限より少ない | `ci-fix` | 真 |
-| `workflow_run` | CI が落ち、直した回数が上限に達した | `ci-fix` | 偽 |
-| `workflow_run` | CI が通った | `ci-passed` | 偽 |
+| `workflow_run` | `conclusion` が `failure`・`timed_out` で、直した回数が上限より少ない | `ci-fix` | 真 |
+| `workflow_run` | `conclusion` が `failure`・`timed_out` で、直した回数が上限に達した | `ci-fix` | 偽 |
+| `workflow_run` | `conclusion` が `success` | `ci-passed` | 偽 |
+| `workflow_run` | `conclusion` が `cancelled`・`skipped`・`neutral`・`action_required`・`stale`。または `action` が `completed` でない | — | 偽。何も書かない |
+| `workflow_run` | ブランチの末尾が Issue 番号でない。fork の PR | — | 偽。何も書かない |
 | `workflow_run` | Issue に、同じブランチで PR を作ったという目印が無い | — | 偽。何も書かない |
 
 対象外の条件（FR-013）は、次の表のとおりだ。
@@ -58,9 +60,18 @@
 | 進行の欄が Backlog・Pending・Archived | 進行の欄の値 |
 | 進行の欄が Blocked | 進行の欄の値。理由のコメントに、待っている前提を書く |
 | 人が着手している | 進行の欄が Active か In Review で、Issue に自動処理の結果のコメントが 1 つも無い |
-| ラベルを付けた人に書き込み権限が無い | `sender` の `collaborators/<login>/permission` の `role_name` が、`admin`・`maintain`・`write` のどれでもない。何も書かずに止める |
+| ラベルを付けた人に書き込み権限が無い | `sender` の `collaborators/<login>/permission` の `permission` が、`admin`・`write` のどちらでもない（`maintain` は `write` で返る）。`sender` が `[bot]` のとき、権限を読めないとき（404・API の失敗）も同じ。何も書かずに止める |
 
 - 書き込み権限の無い人が付けた起動ラベルは、何も書かずに止めるので、ラベルは残る
+
+CI を直した回数（`ci_attempts`）の数え方は、次のとおりだ（利用者の判断、2026-11-24、#712）。
+
+| 決め | 内容 |
+|---|---|
+| 数える目印 | 同じブランチの `result=ci-fix-pushed` の目印。同じブランチの最後の `limit` の目印より後のものだけを数える |
+| 古い CI | `head_sha` がブランチの先頭と違う CI は、何も書かない |
+| 通った後の CI | 最後の結果が `ci-passed` でも、`head_sha` がブランチの先頭と同じ CI は判定する |
+| 1 回の push で複数の CI が届く | それぞれ別に扱う |
 
 進めるのは 3 つの場合だけだ。
 
@@ -135,9 +146,18 @@ Issue に残すコメント。テンプレートは `cli/templates/comment/auto-
 | 実行の記録 | run の URL |
 | 次の手 | 人がすることを 1 行で書く。答えを書いて起動ラベルを付け直す、など |
 
-- CI を直した回数は、`result=ci-fix-pushed` の目印を持つコメントの数で数える
-- 同じ run・同じ試行の目印を持つコメントが既にあれば、`auto finish --ensure` は何も書かない
+- CI を直した回数は、同じブランチの `result=ci-fix-pushed` の目印を、最後の `limit` の目印の後から数える。決め方は「種類の決まり方」の後の表のとおりだ
+- 目印の `branch` は、Issue の Development のブランチから決める。開いた PR を持つブランチを先に取り、無ければ末尾が `/<Issue番号>` のブランチを取る。どちらも無ければ `-` にする
+- 同じ run・同じ試行の目印を持つコメントが既にあれば、`auto finish --ensure` はコメントを書かない。起動ラベルが残っていれば外し、結果が待ちの値を書くものなら、札も書き直す
 - 目印を探すのは、bot のコメントだけだ。人が目印を書き込んで、記録を消せないようにする
+
+### 計画のコメント
+
+| 欄 | 決め |
+|---|---|
+| 見分け方 | 本文が見出し `## Plan` で始まるコメント |
+| 読むコメント | bot のコメントと、`answers` と同じ条件の人のコメントだけ。条件は、`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `permission` が `admin`・`write` のもの |
+| 複数あるとき | 最後の 1 つ |
 
 ## プロジェクトの設定に足すキー
 

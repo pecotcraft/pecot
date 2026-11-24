@@ -1,0 +1,7 @@
+# --result と --ensure の両方を渡すと、何も読まずに exit 1。
+id: auto-finish-usage-both
+command:
+  path: [auto, finish]
+  args: [acme/demo/7, --result, failed, --ensure, --job-status, failure]
+setup: {}
+github: []
