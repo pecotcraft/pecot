@@ -181,6 +181,19 @@ describe('issue create', () => {
       expect(issuePosts(github)).toStrictEqual([])
     })
 
+    it('フロントマターに labels と attributes の labels を両方書くと、Issue を作らずに ambiguous_attribute を file 付きで返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-84')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', 'labels: [bug]', 'attributes:', '  - name: labels', '    value: [bug]') })
+      const github = await startGithub([linkedRepositories(), ...definitionRules()])
+
+      const outcome = await createTool({ files: [path.join(project.root, 'a.md')] })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'invalid-input', errors: [{ file: 'a.md', code: 'ambiguous_attribute', name: 'labels', source: 'issue' }] })
+      expect(issuePosts(github)).toStrictEqual([])
+    })
+
     it('--attribute をファイルと一緒に渡すと、使い方の誤りで終了コード 2 を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-85')
       const project = setUpIssueProject()

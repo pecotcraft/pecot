@@ -217,11 +217,11 @@ description: "Task list for 029-pecot-lane-issue-features"
 - [x] T051 [P] [US5] `PW/interface/authored.yaml` に `PW-ISSUE-EDIT-*` と `PW-ISSUE-CREATE` の `attributes` の振る舞いを足す。
   `PW/cli/tests/interface/issue-edit.test.ts`（新規）と `PW/cli/tests/interface/issue-create.test.ts` に先にテストを書く。
   確かめること:
-  - REST の作成に `type`・`assignees`・`milestone`・`labels`・`issue_field_values` が入る
+  - 組み込み（`type`・`assignees`・`milestone`・`labels`）は REST の作成の要求に入り、Issue fields は起票の後の別の要求で書く
   - ボードのフィールドは `updateProjectV2ItemFieldValue` で種類ごとの値で書く
   - `value: null` で外す
   - Issue fields の書き込みが権限の不足（403）で失敗しても、ほかの機能の書き込みは続き、書けなかった機能と理由が出力に出る（FR-020）
-  - `lane` と `attributes` の `pecot-lane` を両方渡すと、Issue を作らずに `ambiguous_attribute` で止まる
+  - `lane` と `attributes` の `pecot-lane` を両方渡すと、Issue を作らずに `ambiguous_attribute` で止まる（入力 `lane` を足す #704 で確かめる）
   - 検証に通らなければ何も書かない
   - `attributes` が無くても止まらない
   - `issue_edit` の出力の `changed` に前と後の値が出る
@@ -230,7 +230,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 - [x] T052 [US5] `PW/cli/src/domain/attributes.ts` を作り、検証と書く予定の組み立てと `ATTRIBUTE_HANDLERS`（`kind` から書き方への対応）を置く（T050 の後）。
   single select の名前から選択肢を引く関数は、A の T026 と共有する。T026 が先にマージされていれば、そちらの関数を使う
-- [x] T053 [US5] `PW/cli/src/infra/github/issues.ts` の作成と更新に `type`・`assignees`・`milestone`・`issue_field_values` を足す。
+- [x] T053 [US5] `PW/cli/src/infra/github/issues.ts` の作成と更新に `type`・`assignees`・`milestone` を足し、Issue fields を書く要求と外す要求を足す。
   `PW/cli/src/infra/github/projects.ts` に種類ごとの `updateProjectV2ItemFieldValue` と `clearProjectV2ItemFieldValue` を足す
 - [x] T054 [US5] `PW/cli/src/commands/issue-create.ts` に `attributes` を足す。frontmatter（`PW/cli/src/domain/frontmatter.ts`）でも同じ名前で受ける
 - [x] T055 [US5] `PW/cli/src/commands/issue-edit.ts` を作り、MCP ツール `issue_edit` として登録する

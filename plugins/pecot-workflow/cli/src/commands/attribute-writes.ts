@@ -285,8 +285,9 @@ export async function writeIssueFields(client: GitHubClient, issue: Readonly<Iss
   }
   for (const entry of removals) {
     try {
-      await client.deleteIssueFieldValue(issue.owner, issue.repository, issue.number, entry.restId)
-      parts.push({ changed: [changeJson(entry.write)], failed: [] })
+      // 404（'absent'）は、比べた後に値が消えていたので変化なしとする
+      const result = await client.deleteIssueFieldValue(issue.owner, issue.repository, issue.number, entry.restId)
+      if (result === 'deleted') parts.push({ changed: [changeJson(entry.write)], failed: [] })
     }
     catch (error: unknown) {
       parts.push({ changed: [], failed: [failureOf(entry.write, error)] })

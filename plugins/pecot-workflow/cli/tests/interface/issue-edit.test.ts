@@ -44,8 +44,9 @@ function fieldValuesAdded(status = 200): ResponseRule {
   return { match: { method: 'POST', path: '/repos/acme/demo/issues/7/issue-field-values' }, respond: { status, body }, times: 1 }
 }
 
-function fieldValueDeleted(fieldId: number): ResponseRule {
-  return { match: { method: 'DELETE', path: `/repos/acme/demo/issues/7/issue-field-values/${String(fieldId)}` }, respond: { status: 204 }, times: 1 }
+function fieldValueDeleted(status = 204): ResponseRule {
+  const respond = status === 204 ? { status } : { status, body: { message: 'Not Found' } }
+  return { match: { method: 'DELETE', path: `/repos/acme/demo/issues/7/issue-field-values/103` }, respond, times: 1 }
 }
 
 function boardWritten(times = 1): ResponseRule {
@@ -132,7 +133,7 @@ describe('issue edit', () => {
       await verifies(context, 'PW-ISSUE-EDIT-02')
       setUpProject()
       const issueFieldValues = [{ __typename: 'IssueFieldNumberValue', field: { name: 'Effort', dataType: 'NUMBER' }, numberValue: 5 }]
-      const github = await startGithub([...readRules({ fieldValues: [AREA_CLI], milestone: 'v1', issueFieldValues }), patched({}), fieldValueDeleted(103), boardCleared()])
+      const github = await startGithub([...readRules({ fieldValues: [AREA_CLI], milestone: 'v1', issueFieldValues }), patched({}), fieldValueDeleted(), boardCleared()])
 
       const outcome = await edit([{ name: 'Area', value: null }, { name: 'Effort', value: null }, { name: 'milestone', value: null }])
 
@@ -150,6 +151,18 @@ describe('issue edit', () => {
         { type: 'rest', method: 'DELETE' },
         { type: 'graphql', operation: 'ClearProjectItemField', variables: { fieldId: 'F_area' } },
       ])
+    })
+
+    it('外す Issue field の値が書く前に消えていると、DELETE の 404 を変化なしとして changed に入れない', async (context) => {
+      await verifies(context, 'PW-ISSUE-EDIT-02')
+      setUpProject()
+      const issueFieldValues = [{ __typename: 'IssueFieldNumberValue', field: { name: 'Effort', dataType: 'NUMBER' }, numberValue: 5 }]
+      await startGithub([...readRules({ fieldValues: [AREA_CLI], issueFieldValues }), fieldValueDeleted(404)])
+
+      const outcome = await edit([{ name: 'Effort', value: null }])
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toStrictEqual({ changed: [], errors: [], failed: [] })
     })
 
     it('今の値と同じ値を渡すと、書かずに、changed にも入れない。ラベルは順を問わずに比べる', async (context) => {
