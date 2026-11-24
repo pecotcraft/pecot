@@ -105,6 +105,12 @@ describe('w-active の手順', () => {
   const text = readSkill('w-active')
   const headings = stepHeadings(text)
 
+  it('利用者が一覧から選ぶと、allowed-tools の許可を得るため、選んだ Issue を引数にスキルを呼び直す', () => {
+    const body = sectionBody(text, 0)
+    expect(body).toContain('Skill ツールで `pecot-w:w-active` を、選んだ Issue を引数にして呼び直す')
+    expect(body).toContain('スキルの引数に Issue があるときは、一覧を飛ばして Step 2 から進む')
+  })
+
   it('レビューは、計画ドラフトとプランモードの間にある', () => {
     const review = titleIndex(headings, 'レビュー')
     expect(titleIndex(headings, '計画ドラフト')).toBeLessThan(review)

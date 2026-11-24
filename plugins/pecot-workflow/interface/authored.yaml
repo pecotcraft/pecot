@@ -6724,7 +6724,7 @@ entries:
         statement: 'ブランチを作ると、`.pecot-merged` の PR のうち、merge-diff を確かめられたものの行を消します。CLI で `--dry-run` を付けて打つと消しません'
       - id: PW-SESSION-START-48
         pattern: unwanted
-        statement: 'もし取りこぼしの確かめで GitHub API がエラーを返したなら、`warnings` に入れ、その PR の記録を残してブランチを作ります'
+        statement: 'もし取りこぼしの確かめで GitHub API がエラーを返すか、接続が切れたなら、`warnings` に入れ、その PR の記録を残してブランチを作ります'
       - id: PW-SESSION-START-49
         pattern: event
         statement: '今のブランチの PR が `.pecot-merged` にもあると、1 つの `leftovers` の要素にまとめ、`cleanup` を真にします'

@@ -797,6 +797,17 @@ describe('session start', () => {
       expect(tool.read(MERGED_RECORD)).toBe('acme/demo#21\n')
     })
 
+    it('取りこぼしの確かめで Epic のコメントを読む接続が切れると、warnings に入れ、その PR の記録を残してブランチを作る', async (context) => {
+      await verifies(context, 'PW-SESSION-START-48')
+      const dropped: ResponseRule = { match: { method: 'GET', path: EPIC_COMMENTS }, respond: { status: 200, disconnect: true }, times: 1 }
+      const tool = await start({ github: [...succeeding(), finishedPullRequest(), parentOf5(), epicKind(), dropped], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })
+      expectClean(tool)
+      expect(tool.isError).toBe(false)
+      expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [expect.stringMatching(/^could not check leftovers: reading the merge-diff of PR acme\/demo#21 failed: /u)] })
+      expect(tool.structured).not.toHaveProperty('leftovers')
+      expect(tool.read(MERGED_RECORD)).toBe('acme/demo#21\n')
+    })
+
     it('今のブランチの PR が記録にもあると、1 件の leftovers にまとめて cleanup を真にする', async (context) => {
       await verifies(context, 'PW-SESSION-START-49')
       const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('MERGED'), ...mergeDiffMissing()], files: { [MERGED_RECORD]: 'acme/demo#21\n' } })

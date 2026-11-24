@@ -5,7 +5,7 @@ description: |
   Use when the user has a small task to tackle immediately (one-file fix, minor bug, quick tweak) and no Issue exists yet — creates the Issue, branch, and enters plan mode in one step.
   Do NOT use when picking up an existing task from the board (use w-active).
 when_to_use: "小さな修正をすぐ始めたい、Issue 作成からブランチ作成まで一度に済ませたい"
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__issue_comment
 argument-hint: "[タスクの内容]"
 hooks:
   PostToolUse:

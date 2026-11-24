@@ -8,11 +8,11 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, isSameRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { readMergedRecord } from '../infra/state-store.js'
 import { commandHint, hinted, RUN } from './command-hint.js'
+import { apiFailureMessage } from './github-client.js'
 import type { Output } from './output.js'
 import { reasonOf } from './pr.js'
 import { collectClosingIssueNumbers } from './session-finish.js'
@@ -106,8 +106,7 @@ export async function checkLeftovers(out: Readonly<Output>, client: GitHubClient
     if (uncleaned !== undefined) addCandidate(candidates, uncleaned, 'branch')
   }
   catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(`could not check leftovers: reading the PR of the current branch failed: ${error.message}`)
+    out.warning(`could not check leftovers: reading the PR of the current branch failed: ${apiFailureMessage(error)}`)
   }
   for (const recorded of readRecordedPullRequests(out)) addCandidate(candidates, recorded, 'record')
 
@@ -121,8 +120,7 @@ export async function checkLeftovers(out: Readonly<Output>, client: GitHubClient
       if (candidate.isRecorded && missing.length === 0) settledRecords.push(candidate.pullRequest)
     }
     catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      out.warning(`could not check leftovers: reading the merge-diff of PR ${name} failed: ${error.message}`)
+      out.warning(`could not check leftovers: reading the merge-diff of PR ${name} failed: ${apiFailureMessage(error)}`)
     }
     for (const epic of missing) {
       out.warning(`Epic ${issueReferenceToString(epic)} has no merge-diff for PR ${name}; post a merge-diff comment on it with pr_ref ${issueReferenceToCliReference(candidate.pullRequest)} in the frontmatter`)

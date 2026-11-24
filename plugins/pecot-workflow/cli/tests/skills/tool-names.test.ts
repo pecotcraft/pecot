@@ -129,6 +129,12 @@ describe('本文のツール名', () => {
     for (const tool of ['session_finish', 'pr_show', 'issue_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
   })
 
+  it('スキルの allowed-tools は、Agent Skills の仕様どおり空白で区切り、カンマを使わない', () => {
+    const fields = documents.filter(({ file }) => file.endsWith('/SKILL.md')).flatMap(({ file, text }) => text.split('\n').filter(line => line.startsWith('allowed-tools: ')).map(line => ({ file, value: line.slice('allowed-tools: '.length) })))
+    expect(fields.length).toBeGreaterThanOrEqual(4)
+    expect(fields.filter(({ value }) => value.includes(',')).map(({ file }) => file)).toEqual([])
+  })
+
   it('COMMANDS の全ツールの名前が、重ならない', () => {
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)

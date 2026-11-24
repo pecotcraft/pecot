@@ -5,7 +5,8 @@ description: |
   Use when the user wants to start an existing Ready task — picks the Issue, creates a feature branch, enters plan mode. Triggers: "next task", "pick a task", "start implementing".
   Do NOT use for new tasks from scratch (use w-quick) or for Issue-only creation (use w-ready).
 when_to_use: "Ready のタスクに着手したい、次のタスクを始めたい、Issue の実装を開始したい"
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish, mcp__plugin_pecot-w_pecot-workflow__pr_show, mcp__plugin_pecot-w_pecot-workflow__issue_show, mcp__plugin_pecot-w_pecot-workflow__issue_comment
+argument-hint: "[Issue]"
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__issue_comment
 hooks:
   PostToolUse:
     - matcher: "ExitPlanMode"
@@ -41,6 +42,9 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 
 別の Issue の上にスタックして着手するものは、タイトルの後ろに「（#N の上にスタックする）」と添える。
 表の後に、どれに着手するかを地の文で尋ねる。AskUserQuestion は使わない。
+
+利用者が選んだら、Skill ツールで `pecot-w:w-active` を、選んだ Issue を引数にして呼び直す。allowed-tools の許可は、スキルを呼んだターンの間だけ続くからだ。
+スキルの引数に Issue があるときは、一覧を飛ばして Step 2 から進む。
 
 ### Step 2: 対象タスクを確認
 
