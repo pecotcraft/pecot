@@ -4,10 +4,10 @@
 import { parseOperation } from './identify.js'
 
 const OPERATION_TABLE: readonly (readonly [string, string])[] = [
-  ['node.items{nodes,pageInfo}|cursor,projectId', 'ListProjectItems'],
+  ['node{items,field}|cursor,laneFieldName,projectId', 'ListProjectItems'],
   ['node.items{nodes,pageInfo}|cursor,filterQuery,projectId', 'ListProjectItemsFiltered'],
   // 構造は ListProjectItems と同じなので、query に書いた名前で引く。識別子は重ならない印を付ける
-  ['node.items{nodes,pageInfo}|cursor,projectId#named', 'ListProjectItemsLegacy'],
+  ['node{items,field}|cursor,laneFieldName,projectId#named', 'ListProjectItemsLegacy'],
   ['repository.issue{id,title}|number,owner,repo', 'GetIssueNodeId'],
   ['user.projectV2.repositories.nodes{owner,name}|owner,projectNumber', 'GetLinkedRepositoriesUser'],
   ['organization.projectV2.repositories.nodes{owner,name}|owner,projectNumber', 'GetLinkedRepositoriesOrg'],
@@ -57,6 +57,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['nodes{id,blockedBy}|blockedByFirst,ids', 'GetBlockedByOfNodes'],
   ['repository.issue.blocking{totalCount,nodes}|blockingFirst,number,owner,repo', 'GetIssueBlockingReferences'],
   ['repository.issue{number,title,state,url,repository,projectItems}|number,owner,repo', 'GetIssueBoardItem'],
+  ['repository.issue.projectItems.nodes{project,fieldValueByName}|laneFieldName,number,owner,repo', 'GetIssueLane'],
   ['__type{name}|#named', 'HasIssueFields'],
   ['repository.issue{assignees,milestone,labels,issueType,issueFieldValues,projectItems}|number,owner,repo', 'GetIssueAttributes'],
   // GHES 向けの版は、query に書いた名前で引く。識別子は重ならない

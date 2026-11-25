@@ -52,10 +52,8 @@ export const NEEDS_ATTENTION_SPEC: OptionSpec = {
 */
 export const STATUS_FIELD_NAME = 'Status'
 
-/**
-領域のレーンを表す欄。値は利用者が決め、設定ファイルには写さない
-*/
-export const LANE_FIELD_NAME = 'pecot-lane'
+// 値は利用者が決め、設定ファイルには写さない
+export { LANE_FIELD_NAME } from '../domain/lanes.js'
 
 /**
 pecot-status を列、pecot-lane を横の分け方にしたビューの名前
