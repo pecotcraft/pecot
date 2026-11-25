@@ -16,6 +16,7 @@ import yaml
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BUILD = _REPO_ROOT / ".github/workflows/pages-build.yml"
 _DEPLOY = _REPO_ROOT / ".github/workflows/pages-deploy.yml"
+_REPORT = _REPO_ROOT / ".github/workflows/test-report.yml"
 _CI = _REPO_ROOT / ".github/workflows/ci.yml"
 _WORKFLOWS = _REPO_ROOT / ".github/workflows"
 _ACTIONLINT = _REPO_ROOT / ".github/actionlint.yaml"
@@ -118,6 +119,19 @@ def test_release_resolves_sources_from_full_history() -> None:
     assert outputs["sources"] == "${{ steps.release.outputs.sources }}"
 
 
+def test_release_passes_report_sources_to_release_build() -> None:
+    resolve = _step(_BUILD, "side", "Resolve release sources")
+    assert "release_sources.py --report release --main origin/main" in resolve["run"]
+    assert "report_sources=$(printf '%s' \"$report\" | jq -c .sources)" in resolve["run"]
+    outputs = _job(_BUILD, "side")["outputs"]
+    assert outputs["report_sources"] == "${{ steps.release.outputs.report_sources }}"
+    env = _job(_BUILD, "build")["env"]
+    assert env["REPORT_SOURCES"] == "${{ needs.side.outputs.report_sources }}"
+    release = _step(_BUILD, "build", "Build release side")
+    assert '"$REPORT_SOURCES" > "$RUNNER_TEMP/report-sources.json"' in release["run"]
+    assert '--report-sources "$RUNNER_TEMP/report-sources.json"' in release["run"]
+
+
 def test_build_makes_the_site_without_running_tests() -> None:
     names = [s["name"] for s in _steps(_BUILD, "build")]
     assert names == [
@@ -200,8 +214,11 @@ def test_build_restores_owner_always() -> None:
 
 def test_deploy_triggers() -> None:
     on = _load(_DEPLOY)[True]
-    # ci の run を待つと、PR 版がテストの終わりまで出ない。
-    assert on["workflow_run"] == {"workflows": ["pages-build"], "types": ["completed"]}
+    # ci の run を待つと、PR 版がテストの終わりまで出ない。レポートは test-report の run から受ける。
+    assert on["workflow_run"] == {
+        "workflows": ["pages-build", "test-report"],
+        "types": ["completed"],
+    }
     assert on["workflow_dispatch"] is None
     assert set(on) == {"workflow_run", "workflow_dispatch"}
 
@@ -329,6 +346,50 @@ def test_store_writes_with_the_pages_store_app_from_environment_only() -> None:
     # トークンを remote の URL に入れない。
     assert '--remote-url "https://github.com/$REPO.git"' in store["run"]
     assert "::add-mask::" in store["run"]
+
+
+def test_deploy_workflow_run_names_match_the_build_and_report_workflows() -> None:
+    names = {_load(path)["name"] for path in (_BUILD, _REPORT)}
+    assert set(_load(_DEPLOY)[True]["workflow_run"]["workflows"]) == names
+
+
+def test_verify_outputs_the_kind_to_store() -> None:
+    outputs = _job(_DEPLOY, "verify")["outputs"]
+    assert outputs["kind"] == "${{ steps.verify.outputs.kind }}"
+    env = _job(_DEPLOY, "store")["env"]
+    assert env["KIND"] == "${{ needs.verify.outputs.kind }}"
+    assert env["SIDE"] == "${{ needs.verify.outputs.side }}"
+
+
+def _store_branches() -> tuple[str, str, str]:
+    """Store side の run を、側を受けたときのレポート・定義書の分岐と、受けないときの分岐に分ける。"""
+    run = _step(_DEPLOY, "store", "Store side")["run"]
+    accepted, rest = run.split('if [ -n "$SIDE" ]; then', 1)[1].split("\nelse\n", 1)
+    report, site = accepted.split('if [ "$KIND" = "report" ]; then', 1)[1].split("\n  else\n", 1)
+    return report, site, rest
+
+
+def test_store_passes_the_report_tar_and_sources_for_a_report() -> None:
+    run = _step(_DEPLOY, "store", "Store side")["run"]
+    assert '--side "$SIDE" --kind "$KIND" --sha "$HEAD_SHA"' in run
+    report, site, rest = _store_branches()
+    assert '--tar "$verified/report.tar"' in report
+    assert (
+        '[ ! -f "$verified/report-sources.json" ] || args+=(--sources "$verified/report-sources.json")'
+        in report
+    )
+    for word in ("site.tar", "release-sources.json", "--pr"):
+        assert word not in report, word
+    assert '--tar "$verified/site.tar"' in site
+    assert '[ -z "$PR" ] || args+=(--pr "$PR")' in site
+    assert (
+        '[ ! -f "$verified/release-sources.json" ] || args+=(--sources "$verified/release-sources.json")'
+        in site
+    )
+    for word in ("report.tar", "report-sources.json"):
+        assert word not in site, word
+    assert "args+=(--side none)" in rest
+    assert "--kind" not in rest
 
 
 def test_deploy_publishes_pages_store() -> None:

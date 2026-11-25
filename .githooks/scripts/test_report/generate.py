@@ -253,7 +253,19 @@ def main(
     code = run(allure_command(output, results), env)
     if code != 0:
         print(f"ERROR: allure generate が {code} で終わりました", file=sys.stderr)
+        return code
+    if history is not None and history.is_file():
+        escape_line_separators(history)
     return code
+
+
+def escape_line_separators(history: Path) -> None:
+    """Allure が JSON.stringify で書いた U+2028・U+2029 を、次の回の readline で切れないようにエスケープする。"""
+    # JSON の文字列の外には U+2028・U+2029 は現れないので、値は変わらない。
+    text = history.read_bytes().decode("utf-8")
+    escaped = text.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+    if escaped != text:
+        history.write_bytes(escaped.encode("utf-8"))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 """リリース版の側を、dev container を立てたホストで作る（contracts/pages.md の「リリース版の build」）。
 
 --sources に release_sources.py の標準出力、--out に側の artifact のディレクトリを渡す。
+--report-sources には、release_sources.py --report release の標準出力の sources を渡す。
 env の RUNNER_TEMP・GITHUB_WORKSPACE を使い、dev-container.sh up の後に呼ぶ。
 """
 
@@ -16,12 +17,12 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 
 from release_sources import ReleaseSources, ReleaseSourcesError, from_json
 
 CONTAINER_ROOT = "/workspaces/base/pecot"
-SITE_ENV = ("PECOT_SITE_SIDE", "PECOT_SITE_LANES")
+SITE_ENV = ("PECOT_SITE_SIDE", "PECOT_SITE_LANES", "PECOT_SITE_REPORT_PLUGINS")
 # --update-remote-user-uid-default never のため、コンテナの vscode の UID は 1000（dev-container.sh の up と同じ前提）。
 
 
@@ -33,9 +34,27 @@ class BuildError(RuntimeError):
     pass
 
 
+def report_missing(data: object) -> list[str]:
+    """リリース版の ReportSources の sources（report-sources.json の形）から、レポートに入らないプラグイン。"""
+    if not isinstance(data, dict):
+        raise ValueError("オブジェクトではありません")
+    record = cast("dict[str, object]", data)
+    if record.get("side") != "release":
+        raise ValueError(f"side が release ではありません: {record.get('side')}")
+    missing = record.get("missing")
+    if not isinstance(missing, list):
+        raise ValueError("missing が配列ではありません")
+    names = cast("list[object]", missing)
+    if not all(isinstance(name, str) for name in names):
+        raise ValueError("missing に文字列でない値があります")
+    return cast("list[str]", names)
+
+
 @dataclass
 class Build:
     sources: ReleaseSources
+    # テストレポートに入らないプラグイン（ReportSources の missing）。
+    report_missing: list[str]
     workspace: Path
     temp: Path
     out: Path
@@ -88,6 +107,9 @@ class Build:
         env["PECOT_SITE_LANES"] = json.dumps(
             self.sources.lanes, ensure_ascii=False, separators=(",", ":")
         )
+        env["PECOT_SITE_REPORT_PLUGINS"] = ",".join(
+            p for p in sorted(self.sources.tags) if p not in self.report_missing
+        )
         names = dict.fromkeys([*env.get("DEVCONTAINER_ENV", "").split(), *SITE_ENV])
         env["DEVCONTAINER_ENV"] = "\n".join(names)
         return env
@@ -127,6 +149,7 @@ def main(
 ) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sources", type=Path, required=True)
+    parser.add_argument("--report-sources", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv[1:])
     env = dict(os.environ if env is None else env)
@@ -140,8 +163,14 @@ def main(
         print(f"ERROR: {args.sources}: {error}", file=sys.stderr)
         return 1
     try:
+        missing = report_missing(json.loads(args.report_sources.read_text(encoding="utf-8")))
+    except (OSError, ValueError) as error:
+        print(f"ERROR: {args.report_sources}: {error}", file=sys.stderr)
+        return 1
+    try:
         Build(
             sources=sources,
+            report_missing=missing,
             workspace=Path(workspace),
             temp=Path(temp),
             out=args.out.resolve(),

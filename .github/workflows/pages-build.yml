@@ -38,6 +38,7 @@ jobs:
       sha: ${{ steps.release.outputs.sha || steps.decide.outputs.sha }}
       artifact: ${{ steps.decide.outputs.artifact }}
       sources: ${{ steps.release.outputs.sources }}
+      report_sources: ${{ steps.release.outputs.report_sources }}
     steps:
       # main 以外のブランチや、main という名前のタグからの手での起動は側を作らない。
       - name: Check ref
@@ -102,15 +103,18 @@ jobs:
           persist-credentials: false
 
       # リリース版は、プラグインごとの最新のタグと骨組みのコミットで作る（data-model の ReleaseSources）。
+      # 同じタグからテストレポートの材料も決め、レポートに入るプラグインにだけリンクを出す。
       - name: Resolve release sources
         id: release
         if: steps.decide.outputs.side == 'release'
         run: |
           set -euo pipefail
           sources=$(python3 .githooks/scripts/pages_site/release_sources.py --main origin/main)
+          report=$(python3 .githooks/scripts/pages_site/release_sources.py --report release --main origin/main)
           skeleton=$(printf '%s' "$sources" | jq -r .skeleton)
           {
             echo "sources=$(printf '%s' "$sources" | jq -c .)"
+            echo "report_sources=$(printf '%s' "$report" | jq -c .sources)"
             echo "sha=$skeleton"
           } >> "$GITHUB_OUTPUT"
           printf '%s' "$sources" | jq -r '.tags | to_entries[] | "- \(.key): \(.value)"' >> "$GITHUB_STEP_SUMMARY"
@@ -123,6 +127,7 @@ jobs:
     env:
       SIDE: ${{ needs.side.outputs.side }}
       SOURCES: ${{ needs.side.outputs.sources }}
+      REPORT_SOURCES: ${{ needs.side.outputs.report_sources }}
       PECOT_SITE_SIDE: ${{ needs.side.outputs.side }}
       PECOT_SITE_PR: ${{ needs.side.outputs.pr }}
       DEVCONTAINER_ENV: |
@@ -155,8 +160,10 @@ jobs:
         if: env.SIDE == 'release'
         run: |
           printf '%s' "$SOURCES" > "$RUNNER_TEMP/release-sources-full.json"
+          printf '%s' "$REPORT_SOURCES" > "$RUNNER_TEMP/report-sources.json"
           python3 .githooks/scripts/pages_site/release_build.py \
-            --sources "$RUNNER_TEMP/release-sources-full.json" --out "$RUNNER_TEMP/pages-side"
+            --sources "$RUNNER_TEMP/release-sources-full.json" \
+            --report-sources "$RUNNER_TEMP/report-sources.json" --out "$RUNNER_TEMP/pages-side"
 
       - name: Restore workspace owner
         if: always()

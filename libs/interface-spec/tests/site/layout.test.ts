@@ -48,8 +48,11 @@ function htmlPages(directory: string, prefix: string): string[] {
 
 beforeAll(async () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'interface-spec-site-'))
-  // 版の知らせの PECOT_SITE_* は、手元の既定の値で作る。
-  const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('PECOT_SITE_')))
+  // 開発版で作り、版の知らせとテストレポートへのリンクが入ったページを測る。
+  const environment = {
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('PECOT_SITE_'))),
+    PECOT_SITE_SIDE: 'dev',
+  }
   execFileSync('uv', ['run', '--locked', '--project', 'docs', 'sphinx-build', '-W', '-q', '-b', 'html', 'docs', directory], {
     cwd: PROJECT_ROOT,
     env: environment,
@@ -124,6 +127,15 @@ async function rightGap(width: number, page: string, shot?: string): Promise<num
 }
 
 describe('公開サイトの見た目', () => {
+  it('開発版で作ったサイトは、フッターと機能要件の表にテストレポートへのリンクを持つ', async () => {
+    const tab = await open(WIDE[0], TOOL_PAGE)
+    const hrefs = await tab.evaluate(() => [...document.querySelectorAll('footer a, table.iface-behaviors a')]
+      .map(link => link.getAttribute('href') ?? ''))
+    await closeTab(tab)
+    expect(hrefs).toContain('../../test-report/index.html')
+    expect(hrefs.filter(href => href.startsWith('../../test-report/index.html?tags=PW-'))).not.toEqual([])
+  })
+
   it.for(WIDE)('幅 %s px で、目次の無いページは本文が外枠の右端まで広がり、空欄を残さない', async (width) => {
     const gaps: Record<string, number> = {}
     let shot: Shot | undefined

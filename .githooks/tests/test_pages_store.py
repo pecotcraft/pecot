@@ -145,6 +145,118 @@ def test_side_check_rejects_broken_internal_links(tmp_path: Path) -> None:
     ]
 
 
+_REPORT_LINKS = (
+    "test-report/index.html",
+    "test-report/index.html?tags=PW-A-01",
+    "test-report/",
+    "./test-report/index.html#x",
+)
+
+
+def _with_report_links(tar: tarfile.TarFile) -> None:
+    _add_file(tar, "./index.html", _page(*_REPORT_LINKS))
+    # _generated の下のページは、側のルートまで戻ってからレポートを指す。
+    _add_file(tar, "./_generated/p/tool.html", _page("../../test-report/index.html?tags=PW-B-02"))
+
+
+def test_side_check_lets_report_links_through_only_when_asked(tmp_path: Path) -> None:
+    tar = _tar(tmp_path, _with_report_links)
+    assert store.side_check(tar, report_links=True) == []
+    assert store.side_check(tar) == [
+        "`_generated/p/tool.html`: `../../test-report/index.html?tags=PW-B-02` の先がありません",
+        *(f"`index.html`: `{link}` の先がありません" for link in _REPORT_LINKS),
+    ]
+
+
+def test_side_check_report_links_still_check_other_links(tmp_path: Path) -> None:
+    tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", _page("test-reports/x.html")))
+    assert store.side_check(tar, report_links=True) == [
+        "`index.html`: `test-reports/x.html` の先がありません"
+    ]
+
+
+def test_side_check_with_report_links_refuses_a_test_report_dir(tmp_path: Path) -> None:
+    def build(tar: tarfile.TarFile) -> None:
+        _add_file(tar, "./index.html", _page("test-report/index.html"))
+        _add(tar, "./test-report", tarfile.DIRTYPE)
+        _add_file(tar, "./test-report/index.html", "own")
+        _add_file(tar, "./test-report/history.jsonl", "")
+
+    tar = _tar(tmp_path, build)
+    assert store.side_check(tar, report_links=True) == [
+        "`./test-report`: `test-report/` は保管でレポートを置く所です"
+    ]
+    # PR 版は保管でレポートを置かないので、側の中身として扱う。
+    assert store.side_check(tar) == []
+
+
+def _report_tree(tar: tarfile.TarFile, history: str = '{"uuid":"a"}\n{"uuid":"b"}\n') -> None:
+    _add(tar, ".", tarfile.DIRTYPE)
+    _add_file(tar, "./index.html", '<html><script src="app.js"></script></html>')
+    _add_file(tar, "./app.js", "")
+    _add(tar, "./data", tarfile.DIRTYPE)
+    _add_file(tar, "./data/a.json", "{}")
+    _add_file(tar, "./history.jsonl", history)
+
+
+def test_report_check_passes_a_report_tree(tmp_path: Path) -> None:
+    assert store.report_check(_tar(tmp_path, _report_tree)) == []
+
+
+def test_report_check_passes_an_empty_history(tmp_path: Path) -> None:
+    assert store.report_check(_tar(tmp_path, lambda t: _report_tree(t, ""))) == []
+
+
+@pytest.mark.parametrize(
+    ("missing", "expected"),
+    [
+        ("./index.html", "`index.html` がありません"),
+        ("./history.jsonl", "`history.jsonl` がありません"),
+    ],
+)
+def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expected: str) -> None:
+    def build(tar: tarfile.TarFile) -> None:
+        for name, body in (("./index.html", "<html></html>"), ("./history.jsonl", "")):
+            if name != missing:
+                _add_file(tar, name, body)
+
+    assert store.report_check(_tar(tmp_path, build)) == [expected]
+
+
+@pytest.mark.parametrize(
+    ("history", "expected"),
+    [
+        ('{"a":1}\nNaN\n{"b":2}\n', "`history.jsonl` の 2 行目を Allure が読めません"),
+        ('{"a":1}\nnull\n', "`history.jsonl` の 2 行目を Allure が読めません"),
+        # Node の readline は U+2028 でも切るので、文字列の途中で行が切れる。
+        ('{"a":"x y"}\n', "`history.jsonl` の 1, 2 行目を Allure が読めません"),
+    ],
+    ids=["nan", "null", "u2028"],
+)
+def test_report_check_refuses_unreadable_history_lines(
+    tmp_path: Path, history: str, expected: str
+) -> None:
+    assert store.report_check(_tar(tmp_path, lambda t: _report_tree(t, history))) == [expected]
+
+
+def test_report_check_refuses_history_that_is_not_utf8(tmp_path: Path) -> None:
+    def build(tar: tarfile.TarFile) -> None:
+        _add_file(tar, "./index.html", "<html></html>")
+        info = tarfile.TarInfo("./history.jsonl")
+        info.size = 2
+        tar.addfile(info, io.BytesIO(b"\xff\n"))
+
+    assert store.report_check(_tar(tmp_path, build)) == ["`history.jsonl` が UTF-8 ではありません"]
+
+
+def test_report_check_also_runs_side_check(tmp_path: Path) -> None:
+    def build(tar: tarfile.TarFile) -> None:
+        _report_tree(tar)
+        _add(tar, "./link", tarfile.SYMTYPE, "/etc/passwd")
+
+    assert store.report_check(_tar(tmp_path, build)) == ["`./link`: シンボリックリンクです"]
+
+
 def test_check_cli_prints_markdown_and_fails(tmp_path: Path) -> None:
     tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", _page("gone.html")))
     result = subprocess.run(
@@ -156,9 +268,56 @@ def test_check_cli_prints_markdown_and_fails(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("args", "code"),
+    [
+        ((), 1),
+        (("--side", "pr"), 1),
+        (("--side", "dev"), 0),
+        (("--kind", "site", "--side", "release"), 0),
+    ],
+)
+def test_check_cli_chooses_the_check_by_kind_and_side(
+    tmp_path: Path, args: tuple[str, ...], code: int
+) -> None:
+    tar = _tar(tmp_path, _with_report_links)
+    result = subprocess.run(
+        [sys.executable, str(_STORE), "check", *args, str(tar)], capture_output=True, text=True
+    )
+    assert result.returncode == code, result.stdout + result.stderr
+
+
+def test_check_cli_report_uses_report_check(tmp_path: Path) -> None:
+    tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", "<html></html>"))
+    result = subprocess.run(
+        [sys.executable, str(_STORE), "check", "--kind", "report", "--side", "dev", str(tar)],
+        capture_output=True,
+        text=True,
+    )
+    assert (result.returncode, result.stdout) == (1, "- `history.jsonl` がありません\n")
+
+
+def test_checker_follows_kind_and_side(tmp_path: Path) -> None:
+    links = _tar(tmp_path, _with_report_links)
+    assert store.checker("site", "dev")(links) == []
+    assert store.checker("site", "release")(links) == []
+    assert store.checker("site", "pr")(links) != []
+    assert store.checker("report", "dev") is store.report_check
+    assert store.checker("report", "release") is store.report_check
+
+
+def test_extract_uses_the_given_check(tmp_path: Path) -> None:
+    tar = _tar(tmp_path, _with_report_links)
+    with pytest.raises(ValueError, match="test-report/index.html"):
+        store.extract(tar, tmp_path / "pr", check=store.side_check)
+    assert not (tmp_path / "pr").exists()
+    store.extract(tar, tmp_path / "dev", check=store.checker("site", "dev"))
+    assert (tmp_path / "dev" / "_generated/p/tool.html").is_file()
+
+
 def test_extract_writes_checked_tree(tmp_path: Path) -> None:
     dest = tmp_path / "out"
-    store.extract(_tar(tmp_path, _sphinx_like), dest)
+    store.extract(_tar(tmp_path, _sphinx_like), dest, check=store.side_check)
     assert (dest / "guides/a.html").read_text(encoding="utf-8").startswith("<html>")
     assert sorted(p.relative_to(dest).as_posix() for p in dest.rglob("*") if p.is_file()) == [
         "_sources/index.rst.txt",
@@ -173,7 +332,7 @@ def test_extract_writes_checked_tree(tmp_path: Path) -> None:
 def test_extract_refuses_unsafe_tar(tmp_path: Path) -> None:
     tar = _tar(tmp_path, lambda t: _add(t, "./link", tarfile.SYMTYPE, "/etc/passwd"))
     with pytest.raises(ValueError, match="シンボリックリンク"):
-        store.extract(tar, tmp_path / "out")
+        store.extract(tar, tmp_path / "out", check=store.side_check)
     assert not (tmp_path / "out").exists()
 
 
@@ -212,12 +371,20 @@ def test_empty_store_gets_guide_pages_without_links(tmp_path: Path) -> None:
     root.mkdir()
     store.apply(root, side="none", pr=None, tree=None, record=None, open_prs=[])
     files = _files(root)
-    assert sorted(files) == [".pecot-store.json", "dev/index.html", "index.html"]
-    assert _meta(root) == {"release": None, "dev": None, "pr": {}}
-    for page in ("index.html", "dev/index.html"):
+    assert sorted(files) == [
+        ".pecot-store.json",
+        "dev/index.html",
+        "dev/test-report/index.html",
+        "index.html",
+        "test-report/index.html",
+    ]
+    assert _meta(root) == {"release": None, "dev": None, "pr": {}, "reports": {}}
+    for page in ("index.html", "dev/index.html", "test-report/index.html"):
         assert '<html lang="ja">' in files[page]
         assert "公開している版はまだありません。" in files[page]
         assert "href" not in files[page] and "src=" not in files[page]
+    assert files["dev/test-report/index.html"] == files["test-report/index.html"]
+    assert "<h1>テストレポートはまだありません</h1>" in files["test-report/index.html"]
     assert store.check_cross_links(root) == []
 
 
@@ -231,12 +398,17 @@ def test_dev_only_guides_release_to_dev(tmp_path: Path) -> None:
         ".pecot-store.json",
         "dev/index.html",
         "dev/sub/page.html",
+        "dev/test-report/index.html",
         "index.html",
+        "test-report/index.html",
     ]
     assert "<h1>リリース版はまだありません</h1>" in files["index.html"]
     assert '<a href="/pecot/dev/">開発版</a>' in files["index.html"]
     assert '<a href="/pecot/">' not in files["index.html"]
-    assert _meta(root) == {"release": None, "dev": _rec("d1"), "pr": {}}
+    for page in ("test-report/index.html", "dev/test-report/index.html"):
+        assert '<a href="/pecot/dev/">開発版</a>' in files[page]
+        assert '<a href="/pecot/">' not in files[page]
+    assert _meta(root) == {"release": None, "dev": _rec("d1"), "pr": {}, "reports": {}}
     assert store.check_cross_links(root) == []
 
 
@@ -285,17 +457,24 @@ def test_release_rewrite_keeps_dev_and_pr(tmp_path: Path) -> None:
         ".pecot-store.json",
         "dev/index.html",
         "dev/sub/page.html",
+        "dev/test-report/index.html",
         "index.html",
         "pr/7/index.html",
         "pr/7/sub/page.html",
         "sub/page.html",
+        "test-report/index.html",
     ]
     assert (files["sub/page.html"], files["dev/sub/page.html"], files["pr/7/sub/page.html"]) == (
         "rel2",
         "dev1",
         "pr7",
     )
-    assert _meta(root) == {"release": _rec("r2"), "dev": _rec("d1"), "pr": {"7": _rec("p7")}}
+    assert _meta(root) == {
+        "release": _rec("r2"),
+        "dev": _rec("d1"),
+        "pr": {"7": _rec("p7")},
+        "reports": {},
+    }
 
 
 def test_dev_rewrite_touches_only_dev_and_record(tmp_path: Path) -> None:
@@ -322,9 +501,207 @@ def test_dev_rewrite_touches_only_dev_and_record(tmp_path: Path) -> None:
     assert sorted(k for k in after if k.startswith("dev/")) == [
         "dev/index.html",
         "dev/sub/page.html",
+        "dev/test-report/index.html",
     ]
     assert after["dev/sub/page.html"] == "dev2"
-    assert _meta(root) == {"release": _rec("r1"), "dev": _rec("d2"), "pr": {}}
+    assert _meta(root) == {"release": _rec("r1"), "dev": _rec("d2"), "pr": {}, "reports": {}}
+
+
+# --- レポートの置き場所 -------------------------------------------------------
+
+
+def _report(base: Path, name: str, history: str = '{"uuid":"a"}\n') -> Path:
+    tree = base / name
+    (tree / "data").mkdir(parents=True)
+    (tree / "index.html").write_text(f"<html>{name}</html>", encoding="utf-8")
+    (tree / "data" / "a.json").write_text(name, encoding="utf-8")
+    (tree / "history.jsonl").write_text(history, encoding="utf-8")
+    return tree
+
+
+def _sites(root: Path, tmp_path: Path) -> None:
+    for side, pr in (("release", None), ("dev", None), ("pr", 7)):
+        store.apply(
+            root,
+            side=side,
+            pr=pr,
+            tree=_tree(tmp_path, f"{side}-site", _BAND),
+            record=_rec(f"{side[0]}1"),
+            open_prs=None,
+        )
+
+
+@pytest.mark.parametrize(("side", "prefix"), [("dev", "dev/"), ("release", "")])
+def test_report_changes_only_its_test_report_and_record(
+    tmp_path: Path, side: str, prefix: str
+) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    _sites(root, tmp_path)
+    before = _files(root)
+    meta_before = _meta(root)
+    record = _rec("t1")
+    store.apply(
+        root,
+        side=side,
+        pr=None,
+        tree=_report(tmp_path, "rep1"),
+        record=record,
+        open_prs=None,
+        kind="report",
+    )
+    after = _files(root)
+    place = f"{prefix}test-report/"
+    unchanged = {
+        k: v for k, v in after.items() if not k.startswith(place) and k != ".pecot-store.json"
+    }
+    assert unchanged == {
+        k: v for k, v in before.items() if not k.startswith(place) and k != ".pecot-store.json"
+    }
+    assert sorted(k for k in after if k.startswith(place)) == [
+        f"{place}data/a.json",
+        f"{place}history.jsonl",
+        f"{place}index.html",
+    ]
+    meta = _meta(root)
+    assert meta == {**meta_before, "reports": {side: record}}
+    assert not any(k.startswith("pr/7/test-report") for k in after)
+    assert store.check_cross_links(root) == []
+
+
+def test_report_replaces_the_previous_report(tmp_path: Path) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    for name in ("rep1", "rep2"):
+        tree = _report(tmp_path, name)
+        if name == "rep1":
+            (tree / "data" / "old.json").write_text("old", encoding="utf-8")
+        store.apply(
+            root, side="dev", pr=None, tree=tree, record=_rec(name), open_prs=None, kind="report"
+        )
+    files = _files(root)
+    assert sorted(k for k in files if k.startswith("dev/test-report/")) == [
+        "dev/test-report/data/a.json",
+        "dev/test-report/history.jsonl",
+        "dev/test-report/index.html",
+    ]
+    assert files["dev/test-report/index.html"] == "<html>rep2</html>"
+    assert _meta(root)["reports"] == {"dev": _rec("rep2")}
+
+
+@pytest.mark.parametrize(("side", "prefix"), [("dev", "dev/"), ("release", "")])
+def test_site_rewrite_keeps_the_report(tmp_path: Path, side: str, prefix: str) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    store.apply(
+        root,
+        side=side,
+        pr=None,
+        tree=_report(tmp_path, "rep1", '{"uuid":"a"}\n{"uuid":"b"}\n'),
+        record=_rec("t1"),
+        open_prs=None,
+        kind="report",
+    )
+    for name in ("site1", "site2"):
+        store.apply(
+            root,
+            side=side,
+            pr=None,
+            tree=_tree(tmp_path, name, _BAND),
+            record=_rec(name),
+            open_prs=None,
+        )
+    files = _files(root)
+    assert files[f"{prefix}test-report/history.jsonl"] == '{"uuid":"a"}\n{"uuid":"b"}\n'
+    assert files[f"{prefix}test-report/index.html"] == "<html>rep1</html>"
+    assert files[f"{prefix}sub/page.html"] == "site2"
+    assert _meta(root)["reports"] == {side: _rec("t1")}
+
+
+def test_dev_report_survives_while_dev_site_is_a_guide(tmp_path: Path) -> None:
+    # 定義書の開発版がまだ無い間は、毎回 dev/ を案内のページで作り直す。そのときもレポートは残す。
+    root = tmp_path / "store"
+    root.mkdir()
+    store.apply(
+        root,
+        side="dev",
+        pr=None,
+        tree=_report(tmp_path, "rep1"),
+        record=_rec("t1"),
+        open_prs=None,
+        kind="report",
+    )
+    store.apply(root, side="none", pr=None, tree=None, record=None, open_prs=[])
+    files = _files(root)
+    assert "<h1>開発版はまだありません</h1>" in files["dev/index.html"]
+    assert files["dev/test-report/index.html"] == "<html>rep1</html>"
+    assert "<h1>テストレポートはまだありません</h1>" in files["test-report/index.html"]
+
+
+def test_report_guide_is_replaced_by_the_report(tmp_path: Path) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    store.apply(root, side="none", pr=None, tree=None, record=None, open_prs=[])
+    assert "テストレポートはまだありません" in _files(root)["test-report/index.html"]
+    store.apply(
+        root,
+        side="release",
+        pr=None,
+        tree=_report(tmp_path, "rep1"),
+        record=_rec("t1"),
+        open_prs=None,
+        kind="report",
+    )
+    files = _files(root)
+    assert files["test-report/index.html"] == "<html>rep1</html>"
+    assert "テストレポートはまだありません" in files["dev/test-report/index.html"]
+
+
+@pytest.mark.parametrize("side", ["pr", "none"])
+def test_report_refuses_pr_and_none(tmp_path: Path, side: str) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    with pytest.raises(ValueError, match="report"):
+        store.apply(
+            root,
+            side=side,
+            pr=7 if side == "pr" else None,
+            tree=_report(tmp_path, "rep1") if side == "pr" else None,
+            record=_rec("t1") if side == "pr" else None,
+            open_prs=None,
+            kind="report",
+        )
+    assert not (root / "pr").exists()
+
+
+@pytest.mark.parametrize("reports", [None, [], "x"])
+def test_read_meta_fixes_reports_that_are_not_an_object(tmp_path: Path, reports: object) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    meta: dict[str, object] = {"release": None, "dev": None, "pr": {}}
+    if reports is not None:
+        meta["reports"] = reports
+    (root / ".pecot-store.json").write_text(json.dumps(meta), encoding="utf-8")
+    assert store.read_meta(root)["reports"] == {}
+
+
+def test_size_counts_the_reports(tmp_path: Path) -> None:
+    root = tmp_path / "store"
+    root.mkdir()
+    tree = _report(tmp_path, "rep1", "x" * 3000)
+    store.apply(
+        root, side="dev", pr=None, tree=tree, record=_rec("t1"), open_prs=None, kind="report"
+    )
+    store.apply(
+        root, side="release", pr=None, tree=tree, record=_rec("t1"), open_prs=None, kind="report"
+    )
+    # レポートの外（案内のページと .pecot-store.json）は 6000 バイトに届かない。
+    outside = sum(
+        p.stat().st_size for p in root.rglob("*") if p.is_file() and "test-report" not in p.parts
+    )
+    assert outside < 6000
+    assert store.store_size(root) > 6000
+    assert store.size_warning(root, limit=6000) is not None
 
 
 def test_closed_prs_are_removed(tmp_path: Path) -> None:
@@ -485,7 +862,9 @@ def test_publish_first_time_creates_orphan_commit(scene: dict[str, Path | str]) 
         ".pecot-store.json",
         "dev/index.html",
         "dev/sub/page.html",
+        "dev/test-report/index.html",
         "index.html",
+        "test-report/index.html",
     ]
     meta = json.loads(files[".pecot-store.json"])
     assert meta["dev"]["sha"] == scene["c1"] and meta["dev"]["run_id"] == "100"
@@ -510,7 +889,9 @@ def test_publish_replaces_and_stays_single_commit(scene: dict[str, Path | str]) 
         ".pecot-store.json",
         "dev/index.html",
         "dev/sub/page.html",
+        "dev/test-report/index.html",
         "index.html",
+        "test-report/index.html",
     ]
     meta = json.loads(files[".pecot-store.json"])
     assert meta["dev"]["sha"] == scene["c2"] and meta["pr"] == {}
@@ -728,3 +1109,184 @@ def test_publish_pr_changes_only_its_dir_and_record_and_drops_closed_prs(
     assert (meta["pr"]["12"]["sha"], meta["pr"]["12"]["run_id"]) == (scene["c2"], "300")
     assert "- 側: PR #12" in summary
     assert "- 消した PR の側: #5" in summary
+
+
+# --- publish（レポート） ----------------------------------------------------
+
+
+def _site_tar(scene: dict[str, Path | str], name: str) -> Path:
+    tar = Path(scene["tmp"]) / f"{name}.tar"
+    with tarfile.open(tar, "w") as t:
+        _add(t, ".", tarfile.DIRTYPE)
+        # フッターのリンク（side のルートからの相対）と、_generated の下のページの項目のリンク。
+        _add_file(t, "./index.html", _page("test-report/index.html", "/pecot/"))
+        _add_file(t, "./_generated/p/tool.html", _page("../../test-report/index.html?tags=X-01"))
+        _add_file(t, "./sub/page.html", name)
+    return tar
+
+
+def _report_tar(scene: dict[str, Path | str], name: str, history: str = '{"u":1}\n') -> Path:
+    tar = Path(scene["tmp"]) / f"{name}.tar"
+    with tarfile.open(tar, "w") as t:
+        _report_tree(t, history)
+        _add_file(t, "./name.txt", name)
+    return tar
+
+
+def _report_opts(scene: dict[str, Path | str], name: str, **over: object) -> object:
+    values: dict[str, object] = {
+        "kind": "report",
+        "tree": None,
+        "tar": _report_tar(scene, name),
+        "run_id": "45627254351",
+    }
+    values.update(over)
+    return _opts(scene, **values)
+
+
+def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Path | str]) -> None:
+    site = _site_tar(scene, "site1")
+    assert store.publish(_opts(scene, tree=None, tar=site, sha=scene["c1"])).code == 0
+    files = _remote_files(scene)
+    assert files["dev/_generated/p/tool.html"].count("test-report/index.html?tags=X-01") == 1
+    assert "テストレポートはまだありません" in files["dev/test-report/index.html"]
+
+    code, summary, changed = store.publish(_report_opts(scene, "rep1", sha=scene["c1"]))
+    assert (code, changed) == (0, True), summary
+    files = _remote_files(scene)
+    assert files["dev/test-report/name.txt"] == "rep1"
+    assert files["dev/test-report/history.jsonl"] == '{"u":1}\n'
+    assert files["dev/sub/page.html"] == "site1"
+    meta = json.loads(files[".pecot-store.json"])
+    assert (meta["reports"]["dev"]["sha"], meta["reports"]["dev"]["run_id"]) == (
+        scene["c1"],
+        "45627254351",
+    )
+    assert "sources" not in meta["reports"]["dev"]
+    assert meta["dev"]["run_id"] == "100"
+    assert "- 側: 開発版" in summary
+    assert "- 種類: レポート" in summary
+    assert "- 採否: 保管した" in summary
+    assert len(_remote_log(scene)) == 1
+
+    # 定義書を置き直しても、レポートと履歴は残る。
+    assert (
+        store.publish(_opts(scene, tree=None, tar=_site_tar(scene, "site2"), sha=scene["c2"])).code
+        == 0
+    )
+    files = _remote_files(scene)
+    assert (files["dev/sub/page.html"], files["dev/test-report/name.txt"]) == ("site2", "rep1")
+    assert files["dev/test-report/history.jsonl"] == '{"u":1}\n'
+    assert json.loads(files[".pecot-store.json"])["reports"]["dev"]["sha"] == scene["c1"]
+
+
+def test_publish_summary_names_the_site_kind(scene: dict[str, Path | str]) -> None:
+    assert "- 種類: 定義書" in store.publish(_opts(scene)).summary
+
+
+def test_publish_release_report_writes_sources(scene: dict[str, Path | str]) -> None:
+    sources = Path(scene["tmp"]) / "report-sources.json"
+    body = {"side": "release", "runs": [], "missing": ["pecot-tools"]}
+    sources.write_text(json.dumps(body), encoding="utf-8")
+    code, summary, _ = store.publish(
+        _report_opts(scene, "rel", side="release", sha=scene["c2"], sources=sources)
+    )
+    assert code == 0, summary
+    files = _remote_files(scene)
+    assert files["test-report/name.txt"] == "rel"
+    assert "テストレポートはまだありません" in files["dev/test-report/index.html"]
+    assert "<h1>リリース版はまだありません</h1>" in files["index.html"]
+    meta = json.loads(files[".pecot-store.json"])
+    assert meta["reports"]["release"]["sources"] == body
+    assert meta["release"] is None
+    assert "- 側: リリース版" in summary and "- 種類: レポート" in summary
+
+
+def test_publish_skips_older_dev_report(scene: dict[str, Path | str]) -> None:
+    assert store.publish(_report_opts(scene, "rep2", sha=scene["c2"])).code == 0
+    before = _remote_files(scene)
+    code, summary, changed = store.publish(_report_opts(scene, "rep1", sha=scene["c1"]))
+    assert (code, changed) == (0, False)
+    assert "- 採否: 保管しない（新しい開発版のレポートが先に保管されています）" in summary
+    assert _remote_files(scene) == before
+
+
+def test_publish_dev_report_is_compared_with_the_stored_report_only(
+    scene: dict[str, Path | str],
+) -> None:
+    # 定義書の開発版が新しくても、レポートの開発版が無ければ受ける。逆も同じ。
+    assert store.publish(_opts(scene, sha=scene["c2"])).code == 0
+    code, summary, changed = store.publish(_report_opts(scene, "rep1", sha=scene["c1"]))
+    assert (code, changed) == (0, True), summary
+    code, summary, changed = store.publish(_report_opts(scene, "rep0", sha=scene["c0"]))
+    assert changed is False
+    meta = json.loads(_remote_files(scene)[".pecot-store.json"])
+    assert (meta["dev"]["sha"], meta["reports"]["dev"]["sha"]) == (scene["c2"], scene["c1"])
+
+
+def test_publish_refuses_dev_report_outside_main(scene: dict[str, Path | str]) -> None:
+    history = Path(scene["history"])
+    _run_git(history, "checkout", "-q", "-b", "topic")
+    _run_git(history, "commit", "-q", "--allow-empty", "-m", "topic")
+    topic = _run_git(history, "rev-parse", "HEAD")
+    code, summary, changed = store.publish(_report_opts(scene, "rep", sha=topic))
+    assert (code, changed) == (1, False)
+    assert "が `main` の祖先ではありません" in summary
+    assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
+
+
+def test_publish_refuses_a_report_that_fails_report_check(scene: dict[str, Path | str]) -> None:
+    tar = _report_tar(scene, "bad", '{"u":1}\nnull\n')
+    code, summary, changed = store.publish(_report_opts(scene, "unused", tar=tar))
+    assert (code, changed) == (1, False)
+    assert "  - `history.jsonl` の 2 行目を Allure が読めません" in summary
+    assert "- 種類: レポート" in summary
+    assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
+
+
+def test_publish_refuses_pr_side_with_report_links(scene: dict[str, Path | str]) -> None:
+    tar = _site_tar(scene, "pr")
+    code, summary, _ = store.publish(
+        _opts(scene, side="pr", pr=4, tree=None, tar=tar, open_prs=[4])
+    )
+    assert code == 1
+    assert "`index.html`: `test-report/index.html` の先がありません" in summary
+
+
+def test_publish_refuses_a_site_tar_with_test_report(scene: dict[str, Path | str]) -> None:
+    tar = Path(scene["tmp"]) / "own.tar"
+    with tarfile.open(tar, "w") as t:
+        _add_file(t, "./index.html", _page())
+        _add_file(t, "./test-report/index.html", "own")
+    code, summary, _ = store.publish(_opts(scene, tree=None, tar=tar))
+    assert code == 1
+    assert "`./test-report/index.html`: `test-report/` は保管でレポートを置く所です" in summary
+
+
+@pytest.mark.parametrize(
+    ("over", "message"),
+    [
+        ({"side": "pr", "pr": 4}, "--kind report"),
+        ({"side": "none"}, "--kind report"),
+        ({"tar": None}, "--tar"),
+        ({"tar": None, "tree": Path(".")}, "--tar"),
+        ({"kind": "other"}, "kind"),
+        ({"side": "release"}, "--sources"),
+    ],
+)
+def test_publish_report_option_errors(
+    scene: dict[str, Path | str], over: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        store.publish(_report_opts(scene, "rep", **over))
+
+
+def test_publish_cli_report(scene: dict[str, Path | str]) -> None:
+    tar = _report_tar(scene, "cli")
+    args = ("--kind", "report", "--side", "dev", "--tar", str(tar), "--sha", str(scene["c1"]))
+    result, output = _cli(scene, *args, "--run-id", "9")
+    assert result.returncode == 0, result.stderr
+    assert output == "changed=true\n"
+    files = _remote_files(scene)
+    assert files["dev/test-report/name.txt"] == "cli"
+    assert json.loads(files[".pecot-store.json"])["reports"]["dev"]["run_id"] == "9"

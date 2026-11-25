@@ -12,11 +12,15 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/pages_site"))
 
 from provenance import (  # noqa: E402
+    ARTIFACT_REPORT_DEV,
+    ARTIFACT_REPORT_RELEASE,
     BUILD_PATH,
+    REPORT_PATH,
     Verdict,
     decide,
     open_prs,
     pr_candidates,
+    run_kind,
 )
 
 REPO = "pecotcraft/pecot"
@@ -410,3 +414,181 @@ def test_open_prs_keeps_this_repo_and_sorts() -> None:
 
 def test_open_prs_empty() -> None:
     assert open_prs([], REPO) == []
+
+
+# レポート（test-report.yml の run）。形は main の run 45627254351 の応答に合わせる。
+
+REPORT_HEAD = "cc8e7b6bb7a45ac768fa995df639dd45313df27a"
+_RESULTS = [
+    f"allure-results-{lane}"
+    for lane in (
+        "pecot-workflow-test-cli",
+        "pecot-tools-test-cli",
+        "pecot-visual-test-cli",
+        "githooks-test-nx-affected",
+        "pecot-workflow-test-hooks",
+        "pecot-workflow-test-skills",
+        "githooks-test-ci",
+        "interface-spec-test-unit",
+        "githooks-test-checks",
+        "githooks-test-nx-cache",
+        "text-rules-test-unit",
+        "interface-spec-test-site",
+    )
+]
+
+
+def _report_run(event: str = "push", **over: Any) -> dict[str, Any]:
+    run = _run(
+        event,
+        id=45627254351,
+        name="test-report",
+        path=REPORT_PATH,
+        head_sha=REPORT_HEAD,
+    )
+    run.update(over)
+    return run
+
+
+def _decide_report(
+    run: dict[str, Any], *, artifact_names: list[str] | None = None, **kw: Any
+) -> Verdict:
+    names = [*_RESULTS, ARTIFACT_REPORT_DEV] if artifact_names is None else artifact_names
+    return _decide(run, artifact_names=names, **kw)
+
+
+def _report(verdict: Verdict) -> tuple[str | None, str | None, str | None, str | None]:
+    return (verdict.kind, verdict.side, verdict.head_sha, verdict.artifact)
+
+
+def test_report_constants_match_test_report_workflow() -> None:
+    assert (REPORT_PATH, ARTIFACT_REPORT_DEV, ARTIFACT_REPORT_RELEASE) == (
+        ".github/workflows/test-report.yml",
+        "test-report-dev",
+        "test-report-release",
+    )
+
+
+def test_build_runs_are_kind_site() -> None:
+    assert _decide(_run("push")).kind == "site"
+    assert _decide(_run("workflow_dispatch"), artifact_names=["pages-side-release"]).kind == "site"
+    assert _decide_pr(_pr_run()).kind == "site"
+
+
+def test_report_push_run_is_dev_report() -> None:
+    verdict = _decide_report(_report_run())
+    assert _report(verdict) == ("report", "dev", REPORT_HEAD, "test-report-dev")
+    assert verdict.pr is None and not verdict.closed_pr
+
+
+@pytest.mark.parametrize(
+    ("names", "side", "artifact"),
+    [
+        ([*_RESULTS, "test-report-dev"], "dev", "test-report-dev"),
+        ([*_RESULTS, "test-report-release"], "release", "test-report-release"),
+        (["test-report-release"], "release", "test-report-release"),
+    ],
+)
+def test_report_dispatch_takes_the_side_of_its_only_report_artifact(
+    names: list[str], side: str, artifact: str
+) -> None:
+    verdict = _decide_report(_report_run("workflow_dispatch"), artifact_names=names)
+    assert _report(verdict) == ("report", side, REPORT_HEAD, artifact)
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        [],
+        _RESULTS,
+        ["test-report-dev", "test-report-release"],
+        # 定義書の artifact はレポートの run の側を決めない。
+        ["pages-side-dev"],
+        ["pages-side-release", "test-report-dev", "test-report-release"],
+    ],
+)
+def test_report_dispatch_without_exactly_one_report_artifact_is_dropped(
+    names: list[str],
+) -> None:
+    verdict = _decide_report(_report_run("workflow_dispatch"), artifact_names=names)
+    assert _report(verdict) == (None, None, None, None)
+
+
+def test_build_dispatch_does_not_take_report_artifacts() -> None:
+    verdict = _decide(_run("workflow_dispatch"), artifact_names=["test-report-release"])
+    assert _accepted(verdict) == DROPPED
+
+
+def test_report_pull_request_run_is_dropped() -> None:
+    # test-report.yml は pull_request を契機にしないが、PR の作者が書き換えた run も受けない。
+    run = _report_run("pull_request", pull_requests=[_run_pr(5)], head_branch="feat/x/5")
+    verdict = _decide_report(run, head_vs_main=None, pulls={5: _pull(5)})
+    assert (_report(verdict), verdict.pr, verdict.closed_pr) == (
+        (None, None, None, None),
+        None,
+        False,
+    )
+
+
+@pytest.mark.parametrize("event", ["schedule", "workflow_run", "pull_request_target", "release"])
+def test_report_other_events_are_dropped(event: str) -> None:
+    assert _decide_report(_report_run(event)).side is None
+
+
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
+def test_report_head_not_ancestor_of_main_is_dropped(event: str) -> None:
+    verdict = _decide_report(_report_run(event), head_vs_main=NOT_IN_MAIN)
+    assert verdict.side is None
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {"head_repository": {"full_name": "someone/pecot", "fork": True}},
+        {"conclusion": "failure"},
+        {"path": ".github/workflows/test-report.yaml"},
+    ],
+)
+def test_report_common_checks_still_apply(over: dict[str, Any]) -> None:
+    assert _decide_report(_report_run(**over)).side is None
+
+
+@pytest.mark.parametrize(
+    ("status", "side"),
+    [("identical", "dev"), ("ahead", "dev"), ("behind", None), ("diverged", None)],
+)
+def test_report_dev_against_stored_report_sha(status: str, side: str | None) -> None:
+    verdict = _decide_report(
+        _report_run(),
+        stored_dev_sha=STORED,
+        stored_vs_head=_compare(status, 0 if status == "identical" else 1, 0),
+    )
+    assert verdict.side == side
+
+
+def test_report_release_does_not_look_at_stored_dev_sha() -> None:
+    verdict = _decide_report(
+        _report_run("workflow_dispatch"),
+        artifact_names=["test-report-release"],
+        stored_dev_sha=STORED,
+        stored_vs_head=_compare("behind", 0, 2),
+    )
+    assert _report(verdict) == ("report", "release", REPORT_HEAD, "test-report-release")
+
+
+def test_report_reason_names_the_report() -> None:
+    assert "レポート" in _decide_report(_report_run()).reason
+    assert "\n" not in _decide_report(_report_run("pull_request")).reason
+
+
+@pytest.mark.parametrize(
+    ("path", "kind"),
+    [
+        (BUILD_PATH, "site"),
+        (".github/workflows/test-report.yml", "report"),
+        (".github/workflows/ci.yml", None),
+        (None, None),
+    ],
+)
+def test_run_kind_follows_the_workflow_path(path: str | None, kind: str | None) -> None:
+    assert run_kind({"path": path}) == kind

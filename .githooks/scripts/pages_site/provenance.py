@@ -1,6 +1,7 @@
 """workflow_run で受けた run の出どころ（RunProvenance）を、GitHub の REST の応答から決める。
 
 決まりの正は specs/028-pages-site/data-model.md の「受け取った run の確かめ（RunProvenance）」。
+レポートの run の決まりは specs/030-allure-test-report/contracts/test-report.md の「pages-deploy.yml（変える所）」。
 ここは判定だけを置き、API・git・ファイルには触らない。API を呼ぶのは verify.py。
 """
 
@@ -11,9 +12,18 @@ from dataclasses import dataclass
 from typing import cast
 
 BUILD_PATH = ".github/workflows/pages-build.yml"
+REPORT_PATH = ".github/workflows/test-report.yml"
 
 ARTIFACT_DEV = "pages-side-dev"
 ARTIFACT_RELEASE = "pages-side-release"
+ARTIFACT_REPORT_DEV = "test-report-dev"
+ARTIFACT_REPORT_RELEASE = "test-report-release"
+
+_KIND_BY_PATH = {BUILD_PATH: "site", REPORT_PATH: "report"}
+_ARTIFACTS = {
+    "site": (ARTIFACT_DEV, ARTIFACT_RELEASE),
+    "report": (ARTIFACT_REPORT_DEV, ARTIFACT_REPORT_RELEASE),
+}
 
 
 @dataclass(frozen=True)
@@ -21,9 +31,10 @@ class Verdict:
     side: str | None  # "dev" / "release" / "pr" / None（捨てる）
     pr: int | None
     head_sha: str | None
-    artifact: str | None  # "pages-side-dev" / "pages-side-release" / "pages-side-pr-<n>"
+    artifact: str | None  # "pages-side-<side>" / "pages-side-pr-<n>" / "test-report-<side>"
     reason: str  # 採否の理由（summary に出す日本語 1 行）
     closed_pr: bool = False  # pull_request の run で PR が閉じている（掃除だけ起こす）
+    kind: str | None = None  # "site"（定義書）/ "report"（テストレポート）/ None（捨てる）
 
 
 def _map(value: object) -> Mapping[str, object]:
@@ -126,11 +137,19 @@ def _decide_pr(
         head_sha=head_sha,
         artifact=f"pages-side-pr-{number}",
         reason=f"PR 版: #{number} の今の head の run です",
+        kind="site",
     )
 
 
-def _dispatch_side(artifact_names: list[str]) -> str | None:
-    has_dev, has_release = ARTIFACT_DEV in artifact_names, ARTIFACT_RELEASE in artifact_names
+def run_kind(run: Mapping[str, object]) -> str | None:
+    """run の workflow の path から種類（"site" か "report"）を決める。どちらでもなければ None。"""
+    path = _str(run, "path")
+    return None if path is None else _KIND_BY_PATH.get(path)
+
+
+def _dispatch_side(kind: str, artifact_names: list[str]) -> str | None:
+    dev, release = _ARTIFACTS[kind]
+    has_dev, has_release = dev in artifact_names, release in artifact_names
     if has_dev == has_release:
         return None
     return "dev" if has_dev else "release"
@@ -161,9 +180,9 @@ def decide(
     pulls: Mapping[int, Mapping[str, object]],
 ) -> Verdict:
     """受けた run を、どの側として受けるか（捨てるか）決める。"""
-    path = _str(run, "path")
-    if path != BUILD_PATH:
-        return _drop(f"workflow の path が {BUILD_PATH} ではありません")
+    kind = run_kind(run)
+    if kind is None:
+        return _drop(f"workflow の path が {BUILD_PATH} と {REPORT_PATH} のどちらでもありません")
     if not _same_repo(_str(run, "head_repository", "full_name"), repo):
         return _drop("head_repository がこのリポではありません")
     head_sha = _str(run, "head_sha")
@@ -175,14 +194,17 @@ def decide(
     # head_branch は判定に使わない（タグで動いた run はタグ名が入る）。
     event = _str(run, "event")
     if event == "pull_request":
+        if kind == "report":
+            return _drop("レポート: pull_request の run は受けません")
         return _decide_build_pr(run, repo, head_sha, artifact_names, pulls)
+    dev_artifact, release_artifact = _ARTIFACTS[kind]
     if event == "push":
         side = "dev"
     elif event == "workflow_dispatch":
-        dispatched = _dispatch_side(artifact_names)
+        dispatched = _dispatch_side(kind, artifact_names)
         if dispatched is None:
             return _drop(
-                f"手での起動: {ARTIFACT_DEV} と {ARTIFACT_RELEASE} のちょうど 1 つがありません"
+                f"手での起動: {dev_artifact} と {release_artifact} のちょうど 1 つがありません"
             )
         side = dispatched
     else:
@@ -193,17 +215,20 @@ def decide(
     if behind_by != 0:
         return _drop(f"head_sha {head_sha[:7]} が main の祖先ではありません")
 
+    label = "開発版" if side == "dev" else "リリース版"
+    if kind == "report":
+        label += "のレポート"
+    # 比べる保管中のコミットは、verify が種類ごとに渡す（定義書は dev.sha、レポートは reports.dev.sha）。
     if side == "dev" and stored_dev_sha is not None:
         status = _str(_map(stored_vs_head), "status")
         if status not in ("identical", "ahead"):
-            return _drop(f"開発版: 保管中の {stored_dev_sha[:7]} より古い run です（{status}）")
+            return _drop(f"{label}: 保管中の {stored_dev_sha[:7]} より古い run です（{status}）")
 
-    label = "開発版" if side == "dev" else "リリース版"
-    artifact = ARTIFACT_DEV if side == "dev" else ARTIFACT_RELEASE
     return Verdict(
         side=side,
         pr=None,
         head_sha=head_sha,
-        artifact=artifact,
+        artifact=dev_artifact if side == "dev" else release_artifact,
         reason=f"{label}: main の祖先 {head_sha[:7]} の run です",
+        kind=kind,
     )

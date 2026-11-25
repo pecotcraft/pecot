@@ -81,13 +81,13 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 |---|---|
 | 置き場所 | `pages-store` の `<側>/test-report/history.jsonl` |
 | 形 | Allure 3 の履歴の JSONL。1 回の実行が 1 行 |
-| 上限 | 20 行（`historyLimit`） |
+| 上限 | 3 行（`historyLimit`。大きさの理由は research R5） |
 | 書く人 | `test-report.yml` の `report` の job が、読んだファイルに 1 行足して artifact に入れ、`pages-deploy.yml` の store が置く |
 
 状態の移り変わり:
 
 - 初めて: ファイルが無い。空の履歴でレポートを作り、1 行のファイルができる
-- 2 回目から: `pages-store` に保管中のファイルを git で読み、1 行足す。Pages の CDN は前の中身を返すことがあるので、公開の URL からは読まない。20 行を超えたら、古い行から消える
+- 2 回目から: `pages-store` に保管中のファイルを git で読み、1 行足す。Pages の CDN は前の中身を返すことがあるので、公開の URL からは読まない。3 行を超えたら、古い行から消える
 - 読めない（壊れている・取れない）: 空の履歴として作る（FR-021）。知らせを job summary に書く
 
 決まり:
@@ -95,6 +95,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 - 読めない行は、Allure（Node の readline と `JSON.parse`）が読めない行とする。後の SideCheck も同じ決まりで読む
   - UTF-8 でないファイルは、全体を読めないとする
   - 行の区切りは `\r\n`・`\n`・`\r`・U+2028・U+2029（Node の readline）。`JSON.stringify` は U+2028 をエスケープしないので、文字列に U+2028 を含む行は 2 つに切れて読めない
+    - Allure は自分で書いた行を次の回に読めない（テストの名前に U+2028 を含むと起きる）。`generate.py` は、Allure が書いた後で U+2028・U+2029 を ` `・` ` にエスケープする。値は変わらない（#698）
   - JS の `trim()` で空になる行は飛ばす。空白とするのは ECMAScript の WhiteSpace と LineTerminator で、Python の `str.strip()` とは違う（U+FEFF を含み、`\x1c`〜`\x1f`・U+0085 を含まない）
   - `null` の行は、`JSON.parse` は通るが、Allure がその後で落ちる
   - `NaN`・`Infinity` を含む行と、オブジェクトでない行（`null` など）は読めない
@@ -114,7 +115,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 |---|---|---|
 | `/test-report/` | リリース版のレポートと履歴 | リリース版のレポートを受けたとき。定義書のリリース版を差し替えるときは残す |
 | `/dev/test-report/` | 開発版のレポートと履歴 | 開発版のレポートを受けたとき。定義書の開発版を差し替えるときは残す |
-| `.pecot-store.json` の `reports` | 側ごとの、レポートを作った run の ID とコミット | レポートを受けたとき |
+| `.pecot-store.json` の `reports` | 側ごとの、レポートを作った run の ID とコミット。リリース版は材料（`sources`）も書く | レポートを受けたとき |
 
 - レポートがまだ無い側の `test-report/index.html` には、案内のページを置く。リリース版で、結果を出せるプラグインが無い間も同じ
 - `pr/<番号>/` には `test-report/` を置かない
@@ -124,11 +125,12 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 
 | 欄 | 出どころ | 値 |
 |---|---|---|
-| `report_url` | `PECOT_SITE_SIDE` | 開発版・リリース版は `test-report/`（その側のルートからの相対）。PR 版・手元は無し |
+| `report_url` | `PECOT_SITE_SIDE` | 開発版と、`report_plugins` が空でないリリース版は `test-report/index.html`（その側のルートからの相対）。PR 版・手元は無し |
 | `report_plugins` | `PECOT_SITE_REPORT_PLUGINS`（リリース版だけ。`release_build.py` が渡す） | レポートに入っているプラグインの名前の一覧。開発版は全部のプラグイン |
+| `report_missing` | サイトに載せるプラグインと `report_plugins` | リリース版で、`report_plugins` に無いプラグインの名前。ほかの側は空 |
 
 決まり:
 
 - 側からのリンクは、`report_url` があり、`report_plugins` が空でないときに出す
-- 項目からのリンク（`<report_url>index.html?tags=<ID>`）は、その項目のプラグインが `report_plugins` にあるときに出す
+- 項目からのリンク（`test-report/index.html?tags=<ID>`）は、その項目のプラグインが `report_plugins` にあるときに出す
 - リリース版で、`report_plugins` に無いプラグインがあれば、その名前を側からのリンクのそばに書く

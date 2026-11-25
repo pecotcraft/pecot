@@ -17,7 +17,7 @@ REBUILD = "gh workflow run pages-build.yml --ref main -f side=dev"
 
 def find(api: Api, repo: str) -> tuple[str, str] | None:
     """(run_id, sha)。記録が無いか形が合わなければ None。"""
-    dev = stored_dev(api, repo)
+    dev = stored_dev(api, repo, "site")
     if dev.run_id is None or dev.sha is None:
         return None
     # 値は GITHUB_OUTPUT と download-artifact の run-id に渡すので、形を確かめてから出す。

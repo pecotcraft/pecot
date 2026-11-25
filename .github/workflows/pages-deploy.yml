@@ -1,11 +1,12 @@
 name: pages-deploy
 
-# pages-build.yml の run を確かめ、保管ブランチ pages-store のその側だけを差し替えて、GitHub Pages に公開する。
-# 決まりは specs/028-pages-site/contracts/pages.md。形は .githooks/tests/test_pages_workflows.py が固定する。
+# pages-build.yml（定義書）と test-report.yml（レポート）の run を確かめる。pages-store のその側だけを差し替えて公開する。
+# 決まりは specs/028-pages-site/contracts/pages.md。レポートの決まりは specs/030-allure-test-report/contracts/test-report.md。
+# 形は .githooks/tests/test_pages_workflows.py が固定する。
 
 on:
   workflow_run:
-    workflows: [pages-build]
+    workflows: [pages-build, test-report]
     types: [completed]
   # pages-store の今の中身を公開し直すだけ。
   workflow_dispatch:
@@ -23,6 +24,7 @@ jobs:
       pull-requests: read
     outputs:
       side: ${{ steps.verify.outputs.side }}
+      kind: ${{ steps.verify.outputs.kind }}
       pr: ${{ steps.verify.outputs.pr }}
       head_sha: ${{ steps.verify.outputs.head_sha }}
       open_prs: ${{ steps.verify.outputs.open_prs }}
@@ -71,6 +73,7 @@ jobs:
       changed: ${{ steps.publish.outputs.changed }}
     env:
       SIDE: ${{ needs.verify.outputs.side }}
+      KIND: ${{ needs.verify.outputs.kind }}
       PR: ${{ needs.verify.outputs.pr }}
       HEAD_SHA: ${{ needs.verify.outputs.head_sha }}
       OPEN_PRS: ${{ needs.verify.outputs.open_prs }}
@@ -100,7 +103,7 @@ jobs:
           private-key: ${{ secrets.PAGES_STORE_APP_PRIVATE_KEY }}
           permission-contents: write
 
-      # トークンは URL に入れず、actions/checkout と同じ extraheader で渡す。
+      # トークンは URL に入れず、actions/checkout と同じ extraheader で渡す。レポートは --kind report で側の test-report/ に置く。
       - name: Store side
         id: publish
         env:
@@ -112,9 +115,16 @@ jobs:
           export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
           args=(--remote-url "https://github.com/$REPO.git" --open-prs "$OPEN_PRS" --run-id "$RUN_ID" --history . --main-ref origin/main --workdir "$RUNNER_TEMP/pages-store")
           if [ -n "$SIDE" ]; then
-            args+=(--side "$SIDE" --sha "$HEAD_SHA" --tar "$RUNNER_TEMP/pages-verified/site.tar")
-            [ -z "$PR" ] || args+=(--pr "$PR")
-            [ ! -f "$RUNNER_TEMP/pages-verified/release-sources.json" ] || args+=(--sources "$RUNNER_TEMP/pages-verified/release-sources.json")
+            verified="$RUNNER_TEMP/pages-verified"
+            args+=(--side "$SIDE" --kind "$KIND" --sha "$HEAD_SHA")
+            if [ "$KIND" = "report" ]; then
+              args+=(--tar "$verified/report.tar")
+              [ ! -f "$verified/report-sources.json" ] || args+=(--sources "$verified/report-sources.json")
+            else
+              args+=(--tar "$verified/site.tar")
+              [ -z "$PR" ] || args+=(--pr "$PR")
+              [ ! -f "$verified/release-sources.json" ] || args+=(--sources "$verified/release-sources.json")
+            fi
           else
             args+=(--side none)
           fi

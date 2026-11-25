@@ -86,7 +86,7 @@ description: "Task list for 030-allure-test-report"
 
 - [x] T012 [US1] `.githooks/scripts/test_report/allurerc.mjs` を、`defineConfig` で作る。
   トップレベルの `name: "pecot テストレポート"`、awesome の plugin を 1 つ（`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`）、
-  `historyLimit: 20`、`flakyDetection: { includePassedTests: true }`。`historyBaseUrl` は設定しない（research R5・R7）
+  `historyLimit: 20`（#698 で 3 に下げた。research R5）、`flakyDetection: { includePassedTests: true }`。`historyBaseUrl` は設定しない（research R5・R7）
 - [x] T013 [US1] `.githooks/scripts/test_report/generate.py` を作る（T011・T012 の後）。
   判定（どのレーンがそろったか）は純粋な処理に、`allure` の起動は I/O に分ける。入力は `--local`・`--output`・`--history`（省ける）・`--sources`（ReportSources の JSON。`--local` のときだけ省ける）
 - [x] T014 [US1] 実物で確かめる（T013 の後）。
@@ -241,6 +241,7 @@ description: "Task list for 030-allure-test-report"
 
 - [ ] T048 quickstart.md の 5 を、公開サイトの開発版で確かめる。12 本のレーンのテストがあること、定義書の項目のリンクから、その ID のテストだけが出ること、テストの要件の ID のリンクから、開発版の定義書の項目へ戻れること、2 回目の main への push の後に履歴が 2 件になることを見る。
   `test-report.yml` の run の所要時間と、結果がそろってからレポートが変わるまでの時間を測り、30 分以内であることを確かめる（SC-008）。値を `.claude/rules/pages-site.md` に書く
+  pages-deploy の deploy の step の所要時間を見て、Pages の 10 分の上限に余裕があることを確かめる（#698 で公開の中身が約 630 MB に増えた）
 - [ ] T049 quickstart.md の 6 を確かめる。リリースの前は、リリース版のフッターにリンクが無く、`/pecot/test-report/` に案内のページがあること。
   リリースの時機が来ていなければ、`gh workflow run test-report.yml --ref main -f side=release` で起こし、run が「結果を出せるプラグインが無い」で成功して終わることを確かめる。リリースの後の確かめは、その旨を Issue に残して次のリリースで行う
 - [ ] T050 `.claude/rules/pages-site.md` に、テストレポートの節を足す。URL の表、起動とやり直し（`gh workflow run test-report.yml --ref main -f side=dev`・`side=release`）、レポートが出ないときに読む所、手元での作り方（`generate.py --local`）、Allure の版を上げるときに見る所（`report-links.test.ts`）。

@@ -38,7 +38,7 @@ vitest と pytest の全レーン（12 本）に、Allure の公式のアダプ�
 
 **Constraints**: 公開サイト全体で 1 GB 以内。PR の run は、レポートと履歴を書き換えない。`pull_request_target` を使わない。手での起動は任意の SHA を受けない。テストの成否・JUnit XML・カバレッジの判定を変えない
 
-**Scale/Scope**: レポートは 2 つ（開発版・リリース版）。レポートのレーンは 12 本。`verifies` の呼び出しは約 1,470 か所（書き直さない）。履歴は側ごとに 20 件まで
+**Scale/Scope**: レポートは 2 つ（開発版・リリース版）。レポートのレーンは 12 本。`verifies` の呼び出しは約 1,470 か所（書き直さない）。履歴は側ごとに 3 件まで（#698 で 20 件から下げた。research R5）
 
 ## Constitution Check
 
