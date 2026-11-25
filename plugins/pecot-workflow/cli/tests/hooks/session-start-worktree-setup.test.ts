@@ -106,6 +106,25 @@ describe('session-start-worktree-setup.sh', () => {
     expect(existsSync(gitPath(hookCase, worktree, 'pecot-worktree-setup'))).toBe(false)
   })
 
+  it.for([
+    { name: 'setup_command_timeout が無い', config: { setup_command: 'sleep 5' } },
+    { name: 'setup_command_timeout がフックの上限より長い', config: { setup_command: 'sleep 5', setup_command_timeout: 1000 } },
+  ])('$name と、フックの上限で打ち切って warning を出す', ({ config }) => {
+    const hookCase = createHookCase()
+    hooksConfig(hookCase)
+    const { worktree } = claudeWorktree(hookCase, config)
+
+    const result = runHookEntry(
+      hookCase,
+      ENTRY,
+      { hook_event_name: 'SessionStart', source: 'startup', cwd: worktree, session_id: 's1' },
+      { cwd: worktree, env: { PECOT_WORKTREE_SETUP_LIMIT: '1' } },
+    )
+
+    expect(result.stdout).toContain('warning: the worktree setup command timed out after 1 seconds: sleep 5')
+    expect(existsSync(gitPath(hookCase, worktree, 'pecot-worktree-setup'))).toBe(false)
+  })
+
   it('.claude/worktrees の外のサブ worktree では流さない', () => {
     const hookCase = createHookCase()
     hooksConfig(hookCase)

@@ -32,9 +32,14 @@ CONFIG="$MAIN_WORKTREE/.pecot/config/worktree-config.json"
 SETUP_COMMAND=$(jq -r '.setup_command // "" | strings' "$CONFIG" 2>/dev/null) || SETUP_COMMAND=""
 [ -n "$SETUP_COMMAND" ] || exit 0
 SETUP_TIMEOUT=$(jq -r '.setup_command_timeout // "" | numbers | floor | select(. > 0)' "$CONFIG" 2>/dev/null) || SETUP_TIMEOUT=""
+# hooks.json の timeout（600）に達するとフックごと取り消され、warning が届かない。その手前で必ず打ち切る（変数はテスト用）
+HOOK_LIMIT="${PECOT_WORKTREE_SETUP_LIMIT:-590}"
+if [ -z "$SETUP_TIMEOUT" ] || [ "$SETUP_TIMEOUT" -gt "$HOOK_LIMIT" ]; then
+    SETUP_TIMEOUT="$HOOK_LIMIT"
+fi
 
 RUNNER=(bash -c "$SETUP_COMMAND")
-if [ -n "$SETUP_TIMEOUT" ] && command -v timeout >/dev/null 2>&1; then
+if command -v timeout >/dev/null 2>&1; then
     RUNNER=(timeout "$SETUP_TIMEOUT" "${RUNNER[@]}")
 fi
 
@@ -44,7 +49,7 @@ STATUS=$?
 if [ "$STATUS" -eq 0 ]; then
     : >"$MARKER"
     hook_message note "ran the worktree setup command: $SETUP_COMMAND"
-elif [ "$STATUS" -eq 124 ] && [ -n "$SETUP_TIMEOUT" ]; then
+elif [ "$STATUS" -eq 124 ] && command -v timeout >/dev/null 2>&1; then
     hook_message warning "the worktree setup command timed out after ${SETUP_TIMEOUT} seconds: $SETUP_COMMAND
 it runs again at the next session start
 log: $LOG"
