@@ -127,7 +127,6 @@ stdout に出すもの:
 | `--body-file` | パス | 結果ごとの本文。質問、落ちたテストなど |
 | `--ensure` | 真偽値 | 同じ run の結果のコメントが無いときだけ書く |
 | `--job-status` | 文字列 | `--ensure` のときの、job の終わり方（`success`・`failure`・`cancelled`） |
-| `--run-outcome` | 文字列 | `--ensure` のときの、自動処理の step の `outcome`（`success`・`failure`・`cancelled`・`skipped`） |
 | `--execution-file` | パス | `--ensure` のときの、action の出力 `execution_file`。省けて、空でもよい |
 | `--dry-run` | 真偽値 | コメント・ボード・ラベルに書かず、書くはずの内容を出す |
 
@@ -151,7 +150,7 @@ stdout に出すもの:
 | それ以外の失敗 | `failed` |
 
 - `execution_file` は runner の上のファイルなので読める。無いか読めなければ、その行を飛ばす
-- 補助の引数は、`--ensure` なしで渡すと入力の誤りで止まる。`--ensure` のときは、`--job-status` と `--run-outcome` が要る
+- 補助の引数は、`--ensure` なしで渡すと入力の誤りで止まる。`--ensure` のときは、`--job-status` が要る。結果は step の `outcome` を使わずに決めるので、受け取らない
 - `--result` と `--ensure` は、どちらか 1 つを渡す。両方・どちらも無しは、入力の誤りで止める
 - 外す起動ラベルの名前は、環境変数 `PECOT_AUTO_LABEL` から読む。無ければ `pecot-auto` だ。引数では渡さない
 - 結果のコメントの目印に入れる run と試行は、環境変数 `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` から作る。`GITHUB_RUN_ID` が無ければ、目印を付けずに書く

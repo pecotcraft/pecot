@@ -6,7 +6,7 @@ import { appendFileSync } from 'node:fs'
 import { z } from 'zod'
 
 import { autoContextOf, permissionCandidates } from '../domain/auto-context.js'
-import { decideGate, screenIssues, screenWorkflowRun } from '../domain/auto-gate.js'
+import { decideGate, isFailedConclusion, screenIssues, screenWorkflowRun } from '../domain/auto-gate.js'
 import type { AutoRun, GateDecision, IssueGateFacts, IssuesScreenInput, WorkflowRunScreenInput } from '../domain/auto-gate.js'
 import { AUTO_RESULTS } from '../domain/auto-result.js'
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
@@ -131,7 +131,8 @@ function workflowRunEventOf(out: GateOutput, event: JsonValue): WorkflowRunScree
     conclusion: textAt(event, 'workflow_run', 'conclusion') ?? '',
     headBranch: required(out, textAt(event, 'workflow_run', 'head_branch'), 'workflow_run.head_branch'),
     headSha: required(out, textAt(event, 'workflow_run', 'head_sha'), 'workflow_run.head_sha'),
-    headCommitTime: textAt(event, 'workflow_run', 'head_commit', 'timestamp'),
+    actorType: textAt(event, 'workflow_run', 'actor', 'type'),
+    createdAt: textAt(event, 'workflow_run', 'created_at'),
     isFork: textAt(event, 'workflow_run', 'head_repository', 'full_name') !== textAt(event, 'repository', 'full_name'),
     pullRequest: numberAt(first, 'number') ?? 0,
   }
@@ -203,6 +204,12 @@ async function branchShaOf(out: GateOutput, client: GitHubClient, repository: Re
   }
 }
 
+async function hasFailedRunOf(out: GateOutput, client: GitHubClient, read: Readonly<WorkflowRunScreenInput>): Promise<boolean> {
+  if (read.conclusion !== 'success') return false
+  const runs = await readOrStop(out, `the workflow runs of ${read.headSha}`, async () => await client.listWorkflowRunConclusions(read.repository.owner, read.repository.repository, read.headSha))
+  return runs.some(run => isFailedConclusion(run.conclusion))
+}
+
 async function decideWorkflowRun(out: GateOutput, client: GitHubClient, event: JsonValue, maxCiAttempts: number): Promise<GateDecision> {
   const read = workflowRunEventOf(out, event)
   const screened = screenWorkflowRun(read)
@@ -212,7 +219,8 @@ async function decideWorkflowRun(out: GateOutput, client: GitHubClient, event: J
   const display = issueDisplay({ ...read.repository, number })
   const comments = await readOrStop(out, `the comments of ${display}`, async () => await client.listIssueCommentRecords(read.repository.owner, read.repository.repository, number))
   const branchSha = await branchShaOf(out, client, read.repository, read.headBranch)
-  return decideGate({ event: 'workflow_run', ...read, comments, branchSha, maxCiAttempts })
+  const hasFailedRun = await hasFailedRunOf(out, client, read)
+  return decideGate({ event: 'workflow_run', ...read, comments, branchSha, hasFailedRun, maxCiAttempts })
 }
 
 type RunFields = z.input<typeof RUN_JSON>

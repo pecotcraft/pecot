@@ -116,7 +116,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 - [x] T015 [US3] `p-w/cli/src/commands/auto.ts` に `finish` を足す
   - 振る舞いは `spec/contracts/cli-commands.md` の `pecot auto finish` の表のとおり
   - `--result` と `--ensure` は、どちらか 1 つを受ける
-  - `--ensure` は、job の終わり方・自動処理の step の `outcome`・`execution_file` から結果を決める
+  - `--ensure` は、job の終わり方と `execution_file` から結果を決める
   - 外すラベルの名前と、目印の run と試行は、環境変数から読む
   - 既定の Status に `Needs Attention` が無いときは、結果のコメントに足りない設定を足し、成功で終わる
   - 起動ラベルが既に外れていても、失敗にしない

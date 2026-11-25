@@ -28,7 +28,6 @@ const InputSchema = z.object({
   body_file: z.string().optional().describe('Path of a file with the text for the result, such as the question or the failed tests (only with result)'),
   ensure: z.boolean().default(false).describe('Called from the cleanup step of the workflow: decide the result from the job and write only if this run has not'),
   job_status: z.enum(['success', 'failure', 'cancelled']).optional().describe('Status of the job (required with ensure)'),
-  run_outcome: z.enum(['success', 'failure', 'cancelled', 'skipped']).optional().describe('Outcome of the automated fix step (required with ensure)'),
   execution_file: z.string().optional().describe('Path of the execution_file output of claude-code-action (only with ensure; may be empty)'),
   project: PROJECT_INPUT,
   dry_run: z.boolean().default(false).describe('Read the Issue and print the comment that would be posted without writing the comment, the Status or the label'),
@@ -62,14 +61,12 @@ function validateCombination(out: FinishOutput, input: Readonly<Input>): void {
   if (input.ensure === (input.result !== undefined)) stopInvalid(out, hinted`specify exactly one of ${result} and ${ensure}`)
   if (input.body_file !== undefined && input.result === undefined) stopInvalid(out, hinted`${inputNameHint(PATH, 'body_file')} is only for ${result}`)
   if (!input.ensure) {
-    const given = { job_status: input.job_status, run_outcome: input.run_outcome, execution_file: input.execution_file }
+    const given = { job_status: input.job_status, execution_file: input.execution_file }
     const ensureOnly = Object.entries(given).find(([, value]) => value !== undefined)?.[0]
     if (ensureOnly !== undefined) stopInvalid(out, hinted`${inputNameHint(PATH, ensureOnly)} is only for ${ensure}`)
     return
   }
-  const required = { job_status: input.job_status, run_outcome: input.run_outcome }
-  const missing = Object.entries(required).find(([, value]) => value === undefined)?.[0]
-  if (missing !== undefined) stopInvalid(out, hinted`${inputNameHint(PATH, missing)} is required with ${ensure}`)
+  if (input.job_status === undefined) stopInvalid(out, hinted`${inputNameHint(PATH, 'job_status')} is required with ${ensure}`)
 }
 
 function readBodyFile(out: FinishOutput, file: string | undefined): string | undefined {

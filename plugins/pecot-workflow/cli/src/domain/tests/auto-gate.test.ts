@@ -18,8 +18,8 @@ function result(value: string, branch = BRANCH, createdAt?: string, userType: 'B
   return record(`<!-- pecot-auto: result=${value} run=1 attempt=1 branch=${branch} -->\n## Auto result — 見本`, userType, createdAt)
 }
 
-function openPullRequest(head: string, number = 11): IssuePullRequest {
-  return { repository: REPOSITORY, number, state: 'open', headRefName: head, baseRefName: 'main', isDraft: false, isCrossRepository: false }
+function openPullRequest(): IssuePullRequest {
+  return { repository: REPOSITORY, number: 11, state: 'open', headRefName: BRANCH, baseRefName: 'main', isDraft: false, isCrossRepository: false }
 }
 
 function facts(values: Partial<IssueGateFacts> = {}): IssueGateFacts {
@@ -38,11 +38,13 @@ function run(values: Partial<WorkflowRunGateInput> = {}): WorkflowRunGateInput {
     conclusion: 'failure',
     headBranch: BRANCH,
     headSha: HEAD,
-    headCommitTime: '2026-11-24T09:00:00Z',
+    actorType: 'Bot',
+    createdAt: '2026-11-24T09:00:00Z',
     isFork: false,
     pullRequest: 11,
     comments: [result('pr-created')],
     branchSha: HEAD,
+    hasFailedRun: false,
     maxCiAttempts: 3,
     ...values,
   }
@@ -59,6 +61,7 @@ describe('decideGate の issues', () => {
   it.for([
     { name: '計画のコメントがある', values: { hasPlan: true } },
     { name: 'ブランチがある', values: { branches: [BRANCH] } },
+    { name: '開いた PR だけがある', values: { pullRequests: [openPullRequest()] } },
   ])('$name Issue は、kind が resume で proceed が真になる', ({ values }) => {
     const decision = decideGate(issues({}, values))
 
@@ -67,7 +70,7 @@ describe('decideGate の issues', () => {
   })
 
   it('開いた PR があるブランチを branch と pr に出し、そのブランチの CI を直した回数を出す', () => {
-    const decision = decideGate(issues({}, { branches: ['other/3', BRANCH], pullRequests: [openPullRequest(BRANCH)], comments: [result('ci-fix-pushed')] }))
+    const decision = decideGate(issues({}, { branches: ['other/3', BRANCH], pullRequests: [openPullRequest()], comments: [result('ci-fix-pushed')] }))
 
     expect(decision.run).toMatchObject({ branch: BRANCH, pr: 11, ciAttempts: 1 })
   })
@@ -218,34 +221,51 @@ describe('decideGate の workflow_run', () => {
     expect(decision.write).toBeUndefined()
   })
 
-  it('最後の結果が ci-passed でも、head の commit がその前なら、同じ push の別の CI として判定する', () => {
+  it('最後の結果が ci-passed でも、自動処理の push の CI が落ちたら、同じ push の別の CI として判定する', () => {
     const comments = [result('pr-created'), result('ci-passed', BRANCH, '2026-11-24T10:00:00Z')]
 
-    expect(decideGate(run({ comments, headCommitTime: '2026-11-24T09:00:00Z' })).run).toMatchObject({ kind: 'ci-fix', proceed: true })
-  })
-
-  it('最後の結果が ci-passed で、head の commit がその時刻と同じなら、判定する', () => {
-    const comments = [result('pr-created'), result('ci-passed', BRANCH, '2026-11-24T10:00:00Z')]
-
-    expect(decideGate(run({ comments, headCommitTime: '2026-11-24T10:00:00Z' })).run.proceed).toBe(true)
+    expect(decideGate(run({ comments })).run).toMatchObject({ kind: 'ci-fix', proceed: true })
   })
 
   it.for([
-    { name: 'その後', time: '2026-11-24T11:00:00Z' },
-    { name: '分からない', time: undefined },
-    { name: '時刻として読めない', time: 'yesterday' },
-  ])('最後の結果が ci-passed で、head の commit の時刻が$name なら、人の push として、何も書かない', ({ time }) => {
+    { name: '人', actorType: 'User' },
+    { name: '分からない人', actorType: undefined },
+  ])('最後の結果が ci-passed で、$name が push した CI なら、commit の時刻にかかわらず何も書かない', ({ actorType }) => {
     const comments = [result('pr-created'), result('ci-passed', BRANCH, '2026-11-24T10:00:00Z')]
-    const decision = decideGate(run({ comments, headCommitTime: time }))
+    const decision = decideGate(run({ comments, actorType, createdAt: '2026-11-24T11:00:00Z' }))
 
-    expect(decision.run).toMatchObject({ proceed: false, reason: `${BRANCH} was pushed after the CI passed` })
+    expect(decision.run).toMatchObject({ proceed: false, reason: `${BRANCH} was pushed by a person after the CI passed` })
     expect(decision.write).toBeUndefined()
   })
 
-  it('ci-passed の後に自動処理が直して push していれば、時刻を比べずに判定する', () => {
+  it.for([
+    { name: 'ci-passed より前', createdAt: '2026-11-24T09:00:00Z' },
+    { name: '分からない', createdAt: undefined },
+  ])('最後の結果が ci-passed で、通った run を作った時刻が$name なら、同じ push の CI として ci-passed を重ねて書かない', ({ createdAt }) => {
+    const comments = [result('pr-created'), result('ci-passed', BRANCH, '2026-11-24T10:00:00Z')]
+    const decision = decideGate(run({ conclusion: 'success', comments, createdAt }))
+
+    expect(decision.run).toMatchObject({ proceed: false, reason: `the CI already passed for this push of ${BRANCH}` })
+    expect(decision.write).toBeUndefined()
+  })
+
+  it('最後の結果が ci-passed でも、その後に自動処理の push した CI が通れば、ci-passed を書く', () => {
+    const comments = [result('pr-created'), result('ci-passed', BRANCH, '2026-11-24T10:00:00Z')]
+
+    expect(decideGate(run({ conclusion: 'success', comments, createdAt: '2026-11-24T11:00:00Z' })).write).toMatchObject({ result: 'ci-passed' })
+  })
+
+  it('CI が通っても、同じ head_sha のほかの run が落ちていれば、ci-passed を書かない', () => {
+    const decision = decideGate(run({ conclusion: 'success', hasFailedRun: true }))
+
+    expect(decision.run).toMatchObject({ proceed: false, reason: `another CI run of ${HEAD} failed` })
+    expect(decision.write).toBeUndefined()
+  })
+
+  it('ci-passed の後に自動処理が直して push していれば、判定する', () => {
     const comments = [result('pr-created'), result('ci-passed', BRANCH, '2026-11-24T10:00:00Z'), result('ci-fix-pushed', BRANCH, '2026-11-24T12:00:00Z')]
 
-    expect(decideGate(run({ comments, headCommitTime: '2026-11-24T11:30:00Z' })).run).toMatchObject({ kind: 'ci-fix', proceed: true, ciAttempts: 1 })
+    expect(decideGate(run({ comments, actorType: 'User' })).run).toMatchObject({ kind: 'ci-fix', proceed: true, ciAttempts: 1 })
   })
 })
 

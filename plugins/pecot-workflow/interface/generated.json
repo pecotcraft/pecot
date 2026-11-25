@@ -247,16 +247,6 @@
               "setup-missing"
             ],
             "description": "Result of the run, passed by the skill (pr-created/ci-passed/ci-fix-pushed/question/out-of-scope/failed/limit/setup-missing)"
-          },
-          "run_outcome": {
-            "type": "string",
-            "enum": [
-              "success",
-              "failure",
-              "cancelled",
-              "skipped"
-            ],
-            "description": "Outcome of the automated fix step (required with ensure)"
           }
         },
         "required": [
@@ -289,9 +279,6 @@
           ],
           "result": [
             "--result"
-          ],
-          "run_outcome": [
-            "--run-outcome"
           ]
         },
         "only": {

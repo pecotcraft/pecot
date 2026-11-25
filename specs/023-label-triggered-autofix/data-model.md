@@ -39,12 +39,12 @@
 
 | 契機 | 条件 | `kind` | `proceed` |
 |---|---|---|---|
-| `issues: labeled` | 計画のコメントもブランチも無い | `start` | 真 |
-| `issues: labeled` | 計画のコメントかブランチがある | `resume` | 真 |
+| `issues: labeled` | 計画のコメント・ブランチ・開いた PR のどれも無い | `start` | 真 |
+| `issues: labeled` | 計画のコメント・ブランチ・開いた PR のどれかがある | `resume` | 真 |
 | `issues: labeled` | 対象外（下の表） | — | 偽 |
 | `workflow_run` | `conclusion` が `failure`・`timed_out` で、直した回数が上限より少ない | `ci-fix` | 真 |
 | `workflow_run` | `conclusion` が `failure`・`timed_out` で、直した回数が上限に達した | `ci-fix` | 偽 |
-| `workflow_run` | `conclusion` が `success` | `ci-passed` | 偽 |
+| `workflow_run` | `conclusion` が `success`。下の表の「通った CI」で止まらない | `ci-passed` | 偽 |
 | `workflow_run` | `conclusion` が `cancelled`・`skipped`・`neutral`・`action_required`・`stale`。または `action` が `completed` でない | — | 偽。何も書かない |
 | `workflow_run` | ブランチの末尾が Issue 番号でない。fork の PR | — | 偽。何も書かない |
 | `workflow_run` | Issue に、同じブランチで PR を作ったという目印が無い | — | 偽。何も書かない |
@@ -70,8 +70,9 @@ CI を直した回数（`ci_attempts`）の数え方は、次のとおりだ（�
 |---|---|
 | 数える目印 | 同じブランチの `result=ci-fix-pushed` の目印。同じブランチの最後の `limit` の目印より後のものだけを数える |
 | 古い CI | `head_sha` がブランチの先頭と違う CI は、何も書かない |
-| 通った後の CI | 最後の結果が `ci-passed` でも、`head_sha` がブランチの先頭と同じ CI は判定する |
+| 通った後の CI | 最後の結果が `ci-passed` でも、自動処理が push した（`workflow_run.actor` が bot の）ブランチの先頭の CI は判定する。人が push した CI には、何も書かない |
 | 1 回の push で複数の CI が届く | それぞれ別に扱う |
+| 通った CI | 同じ `head_sha` のほかの run が落ちていれば、`ci-passed` を書かない。最後の結果が `ci-passed` で、その後に作られた run でなければ、同じ push の CI として `ci-passed` を重ねて書かない |
 
 進めるのは 3 つの場合だけだ。
 

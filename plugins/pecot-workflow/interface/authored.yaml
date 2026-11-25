@@ -37,7 +37,7 @@ entries:
     help:
       details:
         - "Finishes an automated fix run of an Issue: posts the result comment, sets the waiting Status and removes the trigger label."
-        - Pass either --result (from the skill) or --ensure (from the cleanup step of the workflow), not both. --ensure needs --job-status and --run-outcome, and --execution-file is optional. --body-file goes only with --result.
+        - Pass either --result (from the skill) or --ensure (from the cleanup step of the workflow), not both. --ensure needs --job-status, and --execution-file is optional. --body-file goes only with --result.
         - question, failed and limit set the Status (fields.status) to Needs Attention and remove the trigger label. pr-created, out-of-scope and setup-missing remove the trigger label. ci-passed and ci-fix-pushed only post the comment.
         - With --ensure, a succeeded job posts nothing, and a cancelled job is limit. A failed job is limit when the last result of --execution-file is error_max_turns, and failed otherwise.
         - The comment starts with a hidden marker of the result, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT and the branch. The branch is the head of the open PR linked to the Issue, or else the Development branch ending with the Issue number. With --ensure, when a comment by a bot already has the marker of this run and attempt, no comment is posted, and the Status and the label are written again.
@@ -48,7 +48,7 @@ entries:
       examples:
         - run: pecot auto finish example-org/my-repo/123 --result question --body-file question.md
           note: Post the question and set the Status to Needs Attention.
-        - run: pecot auto finish example-org/my-repo/123 --ensure --job-status failure --run-outcome failure --execution-file /tmp/execution.json
+        - run: pecot auto finish example-org/my-repo/123 --ensure --job-status failure --execution-file /tmp/execution.json
           note: Post a result from the cleanup step when the job failed.
       default_notes:
         issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
@@ -59,15 +59,13 @@ entries:
       body_file: '`result` のときの、結果ごとの本文を書いたファイルのパスです。質問や落ちたテストを書きます。'
       ensure: 'ワークフローの後始末から呼ぶかどうかです。job の終わり方から結果を決め、同じ実行のコメントがまだ無いときだけ書きます。'
       job_status: '`ensure` のときの job の終わり方です。`success`・`failure`・`cancelled` のどれかです。'
-      run_outcome: '`ensure` のときの、自動処理の step の `outcome` です。`success`・`failure`・`cancelled`・`skipped` のどれかです。'
       execution_file: '`ensure` のときの、claude-code-action の出力 `execution_file` のパスです。省いても、空でもかまいません。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
     constraints:
       - conflicts: [result, ensure]
-      - requires: {ensure: [job_status, run_outcome]}
+      - requires: {ensure: [job_status]}
       - requires: {body_file: [result]}
       - requires: {job_status: [ensure]}
-      - requires: {run_outcome: [ensure]}
       - requires: {execution_file: [ensure]}
     details:
       - '`result` か `ensure` のどちらか 1 つを渡します。`result` はスキルが、`ensure` はワークフローの後始末の step が使います。'
@@ -172,7 +170,6 @@ entries:
           issue_ref: example-org/my-repo/123
           ensure: true
           job_status: failure
-          run_outcome: failure
           execution_file: /tmp/execution.json
         note: 'ワークフローの後始末から、job が失敗したときに結果のコメントを書きます。'
     cli_reference:
@@ -181,7 +178,7 @@ entries:
       examples:
         - run: pecot auto finish example-org/my-repo/123 --result question --body-file question.md
           note: '質問のコメントを書き、Status を Needs Attention にします。'
-        - run: pecot auto finish example-org/my-repo/123 --ensure --job-status failure --run-outcome failure --execution-file /tmp/execution.json
+        - run: pecot auto finish example-org/my-repo/123 --ensure --job-status failure --execution-file /tmp/execution.json
           note: 'ワークフローの後始末から、job が失敗したときに結果のコメントを書きます。'
     default_notes:
       issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
@@ -240,9 +237,9 @@ entries:
         - Called by the first job of the automated fix workflow. Reads the event and writes one JSON with issue, number, kind, proceed, reason, branch, pr and ci_attempts to stdout. When GITHUB_OUTPUT is set, appends the same values as key=value lines.
         - For an issues event, reads the permission of the sender. When it is not admin or write, when the sender ends with [bot], or when it cannot be read, writes nothing and proceed is false.
         - A closed Issue, a label on a PR, an Epic, a Tracker, an Issue with sub-issues, an Issue in Backlog, Pending, Archived or Blocked, and an Issue a person works on (Active or In Review without a result comment of the automation) get an out-of-scope result comment, the trigger label is removed and proceed is false.
-        - Other Issues proceed. kind is resume when the Issue has a plan comment or a branch, and start otherwise. A plan comment starts with the heading "## Plan" and is written by a bot or by a person with write permission.
-        - For a workflow_run event, only a completed run of a branch that ends with an Issue number, not from a fork, for the head commit of a branch where the automation created a PR is handled. A run after a push that followed a passed CI is skipped.
-        - A failed CI proceeds with kind ci-fix while the fixes on the branch are fewer than --max-ci-attempts. At the limit, a limit result comment is posted, the Status is set to Needs Attention and the trigger label is removed. A passed CI gets a ci-passed result comment.
+        - Other Issues proceed. kind is resume when the Issue has a plan comment, a branch or an open PR, and start otherwise. A plan comment starts with the heading "## Plan" and is written by a bot or by a person with write permission.
+        - For a workflow_run event, only a completed run of a branch that ends with an Issue number, not from a fork, for the head commit of a branch where the automation created a PR is handled. After a passed CI, a run of a push by a person (workflow_run.actor is not a bot) is skipped.
+        - A failed CI proceeds with kind ci-fix while the fixes on the branch are fewer than --max-ci-attempts. At the limit, a limit result comment is posted, the Status is set to Needs Attention and the trigger label is removed. A passed CI gets a ci-passed result comment, unless another run of the same commit failed or the CI of the same push already passed.
         - Exits with 0 even when proceed is false.
         - The project config must have the Status field (fields.status). Without it, the command stops and tells to run pecot project init.
         - With --dry-run, posts nothing and puts the body that would be posted in the comment field of the JSON.
@@ -264,10 +261,10 @@ entries:
       - '`GITHUB_OUTPUT` があれば、同じ値を `key=value` の行で足します。値の改行は空白にします。'
       - '`issues` では、ラベルを付けた人（`sender`）の権限を読みます。`admin` か `write` でないとき、名前が `[bot]` で終わるとき、権限を読めないときは、何も書かずに `proceed` を偽にします。'
       - '次の Issue には `out-of-scope` の結果のコメントを書き、起動ラベルを外し、`proceed` を偽にします。閉じた Issue、PR に付いたラベル、Epic、Tracker、sub-issue を持つ Issue が当たります。進行の欄が Backlog・Pending・Archived・Blocked の Issue も当たります。進行の欄が Active・In Review で、自動処理の結果のコメントが無い Issue も同じです。'
-      - 'ほかの Issue では、`proceed` を真にします。計画のコメントかブランチがあれば `kind` を `resume` に、無ければ `start` にします。計画のコメントは、見出し `## Plan` で始まり、bot か書き込み権限を持つ人が書いたコメントです。'
-      - '`workflow_run` で扱うのは、終わった CI の run のうち、ブランチの末尾が Issue 番号で、fork でないものです。自動処理が PR を作ったブランチの、先頭の commit の run に限ります。CI が通った後に push されたブランチの run には、何も書きません。'
+      - 'ほかの Issue では、`proceed` を真にします。計画のコメント・ブランチ・開いた PR のどれかがあれば `kind` を `resume` に、無ければ `start` にします。計画のコメントは、見出し `## Plan` で始まり、bot か書き込み権限を持つ人が書いたコメントです。'
+      - '`workflow_run` で扱うのは、終わった CI の run のうち、ブランチの末尾が Issue 番号で、fork でないものです。自動処理が PR を作ったブランチの、先頭の commit の run に限ります。CI が通った後に、人が push した run（`workflow_run.actor` が bot でない）には、何も書きません。'
       - 'CI が落ちて、直した回数が `max_ci_attempts` より少なければ、`kind` を `ci-fix` にして `proceed` を真にします。上限に達していれば、`limit` の結果のコメントを書き、Status を Needs Attention にして起動ラベルを外します。'
-      - 'CI が通ると、`ci-passed` の結果のコメントを書き、`proceed` を偽にします。'
+      - 'CI が通ると、`ci-passed` の結果のコメントを書き、`proceed` を偽にします。同じ commit のほかの run が落ちているとき、同じ push の CI でもう書いたときは、書きません。'
       - '`proceed` が偽でも、終了コードは成功です。'
       - 'MCP の結果では、実行の欄を `run` の中に入れます。`kind` と `reason` が、MCP の結果の共通の項目と同じ名前だからです。'
       - 'プロジェクトの設定に `fields.status` が要ります。結果のコメントは、`auto_finish` と同じ処理で書きます。'
@@ -401,7 +398,7 @@ entries:
         statement: 'もし CI の run が fork のブランチか、末尾が Issue 番号でないブランチのものなら、何も読まずに `proceed` を偽にします'
       - id: PW-AUTO-GATE-09
         pattern: unwanted
-        statement: 'もし CI の run が、自動処理が PR を作っていないブランチか、ブランチの先頭でない commit のものなら、何も書かずに `proceed` を偽にします。CI が通った後に push されたブランチの run も同じです'
+        statement: 'もし CI の run が、自動処理が PR を作っていないブランチか、ブランチの先頭でない commit のものなら、何も書かずに `proceed` を偽にします。CI が通った後に人が push した run も同じです'
       - id: PW-AUTO-GATE-10
         pattern: optional
         statement: 'CLI で `--dry-run` が有効なら、結果のコメント・Status・ラベルを書かず、書くはずの本文を JSON の欄 `comment` に入れます'
@@ -417,6 +414,12 @@ entries:
       - id: PW-AUTO-GATE-14
         pattern: ubiquitous
         statement: '常に、トークンの値を、結果・標準出力・標準エラー・コメントに書きません'
+      - id: PW-AUTO-GATE-15
+        pattern: unwanted
+        statement: 'もし CI が通っても、同じ commit のほかの run が落ちているか、同じ push の CI でもう `ci-passed` を書いているなら、何も書かずに `proceed` を偽にします'
+      - id: PW-AUTO-GATE-16
+        pattern: event
+        statement: '計画のコメントとブランチが無く、開いた PR だけがある Issue に起動ラベルが付くと、`kind` を `resume` にします'
   PW-AUTO-START:
     help:
       details:

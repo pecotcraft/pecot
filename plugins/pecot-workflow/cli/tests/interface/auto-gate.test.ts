@@ -36,7 +36,7 @@ function labeled(sender = 'alice'): string {
 }
 
 function workflowRun(values: Readonly<Record<string, unknown>> = {}): string {
-  const run = { conclusion: 'failure', head_branch: BRANCH, head_sha: HEAD, head_commit: { timestamp: '2026-11-24T09:00:00Z' }, head_repository: { full_name: 'acme/demo' }, pull_requests: [{ number: 11 }], ...values }
+  const run = { conclusion: 'failure', head_branch: BRANCH, head_sha: HEAD, actor: { login: 'pecot-agent[bot]', type: 'Bot' }, created_at: '2026-11-24T09:00:00Z', head_repository: { full_name: 'acme/demo' }, pull_requests: [{ number: 11 }], ...values }
   return eventFile({ action: 'completed', workflow_run: run, repository: REPOSITORY })
 }
 
@@ -50,6 +50,11 @@ function runJson(values: Readonly<Record<string, unknown>> = {}): Record<string,
 
 function branchSha(sha = HEAD): ResponseRule {
   return { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${BRANCH}` }, respond: { status: 200, body: { object: { sha } } }, times: 1 }
+}
+
+function headRuns(conclusions: readonly (string | undefined)[] = ['success']): ResponseRule {
+  const runs = conclusions.map((conclusion, index) => ({ id: index + 1, conclusion }))
+  return { match: { method: 'GET', path: '/repos/acme/demo/actions/runs' }, respond: { status: 200, body: { total_count: runs.length, workflow_runs: runs } }, times: 1 }
 }
 
 describe('auto gate', () => {
@@ -78,6 +83,16 @@ describe('auto gate', () => {
       await gate('issues', labeled())
 
       expect(readFileSync(file, 'utf8')).toBe(`earlier=1\nissue=acme/demo/7\nnumber=7\nkind=resume\nproceed=true\nreason=\nbranch=${BRANCH}\npr=11\nci_attempts=0\n`)
+    })
+
+    it('計画のコメントとブランチが無く、開いた PR だけがある Issue は、kind を resume にして、その PR を出す', async (context) => {
+      await verifies(context, 'PW-AUTO-GATE-16')
+      prepareAuto()
+      await startGithub([permissionOf('alice', 'write'), prerequisitesRule({ number: 7, column: 'Ready', pullRequests: [{ number: 11, head: BRANCH }] }), issueComments()])
+
+      const outcome = await gate('issues', labeled())
+
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ kind: 'resume', proceed: true, branch: BRANCH, pr: 11 })
     })
 
     it.for([
@@ -154,7 +169,7 @@ describe('auto gate', () => {
     it('CI が通ると、ci-passed の結果のコメントを書き、ラベルと Status は書かない', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-06')
       prepareAuto()
-      const github = await startGithub([issueComments([botResult('pr-created')]), branchSha(), AUTO_POSTED])
+      const github = await startGithub([issueComments([botResult('pr-created')]), branchSha(), headRuns(['success', undefined]), AUTO_POSTED])
 
       const outcome = await gate('workflow_run', workflowRun({ conclusion: 'success' }))
 
@@ -194,16 +209,39 @@ describe('auto gate', () => {
     it.for([
       { name: '自動処理が PR を作っていない', comments: [], sha: HEAD, reason: `no PR was created by the automation on ${BRANCH}` },
       { name: 'ブランチの先頭でない commit', comments: [botResult('pr-created')], sha: 'sha-newer', reason: `the run is not for the head of ${BRANCH}` },
-      { name: 'CI が通った後に push された', comments: [botResult('pr-created'), bot(autoResult('ci-passed'), '2026-11-24T08:00:00Z')], sha: HEAD, reason: `${BRANCH} was pushed after the CI passed` },
+      { name: 'CI が通った後に人が push した', comments: [botResult('pr-created'), bot(autoResult('ci-passed'), '2026-11-24T08:00:00Z')], sha: HEAD, reason: `${BRANCH} was pushed by a person after the CI passed` },
     ])('$name ブランチの CI なら、何も書かず、proceed を偽にする', async ({ comments, sha, reason }, context) => {
       await verifies(context, 'PW-AUTO-GATE-09')
       prepareAuto()
       const github = await startGithub([issueComments(comments), branchSha(sha)])
 
-      const outcome = await gate('workflow_run', workflowRun())
+      const outcome = await gate('workflow_run', workflowRun({ actor: { login: 'alice', type: 'User' } }))
 
       expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false, reason })
       expect(outcome.stderr).toBe(`skipped: automated fix for Issue acme/demo/7 (${reason})\n`)
+      expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('CI が通っても、同じ commit のほかの run が落ちていれば、ci-passed を書かず、proceed を偽にする', async (context) => {
+      await verifies(context, 'PW-AUTO-GATE-15')
+      prepareAuto()
+      const github = await startGithub([issueComments([botResult('pr-created')]), branchSha(), headRuns(['success', 'failure'])])
+
+      const outcome = await gate('workflow_run', workflowRun({ conclusion: 'success' }))
+
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false, reason: `another CI run of ${HEAD} failed` })
+      expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('同じ push の CI でもう ci-passed を書いていれば、ci-passed を重ねて書かない', async (context) => {
+      await verifies(context, 'PW-AUTO-GATE-15')
+      prepareAuto()
+      const comments = [botResult('pr-created'), bot(autoResult('ci-passed'), '2026-11-24T10:00:00Z')]
+      const github = await startGithub([issueComments(comments), branchSha(), headRuns()])
+
+      const outcome = await gate('workflow_run', workflowRun({ conclusion: 'success' }))
+
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false, reason: `the CI already passed for this push of ${BRANCH}` })
       expect(writesOf(github.requests())).toEqual([])
     })
   })

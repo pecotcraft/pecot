@@ -3,6 +3,7 @@
 import type { ProjectConfig } from '../domain/config.js'
 import type { RunIdentity } from '../domain/review-finish.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
+import { isWritePermission } from '../domain/write-permission.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { commandHint, hinted, RUN_COLON } from './command-hint.js'
@@ -14,8 +15,6 @@ import type { Output } from './output.js'
 
 export const DEFAULT_AUTO_LABEL = 'pecot-auto'
 const DEFAULT_SERVER_URL = 'https://github.com'
-// collaborators の permission。maintain は write で返る
-const WRITE_PERMISSIONS: ReadonlySet<string> = new Set(['admin', 'write'])
 
 // 環境変数の宣言の確かめ（.githooks/tests/test_nx_env_inputs.py）が名前を拾えるよう、process.env は名前の文字列で読む
 function nonEmpty(value: string | undefined): string | undefined {
@@ -73,7 +72,7 @@ export async function readOrStop<T>(out: Readonly<Output>, what: string, read: (
 export async function hasWritePermission(out: Readonly<Output>, client: GitHubClient, repository: Readonly<RepositoryReference>, login: string): Promise<boolean> {
   if (login.endsWith('[bot]')) return false
   try {
-    return WRITE_PERMISSIONS.has(await client.getCollaboratorPermission(repository.owner, repository.repository, login))
+    return isWritePermission(await client.getCollaboratorPermission(repository.owner, repository.repository, login))
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error

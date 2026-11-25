@@ -94,7 +94,6 @@ workflows: ["CI"]
 |---|---|---|
 | `ISSUE` | `${{ needs.gate.outputs.number }}` | コマンドの引数の一部 |
 | `JOB_STATUS` | `${{ job.status }}` | `--job-status "$JOB_STATUS"` |
-| `RUN_OUTCOME` | `${{ steps.claude.outcome }}` | `--run-outcome "$RUN_OUTCOME"` |
 | `EXECUTION_FILE` | `${{ steps.claude.outputs.execution_file }}` | `--execution-file "$EXECUTION_FILE"` |
 | `PECOT_AUTO_LABEL` | `${{ vars.PECOT_AUTO_LABEL \|\| 'pecot-auto' }}` | 引数にしない。CLI が環境変数から読む |
 | `PECOT_GITHUB_COM_TOKEN` | 発行した App のトークン | 引数にしない |
@@ -182,7 +181,7 @@ action はすべて SHA で固定し、版をコメントに書く。
 | 許可リストに、マージ・クローズ・リリースのツール（`pr_merge`・`release_create` など）が無い | 文字列を探す |
 | トークンの発行の step の `permission-*` が、job ごとの表と一致する | `with` のキーを比べる |
 | `gate` と `run` の `permissions` が、表のとおり | 読み込んだ値を比べる |
-| 後始末の step が `if: always()` を持ち、`JOB_STATUS`・`RUN_OUTCOME`・`EXECUTION_FILE` を `env` で受けて、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |
+| 後始末の step が `if: always()` を持ち、`JOB_STATUS`・`EXECUTION_FILE` を `env` で受けて、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |
 | `PECOT_AUTO_LABEL` が、`gate`・後始末・action の step の `env` にある | `env` のキーを見る |
 | 利用者が足す許可と CI の名前が、印の囲みの中にある | 印のコメントを探す |
 | action がすべて SHA で固定されている | `uses` の形を見る |

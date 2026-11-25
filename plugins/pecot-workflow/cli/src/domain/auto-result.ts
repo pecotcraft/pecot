@@ -179,7 +179,7 @@ const RESULT_LINES: Readonly<Record<AutoResult, string>> = {
 }
 
 // 利用者の値をコードの書き方の中に入れる。改行とバッククォートで書き方が崩れないよう、空白と引用符に替える
-function code(text: string): string {
+export function inlineCode(text: string): string {
   return `\`${text.replaceAll(/\s+/gu, ' ').replaceAll('`', '\'')}\``
 }
 
@@ -191,21 +191,21 @@ function defaultNext(result: AutoResult, relabel: string): string {
     case 'question': { return `答えを Issue にコメントで書き、${relabel}` }
     case 'out-of-scope': { return `対象外の理由を取り除いてから、${relabel}` }
     case 'failed': { return `実行の記録で原因を確かめてから、${relabel}` }
-    case 'limit': { return `変数 ${code('PECOT_AUTO_MAX_TURNS')}・${code('PECOT_AUTO_TIMEOUT_MINUTES')}・${code('PECOT_AUTO_MAX_CI_ATTEMPTS')} で上限を上げるか、手で直す。その後、${relabel}` }
+    case 'limit': { return `変数 ${inlineCode('PECOT_AUTO_MAX_TURNS')}・${inlineCode('PECOT_AUTO_TIMEOUT_MINUTES')}・${inlineCode('PECOT_AUTO_MAX_CI_ATTEMPTS')} で上限を上げるか、手で直す。その後、${relabel}` }
     case 'setup-missing': { return `足りない設定を整えてから、${relabel}` }
   }
 }
 
 function nextLine(result: AutoResult, next: AutoNext, label: string): string {
-  const relabel = `起動ラベル ${code(label)} を付け直す`
+  const relabel = `起動ラベル ${inlineCode(label)} を付け直す`
   switch (next) {
     case 'default': { return defaultNext(result, relabel) }
-    case 'ready': { return `${code('/pecot-w:w-ready')} の手順で Issue を Ready に置いてから、${relabel}` }
+    case 'ready': { return `${inlineCode('/pecot-w:w-ready')} の手順で Issue を Ready に置いてから、${relabel}` }
     case 'prerequisites': { return `前提が済み、Issue が Ready に移ってから、${relabel}` }
     case 'hand-over': { return `自動処理に任せるときは、Issue を Ready に戻してから、${relabel}` }
-    case 'subtask': { return `サブタスクの Issue に、起動ラベル ${code(label)} を付ける` }
-    case 'tracker': { return `Tracker の一覧の Issue へ、起動ラベル ${code(label)} を付ける` }
-    case 'issue-only': { return `起動ラベル ${code(label)} は、PR でなく Issue に付ける` }
+    case 'subtask': { return `サブタスクの Issue に、起動ラベル ${inlineCode(label)} を付ける` }
+    case 'tracker': { return `Tracker の一覧の Issue へ、起動ラベル ${inlineCode(label)} を付ける` }
+    case 'issue-only': { return `起動ラベル ${inlineCode(label)} は、PR でなく Issue に付ける` }
     case 'reopen': { return `続けるときは、Issue を開き直してから、${relabel}` }
   }
 }
@@ -234,7 +234,7 @@ export interface AutoResultValues {
 
 function bodyBlock(values: Readonly<AutoResultValues>): string {
   const missing = values.missing ?? []
-  const missingText = missing.length === 0 ? '' : `札を ${code(NEEDS_ATTENTION_LABEL)} にできなかった。足りない設定は ${missing.map(name => code(name)).join('・')} だ。`
+  const missingText = missing.length === 0 ? '' : `札を ${inlineCode(NEEDS_ATTENTION_LABEL)} にできなかった。足りない設定は ${missing.map(name => inlineCode(name)).join('・')} だ。`
   return [values.body?.trim() ?? '', missingText].filter(text => text !== '').join('\n\n')
 }
 
@@ -249,7 +249,7 @@ export function renderAutoResult(templateBody: string, values: Readonly<AutoResu
   const filled = withBody
     .replace(AUTO_RESULT_PLACEHOLDERS.summary, () => SUMMARIES[values.result])
     .replace(AUTO_RESULT_PLACEHOLDERS.result, () => RESULT_LINES[values.result])
-    .replace(AUTO_RESULT_PLACEHOLDERS.record, () => values.runUrl ?? `分からない（${code('GITHUB_RUN_ID')} が無い）`)
+    .replace(AUTO_RESULT_PLACEHOLDERS.record, () => values.runUrl ?? `分からない（${inlineCode('GITHUB_RUN_ID')} が無い）`)
     .replace(AUTO_RESULT_PLACEHOLDERS.next, () => nextLine(values.result, values.next ?? 'default', values.label))
     .trim()
   return values.marker === undefined ? `${filled}\n` : `${values.marker}\n\n${filled}\n`

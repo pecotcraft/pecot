@@ -49,6 +49,16 @@ describe('getBranchSha', () => {
   })
 })
 
+describe('listWorkflowRunConclusions', () => {
+  it('head_sha で絞った run の id と conclusion を返し、終わっていない run の conclusion は空にする', async () => {
+    const { client, server } = await startClient([
+      restResponse('GET', '/repos/owner/repo/actions/runs', { status: 200, body: { total_count: 2, workflow_runs: [{ id: 1, conclusion: 'success' }, { id: 2 }] } }),
+    ])
+    expect(await client.listWorkflowRunConclusions('owner', 'repo', 'abc')).toEqual([{ id: 1, conclusion: 'success' }, { id: 2, conclusion: '' }])
+    expect(restRequests(server).map(({ method, path, query }) => [method, path, query])).toEqual([['GET', '/repos/owner/repo/actions/runs', { head_sha: 'abc', per_page: '100' }]])
+  })
+})
+
 describe('countCommitsAhead', () => {
   it('compare の base...head を per_page=1 で引き、ahead_by を返す', async () => {
     const { client, server } = await startClient([

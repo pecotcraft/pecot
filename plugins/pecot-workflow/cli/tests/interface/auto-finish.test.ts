@@ -38,7 +38,7 @@ function textFile(name: string, text: string): string {
 }
 
 function ensure(job: string): readonly string[] {
-  return ['--ensure', '--job-status', job, '--run-outcome', job]
+  return ['--ensure', '--job-status', job]
 }
 
 describe('auto finish', () => {
@@ -197,8 +197,7 @@ describe('auto finish', () => {
   it.for([
     { name: '--result と --ensure の両方', argv: ['--result', 'failed', ...ensure('failure')], message: 'error: specify exactly one of --result and --ensure\n' },
     { name: 'どちらも無し', argv: [], message: 'error: specify exactly one of --result and --ensure\n' },
-    { name: '--ensure に --job-status が無い', argv: ['--ensure', '--run-outcome', 'failure'], message: 'error: --job-status is required with --ensure\n' },
-    { name: '--ensure に --run-outcome が無い', argv: ['--ensure', '--job-status', 'failure'], message: 'error: --run-outcome is required with --ensure\n' },
+    { name: '--ensure に --job-status が無い', argv: ['--ensure'], message: 'error: --job-status is required with --ensure\n' },
     { name: '--result に --job-status', argv: ['--result', 'failed', '--job-status', 'failure'], message: 'error: --job-status is only for --ensure\n' },
     { name: '--ensure に --body-file', argv: [...ensure('failure'), '--body-file', 'x.md'], message: 'error: --body-file is only for --result\n' },
   ])('$name を渡すと、何も読まずに終了コード 1 で終わる', async ({ argv, message }, context) => {
@@ -265,7 +264,7 @@ describe('auto finish', () => {
       prepareAuto()
       await startGithub([])
 
-      const outcome = await callToolOnce(AUTO_FINISH_COMMANDS, 'auto_finish', { issue_ref: 'acme/demo/7', ensure: true, job_status: 'success', run_outcome: 'success' })
+      const outcome = await callToolOnce(AUTO_FINISH_COMMANDS, 'auto_finish', { issue_ref: 'acme/demo/7', ensure: true, job_status: 'success' })
 
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toMatchObject({ issue: 'acme/demo/7', skipped: 'job-succeeded' })
