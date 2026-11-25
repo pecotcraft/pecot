@@ -371,4 +371,6 @@ PR の CI は写しだけを読み、GitHub には取りに行きません。
 | `supported needs exactly one of handler or tool` | `handler` と `tool` のどちらか 1 つだけを書きます |
 | `handler ... is not in ATTRIBUTE_HANDLERS`・`tool ... is not an MCP tool of COMMANDS` | 名前を直すか、消えた処理の代わりを書きます |
 | `excluded needs a reason` | 外す理由を書きます |
+| `excluded must not have handler or tool` | 外す項目から `handler`・`tool` を消します。扱うなら `status` を `supported` にします |
+| `supported must not have a reason` | 扱う項目から `reason` を消します。外すなら `status` を `excluded` にします |
 | `listed more than once` | 重なった項目を 1 つにします |

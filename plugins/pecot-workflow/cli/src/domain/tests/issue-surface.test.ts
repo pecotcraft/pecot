@@ -193,6 +193,9 @@ describe('checkIssueCoverage', () => {
   it.for([
     { name: 'handler が ATTRIBUTE_HANDLERS に無い', entry: { handler: 'parent' }, expected: 'handler parent is not in ATTRIBUTE_HANDLERS' },
     { name: 'tool が COMMANDS に無い', entry: { tool: 'issue_link' }, expected: 'tool issue_link is not an MCP tool of COMMANDS' },
+    { name: 'supported に reason がある', entry: { handler: 'labels', reason: 'x' }, expected: 'supported must not have a reason' },
+    { name: 'excluded に handler がある', entry: { status: 'excluded', handler: 'labels', reason: 'x' }, expected: 'excluded must not have handler or tool' },
+    { name: 'excluded に tool がある', entry: { status: 'excluded', tool: 'issue_create', reason: 'x' }, expected: 'excluded must not have handler or tool' },
   ])('$name とき、id を挙げた問題を返す', ({ entry, expected }) => {
     const coverage = coverageOf([{ id: 'graphql:A.a', status: 'supported', ...entry }])
     expect(checkIssueCoverage(['graphql:A.a'], coverage, HANDLERS, TOOLS)).toEqual([`graphql:A.a: ${expected}`])

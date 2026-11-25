@@ -128,8 +128,12 @@ export const issueSurfaceSchema = z.strictObject({
 export type IssueSurface = z.infer<typeof issueSurfaceSchema>
 
 function entryProblems(entry: Readonly<CoverageEntry>, handlers: ReadonlySet<string>, tools: ReadonlySet<string>): string[] {
-  if (entry.status === 'excluded') return (entry.reason ?? '').trim() === '' ? ['excluded needs a reason'] : []
   const { handler, tool } = entry
+  if (entry.status === 'excluded') {
+    if (handler !== undefined || tool !== undefined) return ['excluded must not have handler or tool']
+    return (entry.reason ?? '').trim() === '' ? ['excluded needs a reason'] : []
+  }
+  if (entry.reason !== undefined) return ['supported must not have a reason']
   if ((handler === undefined) === (tool === undefined)) return ['supported needs exactly one of handler or tool']
   if (handler !== undefined && !handlers.has(handler)) return [`handler ${handler} is not in ATTRIBUTE_HANDLERS`]
   if (tool !== undefined && !tools.has(tool)) return [`tool ${tool} is not an MCP tool of COMMANDS`]

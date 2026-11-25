@@ -106,7 +106,7 @@
 ## R8. 使えることの担保（B）
 
 - **Decision**:
-  - GitHub の公開スキーマ（GraphQL の SDL）と REST の OpenAPI（`github/rest-api-description` の `api.github.com.json`）から、Issue の機能に関わる部分だけを抜いた写しを、`plugins/pecot-workflow/interface/github-issue-surface.json` に置く
+  - GitHub の公開スキーマ（GraphQL の SDL）と REST の OpenAPI（`github/rest-api-description` の `api.github.com.<版>.json`）から、Issue の機能に関わる部分だけを抜いた写しを、`plugins/pecot-workflow/interface/github-issue-surface.json` に置く
   - 抜く部分は次のとおり
     - `CreateIssueInput`・`UpdateIssueInput` の項目
     - `ProjectV2FieldType`・`ProjectV2CustomFieldType`・`IssueFieldDataType` の値
