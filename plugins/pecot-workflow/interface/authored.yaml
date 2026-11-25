@@ -1936,7 +1936,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'プロジェクトにつながっているリポジトリ、親 Epic の sub-issue、`blocked_by` に書いた Issue を読みます。フロントマターに `attributes` があるときは、機能の定義と、`assignees` に渡したログイン名を担当にできるかも読みます。'
+        what: 'プロジェクトにつながっているリポジトリ、親 Epic の sub-issue、`blocked_by` に書いた Issue を読みます。`lane` を渡さずに親 Epic を指したときは、親の `pecot-lane` の値を読みます。`attributes` か `lane`（親から引き継いだ値も含む）があるときは、機能の定義も読みます。`attributes` があるときは、`assignees` に渡したログイン名を担当にできるかも読みます。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、プロジェクトの設定ファイルを読みます。'
@@ -2300,7 +2300,7 @@ entries:
       - '担当者・マイルストーン・Issue type・ラベルは、Issue を作る要求に入れます。続けて Issue fields を書きます。ボードのフィールドは、ボードへ足した後で書きます。'
       - 'Issue fields か組み込みの機能を書けないときは、その機能と理由を `failed` と `warnings` に入れて続けます。'
       - '`label` かフロントマターの `labels` と、`attributes` の `labels` を両方渡すと、どちらを使うか決まらないので失敗を返します。`value` が `null` の機能は書きません。'
-      - '`attributes` が無いときは、機能の定義を読まず、今までと同じ要求で作ります。'
+      - '`attributes`・`lane`・親の Epic から引き継ぐ値のどれも無いときは、機能の定義を読まず、今までと同じ要求で作ります。'
     stdin: none
     output:
       format: text
@@ -2390,7 +2390,7 @@ entries:
         what: 'Issue を作り、blocked-by を足し、プロジェクトのボードに足します。フィールドと `attributes` の機能の値を設定し、親 Epic の sub-issue としてつなぎます。前提が済んでいる Issue は、Blocked から Ready へ動かします。'
       - target: github
         kind: read
-        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。`attributes` があるときは、機能の定義と、`assignees` に渡したログイン名を担当にできるか。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
+        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。`lane` を渡さずに親 Epic を指したときは、親の `pecot-lane` の値。`attributes` か `lane`（親から引き継いだ値も含む）があるときは、機能の定義。`attributes` があるときは、`assignees` に渡したログイン名を担当にできるか。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
       - target: file
         kind: read
         what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
@@ -2625,7 +2625,7 @@ entries:
         statement: 'もし値が 1 つでも定義に合わないなら、一括のどの Issue も作らずに、`kind` が `invalid-input` の失敗を返します。合わないものを、すべて `errors` に入れます'
       - id: PW-ISSUE-CREATE-82
         pattern: event
-        statement: '`attributes` を省いて呼ぶと、機能の定義を読まずに、今までと同じ要求で Issue を作ります'
+        statement: '`attributes`・`lane`・親の Epic から引き継ぐ値のどれも無いと、機能の定義を読まずに、今までと同じ要求で Issue を作ります'
       - id: PW-ISSUE-CREATE-83
         pattern: unwanted
         statement: 'もし Issue fields か組み込みの機能の値を書けないなら、その機能と理由を `failed` と `warnings` に入れ、ほかの機能を書いて成功を返します'

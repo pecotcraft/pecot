@@ -9,7 +9,7 @@ import { writeTree } from '../../src/tests/_helpers/temporary.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
-import { BOARD_FIELDS_WITH_LANE, definitionRules } from '../_helpers/attributes.js'
+import { BOARD_FIELDS_WITH_LANE, definitionRules, definitionsData, issueFieldsProbeRule } from '../_helpers/attributes.js'
 import { addedToProject, ISSUE_URL_BASE, issueNodeId, linkedRepositories, parentLane, rawFrontmatterFile, setUpIssueProject, subIssueAdded, TASK_BODY, updatedFields } from '../_helpers/issue-create-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
@@ -284,6 +284,20 @@ describe('issue create', () => {
 
       expect(outcome.isError).toBe(false)
       expect(github.requests().find(request => request.type === 'graphql' && request.operation === 'GetIssueLane')).toMatchObject({ variables: { owner: 'acme', repo: 'demo', number: 3, laneFieldName: 'pecot-lane' } })
+      expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_cli')])
+    })
+
+    it('Issue fields を読めないリポでも、親の Epic の値を引き継いで起票し、warnings に Issue fields の 1 行だけを入れる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-92')
+      setUpIssueProject()
+      const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueFields'], message: 'Resource not accessible by integration' }]
+      const unreadableIssueFields: ResponseRule = { match: { operation: 'GetIssueAttributeDefinitions' }, respond: { status: 200, body: { data: definitionsData({ fields: BOARD_FIELDS_WITH_LANE, issueFields: null }), errors } }, times: 1 }
+      const github = await startGithub([linkedRepositories(), parentLane(3, 'cli'), issueFieldsProbeRule(), unreadableIssueFields, created(), addedToProject(), updatedFields(1), boardWritten(), issueNodeId(3), subIssueAdded()])
+
+      const outcome = await createTool({ ...DIRECT, ...PARENT })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured['warnings']).toStrictEqual(['could not read the Issue fields of acme/demo: Resource not accessible by integration'])
       expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_cli')])
     })
 
