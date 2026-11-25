@@ -337,6 +337,20 @@ describe('w-pr の手順', () => {
     expect(body).toContain('マージされずに閉じられた旨を利用者に伝えて止まる。片付けない')
   })
 
+  it('Step 4 と Step 6 は、background の待ちが終わったら、w-pr を resume で呼び直させる', () => {
+    for (const step of [4, 6]) {
+      expect(sectionBody(text, numberIndex(headings, step)), `Step ${String(step)}`).toMatch(/Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直/u)
+    }
+  })
+
+  it('Step 1 は、引数を本文に受け、resume のときに Step 4 か Step 6 の出力から続けさせる', () => {
+    const body = sectionBody(text, numberIndex(headings, 1))
+    expect(body).toContain('引数: $ARGUMENTS')
+    expect(body).toContain('引数が `resume` なら')
+    expect(body).toContain('[Step 4](#step-4-ci-を待って直す) の出力を読むところから続ける')
+    expect(body).toContain('[Step 6](#step-6-マージを待ち受けて片付ける) の出力の表から続ける')
+  })
+
   it('Step 4 と Step 5 は、途中で終えずに Step 6 の待ち受けへつなぐ', () => {
     expect(sectionBody(text, numberIndex(headings, 4))).toContain('その旨を伝えて Step 5 へ進む')
     const body = sectionBody(text, numberIndex(headings, 5))
